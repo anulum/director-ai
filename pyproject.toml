@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "0.2.0"
-description = "Director-Class AI — Ethical Singularity Engine (SCPN Layer 16)"
+version = "0.3.0"
+description = "Coherence Engine — AI output verification and safety oversight"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
 ]
@@ -26,12 +26,15 @@ classifiers = [
 ]
 dependencies = [
     "numpy>=1.24",
-    "scipy>=1.10",
     "torch>=2.0",
     "transformers>=4.30",
+    "requests>=2.28",
 ]
 
 [project.optional-dependencies]
+research = [
+    "scipy>=1.10",
+]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
@@ -45,6 +48,9 @@ Homepage = "https://www.anulum.li"
 Repository = "https://github.com/anulum/director-ai"
 Issues = "https://github.com/anulum/director-ai/issues"
 Changelog = "https://github.com/anulum/director-ai/blob/main/CHANGELOG.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.black]
 line-length = 88

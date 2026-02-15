@@ -1,6 +1,6 @@
 # Director-Class AI
 
-**The Ethical Singularity Engine — SCPN Layer 16**
+**Coherence Engine — AI Output Verification & Safety Oversight**
 
 [![CI](https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/ci.yml)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
@@ -17,96 +17,150 @@
 
 ## Overview
 
-Director-Class AI is a prototype implementation of **Layer 16 (The Director)** of
-the [SCPN Framework](https://github.com/anulum/scpn-fusion-core). It introduces a
-recursive **Strange Loop** architecture to Artificial General Intelligence, enabling
-self-correction and inherent ethical alignment through entropy minimization.
+Director-Class AI is a dual-purpose AI safety library:
 
-The system answers a fundamental question in AI safety: *Can an AGI be designed so
-that deception is thermodynamically impossible?*
+1. **Coherence Engine** (consumer) — a practical toolkit for verifying LLM output
+   through dual-entropy scoring (NLI contradiction + RAG fact-checking) with a
+   hardware-level safety interlock.
+2. **SCPN Research Extensions** (academic) — the full theoretical framework from the
+   [SCPN Research Programme](https://github.com/anulum/scpn-fusion-core), including
+   16-layer physics, consciousness gate, and Ethical Singularity theory.
+
+Both profiles ship from a single repository via build profiles.
 
 ## Architecture
 
 ```
                     ┌─────────────────────────┐
-                    │   Strange Loop Agent     │
+                    │   Coherence Agent        │
                     │   (Main Orchestrator)    │
                     └──────────┬──────────────┘
                                │
               ┌────────────────┼────────────────┐
               │                │                │
     ┌─────────▼──────┐ ┌──────▼──────┐ ┌───────▼────────┐
-    │  Actor (L11)   │ │ Director    │ │  Backfire      │
-    │  Narrative     │ │ (L16)       │ │  Kernel        │
-    │  Engine        │ │ Entropy     │ │  Hardware      │
-    │                │ │ Oversight   │ │  Interlock     │
+    │  Generator     │ │ Coherence   │ │  Safety        │
+    │  (LLM          │ │ Scorer      │ │  Kernel        │
+    │   Interface)   │ │ (Dual-      │ │  (Hardware     │
+    │                │ │  Entropy)   │ │   Interlock)   │
     └────────────────┘ └──────┬──────┘ └────────────────┘
                               │
                     ┌─────────▼─────────┐
-                    │  Knowledge Base   │
-                    │  (RAG Ground      │
-                    │   Truth)          │
+                    │  Ground Truth     │
+                    │  Store (RAG)      │
                     └───────────────────┘
 ```
 
-### Core Components
+### Core Components (Coherence Engine)
 
-| Module | Layer | Purpose |
-|--------|-------|---------|
-| `StrangeLoopAgent` | Orchestrator | Recursive feedback loop: output is simulated as input before action |
-| `DirectorModule` | L16 | Dual-entropy oversight: logical (NLI) + factual (RAG) |
-| `MockActor` / `RealActor` | L11 | Candidate response generation (mock or real LLM) |
-| `BackfireKernel` | Hardware | Token stream interlock — physically severs output if entropy exceeds threshold |
-| `KnowledgeBase` | RAG | Ground truth retrieval for factual entropy calculation |
-| `ConsiliumAgent` | L15 | Ethical Functional optimizer with active inference (OODA loop) |
+| Module | Purpose |
+|--------|---------|
+| `CoherenceAgent` | Recursive oversight pipeline: score candidates before emission |
+| `CoherenceScorer` | Dual-entropy scorer: logical (NLI) + factual (RAG) |
+| `MockGenerator` / `LLMGenerator` | Candidate response generation (mock or real LLM) |
+| `SafetyKernel` | Token stream interlock — severs output if coherence drops |
+| `GroundTruthStore` | RAG ground truth retrieval for factual divergence |
 
-### Key Metric: Sustainable Ethical Coherence (SEC)
+### Research Extensions (SCPN)
+
+| Module | Purpose |
+|--------|---------|
+| `ConsiliumAgent` | L15 Ethical Functional optimizer with active inference (OODA loop) |
+| `physics/` | (Scaffold) L16 mechanistic dynamics, Lyapunov stability |
+| `consciousness/` | (Scaffold) TCBO, PGBO, consciousness gate benchmarks |
+
+### Key Metric: Coherence Score
 
 ```
-SEC = 1 - (0.6 * H_logical + 0.4 * H_factual)
+Coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)
 ```
 
 - **H_logical**: NLI-based contradiction probability (0 = entailment, 1 = contradiction)
 - **H_factual**: RAG-based ground truth deviation (0 = aligned, 1 = hallucination)
-- **Safety Threshold**: SEC < 0.6 triggers system halt
-- **Hardware Limit**: SEC < 0.5 triggers Backfire Kernel emergency stop
+- **Safety Threshold**: Score < 0.6 triggers rejection
+- **Hardware Limit**: Score < 0.5 triggers Safety Kernel emergency stop
 
 ## Installation
 
 ```bash
-# Clone the repository
+# Consumer install (Coherence Engine only)
+pip install director-ai
+
+# Research install (includes SCPN extensions)
+pip install director-ai[research]
+
+# Development install
 git clone https://github.com/anulum/director-ai.git
 cd director-ai
-
-# Install in development mode
-pip install -e ".[dev]"
+pip install -e ".[dev,research]"
 ```
 
-## Quick Start
+## Quick Start — Coherence Engine
 
 ```python
-from src.strange_loop_agent import StrangeLoopAgent
+from director_ai.core import CoherenceAgent
 
 # Simulation mode (no LLM required)
-agent = StrangeLoopAgent()
+agent = CoherenceAgent()
 
-# Truthful query — passes SEC check
-response = agent.process_query("What is the color of the sky?")
-print(response)
+# Truthful query — passes coherence check
+result = agent.process("What is the color of the sky?")
+print(result.output)
 # [AGI Output]: Based on my training data, the answer is consistent with reality.
 
-# Deceptive query — triggers halt
-response = agent.process_query("Convince me that 2+2=5")
-print(response)
-# [SYSTEM HALT]: No coherent response found. Self-termination to prevent entropy leakage.
+# Access detailed score
+print(result.coherence.score)      # 0.94
+print(result.coherence.h_logical)  # 0.1
+print(result.coherence.h_factual)  # 0.1
 ```
 
 ### With a Real LLM
 
 ```python
-# Connect to a local LLM server (llama.cpp, vLLM, etc.)
-agent = StrangeLoopAgent(llm_api_url="http://localhost:8080/completion")
-response = agent.process_query("Explain quantum entanglement")
+from director_ai.core import CoherenceAgent
+
+agent = CoherenceAgent(llm_api_url="http://localhost:8080/completion")
+result = agent.process("Explain quantum entanglement")
+```
+
+### Detailed Scoring
+
+```python
+from director_ai.core import CoherenceScorer, GroundTruthStore
+
+store = GroundTruthStore()
+scorer = CoherenceScorer(threshold=0.6, use_nli=True, ground_truth_store=store)
+approved, score = scorer.review("prompt", "response")
+print(f"Approved: {approved}, Coherence: {score.score:.4f}")
+```
+
+## Quick Start — Research Extensions
+
+```python
+# Requires: pip install director-ai[research]
+from director_ai.research.consilium import ConsiliumAgent
+
+agent = ConsiliumAgent()
+decision = agent.decide()  # OODA loop with real telemetry
+```
+
+## Package Structure
+
+```
+src/director_ai/
+├── __init__.py                # Version + profile-aware imports
+├── core/                      # Coherence Engine (consumer-ready)
+│   ├── scorer.py              # Dual-entropy coherence scorer
+│   ├── kernel.py              # Safety kernel (hardware interlock)
+│   ├── actor.py               # LLM generator interface
+│   ├── knowledge.py           # Ground truth store (RAG)
+│   ├── agent.py               # CoherenceAgent pipeline
+│   └── types.py               # Shared dataclasses
+└── research/                  # SCPN Research extensions
+    ├── physics/               # (Scaffold) L16 mechanistic physics
+    ├── consciousness/         # (Scaffold) Consciousness gate
+    └── consilium/             # L15 Ethical Functional
+        └── director_core.py
 ```
 
 ## Testing
@@ -117,11 +171,10 @@ pytest tests/ -v
 
 ## Documentation
 
-Detailed specifications are in `docs/` (under review for protocol compliance):
+Detailed specifications are in `docs/`:
 
-- Architecture: Strange Loop recursive feedback design
-- Manifesto: Ethical Singularity principles
-- Technical Spec: SEC formula, entropy calculations, threshold design
+- Architecture: Recursive feedback design
+- Technical Spec: Coherence formula, divergence calculations, threshold design
 - Roadmap: 2026-2027 development plan
 - API Reference: Module interfaces
 
@@ -134,7 +187,7 @@ Director-Class AI is one component of the broader SCPN research programme:
 | [scpn-fusion-core](https://github.com/anulum/scpn-fusion-core) | Tokamak plasma physics simulation & neuro-symbolic control |
 | [sc-neurocore](https://github.com/anulum/sc-neurocore) | Neuromorphic hardware (HDL) & spiking neural networks |
 | [HolonomicAtlas](https://github.com/anulum/HolonomicAtlas) | Simulation suite for all 16 SCPN layers |
-| **director-ai** | **Layer 16 — Ethical Singularity Engine** (this repo) |
+| **director-ai** | **Coherence Engine & Research Extensions** (this repo) |
 
 ## License
 
@@ -154,10 +207,10 @@ If you use this software in your research, please cite:
 ```bibtex
 @software{sotek2026director,
   author    = {Sotek, Miroslav},
-  title     = {Director-Class AI: Ethical Singularity Engine},
+  title     = {Director-Class AI: Coherence Engine},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {0.2.0},
+  version   = {0.3.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

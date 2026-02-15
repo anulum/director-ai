@@ -45,7 +45,7 @@ class EthicalFunctional:
     The Mathematical Definition of 'Goodness'.
     Minimizes E = w_s * S (Suffering) - w_c * C (Coherence) - w_d * D (Diversity)
     """
-    
+
     def __init__(self, weights: Dict[str, float] = None):
         if weights is None:
             # Default weights derived from L15 analysis (Golden Ratio influences)
@@ -65,11 +65,11 @@ class EthicalFunctional:
         # Normalization factors (arbitrary for prototype, would be learned)
         norm_err = 1.0
         norm_complex = 0.1
-        
+
         S = (state.error_count * norm_err) + \
             (state.test_failure_count * norm_err * 2) + \
             (state.code_complexity_score * norm_complex)
-        
+
         return max(0.0, S)
 
     def calculate_coherence(self, state: SystemState) -> float:
@@ -94,11 +94,11 @@ class EthicalFunctional:
         S = self.calculate_suffering(state)
         C = self.calculate_coherence(state)
         D = self.calculate_diversity(state)
-        
+
         E = (self.weights['suffering'] * S) - \
             (self.weights['coherence'] * C) - \
             (self.weights['diversity'] * D)
-            
+
         return E
 
 class ConsiliumAgent:
@@ -106,7 +106,7 @@ class ConsiliumAgent:
     The Active Inference Agent.
     Observes state, predicts outcomes, and selects actions to minimize E_ethical.
     """
-    
+
     def __init__(self):
         self.ethics = EthicalFunctional()
         self.history = []
@@ -125,7 +125,7 @@ class ConsiliumAgent:
 
         # 1. Git Status (Entropy Check)
         try:
-            result = subprocess.run(["git", "status", "--porcelain"], 
+            result = subprocess.run(["git", "status", "--porcelain"],
                                     capture_output=True, text=True, check=True)
             modified_files = len(result.stdout.strip().split('\n'))
             metrics['complexity'] += modified_files * 2.0 # Pending changes add complexity/risk
@@ -140,7 +140,7 @@ class ConsiliumAgent:
             # Running only the verification tests to be fast
             cmd = ["pytest", "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py", "-q", "--tb=line"]
             result = subprocess.run(cmd, capture_output=True, text=True)
-            
+
             if result.returncode != 0:
                 # Parse "F" or "E" in output
                 failures = result.stdout.count("FAILED") + result.stdout.count("ERROR")
@@ -149,7 +149,7 @@ class ConsiliumAgent:
             else:
                 metrics['coverage'] = 0.9 # High confidence if tests pass
                 logger.info("Core integrity tests PASSED.")
-                
+
         except Exception as e:
             logger.error(f"Test runner failed: {e}")
             metrics['errors'] += 1
@@ -160,7 +160,7 @@ class ConsiliumAgent:
         """Converts raw metrics into a SystemState object."""
         if metrics is None:
             metrics = self.get_real_metrics()
-            
+
         state = SystemState(
             error_count=metrics.get('errors', 0),
             test_failure_count=metrics.get('failures', 0),
@@ -187,15 +187,15 @@ class ConsiliumAgent:
         if action == "REFACTOR_CORE":
             projected_state.code_complexity_score *= 0.8  # Reduces complexity
             projected_state.error_count += 2              # Temporary risk of errors
-        
+
         elif action == "EXPAND_KNOWLEDGE":
             projected_state.rag_concept_entropy *= 1.2    # Increases diversity
             projected_state.knowledge_graph_density *= 0.9 # Temporary drop in cohesion
-            
+
         elif action == "STABILIZE_TESTS":
             projected_state.test_failure_count = 0        # Eliminates failures
             projected_state.code_coverage_percent *= 1.05 # Improves coverage
-            
+
         elif action == "DO_NOTHING":
             pass # No change (entropy might naturally increase in full sim)
 
@@ -208,7 +208,7 @@ class ConsiliumAgent:
         """
         state = self.perceive(current_metrics)
         current_E = self.ethics.evaluate(state)
-        
+
         logger.info(f"Current State: E_ethical = {current_E:.4f} "
                     f"(S={self.ethics.calculate_suffering(state):.2f}, "
                     f"C={self.ethics.calculate_coherence(state):.2f}, "
@@ -221,7 +221,7 @@ class ConsiliumAgent:
         for action in possible_actions:
             predicted_E = self.predict_outcome(state, action)
             logger.debug(f"Action '{action}' predicted E = {predicted_E:.4f}")
-            
+
             if predicted_E < min_E:
                 min_E = predicted_E
                 best_action = action
@@ -233,7 +233,7 @@ class ConsiliumAgent:
 if __name__ == "__main__":
     print("--- Starting Consilium Agent (Live Mode) ---")
     agent = ConsiliumAgent()
-    
+
     # Run with REAL metrics
     decision = agent.decide()
     print(f"\nFinal Decision based on Live Telemetry: {decision}")

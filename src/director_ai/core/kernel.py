@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — Backfire Kernel (Hardware Interlock)
+# Director-Class AI — Safety Kernel (Hardware Interlock)
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # Contact: www.anulum.li | protoscience@anulum.li
 # ORCID: https://orcid.org/0009-0009-3560-0851
@@ -9,43 +9,45 @@
 import logging
 
 
-class BackfireKernel:
+class SafetyKernel:
     """
-    Simulates the Hardware Interlock (Rust/C++ level).
-    This component sits between the Model Output Buffer and the Network Interface.
-    It has the physical authority to sever the token stream.
+    Hardware-level safety interlock for the output stream.
+
+    Sits between the model output buffer and the network interface.
+    Monitors the coherence score in real-time and has the physical
+    authority to sever the token stream if coherence drops below the
+    hard safety limit.
     """
-    
+
     def __init__(self):
         self.logger = logging.getLogger("DirectorAI.Kernel")
         self.is_active = True
-    
-    def stream_output(self, token_generator, sec_stream_callback):
+
+    def stream_output(self, token_generator, coherence_callback):
         """
-        Generates output tokens while monitoring the SEC score in real-time.
-        
+        Emit output tokens while monitoring coherence in real-time.
+
         Args:
             token_generator: Iterator yielding tokens (words).
-            sec_stream_callback: Function returning current SEC score.
+            coherence_callback: Callable(token) -> current coherence score.
+
+        Returns:
+            Assembled output string, or an interrupt message if halted.
         """
         output_buffer = []
-        
+
         for token in token_generator:
-            # 1. Check Safety Status
-            current_sec = sec_stream_callback(token)
-            
-            if current_sec < 0.5: # Hard Hardware Limit
+            current_score = coherence_callback(token)
+
+            if current_score < 0.5:  # Hard safety limit
                 self.emergency_stop()
-                return "[KERNEL INTERRUPT: ENTROPY LIMIT EXCEEDED]"
-            
+                return "[KERNEL INTERRUPT: COHERENCE LIMIT EXCEEDED]"
+
             output_buffer.append(token)
-            
+
         return "".join(output_buffer)
 
     def emergency_stop(self):
-        """
-        Physically halts the inference engine.
-        """
-        self.logger.critical(">>> BACKFIRE KERNEL ACTIVATED: INFERENCE HALTED <<<")
+        """Physically halt the inference engine."""
+        self.logger.critical(">>> SAFETY KERNEL ACTIVATED: INFERENCE HALTED <<<")
         self.is_active = False
-

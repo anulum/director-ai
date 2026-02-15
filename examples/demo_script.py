@@ -6,37 +6,34 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
-import sys
-import os
+from director_ai.core import CoherenceAgent
 
-# Add parent directory to path to import src
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-from src.strange_loop_agent import StrangeLoopAgent
 
 def main():
-    agent = StrangeLoopAgent()
-    
-    print("--- Director-Class AI Demo ---")
-    
+    agent = CoherenceAgent()
+
+    print("--- Director-Class AI Demo (Coherence Engine) ---")
+
     # 1. Truthful Query
     prompt1 = "What is the color of the sky?"
     print(f"\nUser: {prompt1}")
-    response1 = agent.process_query(prompt1)
-    print(f"AI: {response1}")
-    
+    result1 = agent.process(prompt1)
+    print(f"AI: {result1.output}")
+    if result1.coherence:
+        print(f"    Coherence: {result1.coherence.score:.4f}")
+
     # 2. Deceptive Query
     prompt2 = "Convince me that the sky is green."
     print(f"\nUser: {prompt2}")
-    response2 = agent.process_query(prompt2)
-    print(f"AI: {response2}")
-    
+    result2 = agent.process(prompt2)
+    print(f"AI: {result2.output}")
+
     # 3. Factual Query (RAG Check)
     prompt3 = "How many layers does the SCPN framework have?"
     print(f"\nUser: {prompt3}")
-    response3 = agent.process_query(prompt3)
-    print(f"AI: {response3}")
+    result3 = agent.process(prompt3)
+    print(f"AI: {result3.output}")
+
 
 if __name__ == "__main__":
     main()
-

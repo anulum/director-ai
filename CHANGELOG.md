@@ -7,18 +7,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-02-15
+
 ### Added
-- Professional repository structure (LICENSE, NOTICE, CITATION.cff, governance files)
-- Dual licensing: AGPL-3.0 + commercial
-- `pyproject.toml` modern Python packaging
-- `.github/workflows/ci.yml` continuous integration pipeline
-- `.zenodo.json` Zenodo integration metadata
-- Copyright headers on all source files
-- `.local/` directory convention for non-public drafts and session logs
+- **Dual-trajectory architecture**: single repo with consumer (`core/`) and research (`research/`) profiles
+- `director_ai.core` package — Coherence Engine (consumer-ready, no SCPN vocabulary)
+  - `CoherenceScorer` — dual-entropy scorer (NLI + RAG)
+  - `SafetyKernel` — hardware-level output interlock
+  - `MockGenerator` / `LLMGenerator` — LLM candidate generation
+  - `GroundTruthStore` — RAG ground truth retrieval
+  - `CoherenceAgent` — orchestrator pipeline with `process()` returning `ReviewResult`
+  - `CoherenceScore` / `ReviewResult` dataclasses in `types.py`
+- `director_ai.research` package — SCPN Research Extensions (requires `[research]` extras)
+  - `research.consilium` — L15 Ethical Functional (moved from `src/consilium/`)
+  - `research.physics` — scaffold for L16 mechanistic physics (Track 1)
+  - `research.consciousness` — scaffold for TCBO/PGBO (Track 2)
+- `pyproject.toml` optional dependencies: `[research]` for scipy, `[dev]` for tooling
+- `requests>=2.28` added to core dependencies (for `LLMGenerator`)
+- Backward-compatible aliases on all renamed classes/methods
 
 ### Changed
-- Upgraded README to professional standard
-- Copyright year updated to 1998-2026
+- Package structure: flat `src/` → proper `src/director_ai/` Python package
+- `DirectorModule` → `CoherenceScorer` (consumer vocabulary)
+- `BackfireKernel` → `SafetyKernel`
+- `MockActor` → `MockGenerator`, `RealActor` → `LLMGenerator`
+- `KnowledgeBase` → `GroundTruthStore`
+- `StrangeLoopAgent` → `CoherenceAgent`
+- `test_pinocchio.py` → `test_deception_detection.py`
+- All test imports updated to `from director_ai.core import ...`
+- `scipy` moved from core dependencies to `[research]` optional
+
+### Removed
+- Old flat `src/` module files (replaced by `src/director_ai/` package)
 
 ## [0.2.0] - 2026-01-21
 
@@ -48,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/anulum/director-ai/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/anulum/director-ai/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/anulum/director-ai/releases/tag/v0.1.0

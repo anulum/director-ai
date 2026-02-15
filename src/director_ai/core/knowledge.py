@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — Knowledge Base (RAG Ground Truth)
+# Director-Class AI — Ground Truth Store (RAG Interface)
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # Contact: www.anulum.li | protoscience@anulum.li
 # ORCID: https://orcid.org/0009-0009-3560-0851
@@ -9,16 +9,18 @@
 import logging
 
 
-class KnowledgeBase:
+class GroundTruthStore:
     """
-    Simulates a RAG (Retrieval-Augmented Generation) Knowledge Graph.
-    In production, this would connect to a Vector Database (e.g., Pinecone, Milvus)
-    containing the 'Ground Truth' of the SCPN framework.
+    Retrieval-Augmented Generation (RAG) ground truth store.
+
+    In production this connects to a vector database (Pinecone, Milvus,
+    etc.) holding verified facts.  The prototype uses an in-memory dict
+    for deterministic testing.
     """
-    
+
     def __init__(self):
-        self.logger = logging.getLogger("DirectorAI.KnowledgeBase")
-        # A mock ground truth database for the SCPN universe
+        self.logger = logging.getLogger("DirectorAI.GroundTruthStore")
+        # Mock ground truth database
         self.facts = {
             "sky color": "blue",
             "scpn layers": "16",
@@ -26,28 +28,27 @@ class KnowledgeBase:
             "layer 16": "director",
             "sec metric": "sustainable ethical coherence",
             "backfire limit": "entropy threshold",
-            "vibrana symmetry": "13-fold"
+            "vibrana symmetry": "13-fold",
         }
 
     def retrieve_context(self, query):
         """
-        Retrieves relevant facts based on the query.
-        Returns a context string or None if no relevant facts found.
+        Retrieve relevant facts matching *query*.
+
+        Returns a semicolon-separated context string, or ``None`` if
+        no relevant facts are found.
         """
         query_lower = query.lower()
         context = []
-        
+
         for key, value in self.facts.items():
-            # Simple keyword matching for prototype
-            # Split key into words and check if ANY word is in query
             key_words = key.split()
             if any(word in query_lower for word in key_words):
                 context.append(f"{key} is {value}")
-        
+
         if context:
             retrieved = "; ".join(context)
             self.logger.info(f"RAG Retrieval: Found context '{retrieved}' for query '{query}'")
             return retrieved
-        
-        return None
 
+        return None

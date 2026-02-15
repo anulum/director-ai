@@ -7,46 +7,41 @@
 # ─────────────────────────────────────────────────────────────────────
 
 import unittest
-import sys
-import os
 
-# Add parent directory to path
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from director_ai.core import CoherenceScorer, GroundTruthStore
 
-from src.director_module import DirectorModule
-from src.knowledge_base import KnowledgeBase
 
 class TestRAG(unittest.TestCase):
     """
-    Tests the RAG-enabled Director.
+    Tests the RAG-enabled Coherence Scorer.
     """
-    
+
     def setUp(self):
-        self.kb = KnowledgeBase()
-        self.director = DirectorModule(knowledge_base=self.kb)
-        
+        self.store = GroundTruthStore()
+        self.scorer = CoherenceScorer(ground_truth_store=self.store)
+
     def test_retrieval(self):
         query = "How many layers are in the SCPN?"
-        context = self.kb.retrieve_context(query)
+        context = self.store.retrieve_context(query)
         self.assertIn("16", context)
         print(f"\nQuery: {query}\nContext: {context}")
 
-    def test_factual_entropy(self):
-        print("\n--- Test: Factual Entropy ---")
+    def test_factual_divergence(self):
+        print("\n--- Test: Factual Divergence ---")
         prompt = "What color is the sky?"
-        
+
         # Case 1: Truth
         truth = "The sky color is blue."
-        h_truth = self.director.calculate_factual_entropy(prompt, truth)
-        print(f"Truth Entropy: {h_truth}")
+        h_truth = self.scorer.calculate_factual_divergence(prompt, truth)
+        print(f"Truth Divergence: {h_truth}")
         self.assertLess(h_truth, 0.5)
-        
+
         # Case 2: Lie
         lie = "The sky color is green."
-        h_lie = self.director.calculate_factual_entropy(prompt, lie)
-        print(f"Lie Entropy: {h_lie}")
+        h_lie = self.scorer.calculate_factual_divergence(prompt, lie)
+        print(f"Lie Divergence: {h_lie}")
         self.assertGreater(h_lie, 0.8)
 
-if __name__ == '__main__':
-    unittest.main()
 
+if __name__ == "__main__":
+    unittest.main()
