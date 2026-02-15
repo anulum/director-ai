@@ -36,7 +36,6 @@ from typing import List, Optional, Tuple
 
 import numpy as np
 
-
 # ── Ripser detection ─────────────────────────────────────────────────
 
 try:
