@@ -43,7 +43,11 @@ class BenchmarkResult:
 
 
 def _generate_coherent_phases(
-    N: int, T: int, freq: float = 1.0, coupling: float = 0.3, dt: float = 0.01,
+    N: int,
+    T: int,
+    freq: float = 1.0,
+    coupling: float = 0.3,
+    dt: float = 0.01,
 ) -> np.ndarray:
     """Generate synthetic coupled oscillator phases.
 

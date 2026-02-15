@@ -48,7 +48,9 @@ class GroundTruthStore:
 
         if context:
             retrieved = "; ".join(context)
-            self.logger.info(f"RAG Retrieval: Found context '{retrieved}' for query '{query}'")
+            self.logger.info(
+                f"RAG Retrieval: Found context '{retrieved}' for query '{query}'"
+            )
             return retrieved
 
         return None

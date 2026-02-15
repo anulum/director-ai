@@ -13,17 +13,17 @@ from dataclasses import dataclass
 class CoherenceScore:
     """Result of a coherence check on generated output."""
 
-    score: float           # Composite coherence score (0.0 = incoherent, 1.0 = perfect)
-    approved: bool         # Whether the output passes the threshold
-    h_logical: float       # Logical divergence (NLI contradiction probability)
-    h_factual: float       # Factual divergence (ground truth deviation)
+    score: float  # Composite coherence score (0.0 = incoherent, 1.0 = perfect)
+    approved: bool  # Whether the output passes the threshold
+    h_logical: float  # Logical divergence (NLI contradiction probability)
+    h_factual: float  # Factual divergence (ground truth deviation)
 
 
 @dataclass
 class ReviewResult:
     """Full review outcome from the CoherenceAgent pipeline."""
 
-    output: str            # Final output text (or halt message)
+    output: str  # Final output text (or halt message)
     coherence: CoherenceScore | None  # Score of the selected candidate
-    halted: bool           # True if the system refused to emit output
+    halted: bool  # True if the system refused to emit output
     candidates_evaluated: int  # Number of candidates scored

@@ -78,6 +78,7 @@ class CoherenceAgent:
 
         # 3. Safety kernel output streaming
         if best_response:
+
             def coherence_monitor(token):
                 return best_coherence
 

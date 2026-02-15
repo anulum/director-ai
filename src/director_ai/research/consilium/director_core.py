@@ -26,12 +26,14 @@ from dataclasses import dataclass
 from datetime import datetime
 
 # Configure Logging (The "Consciousness Stream")
-logging.basicConfig(level=logging.INFO, format='%(asctime)s [CONSILIUM] %(message)s')
+logging.basicConfig(level=logging.INFO, format="%(asctime)s [CONSILIUM] %(message)s")
 logger = logging.getLogger("Consilium")
+
 
 @dataclass
 class SystemState:
     """Represents the current snapshot of the SCPN system."""
+
     error_count: int
     test_failure_count: int
     code_complexity_score: float
@@ -39,6 +41,7 @@ class SystemState:
     code_coverage_percent: float
     rag_concept_entropy: float
     timestamp: datetime = datetime.now()
+
 
 class EthicalFunctional:
     """
@@ -50,9 +53,9 @@ class EthicalFunctional:
         if weights is None:
             # Default weights derived from L15 analysis (Golden Ratio influences)
             self.weights = {
-                'suffering': 1.618,  # High penalty for errors (Entropy)
-                'coherence': 1.0,    # Baseline value for integration
-                'diversity': 0.618   # Support for novelty (1/phi)
+                "suffering": 1.618,  # High penalty for errors (Entropy)
+                "coherence": 1.0,  # Baseline value for integration
+                "diversity": 0.618,  # Support for novelty (1/phi)
             }
         else:
             self.weights = weights
@@ -66,9 +69,11 @@ class EthicalFunctional:
         norm_err = 1.0
         norm_complex = 0.1
 
-        S = (state.error_count * norm_err) + \
-            (state.test_failure_count * norm_err * 2) + \
-            (state.code_complexity_score * norm_complex)
+        S = (
+            (state.error_count * norm_err)
+            + (state.test_failure_count * norm_err * 2)
+            + (state.code_complexity_score * norm_complex)
+        )
 
         return max(0.0, S)
 
@@ -79,7 +84,7 @@ class EthicalFunctional:
         """
         # Coherence is high when coverage is high and knowledge is dense
         C = (state.knowledge_graph_density * 0.5) + (state.code_coverage_percent * 0.5)
-        return max(0.0, min(1.0, C)) # Bound between 0 and 1
+        return max(0.0, min(1.0, C))  # Bound between 0 and 1
 
     def calculate_diversity(self, state: SystemState) -> float:
         """
@@ -95,11 +100,14 @@ class EthicalFunctional:
         C = self.calculate_coherence(state)
         D = self.calculate_diversity(state)
 
-        E = (self.weights['suffering'] * S) - \
-            (self.weights['coherence'] * C) - \
-            (self.weights['diversity'] * D)
+        E = (
+            (self.weights["suffering"] * S)
+            - (self.weights["coherence"] * C)
+            - (self.weights["diversity"] * D)
+        )
 
         return E
+
 
 class ConsiliumAgent:
     """
@@ -115,44 +123,55 @@ class ConsiliumAgent:
     def get_real_metrics(self) -> Dict[str, Any]:
         """Gathers REAL telemetry from the environment."""
         metrics = {
-            'errors': 0,
-            'failures': 0,
-            'complexity': 0.0,
-            'graph_density': 0.5, # Placeholder until Graph DB connection
-            'coverage': 0.0,
-            'entropy': 0.8        # Baseline entropy
+            "errors": 0,
+            "failures": 0,
+            "complexity": 0.0,
+            "graph_density": 0.5,  # Placeholder until Graph DB connection
+            "coverage": 0.0,
+            "entropy": 0.8,  # Baseline entropy
         }
 
         # 1. Git Status (Entropy Check)
         try:
-            result = subprocess.run(["git", "status", "--porcelain"],
-                                    capture_output=True, text=True, check=True)
-            modified_files = len(result.stdout.strip().split('\n'))
-            metrics['complexity'] += modified_files * 2.0 # Pending changes add complexity/risk
+            result = subprocess.run(
+                ["git", "status", "--porcelain"],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            modified_files = len(result.stdout.strip().split("\n"))
+            metrics["complexity"] += (
+                modified_files * 2.0
+            )  # Pending changes add complexity/risk
             logger.info(f"Git Status: {modified_files} modified files detected.")
         except Exception as e:
             logger.error(f"Git check failed: {e}")
-            metrics['errors'] += 1
+            metrics["errors"] += 1
 
         # 2. Test Execution (Suffering Check)
         # We run a fast check on the core logic
         try:
             # Running only the verification tests to be fast
-            cmd = ["pytest", "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py", "-q", "--tb=line"]
+            cmd = [
+                "pytest",
+                "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py",
+                "-q",
+                "--tb=line",
+            ]
             result = subprocess.run(cmd, capture_output=True, text=True)
 
             if result.returncode != 0:
                 # Parse "F" or "E" in output
                 failures = result.stdout.count("FAILED") + result.stdout.count("ERROR")
-                metrics['failures'] = failures
+                metrics["failures"] = failures
                 logger.warning(f"Tests failed: {failures} issues detected.")
             else:
-                metrics['coverage'] = 0.9 # High confidence if tests pass
+                metrics["coverage"] = 0.9  # High confidence if tests pass
                 logger.info("Core integrity tests PASSED.")
 
         except Exception as e:
             logger.error(f"Test runner failed: {e}")
-            metrics['errors'] += 1
+            metrics["errors"] += 1
 
         return metrics
 
@@ -162,12 +181,12 @@ class ConsiliumAgent:
             metrics = self.get_real_metrics()
 
         state = SystemState(
-            error_count=metrics.get('errors', 0),
-            test_failure_count=metrics.get('failures', 0),
-            code_complexity_score=metrics.get('complexity', 0.0),
-            knowledge_graph_density=metrics.get('graph_density', 0.0),
-            code_coverage_percent=metrics.get('coverage', 0.0),
-            rag_concept_entropy=metrics.get('entropy', 0.0)
+            error_count=metrics.get("errors", 0),
+            test_failure_count=metrics.get("failures", 0),
+            code_complexity_score=metrics.get("complexity", 0.0),
+            knowledge_graph_density=metrics.get("graph_density", 0.0),
+            code_coverage_percent=metrics.get("coverage", 0.0),
+            rag_concept_entropy=metrics.get("entropy", 0.0),
         )
         return state
 
@@ -178,26 +197,29 @@ class ConsiliumAgent:
         """
         # Clone state to modify
         projected_state = SystemState(
-            current_state.error_count, current_state.test_failure_count,
-            current_state.code_complexity_score, current_state.knowledge_graph_density,
-            current_state.code_coverage_percent, current_state.rag_concept_entropy
+            current_state.error_count,
+            current_state.test_failure_count,
+            current_state.code_complexity_score,
+            current_state.knowledge_graph_density,
+            current_state.code_coverage_percent,
+            current_state.rag_concept_entropy,
         )
 
         # Simplified Predictive Model (Placeholder for L11 Inference Engine)
         if action == "REFACTOR_CORE":
             projected_state.code_complexity_score *= 0.8  # Reduces complexity
-            projected_state.error_count += 2              # Temporary risk of errors
+            projected_state.error_count += 2  # Temporary risk of errors
 
         elif action == "EXPAND_KNOWLEDGE":
-            projected_state.rag_concept_entropy *= 1.2    # Increases diversity
-            projected_state.knowledge_graph_density *= 0.9 # Temporary drop in cohesion
+            projected_state.rag_concept_entropy *= 1.2  # Increases diversity
+            projected_state.knowledge_graph_density *= 0.9  # Temporary drop in cohesion
 
         elif action == "STABILIZE_TESTS":
-            projected_state.test_failure_count = 0        # Eliminates failures
-            projected_state.code_coverage_percent *= 1.05 # Improves coverage
+            projected_state.test_failure_count = 0  # Eliminates failures
+            projected_state.code_coverage_percent *= 1.05  # Improves coverage
 
         elif action == "DO_NOTHING":
-            pass # No change (entropy might naturally increase in full sim)
+            pass  # No change (entropy might naturally increase in full sim)
 
         return self.ethics.evaluate(projected_state)
 
@@ -209,12 +231,19 @@ class ConsiliumAgent:
         state = self.perceive(current_metrics)
         current_E = self.ethics.evaluate(state)
 
-        logger.info(f"Current State: E_ethical = {current_E:.4f} "
-                    f"(S={self.ethics.calculate_suffering(state):.2f}, "
-                    f"C={self.ethics.calculate_coherence(state):.2f}, "
-                    f"D={self.ethics.calculate_diversity(state):.2f})")
+        logger.info(
+            f"Current State: E_ethical = {current_E:.4f} "
+            f"(S={self.ethics.calculate_suffering(state):.2f}, "
+            f"C={self.ethics.calculate_coherence(state):.2f}, "
+            f"D={self.ethics.calculate_diversity(state):.2f})"
+        )
 
-        possible_actions = ["REFACTOR_CORE", "EXPAND_KNOWLEDGE", "STABILIZE_TESTS", "DO_NOTHING"]
+        possible_actions = [
+            "REFACTOR_CORE",
+            "EXPAND_KNOWLEDGE",
+            "STABILIZE_TESTS",
+            "DO_NOTHING",
+        ]
         best_action = "DO_NOTHING"
         min_E = current_E
 
@@ -226,8 +255,11 @@ class ConsiliumAgent:
                 min_E = predicted_E
                 best_action = action
 
-        logger.info(f"Consilium Decision: {best_action} (Predicted Delta E: {min_E - current_E:.4f})")
+        logger.info(
+            f"Consilium Decision: {best_action} (Predicted Delta E: {min_E - current_E:.4f})"
+        )
         return best_action
+
 
 # --- Test Harness ---
 if __name__ == "__main__":

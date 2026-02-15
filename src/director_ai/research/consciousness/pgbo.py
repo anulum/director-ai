@@ -39,15 +39,15 @@ import numpy as np
 class PGBOConfig:
     """Configuration for the Phase→Geometry Bridge Operator."""
 
-    D: int = 4                   # dimensions (time + 3 spatial, or just N)
-    alpha: float = 0.5           # coupling strength (boundary authority)
-    kappa: float = 0.3           # geometry gain (phase→geometry transfer)
+    D: int = 4  # dimensions (time + 3 spatial, or just N)
+    alpha: float = 0.5  # coupling strength (boundary authority)
+    kappa: float = 0.3  # geometry gain (phase→geometry transfer)
     alpha_min: float = 0.0
     alpha_max: float = 5.0
     kappa_min: float = 0.0
     kappa_max: float = 5.0
-    u_cap: float = 10.0          # saturation cap for |u|
-    traceless: bool = False      # remove trace for pure shear
+    u_cap: float = 10.0  # saturation cap for |u|
+    traceless: bool = False  # remove trace for pure shear
 
 
 class PGBOEngine:
@@ -88,7 +88,7 @@ class PGBOEngine:
 
     def set_boundary_potential(self, A_mu: np.ndarray) -> None:
         """Set the boundary injection potential (L10 handle)."""
-        np.copyto(self.A_mu, A_mu[:self.D])
+        np.copyto(self.A_mu, A_mu[: self.D])
 
     def set_background_metric(self, g0: np.ndarray) -> None:
         """Set the background metric and its inverse."""
@@ -113,7 +113,7 @@ class PGBOEngine:
         h_munu : ndarray (D, D) — induced geometry proxy tensor.
         """
         if self._prev_theta is not None:
-            dphi_mu = (theta[:self.D] - self._prev_theta[:self.D]) / max(dt, 1e-12)
+            dphi_mu = (theta[: self.D] - self._prev_theta[: self.D]) / max(dt, 1e-12)
         else:
             dphi_mu = np.zeros(self.D, dtype=np.float64)
 
@@ -177,6 +177,7 @@ class PGBOEngine:
 
 
 # ── Standalone function ──────────────────────────────────────────────
+
 
 def phase_geometry_bridge(
     dphi_mu: np.ndarray,

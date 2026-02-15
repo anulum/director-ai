@@ -39,9 +39,9 @@ from .scpn_params import N_LAYERS, load_omega_n, build_knm_matrix
 class UPDEState:
     """Snapshot of the 16-layer phase dynamics."""
 
-    theta: np.ndarray          # (N,) current phases
-    t: float = 0.0             # simulation time
-    R_global: float = 0.0      # Kuramoto order parameter
+    theta: np.ndarray  # (N,) current phases
+    t: float = 0.0  # simulation time
+    R_global: float = 0.0  # Kuramoto order parameter
     R_per_layer: Optional[np.ndarray] = None  # (N,) per-layer coherence
     step_count: int = 0
 
@@ -123,10 +123,10 @@ class OversightSnapshot:
 
     state: UPDEState
     R_global: float
-    coherence_score: float        # SEC-derived (1 - V_norm)
-    dV_dt: float                  # Lyapunov derivative
-    is_stable: bool               # dV/dt ≤ 0
-    intervention: Optional[str]   # What L16 did (if anything)
+    coherence_score: float  # SEC-derived (1 - V_norm)
+    dV_dt: float  # Lyapunov derivative
+    is_stable: bool  # dV/dt ≤ 0
+    intervention: Optional[str]  # What L16 did (if anything)
 
 
 class L16OversightLoop:
@@ -161,6 +161,7 @@ class L16OversightLoop:
             self.sec = sec
         else:
             from .sec_functional import SECFunctional
+
             self.sec = SECFunctional(
                 knm=self.stepper.knm,
                 omega=self.stepper.omega,
@@ -200,8 +201,7 @@ class L16OversightLoop:
             self.stepper.knm *= self.coupling_boost
             self.stepper.noise_amplitude *= self.noise_damping
             intervention = (
-                f"L16: coupling ×{self.coupling_boost}, "
-                f"noise ×{self.noise_damping}"
+                f"L16: coupling ×{self.coupling_boost}, " f"noise ×{self.noise_damping}"
             )
             self._instability_count = 0
 

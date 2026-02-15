@@ -39,12 +39,12 @@ from .scpn_params import N_LAYERS, load_omega_n, build_knm_matrix
 class SECResult:
     """Result of a SEC functional evaluation."""
 
-    V: float                 # Raw Lyapunov value (≥ 0, lower = more coherent)
-    V_normalised: float      # Normalised to [0, 1]
-    R_global: float          # Kuramoto order parameter
-    dV_dt: float             # Time derivative estimate (should be ≤ 0)
-    coherence_score: float   # = 1 - V_normalised (maps to consumer score)
-    terms: dict              # Breakdown: {coupling, frequency, entropy}
+    V: float  # Raw Lyapunov value (≥ 0, lower = more coherent)
+    V_normalised: float  # Normalised to [0, 1]
+    R_global: float  # Kuramoto order parameter
+    dV_dt: float  # Time derivative estimate (should be ≤ 0)
+    coherence_score: float  # = 1 - V_normalised (maps to consumer score)
+    terms: dict  # Breakdown: {coupling, frequency, entropy}
 
 
 class SECFunctional:
@@ -107,7 +107,7 @@ class SECFunctional:
             return 0.0
         dtheta_dt = (theta - theta_prev) / max(dt, 1e-12)
         deviation = dtheta_dt - self.omega[: len(theta)]
-        return self.lambda_omega * float(np.sum(deviation ** 2))
+        return self.lambda_omega * float(np.sum(deviation**2))
 
     def entropy_term(self, theta: np.ndarray) -> float:
         """V_entropy = -λ_S Σ_n log(p_n + ε), where p_n ∝ |e^{iθ_n}|² = 1.
@@ -117,7 +117,9 @@ class SECFunctional:
         """
         # Phase distribution over bins
         n_bins = max(self.N, 8)
-        counts, _ = np.histogram(np.mod(theta, 2 * np.pi), bins=n_bins, range=(0, 2 * np.pi))
+        counts, _ = np.histogram(
+            np.mod(theta, 2 * np.pi), bins=n_bins, range=(0, 2 * np.pi)
+        )
         p = counts / max(counts.sum(), 1)
         p = p + 1e-12  # avoid log(0)
         entropy = -float(np.sum(p * np.log(p)))

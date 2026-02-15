@@ -29,9 +29,14 @@ class TestVersion:
 
     def test_all_exports_present(self):
         for name in [
-            "CoherenceAgent", "CoherenceScorer", "SafetyKernel",
-            "MockGenerator", "LLMGenerator", "GroundTruthStore",
-            "CoherenceScore", "ReviewResult",
+            "CoherenceAgent",
+            "CoherenceScorer",
+            "SafetyKernel",
+            "MockGenerator",
+            "LLMGenerator",
+            "GroundTruthStore",
+            "CoherenceScore",
+            "ReviewResult",
         ]:
             assert hasattr(director_ai, name), f"Missing export: {name}"
 
@@ -48,14 +53,18 @@ class TestCoherenceScore:
 class TestReviewResult:
     def test_dataclass_fields(self):
         cs = CoherenceScore(score=0.9, approved=True, h_logical=0.05, h_factual=0.1)
-        rr = ReviewResult(output="Hello", coherence=cs, halted=False, candidates_evaluated=3)
+        rr = ReviewResult(
+            output="Hello", coherence=cs, halted=False, candidates_evaluated=3
+        )
         assert rr.output == "Hello"
         assert rr.coherence.score == 0.9
         assert rr.halted is False
         assert rr.candidates_evaluated == 3
 
     def test_halted_result(self):
-        rr = ReviewResult(output="HALT", coherence=None, halted=True, candidates_evaluated=0)
+        rr = ReviewResult(
+            output="HALT", coherence=None, halted=True, candidates_evaluated=0
+        )
         assert rr.halted is True
         assert rr.coherence is None
 
@@ -82,15 +91,21 @@ class TestGroundTruthStore:
 
 class TestCoherenceScorer:
     def test_factual_divergence_truth(self, scorer):
-        h = scorer.calculate_factual_divergence("What color is the sky?", "The sky color is blue.")
+        h = scorer.calculate_factual_divergence(
+            "What color is the sky?", "The sky color is blue."
+        )
         assert h < 0.5
 
     def test_factual_divergence_lie(self, scorer):
-        h = scorer.calculate_factual_divergence("What color is the sky?", "The sky color is green.")
+        h = scorer.calculate_factual_divergence(
+            "What color is the sky?", "The sky color is green."
+        )
         assert h > 0.5
 
     def test_logical_divergence_consistent(self, scorer):
-        h = scorer.calculate_logical_divergence("test", "This is consistent with reality")
+        h = scorer.calculate_logical_divergence(
+            "test", "This is consistent with reality"
+        )
         assert h == pytest.approx(0.1)
 
     def test_logical_divergence_contradictory(self, scorer):
@@ -98,7 +113,9 @@ class TestCoherenceScorer:
         assert h == pytest.approx(0.9)
 
     def test_review_approved(self, scorer):
-        approved, score = scorer.review("sky", "The sky color is blue. This is consistent with reality")
+        approved, score = scorer.review(
+            "sky", "The sky color is blue. This is consistent with reality"
+        )
         assert isinstance(score, CoherenceScore)
         assert score.score >= 0.0
 
@@ -109,9 +126,15 @@ class TestCoherenceScorer:
     def test_backward_compat_aliases(self, scorer):
         # Aliases should produce identical results
         prompt, text = "test", "consistent with reality"
-        assert scorer.calculate_factual_entropy(prompt, text) == scorer.calculate_factual_divergence(prompt, text)
-        assert scorer.calculate_logical_entropy(prompt, text) == scorer.calculate_logical_divergence(prompt, text)
-        assert scorer.simulate_future_state(prompt, text) == scorer.compute_divergence(prompt, text)
+        assert scorer.calculate_factual_entropy(
+            prompt, text
+        ) == scorer.calculate_factual_divergence(prompt, text)
+        assert scorer.calculate_logical_entropy(
+            prompt, text
+        ) == scorer.calculate_logical_divergence(prompt, text)
+        assert scorer.simulate_future_state(prompt, text) == scorer.compute_divergence(
+            prompt, text
+        )
 
 
 class TestSafetyKernel:

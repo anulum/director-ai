@@ -153,7 +153,7 @@ class L16Controller:
         """Add a PLV sample and return windowed average."""
         self.state.plv_buffer.append(plv)
         if len(self.state.plv_buffer) > self.plv_window:
-            self.state.plv_buffer = self.state.plv_buffer[-self.plv_window:]
+            self.state.plv_buffer = self.state.plv_buffer[-self.plv_window :]
         return float(np.mean(self.state.plv_buffer))
 
     def plv_gate_open(self) -> bool:
@@ -167,7 +167,7 @@ class L16Controller:
         hist = self.state.H_rec_history
         if len(hist) < self.h_rec_window + 1:
             return False
-        recent = hist[-self.h_rec_window:]
+        recent = hist[-self.h_rec_window :]
         rising = all(recent[i] < recent[i + 1] for i in range(len(recent) - 1))
         if rising:
             self.state.refusal_active = True
@@ -256,5 +256,7 @@ class L16Controller:
             "D_theta_scale": self.state.D_theta_scale,
             "tau_d_scale": self.state.tau_d_scale,
             "plv_gate_open": self.plv_gate_open(),
-            "avg_plv": float(np.mean(self.state.plv_buffer)) if self.state.plv_buffer else 0.0,
+            "avg_plv": (
+                float(np.mean(self.state.plv_buffer)) if self.state.plv_buffer else 0.0
+            ),
         }

@@ -84,16 +84,22 @@ class LLMGenerator:
                     )
                     candidates.append({"text": text, "source": "LLM"})
                 else:
-                    self.logger.error(f"LLM Error {response.status_code}: {response.text}")
-                    candidates.append({
-                        "text": f"[Error: LLM returned {response.status_code}]",
-                        "source": "System",
-                    })
+                    self.logger.error(
+                        f"LLM Error {response.status_code}: {response.text}"
+                    )
+                    candidates.append(
+                        {
+                            "text": f"[Error: LLM returned {response.status_code}]",
+                            "source": "System",
+                        }
+                    )
             except Exception as e:
                 self.logger.error(f"LLM Connection Failed: {e}")
-                candidates.append({
-                    "text": "[Error: LLM Connection Failed]",
-                    "source": "System",
-                })
+                candidates.append(
+                    {
+                        "text": "[Error: LLM Connection Failed]",
+                        "source": "System",
+                    }
+                )
 
         return candidates

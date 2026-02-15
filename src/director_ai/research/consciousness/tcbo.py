@@ -49,6 +49,7 @@ except ImportError:
 
 # ── Pure-numpy fallback for H1 persistence ───────────────────────────
 
+
 def _ripser_fallback(point_cloud: np.ndarray, maxdim: int = 1) -> dict:
     """Minimal fallback when ripser is unavailable.
 
@@ -80,6 +81,7 @@ def _compute_ripser(point_cloud: np.ndarray, maxdim: int = 1) -> dict:
 
 # ── Delay embedding (Takens) ────────────────────────────────────────
 
+
 def delay_embed(
     x: np.ndarray,
     embed_dim: int = 3,
@@ -107,7 +109,7 @@ def delay_embed(
     Z = np.empty((out_T, m), dtype=np.float64)
     for k in range(m):
         start = offset - k * tau_delay
-        Z[:, k] = x[start: start + out_T]
+        Z[:, k] = x[start : start + out_T]
     return Z
 
 
@@ -136,6 +138,7 @@ def delay_embed_multi(
 
 # ── Persistence → probability ────────────────────────────────────────
 
+
 def persistence_to_probability(
     s_h1: float,
     s0: float = 0.0,
@@ -160,6 +163,7 @@ def s0_for_threshold(
 
 
 # ── TCBOObserver ─────────────────────────────────────────────────────
+
 
 @dataclass
 class TCBOConfig:
@@ -197,9 +201,7 @@ class TCBOObserver:
 
         self._buffer: List[np.ndarray] = []
         self._max_buffer = (
-            self.cfg.window_size
-            + (self.cfg.embed_dim - 1) * self.cfg.tau_delay
-            + 10
+            self.cfg.window_size + (self.cfg.embed_dim - 1) * self.cfg.tau_delay + 10
         )
 
         self.p_h1: float = 0.0
@@ -213,7 +215,7 @@ class TCBOObserver:
         """Push a new phase vector into the rolling buffer."""
         self._buffer.append(theta.copy())
         if len(self._buffer) > self._max_buffer:
-            self._buffer = self._buffer[-self._max_buffer:]
+            self._buffer = self._buffer[-self._max_buffer :]
 
     def compute(self, force: bool = False) -> float:
         """Compute p_h1 from the current buffer.
@@ -227,7 +229,9 @@ class TCBOObserver:
         if not force and (self._step_count % self.cfg.compute_every_n != 0):
             return self.p_h1
 
-        min_needed = (self.cfg.embed_dim - 1) * self.cfg.tau_delay + self.cfg.window_size
+        min_needed = (
+            self.cfg.embed_dim - 1
+        ) * self.cfg.tau_delay + self.cfg.window_size
         if len(self._buffer) < min_needed:
             return self.p_h1
 
@@ -236,9 +240,11 @@ class TCBOObserver:
         if Z.shape[0] == 0:
             return self.p_h1
 
-        cloud = Z[-self.cfg.window_size:]
+        cloud = Z[-self.cfg.window_size :]
         if cloud.shape[0] > self.cfg.subsample_max:
-            idx = np.random.choice(cloud.shape[0], self.cfg.subsample_max, replace=False)
+            idx = np.random.choice(
+                cloud.shape[0], self.cfg.subsample_max, replace=False
+            )
             cloud = cloud[idx]
 
         result = _compute_ripser(cloud, maxdim=1)
@@ -295,6 +301,7 @@ class TCBOObserver:
 
 # ── TCBOController ───────────────────────────────────────────────────
 
+
 @dataclass
 class TCBOControllerConfig:
     """PI controller configuration for gap-junction coupling."""
@@ -346,7 +353,9 @@ class TCBOController:
 
         self._integral += error * dt
         self._integral = np.clip(
-            self._integral, self.cfg.integral_min, self.cfg.integral_max,
+            self._integral,
+            self.cfg.integral_min,
+            self.cfg.integral_max,
         )
 
         delta_kappa = self.cfg.Kp * error + self.cfg.Ki * self._integral
@@ -358,16 +367,18 @@ class TCBOController:
         self._kappa_history.append(kappa_new)
         self._error_history.append(error)
         if len(self._p_h1_history) > self.cfg.history_len:
-            self._p_h1_history = self._p_h1_history[-self.cfg.history_len:]
-            self._kappa_history = self._kappa_history[-self.cfg.history_len:]
-            self._error_history = self._error_history[-self.cfg.history_len:]
+            self._p_h1_history = self._p_h1_history[-self.cfg.history_len :]
+            self._kappa_history = self._kappa_history[-self.cfg.history_len :]
+            self._error_history = self._error_history[-self.cfg.history_len :]
 
         return kappa_new
 
     def is_gate_open(self, p_h1: Optional[float] = None) -> bool:
         """Check if p_h1 > τ_h1 (consciousness gate open)."""
-        val = p_h1 if p_h1 is not None else (
-            self._p_h1_history[-1] if self._p_h1_history else 0.0
+        val = (
+            p_h1
+            if p_h1 is not None
+            else (self._p_h1_history[-1] if self._p_h1_history else 0.0)
         )
         return val > self.cfg.tau_h1
 
@@ -379,10 +390,12 @@ class TCBOController:
             "tau_h1": self.cfg.tau_h1,
             "gate_open": self.is_gate_open(),
             "p_h1_mean": round(
-                float(np.mean(self._p_h1_history)) if self._p_h1_history else 0.0, 6,
+                float(np.mean(self._p_h1_history)) if self._p_h1_history else 0.0,
+                6,
             ),
             "kappa_mean": round(
-                float(np.mean(self._kappa_history)) if self._kappa_history else 0.0, 6,
+                float(np.mean(self._kappa_history)) if self._kappa_history else 0.0,
+                6,
             ),
         }
 

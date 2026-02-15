@@ -25,7 +25,9 @@ class CoherenceScorer:
     When the score falls below ``threshold``, the output is rejected.
     """
 
-    def __init__(self, threshold=0.5, history_window=5, use_nli=False, ground_truth_store=None):
+    def __init__(
+        self, threshold=0.5, history_window=5, use_nli=False, ground_truth_store=None
+    ):
         self.threshold = threshold
         self.history = []
         self.window = history_window
@@ -36,10 +38,13 @@ class CoherenceScorer:
         self.use_nli = use_nli
         if self.use_nli:
             from transformers import AutoTokenizer, AutoModelForSequenceClassification
+
             model_name = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
             self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
-            self.logger.info(f"Coherence Scorer initialized with NLI model: {model_name}")
+            self.logger.info(
+                f"Coherence Scorer initialized with NLI model: {model_name}"
+            )
 
     # ── Factual divergence ────────────────────────────────────────────
 

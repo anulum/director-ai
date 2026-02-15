@@ -44,24 +44,27 @@ N_LAYERS = 16
 #   L15 Consilium             ~ oversoul integration
 #   L16 The Director          ~ cybernetic closure
 
-OMEGA_N = np.array([
-    1.329,    # L1  - Quantum Biological
-    251.327,  # L2  - Neurochemical (≈40 Hz × 2π)
-    0.628,    # L3  - Genomic-Epigenetic
-    31.416,   # L4  - Cellular Synchrony (≈5 Hz × 2π)
-    6.283,    # L5  - Intentional Frame (≈1 Hz × 2π)
-    49.199,   # L6  - Gaian / Schumann (≈7.83 Hz × 2π)
-    3.142,    # L7  - Geometrical-Symbolic
-    0.105,    # L8  - Cosmic Information
-    1.571,    # L9  - Memory Manifold
-    0.942,    # L10 - Identity Manifold
-    0.209,    # L11 - Noospheric-Cultural
-    0.042,    # L12 - Ecological-Gaian
-    0.013,    # L13 - Source-Field
-    0.006,    # L14 - Transdimensional
-    0.003,    # L15 - Consilium
-    0.991,    # L16 - The Director
-], dtype=np.float64)
+OMEGA_N = np.array(
+    [
+        1.329,  # L1  - Quantum Biological
+        251.327,  # L2  - Neurochemical (≈40 Hz × 2π)
+        0.628,  # L3  - Genomic-Epigenetic
+        31.416,  # L4  - Cellular Synchrony (≈5 Hz × 2π)
+        6.283,  # L5  - Intentional Frame (≈1 Hz × 2π)
+        49.199,  # L6  - Gaian / Schumann (≈7.83 Hz × 2π)
+        3.142,  # L7  - Geometrical-Symbolic
+        0.105,  # L8  - Cosmic Information
+        1.571,  # L9  - Memory Manifold
+        0.942,  # L10 - Identity Manifold
+        0.209,  # L11 - Noospheric-Cultural
+        0.042,  # L12 - Ecological-Gaian
+        0.013,  # L13 - Source-Field
+        0.006,  # L14 - Transdimensional
+        0.003,  # L15 - Consilium
+        0.991,  # L16 - The Director
+    ],
+    dtype=np.float64,
+)
 
 LAYER_NAMES = [
     "Quantum Biological",
@@ -112,8 +115,8 @@ CALIBRATION_ANCHORS = {
 
 # Cross-hierarchy boosts (1-indexed)
 CROSS_BOOSTS = {
-    (1, 16): 0.05,   # L1 ↔ L16  quantum-director bridge
-    (5, 7):  0.15,   # L5 ↔ L7   intentional-symbolic bridge
+    (1, 16): 0.05,  # L1 ↔ L16  quantum-director bridge
+    (5, 7): 0.15,  # L5 ↔ L7   intentional-symbolic bridge
 }
 
 
