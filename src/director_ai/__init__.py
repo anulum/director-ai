@@ -17,7 +17,7 @@ Research API (requires ``pip install director-ai[research]``)::
     from director_ai.research.consilium import ConsiliumAgent
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 # ── Consumer core (always available) ──────────────────────────────────
 from .core import (
@@ -45,12 +45,42 @@ __all__ = [
 
 # ── Research extensions (optional) ────────────────────────────────────
 try:
-    from .research import ConsiliumAgent, EthicalFunctional, SystemState
+    from .research import (
+        ConsiliumAgent,
+        EthicalFunctional,
+        SystemState,
+        # Track 1 — Physics
+        SECFunctional,
+        SECResult,
+        L16Controller,
+        L16OversightLoop,
+        UPDEState,
+        UPDEStepper,
+        # Track 2 — Consciousness
+        TCBOObserver,
+        TCBOConfig,
+        TCBOController,
+        TCBOControllerConfig,
+        PGBOEngine,
+        PGBOConfig,
+    )
 
     __all__ += [
         "ConsiliumAgent",
         "EthicalFunctional",
         "SystemState",
+        "SECFunctional",
+        "SECResult",
+        "L16Controller",
+        "L16OversightLoop",
+        "UPDEState",
+        "UPDEStepper",
+        "TCBOObserver",
+        "TCBOConfig",
+        "TCBOController",
+        "TCBOControllerConfig",
+        "PGBOEngine",
+        "PGBOConfig",
     ]
 except ImportError:
     pass  # Research extras not installed — consumer API still works

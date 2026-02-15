@@ -28,8 +28,59 @@ except ImportError:
 
 from .consilium import ConsiliumAgent, EthicalFunctional, SystemState
 
+# Track 1 — L16 Physics
+from .physics import (
+    N_LAYERS,
+    OMEGA_N,
+    LAYER_NAMES,
+    load_omega_n,
+    build_knm_matrix,
+    SECFunctional,
+    SECResult,
+    UPDEState,
+    UPDEStepper,
+    L16OversightLoop,
+    L16Controller,
+)
+
+# Track 2 — Consciousness Gate
+from .consciousness import (
+    TCBOObserver,
+    TCBOConfig,
+    TCBOController,
+    TCBOControllerConfig,
+    PGBOEngine,
+    PGBOConfig,
+    phase_geometry_bridge,
+    run_all_benchmarks,
+    BenchmarkResult,
+)
+
 __all__ = [
+    # Consilium
     "ConsiliumAgent",
     "EthicalFunctional",
     "SystemState",
+    # Physics (Track 1)
+    "N_LAYERS",
+    "OMEGA_N",
+    "LAYER_NAMES",
+    "load_omega_n",
+    "build_knm_matrix",
+    "SECFunctional",
+    "SECResult",
+    "UPDEState",
+    "UPDEStepper",
+    "L16OversightLoop",
+    "L16Controller",
+    # Consciousness (Track 2)
+    "TCBOObserver",
+    "TCBOConfig",
+    "TCBOController",
+    "TCBOControllerConfig",
+    "PGBOEngine",
+    "PGBOConfig",
+    "phase_geometry_bridge",
+    "run_all_benchmarks",
+    "BenchmarkResult",
 ]

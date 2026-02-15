@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-02-16
+
+### Added
+- **Track 1 — L16 Physics** (`research/physics/`):
+  - `scpn_params.py` — Canonical Omega_n (16 frequencies) and Knm coupling matrix builder
+  - `sec_functional.py` — SEC as a Lyapunov functional with stability proof, critical coupling estimate
+  - `l16_mechanistic.py` — UPDE Euler-Maruyama integrator with L16 oversight loop
+  - `l16_closure.py` — PI controllers with anti-windup, H_rec Lyapunov candidate, PLV gate, refusal rules
+- **Track 2 — Consciousness Gate** (`research/consciousness/`):
+  - `tcbo.py` — Topological Consciousness Boundary Observable (delay embedding + persistent homology → p_h1)
+  - `tcbo.py` — TCBOController (PI feedback adjusting gap-junction kappa)
+  - `pgbo.py` — Phase→Geometry Bridge Operator (covariant drive u_mu → rank-2 tensor h_munu)
+  - `benchmark.py` — 4 mandatory verification benchmarks (kappa increase, anesthesia, PI recovery, PGBO properties)
+- **Consumer enhancements** (Track 3):
+  - `tests/conftest.py` — shared pytest fixtures for agent, scorer, kernel, store, generator
+  - `tests/test_consumer_api.py` — 21 tests covering full consumer API surface
+  - `tests/test_research_imports.py` — 17 tests for physics + consciousness module imports and smoke tests
+- Test count: 6 → 44 (7.3× increase)
+
 ## [0.3.0] - 2026-02-15
 
 ### Added
