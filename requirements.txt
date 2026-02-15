@@ -1,5 +1,6 @@
-transformers
-torch
 numpy
+torch
+transformers
+requests
 scipy
 pytest

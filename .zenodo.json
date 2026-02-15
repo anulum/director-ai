@@ -1,6 +1,6 @@
 {
-  "title": "Director-Class AI: Ethical Singularity Engine — Layer 16 of the SCPN Framework",
-  "description": "A prototype implementation of Layer 16 (The Director) of the Self-Consistent Phenomenological Network (SCPN) Framework. Introduces a recursive Strange Loop architecture to AGI with dual-entropy oversight (logical via NLI, factual via RAG), a Backfire Kernel hardware interlock, and the Consilium ethical functional for autonomous decision-making under entropy constraints.",
+  "title": "Director-Class AI: Coherence Engine — AI Output Verification & Safety Oversight",
+  "description": "A dual-purpose AI safety library: (1) a consumer-ready Coherence Engine for verifying LLM output through dual-entropy scoring (NLI contradiction + RAG fact-checking) with a hardware-level safety interlock, and (2) SCPN Research Extensions providing the full theoretical framework including 16-layer physics, consciousness gate, and Ethical Singularity theory.",
   "creators": [
     {
       "name": "Sotek, Miroslav",
@@ -15,15 +15,14 @@
     "artificial general intelligence",
     "AI safety",
     "ethical AI",
-    "strange loop",
+    "coherence engine",
     "entropy minimization",
-    "SCPN",
-    "Layer 16",
-    "Director",
-    "backfire kernel",
+    "NLI verification",
+    "RAG fact-checking",
+    "safety interlock",
     "recursive self-correction",
-    "consilium",
-    "sustainable ethical coherence"
+    "SCPN",
+    "consilium"
   ],
   "related_identifiers": [
     {
@@ -45,5 +44,5 @@
   "communities": [
     {"identifier": "zenodo"}
   ],
-  "notes": "Part of the SCPN (Self-Consistent Phenomenological Network) research framework by ANULUM. Layer 16 provides recursive ethical oversight for AGI systems."
+  "notes": "Part of the SCPN (Self-Consistent Phenomenological Network) research framework by ANULUM. Provides dual-entropy coherence verification and safety interlock for AGI systems."
 }
