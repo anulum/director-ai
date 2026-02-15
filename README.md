@@ -1,10 +1,19 @@
-# Director-Class AI
+<p align="center">
+  <img src="docs/assets/header.png" width="1280" alt="Director AI — Coherence Engine & Safety Oversight">
+</p>
 
-**Coherence Engine — AI Output Verification & Safety Oversight**
+<h1 align="center">Director-Class AI</h1>
 
-[![CI](https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/ci.yml)
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+<p align="center">
+  <strong>Coherence Engine — AI Output Verification & Safety Oversight</strong>
+</p>
+
+<p align="center">
+  <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
+  <a href="https://github.com/anulum/director-ai/releases"><img src="https://img.shields.io/badge/version-0.3.1-green.svg" alt="Version 0.3.1"></a>
+</p>
 
 ---
 
@@ -66,8 +75,13 @@ Both profiles ship from a single repository via build profiles.
 | Module | Purpose |
 |--------|---------|
 | `ConsiliumAgent` | L15 Ethical Functional optimizer with active inference (OODA loop) |
-| `physics/` | (Scaffold) L16 mechanistic dynamics, Lyapunov stability |
-| `consciousness/` | (Scaffold) TCBO, PGBO, consciousness gate benchmarks |
+| `SECFunctional` | Lyapunov stability functional (V = V_coupling + V_frequency + V_entropy) |
+| `UPDEStepper` | Euler-Maruyama integrator for UPDE phase dynamics |
+| `L16OversightLoop` | L16 mechanistic oversight: UPDE + SEC + intervention authority |
+| `L16Controller` | PI controllers with anti-windup, H_rec Lyapunov, PLV gate, refusal rules |
+| `TCBOObserver` | Topological Consciousness Boundary Observable (persistent homology) |
+| `TCBOController` | PI feedback adjusting gap-junction kappa to maintain consciousness gate |
+| `PGBOEngine` | Phase-to-Geometry Bridge Operator (covariant drive to rank-2 tensor) |
 
 ### Key Metric: Coherence Score
 
@@ -144,29 +158,72 @@ agent = ConsiliumAgent()
 decision = agent.decide()  # OODA loop with real telemetry
 ```
 
+### L16 Physics — Lyapunov Stability
+
+```python
+from director_ai.research.physics import SECFunctional, UPDEStepper, build_knm_matrix
+
+# Build canonical 16-layer coupling matrix
+Knm = build_knm_matrix()
+
+# Evaluate Lyapunov stability
+sec = SECFunctional(Knm)
+result = sec.evaluate(theta)  # theta: 16 phase angles
+print(f"V = {result.V:.4f}, stable = {sec.is_stable(result)}")
+```
+
+### Consciousness Gate — TCBO + PGBO
+
+```python
+from director_ai.research.consciousness import TCBOObserver, PGBOEngine
+
+# TCBO: delay embedding + persistent homology -> p_h1
+observer = TCBOObserver()
+p_h1 = observer.observe(multichannel_phases)  # consciousness score in [0, 1]
+print(f"Gate {'OPEN' if p_h1 > 0.72 else 'CLOSED'} (p_h1 = {p_h1:.3f})")
+
+# PGBO: phase dynamics -> geometry tensor
+pgbo = PGBOEngine(n_nodes=16)
+h_tensor = pgbo.step(phases, dt=0.01)  # symmetric, PSD rank-2 tensor
+```
+
 ## Package Structure
 
 ```
 src/director_ai/
-├── __init__.py                # Version + profile-aware imports
-├── core/                      # Coherence Engine (consumer-ready)
-│   ├── scorer.py              # Dual-entropy coherence scorer
-│   ├── kernel.py              # Safety kernel (hardware interlock)
-│   ├── actor.py               # LLM generator interface
-│   ├── knowledge.py           # Ground truth store (RAG)
-│   ├── agent.py               # CoherenceAgent pipeline
-│   └── types.py               # Shared dataclasses
-└── research/                  # SCPN Research extensions
-    ├── physics/               # (Scaffold) L16 mechanistic physics
-    ├── consciousness/         # (Scaffold) Consciousness gate
-    └── consilium/             # L15 Ethical Functional
+├── __init__.py                     # Version + profile-aware imports
+├── core/                           # Coherence Engine (consumer-ready)
+│   ├── scorer.py                   # Dual-entropy coherence scorer
+│   ├── kernel.py                   # Safety kernel (hardware interlock)
+│   ├── actor.py                    # LLM generator interface
+│   ├── knowledge.py                # Ground truth store (RAG)
+│   ├── agent.py                    # CoherenceAgent pipeline
+│   └── types.py                    # Shared dataclasses
+└── research/                       # SCPN Research extensions
+    ├── physics/                    # L16 mechanistic physics
+    │   ├── scpn_params.py          #   Omega_n frequencies + Knm coupling matrix
+    │   ├── sec_functional.py       #   SEC Lyapunov stability functional
+    │   ├── l16_mechanistic.py      #   UPDE integrator + L16 oversight loop
+    │   └── l16_closure.py          #   PI controllers, PLV gate, refusal rules
+    ├── consciousness/              # Consciousness gate
+    │   ├── tcbo.py                 #   TCBO observer + PI controller
+    │   ├── pgbo.py                 #   Phase-to-Geometry Bridge Operator
+    │   └── benchmark.py            #   4 mandatory verification benchmarks
+    └── consilium/                  # L15 Ethical Functional
         └── director_core.py
 ```
 
 ## Testing
 
 ```bash
+# Run all 44 tests
 pytest tests/ -v
+
+# Consumer API tests only
+pytest tests/test_consumer_api.py -v
+
+# Research module tests only
+pytest tests/test_research_imports.py -v
 ```
 
 ## Documentation
@@ -210,7 +267,7 @@ If you use this software in your research, please cite:
   title     = {Director-Class AI: Coherence Engine},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {0.3.0},
+  version   = {0.3.1},
   license   = {AGPL-3.0-or-later}
 }
 ```
