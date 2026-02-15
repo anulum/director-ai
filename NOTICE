@@ -1,0 +1,72 @@
+Director-Class AI
+Copyright (C) 1998-2026 Miroslav Sotek. All rights reserved.
+
+Organization: ANULUM CH & LI / Anulum Institute
+Website:      https://www.anulum.li
+Contact:      protoscience@anulum.li
+ORCID:        https://orcid.org/0009-0009-3560-0851
+
+================================================================================
+                           DUAL LICENSING NOTICE
+================================================================================
+
+This software is available under TWO licensing options:
+
+1. OPEN-SOURCE LICENSE (GNU AGPL v3.0-or-later)
+   ─────────────────────────────────────────────
+   For academic research, personal use, and open-source projects.
+
+   This program is free software: you can redistribute it and/or modify
+   it under the terms of the GNU Affero General Public License as published
+   by the Free Software Foundation, either version 3 of the License, or
+   (at your option) any later version.
+
+   This program is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+   GNU Affero General Public License for more details.
+
+   You should have received a copy of the GNU Affero General Public License
+   along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+   IMPORTANT: Under the AGPL, if you modify this software and make it
+   available over a network (e.g., as a web service), you MUST release
+   your modified source code under the same license.
+
+2. COMMERCIAL LICENSE
+   ──────────────────
+   For proprietary, commercial, or closed-source use where the AGPL
+   obligations are incompatible with your business requirements.
+
+   Commercial licenses are available from ANULUM CH & LI.
+   Contact: protoscience@anulum.li
+   Website: https://www.anulum.li/licensing
+
+   A commercial license grants you the right to:
+   - Use the software in proprietary products and services
+   - Modify the software without the obligation to release source code
+   - Distribute the software as part of a closed-source offering
+   - Receive priority support and maintenance
+
+================================================================================
+                        THIRD-PARTY ACKNOWLEDGEMENTS
+================================================================================
+
+This software uses the following open-source components:
+
+- NumPy (BSD-3-Clause) — https://numpy.org
+- SciPy (BSD-3-Clause) — https://scipy.org
+- PyTorch (BSD-3-Clause) — https://pytorch.org
+- Hugging Face Transformers (Apache-2.0) — https://huggingface.co/transformers
+
+================================================================================
+                          PART OF THE SCPN FRAMEWORK
+================================================================================
+
+Director-Class AI implements Layer 16 (The Director) of the
+Self-Consistent Phenomenological Network (SCPN) Framework.
+
+Related repositories:
+- SCPN Fusion Core: https://github.com/anulum/scpn-fusion-core
+- SC-NeuroCore:     https://github.com/anulum/sc-neurocore
+- Holonomic Atlas:  https://github.com/anulum/HolonomicAtlas

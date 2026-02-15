@@ -1,0 +1,46 @@
+# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — Citation Metadata
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# Contact: www.anulum.li | protoscience@anulum.li
+# ORCID: https://orcid.org/0009-0009-3560-0851
+# License: GNU AGPL v3 | Commercial licensing available
+# ─────────────────────────────────────────────────────────────────────
+cff-version: 1.2.0
+title: "Director-Class AI: Ethical Singularity Engine"
+message: "If you use this software, please cite it using the metadata below."
+type: software
+authors:
+  - family-names: "Sotek"
+    given-names: "Miroslav"
+    orcid: "https://orcid.org/0009-0009-3560-0851"
+    affiliation: "ANULUM CH & LI"
+version: "0.2.0"
+date-released: "2026-02-15"
+license: "AGPL-3.0-or-later"
+repository-code: "https://github.com/anulum/director-ai"
+url: "https://www.anulum.li"
+abstract: >-
+  Director-Class AI is a prototype implementation of Layer 16 (The Director)
+  of the SCPN Framework. It introduces a recursive Strange Loop architecture
+  to Artificial General Intelligence, enabling self-correction and inherent
+  ethical alignment through entropy minimization. The system uses dual-entropy
+  oversight (logical via NLI, factual via RAG) and a Backfire Kernel hardware
+  interlock to ensure Sustainable Ethical Coherence (SEC).
+keywords:
+  - artificial general intelligence
+  - AI safety
+  - ethical AI
+  - strange loop
+  - entropy minimization
+  - SCPN
+  - Layer 16
+  - Director
+  - backfire kernel
+  - recursive self-correction
+references:
+  - type: software
+    title: "SCPN Fusion Core"
+    repository-code: "https://github.com/anulum/scpn-fusion-core"
+  - type: software
+    title: "SC-NeuroCore"
+    repository-code: "https://github.com/anulum/sc-neurocore"
