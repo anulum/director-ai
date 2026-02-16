@@ -22,13 +22,13 @@ __version__ = "0.3.1"
 # ── Consumer core (always available) ──────────────────────────────────
 from .core import (
     CoherenceAgent,
-    CoherenceScorer,
-    SafetyKernel,
-    MockGenerator,
-    LLMGenerator,
-    GroundTruthStore,
     CoherenceScore,
+    CoherenceScorer,
+    GroundTruthStore,
+    LLMGenerator,
+    MockGenerator,
     ReviewResult,
+    SafetyKernel,
 )
 
 __all__ = [
@@ -48,21 +48,21 @@ try:
     from .research import (
         ConsiliumAgent,
         EthicalFunctional,
-        SystemState,
+        L16Controller,
+        L16OversightLoop,
+        PGBOConfig,
+        PGBOEngine,
         # Track 1 — Physics
         SECFunctional,
         SECResult,
-        L16Controller,
-        L16OversightLoop,
-        UPDEState,
-        UPDEStepper,
-        # Track 2 — Consciousness
-        TCBOObserver,
+        SystemState,
         TCBOConfig,
         TCBOController,
         TCBOControllerConfig,
-        PGBOEngine,
-        PGBOConfig,
+        # Track 2 — Consciousness
+        TCBOObserver,
+        UPDEState,
+        UPDEStepper,
     )
 
     __all__ += [

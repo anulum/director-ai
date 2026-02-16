@@ -6,9 +6,10 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
+import logging
+
 import numpy as np
 import torch
-import logging
 
 from .types import CoherenceScore
 
@@ -37,7 +38,7 @@ class CoherenceScorer:
 
         self.use_nli = use_nli
         if self.use_nli:
-            from transformers import AutoTokenizer, AutoModelForSequenceClassification
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             model_name = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
             self.tokenizer = AutoTokenizer.from_pretrained(model_name)
@@ -147,7 +148,9 @@ class CoherenceScorer:
 
         if not approved:
             self.logger.critical(
-                f"COHERENCE FAILURE. Score: {coherence:.4f} < Threshold: {self.threshold}"
+                "COHERENCE FAILURE. Score: %.4f < Threshold: %s",
+                coherence,
+                self.threshold,
             )
         else:
             self.history.append(action)

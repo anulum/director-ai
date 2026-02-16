@@ -17,12 +17,12 @@ Quick start::
     print(result.output, result.coherence)
 """
 
-from .types import CoherenceScore, ReviewResult
-from .scorer import CoherenceScorer
-from .kernel import SafetyKernel
-from .actor import MockGenerator, LLMGenerator
-from .knowledge import GroundTruthStore
+from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
+from .kernel import SafetyKernel
+from .knowledge import GroundTruthStore
+from .scorer import CoherenceScorer
+from .types import CoherenceScore, ReviewResult
 
 __all__ = [
     "CoherenceScore",

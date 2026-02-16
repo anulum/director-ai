@@ -15,30 +15,30 @@ Modules:
     - ``l16_closure``       — L16 cybernetic closure (PI controllers, refusal rules)
 """
 
-from .scpn_params import (
-    N_LAYERS,
-    OMEGA_N,
-    LAYER_NAMES,
-    K_BASE,
-    DECAY_ALPHA,
-    CALIBRATION_ANCHORS,
-    CROSS_BOOSTS,
-    load_omega_n,
-    build_knm_matrix,
-)
-from .sec_functional import SECFunctional, SECResult
-from .l16_mechanistic import (
-    UPDEState,
-    UPDEStepper,
-    OversightSnapshot,
-    L16OversightLoop,
-)
 from .l16_closure import (
+    L16Controller,
+    L16ControllerState,
     PIState,
     pi_step,
-    L16ControllerState,
-    L16Controller,
 )
+from .l16_mechanistic import (
+    L16OversightLoop,
+    OversightSnapshot,
+    UPDEState,
+    UPDEStepper,
+)
+from .scpn_params import (
+    CALIBRATION_ANCHORS,
+    CROSS_BOOSTS,
+    DECAY_ALPHA,
+    K_BASE,
+    LAYER_NAMES,
+    N_LAYERS,
+    OMEGA_N,
+    build_knm_matrix,
+    load_omega_n,
+)
+from .sec_functional import SECFunctional, SECResult
 
 __all__ = [
     # Parameters

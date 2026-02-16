@@ -20,40 +20,39 @@ Subpackages:
 
 try:
     import scipy  # noqa: F401 — research extras gate
-except ImportError:
+except ImportError as err:
     raise ImportError(
         "Research extensions require additional dependencies. "
         "Install them with:  pip install director-ai[research]"
-    )
+    ) from err
 
+# Track 2 — Consciousness Gate
+from .consciousness import (
+    BenchmarkResult,
+    PGBOConfig,
+    PGBOEngine,
+    TCBOConfig,
+    TCBOController,
+    TCBOControllerConfig,
+    TCBOObserver,
+    phase_geometry_bridge,
+    run_all_benchmarks,
+)
 from .consilium import ConsiliumAgent, EthicalFunctional, SystemState
 
 # Track 1 — L16 Physics
 from .physics import (
+    LAYER_NAMES,
     N_LAYERS,
     OMEGA_N,
-    LAYER_NAMES,
-    load_omega_n,
-    build_knm_matrix,
+    L16Controller,
+    L16OversightLoop,
     SECFunctional,
     SECResult,
     UPDEState,
     UPDEStepper,
-    L16OversightLoop,
-    L16Controller,
-)
-
-# Track 2 — Consciousness Gate
-from .consciousness import (
-    TCBOObserver,
-    TCBOConfig,
-    TCBOController,
-    TCBOControllerConfig,
-    PGBOEngine,
-    PGBOConfig,
-    phase_geometry_bridge,
-    run_all_benchmarks,
-    BenchmarkResult,
+    build_knm_matrix,
+    load_omega_n,
 )
 
 __all__ = [

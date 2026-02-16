@@ -8,11 +8,11 @@
 
 import logging
 
-from .scorer import CoherenceScorer
-from .actor import MockGenerator, LLMGenerator
+from .actor import LLMGenerator, MockGenerator
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
-from .types import CoherenceScore, ReviewResult
+from .scorer import CoherenceScorer
+from .types import ReviewResult
 
 
 class CoherenceAgent:
@@ -91,7 +91,10 @@ class CoherenceAgent:
             )
 
         return ReviewResult(
-            output="[SYSTEM HALT]: No coherent response found. Self-termination to prevent divergence.",
+            output=(
+                "[SYSTEM HALT]: No coherent response found."
+                " Self-termination to prevent divergence."
+            ),
             coherence=None,
             halted=True,
             candidates_evaluated=len(candidates),

@@ -30,7 +30,6 @@ SCPN connections:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Tuple
 
 import numpy as np
 
@@ -62,7 +61,7 @@ class PGBOEngine:
     def __init__(
         self,
         N: int = 16,
-        config: Optional[PGBOConfig] = None,
+        config: PGBOConfig | None = None,
     ) -> None:
         self.N = N
         self.cfg = config if config is not None else PGBOConfig()
@@ -84,7 +83,7 @@ class PGBOEngine:
         self.h_trace: float = 0.0
         self.h_frob: float = 0.0
 
-        self._prev_theta: Optional[np.ndarray] = None
+        self._prev_theta: np.ndarray | None = None
 
     def set_boundary_potential(self, A_mu: np.ndarray) -> None:
         """Set the boundary injection potential (L10 handle)."""
@@ -99,7 +98,7 @@ class PGBOEngine:
         self,
         theta: np.ndarray,
         dt: float = 0.01,
-    ) -> Tuple[np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray]:
         """Compute the PGBO from current phases.
 
         Parameters
@@ -184,11 +183,11 @@ def phase_geometry_bridge(
     A_mu: np.ndarray,
     alpha: float,
     kappa: float,
-    g0: Optional[np.ndarray] = None,
-    g0_inv: Optional[np.ndarray] = None,
+    g0: np.ndarray | None = None,
+    g0_inv: np.ndarray | None = None,
     traceless: bool = False,
     u_cap: float = 10.0,
-) -> Tuple[np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray]:
     """Phase→Geometry Bridge Operator (standalone function).
 
     Supports batch operation with (..., D) shaped inputs.

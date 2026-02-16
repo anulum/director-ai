@@ -28,11 +28,10 @@ where V_normalised = V(θ) / V_max ∈ [0, 1].
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 import numpy as np
 
-from .scpn_params import N_LAYERS, load_omega_n, build_knm_matrix
+from .scpn_params import build_knm_matrix, load_omega_n
 
 
 @dataclass
@@ -72,8 +71,8 @@ class SECFunctional:
 
     def __init__(
         self,
-        knm: Optional[np.ndarray] = None,
-        omega: Optional[np.ndarray] = None,
+        knm: np.ndarray | None = None,
+        omega: np.ndarray | None = None,
         lambda_omega: float = 0.1,
         lambda_entropy: float = 0.01,
     ) -> None:
@@ -88,7 +87,7 @@ class SECFunctional:
         self._V_max = max(self._V_coupling_max, 1e-12)
 
         # Previous state for dV/dt estimation
-        self._prev_V: Optional[float] = None
+        self._prev_V: float | None = None
         self._prev_dt: float = 0.01
 
     def coupling_potential(self, theta: np.ndarray) -> float:
@@ -99,7 +98,7 @@ class SECFunctional:
     def frequency_penalty(
         self,
         theta: np.ndarray,
-        theta_prev: Optional[np.ndarray] = None,
+        theta_prev: np.ndarray | None = None,
         dt: float = 0.01,
     ) -> float:
         """V_frequency = λ_ω Σ_n (dθ_n/dt - ω_n)²."""
@@ -130,7 +129,7 @@ class SECFunctional:
     def evaluate(
         self,
         theta: np.ndarray,
-        theta_prev: Optional[np.ndarray] = None,
+        theta_prev: np.ndarray | None = None,
         dt: float = 0.01,
     ) -> SECResult:
         """Evaluate the full SEC functional.
@@ -156,10 +155,7 @@ class SECFunctional:
         R = float(np.abs(np.mean(np.exp(1j * theta))))
 
         # dV/dt estimation
-        if self._prev_V is not None:
-            dV_dt = (V - self._prev_V) / max(dt, 1e-12)
-        else:
-            dV_dt = 0.0
+        dV_dt = (V - self._prev_V) / max(dt, 1e-12) if self._prev_V is not None else 0.0
         self._prev_V = V
         self._prev_dt = dt
 

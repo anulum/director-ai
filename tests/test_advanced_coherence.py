@@ -9,7 +9,6 @@
 import unittest
 
 from director_ai.core import CoherenceAgent
-import logging
 
 
 class TestAdvancedCoherence(unittest.TestCase):

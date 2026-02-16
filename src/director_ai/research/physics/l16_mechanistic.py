@@ -27,12 +27,11 @@ This module provides:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import List, Optional
+from dataclasses import dataclass
 
 import numpy as np
 
-from .scpn_params import N_LAYERS, load_omega_n, build_knm_matrix
+from .scpn_params import build_knm_matrix, load_omega_n
 
 
 @dataclass
@@ -42,7 +41,7 @@ class UPDEState:
     theta: np.ndarray  # (N,) current phases
     t: float = 0.0  # simulation time
     R_global: float = 0.0  # Kuramoto order parameter
-    R_per_layer: Optional[np.ndarray] = None  # (N,) per-layer coherence
+    R_per_layer: np.ndarray | None = None  # (N,) per-layer coherence
     step_count: int = 0
 
     def compute_order_parameter(self) -> float:
@@ -65,8 +64,8 @@ class UPDEStepper:
 
     def __init__(
         self,
-        omega: Optional[np.ndarray] = None,
-        knm: Optional[np.ndarray] = None,
+        omega: np.ndarray | None = None,
+        knm: np.ndarray | None = None,
         dt: float = 0.01,
         field_pressure: float = 0.1,
         noise_amplitude: float = 0.05,
@@ -126,7 +125,7 @@ class OversightSnapshot:
     coherence_score: float  # SEC-derived (1 - V_norm)
     dV_dt: float  # Lyapunov derivative
     is_stable: bool  # dV/dt ≤ 0
-    intervention: Optional[str]  # What L16 did (if anything)
+    intervention: str | None  # What L16 did (if anything)
 
 
 class L16OversightLoop:
@@ -149,7 +148,7 @@ class L16OversightLoop:
 
     def __init__(
         self,
-        stepper: Optional[UPDEStepper] = None,
+        stepper: UPDEStepper | None = None,
         sec=None,
         intervention_window: int = 5,
         coupling_boost: float = 1.2,
@@ -172,7 +171,7 @@ class L16OversightLoop:
         self.noise_damping = noise_damping
 
         self._instability_count: int = 0
-        self._history: List[OversightSnapshot] = []
+        self._history: list[OversightSnapshot] = []
 
     def step(self, state: UPDEState) -> tuple[UPDEState, OversightSnapshot]:
         """Execute one oversight iteration.
@@ -218,9 +217,9 @@ class L16OversightLoop:
 
     def run(
         self,
-        initial_theta: Optional[np.ndarray] = None,
+        initial_theta: np.ndarray | None = None,
         n_steps: int = 100,
-    ) -> List[OversightSnapshot]:
+    ) -> list[OversightSnapshot]:
         """Run the oversight loop for n_steps.
 
         Parameters
@@ -245,5 +244,5 @@ class L16OversightLoop:
         return list(self._history)
 
     @property
-    def history(self) -> List[OversightSnapshot]:
+    def history(self) -> list[OversightSnapshot]:
         return list(self._history)

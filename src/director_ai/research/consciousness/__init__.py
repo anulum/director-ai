@@ -14,28 +14,28 @@ Modules:
     - ``benchmark`` — Consciousness-gate verification benchmarks
 """
 
-from .tcbo import (
-    TCBOConfig,
-    TCBOObserver,
-    TCBOControllerConfig,
-    TCBOController,
-    delay_embed,
-    delay_embed_multi,
-    persistence_to_probability,
-    s0_for_threshold,
+from .benchmark import (
+    BenchmarkResult,
+    benchmark_anesthesia,
+    benchmark_kappa_increase,
+    benchmark_pgbo_properties,
+    benchmark_pi_recovery,
+    run_all_benchmarks,
 )
 from .pgbo import (
     PGBOConfig,
     PGBOEngine,
     phase_geometry_bridge,
 )
-from .benchmark import (
-    BenchmarkResult,
-    run_all_benchmarks,
-    benchmark_kappa_increase,
-    benchmark_anesthesia,
-    benchmark_pi_recovery,
-    benchmark_pgbo_properties,
+from .tcbo import (
+    TCBOConfig,
+    TCBOController,
+    TCBOControllerConfig,
+    TCBOObserver,
+    delay_embed,
+    delay_embed_multi,
+    persistence_to_probability,
+    s0_for_threshold,
 )
 
 __all__ = [

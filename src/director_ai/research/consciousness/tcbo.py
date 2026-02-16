@@ -31,8 +31,7 @@ Dependencies:
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
-from typing import List, Optional, Tuple
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -101,7 +100,7 @@ def delay_embed(
     T = len(x)
     m = embed_dim
     offset = (m - 1) * tau_delay
-    if T <= offset:
+    if offset >= T:
         return np.empty((0, m), dtype=np.float64)
 
     out_T = T - offset
@@ -193,12 +192,12 @@ class TCBOObserver:
     def __init__(
         self,
         N: int = 16,
-        config: Optional[TCBOConfig] = None,
+        config: TCBOConfig | None = None,
     ) -> None:
         self.N = N
         self.cfg = config if config is not None else TCBOConfig()
 
-        self._buffer: List[np.ndarray] = []
+        self._buffer: list[np.ndarray] = []
         self._max_buffer = (
             self.cfg.window_size + (self.cfg.embed_dim - 1) * self.cfg.tau_delay + 10
         )
@@ -208,7 +207,7 @@ class TCBOObserver:
         self.is_conscious: bool = False
         self.h1_error: float = self.cfg.tau_h1
         self._step_count: int = 0
-        self._dgms: Optional[list] = None
+        self._dgms: list | None = None
 
     def push(self, theta: np.ndarray) -> None:
         """Push a new phase vector into the rolling buffer."""
@@ -323,14 +322,14 @@ class TCBOController:
 
     def __init__(
         self,
-        config: Optional[TCBOControllerConfig] = None,
+        config: TCBOControllerConfig | None = None,
     ) -> None:
         self.cfg = config if config is not None else TCBOControllerConfig()
         self._integral: float = 0.0
         self._last_error: float = 0.0
-        self._p_h1_history: List[float] = []
-        self._kappa_history: List[float] = []
-        self._error_history: List[float] = []
+        self._p_h1_history: list[float] = []
+        self._kappa_history: list[float] = []
+        self._error_history: list[float] = []
 
     def compute_error(self, p_h1: float) -> float:
         """Deficit-only error: positive when below threshold."""
@@ -372,7 +371,7 @@ class TCBOController:
 
         return kappa_new
 
-    def is_gate_open(self, p_h1: Optional[float] = None) -> bool:
+    def is_gate_open(self, p_h1: float | None = None) -> bool:
         """Check if p_h1 > τ_h1 (consciousness gate open)."""
         val = (
             p_h1

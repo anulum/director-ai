@@ -23,12 +23,11 @@ These benchmarks use synthetic oscillator data (no real EEG required).
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List
 
 import numpy as np
 
-from .tcbo import TCBOObserver, TCBOConfig, TCBOController, TCBOControllerConfig
-from .pgbo import PGBOEngine, PGBOConfig
+from .pgbo import PGBOConfig, PGBOEngine
+from .tcbo import TCBOConfig, TCBOController, TCBOControllerConfig, TCBOObserver
 
 
 @dataclass
@@ -244,7 +243,7 @@ def benchmark_pgbo_properties(N: int = 16) -> BenchmarkResult:
     )
 
 
-def run_all_benchmarks(N: int = 8) -> List[BenchmarkResult]:
+def run_all_benchmarks(N: int = 8) -> list[BenchmarkResult]:
     """Run all consciousness-gate verification benchmarks.
 
     Returns list of BenchmarkResult. All should have passed=True.

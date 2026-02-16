@@ -9,17 +9,16 @@ for the physics and consciousness subpackages.
 """
 
 import numpy as np
-import pytest
 
 
 class TestPhysicsImports:
     def test_scpn_params(self):
         from director_ai.research.physics import (
+            LAYER_NAMES,
             N_LAYERS,
             OMEGA_N,
-            LAYER_NAMES,
-            load_omega_n,
             build_knm_matrix,
+            load_omega_n,
         )
 
         assert N_LAYERS == 16
@@ -123,7 +122,7 @@ class TestPhysicsImports:
 
 class TestConsciousnessImports:
     def test_tcbo_observer(self):
-        from director_ai.research.consciousness import TCBOObserver, TCBOConfig
+        from director_ai.research.consciousness import TCBOConfig, TCBOObserver
 
         cfg = TCBOConfig(window_size=20, embed_dim=3, tau_delay=1)
         obs = TCBOObserver(N=8, config=cfg)
@@ -208,11 +207,10 @@ class TestResearchTopLevelImports:
         from director_ai.research import (
             ConsiliumAgent,
             EthicalFunctional,
-            SystemState,
+            L16Controller,
+            PGBOEngine,
             SECFunctional,
             TCBOObserver,
-            PGBOEngine,
-            L16Controller,
         )
 
         assert ConsiliumAgent is not None

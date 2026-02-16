@@ -19,7 +19,6 @@ The L16 Director layer provides cybernetic closure over the SSGF engine:
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import List, Optional
 
 import numpy as np
 
@@ -66,8 +65,8 @@ class L16ControllerState:
     """Full L16 controller state snapshot."""
 
     H_rec: float = 0.0
-    H_rec_history: List[float] = field(default_factory=list)
-    plv_buffer: List[float] = field(default_factory=list)
+    H_rec_history: list[float] = field(default_factory=list)
+    plv_buffer: list[float] = field(default_factory=list)
     refusal_active: bool = False
     refusal_count: int = 0
     lr_z_scale: float = 1.0

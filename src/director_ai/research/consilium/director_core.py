@@ -16,14 +16,11 @@ Reference: SECTOR_C_CONSILIUM_SPECIFICATION.md
 Date: January 21, 2026
 """
 
-import numpy as np
 import logging
 import subprocess
-import re
-import os
-from typing import Dict, List, Any, Optional
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 
 # Configure Logging (The "Consciousness Stream")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [CONSILIUM] %(message)s")
@@ -49,7 +46,7 @@ class EthicalFunctional:
     Minimizes E = w_s * S (Suffering) - w_c * C (Coherence) - w_d * D (Diversity)
     """
 
-    def __init__(self, weights: Dict[str, float] = None):
+    def __init__(self, weights: dict[str, float] = None):
         if weights is None:
             # Default weights derived from L15 analysis (Golden Ratio influences)
             self.weights = {
@@ -120,7 +117,7 @@ class ConsiliumAgent:
         self.history = []
         logger.info("Consilium Agent Initialized. Ethical Functional Active.")
 
-    def get_real_metrics(self) -> Dict[str, Any]:
+    def get_real_metrics(self) -> dict[str, Any]:
         """Gathers REAL telemetry from the environment."""
         metrics = {
             "errors": 0,
@@ -175,7 +172,7 @@ class ConsiliumAgent:
 
         return metrics
 
-    def perceive(self, metrics: Dict[str, Any] = None) -> SystemState:
+    def perceive(self, metrics: dict[str, Any] = None) -> SystemState:
         """Converts raw metrics into a SystemState object."""
         if metrics is None:
             metrics = self.get_real_metrics()
@@ -223,7 +220,7 @@ class ConsiliumAgent:
 
         return self.ethics.evaluate(projected_state)
 
-    def decide(self, current_metrics: Dict[str, Any] = None) -> str:
+    def decide(self, current_metrics: dict[str, Any] = None) -> str:
         """
         The OODA Loop (Observe, Orient, Decide, Act).
         Returns the action with the optimal Ethical outcome.
@@ -256,7 +253,9 @@ class ConsiliumAgent:
                 best_action = action
 
         logger.info(
-            f"Consilium Decision: {best_action} (Predicted Delta E: {min_E - current_E:.4f})"
+            "Consilium Decision: %s (Predicted Delta E: %.4f)",
+            best_action,
+            min_E - current_E,
         )
         return best_action
 
