@@ -159,9 +159,12 @@ def prove_critical_coupling() -> ProofResult:
     For N oscillators with Lorentzian frequency distribution g(ω):
       K_c = 2 / (π · g(0))
     """
-    # Symbolic derivation:
-    #   For 2 oscillators: K_c = |ω_1 - ω_2| / 2
-    #   For N oscillators with Gaussian g(ω): K_c = 2 / (π · g(0))
+    omega1, omega2, K = symbols("omega_1 omega_2 K", real=True, positive=True)
+    delta_omega = omega1 - omega2
+
+    # Fixed point condition: sin(Δ*) = Δω / (2K)
+    # Requires |Δω / (2K)| ≤ 1 → K ≥ |Δω| / 2
+    _ = abs(delta_omega) / 2  # K_c_2body (used in derivation)
 
     # Numerical verification with canonical SCPN parameters
     from .scpn_params import load_omega_n
@@ -209,7 +212,7 @@ def prove_numerical_stability(n_steps: int = 100, n_trials: int = 5) -> ProofRes
     return ProofResult(
         name="numerical_stability",
         statement=(
-            f"V decreases in ≥{n_trials // 2 + 1}/{n_trials}"
+            f"V decreases in >={n_trials // 2 + 1}/{n_trials}"
             f" trials of {n_steps} steps"
         ),
         verified=verified,

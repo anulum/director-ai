@@ -7,7 +7,6 @@
 # ─────────────────────────────────────────────────────────────────────
 
 import logging
-
 import warnings
 
 from .types import CoherenceScore
@@ -171,7 +170,8 @@ class CoherenceScorer:
     def calculate_factual_entropy(self, prompt, text_output):
         """Deprecated: use ``calculate_factual_divergence``."""
         warnings.warn(
-            "calculate_factual_entropy() is deprecated, use calculate_factual_divergence()",
+            "calculate_factual_entropy() is deprecated, "
+            "use calculate_factual_divergence()",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -180,7 +180,8 @@ class CoherenceScorer:
     def calculate_logical_entropy(self, prompt, text_output):
         """Deprecated: use ``calculate_logical_divergence``."""
         warnings.warn(
-            "calculate_logical_entropy() is deprecated, use calculate_logical_divergence()",
+            "calculate_logical_entropy() is deprecated, "
+            "use calculate_logical_divergence()",
             DeprecationWarning,
             stacklevel=2,
         )

@@ -15,7 +15,6 @@ Modules:
     - ``l16_closure``       — L16 cybernetic closure (PI controllers, refusal rules)
 """
 
-from .gpu_upde import TorchUPDEConfig, TorchUPDEStepper
 from .l16_closure import (
     L16Controller,
     L16ControllerState,
@@ -74,7 +73,4 @@ __all__ = [
     # Lyapunov proof
     "ProofResult",
     "run_all_proofs",
-    # GPU UPDE
-    "TorchUPDEStepper",
-    "TorchUPDEConfig",
 ]

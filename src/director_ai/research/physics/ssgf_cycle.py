@@ -22,7 +22,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import numpy as np
-from scipy.linalg import expm
 
 from ..consciousness import (
     PGBOConfig,
@@ -176,8 +175,6 @@ class SSGFEngine:
 
     def _compute_costs(self) -> dict:
         """Compute all cost terms for the outer cycle."""
-        N = self.cfg.N
-
         # C_micro: mean phase velocity deviation from natural frequencies
         # (proxy — use order parameter deficit)
         R = float(np.abs(np.mean(np.exp(1j * self.theta))))
@@ -268,7 +265,7 @@ class SSGFEngine:
 
         # 6. L16 closure
         phi_target = np.eye(self.cfg.N, 4)
-        l16_result = self.l16.step(
+        self.l16.step(
             theta=self.theta,
             eigvecs=eigvecs[:, :4],
             phi_target=phi_target,

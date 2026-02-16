@@ -123,7 +123,7 @@ class ChromaBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
-        return self._collection.count()
+        return int(self._collection.count())
 
 
 class VectorGroundTruthStore(GroundTruthStore):

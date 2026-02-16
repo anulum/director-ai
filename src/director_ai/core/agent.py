@@ -11,10 +11,9 @@ import warnings
 
 from .actor import LLMGenerator, MockGenerator
 from .kernel import SafetyKernel
-from .knowledge import GroundTruthStore
-from .vector_store import InMemoryBackend, VectorGroundTruthStore
 from .scorer import CoherenceScorer
 from .types import ReviewResult
+from .vector_store import InMemoryBackend, VectorGroundTruthStore
 
 
 class CoherenceAgent:
