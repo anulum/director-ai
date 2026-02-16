@@ -20,9 +20,12 @@ Quick start::
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
 from .async_streaming import AsyncStreamingKernel
+from .batch import BatchProcessor, BatchResult
 from .bridge import PhysicsBackedScorer
+from .config import DirectorConfig
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
+from .metrics import MetricsCollector, metrics
 from .nli import NLIScorer
 from .scorer import CoherenceScorer
 from .streaming import StreamingKernel, StreamSession, TokenEvent
@@ -55,4 +58,10 @@ __all__ = [
     "PhysicsBackedScorer",
     # v0.5.0 additions
     "AsyncStreamingKernel",
+    # v0.6.0 additions
+    "DirectorConfig",
+    "MetricsCollector",
+    "metrics",
+    "BatchProcessor",
+    "BatchResult",
 ]

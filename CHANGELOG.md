@@ -7,6 +7,57 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-02-16
+
+### Added
+- **Configuration Manager** (`core/config.py`):
+  - `DirectorConfig` dataclass with `from_env()`, `from_yaml()`, `from_profile()` factory methods
+  - Three built-in profiles: `fast` (no NLI, 1 candidate), `thorough` (NLI, 3 candidates), `research` (NLI, 5 candidates)
+  - Environment variable loading with `DIRECTOR_` prefix (e.g. `DIRECTOR_USE_NLI=true`)
+  - YAML/JSON file loading with PyYAML fallback
+  - `to_dict()` with API key redaction
+- **Metrics & Observability** (`core/metrics.py`):
+  - Thread-safe `MetricsCollector` with counters, histograms, and gauges
+  - Pre-registered metrics: `reviews_total`, `coherence_score`, `review_duration_seconds`, etc.
+  - `timer()` context manager for latency tracking
+  - `prometheus_format()` for Prometheus text exposition
+  - Module-level singleton: `from director_ai.core.metrics import metrics`
+- **Request Batching** (`core/batch.py`):
+  - `BatchProcessor` with sync (`process_batch`) and async (`process_batch_async`) modes
+  - Thread pool executor with configurable `max_concurrency`
+  - `review_batch()` for bulk (prompt, response) scoring
+  - `BatchResult` dataclass with success/failure counts and duration
+- **LLM Provider Adapters** (`integrations/providers.py`):
+  - `LLMProvider` ABC with unified `generate_candidates(prompt, n)` interface
+  - `OpenAIProvider` — ChatCompletion API (supports Azure via `base_url`)
+  - `AnthropicProvider` — Messages API with content block extraction
+  - `HuggingFaceProvider` — Inference API adapter
+  - `LocalProvider` — OpenAI-compatible local servers (llama.cpp, vLLM, Ollama)
+- **FastAPI Server** (`server.py`):
+  - `create_app(config)` factory with lifespan-managed state
+  - REST: `/v1/health`, `/v1/review`, `/v1/process`, `/v1/batch`, `/v1/metrics`, `/v1/config`
+  - `/v1/metrics/prometheus` — Prometheus-compatible scrape endpoint
+  - WebSocket: `/v1/stream` — real-time coherence streaming
+  - CORS middleware, Pydantic request/response models
+- **CLI Tool** (`cli.py`):
+  - `director-ai version` — show version
+  - `director-ai review <prompt> <response>` — score a single pair
+  - `director-ai process <prompt>` — run full pipeline
+  - `director-ai batch <file.jsonl> [--output results.jsonl]` — bulk processing
+  - `director-ai serve [--port N] [--host H] [--profile P]` — start API server
+  - `director-ai config [--profile P]` — show/set configuration
+- **Docker Support**:
+  - Multi-stage `Dockerfile` (python:3.11-slim builder + runtime)
+  - `docker-compose.yml` with optional ChromaDB sidecar (`--profile full`)
+  - `.dockerignore` for lean builds
+- New optional dependency group: `pip install director-ai[server]` for FastAPI + uvicorn
+- CLI entry point: `director-ai` command registered via `[project.scripts]`
+- 6 new test files: `test_config.py`, `test_metrics.py`, `test_batch.py`, `test_providers.py`, `test_server.py`, `test_cli.py`
+
+### Changed
+- Version bump: 0.5.0 → 0.6.0
+- `core/__init__.py` exports: added `DirectorConfig`, `MetricsCollector`, `metrics`, `BatchProcessor`, `BatchResult`
+
 ## [0.5.0] - 2026-02-16
 
 ### Added
@@ -170,7 +221,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/anulum/director-ai/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/anulum/director-ai/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/anulum/director-ai/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/anulum/director-ai/compare/v0.3.0...v0.3.1

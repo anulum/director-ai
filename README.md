@@ -12,7 +12,7 @@
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
-  <a href="https://github.com/anulum/director-ai/releases"><img src="https://img.shields.io/badge/version-0.3.1-green.svg" alt="Version 0.3.1"></a>
+  <a href="https://github.com/anulum/director-ai/releases"><img src="https://img.shields.io/badge/version-0.6.0-green.svg" alt="Version 0.6.0"></a>
 </p>
 
 ---
@@ -100,13 +100,16 @@ Coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)
 # Consumer install (Coherence Engine only)
 pip install director-ai
 
+# With API server
+pip install director-ai[server]
+
 # Research install (includes SCPN extensions)
 pip install director-ai[research]
 
-# Development install
+# Full development install
 git clone https://github.com/anulum/director-ai.git
 cd director-ai
-pip install -e ".[dev,research]"
+pip install -e ".[dev,research,server,vector]"
 ```
 
 ## Quick Start — Coherence Engine
@@ -192,24 +195,91 @@ pgbo = PGBOEngine(N=16)
 u_mu, h_munu = pgbo.compute(phases, dt=0.01)  # symmetric, PSD rank-2 tensor
 ```
 
+## CLI
+
+```bash
+# Show version
+director-ai version
+
+# Review a prompt/response pair
+director-ai review "What color is the sky?" "The sky is blue."
+
+# Process a prompt through the full pipeline
+director-ai process "What is the meaning of life?"
+
+# Batch process from JSONL
+director-ai batch prompts.jsonl --output results.jsonl
+
+# Start the API server
+director-ai serve --port 8080 --profile thorough
+
+# Show configuration
+director-ai config --profile research
+```
+
+## API Server
+
+```bash
+# Start server
+director-ai serve --port 8080
+
+# Or via Docker
+docker compose up
+```
+
+Endpoints: `GET /v1/health`, `POST /v1/review`, `POST /v1/process`, `POST /v1/batch`,
+`GET /v1/metrics`, `GET /v1/metrics/prometheus`, `GET /v1/config`, `WS /v1/stream`
+
+## Configuration
+
+```python
+from director_ai.core import DirectorConfig
+
+# From environment variables (DIRECTOR_USE_NLI=true, etc.)
+config = DirectorConfig.from_env()
+
+# From built-in profiles
+config = DirectorConfig.from_profile("fast")      # No NLI, low latency
+config = DirectorConfig.from_profile("thorough")   # NLI + RAG, balanced
+config = DirectorConfig.from_profile("research")   # Full physics bridge
+
+# From YAML/JSON file
+config = DirectorConfig.from_yaml("config.yaml")
+```
+
 ## Package Structure
 
 ```
 src/director_ai/
 ├── __init__.py                     # Version + profile-aware imports
+├── cli.py                          # CLI entry point (6 commands)
+├── server.py                       # FastAPI server (8 REST + 1 WS endpoints)
 ├── core/                           # Coherence Engine (consumer-ready)
+│   ├── agent.py                    # CoherenceAgent pipeline
 │   ├── scorer.py                   # Dual-entropy coherence scorer
 │   ├── kernel.py                   # Safety kernel (hardware interlock)
 │   ├── actor.py                    # LLM generator interface
 │   ├── knowledge.py                # Ground truth store (RAG)
-│   ├── agent.py                    # CoherenceAgent pipeline
-│   └── types.py                    # Shared dataclasses
+│   ├── config.py                   # DirectorConfig (env/yaml/profile)
+│   ├── metrics.py                  # Prometheus-style metrics collector
+│   ├── batch.py                    # Sync + async batch processing
+│   ├── types.py                    # Shared dataclasses
+│   ├── nli.py                      # NLI scorer (DeBERTa)
+│   ├── vector_store.py             # Vector backend (InMemory/ChromaDB)
+│   ├── streaming.py                # Token streaming kernel
+│   ├── async_streaming.py          # Async streaming kernel
+│   └── bridge.py                   # Physics-backed scorer
+├── integrations/                   # LLM provider adapters
+│   └── providers.py                # OpenAI, Anthropic, HuggingFace, Local
 └── research/                       # SCPN Research extensions
     ├── physics/                    # L16 mechanistic physics
     │   ├── scpn_params.py          #   Omega_n frequencies + Knm coupling matrix
     │   ├── sec_functional.py       #   SEC Lyapunov stability functional
     │   ├── l16_mechanistic.py      #   UPDE integrator + L16 oversight loop
-    │   └── l16_closure.py          #   PI controllers, PLV gate, refusal rules
+    │   ├── l16_closure.py          #   PI controllers, PLV gate, refusal rules
+    │   ├── ssgf_cycle.py           #   SSGF geometry learning engine
+    │   ├── lyapunov_proof.py       #   Symbolic + numerical proofs
+    │   └── gpu_upde.py             #   GPU-accelerated UPDE stepper
     ├── consciousness/              # Consciousness gate
     │   ├── tcbo.py                 #   TCBO observer + PI controller
     │   ├── pgbo.py                 #   Phase-to-Geometry Bridge Operator
@@ -221,11 +291,14 @@ src/director_ai/
 ## Testing
 
 ```bash
-# Run all 44 tests
+# Run all tests
 pytest tests/ -v
 
 # Consumer API tests only
 pytest tests/test_consumer_api.py -v
+
+# Server tests
+pytest tests/test_server.py -v
 
 # Research module tests only
 pytest tests/test_research_imports.py -v
@@ -272,7 +345,7 @@ If you use this software in your research, please cite:
   title     = {Director-Class AI: Coherence Engine},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {0.3.1},
+  version   = {0.6.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

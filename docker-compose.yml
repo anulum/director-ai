@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — Docker Compose
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# License: GNU AGPL v3 | Commercial licensing available
+# ─────────────────────────────────────────────────────────────────────
+#
+# Usage:
+#   docker compose up              # API server only
+#   docker compose --profile full up  # API + ChromaDB
+# ─────────────────────────────────────────────────────────────────────
+
+services:
+  director-api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - DIRECTOR_LOG_LEVEL=INFO
+      - DIRECTOR_USE_NLI=false
+      - DIRECTOR_METRICS_ENABLED=true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8080/v1/health').raise_for_status()"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:latest
+    profiles: ["full"]
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    restart: unless-stopped
+
+volumes:
+  chroma-data:

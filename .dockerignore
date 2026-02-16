@@ -1,0 +1,43 @@
+# ─── Git ───
+.git
+.gitignore
+
+# ─── Python ───
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+dist/
+build/
+.eggs/
+
+# ─── Virtual envs ───
+.venv
+venv
+env
+
+# ─── IDE ───
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ─── Testing / Coverage ───
+.pytest_cache
+.coverage
+htmlcov/
+.mypy_cache
+.ruff_cache
+
+# ─── Docs build ───
+docs/_build/
+
+# ─── CI / Config ───
+.github/
+*.md
+!README.md
+!LICENSE
+!NOTICE
+
+# ─── Notebooks ───
+notebooks/

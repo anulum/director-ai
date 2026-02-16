@@ -1,0 +1,193 @@
+# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — Configuration Manager
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# License: GNU AGPL v3 | Commercial licensing available
+# ─────────────────────────────────────────────────────────────────────
+"""
+Dataclass-based configuration with env var, YAML, and profile support.
+
+Usage::
+
+    config = DirectorConfig.from_env()
+    config = DirectorConfig.from_yaml("config.yaml")
+    config = DirectorConfig.from_profile("fast")
+"""
+
+from __future__ import annotations
+
+import json
+import os
+from dataclasses import dataclass, field
+
+
+@dataclass
+class DirectorConfig:
+    """Central configuration for Director-Class AI.
+
+    Parameters
+    ----------
+    coherence_threshold : float — minimum coherence to approve (0.0-1.0).
+    hard_limit : float — safety kernel emergency stop threshold.
+    use_nli : bool — enable DeBERTa NLI model for logical divergence.
+    nli_model : str — HuggingFace model ID for NLI.
+    max_candidates : int — number of LLM candidates to generate.
+    history_window : int — scorer rolling history size.
+    llm_provider : str — LLM backend: mock, openai, anthropic,
+        huggingface, or local.
+    llm_api_url : str — API endpoint URL (for "local" provider).
+    llm_api_key : str — API key (for cloud providers).
+    llm_model : str — model name for cloud providers.
+    llm_temperature : float — sampling temperature.
+    llm_max_tokens : int — maximum tokens per response.
+    vector_backend : str — "memory" or "chroma".
+    chroma_collection : str — ChromaDB collection name.
+    chroma_persist_dir : str — ChromaDB persistence directory (None=in-memory).
+    server_host : str — FastAPI server bind address.
+    server_port : int — FastAPI server port.
+    server_workers : int — Uvicorn worker count.
+    batch_max_concurrency : int — max concurrent batch requests.
+    metrics_enabled : bool — enable Prometheus-style metrics collection.
+    log_level : str — logging level.
+    log_json : bool — structured JSON logging.
+    """
+
+    # Scoring
+    coherence_threshold: float = 0.6
+    hard_limit: float = 0.5
+    use_nli: bool = False
+    nli_model: str = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+    max_candidates: int = 3
+    history_window: int = 5
+
+    # LLM
+    llm_provider: str = "mock"
+    llm_api_url: str = ""
+    llm_api_key: str = ""
+    llm_model: str = ""
+    llm_temperature: float = 0.8
+    llm_max_tokens: int = 512
+
+    # Vector store
+    vector_backend: str = "memory"
+    chroma_collection: str = "director_ai"
+    chroma_persist_dir: str = ""
+
+    # Server
+    server_host: str = "0.0.0.0"
+    server_port: int = 8080
+    server_workers: int = 1
+
+    # Batch
+    batch_max_concurrency: int = 4
+
+    # Observability
+    metrics_enabled: bool = True
+    log_level: str = "INFO"
+    log_json: bool = False
+
+    # Profile name (informational)
+    profile: str = "default"
+
+    # Extra key-value overrides
+    extra: dict[str, str] = field(default_factory=dict)
+
+    @classmethod
+    def from_env(cls, prefix: str = "DIRECTOR_") -> DirectorConfig:
+        """Load configuration from environment variables.
+
+        Reads ``DIRECTOR_<FIELD>`` env vars (case-insensitive field matching).
+        Example: ``DIRECTOR_COHERENCE_THRESHOLD=0.7``
+        """
+        kwargs: dict = {}
+        field_map = {f.name.upper(): f for f in cls.__dataclass_fields__.values()}
+
+        for key, value in os.environ.items():
+            if not key.startswith(prefix):
+                continue
+            field_name = key[len(prefix) :]
+            if field_name in field_map:
+                fld = field_map[field_name]
+                kwargs[fld.name] = _coerce(value, fld.type)  # type: ignore[arg-type]
+
+        return cls(**kwargs)
+
+    @classmethod
+    def from_yaml(cls, path: str) -> DirectorConfig:
+        """Load configuration from a YAML file.
+
+        Falls back to JSON parsing if PyYAML is not installed.
+        """
+        with open(path) as f:
+            raw = f.read()
+
+        try:
+            import yaml  # type: ignore[import-untyped]
+
+            data = yaml.safe_load(raw)
+        except ImportError:
+            data = json.loads(raw)
+
+        if not isinstance(data, dict):
+            return cls()
+        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
+
+    @classmethod
+    def from_profile(cls, name: str) -> DirectorConfig:
+        """Load a predefined profile.
+
+        Profiles
+        --------
+        - ``"fast"`` — heuristic scoring only, no NLI model, low latency.
+        - ``"thorough"`` — NLI + RAG scoring, higher accuracy.
+        - ``"research"`` — all research modules, physics bridge enabled.
+        """
+        profiles: dict[str, dict] = {
+            "fast": {
+                "use_nli": False,
+                "coherence_threshold": 0.5,
+                "max_candidates": 1,
+                "metrics_enabled": False,
+                "profile": "fast",
+            },
+            "thorough": {
+                "use_nli": True,
+                "coherence_threshold": 0.6,
+                "max_candidates": 3,
+                "metrics_enabled": True,
+                "profile": "thorough",
+            },
+            "research": {
+                "use_nli": True,
+                "coherence_threshold": 0.7,
+                "max_candidates": 5,
+                "metrics_enabled": True,
+                "profile": "research",
+            },
+        }
+        if name not in profiles:
+            raise ValueError(
+                f"Unknown profile '{name}'. Choose from: {list(profiles.keys())}"
+            )
+        return cls(**profiles[name])
+
+    def to_dict(self) -> dict:
+        """Serialize to a plain dict (safe for JSON/API responses)."""
+        d = {}
+        for fld in self.__dataclass_fields__:
+            val = getattr(self, fld)
+            if fld in ("llm_api_key",) and val:
+                d[fld] = "***"  # Redact secrets
+            else:
+                d[fld] = val
+        return d
+
+
+def _coerce(value: str, type_hint: str) -> object:
+    """Coerce a string env var to the target type."""
+    if type_hint == "bool":
+        return value.lower() in ("true", "1", "yes")
+    if type_hint == "int":
+        return int(value)
+    if type_hint == "float":
+        return float(value)
+    return value

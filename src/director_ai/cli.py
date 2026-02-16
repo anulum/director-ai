@@ -1,0 +1,220 @@
+# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — Command Line Interface
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# License: GNU AGPL v3 | Commercial licensing available
+# ─────────────────────────────────────────────────────────────────────
+"""
+CLI entry point for Director-Class AI.
+
+Usage::
+
+    director-ai version
+    director-ai review "What color is the sky?" "The sky is blue."
+    director-ai process "What color is the sky?"
+    director-ai batch input.jsonl --output results.jsonl
+    director-ai serve --port 8080 --profile thorough
+    director-ai config --profile fast
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+
+
+def main(argv: list[str] | None = None) -> None:
+    """CLI entry point — dispatches to subcommands."""
+    args = argv if argv is not None else sys.argv[1:]
+
+    if not args or args[0] in ("-h", "--help", "help"):
+        _print_help()
+        return
+
+    cmd = args[0]
+    rest = args[1:]
+
+    commands = {
+        "version": _cmd_version,
+        "review": _cmd_review,
+        "process": _cmd_process,
+        "batch": _cmd_batch,
+        "serve": _cmd_serve,
+        "config": _cmd_config,
+    }
+
+    if cmd not in commands:
+        print(f"Unknown command: {cmd}")
+        _print_help()
+        sys.exit(1)
+
+    commands[cmd](rest)
+
+
+def _print_help() -> None:
+    print(
+        "Director-Class AI CLI\n"
+        "\n"
+        "Usage: director-ai <command> [options]\n"
+        "\n"
+        "Commands:\n"
+        "  version               Show version info\n"
+        "  review <prompt> <resp> Review a prompt/response pair\n"
+        "  process <prompt>      Process a prompt through the full pipeline\n"
+        "  batch <file.jsonl>    Batch process prompts from a JSONL file\n"
+        "  serve [--port N]      Start the FastAPI server\n"
+        "  config [--profile X]  Show/set configuration\n"
+    )
+
+
+def _cmd_version(args: list[str]) -> None:
+    import director_ai
+
+    print(f"director-ai {director_ai.__version__}")
+
+
+def _cmd_review(args: list[str]) -> None:
+    if len(args) < 2:
+        print("Usage: director-ai review <prompt> <response>")
+        sys.exit(1)
+
+    prompt, response = args[0], args[1]
+
+    from director_ai.core.knowledge import GroundTruthStore
+    from director_ai.core.scorer import CoherenceScorer
+
+    store = GroundTruthStore()
+    scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
+    approved, score = scorer.review(prompt, response)
+
+    print(f"Approved:  {approved}")
+    print(f"Coherence: {score.score:.4f}")
+    print(f"H_logical: {score.h_logical:.4f}")
+    print(f"H_factual: {score.h_factual:.4f}")
+
+
+def _cmd_process(args: list[str]) -> None:
+    if not args:
+        print("Usage: director-ai process <prompt>")
+        sys.exit(1)
+
+    prompt = args[0]
+
+    from director_ai.core.agent import CoherenceAgent
+
+    agent = CoherenceAgent()
+    result = agent.process(prompt)
+
+    print(f"Output:     {result.output}")
+    print(f"Halted:     {result.halted}")
+    print(f"Candidates: {result.candidates_evaluated}")
+    if result.coherence:
+        print(f"Coherence:  {result.coherence.score:.4f}")
+
+
+def _cmd_batch(args: list[str]) -> None:
+    if not args:
+        print("Usage: director-ai batch <input.jsonl> [--output results.jsonl]")
+        sys.exit(1)
+
+    input_file = args[0]
+    output_file = None
+    if "--output" in args:
+        idx = args.index("--output")
+        if idx + 1 < len(args):
+            output_file = args[idx + 1]
+
+    from director_ai.core.agent import CoherenceAgent
+    from director_ai.core.batch import BatchProcessor
+
+    prompts = []
+    with open(input_file) as f:
+        for line in f:
+            line = line.strip()
+            if line:
+                data = json.loads(line)
+                prompts.append(data.get("prompt", data.get("text", line)))
+
+    agent = CoherenceAgent()
+    processor = BatchProcessor(agent)
+    result = processor.process_batch(prompts)
+
+    print(f"Total:    {result.total}")
+    print(f"Success:  {result.succeeded}")
+    print(f"Failed:   {result.failed}")
+    print(f"Duration: {result.duration_seconds:.2f}s")
+
+    if output_file:
+        with open(output_file, "w") as f:
+            for r in result.results:
+                f.write(
+                    json.dumps(
+                        {
+                            "output": r.output,  # type: ignore[union-attr]
+                            "halted": r.halted,  # type: ignore[union-attr]
+                            "coherence": r.coherence.score if r.coherence else None,  # type: ignore[union-attr]
+                        }
+                    )
+                    + "\n"
+                )
+        print(f"Results written to {output_file}")
+
+
+def _cmd_serve(args: list[str]) -> None:
+    port = 8080
+    host = "0.0.0.0"
+    profile = "default"
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--port" and i + 1 < len(args):
+            port = int(args[i + 1])
+            i += 2
+        elif args[i] == "--host" and i + 1 < len(args):
+            host = args[i + 1]
+            i += 2
+        elif args[i] == "--profile" and i + 1 < len(args):
+            profile = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    try:
+        import uvicorn
+    except ImportError:
+        print("uvicorn is required: pip install director-ai[server]")
+        sys.exit(1)
+
+    from director_ai.core.config import DirectorConfig
+    from director_ai.server import create_app
+
+    if profile != "default":
+        config = DirectorConfig.from_profile(profile)
+    else:
+        config = DirectorConfig.from_env()
+    config.server_host = host
+    config.server_port = port
+
+    app = create_app(config)
+    print(f"Starting Director AI server on {host}:{port} (profile={config.profile})")
+    uvicorn.run(app, host=host, port=port)
+
+
+def _cmd_config(args: list[str]) -> None:
+    from director_ai.core.config import DirectorConfig
+
+    if "--profile" in args:
+        idx = args.index("--profile")
+        if idx + 1 < len(args):
+            cfg = DirectorConfig.from_profile(args[idx + 1])
+        else:
+            print("Usage: director-ai config --profile <name>")
+            sys.exit(1)
+    else:
+        cfg = DirectorConfig.from_env()
+
+    for key, value in cfg.to_dict().items():
+        print(f"  {key}: {value}")
+
+
+if __name__ == "__main__":
+    main()
