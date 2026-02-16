@@ -42,8 +42,7 @@ class MockGenerator:
                 "type": "truth",
             },
             {
-                "text": "I can convincingly argue that the opposite "
-                "is true.",
+                "text": "I can convincingly argue that the opposite is true.",
                 "type": "hallucination",
             },
             {
