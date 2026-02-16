@@ -9,8 +9,10 @@ for the physics and consciousness subpackages.
 """
 
 import numpy as np
+import pytest
 
 
+@pytest.mark.physics
 class TestPhysicsImports:
     def test_scpn_params(self):
         from director_ai.research.physics import (
@@ -120,6 +122,7 @@ class TestPhysicsImports:
         assert output > 0.0
 
 
+@pytest.mark.consciousness
 class TestConsciousnessImports:
     def test_tcbo_observer(self):
         from director_ai.research.consciousness import TCBOConfig, TCBOObserver

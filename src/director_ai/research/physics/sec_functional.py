@@ -124,7 +124,7 @@ class SECFunctional:
         entropy = -float(np.sum(p * np.log(p)))
         # Penalise low entropy (concentration)
         max_entropy = np.log(n_bins)
-        return self.lambda_entropy * (max_entropy - entropy)
+        return float(self.lambda_entropy * (max_entropy - entropy))
 
     def evaluate(
         self,
@@ -189,7 +189,7 @@ class SECFunctional:
             return 0.0
         # Approximate g(0) as 1 / (√(2π) · σ_ω)
         g0 = 1.0 / (np.sqrt(2 * np.pi) * std_omega)
-        return 2.0 / (np.pi * g0)
+        return float(2.0 / (np.pi * g0))
 
     def is_stable(self, sec_result: SECResult, tolerance: float = 1e-3) -> bool:
         """Check if dV/dt ≤ 0 (Lyapunov stability condition)."""

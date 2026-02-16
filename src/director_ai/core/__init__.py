@@ -19,10 +19,19 @@ Quick start::
 
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
+from .bridge import PhysicsBackedScorer
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
+from .nli import NLIScorer
 from .scorer import CoherenceScorer
+from .streaming import StreamingKernel, StreamSession, TokenEvent
 from .types import CoherenceScore, ReviewResult
+from .vector_store import (
+    ChromaBackend,
+    InMemoryBackend,
+    VectorBackend,
+    VectorGroundTruthStore,
+)
 
 __all__ = [
     "CoherenceScore",
@@ -33,4 +42,14 @@ __all__ = [
     "LLMGenerator",
     "GroundTruthStore",
     "CoherenceAgent",
+    # v0.4.0 additions
+    "NLIScorer",
+    "VectorGroundTruthStore",
+    "VectorBackend",
+    "InMemoryBackend",
+    "ChromaBackend",
+    "StreamingKernel",
+    "StreamSession",
+    "TokenEvent",
+    "PhysicsBackedScorer",
 ]

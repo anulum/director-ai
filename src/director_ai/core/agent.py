@@ -32,6 +32,7 @@ class CoherenceAgent:
 
     def __init__(self, llm_api_url=None):
         self.logger = logging.getLogger("CoherenceAgent")
+        self.generator: MockGenerator | LLMGenerator
 
         if llm_api_url:
             self.generator = LLMGenerator(llm_api_url)

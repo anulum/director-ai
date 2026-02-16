@@ -38,7 +38,9 @@ from .scpn_params import (
     build_knm_matrix,
     load_omega_n,
 )
+from .lyapunov_proof import ProofResult, run_all_proofs
 from .sec_functional import SECFunctional, SECResult
+from .ssgf_cycle import SSGFConfig, SSGFEngine, SSGFState
 
 __all__ = [
     # Parameters
@@ -64,4 +66,11 @@ __all__ = [
     "pi_step",
     "L16ControllerState",
     "L16Controller",
+    # SSGF
+    "SSGFConfig",
+    "SSGFEngine",
+    "SSGFState",
+    # Lyapunov proof
+    "ProofResult",
+    "run_all_proofs",
 ]

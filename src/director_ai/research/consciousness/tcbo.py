@@ -73,8 +73,8 @@ def _ripser_fallback(point_cloud: np.ndarray, maxdim: int = 1) -> dict:
 def _compute_ripser(point_cloud: np.ndarray, maxdim: int = 1) -> dict:
     """Dispatch to real ripser or fallback."""
     if _HAS_RIPSER:
-        return _ripser_fn(point_cloud, maxdim=maxdim)
-    return _ripser_fallback(point_cloud, maxdim=maxdim)
+        return dict(_ripser_fn(point_cloud, maxdim=maxdim))
+    return dict(_ripser_fallback(point_cloud, maxdim=maxdim))
 
 
 # ── Delay embedding (Takens) ────────────────────────────────────────
@@ -148,7 +148,7 @@ def persistence_to_probability(
     """
     arg = -beta * (s_h1 - s0)
     arg = max(-500.0, min(500.0, arg))
-    return 1.0 / (1.0 + np.exp(arg))
+    return float(1.0 / (1.0 + np.exp(arg)))
 
 
 def s0_for_threshold(
@@ -158,7 +158,7 @@ def s0_for_threshold(
 ) -> float:
     """Compute s0 so that persistence_to_probability(s_tau, s0, beta) == p."""
     p = float(np.clip(p, 1e-12, 1.0 - 1e-12))
-    return s_tau - (1.0 / beta) * np.log(p / (1.0 - p))
+    return float(s_tau - (1.0 / beta) * np.log(p / (1.0 - p)))
 
 
 # ── TCBOObserver ─────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "0.3.1"
+version = "0.4.0"
 description = "Coherence Engine — AI output verification and safety oversight"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
@@ -35,13 +35,24 @@ dependencies = [
 research = [
     "scipy>=1.10",
     "ripser>=0.6.4",
+    "sympy>=1.12",
+]
+vector = [
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
 ]
 dev = [
     "pytest>=7.0",
     "pytest-cov>=4.0",
+    "pytest-asyncio>=0.21",
     "black>=23.0",
     "ruff>=0.1.0",
     "mypy>=1.10",
+    "sphinx>=7.0",
+    "sphinx-rtd-theme>=2.0",
+    "sphinx-autodoc-typehints>=1.25",
+    "build>=1.0",
+    "twine>=5.0",
 ]
 
 [project.urls]
@@ -68,13 +79,42 @@ select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]
 # Physics/math code uses uppercase variable names by convention (K, V, N, R, etc.)
 "src/director_ai/research/**" = ["N803", "N806", "N815"]
 "tests/test_research_imports.py" = ["N806"]
+"tests/test_cross_validation.py" = ["N806"]
+"tests/test_ssgf_integration.py" = ["N806"]
+"tests/test_lyapunov_proof.py" = ["N806"]
+"tests/test_physics_bridge.py" = ["N806"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"
+markers = [
+    "physics: SCPN L16 mechanistic physics tests (Track 1)",
+    "consciousness: consciousness gate / TCBO / PGBO tests (Track 2)",
+    "consumer: consumer-facing API tests",
+    "integration: cross-module integration tests",
+    "slow: tests that take > 5s",
+]
+
+[tool.coverage.run]
+source = ["src/director_ai"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 60
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.",
+    "pass",
+    "raise NotImplementedError",
+    "except ImportError",
+]
 
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
+disallow_untyped_defs = false
+check_untyped_defs = true
+ignore_missing_imports = true

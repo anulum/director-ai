@@ -69,7 +69,8 @@ def _generate_coherent_phases(
 def _generate_flat_signal(N: int, T: int) -> np.ndarray:
     """Generate flat (anesthesia-like) signal: near-constant with tiny noise."""
     base = np.random.uniform(0, 2 * np.pi, N)
-    return np.tile(base, (T, 1)) + 0.001 * np.random.randn(T, N)
+    result: np.ndarray = np.tile(base, (T, 1)) + 0.001 * np.random.randn(T, N)
+    return result
 
 
 def benchmark_kappa_increase(

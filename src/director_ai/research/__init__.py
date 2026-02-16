@@ -47,12 +47,17 @@ from .physics import (
     OMEGA_N,
     L16Controller,
     L16OversightLoop,
+    ProofResult,
     SECFunctional,
     SECResult,
+    SSGFConfig,
+    SSGFEngine,
+    SSGFState,
     UPDEState,
     UPDEStepper,
     build_knm_matrix,
     load_omega_n,
+    run_all_proofs,
 )
 
 __all__ = [
@@ -82,4 +87,10 @@ __all__ = [
     "phase_geometry_bridge",
     "run_all_benchmarks",
     "BenchmarkResult",
+    # SSGF + Lyapunov
+    "SSGFConfig",
+    "SSGFEngine",
+    "SSGFState",
+    "ProofResult",
+    "run_all_proofs",
 ]

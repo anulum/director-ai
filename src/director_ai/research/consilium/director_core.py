@@ -44,7 +44,7 @@ class EthicalFunctional:
     Minimizes E = w_s * S (Suffering) - w_c * C (Coherence) - w_d * D (Diversity)
     """
 
-    def __init__(self, weights: dict[str, float] = None):
+    def __init__(self, weights: dict[str, float] | None = None):
         if weights is None:
             # Default weights derived from L15 analysis (Golden Ratio influences)
             self.weights = {
@@ -101,7 +101,7 @@ class EthicalFunctional:
             - (self.weights["diversity"] * D)
         )
 
-        return E
+        return float(E)
 
 
 class ConsiliumAgent:
@@ -172,7 +172,7 @@ class ConsiliumAgent:
 
         return metrics
 
-    def perceive(self, metrics: dict[str, Any] = None) -> SystemState:
+    def perceive(self, metrics: dict[str, Any] | None = None) -> SystemState:
         """Converts raw metrics into a SystemState object."""
         if metrics is None:
             metrics = self.get_real_metrics()
@@ -220,7 +220,7 @@ class ConsiliumAgent:
 
         return self.ethics.evaluate(projected_state)
 
-    def decide(self, current_metrics: dict[str, Any] = None) -> str:
+    def decide(self, current_metrics: dict[str, Any] | None = None) -> str:
         """
         The OODA Loop (Observe, Orient, Decide, Act).
         Returns the action with the optimal Ethical outcome.

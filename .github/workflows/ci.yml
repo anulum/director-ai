@@ -47,9 +47,11 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev,research]"
 
+      - name: Install type stubs
+        run: pip install types-requests
+
       - name: Run mypy
-        run: mypy src/director_ai/ --ignore-missing-imports --no-error-summary
-        continue-on-error: true  # advisory until stubs are complete
+        run: mypy src/director_ai/ --ignore-missing-imports --check-untyped-defs
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -68,8 +70,15 @@ jobs:
       - name: Install dependencies
         run: pip install -e ".[dev,research]"
 
-      - name: Run tests
-        run: pytest tests/ -v --tb=short
+      - name: Run tests with coverage
+        run: pytest tests/ -v --tb=short --cov=director_ai --cov-report=term-missing --cov-report=xml
+
+      - name: Upload coverage
+        if: matrix.python-version == '3.12'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage.xml
 
   security:
     name: Security Audit

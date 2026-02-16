@@ -17,7 +17,7 @@ Research API (requires ``pip install director-ai[research]``)::
     from director_ai.research.consilium import ConsiliumAgent
 """
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
 # ── Consumer core (always available) ──────────────────────────────────
 from .core import (
@@ -25,10 +25,17 @@ from .core import (
     CoherenceScore,
     CoherenceScorer,
     GroundTruthStore,
+    InMemoryBackend,
     LLMGenerator,
     MockGenerator,
+    NLIScorer,
+    PhysicsBackedScorer,
     ReviewResult,
     SafetyKernel,
+    StreamingKernel,
+    StreamSession,
+    TokenEvent,
+    VectorGroundTruthStore,
 )
 
 __all__ = [
@@ -41,6 +48,14 @@ __all__ = [
     "GroundTruthStore",
     "CoherenceScore",
     "ReviewResult",
+    # v0.4.0
+    "NLIScorer",
+    "VectorGroundTruthStore",
+    "InMemoryBackend",
+    "StreamingKernel",
+    "StreamSession",
+    "TokenEvent",
+    "PhysicsBackedScorer",
 ]
 
 # ── Research extensions (optional) ────────────────────────────────────
@@ -52,9 +67,13 @@ try:
         L16OversightLoop,
         PGBOConfig,
         PGBOEngine,
+        ProofResult,
         # Track 1 — Physics
         SECFunctional,
         SECResult,
+        SSGFConfig,
+        SSGFEngine,
+        SSGFState,
         SystemState,
         TCBOConfig,
         TCBOController,
@@ -63,6 +82,7 @@ try:
         TCBOObserver,
         UPDEState,
         UPDEStepper,
+        run_all_proofs,
     )
 
     __all__ += [
@@ -81,6 +101,11 @@ try:
         "TCBOControllerConfig",
         "PGBOEngine",
         "PGBOConfig",
+        "SSGFEngine",
+        "SSGFConfig",
+        "SSGFState",
+        "ProofResult",
+        "run_all_proofs",
     ]
 except ImportError:
     pass  # Research extras not installed — consumer API still works

@@ -15,6 +15,10 @@
 # docs/assets/ is tracked (header image, generator script).
 docs/*
 !docs/assets/
+!docs/conf.py
+!docs/index.rst
+!docs/api/
+docs/_build/
 
 # =====================================================================
 # Python

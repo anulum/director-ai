@@ -7,6 +7,52 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-02-16
+
+### Added
+- **NLI Scorer** (`core/nli.py`):
+  - Real NLI-based logical divergence scoring using DeBERTa-v3-base-mnli
+  - Lazy model loading with `@lru_cache` singleton
+  - Heuristic fallback when model is unavailable
+  - `score()` and `score_batch()` API
+- **Vector Store** (`core/vector_store.py`):
+  - Pluggable `VectorBackend` protocol (ABC)
+  - `InMemoryBackend` — word-overlap cosine proxy for testing
+  - `ChromaBackend` — production ChromaDB integration
+  - `VectorGroundTruthStore` — semantic retrieval with keyword fallback
+  - New optional dependency group: `pip install director-ai[vector]`
+- **Streaming Kernel** (`core/streaming.py`):
+  - Token-by-token oversight with `StreamingKernel.stream_tokens()`
+  - Three halt mechanisms: hard limit, sliding window average, downward trend
+  - `TokenEvent` and `StreamSession` dataclasses with full metrics
+  - Backward-compatible `stream_output()` method
+- **Physics Bridge** (`core/bridge.py`):
+  - `PhysicsBackedScorer` blending heuristic + L16 physics coherence scores
+  - Graceful degradation when research deps are absent
+  - Configurable `physics_weight` and `simulation_steps`
+- **SSGF Outer Cycle** (`research/physics/ssgf_cycle.py`):
+  - Full SSGF geometry learning engine integrating TCBO, PGBO, and L16 closure
+  - Gram-softplus decoder (z→W), spectral bridge, micro-step with geometry feedback
+  - Composite cost U_total with 4 terms (c_micro, r_graph, c_tcbo, c_pgbo)
+  - Finite-difference gradient update on latent geometry vector z
+- **Lyapunov Stability Proof** (`research/physics/lyapunov_proof.py`):
+  - Symbolic verification using SymPy: V≥0, V(θ*)=0, dV/dt≤0, K_c formula
+  - Numerical verification via Monte Carlo UPDE trials
+  - `run_all_proofs()` entry point, `ProofResult` dataclass
+- **Cross-validation tests** (`tests/test_cross_validation.py`):
+  - 14 tests validating canonical Omega_n, Knm anchors, UPDE coupling, SEC consistency
+- **pytest markers**: `@pytest.mark.physics`, `@pytest.mark.consciousness`, `@pytest.mark.consumer`, `@pytest.mark.integration`
+- **Code coverage**: pytest-cov integration (86.93%), CI coverage artifact upload
+- **Sphinx documentation**: `docs/conf.py`, API reference pages for core and research
+- **PyPI publication pipeline**: `MANIFEST.in`, `.github/workflows/publish.yml` with trusted publishing
+- Test count: 44 → 144 (3.3x increase)
+
+### Changed
+- **mypy strict pass**: 0 errors across 26 source files (was advisory, now enforced in CI)
+- CI workflow: coverage reporting in test job, type stubs for requests, mypy no longer soft-fail
+- `EthicalFunctional.__init__` / `ConsiliumAgent.perceive` / `ConsiliumAgent.decide`: `Optional` type annotations fixed (PEP 484 compliance)
+- Various numpy `no-any-return` fixes for type safety
+
 ## [0.3.1] - 2026-02-16
 
 ### Added
@@ -87,7 +133,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/anulum/director-ai/compare/v0.3.1...v0.4.0
+[0.3.1]: https://github.com/anulum/director-ai/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/anulum/director-ai/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/anulum/director-ai/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/anulum/director-ai/releases/tag/v0.1.0
