@@ -7,6 +7,43 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-02-16
+
+### Added
+- **Async Streaming Kernel** (`core/async_streaming.py`):
+  - `AsyncStreamingKernel` — async/await version of `StreamingKernel` for WebSocket production
+  - Async generator `stream_tokens()` yielding `TokenEvent` objects
+  - `stream_to_session()` convenience wrapper returning `StreamSession`
+  - Supports both sync and async coherence callbacks
+  - Same 3 halt mechanisms as sync version (hard limit, sliding window, trend)
+- **GPU-Accelerated UPDE** (`research/physics/gpu_upde.py`):
+  - `TorchUPDEStepper` — drop-in replacement for `UPDEStepper` using PyTorch
+  - Auto device resolution: CUDA → MPS → CPU fallback
+  - `step_n()` batches N steps entirely on GPU (single host↔device transfer)
+  - `TorchUPDEConfig` dataclass with device="auto"
+  - NumPy CPU fallback mirrors `UPDEStepper` exactly
+- **Integration Tests**:
+  - `test_nli_integration.py` — 8 real DeBERTa model tests (with `@slow` marker)
+  - `test_chroma_integration.py` — 10 ChromaDB in-memory fixture tests
+- **Jupyter Notebook Demos** (`notebooks/`):
+  - `01_coherence_engine.ipynb` — Core consumer API walkthrough
+  - `02_streaming_oversight.ipynb` — Sync + async streaming demo
+  - `03_vector_store.ipynb` — VectorGroundTruthStore with InMemoryBackend
+  - `04_physics_bridge.ipynb` — PhysicsBackedScorer L16 integration
+  - `05_ssgf_geometry.ipynb` — SSGF geometry learning cycle
+  - `06_lyapunov_proofs.ipynb` — Symbolic + numerical stability proofs
+- **Sphinx → GitHub Pages** (`.github/workflows/docs.yml`):
+  - Auto-deploy on push to main when docs/ or src/ change
+  - `sphinx-build -W --keep-going` strict mode
+- **PyPI Release Pipeline** (`.github/workflows/publish.yml`):
+  - test.pypi.org staging job before production publish
+  - Trusted publisher (OIDC) for both TestPyPI and PyPI
+- New optional dependency group: `pip install director-ai[gpu]` for PyTorch
+
+### Changed
+- Version bump: 0.4.0 → 0.5.0
+- `MANIFEST.in` now includes `notebooks/*.ipynb`
+
 ## [0.4.0] - 2026-02-16
 
 ### Added
@@ -133,7 +170,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/anulum/director-ai/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/anulum/director-ai/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/anulum/director-ai/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/anulum/director-ai/compare/v0.2.0...v0.3.0

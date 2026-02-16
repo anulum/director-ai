@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — PyPI Publish
+# Director-Class AI — PyPI Publish (with test.pypi.org staging)
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # ─────────────────────────────────────────────────────────────────────
 
@@ -38,9 +38,28 @@ jobs:
           name: dist
           path: dist/
 
-  publish:
-    name: Publish
+  test-publish:
+    name: Publish to TestPyPI
     needs: build
+    runs-on: ubuntu-latest
+    environment: testpypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://test.pypi.org/legacy/
+
+  publish:
+    name: Publish to PyPI
+    needs: [build, test-publish]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:

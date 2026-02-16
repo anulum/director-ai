@@ -103,11 +103,10 @@ class ChromaBackend(VectorBackend):
     def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
-        self._collection.add(
-            ids=[doc_id],
-            documents=[text],
-            metadatas=[metadata or {}],
-        )
+        kwargs: dict[str, Any] = {"ids": [doc_id], "documents": [text]}
+        if metadata:
+            kwargs["metadatas"] = [metadata]
+        self._collection.add(**kwargs)
 
     def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
         results = self._collection.query(query_texts=[text], n_results=n_results)
