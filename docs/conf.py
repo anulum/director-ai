@@ -41,3 +41,6 @@ intersphinx_mapping = {
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
+
+# Suppress cross-reference ambiguity warnings from re-exported symbols
+suppress_warnings = ["ref.python"]
