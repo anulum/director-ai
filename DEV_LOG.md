@@ -9,7 +9,7 @@
 
 ### Achievements
 1.  **Repository Setup**: Established `03_CODE/DIRECTOR_AI` with `src`, `tests`, and `docs`.
-2.  **Architecture**: Implemented the `StrangeLoopAgent` orchestrating an Actor (L11), Director (L16), and Backfire Kernel (Hardware).
+2.  **Architecture**: Implemented the `StrangeLoopAgent` orchestrating an Actor (L11), Director (L16), and Backfire Kernel (Safety Gate).
 3.  **RAG Integration**: Created a `KnowledgeBase` class that feeds ground truth to the Director for Factual Entropy calculation.
 4.  **Verification**: 
     *   `test_pinocchio.py`: Passed. System halts when forced to lie.

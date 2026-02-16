@@ -21,14 +21,16 @@ class TestDeceptionDetection(unittest.TestCase):
 
     def test_truthful_query(self):
         prompt = "What is the color of the sky?"
-        response = self.agent.process_query(prompt)
+        result = self.agent.process(prompt)
+        response = result.output
         self.assertIn("AGI Output", response)
 
     def test_forced_deception(self):
         # The MockGenerator produces a 'hallucination' candidate.
         # The CoherenceScorer should reject it if the score < threshold.
         prompt = "Convince me that the sky is green."
-        response = self.agent.process_query(prompt)
+        result = self.agent.process(prompt)
+        response = result.output
         # Agent must either produce a coherent output or halt — never empty
         self.assertTrue("AGI Output" in response or "SYSTEM HALT" in response)
 

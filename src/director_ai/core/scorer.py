@@ -8,7 +8,7 @@
 
 import logging
 
-import torch
+import warnings
 
 from .types import CoherenceScore
 
@@ -85,6 +85,8 @@ class CoherenceScorer:
         Otherwise falls back to deterministic heuristics for testing.
         """
         if self.use_nli:
+            import torch
+
             input_text = f"{prompt} [SEP] {text_output}"
             inputs = self.tokenizer(input_text, return_tensors="pt", truncation=True)
 
@@ -167,18 +169,38 @@ class CoherenceScorer:
     # ── Backward-compatible aliases ───────────────────────────────────
 
     def calculate_factual_entropy(self, prompt, text_output):
-        """Alias for ``calculate_factual_divergence`` (backward compat)."""
+        """Deprecated: use ``calculate_factual_divergence``."""
+        warnings.warn(
+            "calculate_factual_entropy() is deprecated, use calculate_factual_divergence()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.calculate_factual_divergence(prompt, text_output)
 
     def calculate_logical_entropy(self, prompt, text_output):
-        """Alias for ``calculate_logical_divergence`` (backward compat)."""
+        """Deprecated: use ``calculate_logical_divergence``."""
+        warnings.warn(
+            "calculate_logical_entropy() is deprecated, use calculate_logical_divergence()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.calculate_logical_divergence(prompt, text_output)
 
     def simulate_future_state(self, prompt, action):
-        """Alias for ``compute_divergence`` (backward compat)."""
+        """Deprecated: use ``compute_divergence``."""
+        warnings.warn(
+            "simulate_future_state() is deprecated, use compute_divergence()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.compute_divergence(prompt, action)
 
     def review_action(self, prompt, action):
-        """Alias for ``review`` returning (approved, score_float) (backward compat)."""
+        """Deprecated: use ``review``."""
+        warnings.warn(
+            "review_action() is deprecated, use review()",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         approved, cs = self.review(prompt, action)
         return approved, cs.score

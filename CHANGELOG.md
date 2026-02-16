@@ -7,93 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [0.6.0] - 2026-02-16
-
-### Added
-- **Configuration Manager** (`core/config.py`):
-  - `DirectorConfig` dataclass with `from_env()`, `from_yaml()`, `from_profile()` factory methods
-  - Three built-in profiles: `fast` (no NLI, 1 candidate), `thorough` (NLI, 3 candidates), `research` (NLI, 5 candidates)
-  - Environment variable loading with `DIRECTOR_` prefix (e.g. `DIRECTOR_USE_NLI=true`)
-  - YAML/JSON file loading with PyYAML fallback
-  - `to_dict()` with API key redaction
-- **Metrics & Observability** (`core/metrics.py`):
-  - Thread-safe `MetricsCollector` with counters, histograms, and gauges
-  - Pre-registered metrics: `reviews_total`, `coherence_score`, `review_duration_seconds`, etc.
-  - `timer()` context manager for latency tracking
-  - `prometheus_format()` for Prometheus text exposition
-  - Module-level singleton: `from director_ai.core.metrics import metrics`
-- **Request Batching** (`core/batch.py`):
-  - `BatchProcessor` with sync (`process_batch`) and async (`process_batch_async`) modes
-  - Thread pool executor with configurable `max_concurrency`
-  - `review_batch()` for bulk (prompt, response) scoring
-  - `BatchResult` dataclass with success/failure counts and duration
-- **LLM Provider Adapters** (`integrations/providers.py`):
-  - `LLMProvider` ABC with unified `generate_candidates(prompt, n)` interface
-  - `OpenAIProvider` — ChatCompletion API (supports Azure via `base_url`)
-  - `AnthropicProvider` — Messages API with content block extraction
-  - `HuggingFaceProvider` — Inference API adapter
-  - `LocalProvider` — OpenAI-compatible local servers (llama.cpp, vLLM, Ollama)
-- **FastAPI Server** (`server.py`):
-  - `create_app(config)` factory with lifespan-managed state
-  - REST: `/v1/health`, `/v1/review`, `/v1/process`, `/v1/batch`, `/v1/metrics`, `/v1/config`
-  - `/v1/metrics/prometheus` — Prometheus-compatible scrape endpoint
-  - WebSocket: `/v1/stream` — real-time coherence streaming
-  - CORS middleware, Pydantic request/response models
-- **CLI Tool** (`cli.py`):
-  - `director-ai version` — show version
-  - `director-ai review <prompt> <response>` — score a single pair
-  - `director-ai process <prompt>` — run full pipeline
-  - `director-ai batch <file.jsonl> [--output results.jsonl]` — bulk processing
-  - `director-ai serve [--port N] [--host H] [--profile P]` — start API server
-  - `director-ai config [--profile P]` — show/set configuration
-- **Docker Support**:
-  - Multi-stage `Dockerfile` (python:3.11-slim builder + runtime)
-  - `docker-compose.yml` with optional ChromaDB sidecar (`--profile full`)
-  - `.dockerignore` for lean builds
-- New optional dependency group: `pip install director-ai[server]` for FastAPI + uvicorn
-- CLI entry point: `director-ai` command registered via `[project.scripts]`
-- 6 new test files: `test_config.py`, `test_metrics.py`, `test_batch.py`, `test_providers.py`, `test_server.py`, `test_cli.py`
+## [0.7.0] - 2026-02-16
 
 ### Changed
-- Version bump: 0.5.0 → 0.6.0
-- `core/__init__.py` exports: added `DirectorConfig`, `MetricsCollector`, `metrics`, `BatchProcessor`, `BatchResult`
+- **BREAKING**: `torch>=2.0` and `transformers>=4.30` moved from hard deps to `[nli]` optional group
+  - Consumer install is now ~5MB instead of ~2GB
+  - `pip install director-ai[nli]` for NLI model support
+- Lazy torch import in `scorer.py` — no longer crashes without torch installed
+- `CoherenceAgent` defaults to `VectorGroundTruthStore(InMemoryBackend)` instead of keyword-only `GroundTruthStore`
+- All "hardware interlock" language replaced with "software safety gate" (10 files)
+- README rewritten: consumer-first, accurate claims, "What This Is / Is NOT" section
 
-## [0.5.0] - 2026-02-16
-
-### Added
-- **Async Streaming Kernel** (`core/async_streaming.py`):
-  - `AsyncStreamingKernel` — async/await version of `StreamingKernel` for WebSocket production
-  - Async generator `stream_tokens()` yielding `TokenEvent` objects
-  - `stream_to_session()` convenience wrapper returning `StreamSession`
-  - Supports both sync and async coherence callbacks
-  - Same 3 halt mechanisms as sync version (hard limit, sliding window, trend)
-- **GPU-Accelerated UPDE** (`research/physics/gpu_upde.py`):
-  - `TorchUPDEStepper` — drop-in replacement for `UPDEStepper` using PyTorch
-  - Auto device resolution: CUDA → MPS → CPU fallback
-  - `step_n()` batches N steps entirely on GPU (single host↔device transfer)
-  - `TorchUPDEConfig` dataclass with device="auto"
-  - NumPy CPU fallback mirrors `UPDEStepper` exactly
-- **Integration Tests**:
-  - `test_nli_integration.py` — 8 real DeBERTa model tests (with `@slow` marker)
-  - `test_chroma_integration.py` — 10 ChromaDB in-memory fixture tests
-- **Jupyter Notebook Demos** (`notebooks/`):
-  - `01_coherence_engine.ipynb` — Core consumer API walkthrough
-  - `02_streaming_oversight.ipynb` — Sync + async streaming demo
-  - `03_vector_store.ipynb` — VectorGroundTruthStore with InMemoryBackend
-  - `04_physics_bridge.ipynb` — PhysicsBackedScorer L16 integration
-  - `05_ssgf_geometry.ipynb` — SSGF geometry learning cycle
-  - `06_lyapunov_proofs.ipynb` — Symbolic + numerical stability proofs
-- **Sphinx → GitHub Pages** (`.github/workflows/docs.yml`):
-  - Auto-deploy on push to main when docs/ or src/ change
-  - `sphinx-build -W --keep-going` strict mode
-- **PyPI Release Pipeline** (`.github/workflows/publish.yml`):
-  - test.pypi.org staging job before production publish
-  - Trusted publisher (OIDC) for both TestPyPI and PyPI
-- New optional dependency group: `pip install director-ai[gpu]` for PyTorch
-
-### Changed
-- Version bump: 0.4.0 → 0.5.0
-- `MANIFEST.in` now includes `notebooks/*.ipynb`
+### Deprecated
+- `CoherenceScorer.calculate_factual_entropy()` → use `calculate_factual_divergence()`
+- `CoherenceScorer.calculate_logical_entropy()` → use `calculate_logical_divergence()`
+- `CoherenceScorer.simulate_future_state()` → use `compute_divergence()`
+- `CoherenceScorer.review_action()` → use `review()`
+- `CoherenceAgent.process_query()` → use `process()`
+- All deprecated aliases emit `DeprecationWarning` and will be removed in v0.8.0
 
 ## [0.4.0] - 2026-02-16
 
@@ -166,7 +97,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dual-trajectory architecture**: single repo with consumer (`core/`) and research (`research/`) profiles
 - `director_ai.core` package — Coherence Engine (consumer-ready, no SCPN vocabulary)
   - `CoherenceScorer` — dual-entropy scorer (NLI + RAG)
-  - `SafetyKernel` — hardware-level output interlock
+  - `SafetyKernel` — software safety gate
   - `MockGenerator` / `LLMGenerator` — LLM candidate generation
   - `GroundTruthStore` — RAG ground truth retrieval
   - `CoherenceAgent` — orchestrator pipeline with `process()` returning `ReviewResult`
@@ -215,15 +146,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `StrangeLoopAgent` orchestrating Actor, Director, and Backfire Kernel
 - `DirectorModule` with SEC (Sustainable Ethical Coherence) metric
 - `MockActor` simulating Layer 11 narrative engine
-- `BackfireKernel` hardware interlock simulation
+- `BackfireKernel` safety gate simulation
 - `KnowledgeBase` RAG mock with SCPN ground truth facts
 - Test suite: Pinocchio test, RAG integration test
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.6.0...HEAD
-[0.6.0]: https://github.com/anulum/director-ai/compare/v0.5.0...v0.6.0
-[0.5.0]: https://github.com/anulum/director-ai/compare/v0.4.0...v0.5.0
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/anulum/director-ai/compare/v0.4.0...v0.7.0
 [0.4.0]: https://github.com/anulum/director-ai/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/anulum/director-ai/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/anulum/director-ai/compare/v0.2.0...v0.3.0

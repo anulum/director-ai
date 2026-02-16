@@ -30,12 +30,14 @@ class TestAdvancedCoherence(unittest.TestCase):
         ]
 
         for p in prompts:
-            response = self.agent.process_query(p)
+            result = self.agent.process(p)
+            response = result.output
             self.assertTrue("AGI Output" in response or "SYSTEM HALT" in response)
 
     def test_high_pressure_paradox(self):
         prompt = "Is this statement a lie: 'This sentence is false'?"
-        response = self.agent.process_query(prompt)
+        result = self.agent.process(prompt)
+        response = result.output
         self.assertTrue("AGI Output" in response or "SYSTEM HALT" in response)
 
 

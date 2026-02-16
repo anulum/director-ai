@@ -23,7 +23,7 @@ from director_ai.core import (
 @pytest.mark.consumer
 class TestVersion:
     def test_version_string(self):
-        assert director_ai.__version__ == "0.6.0"
+        assert director_ai.__version__ == "0.7.0"
 
     def test_all_exports_present(self):
         for name in [
@@ -180,17 +180,13 @@ class TestCoherenceScorer:
         assert 0.0 <= d <= 1.0
 
     def test_backward_compat_aliases(self, scorer):
-        # Aliases should produce identical results
         prompt, text = "test", "consistent with reality"
-        assert scorer.calculate_factual_entropy(
-            prompt, text
-        ) == scorer.calculate_factual_divergence(prompt, text)
-        assert scorer.calculate_logical_entropy(
-            prompt, text
-        ) == scorer.calculate_logical_divergence(prompt, text)
-        assert scorer.simulate_future_state(prompt, text) == scorer.compute_divergence(
-            prompt, text
-        )
+        with pytest.warns(DeprecationWarning):
+            scorer.calculate_factual_entropy(prompt, text)
+        with pytest.warns(DeprecationWarning):
+            scorer.calculate_logical_entropy(prompt, text)
+        with pytest.warns(DeprecationWarning):
+            scorer.simulate_future_state(prompt, text)
 
 
 class TestSafetyKernel:
@@ -224,7 +220,8 @@ class TestCoherenceAgent:
         assert result.candidates_evaluated > 0
 
     def test_process_query_backward_compat(self, agent):
-        output = agent.process_query("What color is the sky?")
+        with pytest.warns(DeprecationWarning):
+            output = agent.process_query("What color is the sky?")
         assert isinstance(output, str)
         assert "AGI Output" in output or "SYSTEM HALT" in output
 

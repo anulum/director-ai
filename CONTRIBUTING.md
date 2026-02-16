@@ -79,7 +79,7 @@ The Python package lives in `src/director_ai/` with two profiles:
 
 - `core/agent.py` — `CoherenceAgent`, main orchestrator pipeline
 - `core/scorer.py` — `CoherenceScorer`, dual-entropy (NLI + RAG) scoring
-- `core/kernel.py` — `SafetyKernel`, hardware-level output interlock
+- `core/kernel.py` — `SafetyKernel`, software safety gate
 - `core/actor.py` — `MockGenerator` / `LLMGenerator` (candidate generation)
 - `core/knowledge.py` — `GroundTruthStore` (RAG ground-truth retrieval)
 - `core/types.py` — `CoherenceScore`, `ReviewResult` dataclasses
@@ -96,7 +96,7 @@ We especially welcome contributions in:
 
 - **NLI Models**: Replacing mock entropy calculations with real NLI inference
 - **RAG Integration**: Connecting to vector databases (FAISS, Chroma, Milvus)
-- **Safety Kernel**: Rust/C++ hardware interlock implementation
+- **Safety Kernel**: Rust/C++ safety gate implementation
 - **Testing**: Property-based testing, adversarial prompt suites
 - **Documentation**: Tutorials, architecture diagrams, API examples
 - **Benchmarks**: Coherence score evaluation across model families

@@ -17,21 +17,16 @@ Research API (requires ``pip install director-ai[research]``)::
     from director_ai.research.consilium import ConsiliumAgent
 """
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 # ── Consumer core (always available) ──────────────────────────────────
 from .core import (
-    AsyncStreamingKernel,
-    BatchProcessor,
-    BatchResult,
     CoherenceAgent,
     CoherenceScore,
     CoherenceScorer,
-    DirectorConfig,
     GroundTruthStore,
     InMemoryBackend,
     LLMGenerator,
-    MetricsCollector,
     MockGenerator,
     NLIScorer,
     PhysicsBackedScorer,
@@ -41,7 +36,6 @@ from .core import (
     StreamSession,
     TokenEvent,
     VectorGroundTruthStore,
-    metrics,
 )
 
 __all__ = [
@@ -62,14 +56,6 @@ __all__ = [
     "StreamSession",
     "TokenEvent",
     "PhysicsBackedScorer",
-    # v0.5.0
-    "AsyncStreamingKernel",
-    # v0.6.0
-    "DirectorConfig",
-    "MetricsCollector",
-    "metrics",
-    "BatchProcessor",
-    "BatchResult",
 ]
 
 # ── Research extensions (optional) ────────────────────────────────────
@@ -94,8 +80,6 @@ try:
         TCBOControllerConfig,
         # Track 2 — Consciousness
         TCBOObserver,
-        TorchUPDEConfig,
-        TorchUPDEStepper,
         UPDEState,
         UPDEStepper,
         run_all_proofs,
@@ -122,8 +106,6 @@ try:
         "SSGFState",
         "ProofResult",
         "run_all_proofs",
-        "TorchUPDEStepper",
-        "TorchUPDEConfig",
     ]
 except ImportError:
     pass  # Research extras not installed — consumer API still works

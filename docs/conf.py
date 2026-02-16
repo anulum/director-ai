@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath("../src"))
 project = "Director-Class AI"
 copyright = "1998-2026, Miroslav Sotek"
 author = "Miroslav Sotek"
-release = "0.6.0"
+release = "0.7.0"
 
 extensions = [
     "sphinx.ext.autodoc",
@@ -26,7 +26,7 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 html_theme = "sphinx_rtd_theme"
-html_static_path = []
+html_static_path = ["_static"]
 
 autodoc_default_options = {
     "members": True,
@@ -41,6 +41,3 @@ intersphinx_mapping = {
 
 napoleon_google_docstring = True
 napoleon_numpy_docstring = True
-
-# Suppress cross-reference ambiguity warnings from re-exported symbols
-suppress_warnings = ["ref.python"]

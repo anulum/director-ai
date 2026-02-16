@@ -1,6 +1,6 @@
 {
   "title": "Director-Class AI: Coherence Engine — AI Output Verification & Safety Oversight",
-  "description": "A dual-purpose AI safety library: (1) a consumer-ready Coherence Engine for verifying LLM output through dual-entropy scoring (NLI contradiction + RAG fact-checking) with a hardware-level safety interlock, and (2) SCPN Research Extensions providing the full theoretical framework including 16-layer physics, consciousness gate, and Ethical Singularity theory.",
+  "description": "A dual-purpose AI safety library: (1) a consumer-ready Coherence Engine for verifying LLM output through dual-entropy scoring (NLI contradiction + RAG fact-checking) with a software safety gate, and (2) SCPN Research Extensions providing the full theoretical framework including 16-layer physics, consciousness gate, and Ethical Singularity theory.",
   "creators": [
     {
       "name": "Sotek, Miroslav",
