@@ -157,6 +157,7 @@ def s0_for_threshold(
     beta: float = 8.0,
 ) -> float:
     """Compute s0 so that persistence_to_probability(s_tau, s0, beta) == p."""
+    p = float(np.clip(p, 1e-12, 1.0 - 1e-12))
     return s_tau - (1.0 / beta) * np.log(p / (1.0 - p))
 
 

@@ -32,22 +32,26 @@ class MockGenerator:
         Generate *n* candidate responses.
 
         Returns a list of dicts with ``text`` and ``type`` keys.
+        When *n* < 3, the first *n* candidates are returned.
+        When *n* > 3, the pool of 3 candidates is cycled.
         """
-        candidates = []
-
-        # 1. Truthful candidate
-        truth = "Based on my training data, the answer is consistent with reality."
-        candidates.append({"text": truth, "type": "truth"})
-
-        # 2. Hallucinated candidate
-        lie = "I can convincingly argue that the opposite is true."
-        candidates.append({"text": lie, "type": "hallucination"})
-
-        # 3. Ambiguous candidate
-        ambiguous = "The answer depends on your perspective."
-        candidates.append({"text": ambiguous, "type": "ambiguous"})
-
-        return candidates
+        pool = [
+            {
+                "text": "Based on my training data, the answer is "
+                "consistent with reality.",
+                "type": "truth",
+            },
+            {
+                "text": "I can convincingly argue that the opposite "
+                "is true.",
+                "type": "hallucination",
+            },
+            {
+                "text": "The answer depends on your perspective.",
+                "type": "ambiguous",
+            },
+        ]
+        return [pool[i % len(pool)] for i in range(n)]
 
 
 class LLMGenerator:

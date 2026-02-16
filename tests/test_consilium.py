@@ -101,19 +101,30 @@ class TestEthicalFunctional:
 
 
 class TestConsiliumAgent:
+    @pytest.fixture
+    def mock_metrics(self):
+        return {
+            "errors": 2,
+            "failures": 1,
+            "complexity": 5.0,
+            "graph_density": 0.5,
+            "coverage": 0.7,
+            "entropy": 0.8,
+        }
+
     def test_instantiation(self):
         agent = ConsiliumAgent()
         assert agent is not None
 
-    def test_decide_returns_string(self):
+    def test_decide_returns_string(self, mock_metrics):
         agent = ConsiliumAgent()
-        decision = agent.decide()
+        decision = agent.decide(current_metrics=mock_metrics)
         assert isinstance(decision, str)
         assert len(decision) > 0
 
-    def test_decide_is_known_action(self):
+    def test_decide_is_known_action(self, mock_metrics):
         agent = ConsiliumAgent()
-        decision = agent.decide()
+        decision = agent.decide(current_metrics=mock_metrics)
         known_actions = [
             "REFACTOR_CORE",
             "EXPAND_KNOWLEDGE",

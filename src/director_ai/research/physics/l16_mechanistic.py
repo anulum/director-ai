@@ -153,6 +153,8 @@ class L16OversightLoop:
         intervention_window: int = 5,
         coupling_boost: float = 1.2,
         noise_damping: float = 0.8,
+        max_coupling: float = 50.0,
+        min_noise: float = 1e-6,
     ) -> None:
         self.stepper = stepper if stepper is not None else UPDEStepper()
 
@@ -169,6 +171,8 @@ class L16OversightLoop:
         self.intervention_window = intervention_window
         self.coupling_boost = coupling_boost
         self.noise_damping = noise_damping
+        self.max_coupling = max_coupling
+        self.min_noise = min_noise
 
         self._instability_count: int = 0
         self._history: list[OversightSnapshot] = []
@@ -197,8 +201,12 @@ class L16OversightLoop:
 
         # 4. L16 intervention if sustained instability
         if self._instability_count >= self.intervention_window:
-            self.stepper.knm *= self.coupling_boost
-            self.stepper.noise_amplitude *= self.noise_damping
+            self.stepper.knm = np.minimum(
+                self.stepper.knm * self.coupling_boost, self.max_coupling
+            )
+            self.stepper.noise_amplitude = max(
+                self.stepper.noise_amplitude * self.noise_damping, self.min_noise
+            )
             intervention = (
                 f"L16: coupling ×{self.coupling_boost}, " f"noise ×{self.noise_damping}"
             )

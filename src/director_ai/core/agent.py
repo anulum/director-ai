@@ -31,19 +31,18 @@ class CoherenceAgent:
     """
 
     def __init__(self, llm_api_url=None):
+        self.logger = logging.getLogger("CoherenceAgent")
+
         if llm_api_url:
             self.generator = LLMGenerator(llm_api_url)
-            print(f"CoherenceAgent: Connected to LLM at {llm_api_url}")
+            self.logger.info("Connected to LLM at %s", llm_api_url)
         else:
             self.generator = MockGenerator()
-            print("CoherenceAgent: Using Mock Generator (Simulation Mode)")
+            self.logger.info("Using Mock Generator (Simulation Mode)")
 
         self.store = GroundTruthStore()
         self.scorer = CoherenceScorer(threshold=0.6, ground_truth_store=self.store)
         self.kernel = SafetyKernel()
-
-        self.logger = logging.getLogger("CoherenceAgent")
-        logging.basicConfig(level=logging.INFO)
 
     def process(self, prompt: str) -> "ReviewResult":
         """

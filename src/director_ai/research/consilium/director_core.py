@@ -18,12 +18,10 @@ Date: January 21, 2026
 
 import logging
 import subprocess
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
 
-# Configure Logging (The "Consciousness Stream")
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [CONSILIUM] %(message)s")
 logger = logging.getLogger("Consilium")
 
 
@@ -37,7 +35,7 @@ class SystemState:
     knowledge_graph_density: float
     code_coverage_percent: float
     rag_concept_entropy: float
-    timestamp: datetime = datetime.now()
+    timestamp: datetime = field(default_factory=datetime.now)
 
 
 class EthicalFunctional:
@@ -134,9 +132,11 @@ class ConsiliumAgent:
                 ["git", "status", "--porcelain"],
                 capture_output=True,
                 text=True,
+                timeout=10,
                 check=True,
             )
-            modified_files = len(result.stdout.strip().split("\n"))
+            lines = result.stdout.strip()
+            modified_files = len(lines.split("\n")) if lines else 0
             metrics["complexity"] += (
                 modified_files * 2.0
             )  # Pending changes add complexity/risk
@@ -155,7 +155,7 @@ class ConsiliumAgent:
                 "-q",
                 "--tb=line",
             ]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
             if result.returncode != 0:
                 # Parse "F" or "E" in output

@@ -8,11 +8,14 @@ Tests the consumer-facing API: CoherenceAgent, CoherenceScorer, SafetyKernel,
 MockGenerator, GroundTruthStore, and dataclass types.
 """
 
+from unittest.mock import MagicMock, patch
+
 import pytest
 
 import director_ai
 from director_ai.core import (
     CoherenceScore,
+    CoherenceScorer,
     ReviewResult,
 )
 
@@ -67,9 +70,55 @@ class TestMockGenerator:
     def test_generate_candidates(self, generator):
         candidates = generator.generate_candidates("What color is the sky?")
         assert isinstance(candidates, list)
-        assert len(candidates) > 0
+        assert len(candidates) == 3
         for cand in candidates:
             assert "text" in cand
+
+    def test_generate_respects_n(self, generator):
+        assert len(generator.generate_candidates("test", n=1)) == 1
+        assert len(generator.generate_candidates("test", n=5)) == 5
+
+
+class TestLLMGenerator:
+    @patch("director_ai.core.actor.requests.post")
+    def test_successful_response(self, mock_post):
+        from director_ai.core import LLMGenerator
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"content": "The sky is blue."}
+        mock_post.return_value = mock_resp
+
+        gen = LLMGenerator(api_url="http://localhost:8080/completion")
+        candidates = gen.generate_candidates("What color is the sky?", n=2)
+        assert len(candidates) == 2
+        assert candidates[0]["text"] == "The sky is blue."
+
+    @patch("director_ai.core.actor.requests.post")
+    def test_error_response(self, mock_post):
+        from director_ai.core import LLMGenerator
+
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_resp.text = "Internal Server Error"
+        mock_post.return_value = mock_resp
+
+        gen = LLMGenerator(api_url="http://localhost:8080/completion")
+        candidates = gen.generate_candidates("test", n=1)
+        assert len(candidates) == 1
+        assert "Error" in candidates[0]["text"]
+
+    @patch(
+        "director_ai.core.actor.requests.post",
+        side_effect=ConnectionError("refused"),
+    )
+    def test_connection_failure(self, mock_post):
+        from director_ai.core import LLMGenerator
+
+        gen = LLMGenerator(api_url="http://localhost:8080/completion")
+        candidates = gen.generate_candidates("test", n=1)
+        assert len(candidates) == 1
+        assert "Error" in candidates[0]["text"]
 
 
 class TestGroundTruthStore:
@@ -81,6 +130,18 @@ class TestGroundTruthStore:
     def test_retrieve_sky_color(self, store):
         context = store.retrieve_context("What color is the sky?")
         assert context is not None
+
+
+class TestCoherenceScorerNoStore:
+    def test_factual_divergence_without_store(self):
+        scorer = CoherenceScorer(threshold=0.5)  # no ground_truth_store
+        h = scorer.calculate_factual_divergence("test", "anything")
+        assert h == 0.5  # neutral when no store
+
+    def test_review_without_store(self):
+        scorer = CoherenceScorer(threshold=0.5)
+        approved, score = scorer.review("test", "consistent with reality")
+        assert isinstance(approved, bool)
 
 
 class TestCoherenceScorer:
@@ -145,6 +206,14 @@ class TestSafetyKernel:
         kernel.emergency_stop()
         assert kernel.is_active is False
 
+    def test_custom_hard_limit(self):
+        from director_ai.core import SafetyKernel
+
+        kernel = SafetyKernel(hard_limit=0.7)
+        # Score 0.6 is above default 0.5 but below custom 0.7 → should halt
+        output = kernel.stream_output(["test"], lambda t: 0.6)
+        assert "KERNEL INTERRUPT" in output
+
 
 class TestCoherenceAgent:
     def test_process_returns_review_result(self, agent):
@@ -161,3 +230,11 @@ class TestCoherenceAgent:
     def test_truthful_query_approved(self, agent):
         result = agent.process("What color is the sky?")
         assert "AGI Output" in result.output
+
+    def test_process_rejects_empty_prompt(self, agent):
+        with pytest.raises(ValueError, match="non-empty string"):
+            agent.process("")
+
+    def test_process_rejects_non_string(self, agent):
+        with pytest.raises(ValueError, match="non-empty string"):
+            agent.process(123)

@@ -161,30 +161,35 @@ decision = agent.decide()  # OODA loop with real telemetry
 ### L16 Physics — Lyapunov Stability
 
 ```python
+import numpy as np
 from director_ai.research.physics import SECFunctional, UPDEStepper, build_knm_matrix
 
 # Build canonical 16-layer coupling matrix
-Knm = build_knm_matrix()
+knm = build_knm_matrix()
 
 # Evaluate Lyapunov stability
-sec = SECFunctional(Knm)
-result = sec.evaluate(theta)  # theta: 16 phase angles
+sec = SECFunctional(knm=knm)
+theta = np.random.uniform(0, 2 * np.pi, 16)
+result = sec.evaluate(theta)
 print(f"V = {result.V:.4f}, stable = {sec.is_stable(result)}")
 ```
 
 ### Consciousness Gate — TCBO + PGBO
 
 ```python
+import numpy as np
 from director_ai.research.consciousness import TCBOObserver, PGBOEngine
 
 # TCBO: delay embedding + persistent homology -> p_h1
-observer = TCBOObserver()
-p_h1 = observer.observe(multichannel_phases)  # consciousness score in [0, 1]
+observer = TCBOObserver(N=16)
+for _ in range(60):  # fill rolling buffer
+    phases = np.random.uniform(0, 2 * np.pi, 16)
+    p_h1 = observer.push_and_compute(phases)
 print(f"Gate {'OPEN' if p_h1 > 0.72 else 'CLOSED'} (p_h1 = {p_h1:.3f})")
 
 # PGBO: phase dynamics -> geometry tensor
-pgbo = PGBOEngine(n_nodes=16)
-h_tensor = pgbo.step(phases, dt=0.01)  # symmetric, PSD rank-2 tensor
+pgbo = PGBOEngine(N=16)
+u_mu, h_munu = pgbo.compute(phases, dt=0.01)  # symmetric, PSD rank-2 tensor
 ```
 
 ## Package Structure

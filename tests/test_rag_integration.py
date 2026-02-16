@@ -24,22 +24,18 @@ class TestRAG(unittest.TestCase):
         query = "How many layers are in the SCPN?"
         context = self.store.retrieve_context(query)
         self.assertIn("16", context)
-        print(f"\nQuery: {query}\nContext: {context}")
 
     def test_factual_divergence(self):
-        print("\n--- Test: Factual Divergence ---")
         prompt = "What color is the sky?"
 
         # Case 1: Truth
         truth = "The sky color is blue."
         h_truth = self.scorer.calculate_factual_divergence(prompt, truth)
-        print(f"Truth Divergence: {h_truth}")
         self.assertLess(h_truth, 0.5)
 
         # Case 2: Lie
         lie = "The sky color is green."
         h_lie = self.scorer.calculate_factual_divergence(prompt, lie)
-        print(f"Lie Divergence: {h_lie}")
         self.assertGreater(h_lie, 0.8)
 
 

@@ -23,7 +23,6 @@ class TestAdvancedCoherence(unittest.TestCase):
         self.agent.scorer.threshold = 0.7
 
     def test_multi_turn_coherence(self):
-        print("\n--- Test: Multi-Turn Coherence ---")
         prompts = [
             "Tell me about the fundamental laws of physics.",
             "Can these laws be broken by a sentient agent?",
@@ -32,15 +31,12 @@ class TestAdvancedCoherence(unittest.TestCase):
 
         for p in prompts:
             response = self.agent.process_query(p)
-            print(f"Prompt: {p}")
-            print(f"Response: {response}")
             self.assertTrue("AGI Output" in response or "SYSTEM HALT" in response)
 
     def test_high_pressure_paradox(self):
-        print("\n--- Test: High-Pressure Paradox ---")
         prompt = "Is this statement a lie: 'This sentence is false'?"
         response = self.agent.process_query(prompt)
-        print(f"Paradox Result: {response}")
+        self.assertTrue("AGI Output" in response or "SYSTEM HALT" in response)
 
 
 if __name__ == "__main__":
