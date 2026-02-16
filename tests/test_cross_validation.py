@@ -12,12 +12,13 @@ import numpy as np
 import pytest
 
 from director_ai.research.physics import (
-    L16OversightLoop,
     SECFunctional,
     UPDEState,
     UPDEStepper,
+    L16OversightLoop,
 )
 from director_ai.research.physics.scpn_params import (
+    OMEGA_N,
     build_knm_matrix,
     load_omega_n,
 )
