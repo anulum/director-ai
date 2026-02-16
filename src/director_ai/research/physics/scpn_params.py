@@ -88,7 +88,7 @@ LAYER_NAMES = [
 
 def load_omega_n() -> np.ndarray:
     """Return the canonical 16-layer natural frequency vector (rad/s)."""
-    return OMEGA_N.copy()
+    return np.array(OMEGA_N, dtype=np.float64)
 
 
 # ============================================================================
@@ -154,4 +154,4 @@ def build_knm_matrix(n_layers: int = 16) -> np.ndarray:
     K = 0.5 * (K + K.T)
     np.fill_diagonal(K, 0.0)
 
-    return K
+    return np.asarray(K)
