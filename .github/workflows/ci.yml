@@ -26,13 +26,30 @@ jobs:
           python-version: "3.12"
 
       - name: Install linters
-        run: pip install "black>=26,<27" ruff
+        run: pip install "black>=26,<27" "ruff>=0.5,<1"
 
       - name: Check formatting (black)
         run: black --check src/ tests/ examples/
 
       - name: Lint (ruff)
         run: ruff check src/ tests/ examples/
+
+  typecheck:
+    name: Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e ".[dev,research]"
+
+      - name: Run mypy
+        run: mypy src/director_ai/ --ignore-missing-imports --no-error-summary
+        continue-on-error: true  # advisory until stubs are complete
 
   test:
     name: Test (Python ${{ matrix.python-version }})
@@ -69,4 +86,4 @@ jobs:
 
       - name: Audit dependencies
         run: pip-audit --strict --desc on -r requirements.txt
-        continue-on-error: true
+        continue-on-error: true  # advisory — known torch CVEs

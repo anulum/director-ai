@@ -8,7 +8,6 @@
 
 import logging
 
-import numpy as np
 import torch
 
 from .types import CoherenceScore
@@ -107,8 +106,8 @@ class CoherenceScorer:
         elif "depends on your perspective" in text_output:
             return 0.5
 
-        # Default random for unknown text
-        return np.random.uniform(0, 1)
+        # Deterministic default for unknown text (avoids flaky tests)
+        return 0.5
 
     # ── Composite scoring ─────────────────────────────────────────────
 

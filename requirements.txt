@@ -1,6 +1,6 @@
-numpy
-torch
-transformers
-requests
-scipy
-pytest
+# Director-Class AI — Core dependencies (for pip-audit in CI)
+numpy>=1.24
+torch>=2.0
+transformers>=4.30
+requests>=2.28
+scipy>=1.10

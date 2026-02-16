@@ -73,12 +73,22 @@ template at the top of every `.py` file:
 
 ## Architecture Notes
 
-- The Python package lives in `src/` (flat src layout)
-- `src/strange_loop_agent.py` is the main orchestrator
-- `src/director_module.py` implements Layer 16 entropy oversight
-- `src/backfire_kernel.py` is the hardware interlock simulation
-- `src/knowledge_base.py` provides RAG ground-truth retrieval
-- `src/consilium/` contains the Consilium (Ethical Functional) subsystem
+The Python package lives in `src/director_ai/` with two profiles:
+
+### Consumer — `core/` (always installed)
+
+- `core/agent.py` — `CoherenceAgent`, main orchestrator pipeline
+- `core/scorer.py` — `CoherenceScorer`, dual-entropy (NLI + RAG) scoring
+- `core/kernel.py` — `SafetyKernel`, hardware-level output interlock
+- `core/actor.py` — `MockGenerator` / `LLMGenerator` (candidate generation)
+- `core/knowledge.py` — `GroundTruthStore` (RAG ground-truth retrieval)
+- `core/types.py` — `CoherenceScore`, `ReviewResult` dataclasses
+
+### Research — `research/` (requires `pip install director-ai[research]`)
+
+- `research/physics/` — SCPN parameters, SEC Lyapunov functional, UPDE integrator, L16 closure
+- `research/consciousness/` — TCBO observer/controller, PGBO engine, benchmarks
+- `research/consilium/` — L15 Ethical Functional & active inference agent
 
 ## Priority Areas for Contribution
 
@@ -86,10 +96,11 @@ We especially welcome contributions in:
 
 - **NLI Models**: Replacing mock entropy calculations with real NLI inference
 - **RAG Integration**: Connecting to vector databases (FAISS, Chroma, Milvus)
-- **Backfire Kernel**: Rust/C++ hardware interlock implementation
+- **Safety Kernel**: Rust/C++ hardware interlock implementation
 - **Testing**: Property-based testing, adversarial prompt suites
 - **Documentation**: Tutorials, architecture diagrams, API examples
-- **Benchmarks**: SEC metric evaluation across model families
+- **Benchmarks**: Coherence score evaluation across model families
+- **SSGF Integration**: Connecting SSGF outer-cycle geometry to research/physics
 
 ## License
 

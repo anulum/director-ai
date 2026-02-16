@@ -45,14 +45,23 @@ class CoherenceAgent:
         self.logger = logging.getLogger("CoherenceAgent")
         logging.basicConfig(level=logging.INFO)
 
-    def process(self, prompt):
+    def process(self, prompt: str) -> "ReviewResult":
         """
         Process a prompt end-to-end and return the verified output.
+
+        Parameters:
+            prompt: Non-empty query string.
 
         Returns:
             A ``ReviewResult`` with the final output, coherence score,
             halt status, and number of candidates evaluated.
+
+        Raises:
+            ValueError: If *prompt* is empty or not a string.
         """
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("prompt must be a non-empty string")
+
         self.logger.info(f"Received Prompt: '{prompt}'")
 
         # 1. Generate candidates (feed-forward)
