@@ -27,6 +27,7 @@ from .l16_mechanistic import (
     UPDEState,
     UPDEStepper,
 )
+from .lyapunov_proof import ProofResult, run_all_proofs
 from .scpn_params import (
     CALIBRATION_ANCHORS,
     CROSS_BOOSTS,
@@ -38,7 +39,6 @@ from .scpn_params import (
     build_knm_matrix,
     load_omega_n,
 )
-from .lyapunov_proof import ProofResult, run_all_proofs
 from .sec_functional import SECFunctional, SECResult
 from .ssgf_cycle import SSGFConfig, SSGFEngine, SSGFState
 
