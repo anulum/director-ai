@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-02-22
+
 ### Added
 - **Backfire Kernel** (`backfire-kernel/`) — Rust workspace implementing the safety gate as a native
   performance kernel with Python FFI via PyO3:
@@ -24,16 +26,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - **Total**: ~6,429 Rust LOC, 153 tests, 29 Criterion benchmarks
 - **Analytic Jacobian gradient** for SSGF geometry engine:
   - `GradientMethod` enum: `FiniteDifference` (legacy) vs `Analytic` (new default)
-  - `softplus_deriv`, `compute_du_dw`, `gradient_analytic_gram`, `gradient_analytic_rbf` in `decoder.rs`
   - **7,609x speedup** on gradient computation (31.5 ms → 4.14 µs)
   - **133x speedup** on full outer-cycle step (34.6 ms → 261 µs)
-  - Outer step now uses only **0.52%** of the 50 ms deadline budget (was 69.2%)
 - **Phase 4 hardening** (H47-H64): subprocess path validation, batch per-line size limit,
   WebSocket error handling, NaN/Inf clamp logging, null prompt guard, timeout validation,
   LLM error type distinction, CORS origins limit, return type annotations, help text limits,
   bool coercion edge cases
+- **Bulk document ingestion**: `VectorGroundTruthStore.ingest(texts, metadatas)` for batch loading
+- **CLI `ingest` command**: `director-ai ingest <file>` supporting `.txt` and `.jsonl` formats
+  with optional `--persist <dir>` for ChromaDB persistence
+- **LLM provider streaming**: `OpenAIProvider` and `LocalProvider` support SSE streaming via
+  `stream_generate()` method; `CoherenceAgent.process_streaming()` wired to real providers
+- **LangChain integration**: `CoherenceCallbackHandler` in `director_ai.integrations.langchain_callback`
+  (requires `pip install director-ai[langchain]`)
+- **Benchmark scaffolds**: `benchmarks/truthfulqa_eval.py` and `benchmarks/halueval_eval.py`
+  for public evaluation on TruthfulQA and HaluEval datasets
+- `SAMPLE_FACTS` constant exported from `director_ai.core` for explicit fact injection in tests
+
+### Changed
+- **BREAKING**: `GroundTruthStore` no longer ships hardcoded facts; pass `facts=` to constructor
+  or use `SAMPLE_FACTS` for the original demo data
+- `ChromaBackend` now uses `SentenceTransformerEmbeddingFunction` (all-MiniLM-L6-v2) for real
+  semantic retrieval; graceful fallback if sentence-transformers unavailable
+- `process_streaming()` coherence callback now scores accumulated text (not individual tokens)
+- `CoherenceAgent` defaults to empty `VectorGroundTruthStore` (no auto-indexed demo facts)
+- Server no longer instantiates `GroundTruthStore` with hardcoded facts
+- README rewritten as consumer-focused "drop-in coherence guardrail" pitch; SCPN research
+  moved to collapsible `<details>` section
 
 ### Fixed
+- mypy: incompatible type assignment in CLI `ingest` command (use `VectorBackend` base type)
 - mypy: missing type annotation for `prompts` in `cli.py`
 - NLI `_model_score()` RuntimeError check now runs before `import torch`
 - FastAPI-dependent test properly skipped when FastAPI not installed
@@ -57,7 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `CoherenceScorer.simulate_future_state()` → use `compute_divergence()`
 - `CoherenceScorer.review_action()` → use `review()`
 - `CoherenceAgent.process_query()` → use `process()`
-- All deprecated aliases emit `DeprecationWarning` and will be removed in v0.8.0
+- All deprecated aliases emit `DeprecationWarning` and will be removed in v1.0.0
 
 ## [0.4.0] - 2026-02-16
 
@@ -185,7 +207,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/anulum/director-ai/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/anulum/director-ai/compare/v0.4.0...v0.7.0
 [0.4.0]: https://github.com/anulum/director-ai/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/anulum/director-ai/compare/v0.3.0...v0.3.1
