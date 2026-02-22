@@ -150,6 +150,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     )
 
     _origins = [o.strip() for o in cfg.cors_origins.split(",") if o.strip()]
+    if len(_origins) > 100:
+        raise ValueError(f"Too many CORS origins: {len(_origins)} (max 100)")
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_origins,
@@ -268,7 +270,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         await ws.accept()
         try:
             while True:
-                data = await ws.receive_json()
+                try:
+                    data = await ws.receive_json()
+                except (ValueError, KeyError) as exc:
+                    logger.warning("WebSocket bad JSON: %s", exc)
+                    await ws.send_json({"error": "invalid JSON"})
+                    continue
 
                 if not isinstance(data, dict):
                     await ws.send_json({"error": "expected JSON object"})

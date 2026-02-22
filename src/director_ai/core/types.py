@@ -6,16 +6,22 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
+import logging
 import math
 from dataclasses import dataclass
+
+_logger = logging.getLogger("DirectorAI.Types")
 
 
 def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
     """Clamp *value* to [lo, hi], converting NaN/Inf to boundary."""
     if math.isnan(value):
+        _logger.warning("_clamp: NaN detected, clamping to %.4f", lo)
         return lo
     if math.isinf(value):
-        return hi if value > 0 else lo
+        boundary = hi if value > 0 else lo
+        _logger.warning("_clamp: Inf detected, clamping to %.4f", boundary)
+        return boundary
     return max(lo, min(hi, value))
 
 

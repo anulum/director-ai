@@ -60,7 +60,7 @@ def _print_help() -> None:
         "  version               Show version info\n"
         "  review <prompt> <resp> Review a prompt/response pair\n"
         "  process <prompt>      Process a prompt through the full pipeline\n"
-        "  batch <file.jsonl>    Batch process prompts from a JSONL file\n"
+        "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
         "  serve [--port N]      Start the FastAPI server\n"
         "  config [--profile X]  Show/set configuration\n"
     )
@@ -112,6 +112,7 @@ def _cmd_process(args: list[str]) -> None:
 
 
 _BATCH_MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB
+_BATCH_MAX_LINE_SIZE = 1 * 1024 * 1024  # 1 MB per line
 _BATCH_MAX_PROMPTS = 10_000
 
 
@@ -150,6 +151,12 @@ def _cmd_batch(args: list[str]) -> None:
             line = line.strip()
             if not line:
                 continue
+            if len(line) > _BATCH_MAX_LINE_SIZE:
+                print(
+                    f"Warning: skipping line {line_no} "
+                    f"({len(line)} chars > {_BATCH_MAX_LINE_SIZE} limit)"
+                )
+                continue
             if len(prompts) >= _BATCH_MAX_PROMPTS:
                 print(f"Warning: truncated at {_BATCH_MAX_PROMPTS} prompts")
                 break
@@ -158,7 +165,11 @@ def _cmd_batch(args: list[str]) -> None:
             except json.JSONDecodeError as e:
                 print(f"Warning: skipping malformed JSON on line {line_no}: {e}")
                 continue
-            prompts.append(data.get("prompt", data.get("text", line)))
+            prompt = data.get("prompt", data.get("text", line))
+            if not isinstance(prompt, str) or not prompt.strip():
+                print(f"Warning: skipping invalid prompt on line {line_no}")
+                continue
+            prompts.append(prompt)
 
     agent = CoherenceAgent()
     processor = BatchProcessor(agent)

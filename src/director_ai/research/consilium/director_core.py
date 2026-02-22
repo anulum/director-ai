@@ -17,6 +17,7 @@ Date: January 21, 2026
 """
 
 import logging
+import os
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -147,10 +148,19 @@ class ConsiliumAgent:
         # 2. Test Execution (Suffering Check)
         # We run a fast check on the core logic
         try:
-            # Running only the verification tests to be fast
+            import shutil
+
+            test_path = "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py"
+            if not os.path.isfile(test_path):
+                logger.warning("Test file not found: %s — skipping test check", test_path)
+                return metrics
+            if shutil.which("pytest") is None:
+                logger.warning("pytest not found on PATH — skipping test check")
+                return metrics
+
             cmd = [
                 "pytest",
-                "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py",
+                test_path,
                 "-q",
                 "--tb=line",
             ]

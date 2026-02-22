@@ -69,6 +69,10 @@ class BatchProcessor:
         max_concurrency: int = 4,
         item_timeout: float = 60.0,
     ) -> None:
+        if max_concurrency < 1:
+            raise ValueError(f"max_concurrency must be >= 1, got {max_concurrency}")
+        if item_timeout <= 0:
+            raise ValueError(f"item_timeout must be > 0, got {item_timeout}")
         self._backend = backend
         self.max_concurrency = max_concurrency
         self.item_timeout = item_timeout

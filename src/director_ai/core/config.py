@@ -223,7 +223,12 @@ class DirectorConfig:
 def _coerce(value: str, type_hint: str) -> object:
     """Coerce a string env var to the target type."""
     if type_hint == "bool":
-        return value.lower() in ("true", "1", "yes")
+        low = value.lower()
+        if low in ("true", "1", "yes"):
+            return True
+        if low in ("false", "0", "no"):
+            return False
+        raise ValueError(f"invalid bool value: {value!r} (expected true/false/1/0/yes/no)")
     if type_hint == "int":
         return int(value)
     if type_hint == "float":
