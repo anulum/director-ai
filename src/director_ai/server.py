@@ -109,7 +109,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     _state: dict = {}
 
     @asynccontextmanager
-    async def lifespan(app: FastAPI):  # type: ignore[type-arg]
+    async def lifespan(app: FastAPI):
         from .core.agent import CoherenceAgent
         from .core.batch import BatchProcessor
         from .core.knowledge import GroundTruthStore

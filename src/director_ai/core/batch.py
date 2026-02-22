@@ -145,7 +145,7 @@ class BatchProcessor:
         sem = asyncio.Semaphore(max_concurrency or self.max_concurrency)
 
         result = BatchResult(total=len(prompts))
-        loop = asyncio.get_event_loop()
+        loop = asyncio.get_running_loop()
 
         async def _run(idx: int, prompt: str) -> None:
             async with sem:
@@ -181,7 +181,8 @@ class BatchProcessor:
                 metrics.inc("reviews_rejected")
             else:
                 metrics.inc("reviews_approved")
-                metrics.observe("coherence_score", result.coherence.score)
+                if result.coherence is not None:
+                    metrics.observe("coherence_score", result.coherence.score)
             return result  # type: ignore[no-any-return]
         finally:
             metrics.gauge_dec("active_requests")

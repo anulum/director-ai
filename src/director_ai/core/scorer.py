@@ -8,6 +8,7 @@
 
 import logging
 import math
+import threading
 import warnings
 
 from .types import CoherenceScore
@@ -29,11 +30,11 @@ class CoherenceScorer:
         self, threshold=0.5, history_window=5, use_nli=False, ground_truth_store=None
     ):
         self.threshold = threshold
-        self.history = []
+        self.history: list[str] = []
+        self._history_lock = threading.Lock()
         self.window = history_window
         self.ground_truth_store = ground_truth_store
         self.logger = logging.getLogger("DirectorAI")
-        self.logger.setLevel(logging.INFO)
 
         self.use_nli = use_nli
         if self.use_nli:
@@ -146,9 +147,10 @@ class CoherenceScorer:
                 self.threshold,
             )
         else:
-            self.history.append(action)
-            if len(self.history) > self.window:
-                self.history.pop(0)
+            with self._history_lock:
+                self.history.append(action)
+                if len(self.history) > self.window:
+                    self.history.pop(0)
 
         score = CoherenceScore(
             score=coherence,

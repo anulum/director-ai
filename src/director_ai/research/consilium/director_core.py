@@ -112,7 +112,6 @@ class ConsiliumAgent:
 
     def __init__(self):
         self.ethics = EthicalFunctional()
-        self.history = []
         logger.info("Consilium Agent Initialized. Ethical Functional Active.")
 
     def get_real_metrics(self) -> dict[str, Any]:

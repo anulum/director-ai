@@ -144,7 +144,8 @@ class SSGFEngine:
         self._phase_diff = np.zeros((N, N), dtype=np.float64)
         self._sin_diff = np.zeros((N, N), dtype=np.float64)
 
-        # History
+        # History (capped to prevent unbounded memory growth)
+        self._MAX_HISTORY = 500
         self._cost_history: list[dict] = []
         self._state_history: list[SSGFState] = []
         self._step_count = 0
@@ -280,8 +281,13 @@ class SSGFEngine:
         costs = self._compute_costs()
         R_global = costs["R_global"]
 
-        # 5. Spectral bridge
-        eigvals, eigvecs = _spectral_bridge(self.W)
+        # 5. Spectral bridge (guard against degenerate W)
+        try:
+            eigvals, eigvecs = _spectral_bridge(self.W)
+        except np.linalg.LinAlgError:
+            logger.warning("Spectral bridge failed on degenerate W; using identity fallback")
+            eigvals = np.zeros(self.cfg.N)
+            eigvecs = np.eye(self.cfg.N)
 
         # 6. L16 closure
         phi_target = np.eye(self.cfg.N, 4)
@@ -319,7 +325,11 @@ class SSGFEngine:
         )
 
         self._cost_history.append(costs)
+        if len(self._cost_history) > self._MAX_HISTORY:
+            self._cost_history = self._cost_history[-self._MAX_HISTORY:]
         self._state_history.append(state)
+        if len(self._state_history) > self._MAX_HISTORY:
+            self._state_history = self._state_history[-self._MAX_HISTORY:]
 
         return state
 

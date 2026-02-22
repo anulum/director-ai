@@ -113,6 +113,14 @@ class DirectorConfig:
             raise ValueError(
                 f"batch_max_concurrency must be >= 1, got {self.batch_max_concurrency}"
             )
+        if not (1 <= self.server_port <= 65535):
+            raise ValueError(
+                f"server_port must be in [1, 65535], got {self.server_port}"
+            )
+        if self.server_workers < 1:
+            raise ValueError(
+                f"server_workers must be >= 1, got {self.server_workers}"
+            )
 
     @classmethod
     def from_env(cls, prefix: str = "DIRECTOR_") -> DirectorConfig:
@@ -130,7 +138,12 @@ class DirectorConfig:
             field_name = key[len(prefix) :]
             if field_name in field_map:
                 fld = field_map[field_name]
-                kwargs[fld.name] = _coerce(value, fld.type)  # type: ignore[arg-type]
+                try:
+                    kwargs[fld.name] = _coerce(value, fld.type)  # type: ignore[arg-type]
+                except (ValueError, TypeError) as exc:
+                    raise ValueError(
+                        f"Invalid value for env var {key}={value!r}: {exc}"
+                    ) from exc
 
         return cls(**kwargs)
 
@@ -140,7 +153,7 @@ class DirectorConfig:
 
         Falls back to JSON parsing if PyYAML is not installed.
         """
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             raw = f.read()
 
         try:

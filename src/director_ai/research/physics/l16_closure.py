@@ -134,6 +134,8 @@ class L16Controller:
         R_global = max(0.0, min(1.0, R_global))
 
         # Attractor alignment: ||eigvecs - phi_target|| (Frobenius)
+        if eigvecs.ndim < 2 or phi_target.ndim < 2:
+            return max(0.0, (1.0 - R_global) + max(0.0, 0.72 - p_h1))
         k = min(eigvecs.shape[1], phi_target.shape[1])
         alignment_err = float(np.sum((eigvecs[:, :k] - phi_target[:, :k]) ** 2))
 

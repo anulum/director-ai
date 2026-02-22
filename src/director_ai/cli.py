@@ -145,7 +145,7 @@ def _cmd_batch(args: list[str]) -> None:
     from director_ai.core.batch import BatchProcessor
 
     prompts = []
-    with open(input_file) as f:
+    with open(input_file, encoding="utf-8") as f:
         for line_no, line in enumerate(f, 1):
             line = line.strip()
             if not line:
@@ -170,7 +170,7 @@ def _cmd_batch(args: list[str]) -> None:
     print(f"Duration: {result.duration_seconds:.2f}s")
 
     if output_file:
-        with open(output_file, "w") as f:
+        with open(output_file, "w", encoding="utf-8") as f:
             for r in result.results:
                 f.write(
                     json.dumps(
@@ -193,7 +193,11 @@ def _cmd_serve(args: list[str]) -> None:
     i = 0
     while i < len(args):
         if args[i] == "--port" and i + 1 < len(args):
-            port = int(args[i + 1])
+            try:
+                port = int(args[i + 1])
+            except ValueError:
+                print(f"Error: invalid port number: {args[i + 1]}")
+                sys.exit(1)
             i += 2
         elif args[i] == "--host" and i + 1 < len(args):
             host = args[i + 1]

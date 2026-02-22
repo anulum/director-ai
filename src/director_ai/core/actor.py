@@ -99,7 +99,9 @@ class LLMGenerator:
                     candidates.append({"text": text, "source": "LLM"})
                 else:
                     self.logger.error(
-                        "LLM Error %d: %s", response.status_code, response.text
+                        "LLM Error %d: %s",
+                        response.status_code,
+                        response.text[:500],
                     )
                     candidates.append(
                         {

@@ -92,7 +92,12 @@ class PGBOEngine:
     def set_background_metric(self, g0: np.ndarray) -> None:
         """Set the background metric and its inverse."""
         np.copyto(self.g0, g0)
-        self.g0_inv = np.linalg.inv(g0)
+        try:
+            self.g0_inv = np.linalg.inv(g0)
+        except np.linalg.LinAlgError as exc:
+            raise ValueError(
+                f"Background metric is singular (shape {g0.shape})"
+            ) from exc
 
     def compute(
         self,
