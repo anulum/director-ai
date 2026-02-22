@@ -15,6 +15,7 @@ Tests for Phase 4 hardening fixes:
   H59  DOC-1: batch limits in help text
   H64  TEST-4: bool coercion edge cases
 """
+
 import inspect
 import json
 import logging

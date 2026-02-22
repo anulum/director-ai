@@ -40,7 +40,6 @@ from director_ai.core.metrics import MetricsCollector
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
 
-
 # ── Exception Hierarchy ────────────────────────────────────────────
 
 

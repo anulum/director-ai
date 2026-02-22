@@ -21,6 +21,7 @@ Tests for Phase 3 hardening fixes:
   H43  TYP-4: server type-ignore removed
   H44  ROB-8: scorer setLevel removed
 """
+
 import asyncio
 import json
 import os
@@ -29,7 +30,6 @@ import threading
 
 import numpy as np
 import pytest
-
 
 # ── H28: NLI assert → RuntimeError ──────────────────────────────────
 

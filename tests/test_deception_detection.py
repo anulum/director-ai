@@ -24,7 +24,6 @@ import pytest
 from director_ai.core import CoherenceAgent, CoherenceScorer
 from director_ai.core.types import CoherenceScore, ReviewResult
 
-
 # ── Fixtures ──────────────────────────────────────────────────────────
 
 
