@@ -24,8 +24,6 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-logger = logging.getLogger("DirectorAI.SSGF")
-
 from ..consciousness import (
     PGBOConfig,
     PGBOEngine,
@@ -35,6 +33,8 @@ from ..consciousness import (
 )
 from .l16_closure import L16Controller
 from .scpn_params import build_knm_matrix, load_omega_n
+
+logger = logging.getLogger("DirectorAI.SSGF")
 
 
 @dataclass
@@ -285,12 +285,11 @@ class SSGFEngine:
 
         # 5. Spectral bridge (guard against degenerate W)
         try:
-            eigvals, eigvecs = _spectral_bridge(self.W)
+            _eigvals, eigvecs = _spectral_bridge(self.W)
         except np.linalg.LinAlgError:
             logger.warning(
                 "Spectral bridge failed on degenerate W; using identity fallback"
             )
-            eigvals = np.zeros(self.cfg.N)
             eigvecs = np.eye(self.cfg.N)
 
         # 6. L16 closure

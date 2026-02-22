@@ -19,7 +19,6 @@ Covers:
   - Metrics memory cap
 """
 
-import json
 import tempfile
 
 import pytest
@@ -35,7 +34,6 @@ from director_ai.core.exceptions import (
     PhysicsError,
     ValidationError,
 )
-from director_ai.core.knowledge import GroundTruthStore
 from director_ai.core.metrics import MetricsCollector
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore

@@ -27,6 +27,8 @@ from .core.metrics import metrics
 
 logger = logging.getLogger("DirectorAI.Server")
 
+_WS_MAX_PROMPT_LENGTH = 100_000
+
 try:
     from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
     from fastapi.middleware.cors import CORSMiddleware
@@ -262,8 +264,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         return ConfigResponse(config=cfg.to_dict())
 
     # ── WebSocket streaming ───────────────────────────────────────────
-
-    _WS_MAX_PROMPT_LENGTH = 100_000
 
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):

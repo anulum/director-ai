@@ -19,6 +19,10 @@ Quick start::
 
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
+from .async_streaming import AsyncStreamingKernel
+from .batch import BatchProcessor, BatchResult
+from .bridge import PhysicsBackedScorer
+from .config import DirectorConfig
 from .exceptions import (
     CoherenceError,
     DependencyError,
@@ -29,10 +33,6 @@ from .exceptions import (
     PhysicsError,
     ValidationError,
 )
-from .async_streaming import AsyncStreamingKernel
-from .batch import BatchProcessor, BatchResult
-from .bridge import PhysicsBackedScorer
-from .config import DirectorConfig
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .metrics import MetricsCollector, metrics

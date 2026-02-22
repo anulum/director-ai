@@ -19,7 +19,6 @@ Tests for Phase 4 hardening fixes:
 import inspect
 import json
 import logging
-import math
 import os
 import tempfile
 

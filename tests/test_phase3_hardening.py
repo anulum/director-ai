@@ -22,7 +22,6 @@ Tests for Phase 3 hardening fixes:
   H44  ROB-8: scorer setLevel removed
 """
 
-import asyncio
 import json
 import os
 import tempfile
@@ -74,10 +73,9 @@ class TestH29AsyncLoop:
     """Batch async should use get_running_loop (not deprecated get_event_loop)."""
 
     def test_process_batch_async_uses_running_loop(self):
-        from director_ai.core.batch import BatchProcessor
-
-        # Just check source code doesn't contain get_event_loop
         import inspect
+
+        from director_ai.core.batch import BatchProcessor
 
         source = inspect.getsource(BatchProcessor.process_batch_async)
         assert "get_running_loop" in source
@@ -563,8 +561,8 @@ class TestPGBOEngine:
         from director_ai.research.consciousness.pgbo import phase_geometry_bridge
 
         dphi = np.array([1.0, 2.0, 3.0])
-        A_mu = np.array([0.1, 0.2, 0.3])
-        u, h = phase_geometry_bridge(dphi, A_mu, alpha=0.5, kappa=0.3)
+        a_mu = np.array([0.1, 0.2, 0.3])
+        u, h = phase_geometry_bridge(dphi, a_mu, alpha=0.5, kappa=0.3)
         assert u.shape == (3,)
         assert h.shape == (3, 3)
         np.testing.assert_allclose(h, h.T, atol=1e-12)
@@ -573,8 +571,8 @@ class TestPGBOEngine:
         from director_ai.research.consciousness.pgbo import phase_geometry_bridge
 
         dphi = np.random.randn(5, 3)
-        A_mu = np.random.randn(5, 3)
-        u, h = phase_geometry_bridge(dphi, A_mu, alpha=0.5, kappa=0.3)
+        a_mu = np.random.randn(5, 3)
+        u, h = phase_geometry_bridge(dphi, a_mu, alpha=0.5, kappa=0.3)
         assert u.shape == (5, 3)
         assert h.shape == (5, 3, 3)
 
