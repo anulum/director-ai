@@ -25,6 +25,14 @@ import tempfile
 import pytest
 
 
+def _fastapi_available() -> bool:
+    try:
+        import fastapi  # noqa: F401
+        return True
+    except ImportError:
+        return False
+
+
 # ── H47: Consilium subprocess path safety ────────────────────────────
 
 class TestH47SubprocessPath:
@@ -207,6 +215,10 @@ class TestH57CORSLimit:
         source = inspect.getsource(create_app)
         assert "Too many CORS origins" in source
 
+    @pytest.mark.skipif(
+        not _fastapi_available(),
+        reason="FastAPI not installed",
+    )
     def test_excessive_origins_rejected(self):
         from director_ai.core.config import DirectorConfig
 

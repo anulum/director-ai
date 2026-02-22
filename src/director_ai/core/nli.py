@@ -103,10 +103,10 @@ class NLIScorer:
 
     def _model_score(self, premise: str, hypothesis: str) -> float:
         """Score using the DeBERTa NLI model."""
-        import torch
-
         if self._tokenizer is None or self._model is None:
             raise RuntimeError("NLI model not loaded — call with use_model=True")
+
+        import torch
         inputs = self._tokenizer(
             premise,
             hypothesis,
