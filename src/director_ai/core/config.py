@@ -118,9 +118,7 @@ class DirectorConfig:
                 f"server_port must be in [1, 65535], got {self.server_port}"
             )
         if self.server_workers < 1:
-            raise ValueError(
-                f"server_workers must be >= 1, got {self.server_workers}"
-            )
+            raise ValueError(f"server_workers must be >= 1, got {self.server_workers}")
 
     @classmethod
     def from_env(cls, prefix: str = "DIRECTOR_") -> DirectorConfig:
@@ -228,7 +226,9 @@ def _coerce(value: str, type_hint: str) -> object:
             return True
         if low in ("false", "0", "no"):
             return False
-        raise ValueError(f"invalid bool value: {value!r} (expected true/false/1/0/yes/no)")
+        raise ValueError(
+            f"invalid bool value: {value!r} (expected true/false/1/0/yes/no)"
+        )
     if type_hint == "int":
         return int(value)
     if type_hint == "float":

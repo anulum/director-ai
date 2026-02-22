@@ -199,7 +199,9 @@ class TorchUPDEStepper:
         """CPU fallback using NumPy (same as UPDEStepper)."""
         theta = state.theta
         if not np.all(np.isfinite(theta)):
-            raise ValueError("TorchUPDEStepper._step_numpy: input theta contains NaN or Inf")
+            raise ValueError(
+                "TorchUPDEStepper._step_numpy: input theta contains NaN or Inf"
+            )
 
         np.subtract(theta[np.newaxis, :], theta[:, np.newaxis], out=self._phase_diff)
         np.sin(self._phase_diff, out=self._sin_diff)

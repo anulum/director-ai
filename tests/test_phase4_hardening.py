@@ -28,12 +28,14 @@ import pytest
 def _fastapi_available() -> bool:
     try:
         import fastapi  # noqa: F401
+
         return True
     except ImportError:
         return False
 
 
 # ── H47: Consilium subprocess path safety ────────────────────────────
+
 
 class TestH47SubprocessPath:
     """Consilium should validate test path before subprocess.run()."""
@@ -56,6 +58,7 @@ class TestH47SubprocessPath:
 
 
 # ── H48: Batch per-line size limit ───────────────────────────────────
+
 
 class TestH48LineSize:
     """CLI batch should reject lines exceeding per-line size limit."""
@@ -87,6 +90,7 @@ class TestH48LineSize:
 
 # ── H49: WebSocket receive_json error handling ───────────────────────
 
+
 class TestH49WebSocketJson:
     """WebSocket handler should catch ValueError from receive_json."""
 
@@ -99,6 +103,7 @@ class TestH49WebSocketJson:
 
 
 # ── H50: NaN/Inf clamp logging ──────────────────────────────────────
+
 
 class TestH50ClampLogging:
     """_clamp should log warnings when NaN/Inf is detected."""
@@ -137,6 +142,7 @@ class TestH50ClampLogging:
 
 # ── H52: null JSON prompt guard ──────────────────────────────────────
 
+
 class TestH52NullPrompt:
     """Batch should skip JSON entries with null/non-string prompts."""
 
@@ -148,6 +154,7 @@ class TestH52NullPrompt:
 
 
 # ── H54: Batch timeout validation ────────────────────────────────────
+
 
 class TestH54TimeoutValidation:
     """BatchProcessor should reject invalid item_timeout."""
@@ -187,6 +194,7 @@ class TestH54TimeoutValidation:
 
 # ── H55: LLM error type distinction ─────────────────────────────────
 
+
 class TestH55ErrorTypes:
     """LLMGenerator should distinguish timeout from other errors."""
 
@@ -206,6 +214,7 @@ class TestH55ErrorTypes:
 
 # ── H57: CORS origins count limit ────────────────────────────────────
 
+
 class TestH57CORSLimit:
     """Server should reject excessive CORS origins."""
 
@@ -222,7 +231,9 @@ class TestH57CORSLimit:
     def test_excessive_origins_rejected(self):
         from director_ai.core.config import DirectorConfig
 
-        cfg = DirectorConfig(cors_origins=",".join([f"http://host{i}.com" for i in range(150)]))
+        cfg = DirectorConfig(
+            cors_origins=",".join([f"http://host{i}.com" for i in range(150)])
+        )
         from director_ai.server import create_app
 
         with pytest.raises(ValueError, match="Too many CORS origins"):
@@ -230,6 +241,7 @@ class TestH57CORSLimit:
 
 
 # ── H58: Return type annotations ─────────────────────────────────────
+
 
 class TestH58TypeAnnotations:
     """Generators should have return type annotations."""
@@ -249,6 +261,7 @@ class TestH58TypeAnnotations:
 
 # ── H59: Batch limits in help text ───────────────────────────────────
 
+
 class TestH59HelpText:
     """Help text should mention batch limits."""
 
@@ -257,10 +270,13 @@ class TestH59HelpText:
 
         main(["--help"])
         captured = capsys.readouterr()
-        assert "10K" in captured.out or "10,000" in captured.out or "10000" in captured.out
+        assert (
+            "10K" in captured.out or "10,000" in captured.out or "10000" in captured.out
+        )
 
 
 # ── H64: Bool coercion edge cases ────────────────────────────────────
+
 
 class TestH64BoolCoercion:
     """_coerce should reject invalid bool values."""

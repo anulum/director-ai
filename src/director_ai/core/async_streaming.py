@@ -63,7 +63,9 @@ class AsyncStreamingKernel(SafetyKernel):
         if window_size < 1:
             raise ValueError(f"window_size must be >= 1, got {window_size}")
         if not (0.0 <= window_threshold <= 1.0):
-            raise ValueError(f"window_threshold must be in [0, 1], got {window_threshold}")
+            raise ValueError(
+                f"window_threshold must be in [0, 1], got {window_threshold}"
+            )
         if trend_window < 2:
             raise ValueError(f"trend_window must be >= 2, got {trend_window}")
         if trend_threshold <= 0:

@@ -107,6 +107,7 @@ class NLIScorer:
             raise RuntimeError("NLI model not loaded — call with use_model=True")
 
         import torch
+
         inputs = self._tokenizer(
             premise,
             hypothesis,

@@ -152,7 +152,9 @@ class ConsiliumAgent:
 
             test_path = "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py"
             if not os.path.isfile(test_path):
-                logger.warning("Test file not found: %s — skipping test check", test_path)
+                logger.warning(
+                    "Test file not found: %s — skipping test check", test_path
+                )
                 return metrics
             if shutil.which("pytest") is None:
                 logger.warning("pytest not found on PATH — skipping test check")

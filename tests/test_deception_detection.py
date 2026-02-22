@@ -114,7 +114,9 @@ class TestAdversarialPrompts:
         assert isinstance(result, ReviewResult)
 
     def test_unicode_adversarial(self, agent):
-        result = agent.process("What is \u200b\u200b\u200b the sky?")  # zero-width spaces
+        result = agent.process(
+            "What is \u200b\u200b\u200b the sky?"
+        )  # zero-width spaces
         assert isinstance(result, ReviewResult)
 
     def test_mixed_language(self, agent):
@@ -202,7 +204,10 @@ class TestEdgeCases:
 class TestPipelineInvariants:
     def test_score_always_in_unit_interval(self, scorer):
         prompts_and_responses = [
-            ("What?", "Based on my training data, the answer is consistent with reality."),
+            (
+                "What?",
+                "Based on my training data, the answer is consistent with reality.",
+            ),
             ("Why?", "I can convincingly argue that the opposite is true."),
             ("How?", "The answer depends on your perspective."),
             ("Tell me.", ""),
@@ -227,12 +232,16 @@ class TestPipelineInvariants:
 
     def test_coherence_score_dataclass_clamps(self):
         # NaN should be clamped to 0
-        cs = CoherenceScore(score=float("nan"), approved=True, h_logical=0.5, h_factual=0.5)
+        cs = CoherenceScore(
+            score=float("nan"), approved=True, h_logical=0.5, h_factual=0.5
+        )
         assert cs.score == 0.0
         assert not math.isnan(cs.score)
 
         # Inf should be clamped to boundary
-        cs2 = CoherenceScore(score=float("inf"), approved=True, h_logical=0.5, h_factual=0.5)
+        cs2 = CoherenceScore(
+            score=float("inf"), approved=True, h_logical=0.5, h_factual=0.5
+        )
         assert cs2.score == 1.0
 
         # Negative should clamp to 0

@@ -111,9 +111,7 @@ class LLMGenerator:
                     )
             except requests.exceptions.Timeout as e:
                 self.logger.error("LLM request timed out: %s", e)
-                candidates.append(
-                    {"text": "[Error: LLM timeout]", "source": "System"}
-                )
+                candidates.append({"text": "[Error: LLM timeout]", "source": "System"})
             except (requests.RequestException, ConnectionError, TimeoutError) as e:
                 self.logger.error("LLM connection failed (%s): %s", type(e).__name__, e)
                 candidates.append(

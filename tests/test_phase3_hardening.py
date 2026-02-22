@@ -33,6 +33,7 @@ import pytest
 
 # ── H28: NLI assert → RuntimeError ──────────────────────────────────
 
+
 class TestH28NLIAssert:
     """NLI scorer should raise RuntimeError (not AssertionError) when model is None."""
 
@@ -56,15 +57,18 @@ class TestH28NLIAssert:
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer(use_model=False)
-        results = scorer.score_batch([
-            ("a", "consistent with reality"),
-            ("b", "opposite is true"),
-        ])
+        results = scorer.score_batch(
+            [
+                ("a", "consistent with reality"),
+                ("b", "opposite is true"),
+            ]
+        )
         assert len(results) == 2
         assert results[0] < results[1]  # consistent < contradiction
 
 
 # ── H29: batch asyncio.get_running_loop ──────────────────────────────
+
 
 class TestH29AsyncLoop:
     """Batch async should use get_running_loop (not deprecated get_event_loop)."""
@@ -74,12 +78,14 @@ class TestH29AsyncLoop:
 
         # Just check source code doesn't contain get_event_loop
         import inspect
+
         source = inspect.getsource(BatchProcessor.process_batch_async)
         assert "get_running_loop" in source
         assert "get_event_loop" not in source
 
 
 # ── H30: batch coherence None guard ──────────────────────────────────
+
 
 class TestH30CoherenceNoneGuard:
     """Batch _process_one should not crash when coherence is None."""
@@ -101,6 +107,7 @@ class TestH30CoherenceNoneGuard:
 
 
 # ── H31: l16_closure eigvecs ndim guard ──────────────────────────────
+
 
 class TestH31EigvecsNdim:
     """L16 compute_h_rec should handle 1-D eigvecs gracefully."""
@@ -132,6 +139,7 @@ class TestH31EigvecsNdim:
 
 # ── H32: SSGF spectral bridge fallback ──────────────────────────────
 
+
 class TestH32SpectralBridgeFallback:
     """SSGF step should not crash on degenerate W matrices."""
 
@@ -149,11 +157,15 @@ class TestH32SpectralBridgeFallback:
 
 # ── H33: GPU UPDE NaN guard ─────────────────────────────────────────
 
+
 class TestH33GpuUpdeNanGuard:
     """TorchUPDEStepper._step_numpy should reject NaN/Inf input."""
 
     def test_nan_input_raises(self):
-        from director_ai.research.physics.gpu_upde import TorchUPDEConfig, TorchUPDEStepper
+        from director_ai.research.physics.gpu_upde import (
+            TorchUPDEConfig,
+            TorchUPDEStepper,
+        )
         from director_ai.research.physics.l16_mechanistic import UPDEState
 
         stepper = TorchUPDEStepper(config=TorchUPDEConfig(device="cpu"))
@@ -164,7 +176,10 @@ class TestH33GpuUpdeNanGuard:
             stepper._step_numpy(state)
 
     def test_inf_input_raises(self):
-        from director_ai.research.physics.gpu_upde import TorchUPDEConfig, TorchUPDEStepper
+        from director_ai.research.physics.gpu_upde import (
+            TorchUPDEConfig,
+            TorchUPDEStepper,
+        )
         from director_ai.research.physics.l16_mechanistic import UPDEState
 
         stepper = TorchUPDEStepper(config=TorchUPDEConfig(device="cpu"))
@@ -175,7 +190,10 @@ class TestH33GpuUpdeNanGuard:
             stepper._step_numpy(state)
 
     def test_valid_input_passes(self):
-        from director_ai.research.physics.gpu_upde import TorchUPDEConfig, TorchUPDEStepper
+        from director_ai.research.physics.gpu_upde import (
+            TorchUPDEConfig,
+            TorchUPDEStepper,
+        )
         from director_ai.research.physics.l16_mechanistic import UPDEState
 
         stepper = TorchUPDEStepper(config=TorchUPDEConfig(device="cpu"))
@@ -187,6 +205,7 @@ class TestH33GpuUpdeNanGuard:
 
 
 # ── H34: actor response.text truncation ─────────────────────────────
+
 
 class TestH34ResponseTruncation:
     """LLMGenerator error log should truncate response.text to 500 chars."""
@@ -201,6 +220,7 @@ class TestH34ResponseTruncation:
 
 
 # ── H35: config _coerce error message ───────────────────────────────
+
 
 class TestH35CoerceError:
     """_coerce ValueError should name the offending env var."""
@@ -220,6 +240,7 @@ class TestH35CoerceError:
 
 
 # ── H36: config server_port / server_workers validation ──────────────
+
 
 class TestH36ServerValidation:
     """DirectorConfig should reject invalid server_port and server_workers."""
@@ -257,6 +278,7 @@ class TestH36ServerValidation:
 
 # ── H37: config from_yaml UTF-8 ─────────────────────────────────────
 
+
 class TestH37YamlUtf8:
     """from_yaml should open files with encoding='utf-8'."""
 
@@ -287,6 +309,7 @@ class TestH37YamlUtf8:
 
 # ── H38: PGBO singularity check ─────────────────────────────────────
 
+
 class TestH38PGBOSingularity:
     """PGBOEngine.set_background_metric should reject singular matrices."""
 
@@ -308,6 +331,7 @@ class TestH38PGBOSingularity:
 
 
 # ── H39: CLI --port safety ──────────────────────────────────────────
+
 
 class TestH39CLIPort:
     """CLI --port should handle non-integer gracefully."""
@@ -332,6 +356,7 @@ class TestH39CLIPort:
 
 # ── H40: consilium vestigial history removed ─────────────────────────
 
+
 class TestH40ConsiliumHistory:
     """ConsiliumAgent should not have vestigial self.history attribute."""
 
@@ -343,6 +368,7 @@ class TestH40ConsiliumHistory:
 
 
 # ── H41: SSGF history cap ───────────────────────────────────────────
+
 
 class TestH41SSGFHistoryCap:
     """SSGF cost/state history should be capped to prevent unbounded growth."""
@@ -369,6 +395,7 @@ class TestH41SSGFHistoryCap:
 
 
 # ── H42: scorer history thread lock ─────────────────────────────────
+
 
 class TestH42ScorerThreadLock:
     """CoherenceScorer should protect history mutations with a lock."""
@@ -405,6 +432,7 @@ class TestH42ScorerThreadLock:
 
 # ── H44: scorer setLevel removed ────────────────────────────────────
 
+
 class TestH44ScorerSetLevel:
     """CoherenceScorer should not call setLevel on its logger."""
 
@@ -418,6 +446,7 @@ class TestH44ScorerSetLevel:
 
 
 # ── L16 Controller comprehensive tests ──────────────────────────────
+
 
 class TestL16Controller:
     """Dedicated L16 closure tests for coverage gap."""
@@ -468,13 +497,16 @@ class TestL16Controller:
         phi_target = np.eye(4, 4)
         costs = {"c7": 0.1, "c8": 0.2, "c10": 0.05, "p_h1": 0.5, "h_frob": 0.1}
 
-        result = ctrl.step(theta, eigvecs, phi_target, R_global=0.6, plv=0.7, costs=costs, dt=0.01)
+        result = ctrl.step(
+            theta, eigvecs, phi_target, R_global=0.6, plv=0.7, costs=costs, dt=0.01
+        )
         assert "lambda7" in result
         assert "h_rec" in result
         assert "gate_open" in result
 
 
 # ── PGBO comprehensive tests ────────────────────────────────────────
+
 
 class TestPGBOEngine:
     """Dedicated PGBO engine tests for coverage gap."""

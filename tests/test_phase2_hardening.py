@@ -219,9 +219,7 @@ class TestCLIBatchSafety:
     def test_batch_malformed_json_skipped(self, capsys):
         from director_ai.cli import main
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             f.write('{"prompt": "Good line"}\n')
             f.write("this is not json\n")
             f.write('{"prompt": "Another good line"}\n')
@@ -235,9 +233,7 @@ class TestCLIBatchSafety:
     def test_batch_empty_lines_skipped(self, capsys):
         from director_ai.cli import main
 
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             f.write('{"prompt": "Q1"}\n')
             f.write("\n")
             f.write("\n")

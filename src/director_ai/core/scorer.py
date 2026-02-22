@@ -124,14 +124,18 @@ class CoherenceScorer:
 
     # ── Shared scoring helpers ─────────────────────────────────────
 
-    def _heuristic_coherence(self, prompt: str, action: str) -> tuple[float, float, float]:
+    def _heuristic_coherence(
+        self, prompt: str, action: str
+    ) -> tuple[float, float, float]:
         """Compute clamped divergences and heuristic coherence.
 
         Returns (h_logic, h_fact, coherence) with all values in [0, 1].
         """
         h_logic = max(0.0, min(1.0, self.calculate_logical_divergence(prompt, action)))
         h_fact = max(0.0, min(1.0, self.calculate_factual_divergence(prompt, action)))
-        coherence = max(0.0, min(1.0, 1.0 - (self.W_LOGIC * h_logic + self.W_FACT * h_fact)))
+        coherence = max(
+            0.0, min(1.0, 1.0 - (self.W_LOGIC * h_logic + self.W_FACT * h_fact))
+        )
         return h_logic, h_fact, coherence
 
     def _finalise_review(

@@ -75,7 +75,9 @@ class CoherenceAgent:
 
         # Log-safe: truncate and strip control characters
         safe_prompt = prompt[:200].replace("\n", " ").replace("\r", "")
-        self.logger.info("Received Prompt: '%s%s'", safe_prompt, "..." if len(prompt) > 200 else "")
+        self.logger.info(
+            "Received Prompt: '%s%s'", safe_prompt, "..." if len(prompt) > 200 else ""
+        )
 
         # 1. Generate candidates (feed-forward)
         candidates = self.generator.generate_candidates(prompt)
@@ -84,7 +86,8 @@ class CoherenceAgent:
         if len(candidates) > MAX_CANDIDATES:
             self.logger.warning(
                 "Generator returned %d candidates, capping to %d",
-                len(candidates), MAX_CANDIDATES,
+                len(candidates),
+                MAX_CANDIDATES,
             )
             candidates = candidates[:MAX_CANDIDATES]
 
@@ -95,7 +98,9 @@ class CoherenceAgent:
         # 2. Recursive oversight — score each candidate
         for i, cand in enumerate(candidates):
             if not isinstance(cand, dict) or "text" not in cand:
-                self.logger.warning("Skipping malformed candidate %d: %s", i, type(cand))
+                self.logger.warning(
+                    "Skipping malformed candidate %d: %s", i, type(cand)
+                )
                 continue
             text = cand["text"]
             if not isinstance(text, str):

@@ -63,7 +63,9 @@ class StreamSession:
     def avg_coherence(self) -> float:
         if not self.coherence_history:
             return 0.0
-        return max(0.0, min(1.0, sum(self.coherence_history) / len(self.coherence_history)))
+        return max(
+            0.0, min(1.0, sum(self.coherence_history) / len(self.coherence_history))
+        )
 
     @property
     def min_coherence(self) -> float:
@@ -104,7 +106,9 @@ class StreamingKernel(SafetyKernel):
         if window_size < 1:
             raise ValueError(f"window_size must be >= 1, got {window_size}")
         if not (0.0 <= window_threshold <= 1.0):
-            raise ValueError(f"window_threshold must be in [0, 1], got {window_threshold}")
+            raise ValueError(
+                f"window_threshold must be in [0, 1], got {window_threshold}"
+            )
         if trend_window < 2:
             raise ValueError(f"trend_window must be >= 2, got {trend_window}")
         if trend_threshold <= 0:

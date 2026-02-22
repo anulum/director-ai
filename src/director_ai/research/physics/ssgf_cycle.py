@@ -241,7 +241,9 @@ class SSGFEngine:
         if not np.isfinite(grad_norm) or grad_norm > max_grad_norm:
             if np.isfinite(grad_norm) and grad_norm > 0:
                 grad = grad * (max_grad_norm / grad_norm)
-                logger.warning("SSGF gradient truncated: %.4f → %.4f", grad_norm, max_grad_norm)
+                logger.warning(
+                    "SSGF gradient truncated: %.4f → %.4f", grad_norm, max_grad_norm
+                )
             else:
                 logger.warning("SSGF gradient non-finite, zeroing")
                 grad[:] = 0.0
@@ -285,7 +287,9 @@ class SSGFEngine:
         try:
             eigvals, eigvecs = _spectral_bridge(self.W)
         except np.linalg.LinAlgError:
-            logger.warning("Spectral bridge failed on degenerate W; using identity fallback")
+            logger.warning(
+                "Spectral bridge failed on degenerate W; using identity fallback"
+            )
             eigvals = np.zeros(self.cfg.N)
             eigvecs = np.eye(self.cfg.N)
 
@@ -326,10 +330,10 @@ class SSGFEngine:
 
         self._cost_history.append(costs)
         if len(self._cost_history) > self._MAX_HISTORY:
-            self._cost_history = self._cost_history[-self._MAX_HISTORY:]
+            self._cost_history = self._cost_history[-self._MAX_HISTORY :]
         self._state_history.append(state)
         if len(self._state_history) > self._MAX_HISTORY:
-            self._state_history = self._state_history[-self._MAX_HISTORY:]
+            self._state_history = self._state_history[-self._MAX_HISTORY :]
 
         return state
 
