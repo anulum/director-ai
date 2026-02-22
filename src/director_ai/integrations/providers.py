@@ -36,6 +36,21 @@ class LLMProvider(ABC):
         """Provider name for logging."""
         ...
 
+    def stream_generate(self, prompt: str):
+        """Yield tokens from a streaming completion.
+
+        Subclasses that support streaming should override this method.
+        The default implementation generates a single candidate and yields
+        its text as one token (non-streaming fallback).
+
+        Yields
+        ------
+        str — individual tokens from the LLM response.
+        """
+        candidates = self.generate_candidates(prompt, n=1)
+        if candidates:
+            yield candidates[0].get("text", "")
+
 
 class OpenAIProvider(LLMProvider):
     """OpenAI ChatCompletion API adapter.
@@ -99,6 +114,50 @@ class OpenAIProvider(LLMProvider):
             candidates.append({"text": f"[Error: {e}]", "source": "error"})
 
         return candidates
+
+    def stream_generate(self, prompt: str):
+        """Yield tokens from OpenAI streaming completion (SSE)."""
+        import json as _json
+
+        url = f"{self.base_url}/chat/completions"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "model": self.model,
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": True,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
+        }
+
+        try:
+            resp = requests.post(
+                url,
+                json=payload,
+                headers=headers,
+                timeout=self.timeout,
+                stream=True,
+            )
+            resp.raise_for_status()
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line or not line.startswith("data: "):
+                    continue
+                data_str = line[len("data: "):]
+                if data_str.strip() == "[DONE]":
+                    break
+                try:
+                    chunk = _json.loads(data_str)
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    content = delta.get("content", "")
+                    if content:
+                        yield content
+                except (_json.JSONDecodeError, IndexError, KeyError):
+                    continue
+        except Exception as e:
+            logger.error("OpenAI streaming request failed: %s", e)
+            yield f"[Error: {e}]"
 
 
 class AnthropicProvider(LLMProvider):
@@ -259,3 +318,39 @@ class LocalProvider(LLMProvider):
             candidates.append({"text": f"[Error: {e}]", "source": "error"})
 
         return candidates
+
+    def stream_generate(self, prompt: str):
+        """Yield tokens from local server streaming completion (SSE)."""
+        import json as _json
+
+        payload: dict = {
+            "messages": [{"role": "user", "content": prompt}],
+            "stream": True,
+            "temperature": 0.8,
+            "max_tokens": 512,
+        }
+        if self.model:
+            payload["model"] = self.model
+
+        try:
+            resp = requests.post(
+                self.api_url, json=payload, timeout=self.timeout, stream=True
+            )
+            resp.raise_for_status()
+            for line in resp.iter_lines(decode_unicode=True):
+                if not line or not line.startswith("data: "):
+                    continue
+                data_str = line[len("data: "):]
+                if data_str.strip() == "[DONE]":
+                    break
+                try:
+                    chunk = _json.loads(data_str)
+                    delta = chunk.get("choices", [{}])[0].get("delta", {})
+                    content = delta.get("content", "")
+                    if content:
+                        yield content
+                except (_json.JSONDecodeError, IndexError, KeyError):
+                    continue
+        except Exception as e:
+            logger.error("Local provider streaming request failed: %s", e)
+            yield f"[Error: {e}]"

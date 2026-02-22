@@ -53,6 +53,10 @@ class CoherenceScorer:
         """
         Check output against the Ground Truth Store.
 
+        When ``use_nli=True`` and the DeBERTa model is available, uses NLI
+        to compute contradiction probability between retrieved context and
+        the output.  Otherwise falls back to fact-extraction matching.
+
         Returns:
             0.0  — perfect alignment with ground truth
             1.0  — total hallucination / contradiction
@@ -64,17 +68,51 @@ class CoherenceScorer:
         if not context:
             return 0.5  # Neutral when no relevant facts found
 
-        # Prototype heuristic checks (NLI replaces these in production)
-        if "16" in context and "16" not in text_output and "layers" in text_output:
-            return 0.9  # Factual hallucination
+        # Try NLI-based scoring when model is available
+        if self.use_nli:
+            from .nli import NLIScorer
 
-        if "sky color" in context:
-            if "blue" in text_output:
-                return 0.1  # Consistent
-            if "green" in text_output:
-                return 1.0  # Contradiction
+            nli = NLIScorer(use_model=True)
+            if nli.model_available:
+                return nli.score(context, text_output)
 
-        return 0.1  # Default: consistent if no contradiction detected
+        # Fact-extraction fallback: check whether fact values from the
+        # context appear in the output.  Context format is "key is value"
+        # semicolon-separated entries from GroundTruthStore.
+        return self._fact_extraction_divergence(context, text_output)
+
+    @staticmethod
+    def _fact_extraction_divergence(context: str, text_output: str) -> float:
+        """Score factual divergence by checking if fact values appear in output.
+
+        Parses "key is value" entries from context, then checks whether
+        each value token appears in the output.  Returns low divergence
+        when values match, high divergence when they don't.
+        """
+        output_lower = text_output.lower()
+        entries = [e.strip() for e in context.split(";") if e.strip()]
+        if not entries:
+            return 0.5
+
+        scores: list[float] = []
+        for entry in entries:
+            parts = entry.split(" is ", 1)
+            if len(parts) != 2:
+                continue
+            key, value = parts[0].strip(), parts[1].strip()
+            key_words = set(key.lower().split())
+            # Only score entries whose key topic appears in the output
+            if not any(w in output_lower for w in key_words):
+                continue
+            # Check if the ground-truth value appears in the output
+            if value.lower() in output_lower:
+                scores.append(0.1)  # fact confirmed
+            else:
+                scores.append(0.9)  # fact missing or contradicted
+
+        if not scores:
+            return 0.5  # no relevant facts matched
+        return sum(scores) / len(scores)
 
     # ── Logical divergence ────────────────────────────────────────────
 

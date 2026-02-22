@@ -29,3 +29,7 @@ __all__ = [
     "HuggingFaceProvider",
     "LocalProvider",
 ]
+
+# LangChain integration is optional — import only when langchain-core
+# is installed.  Access via:
+#   from director_ai.integrations.langchain_callback import CoherenceCallbackHandler

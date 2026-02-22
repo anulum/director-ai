@@ -33,9 +33,55 @@ Director-Class AI is a dual-purpose AI safety library:
    software safety gate.
 2. **SCPN Research Extensions** (academic) — the full theoretical framework from the
    [SCPN Research Programme](https://github.com/anulum/scpn-fusion-core), including
-   16-layer physics, consciousness gate, and Ethical Singularity theory.
+   16-layer physics, consciousness gate, and SCPN theoretical framework.
 
 Both profiles ship from a single repository via build profiles.
+
+## Practical Use Cases
+
+### 1. Score an LLM response for hallucination
+
+```python
+from director_ai.core import CoherenceScorer
+
+scorer = CoherenceScorer(threshold=0.6, use_nli=True)
+approved, score = scorer.review(
+    "What year was the Eiffel Tower built?",
+    "The Eiffel Tower was completed in 1889."
+)
+print(f"Approved: {approved}, Coherence: {score.score:.2f}")
+# Approved: True, Coherence: 0.94
+```
+
+### 2. Stream-gate a chatbot with coherence threshold
+
+```python
+from director_ai.core import StreamingKernel
+
+kernel = StreamingKernel(hard_limit=0.5, window_threshold=0.55)
+session = kernel.stream_tokens(
+    token_generator=my_llm.stream("Tell me about Paris"),
+    coherence_callback=lambda token: scorer.review("Paris", token)[1].score,
+)
+if session.halted:
+    print(f"Halted: {session.halt_reason}")
+else:
+    print(session.output)
+```
+
+### 3. Batch-audit a dataset of Q&A pairs
+
+```python
+from director_ai.core import BatchProcessor
+
+processor = BatchProcessor(threshold=0.6)
+results = processor.process_batch([
+    {"prompt": "Capital of France?", "response": "Paris"},
+    {"prompt": "Capital of France?", "response": "London"},
+])
+for r in results:
+    print(f"{r.coherence.score:.2f} {'PASS' if r.coherence.approved else 'FAIL'}")
+```
 
 ### What This Is
 
@@ -281,10 +327,61 @@ backfire-kernel/                    # Rust workspace (native performance kernel)
 └── crates/backfire-ffi/            # PyO3 Python bindings
 ```
 
+## Benchmark Results
+
+We evaluate against public hallucination detection benchmarks for transparency.
+Run benchmarks yourself with:
+
+```bash
+# TruthfulQA (requires NLI model)
+python -m benchmarks.truthfulqa_eval 50
+
+# HaluEval (requires NLI model)
+python -m benchmarks.halueval_eval 100
+```
+
+| Benchmark | Metric | Score | Notes |
+|-----------|--------|-------|-------|
+| TruthfulQA (MC) | Accuracy | *pending* | Correct > incorrect answer scoring |
+| HaluEval (QA) | F1 | *pending* | Hallucination detection at threshold 0.5 |
+| HaluEval (Summarization) | F1 | *pending* | Same scorer, summarization domain |
+| HaluEval (Dialogue) | F1 | *pending* | Same scorer, dialogue domain |
+
+> Results will be populated after running benchmarks with the DeBERTa NLI model.
+> Even modest results establish the scorer is doing real work — the point is
+> transparency, not perfection.
+
+## Integrations
+
+### LangChain
+
+Add coherence scoring to any LangChain chain with one line:
+
+```python
+from director_ai.integrations.langchain_callback import CoherenceCallbackHandler
+
+chain = LLMChain(llm=llm, callbacks=[CoherenceCallbackHandler(threshold=0.6)])
+```
+
+Install with: `pip install director-ai[langchain]`
+
+### LLM Providers
+
+Built-in adapters for OpenAI, Anthropic, HuggingFace, and local servers
+(llama.cpp, vLLM, Ollama) — including streaming support:
+
+```python
+from director_ai.integrations import OpenAIProvider
+
+provider = OpenAIProvider(api_key="sk-...")
+for token in provider.stream_generate("Explain gravity"):
+    print(token, end="")
+```
+
 ## Testing
 
 ```bash
-# Run all Python tests (397 tests)
+# Run all Python tests (397+ tests)
 pytest tests/ -v
 
 # Consumer API tests only
@@ -292,6 +389,9 @@ pytest tests/test_consumer_api.py -v
 
 # Research module tests only
 pytest tests/test_research_imports.py -v
+
+# Benchmarks (slow, requires NLI model)
+pytest benchmarks/ -v -m slow
 
 # Rust workspace tests (153 tests)
 cd backfire-kernel && cargo test --workspace

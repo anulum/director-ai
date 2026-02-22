@@ -12,6 +12,7 @@ import warnings
 from .actor import LLMGenerator, MockGenerator
 from .kernel import SafetyKernel
 from .scorer import CoherenceScorer
+from .streaming import StreamingKernel, StreamSession
 from .types import ReviewResult
 from .vector_store import InMemoryBackend, VectorGroundTruthStore
 
@@ -140,6 +141,40 @@ class CoherenceAgent:
             halted=True,
             candidates_evaluated=len(candidates),
         )
+
+    def process_streaming(self, prompt: str, provider=None) -> "StreamSession":
+        """
+        Process a prompt with real-time token streaming and coherence gating.
+
+        Connects an ``LLMProvider.stream_generate()`` token stream to a
+        ``StreamingKernel`` for per-token coherence oversight.
+
+        Parameters:
+            prompt: Non-empty query string.
+            provider: An ``LLMProvider`` instance with ``stream_generate()``.
+                      If *None*, falls back to the mock generator (single token).
+
+        Returns:
+            A ``StreamSession`` with the emitted tokens and halt status.
+        """
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("prompt must be a non-empty string")
+
+        streaming_kernel = StreamingKernel()
+
+        if provider is not None:
+            token_gen = provider.stream_generate(prompt)
+        else:
+            # Fallback: generate one candidate and yield its text
+            candidates = self.generator.generate_candidates(prompt, n=1)
+            text = candidates[0]["text"] if candidates else ""
+            token_gen = iter(text.split())
+
+        def coherence_callback(token):
+            _, score = self.scorer.review(prompt, token)
+            return score.score
+
+        return streaming_kernel.stream_tokens(token_gen, coherence_callback)
 
     # ── Backward-compatible alias ─────────────────────────────────────
 
