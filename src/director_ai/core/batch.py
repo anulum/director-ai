@@ -63,9 +63,15 @@ class BatchProcessor:
     max_concurrency : int — maximum parallel workers.
     """
 
-    def __init__(self, backend: object, max_concurrency: int = 4) -> None:
+    def __init__(
+        self,
+        backend: object,
+        max_concurrency: int = 4,
+        item_timeout: float = 60.0,
+    ) -> None:
         self._backend = backend
         self.max_concurrency = max_concurrency
+        self.item_timeout = item_timeout
 
     def process_batch(self, prompts: list[str]) -> BatchResult:
         """Process a batch of prompts synchronously using thread pool.
@@ -84,9 +90,13 @@ class BatchProcessor:
             for future in futures:
                 idx = futures[future]
                 try:
-                    item_result = future.result()
+                    item_result = future.result(timeout=self.item_timeout)
                     result.results.append(item_result)
                     result.succeeded += 1
+                except TimeoutError:
+                    result.errors.append((idx, "item timeout"))
+                    result.failed += 1
+                    logger.warning("Batch item %d timed out after %.1fs", idx, self.item_timeout)
                 except Exception as e:
                     result.errors.append((idx, str(e)))
                     result.failed += 1
@@ -113,9 +123,12 @@ class BatchProcessor:
             for future in futures:
                 idx = futures[future]
                 try:
-                    item_result = future.result()
+                    item_result = future.result(timeout=self.item_timeout)
                     result.results.append(item_result)
                     result.succeeded += 1
+                except TimeoutError:
+                    result.errors.append((idx, "item timeout"))
+                    result.failed += 1
                 except Exception as e:
                     result.errors.append((idx, str(e)))
                     result.failed += 1

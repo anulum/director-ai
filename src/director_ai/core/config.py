@@ -91,6 +91,28 @@ class DirectorConfig:
     # Extra key-value overrides
     extra: dict[str, str] = field(default_factory=dict)
 
+    def __post_init__(self) -> None:
+        if not (0.0 <= self.coherence_threshold <= 1.0):
+            raise ValueError(
+                f"coherence_threshold must be in [0, 1], got {self.coherence_threshold}"
+            )
+        if not (0.0 <= self.hard_limit <= 1.0):
+            raise ValueError(f"hard_limit must be in [0, 1], got {self.hard_limit}")
+        if self.max_candidates < 1:
+            raise ValueError(f"max_candidates must be >= 1, got {self.max_candidates}")
+        if self.history_window < 1:
+            raise ValueError(f"history_window must be >= 1, got {self.history_window}")
+        if not (0.0 <= self.llm_temperature <= 2.0):
+            raise ValueError(
+                f"llm_temperature must be in [0, 2], got {self.llm_temperature}"
+            )
+        if self.llm_max_tokens < 1:
+            raise ValueError(f"llm_max_tokens must be >= 1, got {self.llm_max_tokens}")
+        if self.batch_max_concurrency < 1:
+            raise ValueError(
+                f"batch_max_concurrency must be >= 1, got {self.batch_max_concurrency}"
+            )
+
     @classmethod
     def from_env(cls, prefix: str = "DIRECTOR_") -> DirectorConfig:
         """Load configuration from environment variables.
@@ -170,12 +192,14 @@ class DirectorConfig:
             )
         return cls(**profiles[name])
 
+    _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key"})
+
     def to_dict(self) -> dict:
         """Serialize to a plain dict (safe for JSON/API responses)."""
         d = {}
         for fld in self.__dataclass_fields__:
             val = getattr(self, fld)
-            if fld in ("llm_api_key",) and val:
+            if fld in self._REDACTED_FIELDS and val:
                 d[fld] = "***"  # Redact secrets
             else:
                 d[fld] = val

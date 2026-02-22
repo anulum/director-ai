@@ -68,7 +68,17 @@ class LLMGenerator:
     def generate_candidates(self, prompt, n=3):
         """
         Generate *n* candidate responses from the LLM backend.
+
+        Raises
+        ------
+        ValueError
+            If *prompt* is not a non-empty string or *n* is out of [1, 50].
         """
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("prompt must be a non-empty string")
+        if not (1 <= n <= 50):
+            raise ValueError(f"n must be in [1, 50], got {n}")
+
         candidates = []
         payload = {
             "prompt": prompt,
@@ -79,7 +89,7 @@ class LLMGenerator:
 
         for _i in range(n):
             try:
-                response = requests.post(self.api_url, json=payload, timeout=30)
+                response = requests.post(self.api_url, json=payload, timeout=(10, 30))
                 if response.status_code == 200:
                     data = response.json()
                     text = data.get(
@@ -97,7 +107,7 @@ class LLMGenerator:
                             "source": "System",
                         }
                     )
-            except Exception as e:
+            except (requests.RequestException, ConnectionError, TimeoutError) as e:
                 self.logger.error(f"LLM Connection Failed: {e}")
                 candidates.append(
                     {

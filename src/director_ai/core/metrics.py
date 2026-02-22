@@ -46,9 +46,13 @@ class _Histogram:
 
     buckets: tuple[float, ...] = (0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1.0)
     _values: list[float] = field(default_factory=list)
+    max_samples: int = 100_000
 
     def observe(self, value: float) -> None:
         self._values.append(value)
+        if len(self._values) > self.max_samples:
+            # Keep the last half to preserve recent distribution
+            self._values = self._values[-(self.max_samples // 2) :]
 
     @property
     def count(self) -> int:
@@ -216,7 +220,14 @@ class MetricsCollector:
 
     def reset(self) -> None:
         """Reset all metrics (for testing)."""
-        self.__init__()  # type: ignore[misc]
+        with self._lock:
+            for c in self._counters.values():
+                c.value = 0.0
+                c.labels.clear()
+            for h in self._histograms.values():
+                h._values.clear()
+            for g in self._gauges.values():
+                g.value = 0.0
 
 
 class _Timer:

@@ -117,11 +117,17 @@ class NLIScorer:
         with torch.no_grad():
             logits = self._model(**inputs).logits
 
+        # Guard against NaN/Inf in logits
+        if not torch.isfinite(logits).all():
+            logger.warning("NLI logits contain NaN/Inf — falling back to heuristic")
+            return self._heuristic_score(premise, hypothesis)
+
         probs = torch.softmax(logits, dim=1).numpy()[0]
         contradiction_prob = float(probs[_LABEL_CONTRADICTION])
         neutral_prob = float(probs[_LABEL_NEUTRAL])
 
-        return contradiction_prob + (neutral_prob * 0.5)
+        h = contradiction_prob + (neutral_prob * 0.5)
+        return float(np.clip(h, 0.0, 1.0))
 
     @staticmethod
     def _heuristic_score(premise: str, hypothesis: str) -> float:

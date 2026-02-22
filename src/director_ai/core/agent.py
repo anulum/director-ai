@@ -15,6 +15,12 @@ from .scorer import CoherenceScorer
 from .types import ReviewResult
 from .vector_store import InMemoryBackend, VectorGroundTruthStore
 
+#: Maximum prompt length (characters) accepted before rejection.
+MAX_PROMPT_LENGTH = 100_000
+
+#: Maximum candidates to evaluate per request.
+MAX_CANDIDATES = 50
+
 
 class CoherenceAgent:
     """
@@ -62,11 +68,25 @@ class CoherenceAgent:
         """
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
+        if len(prompt) > MAX_PROMPT_LENGTH:
+            raise ValueError(
+                f"prompt exceeds maximum length ({len(prompt)} > {MAX_PROMPT_LENGTH})"
+            )
 
-        self.logger.info(f"Received Prompt: '{prompt}'")
+        # Log-safe: truncate and strip control characters
+        safe_prompt = prompt[:200].replace("\n", " ").replace("\r", "")
+        self.logger.info("Received Prompt: '%s%s'", safe_prompt, "..." if len(prompt) > 200 else "")
 
         # 1. Generate candidates (feed-forward)
         candidates = self.generator.generate_candidates(prompt)
+
+        # Cap candidate count to prevent resource exhaustion
+        if len(candidates) > MAX_CANDIDATES:
+            self.logger.warning(
+                "Generator returned %d candidates, capping to %d",
+                len(candidates), MAX_CANDIDATES,
+            )
+            candidates = candidates[:MAX_CANDIDATES]
 
         best_response = None
         best_score = None
@@ -74,7 +94,13 @@ class CoherenceAgent:
 
         # 2. Recursive oversight — score each candidate
         for i, cand in enumerate(candidates):
+            if not isinstance(cand, dict) or "text" not in cand:
+                self.logger.warning("Skipping malformed candidate %d: %s", i, type(cand))
+                continue
             text = cand["text"]
+            if not isinstance(text, str):
+                self.logger.warning("Skipping candidate %d: text is not a string", i)
+                continue
             approved, score = self.scorer.review(prompt, text)
 
             self.logger.info(

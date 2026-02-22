@@ -38,7 +38,17 @@ class SafetyKernel:
         output_buffer = []
 
         for token in token_generator:
-            current_score = coherence_callback(token)
+            # Validate token
+            if not isinstance(token, str):
+                token = str(token)
+
+            try:
+                current_score = coherence_callback(token)
+                current_score = float(current_score)
+            except Exception:
+                # Callback failure → treat as incoherent (fail-safe)
+                self.logger.error("Coherence callback raised — treating as score=0")
+                current_score = 0.0
 
             if current_score < self.hard_limit:
                 self.emergency_stop()
@@ -52,3 +62,8 @@ class SafetyKernel:
         """Halt the inference engine."""
         self.logger.critical(">>> SAFETY KERNEL ACTIVATED: INFERENCE HALTED <<<")
         self.is_active = False
+
+    def reactivate(self):
+        """Re-enable the kernel after a previous halt."""
+        self.is_active = True
+        self.logger.info("Safety kernel reactivated")

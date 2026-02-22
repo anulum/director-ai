@@ -112,7 +112,10 @@ class PGBOEngine:
         h_munu : ndarray (D, D) — induced geometry proxy tensor.
         """
         if self._prev_theta is not None:
-            dphi_mu = (theta[: self.D] - self._prev_theta[: self.D]) / max(dt, 1e-12)
+            # Wrap phase differences to [-π, π] before computing gradient
+            raw_diff = theta[: self.D] - self._prev_theta[: self.D]
+            wrapped_diff = (raw_diff + np.pi) % (2.0 * np.pi) - np.pi
+            dphi_mu = wrapped_diff / max(dt, 1e-12)
         else:
             dphi_mu = np.zeros(self.D, dtype=np.float64)
 

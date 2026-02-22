@@ -151,6 +151,9 @@ class TorchUPDEStepper:
         dtheta = self._omega + coupling + field_term
         theta_new = theta_t + dtheta * self.dt + noise
 
+        # Modular phase reduction — keep phases in [0, 2π)
+        theta_new = theta_new % (2.0 * torch.pi)
+
         # Transfer back to NumPy
         theta_np = theta_new.cpu().numpy()
 
@@ -179,6 +182,8 @@ class TorchUPDEStepper:
             )
             dtheta = self._omega + coupling + field_term
             theta_t = theta_t + dtheta * self.dt + noise
+            # Modular phase reduction each step
+            theta_t = theta_t % (2.0 * torch.pi)
             t += self.dt
 
         theta_np = theta_t.cpu().numpy()
@@ -203,6 +208,9 @@ class TorchUPDEStepper:
 
         dtheta = self._omega_np + coupling + field_term
         theta_new = theta + dtheta * self.dt + noise
+
+        # Modular phase reduction — keep phases in [0, 2π)
+        theta_new = np.mod(theta_new, 2.0 * np.pi)
 
         new_state = UPDEState(
             theta=theta_new,

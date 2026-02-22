@@ -19,6 +19,16 @@ Quick start::
 
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
+from .exceptions import (
+    CoherenceError,
+    DependencyError,
+    DirectorAIError,
+    GeneratorError,
+    KernelHaltError,
+    NumericalError,
+    PhysicsError,
+    ValidationError,
+)
 from .async_streaming import AsyncStreamingKernel
 from .batch import BatchProcessor, BatchResult
 from .bridge import PhysicsBackedScorer
@@ -64,4 +74,13 @@ __all__ = [
     "metrics",
     "BatchProcessor",
     "BatchResult",
+    # v0.7.1 additions
+    "DirectorAIError",
+    "CoherenceError",
+    "GeneratorError",
+    "KernelHaltError",
+    "ValidationError",
+    "DependencyError",
+    "PhysicsError",
+    "NumericalError",
 ]

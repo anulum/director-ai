@@ -58,6 +58,16 @@ class AsyncStreamingKernel(SafetyKernel):
         trend_window: int = 5,
         trend_threshold: float = 0.15,
     ) -> None:
+        if not (0.0 <= hard_limit <= 1.0):
+            raise ValueError(f"hard_limit must be in [0, 1], got {hard_limit}")
+        if window_size < 1:
+            raise ValueError(f"window_size must be >= 1, got {window_size}")
+        if not (0.0 <= window_threshold <= 1.0):
+            raise ValueError(f"window_threshold must be in [0, 1], got {window_threshold}")
+        if trend_window < 2:
+            raise ValueError(f"trend_window must be >= 2, got {trend_window}")
+        if trend_threshold <= 0:
+            raise ValueError(f"trend_threshold must be > 0, got {trend_threshold}")
         super().__init__(hard_limit=hard_limit)
         self.window_size = window_size
         self.window_threshold = window_threshold
@@ -85,6 +95,10 @@ class AsyncStreamingKernel(SafetyKernel):
         i = 0
 
         async for token in self._iter_tokens(token_source):
+            # Coerce token to str
+            if not isinstance(token, str):
+                token = str(token)
+
             if not self.is_active:
                 yield TokenEvent(
                     token=token,
@@ -95,7 +109,11 @@ class AsyncStreamingKernel(SafetyKernel):
                 )
                 return
 
-            score = await self._call_callback(coherence_callback, token)
+            try:
+                score = await self._call_callback(coherence_callback, token)
+            except Exception:
+                logger.error("Coherence callback raised — treating as score=0")
+                score = 0.0
             now = time.monotonic()
 
             event = TokenEvent(

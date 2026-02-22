@@ -7,6 +7,7 @@
 # ─────────────────────────────────────────────────────────────────────
 
 import logging
+import math
 import warnings
 
 from .types import CoherenceScore
@@ -97,7 +98,12 @@ class CoherenceScorer:
             contradiction_prob = probs[2]
             neutral_prob = probs[1]
 
-            return (contradiction_prob * 1.0) + (neutral_prob * 0.5)
+            h = float(contradiction_prob * 1.0) + float(neutral_prob * 0.5)
+            # Guard against NaN/Inf from malformed logits
+            if not math.isfinite(h):
+                self.logger.warning("NLI returned non-finite score, defaulting to 0.5")
+                return 0.5
+            return max(0.0, min(1.0, h))
 
         # Deterministic mock for testing
         if "consistent with reality" in text_output:
@@ -141,8 +147,12 @@ class CoherenceScorer:
         h_logic = self.calculate_logical_divergence(prompt, action)
         h_fact = self.calculate_factual_divergence(prompt, action)
 
+        # Clamp individual divergences to [0, 1]
+        h_logic = max(0.0, min(1.0, h_logic))
+        h_fact = max(0.0, min(1.0, h_fact))
+
         total_divergence = (0.6 * h_logic) + (0.4 * h_fact)
-        coherence = 1.0 - total_divergence
+        coherence = max(0.0, min(1.0, 1.0 - total_divergence))
 
         approved = coherence >= self.threshold
 

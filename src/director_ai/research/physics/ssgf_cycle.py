@@ -19,9 +19,12 @@ essential SSGF dynamics without requiring the full SCPN-CODEBASE engine.
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field
 
 import numpy as np
+
+logger = logging.getLogger("DirectorAI.SSGF")
 
 from ..consciousness import (
     PGBOConfig,
@@ -171,7 +174,10 @@ class SSGFEngine:
 
         # Euler-Maruyama step
         dtheta = self.omega + coupling + geo_coupling + pgbo_coupling + field_term
-        self.theta = theta + dtheta * self.cfg.dt + noise
+        theta_new = theta + dtheta * self.cfg.dt + noise
+
+        # Modular phase reduction — keep phases in [0, 2π)
+        self.theta = np.mod(theta_new, 2.0 * np.pi)
 
     def _compute_costs(self) -> dict:
         """Compute all cost terms for the outer cycle."""
@@ -203,6 +209,9 @@ class SSGFEngine:
             + self.cfg.w_tcbo * c_tcbo
             + self.cfg.w_pgbo * c_pgbo
         )
+        # Guard against NaN/Inf in cost terms
+        if not np.isfinite(U_total):
+            U_total = 1e6  # Large but finite sentinel
         costs["U_total"] = U_total
 
         return costs
@@ -224,6 +233,17 @@ class SSGFEngine:
             cost_0 = self.cfg.w_reg * float(np.sum(W0**2))
             cost_plus = self.cfg.w_reg * float(np.sum(W_plus**2))
             grad[i] = (cost_plus - cost_0) / eps
+
+        # Gradient norm check — truncate if exploding
+        grad_norm = float(np.linalg.norm(grad))
+        max_grad_norm = 10.0
+        if not np.isfinite(grad_norm) or grad_norm > max_grad_norm:
+            if np.isfinite(grad_norm) and grad_norm > 0:
+                grad = grad * (max_grad_norm / grad_norm)
+                logger.warning("SSGF gradient truncated: %.4f → %.4f", grad_norm, max_grad_norm)
+            else:
+                logger.warning("SSGF gradient non-finite, zeroing")
+                grad[:] = 0.0
 
         # Apply gradient with learning rate
         lr = self.cfg.lr_z

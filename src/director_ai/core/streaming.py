@@ -63,13 +63,13 @@ class StreamSession:
     def avg_coherence(self) -> float:
         if not self.coherence_history:
             return 0.0
-        return sum(self.coherence_history) / len(self.coherence_history)
+        return max(0.0, min(1.0, sum(self.coherence_history) / len(self.coherence_history)))
 
     @property
     def min_coherence(self) -> float:
         if not self.coherence_history:
             return 0.0
-        return min(self.coherence_history)
+        return max(0.0, min(1.0, min(self.coherence_history)))
 
     @property
     def duration_ms(self) -> float:
@@ -99,6 +99,16 @@ class StreamingKernel(SafetyKernel):
         trend_window: int = 5,
         trend_threshold: float = 0.15,
     ) -> None:
+        if not (0.0 <= hard_limit <= 1.0):
+            raise ValueError(f"hard_limit must be in [0, 1], got {hard_limit}")
+        if window_size < 1:
+            raise ValueError(f"window_size must be >= 1, got {window_size}")
+        if not (0.0 <= window_threshold <= 1.0):
+            raise ValueError(f"window_threshold must be in [0, 1], got {window_threshold}")
+        if trend_window < 2:
+            raise ValueError(f"trend_window must be >= 2, got {trend_window}")
+        if trend_threshold <= 0:
+            raise ValueError(f"trend_threshold must be > 0, got {trend_threshold}")
         super().__init__(hard_limit=hard_limit)
         self.window_size = window_size
         self.window_threshold = window_threshold
@@ -131,7 +141,16 @@ class StreamingKernel(SafetyKernel):
                 session.halt_reason = "kernel_inactive"
                 break
 
-            score = coherence_callback(token)
+            # Validate token type
+            if not isinstance(token, str):
+                token = str(token)
+
+            try:
+                score = float(coherence_callback(token))
+            except Exception:
+                logger.error("Coherence callback raised — treating as score=0")
+                score = 0.0
+
             now = time.monotonic()
 
             event = TokenEvent(

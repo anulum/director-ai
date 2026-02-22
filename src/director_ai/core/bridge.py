@@ -23,6 +23,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import threading
 
 from .scorer import CoherenceScorer
 from .types import CoherenceScore
@@ -30,12 +31,16 @@ from .types import CoherenceScore
 logger = logging.getLogger("DirectorAI.Bridge")
 
 _HAS_RESEARCH = False
+_RESEARCH_IMPORT_ERROR: str | None = None
 try:
     from ..research.physics import L16OversightLoop, SECFunctional
 
     _HAS_RESEARCH = True
 except ImportError:
-    pass
+    _RESEARCH_IMPORT_ERROR = "research extensions not installed"
+except Exception as _exc:  # noqa: BLE001
+    _RESEARCH_IMPORT_ERROR = f"research module broken: {_exc}"
+    logger.warning("Research physics import failed (non-ImportError): %s", _exc)
 
 
 class PhysicsBackedScorer(CoherenceScorer):
@@ -65,12 +70,17 @@ class PhysicsBackedScorer(CoherenceScorer):
             ground_truth_store=ground_truth_store,
             use_nli=use_nli,
         )
+        if not (0.0 <= physics_weight <= 1.0):
+            raise ValueError(f"physics_weight must be in [0, 1], got {physics_weight}")
+        if simulation_steps < 1:
+            raise ValueError(f"simulation_steps must be >= 1, got {simulation_steps}")
         self.physics_weight = physics_weight if _HAS_RESEARCH else 0.0
         self.simulation_steps = simulation_steps
 
         self._oversight: L16OversightLoop | None = None
         self._sec: SECFunctional | None = None
         self._last_physics_score: float | None = None
+        self._physics_lock = threading.Lock()
 
         if _HAS_RESEARCH:
             self._sec = SECFunctional()
@@ -93,13 +103,14 @@ class PhysicsBackedScorer(CoherenceScorer):
         if not self.has_physics or self._oversight is None:
             return 0.5
 
-        snapshots = self._oversight.run(n_steps=self.simulation_steps)
-        if not snapshots:
-            return 0.5
+        with self._physics_lock:
+            snapshots = self._oversight.run(n_steps=self.simulation_steps)
+            if not snapshots:
+                return 0.5
 
-        final = snapshots[-1]
-        self._last_physics_score = final.coherence_score
-        return final.coherence_score
+            final = snapshots[-1]
+            self._last_physics_score = final.coherence_score
+            return final.coherence_score
 
     def review(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
         """Score an action using blended heuristic + physics scoring.
