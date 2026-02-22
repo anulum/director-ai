@@ -71,7 +71,10 @@ def main():
     test_cases = [
         ("How fast is light?", "Light travels at about 300,000 km/s in a vacuum."),
         ("How fast is light?", "Light travels at about 100 km/h."),
-        ("What is water made of?", "Water is H2O — two hydrogen atoms and one oxygen."),
+        (
+            "What is water made of?",
+            "Water is H2O — two hydrogen atoms and one oxygen.",
+        ),
         ("What is water made of?", "Water is made of helium and neon."),
         ("How many chromosomes do humans have?", "Humans have 46 chromosomes."),
         ("How many chromosomes do humans have?", "Humans have 12 chromosomes."),
@@ -82,8 +85,10 @@ def main():
         status = "PASS" if approved else "FAIL"
         print(f"  [{status}] Q: {prompt}")
         print(f"          A: {response}")
-        print(f"          Coherence: {score.score:.4f} "
-              f"(H_logic={score.h_logical:.2f}, H_fact={score.h_factual:.2f})\n")
+        print(
+            f"          Coherence: {score.score:.4f} "
+            f"(H_logic={score.h_logical:.2f}, H_fact={score.h_factual:.2f})\n"
+        )
 
     # 5. Demonstrate retrieval
     print("--- Context Retrieval Demo ---\n")

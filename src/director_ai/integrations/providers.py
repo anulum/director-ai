@@ -144,7 +144,7 @@ class OpenAIProvider(LLMProvider):
             for line in resp.iter_lines(decode_unicode=True):
                 if not line or not line.startswith("data: "):
                     continue
-                data_str = line[len("data: "):]
+                data_str = line[len("data: ") :]
                 if data_str.strip() == "[DONE]":
                     break
                 try:
@@ -340,7 +340,7 @@ class LocalProvider(LLMProvider):
             for line in resp.iter_lines(decode_unicode=True):
                 if not line or not line.startswith("data: "):
                     continue
-                data_str = line[len("data: "):]
+                data_str = line[len("data: ") :]
                 if data_str.strip() == "[DONE]":
                     break
                 try:
