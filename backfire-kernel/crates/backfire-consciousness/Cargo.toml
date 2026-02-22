@@ -1,0 +1,15 @@
+[package]
+name = "backfire-consciousness"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Director-Class AI — consciousness gate (TCBO observer, PGBO engine)"
+
+[dependencies]
+backfire-types = { path = "../backfire-types" }
+serde = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+env_logger = { workspace = true }

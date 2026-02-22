@@ -1,0 +1,13 @@
+[package]
+name = "backfire-types"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Director-Class AI Backfire Kernel — type definitions, config, errors"
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+thiserror = { workspace = true }
+log = { workspace = true }

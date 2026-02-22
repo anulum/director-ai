@@ -1,0 +1,15 @@
+[package]
+name = "backfire-physics"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Director-Class AI — SCPN physics engine (UPDE, L16 closure, SEC functional)"
+
+[dependencies]
+backfire-types = { path = "../backfire-types" }
+serde = { workspace = true }
+log = { workspace = true }
+
+[dev-dependencies]
+env_logger = { workspace = true }

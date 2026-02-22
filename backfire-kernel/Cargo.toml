@@ -1,0 +1,38 @@
+# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — Backfire Kernel (Rust)
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# License: GNU AGPL v3 | Commercial licensing available
+# ─────────────────────────────────────────────────────────────────────
+
+[workspace]
+members = [
+    "crates/backfire-types",
+    "crates/backfire-core",
+    "crates/backfire-physics",
+    "crates/backfire-consciousness",
+    "crates/backfire-ffi",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["Miroslav Sotek <protoscience@anulum.li>"]
+license = "AGPL-3.0-or-later"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "2.0"
+log = "0.4"
+env_logger = "0.11"
+parking_lot = "0.12"
+pyo3 = { version = "0.23", features = ["extension-module"] }
+
+[workspace.dependencies.criterion]
+version = "0.5"
+
+[profile.release]
+opt-level = 3
+lto = "fat"
+codegen-units = 1

@@ -1,0 +1,20 @@
+[package]
+name = "backfire-core"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Director-Class AI Backfire Kernel — scoring engine, token gating, safety kernel"
+
+[dependencies]
+backfire-types = { path = "../backfire-types" }
+log = { workspace = true }
+parking_lot = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+env_logger = { workspace = true }
+
+[[bench]]
+name = "scoring_bench"
+harness = false

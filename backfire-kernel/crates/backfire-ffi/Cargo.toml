@@ -1,0 +1,18 @@
+[package]
+name = "backfire-ffi"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Director-Class AI Backfire Kernel — PyO3 Python bindings"
+
+[lib]
+name = "backfire_kernel"
+crate-type = ["cdylib"]
+
+[dependencies]
+backfire-types = { path = "../backfire-types" }
+backfire-core = { path = "../backfire-core" }
+backfire-physics = { path = "../backfire-physics" }
+backfire-consciousness = { path = "../backfire-consciousness" }
+pyo3 = { workspace = true }
