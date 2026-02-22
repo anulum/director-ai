@@ -116,45 +116,28 @@ class CoherenceScorer:
         # Deterministic default for unknown text (avoids flaky tests)
         return 0.5
 
-    # ── Composite scoring ─────────────────────────────────────────────
+    # ── Weight constants ─────────────────────────────────────────────
 
-    def compute_divergence(self, prompt, action):
+    W_LOGIC: float = 0.6
+    W_FACT: float = 0.4
+
+    # ── Shared scoring helpers ─────────────────────────────────────
+
+    def _heuristic_coherence(self, prompt: str, action: str) -> tuple[float, float, float]:
+        """Compute clamped divergences and heuristic coherence.
+
+        Returns (h_logic, h_fact, coherence) with all values in [0, 1].
         """
-        Compute composite divergence (lower is better).
+        h_logic = max(0.0, min(1.0, self.calculate_logical_divergence(prompt, action)))
+        h_fact = max(0.0, min(1.0, self.calculate_factual_divergence(prompt, action)))
+        coherence = max(0.0, min(1.0, 1.0 - (self.W_LOGIC * h_logic + self.W_FACT * h_fact)))
+        return h_logic, h_fact, coherence
 
-        Weighted sum: ``0.6 * H_logical + 0.4 * H_factual``.
-        """
-        w_logic = 0.6
-        w_fact = 0.4
-
-        h_logic = self.calculate_logical_divergence(prompt, action)
-        h_fact = self.calculate_factual_divergence(prompt, action)
-
-        total = (w_logic * h_logic) + (w_fact * h_fact)
-
-        self.logger.debug(
-            f"Divergence: Logic={h_logic:.2f}, Fact={h_fact:.2f} -> Total={total:.2f}"
-        )
-        return total
-
-    def review(self, prompt, action):
-        """
-        Score an action and decide whether to approve it.
-
-        Returns:
-            (approved: bool, score: CoherenceScore)
-        """
-        h_logic = self.calculate_logical_divergence(prompt, action)
-        h_fact = self.calculate_factual_divergence(prompt, action)
-
-        # Clamp individual divergences to [0, 1]
-        h_logic = max(0.0, min(1.0, h_logic))
-        h_fact = max(0.0, min(1.0, h_fact))
-
-        total_divergence = (0.6 * h_logic) + (0.4 * h_fact)
-        coherence = max(0.0, min(1.0, 1.0 - total_divergence))
-
-        approved = coherence >= self.threshold
+    def _finalise_review(
+        self, coherence: float, h_logic: float, h_fact: float, action: str
+    ) -> tuple[bool, CoherenceScore]:
+        """Approve/reject, log, update history, and build CoherenceScore."""
+        approved = bool(coherence >= self.threshold)
 
         if not approved:
             self.logger.critical(
@@ -174,6 +157,34 @@ class CoherenceScorer:
             h_factual=h_fact,
         )
         return approved, score
+
+    # ── Composite scoring ─────────────────────────────────────────────
+
+    def compute_divergence(self, prompt, action):
+        """
+        Compute composite divergence (lower is better).
+
+        Weighted sum: ``0.6 * H_logical + 0.4 * H_factual``.
+        """
+        h_logic = self.calculate_logical_divergence(prompt, action)
+        h_fact = self.calculate_factual_divergence(prompt, action)
+
+        total = (self.W_LOGIC * h_logic) + (self.W_FACT * h_fact)
+
+        self.logger.debug(
+            f"Divergence: Logic={h_logic:.2f}, Fact={h_fact:.2f} -> Total={total:.2f}"
+        )
+        return total
+
+    def review(self, prompt, action):
+        """
+        Score an action and decide whether to approve it.
+
+        Returns:
+            (approved: bool, score: CoherenceScore)
+        """
+        h_logic, h_fact, coherence = self._heuristic_coherence(prompt, action)
+        return self._finalise_review(coherence, h_logic, h_fact, action)
 
     # ── Backward-compatible aliases ───────────────────────────────────
 

@@ -103,10 +103,12 @@ class ChromaBackend(VectorBackend):
     def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
+        # ChromaDB v0.4+ requires non-empty metadata dicts
+        meta = metadata if metadata else {"_source": "director_ai"}
         self._collection.add(
             ids=[doc_id],
             documents=[text],
-            metadatas=[metadata or {}],
+            metadatas=[meta],
         )
 
     def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:

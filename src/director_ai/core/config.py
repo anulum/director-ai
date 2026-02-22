@@ -76,6 +76,7 @@ class DirectorConfig:
     server_host: str = "0.0.0.0"
     server_port: int = 8080
     server_workers: int = 1
+    cors_origins: str = "*"
 
     # Batch
     batch_max_concurrency: int = 4

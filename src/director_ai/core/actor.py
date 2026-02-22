@@ -99,7 +99,7 @@ class LLMGenerator:
                     candidates.append({"text": text, "source": "LLM"})
                 else:
                     self.logger.error(
-                        f"LLM Error {response.status_code}: {response.text}"
+                        "LLM Error %d: %s", response.status_code, response.text
                     )
                     candidates.append(
                         {
@@ -108,7 +108,7 @@ class LLMGenerator:
                         }
                     )
             except (requests.RequestException, ConnectionError, TimeoutError) as e:
-                self.logger.error(f"LLM Connection Failed: {e}")
+                self.logger.error("LLM Connection Failed: %s", e)
                 candidates.append(
                     {
                         "text": "[Error: LLM Connection Failed]",

@@ -149,9 +149,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         lifespan=lifespan,
     )
 
+    _origins = [o.strip() for o in cfg.cors_origins.split(",") if o.strip()]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],
+        allow_origins=_origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -260,15 +261,28 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # ── WebSocket streaming ───────────────────────────────────────────
 
+    _WS_MAX_PROMPT_LENGTH = 100_000
+
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):
         await ws.accept()
         try:
             while True:
                 data = await ws.receive_json()
+
+                if not isinstance(data, dict):
+                    await ws.send_json({"error": "expected JSON object"})
+                    continue
+
                 prompt = data.get("prompt", "")
-                if not prompt:
-                    await ws.send_json({"error": "prompt required"})
+                if not isinstance(prompt, str) or not prompt.strip():
+                    await ws.send_json({"error": "prompt must be a non-empty string"})
+                    continue
+
+                if len(prompt) > _WS_MAX_PROMPT_LENGTH:
+                    await ws.send_json(
+                        {"error": f"prompt exceeds {_WS_MAX_PROMPT_LENGTH} chars"}
+                    )
                     continue
 
                 agent = _state.get("agent")

@@ -140,9 +140,9 @@ class ConsiliumAgent:
             metrics["complexity"] += (
                 modified_files * 2.0
             )  # Pending changes add complexity/risk
-            logger.info(f"Git Status: {modified_files} modified files detected.")
+            logger.info("Git Status: %d modified files detected.", modified_files)
         except Exception as e:
-            logger.error(f"Git check failed: {e}")
+            logger.error("Git check failed: %s", e)
             metrics["errors"] += 1
 
         # 2. Test Execution (Suffering Check)
@@ -161,13 +161,13 @@ class ConsiliumAgent:
                 # Parse "F" or "E" in output
                 failures = result.stdout.count("FAILED") + result.stdout.count("ERROR")
                 metrics["failures"] = failures
-                logger.warning(f"Tests failed: {failures} issues detected.")
+                logger.warning("Tests failed: %d issues detected.", failures)
             else:
                 metrics["coverage"] = 0.9  # High confidence if tests pass
                 logger.info("Core integrity tests PASSED.")
 
         except Exception as e:
-            logger.error(f"Test runner failed: {e}")
+            logger.error("Test runner failed: %s", e)
             metrics["errors"] += 1
 
         return metrics
@@ -246,7 +246,7 @@ class ConsiliumAgent:
 
         for action in possible_actions:
             predicted_E = self.predict_outcome(state, action)
-            logger.debug(f"Action '{action}' predicted E = {predicted_E:.4f}")
+            logger.debug("Action '%s' predicted E = %.4f", action, predicted_E)
 
             if predicted_E < min_E:
                 min_E = predicted_E

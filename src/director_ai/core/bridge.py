@@ -117,10 +117,7 @@ class PhysicsBackedScorer(CoherenceScorer):
 
         Returns (approved, CoherenceScore) with the blended score.
         """
-        # Get heuristic score
-        h_logic = self.calculate_logical_divergence(prompt, action)
-        h_fact = self.calculate_factual_divergence(prompt, action)
-        heuristic_coherence = 1.0 - (0.6 * h_logic + 0.4 * h_fact)
+        h_logic, h_fact, heuristic_coherence = self._heuristic_coherence(prompt, action)
 
         # Blend with physics score if available
         if self.has_physics and self.physics_weight > 0:
@@ -130,23 +127,4 @@ class PhysicsBackedScorer(CoherenceScorer):
         else:
             blended = heuristic_coherence
 
-        approved = bool(blended >= self.threshold)
-
-        if not approved:
-            self.logger.critical(
-                "COHERENCE FAILURE. Blended: %.4f < Threshold: %s",
-                blended,
-                self.threshold,
-            )
-        else:
-            self.history.append(action)
-            if len(self.history) > self.window:
-                self.history.pop(0)
-
-        score = CoherenceScore(
-            score=blended,
-            approved=approved,
-            h_logical=h_logic,
-            h_factual=h_fact,
-        )
-        return approved, score
+        return self._finalise_review(blended, h_logic, h_fact, action)

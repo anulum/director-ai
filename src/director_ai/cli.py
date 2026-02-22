@@ -111,6 +111,10 @@ def _cmd_process(args: list[str]) -> None:
         print(f"Coherence:  {result.coherence.score:.4f}")
 
 
+_BATCH_MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB
+_BATCH_MAX_PROMPTS = 10_000
+
+
 def _cmd_batch(args: list[str]) -> None:
     if not args:
         print("Usage: director-ai batch <input.jsonl> [--output results.jsonl]")
@@ -123,16 +127,38 @@ def _cmd_batch(args: list[str]) -> None:
         if idx + 1 < len(args):
             output_file = args[idx + 1]
 
+    import os
+
+    if not os.path.isfile(input_file):
+        print(f"Error: file not found: {input_file}")
+        sys.exit(1)
+
+    file_size = os.path.getsize(input_file)
+    if file_size > _BATCH_MAX_FILE_SIZE:
+        print(
+            f"Error: file too large ({file_size / 1024 / 1024:.1f} MB, "
+            f"limit {_BATCH_MAX_FILE_SIZE // 1024 // 1024} MB)"
+        )
+        sys.exit(1)
+
     from director_ai.core.agent import CoherenceAgent
     from director_ai.core.batch import BatchProcessor
 
     prompts = []
     with open(input_file) as f:
-        for line in f:
+        for line_no, line in enumerate(f, 1):
             line = line.strip()
-            if line:
+            if not line:
+                continue
+            if len(prompts) >= _BATCH_MAX_PROMPTS:
+                print(f"Warning: truncated at {_BATCH_MAX_PROMPTS} prompts")
+                break
+            try:
                 data = json.loads(line)
-                prompts.append(data.get("prompt", data.get("text", line)))
+            except json.JSONDecodeError as e:
+                print(f"Warning: skipping malformed JSON on line {line_no}: {e}")
+                continue
+            prompts.append(data.get("prompt", data.get("text", line)))
 
     agent = CoherenceAgent()
     processor = BatchProcessor(agent)

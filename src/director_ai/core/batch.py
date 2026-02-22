@@ -150,11 +150,18 @@ class BatchProcessor:
         async def _run(idx: int, prompt: str) -> None:
             async with sem:
                 try:
-                    item_result = await loop.run_in_executor(
-                        None, self._process_one, idx, prompt
+                    item_result = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            None, self._process_one, idx, prompt
+                        ),
+                        timeout=self.item_timeout,
                     )
                     result.results.append(item_result)
                     result.succeeded += 1
+                except asyncio.TimeoutError:
+                    result.errors.append((idx, "item timeout"))
+                    result.failed += 1
+                    logger.warning("Async batch item %d timed out after %.1fs", idx, self.item_timeout)
                 except Exception as e:
                     result.errors.append((idx, str(e)))
                     result.failed += 1
