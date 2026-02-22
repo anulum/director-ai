@@ -17,7 +17,7 @@ Research API (requires ``pip install director-ai[research]``)::
     from director_ai.research.consilium import ConsiliumAgent
 """
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 # ── Consumer core (always available) ──────────────────────────────────
 from .core import (

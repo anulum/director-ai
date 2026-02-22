@@ -114,14 +114,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         from .core.agent import CoherenceAgent
         from .core.batch import BatchProcessor
-        from .core.knowledge import GroundTruthStore
         from .core.scorer import CoherenceScorer
 
-        store = GroundTruthStore()
         scorer = CoherenceScorer(
             threshold=cfg.coherence_threshold,
             use_nli=cfg.use_nli,
-            ground_truth_store=store,
         )
         agent = CoherenceAgent(
             llm_api_url=cfg.llm_api_url if cfg.llm_provider == "local" else None,

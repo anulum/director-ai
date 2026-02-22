@@ -38,6 +38,7 @@ def main(argv: list[str] | None = None) -> None:
         "review": _cmd_review,
         "process": _cmd_process,
         "batch": _cmd_batch,
+        "ingest": _cmd_ingest,
         "serve": _cmd_serve,
         "config": _cmd_config,
     }
@@ -61,6 +62,7 @@ def _print_help() -> None:
         "  review <prompt> <resp> Review a prompt/response pair\n"
         "  process <prompt>      Process a prompt through the full pipeline\n"
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
+        "  ingest <file>         Ingest documents into vector store\n"
         "  serve [--port N]      Start the FastAPI server\n"
         "  config [--profile X]  Show/set configuration\n"
     )
@@ -79,11 +81,9 @@ def _cmd_review(args: list[str]) -> None:
 
     prompt, response = args[0], args[1]
 
-    from director_ai.core.knowledge import GroundTruthStore
     from director_ai.core.scorer import CoherenceScorer
 
-    store = GroundTruthStore()
-    scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
+    scorer = CoherenceScorer(threshold=0.6)
     approved, score = scorer.review(prompt, response)
 
     print(f"Approved:  {approved}")
@@ -194,6 +194,84 @@ def _cmd_batch(args: list[str]) -> None:
                     + "\n"
                 )
         print(f"Results written to {output_file}")
+
+
+_INGEST_MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB
+
+
+def _cmd_ingest(args: list[str]) -> None:
+    """Ingest a text or JSONL file into a VectorGroundTruthStore.
+
+    Supported formats:
+      - ``.txt``: one document per line
+      - ``.jsonl``: one JSON object per line with a ``"text"`` field
+    """
+    if not args:
+        print("Usage: director-ai ingest <file.txt|file.jsonl> [--persist <dir>]")
+        sys.exit(1)
+
+    import os
+
+    input_file = args[0]
+    persist_dir = None
+    if "--persist" in args:
+        idx = args.index("--persist")
+        if idx + 1 < len(args):
+            persist_dir = args[idx + 1]
+
+    if not os.path.isfile(input_file):
+        print(f"Error: file not found: {input_file}")
+        sys.exit(1)
+
+    file_size = os.path.getsize(input_file)
+    if file_size > _INGEST_MAX_FILE_SIZE:
+        print(
+            f"Error: file too large ({file_size / 1024 / 1024:.1f} MB, "
+            f"limit {_INGEST_MAX_FILE_SIZE // 1024 // 1024} MB)"
+        )
+        sys.exit(1)
+
+    from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
+
+    if persist_dir:
+        try:
+            from director_ai.core.vector_store import ChromaBackend
+
+            backend = ChromaBackend(persist_directory=persist_dir)
+        except ImportError:
+            print("ChromaDB required for --persist. pip install director-ai[vector]")
+            sys.exit(1)
+    else:
+        backend = InMemoryBackend()
+
+    store = VectorGroundTruthStore(backend=backend, auto_index=False)
+
+    texts: list[str] = []
+    is_jsonl = input_file.endswith(".jsonl") or input_file.endswith(".json")
+
+    with open(input_file, encoding="utf-8") as f:
+        for line_no, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            if is_jsonl:
+                try:
+                    data = json.loads(line)
+                    text = data.get("text", data.get("content", ""))
+                except json.JSONDecodeError as e:
+                    print(f"Warning: skipping line {line_no}: {e}")
+                    continue
+            else:
+                text = line
+            if text:
+                texts.append(text)
+
+    count = store.ingest(texts)
+    print(f"Ingested {count} documents into vector store.")
+    if persist_dir:
+        print(f"Persisted to: {persist_dir}")
+    else:
+        print("(in-memory only — use --persist <dir> to save)")
 
 
 def _cmd_serve(args: list[str]) -> None:

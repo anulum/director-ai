@@ -34,7 +34,7 @@ from .exceptions import (
     ValidationError,
 )
 from .kernel import SafetyKernel
-from .knowledge import GroundTruthStore
+from .knowledge import SAMPLE_FACTS, GroundTruthStore
 from .metrics import MetricsCollector, metrics
 from .nli import NLIScorer
 from .scorer import CoherenceScorer
@@ -55,6 +55,7 @@ __all__ = [
     "MockGenerator",
     "LLMGenerator",
     "GroundTruthStore",
+    "SAMPLE_FACTS",
     "CoherenceAgent",
     # v0.4.0 additions
     "NLIScorer",

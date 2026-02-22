@@ -7,20 +7,20 @@
 import pytest
 
 from director_ai.core.bridge import PhysicsBackedScorer
-from director_ai.core.knowledge import GroundTruthStore
+from director_ai.core.knowledge import SAMPLE_FACTS, GroundTruthStore
 from director_ai.core.types import CoherenceScore
 
 
 @pytest.mark.integration
 class TestPhysicsBackedScorer:
     def test_instantiation(self):
-        store = GroundTruthStore()
+        store = GroundTruthStore(facts=SAMPLE_FACTS)
         scorer = PhysicsBackedScorer(threshold=0.5, ground_truth_store=store)
         assert scorer is not None
         assert scorer.has_physics  # research deps should be available in test env
 
     def test_review_returns_coherence_score(self):
-        store = GroundTruthStore()
+        store = GroundTruthStore(facts=SAMPLE_FACTS)
         scorer = PhysicsBackedScorer(
             threshold=0.5,
             ground_truth_store=store,
@@ -32,7 +32,7 @@ class TestPhysicsBackedScorer:
         assert isinstance(approved, bool)
 
     def test_physics_score_in_range(self):
-        store = GroundTruthStore()
+        store = GroundTruthStore(facts=SAMPLE_FACTS)
         scorer = PhysicsBackedScorer(
             threshold=0.5,
             ground_truth_store=store,
@@ -43,7 +43,7 @@ class TestPhysicsBackedScorer:
         assert 0.0 <= p_score <= 1.0
 
     def test_blended_score_differs_from_heuristic(self):
-        store = GroundTruthStore()
+        store = GroundTruthStore(facts=SAMPLE_FACTS)
         # Pure heuristic
         heuristic = PhysicsBackedScorer(
             threshold=0.5,
@@ -64,7 +64,7 @@ class TestPhysicsBackedScorer:
         assert isinstance(b_score.score, float)
 
     def test_backward_compat_aliases(self):
-        store = GroundTruthStore()
+        store = GroundTruthStore(facts=SAMPLE_FACTS)
         scorer = PhysicsBackedScorer(
             threshold=0.5,
             ground_truth_store=store,

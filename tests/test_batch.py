@@ -8,7 +8,7 @@ import pytest
 
 from director_ai.core.agent import CoherenceAgent
 from director_ai.core.batch import BatchProcessor, BatchResult
-from director_ai.core.knowledge import GroundTruthStore
+from director_ai.core.knowledge import SAMPLE_FACTS, GroundTruthStore
 from director_ai.core.scorer import CoherenceScorer
 
 
@@ -22,7 +22,7 @@ def batch_agent():
 @pytest.fixture
 def batch_scorer():
     """BatchProcessor wrapping CoherenceScorer."""
-    store = GroundTruthStore()
+    store = GroundTruthStore(facts=SAMPLE_FACTS)
     scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
     return BatchProcessor(scorer, max_concurrency=2)
 

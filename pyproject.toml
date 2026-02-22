@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "0.7.0"
+version = "0.8.0"
 description = "Coherence Engine — AI output verification and safety oversight"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}

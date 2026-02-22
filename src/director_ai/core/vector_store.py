@@ -76,6 +76,9 @@ class InMemoryBackend(VectorBackend):
 class ChromaBackend(VectorBackend):
     """ChromaDB backend for production vector search.
 
+    Uses ``sentence-transformers`` for embedding so that retrieval is
+    based on real semantic similarity, not Chroma's default.
+
     Requires ``pip install chromadb sentence-transformers``.
     """
 
@@ -83,6 +86,7 @@ class ChromaBackend(VectorBackend):
         self,
         collection_name: str = "director_ai_facts",
         persist_directory: str | None = None,
+        embedding_model: str = "all-MiniLM-L6-v2",
     ) -> None:
         try:
             import chromadb
@@ -92,13 +96,31 @@ class ChromaBackend(VectorBackend):
                 "Install with: pip install director-ai[vector]"
             ) from e
 
+        # Build the embedding function from sentence-transformers
+        ef: Any = None
+        try:
+            from chromadb.utils.embedding_functions import (
+                SentenceTransformerEmbeddingFunction,
+            )
+
+            ef = SentenceTransformerEmbeddingFunction(model_name=embedding_model)
+            logger.info("ChromaBackend using embedding model: %s", embedding_model)
+        except Exception as exc:
+            logger.warning(
+                "sentence-transformers unavailable (%s); "
+                "ChromaDB will use its default embedding",
+                exc,
+            )
+
         if persist_directory:
             self._client = chromadb.PersistentClient(path=persist_directory)
         else:
             self._client = chromadb.Client()
-        self._collection = self._client.get_or_create_collection(
-            name=collection_name,
-        )
+
+        kwargs: dict[str, Any] = {"name": collection_name}
+        if ef is not None:
+            kwargs["embedding_function"] = ef
+        self._collection = self._client.get_or_create_collection(**kwargs)
 
     def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
@@ -138,29 +160,31 @@ class VectorGroundTruthStore(GroundTruthStore):
     Parameters
     ----------
     backend : VectorBackend — vector DB backend (default: InMemoryBackend).
-    auto_index : bool — index built-in facts on init (default: True).
+    auto_index : bool — index existing facts on init (default: True).
+    facts : dict — initial facts (forwarded to ``GroundTruthStore``).
     """
 
     def __init__(
         self,
         backend: VectorBackend | None = None,
         auto_index: bool = True,
+        facts: dict[str, str] | None = None,
     ) -> None:
-        super().__init__()
+        super().__init__(facts=facts)
         self.backend = backend if backend is not None else InMemoryBackend()
 
-        if auto_index:
-            self._index_builtin_facts()
+        if auto_index and self.facts:
+            self._index_existing_facts()
 
-    def _index_builtin_facts(self) -> None:
-        """Index the built-in fact dictionary into the vector backend."""
+    def _index_existing_facts(self) -> None:
+        """Index the fact dictionary into the vector backend."""
         for key, value in self.facts.items():
             self.backend.add(
                 doc_id=f"builtin_{key.replace(' ', '_')}",
                 text=f"{key} is {value}",
                 metadata={"source": "builtin", "key": key},
             )
-        logger.info("Indexed %d built-in facts into vector backend.", len(self.facts))
+        logger.info("Indexed %d facts into vector backend.", len(self.facts))
 
     def add_fact(
         self, key: str, value: str, metadata: dict[str, Any] | None = None
@@ -172,6 +196,29 @@ class VectorGroundTruthStore(GroundTruthStore):
             text=f"{key} is {value}",
             metadata={"source": "user", "key": key, **(metadata or {})},
         )
+
+    def ingest(
+        self,
+        texts: list[str],
+        metadatas: list[dict[str, Any]] | None = None,
+    ) -> int:
+        """Bulk-ingest documents into the vector backend.
+
+        Parameters
+        ----------
+        texts : list[str] — documents to index.
+        metadatas : optional per-document metadata dicts.
+
+        Returns
+        -------
+        int — number of documents ingested.
+        """
+        metas = metadatas or [{}] * len(texts)
+        for i, (text, meta) in enumerate(zip(texts, metas, strict=True)):
+            doc_id = meta.get("id", f"ingest_{i}")
+            self.backend.add(doc_id=str(doc_id), text=text, metadata=meta)
+        logger.info("Ingested %d documents into vector backend.", len(texts))
+        return len(texts)
 
     def retrieve_context(self, query: str) -> str | None:
         """Retrieve context using vector similarity with keyword fallback.

@@ -8,7 +8,7 @@
 
 import unittest
 
-from director_ai.core import CoherenceScorer, GroundTruthStore
+from director_ai.core import SAMPLE_FACTS, CoherenceScorer, GroundTruthStore
 
 
 class TestRAG(unittest.TestCase):
@@ -17,7 +17,7 @@ class TestRAG(unittest.TestCase):
     """
 
     def setUp(self):
-        self.store = GroundTruthStore()
+        self.store = GroundTruthStore(facts=SAMPLE_FACTS)
         self.scorer = CoherenceScorer(ground_truth_store=self.store)
 
     def test_retrieval(self):

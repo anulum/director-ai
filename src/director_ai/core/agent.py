@@ -49,7 +49,9 @@ class CoherenceAgent:
             self.generator = MockGenerator()
             self.logger.info("Using Mock Generator (Simulation Mode)")
 
-        self.store = ground_truth_store or VectorGroundTruthStore(InMemoryBackend())
+        self.store = ground_truth_store or VectorGroundTruthStore(
+            InMemoryBackend(), auto_index=False
+        )
         self.scorer = CoherenceScorer(threshold=0.6, ground_truth_store=self.store)
         self.kernel = SafetyKernel()
 
@@ -147,12 +149,14 @@ class CoherenceAgent:
         Process a prompt with real-time token streaming and coherence gating.
 
         Connects an ``LLMProvider.stream_generate()`` token stream to a
-        ``StreamingKernel`` for per-token coherence oversight.
+        ``StreamingKernel`` for per-token coherence oversight.  The scorer
+        evaluates the *accumulated* text (not individual tokens) so that
+        coherence checks are meaningful across the full response.
 
         Parameters:
             prompt: Non-empty query string.
             provider: An ``LLMProvider`` instance with ``stream_generate()``.
-                      If *None*, falls back to the mock generator (single token).
+                      If *None*, falls back to the mock generator (word tokens).
 
         Returns:
             A ``StreamSession`` with the emitted tokens and halt status.
@@ -165,13 +169,18 @@ class CoherenceAgent:
         if provider is not None:
             token_gen = provider.stream_generate(prompt)
         else:
-            # Fallback: generate one candidate and yield its text
+            # Fallback: generate one candidate and yield word-level tokens
             candidates = self.generator.generate_candidates(prompt, n=1)
             text = candidates[0]["text"] if candidates else ""
             token_gen = iter(text.split())
 
+        # Accumulate tokens so the scorer sees the full text so far
+        accumulated: list[str] = []
+
         def coherence_callback(token):
-            _, score = self.scorer.review(prompt, token)
+            accumulated.append(token)
+            text_so_far = " ".join(accumulated)
+            _, score = self.scorer.review(prompt, text_so_far)
             return score.score
 
         return streaming_kernel.stream_tokens(token_gen, coherence_callback)

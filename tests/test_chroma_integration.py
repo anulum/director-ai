@@ -18,6 +18,7 @@ try:
 except ImportError:
     _CHROMA_AVAILABLE = False
 
+from director_ai.core.knowledge import SAMPLE_FACTS
 from director_ai.core.vector_store import VectorGroundTruthStore
 
 if _CHROMA_AVAILABLE:
@@ -78,15 +79,19 @@ class TestChromaIntegration:
 
     def test_vector_store_with_chroma(self, backend):
         """VectorGroundTruthStore works with ChromaBackend."""
-        store = VectorGroundTruthStore(backend=backend, auto_index=True)
-        # Built-in facts should be indexed
+        store = VectorGroundTruthStore(
+            backend=backend, auto_index=True, facts=SAMPLE_FACTS
+        )
+        # Sample facts should be indexed
         assert backend.count() > 0
         # Semantic retrieval should work
         ctx = store.retrieve_context("What color is the sky?")
         assert ctx is not None
 
     def test_vector_store_add_fact(self, backend):
-        store = VectorGroundTruthStore(backend=backend, auto_index=True)
+        store = VectorGroundTruthStore(
+            backend=backend, auto_index=True, facts=SAMPLE_FACTS
+        )
         initial = backend.count()
         store.add_fact("omega_1", "1.329 rad/s")
         assert backend.count() == initial + 1
