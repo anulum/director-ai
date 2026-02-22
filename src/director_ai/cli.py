@@ -231,8 +231,13 @@ def _cmd_ingest(args: list[str]) -> None:
         )
         sys.exit(1)
 
-    from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
+    from director_ai.core.vector_store import (
+        InMemoryBackend,
+        VectorBackend,
+        VectorGroundTruthStore,
+    )
 
+    backend: VectorBackend
     if persist_dir:
         try:
             from director_ai.core.vector_store import ChromaBackend
