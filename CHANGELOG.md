@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Backfire Kernel** (`backfire-kernel/`) — Rust workspace implementing the safety gate as a native
+  performance kernel with Python FFI via PyO3:
+  - `backfire-types` — shared type definitions (402 LOC, 10 tests)
+  - `backfire-core` — safety gate hot path: `SafetyKernel`, `StreamingKernel`, coherence scoring
+    (1,087 LOC, 33 tests, 7 benchmarks)
+  - `backfire-physics` — UPDE Euler-Maruyama integrator, SEC Lyapunov functional
+    (1,279 LOC, 35 tests)
+  - `backfire-consciousness` — TCBO persistent homology observer, PGBO bridge operator
+    (971 LOC, 29 tests)
+  - `backfire-ssgf` — Stochastic Synthesis of Geometric Fields engine: gram-softplus/RBF decoders,
+    Kuramoto microcycle, Jacobi eigensolver, 8 cost terms, L16 closure, outer-cycle orchestrator
+    (1,750 LOC, 46 tests, 22 benchmarks)
+  - `backfire-ffi` — PyO3 Python bindings exposing 13 classes (940 LOC)
+  - **Total**: ~6,429 Rust LOC, 153 tests, 29 Criterion benchmarks
+- **Analytic Jacobian gradient** for SSGF geometry engine:
+  - `GradientMethod` enum: `FiniteDifference` (legacy) vs `Analytic` (new default)
+  - `softplus_deriv`, `compute_du_dw`, `gradient_analytic_gram`, `gradient_analytic_rbf` in `decoder.rs`
+  - **7,609x speedup** on gradient computation (31.5 ms → 4.14 µs)
+  - **133x speedup** on full outer-cycle step (34.6 ms → 261 µs)
+  - Outer step now uses only **0.52%** of the 50 ms deadline budget (was 69.2%)
+- **Phase 4 hardening** (H47-H64): subprocess path validation, batch per-line size limit,
+  WebSocket error handling, NaN/Inf clamp logging, null prompt guard, timeout validation,
+  LLM error type distinction, CORS origins limit, return type annotations, help text limits,
+  bool coercion edge cases
+
+### Fixed
+- mypy: missing type annotation for `prompts` in `cli.py`
+- NLI `_model_score()` RuntimeError check now runs before `import torch`
+- FastAPI-dependent test properly skipped when FastAPI not installed
+- All ruff lint errors resolved (I001, E402, F841, N806, F401)
+- black formatting aligned with CI version (black 26.x)
+
 ## [0.7.0] - 2026-02-16
 
 ### Changed

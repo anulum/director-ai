@@ -10,14 +10,7 @@
 # Private drafts, ideas, and TODO notes
 .local/
 
-# Documentation prose (quarantined until headers/protocols are reviewed)
-# Remove this line once docs/ prose files have been audited.
-# docs/assets/ is tracked (header image, generator script).
-docs/*
-!docs/assets/
-!docs/conf.py
-!docs/index.rst
-!docs/api/
+# Documentation build artifacts
 docs/_build/
 
 # =====================================================================

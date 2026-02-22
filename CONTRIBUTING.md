@@ -90,19 +90,50 @@ The Python package lives in `src/director_ai/` with two profiles:
 - `research/consciousness/` — TCBO observer/controller, PGBO engine, benchmarks
 - `research/consilium/` — L15 Ethical Functional & active inference agent
 
+### Rust — `backfire-kernel/`
+
+The `backfire-kernel/` directory contains a Rust workspace (6 crates, ~6,429 LOC)
+that implements the safety-critical hot paths. Contributions require Rust 1.75+.
+
+```bash
+# Test
+cd backfire-kernel && cargo test --workspace
+
+# Benchmark
+cd backfire-kernel && cargo bench --workspace
+
+# Lint
+cd backfire-kernel && cargo clippy --workspace
+```
+
 ## Priority Areas for Contribution
 
 We especially welcome contributions in:
 
-- **NLI Models**: Replacing mock entropy calculations with real NLI inference
-- **RAG Integration**: Connecting to vector databases (FAISS, Chroma, Milvus)
-- **Safety Kernel**: Rust/C++ safety gate implementation
-- **Testing**: Property-based testing, adversarial prompt suites
+- **Adversarial Evaluation**: Building the "Recursive Paradox" dataset for hallucination testing
+- **RAG Backends**: Additional vector store backends (FAISS, Milvus, Qdrant)
+- **SIMD Optimisation**: Vectorising the micro-cycle inner loop in backfire-ssgf
+- **Testing**: Property-based testing, adversarial prompt suites, fuzzing
 - **Documentation**: Tutorials, architecture diagrams, API examples
 - **Benchmarks**: Coherence score evaluation across model families
-- **SSGF Integration**: Connecting SSGF outer-cycle geometry to research/physics
+- **PyPI Packaging**: Building and publishing the `backfire-kernel` Python wheel
 
 ## License
 
 By contributing, you agree that your contributions will be licensed under the
 GNU AGPL v3.0. See [NOTICE](NOTICE) for dual-licensing details.
+
+---
+
+## Session Logs & Handovers
+
+All session logs and handover documents for this project are stored permanently in the monorepo's canonical location:
+
+- **Session logs:** `.coordination/sessions/DIRECTOR_AI/`
+- **Handovers:** `.coordination/handovers/DIRECTOR_AI/`
+
+**Do not** place session logs or handovers inside this project directory. They will be moved during consolidation.
+
+These files are **permanent records** and must never be deleted, even if outdated.
+
+See [`.coordination/SESSION_AND_HANDOVER_POLICY.md`](../../.coordination/SESSION_AND_HANDOVER_POLICY.md) for naming conventions, templates, and the full policy.

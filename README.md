@@ -95,6 +95,34 @@ Both profiles ship from a single repository via build profiles.
 | `TCBOController` | PI feedback adjusting gap-junction kappa to maintain consciousness gate |
 | `PGBOEngine` | Phase-to-Geometry Bridge Operator (covariant drive to rank-2 tensor) |
 
+### Backfire Kernel (Rust)
+
+The `backfire-kernel/` directory contains a native Rust workspace that implements the
+safety-critical hot paths with Python FFI via PyO3. All operations complete within the
+**50 ms deadline** defined in the Backfire Prevention Protocols.
+
+| Crate | Purpose | LOC | Tests | Benchmarks |
+|-------|---------|-----|-------|------------|
+| `backfire-types` | Shared type definitions | 402 | 10 | — |
+| `backfire-core` | Safety gate hot path (SafetyKernel, StreamingKernel) | 1,087 | 33 | 7 |
+| `backfire-physics` | UPDE integrator, SEC Lyapunov functional | 1,279 | 35 | — |
+| `backfire-consciousness` | TCBO observer, PGBO bridge operator | 971 | 29 | — |
+| `backfire-ssgf` | SSGF geometry engine (decoders, Jacobi eigensolver, costs) | 1,750 | 46 | 22 |
+| `backfire-ffi` | PyO3 Python bindings (13 classes) | 940 | — | — |
+| **Total** | | **~6,429** | **153** | **29** |
+
+**Performance highlights** (Criterion benchmarks):
+
+| Operation | Latency | Headroom vs 50 ms |
+|-----------|---------|--------------------|
+| Safety kernel (10 tokens) | 265 ns | 188,679x |
+| SSGF outer step (analytic gradient) | 261 µs | 191x |
+| SSGF gradient (analytic Jacobian) | 4.14 µs | 12,077x |
+| Full scoring pipeline (10 tokens) | 4.56 µs | 10,965x |
+
+The analytic Jacobian gradient provides a **7,609x speedup** over finite-difference,
+reducing the outer-cycle step from 34.6 ms to 261 µs.
+
 ### Key Metric: Coherence Score
 
 ```
@@ -215,31 +243,48 @@ u_mu, h_munu = pgbo.compute(phases, dt=0.01)  # symmetric, PSD rank-2 tensor
 ```
 src/director_ai/
 ├── __init__.py                     # Version + profile-aware imports
+├── cli.py                         # CLI entry point (review, process, batch, serve)
+├── server.py                      # FastAPI server with WebSocket streaming
 ├── core/                           # Coherence Engine (consumer-ready)
 │   ├── scorer.py                   # Dual-entropy coherence scorer
 │   ├── kernel.py                   # Safety kernel (output gate)
 │   ├── actor.py                    # LLM generator interface
 │   ├── knowledge.py                # Ground truth store (RAG)
 │   ├── agent.py                    # CoherenceAgent pipeline
+│   ├── batch.py                    # BatchProcessor for bulk operations
+│   ├── streaming.py                # Token-by-token streaming kernel
+│   ├── async_streaming.py          # Async streaming variant
+│   ├── config.py                   # DirectorConfig (profiles, env, YAML)
+│   ├── nli.py                      # NLI scorer (DeBERTa, lazy-loaded)
+│   ├── vector_store.py             # Pluggable vector backends (InMemory, Chroma)
 │   └── types.py                    # Shared dataclasses
 └── research/                       # SCPN Research extensions
     ├── physics/                    # L16 mechanistic physics
     │   ├── scpn_params.py          #   Omega_n frequencies + Knm coupling matrix
     │   ├── sec_functional.py       #   SEC Lyapunov stability functional
     │   ├── l16_mechanistic.py      #   UPDE integrator + L16 oversight loop
-    │   └── l16_closure.py          #   PI controllers, PLV gate, refusal rules
+    │   ├── l16_closure.py          #   PI controllers, PLV gate, refusal rules
+    │   └── ssgf_cycle.py           #   SSGF outer geometry learning cycle
     ├── consciousness/              # Consciousness gate
     │   ├── tcbo.py                 #   TCBO observer + PI controller
     │   ├── pgbo.py                 #   Phase-to-Geometry Bridge Operator
     │   └── benchmark.py            #   4 mandatory verification benchmarks
     └── consilium/                  # L15 Ethical Functional
         └── director_core.py
+
+backfire-kernel/                    # Rust workspace (native performance kernel)
+├── crates/backfire-types/          # Shared Rust types
+├── crates/backfire-core/           # Safety gate + streaming kernel (benchmarked)
+├── crates/backfire-physics/        # UPDE + SEC in Rust
+├── crates/backfire-consciousness/  # TCBO + PGBO in Rust
+├── crates/backfire-ssgf/           # SSGF geometry engine (benchmarked)
+└── crates/backfire-ffi/            # PyO3 Python bindings
 ```
 
 ## Testing
 
 ```bash
-# Run all tests
+# Run all Python tests (397 tests)
 pytest tests/ -v
 
 # Consumer API tests only
@@ -247,6 +292,12 @@ pytest tests/test_consumer_api.py -v
 
 # Research module tests only
 pytest tests/test_research_imports.py -v
+
+# Rust workspace tests (153 tests)
+cd backfire-kernel && cargo test --workspace
+
+# Rust benchmarks (29 Criterion benchmarks)
+cd backfire-kernel && cargo bench --workspace
 ```
 
 ## Documentation
