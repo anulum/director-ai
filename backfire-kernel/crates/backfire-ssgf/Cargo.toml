@@ -1,0 +1,20 @@
+[package]
+name = "backfire-ssgf"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+description = "Director-Class AI Backfire Kernel — SSGF geometry engine"
+
+[dependencies]
+backfire-types = { path = "../backfire-types" }
+backfire-physics = { path = "../backfire-physics" }
+backfire-consciousness = { path = "../backfire-consciousness" }
+serde = { workspace = true }
+
+[dev-dependencies]
+criterion = { workspace = true }
+
+[[bench]]
+name = "ssgf_bench"
+harness = false
