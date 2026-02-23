@@ -212,6 +212,11 @@ def build_dataset():
 
     ds = Dataset.from_list(all_examples)
 
+    # Cast label to ClassLabel so stratified split works
+    from datasets import ClassLabel
+
+    ds = ds.cast_column("label", ClassLabel(names=["entailment", "neutral", "contradiction"]))
+
     # Stratified 90/10 split by label
     split = ds.train_test_split(test_size=0.1, seed=42, stratify_by_column="label")
     dataset = DatasetDict({"train": split["train"], "eval": split["test"]})
