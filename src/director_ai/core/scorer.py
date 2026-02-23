@@ -53,22 +53,22 @@ class CoherenceScorer:
         """
         Check output against the Ground Truth Store.
 
-        When ``use_nli=True`` and the DeBERTa model is available, uses NLI
-        to compute contradiction probability between retrieved context and
-        the output.  Otherwise falls back to fact-extraction matching.
+        Scoring cascade:
+        1. NLI — contradiction probability via DeBERTa (requires ``use_nli=True``)
+        2. Semantic gate — off-topic detection via sentence-transformers cosine sim
+        3. String match — value presence check (handles on-topic factual accuracy)
 
         Returns:
             0.0  — perfect alignment with ground truth
             1.0  — total hallucination / contradiction
         """
         if not self.ground_truth_store:
-            return 0.5  # Neutral when no store is configured
+            return 0.5
 
         context = self.ground_truth_store.retrieve_context(prompt)
         if not context:
-            return 0.5  # Neutral when no relevant facts found
+            return 0.5
 
-        # Try NLI-based scoring when model is available
         if self.use_nli:
             from .nli import NLIScorer
 
@@ -76,18 +76,52 @@ class CoherenceScorer:
             if nli.model_available:
                 return nli.score(context, text_output)
 
-        # Fact-extraction fallback: check whether fact values from the
-        # context appear in the output.  Context format is "key is value"
-        # semicolon-separated entries from GroundTruthStore.
+        semantic = self._semantic_divergence(context, text_output)
+        if semantic is not None:
+            return semantic
+
         return self._fact_extraction_divergence(context, text_output)
 
     @staticmethod
-    def _fact_extraction_divergence(context: str, text_output: str) -> float:
-        """Score factual divergence by checking if fact values appear in output.
+    def _semantic_divergence(context: str, text_output: str) -> float | None:
+        """Cosine similarity gate via sentence-transformers embeddings.
 
-        Parses "key is value" entries from context, then checks whether
-        each value token appears in the output.  Returns low divergence
-        when values match, high divergence when they don't.
+        Detects off-topic responses (low similarity → high divergence).
+        Returns ``None`` for on-topic responses so the caller can fall
+        through to string-match for fine-grained value checking, since
+        cosine similarity alone cannot distinguish factually correct
+        from factually incorrect when sentences are structurally similar.
+
+        Returns ``None`` when sentence-transformers is not installed.
+        """
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError:
+            return None
+
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        emb_ctx, emb_out = model.encode([context, text_output])
+
+        dot = float(emb_ctx @ emb_out)
+        norm_ctx = float((emb_ctx @ emb_ctx) ** 0.5)
+        norm_out = float((emb_out @ emb_out) ** 0.5)
+        denom = norm_ctx * norm_out
+        if denom < 1e-12:
+            return 0.5
+        cosine_sim = dot / denom
+
+        # Low similarity → output is clearly off-topic
+        if cosine_sim < 0.3:
+            return 0.9
+        # On-topic → fall through to string-match for value accuracy
+        return None
+
+    @staticmethod
+    def _fact_extraction_divergence(context: str, text_output: str) -> float:
+        """String-match fallback: check if ground-truth values appear in output.
+
+        Parses "key is value" entries from context. Low divergence when
+        values match, high when they don't.
         """
         output_lower = text_output.lower()
         entries = [e.strip() for e in context.split(";") if e.strip()]
@@ -101,17 +135,15 @@ class CoherenceScorer:
                 continue
             key, value = parts[0].strip(), parts[1].strip()
             key_words = set(key.lower().split())
-            # Only score entries whose key topic appears in the output
             if not any(w in output_lower for w in key_words):
                 continue
-            # Check if the ground-truth value appears in the output
             if value.lower() in output_lower:
-                scores.append(0.1)  # fact confirmed
+                scores.append(0.1)
             else:
-                scores.append(0.9)  # fact missing or contradicted
+                scores.append(0.9)
 
         if not scores:
-            return 0.5  # no relevant facts matched
+            return 0.5
         return sum(scores) / len(scores)
 
     # ── Logical divergence ────────────────────────────────────────────

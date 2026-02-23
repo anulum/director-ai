@@ -13,7 +13,7 @@
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
-  <a href="https://github.com/anulum/director-ai/releases"><img src="https://img.shields.io/badge/version-0.8.0-green.svg" alt="Version 0.8.0"></a>
+  <a href="https://github.com/anulum/director-ai/releases"><img src="https://img.shields.io/badge/version-0.8.1-green.svg" alt="Version 0.8.0"></a>
 </p>
 
 ---
@@ -113,7 +113,21 @@ scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
 approved, score = scorer.review("How fast is light?", "Light is about 300,000 km/s.")
 ```
 
-### 5. CLI
+### 5. Ingest a directory of documents
+
+```python
+from director_ai.core import VectorGroundTruthStore, ChromaBackend
+
+store = VectorGroundTruthStore(
+    backend=ChromaBackend(persist_directory="./kb"),
+)
+n = store.ingest_from_directory("./docs", glob="**/*.md")
+print(f"Indexed {n} documents")
+
+scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
+```
+
+### 6. CLI
 
 ```bash
 director-ai review "What color is the sky?" "The sky is blue."
@@ -179,24 +193,19 @@ Install with: `pip install director-ai[langchain]`
 | `BatchProcessor` | Bulk scoring with concurrency control |
 | `OpenAI/Anthropic/HF/LocalProvider` | LLM adapters with SSE streaming |
 
-## Benchmark Results
+## Benchmarks
 
-Run benchmarks yourself:
+Benchmark scripts evaluate the coherence scorer on public hallucination-detection
+datasets. They require the DeBERTa NLI model (`~2 GB` download on first run):
 
 ```bash
 pip install director-ai[nli]
-python -m benchmarks.truthfulqa_eval 50
-python -m benchmarks.halueval_eval 100
+python -m benchmarks.truthfulqa_eval 50    # TruthfulQA multiple-choice
+python -m benchmarks.halueval_eval 100     # HaluEval QA/summarization/dialogue
 ```
 
-| Benchmark | Metric | Score | Notes |
-|-----------|--------|-------|-------|
-| TruthfulQA (MC) | Accuracy | *pending* | Correct > incorrect answer scoring |
-| HaluEval (QA) | F1 | *pending* | Hallucination detection at threshold 0.5 |
-| HaluEval (Summarization) | F1 | *pending* | Same scorer, summarization domain |
-| HaluEval (Dialogue) | F1 | *pending* | Same scorer, dialogue domain |
-
-> Results will be populated after running benchmarks with DeBERTa NLI model.
+Results are environment-dependent (model weights, threshold). Run locally and
+compare against your baseline.
 
 ## Performance (Rust Hot Path)
 
@@ -219,40 +228,16 @@ cd backfire-kernel && cargo test  # 153 Rust tests
 ```
 
 <details>
-<summary><strong>Research Extensions (SCPN)</strong></summary>
+<summary><strong>Research Extensions</strong></summary>
 
-Director AI includes optional research modules implementing the SCPN
-(Self-Consistent Phenomenological Network) theoretical framework.
-These are cleanly separated from the consumer API (zero cross-imports).
+Optional SCPN research modules (Lyapunov stability, UPDE integrators,
+consciousness gate). Zero cross-imports with core.
 
-Install with: `pip install director-ai[research]`
-
-### Modules
-
-| Module | Purpose |
-|--------|---------|
-| `ConsiliumAgent` | L15 Ethical Functional optimizer (OODA loop) |
-| `SECFunctional` | Lyapunov stability functional |
-| `UPDEStepper` | Euler-Maruyama UPDE integrator |
-| `L16Controller` | PI controllers, PLV gate, refusal rules |
-| `TCBOObserver` | Consciousness gate (persistent homology) |
-| `PGBOEngine` | Phase-to-Geometry Bridge Operator |
-
-### Example
-
-```python
-import numpy as np
-from director_ai.research.physics import SECFunctional, build_knm_matrix
-
-knm = build_knm_matrix()
-sec = SECFunctional(knm=knm)
-theta = np.random.uniform(0, 2 * np.pi, 16)
-result = sec.evaluate(theta)
-print(f"V = {result.V:.4f}, stable = {sec.is_stable(result)}")
+```bash
+pip install director-ai[research]
 ```
 
-See [docs/RESEARCH_GUIDE.md](docs/RESEARCH_GUIDE.md) for how research modules
-connect to the CCW audio pipeline and which SCPN layers they implement.
+See [docs/RESEARCH_GUIDE.md](docs/RESEARCH_GUIDE.md) for details.
 
 </details>
 
@@ -271,7 +256,7 @@ Dual-licensed:
   title   = {Director AI: Coherence Engine},
   year    = {2026},
   url     = {https://github.com/anulum/director-ai},
-  version = {0.8.0},
+  version = {0.8.1},
 }
 ```
 

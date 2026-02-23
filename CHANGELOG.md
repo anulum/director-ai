@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-02-23
+
+### Added
+- **Semantic off-topic gate**: `_semantic_divergence()` in `CoherenceScorer` uses
+  sentence-transformers cosine similarity to detect off-topic responses before
+  falling through to string-match for value accuracy
+- **Directory ingestion**: `VectorGroundTruthStore.ingest_from_directory(path, glob)`
+  recursively reads `.txt`, `.md`, and `.jsonl` files from a directory
+
+### Changed
+- `ChromaBackend` now requires `sentence-transformers` (raises `ImportError` instead
+  of silent fallback to Chroma's default embedding)
+- Factual scoring cascade: NLI → semantic gate (off-topic detection) → string match
+- README benchmark section updated with honest status and run instructions
+- Research section condensed to link to `docs/RESEARCH_GUIDE.md`
+
 ## [0.8.0] - 2026-02-22
 
 ### Added
@@ -47,7 +63,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **BREAKING**: `GroundTruthStore` no longer ships hardcoded facts; pass `facts=` to constructor
   or use `SAMPLE_FACTS` for the original demo data
 - `ChromaBackend` now uses `SentenceTransformerEmbeddingFunction` (all-MiniLM-L6-v2) for real
-  semantic retrieval; graceful fallback if sentence-transformers unavailable
+  semantic retrieval
 - `process_streaming()` coherence callback now scores accumulated text (not individual tokens)
 - `CoherenceAgent` defaults to empty `VectorGroundTruthStore` (no auto-indexed demo facts)
 - Server no longer instantiates `GroundTruthStore` with hardcoded facts
@@ -207,7 +223,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/anulum/director-ai/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/anulum/director-ai/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/anulum/director-ai/compare/v0.4.0...v0.7.0
 [0.4.0]: https://github.com/anulum/director-ai/compare/v0.3.1...v0.4.0

@@ -12,7 +12,7 @@ sys.path.insert(0, os.path.abspath("../src"))
 project = "Director-Class AI"
 copyright = "1998-2026, Miroslav Sotek"
 author = "Miroslav Sotek"
-release = "0.8.0"
+release = "0.8.1"
 
 extensions = [
     "sphinx.ext.autodoc",

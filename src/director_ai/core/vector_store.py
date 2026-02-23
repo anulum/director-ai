@@ -96,31 +96,22 @@ class ChromaBackend(VectorBackend):
                 "Install with: pip install director-ai[vector]"
             ) from e
 
-        # Build the embedding function from sentence-transformers
-        ef: Any = None
-        try:
-            from chromadb.utils.embedding_functions import (
-                SentenceTransformerEmbeddingFunction,
-            )
+        from chromadb.utils.embedding_functions import (
+            SentenceTransformerEmbeddingFunction,
+        )
 
-            ef = SentenceTransformerEmbeddingFunction(model_name=embedding_model)
-            logger.info("ChromaBackend using embedding model: %s", embedding_model)
-        except Exception as exc:
-            logger.warning(
-                "sentence-transformers unavailable (%s); "
-                "ChromaDB will use its default embedding",
-                exc,
-            )
+        self._ef = SentenceTransformerEmbeddingFunction(model_name=embedding_model)
+        logger.info("ChromaBackend using embedding model: %s", embedding_model)
 
         if persist_directory:
             self._client = chromadb.PersistentClient(path=persist_directory)
         else:
             self._client = chromadb.Client()
 
-        kwargs: dict[str, Any] = {"name": collection_name}
-        if ef is not None:
-            kwargs["embedding_function"] = ef
-        self._collection = self._client.get_or_create_collection(**kwargs)
+        self._collection = self._client.get_or_create_collection(
+            name=collection_name,
+            embedding_function=self._ef,
+        )
 
     def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
@@ -218,6 +209,60 @@ class VectorGroundTruthStore(GroundTruthStore):
             doc_id = meta.get("id", f"ingest_{i}")
             self.backend.add(doc_id=str(doc_id), text=text, metadata=meta)
         logger.info("Ingested %d documents into vector backend.", len(texts))
+        return len(texts)
+
+    def ingest_from_directory(
+        self,
+        path: str,
+        glob: str = "**/*.txt",
+        encoding: str = "utf-8",
+    ) -> int:
+        """Recursively read files matching *glob* under *path* and ingest them.
+
+        Each file becomes one document. Supports ``.txt``, ``.md``, and
+        ``.jsonl`` (one document per line with a ``"text"`` field).
+
+        Returns the number of documents ingested.
+        """
+        import json
+        from pathlib import Path
+
+        root = Path(path)
+        if not root.is_dir():
+            raise FileNotFoundError(f"Directory not found: {path}")
+
+        texts: list[str] = []
+        metas: list[dict[str, Any]] = []
+
+        for fp in sorted(root.glob(glob)):
+            if not fp.is_file():
+                continue
+            try:
+                content = fp.read_text(encoding=encoding)
+            except (OSError, UnicodeDecodeError) as exc:
+                logger.warning("Skipping %s: %s", fp, exc)
+                continue
+
+            if fp.suffix == ".jsonl":
+                for line_no, line in enumerate(content.splitlines(), 1):
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        obj = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    text = obj.get("text", "")
+                    if text:
+                        texts.append(text)
+                        metas.append({"source": str(fp), "line": line_no})
+            else:
+                if content.strip():
+                    texts.append(content)
+                    metas.append({"source": str(fp)})
+
+        if texts:
+            self.ingest(texts, metas)
         return len(texts)
 
     def retrieve_context(self, query: str) -> str | None:
