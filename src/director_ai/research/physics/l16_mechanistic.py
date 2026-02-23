@@ -14,9 +14,9 @@ of the hierarchy and modulates the entire system via:
 
   dθ_n/dt = Ω_n + Σ_m K_nm sin(θ_m - θ_n) + F cos(θ_n) + η_n
 
-The Director layer (n=16) has special authority: it monitors the global
-order parameter R and can modulate coupling strengths, noise amplitude,
-and field pressure in real-time.
+The Director layer (n=16) monitors the global order parameter R and
+can modulate coupling strengths, noise amplitude, and field pressure
+in real-time.
 
 This module provides:
   - ``UPDEState``: Snapshot of the 16-layer phase dynamics.
@@ -115,7 +115,6 @@ class UPDEStepper:
         self._dtheta += field_term
         theta_new = theta + self._dtheta * self.dt + noise
 
-        # H4: Modular phase reduction — keep phases in [0, 2π)
         theta_new = np.mod(theta_new, 2.0 * np.pi)
 
         new_state = UPDEState(

@@ -97,7 +97,6 @@ class AsyncStreamingKernel(SafetyKernel):
         i = 0
 
         async for token in self._iter_tokens(token_source):
-            # Coerce token to str
             if not isinstance(token, str):
                 token = str(token)
 
@@ -128,14 +127,14 @@ class AsyncStreamingKernel(SafetyKernel):
             coherence_history.append(score)
             window.append(score)
 
-            # Check 1: Hard limit
+            # Hard limit
             if score < self.hard_limit:
                 event.halted = True
                 self.emergency_stop()
                 yield event
                 return
 
-            # Check 2: Sliding window average
+            # Sliding window average
             if len(window) >= self.window_size:
                 avg = sum(window) / len(window)
                 if avg < self.window_threshold:
@@ -143,7 +142,7 @@ class AsyncStreamingKernel(SafetyKernel):
                     yield event
                     return
 
-            # Check 3: Downward trend
+            # Downward trend
             if len(coherence_history) >= self.trend_window:
                 recent = coherence_history[-self.trend_window :]
                 drop = recent[0] - recent[-1]

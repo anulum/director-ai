@@ -15,9 +15,8 @@ Kuramoto-type system. It satisfies:
   2. V(θ) = 0  iff the system is at the coherence fixed point
   3. dV/dt ≤ 0  along trajectories of the UPDE (under sufficient coupling)
 
-This gives a formal stability guarantee: the oversight system provably
-converges to the ethical equilibrium when coupling exceeds a critical
-threshold K_c.
+When all three conditions hold and coupling exceeds the critical
+threshold K_c, the system converges to the coherence equilibrium.
 
 The SEC maps directly to the consumer's CoherenceScore:
   CoherenceScore.score = 1 - V_normalised

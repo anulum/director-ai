@@ -121,12 +121,11 @@ class ConsiliumAgent:
             "errors": 0,
             "failures": 0,
             "complexity": 0.0,
-            "graph_density": 0.5,  # Placeholder until Graph DB connection
+            "graph_density": 0.5,  # TODO: wire to graph DB when available
             "coverage": 0.0,
             "entropy": 0.8,  # Baseline entropy
         }
 
-        # 1. Git Status (Entropy Check)
         try:
             result = subprocess.run(
                 ["git", "status", "--porcelain"],
@@ -145,8 +144,6 @@ class ConsiliumAgent:
             logger.error("Git check failed: %s", e)
             metrics["errors"] += 1
 
-        # 2. Test Execution (Suffering Check)
-        # We run a fast check on the core logic
         try:
             import shutil
 

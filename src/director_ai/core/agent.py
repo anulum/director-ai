@@ -82,7 +82,6 @@ class CoherenceAgent:
             "Received Prompt: '%s%s'", safe_prompt, "..." if len(prompt) > 200 else ""
         )
 
-        # 1. Generate candidates (feed-forward)
         candidates = self.generator.generate_candidates(prompt)
 
         # Cap candidate count to prevent resource exhaustion
@@ -98,7 +97,6 @@ class CoherenceAgent:
         best_score = None
         best_coherence = -1.0
 
-        # 2. Recursive oversight — score each candidate
         for i, cand in enumerate(candidates):
             if not isinstance(cand, dict) or "text" not in cand:
                 self.logger.warning(
@@ -120,7 +118,6 @@ class CoherenceAgent:
                 best_response = text
                 best_score = score
 
-        # 3. Safety kernel output streaming
         if best_response:
 
             def coherence_monitor(token):

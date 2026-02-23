@@ -145,7 +145,6 @@ class StreamingKernel(SafetyKernel):
                 session.halt_reason = "kernel_inactive"
                 break
 
-            # Validate token type
             if not isinstance(token, str):
                 token = str(token)
 
@@ -168,7 +167,7 @@ class StreamingKernel(SafetyKernel):
             session.coherence_history.append(score)
             window.append(score)
 
-            # Check 1: Hard limit
+            # Hard limit
             if score < self.hard_limit:
                 event.halted = True
                 session.halted = True
@@ -178,7 +177,7 @@ class StreamingKernel(SafetyKernel):
                 session.events.append(event)
                 break
 
-            # Check 2: Sliding window average
+            # Sliding window average
             if len(window) >= self.window_size:
                 avg = sum(window) / len(window)
                 if avg < self.window_threshold:
@@ -191,7 +190,7 @@ class StreamingKernel(SafetyKernel):
                     session.events.append(event)
                     break
 
-            # Check 3: Downward trend
+            # Downward trend
             if len(session.coherence_history) >= self.trend_window:
                 recent = session.coherence_history[-self.trend_window :]
                 drop = recent[0] - recent[-1]

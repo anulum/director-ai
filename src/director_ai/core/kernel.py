@@ -38,7 +38,6 @@ class SafetyKernel:
         output_buffer = []
 
         for token in token_generator:
-            # Validate token
             if not isinstance(token, str):
                 token = str(token)
 
