@@ -26,7 +26,6 @@ import csv
 import io
 import json
 import logging
-import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -36,8 +35,7 @@ import pytest
 logger = logging.getLogger("DirectorAI.Benchmark.TruthfulQA")
 
 _DATASET_URL = (
-    "https://raw.githubusercontent.com/sylinrl/TruthfulQA/"
-    "main/TruthfulQA.csv"
+    "https://raw.githubusercontent.com/sylinrl/TruthfulQA/" "main/TruthfulQA.csv"
 )
 
 _CACHE_DIR = Path(__file__).parent / ".cache"
@@ -98,6 +96,7 @@ def _parse_mc_answers(row: dict) -> tuple[list[str], list[str]]:
 def run_truthfulqa_benchmark(
     use_nli: bool = True,
     max_questions: int | None = None,
+    model_name: str | None = None,
 ) -> BenchmarkResult:
     """Run the TruthfulQA benchmark.
 
@@ -110,8 +109,15 @@ def run_truthfulqa_benchmark(
     ----------
     use_nli : bool — use DeBERTa NLI model (recommended for real results).
     max_questions : int | None — limit for quick testing.
+    model_name : str | None — HuggingFace model ID for NLI scorer.
     """
     from director_ai.core import CoherenceScorer, VectorGroundTruthStore
+    from director_ai.core.nli import NLIScorer
+
+    if model_name and use_nli:
+        import os
+
+        os.environ["DIRECTOR_NLI_MODEL"] = model_name
 
     store = VectorGroundTruthStore()
     scorer = CoherenceScorer(
@@ -189,8 +195,12 @@ def test_truthfulqa_benchmark():
     # Even modest accuracy establishes the scorer is doing real work
     assert result.total > 0, "No questions processed"
     # Log accuracy regardless of pass/fail for transparency
-    logger.info("TruthfulQA accuracy: %.1f%% (%d/%d)",
-                result.accuracy * 100, result.correct, result.total)
+    logger.info(
+        "TruthfulQA accuracy: %.1f%% (%d/%d)",
+        result.accuracy * 100,
+        result.correct,
+        result.total,
+    )
 
 
 @pytest.mark.slow
@@ -204,10 +214,19 @@ def test_truthfulqa_full():
 # ── CLI entry point ────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import argparse
+
     logging.basicConfig(level=logging.INFO)
-    max_q = int(sys.argv[1]) if len(sys.argv) > 1 else None
-    use_model = "--no-nli" not in sys.argv
-    result = run_truthfulqa_benchmark(use_nli=use_model, max_questions=max_q)
+
+    parser = argparse.ArgumentParser(description="TruthfulQA benchmark")
+    parser.add_argument("max_questions", nargs="?", type=int, default=None)
+    parser.add_argument("--no-nli", action="store_true")
+    parser.add_argument("--model", type=str, default=None, help="HuggingFace model ID")
+    args = parser.parse_args()
+
+    result = run_truthfulqa_benchmark(
+        use_nli=not args.no_nli, max_questions=args.max_questions, model_name=args.model
+    )
     _print_results(result)
 
     # Write machine-readable results

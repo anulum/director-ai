@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import json
 import logging
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -163,6 +162,7 @@ def run_halueval_benchmark(
     use_nli: bool = True,
     max_samples_per_task: int | None = None,
     coherence_threshold: float = 0.5,
+    model_name: str | None = None,
 ) -> HaluEvalResult:
     """Run HaluEval hallucination detection benchmark.
 
@@ -176,8 +176,14 @@ def run_halueval_benchmark(
     use_nli : bool — use DeBERTa NLI model.
     max_samples_per_task : int | None — limit for quick testing.
     coherence_threshold : float — below this = flagged as hallucination.
+    model_name : str | None — HuggingFace model ID for NLI scorer.
     """
     from director_ai.core import CoherenceScorer
+
+    if model_name and use_nli:
+        import os
+
+        os.environ["DIRECTOR_NLI_MODEL"] = model_name
 
     scorer = CoherenceScorer(threshold=0.5, use_nli=use_nli)
 
@@ -253,9 +259,7 @@ def _print_results(result: HaluEvalResult) -> None:
 @pytest.mark.slow
 def test_halueval_qa_sample():
     """Run HaluEval QA benchmark (small sample, requires NLI model)."""
-    result = run_halueval_benchmark(
-        tasks=["qa"], use_nli=True, max_samples_per_task=25
-    )
+    result = run_halueval_benchmark(tasks=["qa"], use_nli=True, max_samples_per_task=25)
     _print_results(result)
     assert result.overall.total > 0, "No samples processed"
     logger.info(
@@ -277,10 +281,21 @@ def test_halueval_full():
 # ── CLI entry point ────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import argparse
+
     logging.basicConfig(level=logging.INFO)
-    max_s = int(sys.argv[1]) if len(sys.argv) > 1 else 100
-    use_model = "--no-nli" not in sys.argv
-    result = run_halueval_benchmark(use_nli=use_model, max_samples_per_task=max_s)
+
+    parser = argparse.ArgumentParser(description="HaluEval benchmark")
+    parser.add_argument("max_samples", nargs="?", type=int, default=100)
+    parser.add_argument("--no-nli", action="store_true")
+    parser.add_argument("--model", type=str, default=None, help="HuggingFace model ID")
+    args = parser.parse_args()
+
+    result = run_halueval_benchmark(
+        use_nli=not args.no_nli,
+        max_samples_per_task=args.max_samples,
+        model_name=args.model,
+    )
     _print_results(result)
 
     # Write machine-readable results

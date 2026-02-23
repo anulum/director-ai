@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "0.8.2"
+version = "0.9.0"
 description = "Coherence Engine — AI output verification and safety oversight"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
@@ -50,6 +50,14 @@ gpu = [
 vector = [
     "chromadb>=0.4.0",
     "sentence-transformers>=2.2.0",
+]
+train = [
+    "torch>=2.0",
+    "transformers>=4.30",
+    "datasets>=2.14",
+    "accelerate>=0.24",
+    "scikit-learn>=1.3",
+    "evaluate>=0.4",
 ]
 langchain = [
     "langchain-core>=0.1.0",

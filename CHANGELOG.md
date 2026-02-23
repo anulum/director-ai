@@ -7,6 +7,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-02-23
+
+### Added
+- **Fine-tuning pipeline** for DeBERTa hallucination detection:
+  - `training/data_pipeline.py` — unified ~100K dataset from HaluEval, FEVER, VitaminC, ANLI R3
+  - `training/train_hallucination_detector.py` — HF Trainer with class-weighted loss, early stopping
+  - `training/upload_to_hub.py` — push to HuggingFace Hub as `anulum/deberta-v3-large-hallucination`
+- **GPU device placement** in `NLIScorer` — auto-detects CUDA and moves model/inputs to GPU
+- **Configurable model name** via `NLIScorer(model_name=...)` or `DIRECTOR_NLI_MODEL` env var
+- **Chunked scoring** for long texts — splits premise into overlapping chunks, takes max score
+  (AlignScore strategy); fixes summarization F1 bottleneck from 512-token truncation
+- **`--model` CLI flag** on `truthfulqa_eval.py` and `halueval_eval.py` benchmarks
+- **`[train]` optional dependency group**: `pip install director-ai[train]`
+
+### Fixed
+- **Dual model loading** in `CoherenceScorer.__init__` — removed inline `transformers` import
+  that loaded a second 184MB DeBERTa copy; `calculate_logical_divergence()` now delegates
+  to the cached `NLIScorer` singleton
+- **Broken NLI tokenization** — `f"{prompt} [SEP] {text_output}"` single-string call replaced
+  with correct two-argument `tokenizer(premise, hypothesis)` via `NLIScorer.score()`
+- **black formatting** on `kernel.py` (CI was red)
+
 ## [0.8.2] - 2026-02-23
 
 ### Added
@@ -239,7 +261,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/anulum/director-ai/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/anulum/director-ai/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/anulum/director-ai/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/anulum/director-ai/compare/v0.7.0...v0.8.0

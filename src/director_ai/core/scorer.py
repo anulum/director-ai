@@ -7,7 +7,6 @@
 # ─────────────────────────────────────────────────────────────────────
 
 import logging
-import math
 import threading
 import warnings
 
@@ -37,15 +36,6 @@ class CoherenceScorer:
         self.logger = logging.getLogger("DirectorAI")
 
         self.use_nli = use_nli
-        if self.use_nli:
-            from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-            model_name = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
-            self.logger.info(
-                f"Coherence Scorer initialized with NLI model: {model_name}"
-            )
 
     # ── Factual divergence ────────────────────────────────────────────
 
@@ -156,25 +146,11 @@ class CoherenceScorer:
         Otherwise falls back to deterministic heuristics for testing.
         """
         if self.use_nli:
-            import torch
+            from .nli import NLIScorer
 
-            input_text = f"{prompt} [SEP] {text_output}"
-            inputs = self.tokenizer(input_text, return_tensors="pt", truncation=True)
-
-            with torch.no_grad():
-                logits = self.model(**inputs).logits
-
-            # DeBERTa-mnli classes: 0=entailment, 1=neutral, 2=contradiction
-            probs = torch.softmax(logits, dim=1).numpy()[0]
-            contradiction_prob = probs[2]
-            neutral_prob = probs[1]
-
-            h = float(contradiction_prob * 1.0) + float(neutral_prob * 0.5)
-            # Guard against NaN/Inf from malformed logits
-            if not math.isfinite(h):
-                self.logger.warning("NLI returned non-finite score, defaulting to 0.5")
-                return 0.5
-            return max(0.0, min(1.0, h))
+            nli = NLIScorer(use_model=True)
+            if nli.model_available:
+                return nli.score(prompt, text_output)
 
         # Deterministic mock for testing
         if "consistent with reality" in text_output:
