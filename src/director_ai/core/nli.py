@@ -108,7 +108,7 @@ class NLIScorer:
         -------
         float in [0, 1]: 0 = entailment, 0.5 = neutral, 1.0 = contradiction.
         """
-        if not self._ensure_model():
+        if not self._ensure_model() or self._tokenizer is None:
             return self._heuristic_score(premise, hypothesis)
 
         premise_tokens = self._tokenizer.encode(premise, add_special_tokens=False)
@@ -155,6 +155,8 @@ class NLIScorer:
 
         If ANY chunk contradicts the hypothesis, the text is hallucinated.
         """
+        if self._tokenizer is None:
+            return self._heuristic_score(premise, hypothesis)
         premise_ids = self._tokenizer.encode(premise, add_special_tokens=False)
         step = max(1, self.chunk_size - self.chunk_overlap)
         scores = []
