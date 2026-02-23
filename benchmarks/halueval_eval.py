@@ -34,19 +34,19 @@ logger = logging.getLogger("DirectorAI.Benchmark.HaluEval")
 
 _CACHE_DIR = Path(__file__).parent / ".cache"
 
-# HaluEval dataset URLs (HuggingFace hosted JSONL files)
+# HaluEval dataset URLs (HuggingFace parquet files)
 _DATASET_URLS = {
     "qa": (
         "https://huggingface.co/datasets/pminervini/HaluEval/resolve/main/"
-        "qa_data.json"
+        "qa/data-00000-of-00001.parquet"
     ),
     "summarization": (
         "https://huggingface.co/datasets/pminervini/HaluEval/resolve/main/"
-        "summarization_data.json"
+        "summarization/data-00000-of-00001.parquet"
     ),
     "dialogue": (
         "https://huggingface.co/datasets/pminervini/HaluEval/resolve/main/"
-        "dialogue_data.json"
+        "dialogue/data-00000-of-00001.parquet"
     ),
 }
 
@@ -92,13 +92,16 @@ class HaluEvalResult:
 
 
 def _download_task_data(task: str) -> list[dict]:
-    """Download a HaluEval task dataset, caching locally."""
+    """Download a HaluEval task dataset (parquet), caching locally."""
+    import pandas as pd
+
     _CACHE_DIR.mkdir(parents=True, exist_ok=True)
-    cache_path = _CACHE_DIR / f"halueval_{task}.json"
+    cache_path = _CACHE_DIR / f"halueval_{task}.parquet"
 
     if cache_path.exists():
         logger.info("Using cached HaluEval %s dataset", task)
-        return json.loads(cache_path.read_text(encoding="utf-8"))
+        df = pd.read_parquet(cache_path)
+        return df.to_dict(orient="records")
 
     url = _DATASET_URLS.get(task)
     if not url:
@@ -109,10 +112,10 @@ def _download_task_data(task: str) -> list[dict]:
     logger.info("Downloading HaluEval %s dataset...", task)
     resp = requests.get(url, timeout=120)
     resp.raise_for_status()
-    data = resp.json()
-    cache_path.write_text(json.dumps(data), encoding="utf-8")
-    logger.info("Cached %d samples to %s", len(data), cache_path)
-    return data
+    cache_path.write_bytes(resp.content)
+    df = pd.read_parquet(cache_path)
+    logger.info("Cached %d samples to %s", len(df), cache_path)
+    return df.to_dict(orient="records")
 
 
 def _extract_pairs(task: str, sample: dict) -> list[tuple[str, str, bool]]:

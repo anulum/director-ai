@@ -112,8 +112,8 @@ class AsyncStreamingKernel(SafetyKernel):
 
             try:
                 score = await self._call_callback(coherence_callback, token)
-            except Exception:
-                logger.error("Coherence callback raised — treating as score=0")
+            except Exception as exc:
+                logger.error("Coherence callback raised %s — treating as score=0", exc)
                 score = 0.0
             now = time.monotonic()
 

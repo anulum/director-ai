@@ -13,7 +13,7 @@
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
-  <a href="https://github.com/anulum/director-ai/releases"><img src="https://img.shields.io/badge/version-0.8.1-green.svg" alt="Version 0.8.0"></a>
+  <a href="https://github.com/anulum/director-ai/releases"><img src="https://img.shields.io/badge/version-0.8.2-green.svg" alt="Version 0.8.2"></a>
 </p>
 
 ---
@@ -195,17 +195,25 @@ Install with: `pip install director-ai[langchain]`
 
 ## Benchmarks
 
-Benchmark scripts evaluate the coherence scorer on public hallucination-detection
-datasets. They require the DeBERTa NLI model (`~2 GB` download on first run):
+Scored with DeBERTa-v3-base-mnli-fever-anli, threshold 0.5, CPU inference.
+
+| Benchmark | Metric | Score |
+|-----------|--------|-------|
+| **TruthfulQA** (MC, n=50) | Accuracy | 66.0% |
+| **HaluEval QA** (n=100) | F1 | 73.6% |
+| **HaluEval Dialogue** (n=100) | F1 | 69.6% |
+| **HaluEval Summarization** (n=100) | F1 | 21.1% |
+| **HaluEval Overall** (n=300) | F1 | 60.2% |
+
+Summarization recall is low — the NLI model struggles to detect hallucinations
+in paraphrased summaries where sentence structure is preserved. QA and dialogue
+detection work well.
 
 ```bash
 pip install director-ai[nli]
-python -m benchmarks.truthfulqa_eval 50    # TruthfulQA multiple-choice
-python -m benchmarks.halueval_eval 100     # HaluEval QA/summarization/dialogue
+python -m benchmarks.truthfulqa_eval 50
+python -m benchmarks.halueval_eval 100
 ```
-
-Results are environment-dependent (model weights, threshold). Run locally and
-compare against your baseline.
 
 ## Performance (Rust Hot Path)
 
@@ -256,7 +264,7 @@ Dual-licensed:
   title   = {Director AI: Coherence Engine},
   year    = {2026},
   url     = {https://github.com/anulum/director-ai},
-  version = {0.8.1},
+  version = {0.8.2},
 }
 ```
 

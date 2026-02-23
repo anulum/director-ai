@@ -125,17 +125,14 @@ class CoherenceAgent:
 
             final_output = self.kernel.stream_output([best_response], coherence_monitor)
             return ReviewResult(
-                output=f"[AGI Output]: {final_output}",
+                output=final_output,
                 coherence=best_score,
                 halted=False,
                 candidates_evaluated=len(candidates),
             )
 
         return ReviewResult(
-            output=(
-                "[SYSTEM HALT]: No coherent response found."
-                " Self-termination to prevent divergence."
-            ),
+            output="[HALT]: No coherent response found.",
             coherence=None,
             halted=True,
             candidates_evaluated=len(candidates),

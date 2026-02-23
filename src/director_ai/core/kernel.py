@@ -44,9 +44,10 @@ class SafetyKernel:
             try:
                 current_score = coherence_callback(token)
                 current_score = float(current_score)
-            except Exception:
-                # Callback failure → treat as incoherent (fail-safe)
-                self.logger.error("Coherence callback raised — treating as score=0")
+            except Exception as exc:
+                self.logger.error(
+                    "Coherence callback raised %s — score=0", exc
+                )
                 current_score = 0.0
 
             if current_score < self.hard_limit:

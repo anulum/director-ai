@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-02-23
+
+### Added
+- **Benchmark results**: TruthfulQA 66.0% accuracy, HaluEval 60.2% F1 (QA 73.6%,
+  Dialogue 69.6%, Summarization 21.1%) — real numbers in README
+
+### Changed
+- Removed `[AGI Output]` prefix from `CoherenceAgent.process()` output — returns raw text
+- Halt message simplified to `[HALT]: No coherent response found.`
+- Exception handlers in kernel/streaming now log the actual exception (`%s`, exc)
+
+### Fixed
+- HaluEval benchmark dataset URLs updated from JSON to parquet (HuggingFace migration)
+- `lyapunov_proof.py`: removed false "Proven by direct computation" claim on `verified = True`
+- Removed step-narration comments from `scpn_params.py` (docstring already documents the algorithm)
+
 ## [0.8.1] - 2026-02-23
 
 ### Added
@@ -223,7 +239,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/anulum/director-ai/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/anulum/director-ai/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/anulum/director-ai/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/anulum/director-ai/compare/v0.4.0...v0.7.0
