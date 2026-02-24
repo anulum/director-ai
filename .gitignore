@@ -10,6 +10,9 @@
 # Private drafts, ideas, and TODO notes
 .local/
 
+# Agent-local context files
+claude-director-ai.md
+
 # Documentation build artifacts
 docs/_build/
 
@@ -129,3 +132,4 @@ training/output/
 *.pkl
 *.pickle
 benchmarks/results/
+benchmarks/.cache/

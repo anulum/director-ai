@@ -5,14 +5,13 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 """
-Fine-tune ``microsoft/deberta-v3-large`` (continuing from MoritzLaurer's
-mnli-fever-anli-ling-wanli checkpoint) on the unified hallucination
-detection dataset built by ``data_pipeline.py``.
+Fine-tune DeBERTa-v3-base on a balanced 100K subset of the unified
+hallucination detection dataset built by ``data_pipeline.py``.
 
 Usage::
 
     python training/train_hallucination_detector.py
-    # Output: training/output/deberta-v3-large-hallucination/
+    # Output: training/output/deberta-v3-base-hallucination/
 
 Requires: ``pip install director-ai[train]``
 """
@@ -38,14 +37,15 @@ logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 DATA_DIR = Path(__file__).parent / "data"
-OUTPUT_DIR = Path(__file__).parent / "output" / "deberta-v3-large-hallucination"
-BASE_MODEL = "MoritzLaurer/DeBERTa-v3-large-mnli-fever-anli-ling-wanli"
-MAX_LENGTH = 512
+OUTPUT_DIR = Path(__file__).parent / "output" / "deberta-v3-base-hallucination"
+BASE_MODEL = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+MAX_LENGTH = 256
+SUBSET_SIZE = 100_000
+EVAL_RATIO = 0.1
 LABEL_NAMES = ["entailment", "neutral", "contradiction"]
 
 
 def compute_metrics(eval_pred):
-    """Compute accuracy and per-class F1 for the Trainer."""
     from sklearn.metrics import accuracy_score, f1_score
 
     logits, labels = eval_pred
@@ -86,12 +86,41 @@ class WeightedTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
+def subsample_balanced(dataset, n_total, seed=42):
+    """Stratified subsample: equal per-source, then per-label within source."""
+    sources = set(dataset["source"])
+    per_source = n_total // len(sources)
+    indices = []
+    rng = np.random.default_rng(seed)
+
+    for src in sorted(sources):
+        src_mask = np.array(dataset["source"]) == src
+        src_indices = np.where(src_mask)[0]
+        take = min(per_source, len(src_indices))
+        chosen = rng.choice(src_indices, size=take, replace=False)
+        indices.extend(chosen.tolist())
+
+    rng.shuffle(indices)
+    return dataset.select(indices[:n_total])
+
+
 def main():
     if not DATA_DIR.exists():
         raise FileNotFoundError(f"{DATA_DIR} not found — run data_pipeline.py first")
 
     logger.info("Loading dataset from %s", DATA_DIR)
-    dataset = load_from_disk(str(DATA_DIR))
+    full_dataset = load_from_disk(str(DATA_DIR))
+
+    # Subsample from the train split
+    train_full = full_dataset["train"]
+    logger.info("Full train set: %d examples, subsampling to %d", len(train_full), SUBSET_SIZE)
+    train_sub = subsample_balanced(train_full, SUBSET_SIZE)
+
+    eval_size = int(SUBSET_SIZE * EVAL_RATIO)
+    eval_full = full_dataset["eval"]
+    eval_sub = eval_full.select(range(min(eval_size, len(eval_full))))
+
+    logger.info("Subset: train=%d, eval=%d", len(train_sub), len(eval_sub))
 
     logger.info("Loading tokenizer and model: %s", BASE_MODEL)
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
@@ -107,23 +136,20 @@ def main():
         )
 
     logger.info("Tokenizing ...")
-    tokenized = dataset.map(
-        tokenize, batched=True, remove_columns=["premise", "hypothesis", "source"]
-    )
+    tok_train = train_sub.map(tokenize, batched=True, remove_columns=["premise", "hypothesis", "source"])
+    tok_eval = eval_sub.map(tokenize, batched=True, remove_columns=["premise", "hypothesis", "source"])
 
-    # Class weights
-    train_labels = np.array(tokenized["train"]["label"])
-    weights = compute_class_weight(
-        "balanced", classes=np.array([0, 1, 2]), y=train_labels
-    )
+    # Class weights from the subset
+    train_labels = np.array(tok_train["label"])
+    weights = compute_class_weight("balanced", classes=np.array([0, 1, 2]), y=train_labels)
     logger.info("Class weights: %s", dict(zip(LABEL_NAMES, weights)))
 
     training_args = TrainingArguments(
         output_dir=str(OUTPUT_DIR),
         num_train_epochs=3,
-        per_device_train_batch_size=16,
-        per_device_eval_batch_size=32,
-        gradient_accumulation_steps=2,
+        per_device_train_batch_size=4,
+        per_device_eval_batch_size=8,
+        gradient_accumulation_steps=8,
         learning_rate=2e-5,
         warmup_ratio=0.06,
         weight_decay=0.01,
@@ -136,9 +162,11 @@ def main():
         metric_for_best_model="f1",
         greater_is_better=True,
         fp16=torch.cuda.is_available(),
-        logging_steps=100,
+        gradient_checkpointing=True,
+        gradient_checkpointing_kwargs={"use_reentrant": False},
+        logging_steps=50,
         report_to="none",
-        dataloader_num_workers=4,
+        dataloader_num_workers=0,
         label_names=["labels"],
     )
 
@@ -146,8 +174,8 @@ def main():
         class_weights=weights,
         model=model,
         args=training_args,
-        train_dataset=tokenized["train"],
-        eval_dataset=tokenized["eval"],
+        train_dataset=tok_train,
+        eval_dataset=tok_eval,
         processing_class=tokenizer,
         compute_metrics=compute_metrics,
         callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
