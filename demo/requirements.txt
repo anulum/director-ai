@@ -1,0 +1,2 @@
+director-ai>=0.10.0
+gradio>=4.0

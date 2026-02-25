@@ -186,6 +186,19 @@ See `examples/` for ready-to-run integrations:
 | [`langchain_guard.py`](examples/langchain_guard.py) | LangChain | Output checker for chains |
 | [`streaming_halt_demo.py`](examples/streaming_halt_demo.py) | Simulated | All 3 halt mechanisms visualised |
 
+### Interactive demo
+
+Try Director-AI in the browser — no install needed:
+
+[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb)
+
+Or run the Gradio demo locally:
+
+```bash
+pip install director-ai gradio
+python demo/app.py
+```
+
 ## Scoring Formula
 
 ```

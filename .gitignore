@@ -26,6 +26,7 @@ docs/*
 !docs/TECHNICAL_SPEC_V2.md
 !docs/API_REFERENCE.md
 !docs/archive/
+!docs/social/
 docs/_build/
 
 # =====================================================================
