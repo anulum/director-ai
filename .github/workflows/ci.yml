@@ -26,10 +26,10 @@ jobs:
           python-version: "3.12"
 
       - name: Install linters
-        run: pip install "black>=26,<27" "ruff>=0.5,<1"
+        run: pip install "ruff>=0.5,<1"
 
-      - name: Check formatting (black)
-        run: black --check src/ tests/ examples/
+      - name: Check formatting (ruff)
+        run: ruff format --check src/ tests/ examples/
 
       - name: Lint (ruff)
         run: ruff check src/ tests/ examples/
