@@ -30,16 +30,15 @@ class VectorBackend(ABC):
     """Protocol for vector database backends."""
 
     @abstractmethod
-    def add(self, doc_id: str, text: str, metadata: dict[str, Any] | None = None) -> None:
-        ...
+    def add(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None: ...
 
     @abstractmethod
-    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
-        ...
+    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]: ...
 
     @abstractmethod
-    def count(self) -> int:
-        ...
+    def count(self) -> int: ...
 
 
 class InMemoryBackend(VectorBackend):
@@ -52,7 +51,9 @@ class InMemoryBackend(VectorBackend):
     def __init__(self) -> None:
         self._docs: list[dict[str, Any]] = []
 
-    def add(self, doc_id: str, text: str, metadata: dict[str, Any] | None = None) -> None:
+    def add(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
 
     def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
@@ -99,7 +100,9 @@ class ChromaBackend(VectorBackend):
             name=collection_name,
         )
 
-    def add(self, doc_id: str, text: str, metadata: dict[str, Any] | None = None) -> None:
+    def add(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         self._collection.add(
             ids=[doc_id],
             documents=[text],
@@ -120,7 +123,7 @@ class ChromaBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
-        return self._collection.count()
+        return int(self._collection.count())
 
 
 class VectorGroundTruthStore(GroundTruthStore):
@@ -157,7 +160,18 @@ class VectorGroundTruthStore(GroundTruthStore):
             )
         logger.info("Indexed %d built-in facts into vector backend.", len(self.facts))
 
-    def add_fact(self, key: str, value: str, metadata: dict[str, Any] | None = None) -> None:
+    def ingest(self, texts: list[str]) -> int:
+        """Bulk-add plain text documents into the vector backend."""
+        for i, text in enumerate(texts):
+            self.backend.add(
+                doc_id=f"ingest_{i}", text=text, metadata={"source": "ingest"}
+            )
+        logger.info("Ingested %d documents into vector backend.", len(texts))
+        return len(texts)
+
+    def add_fact(
+        self, key: str, value: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         """Add a fact to both the keyword store and vector backend."""
         self.facts[key] = value
         self.backend.add(

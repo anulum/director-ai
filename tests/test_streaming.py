@@ -6,7 +6,7 @@
 
 import pytest
 
-from director_ai.core.streaming import StreamingKernel, StreamSession
+from director_ai.core.streaming import StreamingKernel
 
 
 @pytest.mark.consumer

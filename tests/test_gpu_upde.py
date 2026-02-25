@@ -79,12 +79,12 @@ class TestTorchUPDEStepper:
         """Strong coupling should increase synchrony."""
         from director_ai.research.physics.scpn_params import build_knm_matrix
 
-        K = build_knm_matrix() * 5.0
+        K = build_knm_matrix() * 5.0  # noqa: N806
         stepper = TorchUPDEStepper(
             knm=K,
             config=TorchUPDEConfig(noise_amplitude=0.01, device="cpu"),
         )
-        R_init = float(np.abs(np.mean(np.exp(1j * state.theta))))
+        R_init = float(np.abs(np.mean(np.exp(1j * state.theta))))  # noqa: N806
         s = state
         for _ in range(200):
             s = stepper.step(s)

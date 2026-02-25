@@ -34,7 +34,6 @@ from director_ai.core.exceptions import (
     PhysicsError,
     ValidationError,
 )
-from director_ai.core.knowledge import SAMPLE_FACTS
 from director_ai.core.metrics import MetricsCollector
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
@@ -106,7 +105,7 @@ class TestVectorStoreMetadata:
         assert "test" in result
 
     def test_vector_store_facts_indexed(self):
-        store = VectorGroundTruthStore(auto_index=True, facts=SAMPLE_FACTS)
+        store = VectorGroundTruthStore(auto_index=True)
         assert store.backend.count() > 0
 
 

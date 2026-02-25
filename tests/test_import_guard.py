@@ -21,9 +21,9 @@ def test_scorer_no_eager_torch_import():
         for node in ast.walk(tree)
         if isinstance(node, ast.Import) and node.col_offset == 0
     ]
-    assert (
-        "torch" not in top_level_imports
-    ), "torch must not be imported at module level in scorer.py"
+    assert "torch" not in top_level_imports, (
+        "torch must not be imported at module level in scorer.py"
+    )
 
 
 def test_scorer_no_eager_transformers_import():
@@ -38,6 +38,6 @@ def test_scorer_no_eager_transformers_import():
         for node in ast.walk(tree)
         if isinstance(node, ast.ImportFrom) and node.col_offset == 0 and node.module
     ]
-    assert (
-        "transformers" not in top_level_from_imports
-    ), "transformers must not be imported at module level in scorer.py"
+    assert "transformers" not in top_level_from_imports, (
+        "transformers must not be imported at module level in scorer.py"
+    )

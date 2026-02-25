@@ -208,7 +208,7 @@ class L16OversightLoop:
                 self.stepper.noise_amplitude * self.noise_damping, self.min_noise
             )
             intervention = (
-                f"L16: coupling ×{self.coupling_boost}, " f"noise ×{self.noise_damping}"
+                f"L16: coupling ×{self.coupling_boost}, noise ×{self.noise_damping}"
             )
             self._instability_count = 0
 

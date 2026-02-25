@@ -97,9 +97,7 @@ class NLIScorer:
             return self._heuristic_score(premise, hypothesis)
         return self._model_score(premise, hypothesis)
 
-    def score_batch(
-        self, pairs: list[tuple[str, str]]
-    ) -> list[float]:
+    def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Score multiple (premise, hypothesis) pairs."""
         return [self.score(p, h) for p, h in pairs]
 

@@ -20,16 +20,11 @@ from dataclasses import dataclass
 
 import numpy as np
 from sympy import (
-    Function,
-    Matrix,
-    Symbol,
     cos,
     diff,
-    expand_trig,
     pi,
     simplify,
     sin,
-    sqrt,
     symbols,
 )
 
@@ -169,7 +164,7 @@ def prove_critical_coupling() -> ProofResult:
 
     # Fixed point condition: sin(Δ*) = Δω / (2K)
     # Requires |Δω / (2K)| ≤ 1 → K ≥ |Δω| / 2
-    K_c_2body = abs(delta_omega) / 2
+    _ = abs(delta_omega) / 2  # K_c for 2-body (used in proof statement only)
 
     # Numerical verification with canonical SCPN parameters
     from .scpn_params import load_omega_n
@@ -216,7 +211,9 @@ def prove_numerical_stability(n_steps: int = 100, n_trials: int = 5) -> ProofRes
 
     return ProofResult(
         name="numerical_stability",
-        statement=f"V decreases in ≥{n_trials//2+1}/{n_trials} trials of {n_steps} steps",
+        statement=(
+            f"V decreases in ≥{n_trials // 2 + 1}/{n_trials} trials of {n_steps} steps"
+        ),
         verified=verified,
         symbolic_expr=f"{successes}/{n_trials} trials passed",
         detail=(

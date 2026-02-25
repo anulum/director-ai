@@ -22,9 +22,14 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import numpy as np
-from scipy.linalg import expm
 
-from ..consciousness import PGBOConfig, PGBOEngine, TCBOConfig, TCBOController, TCBOObserver
+from ..consciousness import (
+    PGBOConfig,
+    PGBOEngine,
+    TCBOConfig,
+    TCBOController,
+    TCBOObserver,
+)
 from .l16_closure import L16Controller
 from .scpn_params import build_knm_matrix, load_omega_n
 
@@ -119,7 +124,9 @@ class SSGFEngine:
         self.theta = np.random.uniform(0, 2 * np.pi, N)
 
         # TCBO
-        tcbo_cfg = TCBOConfig(window_size=20, embed_dim=3, tau_delay=1, compute_every_n=1)
+        tcbo_cfg = TCBOConfig(
+            window_size=20, embed_dim=3, tau_delay=1, compute_every_n=1
+        )
         self.tcbo_observer = TCBOObserver(N=N, config=tcbo_cfg)
         self.tcbo_controller = TCBOController()
         self.kappa = 0.3
@@ -168,8 +175,6 @@ class SSGFEngine:
 
     def _compute_costs(self) -> dict:
         """Compute all cost terms for the outer cycle."""
-        N = self.cfg.N
-
         # C_micro: mean phase velocity deviation from natural frequencies
         # (proxy — use order parameter deficit)
         R = float(np.abs(np.mean(np.exp(1j * self.theta))))
@@ -260,7 +265,7 @@ class SSGFEngine:
 
         # 6. L16 closure
         phi_target = np.eye(self.cfg.N, 4)
-        l16_result = self.l16.step(
+        self.l16.step(
             theta=self.theta,
             eigvecs=eigvecs[:, :4],
             phi_target=phi_target,
