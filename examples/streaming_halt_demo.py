@@ -11,10 +11,9 @@ Demonstrates all three halt mechanisms: hard_limit, sliding window, downward tre
 
 from __future__ import annotations
 
+import logging
 import sys
 import time
-
-import logging
 
 from director_ai.core.streaming import StreamingKernel
 
@@ -67,9 +66,8 @@ def run_scenario(
 
     if session.halted:
         print(f"\n  {RED}{BOLD}>>> HALTED{RESET}  {DIM}{session.halt_reason}{RESET}")
-        print(
-            f"  {DIM}Partial output preserved ({session.halt_index}/{len(tokens)} tokens){RESET}"
-        )
+        n = f"{session.halt_index}/{len(tokens)}"
+        print(f"  {DIM}Partial output preserved ({n} tokens){RESET}")
     else:
         print(f"\n  {GREEN}{BOLD}>>> APPROVED{RESET}")
 
@@ -244,9 +242,8 @@ def main() -> None:
     )
 
     print(f"\n{CYAN}{'=' * 60}{RESET}")
-    print(
-        f"{DIM}Three halt mechanisms: hard_limit | sliding window avg | downward trend{RESET}\n"
-    )
+    mechs = "hard_limit | sliding window avg | downward trend"
+    print(f"{DIM}Three halt mechanisms: {mechs}{RESET}\n")
 
 
 if __name__ == "__main__":
