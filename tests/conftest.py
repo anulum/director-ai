@@ -7,7 +7,6 @@
 import pytest
 
 from director_ai.core import (
-    SAMPLE_FACTS,
     CoherenceAgent,
     CoherenceScorer,
     GroundTruthStore,
@@ -25,14 +24,14 @@ def agent():
 @pytest.fixture
 def scorer():
     """CoherenceScorer with default threshold and ground truth store."""
-    store = GroundTruthStore(facts=SAMPLE_FACTS)
+    store = GroundTruthStore()
     return CoherenceScorer(threshold=0.6, ground_truth_store=store)
 
 
 @pytest.fixture
 def strict_scorer():
     """CoherenceScorer with a strict threshold (0.7)."""
-    store = GroundTruthStore(facts=SAMPLE_FACTS)
+    store = GroundTruthStore()
     return CoherenceScorer(threshold=0.7, ground_truth_store=store)
 
 
@@ -44,8 +43,8 @@ def kernel():
 
 @pytest.fixture
 def store():
-    """GroundTruthStore with sample facts."""
-    return GroundTruthStore(facts=SAMPLE_FACTS)
+    """GroundTruthStore with mock facts."""
+    return GroundTruthStore()
 
 
 @pytest.fixture

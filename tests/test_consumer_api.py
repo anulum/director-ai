@@ -23,7 +23,7 @@ from director_ai.core import (
 @pytest.mark.consumer
 class TestVersion:
     def test_version_string(self):
-        assert director_ai.__version__ == "0.9.0"
+        assert director_ai.__version__ == "0.4.0"
 
     def test_all_exports_present(self):
         for name in [
@@ -180,13 +180,17 @@ class TestCoherenceScorer:
         assert 0.0 <= d <= 1.0
 
     def test_backward_compat_aliases(self, scorer):
+        # Aliases should produce identical results
         prompt, text = "test", "consistent with reality"
-        with pytest.warns(DeprecationWarning):
-            scorer.calculate_factual_entropy(prompt, text)
-        with pytest.warns(DeprecationWarning):
-            scorer.calculate_logical_entropy(prompt, text)
-        with pytest.warns(DeprecationWarning):
-            scorer.simulate_future_state(prompt, text)
+        assert scorer.calculate_factual_entropy(
+            prompt, text
+        ) == scorer.calculate_factual_divergence(prompt, text)
+        assert scorer.calculate_logical_entropy(
+            prompt, text
+        ) == scorer.calculate_logical_divergence(prompt, text)
+        assert scorer.simulate_future_state(prompt, text) == scorer.compute_divergence(
+            prompt, text
+        )
 
 
 class TestSafetyKernel:
@@ -220,15 +224,13 @@ class TestCoherenceAgent:
         assert result.candidates_evaluated > 0
 
     def test_process_query_backward_compat(self, agent):
-        with pytest.warns(DeprecationWarning):
-            output = agent.process_query("What color is the sky?")
+        output = agent.process_query("What color is the sky?")
         assert isinstance(output, str)
-        assert len(output) > 0
+        assert "AGI Output" in output or "SYSTEM HALT" in output
 
     def test_truthful_query_approved(self, agent):
         result = agent.process("What color is the sky?")
-        assert not result.halted
-        assert len(result.output) > 0
+        assert "AGI Output" in result.output
 
     def test_process_rejects_empty_prompt(self, agent):
         with pytest.raises(ValueError, match="non-empty string"):

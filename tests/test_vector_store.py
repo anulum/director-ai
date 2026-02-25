@@ -6,7 +6,6 @@
 
 import pytest
 
-from director_ai.core.knowledge import SAMPLE_FACTS
 from director_ai.core.vector_store import (
     InMemoryBackend,
     VectorGroundTruthStore,
@@ -38,24 +37,24 @@ class TestInMemoryBackend:
 
 @pytest.mark.consumer
 class TestVectorGroundTruthStore:
-    def test_auto_index_facts(self):
-        store = VectorGroundTruthStore(facts=SAMPLE_FACTS)
+    def test_auto_index_builtin_facts(self):
+        store = VectorGroundTruthStore()
         assert store.backend.count() == len(store.facts)
 
     def test_retrieve_context_vector(self):
-        store = VectorGroundTruthStore(facts=SAMPLE_FACTS)
+        store = VectorGroundTruthStore()
         context = store.retrieve_context("How many layers in SCPN?")
         assert context is not None
         assert "16" in context
 
     def test_retrieve_context_sky_color(self):
-        store = VectorGroundTruthStore(facts=SAMPLE_FACTS)
+        store = VectorGroundTruthStore()
         context = store.retrieve_context("What color is the sky?")
         assert context is not None
         assert "blue" in context.lower()
 
     def test_add_custom_fact(self):
-        store = VectorGroundTruthStore(facts=SAMPLE_FACTS)
+        store = VectorGroundTruthStore()
         initial_count = store.backend.count()
         store.add_fact("gravity", "9.81 m/s²")
         assert store.backend.count() == initial_count + 1
@@ -69,11 +68,7 @@ class TestVectorGroundTruthStore:
 
     def test_keyword_fallback(self):
         """If vector search fails, keyword matching should still work."""
-        store = VectorGroundTruthStore(
-            backend=InMemoryBackend(),
-            auto_index=False,
-            facts=SAMPLE_FACTS,
-        )
+        store = VectorGroundTruthStore(backend=InMemoryBackend(), auto_index=False)
         # No vector-indexed facts, but keyword store still has them
         context = store.retrieve_context("sky color")
         assert context is not None

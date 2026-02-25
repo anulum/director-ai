@@ -90,33 +90,17 @@ The Python package lives in `src/director_ai/` with two profiles:
 - `research/consciousness/` — TCBO observer/controller, PGBO engine, benchmarks
 - `research/consilium/` — L15 Ethical Functional & active inference agent
 
-### Rust — `backfire-kernel/`
-
-The `backfire-kernel/` directory contains a Rust workspace (6 crates, ~6,429 LOC)
-that implements the safety-critical hot paths. Contributions require Rust 1.75+.
-
-```bash
-# Test
-cd backfire-kernel && cargo test --workspace
-
-# Benchmark
-cd backfire-kernel && cargo bench --workspace
-
-# Lint
-cd backfire-kernel && cargo clippy --workspace
-```
-
 ## Priority Areas for Contribution
 
 We especially welcome contributions in:
 
-- **Adversarial Evaluation**: Building the "Recursive Paradox" dataset for hallucination testing
-- **RAG Backends**: Additional vector store backends (FAISS, Milvus, Qdrant)
-- **SIMD Optimisation**: Vectorising the micro-cycle inner loop in backfire-ssgf
-- **Testing**: Property-based testing, adversarial prompt suites, fuzzing
+- **NLI Models**: Replacing mock entropy calculations with real NLI inference
+- **RAG Integration**: Connecting to vector databases (FAISS, Chroma, Milvus)
+- **Safety Kernel**: Rust/C++ safety gate implementation
+- **Testing**: Property-based testing, adversarial prompt suites
 - **Documentation**: Tutorials, architecture diagrams, API examples
 - **Benchmarks**: Coherence score evaluation across model families
-- **PyPI Packaging**: Building and publishing the `backfire-kernel` Python wheel
+- **SSGF Integration**: Connecting SSGF outer-cycle geometry to research/physics
 
 ## License
 

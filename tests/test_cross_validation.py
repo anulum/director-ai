@@ -12,12 +12,13 @@ import numpy as np
 import pytest
 
 from director_ai.research.physics import (
-    L16OversightLoop,
     SECFunctional,
     UPDEState,
     UPDEStepper,
+    L16OversightLoop,
 )
 from director_ai.research.physics.scpn_params import (
+    OMEGA_N,
     build_knm_matrix,
     load_omega_n,
 )
@@ -82,9 +83,7 @@ class TestUPDEKuramoto:
         state = stepper.step(state)
         # Coupling is zero, drift is only from natural frequencies + field
         # Δθ = (Ω_n + F*cos(θ)) * dt
-        expected = (
-            theta_before + (load_omega_n() + 0.0 * np.cos(theta_before)) * stepper.dt
-        )
+        expected = theta_before + (load_omega_n() + 0.0 * np.cos(theta_before)) * stepper.dt
         np.testing.assert_allclose(state.theta, expected, atol=1e-10)
 
     def test_order_parameter_increases_with_strong_coupling(self):

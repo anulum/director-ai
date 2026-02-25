@@ -15,4 +15,5 @@ backfire-types = { path = "../backfire-types" }
 backfire-core = { path = "../backfire-core" }
 backfire-physics = { path = "../backfire-physics" }
 backfire-consciousness = { path = "../backfire-consciousness" }
+backfire-ssgf = { path = "../backfire-ssgf" }
 pyo3 = { workspace = true }

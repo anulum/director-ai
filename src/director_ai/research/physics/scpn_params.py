@@ -88,7 +88,7 @@ LAYER_NAMES = [
 
 def load_omega_n() -> np.ndarray:
     """Return the canonical 16-layer natural frequency vector (rad/s)."""
-    return np.array(OMEGA_N, dtype=np.float64)
+    return OMEGA_N.copy()
 
 
 # ============================================================================
@@ -134,20 +134,24 @@ def build_knm_matrix(n_layers: int = 16) -> np.ndarray:
     """
     K = np.zeros((n_layers, n_layers), dtype=np.float64)
 
+    # Step 1: exponential-decay baseline
     for n in range(n_layers):
         for m in range(n_layers):
             if n != m:
                 K[n, m] = K_BASE * np.exp(-DECAY_ALPHA * abs(n - m))
 
+    # Step 2: overwrite calibration anchors (1-indexed → 0-indexed)
     for (i, j), val in CALIBRATION_ANCHORS.items():
         K[i - 1, j - 1] = val
         K[j - 1, i - 1] = val
 
+    # Step 3: apply cross-hierarchy boosts
     for (i, j), val in CROSS_BOOSTS.items():
         K[i - 1, j - 1] = val
         K[j - 1, i - 1] = val
 
+    # Step 4: ensure symmetry and zero diagonal
     K = 0.5 * (K + K.T)
     np.fill_diagonal(K, 0.0)
 
-    return np.asarray(K)
+    return K

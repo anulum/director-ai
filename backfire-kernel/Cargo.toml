@@ -10,6 +10,7 @@ members = [
     "crates/backfire-core",
     "crates/backfire-physics",
     "crates/backfire-consciousness",
+    "crates/backfire-ssgf",
     "crates/backfire-ffi",
 ]
 resolver = "2"

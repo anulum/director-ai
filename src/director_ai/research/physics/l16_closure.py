@@ -130,12 +130,7 @@ class L16Controller:
 
         Should be non-increasing for a healthy system.
         """
-        # Clamp R_global to [0, 1]
-        R_global = max(0.0, min(1.0, R_global))
-
         # Attractor alignment: ||eigvecs - phi_target|| (Frobenius)
-        if eigvecs.ndim < 2 or phi_target.ndim < 2:
-            return max(0.0, (1.0 - R_global) + max(0.0, 0.72 - p_h1))
         k = min(eigvecs.shape[1], phi_target.shape[1])
         alignment_err = float(np.sum((eigvecs[:, :k] - phi_target[:, :k]) ** 2))
 
@@ -151,8 +146,7 @@ class L16Controller:
         # PGBO contribution: geometry proxy energy
         pgbo_energy = 0.01 * h_frob
 
-        h_rec = alignment_err + pred_err + phase_var + h1_deficit + pgbo_energy
-        return max(0.0, h_rec)
+        return alignment_err + pred_err + phase_var + h1_deficit + pgbo_energy
 
     def update_plv(self, plv: float) -> float:
         """Add a PLV sample and return windowed average."""

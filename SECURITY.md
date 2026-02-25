@@ -46,7 +46,7 @@ The Director Module implements dual-entropy monitoring:
 - **SEC Threshold**: Hard cutoff at 0.6 — any action below triggers halt
 
 ### Backfire Kernel (v0.2.0)
-Safety gate simulation that can sever the token stream
+Hardware interlock simulation that can physically sever the token stream
 when entropy exceeds the safety threshold (0.5 hard limit).
 
 ### Dependency Auditing

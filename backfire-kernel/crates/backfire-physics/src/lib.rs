@@ -14,4 +14,4 @@ pub mod upde;
 pub use l16_closure::{L16Controller, L16ControllerState, PIState};
 pub use params::{build_knm_matrix, LAYER_NAMES, N_LAYERS, OMEGA_N};
 pub use sec_functional::{SECFunctional, SECResult};
-pub use upde::{UPDEState, UPDEStepper};
+pub use upde::{SimpleRng, UPDEState, UPDEStepper};

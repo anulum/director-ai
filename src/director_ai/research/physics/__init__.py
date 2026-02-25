@@ -15,7 +15,6 @@ Modules:
     - ``l16_closure``       — L16 cybernetic closure (PI controllers, refusal rules)
 """
 
-from .gpu_upde import TorchUPDEConfig, TorchUPDEStepper  # noqa: F401
 from .l16_closure import (
     L16Controller,
     L16ControllerState,
@@ -28,7 +27,6 @@ from .l16_mechanistic import (
     UPDEState,
     UPDEStepper,
 )
-from .lyapunov_proof import ProofResult, run_all_proofs
 from .scpn_params import (
     CALIBRATION_ANCHORS,
     CROSS_BOOSTS,
@@ -40,6 +38,7 @@ from .scpn_params import (
     build_knm_matrix,
     load_omega_n,
 )
+from .lyapunov_proof import ProofResult, run_all_proofs
 from .sec_functional import SECFunctional, SECResult
 from .ssgf_cycle import SSGFConfig, SSGFEngine, SSGFState
 
@@ -74,7 +73,4 @@ __all__ = [
     # Lyapunov proof
     "ProofResult",
     "run_all_proofs",
-    # GPU UPDE
-    "TorchUPDEStepper",
-    "TorchUPDEConfig",
 ]

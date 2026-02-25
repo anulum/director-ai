@@ -53,8 +53,6 @@ from .physics import (
     SSGFConfig,
     SSGFEngine,
     SSGFState,
-    TorchUPDEConfig,
-    TorchUPDEStepper,
     UPDEState,
     UPDEStepper,
     build_knm_matrix,
@@ -95,7 +93,4 @@ __all__ = [
     "SSGFState",
     "ProofResult",
     "run_all_proofs",
-    # GPU UPDE
-    "TorchUPDEStepper",
-    "TorchUPDEConfig",
 ]

@@ -92,12 +92,7 @@ class PGBOEngine:
     def set_background_metric(self, g0: np.ndarray) -> None:
         """Set the background metric and its inverse."""
         np.copyto(self.g0, g0)
-        try:
-            self.g0_inv = np.linalg.inv(g0)
-        except np.linalg.LinAlgError as exc:
-            raise ValueError(
-                f"Background metric is singular (shape {g0.shape})"
-            ) from exc
+        self.g0_inv = np.linalg.inv(g0)
 
     def compute(
         self,
@@ -117,10 +112,7 @@ class PGBOEngine:
         h_munu : ndarray (D, D) — induced geometry proxy tensor.
         """
         if self._prev_theta is not None:
-            # Wrap phase differences to [-π, π] before computing gradient
-            raw_diff = theta[: self.D] - self._prev_theta[: self.D]
-            wrapped_diff = (raw_diff + np.pi) % (2.0 * np.pi) - np.pi
-            dphi_mu = wrapped_diff / max(dt, 1e-12)
+            dphi_mu = (theta[: self.D] - self._prev_theta[: self.D]) / max(dt, 1e-12)
         else:
             dphi_mu = np.zeros(self.D, dtype=np.float64)
 

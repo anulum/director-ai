@@ -7,42 +7,29 @@
 # ─────────────────────────────────────────────────────────────────────
 
 import logging
-from typing import Any
-
-#: Sample facts for demos and tests.  Not loaded by default — pass
-#: ``facts=SAMPLE_FACTS`` to ``GroundTruthStore()`` when you want them.
-SAMPLE_FACTS: dict[str, str] = {
-    "sky color": "blue",
-    "scpn layers": "16",
-    "layer 1": "quantum biological",
-    "layer 16": "director",
-    "sec metric": "sustainable ethical coherence",
-    "backfire limit": "entropy threshold",
-    "vibrana symmetry": "13-fold",
-}
 
 
 class GroundTruthStore:
     """
     Retrieval-Augmented Generation (RAG) ground truth store.
 
-    Holds a ``{key: value}`` dictionary of verified facts and retrieves
-    matching entries via keyword overlap.
-
-    Parameters
-    ----------
-    facts : dict[str, str] | None
-        Initial fact dictionary.  Defaults to *empty*.  Pass
-        ``SAMPLE_FACTS`` for the built-in demo dataset.
+    In production this connects to a vector database (Pinecone, Milvus,
+    etc.) holding verified facts.  The prototype uses an in-memory dict
+    for deterministic testing.
     """
 
-    def __init__(self, facts: dict[str, Any] | None = None):
+    def __init__(self):
         self.logger = logging.getLogger("DirectorAI.GroundTruthStore")
-        self.facts: dict[str, str] = dict(facts) if facts else {}
-
-    def add(self, key: str, value: str) -> None:
-        """Insert or update a single fact."""
-        self.facts[key] = value
+        # Mock ground truth database
+        self.facts = {
+            "sky color": "blue",
+            "scpn layers": "16",
+            "layer 1": "quantum biological",
+            "layer 16": "director",
+            "sec metric": "sustainable ethical coherence",
+            "backfire limit": "entropy threshold",
+            "vibrana symmetry": "13-fold",
+        }
 
     def retrieve_context(self, query):
         """

@@ -67,18 +67,18 @@ impl UPDEState {
 }
 
 /// Minimal xorshift64 RNG for noise generation (no external dep).
-struct SimpleRng {
+pub struct SimpleRng {
     state: u64,
 }
 
 impl SimpleRng {
-    fn new(seed: u64) -> Self {
+    pub fn new(seed: u64) -> Self {
         Self {
             state: if seed == 0 { 0xDEAD_BEEF_CAFE_BABE } else { seed },
         }
     }
 
-    fn next_u64(&mut self) -> u64 {
+    pub fn next_u64(&mut self) -> u64 {
         let mut x = self.state;
         x ^= x << 13;
         x ^= x >> 7;
@@ -88,12 +88,12 @@ impl SimpleRng {
     }
 
     /// Uniform in [0, 1).
-    fn next_f64(&mut self) -> f64 {
+    pub fn next_f64(&mut self) -> f64 {
         (self.next_u64() >> 11) as f64 / (1u64 << 53) as f64
     }
 
     /// Approximate standard normal via Box-Muller.
-    fn next_normal(&mut self) -> f64 {
+    pub fn next_normal(&mut self) -> f64 {
         let u1 = self.next_f64().max(1e-300);
         let u2 = self.next_f64();
         (-2.0 * u1.ln()).sqrt() * (std::f64::consts::TAU * u2).cos()

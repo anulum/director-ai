@@ -14,7 +14,7 @@ authors:
     given-names: "Miroslav"
     orcid: "https://orcid.org/0009-0009-3560-0851"
     affiliation: "ANULUM CH & LI"
-version: "0.7.0"
+version: "0.3.1"
 date-released: "2026-02-16"
 license: "AGPL-3.0-or-later"
 repository-code: "https://github.com/anulum/director-ai"
@@ -22,7 +22,7 @@ url: "https://www.anulum.li"
 abstract: >-
   Director-Class AI is a dual-purpose AI safety library: (1) a consumer-ready
   Coherence Engine for verifying LLM output through dual-entropy scoring (NLI
-  contradiction + RAG fact-checking) with a software safety gate, and
+  contradiction + RAG fact-checking) with a hardware-level safety interlock, and
   (2) SCPN Research Extensions providing the full theoretical framework including
   16-layer physics, consciousness gate, and Ethical Singularity theory. Both
   profiles ship from a single repository via build profiles.

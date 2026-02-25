@@ -19,22 +19,14 @@ essential SSGF dynamics without requiring the full SCPN-CODEBASE engine.
 
 from __future__ import annotations
 
-import logging
 from dataclasses import dataclass, field
 
 import numpy as np
+from scipy.linalg import expm
 
-from ..consciousness import (
-    PGBOConfig,
-    PGBOEngine,
-    TCBOConfig,
-    TCBOController,
-    TCBOObserver,
-)
+from ..consciousness import PGBOConfig, PGBOEngine, TCBOConfig, TCBOController, TCBOObserver
 from .l16_closure import L16Controller
 from .scpn_params import build_knm_matrix, load_omega_n
-
-logger = logging.getLogger("DirectorAI.SSGF")
 
 
 @dataclass
@@ -127,9 +119,7 @@ class SSGFEngine:
         self.theta = np.random.uniform(0, 2 * np.pi, N)
 
         # TCBO
-        tcbo_cfg = TCBOConfig(
-            window_size=20, embed_dim=3, tau_delay=1, compute_every_n=1
-        )
+        tcbo_cfg = TCBOConfig(window_size=20, embed_dim=3, tau_delay=1, compute_every_n=1)
         self.tcbo_observer = TCBOObserver(N=N, config=tcbo_cfg)
         self.tcbo_controller = TCBOController()
         self.kappa = 0.3
@@ -144,8 +134,7 @@ class SSGFEngine:
         self._phase_diff = np.zeros((N, N), dtype=np.float64)
         self._sin_diff = np.zeros((N, N), dtype=np.float64)
 
-        # History (capped to prevent unbounded memory growth)
-        self._MAX_HISTORY = 500
+        # History
         self._cost_history: list[dict] = []
         self._state_history: list[SSGFState] = []
         self._step_count = 0
@@ -175,13 +164,12 @@ class SSGFEngine:
 
         # Euler-Maruyama step
         dtheta = self.omega + coupling + geo_coupling + pgbo_coupling + field_term
-        theta_new = theta + dtheta * self.cfg.dt + noise
-
-        # Modular phase reduction — keep phases in [0, 2π)
-        self.theta = np.mod(theta_new, 2.0 * np.pi)
+        self.theta = theta + dtheta * self.cfg.dt + noise
 
     def _compute_costs(self) -> dict:
         """Compute all cost terms for the outer cycle."""
+        N = self.cfg.N
+
         # C_micro: mean phase velocity deviation from natural frequencies
         # (proxy — use order parameter deficit)
         R = float(np.abs(np.mean(np.exp(1j * self.theta))))
@@ -210,9 +198,6 @@ class SSGFEngine:
             + self.cfg.w_tcbo * c_tcbo
             + self.cfg.w_pgbo * c_pgbo
         )
-        # Guard against NaN/Inf in cost terms
-        if not np.isfinite(U_total):
-            U_total = 1e6  # Large but finite sentinel
         costs["U_total"] = U_total
 
         return costs
@@ -234,19 +219,6 @@ class SSGFEngine:
             cost_0 = self.cfg.w_reg * float(np.sum(W0**2))
             cost_plus = self.cfg.w_reg * float(np.sum(W_plus**2))
             grad[i] = (cost_plus - cost_0) / eps
-
-        # Gradient norm check — truncate if exploding
-        grad_norm = float(np.linalg.norm(grad))
-        max_grad_norm = 10.0
-        if not np.isfinite(grad_norm) or grad_norm > max_grad_norm:
-            if np.isfinite(grad_norm) and grad_norm > 0:
-                grad = grad * (max_grad_norm / grad_norm)
-                logger.warning(
-                    "SSGF gradient truncated: %.4f → %.4f", grad_norm, max_grad_norm
-                )
-            else:
-                logger.warning("SSGF gradient non-finite, zeroing")
-                grad[:] = 0.0
 
         # Apply gradient with learning rate
         lr = self.cfg.lr_z
@@ -283,18 +255,12 @@ class SSGFEngine:
         costs = self._compute_costs()
         R_global = costs["R_global"]
 
-        # 5. Spectral bridge (guard against degenerate W)
-        try:
-            _eigvals, eigvecs = _spectral_bridge(self.W)
-        except np.linalg.LinAlgError:
-            logger.warning(
-                "Spectral bridge failed on degenerate W; using identity fallback"
-            )
-            eigvecs = np.eye(self.cfg.N)
+        # 5. Spectral bridge
+        eigvals, eigvecs = _spectral_bridge(self.W)
 
         # 6. L16 closure
         phi_target = np.eye(self.cfg.N, 4)
-        self.l16.step(
+        l16_result = self.l16.step(
             theta=self.theta,
             eigvecs=eigvecs[:, :4],
             phi_target=phi_target,
@@ -328,11 +294,7 @@ class SSGFEngine:
         )
 
         self._cost_history.append(costs)
-        if len(self._cost_history) > self._MAX_HISTORY:
-            self._cost_history = self._cost_history[-self._MAX_HISTORY :]
         self._state_history.append(state)
-        if len(self._state_history) > self._MAX_HISTORY:
-            self._state_history = self._state_history[-self._MAX_HISTORY :]
 
         return state
 

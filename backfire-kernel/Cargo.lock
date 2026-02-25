@@ -101,6 +101,7 @@ dependencies = [
  "backfire-consciousness",
  "backfire-core",
  "backfire-physics",
+ "backfire-ssgf",
  "backfire-types",
  "pyo3",
 ]
@@ -112,6 +113,17 @@ dependencies = [
  "backfire-types",
  "env_logger",
  "log",
+ "serde",
+]
+
+[[package]]
+name = "backfire-ssgf"
+version = "0.1.0"
+dependencies = [
+ "backfire-consciousness",
+ "backfire-physics",
+ "backfire-types",
+ "criterion",
  "serde",
 ]
 

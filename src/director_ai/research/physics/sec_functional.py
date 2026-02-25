@@ -15,8 +15,9 @@ Kuramoto-type system. It satisfies:
   2. V(θ) = 0  iff the system is at the coherence fixed point
   3. dV/dt ≤ 0  along trajectories of the UPDE (under sufficient coupling)
 
-When all three conditions hold and coupling exceeds the critical
-threshold K_c, the system converges to the coherence equilibrium.
+This gives a formal stability guarantee: the oversight system provably
+converges to the ethical equilibrium when coupling exceeds a critical
+threshold K_c.
 
 The SEC maps directly to the consumer's CoherenceScore:
   CoherenceScore.score = 1 - V_normalised
@@ -142,50 +143,28 @@ class SECFunctional:
         Returns
         -------
         SECResult with V, V_normalised, R_global, dV_dt, coherence_score, terms.
-
-        Raises
-        ------
-        ValueError
-            If *theta* contains NaN or Inf values.
         """
-        if not np.all(np.isfinite(theta)):
-            raise ValueError("theta contains NaN or Inf values")
-        if theta_prev is not None and not np.all(np.isfinite(theta_prev)):
-            raise ValueError("theta_prev contains NaN or Inf values")
-
         v_coupling = self.coupling_potential(theta)
         v_freq = self.frequency_penalty(theta, theta_prev, dt)
         v_entropy = self.entropy_term(theta)
 
         V = v_coupling + v_freq + v_entropy
+        V_norm = min(V / self._V_max, 1.0) if self._V_max > 0 else 0.0
 
-        # Guard against non-finite V from numerical overflow
-        if not np.isfinite(V):
-            V = self._V_max
-
-        V_norm = float(np.clip(V / self._V_max, 0.0, 1.0)) if self._V_max > 0 else 0.0
-
-        # Kuramoto order parameter — always in [0, 1]
-        R = float(np.clip(np.abs(np.mean(np.exp(1j * theta))), 0.0, 1.0))
+        # Kuramoto order parameter
+        R = float(np.abs(np.mean(np.exp(1j * theta))))
 
         # dV/dt estimation
-        if self._prev_V is not None:
-            dV_dt = (V - self._prev_V) / max(dt, 1e-12)
-            if not np.isfinite(dV_dt):
-                dV_dt = 0.0
-        else:
-            dV_dt = 0.0
+        dV_dt = (V - self._prev_V) / max(dt, 1e-12) if self._prev_V is not None else 0.0
         self._prev_V = V
         self._prev_dt = dt
-
-        coherence_score = float(np.clip(1.0 - V_norm, 0.0, 1.0))
 
         return SECResult(
             V=V,
             V_normalised=V_norm,
             R_global=R,
             dV_dt=dV_dt,
-            coherence_score=coherence_score,
+            coherence_score=1.0 - V_norm,
             terms={
                 "coupling": v_coupling,
                 "frequency": v_freq,

@@ -3,4 +3,3 @@ include README.md
 include CHANGELOG.md
 include NOTICE
 recursive-include src *.py *.pyi
-recursive-include notebooks *.ipynb

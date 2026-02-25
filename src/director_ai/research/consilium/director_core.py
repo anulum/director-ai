@@ -17,7 +17,6 @@ Date: January 21, 2026
 """
 
 import logging
-import os
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -113,6 +112,7 @@ class ConsiliumAgent:
 
     def __init__(self):
         self.ethics = EthicalFunctional()
+        self.history = []
         logger.info("Consilium Agent Initialized. Ethical Functional Active.")
 
     def get_real_metrics(self) -> dict[str, Any]:
@@ -121,11 +121,12 @@ class ConsiliumAgent:
             "errors": 0,
             "failures": 0,
             "complexity": 0.0,
-            "graph_density": 0.5,  # TODO: wire to graph DB when available
+            "graph_density": 0.5,  # Placeholder until Graph DB connection
             "coverage": 0.0,
             "entropy": 0.8,  # Baseline entropy
         }
 
+        # 1. Git Status (Entropy Check)
         try:
             result = subprocess.run(
                 ["git", "status", "--porcelain"],
@@ -139,27 +140,18 @@ class ConsiliumAgent:
             metrics["complexity"] += (
                 modified_files * 2.0
             )  # Pending changes add complexity/risk
-            logger.info("Git Status: %d modified files detected.", modified_files)
+            logger.info(f"Git Status: {modified_files} modified files detected.")
         except Exception as e:
-            logger.error("Git check failed: %s", e)
+            logger.error(f"Git check failed: {e}")
             metrics["errors"] += 1
 
+        # 2. Test Execution (Suffering Check)
+        # We run a fast check on the core logic
         try:
-            import shutil
-
-            test_path = "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py"
-            if not os.path.isfile(test_path):
-                logger.warning(
-                    "Test file not found: %s — skipping test check", test_path
-                )
-                return metrics
-            if shutil.which("pytest") is None:
-                logger.warning("pytest not found on PATH — skipping test check")
-                return metrics
-
+            # Running only the verification tests to be fast
             cmd = [
                 "pytest",
-                test_path,
+                "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py",
                 "-q",
                 "--tb=line",
             ]
@@ -169,13 +161,13 @@ class ConsiliumAgent:
                 # Parse "F" or "E" in output
                 failures = result.stdout.count("FAILED") + result.stdout.count("ERROR")
                 metrics["failures"] = failures
-                logger.warning("Tests failed: %d issues detected.", failures)
+                logger.warning(f"Tests failed: {failures} issues detected.")
             else:
                 metrics["coverage"] = 0.9  # High confidence if tests pass
                 logger.info("Core integrity tests PASSED.")
 
         except Exception as e:
-            logger.error("Test runner failed: %s", e)
+            logger.error(f"Test runner failed: {e}")
             metrics["errors"] += 1
 
         return metrics
@@ -254,7 +246,7 @@ class ConsiliumAgent:
 
         for action in possible_actions:
             predicted_E = self.predict_outcome(state, action)
-            logger.debug("Action '%s' predicted E = %.4f", action, predicted_E)
+            logger.debug(f"Action '{action}' predicted E = {predicted_E:.4f}")
 
             if predicted_E < min_E:
                 min_E = predicted_E

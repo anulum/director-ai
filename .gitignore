@@ -10,10 +10,14 @@
 # Private drafts, ideas, and TODO notes
 .local/
 
-# Agent-local context files
-claude-director-ai.md
-
-# Documentation build artifacts
+# Documentation prose (quarantined until headers/protocols are reviewed)
+# Remove this line once docs/ prose files have been audited.
+# docs/assets/ is tracked (header image, generator script).
+docs/*
+!docs/assets/
+!docs/conf.py
+!docs/index.rst
+!docs/api/
 docs/_build/
 
 # =====================================================================
@@ -120,16 +124,9 @@ logs/
 !requirements*.txt
 
 # =====================================================================
-# Training Data & Outputs (large, reproducible)
-# =====================================================================
-training/data/
-training/output/
-
-# =====================================================================
 # Simulation / Benchmark Outputs
 # =====================================================================
 *.npz
 *.pkl
 *.pickle
 benchmarks/results/
-benchmarks/.cache/

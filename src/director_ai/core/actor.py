@@ -27,7 +27,7 @@ class MockGenerator:
             "fire status": "hot",
         }
 
-    def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
+    def generate_candidates(self, prompt, n=3):
         """
         Generate *n* candidate responses.
 
@@ -65,20 +65,10 @@ class LLMGenerator:
         self.api_url = api_url
         self.logger = logging.getLogger("LLMGenerator")
 
-    def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
+    def generate_candidates(self, prompt, n=3):
         """
         Generate *n* candidate responses from the LLM backend.
-
-        Raises
-        ------
-        ValueError
-            If *prompt* is not a non-empty string or *n* is out of [1, 50].
         """
-        if not isinstance(prompt, str) or not prompt.strip():
-            raise ValueError("prompt must be a non-empty string")
-        if not (1 <= n <= 50):
-            raise ValueError(f"n must be in [1, 50], got {n}")
-
         candidates = []
         payload = {
             "prompt": prompt,
@@ -89,7 +79,7 @@ class LLMGenerator:
 
         for _i in range(n):
             try:
-                response = requests.post(self.api_url, json=payload, timeout=(10, 30))
+                response = requests.post(self.api_url, json=payload, timeout=30)
                 if response.status_code == 200:
                     data = response.json()
                     text = data.get(
@@ -99,9 +89,7 @@ class LLMGenerator:
                     candidates.append({"text": text, "source": "LLM"})
                 else:
                     self.logger.error(
-                        "LLM Error %d: %s",
-                        response.status_code,
-                        response.text[:500],
+                        f"LLM Error {response.status_code}: {response.text}"
                     )
                     candidates.append(
                         {
@@ -109,14 +97,11 @@ class LLMGenerator:
                             "source": "System",
                         }
                     )
-            except requests.exceptions.Timeout as e:
-                self.logger.error("LLM request timed out: %s", e)
-                candidates.append({"text": "[Error: LLM timeout]", "source": "System"})
-            except (requests.RequestException, ConnectionError, TimeoutError) as e:
-                self.logger.error("LLM connection failed (%s): %s", type(e).__name__, e)
+            except Exception as e:
+                self.logger.error(f"LLM Connection Failed: {e}")
                 candidates.append(
                     {
-                        "text": f"[Error: {type(e).__name__}]",
+                        "text": "[Error: LLM Connection Failed]",
                         "source": "System",
                     }
                 )

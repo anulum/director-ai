@@ -14,9 +14,9 @@ of the hierarchy and modulates the entire system via:
 
   dθ_n/dt = Ω_n + Σ_m K_nm sin(θ_m - θ_n) + F cos(θ_n) + η_n
 
-The Director layer (n=16) monitors the global order parameter R and
-can modulate coupling strengths, noise amplitude, and field pressure
-in real-time.
+The Director layer (n=16) has special authority: it monitors the global
+order parameter R and can modulate coupling strengths, noise amplitude,
+and field pressure in real-time.
 
 This module provides:
   - ``UPDEState``: Snapshot of the 16-layer phase dynamics.
@@ -86,16 +86,8 @@ class UPDEStepper:
         """Advance the state by one timestep.
 
         Uses the correct Kuramoto coupling: Σ_m K_nm sin(θ_m - θ_n).
-
-        Raises
-        ------
-        ValueError
-            If input theta contains NaN or Inf.
         """
         theta = state.theta
-
-        if not np.all(np.isfinite(theta)):
-            raise ValueError("UPDEStepper.step: input theta contains NaN or Inf")
 
         # Phase difference matrix: phase_diff[n, m] = θ_m - θ_n
         np.subtract(theta[np.newaxis, :], theta[:, np.newaxis], out=self._phase_diff)
@@ -114,8 +106,6 @@ class UPDEStepper:
         np.add(self.omega, coupling, out=self._dtheta)
         self._dtheta += field_term
         theta_new = theta + self._dtheta * self.dt + noise
-
-        theta_new = np.mod(theta_new, 2.0 * np.pi)
 
         new_state = UPDEState(
             theta=theta_new,
@@ -186,7 +176,6 @@ class L16OversightLoop:
 
         self._instability_count: int = 0
         self._history: list[OversightSnapshot] = []
-        self._max_history: int = 10_000
 
     def step(self, state: UPDEState) -> tuple[UPDEState, OversightSnapshot]:
         """Execute one oversight iteration.
@@ -232,8 +221,6 @@ class L16OversightLoop:
             intervention=intervention,
         )
         self._history.append(snapshot)
-        if len(self._history) > self._max_history:
-            self._history = self._history[-(self._max_history // 2) :]
         return new_state, snapshot
 
     def run(

@@ -63,15 +63,13 @@ class StreamSession:
     def avg_coherence(self) -> float:
         if not self.coherence_history:
             return 0.0
-        return max(
-            0.0, min(1.0, sum(self.coherence_history) / len(self.coherence_history))
-        )
+        return sum(self.coherence_history) / len(self.coherence_history)
 
     @property
     def min_coherence(self) -> float:
         if not self.coherence_history:
             return 0.0
-        return max(0.0, min(1.0, min(self.coherence_history)))
+        return min(self.coherence_history)
 
     @property
     def duration_ms(self) -> float:
@@ -101,18 +99,6 @@ class StreamingKernel(SafetyKernel):
         trend_window: int = 5,
         trend_threshold: float = 0.15,
     ) -> None:
-        if not (0.0 <= hard_limit <= 1.0):
-            raise ValueError(f"hard_limit must be in [0, 1], got {hard_limit}")
-        if window_size < 1:
-            raise ValueError(f"window_size must be >= 1, got {window_size}")
-        if not (0.0 <= window_threshold <= 1.0):
-            raise ValueError(
-                f"window_threshold must be in [0, 1], got {window_threshold}"
-            )
-        if trend_window < 2:
-            raise ValueError(f"trend_window must be >= 2, got {trend_window}")
-        if trend_threshold <= 0:
-            raise ValueError(f"trend_threshold must be > 0, got {trend_threshold}")
         super().__init__(hard_limit=hard_limit)
         self.window_size = window_size
         self.window_threshold = window_threshold
@@ -145,15 +131,7 @@ class StreamingKernel(SafetyKernel):
                 session.halt_reason = "kernel_inactive"
                 break
 
-            if not isinstance(token, str):
-                token = str(token)
-
-            try:
-                score = float(coherence_callback(token))
-            except Exception as exc:
-                logger.error("Coherence callback raised %s — treating as score=0", exc)
-                score = 0.0
-
+            score = coherence_callback(token)
             now = time.monotonic()
 
             event = TokenEvent(
@@ -167,7 +145,7 @@ class StreamingKernel(SafetyKernel):
             session.coherence_history.append(score)
             window.append(score)
 
-            # Hard limit
+            # Check 1: Hard limit
             if score < self.hard_limit:
                 event.halted = True
                 session.halted = True
@@ -177,7 +155,7 @@ class StreamingKernel(SafetyKernel):
                 session.events.append(event)
                 break
 
-            # Sliding window average
+            # Check 2: Sliding window average
             if len(window) >= self.window_size:
                 avg = sum(window) / len(window)
                 if avg < self.window_threshold:
@@ -190,7 +168,7 @@ class StreamingKernel(SafetyKernel):
                     session.events.append(event)
                     break
 
-            # Downward trend
+            # Check 3: Downward trend
             if len(session.coherence_history) >= self.trend_window:
                 recent = session.coherence_history[-self.trend_window :]
                 drop = recent[0] - recent[-1]

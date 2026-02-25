@@ -177,7 +177,6 @@ class TCBOConfig:
     persistence_threshold: float = 0.05
     subsample_max: int = 500
     compute_every_n: int = 1
-    rng_seed: int | None = None
 
 
 class TCBOObserver:
@@ -210,7 +209,6 @@ class TCBOObserver:
         self.h1_error: float = self.cfg.tau_h1
         self._step_count: int = 0
         self._dgms: list | None = None
-        self._rng: np.random.Generator = np.random.default_rng(self.cfg.rng_seed)
 
     def push(self, theta: np.ndarray) -> None:
         """Push a new phase vector into the rolling buffer."""
@@ -243,7 +241,7 @@ class TCBOObserver:
 
         cloud = Z[-self.cfg.window_size :]
         if cloud.shape[0] > self.cfg.subsample_max:
-            idx = self._rng.choice(
+            idx = np.random.choice(
                 cloud.shape[0], self.cfg.subsample_max, replace=False
             )
             cloud = cloud[idx]
