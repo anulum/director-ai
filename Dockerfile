@@ -30,7 +30,7 @@ RUN pip install --no-cache-dir --prefix=/install ".[server]"
 FROM python:3.11-slim
 
 LABEL maintainer="Miroslav Sotek <protoscience@anulum.li>"
-LABEL description="Director-Class AI — Coherence Engine"
+LABEL description="Director-AI — Real-time LLM hallucination guardrail"
 LABEL org.opencontainers.image.source="https://github.com/anulum/director-ai"
 LABEL org.opencontainers.image.license="AGPL-3.0-or-later"
 
