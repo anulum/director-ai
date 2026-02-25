@@ -78,9 +78,13 @@ class WeightedTrainer(Trainer):
 
         if self._class_weights is not None:
             w = self._class_weights.to(logits.device)
-            loss = torch.nn.functional.cross_entropy(logits, labels, weight=w, label_smoothing=0.05)
+            loss = torch.nn.functional.cross_entropy(
+                logits, labels, weight=w, label_smoothing=0.05
+            )
         else:
-            loss = torch.nn.functional.cross_entropy(logits, labels, label_smoothing=0.05)
+            loss = torch.nn.functional.cross_entropy(
+                logits, labels, label_smoothing=0.05
+            )
 
         return (loss, outputs) if return_outputs else loss
 
@@ -112,7 +116,9 @@ def main():
 
     # Subsample from the train split
     train_full = full_dataset["train"]
-    logger.info("Full train set: %d examples, subsampling to %d", len(train_full), SUBSET_SIZE)
+    logger.info(
+        "Full train set: %d examples, subsampling to %d", len(train_full), SUBSET_SIZE
+    )
     train_sub = subsample_balanced(train_full, SUBSET_SIZE)
 
     eval_size = int(SUBSET_SIZE * EVAL_RATIO)
@@ -135,12 +141,18 @@ def main():
         )
 
     logger.info("Tokenizing ...")
-    tok_train = train_sub.map(tokenize, batched=True, remove_columns=["premise", "hypothesis", "source"])
-    tok_eval = eval_sub.map(tokenize, batched=True, remove_columns=["premise", "hypothesis", "source"])
+    tok_train = train_sub.map(
+        tokenize, batched=True, remove_columns=["premise", "hypothesis", "source"]
+    )
+    tok_eval = eval_sub.map(
+        tokenize, batched=True, remove_columns=["premise", "hypothesis", "source"]
+    )
 
     # Class weights from the subset
     train_labels = np.array(tok_train["label"])
-    weights = compute_class_weight("balanced", classes=np.array([0, 1, 2]), y=train_labels)
+    weights = compute_class_weight(
+        "balanced", classes=np.array([0, 1, 2]), y=train_labels
+    )
     logger.info("Class weights: %s", dict(zip(LABEL_NAMES, weights)))
 
     training_args = TrainingArguments(

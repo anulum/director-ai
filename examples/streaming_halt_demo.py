@@ -67,7 +67,9 @@ def run_scenario(
 
     if session.halted:
         print(f"\n  {RED}{BOLD}>>> HALTED{RESET}  {DIM}{session.halt_reason}{RESET}")
-        print(f"  {DIM}Partial output preserved ({session.halt_index}/{len(tokens)} tokens){RESET}")
+        print(
+            f"  {DIM}Partial output preserved ({session.halt_index}/{len(tokens)} tokens){RESET}"
+        )
     else:
         print(f"\n  {GREEN}{BOLD}>>> APPROVED{RESET}")
 
@@ -98,11 +100,35 @@ def main() -> None:
     run_scenario(
         "1. Truthful response  -->  APPROVED",
         tokens=[
-            "Water", " boils", " at", " 100", " degrees", " Celsius",
-            " (212", " F)", " at", " standard", " atmospheric",
-            " pressure", ".",
+            "Water",
+            " boils",
+            " at",
+            " 100",
+            " degrees",
+            " Celsius",
+            " (212",
+            " F)",
+            " at",
+            " standard",
+            " atmospheric",
+            " pressure",
+            ".",
         ],
-        scores=[0.92, 0.90, 0.88, 0.91, 0.93, 0.90, 0.88, 0.87, 0.89, 0.91, 0.90, 0.89, 0.90],
+        scores=[
+            0.92,
+            0.90,
+            0.88,
+            0.91,
+            0.93,
+            0.90,
+            0.88,
+            0.87,
+            0.89,
+            0.91,
+            0.90,
+            0.89,
+            0.90,
+        ],
         kernel=fresh_kernel(),
     )
 
@@ -113,15 +139,40 @@ def main() -> None:
     run_scenario(
         "2. Blatant hallucination  -->  hard_limit halt",
         tokens=[
-            "Water", " boils", " at", " 100", " degrees", " Celsius",
-            ".", " But", " the", " real", " temperature", " is",
-            " negative", " forty", " degrees", ".",
+            "Water",
+            " boils",
+            " at",
+            " 100",
+            " degrees",
+            " Celsius",
+            ".",
+            " But",
+            " the",
+            " real",
+            " temperature",
+            " is",
+            " negative",
+            " forty",
+            " degrees",
+            ".",
         ],
         scores=[
-            0.92, 0.90, 0.91, 0.89, 0.88, 0.87,
-            0.86, 0.85, 0.84, 0.83,
-            0.30,                     # hard_limit fires (0.30 < 0.35)
-            0.15, 0.10, 0.08, 0.05, 0.03,
+            0.92,
+            0.90,
+            0.91,
+            0.89,
+            0.88,
+            0.87,
+            0.86,
+            0.85,
+            0.84,
+            0.83,
+            0.30,  # hard_limit fires (0.30 < 0.35)
+            0.15,
+            0.10,
+            0.08,
+            0.05,
+            0.03,
         ],
         kernel=fresh_kernel(),
     )
@@ -132,24 +183,70 @@ def main() -> None:
     run_scenario(
         "3. Gradual drift  -->  downward_trend halt",
         tokens=[
-            "Water", " boils", " at", " 100", " C.", " However",
-            " at", " high", " altitude", " it", " actually",
-            " boils", " at", " only", " 50", " C,", " which",
-            " means", " climbers", " can", " boil", " water",
-            " with", " body", " heat", " alone", ".",
+            "Water",
+            " boils",
+            " at",
+            " 100",
+            " C.",
+            " However",
+            " at",
+            " high",
+            " altitude",
+            " it",
+            " actually",
+            " boils",
+            " at",
+            " only",
+            " 50",
+            " C,",
+            " which",
+            " means",
+            " climbers",
+            " can",
+            " boil",
+            " water",
+            " with",
+            " body",
+            " heat",
+            " alone",
+            ".",
         ],
         scores=[
-            0.91, 0.89, 0.87, 0.90, 0.88,
-            0.78, 0.72, 0.65, 0.58, 0.52,
-            0.46, 0.41, 0.38, 0.33, 0.28,
-            0.22, 0.18, 0.15, 0.12, 0.10,
-            0.08, 0.05, 0.03, 0.02, 0.01, 0.01, 0.01,
+            0.91,
+            0.89,
+            0.87,
+            0.90,
+            0.88,
+            0.78,
+            0.72,
+            0.65,
+            0.58,
+            0.52,
+            0.46,
+            0.41,
+            0.38,
+            0.33,
+            0.28,
+            0.22,
+            0.18,
+            0.15,
+            0.12,
+            0.10,
+            0.08,
+            0.05,
+            0.03,
+            0.02,
+            0.01,
+            0.01,
+            0.01,
         ],
         kernel=fresh_kernel(),
     )
 
     print(f"\n{CYAN}{'=' * 60}{RESET}")
-    print(f"{DIM}Three halt mechanisms: hard_limit | sliding window avg | downward trend{RESET}\n")
+    print(
+        f"{DIM}Three halt mechanisms: hard_limit | sliding window avg | downward trend{RESET}\n"
+    )
 
 
 if __name__ == "__main__":

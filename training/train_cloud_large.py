@@ -50,6 +50,7 @@ LABEL_CONTRADICTION = 2
 
 # ── Data Pipeline (inline, no external files needed) ────────────────
 
+
 def _load_halueval():
     examples = []
     for task in ("qa", "dialogue", "summarization"):
@@ -58,17 +59,40 @@ def _load_halueval():
         for row in ds:
             if task == "qa":
                 premise = row.get("knowledge") or row.get("question", "")
-                right, halluc = row.get("right_answer", ""), row.get("hallucinated_answer", "")
+                right, halluc = (
+                    row.get("right_answer", ""),
+                    row.get("hallucinated_answer", ""),
+                )
             elif task == "dialogue":
                 premise = row.get("dialogue_history") or row.get("knowledge", "")
-                right, halluc = row.get("right_response", ""), row.get("hallucinated_response", "")
+                right, halluc = (
+                    row.get("right_response", ""),
+                    row.get("hallucinated_response", ""),
+                )
             else:
                 premise = row.get("document", "")
-                right, halluc = row.get("right_summary", ""), row.get("hallucinated_summary", "")
+                right, halluc = (
+                    row.get("right_summary", ""),
+                    row.get("hallucinated_summary", ""),
+                )
             if premise and right:
-                examples.append({"premise": premise, "hypothesis": right, "label": LABEL_ENTAILMENT, "source": f"halueval_{task}"})
+                examples.append(
+                    {
+                        "premise": premise,
+                        "hypothesis": right,
+                        "label": LABEL_ENTAILMENT,
+                        "source": f"halueval_{task}",
+                    }
+                )
             if premise and halluc:
-                examples.append({"premise": premise, "hypothesis": halluc, "label": LABEL_CONTRADICTION, "source": f"halueval_{task}"})
+                examples.append(
+                    {
+                        "premise": premise,
+                        "hypothesis": halluc,
+                        "label": LABEL_CONTRADICTION,
+                        "source": f"halueval_{task}",
+                    }
+                )
     logger.info("HaluEval: %d examples", len(examples))
     return examples
 
@@ -81,9 +105,22 @@ def _load_fever():
     for row in ds:
         premise, hypothesis = row.get("premise", ""), row.get("hypothesis", "")
         raw = row.get("label")
-        label = raw if isinstance(raw, int) else label_map.get(raw.lower()) if isinstance(raw, str) else None
+        label = (
+            raw
+            if isinstance(raw, int)
+            else label_map.get(raw.lower())
+            if isinstance(raw, str)
+            else None
+        )
         if label is not None and premise and hypothesis:
-            examples.append({"premise": premise, "hypothesis": hypothesis, "label": label, "source": "fever"})
+            examples.append(
+                {
+                    "premise": premise,
+                    "hypothesis": hypothesis,
+                    "label": label,
+                    "source": "fever",
+                }
+            )
     logger.info("FEVER: %d examples", len(examples))
     return examples
 
@@ -96,9 +133,22 @@ def _load_vitaminc():
     for row in ds:
         premise, hypothesis = row.get("evidence", ""), row.get("claim", "")
         raw = row.get("label")
-        label = raw if isinstance(raw, int) else label_map.get(raw.upper()) if isinstance(raw, str) else None
+        label = (
+            raw
+            if isinstance(raw, int)
+            else label_map.get(raw.upper())
+            if isinstance(raw, str)
+            else None
+        )
         if label is not None and premise and hypothesis:
-            examples.append({"premise": premise, "hypothesis": hypothesis, "label": label, "source": "vitaminc"})
+            examples.append(
+                {
+                    "premise": premise,
+                    "hypothesis": hypothesis,
+                    "label": label,
+                    "source": "vitaminc",
+                }
+            )
     logger.info("VitaminC: %d examples", len(examples))
     return examples
 
@@ -108,9 +158,20 @@ def _load_anli_r3():
     ds = load_dataset("anli", split="train_r3")
     examples = []
     for row in ds:
-        premise, hypothesis, label = row.get("premise", ""), row.get("hypothesis", ""), row.get("label")
+        premise, hypothesis, label = (
+            row.get("premise", ""),
+            row.get("hypothesis", ""),
+            row.get("label"),
+        )
         if label is not None and premise and hypothesis:
-            examples.append({"premise": premise, "hypothesis": hypothesis, "label": int(label), "source": "anli_r3"})
+            examples.append(
+                {
+                    "premise": premise,
+                    "hypothesis": hypothesis,
+                    "label": int(label),
+                    "source": "anli_r3",
+                }
+            )
     logger.info("ANLI R3: %d examples", len(examples))
     return examples
 
@@ -120,6 +181,7 @@ def build_or_load_dataset():
     if DATA_DIR.exists() and (DATA_DIR / "dataset_dict.json").exists():
         logger.info("Loading cached dataset from %s", DATA_DIR)
         from datasets import load_from_disk
+
         return load_from_disk(str(DATA_DIR))
 
     all_examples = _load_halueval() + _load_fever() + _load_vitaminc() + _load_anli_r3()
@@ -147,6 +209,7 @@ def build_or_load_dataset():
 
 # ── Training ────────────────────────────────────────────────────────
 
+
 def compute_metrics(eval_pred):
     from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 
@@ -166,14 +229,24 @@ def compute_metrics(eval_pred):
 class WeightedTrainer(Trainer):
     def __init__(self, class_weights=None, **kwargs):
         super().__init__(**kwargs)
-        self._class_weights = torch.tensor(class_weights, dtype=torch.float32) if class_weights is not None else None
+        self._class_weights = (
+            torch.tensor(class_weights, dtype=torch.float32)
+            if class_weights is not None
+            else None
+        )
 
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
         labels = inputs.pop("labels")
         outputs = model(**inputs)
         logits = outputs.logits
-        w = self._class_weights.to(logits.device) if self._class_weights is not None else None
-        loss = torch.nn.functional.cross_entropy(logits, labels, weight=w, label_smoothing=0.05)
+        w = (
+            self._class_weights.to(logits.device)
+            if self._class_weights is not None
+            else None
+        )
+        loss = torch.nn.functional.cross_entropy(
+            logits, labels, weight=w, label_smoothing=0.05
+        )
         return (loss, outputs) if return_outputs else loss
 
 
@@ -186,13 +259,26 @@ def main():
     model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=3)
 
     def tokenize(batch):
-        return tokenizer(batch["premise"], batch["hypothesis"], truncation=True, max_length=MAX_LENGTH, padding="max_length")
+        return tokenizer(
+            batch["premise"],
+            batch["hypothesis"],
+            truncation=True,
+            max_length=MAX_LENGTH,
+            padding="max_length",
+        )
 
     logger.info("Tokenizing ...")
-    tokenized = dataset.map(tokenize, batched=True, num_proc=4, remove_columns=["premise", "hypothesis", "source"])
+    tokenized = dataset.map(
+        tokenize,
+        batched=True,
+        num_proc=4,
+        remove_columns=["premise", "hypothesis", "source"],
+    )
 
     train_labels = np.array(tokenized["train"]["label"])
-    weights = compute_class_weight("balanced", classes=np.array([0, 1, 2]), y=train_labels)
+    weights = compute_class_weight(
+        "balanced", classes=np.array([0, 1, 2]), y=train_labels
+    )
     logger.info("Class weights: %s", dict(zip(LABEL_NAMES, weights)))
 
     # L40S 48GB: batch 16 fits comfortably, accumulate 2 for effective 32
@@ -245,7 +331,9 @@ def main():
 
     # Save metrics to file for easy retrieval
     metrics_path = OUTPUT_DIR / "final_metrics.json"
-    metrics_path.write_text(json.dumps({k: round(v, 4) for k, v in metrics.items()}, indent=2))
+    metrics_path.write_text(
+        json.dumps({k: round(v, 4) for k, v in metrics.items()}, indent=2)
+    )
     logger.info("Metrics saved to %s", metrics_path)
 
 
