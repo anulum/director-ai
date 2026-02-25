@@ -204,14 +204,25 @@ Evaluated on [LLM-AggreFact](https://github.com/lytang/LLM-AggreFact) (29,320 sa
 | RAGTruth | 58.9% | RAG-specific hallucination |
 | AggreFact-CNN | 53.0% | Summarization (known weak spot) |
 
-**Honest assessment**: The NLI model alone is not state-of-the-art on summarization
-hallucination. Director-AI's value is in the *system* — combining NLI with your
-own KB facts, streaming token-level gating, and configurable halt thresholds.
-The NLI component is a pluggable scorer; swap in any model that improves on
-these numbers.
+**Head-to-head** (same benchmark, same metric — [LLM-AggreFact leaderboard](https://llm-aggrefact.github.io/)):
 
-Benchmark scripts and results are in `benchmarks/`. Fine-tuning pipeline is in
-`training/`.
+| Tool | Bal. Acc | Params | Latency | Streaming |
+|------|---------|--------|---------|-----------|
+| Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms (GPU) | No |
+| MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
+| MiniCheck-DeBERTa-L | 72.6% | 0.4B | ~120 ms | No |
+| HHEM-2.1-Open | 71.8% | ~0.4B | ~200 ms | No |
+| **Director-AI** | **66.2%** | 0.4B | 220 ms | **Yes** |
+
+**Honest assessment**: The NLI scorer alone is not state-of-the-art. Director-AI's
+value is in the *system* — combining NLI with your own KB facts, streaming
+token-level gating, and configurable halt thresholds. No competitor offers
+real-time streaming halt. The NLI component is pluggable; swap in any model
+that improves on these numbers.
+
+Full comparison with SelfCheckGPT, RAGAS, NeMo Guardrails, Lynx, and others
+in [`benchmarks/comparison/`](benchmarks/comparison/). Benchmark scripts in
+`benchmarks/`. Fine-tuning pipeline in `training/`.
 
 ## Package Structure
 
