@@ -31,7 +31,7 @@ def check_ollama():
 def score_response():
     """Score a complete Ollama response."""
     store = GroundTruthStore()
-    store.facts["boiling point"] = "100 degrees Celsius"
+    store.add("boiling point", "100 degrees Celsius")
     scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
 
     prompt = "At what temperature does water boil?"
@@ -51,7 +51,7 @@ def score_response():
 def streaming_guard():
     """Stream tokens from Ollama with real-time halt."""
     store = GroundTruthStore()
-    store.facts["speed of light"] = "299,792 km/s"
+    store.add("speed of light", "299,792 km/s")
     scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
     kernel = StreamingKernel(hard_limit=0.35, window_size=5, window_threshold=0.45)
 

@@ -101,7 +101,7 @@ pip install -e ".[dev,research]"
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
 store = GroundTruthStore()
-store.facts["sky color"] = "blue"  # Add your own facts
+store.add("sky color", "The sky is blue due to Rayleigh scattering.")
 
 scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
 approved, score = scorer.review("What color is the sky?", "The sky is green.")

@@ -24,7 +24,7 @@ def score_and_gate():
     client = OpenAI()
 
     store = GroundTruthStore()
-    store.facts["refund policy"] = "within 30 days"
+    store.add("refund policy", "within 30 days")
     scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
 
     response = client.chat.completions.create(
@@ -45,7 +45,7 @@ def streaming_guard():
     client = OpenAI()
 
     store = GroundTruthStore()
-    store.facts["capital of France"] = "Paris"
+    store.add("capital of France", "Paris")
     scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
     kernel = StreamingKernel(hard_limit=0.35, window_size=5, window_threshold=0.45)
 

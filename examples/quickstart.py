@@ -14,7 +14,7 @@ from director_ai.core import CoherenceScorer, GroundTruthStore
 
 # 1. Load your facts
 store = GroundTruthStore()
-store.facts["sky color"] = "blue"
+store.add("sky color", "blue")
 
 # 2. Create a scorer
 scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)

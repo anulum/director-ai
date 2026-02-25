@@ -31,6 +31,10 @@ class GroundTruthStore:
             "vibrana symmetry": "13-fold",
         }
 
+    def add(self, key: str, value: str) -> None:
+        """Add or update a fact in the store."""
+        self.facts[key] = value
+
     def retrieve_context(self, query):
         """
         Retrieve relevant facts matching *query*.

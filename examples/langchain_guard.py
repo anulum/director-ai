@@ -24,7 +24,7 @@ class DirectorGuard:
         self.store = GroundTruthStore()
         if facts:
             for k, v in facts.items():
-                self.store.facts[k] = v
+                self.store.add(k, v)
         self.scorer = CoherenceScorer(
             threshold=threshold, ground_truth_store=self.store
         )
