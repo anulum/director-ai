@@ -9,6 +9,8 @@
 
 # Private drafts, ideas, and TODO notes
 .local/
+DEV_LOG.md
+claude-director-ai.md
 
 # Documentation prose (quarantined until headers/protocols are reviewed)
 # Remove this line once docs/ prose files have been audited.
