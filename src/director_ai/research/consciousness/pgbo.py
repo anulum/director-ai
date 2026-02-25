@@ -91,6 +91,8 @@ class PGBOEngine:
 
     def set_background_metric(self, g0: np.ndarray) -> None:
         """Set the background metric and its inverse."""
+        if abs(np.linalg.det(g0)) < 1e-12:
+            raise ValueError("singular metric: det(g0) ≈ 0")
         np.copyto(self.g0, g0)
         self.g0_inv = np.linalg.inv(g0)
 

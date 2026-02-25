@@ -17,6 +17,7 @@ Date: January 21, 2026
 """
 
 import logging
+import os
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -112,7 +113,6 @@ class ConsiliumAgent:
 
     def __init__(self):
         self.ethics = EthicalFunctional()
-        self.history = []
         logger.info("Consilium Agent Initialized. Ethical Functional Active.")
 
     def get_real_metrics(self) -> dict[str, Any]:
@@ -146,15 +146,13 @@ class ConsiliumAgent:
             metrics["errors"] += 1
 
         # 2. Test Execution (Suffering Check)
-        # We run a fast check on the core logic
+        test_path = "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py"
+        if not os.path.isfile(test_path):
+            logger.warning("Test file not found: %s — skipping test check", test_path)
+            return metrics
+
         try:
-            # Running only the verification tests to be fast
-            cmd = [
-                "pytest",
-                "03_CODE/sc-neurocore/tests/test_microtubule_superradiance.py",
-                "-q",
-                "--tb=line",
-            ]
+            cmd = ["pytest", test_path, "-q", "--tb=line"]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=60)
 
             if result.returncode != 0:

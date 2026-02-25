@@ -131,6 +131,10 @@ class L16Controller:
         Should be non-increasing for a healthy system.
         """
         # Attractor alignment: ||eigvecs - phi_target|| (Frobenius)
+        if eigvecs.ndim == 1:
+            eigvecs = eigvecs.reshape(-1, 1)
+        if phi_target.ndim == 1:
+            phi_target = phi_target.reshape(-1, 1)
         k = min(eigvecs.shape[1], phi_target.shape[1])
         alignment_err = float(np.sum((eigvecs[:, :k] - phi_target[:, :k]) ** 2))
 

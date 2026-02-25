@@ -6,6 +6,8 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
+from __future__ import annotations
+
 import logging
 
 import requests
@@ -27,7 +29,7 @@ class MockGenerator:
             "fire status": "hot",
         }
 
-    def generate_candidates(self, prompt, n=3):
+    def generate_candidates(self, prompt, n=3) -> list[dict]:
         """
         Generate *n* candidate responses.
 
@@ -65,7 +67,7 @@ class LLMGenerator:
         self.api_url = api_url
         self.logger = logging.getLogger("LLMGenerator")
 
-    def generate_candidates(self, prompt, n=3):
+    def generate_candidates(self, prompt, n=3) -> list[dict]:
         """
         Generate *n* candidate responses from the LLM backend.
         """
@@ -89,7 +91,9 @@ class LLMGenerator:
                     candidates.append({"text": text, "source": "LLM"})
                 else:
                     self.logger.error(
-                        f"LLM Error {response.status_code}: {response.text}"
+                        "LLM Error %d: %s",
+                        response.status_code,
+                        response.text[:500],
                     )
                     candidates.append(
                         {
@@ -97,8 +101,11 @@ class LLMGenerator:
                             "source": "System",
                         }
                     )
+            except requests.exceptions.Timeout as e:
+                self.logger.error("LLM timeout (%s): %s", type(e).__name__, e)
+                candidates.append({"text": "[Error: LLM timeout]", "source": "System"})
             except Exception as e:
-                self.logger.error(f"LLM Connection Failed: {e}")
+                self.logger.error("LLM Connection Failed (%s): %s", type(e).__name__, e)
                 candidates.append(
                     {
                         "text": "[Error: LLM Connection Failed]",

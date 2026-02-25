@@ -6,7 +6,25 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
+from __future__ import annotations
+
+import logging
+import math
 from dataclasses import dataclass
+
+_clamp_logger = logging.getLogger("DirectorAI.Types")
+
+
+def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
+    """Clamp *value* to [lo, hi], replacing NaN/Inf with boundary values."""
+    if math.isnan(value):
+        _clamp_logger.warning("NaN detected in _clamp — replacing with %s", lo)
+        return lo
+    if math.isinf(value):
+        replacement = hi if value > 0 else lo
+        _clamp_logger.warning("Inf detected in _clamp — replacing with %s", replacement)
+        return replacement
+    return max(lo, min(hi, value))
 
 
 @dataclass

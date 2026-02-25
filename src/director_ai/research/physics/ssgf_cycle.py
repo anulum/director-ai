@@ -105,6 +105,8 @@ class SSGFEngine:
     config : SSGFConfig — engine configuration.
     """
 
+    _MAX_HISTORY = 500
+
     def __init__(self, config: SSGFConfig | None = None) -> None:
         self.cfg = config if config is not None else SSGFConfig()
         N = self.cfg.N
@@ -299,7 +301,11 @@ class SSGFEngine:
         )
 
         self._cost_history.append(costs)
+        if len(self._cost_history) > self._MAX_HISTORY:
+            self._cost_history = self._cost_history[-self._MAX_HISTORY :]
         self._state_history.append(state)
+        if len(self._state_history) > self._MAX_HISTORY:
+            self._state_history = self._state_history[-self._MAX_HISTORY :]
 
         return state
 

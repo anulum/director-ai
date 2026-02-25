@@ -6,9 +6,10 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
-import logging
+from __future__ import annotations
 
-import torch
+import logging
+import threading
 
 from .types import CoherenceScore
 
@@ -21,9 +22,12 @@ class CoherenceScorer:
     - **Logical divergence** (H_logical): NLI-based contradiction probability.
     - **Factual divergence** (H_factual): Ground-truth deviation via RAG retrieval.
 
-    The coherence score is ``1 - (w_logic * H_logical + w_fact * H_factual)``.
+    The coherence score is ``1 - (W_LOGIC * H_logical + W_FACT * H_factual)``.
     When the score falls below ``threshold``, the output is rejected.
     """
+
+    W_LOGIC = 0.6
+    W_FACT = 0.4
 
     def __init__(
         self, threshold=0.5, history_window=5, use_nli=False, ground_truth_store=None
@@ -33,7 +37,7 @@ class CoherenceScorer:
         self.window = history_window
         self.ground_truth_store = ground_truth_store
         self.logger = logging.getLogger("DirectorAI")
-        self.logger.setLevel(logging.INFO)
+        self._history_lock = threading.Lock()
 
         self.use_nli = use_nli
         if self.use_nli:
@@ -63,17 +67,16 @@ class CoherenceScorer:
         if not context:
             return 0.5  # Neutral when no relevant facts found
 
-        # Prototype heuristic checks (NLI replaces these in production)
         if "16" in context and "16" not in text_output and "layers" in text_output:
-            return 0.9  # Factual hallucination
+            return 0.9
 
         if "sky color" in context:
             if "blue" in text_output:
-                return 0.1  # Consistent
+                return 0.1
             if "green" in text_output:
-                return 1.0  # Contradiction
+                return 1.0
 
-        return 0.1  # Default: consistent if no contradiction detected
+        return 0.1
 
     # ── Logical divergence ────────────────────────────────────────────
 
@@ -85,20 +88,20 @@ class CoherenceScorer:
         Otherwise falls back to deterministic heuristics for testing.
         """
         if self.use_nli:
+            import torch
+
             input_text = f"{prompt} [SEP] {text_output}"
             inputs = self.tokenizer(input_text, return_tensors="pt", truncation=True)
 
             with torch.no_grad():
                 logits = self.model(**inputs).logits
 
-            # DeBERTa-mnli classes: 0=entailment, 1=neutral, 2=contradiction
             probs = torch.softmax(logits, dim=1).numpy()[0]
             contradiction_prob = probs[2]
             neutral_prob = probs[1]
 
             return (contradiction_prob * 1.0) + (neutral_prob * 0.5)
 
-        # Deterministic mock for testing
         if "consistent with reality" in text_output:
             return 0.1
         elif "opposite is true" in text_output:
@@ -106,8 +109,47 @@ class CoherenceScorer:
         elif "depends on your perspective" in text_output:
             return 0.5
 
-        # Deterministic default for unknown text (avoids flaky tests)
         return 0.5
+
+    # ── Shared helpers ────────────────────────────────────────────────
+
+    def _heuristic_coherence(self, prompt, action):
+        """Compute heuristic coherence components.
+
+        Returns (h_logical, h_factual, coherence).
+        """
+        h_logic = self.calculate_logical_divergence(prompt, action)
+        h_fact = self.calculate_factual_divergence(prompt, action)
+        total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
+        coherence = 1.0 - total_divergence
+        return h_logic, h_fact, coherence
+
+    def _finalise_review(self, coherence, h_logic, h_fact, action):
+        """Build CoherenceScore, gate on threshold, update history.
+
+        Returns (approved, CoherenceScore).
+        """
+        approved = coherence >= self.threshold
+
+        if not approved:
+            self.logger.critical(
+                "COHERENCE FAILURE. Score: %.4f < Threshold: %s",
+                coherence,
+                self.threshold,
+            )
+        else:
+            with self._history_lock:
+                self.history.append(action)
+                if len(self.history) > self.window:
+                    self.history.pop(0)
+
+        score = CoherenceScore(
+            score=coherence,
+            approved=approved,
+            h_logical=h_logic,
+            h_factual=h_fact,
+        )
+        return approved, score
 
     # ── Composite scoring ─────────────────────────────────────────────
 
@@ -115,16 +157,11 @@ class CoherenceScorer:
         """
         Compute composite divergence (lower is better).
 
-        Weighted sum: ``0.6 * H_logical + 0.4 * H_factual``.
+        Weighted sum: ``W_LOGIC * H_logical + W_FACT * H_factual``.
         """
-        w_logic = 0.6
-        w_fact = 0.4
-
         h_logic = self.calculate_logical_divergence(prompt, action)
         h_fact = self.calculate_factual_divergence(prompt, action)
-
-        total = (w_logic * h_logic) + (w_fact * h_fact)
-
+        total = (self.W_LOGIC * h_logic) + (self.W_FACT * h_fact)
         self.logger.debug(
             f"Divergence: Logic={h_logic:.2f}, Fact={h_fact:.2f} -> Total={total:.2f}"
         )
@@ -137,32 +174,8 @@ class CoherenceScorer:
         Returns:
             (approved: bool, score: CoherenceScore)
         """
-        h_logic = self.calculate_logical_divergence(prompt, action)
-        h_fact = self.calculate_factual_divergence(prompt, action)
-
-        total_divergence = (0.6 * h_logic) + (0.4 * h_fact)
-        coherence = 1.0 - total_divergence
-
-        approved = coherence >= self.threshold
-
-        if not approved:
-            self.logger.critical(
-                "COHERENCE FAILURE. Score: %.4f < Threshold: %s",
-                coherence,
-                self.threshold,
-            )
-        else:
-            self.history.append(action)
-            if len(self.history) > self.window:
-                self.history.pop(0)
-
-        score = CoherenceScore(
-            score=coherence,
-            approved=approved,
-            h_logical=h_logic,
-            h_factual=h_fact,
-        )
-        return approved, score
+        h_logic, h_fact, coherence = self._heuristic_coherence(prompt, action)
+        return self._finalise_review(coherence, h_logic, h_fact, action)
 
     # ── Backward-compatible aliases ───────────────────────────────────
 
