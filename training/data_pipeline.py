@@ -198,16 +198,27 @@ def _load_anli_r3():
     return examples
 
 
+VITAMINC_CAP = 100_000  # cap VitaminC to ~30% of total (was 50.6%)
+
+
 def build_dataset():
     """Build unified training dataset from all sources."""
     from datasets import Dataset, DatasetDict
 
-    all_examples = []
-    all_examples.extend(_load_halueval())
-    all_examples.extend(_load_fever())
-    all_examples.extend(_load_vitaminc())
-    all_examples.extend(_load_anli_r3())
+    halueval = _load_halueval()
+    fever = _load_fever()
+    vitaminc = _load_vitaminc()
+    anli = _load_anli_r3()
 
+    # Cap VitaminC to prevent it dominating training (~370K → 100K)
+    if len(vitaminc) > VITAMINC_CAP:
+        import random
+
+        random.seed(42)
+        vitaminc = random.sample(vitaminc, VITAMINC_CAP)
+        logger.info("VitaminC capped to %d examples", VITAMINC_CAP)
+
+    all_examples = halueval + fever + vitaminc + anli
     logger.info("Total examples: %d", len(all_examples))
 
     ds = Dataset.from_list(all_examples)

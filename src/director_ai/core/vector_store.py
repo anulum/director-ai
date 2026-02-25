@@ -106,7 +106,7 @@ class ChromaBackend(VectorBackend):
         self._collection.add(
             ids=[doc_id],
             documents=[text],
-            metadatas=[metadata or {}],
+            metadatas=[metadata] if metadata else None,
         )
 
     def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:

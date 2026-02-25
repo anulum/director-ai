@@ -46,16 +46,15 @@ LABEL_NAMES = ["entailment", "neutral", "contradiction"]
 
 
 def compute_metrics(eval_pred):
-    from sklearn.metrics import accuracy_score, f1_score
+    from sklearn.metrics import accuracy_score, balanced_accuracy_score, f1_score
 
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=-1)
-    acc = accuracy_score(labels, preds)
-    f1_macro = f1_score(labels, preds, average="macro")
     f1_per = f1_score(labels, preds, average=None, labels=[0, 1, 2])
     return {
-        "accuracy": acc,
-        "f1": f1_macro,
+        "accuracy": accuracy_score(labels, preds),
+        "balanced_accuracy": balanced_accuracy_score(labels, preds),
+        "f1": f1_score(labels, preds, average="macro"),
         "f1_entailment": f1_per[0],
         "f1_neutral": f1_per[1],
         "f1_contradiction": f1_per[2],
@@ -79,9 +78,9 @@ class WeightedTrainer(Trainer):
 
         if self._class_weights is not None:
             w = self._class_weights.to(logits.device)
-            loss = torch.nn.functional.cross_entropy(logits, labels, weight=w)
+            loss = torch.nn.functional.cross_entropy(logits, labels, weight=w, label_smoothing=0.05)
         else:
-            loss = torch.nn.functional.cross_entropy(logits, labels)
+            loss = torch.nn.functional.cross_entropy(logits, labels, label_smoothing=0.05)
 
         return (loss, outputs) if return_outputs else loss
 
@@ -150,8 +149,8 @@ def main():
         per_device_train_batch_size=4,
         per_device_eval_batch_size=8,
         gradient_accumulation_steps=8,
-        learning_rate=2e-5,
-        warmup_ratio=0.06,
+        learning_rate=1e-5,
+        warmup_ratio=0.10,
         weight_decay=0.01,
         eval_strategy="steps",
         eval_steps=500,
@@ -159,7 +158,7 @@ def main():
         save_steps=500,
         save_total_limit=3,
         load_best_model_at_end=True,
-        metric_for_best_model="f1",
+        metric_for_best_model="balanced_accuracy",
         greater_is_better=True,
         fp16=torch.cuda.is_available(),
         gradient_checkpointing=True,
