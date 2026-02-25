@@ -6,15 +6,15 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 """
-Director-Class AI: Coherence Engine & SCPN Research Extensions.
+Director-AI: Real-time LLM hallucination guardrail.
 
 Consumer API (always available)::
 
     from director_ai.core import CoherenceAgent, CoherenceScorer, SafetyKernel
 
-Research API (requires ``pip install director-ai[research]``)::
+Research extensions (optional, requires ``pip install director-ai[research]``)::
 
-    from director_ai.research.consilium import ConsiliumAgent
+    from director_ai.research.physics import SECFunctional
 """
 
 __version__ = "0.9.0"

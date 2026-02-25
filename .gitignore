@@ -18,6 +18,7 @@ docs/*
 !docs/conf.py
 !docs/index.rst
 !docs/api/
+!docs/RESEARCH.md
 docs/_build/
 
 # =====================================================================
