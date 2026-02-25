@@ -21,6 +21,7 @@ __version__ = "0.10.0"
 
 # ── Consumer core (always available) ──────────────────────────────────
 from .core import (
+    AsyncStreamingKernel,
     CoherenceAgent,
     CoherenceScore,
     CoherenceScorer,
@@ -56,6 +57,7 @@ __all__ = [
     "StreamSession",
     "TokenEvent",
     "PhysicsBackedScorer",
+    "AsyncStreamingKernel",
 ]
 
 # ── Research extensions (optional) ────────────────────────────────────

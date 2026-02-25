@@ -199,6 +199,18 @@ class CoherenceScorer:
         h_logic, h_fact, coherence = self._heuristic_coherence(prompt, action)
         return self._finalise_review(coherence, h_logic, h_fact, action)
 
+    # ── Async API ──────────────────────────────────────────────────────
+
+    async def areview(self, prompt, action):
+        """Async version of review() — offloads NLI inference to a thread pool.
+
+        Returns (approved: bool, score: CoherenceScore), same as review().
+        """
+        import asyncio
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.review, prompt, action)
+
     # ── Backward-compatible aliases ───────────────────────────────────
 
     def calculate_factual_entropy(self, prompt, text_output):

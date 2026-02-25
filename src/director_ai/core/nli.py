@@ -105,6 +105,13 @@ class NLIScorer:
             return self._heuristic_score(premise, hypothesis)
         return self._model_score(premise, hypothesis)
 
+    async def ascore(self, premise: str, hypothesis: str) -> float:
+        """Async version of score() — runs model inference in a thread pool."""
+        import asyncio
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.score, premise, hypothesis)
+
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Score multiple (premise, hypothesis) pairs."""
         return [self.score(p, h) for p, h in pairs]

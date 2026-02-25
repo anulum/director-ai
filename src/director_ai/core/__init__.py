@@ -19,6 +19,7 @@ Quick start::
 
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
+from .async_streaming import AsyncStreamingKernel
 from .bridge import PhysicsBackedScorer
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
@@ -53,4 +54,5 @@ __all__ = [
     "StreamSession",
     "TokenEvent",
     "PhysicsBackedScorer",
+    "AsyncStreamingKernel",
 ]

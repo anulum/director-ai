@@ -30,6 +30,6 @@ __all__ = [
     "LocalProvider",
 ]
 
-# LangChain integration is optional — import only when langchain-core
-# is installed.  Access via:
-#   from director_ai.integrations.langchain_callback import CoherenceCallbackHandler
+# Ecosystem integrations — import directly from submodules:
+#   from director_ai.integrations.langchain import DirectorAIGuard
+#   from director_ai.integrations.llamaindex import DirectorAIPostprocessor
