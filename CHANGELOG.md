@@ -7,6 +7,113 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-02-25
+
+### Added
+- **DeBERTa fine-tuning pipeline** (`training/`):
+  - Data pipeline: AggreFact MNBM → HuggingFace Dataset with ClassLabel stratified split
+  - Fine-tuning script for DeBERTa-v3 hallucination detection (base + large)
+  - GPU/chunked scoring for large evaluation sets
+  - Cloud training scripts (Lambda Labs, RunPod)
+- **AggreFact benchmark suite** (`benchmarks/`):
+  - Evaluation harness for hallucination detection models
+  - 5 benchmark result files (baseline MoritzLaurer, fine-tuned base/large, comparison)
+  - Automated comparison reporting
+- **Core hardening** (24 test-enforced items):
+  - `CoherenceScorer._heuristic_coherence()` + `_finalise_review()` helper methods
+  - `CoherenceScorer.W_LOGIC` / `W_FACT` class constants
+  - `CoherenceScorer._history_lock` (threading.Lock for shared state)
+  - `_clamp()` utility in `types.py` with NaN/Inf logging
+  - Lazy torch import in `scorer.py` (deferred from module level)
+  - `LLMGenerator`: return type annotations, timeout catch, error truncation, type names
+  - `PGBOEngine.set_background_metric()`: singular metric guard
+  - `L16Controller.compute_h_rec()`: 1-D eigvecs fallback
+  - `SSGFEngine._MAX_HISTORY = 500` cap on cost/state history
+  - `ConsiliumAgent`: removed vestigial `self.history`, added `os.path.isfile` guard
+  - `NLIScorer`: assert → `RuntimeError` for missing model
+- Test count: 144 → 375 (2.6x increase)
+
+### Changed
+- CI: switched formatter from black to ruff format
+- `backfire-kernel/` FFI: refactored PyO3 interface and slop cleanup
+
+### Fixed
+- NLI data pipeline: `ClassLabel` cast for stratified splitting
+- NLI scorer: None guards for mypy `attr-defined` errors
+- CI: 24 hardening test failures resolved in single pass
+
+## [0.8.2] - 2026-02-23
+
+### Added
+- Real benchmark results for hallucination detection models
+- `benchmarks/results/` with AggreFact evaluation outputs
+
+### Changed
+- Code quality cleanup across core modules
+
+## [0.8.1] - 2026-02-23
+
+### Added
+- **Semantic scoring gate**: threshold-based approval with semantic similarity
+- **Directory ingestion**: batch ingest from filesystem into vector store
+- **ChromaBackend hardening**: error handling, retry logic, batch operations
+
+### Changed
+- Removed narration comments and softened overstated claims per anti-slop policy
+
+## [0.8.0] - 2026-02-22
+
+### Added
+- **Configurable ground truth facts**: runtime fact injection via `GroundTruthStore.add()`
+- **Real embeddings**: sentence-transformers integration replacing word-overlap proxy
+- **Ingest CLI**: `director-ai ingest <path>` command for batch document loading
+- **Publish workflow**: trusted PyPI publishing via GitHub Actions
+
+### Changed
+- Addressed internal review action items (Phases 0-3)
+- Updated all documentation for Backfire Kernel and analytic gradient
+- Streaming fix: token event ordering and session cleanup
+
+## [0.7.0] - 2026-02-16
+
+### Added
+- **Backfire Kernel**: 5-crate Rust workspace with PyO3 FFI for hardware-level safety interlock
+- **SSGF analytic Jacobian gradient**: 7,609x speedup over finite-difference
+- **Shadow Director hardening** (Phases 1-4, 60 items H1-H64):
+  - Phase 1: 17 items (H1-H17) — import guards, type annotations, docstrings
+  - Phase 2: 10 items (H18-H27) — error handling, edge cases, thread safety
+  - Phase 3: 18 items (H28-H45) — code quality enforcement tests
+  - Phase 4: 15 items (H46-H64) — source introspection hardening tests
+
+### Changed
+- Credibility release: documentation, test coverage, and code quality to publication standard
+
+## [0.6.0] - 2026-02-16
+
+### Added
+- **Config manager**: YAML/JSON configuration loading with schema validation
+- **Metrics collection**: coherence score histograms, latency tracking, throughput monitoring
+- **Batch processing**: parallel candidate evaluation with configurable concurrency
+- **HTTP server**: FastAPI wrapper for REST API access
+- **CLI interface**: `director-ai serve`, `director-ai score`, `director-ai batch`
+- **Docker support**: multi-stage Dockerfile, docker-compose.yml
+
+### Changed
+- Sphinx docs fixes: removed `-W` strict mode, fixed `_static` path, suppressed re-export warnings
+
+## [0.5.0] - 2026-02-16
+
+### Added
+- **Async streaming**: non-blocking token-level oversight pipeline
+- **GPU UPDE solver**: CuPy/NumPy auto-dispatch for Kuramoto phase dynamics
+- **Jupyter notebooks**: interactive demos for UPDE, SEC, and coherence scoring
+- **CI/CD pipeline**: GitHub Actions with lint, type-check, test (3.10/3.11/3.12), security audit
+
+### Fixed
+- 15 ruff lint errors (unused imports, variables, line length)
+- 3 mypy `no-any-return` errors
+- Black formatting across all source files
+
 ## [0.4.0] - 2026-02-16
 
 ### Added
@@ -133,7 +240,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/anulum/director-ai/compare/v0.8.2...v0.9.0
+[0.8.2]: https://github.com/anulum/director-ai/compare/v0.8.1...v0.8.2
+[0.8.1]: https://github.com/anulum/director-ai/compare/v0.8.0...v0.8.1
+[0.8.0]: https://github.com/anulum/director-ai/compare/v0.7.0...v0.8.0
+[0.7.0]: https://github.com/anulum/director-ai/compare/v0.6.0...v0.7.0
+[0.6.0]: https://github.com/anulum/director-ai/compare/v0.5.0...v0.6.0
+[0.5.0]: https://github.com/anulum/director-ai/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/anulum/director-ai/compare/v0.3.1...v0.4.0
 [0.3.1]: https://github.com/anulum/director-ai/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/anulum/director-ai/compare/v0.2.0...v0.3.0
