@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import threading
 
+from .nli import NLIScorer, nli_available
 from .types import CoherenceScore
 
 
@@ -19,18 +20,32 @@ class CoherenceScorer:
     Dual-entropy coherence scorer for AI output verification.
 
     Computes a composite coherence score from two independent signals:
-    - **Logical divergence** (H_logical): NLI-based contradiction probability.
-    - **Factual divergence** (H_factual): Ground-truth deviation via RAG retrieval.
+    - **Logical divergence** (H_logical): NLI contradiction probability.
+    - **Factual divergence** (H_factual): Ground-truth deviation via RAG.
 
     The coherence score is ``1 - (W_LOGIC * H_logical + W_FACT * H_factual)``.
     When the score falls below ``threshold``, the output is rejected.
+
+    Parameters
+    ----------
+    threshold : float — minimum coherence to approve (default 0.5).
+    history_window : int — rolling history size.
+    use_nli : bool | None — True forces NLI, False disables it,
+        None (default) auto-detects based on installed packages.
+    ground_truth_store : GroundTruthStore | None — fact store for RAG.
+    nli_model : str | None — HuggingFace model ID or local path for NLI.
     """
 
     W_LOGIC = 0.6
     W_FACT = 0.4
 
     def __init__(
-        self, threshold=0.5, history_window=5, use_nli=False, ground_truth_store=None
+        self,
+        threshold=0.5,
+        history_window=5,
+        use_nli=None,
+        ground_truth_store=None,
+        nli_model=None,
     ):
         self.threshold = threshold
         self.history = []
@@ -39,16 +54,16 @@ class CoherenceScorer:
         self.logger = logging.getLogger("DirectorAI")
         self._history_lock = threading.Lock()
 
-        self.use_nli = use_nli
-        if self.use_nli:
-            from transformers import AutoModelForSequenceClassification, AutoTokenizer
+        if use_nli is None:
+            self.use_nli = nli_available()
+        else:
+            self.use_nli = use_nli
 
-            model_name = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
-            self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-            self.model = AutoModelForSequenceClassification.from_pretrained(model_name)
-            self.logger.info(
-                f"Coherence Scorer initialized with NLI model: {model_name}"
-            )
+        self._nli = (
+            NLIScorer(use_model=self.use_nli, model_name=nli_model)
+            if self.use_nli
+            else None
+        )
 
     # ── Factual divergence ────────────────────────────────────────────
 
@@ -56,24 +71,42 @@ class CoherenceScorer:
         """
         Check output against the Ground Truth Store.
 
+        When NLI is available, uses NLI to compare retrieved context
+        against the output. Otherwise falls back to keyword heuristics.
+
         Returns:
             0.0  — perfect alignment with ground truth
             1.0  — total hallucination / contradiction
         """
         if not self.ground_truth_store:
-            return 0.5  # Neutral when no store is configured
+            return 0.5
 
         context = self.ground_truth_store.retrieve_context(prompt)
         if not context:
-            return 0.5  # Neutral when no relevant facts found
+            return 0.5
 
-        if "16" in context and "16" not in text_output and "layers" in text_output:
+        if self._nli and self._nli.model_available:
+            return self._nli.score(context, text_output)
+
+        return self._heuristic_factual(context, text_output)
+
+    @staticmethod
+    def _heuristic_factual(context, text_output):
+        """Keyword-based factual divergence (testing fallback).
+
+        Only useful for demo/test scenarios — install [nli] for
+        real-world fact-checking.
+        """
+        ctx = context.lower()
+        out = text_output.lower()
+
+        if "16" in ctx and "16" not in out and "layers" in out:
             return 0.9
 
-        if "sky color" in context:
-            if "blue" in text_output:
+        if "blue" in ctx:
+            if "blue" in out:
                 return 0.1
-            if "green" in text_output:
+            if "green" in out:
                 return 1.0
 
         return 0.1
@@ -84,40 +117,29 @@ class CoherenceScorer:
         """
         Compute logical contradiction probability.
 
-        When ``use_nli=True``, uses a DeBERTa NLI model.
-        Otherwise falls back to deterministic heuristics for testing.
+        When NLI is available, uses DeBERTa. Otherwise falls back to
+        deterministic heuristics for testing.
         """
-        if self.use_nli:
-            import torch
+        if self._nli and self._nli.model_available:
+            return self._nli.score(prompt, text_output)
 
-            input_text = f"{prompt} [SEP] {text_output}"
-            inputs = self.tokenizer(input_text, return_tensors="pt", truncation=True)
+        return self._heuristic_logical(text_output)
 
-            with torch.no_grad():
-                logits = self.model(**inputs).logits
-
-            probs = torch.softmax(logits, dim=1).numpy()[0]
-            contradiction_prob = probs[2]
-            neutral_prob = probs[1]
-
-            return (contradiction_prob * 1.0) + (neutral_prob * 0.5)
-
+    @staticmethod
+    def _heuristic_logical(text_output):
+        """Deterministic heuristic fallback (testing only)."""
         if "consistent with reality" in text_output:
             return 0.1
-        elif "opposite is true" in text_output:
+        if "opposite is true" in text_output:
             return 0.9
-        elif "depends on your perspective" in text_output:
+        if "depends on your perspective" in text_output:
             return 0.5
-
         return 0.5
 
     # ── Shared helpers ────────────────────────────────────────────────
 
     def _heuristic_coherence(self, prompt, action):
-        """Compute heuristic coherence components.
-
-        Returns (h_logical, h_factual, coherence).
-        """
+        """Compute coherence components. Returns (h_logical, h_factual, coherence)."""
         h_logic = self.calculate_logical_divergence(prompt, action)
         h_fact = self.calculate_factual_divergence(prompt, action)
         total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact

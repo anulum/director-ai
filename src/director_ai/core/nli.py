@@ -4,11 +4,10 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 """
-Real NLI-based logical divergence scorer using DeBERTa-v3-base-mnli.
+NLI-based logical divergence scorer using DeBERTa.
 
-Provides ``NLIScorer`` which lazily loads the model on first call and
-caches it for subsequent invocations.  Falls back to heuristic scoring
-when the model is unavailable (no internet, no transformers, etc.).
+``NLIScorer`` lazily loads the model on first call and caches it.
+Falls back to heuristic scoring when the model is unavailable.
 """
 
 from __future__ import annotations
@@ -20,7 +19,7 @@ import numpy as np
 
 logger = logging.getLogger("DirectorAI.NLI")
 
-_MODEL_NAME = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+_DEFAULT_MODEL = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
 
 # Labels for the DeBERTa-mnli model
 _LABEL_ENTAILMENT = 0
@@ -28,15 +27,15 @@ _LABEL_NEUTRAL = 1
 _LABEL_CONTRADICTION = 2
 
 
-@lru_cache(maxsize=1)
-def _load_nli_model():
-    """Lazily load the DeBERTa NLI model + tokenizer (cached singleton)."""
+@lru_cache(maxsize=4)
+def _load_nli_model(model_name: str = _DEFAULT_MODEL):
+    """Lazily load an NLI model + tokenizer (cached by model_name)."""
     try:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-        logger.info("Loading NLI model: %s", _MODEL_NAME)
-        tokenizer = AutoTokenizer.from_pretrained(_MODEL_NAME)
-        model = AutoModelForSequenceClassification.from_pretrained(_MODEL_NAME)
+        logger.info("Loading NLI model: %s", model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_name)
+        model = AutoModelForSequenceClassification.from_pretrained(model_name)
         model.eval()
         logger.info("NLI model loaded successfully.")
         return tokenizer, model
@@ -45,28 +44,37 @@ def _load_nli_model():
         return None, None
 
 
+def nli_available() -> bool:
+    """Check whether torch + transformers are importable."""
+    try:
+        import torch  # noqa: F401
+        import transformers  # noqa: F401
+
+        return True
+    except ImportError:
+        return False
+
+
 class NLIScorer:
     """NLI-based logical divergence scorer.
 
-    Usage::
-
-        scorer = NLIScorer()
-        h_logical = scorer.score("The sky is blue", "The sky is green")
-        # h_logical ≈ 0.9 (contradiction)
-
     Parameters
     ----------
-    use_model : bool — if True, attempt to load DeBERTa model.
+    use_model : bool — if True, attempt to load model on first score().
     max_length : int — max token length for NLI input.
+    model_name : str | None — HuggingFace model ID or local path.
+        Defaults to the pre-trained DeBERTa-v3-base-mnli-fever-anli.
     """
 
     def __init__(
         self,
         use_model: bool = True,
         max_length: int = 512,
+        model_name: str | None = None,
     ) -> None:
         self.use_model = use_model
         self.max_length = max_length
+        self._model_name = model_name or _DEFAULT_MODEL
         self._tokenizer = None
         self._model = None
         self._model_loaded = False
@@ -78,7 +86,7 @@ class NLIScorer:
         if not self.use_model:
             self._model_loaded = True
             return False
-        self._tokenizer, self._model = _load_nli_model()
+        self._tokenizer, self._model = _load_nli_model(self._model_name)
         self._model_loaded = True
         return self._model is not None
 
@@ -102,7 +110,7 @@ class NLIScorer:
         return [self.score(p, h) for p, h in pairs]
 
     def _model_score(self, premise: str, hypothesis: str) -> float:
-        """Score using the DeBERTa NLI model."""
+        """Score using the NLI model."""
         import torch
 
         if self._tokenizer is None or self._model is None:
@@ -126,7 +134,7 @@ class NLIScorer:
 
     @staticmethod
     def _heuristic_score(premise: str, hypothesis: str) -> float:
-        """Deterministic heuristic fallback (same as mock scorer)."""
+        """Deterministic heuristic fallback (no model needed)."""
         h_lower = hypothesis.lower()
         if "consistent with reality" in h_lower:
             return 0.1
@@ -134,7 +142,6 @@ class NLIScorer:
             return 0.9
         if "depends on your perspective" in h_lower:
             return 0.5
-        # Simple keyword overlap heuristic
         p_words = set(premise.lower().split())
         h_words = set(hypothesis.lower().split())
         if not p_words:

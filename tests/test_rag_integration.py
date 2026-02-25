@@ -18,7 +18,7 @@ class TestRAG(unittest.TestCase):
 
     def setUp(self):
         self.store = GroundTruthStore()
-        self.scorer = CoherenceScorer(ground_truth_store=self.store)
+        self.scorer = CoherenceScorer(ground_truth_store=self.store, use_nli=False)
 
     def test_retrieval(self):
         query = "How many layers are in the SCPN?"

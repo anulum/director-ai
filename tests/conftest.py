@@ -23,16 +23,16 @@ def agent():
 
 @pytest.fixture
 def scorer():
-    """CoherenceScorer with default threshold and ground truth store."""
+    """CoherenceScorer with heuristic scoring (no NLI model)."""
     store = GroundTruthStore()
-    return CoherenceScorer(threshold=0.6, ground_truth_store=store)
+    return CoherenceScorer(threshold=0.6, ground_truth_store=store, use_nli=False)
 
 
 @pytest.fixture
 def strict_scorer():
-    """CoherenceScorer with a strict threshold (0.7)."""
+    """CoherenceScorer with a strict threshold (0.7), heuristic scoring."""
     store = GroundTruthStore()
-    return CoherenceScorer(threshold=0.7, ground_truth_store=store)
+    return CoherenceScorer(threshold=0.7, ground_truth_store=store, use_nli=False)
 
 
 @pytest.fixture

@@ -23,7 +23,7 @@ def batch_agent():
 def batch_scorer():
     """BatchProcessor wrapping CoherenceScorer."""
     store = GroundTruthStore()
-    scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
+    scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store, use_nli=False)
     return BatchProcessor(scorer, max_concurrency=2)
 
 

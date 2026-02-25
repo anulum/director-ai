@@ -48,7 +48,7 @@ class GroundTruthStore:
         for key, value in self.facts.items():
             key_words = key.split()
             if any(word in query_lower for word in key_words):
-                context.append(f"{key} is {value}")
+                context.append(value)
 
         if context:
             retrieved = "; ".join(context)

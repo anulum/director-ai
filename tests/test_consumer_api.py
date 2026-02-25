@@ -23,7 +23,7 @@ from director_ai.core import (
 @pytest.mark.consumer
 class TestVersion:
     def test_version_string(self):
-        assert director_ai.__version__ == "0.9.0"
+        assert director_ai.__version__ == "0.10.0"
 
     def test_all_exports_present(self):
         for name in [
@@ -135,12 +135,12 @@ class TestGroundTruthStore:
 
 class TestCoherenceScorerNoStore:
     def test_factual_divergence_without_store(self):
-        scorer = CoherenceScorer(threshold=0.5)  # no ground_truth_store
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False)
         h = scorer.calculate_factual_divergence("test", "anything")
         assert h == 0.5  # neutral when no store
 
     def test_review_without_store(self):
-        scorer = CoherenceScorer(threshold=0.5)
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False)
         approved, score = scorer.review("test", "consistent with reality")
         assert isinstance(approved, bool)
 

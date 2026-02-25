@@ -17,7 +17,7 @@ store = GroundTruthStore()
 store.add("sky color", "blue")
 
 # 2. Create a scorer
-scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
+scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store, use_nli=False)
 
 # 3. Check LLM outputs
 tests = [

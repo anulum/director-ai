@@ -30,7 +30,7 @@ class CoherenceAgent:
     that passes the threshold is forwarded through the safety kernel.
     """
 
-    def __init__(self, llm_api_url=None):
+    def __init__(self, llm_api_url=None, use_nli=None):
         self.logger = logging.getLogger("CoherenceAgent")
         self.generator: MockGenerator | LLMGenerator
 
@@ -40,9 +40,13 @@ class CoherenceAgent:
         else:
             self.generator = MockGenerator()
             self.logger.info("Using Mock Generator (Simulation Mode)")
+            if use_nli is None:
+                use_nli = False
 
         self.store = GroundTruthStore()
-        self.scorer = CoherenceScorer(threshold=0.6, ground_truth_store=self.store)
+        self.scorer = CoherenceScorer(
+            threshold=0.6, ground_truth_store=self.store, use_nli=use_nli
+        )
         self.kernel = SafetyKernel()
 
     def process(self, prompt: str) -> "ReviewResult":

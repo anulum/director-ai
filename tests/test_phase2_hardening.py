@@ -278,7 +278,7 @@ class TestSharedScoreBlending:
 
     @pytest.fixture
     def scorer(self):
-        return CoherenceScorer(threshold=0.6)
+        return CoherenceScorer(threshold=0.6, use_nli=False)
 
     def test_heuristic_coherence_returns_three_floats(self, scorer):
         h_logic, h_fact, coherence = scorer._heuristic_coherence(

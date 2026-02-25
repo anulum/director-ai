@@ -401,14 +401,14 @@ class TestH42ScorerThreadLock:
     def test_scorer_has_lock(self):
         from director_ai.core.scorer import CoherenceScorer
 
-        s = CoherenceScorer()
+        s = CoherenceScorer(use_nli=False)
         assert hasattr(s, "_history_lock")
         assert isinstance(s._history_lock, type(threading.Lock()))
 
     def test_concurrent_reviews(self):
         from director_ai.core.scorer import CoherenceScorer
 
-        scorer = CoherenceScorer(threshold=0.3)
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         errors = []
 
         def review_many():

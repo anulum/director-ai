@@ -22,7 +22,7 @@ from .agent import CoherenceAgent
 from .bridge import PhysicsBackedScorer
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
-from .nli import NLIScorer
+from .nli import NLIScorer, nli_available
 from .scorer import CoherenceScorer
 from .streaming import StreamingKernel, StreamSession, TokenEvent
 from .types import CoherenceScore, ReviewResult
@@ -44,6 +44,7 @@ __all__ = [
     "CoherenceAgent",
     # v0.4.0 additions
     "NLIScorer",
+    "nli_available",
     "VectorGroundTruthStore",
     "VectorBackend",
     "InMemoryBackend",

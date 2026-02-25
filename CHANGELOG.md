@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-02-25
+
+### Added
+- **NLI auto-detection**: `CoherenceScorer` auto-enables NLI when torch
+  and transformers are installed (`use_nli=None` default)
+- **Configurable NLI model**: `NLIScorer(model_name=...)` supports
+  custom or fine-tuned models
+- `nli_available()` helper to check NLI readiness at runtime
+- `[nli]` optional dependency group: `pip install director-ai[nli]`
+- Integration examples: `openai_guard.py`, `ollama_guard.py`,
+  `langchain_guard.py`, `quickstart.py`
+- `GroundTruthStore.add()` method for clean fact injection
+
+### Changed
+- **Lightweight base install**: torch and transformers moved from base
+  dependencies to `[nli]` optional — base install is now ~1 MB
+- `CoherenceScorer` uses `NLIScorer` for both logical and factual
+  divergence (eliminates duplicated inline NLI code)
+- `GroundTruthStore.retrieve_context()` returns values only (not
+  "key is value"), improving NLI premise quality
+- `CoherenceAgent` disables NLI in mock mode (heuristic-designed
+  mock responses don't work with real NLI)
+- Development status: Alpha → Beta
+- CONTRIBUTING.md, SECURITY.md rewritten
+- 8 philosophy docs moved to `docs/archive/`
+
+### Fixed
+- README streaming example: wrong parameter names and iteration pattern
+- README: removed hardcoded test count
+
 ## [0.9.0] - 2026-02-25
 
 ### Added
@@ -240,7 +270,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v0.10.0...HEAD
+[0.10.0]: https://github.com/anulum/director-ai/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/anulum/director-ai/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/anulum/director-ai/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/anulum/director-ai/compare/v0.8.0...v0.8.1
