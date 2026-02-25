@@ -22,21 +22,28 @@ __version__ = "0.10.0"
 # ── Consumer core (always available) ──────────────────────────────────
 from .core import (
     AsyncStreamingKernel,
+    AuditEntry,
+    AuditLogger,
     CoherenceAgent,
     CoherenceScore,
     CoherenceScorer,
     GroundTruthStore,
     InMemoryBackend,
+    InputSanitizer,
     LLMGenerator,
     MockGenerator,
     NLIScorer,
     PhysicsBackedScorer,
+    Policy,
     ReviewResult,
     SafetyKernel,
+    SanitizeResult,
     StreamingKernel,
     StreamSession,
+    TenantRouter,
     TokenEvent,
     VectorGroundTruthStore,
+    Violation,
 )
 
 __all__ = [
@@ -58,6 +65,13 @@ __all__ = [
     "TokenEvent",
     "PhysicsBackedScorer",
     "AsyncStreamingKernel",
+    "Policy",
+    "Violation",
+    "AuditLogger",
+    "AuditEntry",
+    "TenantRouter",
+    "InputSanitizer",
+    "SanitizeResult",
 ]
 
 # ── Research extensions (optional) ────────────────────────────────────

@@ -20,12 +20,16 @@ Quick start::
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
 from .async_streaming import AsyncStreamingKernel
+from .audit import AuditEntry, AuditLogger
 from .bridge import PhysicsBackedScorer
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .nli import NLIScorer, nli_available
+from .policy import Policy, Violation
+from .sanitizer import InputSanitizer, SanitizeResult
 from .scorer import CoherenceScorer
 from .streaming import StreamingKernel, StreamSession, TokenEvent
+from .tenant import TenantRouter
 from .types import CoherenceScore, ReviewResult
 from .vector_store import (
     ChromaBackend,
@@ -55,4 +59,11 @@ __all__ = [
     "TokenEvent",
     "PhysicsBackedScorer",
     "AsyncStreamingKernel",
+    "Policy",
+    "Violation",
+    "AuditLogger",
+    "AuditEntry",
+    "TenantRouter",
+    "InputSanitizer",
+    "SanitizeResult",
 ]
