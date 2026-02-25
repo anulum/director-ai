@@ -101,7 +101,7 @@ pip install -e ".[dev,research]"
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
 store = GroundTruthStore()
-store.add("sky color", "The sky is blue due to Rayleigh scattering.")
+store.facts["sky color"] = "blue"  # Add your own facts
 
 scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
 approved, score = scorer.review("What color is the sky?", "The sky is green.")
@@ -130,12 +130,16 @@ else:
 ```python
 from director_ai.core import StreamingKernel
 
-kernel = StreamingKernel(halt_threshold=0.4)
-session = kernel.stream_tokens(prompt="...", tokens=token_iterator)
+kernel = StreamingKernel(hard_limit=0.4, window_size=5, window_threshold=0.5)
 
-for event in session:
+session = kernel.stream_tokens(
+    token_generator=my_token_iterator,
+    coherence_callback=lambda tok: my_scorer(tok),
+)
+
+for event in session.events:
     if event.halted:
-        print("[HALTED — coherence dropped]")
+        print(f"\n[HALTED — {session.halt_reason}]")
         break
     print(event.token, end="")
 ```
@@ -159,8 +163,8 @@ print(score.h_logical)  # High — NLI detects contradiction
 from director_ai.core import VectorGroundTruthStore
 
 store = VectorGroundTruthStore()  # Uses ChromaDB
-store.add("company policy", "Refunds are available within 30 days.")
-store.add("pricing", "Enterprise plan starts at $99/month.")
+store.add_fact("company policy", "Refunds are available within 30 days.")
+store.add_fact("pricing", "Enterprise plan starts at $99/month.")
 
 scorer = CoherenceScorer(ground_truth_store=store)
 approved, score = scorer.review(
@@ -169,6 +173,18 @@ approved, score = scorer.review(
 )
 # approved = False — contradicts your KB
 ```
+
+### Integration examples
+
+See `examples/` for ready-to-run integrations:
+
+| Example | Backend | What it shows |
+|---------|---------|---------------|
+| [`quickstart.py`](examples/quickstart.py) | None | Guard any output in 10 lines |
+| [`openai_guard.py`](examples/openai_guard.py) | OpenAI | Score + streaming halt for GPT-4o |
+| [`ollama_guard.py`](examples/ollama_guard.py) | Ollama | Local LLM guard with Llama 3 |
+| [`langchain_guard.py`](examples/langchain_guard.py) | LangChain | Output checker for chains |
+| [`streaming_halt_demo.py`](examples/streaming_halt_demo.py) | Simulated | All 3 halt mechanisms visualised |
 
 ## Scoring Formula
 
@@ -260,7 +276,7 @@ including phase dynamics, topological observables, and stability proofs.
 ## Testing
 
 ```bash
-# Run all tests (375 total)
+# Run all tests
 pytest tests/ -v
 
 # Consumer API tests only

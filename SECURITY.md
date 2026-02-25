@@ -2,20 +2,17 @@
 
 ## Supported Versions
 
-| Version | Supported          | Notes |
-|---------|--------------------|-------|
-| 0.2.x   | :white_check_mark: | Current development release |
-| < 0.2   | :x:                | Pre-release / unreleased |
+| Version | Supported |
+|---------|-----------|
+| 0.9.x   | Yes |
+| < 0.9   | No  |
 
 Only the latest release receives security fixes.
 
 ## Reporting a Vulnerability
 
-If you discover a security vulnerability in Director-Class AI, please report it
-responsibly:
-
 1. **Email:** protoscience@anulum.li
-2. **Subject:** `[SECURITY] Director-Class AI — <brief description>`
+2. **Subject:** `[SECURITY] Director-AI — <brief description>`
 3. **Do not** open a public GitHub issue for security vulnerabilities.
 
 We will acknowledge receipt within 48 hours and aim to provide a fix within
@@ -23,53 +20,26 @@ We will acknowledge receipt within 48 hours and aim to provide a fix within
 
 ## Scope
 
-Director-Class AI is an AI safety research prototype. Security concerns are
-primarily:
+Security concerns for Director-AI:
 
-- **Prompt injection**: Adversarial inputs designed to bypass the Director's
-  entropy oversight or the Backfire Kernel safety mechanism
-- **SEC metric evasion**: Inputs crafted to produce low-entropy scores for
-  harmful outputs (false negatives)
-- **RAG poisoning**: Malicious entries in the knowledge base that corrupt
-  factual entropy calculations
-- **Model deserialization**: Unsafe loading of NLI model weights or pickled
-  objects
-- **Dependency supply chain**: Compromised upstream packages (transformers,
-  torch, numpy, scipy)
+- **Prompt injection**: adversarial inputs designed to bypass coherence oversight
+- **Metric evasion**: inputs crafted to produce high coherence scores for
+  hallucinated outputs (false negatives)
+- **Knowledge base poisoning**: malicious entries that corrupt factual scoring
+- **Model deserialization**: unsafe loading of NLI model weights
+- **Dependency supply chain**: compromised upstream packages
 
-## Security Measures in Place
+## Security Measures
 
-### Entropy Oversight (v0.2.0)
-The Director Module implements dual-entropy monitoring:
-- **Logical Entropy**: NLI-based contradiction detection
-- **Factual Entropy**: RAG-based ground truth verification
-- **SEC Threshold**: Hard cutoff at 0.6 — any action below triggers halt
-
-### Backfire Kernel (v0.2.0)
-Hardware interlock simulation that can physically sever the token stream
-when entropy exceeds the safety threshold (0.5 hard limit).
-
-### Dependency Auditing
-- Dependencies are minimal (`numpy`, `scipy`, `torch`, `transformers`)
-- No `pickle.load` of untrusted data in any module
-- Model weights loaded only from trusted sources (Hugging Face Hub)
+- **Dual-entropy scoring**: NLI contradiction detection + RAG fact-checking
+- **Streaming halt**: token-level coherence monitoring with three halt mechanisms
+- **Safety kernel**: hardware-level output interlock with emergency stop
+- **Minimal dependencies**: core requires only numpy, torch, transformers, requests
+- **No pickle.load of untrusted data** in any module
+- **CI security audit**: `pip-audit` runs on every push
 
 ## Known Limitations
 
-- **No fuzzing harness yet.** Adversarial prompt testing is manual.
-- **No third-party security audit.** The codebase has not been reviewed by
-  an external security firm.
-- **Mock NLI in prototype.** The mock entropy calculations are deterministic
-  and can be trivially bypassed. Production deployment requires real NLI models.
-- **No CVE history.** No vulnerabilities have been reported to date.
-
-Contributions to improve security coverage (adversarial test suites, model
-robustness evaluation, formal verification) are welcome.
-
-## Disclosure Timeline
-
-| Date | Event |
-|------|-------|
-| 2025-12-29 | v0.1.0 initial prototype |
-| 2026-01-21 | v0.2.0 Consilium subsystem added |
-| 2026-02-15 | Repository professionalized, dual-license established |
+- No fuzzing harness. Adversarial prompt testing is manual.
+- No third-party security audit.
+- Heuristic scorer (without NLI model) is deterministic and trivially bypassed.

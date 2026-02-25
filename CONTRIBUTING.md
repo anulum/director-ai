@@ -1,6 +1,4 @@
-# Contributing to Director-Class AI
-
-Thank you for your interest in contributing to Director-Class AI.
+# Contributing to Director-AI
 
 ## Getting Started
 
@@ -12,112 +10,67 @@ Thank you for your interest in contributing to Director-Class AI.
 ## Development Setup
 
 ```bash
-pip install -e ".[dev]"
+pip install -e ".[dev,research]"
 pytest tests/ -v
 ```
 
 ## Code Style
 
-### Python
-
-- **Formatter**: [black](https://github.com/psf/black) with default settings (line length 88)
-- **Linter**: [ruff](https://github.com/astral-sh/ruff) recommended
-- **Type hints**: Use where practical, especially on public APIs
-- **Docstrings**: Google or NumPy style
+- **Formatter**: [ruff format](https://docs.astral.sh/ruff/formatter/) (line length 88)
+- **Linter**: [ruff check](https://docs.astral.sh/ruff/linter/) with rules E, F, W, I, N, UP, B, SIM
+- **Type checker**: [mypy](https://mypy-lang.org/)
 
 ```bash
 # Format
-black src/ tests/
+ruff format src/ tests/ examples/
 
 # Lint
-ruff check src/ tests/
+ruff check src/ tests/ examples/
+
+# Type check
+mypy src/
 ```
 
-### Copyright Headers
-
-**Every new source file** must include a copyright header. Use the following
-template at the top of every `.py` file:
-
-```python
-# ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — <module description>
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# Contact: www.anulum.li | protoscience@anulum.li
-# ORCID: https://orcid.org/0009-0009-3560-0851
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
-```
+All three must pass in CI before merge.
 
 ## Pull Request Process
 
-1. **Branch**: Create from `main` with a descriptive name (`feature/`, `fix/`, `docs/`)
-2. **Tests**: All tests must pass — `pytest tests/ -v`
-3. **Style**: Code must be formatted (`black`) and lint-clean
-4. **Coverage**: Add tests for new functionality
-5. **Commits**: One logical change per commit; describe *why*, not just *what*
-6. **PR description**: Summarize changes, link related issues, note breaking changes
-7. **Review**: At least one maintainer approval required before merge
+1. **Branch** from `main` with a descriptive name (`feature/`, `fix/`, `docs/`)
+2. **Tests** must pass: `pytest tests/ -v`
+3. **Lint** must pass: `ruff check && ruff format --check`
+4. **Coverage**: add tests for new functionality
+5. **Commits**: one logical change per commit, imperative mood, under 72 chars
+6. **PR description**: summarize changes, link related issues
 
-### What Makes a Good PR
+## Architecture
 
-- Focused scope (one feature or fix)
-- Tests that fail without the change and pass with it
-- No unrelated formatting changes
-- Clear commit messages
-
-## Reporting Issues
-
-- **Bug Report**: Include reproduction steps, environment, and error output
-- **Feature Request**: Describe the problem and proposed solution
-- **Security Vulnerability**: See [SECURITY.md](SECURITY.md)
-
-## Architecture Notes
-
-The Python package lives in `src/director_ai/` with two profiles:
+The package lives in `src/director_ai/` with two profiles:
 
 ### Consumer — `core/` (always installed)
 
-- `core/agent.py` — `CoherenceAgent`, main orchestrator pipeline
-- `core/scorer.py` — `CoherenceScorer`, dual-entropy (NLI + RAG) scoring
-- `core/kernel.py` — `SafetyKernel`, software safety gate
-- `core/actor.py` — `MockGenerator` / `LLMGenerator` (candidate generation)
-- `core/knowledge.py` — `GroundTruthStore` (RAG ground-truth retrieval)
-- `core/types.py` — `CoherenceScore`, `ReviewResult` dataclasses
+| Module | Class | Purpose |
+|--------|-------|---------|
+| `agent.py` | `CoherenceAgent` | Main orchestrator pipeline |
+| `scorer.py` | `CoherenceScorer` | Dual-entropy (NLI + RAG) scoring |
+| `kernel.py` | `SafetyKernel` | Output interlock |
+| `streaming.py` | `StreamingKernel` | Token-level streaming halt |
+| `nli.py` | `NLIScorer` | DeBERTa NLI backend |
+| `knowledge.py` | `GroundTruthStore` | In-memory fact store |
+| `vector_store.py` | `VectorGroundTruthStore` | ChromaDB vector store |
+| `actor.py` | `LLMGenerator` | LLM backend interface |
+| `types.py` | `CoherenceScore`, `ReviewResult` | Data types |
 
 ### Research — `research/` (requires `pip install director-ai[research]`)
 
-- `research/physics/` — SCPN parameters, SEC Lyapunov functional, UPDE integrator, L16 closure
-- `research/consciousness/` — TCBO observer/controller, PGBO engine, benchmarks
-- `research/consilium/` — L15 Ethical Functional & active inference agent
+Experimental physics-inspired extensions. Not part of the stable API.
 
-## Priority Areas for Contribution
+## Reporting Issues
 
-We especially welcome contributions in:
-
-- **NLI Models**: Replacing mock entropy calculations with real NLI inference
-- **RAG Integration**: Connecting to vector databases (FAISS, Chroma, Milvus)
-- **Safety Kernel**: Rust/C++ safety gate implementation
-- **Testing**: Property-based testing, adversarial prompt suites
-- **Documentation**: Tutorials, architecture diagrams, API examples
-- **Benchmarks**: Coherence score evaluation across model families
-- **SSGF Integration**: Connecting SSGF outer-cycle geometry to research/physics
+- **Bugs**: include reproduction steps, Python version, and error output
+- **Features**: describe the problem and proposed solution
+- **Security**: see [SECURITY.md](SECURITY.md) — do not open public issues
 
 ## License
 
-By contributing, you agree that your contributions will be licensed under the
+By contributing, you agree that your contributions will be licensed under
 GNU AGPL v3.0. See [NOTICE](NOTICE) for dual-licensing details.
-
----
-
-## Session Logs & Handovers
-
-All session logs and handover documents for this project are stored permanently in the monorepo's canonical location:
-
-- **Session logs:** `.coordination/sessions/DIRECTOR_AI/`
-- **Handovers:** `.coordination/handovers/DIRECTOR_AI/`
-
-**Do not** place session logs or handovers inside this project directory. They will be moved during consolidation.
-
-These files are **permanent records** and must never be deleted, even if outdated.
-
-See [`.coordination/SESSION_AND_HANDOVER_POLICY.md`](../../.coordination/SESSION_AND_HANDOVER_POLICY.md) for naming conventions, templates, and the full policy.
