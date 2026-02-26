@@ -20,7 +20,7 @@
 
 <p align="center">
   <a href="https://anulum.github.io/director-ai/pitch.html"><strong>Sales Pitch &amp; Pricing</strong></a> &middot;
-  <a href="https://www.anulum.li/contact">Contact Sales</a> &middot;
+  <a href="https://www.anulum.li/contact.html">Contact Sales</a> &middot;
   <a href="mailto:invest@anulum.li">invest@anulum.li</a>
 </p>
 
@@ -366,7 +366,7 @@ Dual-licensed:
 **Perpetual license**: $1,299 one-time (Indie equivalent).
 **First 50 commercial licensees**: 50% off first year.
 
-Contact: [anulum.li/contact](https://www.anulum.li/contact) or invest@anulum.li
+Contact: [anulum.li/contact](https://www.anulum.li/contact.html) or invest@anulum.li
 
 See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
