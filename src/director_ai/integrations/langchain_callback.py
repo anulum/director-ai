@@ -20,7 +20,10 @@ Requires ``pip install director-ai[langchain]``.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from director_ai.core.types import CoherenceScore
 
 logger = logging.getLogger("DirectorAI.LangChain")
 
@@ -70,7 +73,7 @@ class CoherenceCallbackHandler(BaseCallbackHandler):
             ground_truth_store=ground_truth_store,
         )
         self.raise_on_failure = raise_on_failure
-        self.last_score = None
+        self.last_score: CoherenceScore | None = None
         self.scores: list = []
         self._current_prompt: str = ""
 

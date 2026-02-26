@@ -118,7 +118,10 @@ class NLIScorer:
 
     def _model_score(self, premise: str, hypothesis: str) -> float:
         """Score using the NLI model."""
-        import torch
+        try:
+            import torch
+        except ImportError:
+            raise RuntimeError("NLI model not loaded — torch not installed") from None
 
         if self._tokenizer is None or self._model is None:
             raise RuntimeError("NLI model not loaded")

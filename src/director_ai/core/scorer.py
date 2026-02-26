@@ -146,7 +146,9 @@ class CoherenceScorer:
         coherence = 1.0 - total_divergence
         return h_logic, h_fact, coherence
 
-    def _finalise_review(self, coherence, h_logic, h_fact, action):
+    def _finalise_review(
+        self, coherence, h_logic, h_fact, action
+    ) -> tuple[bool, CoherenceScore]:
         """Build CoherenceScore, gate on threshold, update history.
 
         Returns (approved, CoherenceScore).
