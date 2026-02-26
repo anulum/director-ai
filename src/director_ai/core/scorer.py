@@ -189,23 +189,15 @@ class CoherenceScorer:
         )
         return total
 
-    def review(self, prompt, action):
-        """
-        Score an action and decide whether to approve it.
-
-        Returns:
-            (approved: bool, score: CoherenceScore)
-        """
+    def review(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
+        """Score an action and decide whether to approve it."""
         h_logic, h_fact, coherence = self._heuristic_coherence(prompt, action)
         return self._finalise_review(coherence, h_logic, h_fact, action)
 
     # ── Async API ──────────────────────────────────────────────────────
 
-    async def areview(self, prompt, action):
-        """Async version of review() — offloads NLI inference to a thread pool.
-
-        Returns (approved: bool, score: CoherenceScore), same as review().
-        """
+    async def areview(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
+        """Async version of review() — offloads NLI inference to a thread pool."""
         import asyncio
 
         loop = asyncio.get_running_loop()

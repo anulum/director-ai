@@ -66,16 +66,17 @@ class Policy:
     required_citations_min: int = 0
 
     _compiled_forbidden: list[re.Pattern] = field(
-        default_factory=list, repr=False,
+        default_factory=list,
+        repr=False,
     )
     _compiled_patterns: list[tuple[str, re.Pattern, str]] = field(
-        default_factory=list, repr=False,
+        default_factory=list,
+        repr=False,
     )
 
     def __post_init__(self) -> None:
         self._compiled_forbidden = [
-            re.compile(re.escape(phrase), re.IGNORECASE)
-            for phrase in self.forbidden
+            re.compile(re.escape(phrase), re.IGNORECASE) for phrase in self.forbidden
         ]
         self._compiled_patterns = []
         for p in self.patterns:
@@ -109,9 +110,11 @@ class Policy:
             raw = f.read()
         try:
             import yaml
+
             data = yaml.safe_load(raw)
         except ImportError:
             import json
+
             data = json.loads(raw)
         if not isinstance(data, dict):
             return cls()
@@ -123,33 +126,40 @@ class Policy:
 
         for i, pat in enumerate(self._compiled_forbidden):
             if pat.search(text):
-                violations.append(Violation(
-                    rule="forbidden",
-                    detail=self.forbidden[i],
-                ))
+                violations.append(
+                    Violation(
+                        rule="forbidden",
+                        detail=self.forbidden[i],
+                    )
+                )
 
         if self.max_length > 0 and len(text) > self.max_length:
-            violations.append(Violation(
-                rule="max_length",
-                detail=f"{len(text)} > {self.max_length}",
-            ))
+            violations.append(
+                Violation(
+                    rule="max_length",
+                    detail=f"{len(text)} > {self.max_length}",
+                )
+            )
 
         if self.required_citations_min > 0 and self.required_citations_pattern:
             matches = re.findall(self.required_citations_pattern, text)
             if len(matches) < self.required_citations_min:
-                violations.append(Violation(
-                    rule="required_citations",
-                    detail=(
-                        f"found {len(matches)}, "
-                        f"need {self.required_citations_min}"
-                    ),
-                ))
+                violations.append(
+                    Violation(
+                        rule="required_citations",
+                        detail=(
+                            f"found {len(matches)}, need {self.required_citations_min}"
+                        ),
+                    )
+                )
 
         for name, pat, action in self._compiled_patterns:
             if pat.search(text):
-                violations.append(Violation(
-                    rule=f"pattern:{name}",
-                    detail=action,
-                ))
+                violations.append(
+                    Violation(
+                        rule=f"pattern:{name}",
+                        detail=action,
+                    )
+                )
 
         return violations

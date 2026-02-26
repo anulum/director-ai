@@ -102,7 +102,7 @@ class DirectorAIGuard:
         else:
             query = kwargs.get("query", "")
             response = str(input)
-        return self.check(query, response)
+        return self.check(str(query), str(response))
 
     async def ainvoke(self, input: Any, **kwargs) -> dict[str, Any]:
         """Async LangChain Runnable interface."""
@@ -112,19 +112,16 @@ class DirectorAIGuard:
         else:
             query = kwargs.get("query", "")
             response = str(input)
-        return await self.acheck(query, response)
+        return await self.acheck(str(query), str(response))
 
 
 class HallucinationError(Exception):
     """Raised when DirectorAIGuard detects hallucination."""
 
-    def __init__(
-        self, query: str, response: str, score: CoherenceScore
-    ):
+    def __init__(self, query: str, response: str, score: CoherenceScore):
         self.query = query
         self.response = response
         self.score = score
         super().__init__(
-            f"Hallucination detected (coherence={score.score:.3f}): "
-            f"{response[:100]}"
+            f"Hallucination detected (coherence={score.score:.3f}): {response[:100]}"
         )

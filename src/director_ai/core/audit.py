@@ -86,9 +86,7 @@ class AuditLogger:
         """Record a review decision."""
         entry = AuditEntry(
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),
-            query_hash=hashlib.sha256(
-                query.encode("utf-8")
-            ).hexdigest()[:16],
+            query_hash=hashlib.sha256(query.encode("utf-8")).hexdigest()[:16],
             response_length=len(response),
             approved=approved,
             score=round(score, 4),

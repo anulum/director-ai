@@ -53,10 +53,12 @@ class TestLangChainGuard:
             facts={"sky color": "The sky is blue."},
             use_nli=False,
         )
-        result = guard.invoke({
-            "query": "What color is the sky?",
-            "response": "The sky is blue.",
-        })
+        result = guard.invoke(
+            {
+                "query": "What color is the sky?",
+                "response": "The sky is blue.",
+            }
+        )
         assert result["approved"] is True
 
     def test_invoke_string(self):

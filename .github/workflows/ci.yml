@@ -48,7 +48,7 @@ jobs:
         run: pip install -e ".[dev,research]"
 
       - name: Install type stubs
-        run: pip install types-requests
+        run: pip install types-requests types-PyYAML
 
       - name: Run mypy
         run: mypy src/director_ai/ --ignore-missing-imports --check-untyped-defs

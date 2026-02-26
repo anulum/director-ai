@@ -69,11 +69,15 @@ class TestPolicy:
     def test_custom_pattern_blocks(self):
         from director_ai.core.policy import Policy
 
-        p = Policy(patterns=[{
-            "name": "no_placeholder",
-            "regex": r"\bTODO\b",
-            "action": "block",
-        }])
+        p = Policy(
+            patterns=[
+                {
+                    "name": "no_placeholder",
+                    "regex": r"\bTODO\b",
+                    "action": "block",
+                }
+            ]
+        )
         vs = p.check("This is a TODO item")
         assert len(vs) == 1
         assert vs[0].rule == "pattern:no_placeholder"
@@ -100,12 +104,7 @@ class TestPolicy:
     def test_from_yaml_file(self, tmp_path):
         from director_ai.core.policy import Policy
 
-        yaml_content = (
-            "forbidden:\n"
-            '  - "bad phrase"\n'
-            "style:\n"
-            "  max_length: 100\n"
-        )
+        yaml_content = 'forbidden:\n  - "bad phrase"\nstyle:\n  max_length: 100\n'
         f = tmp_path / "policy.yaml"
         f.write_text(yaml_content, encoding="utf-8")
         p = Policy.from_yaml(str(f))
@@ -133,7 +132,10 @@ class TestAuditLogger:
 
         audit = AuditLogger()
         entry = audit.log_review(
-            query="test?", response="yes", approved=True, score=0.9,
+            query="test?",
+            response="yes",
+            approved=True,
+            score=0.9,
         )
         assert entry.approved is True
         assert entry.score == 0.9
@@ -145,7 +147,10 @@ class TestAuditLogger:
         log_file = tmp_path / "audit.jsonl"
         audit = AuditLogger(path=log_file)
         audit.log_review(
-            query="q", response="r", approved=False, score=0.3,
+            query="q",
+            response="r",
+            approved=False,
+            score=0.3,
             policy_violations=["forbidden:hack"],
             tenant_id="acme",
         )
@@ -176,8 +181,10 @@ class TestAuditLogger:
         audit = AuditLogger(path=log_file)
         for i in range(5):
             audit.log_review(
-                query=f"q{i}", response=f"r{i}",
-                approved=i % 2 == 0, score=i * 0.2,
+                query=f"q{i}",
+                response=f"r{i}",
+                approved=i % 2 == 0,
+                score=i * 0.2,
             )
         lines = log_file.read_text(encoding="utf-8").strip().split("\n")
         assert len(lines) == 5
@@ -235,7 +242,8 @@ class TestTenantRouter:
         router.add_fact("acme", "sky color", "blue")
         scorer = router.get_scorer("acme", use_nli=False)
         approved, cs = scorer.review(
-            "What color is the sky?", "The sky is blue.",
+            "What color is the sky?",
+            "The sky is blue.",
         )
         assert approved is True
 
@@ -329,9 +337,11 @@ class TestInputSanitizer:
     def test_extra_patterns(self):
         from director_ai.core.sanitizer import InputSanitizer
 
-        san = InputSanitizer(extra_patterns=[
-            ("custom_block", r"\bSECRET\b"),
-        ])
+        san = InputSanitizer(
+            extra_patterns=[
+                ("custom_block", r"\bSECRET\b"),
+            ]
+        )
         r = san.check("The SECRET code is 1234")
         assert r.blocked is True
         assert r.pattern == "custom_block"

@@ -27,30 +27,45 @@ import unicodedata
 from dataclasses import dataclass
 
 _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
-    ("instruction_override", re.compile(
-        r"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+"
-        r"(instructions?|rules?|context|prompts?)",
-        re.IGNORECASE,
-    )),
-    ("system_role_injection", re.compile(
-        r"(you\s+are\s+now|act\s+as|pretend\s+(to\s+be|you\s+are)|"
-        r"new\s+instructions?:|system\s*:)",
-        re.IGNORECASE,
-    )),
-    ("delimiter_injection", re.compile(
-        r"(```\s*system|<\|im_start\|>|<\|endoftext\|>|"
-        r"\[INST\]|\[/INST\]|<<SYS>>|<</SYS>>)",
-        re.IGNORECASE,
-    )),
-    ("output_manipulation", re.compile(
-        r"(output\s*:|response\s*:|answer\s*:|reply\s+with\s*:)",
-        re.IGNORECASE,
-    )),
-    ("data_exfiltration", re.compile(
-        r"(repeat\s+(all|every)\s+(\w+\s+)*(text|content|instructions?|context)|"
-        r"what\s+(are|were)\s+your\s+(instructions?|rules?|system\s+prompt))",
-        re.IGNORECASE,
-    )),
+    (
+        "instruction_override",
+        re.compile(
+            r"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+"
+            r"(instructions?|rules?|context|prompts?)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "system_role_injection",
+        re.compile(
+            r"(you\s+are\s+now|act\s+as|pretend\s+(to\s+be|you\s+are)|"
+            r"new\s+instructions?:|system\s*:)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "delimiter_injection",
+        re.compile(
+            r"(```\s*system|<\|im_start\|>|<\|endoftext\|>|"
+            r"\[INST\]|\[/INST\]|<<SYS>>|<</SYS>>)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "output_manipulation",
+        re.compile(
+            r"(output\s*:|response\s*:|answer\s*:|reply\s+with\s*:)",
+            re.IGNORECASE,
+        ),
+    ),
+    (
+        "data_exfiltration",
+        re.compile(
+            r"(repeat\s+(all|every)\s+(\w+\s+)*(text|content|instructions?|context)|"
+            r"what\s+(are|were)\s+your\s+(instructions?|rules?|system\s+prompt))",
+            re.IGNORECASE,
+        ),
+    ),
 ]
 
 _MAX_INPUT_LENGTH = 100_000
@@ -84,9 +99,7 @@ class InputSanitizer:
         self._patterns = list(_INJECTION_PATTERNS)
         if extra_patterns:
             for name, regex in extra_patterns:
-                self._patterns.append(
-                    (name, re.compile(regex, re.IGNORECASE))
-                )
+                self._patterns.append((name, re.compile(regex, re.IGNORECASE)))
 
     def check(self, text: str) -> SanitizeResult:
         """Check text for injection patterns. Returns blocked=True if tainted."""
@@ -107,7 +120,9 @@ class InputSanitizer:
         for name, pat in self._patterns:
             if pat.search(text):
                 return SanitizeResult(
-                    blocked=True, reason=name, pattern=name,
+                    blocked=True,
+                    reason=name,
+                    pattern=name,
                 )
 
         return SanitizeResult(blocked=False)
