@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Enterprise modules** (Phase 6):
+  - `Policy` — YAML declarative policy engine (forbidden phrases, max length,
+    required citations, custom regex patterns)
+  - `AuditLogger` / `AuditEntry` — structured JSONL audit trail with SHA-256
+    query hashing (never stores plaintext queries)
+  - `TenantRouter` — thread-safe multi-tenant KB isolation with scoped scorers
+  - `InputSanitizer` / `SanitizeResult` — prompt injection hardening (5 detection
+    categories + Unicode homoglyph detection + control char scrubbing)
+- **Async scorer**: `CoherenceScorer.areview()` for non-blocking pipelines
+- **LangChain integration**: `DirectorAIGuard` Runnable with `check()`/`invoke()`/`ainvoke()`
+- **LlamaIndex integration**: `DirectorAIPostprocessor` with `validate_response()`/`postprocess_nodes()`
+- **Latency benchmark**: `benchmarks/latency_bench.py` — measured <0.1 ms lightweight, 458 ms NLI (CPU)
+- **Competitor comparison**: updated `benchmarks/comparison/COMPETITOR_COMPARISON.md` with real data
+- `[langchain]`, `[llamaindex]`, `[server]` optional dependency groups
+- `[project.scripts]` CLI entry point: `director-ai`
+
+### Changed
+- `docs/conf.py` release: 0.9.0 → 0.10.0
+- `docs/API_REFERENCE.md` rewritten with current class names and examples
+- `CONTRIBUTING.md` architecture table: added Phase 5-6 modules
+- `SECURITY.md`: version table updated, enterprise protections documented
+- Sphinx RST: all core modules now included in autodoc
+
 ## [0.10.0] - 2026-02-25
 
 ### Added

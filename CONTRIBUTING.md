@@ -54,11 +54,27 @@ The package lives in `src/director_ai/` with two profiles:
 | `scorer.py` | `CoherenceScorer` | Dual-entropy (NLI + RAG) scoring |
 | `kernel.py` | `SafetyKernel` | Output interlock |
 | `streaming.py` | `StreamingKernel` | Token-level streaming halt |
+| `async_streaming.py` | `AsyncStreamingKernel` | Non-blocking async streaming |
 | `nli.py` | `NLIScorer` | DeBERTa NLI backend |
 | `knowledge.py` | `GroundTruthStore` | In-memory fact store |
 | `vector_store.py` | `VectorGroundTruthStore` | ChromaDB vector store |
-| `actor.py` | `LLMGenerator` | LLM backend interface |
+| `actor.py` | `LLMGenerator`, `MockGenerator` | LLM backend interface |
+| `bridge.py` | `PhysicsBackedScorer` | Physics-coherence bridge |
+| `policy.py` | `Policy`, `Violation` | YAML declarative policy engine |
+| `audit.py` | `AuditLogger`, `AuditEntry` | Structured JSON audit trail |
+| `tenant.py` | `TenantRouter` | Multi-tenant KB isolation |
+| `sanitizer.py` | `InputSanitizer`, `SanitizeResult` | Prompt injection hardening |
+| `config.py` | `DirectorConfig` | YAML/JSON configuration manager |
+| `batch.py` | `BatchProcessor` | Parallel candidate evaluation |
+| `metrics.py` | `MetricsCollector` | Prometheus-style metrics |
 | `types.py` | `CoherenceScore`, `ReviewResult` | Data types |
+
+### Integrations — `integrations/`
+
+| Module | Class | Purpose |
+|--------|-------|---------|
+| `langchain.py` | `DirectorAIGuard` | LangChain Runnable guardrail |
+| `llamaindex.py` | `DirectorAIPostprocessor` | LlamaIndex postprocessor |
 
 ### Research — `research/` (requires `pip install director-ai[research]`)
 

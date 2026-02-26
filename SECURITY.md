@@ -4,8 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 0.9.x   | Yes |
-| < 0.9   | No  |
+| 0.10.x  | Yes |
+| < 0.10  | No  |
 
 Only the latest release receives security fixes.
 
@@ -34,7 +34,11 @@ Security concerns for Director-AI:
 - **Dual-entropy scoring**: NLI contradiction detection + RAG fact-checking
 - **Streaming halt**: token-level coherence monitoring with three halt mechanisms
 - **Safety kernel**: hardware-level output interlock with emergency stop
-- **Minimal dependencies**: core requires only numpy, torch, transformers, requests
+- **Prompt injection hardening**: `InputSanitizer` detects instruction overrides, role-play injections, delimiter tricks, output manipulation, and data exfiltration attempts; scrubs null bytes, control chars, and homoglyphs
+- **YAML policy engine**: `Policy` blocks forbidden phrases, enforces length limits, requires citations, and evaluates custom regex rules
+- **Multi-tenant isolation**: `TenantRouter` guarantees per-tenant KB separation with thread-safe access
+- **Structured audit trail**: `AuditLogger` writes JSONL with SHA-256 query hashes (never plaintext queries) for compliance and forensic review
+- **Minimal dependencies**: core requires only numpy and requests
 - **No pickle.load of untrusted data** in any module
 - **CI security audit**: `pip-audit` runs on every push
 
