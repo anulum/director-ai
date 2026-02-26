@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Director-AI — Real-time LLM Hallucination Guardrail</title>
+<meta name="description" content="Token-level streaming halt for LLM hallucinations. NLI + RAG fact-checking against your knowledge base. Enterprise-ready, open-source.">
+<meta property="og:title" content="Director-AI — Stop LLM Hallucinations in Real Time">
+<meta property="og:description" content="The only guardrail that halts LLM output mid-stream when coherence drops. NLI + RAG dual scoring against your own knowledge base.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://anulum.github.io/director-ai/pitch">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Director-AI — Real-time LLM Hallucination Guardrail">
+<meta name="twitter:description" content="Token-level streaming halt. NLI + RAG scoring. Enterprise-ready.">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;--text:#e0e0e8;--muted:#8888a0;--accent:#4f8eff;--accent2:#22d3ee;--green:#34d399;--red:#f87171;--orange:#fb923c}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none}
+a:hover{text-decoration:underline}
+
+.container{max-width:960px;margin:0 auto;padding:0 24px}
+
+/* Hero */
+.hero{padding:80px 0 60px;text-align:center;border-bottom:1px solid var(--border)}
+.hero h1{font-size:3rem;font-weight:800;letter-spacing:-0.03em;margin-bottom:16px}
+.hero h1 span{background:linear-gradient(135deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hero .tagline{font-size:1.25rem;color:var(--muted);max-width:640px;margin:0 auto 32px}
+.hero .cta{display:inline-flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.btn{display:inline-block;padding:12px 28px;border-radius:8px;font-weight:600;font-size:0.95rem;transition:all 0.2s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:#3a75e0;text-decoration:none}
+.btn-secondary{border:1px solid var(--border);color:var(--text);background:var(--surface)}
+.btn-secondary:hover{border-color:var(--accent);text-decoration:none}
+
+/* Differentiator */
+.diff{padding:60px 0;border-bottom:1px solid var(--border)}
+.diff h2{font-size:1.75rem;font-weight:700;margin-bottom:32px;text-align:center}
+.diff-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.diff-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:28px}
+.diff-card .icon{font-size:2rem;margin-bottom:12px}
+.diff-card h3{font-size:1.1rem;font-weight:700;margin-bottom:8px}
+.diff-card p{color:var(--muted);font-size:0.9rem}
+
+/* Comparison */
+.compare{padding:60px 0;border-bottom:1px solid var(--border)}
+.compare h2{font-size:1.75rem;font-weight:700;margin-bottom:32px;text-align:center}
+table{width:100%;border-collapse:collapse;font-size:0.9rem}
+th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--border)}
+th{color:var(--muted);font-weight:600;font-size:0.8rem;text-transform:uppercase;letter-spacing:0.05em}
+td{color:var(--text)}
+.yes{color:var(--green);font-weight:700}
+.no{color:var(--red);font-weight:600}
+.highlight-row{background:rgba(79,142,255,0.08)}
+
+/* Code */
+.code-section{padding:60px 0;border-bottom:1px solid var(--border)}
+.code-section h2{font-size:1.75rem;font-weight:700;margin-bottom:32px;text-align:center}
+.code-tabs{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.code-block{background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden}
+.code-block .label{display:block;padding:12px 20px;font-size:0.8rem;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border)}
+.code-block pre{padding:20px;font-size:0.85rem;overflow-x:auto;font-family:'SF Mono',Consolas,'Courier New',monospace;line-height:1.5}
+.code-block code{color:var(--text)}
+.kw{color:var(--accent)}
+.str{color:var(--green)}
+.cmt{color:var(--muted)}
+
+/* Pricing */
+.pricing{padding:60px 0;border-bottom:1px solid var(--border)}
+.pricing h2{font-size:1.75rem;font-weight:700;margin-bottom:8px;text-align:center}
+.pricing .sub{color:var(--muted);text-align:center;margin-bottom:32px}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px}
+.price-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:32px;text-align:center;position:relative}
+.price-card.featured{border-color:var(--accent)}
+.price-card .badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;font-size:0.75rem;font-weight:700;padding:4px 12px;border-radius:20px}
+.price-card .tier{font-size:1.1rem;font-weight:700;margin-bottom:4px}
+.price-card .price{font-size:2.5rem;font-weight:800;margin:12px 0 4px}
+.price-card .price span{font-size:1rem;color:var(--muted);font-weight:400}
+.price-card .yearly{color:var(--muted);font-size:0.85rem;margin-bottom:20px}
+.price-card ul{list-style:none;text-align:left;font-size:0.9rem}
+.price-card li{padding:6px 0;color:var(--muted)}
+.price-card li::before{content:"";display:inline-block;width:6px;height:6px;background:var(--accent);border-radius:50%;margin-right:8px;vertical-align:middle}
+
+/* Benchmarks */
+.benchmarks{padding:60px 0;border-bottom:1px solid var(--border)}
+.benchmarks h2{font-size:1.75rem;font-weight:700;margin-bottom:8px;text-align:center}
+.benchmarks .sub{color:var(--muted);text-align:center;margin-bottom:32px;font-size:0.95rem}
+.honest{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:24px;margin-top:24px}
+.honest p{color:var(--muted);font-size:0.9rem}
+.honest strong{color:var(--text)}
+
+/* CTA */
+.final-cta{padding:80px 0;text-align:center}
+.final-cta h2{font-size:2rem;font-weight:800;margin-bottom:16px}
+.final-cta p{color:var(--muted);margin-bottom:32px;font-size:1.1rem}
+.final-cta .install{background:var(--surface);border:1px solid var(--border);border-radius:8px;display:inline-block;padding:14px 32px;font-family:'SF Mono',Consolas,monospace;font-size:1rem;margin-bottom:24px;color:var(--accent2)}
+.final-cta .links{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+
+footer{padding:32px 0;text-align:center;color:var(--muted);font-size:0.8rem;border-top:1px solid var(--border)}
+
+@media(max-width:768px){
+.hero h1{font-size:2rem}
+.diff-grid,.code-tabs,.pricing-grid{grid-template-columns:1fr}
+table{font-size:0.8rem}
+th,td{padding:8px}
+}
+</style>
+</head>
+<body>
+
+<section class="hero">
+<div class="container">
+<h1><span>Director-AI</span></h1>
+<p class="tagline">The only LLM guardrail that halts hallucinations mid-stream. NLI + RAG dual scoring against your own knowledge base. Enterprise-ready. Open-source.</p>
+<div class="cta">
+<a href="https://github.com/anulum/director-ai" class="btn btn-primary">GitHub Repo</a>
+<a href="https://www.anulum.li/contact" class="btn btn-secondary">Contact Sales</a>
+</div>
+</div>
+</section>
+
+<section class="diff">
+<div class="container">
+<h2>Why Director-AI</h2>
+<div class="diff-grid">
+<div class="diff-card">
+<div class="icon">&#9889;</div>
+<h3>Token-Level Streaming Halt</h3>
+<p>Not post-hoc review. The safety kernel monitors coherence token-by-token and severs output the moment it degrades. No other guardrail does this.</p>
+</div>
+<div class="diff-card">
+<div class="icon">&#128274;</div>
+<h3>Dual-Entropy Scoring</h3>
+<p>NLI contradiction detection (DeBERTa) + RAG fact-checking against your own knowledge base. Both must pass. One model catching what the other misses.</p>
+</div>
+<div class="diff-card">
+<div class="icon">&#127959;</div>
+<h3>Your Data, Your Rules</h3>
+<p>Ingest PDFs, directories, or any text into a ChromaDB-backed knowledge base. The scorer checks LLM output against your ground truth, not a generic model.</p>
+</div>
+</div>
+</div>
+</section>
+
+<section class="compare">
+<div class="container">
+<h2>Head-to-Head Comparison</h2>
+<table>
+<thead>
+<tr><th>Feature</th><th>Director-AI</th><th>NeMo Guardrails</th><th>Guardrails AI</th><th>SelfCheckGPT</th></tr>
+</thead>
+<tbody>
+<tr class="highlight-row"><td>Streaming halt (token-level)</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+<tr><td>NLI contradiction detection</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="yes">Yes</td></tr>
+<tr><td>Custom knowledge base</td><td class="yes">Yes (ChromaDB)</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="no">No</td></tr>
+<tr><td>LangChain integration</td><td class="yes">Built-in</td><td class="yes">Built-in</td><td class="yes">Built-in</td><td class="no">Manual</td></tr>
+<tr><td>LlamaIndex integration</td><td class="yes">Built-in</td><td class="no">No</td><td class="yes">Built-in</td><td class="no">No</td></tr>
+<tr><td>Policy engine (YAML)</td><td class="yes">Yes</td><td class="yes">Colang</td><td class="yes">RAIL</td><td class="no">No</td></tr>
+<tr><td>Multi-tenant isolation</td><td class="yes">Yes</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+<tr><td>Audit trail</td><td class="yes">JSONL</td><td class="no">No</td><td class="no">No</td><td class="no">No</td></tr>
+<tr><td>Self-hosted / air-gapped</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td><td class="yes">Yes</td></tr>
+<tr><td>License</td><td>AGPL v3 + Commercial</td><td>Apache 2.0</td><td>Apache 2.0</td><td>MIT</td></tr>
+</tbody>
+</table>
+</div>
+</section>
+
+<section class="code-section">
+<div class="container">
+<h2>Works in 4 Lines</h2>
+<div class="code-tabs">
+<div class="code-block">
+<span class="label">LangChain</span>
+<pre><code><span class="kw">from</span> director_ai.integrations.langchain <span class="kw">import</span> DirectorAIGuard
+
+guard = DirectorAIGuard(
+    facts={<span class="str">"refund"</span>: <span class="str">"Refunds within 30 days."</span>},
+    threshold=<span class="str">0.6</span>,
+)
+chain = my_llm | guard  <span class="cmt"># halts hallucinations</span></code></pre>
+</div>
+<div class="code-block">
+<span class="label">LlamaIndex</span>
+<pre><code><span class="kw">from</span> director_ai.integrations.llamaindex <span class="kw">import</span> DirectorAIPostprocessor
+
+pp = DirectorAIPostprocessor(
+    facts={<span class="str">"pricing"</span>: <span class="str">"Enterprise: $99/mo."</span>},
+    threshold=<span class="str">0.6</span>,
+)
+engine = index.as_query_engine(
+    node_postprocessors=[pp]
+)  <span class="cmt"># filters hallucinated nodes</span></code></pre>
+</div>
+</div>
+</div>
+</section>
+
+<section class="benchmarks">
+<div class="container">
+<h2>Benchmarks</h2>
+<p class="sub">Evaluated on LLM-AggreFact (29,320 samples across 11 datasets)</p>
+<table>
+<thead>
+<tr><th>Tool</th><th>Bal. Acc</th><th>Params</th><th>Latency</th><th>Streaming</th></tr>
+</thead>
+<tbody>
+<tr><td>Bespoke-MiniCheck-7B</td><td><strong>77.4%</strong></td><td>7B</td><td>~100 ms (GPU)</td><td class="no">No</td></tr>
+<tr><td>MiniCheck-Flan-T5-L</td><td>75.0%</td><td>0.8B</td><td>~120 ms</td><td class="no">No</td></tr>
+<tr><td>MiniCheck-DeBERTa-L</td><td>72.6%</td><td>0.4B</td><td>~120 ms</td><td class="no">No</td></tr>
+<tr><td>HHEM-2.1-Open</td><td>71.8%</td><td>~0.4B</td><td>~200 ms</td><td class="no">No</td></tr>
+<tr class="highlight-row"><td><strong>Director-AI</strong></td><td><strong>66.2%</strong></td><td>0.4B</td><td>220 ms</td><td class="yes"><strong>Yes</strong></td></tr>
+</tbody>
+</table>
+<div class="honest">
+<p><strong>Honest assessment:</strong> The NLI scorer alone is not state-of-the-art. Director-AI's value is in the system — combining NLI with your own KB facts, streaming token-level gating, and configurable halt thresholds. No competitor offers real-time streaming halt. The NLI component is pluggable; swap in any model that improves on these numbers.</p>
+</div>
+</div>
+</section>
+
+<section class="pricing">
+<div class="container">
+<h2>Pricing</h2>
+<p class="sub">AGPL v3 open-source free forever. Commercial license removes copyleft.</p>
+<div class="pricing-grid">
+<div class="price-card">
+<div class="tier">Indie</div>
+<div class="price">$49<span>/mo</span></div>
+<div class="yearly">$490/yr (save ~17%)</div>
+<ul>
+<li>Solo devs, bootstrapped teams</li>
+<li>&lt;$2M ARR</li>
+<li>1 production deployment</li>
+<li>Email support</li>
+<li>12 months updates</li>
+</ul>
+</div>
+<div class="price-card featured">
+<div class="badge">Most Popular</div>
+<div class="tier">Pro</div>
+<div class="price">$249<span>/mo</span></div>
+<div class="yearly">$2,490/yr (save ~17%)</div>
+<ul>
+<li>Startups &amp; scale-ups</li>
+<li>Unlimited internal devs</li>
+<li>Multiple environments</li>
+<li>Slack priority support</li>
+<li>Early access releases</li>
+</ul>
+</div>
+<div class="price-card">
+<div class="tier">Enterprise</div>
+<div class="price">Custom</div>
+<div class="yearly">Starts ~$799/mo</div>
+<ul>
+<li>SLA (99.9% uptime)</li>
+<li>On-prem / air-gapped</li>
+<li>SOC2 / HIPAA ready</li>
+<li>Dedicated engineer</li>
+<li>Custom NLI fine-tunes</li>
+</ul>
+</div>
+</div>
+<p style="text-align:center;margin-top:24px;color:var(--muted);font-size:0.9rem">
+Perpetual license: $1,299 one-time &middot; First 50 licensees: 50% off first year
+</p>
+</div>
+</section>
+
+<section class="final-cta">
+<div class="container">
+<h2>Stop hallucinations before your users see them</h2>
+<p>Install in 30 seconds. Score your first response in 60.</p>
+<div class="install">pip install director-ai[nli,vector]</div>
+<div class="links">
+<a href="https://github.com/anulum/director-ai" class="btn btn-primary">View on GitHub</a>
+<a href="https://www.anulum.li/contact" class="btn btn-secondary">Contact Sales</a>
+<a href="mailto:invest@anulum.li" class="btn btn-secondary">invest@anulum.li</a>
+</div>
+</div>
+</section>
+
+<footer>
+<div class="container">
+<p>&copy; 2026 ANULUM &middot; <a href="https://www.anulum.li">anulum.li</a> &middot; Dual-licensed: AGPL v3 + Commercial</p>
+</div>
+</footer>
+
+</body>
+</html>

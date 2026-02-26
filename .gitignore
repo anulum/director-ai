@@ -20,8 +20,8 @@ docs/*
 !docs/conf.py
 !docs/index.rst
 !docs/api/
-!docs/RESEARCH.md
-!docs/RESEARCH_GUIDE.md
+!docs/_static/
+!docs/LAUNCH_POSTS.md
 !docs/ROADMAP_2026_2027.md
 !docs/TECHNICAL_SPEC_V2.md
 !docs/API_REFERENCE.md

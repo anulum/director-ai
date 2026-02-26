@@ -18,6 +18,12 @@
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
 </p>
 
+<p align="center">
+  <a href="https://anulum.github.io/director-ai/pitch.html"><strong>Sales Pitch &amp; Pricing</strong></a> &middot;
+  <a href="https://www.anulum.li/contact">Contact Sales</a> &middot;
+  <a href="mailto:invest@anulum.li">invest@anulum.li</a>
+</p>
+
 ---
 
 ## What It Does
