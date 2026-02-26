@@ -84,8 +84,18 @@ pip install director-ai[nli]
 # With vector store (ChromaDB for custom knowledge bases)
 pip install director-ai[vector]
 
+# With LangChain or LlamaIndex
+pip install director-ai[langchain]
+pip install director-ai[llamaindex]
+
+# With REST API server
+pip install director-ai[server]
+
+# Fine-tuning pipeline
+pip install director-ai[train]
+
 # Everything
-pip install "director-ai[nli,vector]"
+pip install "director-ai[nli,vector,server]"
 
 # Development
 git clone https://github.com/anulum/director-ai.git
@@ -261,17 +271,27 @@ src/director_ai/
 │   ├── agent.py                    # CoherenceAgent — main orchestrator
 │   ├── scorer.py                   # Dual-entropy coherence scorer
 │   ├── kernel.py                   # Safety kernel (streaming interlock)
-│   ├── nli.py                      # NLI scorer (DeBERTa)
 │   ├── streaming.py                # Token-level streaming oversight
+│   ├── async_streaming.py          # Non-blocking async streaming
+│   ├── nli.py                      # NLI scorer (DeBERTa)
 │   ├── actor.py                    # LLM generator interface
 │   ├── knowledge.py                # Ground truth store (in-memory)
 │   ├── vector_store.py             # Vector store (ChromaDB backend)
+│   ├── policy.py                   # YAML declarative policy engine
+│   ├── audit.py                    # Structured JSONL audit logger
+│   ├── tenant.py                   # Multi-tenant KB isolation
+│   ├── sanitizer.py                # Prompt injection hardening
 │   ├── bridge.py                   # Physics-backed scorer (optional)
 │   └── types.py                    # CoherenceScore, ReviewResult
+├── integrations/                   # Framework integrations
+│   ├── langchain.py                # LangChain Runnable guardrail
+│   └── llamaindex.py               # LlamaIndex postprocessor
 ├── research/                       # Experimental extensions (optional)
 │   ├── physics/                    #   Phase dynamics, stability proofs
 │   ├── consciousness/              #   Topological observables
 │   └── consilium/                  #   Ethical functional optimizer
+├── cli.py                          # CLI: review, process, batch, serve
+├── server.py                       # FastAPI REST wrapper
 benchmarks/                         # AggreFact evaluation suite
 training/                           # DeBERTa fine-tuning pipeline
 ```
@@ -318,7 +338,7 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {0.10.0},
+  version   = {1.0.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

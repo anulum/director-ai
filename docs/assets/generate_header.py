@@ -94,11 +94,11 @@ def generate_director_header(output_path: str = "header.png") -> None:
         fontfamily="sans-serif", alpha=0.9,
     )
     ax.text(
-        1.0, HEIGHT * 0.44, "COHERENCE ENGINE & SAFETY OVERSIGHT",
+        1.0, HEIGHT * 0.44, "REAL-TIME LLM HALLUCINATION GUARDRAIL",
         color="#58a6ff", fontsize=16, fontfamily="monospace", alpha=0.8,
     )
     ax.text(
-        1.0, HEIGHT * 0.37, "v0.3.1 // VERIFICATION_ACTIVE",
+        1.0, HEIGHT * 0.37, "v1.0.0 // VERIFICATION_ACTIVE",
         color="#3fb950", fontsize=10, fontfamily="monospace", alpha=0.6,
     )
 

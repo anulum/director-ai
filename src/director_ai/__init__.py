@@ -17,7 +17,7 @@ Research extensions (optional, requires ``pip install director-ai[research]``)::
     from director_ai.research.physics import SECFunctional
 """
 
-__version__ = "0.10.0"
+__version__ = "1.0.0"
 
 # ── Consumer core (always available) ──────────────────────────────────
 from .core import (

@@ -1,6 +1,6 @@
 # Director-AI API Reference
 
-> **Version**: 0.10.0 | **License**: GNU AGPL v3 | Commercial licensing available
+> **Version**: 1.0.0 | **License**: GNU AGPL v3 | Commercial licensing available
 
 ## Quick Start
 

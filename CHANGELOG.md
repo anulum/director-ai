@@ -7,8 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-02-26
+
+Production-ready guardrail with enterprise features, framework integrations,
+and CLI entry point.
+
 ### Added
-- **Enterprise modules** (Phase 6):
+- **Enterprise modules**:
   - `Policy` — YAML declarative policy engine (forbidden phrases, max length,
     required citations, custom regex patterns)
   - `AuditLogger` / `AuditEntry` — structured JSONL audit trail with SHA-256
@@ -21,15 +26,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **LlamaIndex integration**: `DirectorAIPostprocessor` with `validate_response()`/`postprocess_nodes()`
 - **Latency benchmark**: `benchmarks/latency_bench.py` — measured <0.1 ms lightweight, 458 ms NLI (CPU)
 - **Competitor comparison**: updated `benchmarks/comparison/COMPETITOR_COMPARISON.md` with real data
-- `[langchain]`, `[llamaindex]`, `[server]` optional dependency groups
+- `[langchain]`, `[llamaindex]`, `[server]`, `[train]` optional dependency groups
 - `[project.scripts]` CLI entry point: `director-ai`
 
 ### Changed
-- `docs/conf.py` release: 0.9.0 → 0.10.0
+- Development status: Beta → Production/Stable
 - `docs/API_REFERENCE.md` rewritten with current class names and examples
-- `CONTRIBUTING.md` architecture table: added Phase 5-6 modules
+- `CONTRIBUTING.md` architecture table: added enterprise + integration modules
 - `SECURITY.md`: version table updated, enterprise protections documented
-- Sphinx RST: all core modules now included in autodoc
+- Sphinx RST: all 17 core modules now included in autodoc
+- Header image updated: subtitle → "Real-time LLM Hallucination Guardrail"
+
+### Removed
+- `docs/RESEARCH_GUIDE.md` moved to `docs/archive/`
 
 ## [0.10.0] - 2026-02-25
 
@@ -294,7 +303,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v0.10.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/anulum/director-ai/compare/v0.10.0...v1.0.0
 [0.10.0]: https://github.com/anulum/director-ai/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/anulum/director-ai/compare/v0.8.2...v0.9.0
 [0.8.2]: https://github.com/anulum/director-ai/compare/v0.8.1...v0.8.2
