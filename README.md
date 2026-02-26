@@ -297,14 +297,27 @@ training/                           # DeBERTa fine-tuning pipeline
 pytest tests/ -v
 ```
 
-## License
+## License & Pricing
 
 Dual-licensed:
 
-1. **Open-Source**: [GNU AGPL v3.0](LICENSE) — academic research, personal use,
-   open-source projects
+1. **Open-Source**: [GNU AGPL v3.0](LICENSE) — research, personal use, open-source
+   projects. Full source, self-host, no restrictions beyond AGPL copyleft obligations.
 2. **Commercial**: Proprietary license from [ANULUM](https://www.anulum.li/licensing)
-   — closed-source and commercial use
+   — removes copyleft, allows closed-source and SaaS deployment.
+
+### Commercial Tiers
+
+| Tier | Monthly | Yearly | Best for |
+|------|---------|--------|----------|
+| **Indie** | $49 | $490 | Solo devs, bootstrapped teams (<$2M ARR). 1 production deployment, email support, 12 months updates. |
+| **Pro** | $249 | $2,490 | Startups & scale-ups. Unlimited internal devs, multiple envs, Slack priority support, early releases. |
+| **Enterprise** | Custom | Custom | Large orgs. SLA (99.9%), on-prem/air-gapped, SOC2/HIPAA-ready, dedicated engineer, custom NLI fine-tunes. |
+
+**Perpetual license**: $1,299 one-time (Indie equivalent).
+**First 50 commercial licensees**: 50% off first year.
+
+Contact: [anulum.li/contact](https://www.anulum.li/contact) or invest@anulum.li
 
 See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
