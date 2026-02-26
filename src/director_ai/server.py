@@ -24,6 +24,7 @@ from contextlib import asynccontextmanager
 
 from .core.config import DirectorConfig
 from .core.metrics import metrics
+from .core.stats import StatsStore
 
 logger = logging.getLogger("DirectorAI.Server")
 
@@ -125,10 +126,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
         batch_proc = BatchProcessor(agent, max_concurrency=cfg.batch_max_concurrency)
 
+        stats = StatsStore()
+
         _state["agent"] = agent
         _state["scorer"] = scorer
         _state["batch"] = batch_proc
         _state["config"] = cfg
+        _state["stats"] = stats
 
         if cfg.use_nli:
             metrics.gauge_set("nli_model_loaded", 1.0)
@@ -186,6 +190,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         else:
             metrics.inc("reviews_rejected")
         metrics.observe("coherence_score", score.score)
+        stats_store = _state.get("stats")
+        if stats_store:
+            stats_store.record_review(
+                approved=approved,
+                score=score.score,
+                h_logical=score.h_logical,
+                h_factual=score.h_factual,
+            )
         return ReviewResponse(
             approved=approved,
             coherence=score.score,
@@ -259,6 +271,48 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     @app.get("/v1/config", response_model=ConfigResponse)
     async def get_config():
         return ConfigResponse(config=cfg.to_dict())
+
+    # ── Stats / Dashboard ────────────────────────────────────────────
+
+    @app.get("/v1/stats")
+    async def get_stats():
+        stats_store = _state.get("stats")
+        if not stats_store:
+            raise HTTPException(503, "Stats not available")
+        return stats_store.summary()
+
+    @app.get("/v1/stats/hourly")
+    async def get_stats_hourly(days: int = 7):
+        stats_store = _state.get("stats")
+        if not stats_store:
+            raise HTTPException(503, "Stats not available")
+        return stats_store.hourly_breakdown(days=days)
+
+    @app.get("/v1/dashboard", response_class=PlainTextResponse)
+    async def dashboard():
+        stats_store = _state.get("stats")
+        if not stats_store:
+            raise HTTPException(503, "Stats not available")
+        s = stats_store.summary()
+        approval_rate = (
+            f"{s['approved'] / s['total'] * 100:.1f}%" if s["total"] else "N/A"
+        )
+        return (
+            "<!DOCTYPE html><html><head><title>Director-AI Dashboard</title>"
+            "<style>body{font-family:monospace;max-width:600px;margin:40px auto;}"
+            "table{border-collapse:collapse;width:100%;}td,th{border:1px solid #ccc;"
+            "padding:8px;text-align:left;}</style></head><body>"
+            "<h1>Director-AI Dashboard</h1>"
+            "<table>"
+            f"<tr><th>Total Reviews</th><td>{s['total']}</td></tr>"
+            f"<tr><th>Approved</th><td>{s['approved']}</td></tr>"
+            f"<tr><th>Rejected</th><td>{s['rejected']}</td></tr>"
+            f"<tr><th>Halted</th><td>{s['halted']}</td></tr>"
+            f"<tr><th>Approval Rate</th><td>{approval_rate}</td></tr>"
+            f"<tr><th>Avg Score</th><td>{s['avg_score'] or 'N/A'}</td></tr>"
+            f"<tr><th>Avg Latency</th><td>{s['avg_latency_ms'] or 'N/A'} ms</td></tr>"
+            "</table></body></html>"
+        )
 
     # ── WebSocket streaming ───────────────────────────────────────────
 

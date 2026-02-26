@@ -370,6 +370,31 @@ Contact: [anulum.li/contact](https://www.anulum.li/contact.html) or invest@anulu
 
 See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
+## Roadmap
+
+### Next Training Run (v1.1)
+
+Current NLI baseline: 66.2% balanced accuracy on LLM-AggreFact.
+Target: 72%+ through:
+
+- **Dataset rebalancing** — downsample VitaminC from 370K to 100K
+  (50% of current training data, causes domain bias toward fact-verification)
+- **Contamination fix** — remove HaluEval from training data
+  (present in both train and benchmark, inflates reported numbers)
+- **Threshold calibration** — post-training calibration pass
+  (fine-tuned models underperform baseline on AggreFact despite 91% raw accuracy)
+- **MiniCheck backend** — pluggable MiniCheck-DeBERTa-L as alternative
+  (72.6% on same benchmark, no retraining needed)
+
+### Planned Features
+
+- [x] `director-ai eval` — structured CLI benchmarking
+- [x] Webhook/callback on halt events
+- [x] SQLite-backed usage dashboard at `/v1/dashboard`
+- [x] Native OpenAI/Anthropic SDK in CoherenceAgent
+- [ ] HuggingFace Spaces live demo
+- [ ] Chunked NLI scoring for long documents
+
 ## Citation
 
 ```bibtex

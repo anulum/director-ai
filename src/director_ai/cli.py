@@ -39,6 +39,7 @@ def main(argv: list[str] | None = None) -> None:
         "process": _cmd_process,
         "batch": _cmd_batch,
         "ingest": _cmd_ingest,
+        "eval": _cmd_eval,
         "serve": _cmd_serve,
         "config": _cmd_config,
     }
@@ -63,6 +64,7 @@ def _print_help() -> None:
         "  process <prompt>      Process a prompt through the full pipeline\n"
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
         "  ingest <file>         Ingest documents into vector store\n"
+        "  eval [--dataset D]    Run NLI benchmark suite\n"
         "  serve [--port N]      Start the FastAPI server\n"
         "  config [--profile X]  Show/set configuration\n"
     )
@@ -277,6 +279,68 @@ def _cmd_ingest(args: list[str]) -> None:
         print(f"Persisted to: {persist_dir}")
     else:
         print("(in-memory only — use --persist <dir> to save)")
+
+
+def _cmd_eval(args: list[str]) -> None:
+    """Run NLI benchmark suite.
+
+    Usage::
+
+        director-ai eval --dataset aggrefact --max-samples 100 --output results.json
+    """
+    import logging
+    import os
+
+    dataset = None
+    max_samples = None
+    output_file = None
+    model = None
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--dataset" and i + 1 < len(args):
+            dataset = args[i + 1]
+            i += 2
+        elif args[i] == "--max-samples" and i + 1 < len(args):
+            try:
+                max_samples = int(args[i + 1])
+            except ValueError:
+                print(f"Error: invalid --max-samples value: {args[i + 1]}")
+                sys.exit(1)
+            i += 2
+        elif args[i] == "--output" and i + 1 < len(args):
+            output_file = args[i + 1]
+            i += 2
+        elif args[i] == "--model" and i + 1 < len(args):
+            model = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+
+    try:
+        from benchmarks.run_all import _print_comparison_table, _run_suite
+    except ImportError:
+        print(
+            "Error: benchmarks package not found. "
+            "Run from the director-ai repo root, or install in editable mode."
+        )
+        sys.exit(1)
+
+    if dataset and dataset == "aggrefact" and not os.environ.get("HF_TOKEN"):
+        print("Warning: HF_TOKEN not set — AggreFact benchmark may be skipped")
+
+    print(
+        f"Running benchmarks (max_samples={max_samples}, model={model or 'default'})..."
+    )
+    results = _run_suite(model, max_samples)
+    _print_comparison_table({model if model else "default": results})
+
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(results, f, indent=2)
+        print(f"Results written to {output_file}")
 
 
 def _cmd_serve(args: list[str]) -> None:

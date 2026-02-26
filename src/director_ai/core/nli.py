@@ -64,20 +64,31 @@ class NLIScorer:
     max_length : int — max token length for NLI input.
     model_name : str | None — HuggingFace model ID or local path.
         Defaults to the pre-trained DeBERTa-v3-base-mnli-fever-anli.
+    backend : str — "deberta" (default) or "minicheck".
     """
+
+    _BACKENDS = ("deberta", "minicheck")
 
     def __init__(
         self,
         use_model: bool = True,
         max_length: int = 512,
         model_name: str | None = None,
+        backend: str = "deberta",
     ) -> None:
+        if backend not in self._BACKENDS:
+            raise ValueError(
+                f"backend must be one of {self._BACKENDS}, got {backend!r}"
+            )
         self.use_model = use_model
         self.max_length = max_length
+        self.backend = backend
         self._model_name = model_name or _DEFAULT_MODEL
         self._tokenizer = None
         self._model = None
         self._model_loaded = False
+        self._minicheck = None
+        self._minicheck_loaded = False
 
     def _ensure_model(self) -> bool:
         """Load model if not yet loaded. Returns True if model is available."""
@@ -101,6 +112,8 @@ class NLIScorer:
         -------
         float in [0, 1]: 0 = entailment, 0.5 = neutral, 1.0 = contradiction.
         """
+        if self.backend == "minicheck":
+            return self._minicheck_score(premise, hypothesis)
         if not self._ensure_model():
             return self._heuristic_score(premise, hypothesis)
         return self._model_score(premise, hypothesis)
@@ -115,6 +128,32 @@ class NLIScorer:
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Score multiple (premise, hypothesis) pairs."""
         return [self.score(p, h) for p, h in pairs]
+
+    def _ensure_minicheck(self) -> bool:
+        """Load MiniCheck scorer if not yet loaded."""
+        if self._minicheck_loaded:
+            return self._minicheck is not None
+        self._minicheck_loaded = True
+        try:
+            from minicheck import MiniCheck
+
+            self._minicheck = MiniCheck(model_name="MiniCheck-DeBERTa-L")
+            logger.info("MiniCheck backend loaded.")
+            return True
+        except ImportError:
+            logger.warning("minicheck package not installed — pip install minicheck")
+            return False
+        except Exception as e:
+            logger.warning("MiniCheck init failed: %s — using heuristic fallback", e)
+            return False
+
+    def _minicheck_score(self, premise: str, hypothesis: str) -> float:
+        """Score using MiniCheck backend. Falls back to heuristic."""
+        if not self._ensure_minicheck() or self._minicheck is None:
+            return self._heuristic_score(premise, hypothesis)
+        pred = self._minicheck.score(docs=[premise], claims=[hypothesis])
+        # MiniCheck returns list of floats in [0,1] where 1 = supported
+        return float(1.0 - pred[0])
 
     def _model_score(self, premise: str, hypothesis: str) -> float:
         """Score using the NLI model."""

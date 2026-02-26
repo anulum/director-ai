@@ -98,8 +98,9 @@ class StreamingKernel(SafetyKernel):
         window_threshold: float = 0.55,
         trend_window: int = 5,
         trend_threshold: float = 0.15,
+        on_halt=None,
     ) -> None:
-        super().__init__(hard_limit=hard_limit)
+        super().__init__(hard_limit=hard_limit, on_halt=on_halt)
         self.window_size = window_size
         self.window_threshold = window_threshold
         self.trend_window = trend_window
@@ -185,6 +186,8 @@ class StreamingKernel(SafetyKernel):
             session.events.append(event)
 
         session.end_time = time.monotonic()
+        if session.halted and self.on_halt:
+            self.on_halt(session)
         return session
 
     def stream_output(self, token_generator, coherence_callback) -> str:

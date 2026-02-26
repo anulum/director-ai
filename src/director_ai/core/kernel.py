@@ -19,8 +19,9 @@ class SafetyKernel:
     hard safety limit.
     """
 
-    def __init__(self, hard_limit: float = 0.5):
+    def __init__(self, hard_limit: float = 0.5, on_halt=None):
         self.hard_limit = hard_limit
+        self.on_halt = on_halt
         self.logger = logging.getLogger("DirectorAI.Kernel")
         self.is_active = True
 
@@ -42,6 +43,8 @@ class SafetyKernel:
 
             if current_score < self.hard_limit:
                 self.emergency_stop()
+                if self.on_halt:
+                    self.on_halt(current_score)
                 return "[KERNEL INTERRUPT: COHERENCE LIMIT EXCEEDED]"
 
             output_buffer.append(token)

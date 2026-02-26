@@ -7,12 +7,18 @@
 # ─────────────────────────────────────────────────────────────────────
 
 import logging
+import os
 
 from .actor import LLMGenerator, MockGenerator
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .scorer import CoherenceScorer
 from .types import ReviewResult
+
+_PROVIDER_ENV_KEYS = {
+    "openai": "OPENAI_API_KEY",
+    "anthropic": "ANTHROPIC_API_KEY",
+}
 
 
 class CoherenceAgent:
@@ -25,16 +31,24 @@ class CoherenceAgent:
     - **Ground Truth Store**: RAG-based fact retrieval.
     - **Safety Kernel**: Hardware-level output interlock.
 
-    The pipeline is a recursive feedback loop: each candidate output is
-    scored *before* emission, and only the highest-coherence candidate
-    that passes the threshold is forwarded through the safety kernel.
+    Parameters
+    ----------
+    llm_api_url : str | None — direct URL to OpenAI-compatible endpoint.
+    use_nli : bool | None — enable NLI model scoring.
+    provider : str | None — "openai" or "anthropic". Reads API key from env.
+        Mutually exclusive with llm_api_url.
     """
 
-    def __init__(self, llm_api_url=None, use_nli=None):
+    def __init__(self, llm_api_url=None, use_nli=None, provider=None):
         self.logger = logging.getLogger("CoherenceAgent")
-        self.generator: MockGenerator | LLMGenerator
 
-        if llm_api_url:
+        if provider and llm_api_url:
+            raise ValueError("provider and llm_api_url are mutually exclusive")
+
+        if provider:
+            self.generator = self._build_provider(provider)
+            self.logger.info("Using %s provider", provider)
+        elif llm_api_url:
             self.generator = LLMGenerator(llm_api_url)
             self.logger.info("Connected to LLM at %s", llm_api_url)
         else:
@@ -48,6 +62,20 @@ class CoherenceAgent:
             threshold=0.6, ground_truth_store=self.store, use_nli=use_nli
         )
         self.kernel = SafetyKernel()
+
+    @staticmethod
+    def _build_provider(name: str):
+        from ..integrations.providers import AnthropicProvider, OpenAIProvider
+
+        env_key = _PROVIDER_ENV_KEYS.get(name)
+        if not env_key:
+            raise ValueError(f"Unknown provider {name!r}; use 'openai' or 'anthropic'")
+        api_key = os.environ.get(env_key, "")
+        if not api_key:
+            raise ValueError(f"{env_key} not set in environment")
+        if name == "openai":
+            return OpenAIProvider(api_key=api_key)
+        return AnthropicProvider(api_key=api_key)
 
     def process(self, prompt: str) -> "ReviewResult":
         """

@@ -49,6 +49,10 @@ server = [
     "uvicorn>=0.23",
     "pydantic>=2.0",
 ]
+minicheck = [
+    "minicheck>=0.1",
+]
+research = []
 train = [
     "transformers>=4.30",
     "datasets>=2.14",

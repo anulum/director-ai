@@ -82,3 +82,28 @@ class TestStreamingKernel:
         for event in session.events:
             assert event.coherence == pytest.approx(0.85)
             assert not event.halted
+
+    def test_on_halt_callback_fires(self):
+        halted_sessions = []
+        kernel = StreamingKernel(hard_limit=0.5, on_halt=halted_sessions.append)
+        scores = iter([0.8, 0.3])
+        kernel.stream_tokens(["Good ", "Bad "], lambda t: next(scores))
+        assert len(halted_sessions) == 1
+        assert halted_sessions[0].halted
+        assert "hard_limit" in halted_sessions[0].halt_reason
+
+    def test_on_halt_not_called_when_no_halt(self):
+        halted_sessions = []
+        kernel = StreamingKernel(on_halt=halted_sessions.append)
+        kernel.stream_tokens(["a", "b"], lambda t: 0.9)
+        assert len(halted_sessions) == 0
+
+    def test_on_halt_window_avg(self):
+        halted_sessions = []
+        kernel = StreamingKernel(
+            window_size=3, window_threshold=0.6, on_halt=halted_sessions.append
+        )
+        scores = iter([0.7, 0.55, 0.5, 0.45])
+        kernel.stream_tokens([f"t{i} " for i in range(4)], lambda t: next(scores))
+        assert len(halted_sessions) == 1
+        assert "window_avg" in halted_sessions[0].halt_reason
