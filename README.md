@@ -281,7 +281,6 @@ src/director_ai/
 │   ├── audit.py                    # Structured JSONL audit logger
 │   ├── tenant.py                   # Multi-tenant KB isolation
 │   ├── sanitizer.py                # Prompt injection hardening
-│   ├── bridge.py                   # Physics-backed scorer (optional)
 │   └── types.py                    # CoherenceScore, ReviewResult
 ├── integrations/                   # Framework integrations
 │   ├── langchain.py                # LangChain Runnable guardrail
