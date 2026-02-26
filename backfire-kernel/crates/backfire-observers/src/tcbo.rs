@@ -1,12 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────
-// Director-Class AI — TCBO (Topological Consciousness Boundary Observable)
-// Mirrors: src/director_ai/research/consciousness/tcbo.py
+// Director-Class AI — TCBO (Topological Boundary Observable)
 // ─────────────────────────────────────────────────────────────────────
-//! Topological Consciousness Boundary Observable (TCBO).
+//! Topological Boundary Observable (TCBO).
 //!
 //! Extracts a single scalar p_h1(t) in [0, 1] from multichannel phase data
 //! via persistent homology (H1 cycles). When p_h1 > tau_h1 (default 0.72),
-//! the "consciousness gate" opens.
+//! the boundary gate opens.
 //!
 //! Pipeline:
 //!   1. Multichannel signal -> delay embedding (Takens' theorem)
@@ -180,10 +179,9 @@ fn persistence_fallback(cloud: &[Vec<f64>]) -> f64 {
     }
 }
 
-/// Topological Consciousness Boundary Observable.
+/// Topological Boundary Observable.
 ///
 /// Produces p_h1(t) in [0, 1] from multichannel phase data.
-/// Mirrors `TCBOObserver` from `tcbo.py`.
 pub struct TCBOObserver {
     n: usize,
     cfg: TCBOConfig,
@@ -326,7 +324,6 @@ impl Default for TCBOControllerConfig {
 /// PI controller driving gap-junction kappa from p_h1 deficit.
 ///
 /// Error signal: e_h1(t) = max(0, tau_h1 - p_h1(t))  (deficit-only)
-/// Mirrors `TCBOController` from `tcbo.py`.
 pub struct TCBOController {
     cfg: TCBOControllerConfig,
     integral: f64,
@@ -382,7 +379,7 @@ impl TCBOController {
         kappa_new
     }
 
-    /// Check if p_h1 > tau_h1 (consciousness gate open).
+    /// Check if p_h1 > tau_h1 (boundary gate open).
     pub fn is_gate_open(&self, p_h1: Option<f64>) -> bool {
         let val = p_h1.unwrap_or_else(|| {
             self.p_h1_history.last().copied().unwrap_or(0.0)

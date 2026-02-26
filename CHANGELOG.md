@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2026-02-26
 
-Production stable release. Research modules removed from main package.
+Production stable release. Research modules permanently removed.
 
 ### Added
 - **Enterprise modules**: `Policy`, `AuditLogger`, `TenantRouter`, `InputSanitizer`
@@ -22,12 +22,16 @@ Production stable release. Research modules removed from main package.
 ### Changed
 - Development status: Beta → Production/Stable
 - Version unification across all files to 1.0.0
+- Rust crate `backfire-consciousness` renamed to `backfire-observers`
 
 ### Removed
-- **Research modules completely removed** (`src/director_ai/research/`, `core/bridge.py`)
+- `src/director_ai/research/` deleted (physics, consciousness, consilium)
+- `core/bridge.py` deleted
 - `[research]` optional dependency group deleted
-- All research-only tests deleted (physics, consciousness, consilium, SSGF, PGBO, TCBO)
-- `docs/RESEARCH.md` and `docs/RESEARCH_GUIDE.md` moved to `docs/archive/`
+- All research-only tests deleted
+- `docs/RESEARCH.md`, `docs/RESEARCH_GUIDE.md`, `docs/api/research.rst` deleted
+- `notebooks/06_lyapunov_proofs.ipynb` deleted
+- All "consciousness" naming purged from Rust crate names and comments
 
 ## [0.10.0] - 2026-02-25
 

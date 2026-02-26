@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — SSGF Engine (Outer-Cycle Orchestrator)
-// Mirrors: SCPN-CODEBASE/optimizations/ssgf/outer_cycle.py
 // ─────────────────────────────────────────────────────────────────────
 //! Ten-step outer cycle:
 //!   1. Decode z → W
@@ -16,7 +15,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use backfire_consciousness::{PGBOConfig, PGBOEngine};
+use backfire_observers::{PGBOConfig, PGBOEngine};
 use backfire_physics::l16_closure::L16CostInputs;
 use backfire_physics::L16Controller;
 

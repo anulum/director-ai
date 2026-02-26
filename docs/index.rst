@@ -6,7 +6,6 @@ Director-Class AI Documentation
    :caption: Contents:
 
    api/core
-   api/research
 
 Indices and tables
 ==================

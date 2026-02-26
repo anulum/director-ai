@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — L16 Cybernetic Closure
-// Mirrors: src/director_ai/research/physics/l16_closure.py
 // ─────────────────────────────────────────────────────────────────────
 //! L16 Director closure: PI controllers, Lyapunov health, PLV gate, refusal rules.
 //!

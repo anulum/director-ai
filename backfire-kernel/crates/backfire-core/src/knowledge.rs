@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — Ground Truth Store (RAG Interface)
-// Mirrors: src/director_ai/core/knowledge.py + vector_store.py
 // ─────────────────────────────────────────────────────────────────────
 //! RAG (Retrieval-Augmented Generation) interface for fact retrieval.
 //!
@@ -28,12 +27,9 @@ impl Default for InMemoryKnowledge {
     fn default() -> Self {
         let mut facts = HashMap::new();
         facts.insert("sky color".into(), "blue".into());
-        facts.insert("scpn layers".into(), "16".into());
-        facts.insert("layer 1".into(), "quantum biological".into());
-        facts.insert("layer 16".into(), "director".into());
+        facts.insert("system layers".into(), "16".into());
         facts.insert("sec metric".into(), "sustainable ethical coherence".into());
         facts.insert("backfire limit".into(), "entropy threshold".into());
-        facts.insert("vibrana symmetry".into(), "13-fold".into());
         Self { facts }
     }
 }
@@ -108,19 +104,11 @@ mod tests {
     }
 
     #[test]
-    fn test_scpn_layers() {
+    fn test_system_layers() {
         let store = InMemoryKnowledge::new();
-        let ctx = store.retrieve_context("How many SCPN layers?");
+        let ctx = store.retrieve_context("How many system layers?");
         assert!(ctx.is_some());
         assert!(ctx.unwrap().contains("16"));
-    }
-
-    #[test]
-    fn test_partial_key_match() {
-        let store = InMemoryKnowledge::new();
-        // "layer" matches key "layer 1" and "layer 16"
-        let ctx = store.retrieve_context("what is layer one?");
-        assert!(ctx.is_some());
     }
 
     #[test]

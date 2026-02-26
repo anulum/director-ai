@@ -38,7 +38,7 @@ use backfire_physics::{
     l16_closure::L16CostInputs,
     params::N_LAYERS,
 };
-use backfire_consciousness::{
+use backfire_observers::{
     TCBOConfig, TCBOObserver, TCBOController, TCBOControllerConfig,
     PGBOConfig, PGBOEngine,
 };
@@ -637,7 +637,7 @@ impl PyL16Controller {
 
 // ─── RustTCBOObserver ─────────────────────────────────────────────
 
-/// TCBO consciousness boundary observer.
+/// TCBO boundary observer.
 #[pyclass(name = "RustTCBOObserver")]
 struct PyTCBOObserver {
     inner: TCBOObserver,
@@ -715,7 +715,7 @@ impl PyTCBOController {
         self.inner.step(p_h1, current_kappa, dt)
     }
 
-    /// Check if consciousness gate is open.
+    /// Check if boundary gate is open.
     #[pyo3(signature = (p_h1 = None))]
     fn is_gate_open(&self, p_h1: Option<f64>) -> bool {
         self.inner.is_gate_open(p_h1)
@@ -963,7 +963,7 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyUPDEStepper>()?;
     m.add_class::<PySECFunctional>()?;
     m.add_class::<PyL16Controller>()?;
-    // Consciousness gate
+    // Boundary observers
     m.add_class::<PyTCBOObserver>()?;
     m.add_class::<PyTCBOController>()?;
     m.add_class::<PyPGBOEngine>()?;

@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────
-// Director-Class AI — SCPN Canonical Parameters
-// Mirrors: src/director_ai/research/physics/scpn_params.py
+// Director-Class AI — Canonical Parameters
 // ─────────────────────────────────────────────────────────────────────
 //! Canonical Omega_n (natural frequencies) and Knm (coupling matrix)
 //! for the 16-layer SCPN hierarchy.
@@ -77,7 +76,6 @@ const CROSS_BOOSTS: [(usize, usize, f64); 2] = [
 ///   3. Apply cross-hierarchy boosts
 ///   4. Symmetrise and zero diagonal
 ///
-/// Mirrors `build_knm_matrix()` from `scpn_params.py`.
 pub fn build_knm_matrix() -> [[f64; N_LAYERS]; N_LAYERS] {
     let mut k = [[0.0f64; N_LAYERS]; N_LAYERS];
 

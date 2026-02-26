@@ -9,7 +9,7 @@ members = [
     "crates/backfire-types",
     "crates/backfire-core",
     "crates/backfire-physics",
-    "crates/backfire-consciousness",
+    "crates/backfire-observers",
     "crates/backfire-ssgf",
     "crates/backfire-ffi",
 ]

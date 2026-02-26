@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — SEC Functional (Lyapunov Stability)
-// Mirrors: src/director_ai/research/physics/sec_functional.py
 // ─────────────────────────────────────────────────────────────────────
 //! Sustainable Ethical Coherence (SEC) as a Lyapunov functional.
 //!

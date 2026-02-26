@@ -1,10 +1,10 @@
 [package]
-name = "backfire-consciousness"
+name = "backfire-observers"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Director-Class AI — consciousness gate (TCBO observer, PGBO engine)"
+description = "Director-Class AI — TCBO boundary observer + PGBO bridge operator"
 
 [dependencies]
 backfire-types = { path = "../backfire-types" }

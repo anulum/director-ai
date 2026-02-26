@@ -9,7 +9,7 @@ description = "Director-Class AI Backfire Kernel — SSGF geometry engine"
 [dependencies]
 backfire-types = { path = "../backfire-types" }
 backfire-physics = { path = "../backfire-physics" }
-backfire-consciousness = { path = "../backfire-consciousness" }
+backfire-observers = { path = "../backfire-observers" }
 serde = { workspace = true }
 
 [dev-dependencies]

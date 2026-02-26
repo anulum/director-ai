@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — PGBO (Phase→Geometry Bridge Operator)
-// Mirrors: src/director_ai/research/consciousness/pgbo.py
 // ─────────────────────────────────────────────────────────────────────
 //! Phase→Geometry Bridge Operator (PGBO).
 //!
@@ -59,8 +58,6 @@ pub struct PGBOState {
 }
 
 /// Phase→Geometry Bridge Operator engine.
-///
-/// Mirrors `PGBOEngine` from `pgbo.py`.
 pub struct PGBOEngine {
     d: usize,
     pub cfg: PGBOConfig,

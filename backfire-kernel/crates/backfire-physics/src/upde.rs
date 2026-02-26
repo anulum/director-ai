@@ -1,6 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────
 // Director-Class AI — UPDE Kuramoto Integrator
-// Mirrors: src/director_ai/research/physics/l16_mechanistic.py
 // ─────────────────────────────────────────────────────────────────────
 //! Euler-Maruyama integrator for the Unified Phase Dynamics Equation:
 //!

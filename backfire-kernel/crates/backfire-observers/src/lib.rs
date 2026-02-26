@@ -1,11 +1,11 @@
 // ─────────────────────────────────────────────────────────────────────
-// Director-Class AI — Consciousness Gate
+// Director-Class AI — Boundary Observers (TCBO + PGBO)
 // (C) 1998-2026 Miroslav Sotek. All rights reserved.
 // License: GNU AGPL v3 | Commercial licensing available
 // ─────────────────────────────────────────────────────────────────────
-//! Consciousness gate: TCBO observer and PGBO engine.
+//! Boundary observers: TCBO observer and PGBO engine.
 //!
-//! - TCBO: persistent-homology–based consciousness boundary observable
+//! - TCBO: persistent-homology–based topological boundary observable
 //! - PGBO: phase→geometry bridge operator (symmetric rank-2 tensor)
 
 pub mod pgbo;
