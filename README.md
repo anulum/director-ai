@@ -358,6 +358,7 @@ Dual-licensed:
 
 | Tier | Monthly | Yearly | Best for |
 |------|---------|--------|----------|
+| **Hobbyist** | $9 | $90 | Students, side projects, experiments. 1 local deployment, community support (GitHub/Discord), delayed updates. |
 | **Indie** | $49 | $490 | Solo devs, bootstrapped teams (<$2M ARR). 1 production deployment, email support, 12 months updates. |
 | **Pro** | $249 | $2,490 | Startups & scale-ups. Unlimited internal devs, multiple envs, Slack priority support, early releases. |
 | **Enterprise** | Custom | Custom | Large orgs. SLA (99.9%), on-prem/air-gapped, SOC2/HIPAA-ready, dedicated engineer, custom NLI fine-tunes. |
