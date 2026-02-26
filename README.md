@@ -184,25 +184,67 @@ approved, score = scorer.review(
 # approved = False — contradicts your KB
 ```
 
-### Integration examples
+### LangChain integration
 
-See `examples/` for ready-to-run integrations:
+```bash
+pip install director-ai[langchain,nli]
+```
+
+```python
+from director_ai.integrations.langchain import DirectorAIGuard
+
+guard = DirectorAIGuard(
+    facts={"refund": "Refunds available within 30 days."},
+    threshold=0.6,
+    use_nli=True,
+)
+
+# Pipe after any LLM in a chain
+chain = my_llm | guard
+result = chain.invoke({"query": "What is the refund policy?"})
+
+print(result["approved"])  # False if hallucinated
+print(result["score"])     # 0.0–1.0 coherence
+```
+
+Raises `HallucinationError` if `raise_on_fail=True`. Async supported via `ainvoke()`.
+
+### LlamaIndex integration
+
+```bash
+pip install director-ai[llamaindex,nli]
+```
+
+```python
+from director_ai.integrations.llamaindex import DirectorAIPostprocessor
+
+postprocessor = DirectorAIPostprocessor(
+    facts={"pricing": "Enterprise plan starts at $99/month."},
+    threshold=0.6,
+)
+
+# Filters out hallucinated nodes before they reach the user
+query_engine = index.as_query_engine(
+    node_postprocessors=[postprocessor]
+)
+response = query_engine.query("What does Enterprise cost?")
+```
+
+Adds `director_ai_score` metadata to surviving nodes. Also usable standalone via `postprocessor.check(query, response)`.
+
+### More examples
 
 | Example | Backend | What it shows |
 |---------|---------|---------------|
 | [`quickstart.py`](examples/quickstart.py) | None | Guard any output in 10 lines |
 | [`openai_guard.py`](examples/openai_guard.py) | OpenAI | Score + streaming halt for GPT-4o |
 | [`ollama_guard.py`](examples/ollama_guard.py) | Ollama | Local LLM guard with Llama 3 |
-| [`langchain_guard.py`](examples/langchain_guard.py) | LangChain | Output checker for chains |
+| [`langchain_guard.py`](examples/langchain_guard.py) | LangChain | Full chain guardrail |
 | [`streaming_halt_demo.py`](examples/streaming_halt_demo.py) | Simulated | All 3 halt mechanisms visualised |
 
 ### Interactive demo
 
-Try Director-AI in the browser — no install needed:
-
 [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb)
-
-Or run the Gradio demo locally:
 
 ```bash
 pip install director-ai gradio
