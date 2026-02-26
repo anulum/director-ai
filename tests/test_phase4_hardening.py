@@ -34,29 +34,6 @@ def _fastapi_available() -> bool:
         return False
 
 
-# ── H47: Consilium subprocess path safety ────────────────────────────
-
-
-class TestH47SubprocessPath:
-    """Consilium should validate test path before subprocess.run()."""
-
-    def test_get_real_metrics_missing_file(self):
-        from director_ai.research.consilium.director_core import ConsiliumAgent
-
-        agent = ConsiliumAgent()
-        # When test file doesn't exist (it won't from this CWD),
-        # it should return early with default metrics, not crash
-        metrics = agent.get_real_metrics()
-        assert isinstance(metrics, dict)
-        assert "errors" in metrics
-
-    def test_source_has_isfile_check(self):
-        from director_ai.research.consilium.director_core import ConsiliumAgent
-
-        source = inspect.getsource(ConsiliumAgent.get_real_metrics)
-        assert "os.path.isfile" in source
-
-
 # ── H48: Batch per-line size limit ───────────────────────────────────
 
 

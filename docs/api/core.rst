@@ -32,9 +32,6 @@ Core API (Consumer)
 .. automodule:: director_ai.core.actor
    :members:
 
-.. automodule:: director_ai.core.bridge
-   :members:
-
 .. automodule:: director_ai.core.policy
    :members:
 

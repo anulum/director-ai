@@ -21,7 +21,6 @@ from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
 from .async_streaming import AsyncStreamingKernel
 from .audit import AuditEntry, AuditLogger
-from .bridge import PhysicsBackedScorer
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .nli import NLIScorer, nli_available
@@ -57,7 +56,6 @@ __all__ = [
     "StreamingKernel",
     "StreamSession",
     "TokenEvent",
-    "PhysicsBackedScorer",
     "AsyncStreamingKernel",
     "Policy",
     "Violation",

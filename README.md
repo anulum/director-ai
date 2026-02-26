@@ -100,7 +100,7 @@ pip install "director-ai[nli,vector,server]"
 # Development
 git clone https://github.com/anulum/director-ai.git
 cd director-ai
-pip install -e ".[dev,research]"
+pip install -e ".[dev]"
 ```
 
 ## Usage
@@ -286,37 +286,16 @@ src/director_ai/
 ├── integrations/                   # Framework integrations
 │   ├── langchain.py                # LangChain Runnable guardrail
 │   └── llamaindex.py               # LlamaIndex postprocessor
-├── research/                       # Experimental extensions (optional)
-│   ├── physics/                    #   Phase dynamics, stability proofs
-│   ├── consciousness/              #   Topological observables
-│   └── consilium/                  #   Ethical functional optimizer
 ├── cli.py                          # CLI: review, process, batch, serve
 ├── server.py                       # FastAPI REST wrapper
 benchmarks/                         # AggreFact evaluation suite
 training/                           # DeBERTa fine-tuning pipeline
 ```
 
-## Research Extensions
-
-> **Experimental.** These modules implement physics-inspired coherence
-> dynamics from an academic research programme. They are *not* required for
-> production use and are not part of the stable API. Install with
-> `pip install director-ai[research]`.
-
-See [docs/RESEARCH.md](docs/RESEARCH.md) for details on the research modules,
-including phase dynamics, topological observables, and stability proofs.
-
 ## Testing
 
 ```bash
-# Run all tests
 pytest tests/ -v
-
-# Consumer API tests only
-pytest tests/ -v -m consumer
-
-# Research module tests only
-pytest tests/ -v -m physics
 ```
 
 ## License

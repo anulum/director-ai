@@ -9,36 +9,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.0] - 2026-02-26
 
-Production-ready guardrail with enterprise features, framework integrations,
-and CLI entry point.
+Production stable release. Research modules removed from main package.
 
 ### Added
-- **Enterprise modules**:
-  - `Policy` — YAML declarative policy engine (forbidden phrases, max length,
-    required citations, custom regex patterns)
-  - `AuditLogger` / `AuditEntry` — structured JSONL audit trail with SHA-256
-    query hashing (never stores plaintext queries)
-  - `TenantRouter` — thread-safe multi-tenant KB isolation with scoped scorers
-  - `InputSanitizer` / `SanitizeResult` — prompt injection hardening (5 detection
-    categories + Unicode homoglyph detection + control char scrubbing)
-- **Async scorer**: `CoherenceScorer.areview()` for non-blocking pipelines
-- **LangChain integration**: `DirectorAIGuard` Runnable with `check()`/`invoke()`/`ainvoke()`
-- **LlamaIndex integration**: `DirectorAIPostprocessor` with `validate_response()`/`postprocess_nodes()`
-- **Latency benchmark**: `benchmarks/latency_bench.py` — measured <0.1 ms lightweight, 458 ms NLI (CPU)
-- **Competitor comparison**: updated `benchmarks/comparison/COMPETITOR_COMPARISON.md` with real data
+- **Enterprise modules**: `Policy`, `AuditLogger`, `TenantRouter`, `InputSanitizer`
+- **Async scorer**: `CoherenceScorer.areview()`
+- **LangChain integration**: `DirectorAIGuard`
+- **LlamaIndex integration**: `DirectorAIPostprocessor`
 - `[langchain]`, `[llamaindex]`, `[server]`, `[train]` optional dependency groups
 - `[project.scripts]` CLI entry point: `director-ai`
 
 ### Changed
 - Development status: Beta → Production/Stable
-- `docs/API_REFERENCE.md` rewritten with current class names and examples
-- `CONTRIBUTING.md` architecture table: added enterprise + integration modules
-- `SECURITY.md`: version table updated, enterprise protections documented
-- Sphinx RST: all 17 core modules now included in autodoc
-- Header image updated: subtitle → "Real-time LLM Hallucination Guardrail"
+- Version unification across all files to 1.0.0
 
 ### Removed
-- `docs/RESEARCH_GUIDE.md` moved to `docs/archive/`
+- **Research modules completely removed** (`src/director_ai/research/`, `core/bridge.py`)
+- `[research]` optional dependency group deleted
+- All research-only tests deleted (physics, consciousness, consilium, SSGF, PGBO, TCBO)
+- `docs/RESEARCH.md` and `docs/RESEARCH_GUIDE.md` moved to `docs/archive/`
 
 ## [0.10.0] - 2026-02-25
 

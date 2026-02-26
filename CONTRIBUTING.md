@@ -59,7 +59,6 @@ The package lives in `src/director_ai/` with two profiles:
 | `knowledge.py` | `GroundTruthStore` | In-memory fact store |
 | `vector_store.py` | `VectorGroundTruthStore` | ChromaDB vector store |
 | `actor.py` | `LLMGenerator`, `MockGenerator` | LLM backend interface |
-| `bridge.py` | `PhysicsBackedScorer` | Physics-coherence bridge |
 | `policy.py` | `Policy`, `Violation` | YAML declarative policy engine |
 | `audit.py` | `AuditLogger`, `AuditEntry` | Structured JSON audit trail |
 | `tenant.py` | `TenantRouter` | Multi-tenant KB isolation |
