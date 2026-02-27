@@ -83,7 +83,7 @@ def _extract_prompt(messages: list[dict]) -> str:
             if isinstance(content, list):
                 for block in content:
                     if isinstance(block, dict) and block.get("type") == "text":
-                        return block.get("text", "")
+                        return str(block.get("text", ""))
             return str(content)
     return " ".join(str(m.get("content", "")) for m in messages)
 
@@ -157,7 +157,8 @@ def _openai_response_text(response) -> str:
 
 def _extract_stream_delta(chunk) -> str | None:
     with contextlib.suppress(IndexError, AttributeError):
-        return chunk.choices[0].delta.content
+        delta = chunk.choices[0].delta.content
+        return str(delta) if delta is not None else None
     return None
 
 
@@ -261,10 +262,11 @@ def _anthropic_response_text(response) -> str:
 def _extract_anthropic_event_text(event) -> str | None:
     text = getattr(event, "text", None)
     if text:
-        return text
+        return str(text)
     delta = getattr(event, "delta", None)
     if isinstance(delta, dict):
-        return delta.get("text")
+        val = delta.get("text")
+        return str(val) if val is not None else None
     return None
 
 

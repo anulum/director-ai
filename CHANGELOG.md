@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-02-27
+
+### Added
+- **Native SDK interceptors** (`guard()`): one-liner hallucination guard for
+  OpenAI and Anthropic SDK clients — wraps `client.chat.completions` /
+  `client.messages` with transparent coherence scoring
+- **Streaming guards**: `_GuardedOpenAIStream` / `_GuardedAnthropicStream`
+  with periodic coherence checks (every 8 tokens) and final-check at stream end
+- **Failure modes**: `on_fail="raise"` (default), `"log"`, `"metadata"` with
+  `get_score()` ContextVar retrieval
+- **`HallucinationError`** promoted to `core.exceptions` (shared by SDK guard,
+  LangChain, LlamaIndex integrations)
+- `[openai]` and `[anthropic]` optional dependency groups
+- `examples/sdk_guard_demo.py` — before/after usage comparison
+
+### Changed
+- `langchain.py`: `HallucinationError` now imported from `core.exceptions`
+  (re-exported for backward compat)
+- Top-level exports: `guard`, `get_score`, `HallucinationError` added to
+  `director_ai.__init__`
+
 ## [1.0.0] - 2026-02-26
 
 Production stable release. Research modules permanently removed.
@@ -296,7 +317,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/anulum/director-ai/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/anulum/director-ai/compare/v0.10.0...v1.0.0
 [0.10.0]: https://github.com/anulum/director-ai/compare/v0.9.0...v0.10.0
 [0.9.0]: https://github.com/anulum/director-ai/compare/v0.8.2...v0.9.0
