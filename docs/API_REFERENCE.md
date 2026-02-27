@@ -1,6 +1,6 @@
 # Director-AI API Reference
 
-> **Version**: 1.0.0 | **License**: GNU AGPL v3 | Commercial licensing available
+> **Version**: 1.1.0 | **License**: GNU AGPL v3 | Commercial licensing available
 
 ## Quick Start
 
@@ -256,7 +256,117 @@ clean = san.scrub("Normal query with\x00null bytes")
 
 ---
 
+## Evidence Schema
+
+Every `CoherenceScore` carries an `evidence` field with the exact data
+used to reach the scoring decision.
+
+```python
+approved, score = scorer.review(prompt, response)
+ev = score.evidence
+if ev:
+    for chunk in ev.chunks:
+        print(f"  [{chunk.distance:.3f}] {chunk.text[:60]}  (src={chunk.source})")
+    print(f"  NLI: premise={ev.nli_premise[:60]}")
+    print(f"  NLI: hypothesis={ev.nli_hypothesis[:60]}")
+    print(f"  NLI score: {ev.nli_score:.3f}")
+```
+
+| Type | Fields | Description |
+|------|--------|-------------|
+| `EvidenceChunk` | `text`, `distance`, `source` | Single RAG retrieval result |
+| `ScoringEvidence` | `chunks`, `nli_premise`, `nli_hypothesis`, `nli_score` | Full evidence bundle |
+
+---
+
+## Fallback Modes
+
+When all candidates fail coherence, `CoherenceAgent` supports three
+fallback strategies:
+
+```python
+# Hard halt (default) — refuse to emit output
+agent = CoherenceAgent()
+
+# Retrieval — serve ground truth directly
+agent = CoherenceAgent(fallback="retrieval")
+
+# Disclaimer — prepend warning to best rejected candidate
+agent = CoherenceAgent(fallback="disclaimer", disclaimer_prefix="[Unverified] ")
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `fallback` | str \| None | None | `"retrieval"`, `"disclaimer"`, or None (hard halt) |
+| `disclaimer_prefix` | str | `"[Confidence: moderate] "` | Prefix for warning/disclaimer modes |
+
+**Soft warning zone**: Scores between `threshold` and `soft_limit` are
+approved but flagged with `score.warning = True`.
+
+```python
+scorer = CoherenceScorer(threshold=0.5, soft_limit=0.7, ...)
+approved, score = scorer.review(prompt, response)
+if score.warning:
+    response = f"[Low confidence] {response}"
+```
+
+**Streaming on_halt**: `StreamingKernel` accepts an `on_halt` callback
+invoked when the stream is interrupted.
+
+```python
+def my_handler(session):
+    print(f"Halted: {session.halt_reason}, partial: {session.output!r}")
+
+kernel = StreamingKernel(hard_limit=0.3, on_halt=my_handler)
+```
+
+---
+
 ## Integrations
+
+### SDK Guard (`guard()`)
+
+One-liner hallucination guard for OpenAI and Anthropic SDK clients.
+Wraps the client in-place — use it exactly as before.
+
+```python
+from director_ai import guard, get_score, HallucinationError
+
+# Mode 1: raise on hallucination (default)
+client = guard(OpenAI(), facts={"refund": "within 30 days"})
+try:
+    resp = client.chat.completions.create(model="gpt-4o-mini", messages=[...])
+except HallucinationError as e:
+    print(e.score.score, e.response[:80])
+
+# Mode 2: log warning, return response unchanged
+client = guard(OpenAI(), facts={...}, on_fail="log")
+
+# Mode 3: store score in ContextVar for later retrieval
+client = guard(OpenAI(), facts={...}, on_fail="metadata")
+resp = client.chat.completions.create(...)
+score = get_score()  # CoherenceScore | None
+```
+
+Streaming is supported — coherence is checked every 8 tokens and at
+stream end:
+
+```python
+client = guard(OpenAI(), facts={...})
+stream = client.chat.completions.create(..., stream=True)
+for chunk in stream:  # periodic + final coherence checks
+    print(chunk.choices[0].delta.content, end="")
+```
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `facts` | dict | None | Key-value facts for the knowledge base |
+| `store` | GroundTruthStore | None | Pre-built store (overrides facts) |
+| `threshold` | float | 0.6 | Minimum coherence to pass |
+| `use_nli` | bool \| None | None | NLI mode (None=auto-detect) |
+| `on_fail` | str | `"raise"` | `"raise"`, `"log"`, or `"metadata"` |
+
+Requires `pip install director-ai[openai]` or `director-ai[anthropic]`.
 
 ### LangChain
 
@@ -301,9 +411,12 @@ director-ai config --profile fast      # show/set configuration
 
 | Type | Fields | Description |
 |------|--------|-------------|
-| `CoherenceScore` | `score`, `h_logical`, `h_factual` | Composite coherence result |
-| `ReviewResult` | `output`, `halted`, `coherence`, `candidates_evaluated` | Pipeline output |
-| `TokenEvent` | `token`, `index`, `coherence`, `halted` | Single streaming event |
+| `CoherenceScore` | `score`, `h_logical`, `h_factual`, `evidence`, `warning` | Composite coherence result |
+| `EvidenceChunk` | `text`, `distance`, `source` | Single RAG retrieval result |
+| `ScoringEvidence` | `chunks`, `nli_premise`, `nli_hypothesis`, `nli_score` | Full evidence bundle |
+| `ReviewResult` | `output`, `halted`, `coherence`, `candidates_evaluated`, `fallback_used` | Pipeline output |
+| `HallucinationError` | `query`, `response`, `score` | Exception raised by `guard()` |
+| `TokenEvent` | `token`, `index`, `coherence`, `halted`, `warning` | Single streaming event |
 | `StreamSession` | `tokens`, `events`, `halted`, `halt_reason`, `output` | Streaming session |
 | `SanitizeResult` | `blocked`, `reason`, `pattern` | Sanitizer check result |
 | `Violation` | `rule`, `detail` | Policy violation |
