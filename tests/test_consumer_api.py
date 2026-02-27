@@ -196,6 +196,35 @@ class TestCoherenceScorer:
         )
 
 
+class TestScorerStrictMode:
+    def test_strict_mode_logical_returns_neutral(self):
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False, strict_mode=True)
+        h = scorer.calculate_logical_divergence("test", "opposite is true")
+        assert h == 0.5
+
+    def test_strict_mode_factual_returns_neutral(self, store):
+        scorer = CoherenceScorer(
+            threshold=0.5,
+            ground_truth_store=store,
+            use_nli=False,
+            strict_mode=True,
+        )
+        h = scorer.calculate_factual_divergence(
+            "What color is the sky?", "totally wrong"
+        )
+        assert h == 0.5
+
+    def test_heuristic_mode_logical_differs(self):
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False, strict_mode=False)
+        h = scorer.calculate_logical_divergence("test", "The opposite is true")
+        assert h == pytest.approx(0.9)
+
+    def test_custom_weights(self):
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False, w_logic=0.3, w_fact=0.7)
+        assert scorer.W_LOGIC == 0.3
+        assert scorer.W_FACT == 0.7
+
+
 class TestSafetyKernel:
     def test_stream_output_safe(self, kernel):
         output = kernel.stream_output(["Hello ", "world"], lambda t: 0.8)

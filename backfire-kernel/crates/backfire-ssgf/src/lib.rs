@@ -3,6 +3,7 @@
 // (C) 1998-2026 Miroslav Sotek. All rights reserved.
 // License: GNU AGPL v3 | Commercial licensing available
 // ─────────────────────────────────────────────────────────────────────
+#![deny(unsafe_code)]
 //! Stochastic Synthesis of Geometric Fields (SSGF).
 //!
 //! Two-timescale engine converting Kuramoto microcycles into stable

@@ -30,6 +30,14 @@ class CoherenceScorer:
     Parameters
     ----------
     threshold : float — minimum coherence to approve (default 0.5).
+    soft_limit : float | None — scores between threshold and soft_limit
+        trigger a warning. Default: threshold + 0.1.
+    w_logic : float — weight for logical divergence (default 0.6).
+    w_fact : float — weight for factual divergence (default 0.4).
+        Must satisfy w_logic + w_fact = 1.0.
+    strict_mode : bool — when True, disables heuristic fallbacks entirely.
+        If NLI model is unavailable and strict_mode is True, logical
+        divergence returns 0.5 (neutral) instead of keyword heuristics.
     history_window : int — rolling history size.
     use_nli : bool | None — True forces NLI, False disables it,
         None (default) auto-detects based on installed packages.
@@ -53,6 +61,9 @@ class CoherenceScorer:
         ground_truth_store=None,
         nli_model=None,
         soft_limit=None,
+        w_logic=None,
+        w_fact=None,
+        strict_mode=False,
         cache_size=0,
         cache_ttl=300.0,
         nli_quantize_8bit=False,
@@ -61,6 +72,11 @@ class CoherenceScorer:
     ):
         self.threshold = threshold
         self.soft_limit = soft_limit if soft_limit is not None else threshold + 0.1
+        self.strict_mode = strict_mode
+
+        if w_logic is not None or w_fact is not None:
+            self.W_LOGIC = w_logic if w_logic is not None else 0.6
+            self.W_FACT = w_fact if w_fact is not None else 0.4
         self.history = []
         self.window = history_window
         self.ground_truth_store = ground_truth_store
@@ -92,15 +108,10 @@ class CoherenceScorer:
     # ── Factual divergence ────────────────────────────────────────────
 
     def calculate_factual_divergence(self, prompt, text_output):
-        """
-        Check output against the Ground Truth Store.
+        """Check output against the Ground Truth Store.
 
-        When NLI is available, uses NLI to compare retrieved context
-        against the output. Otherwise falls back to keyword heuristics.
-
-        Returns:
-            0.0  — perfect alignment with ground truth
-            1.0  — total hallucination / contradiction
+        Returns 0.0 (aligned) to 1.0 (hallucinated).
+        When strict_mode is True and NLI is unavailable, returns 0.5.
         """
         if not self.ground_truth_store:
             return 0.5
@@ -111,6 +122,9 @@ class CoherenceScorer:
 
         if self._nli and self._nli.model_available:
             return self._nli.score(context, text_output)
+
+        if self.strict_mode:
+            return 0.5
 
         return self._heuristic_factual(context, text_output)
 
@@ -140,6 +154,8 @@ class CoherenceScorer:
 
         if self._nli and self._nli.model_available:
             nli_score = self._nli.score(context, text_output)
+        elif self.strict_mode:
+            nli_score = 0.5
         else:
             nli_score = self._heuristic_factual(context, text_output)
 
@@ -174,14 +190,15 @@ class CoherenceScorer:
     # ── Logical divergence ────────────────────────────────────────────
 
     def calculate_logical_divergence(self, prompt, text_output):
-        """
-        Compute logical contradiction probability.
+        """Compute logical contradiction probability via NLI.
 
-        When NLI is available, uses DeBERTa. Otherwise falls back to
-        deterministic heuristics for testing.
+        When strict_mode is True and NLI is unavailable, returns 0.5.
         """
         if self._nli and self._nli.model_available:
             return self._nli.score(prompt, text_output)
+
+        if self.strict_mode:
+            return 0.5
 
         return self._heuristic_logical(text_output, prompt)
 

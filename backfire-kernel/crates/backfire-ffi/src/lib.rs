@@ -3,10 +3,19 @@
 // (C) 1998-2026 Miroslav Sotek. All rights reserved.
 // License: GNU AGPL v3 | Commercial licensing available
 // ─────────────────────────────────────────────────────────────────────
+// Note: #[deny(unsafe_code)] not applied — PyO3 proc macros generate
+// unsafe blocks internally. All hand-written code in this crate is safe.
 //! Python-callable wrappers around the Rust Backfire Kernel.
 //!
 //! Exposes `RustSafetyKernel`, `RustStreamingKernel`, `RustCoherenceScorer`,
 //! and supporting types to Python via PyO3.
+//!
+//! # FFI Safety
+//!
+//! - GIL acquired via `Python::with_gil` before every Python callback.
+//! - Python exceptions → safe Rust defaults (0.0 for scores, None for strings).
+//! - No borrowed references escape the GIL lock scope.
+//! - All config validated before storage (`BackfireConfig::validate()`).
 //!
 //! Install: `cd backfire-kernel && pip install -e crates/backfire-ffi`
 //! (requires maturin).

@@ -427,6 +427,19 @@ Contact: [anulum.li/contact](https://www.anulum.li/contact.html) or invest@anulu
 
 See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
+## Known Limitations
+
+1. **Heuristic fallback is weak**: Without `pip install director-ai[nli]`,
+   scoring uses word-overlap heuristics (~55% accuracy). Pass `strict_mode=True`
+   to disable heuristics and return neutral 0.5 instead.
+2. **Summarisation is a weak spot**: NLI models (including DeBERTa) under-perform
+   on summarisation datasets (AggreFact-CNN: 53%). Best for factual QA and
+   claim verification.
+3. **Single-document NLI**: Long documents are scored as a single premise.
+   Chunked NLI scoring is on the roadmap.
+4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits
+   general QA. Adjust via constructor args for your domain.
+
 ## Roadmap
 
 ### Shipped in v1.2.0

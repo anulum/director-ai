@@ -3,6 +3,7 @@
 // (C) 1998-2026 Miroslav Sotek. All rights reserved.
 // License: GNU AGPL v3 | Commercial licensing available
 // ─────────────────────────────────────────────────────────────────────
+#![deny(unsafe_code)]
 //! SCPN physics: UPDE Kuramoto integrator, L16 cybernetic closure,
 //! and SEC Lyapunov functional for the 16-layer hierarchy.
 
