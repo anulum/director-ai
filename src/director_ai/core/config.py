@@ -54,6 +54,7 @@ class DirectorConfig:
     # Scoring
     coherence_threshold: float = 0.6
     hard_limit: float = 0.5
+    soft_limit: float = 0.6
     use_nli: bool = False
     nli_model: str = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
     max_candidates: int = 3
@@ -99,6 +100,13 @@ class DirectorConfig:
             )
         if not (0.0 <= self.hard_limit <= 1.0):
             raise ValueError(f"hard_limit must be in [0, 1], got {self.hard_limit}")
+        if not (0.0 <= self.soft_limit <= 1.0):
+            raise ValueError(f"soft_limit must be in [0, 1], got {self.soft_limit}")
+        if self.soft_limit < self.hard_limit:
+            raise ValueError(
+                f"soft_limit ({self.soft_limit}) must be "
+                f">= hard_limit ({self.hard_limit})"
+            )
         if self.max_candidates < 1:
             raise ValueError(f"max_candidates must be >= 1, got {self.max_candidates}")
         if self.history_window < 1:

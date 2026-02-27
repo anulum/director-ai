@@ -57,6 +57,8 @@ class AsyncStreamingKernel(SafetyKernel):
         window_threshold: float = 0.55,
         trend_window: int = 5,
         trend_threshold: float = 0.15,
+        on_halt=None,
+        soft_limit: float = 0.6,
     ) -> None:
         if not (0.0 <= hard_limit <= 1.0):
             raise ValueError(f"hard_limit must be in [0, 1], got {hard_limit}")
@@ -70,11 +72,12 @@ class AsyncStreamingKernel(SafetyKernel):
             raise ValueError(f"trend_window must be >= 2, got {trend_window}")
         if trend_threshold <= 0:
             raise ValueError(f"trend_threshold must be > 0, got {trend_threshold}")
-        super().__init__(hard_limit=hard_limit)
+        super().__init__(hard_limit=hard_limit, on_halt=on_halt)
         self.window_size = window_size
         self.window_threshold = window_threshold
         self.trend_window = trend_window
         self.trend_threshold = trend_threshold
+        self.soft_limit = soft_limit
 
     async def stream_tokens(
         self,
@@ -134,6 +137,10 @@ class AsyncStreamingKernel(SafetyKernel):
                 yield event
                 return
 
+            # Soft zone warning
+            if score < self.soft_limit:
+                event.warning = True
+
             # Sliding window average
             if len(window) >= self.window_size:
                 avg = sum(window) / len(window)
@@ -166,6 +173,8 @@ class AsyncStreamingKernel(SafetyKernel):
             session.tokens.append(event.token)
             session.events.append(event)
             session.coherence_history.append(event.coherence)
+            if event.warning:
+                session.warning_count += 1
             if event.halted:
                 session.halted = True
                 session.halt_index = event.index
@@ -173,6 +182,8 @@ class AsyncStreamingKernel(SafetyKernel):
                 break
 
         session.end_time = time.monotonic()
+        if session.halted and self.on_halt:
+            self.on_halt(session)
         return session
 
     def _halt_reason(self, event: TokenEvent, session: StreamSession) -> str:

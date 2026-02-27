@@ -39,8 +39,17 @@ class CoherenceAgent:
         Mutually exclusive with llm_api_url.
     """
 
-    def __init__(self, llm_api_url=None, use_nli=None, provider=None):
+    def __init__(
+        self,
+        llm_api_url=None,
+        use_nli=None,
+        provider=None,
+        fallback=None,
+        disclaimer_prefix="[Confidence: moderate] ",
+    ):
         self.logger = logging.getLogger("CoherenceAgent")
+        self.fallback = fallback
+        self.disclaimer_prefix = disclaimer_prefix
 
         if provider and llm_api_url:
             raise ValueError("provider and llm_api_url are mutually exclusive")
@@ -78,15 +87,7 @@ class CoherenceAgent:
         return AnthropicProvider(api_key=api_key)
 
     def process(self, prompt: str) -> "ReviewResult":
-        """
-        Process a prompt end-to-end and return the verified output.
-
-        Parameters:
-            prompt: Non-empty query string.
-
-        Returns:
-            A ``ReviewResult`` with the final output, coherence score,
-            halt status, and number of candidates evaluated.
+        """Process a prompt end-to-end and return the verified output.
 
         Raises:
             ValueError: If *prompt* is empty or not a string.
@@ -96,14 +97,15 @@ class CoherenceAgent:
 
         self.logger.info(f"Received Prompt: '{prompt}'")
 
-        # 1. Generate candidates (feed-forward)
         candidates = self.generator.generate_candidates(prompt)
 
         best_response = None
         best_score = None
         best_coherence = -1.0
+        best_rejected_text = None
+        best_rejected_score = None
+        best_rejected_coherence = -1.0
 
-        # 2. Recursive oversight — score each candidate
         for i, cand in enumerate(candidates):
             text = cand["text"]
             approved, score = self.scorer.review(prompt, text)
@@ -116,19 +118,49 @@ class CoherenceAgent:
                 best_coherence = score.score
                 best_response = text
                 best_score = score
+            elif not approved and score.score > best_rejected_coherence:
+                best_rejected_coherence = score.score
+                best_rejected_text = text
+                best_rejected_score = score
 
-        # 3. Safety kernel output streaming
         if best_response:
 
             def coherence_monitor(token):
                 return best_coherence
 
             final_output = self.kernel.stream_output([best_response], coherence_monitor)
+            prefix = ""
+            if best_score and best_score.warning:
+                prefix = self.disclaimer_prefix
             return ReviewResult(
-                output=f"[AGI Output]: {final_output}",
+                output=f"{prefix}[AGI Output]: {final_output}",
                 coherence=best_score,
                 halted=False,
                 candidates_evaluated=len(candidates),
+            )
+
+        # All candidates rejected — try fallback
+        if self.fallback and self.fallback == "retrieval":
+            context = self.store.retrieve_context(prompt)
+            if context:
+                return ReviewResult(
+                    output=f"Based on verified sources: {context}",
+                    coherence=best_rejected_score,
+                    halted=False,
+                    candidates_evaluated=len(candidates),
+                    fallback_used=True,
+                )
+
+        if self.fallback and self.fallback == "disclaimer" and best_rejected_text:
+            return ReviewResult(
+                output=(
+                    "Note: This response could not be fully verified. "
+                    + best_rejected_text
+                ),
+                coherence=best_rejected_score,
+                halted=False,
+                candidates_evaluated=len(candidates),
+                fallback_used=True,
             )
 
         return ReviewResult(
@@ -136,7 +168,7 @@ class CoherenceAgent:
                 "[SYSTEM HALT]: No coherent response found."
                 " Self-termination to prevent divergence."
             ),
-            coherence=None,
+            coherence=best_rejected_score,
             halted=True,
             candidates_evaluated=len(candidates),
         )

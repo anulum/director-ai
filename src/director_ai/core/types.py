@@ -28,6 +28,25 @@ def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
 
 
 @dataclass
+class EvidenceChunk:
+    """A single RAG retrieval result with relevance distance."""
+
+    text: str
+    distance: float  # lower = more relevant
+    source: str = ""
+
+
+@dataclass
+class ScoringEvidence:
+    """Evidence collected during coherence scoring."""
+
+    chunks: list[EvidenceChunk]
+    nli_premise: str
+    nli_hypothesis: str
+    nli_score: float
+
+
+@dataclass
 class CoherenceScore:
     """Result of a coherence check on generated output."""
 
@@ -35,6 +54,8 @@ class CoherenceScore:
     approved: bool  # Whether the output passes the threshold
     h_logical: float  # Logical divergence (NLI contradiction probability)
     h_factual: float  # Factual divergence (ground truth deviation)
+    evidence: ScoringEvidence | None = None
+    warning: bool = False
 
 
 @dataclass
@@ -45,3 +66,4 @@ class ReviewResult:
     coherence: CoherenceScore | None  # Score of the selected candidate
     halted: bool  # True if the system refused to emit output
     candidates_evaluated: int  # Number of candidates scored
+    fallback_used: bool = False

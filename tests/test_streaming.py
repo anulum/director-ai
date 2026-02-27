@@ -4,8 +4,11 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
+import asyncio
+
 import pytest
 
+from director_ai.core.async_streaming import AsyncStreamingKernel
 from director_ai.core.streaming import StreamingKernel
 
 
@@ -107,3 +110,63 @@ class TestStreamingKernel:
         kernel.stream_tokens([f"t{i} " for i in range(4)], lambda t: next(scores))
         assert len(halted_sessions) == 1
         assert "window_avg" in halted_sessions[0].halt_reason
+
+    def test_soft_zone_warning_events(self):
+        kernel = StreamingKernel(hard_limit=0.4, soft_limit=0.7)
+        # Scores 0.5 and 0.6 are in soft zone (>= 0.4, < 0.7)
+        scores = iter([0.5, 0.6, 0.8])
+        tokens = ["a ", "b ", "c "]
+        session = kernel.stream_tokens(tokens, lambda t: next(scores))
+        assert not session.halted
+        assert session.warning_count == 2
+        assert session.events[0].warning is True
+        assert session.events[1].warning is True
+        assert session.events[2].warning is False
+
+    def test_soft_zone_no_halt(self):
+        kernel = StreamingKernel(hard_limit=0.3, soft_limit=0.6)
+        scores = iter([0.4, 0.5])
+        tokens = ["a ", "b "]
+        session = kernel.stream_tokens(tokens, lambda t: next(scores))
+        assert not session.halted
+        assert session.warning_count == 2
+
+
+@pytest.mark.consumer
+class TestAsyncStreamingKernel:
+    def test_async_on_halt_fires(self):
+        halted_sessions = []
+        kernel = AsyncStreamingKernel(hard_limit=0.5, on_halt=halted_sessions.append)
+        scores = iter([0.8, 0.3])
+
+        async def run():
+            return await kernel.stream_to_session(
+                ["Good ", "Bad "], lambda t: next(scores)
+            )
+
+        session = asyncio.get_event_loop().run_until_complete(run())
+        assert session.halted
+        assert len(halted_sessions) == 1
+        assert "hard_limit" in halted_sessions[0].halt_reason
+
+    def test_async_on_halt_not_called_when_ok(self):
+        halted_sessions = []
+        kernel = AsyncStreamingKernel(hard_limit=0.5, on_halt=halted_sessions.append)
+
+        async def run():
+            return await kernel.stream_to_session(["a ", "b "], lambda t: 0.9)
+
+        session = asyncio.get_event_loop().run_until_complete(run())
+        assert not session.halted
+        assert len(halted_sessions) == 0
+
+    def test_async_soft_zone_warning(self):
+        kernel = AsyncStreamingKernel(hard_limit=0.4, soft_limit=0.7)
+        scores = iter([0.5, 0.8])
+
+        async def run():
+            return await kernel.stream_to_session(["a ", "b "], lambda t: next(scores))
+
+        session = asyncio.get_event_loop().run_until_complete(run())
+        assert not session.halted
+        assert session.warning_count == 1

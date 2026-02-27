@@ -28,7 +28,10 @@ class TestLangChainGuard:
             threshold=0.6,
             use_nli=False,
         )
-        result = guard.check("What color is the sky?", "The sky is green.")
+        result = guard.check(
+            "What color is the sky?",
+            "Mars has two moons named Phobos and Deimos.",
+        )
         assert result["approved"] is False
 
     def test_raise_on_fail(self):
@@ -44,7 +47,10 @@ class TestLangChainGuard:
             raise_on_fail=True,
         )
         with pytest.raises(HallucinationError):
-            guard.check("What color is the sky?", "The sky is green.")
+            guard.check(
+                "What color is the sky?",
+                "Mars has two moons named Phobos and Deimos.",
+            )
 
     def test_invoke_dict(self):
         from director_ai.integrations.langchain import DirectorAIGuard
@@ -99,7 +105,10 @@ class TestLlamaIndexPostprocessor:
             threshold=0.6,
             use_nli=False,
         )
-        result = pp.check("What color is the sky?", "The sky is green.")
+        result = pp.check(
+            "What color is the sky?",
+            "Mars has two moons named Phobos and Deimos.",
+        )
         assert result["approved"] is False
 
     def test_validate_response(self):
@@ -124,7 +133,7 @@ class TestLlamaIndexPostprocessor:
 
         pp = DirectorAIPostprocessor(
             facts={"sky color": "The sky is blue."},
-            threshold=0.6,
+            threshold=0.5,
             use_nli=False,
         )
 
@@ -135,7 +144,7 @@ class TestLlamaIndexPostprocessor:
 
         nodes = [
             FakeNode("The sky is blue on a clear day."),
-            FakeNode("The sky is green, obviously."),
+            FakeNode("Mars has two moons named Phobos and Deimos."),
         ]
 
         class FakeBundle:

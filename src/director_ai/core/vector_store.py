@@ -22,6 +22,7 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from .knowledge import GroundTruthStore
+from .types import EvidenceChunk
 
 logger = logging.getLogger("DirectorAI.VectorStore")
 
@@ -65,9 +66,14 @@ class InMemoryBackend(VectorBackend):
             doc_words = set(doc["text"].lower().split())
             overlap = len(query_words & doc_words)
             total = max(len(query_words | doc_words), 1)
-            scored.append((overlap / total, doc))
+            similarity = overlap / total
+            scored.append((similarity, doc))
         scored.sort(key=lambda x: x[0], reverse=True)
-        return [doc for _, doc in scored[:n_results] if _ > 0]
+        results = []
+        for sim, doc in scored[:n_results]:
+            if sim > 0:
+                results.append({**doc, "distance": 1.0 - sim})
+        return results
 
     def count(self) -> int:
         return len(self._docs)
@@ -115,11 +121,20 @@ class ChromaBackend(VectorBackend):
         documents = results.get("documents")
         metadatas = results.get("metadatas")
         ids = results.get("ids")
+        distances = results.get("distances")
         if results and documents:
             for i, doc_text in enumerate(documents[0]):
                 meta = metadatas[0][i] if metadatas else {}
                 doc_id = ids[0][i] if ids else f"doc_{i}"
-                docs.append({"id": doc_id, "text": doc_text, "metadata": meta})
+                dist = distances[0][i] if distances else 0.0
+                docs.append(
+                    {
+                        "id": doc_id,
+                        "text": doc_text,
+                        "metadata": meta,
+                        "distance": dist,
+                    }
+                )
         return docs
 
     def count(self) -> int:
@@ -179,6 +194,22 @@ class VectorGroundTruthStore(GroundTruthStore):
             text=f"{key} is {value}",
             metadata={"source": "user", "key": key, **(metadata or {})},
         )
+
+    def retrieve_context_with_chunks(self, query: str) -> list[EvidenceChunk]:
+        """Retrieve context as structured EvidenceChunk list."""
+        results = self.backend.query(query, n_results=3)
+        if not results:
+            return []
+        chunks = []
+        for r in results:
+            chunks.append(
+                EvidenceChunk(
+                    text=r["text"],
+                    distance=r.get("distance", 0.0),
+                    source=r.get("metadata", {}).get("source", ""),
+                )
+            )
+        return chunks
 
     def retrieve_context(self, query: str) -> str | None:
         """Retrieve context using vector similarity with keyword fallback.

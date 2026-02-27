@@ -29,7 +29,7 @@ from .sanitizer import InputSanitizer, SanitizeResult
 from .scorer import CoherenceScorer
 from .streaming import StreamingKernel, StreamSession, TokenEvent
 from .tenant import TenantRouter
-from .types import CoherenceScore, ReviewResult
+from .types import CoherenceScore, EvidenceChunk, ReviewResult, ScoringEvidence
 from .vector_store import (
     ChromaBackend,
     InMemoryBackend,
@@ -39,6 +39,8 @@ from .vector_store import (
 
 __all__ = [
     "CoherenceScore",
+    "EvidenceChunk",
+    "ScoringEvidence",
     "ReviewResult",
     "CoherenceScorer",
     "SafetyKernel",

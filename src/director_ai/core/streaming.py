@@ -34,6 +34,7 @@ class TokenEvent:
     coherence: float
     timestamp: float
     halted: bool = False
+    warning: bool = False
 
 
 @dataclass
@@ -48,6 +49,7 @@ class StreamSession:
     halt_reason: str = ""
     start_time: float = 0.0
     end_time: float = 0.0
+    warning_count: int = 0
 
     @property
     def output(self) -> str:
@@ -99,12 +101,14 @@ class StreamingKernel(SafetyKernel):
         trend_window: int = 5,
         trend_threshold: float = 0.15,
         on_halt=None,
+        soft_limit: float = 0.6,
     ) -> None:
         super().__init__(hard_limit=hard_limit, on_halt=on_halt)
         self.window_size = window_size
         self.window_threshold = window_threshold
         self.trend_window = trend_window
         self.trend_threshold = trend_threshold
+        self.soft_limit = soft_limit
 
     def stream_tokens(
         self,
@@ -155,6 +159,11 @@ class StreamingKernel(SafetyKernel):
                 self.emergency_stop()
                 session.events.append(event)
                 break
+
+            # Soft zone: between hard_limit and soft_limit
+            if score < self.soft_limit:
+                event.warning = True
+                session.warning_count += 1
 
             # Check 2: Sliding window average
             if len(window) >= self.window_size:

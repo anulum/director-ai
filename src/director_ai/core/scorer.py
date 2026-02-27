@@ -12,7 +12,7 @@ import logging
 import threading
 
 from .nli import NLIScorer, nli_available
-from .types import CoherenceScore
+from .types import CoherenceScore, EvidenceChunk, ScoringEvidence
 
 
 class CoherenceScorer:
@@ -46,8 +46,10 @@ class CoherenceScorer:
         use_nli=None,
         ground_truth_store=None,
         nli_model=None,
+        soft_limit=None,
     ):
         self.threshold = threshold
+        self.soft_limit = soft_limit if soft_limit is not None else threshold + 0.1
         self.history = []
         self.window = history_window
         self.ground_truth_store = ground_truth_store
@@ -90,26 +92,62 @@ class CoherenceScorer:
 
         return self._heuristic_factual(context, text_output)
 
+    def calculate_factual_divergence_with_evidence(
+        self, prompt, text_output
+    ) -> tuple[float, ScoringEvidence | None]:
+        """Like calculate_factual_divergence but also returns evidence."""
+        if not self.ground_truth_store:
+            return 0.5, None
+
+        # Try structured chunks from VectorGroundTruthStore
+        chunks: list[EvidenceChunk] = []
+        context: str | None = None
+        from .vector_store import VectorGroundTruthStore
+
+        if isinstance(self.ground_truth_store, VectorGroundTruthStore):
+            chunks = self.ground_truth_store.retrieve_context_with_chunks(prompt)
+            if chunks:
+                context = "; ".join(c.text for c in chunks)
+        else:
+            context = self.ground_truth_store.retrieve_context(prompt)
+            if context:
+                chunks = [EvidenceChunk(text=context, distance=0.0, source="keyword")]
+
+        if not context:
+            return 0.5, None
+
+        if self._nli and self._nli.model_available:
+            nli_score = self._nli.score(context, text_output)
+        else:
+            nli_score = self._heuristic_factual(context, text_output)
+
+        evidence = ScoringEvidence(
+            chunks=chunks,
+            nli_premise=context,
+            nli_hypothesis=text_output,
+            nli_score=nli_score,
+        )
+        return nli_score, evidence
+
     @staticmethod
     def _heuristic_factual(context, text_output):
-        """Keyword-based factual divergence (testing fallback).
+        """Word-overlap factual divergence (no-NLI fallback).
 
-        Only useful for demo/test scenarios — install [nli] for
-        real-world fact-checking.
+        Uses bidirectional containment: max of recall (context words
+        in output) and precision (output words grounded in context).
+        Install [nli] for production scoring.
         """
-        ctx = context.lower()
-        out = text_output.lower()
+        import re
 
-        if "16" in ctx and "16" not in out and "layers" in out:
-            return 0.9
-
-        if "blue" in ctx:
-            if "blue" in out:
-                return 0.1
-            if "green" in out:
-                return 1.0
-
-        return 0.1
+        ctx_words = set(re.findall(r"\w+", context.lower()))
+        out_words = set(re.findall(r"\w+", text_output.lower()))
+        if not ctx_words or not out_words:
+            return 0.5
+        overlap = len(ctx_words & out_words)
+        recall = overlap / len(ctx_words)
+        precision = overlap / len(out_words)
+        similarity = max(recall, precision)
+        return max(0.0, min(1.0, 1.0 - similarity))
 
     # ── Logical divergence ────────────────────────────────────────────
 
@@ -123,37 +161,56 @@ class CoherenceScorer:
         if self._nli and self._nli.model_available:
             return self._nli.score(prompt, text_output)
 
-        return self._heuristic_logical(text_output)
+        return self._heuristic_logical(text_output, prompt)
 
     @staticmethod
-    def _heuristic_logical(text_output):
-        """Deterministic heuristic fallback (testing only)."""
-        if "consistent with reality" in text_output:
+    def _heuristic_logical(text_output, prompt=""):
+        """Keyword + word-overlap logical divergence (no-NLI fallback).
+
+        Install [nli] for production-grade scoring.
+        """
+        out = text_output.lower()
+        if "consistent with reality" in out:
             return 0.1
-        if "opposite is true" in text_output:
+        if "opposite is true" in out:
             return 0.9
-        if "depends on your perspective" in text_output:
+        if "depends on your perspective" in out:
             return 0.5
-        return 0.5
+        if not prompt:
+            return 0.5
+        import re
+
+        p_words = set(re.findall(r"\w+", prompt.lower()))
+        o_words = set(re.findall(r"\w+", out))
+        if not p_words or not o_words:
+            return 0.5
+        similarity = len(p_words & o_words) / len(p_words | o_words)
+        return max(0.0, min(1.0, 1.0 - similarity))
 
     # ── Shared helpers ────────────────────────────────────────────────
 
     def _heuristic_coherence(self, prompt, action):
-        """Compute coherence components. Returns (h_logical, h_factual, coherence)."""
+        """Compute coherence components.
+
+        Returns (h_logical, h_factual, coherence, evidence).
+        """
         h_logic = self.calculate_logical_divergence(prompt, action)
-        h_fact = self.calculate_factual_divergence(prompt, action)
+        h_fact, evidence = self.calculate_factual_divergence_with_evidence(
+            prompt, action
+        )
         total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
         coherence = 1.0 - total_divergence
-        return h_logic, h_fact, coherence
+        return h_logic, h_fact, coherence, evidence
 
     def _finalise_review(
-        self, coherence, h_logic, h_fact, action
+        self, coherence, h_logic, h_fact, action, evidence=None
     ) -> tuple[bool, CoherenceScore]:
         """Build CoherenceScore, gate on threshold, update history.
 
         Returns (approved, CoherenceScore).
         """
         approved = coherence >= self.threshold
+        warning = False
 
         if not approved:
             self.logger.critical(
@@ -162,6 +219,8 @@ class CoherenceScorer:
                 self.threshold,
             )
         else:
+            if coherence < self.soft_limit:
+                warning = True
             with self._history_lock:
                 self.history.append(action)
                 if len(self.history) > self.window:
@@ -172,6 +231,8 @@ class CoherenceScorer:
             approved=approved,
             h_logical=h_logic,
             h_factual=h_fact,
+            evidence=evidence,
+            warning=warning,
         )
         return approved, score
 
@@ -193,8 +254,8 @@ class CoherenceScorer:
 
     def review(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
         """Score an action and decide whether to approve it."""
-        h_logic, h_fact, coherence = self._heuristic_coherence(prompt, action)
-        return self._finalise_review(coherence, h_logic, h_fact, action)
+        h_logic, h_fact, coherence, evidence = self._heuristic_coherence(prompt, action)
+        return self._finalise_review(coherence, h_logic, h_fact, action, evidence)
 
     # ── Async API ──────────────────────────────────────────────────────
 

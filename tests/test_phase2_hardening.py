@@ -280,8 +280,8 @@ class TestSharedScoreBlending:
     def scorer(self):
         return CoherenceScorer(threshold=0.6, use_nli=False)
 
-    def test_heuristic_coherence_returns_three_floats(self, scorer):
-        h_logic, h_fact, coherence = scorer._heuristic_coherence(
+    def test_heuristic_coherence_returns_components(self, scorer):
+        h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
             "What is the sky?", "The sky is blue."
         )
         assert isinstance(h_logic, float)
@@ -309,7 +309,7 @@ class TestSharedScoreBlending:
         action = "Based on my training data, the answer is consistent with reality."
         approved, score = scorer.review(prompt, action)
         # Verify manually
-        h_l, h_f, c = scorer._heuristic_coherence(prompt, action)
+        h_l, h_f, c, _ev = scorer._heuristic_coherence(prompt, action)
         assert abs(score.score - c) < 1e-10
         assert abs(score.h_logical - h_l) < 1e-10
         assert abs(score.h_factual - h_f) < 1e-10
