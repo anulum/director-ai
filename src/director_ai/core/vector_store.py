@@ -126,10 +126,12 @@ class SentenceTransformerBackend(VectorBackend):
         results = []
         for idx in indices[:n_results]:
             if similarities[idx] > 0:
-                results.append({
-                    **self._docs[idx],
-                    "distance": 1.0 - similarities[idx],
-                })
+                results.append(
+                    {
+                        **self._docs[idx],
+                        "distance": 1.0 - similarities[idx],
+                    }
+                )
         return results
 
     def count(self) -> int:

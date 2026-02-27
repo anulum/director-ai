@@ -73,13 +73,15 @@ class DirectorAIChecker:
 
         for reply in replies:
             approved, cs = self.scorer.review(query, reply)
-            scores.append({
-                "score": cs.score,
-                "h_logical": cs.h_logical,
-                "h_factual": cs.h_factual,
-                "approved": approved,
-                "warning": cs.warning,
-            })
+            scores.append(
+                {
+                    "score": cs.score,
+                    "h_logical": cs.h_logical,
+                    "h_factual": cs.h_factual,
+                    "approved": approved,
+                    "warning": cs.warning,
+                }
+            )
             approved_list.append(approved)
             if not self.filter_rejected or approved:
                 scored_replies.append(reply)
