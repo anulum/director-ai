@@ -7,6 +7,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-02-27
+
+### Added
+- **`strict_mode` parameter**: disables heuristic fallbacks when NLI is
+  unavailable — returns neutral 0.5 instead of keyword heuristics
+- **Configurable scoring weights**: `w_logic` and `w_fact` constructor
+  params (default 0.6/0.4) for domain tuning
+- **`#![deny(unsafe_code)]`** on 5 Rust crates (types, core, physics,
+  ssgf, observers) with safety invariant documentation
+- **FFI safety docs** on backfire-ffi (PyO3 precludes deny(unsafe_code))
+- "Known Limitations" section in README
+- 4 new tests for strict_mode and custom weights (378 total)
+
+## [1.2.0] - 2026-02-27
+
+### Added
+- **Score caching**: LRU cache with blake2b keys and TTL (`ScoreCache`)
+- **LangGraph integration**: `director_ai_node` + `director_ai_conditional_edge`
+- **Haystack integration**: `DirectorAIChecker` component
+- **CrewAI integration**: `DirectorAITool`
+- **Quantized NLI**: 8-bit bitsandbytes quantization (`nli_quantize_8bit`)
+- **Upgraded embeddings**: `SentenceTransformerBackend` (bge-large-en-v1.5)
+- **MkDocs site**: full API reference, deployment guides, domain cookbooks
+- **Enhanced Gradio demo**: side-by-side comparison with token highlighting
+- Community templates: bug report, feature request, PR template
+- `GOOD_FIRST_ISSUES.md` for new contributors
+- `[langgraph]`, `[haystack]`, `[crewai]`, `[embeddings]`, `[quantize]`
+  optional dependency groups
+
+### Changed
+- Documentation: Sphinx → MkDocs Material
+- `soft_limit` parameter on `CoherenceScorer` (warning zone)
+
 ## [1.1.0] - 2026-02-27
 
 ### Added
@@ -317,7 +350,9 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v1.2.1...HEAD
+[1.2.1]: https://github.com/anulum/director-ai/compare/v1.2.0...v1.2.1
+[1.2.0]: https://github.com/anulum/director-ai/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/anulum/director-ai/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/anulum/director-ai/compare/v0.10.0...v1.0.0
 [0.10.0]: https://github.com/anulum/director-ai/compare/v0.9.0...v0.10.0

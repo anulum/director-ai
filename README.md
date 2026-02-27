@@ -485,7 +485,7 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {1.2.0},
+  version   = {1.2.1},
   license   = {AGPL-3.0-or-later}
 }
 ```
