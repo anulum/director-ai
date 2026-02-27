@@ -1,2 +1,2 @@
 director-ai>=1.0.0
-gradio>=4.0
+gradio>=5.0
