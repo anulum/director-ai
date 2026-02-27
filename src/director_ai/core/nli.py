@@ -4,9 +4,10 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 """
-NLI-based logical divergence scorer using DeBERTa.
+NLI-based logical divergence scorer.
 
-``NLIScorer`` lazily loads the model on first call and caches it.
+Default model: DeBERTa-v3-base-mnli-fever-anli (66.2% on LLM-AggreFact).
+Supports both 2-class and 3-class NLI models.
 Falls back to heuristic scoring when the model is unavailable.
 """
 
@@ -20,11 +21,6 @@ import numpy as np
 logger = logging.getLogger("DirectorAI.NLI")
 
 _DEFAULT_MODEL = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
-
-# Labels for the DeBERTa-mnli model
-_LABEL_ENTAILMENT = 0
-_LABEL_NEUTRAL = 1
-_LABEL_CONTRADICTION = 2
 
 
 @lru_cache(maxsize=4)
@@ -63,7 +59,7 @@ class NLIScorer:
     use_model : bool — if True, attempt to load model on first score().
     max_length : int — max token length for NLI input.
     model_name : str | None — HuggingFace model ID or local path.
-        Defaults to the pre-trained DeBERTa-v3-base-mnli-fever-anli.
+        Defaults to DeBERTa-v3-base-mnli-fever-anli.
     backend : str — "deberta" (default) or "minicheck".
     """
 
@@ -156,7 +152,14 @@ class NLIScorer:
         return float(1.0 - pred[0])
 
     def _model_score(self, premise: str, hypothesis: str) -> float:
-        """Score using the NLI model."""
+        """Score using the NLI model.
+
+        Handles both 2-class (supported/not-supported) and 3-class
+        (entailment/neutral/contradiction) models.  For 2-class models
+        the convention is label0 = not-supported, label1 = supported
+        (FactCG).  For 3-class models the convention is label0 = entailment,
+        label1 = neutral, label2 = contradiction (DeBERTa-mnli family).
+        """
         try:
             import torch
         except ImportError:
@@ -176,10 +179,13 @@ class NLIScorer:
             logits = self._model(**inputs).logits
 
         probs = torch.softmax(logits, dim=1).numpy()[0]
-        contradiction_prob = float(probs[_LABEL_CONTRADICTION])
-        neutral_prob = float(probs[_LABEL_NEUTRAL])
 
-        return contradiction_prob + (neutral_prob * 0.5)
+        if len(probs) == 2:
+            # Binary: label0 = not-supported, label1 = supported
+            return float(1.0 - probs[1])
+
+        # 3-class NLI: label0 = entailment, label1 = neutral, label2 = contradiction
+        return float(probs[2]) + float(probs[1]) * 0.5
 
     @staticmethod
     def _heuristic_score(premise: str, hypothesis: str) -> float:

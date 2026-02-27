@@ -134,10 +134,18 @@ class _BinaryNLIPredictor:
         self.model.to(self.device)
         self.max_length = max_length
         self._torch = torch
-        logger.info("Model loaded on %s (%s)", self.device, self.model_name)
+        self._num_labels = self.model.config.num_labels
+        logger.info(
+            "Model loaded on %s (%s, %d labels)",
+            self.device, self.model_name, self._num_labels,
+        )
 
     def score(self, premise: str, hypothesis: str) -> float:
-        """Return P(entailment) as factual consistency score in [0, 1]."""
+        """Return P(supported) as factual consistency score in [0, 1].
+
+        2-class models (FactCG): label1 = supported.
+        3-class models (DeBERTa-mnli): label0 = entailment.
+        """
         inputs = self.tokenizer(
             premise, hypothesis,
             return_tensors="pt", truncation=True, max_length=self.max_length,
@@ -146,7 +154,8 @@ class _BinaryNLIPredictor:
         with self._torch.no_grad():
             logits = self.model(**inputs).logits
         probs = self._torch.softmax(logits, dim=1).cpu().numpy()[0]
-        # label 0 = entailment for DeBERTa-mnli-fever-anli family
+        if self._num_labels == 2:
+            return float(probs[1])
         return float(probs[0])
 
 
