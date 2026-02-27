@@ -41,3 +41,15 @@ class PhysicsError(DirectorAIError):
 
 class NumericalError(PhysicsError):
     """Raised when a numerical computation produces NaN/Inf."""
+
+
+class HallucinationError(DirectorAIError):
+    """Raised when a guarded LLM response fails coherence scoring."""
+
+    def __init__(self, query: str, response: str, score):
+        self.query = query
+        self.response = response
+        self.score = score
+        super().__init__(
+            f"Hallucination detected (coherence={score.score:.3f}): {response[:100]}"
+        )

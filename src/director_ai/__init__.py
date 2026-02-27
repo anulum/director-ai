@@ -41,6 +41,8 @@ from .core import (
     VectorGroundTruthStore,
     Violation,
 )
+from .core.exceptions import HallucinationError
+from .integrations.sdk_guard import get_score, guard
 
 __all__ = [
     "CoherenceAgent",
@@ -67,4 +69,7 @@ __all__ = [
     "TenantRouter",
     "InputSanitizer",
     "SanitizeResult",
+    "guard",
+    "get_score",
+    "HallucinationError",
 ]

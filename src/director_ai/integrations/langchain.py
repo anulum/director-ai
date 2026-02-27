@@ -17,7 +17,7 @@ from __future__ import annotations
 from typing import Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
-from director_ai.core.types import CoherenceScore
+from director_ai.core.exceptions import HallucinationError  # noqa: F401 — re-export
 
 
 class DirectorAIGuard:
@@ -113,15 +113,3 @@ class DirectorAIGuard:
             query = kwargs.get("query", "")
             response = str(input)
         return await self.acheck(str(query), str(response))
-
-
-class HallucinationError(Exception):
-    """Raised when DirectorAIGuard detects hallucination."""
-
-    def __init__(self, query: str, response: str, score: CoherenceScore):
-        self.query = query
-        self.response = response
-        self.score = score
-        super().__init__(
-            f"Hallucination detected (coherence={score.score:.3f}): {response[:100]}"
-        )

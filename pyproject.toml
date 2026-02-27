@@ -38,6 +38,8 @@ vector = [
     "chromadb>=0.4.0",
     "sentence-transformers>=2.2.0",
 ]
+openai = ["openai>=1.0"]
+anthropic = ["anthropic>=0.20"]
 langchain = [
     "langchain-core>=0.1",
 ]
