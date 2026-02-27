@@ -372,28 +372,32 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
 ## Roadmap
 
-### Next Training Run (v1.1)
+### Shipped in v1.1.0
 
-Current NLI baseline: 66.2% balanced accuracy on LLM-AggreFact.
-Target: 72%+ through:
+- **Native SDK interceptors** — `guard(OpenAI(), facts={...})` wraps
+  any OpenAI/Anthropic client with transparent coherence scoring
+  (streaming, async, three failure modes)
+- **MiniCheck backend** — 72.6% balanced accuracy on LLM-AggreFact
+  (pluggable, no retraining needed)
+- **Evidence return** — every `CoherenceScore` carries top-K chunks,
+  NLI premise/hypothesis, and similarity distances
+- **Graceful fallbacks** — `fallback="retrieval"` / `"disclaimer"` +
+  soft warning zone + streaming `on_halt` callback
 
-- **Dataset rebalancing** — downsample VitaminC from 370K to 100K
-  (50% of current training data, causes domain bias toward fact-verification)
-- **Contamination fix** — remove HaluEval from training data
-  (present in both train and benchmark, inflates reported numbers)
-- **Threshold calibration** — post-training calibration pass
-  (fine-tuned models underperform baseline on AggreFact despite 91% raw accuracy)
-- **MiniCheck backend** — pluggable MiniCheck-DeBERTa-L as alternative
-  (72.6% on same benchmark, no retraining needed)
-
-### Planned Features
+### Completed
 
 - [x] `director-ai eval` — structured CLI benchmarking
 - [x] Webhook/callback on halt events
-- [x] SQLite-backed usage dashboard at `/v1/dashboard`
-- [x] Native OpenAI/Anthropic SDK in CoherenceAgent
+- [x] Native OpenAI/Anthropic SDK interceptors (`guard()`)
+- [x] Evidence schema on all rejections
+- [x] Graceful fallback patterns (retrieval, disclaimer, soft warning)
+- [x] End-to-end guardrail benchmark (300 HaluEval traces, 8 metrics)
+
+### Next
+
 - [ ] HuggingFace Spaces live demo
 - [ ] Chunked NLI scoring for long documents
+- [ ] 500+ trace benchmark with GPT-4o judge
 
 ## Citation
 
@@ -403,7 +407,7 @@ Target: 72%+ through:
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {1.0.0},
+  version   = {1.1.0},
   license   = {AGPL-3.0-or-later}
 }
 ```
