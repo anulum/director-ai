@@ -16,6 +16,11 @@
   <a href="https://img.shields.io/badge/mypy-checked-blue"><img src="https://img.shields.io/badge/mypy-checked-blue.svg" alt="mypy"></a>
   <a href="https://hub.docker.com/r/anulum/director-ai"><img src="https://img.shields.io/badge/docker-ready-blue.svg" alt="Docker"></a>
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
+  <a href="https://huggingface.co/spaces/anulum/director-ai-guardrail"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-orange.svg" alt="HF Spaces"></a>
+</p>
+
+<p align="center">
+  <a href="https://huggingface.co/spaces/anulum/director-ai-guardrail"><strong>Try it live on Hugging Face Spaces &rarr;</strong></a>
 </p>
 
 <p align="center">
@@ -395,7 +400,7 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
 ### Next
 
-- [ ] HuggingFace Spaces live demo
+- [x] HuggingFace Spaces live demo — [try it](https://huggingface.co/spaces/anulum/director-ai-guardrail)
 - [ ] Chunked NLI scoring for long documents
 - [ ] 500+ trace benchmark with GPT-4o judge
 
