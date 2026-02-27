@@ -21,6 +21,7 @@ from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
 from .async_streaming import AsyncStreamingKernel
 from .audit import AuditEntry, AuditLogger
+from .cache import ScoreCache
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .nli import NLIScorer, nli_available
@@ -33,6 +34,7 @@ from .types import CoherenceScore, EvidenceChunk, ReviewResult, ScoringEvidence
 from .vector_store import (
     ChromaBackend,
     InMemoryBackend,
+    SentenceTransformerBackend,
     VectorBackend,
     VectorGroundTruthStore,
 )
@@ -55,6 +57,8 @@ __all__ = [
     "VectorBackend",
     "InMemoryBackend",
     "ChromaBackend",
+    "SentenceTransformerBackend",
+    "ScoreCache",
     "StreamingKernel",
     "StreamSession",
     "TokenEvent",

@@ -17,6 +17,8 @@
   <a href="https://hub.docker.com/r/anulum/director-ai"><img src="https://img.shields.io/badge/docker-ready-blue.svg" alt="Docker"></a>
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
   <a href="https://huggingface.co/spaces/anulum/director-ai-guardrail"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-orange.svg" alt="HF Spaces"></a>
+  <a href="https://anulum.github.io/director-ai"><img src="https://img.shields.io/badge/docs-mkdocs-blue.svg" alt="Docs"></a>
+  <a href="https://discord.gg/director-ai"><img src="https://img.shields.io/badge/Discord-Join-7289DA.svg" alt="Discord"></a>
 </p>
 
 <p align="center">
@@ -95,18 +97,24 @@ pip install director-ai[nli]
 # With vector store (ChromaDB for custom knowledge bases)
 pip install director-ai[vector]
 
-# With LangChain or LlamaIndex
+# With high-quality embeddings (bge-large-en-v1.5)
+pip install director-ai[embeddings]
+
+# With 8-bit quantized NLI (<80ms on GPU)
+pip install director-ai[quantize]
+
+# Framework integrations
 pip install director-ai[langchain]
 pip install director-ai[llamaindex]
+pip install director-ai[langgraph]
+pip install director-ai[haystack]
+pip install director-ai[crewai]
 
 # With REST API server
 pip install director-ai[server]
 
-# Fine-tuning pipeline
-pip install director-ai[train]
-
 # Everything
-pip install "director-ai[nli,vector,server]"
+pip install "director-ai[nli,vector,server,embeddings]"
 
 # Development
 git clone https://github.com/anulum/director-ai.git
@@ -243,6 +251,46 @@ response = query_engine.query("What does Enterprise cost?")
 
 Adds `director_ai_score` metadata to surviving nodes. Also usable standalone via `postprocessor.check(query, response)`.
 
+### LangGraph integration
+
+```python
+from director_ai.integrations.langgraph import director_ai_node, director_ai_conditional_edge
+
+node = director_ai_node(facts={"policy": "Refunds within 30 days."}, on_fail="flag")
+edge = director_ai_conditional_edge("output", "retry")
+# Wire into your LangGraph StateGraph
+```
+
+### Haystack integration
+
+```python
+from director_ai.integrations.haystack import DirectorAIChecker
+
+checker = DirectorAIChecker(facts={"policy": "Refunds within 30 days."})
+result = checker.run(query="Refund policy?", replies=["60-day refunds."])
+print(result["scores"])  # [CoherenceScore(...)]
+```
+
+### CrewAI integration
+
+```python
+from director_ai.integrations.crewai import DirectorAITool
+
+tool = DirectorAITool(facts={"policy": "Refunds within 30 days."})
+result = tool.check("Refund policy?", "We offer 30-day refunds.")
+print(result["approved"])  # True
+```
+
+### Score caching
+
+```python
+scorer = CoherenceScorer(
+    threshold=0.6,
+    cache_size=1024,   # LRU cache for streaming deduplication
+    cache_ttl=300,     # TTL in seconds
+)
+```
+
 ### More examples
 
 | Example | Backend | What it shows |
@@ -329,7 +377,8 @@ src/director_ai/
 │   ├── nli.py                      # NLI scorer (DeBERTa)
 │   ├── actor.py                    # LLM generator interface
 │   ├── knowledge.py                # Ground truth store (in-memory)
-│   ├── vector_store.py             # Vector store (ChromaDB backend)
+│   ├── vector_store.py             # Vector store (ChromaDB / sentence-transformers)
+│   ├── cache.py                    # LRU score cache (blake2b, TTL)
 │   ├── policy.py                   # YAML declarative policy engine
 │   ├── audit.py                    # Structured JSONL audit logger
 │   ├── tenant.py                   # Multi-tenant KB isolation
@@ -337,7 +386,10 @@ src/director_ai/
 │   └── types.py                    # CoherenceScore, ReviewResult
 ├── integrations/                   # Framework integrations
 │   ├── langchain.py                # LangChain Runnable guardrail
-│   └── llamaindex.py               # LlamaIndex postprocessor
+│   ├── llamaindex.py               # LlamaIndex postprocessor
+│   ├── langgraph.py                # LangGraph node + conditional edge
+│   ├── haystack.py                 # Haystack 2.x component
+│   └── crewai.py                   # CrewAI tool
 ├── cli.py                          # CLI: review, process, batch, serve
 ├── server.py                       # FastAPI REST wrapper
 benchmarks/                         # AggreFact evaluation suite
@@ -377,13 +429,20 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
 ## Roadmap
 
+### Shipped in v1.2.0
+
+- **Score caching** — LRU cache with blake2b keys and TTL for streaming dedup
+- **Framework integrations** — LangGraph nodes, Haystack components, CrewAI tools
+- **Quantized NLI** — 8-bit bitsandbytes quantization for <80ms GPU inference
+- **Upgraded embeddings** — bge-large-en-v1.5 via `SentenceTransformerBackend`
+- **MkDocs site** — full API reference, deployment guides, domain cookbooks
+- **Enhanced demo** — side-by-side comparison with token-level highlighting
+
 ### Shipped in v1.1.0
 
 - **Native SDK interceptors** — `guard(OpenAI(), facts={...})` wraps
   any OpenAI/Anthropic client with transparent coherence scoring
-  (streaming, async, three failure modes)
 - **MiniCheck backend** — 72.6% balanced accuracy on LLM-AggreFact
-  (pluggable, no retraining needed)
 - **Evidence return** — every `CoherenceScore` carries top-K chunks,
   NLI premise/hypothesis, and similarity distances
 - **Graceful fallbacks** — `fallback="retrieval"` / `"disclaimer"` +
@@ -391,18 +450,19 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
 ### Completed
 
+- [x] Score caching, LangGraph/Haystack/CrewAI, quantized NLI, MkDocs site
 - [x] `director-ai eval` — structured CLI benchmarking
-- [x] Webhook/callback on halt events
 - [x] Native OpenAI/Anthropic SDK interceptors (`guard()`)
 - [x] Evidence schema on all rejections
 - [x] Graceful fallback patterns (retrieval, disclaimer, soft warning)
-- [x] End-to-end guardrail benchmark (300 HaluEval traces, 8 metrics)
+- [x] End-to-end guardrail benchmark (600+ traces, 8 metrics)
+- [x] HuggingFace Spaces live demo
 
 ### Next
 
-- [x] HuggingFace Spaces live demo — [try it](https://huggingface.co/spaces/anulum/director-ai-guardrail)
 - [ ] Chunked NLI scoring for long documents
-- [ ] 500+ trace benchmark with GPT-4o judge
+- [ ] Prometheus histogram latency buckets
+- [ ] `director-ai serve --workers N` multi-process mode
 
 ## Citation
 
@@ -412,7 +472,7 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {1.1.0},
+  version   = {1.2.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

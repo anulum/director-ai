@@ -24,6 +24,9 @@ from typing import Any
 from .knowledge import GroundTruthStore
 from .types import EvidenceChunk
 
+# Re-export recommended model name for documentation
+RECOMMENDED_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
+
 logger = logging.getLogger("DirectorAI.VectorStore")
 
 
@@ -79,6 +82,60 @@ class InMemoryBackend(VectorBackend):
         return len(self._docs)
 
 
+class SentenceTransformerBackend(VectorBackend):
+    """Embedding-based backend using sentence-transformers directly.
+
+    Recommended model: BAAI/bge-large-en-v1.5 (best quality/speed tradeoff).
+    Alternative: Snowflake/snowflake-arctic-embed-l for multilingual.
+
+    Requires ``pip install sentence-transformers``.
+    """
+
+    def __init__(self, model_name: str = "BAAI/bge-large-en-v1.5") -> None:
+        try:
+            from sentence_transformers import SentenceTransformer
+        except ImportError as e:
+            raise ImportError(
+                "SentenceTransformerBackend requires sentence-transformers. "
+                "Install with: pip install sentence-transformers"
+            ) from e
+        self._model = SentenceTransformer(model_name)
+        self._docs: list[dict[str, Any]] = []
+        self._embeddings: list[Any] = []
+
+    def add(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
+        import numpy as _np
+
+        emb = self._model.encode(text, normalize_embeddings=True)
+        self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
+        self._embeddings.append(_np.asarray(emb, dtype=_np.float32))
+
+    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
+        import numpy as _np
+
+        if not self._docs:
+            return []
+        q_emb = self._model.encode(text, normalize_embeddings=True)
+        q_emb = _np.asarray(q_emb, dtype=_np.float32)
+        similarities = [float(_np.dot(q_emb, e)) for e in self._embeddings]
+        indices = sorted(
+            range(len(similarities)), key=lambda i: similarities[i], reverse=True
+        )
+        results = []
+        for idx in indices[:n_results]:
+            if similarities[idx] > 0:
+                results.append({
+                    **self._docs[idx],
+                    "distance": 1.0 - similarities[idx],
+                })
+        return results
+
+    def count(self) -> int:
+        return len(self._docs)
+
+
 class ChromaBackend(VectorBackend):
     """ChromaDB backend for production vector search.
 
@@ -89,6 +146,7 @@ class ChromaBackend(VectorBackend):
         self,
         collection_name: str = "director_ai_facts",
         persist_directory: str | None = None,
+        embedding_model: str | None = None,
     ) -> None:
         try:
             import chromadb
@@ -102,9 +160,23 @@ class ChromaBackend(VectorBackend):
             self._client = chromadb.PersistentClient(path=persist_directory)
         else:
             self._client = chromadb.Client()
-        self._collection = self._client.get_or_create_collection(
-            name=collection_name,
-        )
+
+        create_kwargs: dict[str, Any] = {"name": collection_name}
+        if embedding_model:
+            try:
+                from chromadb.utils.embedding_functions import (
+                    SentenceTransformerEmbeddingFunction,
+                )
+
+                create_kwargs["embedding_function"] = (
+                    SentenceTransformerEmbeddingFunction(model_name=embedding_model)
+                )
+            except ImportError:
+                logger.warning(
+                    "sentence-transformers not installed, using Chroma default embedder"
+                )
+
+        self._collection = self._client.get_or_create_collection(**create_kwargs)
 
     def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None

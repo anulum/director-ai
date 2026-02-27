@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://anulum.github.io/director-ai
+    about: Check the docs before filing an issue
+  - name: Discord
+    url: https://discord.gg/director-ai
+    about: Ask questions in the community

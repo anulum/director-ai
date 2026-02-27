@@ -72,12 +72,12 @@ The package lives in `src/director_ai/` with two profiles:
 
 | Module | Class | Purpose |
 |--------|-------|---------|
+| `sdk_guard.py` | `guard()` | OpenAI/Anthropic SDK interceptor |
 | `langchain.py` | `DirectorAIGuard` | LangChain Runnable guardrail |
 | `llamaindex.py` | `DirectorAIPostprocessor` | LlamaIndex postprocessor |
-
-### Research — `research/` (requires `pip install director-ai[research]`)
-
-Experimental physics-inspired extensions. Not part of the stable API.
+| `langgraph.py` | `director_ai_node()` | LangGraph state node + conditional edge |
+| `haystack.py` | `DirectorAIChecker` | Haystack 2.x component |
+| `crewai.py` | `DirectorAITool` | CrewAI tool |
 
 ## Reporting Issues
 

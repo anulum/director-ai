@@ -6,9 +6,12 @@
 """
 NLI-based logical divergence scorer.
 
-Default model: DeBERTa-v3-base-mnli-fever-anli (66.2% on LLM-AggreFact).
-Supports both 2-class and 3-class NLI models.
-Falls back to heuristic scoring when the model is unavailable.
+Recommended model: MiniCheck-DeBERTa-L (72.6% balanced accuracy on AggreFact).
+Default model: DeBERTa-v3-base-mnli-fever-anli (66.2% — use MiniCheck for
+production; install with ``pip install director-ai[minicheck]``).
+
+Supports both 2-class and 3-class NLI models, optional 8-bit quantization
+via bitsandbytes, and configurable device/dtype.
 """
 
 from __future__ import annotations
@@ -21,17 +24,54 @@ import numpy as np
 logger = logging.getLogger("DirectorAI.NLI")
 
 _DEFAULT_MODEL = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+_RECOMMENDED_MODEL = "lytang/MiniCheck-DeBERTa-L"
 
 
 @lru_cache(maxsize=4)
-def _load_nli_model(model_name: str = _DEFAULT_MODEL):
+def _load_nli_model(
+    model_name: str = _DEFAULT_MODEL,
+    quantize_8bit: bool = False,
+    device: str | None = None,
+    torch_dtype: str | None = None,
+):
     """Lazily load an NLI model + tokenizer (cached by model_name)."""
     try:
+        import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         logger.info("Loading NLI model: %s", model_name)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
-        model = AutoModelForSequenceClassification.from_pretrained(model_name)
+
+        load_kwargs: dict = {}
+        if torch_dtype:
+            dtype_map = {
+                "float16": torch.float16,
+                "bfloat16": torch.bfloat16,
+                "float32": torch.float32,
+            }
+            load_kwargs["torch_dtype"] = dtype_map.get(torch_dtype, torch.float32)
+
+        if quantize_8bit:
+            try:
+                from transformers import BitsAndBytesConfig
+
+                load_kwargs["quantization_config"] = BitsAndBytesConfig(
+                    load_in_8bit=True
+                )
+                load_kwargs["device_map"] = "auto"
+                logger.info("Loading with 8-bit quantization")
+            except ImportError:
+                logger.warning(
+                    "bitsandbytes not installed — loading without quantization"
+                )
+
+        model = AutoModelForSequenceClassification.from_pretrained(
+            model_name, **load_kwargs
+        )
+
+        if device and "device_map" not in load_kwargs:
+            model = model.to(device)
+
         model.eval()
         logger.info("NLI model loaded successfully.")
         return tokenizer, model
@@ -61,6 +101,9 @@ class NLIScorer:
     model_name : str | None — HuggingFace model ID or local path.
         Defaults to DeBERTa-v3-base-mnli-fever-anli.
     backend : str — "deberta" (default) or "minicheck".
+    quantize_8bit : bool — load model with 8-bit quantization (requires bitsandbytes).
+    device : str | None — torch device ("cpu", "cuda", "cuda:0").
+    torch_dtype : str | None — "float16", "bfloat16", or "float32".
     """
 
     _BACKENDS = ("deberta", "minicheck")
@@ -71,6 +114,9 @@ class NLIScorer:
         max_length: int = 512,
         model_name: str | None = None,
         backend: str = "deberta",
+        quantize_8bit: bool = False,
+        device: str | None = None,
+        torch_dtype: str | None = None,
     ) -> None:
         if backend not in self._BACKENDS:
             raise ValueError(
@@ -80,6 +126,9 @@ class NLIScorer:
         self.max_length = max_length
         self.backend = backend
         self._model_name = model_name or _DEFAULT_MODEL
+        self._quantize_8bit = quantize_8bit
+        self._device = device
+        self._torch_dtype = torch_dtype
         self._tokenizer = None
         self._model = None
         self._model_loaded = False
@@ -93,7 +142,12 @@ class NLIScorer:
         if not self.use_model:
             self._model_loaded = True
             return False
-        self._tokenizer, self._model = _load_nli_model(self._model_name)
+        self._tokenizer, self._model = _load_nli_model(
+            self._model_name,
+            quantize_8bit=self._quantize_8bit,
+            device=self._device,
+            torch_dtype=self._torch_dtype,
+        )
         self._model_loaded = True
         return self._model is not None
 

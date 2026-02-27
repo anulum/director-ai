@@ -11,6 +11,7 @@ from __future__ import annotations
 import logging
 import threading
 
+from .cache import ScoreCache
 from .nli import NLIScorer, nli_available
 from .types import CoherenceScore, EvidenceChunk, ScoringEvidence
 
@@ -34,6 +35,11 @@ class CoherenceScorer:
         None (default) auto-detects based on installed packages.
     ground_truth_store : GroundTruthStore | None — fact store for RAG.
     nli_model : str | None — HuggingFace model ID or local path for NLI.
+    cache_size : int — LRU score cache max entries (0 to disable).
+    cache_ttl : float — cache entry TTL in seconds.
+    nli_quantize_8bit : bool — load NLI model with 8-bit quantization.
+    nli_device : str | None — torch device for NLI model.
+    nli_torch_dtype : str | None — torch dtype ("float16", "bfloat16").
     """
 
     W_LOGIC = 0.6
@@ -47,6 +53,11 @@ class CoherenceScorer:
         ground_truth_store=None,
         nli_model=None,
         soft_limit=None,
+        cache_size=0,
+        cache_ttl=300.0,
+        nli_quantize_8bit=False,
+        nli_device=None,
+        nli_torch_dtype=None,
     ):
         self.threshold = threshold
         self.soft_limit = soft_limit if soft_limit is not None else threshold + 0.1
@@ -55,6 +66,11 @@ class CoherenceScorer:
         self.ground_truth_store = ground_truth_store
         self.logger = logging.getLogger("DirectorAI")
         self._history_lock = threading.Lock()
+        self.cache = (
+            ScoreCache(max_size=cache_size, ttl_seconds=cache_ttl)
+            if cache_size > 0
+            else None
+        )
 
         if use_nli is None:
             self.use_nli = nli_available()
@@ -62,7 +78,13 @@ class CoherenceScorer:
             self.use_nli = use_nli
 
         self._nli = (
-            NLIScorer(use_model=self.use_nli, model_name=nli_model)
+            NLIScorer(
+                use_model=self.use_nli,
+                model_name=nli_model,
+                quantize_8bit=nli_quantize_8bit,
+                device=nli_device,
+                torch_dtype=nli_torch_dtype,
+            )
             if self.use_nli
             else None
         )
@@ -254,7 +276,15 @@ class CoherenceScorer:
 
     def review(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
         """Score an action and decide whether to approve it."""
+        if self.cache:
+            cached = self.cache.get(prompt, action)
+            if cached is not None:
+                return self._finalise_review(
+                    cached.score, cached.h_logical, cached.h_factual, action
+                )
         h_logic, h_fact, coherence, evidence = self._heuristic_coherence(prompt, action)
+        if self.cache:
+            self.cache.put(prompt, action, coherence, h_logic, h_fact)
         return self._finalise_review(coherence, h_logic, h_fact, action, evidence)
 
     # ── Async API ──────────────────────────────────────────────────────

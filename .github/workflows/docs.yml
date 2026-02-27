@@ -1,15 +1,11 @@
-# ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — Sphinx Documentation → GitHub Pages
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# ─────────────────────────────────────────────────────────────────────
-
 name: Deploy Docs
 
 on:
   push:
     branches: [main]
     paths:
-      - "docs/**"
+      - "docs-site/**"
+      - "mkdocs.yml"
       - "src/director_ai/**"
       - ".github/workflows/docs.yml"
 
@@ -24,7 +20,7 @@ concurrency:
 
 jobs:
   build:
-    name: Build Sphinx
+    name: Build MkDocs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,15 +30,15 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: pip install -e ".[docs]"
 
-      - name: Build HTML
-        run: sphinx-build -b html docs/ docs/_build/html --keep-going
+      - name: Build site
+        run: mkdocs build --strict
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: docs/_build/html
+          path: site
 
   deploy:
     name: Deploy to GitHub Pages

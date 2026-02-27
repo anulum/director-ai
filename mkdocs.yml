@@ -1,0 +1,90 @@
+docs_dir: docs-site
+site_name: Director-AI
+site_description: Real-time LLM hallucination guardrail
+site_url: https://anulum.github.io/director-ai
+repo_url: https://github.com/anulum/director-ai
+repo_name: anulum/director-ai
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: deep purple
+      accent: amber
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - content.code.copy
+    - content.tabs.link
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.suggest
+    - search.highlight
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false
+            show_root_heading: true
+            heading_level: 3
+            members_order: source
+            docstring_style: numpy
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - def_list
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+    - Quickstart: quickstart.md
+    - Installation: installation.md
+  - User Guide:
+    - Scoring: guide/scoring.md
+    - Streaming Halt: guide/streaming.md
+    - Evidence & Fallback: guide/evidence.md
+    - Configuration: guide/config.md
+  - Integrations:
+    - OpenAI / Anthropic SDK: integrations/sdk-guard.md
+    - LangChain: integrations/langchain.md
+    - LlamaIndex: integrations/llamaindex.md
+    - LangGraph: integrations/langgraph.md
+    - Haystack: integrations/haystack.md
+    - CrewAI: integrations/crewai.md
+  - API Reference:
+    - Core: api/core.md
+    - Scorer: api/scorer.md
+    - Streaming: api/streaming.md
+    - Vector Store: api/vector-store.md
+    - NLI: api/nli.md
+    - Cache: api/cache.md
+    - Types: api/types.md
+  - Deployment:
+    - Production Guide: deployment/production.md
+    - Docker: deployment/docker.md
+    - Metrics: deployment/metrics.md
+  - Cookbook:
+    - Legal: cookbook/legal.md
+    - Medical: cookbook/medical.md
+    - Finance: cookbook/finance.md
+  - Changelog: changelog.md
