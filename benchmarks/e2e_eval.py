@@ -371,7 +371,69 @@ def sweep_thresholds(
     return results
 
 
-def print_e2e_results(m: E2EMetrics) -> None:
+def run_baseline(
+    tasks: list[str] | None = None,
+    max_samples_per_task: int | None = None,
+) -> E2EMetrics:
+    """No guardrail — every sample approved. Shows raw hallucination prevalence."""
+    if tasks is None:
+        tasks = ["qa", "summarization", "dialogue"]
+
+    metrics = E2EMetrics(threshold=0.0, soft_limit=0.0, fallback_mode="none")
+
+    for task in tasks:
+        try:
+            samples = _download_task_data(task)
+        except (ImportError, OSError, ValueError, KeyError) as e:
+            logger.warning("Could not load HaluEval %s: %s", task, e)
+            continue
+
+        if max_samples_per_task:
+            samples = samples[:max_samples_per_task]
+
+        for sample_data in samples:
+            pairs = _extract_pairs(task, sample_data)
+            for context, response, is_hallucinated in pairs:
+                if not context or not response:
+                    continue
+                e2e_sample = E2ESample(
+                    task=task,
+                    context=context[:200],
+                    response=response[:200],
+                    is_hallucinated=is_hallucinated,
+                    coherence_score=1.0,
+                    approved=True,
+                    latency_ms=0.0,
+                )
+                metrics.samples.append(e2e_sample)
+
+    return metrics
+
+
+def print_comparison(baseline: E2EMetrics, guarded: E2EMetrics, label: str) -> None:
+    """Print side-by-side delta table: baseline vs guarded."""
+    print(f"\n{'=' * 72}")
+    print("  Director-AI: Baseline vs Guarded Comparison")
+    print(f"{'=' * 72}")
+    hdr = f"  {'Metric':<22} {'Baseline':>12} {label:>12} {'Delta':>12}"
+    print(hdr)
+    print(f"  {'-' * 58}")
+
+    rows = [
+        ("Catch rate", baseline.catch_rate, guarded.catch_rate),
+        ("False positive", baseline.false_positive_rate, guarded.false_positive_rate),
+        ("Precision", baseline.precision, guarded.precision),
+        ("F1", baseline.f1, guarded.f1),
+        ("Accuracy", baseline.accuracy, guarded.accuracy),
+    ]
+    for name, bv, gv in rows:
+        delta = gv - bv
+        sign = "+" if delta >= 0 else ""
+        print(f"  {name:<22} {bv:>11.1%} {gv:>11.1%} {sign}{delta:>10.1%}")
+    print(f"{'=' * 72}")
+
+
+def print_e2e_results(m: E2EMetrics, baseline: E2EMetrics | None = None) -> None:
     """Pretty-print end-to-end benchmark results."""
     print(f"\n{'=' * 72}")
     print("  Director-AI End-to-End Guardrail Benchmark")
@@ -411,6 +473,9 @@ def print_e2e_results(m: E2EMetrics) -> None:
         )
     print(f"{'=' * 72}")
 
+    if baseline:
+        print_comparison(baseline, m, "Guarded")
+
 
 if __name__ == "__main__":
     import argparse
@@ -441,6 +506,22 @@ if __name__ == "__main__":
         action="store_true",
         help="Sweep thresholds and print table",
     )
+    parser.add_argument(
+        "--baseline",
+        action="store_true",
+        help="Run baseline (no guardrail) to show unguarded hallucination rate",
+    )
+    parser.add_argument(
+        "--compare",
+        action="store_true",
+        help="Run both baseline and guarded, print side-by-side delta",
+    )
+    parser.add_argument(
+        "--output-json",
+        type=str,
+        default=None,
+        help="Save comparison JSON to this path (e.g. results/e2e_comparison.json)",
+    )
     args = parser.parse_args()
 
     if args.sweep_thresholds:
@@ -461,6 +542,31 @@ if __name__ == "__main__":
             {"benchmark": "E2E-Sweep", "results": results},
             "e2e_threshold_sweep.json",
         )
+    elif args.baseline:
+        bl = run_baseline(max_samples_per_task=args.max_samples)
+        print_e2e_results(bl)
+        save_results({"benchmark": "E2E-Baseline", **bl.to_dict()}, "e2e_baseline.json")
+
+    elif args.compare:
+        bl = run_baseline(max_samples_per_task=args.max_samples)
+        m = run_e2e_benchmark(
+            max_samples_per_task=args.max_samples,
+            threshold=args.threshold,
+            soft_limit=args.soft_limit,
+            use_nli=args.nli,
+            nli_model=args.nli_model,
+            fallback=args.fallback,
+        )
+        label = "NLI (DeBERTa)" if args.nli else "Heuristic"
+        print_e2e_results(m, baseline=bl)
+        comparison = {
+            "benchmark": "E2E-Comparison",
+            "baseline": bl.to_dict(),
+            "guarded": m.to_dict(),
+        }
+        out_path = args.output_json or "e2e_comparison.json"
+        save_results(comparison, out_path)
+
     else:
         m = run_e2e_benchmark(
             max_samples_per_task=args.max_samples,

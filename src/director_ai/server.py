@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import sqlite3
 import time
+import uuid
 from contextlib import asynccontextmanager
 
 from .core.config import DirectorConfig
@@ -30,16 +31,25 @@ from .core.stats import StatsStore
 logger = logging.getLogger("DirectorAI.Server")
 
 _WS_MAX_PROMPT_LENGTH = 100_000
+_AUTH_EXEMPT_PATHS = frozenset({"/v1/health", "/v1/metrics/prometheus"})
 
 try:
-    from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
+    from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import PlainTextResponse
+    from fastapi.responses import JSONResponse, PlainTextResponse
     from pydantic import BaseModel, Field
 
     _FASTAPI_AVAILABLE = True
 except ImportError:
     _FASTAPI_AVAILABLE = False
+
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
+
+    _SLOWAPI_AVAILABLE = True
+except ImportError:
+    _SLOWAPI_AVAILABLE = False
 
 
 def _check_fastapi() -> None:
@@ -102,9 +112,12 @@ if _FASTAPI_AVAILABLE:
     class ConfigResponse(BaseModel):
         config: dict
 
+    class TenantFactRequest(BaseModel):
+        key: str = Field(..., min_length=1)
+        value: str = Field(..., min_length=1)
+
 
 def _halt_evidence_to_dict(halt_ev) -> dict | None:
-    """Serialize HaltEvidence to a JSON-safe dict."""
     if halt_ev is None:
         return None
     return {
@@ -120,7 +133,6 @@ def _halt_evidence_to_dict(halt_ev) -> dict | None:
 
 
 def _evidence_to_dict(evidence) -> dict | None:
-    """Serialize ScoringEvidence to a JSON-safe dict."""
     if evidence is None:
         return None
     return {
@@ -137,25 +149,21 @@ def _evidence_to_dict(evidence) -> dict | None:
 
 
 def create_app(config: DirectorConfig | None = None) -> FastAPI:
-    """Create and configure the FastAPI application.
-
-    Parameters
-    ----------
-    config : DirectorConfig — server configuration (default: from env).
-    """
+    """Create and configure the FastAPI application."""
     _check_fastapi()
 
     cfg = config or DirectorConfig.from_env()
     _start_time = time.monotonic()
 
-    # Lazy-init shared state
     _state: dict = {}
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         from .core.agent import CoherenceAgent
+        from .core.audit import AuditLogger
         from .core.batch import BatchProcessor
         from .core.scorer import CoherenceScorer
+        from .core.tenant import TenantRouter
 
         scorer = CoherenceScorer(
             threshold=cfg.coherence_threshold,
@@ -165,7 +173,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             llm_api_url=cfg.llm_api_url if cfg.llm_provider == "local" else None,
         )
         batch_proc = BatchProcessor(agent, max_concurrency=cfg.batch_max_concurrency)
-
         stats = StatsStore()
 
         _state["agent"] = agent
@@ -173,6 +180,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         _state["batch"] = batch_proc
         _state["config"] = cfg
         _state["stats"] = stats
+
+        if cfg.audit_log_path:
+            _state["audit"] = AuditLogger(path=cfg.audit_log_path)
+            logger.info("Audit logging enabled: %s", cfg.audit_log_path)
+
+        if cfg.tenant_routing:
+            _state["tenant_router"] = TenantRouter()
+            logger.info("Tenant routing enabled")
 
         if cfg.use_nli:
             metrics.gauge_set("nli_model_loaded", 1.0)
@@ -207,8 +222,49 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         allow_headers=["*"],
     )
 
+    # ── Rate limiting ─────────────────────────────────────────────────
+
+    limiter = None
+    if cfg.rate_limit_rpm > 0:
+        if not _SLOWAPI_AVAILABLE:
+            logger.warning(
+                "rate_limit_rpm=%d but slowapi not installed. "
+                "Install with: pip install director-ai[ratelimit]",
+                cfg.rate_limit_rpm,
+            )
+        else:
+            limiter = Limiter(key_func=get_remote_address)
+            app.state.limiter = limiter
+            from slowapi.errors import RateLimitExceeded
+
+            @app.exception_handler(RateLimitExceeded)
+            async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+                return JSONResponse(
+                    status_code=429,
+                    content={"detail": "Rate limit exceeded"},
+                )
+
+    _rate_str = f"{cfg.rate_limit_rpm}/minute" if cfg.rate_limit_rpm > 0 else ""
+
+    # ── Middleware: correlation IDs + API key auth + metrics ───────────
+
     @app.middleware("http")
-    async def _http_metrics(request, call_next):
+    async def _http_middleware(request: Request, call_next):
+        # Correlation ID
+        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        request.state.request_id = request_id
+
+        # API key auth
+        if cfg.api_keys and request.url.path not in _AUTH_EXEMPT_PATHS:
+            provided = request.headers.get("X-API-Key", "")
+            if provided not in cfg.api_keys:
+                return JSONResponse(
+                    status_code=401,
+                    content={"detail": "Invalid or missing API key"},
+                    headers={"X-Request-ID": request_id},
+                )
+
+        # Metrics
         start = time.monotonic()
         response = await call_next(request)
         elapsed = time.monotonic() - start
@@ -221,6 +277,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 "status": str(response.status_code),
             },
         )
+        response.headers["X-Request-ID"] = request_id
         return response
 
     # ── Health ────────────────────────────────────────────────────────
@@ -239,18 +296,32 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Review ────────────────────────────────────────────────────────
 
     @app.post("/v1/review", response_model=ReviewResponse)
-    async def review(req: ReviewRequest):
+    async def review(req: ReviewRequest, request: Request):
         scorer = _state.get("scorer")
         if not scorer:
             raise HTTPException(503, "Server not ready")
+
+        # Tenant routing
+        tenant_id = request.headers.get("X-Tenant-ID", "")
+        if tenant_id and "tenant_router" in _state:
+            scorer = _state["tenant_router"].get_scorer(
+                tenant_id,
+                threshold=cfg.coherence_threshold,
+                use_nli=cfg.use_nli,
+            )
+
         metrics.inc("reviews_total")
+        start = time.monotonic()
         with metrics.timer("review_duration_seconds"):
             approved, score = scorer.review(req.prompt, req.response)
+        latency_ms = (time.monotonic() - start) * 1000
+
         if approved:
             metrics.inc("reviews_approved")
         else:
             metrics.inc("reviews_rejected")
         metrics.observe("coherence_score", score.score)
+
         stats_store = _state.get("stats")
         if stats_store:
             stats_store.record_review(
@@ -259,6 +330,20 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 h_logical=score.h_logical,
                 h_factual=score.h_factual,
             )
+
+        audit = _state.get("audit")
+        if audit:
+            audit.log_review(
+                query=req.prompt,
+                response=req.response,
+                approved=approved,
+                score=score.score,
+                h_logical=score.h_logical,
+                h_factual=score.h_factual,
+                tenant_id=tenant_id,
+                latency_ms=latency_ms,
+            )
+
         return ReviewResponse(
             approved=approved,
             coherence=score.score,
@@ -271,13 +356,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Process ───────────────────────────────────────────────────────
 
     @app.post("/v1/process", response_model=ProcessResponse)
-    async def process(req: ProcessRequest):
+    async def process(req: ProcessRequest, request: Request):
         agent = _state.get("agent")
         if not agent:
             raise HTTPException(503, "Server not ready")
         metrics.inc("reviews_total")
+        start = time.monotonic()
         with metrics.timer("review_duration_seconds"):
             result = agent.process(req.prompt)
+        latency_ms = (time.monotonic() - start) * 1000
+
         if result.halted:
             metrics.inc("reviews_rejected")
             metrics.inc("halts_total")
@@ -285,6 +373,22 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             metrics.inc("reviews_approved")
             if result.coherence:
                 metrics.observe("coherence_score", result.coherence.score)
+
+        audit = _state.get("audit")
+        if audit:
+            audit.log_review(
+                query=req.prompt,
+                response=result.output,
+                approved=not result.halted,
+                score=result.coherence.score if result.coherence else 0.0,
+                h_logical=result.coherence.h_logical if result.coherence else 0.0,
+                h_factual=result.coherence.h_factual if result.coherence else 0.0,
+                halt_reason=(
+                    result.halt_evidence.reason if result.halt_evidence else ""
+                ),
+                latency_ms=latency_ms,
+            )
+
         return ProcessResponse(
             output=result.output,
             coherence=result.coherence.score if result.coherence else None,
@@ -324,6 +428,28 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             failed=batch_result.failed,
             duration_seconds=batch_result.duration_seconds,
         )
+
+    # ── Tenants ───────────────────────────────────────────────────────
+
+    @app.get("/v1/tenants")
+    async def list_tenants():
+        router = _state.get("tenant_router")
+        if not router:
+            raise HTTPException(404, "Tenant routing not enabled")
+        return {
+            "tenants": [
+                {"id": tid, "fact_count": router.fact_count(tid)}
+                for tid in router.tenant_ids
+            ]
+        }
+
+    @app.post("/v1/tenants/{tenant_id}/facts")
+    async def add_tenant_fact(tenant_id: str, req: TenantFactRequest):
+        router = _state.get("tenant_router")
+        if not router:
+            raise HTTPException(404, "Tenant routing not enabled")
+        router.add_fact(tenant_id, req.key, req.value)
+        return {"status": "ok", "tenant_id": tenant_id, "key": req.key}
 
     # ── Metrics ───────────────────────────────────────────────────────
 
@@ -417,6 +543,68 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     await ws.send_json({"error": "server not ready"})
                     continue
 
+                # Streaming oversight mode
+                if data.get("streaming_oversight"):
+                    from .core.streaming import StreamingKernel
+
+                    scorer = _state.get("scorer")
+                    if not scorer:
+                        await ws.send_json({"error": "scorer not ready"})
+                        continue
+
+                    kernel = StreamingKernel(
+                        hard_limit=cfg.hard_limit,
+                        soft_limit=cfg.soft_limit,
+                    )
+
+                    try:
+                        result = agent.process(prompt)
+                    except (RuntimeError, ValueError, TypeError, OSError) as exc:
+                        await ws.send_json({"error": f"processing failed: {exc}"})
+                        continue
+
+                    tokens = result.output.split()
+
+                    def _make_cb(sc, pr):
+                        acc = []
+
+                        def cb(token):
+                            acc.append(token)
+                            text = " ".join(acc)
+                            _, s = sc.review(pr, text)
+                            return s.score
+
+                        return cb
+
+                    session = kernel.stream_tokens(
+                        iter(tokens),
+                        _make_cb(scorer, prompt),
+                    )
+
+                    for event in session.events:
+                        msg = {
+                            "type": "token",
+                            "token": event.token,
+                            "coherence": round(event.coherence, 4),
+                            "index": event.index,
+                        }
+                        if event.halted:
+                            msg["type"] = "halt"
+                            msg["reason"] = session.halt_reason
+                        await ws.send_json(msg)
+
+                    if not session.halted:
+                        await ws.send_json(
+                            {
+                                "type": "result",
+                                "output": session.output,
+                                "halted": False,
+                            }
+                        )
+
+                    continue
+
+                # Standard (non-streaming) mode
                 try:
                     result = agent.process(prompt)
                 except (RuntimeError, ValueError, TypeError, OSError) as exc:

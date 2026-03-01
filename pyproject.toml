@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "1.5.1"
+version = "1.6.0"
 description = "Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
@@ -50,6 +50,9 @@ server = [
     "fastapi>=0.100",
     "uvicorn>=0.23",
     "pydantic>=2.0",
+]
+ratelimit = [
+    "slowapi>=0.1.9",
 ]
 minicheck = [
     "minicheck>=0.1",

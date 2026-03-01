@@ -62,6 +62,8 @@ nav:
   - User Guide:
     - Scoring: guide/scoring.md
     - Streaming Halt: guide/streaming.md
+    - Threshold Tuning: guide/threshold-tuning.md
+    - KB Ingestion: guide/kb-ingestion.md
     - Evidence & Fallback: guide/evidence.md
     - Configuration: guide/config.md
     - ONNX Export: guide/onnx-export.md

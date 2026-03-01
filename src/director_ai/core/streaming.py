@@ -36,6 +36,7 @@ class TokenEvent:
     halted: bool = False
     warning: bool = False
     evidence: str | None = None
+    debug_info: dict | None = None
 
 
 @dataclass
@@ -52,6 +53,7 @@ class StreamSession:
     start_time: float = 0.0
     end_time: float = 0.0
     warning_count: int = 0
+    debug_log: list[dict] = field(default_factory=list)
 
     @property
     def output(self) -> str:
@@ -104,6 +106,7 @@ class StreamingKernel(SafetyKernel):
         trend_threshold: float = 0.15,
         on_halt=None,
         soft_limit: float = 0.6,
+        streaming_debug: bool = False,
     ) -> None:
         super().__init__(hard_limit=hard_limit, on_halt=on_halt)
         self.window_size = window_size
@@ -111,6 +114,7 @@ class StreamingKernel(SafetyKernel):
         self.trend_window = trend_window
         self.trend_threshold = trend_threshold
         self.soft_limit = soft_limit
+        self.streaming_debug = streaming_debug
 
     def stream_tokens(
         self,
@@ -165,6 +169,20 @@ class StreamingKernel(SafetyKernel):
             session.tokens.append(token)
             session.coherence_history.append(score)
             window.append(score)
+
+            if self.streaming_debug:
+                w_avg = sum(window) / len(window) if window else 0.0
+                recent = session.coherence_history[-self.trend_window :]
+                t_drop = (recent[0] - recent[-1]) if len(recent) >= 2 else 0.0
+                snap = {
+                    "index": i,
+                    "coherence": score,
+                    "window_avg": round(w_avg, 6),
+                    "trend_drop": round(t_drop, 6),
+                    "accumulated_tokens": len(session.tokens),
+                }
+                event.debug_info = snap
+                session.debug_log.append(snap)
 
             if score < self.hard_limit:
                 _halt(event, f"hard_limit ({score:.4f} < {self.hard_limit})")

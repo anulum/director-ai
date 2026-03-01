@@ -145,3 +145,20 @@ def health():
 - Use `DirectorConfig._REDACTED_FIELDS` for safe serialization
 - Enable `InputSanitizer` to filter prompt injection attempts
 - Audit all rejections via `AuditLogger`
+
+## Production Checklist
+
+Before going live, verify each item:
+
+- [ ] **NLI model enabled** — set `use_nli=True` (heuristic-only misses subtle contradictions)
+- [ ] **Persistent vector store** — configure ChromaDB or Qdrant (`vector_backend="chroma"`, `chroma_persist_dir="/data/chroma"`)
+- [ ] **Score caching** — set `cache_size` and `cache_ttl` to reduce NLI inference load
+- [ ] **Audit logging** — set `audit_log_path="audit.jsonl"` to enable `AuditLogger`
+- [ ] **Prometheus scraping** — configure your monitoring to scrape `/v1/metrics/prometheus`
+- [ ] **CORS origins** — set `cors_origins` to your domain (not `*`)
+- [ ] **Rate limiting** — set `rate_limit_rpm=60` (or appropriate limit) to prevent abuse
+- [ ] **API key auth** — set `api_keys=["your-key"]` to require `X-API-Key` header
+- [ ] **Correlation IDs** — `X-Request-ID` headers are automatic; log them for tracing
+- [ ] **Tenant isolation** — set `tenant_routing=True` if serving multiple customers
+- [ ] **Regression test** — run `python -m benchmarks.regression_suite` and confirm all assertions pass
+- [ ] **Streaming oversight** — if using WebSocket `/v1/stream`, enable `streaming_oversight` for real-time halt

@@ -13,6 +13,7 @@ Usage::
 
     python -m benchmarks.regression_suite
 """
+
 from __future__ import annotations
 
 import json
@@ -21,15 +22,9 @@ from pathlib import Path
 
 RESULTS_DIR = Path(__file__).parent / "results"
 
-_BOILING_FACT = (
-    "Water boils at 100 degrees Celsius at standard atmospheric pressure"
-)
-_LIGHT_FACT = (
-    "The speed of light in vacuum is 299792 kilometers per second"
-)
-_DNA_FACT = (
-    "DNA has four nucleotide bases adenine thymine guanine cytosine"
-)
+_BOILING_FACT = "Water boils at 100 degrees Celsius at standard atmospheric pressure"
+_LIGHT_FACT = "The speed of light in vacuum is 299792 kilometers per second"
+_DNA_FACT = "DNA has four nucleotide bases adenine thymine guanine cytosine"
 
 # 10 known pairs with expected approve/reject outcomes (heuristic scorer).
 # Threshold 0.4 is appropriate for heuristic word-overlap scoring.
@@ -109,7 +104,9 @@ def test_heuristic_accuracy():
         for k, v in facts.items():
             store.add(k, v)
         scorer = CoherenceScorer(
-            threshold=0.4, ground_truth_store=store, use_nli=False,
+            threshold=0.4,
+            ground_truth_store=store,
+            use_nli=False,
         )
         approved, _ = scorer.review(prompt, response)
         results.append(approved == expected)
@@ -139,7 +136,9 @@ def test_streaming_stability():
         for k, v in facts.items():
             store.add(k, v)
         scorer = CoherenceScorer(
-            threshold=0.3, ground_truth_store=store, use_nli=False,
+            threshold=0.3,
+            ground_truth_store=store,
+            use_nli=False,
         )
         accumulated = ""
 
@@ -169,7 +168,9 @@ def test_latency_ceiling():
     store = GroundTruthStore()
     store.add("sky color", "The sky is blue")
     scorer = CoherenceScorer(
-        threshold=0.5, ground_truth_store=store, use_nli=False,
+        threshold=0.5,
+        ground_truth_store=store,
+        use_nli=False,
     )
 
     # Warmup
@@ -214,7 +215,9 @@ def test_evidence_schema():
     store = VectorGroundTruthStore()
     store.add_fact("sky", "blue due to Rayleigh scattering")
     scorer = CoherenceScorer(
-        threshold=0.5, ground_truth_store=store, use_nli=False,
+        threshold=0.5,
+        ground_truth_store=store,
+        use_nli=False,
     )
 
     _, score = scorer.review("sky color?", "The sky is blue.")
@@ -224,6 +227,121 @@ def test_evidence_schema():
     assert hasattr(score.evidence, "nli_hypothesis")
     assert hasattr(score.evidence, "nli_score")
     print("  Evidence schema: OK")
+
+
+_SKY_FACT = "The sky is blue due to Rayleigh scattering"
+_CAPITAL_FACT = "The capital of France is Paris"
+_GRAVITY_FACT = "Gravity acceleration is 9.81 m/s squared"
+_OXYGEN_FACT = "Oxygen is chemical element number 8"
+_MOON_FACT = "The Moon orbits the Earth"
+_PHOTO_FACT = "Plants convert sunlight to energy through photosynthesis"
+_IRON_FACT = "Iron has atomic number 26"
+_EARTH_FACT = "Earth is the third planet from the Sun"
+_HYDRO_FACT = "Hydrogen is the lightest element"
+_SOUND_FACT = "Sound travels at 343 m/s in air"
+_PI_FACT = "Pi is approximately 3.14159"
+_FREEZE_FACT = "Water freezes at 0 degrees Celsius"
+_NEWTON_FACT = "Newton formulated the three laws of motion"
+_HELIUM_FACT = "Helium is a noble gas"
+_MARS_FACT = "Mars is the fourth planet from the Sun"
+_DIAMOND_FACT = "Diamond is made of carbon atoms"
+_SALT_FACT = "Table salt is sodium chloride"
+
+# 20 correct + 20 hallucinated. Each: (prompt, response, facts, is_halluc)
+_E2E_DELTA_SAMPLES: list[tuple[str, str, dict[str, str], bool]] = [
+    # ── 20 correct (response matches KB) ──
+    ("boiling", "Water boils at 100 degrees Celsius.", {"b": _BOILING_FACT}, False),
+    ("light", "Speed of light is 299792 km per second.", {"l": _LIGHT_FACT}, False),
+    ("dna", "DNA has adenine thymine guanine cytosine.", {"d": _DNA_FACT}, False),
+    ("sky", "The sky is blue due to scattering.", {"s": _SKY_FACT}, False),
+    ("capital", "Paris is the capital of France.", {"c": _CAPITAL_FACT}, False),
+    (
+        "gravity",
+        "Gravity accelerates at 9.81 m/s squared.",
+        {"g": _GRAVITY_FACT},
+        False,
+    ),
+    ("oxygen", "Oxygen is element number 8.", {"o": _OXYGEN_FACT}, False),
+    ("moon", "The Moon orbits Earth.", {"m": _MOON_FACT}, False),
+    (
+        "photosynthesis",
+        "Plants convert sunlight via photosynthesis.",
+        {"p": _PHOTO_FACT},
+        False,
+    ),
+    ("iron", "Iron has atomic number 26.", {"i": _IRON_FACT}, False),
+    ("earth", "Earth is the third planet from the Sun.", {"e": _EARTH_FACT}, False),
+    ("hydrogen", "Hydrogen is the lightest element.", {"h": _HYDRO_FACT}, False),
+    ("sound", "Sound travels at 343 m/s in air.", {"s2": _SOUND_FACT}, False),
+    ("pi", "Pi is approximately 3.14159.", {"pi": _PI_FACT}, False),
+    ("freezing", "Water freezes at 0 degrees Celsius.", {"f": _FREEZE_FACT}, False),
+    ("newton", "Newton formulated laws of motion.", {"n": _NEWTON_FACT}, False),
+    ("helium", "Helium is a noble gas.", {"he": _HELIUM_FACT}, False),
+    ("mars", "Mars is the fourth planet from the Sun.", {"ma": _MARS_FACT}, False),
+    ("diamond", "Diamond is made of carbon atoms.", {"di": _DIAMOND_FACT}, False),
+    ("salt", "Table salt is sodium chloride.", {"sa": _SALT_FACT}, False),
+    # ── 20 hallucinated (contradicts or unrelated) ──
+    ("boiling", "Water boils at 50 degrees Fahrenheit.", {"b": _BOILING_FACT}, True),
+    ("light", "Light travels at 1000 miles per hour.", {"l": _LIGHT_FACT}, True),
+    ("dna", "DNA has only two bases.", {"d": _DNA_FACT}, True),
+    ("sky", "Cats enjoy swimming in the ocean.", {"s": _SKY_FACT}, True),
+    ("capital", "Berlin is the capital of France.", {"c": _CAPITAL_FACT}, True),
+    (
+        "gravity",
+        "Objects float upward due to negative gravity.",
+        {"g": _GRAVITY_FACT},
+        True,
+    ),
+    ("oxygen", "Oxygen is element number 92.", {"o": _OXYGEN_FACT}, True),
+    ("moon", "The Moon orbits Jupiter.", {"m": _MOON_FACT}, True),
+    ("photosynthesis", "Rocks perform photosynthesis.", {"p": _PHOTO_FACT}, True),
+    ("iron", "Iron has atomic number 1.", {"i": _IRON_FACT}, True),
+    ("earth", "Earth is the seventh planet.", {"e": _EARTH_FACT}, True),
+    ("hydrogen", "Lead is the lightest element.", {"h": _HYDRO_FACT}, True),
+    ("sound", "Sound cannot travel through air.", {"s2": _SOUND_FACT}, True),
+    ("pi", "Pi equals exactly 4.", {"pi": _PI_FACT}, True),
+    ("freezing", "Water freezes at 100 degrees.", {"f": _FREEZE_FACT}, True),
+    ("newton", "Einstein formulated thermodynamic entropy.", {"n": _NEWTON_FACT}, True),
+    ("helium", "Helium is a radioactive metal.", {"he": _HELIUM_FACT}, True),
+    ("mars", "Mars is a star.", {"ma": _MARS_FACT}, True),
+    ("diamond", "Diamond is made of iron.", {"di": _DIAMOND_FACT}, True),
+    ("salt", "Salt is pure potassium.", {"sa": _SALT_FACT}, True),
+]
+
+
+def test_e2e_heuristic_delta():
+    """Guardrail must beat random: catch_rate > 0.3, FPR < 0.3."""
+    from director_ai.core import CoherenceScorer, GroundTruthStore
+
+    tp = fp = tn = fn = 0
+    for prompt, response, facts, is_hallucinated in _E2E_DELTA_SAMPLES:
+        store = GroundTruthStore()
+        for k, v in facts.items():
+            store.add(k, v)
+        scorer = CoherenceScorer(
+            threshold=0.4,
+            ground_truth_store=store,
+            use_nli=False,
+        )
+        approved, _ = scorer.review(prompt, response)
+
+        if is_hallucinated and not approved:
+            tp += 1
+        elif is_hallucinated and approved:
+            fn += 1
+        elif not is_hallucinated and not approved:
+            fp += 1
+        else:
+            tn += 1
+
+    catch_rate = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
+    print(
+        f"  E2E delta: catch={catch_rate:.1%} FPR={fpr:.1%} "
+        f"(tp={tp} fp={fp} tn={tn} fn={fn})"
+    )
+    assert catch_rate > 0.3, f"Catch rate {catch_rate:.1%} <= 30%"
+    assert fpr < 0.3, f"FPR {fpr:.1%} >= 30%"
 
 
 def main():
@@ -238,6 +356,7 @@ def main():
         test_latency_ceiling,
         test_metrics_integrity,
         test_evidence_schema,
+        test_e2e_heuristic_delta,
     ]
 
     passed = 0
@@ -256,9 +375,17 @@ def main():
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     path = RESULTS_DIR / "regression_suite.json"
-    path.write_text(json.dumps({
-        "passed": passed, "failed": failed, "duration_s": round(elapsed, 3),
-    }, indent=2), encoding="utf-8")
+    path.write_text(
+        json.dumps(
+            {
+                "passed": passed,
+                "failed": failed,
+                "duration_s": round(elapsed, 3),
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
     print(f"Results saved to {path}")
 
     if failed > 0:

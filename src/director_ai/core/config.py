@@ -95,6 +95,18 @@ class DirectorConfig:
     log_level: str = "INFO"
     log_json: bool = False
 
+    # Audit
+    audit_log_path: str = ""
+
+    # Tenant routing
+    tenant_routing: bool = False
+
+    # Rate limiting (requests per minute, 0 = disabled)
+    rate_limit_rpm: int = 0
+
+    # API key auth (empty list = no auth required)
+    api_keys: list[str] = field(default_factory=list)
+
     # Profile name (informational)
     profile: str = "default"
 
@@ -135,6 +147,8 @@ class DirectorConfig:
             )
         if self.server_workers < 1:
             raise ValueError(f"server_workers must be >= 1, got {self.server_workers}")
+        if self.rate_limit_rpm < 0:
+            raise ValueError(f"rate_limit_rpm must be >= 0, got {self.rate_limit_rpm}")
 
     @classmethod
     def from_env(cls, prefix: str = "DIRECTOR_") -> DirectorConfig:
@@ -220,7 +234,7 @@ class DirectorConfig:
             )
         return cls(**profiles[name])
 
-    _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key"})
+    _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key", "api_keys"})
 
     def to_dict(self) -> dict:
         """Serialize to a plain dict (safe for JSON/API responses)."""
@@ -249,4 +263,6 @@ def _coerce(value: str, type_hint: str) -> object:
         return int(value)
     if type_hint == "float":
         return float(value)
+    if "list" in type_hint:
+        return [s.strip() for s in value.split(",") if s.strip()]
     return value
