@@ -154,7 +154,10 @@ def _load_onnx_session(
             if "CUDAExecutionProvider" in available:
                 providers.insert(0, "CUDAExecutionProvider")
 
-        session = ort.InferenceSession(model_file, providers=providers)
+        opts = ort.SessionOptions()
+        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        opts.log_severity_level = 3  # suppress Memcpy transformer warnings
+        session = ort.InferenceSession(model_file, opts, providers=providers)
         logger.info(
             "ONNX session: %s (%s)",
             model_file,
