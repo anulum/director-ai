@@ -46,7 +46,7 @@ def _gpu_info() -> dict:
     return {
         "gpu": props.name,
         "compute_capability": f"{props.major}.{props.minor}",
-        "vram_gb": round(props.total_mem / (1024**3), 1),
+        "vram_gb": round(props.total_memory / (1024**3), 1),
         "cuda_version": torch.version.cuda or "N/A",
     }
 
