@@ -79,6 +79,27 @@ class TestProfileLoading:
         with pytest.raises(ValueError, match="Unknown profile"):
             DirectorConfig.from_profile("nonexistent")
 
+    @pytest.mark.parametrize(
+        "name,threshold,hard,soft,nli,reranker,wl,wf",
+        [
+            ("medical", 0.75, 0.55, 0.75, True, True, 0.5, 0.5),
+            ("finance", 0.70, 0.50, 0.70, True, True, 0.4, 0.6),
+            ("legal", 0.68, 0.45, 0.68, True, False, 0.6, 0.4),
+            ("creative", 0.40, 0.30, 0.45, False, False, 0.7, 0.3),
+            ("customer_support", 0.55, 0.40, 0.60, False, False, 0.5, 0.5),
+        ],
+    )
+    def test_domain_profile(self, name, threshold, hard, soft, nli, reranker, wl, wf):
+        cfg = DirectorConfig.from_profile(name)
+        assert cfg.profile == name
+        assert cfg.coherence_threshold == pytest.approx(threshold)
+        assert cfg.hard_limit == pytest.approx(hard)
+        assert cfg.soft_limit == pytest.approx(soft)
+        assert cfg.use_nli is nli
+        assert cfg.reranker_enabled is reranker
+        assert cfg.w_logic == pytest.approx(wl)
+        assert cfg.w_fact == pytest.approx(wf)
+
 
 class TestEnvLoading:
     """Tests for from_env()."""
@@ -254,3 +275,21 @@ class TestEnvCoercionErrors:
         monkeypatch.setenv("DIRECTOR_COHERENCE_THRESHOLD", "xyz")
         with pytest.raises(ValueError, match="Invalid value"):
             DirectorConfig.from_env()
+
+
+class TestWeightValidation:
+    """Tests for w_logic + w_fact constraint."""
+
+    def test_weights_must_sum_to_one(self):
+        with pytest.raises(ValueError, match="w_logic.*w_fact.*1.0"):
+            DirectorConfig(w_logic=0.3, w_fact=0.3)
+
+    def test_zero_weights_skip_validation(self):
+        cfg = DirectorConfig(w_logic=0.0, w_fact=0.0)
+        assert cfg.w_logic == 0.0
+        assert cfg.w_fact == 0.0
+
+    def test_valid_weights_pass(self):
+        cfg = DirectorConfig(w_logic=0.7, w_fact=0.3)
+        assert cfg.w_logic == pytest.approx(0.7)
+        assert cfg.w_fact == pytest.approx(0.3)

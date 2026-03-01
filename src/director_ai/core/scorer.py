@@ -82,10 +82,14 @@ class CoherenceScorer:
         llm_judge_enabled=False,
         llm_judge_confidence_threshold=0.3,
         llm_judge_provider="",
+        scorer_backend="deberta",
+        onnx_path=None,
     ):
         self.threshold = threshold
         self.soft_limit = soft_limit if soft_limit is not None else threshold + 0.1
         self.strict_mode = strict_mode
+        self.scorer_backend = scorer_backend
+        self.onnx_path = onnx_path
 
         if w_logic is not None or w_fact is not None:
             self.W_LOGIC = w_logic if w_logic is not None else 0.6
@@ -110,9 +114,11 @@ class CoherenceScorer:
             NLIScorer(
                 use_model=self.use_nli,
                 model_name=nli_model,
+                backend=scorer_backend,
                 quantize_8bit=nli_quantize_8bit,
                 device=nli_device,
                 torch_dtype=nli_torch_dtype,
+                onnx_path=onnx_path,
             )
             if self.use_nli
             else None

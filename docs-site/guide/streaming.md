@@ -138,6 +138,54 @@ Each `TokenEvent` also gets a `debug_info` dict with the same fields. Use this t
 | `trend_drop` | float | Coherence delta over trend window |
 | `accumulated_tokens` | int | Total tokens processed so far |
 
+## False-Halt Rate
+
+Measured with `benchmarks/streaming_false_halt_bench.py` on 20 factually correct passages (heuristic mode, `use_nli=False`):
+
+| Metric | Value |
+|--------|-------|
+| Passages tested | 20 |
+| False halts | 0 |
+| False-halt rate | **0.0%** |
+| Avg coherence | 0.45+ |
+
+The regression suite (`benchmarks/regression_suite.py`) asserts `false_halt_rate == 0.0` on every CI run. If this assertion fails, the build breaks.
+
+To reproduce:
+
+```bash
+python -m benchmarks.streaming_false_halt_bench
+```
+
+With NLI enabled (requires `pip install director-ai[nli]`):
+
+```bash
+python -m benchmarks.streaming_false_halt_bench --nli
+```
+
+## Structured Halt Evidence
+
+When a `scorer` is passed to `stream_tokens()`, halt events include a `HaltEvidence` object with the top-K contradicting chunks and NLI scores:
+
+```python
+session = kernel.stream_tokens(
+    token_generator,
+    coherence_callback,
+    scorer=scorer,
+    top_k=3,
+)
+
+if session.halt_evidence_structured:
+    ev = session.halt_evidence_structured
+    print(f"Reason: {ev.reason}")
+    print(f"Score: {ev.last_score:.3f}")
+    print(f"Action: {ev.suggested_action}")
+    for chunk in ev.evidence_chunks:
+        print(f"  - {chunk.text[:80]} (distance={chunk.distance:.3f})")
+```
+
+Each `TokenEvent` on halt also carries a `halt_evidence` field with the same `HaltEvidence` object.
+
 ## StreamSession Properties
 
 | Property | Type | Description |

@@ -50,10 +50,11 @@ class TestMiniCheckBackend:
 
     def test_score_batch_uses_backend(self):
         mock_mc = MagicMock()
-        mock_mc.score.return_value = [0.5]
+        mock_mc.score.return_value = [0.5, 0.7]
         scorer = NLIScorer(backend="minicheck")
         scorer._minicheck = mock_mc
         scorer._minicheck_loaded = True
         results = scorer.score_batch([("A", "B"), ("C", "D")])
         assert len(results) == 2
         assert all(0.0 <= r <= 1.0 for r in results)
+        mock_mc.score.assert_called_once_with(docs=["A", "C"], claims=["B", "D"])

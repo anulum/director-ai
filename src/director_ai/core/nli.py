@@ -332,7 +332,7 @@ class NLIScorer:
         if not pairs:
             return []
         if self.backend == "minicheck":
-            return [self._minicheck_score(p, h) for p, h in pairs]
+            return self._minicheck_score_batch(pairs)
         if not self._ensure_model():
             return [self._heuristic_score(p, h) for p, h in pairs]
         if self.backend == "onnx":
@@ -378,6 +378,14 @@ class NLIScorer:
             return self._heuristic_score(premise, hypothesis)
         pred = self._minicheck.score(docs=[premise], claims=[hypothesis])
         return float(1.0 - pred[0])
+
+    def _minicheck_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        if not self._ensure_minicheck() or self._minicheck is None:
+            return [self._heuristic_score(p, h) for p, h in pairs]
+        docs = [p for p, _ in pairs]
+        claims = [h for _, h in pairs]
+        preds = self._minicheck.score(docs=docs, claims=claims)
+        return [float(1.0 - s) for s in preds]
 
     # ── PyTorch backend ──────────────────────────────────────────
 

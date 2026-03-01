@@ -309,6 +309,48 @@ _E2E_DELTA_SAMPLES: list[tuple[str, str, dict[str, str], bool]] = [
 ]
 
 
+def test_false_halt_rate():
+    """All 20 good passages must complete without false halts (heuristic mode)."""
+    from benchmarks.streaming_false_halt_bench import GOOD_PASSAGES
+    from director_ai.core import CoherenceScorer, GroundTruthStore, StreamingKernel
+
+    kernel = StreamingKernel(
+        hard_limit=0.10,
+        window_size=8,
+        window_threshold=0.18,
+        trend_window=5,
+        trend_threshold=0.30,
+        soft_limit=0.15,
+    )
+    false_halts = 0
+    for _pid, facts, passage in GOOD_PASSAGES:
+        store = GroundTruthStore()
+        for k, v in facts.items():
+            store.add(k, v)
+        scorer = CoherenceScorer(threshold=0.3, ground_truth_store=store, use_nli=False)
+        accumulated = ""
+
+        def coherence_cb(token, _s=scorer, _p=passage[:50]):
+            nonlocal accumulated
+            accumulated += (" " if accumulated else "") + token
+            if len(accumulated.split()) < 4:
+                return 0.5
+            _, sc = _s.review(_p, accumulated)
+            return sc.score
+
+        tokens = passage.split()
+        session = kernel.stream_tokens(iter(tokens), coherence_cb)
+        if session.halted:
+            false_halts += 1
+        kernel._active = True
+        accumulated = ""
+
+    n = len(GOOD_PASSAGES)
+    rate = false_halts / n
+    print(f"  False-halt rate: {rate:.1%} ({false_halts}/{n})")
+    assert false_halts == 0, f"{false_halts}/{n} false halts on good passages"
+
+
 def test_e2e_heuristic_delta():
     """Guardrail must beat random: catch_rate > 0.3, FPR < 0.3."""
     from director_ai.core import CoherenceScorer, GroundTruthStore
@@ -356,6 +398,7 @@ def main():
         test_latency_ceiling,
         test_metrics_integrity,
         test_evidence_schema,
+        test_false_halt_rate,
         test_e2e_heuristic_delta,
     ]
 

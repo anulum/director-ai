@@ -5,6 +5,64 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-03-01
+
+### Added
+- **Domain presets**: `DirectorConfig.from_profile("medical"|"finance"|"legal"|"creative"|"customer_support")` with tuned thresholds, weights, and NLI/reranker flags
+- **Structured halt evidence**: `stream_tokens(scorer=...)` populates `HaltEvidence` with top-K contradicting chunks, NLI scores, and suggested action on halt
+- **Pluggable scorer backend**: `CoherenceScorer(scorer_backend="deberta"|"onnx"|"minicheck", onnx_path=...)` forwarded to `NLIScorer`
+- **Batched MiniCheck**: `NLIScorer._minicheck_score_batch()` uses MiniCheck native list API
+- **False-halt assertion**: `regression_suite.py` runs `streaming_false_halt_bench` and asserts 0.0% false-halt rate in CI
+- **Competitor one-pager**: summary comparison table at top of `COMPETITOR_COMPARISON.md`
+- `w_logic`/`w_fact` fields on `DirectorConfig` with sum-to-1.0 validation
+
+### Changed
+- CHANGELOG reconstructed for v1.4.1, v1.5.0, v1.5.1, v1.6.0 (previously missing)
+- Streaming false-halt bench status updated from "Needs run" to measured 0.0%
+- 8 external-dataset benchmarks marked "Requires GPU + HF_TOKEN"
+
+## [1.6.0] - 2026-03-01
+
+### Added
+- **API key auth**: `api_keys` config field, `X-API-Key` header validation middleware
+- **Correlation IDs**: `X-Correlation-ID` header propagation on all requests
+- **Audit logging**: structured audit entries wired into all scoring/review endpoints
+- **Tenant routing**: `X-Tenant-ID` header → per-tenant config resolution via `TenantRouter`
+- **Rate limiting**: slowapi integration, configurable `rate_limit_rpm`
+- **Streaming WS oversight**: WebSocket endpoint for real-time streaming coherence monitoring
+- **Streaming debug mode**: `streaming_debug=True` emits per-token diagnostic snapshots
+- **E2E benchmarks**: baseline/compare evaluation (300 traces, QA/summarization/dialogue)
+- **RAGBench eval**: retrieval quality benchmark (Hit@k, Precision@k)
+- Docs: threshold tuning guide, KB ingestion guide, production checklist
+- 835 tests, 0 failures
+
+## [1.5.1] - 2026-03-01
+
+### Fixed
+- Reviewer hardening (10 items): pin `use_nli=False` in LangGraph tests, guard edge cases
+- Ruff format pass on all source files
+
+## [1.5.0] - 2026-03-01
+
+### Added
+- **Bidirectional chunked NLI**: `score_chunked()` with min-inner/max-outer aggregation for long documents
+- **Prometheus metric compliance**: `# HELP`/`# TYPE` headers, histogram buckets
+- **Real streaming halt with evidence**: `evidence_callback` on `stream_tokens()` for human-readable halt evidence
+- **RAG retrieval bench**: `benchmarks/retrieval_bench.py` (Hit@1, Hit@3, Precision@3)
+- **Per-class precision/recall/F1** on AggreFact evaluation
+- **Streaming false-halt bench**: `benchmarks/streaming_false_halt_bench.py` (20 passages, window sweep)
+- Docs: ONNX export/quantization guide, Rust FFI guide, case studies, Docker GPU guide
+- CPU latency warning when ONNX CUDA unavailable
+
+## [1.4.1] - 2026-03-01
+
+### Added
+- **Cross-GPU latency bench**: `benchmarks/gpu_bench.py` (5 GPUs: RTX 6000 Ada, A5000, A6000, Quadro 5000, GTX 1060)
+- **TensorRT provider**: `DIRECTOR_ENABLE_TRT=1` activates TensorrtExecutionProvider with FP16 + engine cache
+- **GPU Docker image**: `Dockerfile.gpu` with CUDA 12.4 + onnxruntime-gpu
+- **ONNX CUDA CI**: Docker GPU workflow for ONNX GPU regression
+- ORT graph optimization (`ORT_ENABLE_ALL`) + suppress Memcpy transformer warnings
+
 ## [1.4.0] - 2026-03-01
 
 ### Added
@@ -374,7 +432,14 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v1.2.1...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/anulum/director-ai/compare/v1.6.0...v1.7.0
+[1.6.0]: https://github.com/anulum/director-ai/compare/v1.5.1...v1.6.0
+[1.5.1]: https://github.com/anulum/director-ai/compare/v1.5.0...v1.5.1
+[1.5.0]: https://github.com/anulum/director-ai/compare/v1.4.1...v1.5.0
+[1.4.1]: https://github.com/anulum/director-ai/compare/v1.4.0...v1.4.1
+[1.4.0]: https://github.com/anulum/director-ai/compare/v1.3.0...v1.4.0
+[1.3.0]: https://github.com/anulum/director-ai/compare/v1.2.1...v1.3.0
 [1.2.1]: https://github.com/anulum/director-ai/compare/v1.2.0...v1.2.1
 [1.2.0]: https://github.com/anulum/director-ai/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/anulum/director-ai/compare/v1.0.0...v1.1.0

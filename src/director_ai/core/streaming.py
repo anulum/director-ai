@@ -19,8 +19,13 @@ import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from .kernel import SafetyKernel
+from .types import HaltEvidence
+
+if TYPE_CHECKING:
+    from .scorer import CoherenceScorer
 
 logger = logging.getLogger("DirectorAI.Streaming")
 
@@ -36,6 +41,7 @@ class TokenEvent:
     halted: bool = False
     warning: bool = False
     evidence: str | None = None
+    halt_evidence: HaltEvidence | None = None
     debug_info: dict | None = None
 
 
@@ -50,6 +56,7 @@ class StreamSession:
     halt_index: int = -1
     halt_reason: str = ""
     halt_evidence: str | None = None
+    halt_evidence_structured: HaltEvidence | None = None
     start_time: float = 0.0
     end_time: float = 0.0
     warning_count: int = 0
@@ -116,11 +123,23 @@ class StreamingKernel(SafetyKernel):
         self.soft_limit = soft_limit
         self.streaming_debug = streaming_debug
 
+    @staticmethod
+    def _suggested_action(reason: str) -> str:
+        if "hard_limit" in reason:
+            return "Reduce generation temperature or add KB facts."
+        if "window_avg" in reason:
+            return "Context may be drifting from grounded facts."
+        if "downward_trend" in reason:
+            return "Response quality degrading; rephrase the prompt."
+        return "Review the generated output for factual accuracy."
+
     def stream_tokens(
         self,
         token_generator,
         coherence_callback,
         evidence_callback=None,
+        scorer: CoherenceScorer | None = None,
+        top_k: int = 3,
     ) -> StreamSession:
         """Process tokens one by one with sliding window oversight.
 
@@ -131,6 +150,9 @@ class StreamingKernel(SafetyKernel):
         evidence_callback : callable(str) -> str | None — optional, returns
             human-readable evidence snippet explaining the coherence score.
             Called only on halt events to avoid overhead on every token.
+        scorer : CoherenceScorer | None — when provided, halt events
+            include structured HaltEvidence with top-K contradicting chunks.
+        top_k : int — number of evidence chunks to include (default 3).
 
         Returns
         -------
@@ -148,6 +170,25 @@ class StreamingKernel(SafetyKernel):
                 ev = evidence_callback("".join(session.tokens))
                 event.evidence = ev
                 session.halt_evidence = ev
+            if scorer is not None:
+                accumulated = "".join(session.tokens)
+                _, cs = scorer.review("", accumulated)
+                chunks = []
+                nli_scores = None
+                if cs.evidence and cs.evidence.chunks:
+                    sorted_chunks = sorted(cs.evidence.chunks, key=lambda c: c.distance)
+                    chunks = sorted_chunks[:top_k]
+                    if cs.evidence.chunk_scores:
+                        nli_scores = cs.evidence.chunk_scores[:top_k]
+                structured = HaltEvidence(
+                    reason=reason,
+                    last_score=cs.score,
+                    evidence_chunks=chunks,
+                    nli_scores=nli_scores,
+                    suggested_action=self._suggested_action(reason),
+                )
+                event.halt_evidence = structured
+                session.halt_evidence_structured = structured
 
         for i, token in enumerate(token_generator):
             if not self.is_active:

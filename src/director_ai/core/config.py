@@ -101,6 +101,10 @@ class DirectorConfig:
     # Tenant routing
     tenant_routing: bool = False
 
+    # Scoring weights (0.0 = use CoherenceScorer class defaults)
+    w_logic: float = 0.0
+    w_fact: float = 0.0
+
     # Rate limiting (requests per minute, 0 = disabled)
     rate_limit_rpm: int = 0
 
@@ -149,6 +153,13 @@ class DirectorConfig:
             raise ValueError(f"server_workers must be >= 1, got {self.server_workers}")
         if self.rate_limit_rpm < 0:
             raise ValueError(f"rate_limit_rpm must be >= 0, got {self.rate_limit_rpm}")
+        if (self.w_logic != 0.0 or self.w_fact != 0.0) and abs(
+            self.w_logic + self.w_fact - 1.0
+        ) > 1e-6:
+            raise ValueError(
+                f"w_logic + w_fact must equal 1.0 when set, "
+                f"got {self.w_logic} + {self.w_fact}"
+            )
 
     @classmethod
     def from_env(cls, prefix: str = "DIRECTOR_") -> DirectorConfig:
@@ -226,6 +237,56 @@ class DirectorConfig:
                 "max_candidates": 5,
                 "metrics_enabled": True,
                 "profile": "research",
+            },
+            "medical": {
+                "coherence_threshold": 0.75,
+                "hard_limit": 0.55,
+                "soft_limit": 0.75,
+                "use_nli": True,
+                "reranker_enabled": True,
+                "w_logic": 0.5,
+                "w_fact": 0.5,
+                "profile": "medical",
+            },
+            "finance": {
+                "coherence_threshold": 0.70,
+                "hard_limit": 0.50,
+                "soft_limit": 0.70,
+                "use_nli": True,
+                "reranker_enabled": True,
+                "w_logic": 0.4,
+                "w_fact": 0.6,
+                "profile": "finance",
+            },
+            "legal": {
+                "coherence_threshold": 0.68,
+                "hard_limit": 0.45,
+                "soft_limit": 0.68,
+                "use_nli": True,
+                "reranker_enabled": False,
+                "w_logic": 0.6,
+                "w_fact": 0.4,
+                "profile": "legal",
+            },
+            "creative": {
+                "coherence_threshold": 0.40,
+                "hard_limit": 0.30,
+                "soft_limit": 0.45,
+                "use_nli": False,
+                "reranker_enabled": False,
+                "w_logic": 0.7,
+                "w_fact": 0.3,
+                "profile": "creative",
+            },
+            "customer_support": {
+                "coherence_threshold": 0.55,
+                "hard_limit": 0.40,
+                "soft_limit": 0.60,
+                "use_nli": False,
+                "reranker_enabled": False,
+                "w_logic": 0.5,
+                "w_fact": 0.5,
+                "profile": "customer_support",
             },
         }
         if name not in profiles:

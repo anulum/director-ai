@@ -1,6 +1,20 @@
 # Director-AI -- Competitor Benchmark Comparison
 
-Last updated: 2026-03-01 (v1.4.1)
+Last updated: 2026-03-01 (v1.7.0)
+
+## One-Pager Summary
+
+| Feature | Director-AI | NeMo Guardrails | Lynx | GuardrailsAI | SelfCheckGPT |
+|---------|-------------|----------------|------|-------------|-------------|
+| **Approach** | NLI + RAG dual-entropy | LLM self-consistency | Fine-tuned LLM | LLM-as-judge | Multi-call LLM |
+| **Model size** | 0.4B (DeBERTa) | LLM-dependent | 8-70B | LLM-dependent | LLM-dependent |
+| **Latency** | 0.9 ms/pair (Ada GPU) | 50-300 ms + LLM | 1-10 s | 2.26 s | 5-10 s |
+| **Streaming halt** | Yes (token-level) | No | No | No | No |
+| **Offline/local** | Yes | No (needs LLM) | Yes (GPU) | No (needs LLM) | No (needs LLM) |
+| **False-halt rate** | 0.0% (20 passages) | N/A | N/A | N/A | N/A |
+| **AggreFact bal. acc** | 75.8% | N/A | N/A | N/A | N/A |
+| **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
+| **License** | AGPL v3 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
 
 ## Measured Latency (benchmarks/latency_bench.py)
 
@@ -157,15 +171,15 @@ Scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 | `latency_bench` | N/A | Inference latency across backends | Median/P95 ms | **0.9 ms (Ada GPU)** |
 | `gpu_bench` | N/A | Cross-GPU latency comparison | Per-pair ms | **5 GPUs benchmarked** |
 | `retrieval_bench` | Synthetic (50 facts) | RAG retrieval quality (Hit@k, P@k) | Hit@1, Hit@3, P@3 | **40% / 63% (inmemory)** |
-| `anli_eval` | ANLI R1/R2/R3 | Adversarial NLI robustness | Accuracy, F1 per class | Needs run |
-| `fever_eval` | FEVER dev | Fact verification | Accuracy, F1 per class | Needs run |
-| `halueval_eval` | HaluEval | Hallucination detection (QA/sum/dial) | Precision, Recall, F1 | Needs run |
-| `mnli_eval` | MNLI matched+mismatched | General NLI regression | Accuracy, F1 per class | Needs run |
-| `paws_eval` | PAWS | Paraphrase adversaries | Binary P/R/F1 | Needs run |
-| `truthfulqa_eval` | TruthfulQA (817 Qs) | Multiple-choice truthfulness | Accuracy per category | Needs run |
-| `vitaminc_eval` | VitaminC | Contrastive fact verification | Accuracy, F1 per class | Needs run |
-| `falsepositive_eval` | SQuAD/NQ/TriviaQA | False-positive rate on correct QA | FP rate (target <5%) | Needs run |
-| `streaming_false_halt_bench` | Synthetic good text | False-halt rate of StreamingKernel | False-halt % | Needs run |
+| `anli_eval` | ANLI R1/R2/R3 | Adversarial NLI robustness | Accuracy, F1 per class | Requires GPU + HF_TOKEN |
+| `fever_eval` | FEVER dev | Fact verification | Accuracy, F1 per class | Requires GPU + HF_TOKEN |
+| `halueval_eval` | HaluEval | Hallucination detection (QA/sum/dial) | Precision, Recall, F1 | Requires GPU + HF_TOKEN |
+| `mnli_eval` | MNLI matched+mismatched | General NLI regression | Accuracy, F1 per class | Requires GPU + HF_TOKEN |
+| `paws_eval` | PAWS | Paraphrase adversaries | Binary P/R/F1 | Requires GPU + HF_TOKEN |
+| `truthfulqa_eval` | TruthfulQA (817 Qs) | Multiple-choice truthfulness | Accuracy per category | Requires GPU + HF_TOKEN |
+| `vitaminc_eval` | VitaminC | Contrastive fact verification | Accuracy, F1 per class | Requires GPU + HF_TOKEN |
+| `falsepositive_eval` | SQuAD/NQ/TriviaQA | False-positive rate on correct QA | FP rate (target <5%) | Requires GPU + HF_TOKEN |
+| `streaming_false_halt_bench` | Synthetic good text | False-halt rate of StreamingKernel | False-halt % | **0.0% (20 passages, heuristic)** |
 
 To reproduce all results:
 ```bash
