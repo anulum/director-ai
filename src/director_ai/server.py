@@ -438,9 +438,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         "evidence": _evidence_to_dict(
                             result.coherence.evidence if result.coherence else None
                         ),
-                        "halt_evidence": _halt_evidence_to_dict(
-                            result.halt_evidence
-                        ),
+                        "halt_evidence": _halt_evidence_to_dict(result.halt_evidence),
                     }
                 )
         except WebSocketDisconnect:
