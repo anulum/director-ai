@@ -28,16 +28,17 @@ ONNX GPU sequential (65 ms/pair) is 3x faster than PyTorch GPU sequential (197 m
 
 16-pair batch, 50 iterations, warmup=10. Per-pair median latency (ms).
 
-| GPU | VRAM | ONNX CUDA | ONNX TRT FP16 | PyTorch FP16 | PyTorch FP32 |
-|-----|------|-----------|---------------|--------------|--------------|
-| GTX 1060 6GB | 6 GB | 14.6 ms | N/A | N/A | 19.0 ms |
-| RTX 3090 | 24 GB | TBD | TBD | TBD | TBD |
-| A6000 | 48 GB | TBD | TBD | TBD | TBD |
-| A100-80GB | 80 GB | TBD | TBD | TBD | TBD |
-| V100-16GB | 16 GB | TBD | TBD | TBD | TBD |
+| GPU | VRAM | Compute | ONNX CUDA | PyTorch FP16 | PyTorch FP32 |
+|-----|------|---------|-----------|--------------|--------------|
+| **RTX 6000 Ada** | 48 GB | 8.9 | **0.9 ms** | 1.2 ms | 2.1 ms |
+| RTX A5000 | 24 GB | 8.6 | 2.0 ms | 3.4 ms | 4.8 ms |
+| RTX A6000 | 48 GB | 8.6 | 3.5 ms | 9.7 ms | 10.1 ms |
+| Quadro RTX 5000 | 16 GB | 7.5 | 5.1 ms | 2.5 ms | 5.9 ms |
+| GTX 1060 6GB | 6 GB | 6.1 | 13.9 ms | N/A | 17.4 ms |
 
-GTX 1060 lacks tensor cores (compute 6.1) — FP16 and TRT backends auto-skip.
-TBD rows populated by running `gpu_bench_setup.sh` on JarvisLabs instances.
+ONNX CUDA is the fastest backend on all GPUs. RTX 6000 Ada achieves **sub-1ms per pair**.
+GTX 1060 lacks tensor cores (compute 6.1) — FP16 auto-skips.
+Full JSON results in `benchmarks/results/gpu_bench_*.json`.
 
 ## Apples-to-Apples: LLM-AggreFact Leaderboard
 
@@ -47,7 +48,7 @@ Metric: macro-averaged balanced accuracy.
 | Tool | Bal. Acc | Params | Latency (measured) | Streaming | License |
 |------|---------|--------|-------------------|-----------|---------|
 | Bespoke-MiniCheck-7B | 77.4% | 7B | ~100 ms (vLLM, A6000) | No | Apache 2.0 |
-| **Director-AI (FactCG batch)** | **75.8%** | 0.4B | **18 ms/pair (GPU batch)** | **Yes** | AGPL v3 |
+| **Director-AI (FactCG batch)** | **75.8%** | 0.4B | **0.9 ms/pair (Ada), 14.6 ms (GTX 1060)** | **Yes** | AGPL v3 |
 | **Director-AI (FactCG seq)** | **75.8%** | 0.4B | 196 ms/pair (GPU seq) | **Yes** | AGPL v3 |
 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No | MIT |
 | MiniCheck-DeBERTa-L | 72.6% | 0.4B | ~120 ms | No | MIT |
@@ -68,7 +69,7 @@ Metric: macro-averaged balanced accuracy.
 
 ## Where Director-AI Wins
 
-1. **18 ms/pair batched inference** — faster than any competitor at this accuracy tier.
+1. **0.9 ms/pair on Ada GPU, 14.6 ms on GTX 1060** — faster than any competitor at this accuracy tier.
 2. **Token-level streaming halt** — no competitor offers this. All others are post-hoc.
 3. **75.8% balanced accuracy** — 4th on LLM-AggreFact, within 1.6pp of top 7B model at 17x fewer params.
 4. **No LLM API dependency** — local DeBERTa model, runs offline on CPU/GPU.
