@@ -9,7 +9,10 @@ class TestLangGraphIntegration:
     def test_node_approved(self):
         from director_ai.integrations.langgraph import director_ai_node
 
-        node = director_ai_node(facts={"capital": "Paris is the capital of France."})
+        node = director_ai_node(
+            facts={"capital": "Paris is the capital of France."},
+            use_nli=False,
+        )
         state = {
             "query": "What is the capital of France?",
             "response": "Paris is the capital of France.",
@@ -24,6 +27,7 @@ class TestLangGraphIntegration:
         node = director_ai_node(
             facts={"capital": "Paris is the capital of France."},
             on_fail="raise",
+            use_nli=False,
         )
         state = {
             "query": "What is the capital of France?",
@@ -38,6 +42,7 @@ class TestLangGraphIntegration:
         node = director_ai_node(
             facts={"capital": "Paris is the capital of France."},
             on_fail="flag",
+            use_nli=False,
         )
         state = {
             "query": "What is the capital of France?",
