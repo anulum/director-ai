@@ -1,6 +1,7 @@
 {
   "title": "Director-Class AI: Coherence Engine — AI Output Verification & Safety Oversight",
-  "description": "Real-time LLM hallucination guardrail. Dual-entropy scoring (NLI contradiction via FactCG-DeBERTa-v3-Large + RAG fact-checking) with token-level streaming halt. 75.8% balanced accuracy on LLM-AggreFact (29K samples, 4th on leaderboard).",
+  "version": "1.7.0",
+  "description": "Real-time LLM hallucination guardrail. Dual-entropy scoring (NLI contradiction via FactCG-DeBERTa-v3-Large + RAG fact-checking) with token-level streaming halt. 75.8% balanced accuracy on LLM-AggreFact (29K samples, 4th on leaderboard). Domain presets (medical/finance/legal/creative/customer_support), structured halt evidence, pluggable scorer backends.",
   "creators": [
     {
       "name": "Sotek, Miroslav",

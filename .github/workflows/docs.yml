@@ -1,3 +1,8 @@
+# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — Documentation Deployment
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# ─────────────────────────────────────────────────────────────────────
+
 name: Deploy Docs
 
 on:
