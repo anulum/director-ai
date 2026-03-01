@@ -196,11 +196,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         response = await call_next(request)
         elapsed = time.monotonic() - start
         metrics.observe("http_request_duration_seconds", elapsed)
-        metrics.inc_labeled("http_requests_total", {
-            "method": request.method,
-            "endpoint": request.url.path,
-            "status": str(response.status_code),
-        })
+        metrics.inc_labeled(
+            "http_requests_total",
+            {
+                "method": request.method,
+                "endpoint": request.url.path,
+                "status": str(response.status_code),
+            },
+        )
         return response
 
     # ── Health ────────────────────────────────────────────────────────

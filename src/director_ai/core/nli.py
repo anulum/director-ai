@@ -539,7 +539,10 @@ class NLIScorer:
         return chunks or [" ".join(sentences)]
 
     def _score_chunked_with_counts(
-        self, premise: str, hypothesis: str, outer_agg: str = "max",
+        self,
+        premise: str,
+        hypothesis: str,
+        outer_agg: str = "max",
     ) -> tuple[float, list[float], int, int]:
         """Bidirectional chunked scoring with chunk counts.
 
@@ -590,14 +593,19 @@ class NLIScorer:
         return agg, per_hyp, n_prem, n_hyp
 
     def score_chunked(
-        self, premise: str, hypothesis: str, outer_agg: str = "max",
+        self,
+        premise: str,
+        hypothesis: str,
+        outer_agg: str = "max",
     ) -> tuple[float, list[float]]:
         """Bidirectional chunked scoring for long premises and hypotheses.
 
         Returns (aggregated_score, per_hypothesis_chunk_scores).
         """
         agg, per_hyp, _, _ = self._score_chunked_with_counts(
-            premise, hypothesis, outer_agg,
+            premise,
+            hypothesis,
+            outer_agg,
         )
         return agg, per_hyp
 

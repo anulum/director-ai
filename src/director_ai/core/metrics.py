@@ -172,7 +172,10 @@ class MetricsCollector:
             self._counters[name].inc(amount, label)
 
     def inc_labeled(
-        self, name: str, labels: dict[str, str], amount: float = 1.0,
+        self,
+        name: str,
+        labels: dict[str, str],
+        amount: float = 1.0,
     ) -> None:
         """Increment a counter with arbitrary label dict."""
         if not self.enabled:

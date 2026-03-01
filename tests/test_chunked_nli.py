@@ -119,7 +119,8 @@ class TestScoreChunked:
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Premise detail {i} info" for i in range(30)) + "."
         _, per_hyp, np, nh = scorer._score_chunked_with_counts(
-            long_prem, "Short claim.",
+            long_prem,
+            "Short claim.",
         )
         assert np > 1
         assert nh == 1
@@ -137,7 +138,8 @@ class TestScoreChunked:
         long_prem = ". ".join(f"Evidence {i} text" for i in range(30)) + "."
         long_hyp = ". ".join(f"Claim {i} text" for i in range(30)) + "."
         agg, per_hyp, np, nh = scorer._score_chunked_with_counts(
-            long_prem, long_hyp,
+            long_prem,
+            long_hyp,
         )
         assert np > 1
         assert nh > 1

@@ -291,7 +291,8 @@ class TestLabeledCounters:
     def test_reset_clears_multi_labels(self, collector):
         collector.inc_labeled(
             "http_requests_total",
-            {"method": "GET", "status": "200"}, 5.0,
+            {"method": "GET", "status": "200"},
+            5.0,
         )
         collector.reset()
         m = collector.get_metrics()
