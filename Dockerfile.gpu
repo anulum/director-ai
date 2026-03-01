@@ -26,6 +26,7 @@ COPY src/ src/
 RUN pip install --no-cache-dir --prefix=/install \
         ".[server,nli]" \
         onnxruntime-gpu \
+        "optimum[onnxruntime]" \
     && pip install --no-cache-dir --prefix=/install \
         torch --index-url https://download.pytorch.org/whl/cu126
 
