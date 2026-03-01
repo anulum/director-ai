@@ -13,7 +13,7 @@ Director-AI: Real-time LLM hallucination guardrail.
     from director_ai.core import CoherenceAgent, CoherenceScorer, SafetyKernel
 """
 
-__version__ = "1.5.0"
+__version__ = "1.5.1"
 
 from .core import (
     AsyncStreamingKernel,
@@ -24,6 +24,7 @@ from .core import (
     CoherenceScorer,
     EvidenceChunk,
     GroundTruthStore,
+    HaltEvidence,
     InMemoryBackend,
     InputSanitizer,
     LLMGenerator,
@@ -65,6 +66,7 @@ __all__ = [
     "GroundTruthStore",
     "CoherenceScore",
     "EvidenceChunk",
+    "HaltEvidence",
     "ScoringEvidence",
     "ReviewResult",
     "NLIScorer",

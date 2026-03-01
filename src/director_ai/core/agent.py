@@ -13,7 +13,7 @@ from .actor import LLMGenerator, MockGenerator
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .scorer import CoherenceScorer
-from .types import ReviewResult
+from .types import HaltEvidence, ReviewResult
 
 try:
     from backfire_kernel import BackfireConfig as _RustConfig
@@ -37,7 +37,7 @@ class CoherenceAgent:
     - **Generator**: Candidate response generation (mock or real LLM).
     - **Scorer**: Dual-entropy coherence oversight.
     - **Ground Truth Store**: RAG-based fact retrieval.
-    - **Safety Kernel**: Hardware-level output interlock.
+    - **Safety Kernel**: Output interlock.
 
     Parameters
     ----------
@@ -186,6 +186,21 @@ class CoherenceAgent:
                 fallback_used=True,
             )
 
+        ev_chunks = []
+        nli_scores = None
+        if best_rejected_score and best_rejected_score.evidence:
+            ev_chunks = best_rejected_score.evidence.chunks
+            if best_rejected_score.evidence.chunk_scores:
+                nli_scores = best_rejected_score.evidence.chunk_scores
+        halt_ev = HaltEvidence(
+            reason="all_candidates_rejected",
+            last_score=best_rejected_coherence,
+            evidence_chunks=ev_chunks,
+            nli_scores=nli_scores,
+            suggested_action=(
+                "Rephrase the prompt or add relevant facts to the knowledge base."
+            ),
+        )
         return ReviewResult(
             output=(
                 "[SYSTEM HALT]: No coherent response found."
@@ -194,6 +209,7 @@ class CoherenceAgent:
             coherence=best_rejected_score,
             halted=True,
             candidates_evaluated=len(candidates),
+            halt_evidence=halt_ev,
         )
 
     # ── Backward-compatible alias ─────────────────────────────────────

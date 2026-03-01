@@ -215,6 +215,55 @@ class ChromaBackend(VectorBackend):
         return int(self._collection.count())
 
 
+class RerankedBackend(VectorBackend):
+    """Cross-encoder reranking wrapper around any VectorBackend.
+
+    Retrieves ``top_k_multiplier * n_results`` candidates from the base
+    backend, then reranks with a cross-encoder model and returns the
+    top ``n_results``.
+
+    Requires ``pip install sentence-transformers>=2.2``.
+    """
+
+    def __init__(
+        self,
+        base: VectorBackend,
+        reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        top_k_multiplier: int = 3,
+    ) -> None:
+        self._base = base
+        self._multiplier = top_k_multiplier
+        try:
+            from sentence_transformers import CrossEncoder
+        except ImportError as e:
+            raise ImportError(
+                "RerankedBackend requires sentence-transformers. "
+                "Install with: pip install director-ai[reranker]"
+            ) from e
+        self._reranker = CrossEncoder(reranker_model)
+
+    def add(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
+        self._base.add(doc_id, text, metadata)
+
+    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
+        candidates = self._base.query(text, n_results=n_results * self._multiplier)
+        if not candidates:
+            return []
+        pairs = [(text, c["text"]) for c in candidates]
+        scores = self._reranker.predict(pairs)
+        ranked = sorted(
+            zip(scores, candidates, strict=True),
+            key=lambda x: x[0],
+            reverse=True,
+        )
+        return [c for _, c in ranked[:n_results]]
+
+    def count(self) -> int:
+        return self._base.count()
+
+
 class VectorGroundTruthStore(GroundTruthStore):
     """Ground truth store with vector-based semantic retrieval.
 

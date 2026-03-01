@@ -68,10 +68,18 @@ class DirectorConfig:
     llm_temperature: float = 0.8
     llm_max_tokens: int = 512
 
+    # LLM-as-judge escalation
+    llm_judge_enabled: bool = False
+    llm_judge_confidence_threshold: float = 0.3
+    llm_judge_provider: str = ""
+
     # Vector store
     vector_backend: str = "memory"
     chroma_collection: str = "director_ai"
     chroma_persist_dir: str = ""
+    reranker_enabled: bool = False
+    reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    reranker_top_k_multiplier: int = 3
 
     # Server
     server_host: str = "0.0.0.0"

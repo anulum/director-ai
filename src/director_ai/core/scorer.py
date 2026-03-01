@@ -54,6 +54,10 @@ class CoherenceScorer:
     nli_quantize_8bit : bool — load NLI model with 8-bit quantization.
     nli_device : str | None — torch device for NLI model.
     nli_torch_dtype : str | None — torch dtype ("float16", "bfloat16").
+    llm_judge_enabled : bool — escalate to LLM when NLI margin is low.
+    llm_judge_confidence_threshold : float — softmax margin below which
+        to escalate (default 0.3).
+    llm_judge_provider : str — "openai" or "anthropic".
     """
 
     W_LOGIC = 0.6
@@ -75,6 +79,9 @@ class CoherenceScorer:
         nli_quantize_8bit=False,
         nli_device=None,
         nli_torch_dtype=None,
+        llm_judge_enabled=False,
+        llm_judge_confidence_threshold=0.3,
+        llm_judge_provider="",
     ):
         self.threshold = threshold
         self.soft_limit = soft_limit if soft_limit is not None else threshold + 0.1
@@ -110,6 +117,62 @@ class CoherenceScorer:
             if self.use_nli
             else None
         )
+        self._llm_judge_enabled = llm_judge_enabled
+        self._llm_judge_threshold = llm_judge_confidence_threshold
+        self._llm_judge_provider = llm_judge_provider
+
+    # ── LLM-as-judge escalation ───────────────────────────────────────
+
+    def _llm_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
+        """Escalate to LLM-as-judge when NLI confidence is low.
+
+        Returns adjusted divergence score. Falls back to nli_score on error.
+        """
+        import time
+
+        t0 = time.monotonic()
+        metrics.inc("llm_judge_escalations")
+
+        judge_prompt = (
+            f"Given the prompt: {prompt[:500]}\n"
+            f"Response: {response[:500]}\n"
+            f"NLI divergence score: {nli_score:.3f}\n"
+            "Is this response factually correct? Reply YES or NO "
+            "with a confidence 0-100."
+        )
+        try:
+            if self._llm_judge_provider == "openai":
+                import openai
+
+                client = openai.OpenAI()
+                result = client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=[{"role": "user", "content": judge_prompt}],
+                    max_tokens=20,
+                )
+                reply = result.choices[0].message.content or ""
+            elif self._llm_judge_provider == "anthropic":
+                import anthropic
+
+                client = anthropic.Anthropic()
+                result = client.messages.create(
+                    model="claude-haiku-4-5-20251001",
+                    max_tokens=20,
+                    messages=[{"role": "user", "content": judge_prompt}],
+                )
+                reply = result.content[0].text if result.content else ""
+            else:
+                return nli_score
+
+            llm_agrees = "YES" in reply.upper()
+            llm_divergence = 0.2 if llm_agrees else 0.8
+            adjusted = 0.7 * nli_score + 0.3 * llm_divergence
+            return max(0.0, min(1.0, adjusted))
+        except (ImportError, Exception) as exc:
+            self.logger.warning("LLM judge failed: %s", exc)
+            return nli_score
+        finally:
+            metrics.observe("llm_judge_seconds", time.monotonic() - t0)
 
     # ── Factual divergence ────────────────────────────────────────────
 
@@ -175,6 +238,13 @@ class CoherenceScorer:
             nli_score = DIVERGENCE_NEUTRAL
         else:
             nli_score = self._heuristic_factual(context, text_output)
+
+        if (
+            self._llm_judge_enabled
+            and self._llm_judge_provider
+            and abs(nli_score - 0.5) < self._llm_judge_threshold
+        ):
+            nli_score = self._llm_judge_check(prompt, text_output, nli_score)
 
         evidence = ScoringEvidence(
             chunks=chunks,

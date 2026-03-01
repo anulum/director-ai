@@ -30,10 +30,17 @@ from .sanitizer import InputSanitizer, SanitizeResult
 from .scorer import CoherenceScorer
 from .streaming import StreamingKernel, StreamSession, TokenEvent
 from .tenant import TenantRouter
-from .types import CoherenceScore, EvidenceChunk, ReviewResult, ScoringEvidence
+from .types import (
+    CoherenceScore,
+    EvidenceChunk,
+    HaltEvidence,
+    ReviewResult,
+    ScoringEvidence,
+)
 from .vector_store import (
     ChromaBackend,
     InMemoryBackend,
+    RerankedBackend,
     SentenceTransformerBackend,
     VectorBackend,
     VectorGroundTruthStore,
@@ -42,6 +49,7 @@ from .vector_store import (
 __all__ = [
     "CoherenceScore",
     "EvidenceChunk",
+    "HaltEvidence",
     "ScoringEvidence",
     "ReviewResult",
     "CoherenceScorer",
@@ -71,4 +79,5 @@ __all__ = [
     "TenantRouter",
     "InputSanitizer",
     "SanitizeResult",
+    "RerankedBackend",
 ]

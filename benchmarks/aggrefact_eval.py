@@ -240,6 +240,26 @@ class _BinaryNLIPredictor:
         return max(self._score_batch([(c, hypothesis) for c in chunks]))
 
 
+class _NLIScorerPredictor:
+    """Wraps NLIScorer.score_chunked() for bidirectional chunking comparison."""
+
+    def __init__(self, model_name: str | None = None):
+        from director_ai.core.nli import NLIScorer
+
+        self.scorer = NLIScorer(
+            use_model=True,
+            model_name=model_name or os.environ.get(
+                "DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"
+            ),
+        )
+        logger.info("NLIScorerPredictor (bidirectional) ready")
+
+    def score(self, premise: str, hypothesis: str) -> float:
+        score, _ = self.scorer.score_chunked(premise, hypothesis)
+        # score_chunked returns divergence [0,1]; convert to entailment prob
+        return 1.0 - score
+
+
 def _binary_class_metrics(y_true: list[int], y_pred: list[int]) -> dict:
     """Precision/recall/F1 for both supported (1) and hallucination (0) classes."""
     labels = sorted(set(y_true) | set(y_pred))
@@ -277,8 +297,12 @@ def run_aggrefact_benchmark(
     threshold: float = 0.5,
     max_samples: int | None = None,
     model_name: str | None = None,
+    bidirectional: bool = False,
 ) -> AggreFactMetrics:
-    predictor = _BinaryNLIPredictor(model_name=model_name)
+    if bidirectional:
+        predictor = _NLIScorerPredictor(model_name=model_name)
+    else:
+        predictor = _BinaryNLIPredictor(model_name=model_name)
     rows = _load_aggrefact(max_samples)
 
     # Collect predictions grouped by dataset
@@ -467,6 +491,8 @@ if __name__ == "__main__":
                         help="Entailment probability threshold (default: 0.5)")
     parser.add_argument("--sweep", action="store_true",
                         help="Sweep thresholds 0.10-0.90 to find optimal")
+    parser.add_argument("--bidirectional", action="store_true",
+                        help="Use NLIScorer.score_chunked() bidirectional path")
     args = parser.parse_args()
 
     if args.sweep:
@@ -475,6 +501,32 @@ if __name__ == "__main__":
         )
         print(f"\nOptimal threshold: {best_thresh:.2f}")
         _print_aggrefact_results(m, args.model or "default")
+    elif args.bidirectional:
+        m_summac = run_aggrefact_benchmark(
+            threshold=args.threshold,
+            max_samples=args.max_samples,
+            model_name=args.model,
+            bidirectional=False,
+        )
+        _print_aggrefact_results(m_summac, "SummaC chunking")
+        m_bidir = run_aggrefact_benchmark(
+            threshold=args.threshold,
+            max_samples=args.max_samples,
+            model_name=args.model,
+            bidirectional=True,
+        )
+        _print_aggrefact_results(m_bidir, "Bidirectional chunking")
+        print(f"\n{'=' * 55}")
+        print("  Delta: Bidirectional vs SummaC")
+        print(f"{'=' * 55}")
+        for ds in sorted(set(m_summac.per_dataset) | set(m_bidir.per_dataset)):
+            s = m_summac.per_dataset.get(ds, {}).get("balanced_acc", 0)
+            b = m_bidir.per_dataset.get(ds, {}).get("balanced_acc", 0)
+            print(f"  {ds:<20} {s:.1%} → {b:.1%}  ({b - s:+.1%})")
+        delta = m_bidir.avg_balanced_acc - m_summac.avg_balanced_acc
+        print(f"\n  Overall: {m_summac.avg_balanced_acc:.1%} → "
+              f"{m_bidir.avg_balanced_acc:.1%}  ({delta:+.1%})")
+        print(f"{'=' * 55}")
     else:
         m = run_aggrefact_benchmark(
             threshold=args.threshold,

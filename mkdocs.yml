@@ -90,5 +90,6 @@ nav:
     - Legal: cookbook/legal.md
     - Medical: cookbook/medical.md
     - Finance: cookbook/finance.md
+    - Customer Support: cookbook/customer-support.md
     - Case Studies: cookbook/case-studies.md
   - Changelog: changelog.md

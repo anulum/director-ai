@@ -62,6 +62,17 @@ class CoherenceScore:
 
 
 @dataclass
+class HaltEvidence:
+    """Structured evidence returned when the agent halts."""
+
+    reason: str
+    last_score: float
+    evidence_chunks: list[EvidenceChunk]
+    nli_scores: list[float] | None = None
+    suggested_action: str = ""
+
+
+@dataclass
 class ReviewResult:
     """Full review outcome from the CoherenceAgent pipeline."""
 
@@ -70,3 +81,4 @@ class ReviewResult:
     halted: bool  # True if the system refused to emit output
     candidates_evaluated: int  # Number of candidates scored
     fallback_used: bool = False
+    halt_evidence: HaltEvidence | None = None

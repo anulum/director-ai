@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — Safety Kernel (Hardware Interlock)
+# Director-Class AI — Safety Kernel
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # Contact: www.anulum.li | protoscience@anulum.li
 # ORCID: https://orcid.org/0009-0009-3560-0851
@@ -12,12 +12,12 @@ import time
 
 class SafetyKernel:
     """
-    Hardware-level safety interlock for the output stream.
+    Software safety interlock for the output stream.
 
     Sits between the model output buffer and the network interface.
-    Monitors the coherence score in real-time and has the physical
-    authority to sever the token stream if coherence drops below the
-    hard safety limit.
+    Monitors the coherence score in real-time and has the authority
+    to sever the token stream if coherence drops below the hard
+    safety limit.
 
     Parameters
     ----------
@@ -77,6 +77,6 @@ class SafetyKernel:
         return "".join(output_buffer)
 
     def emergency_stop(self):
-        """Physically halt the inference engine."""
+        """Halt the inference engine."""
         self.logger.critical(">>> SAFETY KERNEL ACTIVATED: INFERENCE HALTED <<<")
         self.is_active = False

@@ -82,6 +82,7 @@ if _FASTAPI_AVAILABLE:
         warning: bool = False
         fallback_used: bool = False
         evidence: dict | None = None
+        halt_evidence: dict | None = None
 
     class BatchResponse(BaseModel):
         results: list[ProcessResponse]
@@ -100,6 +101,22 @@ if _FASTAPI_AVAILABLE:
 
     class ConfigResponse(BaseModel):
         config: dict
+
+
+def _halt_evidence_to_dict(halt_ev) -> dict | None:
+    """Serialize HaltEvidence to a JSON-safe dict."""
+    if halt_ev is None:
+        return None
+    return {
+        "reason": halt_ev.reason,
+        "last_score": halt_ev.last_score,
+        "evidence_chunks": [
+            {"text": c.text, "distance": c.distance, "source": c.source}
+            for c in halt_ev.evidence_chunks
+        ],
+        "nli_scores": halt_ev.nli_scores,
+        "suggested_action": halt_ev.suggested_action,
+    }
 
 
 def _evidence_to_dict(evidence) -> dict | None:
@@ -278,6 +295,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             evidence=_evidence_to_dict(
                 result.coherence.evidence if result.coherence else None
             ),
+            halt_evidence=_halt_evidence_to_dict(result.halt_evidence),
         )
 
     # ── Batch ─────────────────────────────────────────────────────────
@@ -419,6 +437,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         "fallback_used": result.fallback_used,
                         "evidence": _evidence_to_dict(
                             result.coherence.evidence if result.coherence else None
+                        ),
+                        "halt_evidence": _halt_evidence_to_dict(
+                            result.halt_evidence
                         ),
                     }
                 )

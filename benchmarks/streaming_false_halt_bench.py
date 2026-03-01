@@ -173,6 +173,31 @@ GOOD_PASSAGES: list[tuple[str, dict[str, str], str]] = [
 ]
 
 
+BAD_PASSAGES: list[tuple[str, dict[str, str], str]] = [
+    (
+        "wrong_boiling",
+        {"boiling point": "100 degrees Celsius at standard pressure"},
+        "Water boils at 50 degrees Celsius which makes it easy to "
+        "evaporate at room temperature. This is why water disappears "
+        "so quickly from open containers in warm weather.",
+    ),
+    (
+        "wrong_light_speed",
+        {"speed of light": "299,792 km/s in vacuum"},
+        "The speed of light is approximately 3,000 kilometers per "
+        "second making it only ten times faster than sound in air. "
+        "This is why we see lightning and hear thunder almost simultaneously.",
+    ),
+    (
+        "wrong_dna",
+        {"DNA bases": "adenine, thymine, guanine, cytosine"},
+        "DNA consists of six nucleotide bases: adenine, thymine, "
+        "guanine, cytosine, uracil, and xanthine. Each base can "
+        "pair with any other base making DNA highly flexible.",
+    ),
+]
+
+
 @dataclass
 class FalseHaltResult:
     passage_id: str
@@ -320,6 +345,89 @@ def run_benchmark(use_nli: bool = False) -> dict:
     return output
 
 
+def run_window_sweep(use_nli: bool = False) -> dict:
+    """Sweep window_size and measure false-halt / correct-halt rates."""
+    from director_ai.core import CoherenceScorer, GroundTruthStore, StreamingKernel
+
+    window_sizes = [3, 5, 8, 10, 15, 20]
+    sweep_results = []
+
+    for ws in window_sizes:
+        kernel = StreamingKernel(
+            hard_limit=0.35,
+            window_size=ws,
+            window_threshold=0.45,
+            trend_window=5,
+            trend_threshold=0.15,
+        )
+
+        false_halts = 0
+        for pid, facts, passage in GOOD_PASSAGES:
+            store = GroundTruthStore()
+            for k, v in facts.items():
+                store.add(k, v)
+            scorer = CoherenceScorer(
+                threshold=0.5, ground_truth_store=store, use_nli=use_nli,
+            )
+            tokens = _tokenize_simple(passage)
+            coh_cb, ev_cb = _make_callbacks(scorer, passage[:30])
+            session = kernel.stream_tokens(iter(tokens), coh_cb, ev_cb)
+            if session.halted:
+                false_halts += 1
+            kernel._active = True
+
+        correct_halts = 0
+        halt_coherences = []
+        for pid, facts, passage in BAD_PASSAGES:
+            store = GroundTruthStore()
+            for k, v in facts.items():
+                store.add(k, v)
+            scorer = CoherenceScorer(
+                threshold=0.5, ground_truth_store=store, use_nli=use_nli,
+            )
+            tokens = _tokenize_simple(passage)
+            coh_cb, ev_cb = _make_callbacks(scorer, passage[:30])
+            session = kernel.stream_tokens(iter(tokens), coh_cb, ev_cb)
+            if session.halted:
+                correct_halts += 1
+                halt_coherences.append(session.avg_coherence)
+            kernel._active = True
+
+        n_good = len(GOOD_PASSAGES)
+        n_bad = len(BAD_PASSAGES)
+        avg_halt_coh = (
+            sum(halt_coherences) / len(halt_coherences) if halt_coherences else 0.0
+        )
+        sweep_results.append({
+            "window_size": ws,
+            "false_halt_rate": false_halts / n_good,
+            "correct_halt_rate": correct_halts / n_bad if n_bad else 0.0,
+            "avg_coherence_at_halt": round(avg_halt_coh, 4),
+        })
+
+    print(f"\n{'=' * 65}")
+    print("  Window Size Sweep")
+    print(f"{'=' * 65}")
+    print(f"  {'Window':>6} {'FalseHalt%':>10} {'CorrectHalt%':>12} {'AvgCoh@Halt':>12}")
+    print(f"  {'-' * 44}")
+    for r in sweep_results:
+        print(
+            f"  {r['window_size']:>6}"
+            f" {r['false_halt_rate']:>9.1%}"
+            f" {r['correct_halt_rate']:>11.1%}"
+            f" {r['avg_coherence_at_halt']:>11.4f}"
+        )
+    print(f"{'=' * 65}")
+
+    output = {"benchmark": "window_sweep", "nli": use_nli, "results": sweep_results}
+    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
+    tag = "nli" if use_nli else "heuristic"
+    path = RESULTS_DIR / f"window_sweep_{tag}.json"
+    path.write_text(json.dumps(output, indent=2), encoding="utf-8")
+    print(f"\nResults saved to {path}")
+    return output
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Streaming false-halt rate benchmark",
@@ -328,8 +436,15 @@ def main():
         "--nli", action="store_true",
         help="Use NLI scorer (requires director-ai[nli])",
     )
+    parser.add_argument(
+        "--sweep-window", action="store_true",
+        help="Sweep window_size [3,5,8,10,15,20] and measure halt rates",
+    )
     args = parser.parse_args()
-    run_benchmark(use_nli=args.nli)
+    if args.sweep_window:
+        run_window_sweep(use_nli=args.nli)
+    else:
+        run_benchmark(use_nli=args.nli)
 
 
 if __name__ == "__main__":

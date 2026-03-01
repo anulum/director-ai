@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-462_passed-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-810_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
@@ -442,8 +442,9 @@ Reproduce all results with `benchmarks/` scripts.
 2. **Summarisation is a weak spot**: NLI models (including DeBERTa) under-perform
    on summarisation datasets (AggreFact-CNN: 68.8%, ExpertQA: 59.1%).
    Best for factual QA and claim verification.
-3. **Single-document NLI**: Long documents are scored as a single premise.
-   Chunked NLI scoring is on the roadmap.
+3. **Chunked NLI**: Bidirectional chunked scoring (v1.5.0+) handles long
+   premises and hypotheses. Very short chunks may lose context — prefer
+   documents with 3+ sentences per chunk.
 4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits
    general QA. Adjust via constructor args for your domain.
 5. **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for
@@ -512,6 +513,10 @@ Contact: [anulum.li/contact](https://www.anulum.li/contact.html) or invest@anulu
 
 See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
+> **Q: Is the core library Apache 2.0?** No. The entire Director-AI package
+> (core, server, integrations) is licensed under AGPL v3.0. A commercial
+> license is available for closed-source deployment.
+
 ## Roadmap
 
 ### Shipped in v1.2.0
@@ -545,8 +550,8 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
 
 ### Next
 
-- [ ] Chunked NLI scoring for long documents
-- [ ] Prometheus histogram latency buckets
+- [ ] Cross-encoder reranking for RAG retrieval
+- [ ] LLM-as-judge hybrid escalation for low-confidence NLI
 - [ ] `director-ai serve --workers N` multi-process mode
 
 ## Citation
@@ -557,7 +562,7 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {1.3.0},
+  version   = {1.5.1},
   license   = {AGPL-3.0-or-later}
 }
 ```
