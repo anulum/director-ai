@@ -197,6 +197,9 @@ def _run_onnx(
     active = session.get_providers()[0]
     print(f"    active provider: {active}")
 
+    if provider == "TensorrtExecutionProvider" and active != "TensorrtExecutionProvider":
+        raise RuntimeError(f"TRT requested but got {active} (libnvinfer not installed?)")
+
     texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
     inputs = tokenizer(
         texts, return_tensors="np", truncation=True, padding=True, max_length=512,
