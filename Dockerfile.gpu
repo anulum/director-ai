@@ -1,0 +1,76 @@
+# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — GPU Docker Image (ONNX CUDA)
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# License: GNU AGPL v3 | Commercial licensing available
+# ─────────────────────────────────────────────────────────────────────
+#
+# Build:
+#   docker build -f Dockerfile.gpu -t director-ai:gpu .
+#
+# Run:
+#   docker run --gpus all -p 8080:8080 director-ai:gpu
+#
+# onnxruntime-gpu bundles CUDA/CuDNN; the host only needs the NVIDIA
+# driver (>=535) exposed via --gpus all.
+# ─────────────────────────────────────────────────────────────────────
+
+# ── Stage 1: Install Python packages ──────────────────────────────────
+
+FROM python:3.11-slim AS builder
+
+WORKDIR /build
+
+COPY pyproject.toml README.md LICENSE NOTICE ./
+COPY src/ src/
+
+RUN pip install --no-cache-dir --prefix=/install \
+        ".[server,nli]" \
+        onnxruntime-gpu \
+    && pip install --no-cache-dir --prefix=/install \
+        torch --index-url https://download.pytorch.org/whl/cu126
+
+# ── Stage 2: Export ONNX model ────────────────────────────────────────
+
+FROM python:3.11-slim AS model-builder
+
+COPY --from=builder /install /usr/local
+COPY src/ /app/src/
+
+WORKDIR /app
+
+ENV PYTHONPATH=/app/src
+
+RUN python -c "\
+from director_ai.core.nli import export_onnx; \
+export_onnx(output_dir='/models/onnx')"
+
+# ── Stage 3: Runtime ──────────────────────────────────────────────────
+
+FROM python:3.11-slim
+
+LABEL maintainer="Miroslav Sotek <protoscience@anulum.li>"
+LABEL description="Director-AI GPU — ONNX CUDA hallucination guardrail"
+LABEL org.opencontainers.image.source="https://github.com/anulum/director-ai"
+LABEL org.opencontainers.image.license="AGPL-3.0-or-later"
+
+WORKDIR /app
+
+COPY --from=builder /install /usr/local
+COPY --from=model-builder /models /app/models
+COPY src/ src/
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    DIRECTOR_LOG_LEVEL=INFO \
+    DIRECTOR_SERVER_HOST=0.0.0.0 \
+    DIRECTOR_SERVER_PORT=8080 \
+    DIRECTOR_USE_NLI=true \
+    DIRECTOR_ONNX_PATH=/app/models/onnx
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \
+    CMD python -c "import requests; r=requests.get('http://localhost:8080/v1/health'); r.raise_for_status()" || exit 1
+
+ENTRYPOINT ["python", "-m", "director_ai.cli"]
+CMD ["serve", "--port", "8080"]

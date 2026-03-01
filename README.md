@@ -126,6 +126,30 @@ cd director-ai
 pip install -e ".[dev]"
 ```
 
+## Docker
+
+```bash
+# CPU-only (heuristic scoring, ~200 MB image)
+docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest
+
+# GPU-enabled (ONNX CUDA, 14 ms/pair on GTX 1060, 0.9 ms on Ada)
+docker run --gpus all -p 8080:8080 ghcr.io/anulum/director-ai:gpu
+
+# docker compose
+docker compose up                    # CPU
+docker compose --profile gpu up      # GPU (NVIDIA)
+docker compose --profile full up     # CPU + ChromaDB
+```
+
+Verify:
+
+```bash
+curl localhost:8080/v1/health
+curl -X POST localhost:8080/v1/review \
+  -H 'Content-Type: application/json' \
+  -d '{"prompt":"What color is the sky?","response":"The sky is blue."}'
+```
+
 ## Usage
 
 ### Score a single response
