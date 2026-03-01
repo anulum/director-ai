@@ -164,9 +164,13 @@ class CoherenceScorer:
             return DIVERGENCE_NEUTRAL, None
 
         chunk_scores = None
+        prem_count = 1
+        hyp_count = 1
         if self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
-                nli_score, chunk_scores = self._nli.score_chunked(context, text_output)
+                nli_score, chunk_scores, prem_count, hyp_count = (
+                    self._nli._score_chunked_with_counts(context, text_output)
+                )
         elif self.strict_mode:
             nli_score = DIVERGENCE_NEUTRAL
         else:
@@ -178,6 +182,8 @@ class CoherenceScorer:
             nli_hypothesis=text_output,
             nli_score=nli_score,
             chunk_scores=chunk_scores,
+            premise_chunk_count=prem_count,
+            hypothesis_chunk_count=hyp_count,
         )
         return nli_score, evidence
 

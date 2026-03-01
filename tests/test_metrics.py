@@ -220,3 +220,105 @@ class TestDisabledCollector:
             pass
         m = c.get_metrics()
         assert m["histograms"]["review_duration_seconds"]["count"] == 0
+
+    def test_inc_labeled_noop(self):
+        c = MetricsCollector(enabled=False)
+        c.inc_labeled("http_requests_total", {"method": "GET", "status": "200"})
+        m = c.get_metrics()
+        assert m["counters"].get("http_requests_total", {}).get("total", 0) == 0
+
+
+class TestPrometheusHeaders:
+    """HELP/TYPE headers for all metric families."""
+
+    def test_counter_help_type(self, collector):
+        collector.inc("reviews_total")
+        text = collector.prometheus_format()
+        assert "# HELP director_ai_reviews_total" in text
+        assert "# TYPE director_ai_reviews_total counter" in text
+
+    def test_histogram_help_type(self, collector):
+        collector.observe("coherence_score", 0.5)
+        text = collector.prometheus_format()
+        assert "# HELP director_ai_coherence_score" in text
+        assert "# TYPE director_ai_coherence_score histogram" in text
+
+    def test_gauge_help_type(self, collector):
+        text = collector.prometheus_format()
+        assert "# HELP director_ai_active_requests" in text
+        assert "# TYPE director_ai_active_requests gauge" in text
+
+
+class TestInfBucket:
+    """+Inf bucket in Prometheus output."""
+
+    def test_plus_inf_present(self, collector):
+        collector.observe("coherence_score", 0.5)
+        text = collector.prometheus_format()
+        assert 'le="+Inf"' in text
+
+    def test_bare_inf_absent(self, collector):
+        collector.observe("coherence_score", 0.5)
+        text = collector.prometheus_format()
+        assert 'le="inf"' not in text
+
+
+class TestLabeledCounters:
+    """Multi-label counter tests."""
+
+    def test_inc_labeled_basic(self, collector):
+        collector.inc_labeled("http_requests_total", {"method": "GET", "status": "200"})
+        m = collector.get_metrics()
+        assert m["counters"]["http_requests_total"]["total"] == 1.0
+
+    def test_inc_labeled_multiple(self, collector):
+        labels_get = {"method": "GET", "status": "200"}
+        labels_post = {"method": "POST", "status": "201"}
+        collector.inc_labeled("http_requests_total", labels_get)
+        collector.inc_labeled("http_requests_total", labels_get)
+        collector.inc_labeled("http_requests_total", labels_post)
+        m = collector.get_metrics()
+        assert m["counters"]["http_requests_total"]["total"] == 3.0
+        ml = m["counters"]["http_requests_total"]["multi_labels"]
+        assert ml['method="GET",status="200"'] == 2.0
+        assert ml['method="POST",status="201"'] == 1.0
+
+    def test_inc_labeled_prometheus_format(self, collector):
+        collector.inc_labeled("http_requests_total", {"method": "GET", "status": "200"})
+        text = collector.prometheus_format()
+        assert 'director_ai_http_requests_total{method="GET",status="200"} 1.0' in text
+
+    def test_reset_clears_multi_labels(self, collector):
+        collector.inc_labeled(
+            "http_requests_total",
+            {"method": "GET", "status": "200"}, 5.0,
+        )
+        collector.reset()
+        m = collector.get_metrics()
+        assert m["counters"]["http_requests_total"]["total"] == 0.0
+        assert m["counters"]["http_requests_total"]["multi_labels"] == {}
+
+
+class TestChunkCountHistograms:
+    """nli_premise_chunks, nli_hypothesis_chunks, http_request_duration_seconds."""
+
+    def test_premise_chunks_registered(self, collector):
+        assert "nli_premise_chunks" in collector._histograms
+
+    def test_hypothesis_chunks_registered(self, collector):
+        assert "nli_hypothesis_chunks" in collector._histograms
+
+    def test_http_duration_registered(self, collector):
+        assert "http_request_duration_seconds" in collector._histograms
+
+    def test_chunk_histograms_observe(self, collector):
+        collector.observe("nli_premise_chunks", 3)
+        collector.observe("nli_hypothesis_chunks", 5)
+        m = collector.get_metrics()
+        assert m["histograms"]["nli_premise_chunks"]["count"] == 1
+        assert m["histograms"]["nli_hypothesis_chunks"]["count"] == 1
+
+    def test_http_duration_observe(self, collector):
+        collector.observe("http_request_duration_seconds", 0.042)
+        m = collector.get_metrics()
+        assert m["histograms"]["http_request_duration_seconds"]["count"] == 1

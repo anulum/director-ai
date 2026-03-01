@@ -538,33 +538,68 @@ class NLIScorer:
             chunks.append(" ".join(current))
         return chunks or [" ".join(sentences)]
 
-    def score_chunked(self, premise: str, hypothesis: str) -> tuple[float, list[float]]:
-        """Score with chunking for long hypotheses.
+    def _score_chunked_with_counts(
+        self, premise: str, hypothesis: str, outer_agg: str = "max",
+    ) -> tuple[float, list[float], int, int]:
+        """Bidirectional chunked scoring with chunk counts.
 
-        Returns (aggregated_score, per_chunk_scores).
-        Aggregation: max() — worst chunk wins (conservative).
-        Short texts bypass chunking. Chunks are batched into a
-        single forward pass when a model backend is available.
+        Returns (agg_score, per_hyp_scores, prem_count, hyp_count).
+        Inner aggregation (across premise chunks per hypothesis chunk): min.
+        Outer aggregation (across hypothesis chunks): max (default) or mean.
         """
-        hypothesis_budget = int(self.max_length * 0.6)
+        hyp_budget = int(self.max_length * 0.6)
+        prem_budget = int(self.max_length * 0.4)
 
-        if self._estimate_tokens(hypothesis) <= hypothesis_budget:
+        hyp_fits = self._estimate_tokens(hypothesis) <= hyp_budget
+        prem_fits = self._estimate_tokens(premise) <= prem_budget
+
+        if hyp_fits and prem_fits:
             s = self.score(premise, hypothesis)
-            return s, [s]
+            metrics.observe("nli_premise_chunks", 1)
+            metrics.observe("nli_hypothesis_chunks", 1)
+            return s, [s], 1, 1
 
-        sentences = self._split_sentences(hypothesis)
-        if len(sentences) <= 1:
-            s = self.score(premise, hypothesis)
-            return s, [s]
+        hyp_sents = self._split_sentences(hypothesis)
+        hyp_chunks = (
+            self._build_chunks(hyp_sents, hyp_budget)
+            if not hyp_fits and len(hyp_sents) > 1
+            else [hypothesis]
+        )
 
-        chunks = self._build_chunks(sentences, hypothesis_budget)
+        prem_sents = self._split_sentences(premise)
+        prem_chunks = (
+            self._build_chunks(prem_sents, prem_budget)
+            if not prem_fits and len(prem_sents) > 1
+            else [premise]
+        )
 
-        premise_budget = int(self.max_length * 0.4)
-        if self._estimate_tokens(premise) > premise_budget:
-            premise = premise[: premise_budget * 4]
+        pairs = [(pc, hc) for pc in prem_chunks for hc in hyp_chunks]
+        all_scores = self.score_batch(pairs)
 
-        chunk_scores = self.score_batch([(premise, chunk) for chunk in chunks])
-        return max(chunk_scores), chunk_scores
+        n_prem = len(prem_chunks)
+        n_hyp = len(hyp_chunks)
+        per_hyp: list[float] = []
+        for h_idx in range(n_hyp):
+            scores_h = [all_scores[p * n_hyp + h_idx] for p in range(n_prem)]
+            per_hyp.append(min(scores_h))
+
+        agg = max(per_hyp) if outer_agg == "max" else sum(per_hyp) / len(per_hyp)
+
+        metrics.observe("nli_premise_chunks", n_prem)
+        metrics.observe("nli_hypothesis_chunks", n_hyp)
+        return agg, per_hyp, n_prem, n_hyp
+
+    def score_chunked(
+        self, premise: str, hypothesis: str, outer_agg: str = "max",
+    ) -> tuple[float, list[float]]:
+        """Bidirectional chunked scoring for long premises and hypotheses.
+
+        Returns (aggregated_score, per_hypothesis_chunk_scores).
+        """
+        agg, per_hyp, _, _ = self._score_chunked_with_counts(
+            premise, hypothesis, outer_agg,
+        )
+        return agg, per_hyp
 
     # ── Heuristic fallback ───────────────────────────────────────
 

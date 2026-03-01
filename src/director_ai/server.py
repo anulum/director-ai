@@ -114,6 +114,8 @@ def _evidence_to_dict(evidence) -> dict | None:
         "nli_premise": evidence.nli_premise,
         "nli_hypothesis": evidence.nli_hypothesis,
         "nli_score": evidence.nli_score,
+        "premise_chunk_count": evidence.premise_chunk_count,
+        "hypothesis_chunk_count": evidence.hypothesis_chunk_count,
     }
 
 
@@ -187,6 +189,19 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    @app.middleware("http")
+    async def _http_metrics(request, call_next):
+        start = time.monotonic()
+        response = await call_next(request)
+        elapsed = time.monotonic() - start
+        metrics.observe("http_request_duration_seconds", elapsed)
+        metrics.inc_labeled("http_requests_total", {
+            "method": request.method,
+            "endpoint": request.url.path,
+            "status": str(response.status_code),
+        })
+        return response
 
     # ── Health ────────────────────────────────────────────────────────
 

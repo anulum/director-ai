@@ -45,6 +45,8 @@ class ScoringEvidence:
     nli_hypothesis: str
     nli_score: float
     chunk_scores: list[float] | None = None
+    premise_chunk_count: int = 1
+    hypothesis_chunk_count: int = 1
 
 
 @dataclass

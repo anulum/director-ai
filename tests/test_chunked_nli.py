@@ -82,9 +82,9 @@ class TestScoreChunked:
         _, chunk_scores = scorer.score_chunked("context", long_hyp)
         assert all(isinstance(s, float) for s in chunk_scores)
 
-    def test_premise_truncated_for_long_input(self):
+    def test_long_premise_handled(self):
         scorer = NLIScorer(use_model=False, max_length=64)
-        long_premise = "word " * 500
+        long_premise = ". ".join(f"Premise sentence {i} word" for i in range(40)) + "."
         long_hyp = ". ".join(f"Sentence {i} text" for i in range(20)) + "."
         score, chunk_scores = scorer.score_chunked(long_premise, long_hyp)
         assert 0.0 <= score <= 1.0
@@ -98,3 +98,48 @@ class TestScoreChunked:
         s2, cs2 = scorer.score_chunked("premise text", long_hyp)
         assert s1 == s2
         assert cs1 == cs2
+
+    def test_long_premise_gets_chunked(self):
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Evidence sentence {i} detail" for i in range(40)) + "."
+        score, chunk_scores = scorer.score_chunked(long_prem, "Short hypothesis.")
+        assert 0.0 <= score <= 1.0
+        assert len(chunk_scores) == 1
+
+    def test_both_long_cross_product(self):
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Premise part {i} context" for i in range(30)) + "."
+        long_hyp = ". ".join(f"Hypothesis part {i} claim" for i in range(30)) + "."
+        score, chunk_scores = scorer.score_chunked(long_prem, long_hyp)
+        assert 0.0 <= score <= 1.0
+        assert len(chunk_scores) > 1
+
+    def test_inner_agg_is_min(self):
+        """min-across-premises: per_hyp is min of premise chunk scores."""
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Premise detail {i} info" for i in range(30)) + "."
+        _, per_hyp, np, nh = scorer._score_chunked_with_counts(
+            long_prem, "Short claim.",
+        )
+        assert np > 1
+        assert nh == 1
+        assert len(per_hyp) == 1
+
+    def test_mean_aggregation(self):
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_hyp = ". ".join(f"Claim number {i} assertion" for i in range(30)) + "."
+        s_max, _ = scorer.score_chunked("premise", long_hyp, outer_agg="max")
+        s_mean, _ = scorer.score_chunked("premise", long_hyp, outer_agg="mean")
+        assert s_mean <= s_max
+
+    def test_score_chunked_with_counts(self):
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Evidence {i} text" for i in range(30)) + "."
+        long_hyp = ". ".join(f"Claim {i} text" for i in range(30)) + "."
+        agg, per_hyp, np, nh = scorer._score_chunked_with_counts(
+            long_prem, long_hyp,
+        )
+        assert np > 1
+        assert nh > 1
+        assert len(per_hyp) == nh
+        assert 0.0 <= agg <= 1.0

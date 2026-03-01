@@ -29,6 +29,7 @@ class _Counter:
 
     value: float = 0.0
     labels: dict[str, float] = field(default_factory=dict)
+    multi_labels: dict[str, float] = field(default_factory=dict)
 
     def inc(self, amount: float = 1.0, label: str = "") -> None:
         if label:
@@ -36,8 +37,12 @@ class _Counter:
         else:
             self.value += amount
 
+    def inc_labeled(self, labels: dict[str, str], amount: float = 1.0) -> None:
+        key = ",".join(f'{k}="{v}"' for k, v in sorted(labels.items()))
+        self.multi_labels[key] = self.multi_labels.get(key, 0.0) + amount
+
     def total(self) -> float:
-        return self.value + sum(self.labels.values())
+        return self.value + sum(self.labels.values()) + sum(self.multi_labels.values())
 
 
 COHERENCE_SCORE_BUCKETS = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
@@ -46,6 +51,8 @@ BATCH_SIZE_BUCKETS = (1, 5, 10, 25, 50, 100, 500, 1000)
 NLI_INFERENCE_BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0)
 FACTUAL_RETRIEVAL_BUCKETS = (0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0)
 CHUNKED_NLI_BUCKETS = (0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0)
+NLI_CHUNK_COUNT_BUCKETS = (1, 2, 3, 4, 5, 8, 10, 15, 20)
+HTTP_DURATION_BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0)
 HISTOGRAM_MAX_SAMPLES = 100_000
 
 
@@ -88,7 +95,7 @@ class _Histogram:
         result = {}
         for b in self.buckets:
             result[f"le_{b}"] = sum(1 for v in self._values if v <= b)
-        result["le_inf"] = len(self._values)
+        result["le_+Inf"] = len(self._values)
         return result
 
 
@@ -109,20 +116,26 @@ class _Gauge:
 
 
 class MetricsCollector:
-    """Thread-safe metrics collector with Prometheus-compatible output.
+    """Thread-safe metrics collector with Prometheus-compatible output."""
 
-    Pre-registered metrics:
-
-    - ``reviews_total`` (counter) — total review requests
-    - ``reviews_approved`` (counter) — approved reviews
-    - ``reviews_rejected`` (counter) — rejected reviews
-    - ``halts_total`` (counter) — safety kernel halts (by reason label)
-    - ``coherence_score`` (histogram) — coherence score distribution
-    - ``review_duration_seconds`` (histogram) — review latency
-    - ``batch_size`` (histogram) — batch request sizes
-    - ``active_requests`` (gauge) — in-flight requests
-    - ``nli_model_loaded`` (gauge) — 1 if NLI model is loaded
-    """
+    _METRIC_HELP: dict[str, str] = {
+        "reviews_total": "Total review requests processed",
+        "reviews_approved": "Reviews that passed coherence threshold",
+        "reviews_rejected": "Reviews that failed coherence threshold",
+        "halts_total": "Safety kernel halt events",
+        "http_requests_total": "HTTP requests by method/endpoint/status",
+        "coherence_score": "Coherence score distribution",
+        "review_duration_seconds": "End-to-end review latency",
+        "batch_size": "Batch request sizes",
+        "nli_inference_seconds": "Single NLI inference latency",
+        "factual_retrieval_seconds": "RAG retrieval latency",
+        "chunked_nli_seconds": "Chunked NLI scoring latency",
+        "nli_premise_chunks": "Premise chunk count per scoring call",
+        "nli_hypothesis_chunks": "Hypothesis chunk count per scoring call",
+        "http_request_duration_seconds": "HTTP request duration",
+        "active_requests": "In-flight requests",
+        "nli_model_loaded": "1 if NLI model is loaded",
+    }
 
     def __init__(self, enabled: bool = True) -> None:
         self.enabled = enabled
@@ -140,6 +153,9 @@ class MetricsCollector:
             "nli_inference_seconds": _Histogram(buckets=NLI_INFERENCE_BUCKETS),
             "factual_retrieval_seconds": _Histogram(buckets=FACTUAL_RETRIEVAL_BUCKETS),
             "chunked_nli_seconds": _Histogram(buckets=CHUNKED_NLI_BUCKETS),
+            "nli_premise_chunks": _Histogram(buckets=NLI_CHUNK_COUNT_BUCKETS),
+            "nli_hypothesis_chunks": _Histogram(buckets=NLI_CHUNK_COUNT_BUCKETS),
+            "http_request_duration_seconds": _Histogram(buckets=HTTP_DURATION_BUCKETS),
         }
         self._gauges: dict[str, _Gauge] = {
             "active_requests": _Gauge(),
@@ -154,6 +170,17 @@ class MetricsCollector:
             if name not in self._counters:
                 self._counters[name] = _Counter()
             self._counters[name].inc(amount, label)
+
+    def inc_labeled(
+        self, name: str, labels: dict[str, str], amount: float = 1.0,
+    ) -> None:
+        """Increment a counter with arbitrary label dict."""
+        if not self.enabled:
+            return
+        with self._lock:
+            if name not in self._counters:
+                self._counters[name] = _Counter()
+            self._counters[name].inc_labeled(labels, amount)
 
     def observe(self, name: str, value: float) -> None:
         """Record a histogram observation."""
@@ -203,6 +230,7 @@ class MetricsCollector:
                 result["counters"][name] = {
                     "total": c.total(),
                     "labels": dict(c.labels) if c.labels else {},
+                    "multi_labels": dict(c.multi_labels) if c.multi_labels else {},
                 }
             for name, h in self._histograms.items():
                 result["histograms"][name] = {
@@ -222,19 +250,34 @@ class MetricsCollector:
         lines: list[str] = []
         with self._lock:
             for name, c in self._counters.items():
+                fqn = f"director_ai_{name}"
+                desc = self._METRIC_HELP.get(name, name)
+                lines.append(f"# HELP {fqn} {desc}")
+                lines.append(f"# TYPE {fqn} counter")
                 if c.labels:
                     for label, val in c.labels.items():
-                        lines.append(f'director_ai_{name}{{reason="{label}"}} {val}')
-                else:
-                    lines.append(f"director_ai_{name} {c.value}")
+                        lines.append(f'{fqn}{{reason="{label}"}} {val}')
+                if c.multi_labels:
+                    for label_str, val in c.multi_labels.items():
+                        lines.append(f"{fqn}{{{label_str}}} {val}")
+                if not c.labels and not c.multi_labels:
+                    lines.append(f"{fqn} {c.value}")
             for name, h in self._histograms.items():
+                fqn = f"director_ai_{name}"
+                desc = self._METRIC_HELP.get(name, name)
+                lines.append(f"# HELP {fqn} {desc}")
+                lines.append(f"# TYPE {fqn} histogram")
                 for bucket_name, count in h.bucket_counts().items():
                     le = bucket_name.replace("le_", "")
-                    lines.append(f'director_ai_{name}_bucket{{le="{le}"}} {count}')
-                lines.append(f"director_ai_{name}_count {h.count}")
-                lines.append(f"director_ai_{name}_sum {h.total}")
+                    lines.append(f'{fqn}_bucket{{le="{le}"}} {count}')
+                lines.append(f"{fqn}_count {h.count}")
+                lines.append(f"{fqn}_sum {h.total}")
             for name, g in self._gauges.items():
-                lines.append(f"director_ai_{name} {g.value}")
+                fqn = f"director_ai_{name}"
+                desc = self._METRIC_HELP.get(name, name)
+                lines.append(f"# HELP {fqn} {desc}")
+                lines.append(f"# TYPE {fqn} gauge")
+                lines.append(f"{fqn} {g.value}")
         return "\n".join(lines) + "\n"
 
     def reset(self) -> None:
@@ -243,6 +286,7 @@ class MetricsCollector:
             for c in self._counters.values():
                 c.value = 0.0
                 c.labels.clear()
+                c.multi_labels.clear()
             for h in self._histograms.values():
                 h._values.clear()
             for g in self._gauges.values():
