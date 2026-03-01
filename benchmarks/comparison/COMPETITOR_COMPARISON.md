@@ -9,18 +9,20 @@ Iterations=30, warmup=5.
 
 | Pipeline | Median | P95 | Per-pair | Notes |
 |----------|--------|-----|----------|-------|
-| Lightweight (no NLI) | 0.08 ms | 0.21 ms | 0.08 ms | Heuristic only |
-| Streaming session | 0.02 ms | 0.05 ms | 0.02 ms | Token-level |
-| **PyTorch GPU seq (16 pairs)** | 3130 ms | 4097 ms | 196 ms | Sequential score() |
-| **PyTorch GPU batch (16 pairs)** | **289 ms** | **303 ms** | **18 ms** | **10.8x speedup** |
-| PyTorch chunked-seq | 183 ms | 223 ms | — | 12-sentence doc |
-| PyTorch chunked-batch | 192 ms | 226 ms | — | 12-sentence doc |
-| ONNX CPU seq (16 pairs) | 6553 ms | 8512 ms | 410 ms | No CUDA provider |
-| ONNX CPU batch (16 pairs) | 6124 ms | 8143 ms | 383 ms | No CUDA provider |
+| Lightweight (no NLI) | 0.15 ms | 0.44 ms | 0.15 ms | Heuristic only |
+| Streaming session | 0.02 ms | 0.02 ms | 0.02 ms | Token-level |
+| PyTorch GPU seq (16 pairs) | 3145 ms | 3580 ms | 196.6 ms | Sequential score() |
+| PyTorch GPU batch (16 pairs) | 304 ms | 353 ms | 19.0 ms | 10.4x vs sequential |
+| PyTorch chunked-seq | 250 ms | 335 ms | — | 12-sentence doc |
+| PyTorch chunked-batch | 195 ms | 280 ms | — | 12-sentence doc |
+| ONNX GPU seq (16 pairs) | 1042 ms | 1249 ms | 65.1 ms | CUDAExecutionProvider |
+| **ONNX GPU batch (16 pairs)** | **233 ms** | **250 ms** | **14.6 ms** | **Fastest** |
+| ONNX CPU seq (16 pairs) | 6553 ms | 8512 ms | 410 ms | CPUExecutionProvider |
+| ONNX CPU batch (16 pairs) | 6124 ms | 8143 ms | 383 ms | CPUExecutionProvider |
 
-Batching eliminates per-pair overhead: 10.8x speedup on GPU.
-ONNX CPU is ~21x slower than PyTorch GPU batch (expected — no CUDAExecutionProvider).
-Chunked scoring shows minimal batch benefit at 2-3 chunks; scales past 8+ chunks.
+ONNX GPU batch is the fastest path: **14.6 ms/pair** (1.3x faster than PyTorch GPU batch).
+Batching gives 10.4x speedup (PyTorch) and 4.5x (ONNX GPU).
+ONNX GPU sequential (65 ms/pair) is 3x faster than PyTorch GPU sequential (197 ms/pair).
 
 ## Apples-to-Apples: LLM-AggreFact Leaderboard
 

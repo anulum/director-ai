@@ -20,7 +20,7 @@
 ## Recommended Setup
 
 ```bash
-pip install director-ai[minicheck,vector,embeddings,openai]
+pip install director-ai[nli,vector,embeddings,openai]
 ```
 
 ```python
@@ -95,8 +95,10 @@ print(f"Hit rate: {scorer.cache.hit_rate:.1%}")
 | Workload | CPU | RAM | GPU | Latency (measured) |
 |----------|-----|-----|-----|--------------------|
 | Heuristic only | 1 core | 256MB | None | <0.1 ms |
-| FactCG NLI (GPU batch) | 2 cores | 2GB | 1.2GB VRAM | **18 ms/pair** |
-| FactCG NLI (GPU seq) | 2 cores | 2GB | 1.2GB VRAM | 196 ms/pair |
+| **ONNX GPU batch** | 2 cores | 2GB | 1.2GB VRAM | **14.6 ms/pair** |
+| PyTorch GPU batch | 2 cores | 2GB | 1.2GB VRAM | 19 ms/pair |
+| ONNX GPU sequential | 2 cores | 2GB | 1.2GB VRAM | 65 ms/pair |
+| PyTorch GPU sequential | 2 cores | 2GB | 1.2GB VRAM | 197 ms/pair |
 | ONNX CPU batch | 4 cores | 2GB | None | 383 ms/pair |
 | MiniCheck (GPU) | 2 cores | 1GB | 400MB VRAM | ~60 ms |
 | + bge-large embeddings | +1 core | +500MB | +200MB VRAM | +5 ms |

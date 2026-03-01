@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   for 16 pairs on GTX 1060, 18ms/pair median)
 - **ONNX export + runtime**: `export_onnx()` converts model to ONNX via
   optimum; `NLIScorer(backend="onnx", onnx_path=...)` runs inference via
-  ONNX Runtime (383ms/pair CPU; GPU with `onnxruntime-gpu` pending)
+  ONNX Runtime (**14.6 ms/pair GPU batch**, 383 ms/pair CPU)
 - `ascore_batch()` async helper for batched scoring
 - `onnx` optional dependency (`pip install director-ai[onnx]`)
 - AggreFact benchmark predictor now batches SummaC source chunks

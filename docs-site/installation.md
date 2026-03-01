@@ -12,11 +12,11 @@ Includes: coherence scorer, streaming kernel, safety kernel, ground truth store,
 
 | Extra | Command | Adds |
 |-------|---------|------|
-| `nli` | `pip install director-ai[nli]` | FactCG-DeBERTa-v3-Large NLI (75.8% bal. acc, 18ms/pair GPU) |
+| `nli` | `pip install director-ai[nli]` | FactCG-DeBERTa-v3-Large NLI (75.8% bal. acc, 14.6ms/pair ONNX GPU) |
 | `minicheck` | `pip install director-ai[minicheck]` | MiniCheck alternative (72.6% bal. acc) |
 | `vector` | `pip install director-ai[vector]` | ChromaDB vector store |
 | `embeddings` | `pip install director-ai[embeddings]` | sentence-transformers (bge-large) |
-| `onnx` | `pip install director-ai[onnx]` | ONNX Runtime inference (portable, no PyTorch) |
+| `onnx` | `pip install director-ai[onnx]` | ONNX Runtime inference (14.6ms/pair GPU, portable CPU fallback) |
 | `quantize` | `pip install director-ai[quantize]` | bitsandbytes 8-bit quantization |
 | `openai` | `pip install director-ai[openai]` | OpenAI SDK guard |
 | `anthropic` | `pip install director-ai[anthropic]` | Anthropic SDK guard |
@@ -35,7 +35,7 @@ Includes: coherence scorer, streaming kernel, safety kernel, ground truth store,
 pip install director-ai[nli,vector,embeddings,openai]
 ```
 
-FactCG NLI (75.8% balanced accuracy, 18ms/pair GPU batch), ChromaDB + bge-large embeddings, OpenAI SDK interception.
+FactCG NLI (75.8% balanced accuracy, 14.6ms/pair ONNX GPU batch), ChromaDB + bge-large embeddings, OpenAI SDK interception.
 
 ## GPU Acceleration
 

@@ -333,7 +333,8 @@ Coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)
 
 | Model | AggreFact Balanced Acc | Latency (measured) |
 |-------|----------------------|-------------------|
-| FactCG-DeBERTa-v3-Large (default) | **75.8%** | **18 ms/pair** (GPU batch) |
+| FactCG-DeBERTa-v3-Large (default) | **75.8%** | **14.6 ms/pair** (ONNX GPU batch) |
+| FactCG-DeBERTa-v3-Large (PyTorch) | **75.8%** | 19 ms/pair (GPU batch) |
 | DeBERTa-v3-base (legacy) | 66.2% | 220 ms (CPU) |
 
 **Per-dataset highlights** (FactCG, threshold 0.46):
@@ -352,9 +353,11 @@ Coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)
 
 | Pipeline | Median | Per-pair | Notes |
 |----------|--------|----------|-------|
-| PyTorch GPU batch (16 pairs) | **289 ms** | **18 ms** | **10.8x speedup** |
-| PyTorch GPU sequential | 3130 ms | 196 ms | Baseline |
-| ONNX CPU batch (16 pairs) | 6124 ms | 383 ms | No CUDA provider |
+| **ONNX GPU batch (16 pairs)** | **233 ms** | **14.6 ms** | Fastest |
+| PyTorch GPU batch (16 pairs) | 304 ms | 19.0 ms | 10.4x vs sequential |
+| ONNX GPU sequential | 1042 ms | 65.1 ms | — |
+| PyTorch GPU sequential | 3145 ms | 196.6 ms | Baseline |
+| ONNX CPU batch (16 pairs) | 6124 ms | 383 ms | No GPU |
 | Lightweight (no NLI) | 0.08 ms | 0.08 ms | Heuristic only |
 | Streaming session | 0.02 ms | 0.02 ms | Token-level |
 
@@ -365,15 +368,15 @@ Run: `python -m benchmarks.latency_bench --nli --onnx --device cuda`
 | Tool | Bal. Acc | Params | Latency | Streaming |
 |------|---------|--------|---------|-----------|
 | Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms (GPU) | No |
-| **Director-AI (FactCG)** | **75.8%** | 0.4B | **18 ms (GPU batch)** | **Yes** |
+| **Director-AI (FactCG)** | **75.8%** | 0.4B | **14.6 ms (ONNX GPU)** | **Yes** |
 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
 | MiniCheck-DeBERTa-L | 72.6% | 0.4B | ~120 ms | No |
 | HHEM-2.1-Open | 71.8% | ~0.4B | ~200 ms | No |
 
 **Honest assessment**: 75.8% balanced accuracy ranks 4th on the LLM-AggreFact
 leaderboard — within 1.6pp of the top 7B model at 17x fewer params.
-With batched inference, Director-AI is now **faster than every competitor**
-at this accuracy tier (18 ms/pair vs ~100-200 ms).
+With ONNX GPU batching, Director-AI is now **faster than every competitor**
+at this accuracy tier (14.6 ms/pair vs ~100-200 ms).
 Director-AI's unique value is the *system*: NLI + KB facts + streaming
 token-level halt. No competitor offers real-time streaming gating.
 
