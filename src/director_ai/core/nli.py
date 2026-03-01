@@ -484,9 +484,13 @@ class NLIScorer:
                     max_length=self.max_length,
                 )
 
-            # Feed only inputs the ONNX graph expects
+            # Feed only inputs the ONNX graph expects, cast to int64
             expected = {i.name for i in self._onnx_session.get_inputs()}
-            feed = {k: v for k, v in inputs.items() if k in expected}
+            feed = {
+                k: v.astype(np.int64) if v.dtype != np.int64 else v
+                for k, v in inputs.items()
+                if k in expected
+            }
             logits = self._onnx_session.run(None, feed)[0]
 
         return _probs_to_divergence(_softmax_np(logits))
