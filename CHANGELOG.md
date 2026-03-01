@@ -9,17 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - **Batched NLI inference**: `score_batch()` and `score_chunked()` now run
-  a single forward pass for all inputs (3-5x latency reduction on chunked
-  documents)
+  a single padded forward pass — **10.8x speedup** measured (3130ms → 289ms
+  for 16 pairs on GTX 1060, 18ms/pair median)
 - **ONNX export + runtime**: `export_onnx()` converts model to ONNX via
   optimum; `NLIScorer(backend="onnx", onnx_path=...)` runs inference via
-  ONNX Runtime (~30-50ms per chunk on GPU)
+  ONNX Runtime (383ms/pair CPU; GPU with `onnxruntime-gpu` pending)
 - `ascore_batch()` async helper for batched scoring
 - `onnx` optional dependency (`pip install director-ai[onnx]`)
 - AggreFact benchmark predictor now batches SummaC source chunks
+- Latency benchmark: `python -m benchmarks.latency_bench --nli --onnx`
 
 ### Fixed
 - GPU device handling in `_model_score()` — inputs now move to model device
+- ONNX Runtime int64 cast (DeBERTa expects int64, numpy tokenizer returns int32)
 
 ## [1.3.0] - 2026-03-01
 

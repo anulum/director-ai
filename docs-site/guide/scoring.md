@@ -28,7 +28,7 @@ Word-overlap scoring. Fast (<1ms) but limited to vocabulary-level detection.
 scorer = CoherenceScorer(use_nli=True)
 ```
 75.8% balanced accuracy on AggreFact (4th on leaderboard). Uses instruction
-template + SummaC source chunking. ~575 ms CPU, ~50-80 ms GPU.
+template + SummaC source chunking. 18 ms/pair GPU batch, 196 ms/pair GPU sequential.
 
 ### MiniCheck (alternative)
 ```python

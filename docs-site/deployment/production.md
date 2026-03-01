@@ -92,13 +92,14 @@ print(f"Hit rate: {scorer.cache.hit_rate:.1%}")
 
 ## Resource Sizing
 
-| Workload | CPU | RAM | GPU | Latency |
-|----------|-----|-----|-----|---------|
-| Heuristic only | 1 core | 256MB | None | <1ms |
-| DeBERTa NLI (CPU) | 4 cores | 2GB | None | ~200ms |
-| DeBERTa NLI (GPU) | 2 cores | 1GB | 1GB VRAM | ~40ms |
-| MiniCheck (GPU, 8-bit) | 2 cores | 1GB | 400MB VRAM | ~60ms |
-| + bge-large embeddings | +1 core | +500MB | +200MB VRAM | +5ms |
+| Workload | CPU | RAM | GPU | Latency (measured) |
+|----------|-----|-----|-----|--------------------|
+| Heuristic only | 1 core | 256MB | None | <0.1 ms |
+| FactCG NLI (GPU batch) | 2 cores | 2GB | 1.2GB VRAM | **18 ms/pair** |
+| FactCG NLI (GPU seq) | 2 cores | 2GB | 1.2GB VRAM | 196 ms/pair |
+| ONNX CPU batch | 4 cores | 2GB | None | 383 ms/pair |
+| MiniCheck (GPU) | 2 cores | 1GB | 400MB VRAM | ~60 ms |
+| + bge-large embeddings | +1 core | +500MB | +200MB VRAM | +5 ms |
 
 ## Monitoring
 
