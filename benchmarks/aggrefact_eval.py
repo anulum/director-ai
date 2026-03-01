@@ -25,28 +25,31 @@ The dataset is gated on HuggingFace. Authenticate first::
 Usage::
 
     python -m benchmarks.aggrefact_eval
-    python -m benchmarks.aggrefact_eval --model training/output/deberta-v3-base-hallucination
+    python -m benchmarks.aggrefact_eval --model yaxili96/FactCG-DeBERTa-v3-Large
     python -m benchmarks.aggrefact_eval --threshold 0.6
-    python -m benchmarks.aggrefact_eval --sweep   # find optimal threshold
+    python -m benchmarks.aggrefact_eval --sweep
 
-Mapping: NLI entailment probability > threshold → supported (1), else → not supported (0).
-Metric: balanced accuracy per dataset, then macro-averaged (same as leaderboard).
+NLI entailment prob > threshold → supported (1), else → not supported (0).
+Balanced accuracy per dataset, macro-averaged (same as leaderboard).
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import numpy as np
 import pytest
-from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import (
+    balanced_accuracy_score,
+    f1_score,
+    precision_score,
+    recall_score,
+)
 
-from benchmarks._common import RESULTS_DIR, add_common_args, save_results
+from benchmarks._common import add_common_args, save_results
 
 logger = logging.getLogger("DirectorAI.Benchmark.AggreFact")
 
@@ -106,7 +109,10 @@ class AggreFactMetrics:
             "threshold": self.threshold,
             "total_samples": self.total_samples,
             "per_dataset": {
-                k: {kk: round(vv, 4) if isinstance(vv, float) else vv for kk, vv in v.items()}
+                k: {
+                    kk: round(vv, 4) if isinstance(vv, float) else vv
+                    for kk, vv in v.items()
+                }
                 for k, v in self.per_dataset.items()
             },
             "latency_ms_avg": round(self.avg_latency_ms, 2),
@@ -234,6 +240,24 @@ class _BinaryNLIPredictor:
         return max(self._score_batch([(c, hypothesis) for c in chunks]))
 
 
+def _binary_class_metrics(y_true: list[int], y_pred: list[int]) -> dict:
+    """Precision/recall/F1 for both supported (1) and hallucination (0) classes."""
+    labels = sorted(set(y_true) | set(y_pred))
+    if len(labels) < 2:
+        return {}
+    prec = precision_score(y_true, y_pred, average=None, labels=[0, 1])
+    rec = recall_score(y_true, y_pred, average=None, labels=[0, 1])
+    f1 = f1_score(y_true, y_pred, average=None, labels=[0, 1])
+    return {
+        "hallucination_precision": float(prec[0]),
+        "hallucination_recall": float(rec[0]),
+        "hallucination_f1": float(f1[0]),
+        "supported_precision": float(prec[1]),
+        "supported_recall": float(rec[1]),
+        "supported_f1": float(f1[1]),
+    }
+
+
 def _load_aggrefact(max_samples: int | None = None) -> list[dict]:
     """Load LLM-AggreFact test split. Requires HF authentication."""
     from datasets import load_dataset
@@ -244,7 +268,8 @@ def _load_aggrefact(max_samples: int | None = None) -> list[dict]:
     rows = list(ds)
     if max_samples:
         rows = rows[:max_samples]
-    logger.info("Loaded %d samples across %d datasets", len(rows), len(set(r["dataset"] for r in rows)))
+    n_ds = len(set(r["dataset"] for r in rows))
+    logger.info("Loaded %d samples across %d datasets", len(rows), n_ds)
     return rows
 
 
@@ -277,7 +302,6 @@ def run_aggrefact_benchmark(
             by_dataset[ds_name] = []
         by_dataset[ds_name].append((int(label), ent_prob))
 
-    # Compute balanced accuracy per dataset
     for ds_name in sorted(by_dataset.keys()):
         pairs = by_dataset[ds_name]
         y_true = [p[0] for p in pairs]
@@ -291,6 +315,7 @@ def run_aggrefact_benchmark(
             "positive": n_pos,
             "negative": n_neg,
             "balanced_acc": float(ba),
+            **_binary_class_metrics(y_true, y_pred),
         }
 
     return metrics
@@ -334,7 +359,6 @@ def sweep_thresholds(
             best_avg = avg
             best_thresh = thresh
 
-    # Build final metrics at best threshold
     metrics = AggreFactMetrics(threshold=best_thresh)
     metrics.inference_times = inference_times
     for ds_name in sorted(by_dataset.keys()):
@@ -347,6 +371,7 @@ def sweep_thresholds(
             "positive": sum(y_true),
             "negative": len(y_true) - sum(y_true),
             "balanced_acc": float(ba),
+            **_binary_class_metrics(y_true, y_pred),
         }
 
     return best_thresh, metrics
@@ -366,10 +391,36 @@ def _print_aggrefact_results(m: AggreFactMetrics, model_label: str = "") -> None
         print(f"  Latency:    {m.avg_latency_ms:.1f} ms avg")
     print()
 
-    print(f"  {'Dataset':<20} {'N':>5} {'Pos':>5} {'Neg':>5} {'Bal Acc':>9}")
-    print(f"  {'-' * 50}")
+    has_pr = any(
+        "hallucination_recall" in d for d in m.per_dataset.values()
+    )
+    if has_pr:
+        hdr = (
+            f"  {'Dataset':<20} {'N':>5} {'BalAcc':>7}"
+            f" {'H-Prec':>7} {'H-Rec':>7} {'H-F1':>7}"
+        )
+    else:
+        hdr = (
+            f"  {'Dataset':<20} {'N':>5} {'Pos':>5}"
+            f" {'Neg':>5} {'Bal Acc':>9}"
+        )
+    print(hdr)
+    print(f"  {'-' * len(hdr.strip())}")
     for ds_name, d in sorted(m.per_dataset.items()):
-        print(f"  {ds_name:<20} {d['total']:>5} {d['positive']:>5} {d['negative']:>5} {d['balanced_acc']:>8.1%}")
+        if has_pr:
+            print(
+                f"  {ds_name:<20} {d['total']:>5}"
+                f" {d['balanced_acc']:>6.1%}"
+                f" {d.get('hallucination_precision', 0):>6.1%}"
+                f" {d.get('hallucination_recall', 0):>6.1%}"
+                f" {d.get('hallucination_f1', 0):>6.1%}"
+            )
+        else:
+            print(
+                f"  {ds_name:<20} {d['total']:>5}"
+                f" {d['positive']:>5} {d['negative']:>5}"
+                f" {d['balanced_acc']:>8.1%}"
+            )
     print()
 
     # Comparison with published scores
@@ -405,8 +456,12 @@ def test_aggrefact_sample():
 if __name__ == "__main__":
     import argparse
 
-    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
-    parser = argparse.ArgumentParser(description="LLM-AggreFact factual consistency benchmark")
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s: %(message)s",
+    )
+    parser = argparse.ArgumentParser(
+        description="LLM-AggreFact factual consistency benchmark",
+    )
     add_common_args(parser)
     parser.add_argument("--threshold", type=float, default=0.5,
                         help="Entailment probability threshold (default: 0.5)")

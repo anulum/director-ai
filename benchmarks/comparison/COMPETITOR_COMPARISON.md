@@ -1,6 +1,6 @@
 # Director-AI -- Competitor Benchmark Comparison
 
-Last updated: 2026-03-01 (v1.4.0)
+Last updated: 2026-03-01 (v1.4.1)
 
 ## Measured Latency (benchmarks/latency_bench.py)
 
@@ -55,6 +55,47 @@ Metric: macro-averaged balanced accuracy.
 | HHEM-2.1-Open | 71.8% | ~0.4B | ~200 ms (est.) | No | Apache 2.0 |
 | **Director-AI (lightweight)** | N/A | 0 | <0.1 ms (measured) | **Yes** | AGPL v3 |
 
+## Per-Class Metrics (Hallucination Detection)
+
+The key question for a guardrail: **how many hallucinations does it catch?**
+
+Balanced accuracy averages recall across both classes (supported + not-supported).
+Per-class precision/recall/F1 are computed by `benchmarks/aggrefact_eval.py` for
+each dataset. Re-run with `--sweep` to regenerate:
+
+```
+python -m benchmarks.aggrefact_eval --sweep
+```
+
+The results JSON will include `hallucination_precision`, `hallucination_recall`,
+and `hallucination_f1` per dataset. These are the class-0 (not-supported) metrics —
+the numbers that matter for a guardrail.
+
+### Internal Model Comparison (LLM-AggreFact)
+
+| Model | Bal. Acc | Threshold | Notes |
+|-------|---------|-----------|-------|
+| **FactCG-DeBERTa-v3-Large** | **75.8%** | 0.46 | Production model |
+| MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli | 66.2% | 0.53 | 3-class NLI baseline |
+| Fine-tuned DeBERTa-v3-large-hallucination | 64.7% | 0.90 | Fine-tuning regressed |
+| Fine-tuned DeBERTa-v3-base-hallucination | 59.0% | 0.88 | Fine-tuning regressed worse |
+
+### Per-Dataset Weakness Map (FactCG, threshold=0.46)
+
+| Dataset | Bal. Acc | Pos | Neg | Failure Mode |
+|---------|---------|-----|-----|-------------|
+| ExpertQA | 59.1% | 2971 | 731 | Long expert answers, low neg recall |
+| AggreFact-CNN | 68.8% | 501 | 57 | Extreme class imbalance (9:1) |
+| TofuEval-MediaS | 71.9% | 554 | 172 | Summarization (media) |
+| FactCheck-GPT | 73.0% | 376 | 1190 | GPT-generated claims |
+| AggreFact-XSum | 74.3% | 285 | 273 | Extreme summarization |
+| TofuEval-MeetB | 74.3% | 622 | 150 | Summarization (meetings) |
+| Wice | 76.9% | 111 | 247 | Wikipedia claims |
+| ClaimVerify | 78.1% | 789 | 299 | Claim verification |
+| RAGTruth | 82.2% | 15102 | 1269 | RAG grounding |
+| Lfqa | 86.4% | 1121 | 790 | Long-form QA |
+| Reveal | 89.1% | 400 | 1310 | Fact checking |
+
 ## Different Benchmarks (Not Directly Comparable)
 
 | Tool | Benchmark | Score | Latency | Approach |
@@ -66,6 +107,21 @@ Metric: macro-averaged balanced accuracy.
 | GuardrailsAI | SQuAD 2.0 | 98% F1 | 2.26 s | LLM-as-judge |
 | RAGAS Faithfulness | Multi-dataset | 76.2% avg precision | 3-8 s | Claim decomposition |
 | Llama Guard 3 | Safety moderation | 93.9% F1 | ~300 ms | **Not hallucination detection** |
+
+## End-to-End Guardrail Results (benchmarks/e2e_eval.py)
+
+Full pipeline (CoherenceAgent + GroundTruthStore + SafetyKernel), 300 traces
+across QA, summarization, and dialogue tasks. Threshold=0.35, soft_limit=0.45.
+
+| Task | N | TP | FP | TN | FN | Catch Rate | Precision | F1 |
+|------|---|----|----|----|----|-----------|-----------|-----|
+| QA | 100 | 18 | 4 | 46 | 32 | 36.0% | 81.8% | 50.7% |
+| Summarization | 100 | 12 | 6 | 44 | 38 | 24.0% | 66.7% | 35.3% |
+| Dialogue | 100 | 40 | 43 | 7 | 10 | 80.0% | 48.2% | 60.2% |
+| **Overall** | **300** | **70** | **53** | **97** | **80** | **46.7%** | **56.9%** | **51.3%** |
+
+Evidence coverage: 100% (every rejection includes supporting chunks).
+Avg latency: 15.8 ms (p95: 40 ms).
 
 ## Where Director-AI Wins
 
@@ -89,6 +145,43 @@ Metric: macro-averaged balanced accuracy.
 1. **ONNX + CUDA** — install onnxruntime-gpu for GPU-accelerated ONNX inference.
 2. **TensorRT** — sub-10ms/pair target via TensorRT optimization.
 3. **Summarization ensemble** — claim decomposition for AggreFact-CNN/ExpertQA.
+
+## Full Benchmark Suite
+
+Scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
+
+| Script | Dataset | What it Tests | Metric | Status |
+|--------|---------|---------------|--------|--------|
+| `aggrefact_eval` | LLM-AggreFact (29K) | Factual consistency (11 datasets) | Balanced accuracy | **75.8%** (FactCG) |
+| `e2e_eval` | Synthetic (300 traces) | Full pipeline: Agent + KB + Kernel | Catch rate, precision, F1 | **46.7% catch, 56.9% prec** |
+| `latency_bench` | N/A | Inference latency across backends | Median/P95 ms | **0.9 ms (Ada GPU)** |
+| `gpu_bench` | N/A | Cross-GPU latency comparison | Per-pair ms | **5 GPUs benchmarked** |
+| `retrieval_bench` | Synthetic (50 facts) | RAG retrieval quality (Hit@k, P@k) | Hit@1, Hit@3, P@3 | **40% / 63% (inmemory)** |
+| `anli_eval` | ANLI R1/R2/R3 | Adversarial NLI robustness | Accuracy, F1 per class | Needs run |
+| `fever_eval` | FEVER dev | Fact verification | Accuracy, F1 per class | Needs run |
+| `halueval_eval` | HaluEval | Hallucination detection (QA/sum/dial) | Precision, Recall, F1 | Needs run |
+| `mnli_eval` | MNLI matched+mismatched | General NLI regression | Accuracy, F1 per class | Needs run |
+| `paws_eval` | PAWS | Paraphrase adversaries | Binary P/R/F1 | Needs run |
+| `truthfulqa_eval` | TruthfulQA (817 Qs) | Multiple-choice truthfulness | Accuracy per category | Needs run |
+| `vitaminc_eval` | VitaminC | Contrastive fact verification | Accuracy, F1 per class | Needs run |
+| `falsepositive_eval` | SQuAD/NQ/TriviaQA | False-positive rate on correct QA | FP rate (target <5%) | Needs run |
+| `streaming_false_halt_bench` | Synthetic good text | False-halt rate of StreamingKernel | False-halt % | Needs run |
+
+To reproduce all results:
+```bash
+export HF_TOKEN=hf_...
+python -m benchmarks.aggrefact_eval --sweep
+python -m benchmarks.anli_eval
+python -m benchmarks.fever_eval
+python -m benchmarks.halueval_eval
+python -m benchmarks.mnli_eval
+python -m benchmarks.paws_eval
+python -m benchmarks.truthfulqa_eval
+python -m benchmarks.vitaminc_eval
+python -m benchmarks.falsepositive_eval
+python -m benchmarks.retrieval_bench --backend sentence-transformer
+python -m benchmarks.streaming_false_halt_bench
+```
 
 ## Sources
 

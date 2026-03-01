@@ -35,6 +35,7 @@ class TokenEvent:
     timestamp: float
     halted: bool = False
     warning: bool = False
+    evidence: str | None = None
 
 
 @dataclass
@@ -47,6 +48,7 @@ class StreamSession:
     halted: bool = False
     halt_index: int = -1
     halt_reason: str = ""
+    halt_evidence: str | None = None
     start_time: float = 0.0
     end_time: float = 0.0
     warning_count: int = 0
@@ -114,6 +116,7 @@ class StreamingKernel(SafetyKernel):
         self,
         token_generator,
         coherence_callback,
+        evidence_callback=None,
     ) -> StreamSession:
         """Process tokens one by one with sliding window oversight.
 
@@ -121,6 +124,9 @@ class StreamingKernel(SafetyKernel):
         ----------
         token_generator : iterable of str — token source.
         coherence_callback : callable(str) -> float — per-token coherence.
+        evidence_callback : callable(str) -> str | None — optional, returns
+            human-readable evidence snippet explaining the coherence score.
+            Called only on halt events to avoid overhead on every token.
 
         Returns
         -------
@@ -128,6 +134,16 @@ class StreamingKernel(SafetyKernel):
         """
         session = StreamSession(start_time=time.monotonic())
         window: deque[float] = deque(maxlen=self.window_size)
+
+        def _halt(event: TokenEvent, reason: str) -> None:
+            event.halted = True
+            session.halted = True
+            session.halt_index = event.index
+            session.halt_reason = reason
+            if evidence_callback:
+                ev = evidence_callback("".join(session.tokens))
+                event.evidence = ev
+                session.halt_evidence = ev
 
         for i, token in enumerate(token_generator):
             if not self.is_active:
@@ -150,45 +166,29 @@ class StreamingKernel(SafetyKernel):
             session.coherence_history.append(score)
             window.append(score)
 
-            # Check 1: Hard limit
             if score < self.hard_limit:
-                event.halted = True
-                session.halted = True
-                session.halt_index = i
-                session.halt_reason = f"hard_limit ({score:.4f} < {self.hard_limit})"
+                _halt(event, f"hard_limit ({score:.4f} < {self.hard_limit})")
                 self.emergency_stop()
                 session.events.append(event)
                 break
 
-            # Soft zone: between hard_limit and soft_limit
             if score < self.soft_limit:
                 event.warning = True
                 session.warning_count += 1
 
-            # Check 2: Sliding window average
             if len(window) >= self.window_size:
                 avg = sum(window) / len(window)
                 if avg < self.window_threshold:
-                    event.halted = True
-                    session.halted = True
-                    session.halt_index = i
-                    session.halt_reason = (
-                        f"window_avg ({avg:.4f} < {self.window_threshold})"
-                    )
+                    _halt(event, f"window_avg ({avg:.4f} < {self.window_threshold})")
                     session.events.append(event)
                     break
 
-            # Check 3: Downward trend
             if len(session.coherence_history) >= self.trend_window:
                 recent = session.coherence_history[-self.trend_window :]
                 drop = recent[0] - recent[-1]
                 if drop > self.trend_threshold:
-                    event.halted = True
-                    session.halted = True
-                    session.halt_index = i
-                    session.halt_reason = (
-                        f"downward_trend ({drop:.4f} > {self.trend_threshold})"
-                    )
+                    reason = f"downward_trend ({drop:.4f} > {self.trend_threshold})"
+                    _halt(event, reason)
                     session.events.append(event)
                     break
 
