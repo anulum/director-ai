@@ -24,6 +24,21 @@ ONNX GPU batch is the fastest path: **14.6 ms/pair** (1.3x faster than PyTorch G
 Batching gives 10.4x speedup (PyTorch) and 4.5x (ONNX GPU).
 ONNX GPU sequential (65 ms/pair) is 3x faster than PyTorch GPU sequential (197 ms/pair).
 
+## Cross-GPU Latency (benchmarks/gpu_bench.py)
+
+16-pair batch, 50 iterations, warmup=10. Per-pair median latency (ms).
+
+| GPU | VRAM | ONNX CUDA | ONNX TRT FP16 | PyTorch FP16 | PyTorch FP32 |
+|-----|------|-----------|---------------|--------------|--------------|
+| GTX 1060 6GB | 6 GB | 14.6 ms | N/A | N/A | 19.0 ms |
+| RTX 3090 | 24 GB | TBD | TBD | TBD | TBD |
+| A6000 | 48 GB | TBD | TBD | TBD | TBD |
+| A100-80GB | 80 GB | TBD | TBD | TBD | TBD |
+| V100-16GB | 16 GB | TBD | TBD | TBD | TBD |
+
+GTX 1060 lacks tensor cores (compute 6.1) — FP16 and TRT backends auto-skip.
+TBD rows populated by running `gpu_bench_setup.sh` on JarvisLabs instances.
+
 ## Apples-to-Apples: LLM-AggreFact Leaderboard
 
 All models evaluated on the same benchmark (29,320 samples, 11 datasets).

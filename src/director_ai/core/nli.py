@@ -147,12 +147,20 @@ def _load_onnx_session(
                     break
 
         providers = ["CPUExecutionProvider"]
+        available = ort.get_available_providers()
         if device and "cuda" in device:
             providers.insert(0, "CUDAExecutionProvider")
-        else:
-            available = ort.get_available_providers()
-            if "CUDAExecutionProvider" in available:
-                providers.insert(0, "CUDAExecutionProvider")
+        elif "CUDAExecutionProvider" in available:
+            providers.insert(0, "CUDAExecutionProvider")
+
+        if os.environ.get("DIRECTOR_ENABLE_TRT") == "1":
+            if "TensorrtExecutionProvider" in available:
+                trt_opts = {
+                    "trt_engine_cache_enable": True,
+                    "trt_engine_cache_path": os.path.join(onnx_path, "trt_cache"),
+                    "trt_fp16_enable": True,
+                }
+                providers.insert(0, ("TensorrtExecutionProvider", trt_opts))
 
         opts = ort.SessionOptions()
         opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
