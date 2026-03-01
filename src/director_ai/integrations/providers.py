@@ -109,9 +109,18 @@ class OpenAIProvider(LLMProvider):
             for choice in data.get("choices", []):
                 text = choice.get("message", {}).get("content", "")
                 candidates.append({"text": text, "source": self.name})
-        except Exception as e:
-            logger.error("OpenAI request failed: %s", e)
-            candidates.append({"text": f"[Error: {e}]", "source": "error"})
+        except requests.exceptions.Timeout as e:
+            logger.error("OpenAI request timed out after %ds: %s", self.timeout, e)
+            candidates.append({"text": "[Timeout]", "source": "error"})
+        except requests.exceptions.HTTPError as e:
+            logger.error("OpenAI HTTP error: %s", e)
+            candidates.append({"text": f"[HTTP Error: {e}]", "source": "error"})
+        except requests.exceptions.ConnectionError as e:
+            logger.error("OpenAI connection failed: %s", e)
+            candidates.append({"text": "[Connection Error]", "source": "error"})
+        except (ValueError, KeyError) as e:
+            logger.error("OpenAI response parsing failed: %s", e)
+            candidates.append({"text": "[Parse Error]", "source": "error"})
 
         return candidates
 
@@ -155,7 +164,7 @@ class OpenAIProvider(LLMProvider):
                         yield content
                 except (_json.JSONDecodeError, IndexError, KeyError):
                     continue
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             logger.error("OpenAI streaming request failed: %s", e)
             yield f"[Error: {e}]"
 
@@ -213,9 +222,18 @@ class AnthropicProvider(LLMProvider):
                     if block.get("type") == "text":
                         text += block.get("text", "")
                 candidates.append({"text": text, "source": self.name})
-            except Exception as e:
-                logger.error("Anthropic request failed: %s", e)
-                candidates.append({"text": f"[Error: {e}]", "source": "error"})
+            except requests.exceptions.Timeout as e:
+                logger.error("Anthropic request timed out: %s", e)
+                candidates.append({"text": "[Timeout]", "source": "error"})
+            except requests.exceptions.HTTPError as e:
+                logger.error("Anthropic HTTP error: %s", e)
+                candidates.append({"text": f"[HTTP Error: {e}]", "source": "error"})
+            except requests.exceptions.ConnectionError as e:
+                logger.error("Anthropic connection failed: %s", e)
+                candidates.append({"text": "[Connection Error]", "source": "error"})
+            except (ValueError, KeyError) as e:
+                logger.error("Anthropic response parsing failed: %s", e)
+                candidates.append({"text": "[Parse Error]", "source": "error"})
 
         return candidates
 
@@ -264,9 +282,18 @@ class HuggingFaceProvider(LLMProvider):
                 else:
                     text = str(data)
                 candidates.append({"text": text, "source": self.name})
-            except Exception as e:
-                logger.error("HuggingFace request failed: %s", e)
-                candidates.append({"text": f"[Error: {e}]", "source": "error"})
+            except requests.exceptions.Timeout as e:
+                logger.error("HuggingFace request timed out: %s", e)
+                candidates.append({"text": "[Timeout]", "source": "error"})
+            except requests.exceptions.HTTPError as e:
+                logger.error("HuggingFace HTTP error: %s", e)
+                candidates.append({"text": f"[HTTP Error: {e}]", "source": "error"})
+            except requests.exceptions.ConnectionError as e:
+                logger.error("HuggingFace connection failed: %s", e)
+                candidates.append({"text": "[Connection Error]", "source": "error"})
+            except (ValueError, KeyError) as e:
+                logger.error("HuggingFace response parsing failed: %s", e)
+                candidates.append({"text": "[Parse Error]", "source": "error"})
 
         return candidates
 
@@ -285,10 +312,14 @@ class LocalProvider(LLMProvider):
         self,
         api_url: str = "http://localhost:8080/v1/chat/completions",
         model: str = "",
+        temperature: float = 0.8,
+        max_tokens: int = 512,
         timeout: int = 30,
     ) -> None:
         self.api_url = api_url
         self.model = model
+        self.temperature = temperature
+        self.max_tokens = max_tokens
         self.timeout = timeout
 
     @property
@@ -300,8 +331,8 @@ class LocalProvider(LLMProvider):
         payload: dict = {
             "messages": [{"role": "user", "content": prompt}],
             "n": n,
-            "temperature": 0.8,
-            "max_tokens": 512,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
         }
         if self.model:
             payload["model"] = self.model
@@ -313,9 +344,18 @@ class LocalProvider(LLMProvider):
             for choice in data.get("choices", []):
                 text = choice.get("message", {}).get("content", "")
                 candidates.append({"text": text, "source": self.name})
-        except Exception as e:
-            logger.error("Local provider request failed: %s", e)
-            candidates.append({"text": f"[Error: {e}]", "source": "error"})
+        except requests.exceptions.Timeout as e:
+            logger.error("Local provider request timed out: %s", e)
+            candidates.append({"text": "[Timeout]", "source": "error"})
+        except requests.exceptions.HTTPError as e:
+            logger.error("Local provider HTTP error: %s", e)
+            candidates.append({"text": f"[HTTP Error: {e}]", "source": "error"})
+        except requests.exceptions.ConnectionError as e:
+            logger.error("Local provider connection failed: %s", e)
+            candidates.append({"text": "[Connection Error]", "source": "error"})
+        except (ValueError, KeyError) as e:
+            logger.error("Local provider response parsing failed: %s", e)
+            candidates.append({"text": "[Parse Error]", "source": "error"})
 
         return candidates
 
@@ -326,8 +366,8 @@ class LocalProvider(LLMProvider):
         payload: dict = {
             "messages": [{"role": "user", "content": prompt}],
             "stream": True,
-            "temperature": 0.8,
-            "max_tokens": 512,
+            "temperature": self.temperature,
+            "max_tokens": self.max_tokens,
         }
         if self.model:
             payload["model"] = self.model
@@ -351,6 +391,6 @@ class LocalProvider(LLMProvider):
                         yield content
                 except (_json.JSONDecodeError, IndexError, KeyError):
                     continue
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             logger.error("Local provider streaming request failed: %s", e)
             yield f"[Error: {e}]"

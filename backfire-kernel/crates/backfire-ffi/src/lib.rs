@@ -34,22 +34,18 @@ use pyo3::exceptions::PyValueError;
 use pyo3::prelude::*;
 use pyo3::types::PyDict;
 
-use backfire_core::{
-    CoherenceScorer, InMemoryKnowledge, SafetyKernel, StreamingKernel,
-};
-use backfire_core::nli::ExternalNli;
 use backfire_core::knowledge::ExternalKnowledge;
-use backfire_types::{BackfireConfig, StreamSession};
+use backfire_core::nli::ExternalNli;
+use backfire_core::{CoherenceScorer, InMemoryKnowledge, SafetyKernel, StreamingKernel};
 use backfire_types::score::CoherenceScore;
+use backfire_types::{BackfireConfig, StreamSession};
 
-use backfire_physics::{
-    UPDEState, UPDEStepper, SECFunctional, L16Controller,
-    l16_closure::L16CostInputs,
-    params::N_LAYERS,
-};
 use backfire_observers::{
-    TCBOConfig, TCBOObserver, TCBOController, TCBOControllerConfig,
-    PGBOConfig, PGBOEngine,
+    PGBOConfig, PGBOEngine, TCBOConfig, TCBOController, TCBOControllerConfig, TCBOObserver,
+};
+use backfire_physics::{
+    l16_closure::L16CostInputs, params::N_LAYERS, L16Controller, SECFunctional, UPDEState,
+    UPDEStepper,
 };
 use backfire_ssgf::{SSGFConfig, SSGFEngine};
 
@@ -68,6 +64,7 @@ impl PyBackfireConfig {
     #[pyo3(signature = (
         coherence_threshold = 0.6,
         hard_limit = 0.5,
+        soft_limit = 0.7,
         w_logic = 0.6,
         w_fact = 0.4,
         window_size = 10,
@@ -82,6 +79,7 @@ impl PyBackfireConfig {
     fn new(
         coherence_threshold: f64,
         hard_limit: f64,
+        soft_limit: f64,
         w_logic: f64,
         w_fact: f64,
         window_size: usize,
@@ -95,6 +93,7 @@ impl PyBackfireConfig {
         let config = BackfireConfig {
             coherence_threshold,
             hard_limit,
+            soft_limit,
             w_logic,
             w_fact,
             window_size,
@@ -114,8 +113,8 @@ impl PyBackfireConfig {
     /// Construct from JSON string.
     #[staticmethod]
     fn from_json(json: &str) -> PyResult<Self> {
-        let config = BackfireConfig::from_json(json)
-            .map_err(|e| PyValueError::new_err(e.to_string()))?;
+        let config =
+            BackfireConfig::from_json(json).map_err(|e| PyValueError::new_err(e.to_string()))?;
         config
             .validate()
             .map_err(|e| PyValueError::new_err(e.to_string()))?;
@@ -161,19 +160,32 @@ impl PyCoherenceScore {
         self.inner.h_factual
     }
 
+    #[getter]
+    fn warning(&self) -> bool {
+        self.inner.warning
+    }
+
+    /// Evidence is not yet computed on the Rust side; returns None for
+    /// API compatibility with the Python CoherenceScore dataclass.
+    #[getter]
+    fn evidence(&self) -> Option<()> {
+        None
+    }
+
     fn to_dict<'py>(&self, py: Python<'py>) -> PyResult<Bound<'py, PyDict>> {
         let dict = PyDict::new(py);
         dict.set_item("score", self.inner.score)?;
         dict.set_item("approved", self.inner.approved)?;
         dict.set_item("h_logical", self.inner.h_logical)?;
         dict.set_item("h_factual", self.inner.h_factual)?;
+        dict.set_item("warning", self.inner.warning)?;
         Ok(dict)
     }
 
     fn __repr__(&self) -> String {
         format!(
-            "CoherenceScore(score={:.4}, approved={}, h_logical={:.4}, h_factual={:.4})",
-            self.inner.score, self.inner.approved, self.inner.h_logical, self.inner.h_factual
+            "CoherenceScore(score={:.4}, approved={}, h_logical={:.4}, h_factual={:.4}, warning={})",
+            self.inner.score, self.inner.approved, self.inner.h_logical, self.inner.h_factual, self.inner.warning
         )
     }
 }
@@ -272,14 +284,17 @@ impl PySafetyKernel {
     ///
     /// Returns:
     ///     Assembled output string, or halt message.
-    fn stream_output(&self, py: Python<'_>, tokens: Vec<String>, coherence_callback: PyObject) -> PyResult<String> {
+    fn stream_output(
+        &self,
+        py: Python<'_>,
+        tokens: Vec<String>,
+        coherence_callback: PyObject,
+    ) -> PyResult<String> {
         let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
         let cb = |token: &str| -> f64 {
-            Python::with_gil(|py| {
-                match coherence_callback.call1(py, (token,)) {
-                    Ok(result) => result.extract::<f64>(py).unwrap_or(0.0),
-                    Err(_) => 0.0,
-                }
+            Python::with_gil(|py| match coherence_callback.call1(py, (token,)) {
+                Ok(result) => result.extract::<f64>(py).unwrap_or(0.0),
+                Err(_) => 0.0,
             })
         };
         let _ = py;
@@ -324,14 +339,17 @@ impl PyStreamingKernel {
     /// Process tokens with full streaming oversight.
     ///
     /// Returns a `StreamSession` with complete oversight trace.
-    fn stream_tokens(&self, py: Python<'_>, tokens: Vec<String>, coherence_callback: PyObject) -> PyResult<PyStreamSession> {
+    fn stream_tokens(
+        &self,
+        py: Python<'_>,
+        tokens: Vec<String>,
+        coherence_callback: PyObject,
+    ) -> PyResult<PyStreamSession> {
         let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
         let cb = |token: &str| -> f64 {
-            Python::with_gil(|py| {
-                match coherence_callback.call1(py, (token,)) {
-                    Ok(result) => result.extract::<f64>(py).unwrap_or(0.0),
-                    Err(_) => 0.0,
-                }
+            Python::with_gil(|py| match coherence_callback.call1(py, (token,)) {
+                Ok(result) => result.extract::<f64>(py).unwrap_or(0.0),
+                Err(_) => 0.0,
             })
         };
         let _ = py;
@@ -340,14 +358,17 @@ impl PyStreamingKernel {
     }
 
     /// Backward-compatible string output.
-    fn stream_output(&self, py: Python<'_>, tokens: Vec<String>, coherence_callback: PyObject) -> PyResult<String> {
+    fn stream_output(
+        &self,
+        py: Python<'_>,
+        tokens: Vec<String>,
+        coherence_callback: PyObject,
+    ) -> PyResult<String> {
         let token_refs: Vec<&str> = tokens.iter().map(|s| s.as_str()).collect();
         let cb = |token: &str| -> f64 {
-            Python::with_gil(|py| {
-                match coherence_callback.call1(py, (token,)) {
-                    Ok(result) => result.extract::<f64>(py).unwrap_or(0.0),
-                    Err(_) => 0.0,
-                }
+            Python::with_gil(|py| match coherence_callback.call1(py, (token,)) {
+                Ok(result) => result.extract::<f64>(py).unwrap_or(0.0),
+                Err(_) => 0.0,
             })
         };
         let _ = py;
@@ -398,27 +419,24 @@ impl PyCoherenceScorer {
 
         let nli: Arc<dyn backfire_core::nli::NliBackend> = match nli_callback {
             Some(cb) => Arc::new(ExternalNli::new(move |premise: &str, hypothesis: &str| {
-                Python::with_gil(|py| {
-                    match cb.call1(py, (premise, hypothesis)) {
-                        Ok(result) => result.extract::<f64>(py).unwrap_or(0.5),
-                        Err(_) => 0.5,
-                    }
+                Python::with_gil(|py| match cb.call1(py, (premise, hypothesis)) {
+                    Ok(result) => result.extract::<f64>(py).unwrap_or(0.5),
+                    Err(_) => 0.5,
                 })
             })),
             None => Arc::new(backfire_core::HeuristicNli),
         };
 
-        let knowledge: Arc<dyn backfire_core::knowledge::GroundTruthStore> = match knowledge_callback {
-            Some(cb) => Arc::new(ExternalKnowledge::new(move |query: &str| {
-                Python::with_gil(|py| {
-                    match cb.call1(py, (query,)) {
+        let knowledge: Arc<dyn backfire_core::knowledge::GroundTruthStore> =
+            match knowledge_callback {
+                Some(cb) => Arc::new(ExternalKnowledge::new(move |query: &str| {
+                    Python::with_gil(|py| match cb.call1(py, (query,)) {
                         Ok(result) => result.extract::<Option<String>>(py).unwrap_or(None),
                         Err(_) => None,
-                    }
-                })
-            })),
-            None => Arc::new(InMemoryKnowledge::new()),
-        };
+                    })
+                })),
+                None => Arc::new(InMemoryKnowledge::new()),
+            };
 
         Ok(Self {
             inner: CoherenceScorer::new(cfg, nli, knowledge),
@@ -452,6 +470,31 @@ impl PyCoherenceScorer {
     fn history_len(&self) -> usize {
         self.inner.history_len()
     }
+
+    #[getter]
+    fn threshold(&self) -> f64 {
+        self.inner.config().coherence_threshold
+    }
+
+    #[setter]
+    fn set_threshold(&mut self, value: f64) {
+        self.inner.set_threshold(value);
+    }
+
+    #[getter]
+    fn soft_limit(&self) -> f64 {
+        self.inner.config().soft_limit
+    }
+
+    #[setter]
+    fn set_soft_limit(&mut self, value: f64) {
+        self.inner.set_soft_limit(value);
+    }
+
+    #[getter]
+    fn use_nli(&self) -> bool {
+        true
+    }
 }
 
 // ─── RustUPDEStepper ──────────────────────────────────────────────
@@ -479,6 +522,7 @@ impl PyUPDEStepper {
         Python::with_gil(|py| {
             let dict = PyDict::new(py);
             dict.set_item("theta", state.theta.clone())?;
+            dict.set_item("dtheta_dt", state.dtheta_dt.clone())?;
             dict.set_item("t", state.t)?;
             dict.set_item("r_global", state.r_global)?;
             dict.set_item("step_count", state.step_count)?;
@@ -493,6 +537,7 @@ impl PyUPDEStepper {
         Python::with_gil(|py| {
             let dict = PyDict::new(py);
             dict.set_item("theta", state.theta.clone())?;
+            dict.set_item("dtheta_dt", state.dtheta_dt.clone())?;
             dict.set_item("t", state.t)?;
             dict.set_item("r_global", state.r_global)?;
             dict.set_item("step_count", state.step_count)?;
@@ -500,14 +545,17 @@ impl PyUPDEStepper {
         })
     }
 
-    /// Advance by n_steps. Returns dict with theta, t, r_global, step_count.
+    /// Advance by n_steps. Returns dict with theta, dtheta_dt, t, r_global, step_count.
     fn run(&mut self, theta: Vec<f64>, n_steps: u64) -> PyResult<PyObject> {
         let state = UPDEState::new(theta);
-        let result = self.inner.run(&state, n_steps)
-            .map_err(|e| PyValueError::new_err(e))?;
+        let result = self
+            .inner
+            .run(&state, n_steps)
+            .map_err(PyValueError::new_err)?;
         Python::with_gil(|py| {
             let dict = PyDict::new(py);
             dict.set_item("theta", result.theta.clone())?;
+            dict.set_item("dtheta_dt", result.dtheta_dt.clone())?;
             dict.set_item("t", result.t)?;
             dict.set_item("r_global", result.r_global)?;
             dict.set_item("step_count", result.step_count)?;
@@ -536,10 +584,17 @@ impl PySECFunctional {
 
     /// Evaluate the full SEC functional.
     #[pyo3(signature = (theta, theta_prev = None, dt = 0.01))]
-    fn evaluate(&mut self, theta: Vec<f64>, theta_prev: Option<Vec<f64>>, dt: f64) -> PyResult<PyObject> {
+    fn evaluate(
+        &mut self,
+        theta: Vec<f64>,
+        theta_prev: Option<Vec<f64>>,
+        dt: f64,
+    ) -> PyResult<PyObject> {
         let prev_ref = theta_prev.as_deref();
-        let result = self.inner.evaluate(&theta, prev_ref, dt)
-            .map_err(|e| PyValueError::new_err(e))?;
+        let result = self
+            .inner
+            .evaluate(&theta, prev_ref, dt)
+            .map_err(PyValueError::new_err)?;
         Python::with_gil(|py| {
             let dict = PyDict::new(py);
             dict.set_item("v", result.v)?;
@@ -552,6 +607,27 @@ impl PySECFunctional {
             dict.set_item("v_entropy", result.v_entropy)?;
             Ok(dict.into())
         })
+    }
+
+    /// Update coupling matrix (e.g. when SSGF geometry changes W).
+    ///
+    /// Accepts a flat 16×16 row-major array (256 elements).
+    fn update_coupling(&mut self, knm_flat: Vec<f64>) -> PyResult<()> {
+        if knm_flat.len() != N_LAYERS * N_LAYERS {
+            return Err(PyValueError::new_err(format!(
+                "expected {} elements, got {}",
+                N_LAYERS * N_LAYERS,
+                knm_flat.len()
+            )));
+        }
+        let mut knm = [[0.0f64; N_LAYERS]; N_LAYERS];
+        for i in 0..N_LAYERS {
+            for j in 0..N_LAYERS {
+                knm[i][j] = knm_flat[i * N_LAYERS + j];
+            }
+        }
+        self.inner.update_coupling(knm);
+        Ok(())
     }
 
     /// Critical coupling K_c estimate.
@@ -592,13 +668,19 @@ impl PyL16Controller {
     ) -> Self {
         Self {
             inner: L16Controller::new(
-                n, plv_threshold, plv_window, h_rec_window,
-                refusal_lr_factor, refusal_d_factor, refusal_tau_factor,
+                n,
+                plv_threshold,
+                plv_window,
+                h_rec_window,
+                refusal_lr_factor,
+                refusal_d_factor,
+                refusal_tau_factor,
             ),
         }
     }
 
     /// Execute one L16 controller step.
+    #[allow(clippy::too_many_arguments)]
     fn step(
         &mut self,
         theta: Vec<f64>,
@@ -618,9 +700,9 @@ impl PyL16Controller {
             p_h1,
             h_frob,
         };
-        let result = self.inner.step(
-            &theta, &[], 0, &[], 0, r_global, plv, &costs, dt,
-        );
+        let result = self
+            .inner
+            .step(&theta, &[], 0, &[], 0, r_global, plv, &costs, dt);
         Python::with_gil(|py| {
             let dict = PyDict::new(py);
             dict.set_item("lambda7", result.lambda7)?;
@@ -630,6 +712,8 @@ impl PyL16Controller {
             dict.set_item("gate_open", result.gate_open)?;
             dict.set_item("refusal", result.refusal)?;
             dict.set_item("h_rec", result.h_rec)?;
+            dict.set_item("dh_rec_dt", result.dh_rec_dt)?;
+            dict.set_item("lyapunov_stable", result.lyapunov_stable)?;
             dict.set_item("avg_plv", result.avg_plv)?;
             dict.set_item("lr_z_scale", result.lr_z_scale)?;
             dict.set_item("d_theta_scale", result.d_theta_scale)?;

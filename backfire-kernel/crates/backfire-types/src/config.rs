@@ -22,6 +22,10 @@ pub struct BackfireConfig {
     /// Default: 0.5 (from Python DirectorConfig.hard_limit).
     pub hard_limit: f64,
 
+    /// Scores between threshold and soft_limit trigger a warning.
+    /// Default: coherence_threshold + 0.1 (from Python CoherenceScorer.soft_limit).
+    pub soft_limit: f64,
+
     /// Weight for logical divergence in composite score.
     /// Default: 0.6 (from Python CoherenceScorer.W_LOGIC).
     pub w_logic: f64,
@@ -64,6 +68,7 @@ impl Default for BackfireConfig {
         Self {
             coherence_threshold: 0.6,
             hard_limit: 0.5,
+            soft_limit: 0.7,
             w_logic: 0.6,
             w_fact: 0.4,
             window_size: 10,
@@ -119,9 +124,7 @@ impl BackfireConfig {
             )));
         }
         if self.deadline_ms == 0 {
-            return Err(BackfireError::Config(
-                "deadline_ms must be > 0".to_string(),
-            ));
+            return Err(BackfireError::Config("deadline_ms must be > 0".to_string()));
         }
         Ok(())
     }
@@ -130,5 +133,101 @@ impl BackfireConfig {
     pub fn from_json(json: &str) -> BackfireResult<Self> {
         serde_json::from_str(json)
             .map_err(|e| BackfireError::Config(format!("JSON parse error: {e}")))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_default_validates() {
+        BackfireConfig::default().validate().unwrap();
+    }
+
+    #[test]
+    fn test_coherence_threshold_above_one() {
+        let mut cfg = BackfireConfig::default();
+        cfg.coherence_threshold = 1.5;
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn test_coherence_threshold_below_zero() {
+        let mut cfg = BackfireConfig::default();
+        cfg.coherence_threshold = -0.1;
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn test_hard_limit_above_one() {
+        let mut cfg = BackfireConfig::default();
+        cfg.hard_limit = 1.1;
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn test_weight_sum_mismatch() {
+        let mut cfg = BackfireConfig::default();
+        cfg.w_logic = 0.5;
+        cfg.w_fact = 0.3;
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn test_window_size_zero() {
+        let mut cfg = BackfireConfig::default();
+        cfg.window_size = 0;
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn test_trend_window_one() {
+        let mut cfg = BackfireConfig::default();
+        cfg.trend_window = 1;
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn test_trend_threshold_zero() {
+        let mut cfg = BackfireConfig::default();
+        cfg.trend_threshold = 0.0;
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn test_deadline_zero() {
+        let mut cfg = BackfireConfig::default();
+        cfg.deadline_ms = 0;
+        assert!(cfg.validate().is_err());
+    }
+
+    #[test]
+    fn test_from_json_valid() {
+        let json = r#"{"coherence_threshold":0.7,"hard_limit":0.4,"soft_limit":0.8,"w_logic":0.6,"w_fact":0.4,"window_size":10,"window_threshold":0.55,"trend_window":5,"trend_threshold":0.15,"history_window":5,"deadline_ms":50,"logit_entropy_limit":1.2}"#;
+        let cfg = BackfireConfig::from_json(json).unwrap();
+        assert_eq!(cfg.coherence_threshold, 0.7);
+        assert_eq!(cfg.hard_limit, 0.4);
+    }
+
+    #[test]
+    fn test_from_json_malformed() {
+        assert!(BackfireConfig::from_json("{invalid}").is_err());
+    }
+
+    #[test]
+    fn test_from_json_empty() {
+        assert!(BackfireConfig::from_json("").is_err());
+    }
+
+    #[test]
+    fn test_boundary_values_pass() {
+        let mut cfg = BackfireConfig::default();
+        cfg.coherence_threshold = 0.0;
+        cfg.hard_limit = 0.0;
+        cfg.validate().unwrap();
+        cfg.coherence_threshold = 1.0;
+        cfg.hard_limit = 1.0;
+        cfg.validate().unwrap();
     }
 }

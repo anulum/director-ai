@@ -12,8 +12,8 @@ Includes: coherence scorer, streaming kernel, safety kernel, ground truth store,
 
 | Extra | Command | Adds |
 |-------|---------|------|
-| `nli` | `pip install director-ai[nli]` | DeBERTa NLI model (torch, transformers) |
-| `minicheck` | `pip install director-ai[minicheck]` | MiniCheck scorer (recommended for production) |
+| `nli` | `pip install director-ai[nli]` | FactCG-DeBERTa-v3-Large NLI (75.8% bal. acc) |
+| `minicheck` | `pip install director-ai[minicheck]` | MiniCheck alternative (72.6% bal. acc) |
 | `vector` | `pip install director-ai[vector]` | ChromaDB vector store |
 | `embeddings` | `pip install director-ai[embeddings]` | sentence-transformers (bge-large) |
 | `quantize` | `pip install director-ai[quantize]` | bitsandbytes 8-bit quantization |
@@ -31,10 +31,10 @@ Includes: coherence scorer, streaming kernel, safety kernel, ground truth store,
 ## Recommended Production Setup
 
 ```bash
-pip install director-ai[minicheck,vector,embeddings,openai]
+pip install director-ai[nli,vector,embeddings,openai]
 ```
 
-This gives you MiniCheck NLI (72.6% balanced accuracy), ChromaDB with bge-large embeddings, and OpenAI SDK interception.
+This gives you FactCG NLI (75.8% balanced accuracy), ChromaDB with bge-large embeddings, and OpenAI SDK interception.
 
 ## GPU Acceleration
 

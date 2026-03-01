@@ -248,7 +248,7 @@ def run_e2e_benchmark(
     for task in tasks:
         try:
             samples = _download_task_data(task)
-        except Exception as e:
+        except (ImportError, OSError, ValueError, KeyError) as e:
             logger.warning("Could not load HaluEval %s: %s", task, e)
             continue
 
@@ -328,7 +328,7 @@ def sweep_thresholds(
     for task in tasks:
         try:
             samples = _download_task_data(task)
-        except Exception:
+        except (ImportError, OSError, ValueError, KeyError):
             continue
 
         if max_samples_per_task:

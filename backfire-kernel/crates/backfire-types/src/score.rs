@@ -35,6 +35,8 @@ pub struct CoherenceScore {
     pub h_logical: f64,
     /// Factual divergence (ground truth deviation).
     pub h_factual: f64,
+    /// Score passed threshold but fell below soft_limit.
+    pub warning: bool,
 }
 
 impl CoherenceScore {
@@ -44,7 +46,13 @@ impl CoherenceScore {
             approved,
             h_logical: clamp_score(h_logical, 0.0, 1.0),
             h_factual: clamp_score(h_factual, 0.0, 1.0),
+            warning: false,
         }
+    }
+
+    pub fn with_warning(mut self, soft_limit: f64) -> Self {
+        self.warning = self.approved && self.score < soft_limit;
+        self
     }
 }
 
@@ -118,6 +126,9 @@ impl StreamSession {
     }
 
     pub fn min_coherence(&self) -> f64 {
+        if self.coherence_history.is_empty() {
+            return 0.0;
+        }
         self.coherence_history
             .iter()
             .copied()
@@ -201,5 +212,90 @@ mod tests {
             ..Default::default()
         };
         assert!((session.avg_coherence() - 0.7).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_stream_session_avg_coherence_empty() {
+        let session = StreamSession::default();
+        assert_eq!(session.avg_coherence(), 0.0);
+    }
+
+    #[test]
+    fn test_with_warning_below_soft_limit() {
+        let cs = CoherenceScore::new(0.65, true, 0.1, 0.2).with_warning(0.7);
+        assert!(cs.warning, "Approved score below soft_limit should warn");
+    }
+
+    #[test]
+    fn test_with_warning_above_soft_limit() {
+        let cs = CoherenceScore::new(0.8, true, 0.1, 0.2).with_warning(0.7);
+        assert!(!cs.warning);
+    }
+
+    #[test]
+    fn test_with_warning_rejected_no_warning() {
+        let cs = CoherenceScore::new(0.3, false, 0.5, 0.5).with_warning(0.7);
+        assert!(!cs.warning, "Rejected scores should not warn");
+    }
+
+    #[test]
+    fn test_stream_session_token_count() {
+        let session = StreamSession {
+            tokens: vec!["a".into(), "b".into(), "c".into()],
+            ..Default::default()
+        };
+        assert_eq!(session.token_count(), 3);
+    }
+
+    #[test]
+    fn test_stream_session_min_coherence() {
+        let session = StreamSession {
+            coherence_history: vec![0.8, 0.3, 0.6],
+            ..Default::default()
+        };
+        assert!((session.min_coherence() - 0.3).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_stream_session_min_coherence_empty() {
+        let session = StreamSession::default();
+        assert_eq!(session.min_coherence(), 0.0);
+    }
+
+    #[test]
+    fn test_stream_session_duration_ms() {
+        let session = StreamSession {
+            start_time_s: 1.0,
+            end_time_s: 1.5,
+            ..Default::default()
+        };
+        assert!((session.duration_ms() - 500.0).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_review_result_fields() {
+        let result = ReviewResult {
+            output: "test".into(),
+            coherence: Some(CoherenceScore::new(0.8, true, 0.1, 0.2)),
+            halted: false,
+            candidates_evaluated: 3,
+        };
+        assert_eq!(result.output, "test");
+        assert!(!result.halted);
+        assert_eq!(result.candidates_evaluated, 3);
+    }
+
+    #[test]
+    fn test_token_event_fields() {
+        let event = TokenEvent {
+            token: "hello".into(),
+            index: 0,
+            coherence: 0.85,
+            timestamp_s: 0.001,
+            halted: false,
+        };
+        assert_eq!(event.token, "hello");
+        assert_eq!(event.coherence, 0.85);
+        assert!(!event.halted);
     }
 }

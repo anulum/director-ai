@@ -118,3 +118,45 @@ class TestAsyncStreamingKernel:
 
         events = await self._collect_events(kernel, async_tokens(), lambda t: 0.8)
         assert len(events) == 3
+
+    async def test_total_timeout_halts(self):
+        """Total timeout halts stream."""
+        import asyncio as _aio
+
+        kernel = AsyncStreamingKernel(hard_limit=0.1, total_timeout=0.05)
+
+        async def slow_tokens():
+            for t in ["a", "b", "c", "d"]:
+                await _aio.sleep(0.02)
+                yield t
+
+        events = await self._collect_events(kernel, slow_tokens(), lambda t: 0.9)
+        assert events[-1].halted
+        assert not kernel.is_active
+
+    async def test_token_timeout_halts(self):
+        """Token timeout halts stream."""
+        import asyncio as _aio
+
+        kernel = AsyncStreamingKernel(hard_limit=0.1, token_timeout=0.01)
+
+        async def slow_callback(t):
+            await _aio.sleep(0.05)
+            return 0.9
+
+        events = await self._collect_events(kernel, ["a", "b"], slow_callback)
+        assert events[-1].halted
+        assert not kernel.is_active
+
+    async def test_no_timeout_passes(self):
+        """Default (no timeout) streams all tokens."""
+        kernel = AsyncStreamingKernel(hard_limit=0.1)
+        events = await self._collect_events(kernel, ["a", "b", "c"], lambda t: 0.9)
+        assert len(events) == 3
+        assert not any(e.halted for e in events)
+
+    async def test_timeout_params_forwarded(self):
+        """Timeout params are accessible on the kernel."""
+        kernel = AsyncStreamingKernel(token_timeout=1.5, total_timeout=30.0)
+        assert kernel.token_timeout == 1.5
+        assert kernel.total_timeout == 30.0

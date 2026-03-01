@@ -11,8 +11,10 @@
 pub const N_LAYERS: usize = 16;
 
 /// Canonical natural frequencies (rad/s) for the 16 SCPN layers.
-///
-/// Each frequency characterises the dominant timescale of the layer.
+/// Values from parameter_catalogue_full.yaml lines 542-925.
+/// Some coincide with brainwave bands (e.g. L2 ≈ 40 Hz × 2π) but are
+/// catalogued constants, not computed from π/τ.
+#[allow(clippy::approx_constant)]
 pub const OMEGA_N: [f64; N_LAYERS] = [
     1.329,   // L1  — Quantum Biological
     251.327, // L2  — Neurochemical (≈40 Hz × 2π)
@@ -80,11 +82,11 @@ pub fn build_knm_matrix() -> [[f64; N_LAYERS]; N_LAYERS] {
     let mut k = [[0.0f64; N_LAYERS]; N_LAYERS];
 
     // Step 1: exponential-decay baseline
-    for n in 0..N_LAYERS {
-        for m in 0..N_LAYERS {
+    for (n, row) in k.iter_mut().enumerate() {
+        for (m, cell) in row.iter_mut().enumerate() {
             if n != m {
-                let dist = if n > m { n - m } else { m - n };
-                k[n][m] = K_BASE * (-DECAY_ALPHA * dist as f64).exp();
+                let dist = n.abs_diff(m);
+                *cell = K_BASE * (-DECAY_ALPHA * dist as f64).exp();
             }
         }
     }
@@ -102,6 +104,7 @@ pub fn build_knm_matrix() -> [[f64; N_LAYERS]; N_LAYERS] {
     }
 
     // Step 4: symmetrise and zero diagonal
+    #[allow(clippy::needless_range_loop)]
     for n in 0..N_LAYERS {
         for m in (n + 1)..N_LAYERS {
             let avg = 0.5 * (k[n][m] + k[m][n]);

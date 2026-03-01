@@ -95,7 +95,7 @@ mod tests {
         let mut ns = NodeSpace::new(16);
         ns.randomise(42);
         // z should be in [-0.5, 0.5]
-        assert!(ns.z.iter().all(|&v| v >= -0.5 && v <= 0.5));
+        assert!(ns.z.iter().all(|&v| (-0.5..=0.5).contains(&v)));
         // theta should be in [0, 2π)
         let tau = std::f64::consts::TAU;
         assert!(ns.theta.iter().all(|&v| v >= 0.0 && v < tau));
@@ -110,7 +110,7 @@ mod tests {
             assert!((ns.phi_target[i * 4 + i] - 1.0).abs() < 1e-12);
         }
         // Off-diagonal should be 0.0
-        assert!((ns.phi_target[0 * 4 + 1]).abs() < 1e-12);
+        assert!(ns.phi_target[1].abs() < 1e-12); // [0][1]
     }
 
     #[test]

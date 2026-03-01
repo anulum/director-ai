@@ -86,6 +86,75 @@ class TestBatchReview:
         assert hasattr(score, "score")
 
 
+class TestBatchValidation:
+    """Tests for BatchProcessor constructor validation."""
+
+    def test_max_concurrency_zero_raises(self):
+        agent = CoherenceAgent()
+        with pytest.raises(ValueError, match="max_concurrency"):
+            BatchProcessor(agent, max_concurrency=0)
+
+    def test_item_timeout_zero_raises(self):
+        agent = CoherenceAgent()
+        with pytest.raises(ValueError, match="item_timeout"):
+            BatchProcessor(agent, item_timeout=0)
+
+    def test_item_timeout_negative_raises(self):
+        agent = CoherenceAgent()
+        with pytest.raises(ValueError, match="item_timeout"):
+            BatchProcessor(agent, item_timeout=-1.0)
+
+
+class TestBatchErrorPaths:
+    """Tests for timeout and exception handling in process_batch."""
+
+    def test_process_batch_backend_exception(self):
+        """Backend that raises should count as failed, not crash."""
+
+        class FailingAgent:
+            def process(self, prompt):
+                raise RuntimeError("model exploded")
+
+        proc = BatchProcessor(FailingAgent(), max_concurrency=1)
+        result = proc.process_batch(["boom"])
+        assert result.total == 1
+        assert result.failed == 1
+        assert result.succeeded == 0
+        assert len(result.errors) == 1
+        assert "model exploded" in result.errors[0][1]
+
+    def test_review_batch_backend_exception(self):
+        """review_batch exception handling."""
+
+        class FailingScorer:
+            def review(self, prompt, response):
+                raise ValueError("bad input")
+
+        proc = BatchProcessor(FailingScorer(), max_concurrency=1)
+        result = proc.review_batch([("p", "r")])
+        assert result.failed == 1
+        assert result.succeeded == 0
+
+    def test_mixed_success_and_failure(self):
+        """Some items succeed, some fail."""
+
+        class MixedAgent:
+            def process(self, prompt):
+                if prompt == "fail":
+                    raise RuntimeError("nope")
+                from director_ai.core.types import ReviewResult
+
+                return ReviewResult(
+                    output="ok", coherence=None, halted=False, candidates_evaluated=1
+                )
+
+        proc = BatchProcessor(MixedAgent(), max_concurrency=1)
+        result = proc.process_batch(["ok", "fail", "ok"])
+        assert result.total == 3
+        assert result.succeeded == 2
+        assert result.failed == 1
+
+
 class TestBatchAsync:
     """Tests for BatchProcessor.process_batch_async()."""
 
@@ -97,3 +166,14 @@ class TestBatchAsync:
         assert result.total == 2
         assert result.succeeded == 2
         assert result.duration_seconds >= 0.0
+
+    @pytest.mark.asyncio
+    async def test_async_batch_exception(self):
+        class FailingAgent:
+            def process(self, prompt):
+                raise RuntimeError("async fail")
+
+        proc = BatchProcessor(FailingAgent(), max_concurrency=1)
+        result = await proc.process_batch_async(["x"])
+        assert result.failed == 1
+        assert result.succeeded == 0

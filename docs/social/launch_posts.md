@@ -29,9 +29,9 @@ It's ~1 MB base install (numpy + requests). NLI model is optional
 (`pip install director-ai[nli]`). Works with any OpenAI-compatible
 endpoint (llama.cpp, vLLM, Ollama, etc.).
 
-Scored 66.2% balanced accuracy on AggreFact (29K samples). Not SOTA on
-NLI alone — the value is in the system (NLI + your KB + streaming halt).
-The NLI component is pluggable; swap in any model.
+75.8% balanced accuracy on AggreFact (29K samples) — 4th on the leaderboard,
+within 1.6pp of the top 7B model at 17x fewer params. And the only tool
+with real-time streaming halt. NLI component is pluggable.
 
 Honest benchmarks comparing to MiniCheck, HHEM, and others in the repo.
 
@@ -76,8 +76,8 @@ approved, score = scorer.review(
 
 Base install is ~1 MB (no torch). Add NLI with `pip install director-ai[nli]`.
 
-Benchmarked on AggreFact: 66.2% balanced accuracy. Not the best NLI scorer
-— but no other tool does real-time streaming halt. The NLI model is
+Benchmarked on AggreFact: 75.8% balanced accuracy (4th on leaderboard).
+And no other tool does real-time streaming halt. The NLI model is
 pluggable, so swap in whatever scores best for your domain.
 
 GitHub: https://github.com/anulum/director-ai
@@ -99,13 +99,12 @@ sliding window average, and downward trend detection.
 Scoring formula: `Coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)`
 
 Evaluated on LLM-AggreFact (29,320 samples, 11 datasets):
-- DeBERTa-v3-base (baseline): 66.2% balanced accuracy
-- Best per-dataset: 80.7% on Reveal, 71.7% on FactCheck-GPT
+- FactCG-DeBERTa-v3-Large (default): 75.8% balanced accuracy
+- Best per-dataset: 87.3% on Lfqa, 86.2% on TofuEval-MediaS
 
-Compared to MiniCheck-DeBERTa (72.6%), HHEM-2.1 (71.8%), and
-Bespoke-MiniCheck-7B (77.4%). Director-AI's NLI alone isn't SOTA.
-The contribution is the streaming halt system — no competitor halts
-mid-generation. NLI component is pluggable.
+Ranks 4th on the leaderboard behind Bespoke-MiniCheck-7B (77.4%) at
+17x fewer params. And the only tool with real-time streaming halt.
+NLI component is pluggable.
 
 Fine-tuning pipeline (DeBERTa on AggreFact) included in `training/`.
 The NLI scorer accepts custom model paths.

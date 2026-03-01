@@ -82,10 +82,9 @@ pub fn delay_embed(x: &[f64], embed_dim: usize, tau_delay: usize) -> Vec<Vec<f64
     }
     let out_t = t - offset;
     let mut z = vec![vec![0.0; embed_dim]; out_t];
-    for k in 0..embed_dim {
-        let start = offset - k * tau_delay;
-        for i in 0..out_t {
-            z[i][k] = x[start + i];
+    for (k, col_start) in (0..embed_dim).map(|k| (k, offset - k * tau_delay)) {
+        for (row, z_row) in z.iter_mut().enumerate() {
+            z_row[k] = x[col_start + row];
         }
     }
     z
@@ -107,9 +106,10 @@ pub fn delay_embed_multi(
     // Extract each channel as a column
     let mut channels: Vec<Vec<f64>> = Vec::with_capacity(n_channels);
     for ch in 0..n_channels {
-        let col: Vec<f64> = data.iter().map(|row| {
-            if ch < row.len() { row[ch] } else { 0.0 }
-        }).collect();
+        let col: Vec<f64> = data
+            .iter()
+            .map(|row| if ch < row.len() { row[ch] } else { 0.0 })
+            .collect();
         channels.push(col);
     }
 
@@ -162,7 +162,11 @@ fn persistence_fallback(cloud: &[Vec<f64>]) -> f64 {
     // Compute radial distances from centroid
     let mut radials = Vec::with_capacity(cloud.len());
     for row in cloud {
-        let r2: f64 = row.iter().zip(centroid.iter()).map(|(&v, &c)| (v - c).powi(2)).sum();
+        let r2: f64 = row
+            .iter()
+            .zip(centroid.iter())
+            .map(|(&v, &c)| (v - c).powi(2))
+            .sum();
         radials.push(r2.sqrt());
     }
 
@@ -227,7 +231,10 @@ impl TCBOObserver {
     /// Compute p_h1 from the current buffer.
     pub fn compute(&mut self, force: bool) -> f64 {
         self.step_count += 1;
-        if !force && self.cfg.compute_every_n > 0 && (self.step_count % self.cfg.compute_every_n != 0) {
+        if !force
+            && self.cfg.compute_every_n > 0
+            && !self.step_count.is_multiple_of(self.cfg.compute_every_n)
+        {
             return self.p_h1;
         }
 
@@ -359,7 +366,9 @@ impl TCBOController {
         let error = self.compute_error(p_h1);
 
         self.integral += error * dt;
-        self.integral = self.integral.clamp(self.cfg.integral_min, self.cfg.integral_max);
+        self.integral = self
+            .integral
+            .clamp(self.cfg.integral_min, self.cfg.integral_max);
 
         let delta_kappa = self.cfg.kp * error + self.cfg.ki * self.integral;
         let kappa_new = (current_kappa + delta_kappa).clamp(self.cfg.kappa_min, self.cfg.kappa_max);
@@ -381,9 +390,7 @@ impl TCBOController {
 
     /// Check if p_h1 > tau_h1 (boundary gate open).
     pub fn is_gate_open(&self, p_h1: Option<f64>) -> bool {
-        let val = p_h1.unwrap_or_else(|| {
-            self.p_h1_history.last().copied().unwrap_or(0.0)
-        });
+        let val = p_h1.unwrap_or_else(|| self.p_h1_history.last().copied().unwrap_or(0.0));
         val > self.cfg.tau_h1
     }
 
@@ -466,14 +473,20 @@ mod tests {
             })
             .collect();
         let p = persistence_fallback(&cloud);
-        assert!(p > 0.0, "Spread cloud should have positive persistence, got {p}");
+        assert!(
+            p > 0.0,
+            "Spread cloud should have positive persistence, got {p}"
+        );
     }
 
     #[test]
     fn test_persistence_fallback_zero_cloud() {
         let cloud: Vec<Vec<f64>> = (0..10).map(|_| vec![1.0, 2.0, 3.0]).collect();
         let p = persistence_fallback(&cloud);
-        assert!(p.abs() < 1e-9, "Constant cloud should have ~0 persistence, got {p}");
+        assert!(
+            p.abs() < 1e-9,
+            "Constant cloud should have ~0 persistence, got {p}"
+        );
     }
 
     #[test]
@@ -496,7 +509,7 @@ mod tests {
             obs.push(&theta);
         }
         let p = obs.compute(true);
-        assert!(p >= 0.0 && p <= 1.0, "p_h1 should be in [0,1], got {p}");
+        assert!((0.0..=1.0).contains(&p), "p_h1 should be in [0,1], got {p}");
     }
 
     #[test]
@@ -517,7 +530,10 @@ mod tests {
     fn test_tcbo_controller_deficit_error() {
         let ctrl = TCBOController::default_params();
         let e = ctrl.compute_error(0.5);
-        assert!((e - 0.22).abs() < 1e-9, "Error should be 0.72-0.5=0.22, got {e}");
+        assert!(
+            (e - 0.22).abs() < 1e-9,
+            "Error should be 0.72-0.5=0.22, got {e}"
+        );
     }
 
     #[test]
@@ -531,7 +547,10 @@ mod tests {
     fn test_tcbo_controller_step_increases_kappa() {
         let mut ctrl = TCBOController::default_params();
         let kappa = ctrl.step(0.3, 1.0, 0.01);
-        assert!(kappa > 1.0, "Kappa should increase when below threshold, got {kappa}");
+        assert!(
+            kappa > 1.0,
+            "Kappa should increase when below threshold, got {kappa}"
+        );
     }
 
     #[test]

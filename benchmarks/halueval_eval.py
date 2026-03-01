@@ -198,7 +198,7 @@ def run_halueval_benchmark(
 
         try:
             samples = _download_task_data(task)
-        except Exception as e:
+        except (ImportError, OSError, ValueError, KeyError) as e:
             logger.warning("Could not load HaluEval %s: %s", task, e)
             continue
 

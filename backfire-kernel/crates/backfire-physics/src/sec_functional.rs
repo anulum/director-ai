@@ -34,6 +34,30 @@ pub struct SECResult {
     pub v_entropy: f64,
 }
 
+/// Modified Bessel function I_0(x) — polynomial approximation.
+/// Abramowitz & Stegun 9.8.1, accurate to ~1e-7 for |x| ≤ 3.75,
+/// asymptotic expansion for larger x.
+fn bessel_i0_approx(x: f64) -> f64 {
+    let ax = x.abs();
+    if ax < 3.75 {
+        let t = (ax / 3.75).powi(2);
+        1.0 + t
+            * (3.5156229
+                + t * (3.0899424
+                    + t * (1.2067492 + t * (0.2659732 + t * (0.0360768 + t * 0.0045813)))))
+    } else {
+        let t = 3.75 / ax;
+        (ax.exp() / ax.sqrt())
+            * (0.39894228
+                + t * (0.01328592
+                    + t * (0.00225319
+                        + t * (-0.00157565
+                            + t * (0.00916281
+                                + t * (-0.02057706
+                                    + t * (0.02635537 + t * (-0.01647633 + t * 0.00392377))))))))
+    }
+}
+
 /// SEC Lyapunov functional for the SCPN Kuramoto system.
 ///
 /// Mirrors `SECFunctional` from `sec_functional.py`.
@@ -75,6 +99,17 @@ impl SECFunctional {
         Self::new(0.1, 0.01)
     }
 
+    /// Recompute V_max from a new coupling matrix.
+    ///
+    /// Call this when SSGF geometry changes W, which effectively changes
+    /// the coupling topology. Without this, V_normalised drifts because
+    /// the denominator is stale.
+    pub fn update_coupling(&mut self, knm: [[f64; N_LAYERS]; N_LAYERS]) {
+        let knm_sum: f64 = knm.iter().flat_map(|row| row.iter()).sum();
+        self.v_max = (knm_sum * 2.0).max(1e-12);
+        self.knm = knm;
+    }
+
     /// V_coupling = Σ_{n,m} K_nm [1 - cos(θ_n - θ_m)].
     pub fn coupling_potential(&self, theta: &[f64]) -> f64 {
         let n = theta.len().min(N_LAYERS);
@@ -104,30 +139,51 @@ impl SECFunctional {
         self.lambda_omega * v
     }
 
-    /// V_entropy = -λ_S Σ_n log(p_n + ε) via phase histogram.
+    /// V_entropy via von Mises kernel density on the circle.
+    ///
+    /// Evaluates KDE at n_eval points, computes Shannon entropy from
+    /// the smoothed density. Bandwidth κ = 2.0 (moderate smoothing).
     pub fn entropy_term(&self, theta: &[f64]) -> f64 {
-        let n = theta.len().max(1);
-        let n_bins = n.max(8);
-        let mut counts = vec![0u32; n_bins];
+        let n = theta.len();
+        if n == 0 {
+            return 0.0;
+        }
+        let n_eval = n.max(16);
         let tau = std::f64::consts::TAU;
-
-        for &th in theta {
-            let phase = th.rem_euclid(tau);
-            let bin = ((phase / tau) * n_bins as f64) as usize;
-            let bin = bin.min(n_bins - 1);
-            counts[bin] += 1;
-        }
-
-        let total = theta.len().max(1) as f64;
+        let kappa = 2.0; // von Mises concentration (lower = smoother)
+        let nf = n as f64;
         let eps = 1e-12;
-        let mut entropy = 0.0;
-        for &c in &counts {
-            let p = c as f64 / total + eps;
-            entropy -= p * p.ln();
+
+        // Evaluate KDE at n_eval equispaced points on [0, 2π)
+        let mut density = vec![0.0; n_eval];
+        for (k, d) in density.iter_mut().enumerate() {
+            let x = (k as f64 / n_eval as f64) * tau;
+            let mut sum = 0.0;
+            for &th in theta {
+                sum += (kappa * (x - th).cos()).exp();
+            }
+            *d = sum / (nf * tau * bessel_i0_approx(kappa));
         }
 
-        let max_entropy = (n_bins as f64).ln();
-        self.lambda_entropy * (max_entropy - entropy)
+        // Normalise density to a proper distribution
+        let total: f64 = density.iter().sum();
+        if total < eps {
+            return 0.0;
+        }
+        for d in density.iter_mut() {
+            *d /= total;
+        }
+
+        // Shannon entropy
+        let mut entropy = 0.0;
+        for &p in &density {
+            if p > eps {
+                entropy -= p * p.ln();
+            }
+        }
+
+        let max_entropy = (n_eval as f64).ln();
+        self.lambda_entropy * (max_entropy - entropy).max(0.0)
     }
 
     /// Evaluate the full SEC functional.
@@ -174,7 +230,11 @@ impl SECFunctional {
         // dV/dt estimation
         let dv_dt = if let Some(prev_v) = self.prev_v {
             let d = (v - prev_v) / dt.max(1e-12);
-            if d.is_finite() { d } else { 0.0 }
+            if d.is_finite() {
+                d
+            } else {
+                0.0
+            }
         } else {
             0.0
         };
@@ -197,7 +257,8 @@ impl SECFunctional {
     /// Critical coupling K_c estimate.
     pub fn critical_coupling(&self) -> f64 {
         let mean: f64 = self.omega.iter().sum::<f64>() / N_LAYERS as f64;
-        let var: f64 = self.omega.iter().map(|&w| (w - mean).powi(2)).sum::<f64>() / N_LAYERS as f64;
+        let var: f64 =
+            self.omega.iter().map(|&w| (w - mean).powi(2)).sum::<f64>() / N_LAYERS as f64;
         let std_omega = var.sqrt();
         if std_omega < 1e-12 {
             return 0.0;
@@ -222,15 +283,16 @@ mod tests {
         // All phases equal → V_coupling = 0
         let theta = vec![1.0; N_LAYERS];
         let v = sec.coupling_potential(&theta);
-        assert!(v.abs() < 1e-9, "V_coupling should be ~0 for aligned phases, got {v}");
+        assert!(
+            v.abs() < 1e-9,
+            "V_coupling should be ~0 for aligned phases, got {v}"
+        );
     }
 
     #[test]
     fn test_coupling_potential_non_negative() {
         let sec = SECFunctional::default_params();
-        let theta: Vec<f64> = (0..N_LAYERS)
-            .map(|i| i as f64 * 0.4)
-            .collect();
+        let theta: Vec<f64> = (0..N_LAYERS).map(|i| i as f64 * 0.4).collect();
         let v = sec.coupling_potential(&theta);
         assert!(v >= 0.0, "V_coupling should be non-negative, got {v}");
     }
@@ -283,9 +345,132 @@ mod tests {
     }
 
     #[test]
+    fn test_bessel_i0_at_zero() {
+        assert!((bessel_i0_approx(0.0) - 1.0).abs() < 1e-6);
+    }
+
+    #[test]
+    fn test_bessel_i0_at_two() {
+        // I_0(2) ≈ 2.2796
+        assert!((bessel_i0_approx(2.0) - 2.2796).abs() < 0.001);
+    }
+
+    #[test]
+    fn test_entropy_uniform_high() {
+        let sec = SECFunctional::default_params();
+        // Phases spread evenly → high entropy → low V_entropy
+        let theta: Vec<f64> = (0..N_LAYERS)
+            .map(|i| i as f64 * std::f64::consts::TAU / N_LAYERS as f64)
+            .collect();
+        let v = sec.entropy_term(&theta);
+        assert!(v >= 0.0);
+        assert!(
+            v < 0.005,
+            "Uniform phases should give near-zero V_entropy, got {v}"
+        );
+    }
+
+    #[test]
+    fn test_entropy_clustered_higher() {
+        let sec = SECFunctional::default_params();
+        // All phases at same value → low entropy → higher V_entropy
+        let theta_clustered = vec![1.0; N_LAYERS];
+        let theta_spread: Vec<f64> = (0..N_LAYERS)
+            .map(|i| i as f64 * std::f64::consts::TAU / N_LAYERS as f64)
+            .collect();
+        let v_c = sec.entropy_term(&theta_clustered);
+        let v_s = sec.entropy_term(&theta_spread);
+        assert!(
+            v_c > v_s,
+            "Clustered phases should have higher V_entropy: {v_c} vs {v_s}"
+        );
+    }
+
+    #[test]
     fn test_critical_coupling_positive() {
         let sec = SECFunctional::default_params();
         let kc = sec.critical_coupling();
         assert!(kc > 0.0, "K_c should be positive, got {kc}");
+    }
+
+    #[test]
+    fn test_update_coupling_changes_v_max() {
+        let mut sec = SECFunctional::default_params();
+        let v_max_before = sec.v_max;
+
+        // Double the coupling matrix
+        let mut knm = build_knm_matrix();
+        for row in knm.iter_mut() {
+            for v in row.iter_mut() {
+                *v *= 2.0;
+            }
+        }
+        sec.update_coupling(knm);
+        assert!(
+            (sec.v_max - v_max_before * 2.0).abs() < 1e-9,
+            "V_max should double when coupling doubles"
+        );
+    }
+
+    #[test]
+    fn test_update_coupling_affects_score() {
+        let mut sec = SECFunctional::default_params();
+        let theta: Vec<f64> = (0..N_LAYERS).map(|i| i as f64 * 0.4).collect();
+
+        let r1 = sec.evaluate(&theta, None, 0.01).unwrap();
+        let v_coupling_before = r1.v_coupling;
+
+        // Zero out coupling → V_coupling = 0
+        let knm = [[0.0; N_LAYERS]; N_LAYERS];
+        sec.update_coupling(knm);
+        let r2 = sec.evaluate(&theta, None, 0.01).unwrap();
+        assert!(
+            r2.v_coupling < 1e-12,
+            "Zero coupling should give v_coupling≈0, got {}",
+            r2.v_coupling
+        );
+        assert!(
+            r2.v_coupling < v_coupling_before,
+            "Zero coupling should reduce v_coupling"
+        );
+    }
+
+    #[test]
+    fn test_is_stable_negative_dv_dt() {
+        let result = SECResult {
+            v: 0.5,
+            v_normalised: 0.1,
+            r_global: 0.8,
+            dv_dt: -0.01,
+            coherence_score: 0.9,
+            v_coupling: 0.3,
+            v_frequency: 0.1,
+            v_entropy: 0.1,
+        };
+        assert!(SECFunctional::is_stable(&result, 0.0));
+    }
+
+    #[test]
+    fn test_is_stable_positive_dv_dt_below_tolerance() {
+        let result = SECResult {
+            v: 0.5,
+            v_normalised: 0.1,
+            r_global: 0.8,
+            dv_dt: 0.005,
+            coherence_score: 0.9,
+            v_coupling: 0.3,
+            v_frequency: 0.1,
+            v_entropy: 0.1,
+        };
+        assert!(SECFunctional::is_stable(&result, 0.01));
+        assert!(!SECFunctional::is_stable(&result, 0.001));
+    }
+
+    #[test]
+    fn test_critical_coupling_finite() {
+        let sec = SECFunctional::default_params();
+        let kc = sec.critical_coupling();
+        assert!(kc.is_finite(), "K_c should be finite, got {kc}");
+        assert!(kc > 0.0 && kc < 100.0, "K_c should be reasonable, got {kc}");
     }
 }

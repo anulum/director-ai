@@ -9,8 +9,8 @@ pip install director-ai
 For NLI-enhanced scoring (recommended for production):
 
 ```bash
-pip install director-ai[nli]         # DeBERTa NLI model
-pip install director-ai[minicheck]   # MiniCheck (72.6% balanced acc)
+pip install director-ai[nli]         # FactCG-DeBERTa-v3-Large (75.8% balanced acc)
+pip install director-ai[minicheck]   # MiniCheck alternative (72.6% balanced acc)
 ```
 
 ## Score a Response

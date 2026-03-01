@@ -59,7 +59,9 @@ pub fn cost_micro(theta: &[f64]) -> f64 {
     let (sum_sin, sum_cos) = theta
         .iter()
         .fold((0.0, 0.0), |(s, c), &th| (s + th.sin(), c + th.cos()));
-    let r = ((sum_sin / n).powi(2) + (sum_cos / n).powi(2)).sqrt().clamp(0.0, 1.0);
+    let r = ((sum_sin / n).powi(2) + (sum_cos / n).powi(2))
+        .sqrt()
+        .clamp(0.0, 1.0);
     1.0 - r
 }
 
@@ -161,12 +163,7 @@ pub fn cost_c10_boundary(w: &[f64], n: usize, protected_mask: &[bool]) -> f64 {
 }
 
 /// Graph regulariser: α_frob ||W||_F² + α_gap / (λ_1 + ε).
-pub fn regularise_graph(
-    w: &[f64],
-    eigvals: &[f64],
-    alpha_frob: f64,
-    alpha_gap: f64,
-) -> f64 {
+pub fn regularise_graph(w: &[f64], eigvals: &[f64], alpha_frob: f64, alpha_gap: f64) -> f64 {
     let frob: f64 = w.iter().map(|&v| v * v).sum();
     let gap_penalty = if eigvals.len() >= 2 {
         1.0 / (eigvals[1] + 1e-8)
@@ -191,6 +188,7 @@ pub fn cost_pgbo(h_munu: Option<&[f64]>, alpha_frob: f64) -> f64 {
 }
 
 /// Compute all cost terms and weighted total.
+#[allow(clippy::too_many_arguments)]
 pub fn compute_costs(
     theta: &[f64],
     w: &[f64],
@@ -314,9 +312,166 @@ mod tests {
         let weights = CostWeights::default();
 
         let cb = compute_costs(
-            &theta, &w, n, &eigvals, &eigvecs, &phi_target, &mask, &weights, 0.5, None,
+            &theta,
+            &w,
+            n,
+            &eigvals,
+            &eigvecs,
+            &phi_target,
+            &mask,
+            &weights,
+            0.5,
+            None,
         );
         assert!(cb.u_total > 0.0, "Total cost should be positive");
         assert!(cb.c_micro > 0.0, "Micro cost should be positive");
+    }
+
+    #[test]
+    fn test_cost_micro_empty() {
+        assert!((cost_micro(&[]) - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_cost_c8_phase_direct() {
+        let theta: Vec<f64> = (0..16).map(|i| 0.1 * i as f64).collect();
+        let eigvals = vec![0.0, 0.5, 1.0, 1.5];
+        let c = cost_c8_phase(&theta, &eigvals);
+        assert!(c >= 0.0);
+    }
+
+    #[test]
+    fn test_cost_c8_phase_short_eigvals() {
+        let theta = vec![0.1; 16];
+        assert!(cost_c8_phase(&theta, &[0.0]) < 1e-12);
+    }
+
+    #[test]
+    fn test_cost_c8_phase_short_theta() {
+        let theta: Vec<f64> = vec![0.1; 4]; // layer_idx=7 >= 4
+        let eigvals = vec![0.0, 0.5, 1.0, 1.5];
+        assert!(cost_c8_phase(&theta, &eigvals) < 1e-12);
+    }
+
+    #[test]
+    fn test_cost_c9_memory_with_probes() {
+        let w = vec![0.5; 4];
+        let probes = vec![1.0; 4];
+        let c = cost_c9_memory(&w, 2, Some(&probes));
+        let expected = (0.5_f64 * 0.5) * 4.0 / 4.0; // 0.25
+        assert!((c - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_cost_c9_memory_default_path() {
+        let n = 16;
+        let mut w = vec![0.0; n * n];
+        // Row 8 (L9) all ones
+        for j in 0..n {
+            w[8 * n + j] = 1.0;
+        }
+        let c = cost_c9_memory(&w, n, None);
+        // norm_conn = 16/16 = 1.0, target = 1.0, cost = 0
+        assert!(c < 1e-12);
+    }
+
+    #[test]
+    fn test_cost_c9_memory_small_n() {
+        let w = vec![1.0; 4]; // n=2, l9_idx=8 >= n → 0.0
+        assert!(cost_c9_memory(&w, 2, None) < 1e-12);
+    }
+
+    #[test]
+    fn test_cost_c7_misaligned() {
+        let n = 4;
+        let eigvecs = vec![0.0; n * n];
+        let mut phi_target = vec![0.0; n * n];
+        // Set Fiedler column (col 1) to 1.0 in target
+        for row in 0..n {
+            phi_target[row * n + 1] = 1.0;
+        }
+        let c = cost_c7_symbolic(&eigvecs, &phi_target, n);
+        assert!((c - 4.0).abs() < 1e-12); // sum of 1.0^2 * 4
+    }
+
+    #[test]
+    fn test_cost_c7_too_small() {
+        assert!(cost_c7_symbolic(&[1.0; 2], &[1.0; 2], 1) < 1e-12);
+    }
+
+    #[test]
+    fn test_cost_pgbo_some() {
+        let h = vec![1.0, 0.5, 0.5, 1.0];
+        let c = cost_pgbo(Some(&h), 0.01);
+        let expected = 0.01 * (1.0 + 0.25 + 0.25 + 1.0);
+        assert!((c - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_cost_pgbo_none() {
+        assert!(cost_pgbo(None, 0.01) < 1e-12);
+    }
+
+    #[test]
+    fn test_regularise_graph_short_eigvals() {
+        let w = vec![1.0; 4];
+        let rg = regularise_graph(&w, &[0.0], 0.01, 0.1);
+        // gap_penalty = 1.0 (fallback), frob = 4.0
+        let expected = 0.01 * 4.0 + 0.1 * 1.0;
+        assert!((rg - expected).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_c10_all_protected() {
+        let n = 4;
+        let w = vec![1.0; n * n];
+        let mask = vec![true; n];
+        assert!(cost_c10_boundary(&w, n, &mask) < 1e-12);
+    }
+
+    #[test]
+    fn test_c10_empty_mask() {
+        let n = 4;
+        let w = vec![1.0; n * n];
+        assert!(cost_c10_boundary(&w, n, &[]) < 1e-12);
+    }
+
+    #[test]
+    fn test_compute_costs_with_h_munu() {
+        let n = 4;
+        let theta = vec![0.5; n];
+        let w = vec![0.0; n * n];
+        let eigvals = vec![0.0, 0.5, 1.0, 1.5];
+        let eigvecs = vec![0.0; n * n];
+        let phi_target = vec![0.0; n * n];
+        let mask = vec![false; n];
+        let weights = CostWeights::default();
+        let h = vec![1.0; n * n];
+
+        let cb = compute_costs(
+            &theta,
+            &w,
+            n,
+            &eigvals,
+            &eigvecs,
+            &phi_target,
+            &mask,
+            &weights,
+            0.9,
+            Some(&h),
+        );
+        assert!(cb.c_pgbo > 0.0, "PGBO cost should be nonzero with h_munu");
+        assert!(
+            cb.c4_tcbo < 1e-12,
+            "TCBO cost should be ~0 when p_h1 > tau_h1"
+        );
+    }
+
+    #[test]
+    fn test_cost_weights_default() {
+        let w = CostWeights::default();
+        assert!((w.micro - 1.0).abs() < 1e-12);
+        assert!((w.c7 - 0.5).abs() < 1e-12);
+        assert!((w.pgbo - 0.05).abs() < 1e-12);
     }
 }

@@ -25,6 +25,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 
+from .exceptions import ValidationError
 from .metrics import metrics
 from .types import CoherenceScore, ReviewResult
 
@@ -70,9 +71,10 @@ class BatchProcessor:
         item_timeout: float = 60.0,
     ) -> None:
         if max_concurrency < 1:
-            raise ValueError(f"max_concurrency must be >= 1, got {max_concurrency}")
+            msg = f"max_concurrency must be >= 1, got {max_concurrency}"
+            raise ValidationError(msg)
         if item_timeout <= 0:
-            raise ValueError(f"item_timeout must be > 0, got {item_timeout}")
+            raise ValidationError(f"item_timeout must be > 0, got {item_timeout}")
         self._backend = backend
         self.max_concurrency = max_concurrency
         self.item_timeout = item_timeout
@@ -103,7 +105,14 @@ class BatchProcessor:
                     logger.warning(
                         "Batch item %d timed out after %.1fs", idx, self.item_timeout
                     )
-                except Exception as e:
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    AttributeError,
+                    KeyError,
+                    OSError,
+                ) as e:
                     result.errors.append((idx, str(e)))
                     result.failed += 1
                     logger.warning("Batch item %d failed: %s", idx, e)
@@ -135,7 +144,14 @@ class BatchProcessor:
                 except TimeoutError:
                     result.errors.append((idx, "item timeout"))
                     result.failed += 1
-                except Exception as e:
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    AttributeError,
+                    KeyError,
+                    OSError,
+                ) as e:
                     result.errors.append((idx, str(e)))
                     result.failed += 1
 
@@ -170,7 +186,14 @@ class BatchProcessor:
                         idx,
                         self.item_timeout,
                     )
-                except Exception as e:
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    AttributeError,
+                    KeyError,
+                    OSError,
+                ) as e:
                     result.errors.append((idx, str(e)))
                     result.failed += 1
 

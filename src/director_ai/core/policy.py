@@ -84,9 +84,13 @@ class Policy:
             regex = p.get("regex", "")
             action = p.get("action", "block")
             if regex:
-                self._compiled_patterns.append(
-                    (name, re.compile(regex, re.IGNORECASE), action)
-                )
+                try:
+                    compiled = re.compile(regex, re.IGNORECASE)
+                except re.error as e:
+                    raise ValueError(
+                        f"Invalid regex in policy pattern '{name}': {e}"
+                    ) from e
+                self._compiled_patterns.append((name, compiled, action))
 
     @classmethod
     def from_dict(cls, data: dict) -> Policy:

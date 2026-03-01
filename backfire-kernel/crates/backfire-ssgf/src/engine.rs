@@ -252,10 +252,7 @@ impl SSGFEngine {
     }
 
     fn verify_eigvals(&self) -> bool {
-        self.ns
-            .eigvals
-            .windows(2)
-            .all(|w| w[0] <= w[1] + 1e-10)
+        self.ns.eigvals.windows(2).all(|w| w[0] <= w[1] + 1e-10)
     }
 
     // ------------------------------------------------------------------
@@ -388,11 +385,8 @@ impl SSGFEngine {
         log.r_global = r;
 
         // 5. Spectral bridge
-        self.spectral.compute_eigenpairs(
-            &self.ns.w,
-            &mut self.ns.eigvals,
-            &mut self.ns.eigvecs,
-        );
+        self.spectral
+            .compute_eigenpairs(&self.ns.w, &mut self.ns.eigvals, &mut self.ns.eigvecs);
 
         // 6. Verify eigenvalues
         log.eigval_ordered = self.verify_eigvals();
@@ -495,8 +489,8 @@ impl SSGFEngine {
         let n = self.cfg.n;
 
         // W density
-        let w_density = self.ns.w.iter().filter(|&&v| v > 0.01).count() as f64
-            / (n * (n - 1)).max(1) as f64;
+        let w_density =
+            self.ns.w.iter().filter(|&&v| v > 0.01).count() as f64 / (n * (n - 1)).max(1) as f64;
 
         // Layer reads
         let beat_hz = if n > 1 {
@@ -603,7 +597,10 @@ mod tests {
     #[test]
     fn test_eigvals_ordered_after_init() {
         let engine = make_engine();
-        assert!(engine.verify_eigvals(), "Eigenvalues should be ordered after init");
+        assert!(
+            engine.verify_eigvals(),
+            "Eigenvalues should be ordered after init"
+        );
     }
 
     #[test]
@@ -632,7 +629,7 @@ mod tests {
     #[test]
     fn test_cost_decreasing_tendency() {
         let mut engine = SSGFEngine::new(
-            &OMEGA_N.to_vec(),
+            &OMEGA_N,
             &build_knm_matrix()
                 .iter()
                 .flat_map(|r| r.iter().copied())
@@ -664,8 +661,9 @@ mod tests {
         assert!(mapping.r_global >= 0.0 && mapping.r_global <= 1.0);
         assert!(mapping.beat_hz >= 0.5 && mapping.beat_hz <= 40.0);
         assert!(mapping.pulse_hz >= 1.0 && mapping.pulse_hz <= 20.0);
-        assert!(["delta", "theta", "alpha", "beta", "gamma"]
-            .contains(&mapping.brainwave_band.as_str()));
+        assert!(
+            ["delta", "theta", "alpha", "beta", "gamma"].contains(&mapping.brainwave_band.as_str())
+        );
     }
 
     #[test]

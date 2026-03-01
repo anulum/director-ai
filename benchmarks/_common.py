@@ -103,7 +103,7 @@ class NLIPredictor:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.model_name = model_name or os.environ.get(
-            "DIRECTOR_NLI_MODEL", "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+            "DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"
         )
         logger.info("Loading NLI model: %s", self.model_name)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)

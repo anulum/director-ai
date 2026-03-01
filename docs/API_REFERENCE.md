@@ -1,6 +1,6 @@
 # Director-AI API Reference
 
-> **Version**: 1.1.0 | **License**: GNU AGPL v3 | Commercial licensing available
+> **Version**: 1.3.0 | **License**: GNU AGPL v3 | Commercial licensing available
 
 ## Quick Start
 
@@ -129,7 +129,7 @@ DeBERTa-based Natural Language Inference for contradiction detection.
 from director_ai import NLIScorer, nli_available
 
 if nli_available():
-    scorer = NLIScorer()  # loads DeBERTa-v3-base-mnli
+    scorer = NLIScorer()  # loads FactCG-DeBERTa-v3-Large
     h_logical = scorer.score("The sky is blue.", "The sky is green.")
     # h_logical ~= 0.95 (high contradiction)
 ```

@@ -15,6 +15,14 @@ from .knowledge import GroundTruthStore
 from .scorer import CoherenceScorer
 from .types import ReviewResult
 
+try:
+    from backfire_kernel import BackfireConfig as _RustConfig
+    from backfire_kernel import RustCoherenceScorer as _RustScorer
+
+    _RUST_AVAILABLE = True
+except ImportError:
+    _RUST_AVAILABLE = False
+
 _PROVIDER_ENV_KEYS = {
     "openai": "OPENAI_API_KEY",
     "anthropic": "ANTHROPIC_API_KEY",
@@ -67,10 +75,25 @@ class CoherenceAgent:
                 use_nli = False
 
         self.store = GroundTruthStore()
-        self.scorer = CoherenceScorer(
+        self.scorer = self._build_scorer(use_nli)
+        self.kernel = SafetyKernel()
+
+    def _build_scorer(self, use_nli):
+        """Construct scorer, preferring Rust backend when installed."""
+        if _RUST_AVAILABLE:
+            try:
+                cfg = _RustConfig(coherence_threshold=0.6)
+                kb_cb = self.store.retrieve_context
+                scorer = _RustScorer(config=cfg, knowledge_callback=kb_cb)
+                self.logger.info("Rust CoherenceScorer active")
+                return scorer
+            except (TypeError, ValueError, RuntimeError, OSError) as exc:
+                self.logger.warning(
+                    "Rust scorer init failed (%s) — Python fallback", exc
+                )
+        return CoherenceScorer(
             threshold=0.6, ground_truth_store=self.store, use_nli=use_nli
         )
-        self.kernel = SafetyKernel()
 
     @staticmethod
     def _build_provider(name: str):

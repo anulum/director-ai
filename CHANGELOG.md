@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-03-01
+
+### Changed
+- **Default NLI model**: FactCG-DeBERTa-v3-Large (75.8% balanced accuracy
+  on AggreFact, up from 66.2% with DeBERTa-v3-base)
+- FactCG instruction template + SummaC-style source chunking in NLI scorer
+- Updated all benchmark docs and competitor comparison
+
 ## [1.2.1] - 2026-02-27
 
 ### Added

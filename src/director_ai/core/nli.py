@@ -6,9 +6,9 @@
 """
 NLI-based logical divergence scorer.
 
-Recommended model: MiniCheck-DeBERTa-L (72.6% balanced accuracy on AggreFact).
-Default model: DeBERTa-v3-base-mnli-fever-anli (66.2% — use MiniCheck for
-production; install with ``pip install director-ai[minicheck]``).
+Default model: FactCG-DeBERTa-v3-Large (75.6% balanced accuracy on AggreFact).
+Alternative: MiniCheck-DeBERTa-L (72.6%),
+install with ``pip install director-ai[minicheck]``.
 
 Supports both 2-class and 3-class NLI models, optional 8-bit quantization
 via bitsandbytes, and configurable device/dtype.
@@ -17,14 +17,29 @@ via bitsandbytes, and configurable device/dtype.
 from __future__ import annotations
 
 import logging
+import re
 from functools import lru_cache
 
 import numpy as np
 
+from .metrics import metrics
+
 logger = logging.getLogger("DirectorAI.NLI")
 
-_DEFAULT_MODEL = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+_DEFAULT_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 _RECOMMENDED_MODEL = "lytang/MiniCheck-DeBERTa-L"
+
+# FactCG instruction template (NAACL 2025, derenlei/FactCG)
+_FACTCG_TEMPLATE = (
+    "{text_a}\n\nChoose your answer: based on the paragraph above "
+    'can we conclude that "{text_b}"?\n\nOPTIONS:\n- Yes\n- No\n'
+    "I think the answer is "
+)
+
+# Heuristic divergence defaults (shared with scorer.py)
+_DIVERGENCE_NEUTRAL = 0.5
+_DIVERGENCE_ALIGNED = 0.1
+_DIVERGENCE_CONTRADICTED = 0.9
 
 
 @lru_cache(maxsize=4)
@@ -75,7 +90,7 @@ def _load_nli_model(
         model.eval()
         logger.info("NLI model loaded successfully.")
         return tokenizer, model
-    except Exception as e:
+    except (ImportError, RuntimeError, OSError, ValueError) as e:
         logger.warning("NLI model unavailable: %s — using heuristic fallback", e)
         return None, None
 
@@ -99,7 +114,7 @@ class NLIScorer:
     use_model : bool — if True, attempt to load model on first score().
     max_length : int — max token length for NLI input.
     model_name : str | None — HuggingFace model ID or local path.
-        Defaults to DeBERTa-v3-base-mnli-fever-anli.
+        Defaults to FactCG-DeBERTa-v3-Large.
     backend : str — "deberta" (default) or "minicheck".
     quantize_8bit : bool — load model with 8-bit quantization (requires bitsandbytes).
     device : str | None — torch device ("cpu", "cuda", "cuda:0").
@@ -193,7 +208,7 @@ class NLIScorer:
         except ImportError:
             logger.warning("minicheck package not installed — pip install minicheck")
             return False
-        except Exception as e:
+        except (RuntimeError, OSError, ValueError, AttributeError) as e:
             logger.warning("MiniCheck init failed: %s — using heuristic fallback", e)
             return False
 
@@ -205,6 +220,10 @@ class NLIScorer:
         # MiniCheck returns list of floats in [0,1] where 1 = supported
         return float(1.0 - pred[0])
 
+    @property
+    def _is_factcg(self) -> bool:
+        return "factcg" in self._model_name.lower()
+
     def _model_score(self, premise: str, hypothesis: str) -> float:
         """Score using the NLI model.
 
@@ -213,6 +232,9 @@ class NLIScorer:
         the convention is label0 = not-supported, label1 = supported
         (FactCG).  For 3-class models the convention is label0 = entailment,
         label1 = neutral, label2 = contradiction (DeBERTa-mnli family).
+
+        FactCG models use an instruction template (single-string input).
+        Standard NLI models use two-segment (premise, hypothesis) input.
         """
         try:
             import torch
@@ -221,39 +243,108 @@ class NLIScorer:
 
         if self._tokenizer is None or self._model is None:
             raise RuntimeError("NLI model not loaded")
-        inputs = self._tokenizer(
-            premise,
-            hypothesis,
-            return_tensors="pt",
-            truncation=True,
-            max_length=self.max_length,
-        )
 
-        with torch.no_grad():
-            logits = self._model(**inputs).logits
+        with metrics.timer("nli_inference_seconds"):
+            if self._is_factcg:
+                text = _FACTCG_TEMPLATE.format(text_a=premise, text_b=hypothesis)
+                inputs = self._tokenizer(
+                    text,
+                    return_tensors="pt",
+                    truncation=True,
+                    max_length=self.max_length,
+                )
+            else:
+                inputs = self._tokenizer(
+                    premise,
+                    hypothesis,
+                    return_tensors="pt",
+                    truncation=True,
+                    max_length=self.max_length,
+                )
 
-        probs = torch.softmax(logits, dim=1).numpy()[0]
+            with torch.no_grad():
+                logits = self._model(**inputs).logits
+
+            probs = torch.softmax(logits, dim=1).numpy()[0]
 
         if len(probs) == 2:
-            # Binary: label0 = not-supported, label1 = supported
             return float(1.0 - probs[1])
 
         # 3-class NLI: label0 = entailment, label1 = neutral, label2 = contradiction
         return float(probs[2]) + float(probs[1]) * 0.5
+
+    # ── Chunked scoring ─────────────────────────────────────────────
+
+    @staticmethod
+    def _split_sentences(text: str) -> list[str]:
+        """Split on sentence-ending punctuation followed by whitespace."""
+        return [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s.strip()]
+
+    @staticmethod
+    def _estimate_tokens(text: str) -> int:
+        """Rough token count (~4 chars/token for English)."""
+        return len(text) // 4 + 1
+
+    def _build_chunks(self, sentences: list[str], budget: int) -> list[str]:
+        """Group sentences into chunks within *budget* tokens, 1-sentence overlap."""
+        chunks: list[str] = []
+        current: list[str] = []
+        current_tokens = 0
+
+        for sent in sentences:
+            sent_tokens = self._estimate_tokens(sent)
+            if current and current_tokens + sent_tokens > budget:
+                chunks.append(" ".join(current))
+                current = [current[-1]]
+                current_tokens = self._estimate_tokens(current[0])
+            current.append(sent)
+            current_tokens += sent_tokens
+
+        if current:
+            chunks.append(" ".join(current))
+        return chunks or [" ".join(sentences)]
+
+    def score_chunked(self, premise: str, hypothesis: str) -> tuple[float, list[float]]:
+        """Score with chunking for long hypotheses.
+
+        Returns (aggregated_score, per_chunk_scores).
+        Aggregation: max() — worst chunk wins (conservative).
+        Short texts bypass chunking (backward-compatible).
+        """
+        hypothesis_budget = int(self.max_length * 0.6)
+
+        if self._estimate_tokens(hypothesis) <= hypothesis_budget:
+            s = self.score(premise, hypothesis)
+            return s, [s]
+
+        sentences = self._split_sentences(hypothesis)
+        if len(sentences) <= 1:
+            s = self.score(premise, hypothesis)
+            return s, [s]
+
+        chunks = self._build_chunks(sentences, hypothesis_budget)
+
+        premise_budget = int(self.max_length * 0.4)
+        if self._estimate_tokens(premise) > premise_budget:
+            premise = premise[: premise_budget * 4]
+
+        chunk_scores = [self.score(premise, chunk) for chunk in chunks]
+        return max(chunk_scores), chunk_scores
 
     @staticmethod
     def _heuristic_score(premise: str, hypothesis: str) -> float:
         """Deterministic heuristic fallback (no model needed)."""
         h_lower = hypothesis.lower()
         if "consistent with reality" in h_lower:
-            return 0.1
+            return _DIVERGENCE_ALIGNED
         if "opposite is true" in h_lower:
-            return 0.9
+            return _DIVERGENCE_CONTRADICTED
         if "depends on your perspective" in h_lower:
-            return 0.5
+            return _DIVERGENCE_NEUTRAL
         p_words = set(premise.lower().split())
         h_words = set(hypothesis.lower().split())
         if not p_words:
-            return 0.5
+            return _DIVERGENCE_NEUTRAL
         overlap = len(p_words & h_words) / max(len(p_words), 1)
-        return float(np.clip(0.5 - overlap * 0.3, 0.1, 0.9))
+        raw = _DIVERGENCE_NEUTRAL - overlap * 0.3
+        return float(np.clip(raw, _DIVERGENCE_ALIGNED, _DIVERGENCE_CONTRADICTED))

@@ -330,35 +330,36 @@ Evaluated on [LLM-AggreFact](https://github.com/lytang/LLM-AggreFact) (29,320 sa
 
 | Model | AggreFact Balanced Acc | Latency (avg) |
 |-------|----------------------|---------------|
-| DeBERTa-v3-base (baseline) | 66.2% | 220 ms |
-| Fine-tuned DeBERTa-v3-large | 64.7% | 223 ms |
-| Fine-tuned DeBERTa-v3-base | 59.0% | 220 ms |
+| FactCG-DeBERTa-v3-Large (default) | **75.8%** | 575 ms (CPU) |
+| DeBERTa-v3-base (legacy) | 66.2% | 220 ms |
 
-**Per-dataset highlights:**
+**Per-dataset highlights** (FactCG, threshold 0.46):
 
 | Dataset | Balanced Accuracy | Notes |
 |---------|------------------|-------|
-| Reveal | 80.7% | Strong on factual claims |
-| FactCheck-GPT | 71.7% | Good on GPT-generated text |
-| Lfqa | 64.8% | Long-form QA |
-| RAGTruth | 58.9% | RAG-specific hallucination |
-| AggreFact-CNN | 53.0% | Summarization (known weak spot) |
+| Lfqa | 87.3% | Long-form QA |
+| TofuEval-MediaS | 86.2% | Media summarization |
+| ClaimVerify | 82.1% | Factual claims |
+| FactCheck-GPT | 81.1% | GPT-generated text |
+| RAGTruth | 79.0% | RAG-specific hallucination |
+| AggreFact-CNN | 68.8% | Summarization (weak spot) |
+| ExpertQA | 59.1% | Expert Q&A (weak spot) |
 
 **Head-to-head** (same benchmark, same metric — [LLM-AggreFact leaderboard](https://llm-aggrefact.github.io/)):
 
 | Tool | Bal. Acc | Params | Latency | Streaming |
 |------|---------|--------|---------|-----------|
 | Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms (GPU) | No |
+| **Director-AI (FactCG)** | **75.8%** | 0.4B | 575 ms (CPU) | **Yes** |
 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
 | MiniCheck-DeBERTa-L | 72.6% | 0.4B | ~120 ms | No |
 | HHEM-2.1-Open | 71.8% | ~0.4B | ~200 ms | No |
-| **Director-AI** | **66.2%** | 0.4B | 220 ms | **Yes** |
 
-**Honest assessment**: The NLI scorer alone is not state-of-the-art. Director-AI's
-value is in the *system* — combining NLI with your own KB facts, streaming
-token-level gating, and configurable halt thresholds. No competitor offers
-real-time streaming halt. The NLI component is pluggable; swap in any model
-that improves on these numbers.
+**Honest assessment**: 75.8% balanced accuracy ranks 4th on the LLM-AggreFact
+leaderboard — within 1.6pp of the top 7B model at 17x fewer params.
+Director-AI's unique value is the *system*: NLI + KB facts + streaming
+token-level halt. No competitor offers real-time streaming gating.
+CPU latency (~575 ms with source chunking) drops to ~50-80 ms on GPU.
 
 Full comparison with SelfCheckGPT, RAGAS, NeMo Guardrails, Lynx, and others
 in [`benchmarks/comparison/`](benchmarks/comparison/). Benchmark scripts in
@@ -374,7 +375,7 @@ src/director_ai/
 │   ├── kernel.py                   # Safety kernel (streaming interlock)
 │   ├── streaming.py                # Token-level streaming oversight
 │   ├── async_streaming.py          # Non-blocking async streaming
-│   ├── nli.py                      # NLI scorer (DeBERTa)
+│   ├── nli.py                      # NLI scorer (FactCG-DeBERTa-v3-Large)
 │   ├── actor.py                    # LLM generator interface
 │   ├── knowledge.py                # Ground truth store (in-memory)
 │   ├── vector_store.py             # Vector store (ChromaDB / sentence-transformers)
@@ -485,7 +486,7 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {1.2.1},
+  version   = {1.3.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

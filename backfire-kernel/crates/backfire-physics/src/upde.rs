@@ -16,6 +16,8 @@ use crate::params::{build_knm_matrix, N_LAYERS, OMEGA_N};
 pub struct UPDEState {
     /// Current phases θ_n (rad).
     pub theta: Vec<f64>,
+    /// Phase velocities dθ_n/dt (rad/s), excluding noise.
+    pub dtheta_dt: Vec<f64>,
     /// Simulation time.
     pub t: f64,
     /// Kuramoto order parameter R ∈ [0, 1].
@@ -26,8 +28,10 @@ pub struct UPDEState {
 
 impl UPDEState {
     pub fn new(theta: Vec<f64>) -> Self {
+        let n = theta.len();
         let mut s = Self {
             theta,
+            dtheta_dt: vec![0.0; n],
             t: 0.0,
             r_global: 0.0,
             step_count: 0,
@@ -44,7 +48,9 @@ impl UPDEState {
             .unwrap_or_default()
             .as_nanos() as u64;
         let mut rng = SimpleRng::new(seed);
-        let theta: Vec<f64> = (0..n).map(|_| rng.next_f64() * std::f64::consts::TAU).collect();
+        let theta: Vec<f64> = (0..n)
+            .map(|_| rng.next_f64() * std::f64::consts::TAU)
+            .collect();
         Self::new(theta)
     }
 
@@ -73,7 +79,11 @@ pub struct SimpleRng {
 impl SimpleRng {
     pub fn new(seed: u64) -> Self {
         Self {
-            state: if seed == 0 { 0xDEAD_BEEF_CAFE_BABE } else { seed },
+            state: if seed == 0 {
+                0xDEAD_BEEF_CAFE_BABE
+            } else {
+                seed
+            },
         }
     }
 
@@ -118,7 +128,13 @@ pub struct UPDEStepper {
 
 impl UPDEStepper {
     pub fn new(dt: f64, field_pressure: f64, noise_amplitude: f64) -> Self {
-        Self::with_params(OMEGA_N, build_knm_matrix(), dt, field_pressure, noise_amplitude)
+        Self::with_params(
+            OMEGA_N,
+            build_knm_matrix(),
+            dt,
+            field_pressure,
+            noise_amplitude,
+        )
     }
 
     pub fn with_params(
@@ -203,6 +219,7 @@ impl UPDEStepper {
 
         let mut new_state = UPDEState {
             theta: theta_new,
+            dtheta_dt: self.dtheta.to_vec(),
             t: state.t + self.dt,
             r_global: 0.0,
             step_count: state.step_count + 1,
@@ -237,7 +254,10 @@ mod tests {
     fn test_upde_state_random() {
         let state = UPDEState::random(N_LAYERS);
         assert_eq!(state.theta.len(), N_LAYERS);
-        assert!(state.theta.iter().all(|&th| th >= 0.0 && th < std::f64::consts::TAU));
+        assert!(state
+            .theta
+            .iter()
+            .all(|&th| (0.0..std::f64::consts::TAU).contains(&th)));
     }
 
     #[test]
@@ -255,7 +275,10 @@ mod tests {
         let mut stepper = UPDEStepper::default_params();
         let state = UPDEState::random(N_LAYERS);
         let new_state = stepper.run(&state, 100).unwrap();
-        assert!(new_state.theta.iter().all(|&th| th >= 0.0 && th < std::f64::consts::TAU));
+        assert!(new_state
+            .theta
+            .iter()
+            .all(|&th| (0.0..std::f64::consts::TAU).contains(&th)));
     }
 
     #[test]
@@ -263,6 +286,7 @@ mod tests {
         let mut stepper = UPDEStepper::default_params();
         let state = UPDEState {
             theta: vec![f64::NAN; N_LAYERS],
+            dtheta_dt: vec![0.0; N_LAYERS],
             t: 0.0,
             r_global: 0.0,
             step_count: 0,
@@ -278,6 +302,75 @@ mod tests {
     }
 
     #[test]
+    fn test_dtheta_dt_populated() {
+        let mut stepper = UPDEStepper::with_params(OMEGA_N, build_knm_matrix(), 0.01, 0.0, 0.0);
+        let state = UPDEState::new(vec![0.0; N_LAYERS]);
+        let new_state = stepper.step(&state).unwrap();
+        assert_eq!(new_state.dtheta_dt.len(), N_LAYERS);
+        // With zero initial phases and no noise, dtheta ≈ omega (coupling sums to 0)
+        for i in 0..N_LAYERS {
+            assert!(
+                (new_state.dtheta_dt[i] - OMEGA_N[i]).abs() < 0.1,
+                "dtheta_dt[{i}]={} should be near omega={}",
+                new_state.dtheta_dt[i],
+                OMEGA_N[i]
+            );
+        }
+    }
+
+    #[test]
+    fn test_run_zero_steps() {
+        let mut stepper = UPDEStepper::default_params();
+        let initial = UPDEState::new(vec![0.5; N_LAYERS]);
+        let result = stepper.run(&initial, 0).unwrap();
+        assert_eq!(result.step_count, 0);
+        for i in 0..N_LAYERS {
+            assert!((result.theta[i] - initial.theta[i]).abs() < 1e-12);
+        }
+    }
+
+    #[test]
+    fn test_random_states_differ() {
+        let s1 = UPDEState::random(N_LAYERS);
+        let s2 = UPDEState::random(N_LAYERS);
+        assert!(
+            s1.theta
+                .iter()
+                .zip(&s2.theta)
+                .any(|(a, b)| (a - b).abs() > 1e-6),
+            "Two random states should differ"
+        );
+    }
+
+    #[test]
+    fn test_inf_input_rejected() {
+        let mut stepper = UPDEStepper::default_params();
+        let state = UPDEState {
+            theta: vec![f64::INFINITY; N_LAYERS],
+            dtheta_dt: vec![0.0; N_LAYERS],
+            t: 0.0,
+            r_global: 0.0,
+            step_count: 0,
+        };
+        assert!(stepper.step(&state).is_err());
+    }
+
+    #[test]
+    fn test_order_param_dispersed() {
+        // Uniformly spread phases → R ≈ 0
+        let n = N_LAYERS;
+        let theta: Vec<f64> = (0..n)
+            .map(|i| i as f64 * std::f64::consts::TAU / n as f64)
+            .collect();
+        let state = UPDEState::new(theta);
+        assert!(
+            state.r_global < 0.15,
+            "Dispersed phases should give low R, got {}",
+            state.r_global
+        );
+    }
+
+    #[test]
     fn test_synchronisation_tendency() {
         // With high coupling, R should increase (tend toward sync)
         let mut knm = build_knm_matrix();
@@ -290,8 +383,8 @@ mod tests {
         let omega = [1.0; N_LAYERS];
         let mut stepper = UPDEStepper::with_params(omega, knm, 0.001, 0.0, 0.0);
         let initial = UPDEState::new(vec![
-            0.1, 0.2, 0.15, 0.12, 0.18, 0.11, 0.14, 0.13, 0.16, 0.17, 0.19, 0.1, 0.12, 0.14,
-            0.15, 0.11,
+            0.1, 0.2, 0.15, 0.12, 0.18, 0.11, 0.14, 0.13, 0.16, 0.17, 0.19, 0.1, 0.12, 0.14, 0.15,
+            0.11,
         ]);
         let r_before = initial.r_global;
         let final_state = stepper.run(&initial, 1000).unwrap();
@@ -300,5 +393,45 @@ mod tests {
             "R should increase: {r_before} → {}",
             final_state.r_global
         );
+    }
+
+    #[test]
+    fn test_full_sync_from_dispersed() {
+        // Dispersed initial phases (R ≈ 0) → near-full sync (R > 0.9)
+        // under strong uniform coupling with identical frequencies.
+        // Validates correct Kuramoto phase-difference coupling.
+        let n = N_LAYERS;
+        let theta: Vec<f64> = (0..n)
+            .map(|i| i as f64 * std::f64::consts::TAU / n as f64)
+            .collect();
+        let initial = UPDEState::new(theta);
+        assert!(
+            initial.r_global < 0.15,
+            "Should start dispersed, got R={}",
+            initial.r_global
+        );
+
+        let knm = [[5.0; N_LAYERS]; N_LAYERS];
+        let omega = [1.0; N_LAYERS];
+        let mut stepper = UPDEStepper::with_params(omega, knm, 0.001, 0.0, 0.0);
+        let final_state = stepper.run(&initial, 5000).unwrap();
+        assert!(
+            final_state.r_global > 0.9,
+            "Strong coupling should sync dispersed phases: R={} (expected > 0.9)",
+            final_state.r_global
+        );
+    }
+
+    #[test]
+    fn test_finite_velocities_noiseless() {
+        // Without noise or field, all phase velocities should remain finite
+        let omega = OMEGA_N;
+        let knm = build_knm_matrix();
+        let mut stepper = UPDEStepper::with_params(omega, knm, 0.001, 0.0, 0.0);
+        let initial = UPDEState::random(N_LAYERS);
+        let result = stepper.run(&initial, 500).unwrap();
+        for (i, &dth) in result.dtheta_dt.iter().enumerate() {
+            assert!(dth.is_finite(), "dθ/dt[{i}] should be finite, got {dth}");
+        }
     }
 }

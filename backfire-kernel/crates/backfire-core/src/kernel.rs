@@ -52,9 +52,9 @@ impl SafetyKernel {
         let mut output_buffer = Vec::with_capacity(tokens.len());
 
         for token in tokens {
-            let current_score = match std::panic::catch_unwind(
-                std::panic::AssertUnwindSafe(|| coherence_callback(token)),
-            ) {
+            let current_score = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                coherence_callback(token)
+            })) {
                 Ok(s) => {
                     if s.is_finite() {
                         s
@@ -141,9 +141,9 @@ impl StreamingKernel {
                 break;
             }
 
-            let score = match std::panic::catch_unwind(
-                std::panic::AssertUnwindSafe(|| coherence_callback(token)),
-            ) {
+            let score = match std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                coherence_callback(token)
+            })) {
                 Ok(s) if s.is_finite() => s,
                 _ => 0.0,
             };
@@ -299,10 +299,7 @@ mod tests {
     fn test_streaming_pass_all() {
         let config = BackfireConfig::default();
         let kernel = StreamingKernel::new(config);
-        let session = kernel.stream_tokens(
-            &["Hello ", "beautiful ", "world"],
-            &|_| 0.8,
-        );
+        let session = kernel.stream_tokens(&["Hello ", "beautiful ", "world"], &|_| 0.8);
         assert!(!session.halted);
         assert_eq!(session.output(), "Hello beautiful world");
         assert_eq!(session.token_count(), 3);
@@ -314,15 +311,12 @@ mod tests {
         let kernel = StreamingKernel::new(config);
         let scores = [0.8, 0.7, 0.3]; // Third token below hard_limit(0.5)
         let idx = Cell::new(0usize);
-        let session = kernel.stream_tokens(
-            &["Hello ", "world ", "bad"],
-            &|_| {
-                let i = idx.get();
-                let s = scores[i];
-                idx.set(i + 1);
-                s
-            },
-        );
+        let session = kernel.stream_tokens(&["Hello ", "world ", "bad"], &|_| {
+            let i = idx.get();
+            let s = scores[i];
+            idx.set(i + 1);
+            s
+        });
         assert!(session.halted);
         assert_eq!(session.halt_index, 2);
         assert!(session.halt_reason.contains("hard_limit"));
@@ -335,10 +329,7 @@ mod tests {
         config.window_threshold = 0.7;
         let kernel = StreamingKernel::new(config);
         // All tokens at 0.6 → window avg = 0.6 < 0.7 → halt after window fills
-        let session = kernel.stream_tokens(
-            &["a ", "b ", "c ", "d "],
-            &|_| 0.6,
-        );
+        let session = kernel.stream_tokens(&["a ", "b ", "c ", "d "], &|_| 0.6);
         assert!(session.halted);
         assert!(session.halt_reason.contains("window_avg"));
     }
@@ -353,15 +344,12 @@ mod tests {
         let kernel = StreamingKernel::new(config);
         let scores = [0.9, 0.8, 0.7, 0.5]; // Drop from 0.8→0.5 = 0.3 > 0.1
         let idx = Cell::new(0usize);
-        let session = kernel.stream_tokens(
-            &["a ", "b ", "c ", "d "],
-            &|_| {
-                let i = idx.get();
-                let s = scores[i.min(scores.len() - 1)];
-                idx.set(i + 1);
-                s
-            },
-        );
+        let session = kernel.stream_tokens(&["a ", "b ", "c ", "d "], &|_| {
+            let i = idx.get();
+            let s = scores[i.min(scores.len() - 1)];
+            idx.set(i + 1);
+            s
+        });
         assert!(session.halted);
         assert!(session.halt_reason.contains("downward_trend"));
     }
@@ -380,15 +368,12 @@ mod tests {
         let kernel = StreamingKernel::new(config);
         let scores = [0.8, 0.6, 0.7];
         let idx = Cell::new(0usize);
-        let session = kernel.stream_tokens(
-            &["a", "b", "c"],
-            &|_| {
-                let i = idx.get();
-                let s = scores[i];
-                idx.set(i + 1);
-                s
-            },
-        );
+        let session = kernel.stream_tokens(&["a", "b", "c"], &|_| {
+            let i = idx.get();
+            let s = scores[i];
+            idx.set(i + 1);
+            s
+        });
         assert!((session.avg_coherence() - 0.7).abs() < 1e-9);
     }
 
@@ -397,7 +382,11 @@ mod tests {
         let config = BackfireConfig::default();
         let kernel = StreamingKernel::new(config);
         let output = kernel.stream_output(&["ok ", "bad"], &|t| {
-            if t == "bad" { 0.1 } else { 0.8 }
+            if t == "bad" {
+                0.1
+            } else {
+                0.8
+            }
         });
         assert!(output.contains("KERNEL INTERRUPT"));
     }
@@ -408,5 +397,83 @@ mod tests {
         let kernel = StreamingKernel::new(config);
         let output = kernel.stream_output(&["Hello ", "world"], &|_| 0.8);
         assert_eq!(output, "Hello world");
+    }
+
+    #[test]
+    fn test_safety_kernel_from_config() {
+        let config = BackfireConfig {
+            hard_limit: 0.42,
+            ..BackfireConfig::default()
+        };
+        let kernel = SafetyKernel::from_config(&config);
+        assert!(kernel.is_active());
+        let output = kernel.stream_output(&["ok"], &|_| 0.45);
+        assert_eq!(output, "ok");
+        let output2 = kernel.stream_output(&["fail"], &|_| 0.41);
+        assert!(output2.contains("KERNEL INTERRUPT"));
+    }
+
+    #[test]
+    fn test_streaming_is_active_and_reactivate() {
+        let config = BackfireConfig::default();
+        let kernel = StreamingKernel::new(config);
+        assert!(kernel.is_active());
+        kernel.is_active.store(false, Ordering::SeqCst);
+        assert!(!kernel.is_active());
+        kernel.reactivate();
+        assert!(kernel.is_active());
+    }
+
+    #[test]
+    fn test_streaming_inactive_kernel_halts_immediately() {
+        let config = BackfireConfig::default();
+        let kernel = StreamingKernel::new(config);
+        kernel.is_active.store(false, Ordering::SeqCst);
+        let session = kernel.stream_tokens(&["a", "b", "c"], &|_| 0.9);
+        assert!(session.halted);
+        assert_eq!(session.halt_index, 0);
+        assert!(session.halt_reason.contains("kernel_inactive"));
+        assert!(session.tokens.is_empty());
+    }
+
+    #[test]
+    fn test_streaming_callback_panic_halts() {
+        let config = BackfireConfig::default();
+        let kernel = StreamingKernel::new(config);
+        let session = kernel.stream_tokens(&["trigger_panic"], &|_| panic!("callback exploded"));
+        assert!(session.halted);
+        assert!(session.halt_reason.contains("hard_limit"));
+    }
+
+    #[test]
+    fn test_streaming_nan_callback_halts() {
+        let config = BackfireConfig::default();
+        let kernel = StreamingKernel::new(config);
+        let session = kernel.stream_tokens(&["nan_token"], &|_| f64::NAN);
+        assert!(session.halted);
+        assert!(session.halt_reason.contains("hard_limit"));
+    }
+
+    #[test]
+    fn test_streaming_empty_tokens() {
+        let config = BackfireConfig::default();
+        let kernel = StreamingKernel::new(config);
+        let session = kernel.stream_tokens(&[], &|_| 0.8);
+        assert!(!session.halted);
+        assert_eq!(session.token_count(), 0);
+        assert_eq!(session.output(), "");
+    }
+
+    #[test]
+    fn test_streaming_events_match_tokens() {
+        let config = BackfireConfig::default();
+        let kernel = StreamingKernel::new(config);
+        let session = kernel.stream_tokens(&["a", "b"], &|_| 0.9);
+        assert_eq!(session.events.len(), 2);
+        assert_eq!(session.events[0].token, "a");
+        assert_eq!(session.events[1].token, "b");
+        assert_eq!(session.events[0].index, 0);
+        assert_eq!(session.events[1].index, 1);
+        assert!(!session.events[0].halted);
     }
 }

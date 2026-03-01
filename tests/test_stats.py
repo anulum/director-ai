@@ -63,3 +63,41 @@ class TestStatsStore:
         s = store.summary()
         assert s["total"] == 10
         assert s["approved"] == 5
+
+    def test_record_after_close_raises(self, store):
+        store.close()
+        import sqlite3
+
+        with pytest.raises(sqlite3.ProgrammingError):
+            store.record_review(approved=True, score=0.5)
+
+    def test_summary_after_close_raises(self, store):
+        store.close()
+        import sqlite3
+
+        with pytest.raises(sqlite3.ProgrammingError):
+            store.summary()
+
+    def test_hourly_breakdown_empty(self, store):
+        breakdown = store.hourly_breakdown(days=1)
+        assert breakdown == []
+
+    def test_record_minimal_fields(self, store):
+        store.record_review(approved=True)
+        s = store.summary()
+        assert s["total"] == 1
+        assert s["avg_score"] is None
+
+    def test_double_close_safe(self, tmp_path):
+        db = tmp_path / "dbl.db"
+        s = StatsStore(db_path=db)
+        s.close()
+        # Second close should not raise
+        s.close()
+
+    def test_halted_count(self, store):
+        store.record_review(approved=False, score=0.2, halted=True)
+        store.record_review(approved=False, score=0.3, halted=True)
+        store.record_review(approved=True, score=0.8, halted=False)
+        s = store.summary()
+        assert s["halted"] == 2

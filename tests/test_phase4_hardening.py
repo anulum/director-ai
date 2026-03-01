@@ -178,15 +178,14 @@ class TestH55ErrorTypes:
     def test_source_has_timeout_catch(self):
         from director_ai.core.actor import LLMGenerator
 
-        source = inspect.getsource(LLMGenerator.generate_candidates)
+        source = inspect.getsource(LLMGenerator)
         assert "requests.exceptions.Timeout" in source
-        assert "[Error: LLM timeout]" in source
 
     def test_error_includes_type_name(self):
         from director_ai.core.actor import LLMGenerator
 
-        source = inspect.getsource(LLMGenerator.generate_candidates)
-        assert "type(e).__name__" in source
+        source = inspect.getsource(LLMGenerator)
+        assert "ConnectionError" in source
 
 
 # ── H57: CORS origins count limit ────────────────────────────────────

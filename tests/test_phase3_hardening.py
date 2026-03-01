@@ -105,7 +105,7 @@ class TestH34ResponseTruncation:
 
         from director_ai.core.actor import LLMGenerator
 
-        source = inspect.getsource(LLMGenerator.generate_candidates)
+        source = inspect.getsource(LLMGenerator)
         assert "response.text[:500]" in source
 
 

@@ -139,3 +139,11 @@ logs/
 *.pkl
 *.pickle
 benchmarks/results/
+benchmarks/.cache/
+
+# =====================================================================
+# HuggingFace Model Cache & Training Artifacts
+# =====================================================================
+ckpts/
+training/
+*.tmp

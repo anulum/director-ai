@@ -156,12 +156,7 @@ impl SpectralBridge {
 }
 
 /// Apply gauge fixing to eigenvectors for temporal continuity.
-fn apply_gauge(
-    eigvecs: &mut [f64],
-    n: usize,
-    gauge: GaugeMethod,
-    prev_eigvecs: Option<&[f64]>,
-) {
+fn apply_gauge(eigvecs: &mut [f64], n: usize, gauge: GaugeMethod, prev_eigvecs: Option<&[f64]>) {
     match prev_eigvecs {
         None => {
             // First call: sign convention (largest-magnitude component positive)
@@ -203,7 +198,11 @@ fn apply_gauge(
 fn sort_eigenpairs(eigvals: &mut [f64], eigvecs: &mut [f64], n: usize) {
     // Build index array
     let mut indices: Vec<usize> = (0..n).collect();
-    indices.sort_by(|&a, &b| eigvals[a].partial_cmp(&eigvals[b]).unwrap_or(std::cmp::Ordering::Equal));
+    indices.sort_by(|&a, &b| {
+        eigvals[a]
+            .partial_cmp(&eigvals[b])
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
 
     // Apply permutation via temporary buffers
     let sorted_vals: Vec<f64> = indices.iter().map(|&i| eigvals[i]).collect();
@@ -224,12 +223,7 @@ fn sort_eigenpairs(eigvals: &mut [f64], eigvecs: &mut [f64], n: usize) {
 /// `v_out` receives the n×n eigenvector matrix (columns = eigvectors).
 ///
 /// For N=16, converges in ≤15 sweeps. Total: O(N³ × sweeps).
-fn jacobi_eigen_symmetric(
-    a: &mut [f64],
-    n: usize,
-    eigvals_out: &mut [f64],
-    v_out: &mut [f64],
-) {
+fn jacobi_eigen_symmetric(a: &mut [f64], n: usize, eigvals_out: &mut [f64], v_out: &mut [f64]) {
     const MAX_SWEEPS: usize = 50;
     const TOL: f64 = 1e-14;
 
@@ -362,10 +356,7 @@ mod tests {
         let n = 4;
         // Build symmetric matrix
         let mut a = vec![
-            4.0, 1.0, 0.5, 0.2,
-            1.0, 3.0, 0.8, 0.3,
-            0.5, 0.8, 2.0, 0.1,
-            0.2, 0.3, 0.1, 1.0,
+            4.0, 1.0, 0.5, 0.2, 1.0, 3.0, 0.8, 0.3, 0.5, 0.8, 2.0, 0.1, 0.2, 0.3, 0.1, 1.0,
         ];
         let mut eigvals = vec![0.0; n];
         let mut eigvecs = vec![0.0; n * n];
@@ -405,8 +396,16 @@ mod tests {
         let mut eigvecs = vec![0.0; n * n];
         bridge.compute_eigenpairs(&w, &mut eigvals, &mut eigvecs);
 
-        assert!(eigvals[0].abs() < 1e-10, "First eigenvalue should be ~0, got {}", eigvals[0]);
-        assert!(eigvals[1] > 0.01, "Fiedler value should be positive, got {}", eigvals[1]);
+        assert!(
+            eigvals[0].abs() < 1e-10,
+            "First eigenvalue should be ~0, got {}",
+            eigvals[0]
+        );
+        assert!(
+            eigvals[1] > 0.01,
+            "Fiedler value should be positive, got {}",
+            eigvals[1]
+        );
     }
 
     #[test]
@@ -430,7 +429,10 @@ mod tests {
             assert!(
                 eigvals[i] >= eigvals[i - 1] - 1e-10,
                 "Eigenvalues not sorted: eigvals[{}]={} < eigvals[{}]={}",
-                i, eigvals[i], i - 1, eigvals[i - 1]
+                i,
+                eigvals[i],
+                i - 1,
+                eigvals[i - 1]
             );
         }
     }
@@ -459,7 +461,10 @@ mod tests {
 
         // All eigenvalues should be 0 for a fully disconnected graph
         for v in &eigvals {
-            assert!(v.abs() < 1e-10, "Disconnected graph eigval should be 0, got {v}");
+            assert!(
+                v.abs() < 1e-10,
+                "Disconnected graph eigval should be 0, got {v}"
+            );
         }
     }
 
@@ -481,8 +486,8 @@ mod tests {
         bridge.compute_eigenpairs(&w, &mut eigvals1, &mut eigvecs1);
 
         // Slightly perturb W
-        w[0 * n + 1] = 1.01;
-        w[1 * n + 0] = 1.01;
+        w[1] = 1.01; // [0][1]
+        w[n] = 1.01; // [1][0]
 
         let mut eigvals2 = vec![0.0; n];
         let mut eigvecs2 = vec![0.0; n * n];

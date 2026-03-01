@@ -113,18 +113,50 @@ class AggreFactMetrics:
         }
 
 
+_FACTCG_TEMPLATE = (
+    '{text_a}\n\nChoose your answer: based on the paragraph above '
+    'can we conclude that "{text_b}"?\n\nOPTIONS:\n- Yes\n- No\n'
+    'I think the answer is '
+)
+
+
+def _chunk_source(text: str, max_tokens: int = 550) -> list[str]:
+    """Split source document into sentence-level chunks (SummaC-style)."""
+    import nltk
+    try:
+        sents = nltk.sent_tokenize(text)
+    except LookupError:
+        nltk.download("punkt_tab", quiet=True)
+        sents = nltk.sent_tokenize(text)
+
+    chunks: list[str] = []
+    chunk, chunk_len = "", 0
+    for s in sents:
+        s_len = len(s.split())
+        if chunk and chunk_len + s_len > max_tokens:
+            chunks.append(chunk)
+            chunk, chunk_len = s, s_len
+        else:
+            chunk = f"{chunk}\n{s}".strip("\n") if chunk else s
+            chunk_len += s_len
+    if chunk:
+        chunks.append(chunk)
+    return chunks or [text]
+
+
 class _BinaryNLIPredictor:
     """NLI model wrapped for binary factual consistency scoring.
 
     Returns entailment probability as the "supported" score.
+    FactCG models use instruction template + SummaC-style source chunking.
     """
 
-    def __init__(self, model_name: str | None = None, max_length: int = 512):
+    def __init__(self, model_name: str | None = None, max_length: int = 2048):
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.model_name = model_name or os.environ.get(
-            "DIRECTOR_NLI_MODEL", "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+            "DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"
         )
         logger.info("Loading NLI model: %s", self.model_name)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
@@ -135,21 +167,25 @@ class _BinaryNLIPredictor:
         self.max_length = max_length
         self._torch = torch
         self._num_labels = self.model.config.num_labels
+        self._is_factcg = "factcg" in self.model_name.lower()
         logger.info(
-            "Model loaded on %s (%s, %d labels)",
-            self.device, self.model_name, self._num_labels,
+            "Model loaded on %s (%s, %d labels, factcg=%s)",
+            self.device, self.model_name, self._num_labels, self._is_factcg,
         )
 
-    def score(self, premise: str, hypothesis: str) -> float:
-        """Return P(supported) as factual consistency score in [0, 1].
-
-        2-class models (FactCG): label1 = supported.
-        3-class models (DeBERTa-mnli): label0 = entailment.
-        """
-        inputs = self.tokenizer(
-            premise, hypothesis,
-            return_tensors="pt", truncation=True, max_length=self.max_length,
-        )
+    def _score_single(self, premise: str, hypothesis: str) -> float:
+        """Score a single (premise, hypothesis) pair."""
+        if self._is_factcg:
+            text = _FACTCG_TEMPLATE.format(text_a=premise, text_b=hypothesis)
+            inputs = self.tokenizer(
+                text,
+                return_tensors="pt", truncation=True, max_length=self.max_length,
+            )
+        else:
+            inputs = self.tokenizer(
+                premise, hypothesis,
+                return_tensors="pt", truncation=True, max_length=self.max_length,
+            )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         with self._torch.no_grad():
             logits = self.model(**inputs).logits
@@ -157,6 +193,17 @@ class _BinaryNLIPredictor:
         if self._num_labels == 2:
             return float(probs[1])
         return float(probs[0])
+
+    def score(self, premise: str, hypothesis: str) -> float:
+        """Return P(supported) with SummaC source chunking for FactCG.
+
+        Splits premise into sentence chunks, scores each vs hypothesis,
+        returns max (matching official FactCG evaluation).
+        """
+        if not self._is_factcg:
+            return self._score_single(premise, hypothesis)
+        chunks = _chunk_source(premise)
+        return max(self._score_single(c, hypothesis) for c in chunks)
 
 
 def _load_aggrefact(max_samples: int | None = None) -> list[dict]:

@@ -317,7 +317,7 @@ mod tests {
     fn test_softplus_positive() {
         assert!(softplus(0.0) > 0.0);
         assert!(softplus(-5.0) > 0.0);
-        assert!((softplus(0.0) - 0.6931471805599453).abs() < 1e-10);
+        assert!((softplus(0.0) - std::f64::consts::LN_2).abs() < 1e-10);
     }
 
     #[test]
@@ -470,8 +470,16 @@ mod tests {
         let mut loss_fn = |w: &[f64]| -> f64 {
             grad_spectral.compute_eigenpairs(w, &mut grad_eigvals, &mut grad_eigvecs);
             compute_costs(
-                &theta, w, n, &grad_eigvals, &grad_eigvecs,
-                &phi_target, &p_mask, &w_clone, 0.5, None,
+                &theta,
+                w,
+                n,
+                &grad_eigvals,
+                &grad_eigvecs,
+                &phi_target,
+                &p_mask,
+                &w_clone,
+                0.5,
+                None,
             )
             .u_total
         };
@@ -565,6 +573,6 @@ mod tests {
         assert_ne!(GradientMethod::FiniteDifference, GradientMethod::Analytic);
         let m = GradientMethod::Analytic;
         let _m2 = m; // Copy
-        let _m3 = m.clone(); // Clone
+        let _m3 = m; // Copy (also Clone)
     }
 }

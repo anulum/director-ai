@@ -23,20 +23,21 @@ coherence = 1.0 - (0.6 * H_logical + 0.4 * H_factual)
 ### Heuristic (default, no GPU)
 Word-overlap scoring. Fast (<1ms) but limited to vocabulary-level detection.
 
-### DeBERTa (standard NLI)
+### FactCG-DeBERTa-v3-Large (default)
 ```python
 scorer = CoherenceScorer(use_nli=True)
 ```
-66.2% balanced accuracy on AggreFact. Catches semantic contradictions.
+75.8% balanced accuracy on AggreFact (4th on leaderboard). Uses instruction
+template + SummaC source chunking. ~575 ms CPU, ~50-80 ms GPU.
 
-### MiniCheck (recommended)
+### MiniCheck (alternative)
 ```python
 scorer = CoherenceScorer(
     use_nli=True,
     nli_model="lytang/MiniCheck-DeBERTa-L",
 )
 ```
-72.6% balanced accuracy. Best quality/speed tradeoff for production.
+72.6% balanced accuracy. Faster on CPU (~120 ms) but lower accuracy.
 
 ## Score Caching
 

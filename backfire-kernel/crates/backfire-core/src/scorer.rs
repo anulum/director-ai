@@ -57,10 +57,7 @@ impl CoherenceScorer {
         };
 
         // Prototype heuristic checks (NLI replaces these in production)
-        if context.contains("16")
-            && !text_output.contains("16")
-            && text_output.contains("layers")
-        {
+        if context.contains("16") && !text_output.contains("16") && text_output.contains("layers") {
             return 0.9;
         }
 
@@ -93,21 +90,9 @@ impl CoherenceScorer {
     ///
     /// Returns `(h_logic, h_fact, coherence)` with all values in [0, 1].
     /// Mirrors `_heuristic_coherence()` from `scorer.py:127-135`.
-    fn compute_coherence(
-        &self,
-        prompt: &str,
-        action: &str,
-    ) -> (f64, f64, f64) {
-        let h_logic = clamp_score(
-            self.calculate_logical_divergence(prompt, action),
-            0.0,
-            1.0,
-        );
-        let h_fact = clamp_score(
-            self.calculate_factual_divergence(prompt, action),
-            0.0,
-            1.0,
-        );
+    fn compute_coherence(&self, prompt: &str, action: &str) -> (f64, f64, f64) {
+        let h_logic = clamp_score(self.calculate_logical_divergence(prompt, action), 0.0, 1.0);
+        let h_fact = clamp_score(self.calculate_factual_divergence(prompt, action), 0.0, 1.0);
         let coherence = clamp_score(
             1.0 - (self.config.w_logic * h_logic + self.config.w_fact * h_fact),
             0.0,
@@ -137,7 +122,8 @@ impl CoherenceScorer {
             }
         }
 
-        let score = CoherenceScore::new(coherence, approved, h_logic, h_fact);
+        let score = CoherenceScore::new(coherence, approved, h_logic, h_fact)
+            .with_warning(self.config.soft_limit);
         (approved, score)
     }
 
@@ -154,6 +140,16 @@ impl CoherenceScorer {
     /// Read-only access to config.
     pub fn config(&self) -> &BackfireConfig {
         &self.config
+    }
+
+    /// Update coherence threshold at runtime.
+    pub fn set_threshold(&mut self, threshold: f64) {
+        self.config.coherence_threshold = threshold;
+    }
+
+    /// Update soft limit at runtime.
+    pub fn set_soft_limit(&mut self, soft_limit: f64) {
+        self.config.soft_limit = soft_limit;
     }
 
     /// Current history length.
@@ -212,10 +208,7 @@ mod tests {
     #[test]
     fn test_factual_divergence_correct() {
         let scorer = make_scorer();
-        let h = scorer.calculate_factual_divergence(
-            "How many SCPN layers?",
-            "There are 16 layers",
-        );
+        let h = scorer.calculate_factual_divergence("How many SCPN layers?", "There are 16 layers");
         assert!(h < 0.5);
     }
 
@@ -262,5 +255,37 @@ mod tests {
         // h_fact = 0.5 (no facts → neutral), h_logic = 0.1
         // coherence = 1 - (0.6*0.1 + 0.4*0.5) = 1 - 0.26 = 0.74
         assert!((score.score - 0.74).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_set_threshold_affects_review() {
+        let mut scorer = make_scorer();
+        scorer.set_threshold(0.99);
+        let (approved, _) = scorer.review("test", "consistent with reality");
+        assert!(
+            !approved,
+            "Raising threshold to 0.99 should reject most outputs"
+        );
+    }
+
+    #[test]
+    fn test_set_soft_limit_affects_warning() {
+        let mut scorer = make_scorer();
+        scorer.set_soft_limit(0.99);
+        let (_, score) = scorer.review(
+            "What color is the sky?",
+            "The sky is blue, consistent with reality",
+        );
+        if score.approved {
+            assert!(score.warning, "Soft limit at 0.99 should trigger warning");
+        }
+    }
+
+    #[test]
+    fn test_config_returns_reference() {
+        let scorer = make_scorer();
+        let cfg = scorer.config();
+        assert_eq!(cfg.coherence_threshold, 0.6);
+        assert_eq!(cfg.hard_limit, 0.5);
     }
 }

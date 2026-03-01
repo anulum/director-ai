@@ -40,11 +40,10 @@ impl NliBackend for HeuristicNli {
             return 0.5;
         }
 
-        // Simple keyword overlap heuristic
-        let p_words: std::collections::HashSet<&str> =
-            _premise.to_lowercase().leak().split_whitespace().collect();
-        let h_words: std::collections::HashSet<&str> =
-            hypothesis.to_lowercase().leak().split_whitespace().collect();
+        let p_lower = _premise.to_lowercase();
+        let h_lower_owned = hypothesis.to_lowercase();
+        let p_words: std::collections::HashSet<&str> = p_lower.split_whitespace().collect();
+        let h_words: std::collections::HashSet<&str> = h_lower_owned.split_whitespace().collect();
 
         if p_words.is_empty() {
             return 0.5;
@@ -61,8 +60,10 @@ impl NliBackend for HeuristicNli {
 /// Used by the PyO3 FFI layer to delegate NLI scoring back to Python
 /// (where the DeBERTa model lives) while keeping the rest of the
 /// hot path in Rust.
+type NliScoreFn = Box<dyn Fn(&str, &str) -> f64 + Send + Sync>;
+
 pub struct ExternalNli {
-    score_fn: Box<dyn Fn(&str, &str) -> f64 + Send + Sync>,
+    score_fn: NliScoreFn,
 }
 
 impl ExternalNli {

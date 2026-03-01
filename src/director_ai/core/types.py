@@ -44,6 +44,7 @@ class ScoringEvidence:
     nli_premise: str
     nli_hypothesis: str
     nli_score: float
+    chunk_scores: list[float] | None = None
 
 
 @dataclass

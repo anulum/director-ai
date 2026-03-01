@@ -59,6 +59,8 @@ class AsyncStreamingKernel(SafetyKernel):
         trend_threshold: float = 0.15,
         on_halt=None,
         soft_limit: float = 0.6,
+        token_timeout: float = 0.0,
+        total_timeout: float = 0.0,
     ) -> None:
         if not (0.0 <= hard_limit <= 1.0):
             raise ValueError(f"hard_limit must be in [0, 1], got {hard_limit}")
@@ -72,7 +74,12 @@ class AsyncStreamingKernel(SafetyKernel):
             raise ValueError(f"trend_window must be >= 2, got {trend_window}")
         if trend_threshold <= 0:
             raise ValueError(f"trend_threshold must be > 0, got {trend_threshold}")
-        super().__init__(hard_limit=hard_limit, on_halt=on_halt)
+        super().__init__(
+            hard_limit=hard_limit,
+            on_halt=on_halt,
+            token_timeout=token_timeout,
+            total_timeout=total_timeout,
+        )
         self.window_size = window_size
         self.window_threshold = window_threshold
         self.trend_window = trend_window
@@ -98,6 +105,7 @@ class AsyncStreamingKernel(SafetyKernel):
         window: deque[float] = deque(maxlen=self.window_size)
         coherence_history: list[float] = []
         i = 0
+        stream_start = time.monotonic()
 
         async for token in self._iter_tokens(token_source):
             if not isinstance(token, str):
@@ -113,12 +121,38 @@ class AsyncStreamingKernel(SafetyKernel):
                 )
                 return
 
+            # Total timeout check
+            elapsed = time.monotonic() - stream_start
+            if self.total_timeout > 0 and elapsed > self.total_timeout:
+                self.emergency_stop()
+                yield TokenEvent(
+                    token=token,
+                    index=i,
+                    coherence=0.0,
+                    timestamp=time.monotonic(),
+                    halted=True,
+                )
+                return
+
+            token_start = time.monotonic()
             try:
                 score = await self._call_callback(coherence_callback, token)
-            except Exception as exc:
+            except (TypeError, ValueError, RuntimeError) as exc:
                 logger.error("Coherence callback raised %s — treating as score=0", exc)
                 score = 0.0
             now = time.monotonic()
+
+            # Token timeout check
+            if self.token_timeout > 0 and (now - token_start) > self.token_timeout:
+                self.emergency_stop()
+                yield TokenEvent(
+                    token=token,
+                    index=i,
+                    coherence=score,
+                    timestamp=now,
+                    halted=True,
+                )
+                return
 
             event = TokenEvent(
                 token=token,

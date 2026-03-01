@@ -57,14 +57,37 @@ class TestOpenAIProvider:
         assert candidates[0]["source"] == "openai/gpt-4o-mini"
 
     @patch("director_ai.integrations.providers.requests.post")
-    def test_generate_candidates_error(self, mock_post):
-        mock_post.side_effect = Exception("Connection refused")
+    def test_generate_candidates_timeout(self, mock_post):
+        import requests as _req
 
+        mock_post.side_effect = _req.exceptions.Timeout("timed out")
         p = OpenAIProvider(api_key="sk-test")
         candidates = p.generate_candidates("Hello", n=1)
         assert len(candidates) == 1
-        assert "Error" in candidates[0]["text"]
+        assert candidates[0]["text"] == "[Timeout]"
         assert candidates[0]["source"] == "error"
+
+    @patch("director_ai.integrations.providers.requests.post")
+    def test_generate_candidates_http_error(self, mock_post):
+        import requests as _req
+
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.side_effect = _req.exceptions.HTTPError("429")
+        mock_post.return_value = mock_resp
+        p = OpenAIProvider(api_key="sk-test")
+        candidates = p.generate_candidates("Hello", n=1)
+        assert len(candidates) == 1
+        assert "HTTP Error" in candidates[0]["text"]
+
+    @patch("director_ai.integrations.providers.requests.post")
+    def test_generate_candidates_connection_error(self, mock_post):
+        import requests as _req
+
+        mock_post.side_effect = _req.exceptions.ConnectionError("refused")
+        p = OpenAIProvider(api_key="sk-test")
+        candidates = p.generate_candidates("Hello", n=1)
+        assert len(candidates) == 1
+        assert candidates[0]["text"] == "[Connection Error]"
 
 
 class TestAnthropicProvider:
@@ -92,13 +115,14 @@ class TestAnthropicProvider:
         assert candidates[0]["text"] == "Answer"
 
     @patch("director_ai.integrations.providers.requests.post")
-    def test_generate_candidates_error(self, mock_post):
-        mock_post.side_effect = Exception("Auth failed")
+    def test_generate_candidates_timeout(self, mock_post):
+        import requests as _req
 
+        mock_post.side_effect = _req.exceptions.Timeout("timed out")
         p = AnthropicProvider(api_key="bad-key")
         candidates = p.generate_candidates("Hello", n=1)
         assert len(candidates) == 1
-        assert "Error" in candidates[0]["text"]
+        assert candidates[0]["text"] == "[Timeout]"
 
 
 class TestHuggingFaceProvider:

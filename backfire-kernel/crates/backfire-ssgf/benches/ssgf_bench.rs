@@ -19,14 +19,15 @@ use criterion::{black_box, criterion_group, criterion_main, Criterion};
 
 use backfire_physics::params::{build_knm_matrix, OMEGA_N};
 use backfire_ssgf::costs::{
-    compute_costs, cost_c10_boundary, cost_c8_phase, cost_micro, regularise_graph,
-    CostWeights,
+    compute_costs, cost_c10_boundary, cost_c8_phase, cost_micro, regularise_graph, CostWeights,
 };
-use backfire_ssgf::decoder::{decode_gram_softplus, decode_rbf, gradient_analytic_gram, gradient_fd};
+use backfire_ssgf::decoder::{
+    decode_gram_softplus, decode_rbf, gradient_analytic_gram, gradient_fd,
+};
 use backfire_ssgf::engine::{SSGFConfig, SSGFEngine};
-use backfire_ssgf::GradientMethod;
 use backfire_ssgf::micro::MicroCycleEngine;
 use backfire_ssgf::spectral::{GaugeMethod, SpectralBridge};
+use backfire_ssgf::GradientMethod;
 
 const N: usize = 16;
 
@@ -179,8 +180,9 @@ fn bench_cost_micro(c: &mut Criterion) {
 
 fn bench_cost_c8_phase(c: &mut Criterion) {
     let theta = make_theta();
-    let eigvals = vec![0.0, 0.5, 1.0, 1.5, 1.8, 2.0, 2.1, 2.2,
-                       2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0];
+    let eigvals = vec![
+        0.0, 0.5, 1.0, 1.5, 1.8, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0,
+    ];
     c.bench_function("cost_c8_phase_16", |b| {
         b.iter(|| cost_c8_phase(black_box(&theta), black_box(&eigvals)))
     });
@@ -189,8 +191,8 @@ fn bench_cost_c8_phase(c: &mut Criterion) {
 fn bench_cost_c10_boundary(c: &mut Criterion) {
     let w = make_w();
     let mask = vec![
-        true, true, true, true, true, true, true, true,
-        false, false, false, false, false, false, false, false,
+        true, true, true, true, true, true, true, true, false, false, false, false, false, false,
+        false, false,
     ];
     c.bench_function("cost_c10_boundary_16", |b| {
         b.iter(|| cost_c10_boundary(black_box(&w), N, black_box(&mask)))
@@ -199,8 +201,9 @@ fn bench_cost_c10_boundary(c: &mut Criterion) {
 
 fn bench_regularise_graph(c: &mut Criterion) {
     let w = make_w();
-    let eigvals = vec![0.0, 0.5, 1.0, 1.5, 1.8, 2.0, 2.1, 2.2,
-                       2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0];
+    let eigvals = vec![
+        0.0, 0.5, 1.0, 1.5, 1.8, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0,
+    ];
     c.bench_function("regularise_graph_16", |b| {
         b.iter(|| regularise_graph(black_box(&w), black_box(&eigvals), 0.01, 0.1))
     });
@@ -261,8 +264,16 @@ fn bench_gradient_fd(c: &mut Criterion) {
             let mut loss_fn = |w: &[f64]| -> f64 {
                 spectral.compute_eigenpairs(w, &mut grad_eigvals, &mut grad_eigvecs);
                 compute_costs(
-                    &theta, w, N, &grad_eigvals, &grad_eigvecs,
-                    &phi_target, &mask, &weights, 0.5, None,
+                    &theta,
+                    w,
+                    N,
+                    &grad_eigvals,
+                    &grad_eigvecs,
+                    &phi_target,
+                    &mask,
+                    &weights,
+                    0.5,
+                    None,
                 )
                 .u_total
             };
@@ -283,16 +294,12 @@ fn bench_gradient_fd(c: &mut Criterion) {
 
 fn bench_engine_outer_step(c: &mut Criterion) {
     let mut engine = make_engine();
-    c.bench_function("engine_outer_step", |b| {
-        b.iter(|| engine.outer_step())
-    });
+    c.bench_function("engine_outer_step", |b| b.iter(|| engine.outer_step()));
 }
 
 fn bench_engine_5_steps(c: &mut Criterion) {
     let mut engine = make_engine();
-    c.bench_function("engine_5_outer_steps", |b| {
-        b.iter(|| engine.run(5))
-    });
+    c.bench_function("engine_5_outer_steps", |b| b.iter(|| engine.run(5)));
 }
 
 fn bench_engine_audio_mapping(c: &mut Criterion) {
@@ -377,11 +384,7 @@ fn bench_deadline_analytic_warmed(c: &mut Criterion) {
 
 // ── Groups ───────────────────────────────────────────────────────────
 
-criterion_group!(
-    decoders,
-    bench_decode_gram_softplus,
-    bench_decode_rbf,
-);
+criterion_group!(decoders, bench_decode_gram_softplus, bench_decode_rbf,);
 
 criterion_group!(
     micro,
@@ -406,11 +409,7 @@ criterion_group!(
     bench_compute_costs_all,
 );
 
-criterion_group!(
-    gradient,
-    bench_gradient_fd,
-    bench_gradient_analytic_gram,
-);
+criterion_group!(gradient, bench_gradient_fd, bench_gradient_analytic_gram,);
 
 criterion_group!(
     engine,

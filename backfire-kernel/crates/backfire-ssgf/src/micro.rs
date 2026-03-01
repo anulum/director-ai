@@ -29,6 +29,7 @@ pub struct MicroCycleEngine {
 }
 
 impl MicroCycleEngine {
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         n: usize,
         omega: &[f64],
@@ -182,21 +183,15 @@ mod tests {
     fn test_geometry_feedback_nonzero() {
         let n = 4;
         let mut engine = MicroCycleEngine::new(
-            n,
-            &[1.0; 4],
-            &[0.0; 16], // no baseline coupling
-            0.001,
-            1.0, // strong geometry feedback
-            0.0,
-            0.0,
-            0.0,
-            42,
+            n, &[1.0; 4], &[0.0; 16], // no baseline coupling
+            0.001, 1.0, // strong geometry feedback
+            0.0, 0.0, 0.0, 42,
         );
         let mut theta = vec![0.0, 1.0, 2.0, 3.0];
         // W with non-zero off-diagonal
         let mut w = vec![0.0; n * n];
-        w[0 * n + 1] = 1.0;
-        w[1 * n + 0] = 1.0;
+        w[1] = 1.0; // [0][1]
+        w[n] = 1.0; // [1][0]
         let theta_before = theta.clone();
         engine.run_microcycle(&mut theta, &w, 10, None);
         // Phases should have changed due to geometry coupling

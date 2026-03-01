@@ -1,6 +1,6 @@
 {
   "title": "Director-Class AI: Coherence Engine — AI Output Verification & Safety Oversight",
-  "description": "A dual-purpose AI safety library: (1) a consumer-ready Coherence Engine for verifying LLM output through dual-entropy scoring (NLI contradiction + RAG fact-checking) with a hardware-level safety interlock, and (2) SCPN Research Extensions providing the full theoretical framework including 16-layer physics, consciousness gate, and Ethical Singularity theory.",
+  "description": "Real-time LLM hallucination guardrail. Dual-entropy scoring (NLI contradiction via FactCG-DeBERTa-v3-Large + RAG fact-checking) with token-level streaming halt. 75.8% balanced accuracy on LLM-AggreFact (29K samples, 4th on leaderboard).",
   "creators": [
     {
       "name": "Sotek, Miroslav",
@@ -12,17 +12,15 @@
   "access_right": "open",
   "license": "AGPL-3.0-or-later",
   "keywords": [
-    "artificial general intelligence",
+    "hallucination detection",
     "AI safety",
-    "ethical AI",
+    "LLM guardrail",
     "coherence engine",
-    "entropy minimization",
     "NLI verification",
     "RAG fact-checking",
-    "safety interlock",
-    "recursive self-correction",
-    "SCPN",
-    "consilium"
+    "streaming halt",
+    "FactCG",
+    "DeBERTa"
   ],
   "related_identifiers": [
     {
@@ -44,5 +42,5 @@
   "communities": [
     {"identifier": "zenodo"}
   ],
-  "notes": "Part of the SCPN (Self-Consistent Phenomenological Network) research framework by ANULUM. Provides dual-entropy coherence verification and safety interlock for AGI systems."
+  "notes": "Real-time hallucination guardrail by ANULUM. Token-level streaming oversight with NLI + RAG fact-checking."
 }

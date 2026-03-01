@@ -23,6 +23,7 @@ class _CacheEntry:
     h_logical: float
     h_factual: float
     created_at: float
+    generation: int = 0
 
 
 class ScoreCache:
@@ -41,6 +42,7 @@ class ScoreCache:
         self._lock = threading.Lock()
         self.hits = 0
         self.misses = 0
+        self._generation = 0
 
     @staticmethod
     def _key(query: str, prefix: str) -> str:
@@ -61,6 +63,10 @@ class ScoreCache:
                 self._store.pop(k, None)
                 self.misses += 1
                 return None
+            if entry.generation != self._generation:
+                self._store.pop(k, None)
+                self.misses += 1
+                return None
             self._store.move_to_end(k)
             self.hits += 1
             return entry
@@ -74,6 +80,7 @@ class ScoreCache:
             h_logical=h_logical,
             h_factual=h_factual,
             created_at=time.monotonic(),
+            generation=self._generation,
         )
         with self._lock:
             self._store[k] = entry
@@ -89,6 +96,15 @@ class ScoreCache:
     def hit_rate(self) -> float:
         total = self.hits + self.misses
         return self.hits / total if total > 0 else 0.0
+
+    def invalidate(self) -> None:
+        """Bump generation counter, lazily expiring all current entries."""
+        with self._lock:
+            self._generation += 1
+
+    @property
+    def generation(self) -> int:
+        return self._generation
 
     def clear(self) -> None:
         with self._lock:

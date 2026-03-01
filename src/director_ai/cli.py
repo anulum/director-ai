@@ -42,6 +42,7 @@ def main(argv: list[str] | None = None) -> None:
         "eval": _cmd_eval,
         "serve": _cmd_serve,
         "config": _cmd_config,
+        "stress-test": _cmd_stress_test,
     }
 
     if cmd not in commands:
@@ -65,7 +66,8 @@ def _print_help() -> None:
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
         "  ingest <file>         Ingest documents into vector store\n"
         "  eval [--dataset D]    Run NLI benchmark suite\n"
-        "  serve [--port N]      Start the FastAPI server\n"
+        "  serve [--port N] [--workers W]  Start the FastAPI server\n"
+        "  stress-test [options] Benchmark streaming kernel throughput\n"
         "  config [--profile X]  Show/set configuration\n"
     )
 
@@ -347,6 +349,7 @@ def _cmd_serve(args: list[str]) -> None:
     port = 8080
     host = "0.0.0.0"
     profile = "default"
+    workers = 1
 
     i = 0
     while i < len(args):
@@ -362,6 +365,15 @@ def _cmd_serve(args: list[str]) -> None:
             i += 2
         elif args[i] == "--profile" and i + 1 < len(args):
             profile = args[i + 1]
+            i += 2
+        elif args[i] == "--workers" and i + 1 < len(args):
+            try:
+                workers = int(args[i + 1])
+                if workers < 1:
+                    raise ValueError
+            except ValueError:
+                print(f"Error: invalid worker count: {args[i + 1]}")
+                sys.exit(1)
             i += 2
         else:
             i += 1
@@ -382,9 +394,115 @@ def _cmd_serve(args: list[str]) -> None:
     config.server_host = host
     config.server_port = port
 
-    app = create_app(config)
-    print(f"Starting Director AI server on {host}:{port} (profile={config.profile})")
-    uvicorn.run(app, host=host, port=port)
+    print(
+        f"Starting Director AI server on {host}:{port} "
+        f"(profile={config.profile}, workers={workers})"
+    )
+
+    if workers > 1:
+        uvicorn.run(
+            "director_ai.server:create_app",
+            factory=True,
+            host=host,
+            port=port,
+            workers=workers,
+        )
+    else:
+        app = create_app(config)
+        uvicorn.run(app, host=host, port=port)
+
+
+def _cmd_stress_test(args: list[str]) -> None:
+    """Benchmark streaming kernel throughput."""
+    import math
+    import time
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
+    streams = 100
+    tokens_per_stream = 50
+    concurrency = 8
+    json_output = False
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--streams" and i + 1 < len(args):
+            streams = int(args[i + 1])
+            i += 2
+        elif args[i] == "--tokens-per-stream" and i + 1 < len(args):
+            tokens_per_stream = int(args[i + 1])
+            i += 2
+        elif args[i] == "--concurrency" and i + 1 < len(args):
+            concurrency = int(args[i + 1])
+            i += 2
+        elif args[i] == "--json":
+            json_output = True
+            i += 1
+        else:
+            i += 1
+
+    from director_ai.core.streaming import StreamingKernel
+
+    def _coherence_cb(token):
+        h = hash(token) & 0xFFFFFFFF
+        return 0.8 + 0.1 * math.sin(h)
+
+    def _run_one(stream_id):
+        kernel = StreamingKernel()
+        tokens = [f"tok{j}" for j in range(tokens_per_stream)]
+        t0 = time.monotonic()
+        session = kernel.stream_tokens(tokens, _coherence_cb)
+        elapsed = time.monotonic() - t0
+        return {
+            "halted": session.halted,
+            "tokens": session.token_count,
+            "elapsed": elapsed,
+        }
+
+    latencies: list[float] = []
+    halts = 0
+    total_tokens = 0
+
+    t_start = time.monotonic()
+    with ThreadPoolExecutor(max_workers=concurrency) as pool:
+        futures = [pool.submit(_run_one, sid) for sid in range(streams)]
+        for future in as_completed(futures):
+            result = future.result()
+            latencies.append(result["elapsed"])
+            if result["halted"]:
+                halts += 1
+            total_tokens += result["tokens"]
+    t_total = max(time.monotonic() - t_start, 1e-9)
+
+    latencies.sort()
+
+    def _pct(sorted_vals, q):
+        idx = int(q * (len(sorted_vals) - 1))
+        return sorted_vals[idx]
+
+    report = {
+        "streams": streams,
+        "tokens_per_stream": tokens_per_stream,
+        "concurrency": concurrency,
+        "total_seconds": round(t_total, 4),
+        "streams_per_second": round(streams / t_total, 2),
+        "tokens_per_second": round(total_tokens / t_total, 2),
+        "halt_rate": round(halts / streams, 4),
+        "latency_p50": round(_pct(latencies, 0.5), 6),
+        "latency_p95": round(_pct(latencies, 0.95), 6),
+        "latency_p99": round(_pct(latencies, 0.99), 6),
+    }
+
+    if json_output:
+        print(json.dumps(report, indent=2))
+    else:
+        print(f"Streams:     {report['streams']}")
+        print(f"Tokens/s:    {report['tokens_per_second']}")
+        print(f"Streams/s:   {report['streams_per_second']}")
+        print(f"Halt rate:   {report['halt_rate']:.2%}")
+        print(f"Latency p50: {report['latency_p50'] * 1000:.2f}ms")
+        print(f"Latency p95: {report['latency_p95'] * 1000:.2f}ms")
+        print(f"Latency p99: {report['latency_p99'] * 1000:.2f}ms")
+        print(f"Total time:  {report['total_seconds']:.2f}s")
 
 
 def _cmd_config(args: list[str]) -> None:

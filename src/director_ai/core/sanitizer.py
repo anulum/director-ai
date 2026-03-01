@@ -66,6 +66,30 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
             re.IGNORECASE,
         ),
     ),
+    (
+        "base64_payload",
+        re.compile(
+            r"[A-Za-z0-9+/]{60,}={1,2}",
+        ),
+    ),
+    (
+        "unicode_escape_injection",
+        re.compile(
+            r"(\\u[0-9a-fA-F]{4}){4,}",
+        ),
+    ),
+    (
+        "control_char_injection",
+        re.compile(
+            r"[\x0b\x0c\x1b\x7f]",
+        ),
+    ),
+    (
+        "bidi_override",
+        re.compile(
+            r"[\u202a-\u202e\u2066-\u2069\u200e\u200f]",
+        ),
+    ),
 ]
 
 _MAX_INPUT_LENGTH = 100_000

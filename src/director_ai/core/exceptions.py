@@ -27,7 +27,7 @@ class GeneratorError(DirectorAIError):
     """Raised when candidate generation fails unrecoverably."""
 
 
-class ValidationError(DirectorAIError):
+class ValidationError(DirectorAIError, ValueError):
     """Raised for invalid inputs (prompts, parameters, configs)."""
 
 

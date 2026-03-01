@@ -33,6 +33,12 @@ pyo3 = { version = "0.23", features = ["extension-module"] }
 [workspace.dependencies.criterion]
 version = "0.5"
 
+[workspace.lints.clippy]
+# 2D array indexing with for n/m loops is idiomatic in physics code
+needless_range_loop = "allow"
+# Tests construct configs with Default then override fields
+field_reassign_with_default = "allow"
+
 [profile.release]
 opt-level = 3
 lto = "fat"

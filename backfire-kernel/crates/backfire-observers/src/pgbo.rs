@@ -176,9 +176,15 @@ impl PGBOEngine {
 
     /// Reset engine state.
     pub fn reset(&mut self) {
-        for v in self.u_mu.iter_mut() { *v = 0.0; }
-        for v in self.h_munu.iter_mut() { *v = 0.0; }
-        for v in self.a_mu.iter_mut() { *v = 0.0; }
+        for v in self.u_mu.iter_mut() {
+            *v = 0.0;
+        }
+        for v in self.h_munu.iter_mut() {
+            *v = 0.0;
+        }
+        for v in self.a_mu.iter_mut() {
+            *v = 0.0;
+        }
         self.u_norm = 0.0;
         self.h_trace = 0.0;
         self.h_frob = 0.0;
@@ -200,7 +206,8 @@ pub fn phase_geometry_bridge(
     let d = dphi_mu.len();
 
     // u_mu = dphi_mu - alpha * A_mu
-    let mut u_mu: Vec<f64> = dphi_mu.iter()
+    let mut u_mu: Vec<f64> = dphi_mu
+        .iter()
         .zip(a_mu.iter())
         .map(|(&dp, &a)| dp - alpha * a)
         .collect();
@@ -253,7 +260,11 @@ mod tests {
         let theta = vec![0.1, 0.2, 0.3, 0.4];
         engine.compute(&theta, 0.01);
         // First call: no prev_theta, so u_mu = -alpha * A_mu = 0
-        assert!(engine.u_norm < 1e-9, "First compute should give u_norm~0, got {}", engine.u_norm);
+        assert!(
+            engine.u_norm < 1e-9,
+            "First compute should give u_norm~0, got {}",
+            engine.u_norm
+        );
     }
 
     #[test]
@@ -298,7 +309,7 @@ mod tests {
 
         // h = kappa * u outer u is rank-1 PSD. Check x^T h x >= 0 for random x.
         let d = 4;
-        let x = vec![1.0, -0.5, 0.3, 0.7];
+        let x = [1.0, -0.5, 0.3, 0.7];
         let mut xhx = 0.0;
         for i in 0..d {
             for j in 0..d {
@@ -320,7 +331,10 @@ mod tests {
 
         let d = 4;
         let trace: f64 = (0..d).map(|i| engine.h_munu[i * d + i]).sum();
-        assert!(trace.abs() < 1e-10, "Traceless h should have |Tr|<1e-10, got {trace}");
+        assert!(
+            trace.abs() < 1e-10,
+            "Traceless h should have |Tr|<1e-10, got {trace}"
+        );
     }
 
     #[test]
@@ -334,7 +348,11 @@ mod tests {
         let theta2 = vec![3.0, 3.0, 3.0, 3.0];
         engine.compute(&theta2, 0.01);
         // u_norm should be bounded by the saturation mechanism
-        assert!(engine.u_norm < 100.0, "u_norm should be saturated, got {}", engine.u_norm);
+        assert!(
+            engine.u_norm < 100.0,
+            "u_norm should be saturated, got {}",
+            engine.u_norm
+        );
     }
 
     #[test]
@@ -370,7 +388,10 @@ mod tests {
         let a_mu = vec![0.0; 4];
         let (_, h) = phase_geometry_bridge(&dphi, &a_mu, 0.0, 0.3, 10.0, true);
         let trace: f64 = (0..4).map(|i| h[i * 4 + i]).sum();
-        assert!(trace.abs() < 1e-10, "Traceless bridge should have |Tr|<1e-10, got {trace}");
+        assert!(
+            trace.abs() < 1e-10,
+            "Traceless bridge should have |Tr|<1e-10, got {trace}"
+        );
     }
 
     #[test]
@@ -382,6 +403,9 @@ mod tests {
         engine.compute(&theta1, 0.01);
         // First compute: u_mu = 0 - alpha*A_mu = -0.5*[1,2,3,4]
         // After saturation, u_norm should be > 0
-        assert!(engine.u_norm > 0.0, "Boundary potential should create non-zero u");
+        assert!(
+            engine.u_norm > 0.0,
+            "Boundary potential should create non-zero u"
+        );
     }
 }

@@ -12,8 +12,14 @@ import logging
 import threading
 
 from .cache import ScoreCache
+from .metrics import metrics
 from .nli import NLIScorer, nli_available
 from .types import CoherenceScore, EvidenceChunk, ScoringEvidence
+
+# Heuristic divergence defaults (used when NLI model unavailable)
+DIVERGENCE_NEUTRAL = 0.5  # no signal → agnostic
+DIVERGENCE_ALIGNED = 0.1  # keyword heuristic: "consistent with reality"
+DIVERGENCE_CONTRADICTED = 0.9  # keyword heuristic: "opposite is true"
 
 
 class CoherenceScorer:
@@ -114,17 +120,20 @@ class CoherenceScorer:
         When strict_mode is True and NLI is unavailable, returns 0.5.
         """
         if not self.ground_truth_store:
-            return 0.5
+            return DIVERGENCE_NEUTRAL
 
-        context = self.ground_truth_store.retrieve_context(prompt)
+        with metrics.timer("factual_retrieval_seconds"):
+            context = self.ground_truth_store.retrieve_context(prompt)
         if not context:
-            return 0.5
+            return DIVERGENCE_NEUTRAL
 
         if self._nli and self._nli.model_available:
-            return self._nli.score(context, text_output)
+            with metrics.timer("chunked_nli_seconds"):
+                score, _ = self._nli.score_chunked(context, text_output)
+            return score
 
         if self.strict_mode:
-            return 0.5
+            return DIVERGENCE_NEUTRAL
 
         return self._heuristic_factual(context, text_output)
 
@@ -133,29 +142,33 @@ class CoherenceScorer:
     ) -> tuple[float, ScoringEvidence | None]:
         """Like calculate_factual_divergence but also returns evidence."""
         if not self.ground_truth_store:
-            return 0.5, None
+            return DIVERGENCE_NEUTRAL, None
 
-        # Try structured chunks from VectorGroundTruthStore
-        chunks: list[EvidenceChunk] = []
-        context: str | None = None
-        from .vector_store import VectorGroundTruthStore
+        with metrics.timer("factual_retrieval_seconds"):
+            chunks: list[EvidenceChunk] = []
+            context: str | None = None
+            from .vector_store import VectorGroundTruthStore
 
-        if isinstance(self.ground_truth_store, VectorGroundTruthStore):
-            chunks = self.ground_truth_store.retrieve_context_with_chunks(prompt)
-            if chunks:
-                context = "; ".join(c.text for c in chunks)
-        else:
-            context = self.ground_truth_store.retrieve_context(prompt)
-            if context:
-                chunks = [EvidenceChunk(text=context, distance=0.0, source="keyword")]
+            if isinstance(self.ground_truth_store, VectorGroundTruthStore):
+                chunks = self.ground_truth_store.retrieve_context_with_chunks(prompt)
+                if chunks:
+                    context = "; ".join(c.text for c in chunks)
+            else:
+                context = self.ground_truth_store.retrieve_context(prompt)
+                if context:
+                    chunks = [
+                        EvidenceChunk(text=context, distance=0.0, source="keyword")
+                    ]
 
         if not context:
-            return 0.5, None
+            return DIVERGENCE_NEUTRAL, None
 
+        chunk_scores = None
         if self._nli and self._nli.model_available:
-            nli_score = self._nli.score(context, text_output)
+            with metrics.timer("chunked_nli_seconds"):
+                nli_score, chunk_scores = self._nli.score_chunked(context, text_output)
         elif self.strict_mode:
-            nli_score = 0.5
+            nli_score = DIVERGENCE_NEUTRAL
         else:
             nli_score = self._heuristic_factual(context, text_output)
 
@@ -164,6 +177,7 @@ class CoherenceScorer:
             nli_premise=context,
             nli_hypothesis=text_output,
             nli_score=nli_score,
+            chunk_scores=chunk_scores,
         )
         return nli_score, evidence
 
@@ -180,7 +194,7 @@ class CoherenceScorer:
         ctx_words = set(re.findall(r"\w+", context.lower()))
         out_words = set(re.findall(r"\w+", text_output.lower()))
         if not ctx_words or not out_words:
-            return 0.5
+            return DIVERGENCE_NEUTRAL
         overlap = len(ctx_words & out_words)
         recall = overlap / len(ctx_words)
         precision = overlap / len(out_words)
@@ -195,10 +209,12 @@ class CoherenceScorer:
         When strict_mode is True and NLI is unavailable, returns 0.5.
         """
         if self._nli and self._nli.model_available:
-            return self._nli.score(prompt, text_output)
+            with metrics.timer("chunked_nli_seconds"):
+                score, _ = self._nli.score_chunked(prompt, text_output)
+            return score
 
         if self.strict_mode:
-            return 0.5
+            return DIVERGENCE_NEUTRAL
 
         return self._heuristic_logical(text_output, prompt)
 
@@ -210,19 +226,19 @@ class CoherenceScorer:
         """
         out = text_output.lower()
         if "consistent with reality" in out:
-            return 0.1
+            return DIVERGENCE_ALIGNED
         if "opposite is true" in out:
-            return 0.9
+            return DIVERGENCE_CONTRADICTED
         if "depends on your perspective" in out:
-            return 0.5
+            return DIVERGENCE_NEUTRAL
         if not prompt:
-            return 0.5
+            return DIVERGENCE_NEUTRAL
         import re
 
         p_words = set(re.findall(r"\w+", prompt.lower()))
         o_words = set(re.findall(r"\w+", out))
         if not p_words or not o_words:
-            return 0.5
+            return DIVERGENCE_NEUTRAL
         similarity = len(p_words & o_words) / len(p_words | o_words)
         return max(0.0, min(1.0, 1.0 - similarity))
 

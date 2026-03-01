@@ -19,6 +19,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+import sqlite3
 import time
 from contextlib import asynccontextmanager
 
@@ -101,6 +102,21 @@ if _FASTAPI_AVAILABLE:
         config: dict
 
 
+def _evidence_to_dict(evidence) -> dict | None:
+    """Serialize ScoringEvidence to a JSON-safe dict."""
+    if evidence is None:
+        return None
+    return {
+        "chunks": [
+            {"text": c.text, "distance": c.distance, "source": c.source}
+            for c in evidence.chunks
+        ],
+        "nli_premise": evidence.nli_premise,
+        "nli_hypothesis": evidence.nli_hypothesis,
+        "nli_score": evidence.nli_score,
+    }
+
+
 def create_app(config: DirectorConfig | None = None) -> FastAPI:
     """Create and configure the FastAPI application.
 
@@ -149,6 +165,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
         yield
         logger.info("Director AI server shutting down")
+        if stats:
+            try:
+                stats.close()
+            except sqlite3.Error:
+                logger.warning("Failed to close stats database")
 
     app = FastAPI(
         title="Director-Class AI",
@@ -203,24 +224,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 h_logical=score.h_logical,
                 h_factual=score.h_factual,
             )
-        evidence_dict = None
-        if score.evidence:
-            evidence_dict = {
-                "chunks": [
-                    {"text": c.text, "distance": c.distance, "source": c.source}
-                    for c in score.evidence.chunks
-                ],
-                "nli_premise": score.evidence.nli_premise,
-                "nli_hypothesis": score.evidence.nli_hypothesis,
-                "nli_score": score.evidence.nli_score,
-            }
         return ReviewResponse(
             approved=approved,
             coherence=score.score,
             h_logical=score.h_logical,
             h_factual=score.h_factual,
             warning=score.warning,
-            evidence=evidence_dict,
+            evidence=_evidence_to_dict(score.evidence),
         )
 
     # ── Process ───────────────────────────────────────────────────────
@@ -240,18 +250,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             metrics.inc("reviews_approved")
             if result.coherence:
                 metrics.observe("coherence_score", result.coherence.score)
-        evidence_dict = None
-        if result.coherence and result.coherence.evidence:
-            ev = result.coherence.evidence
-            evidence_dict = {
-                "chunks": [
-                    {"text": c.text, "distance": c.distance, "source": c.source}
-                    for c in ev.chunks
-                ],
-                "nli_premise": ev.nli_premise,
-                "nli_hypothesis": ev.nli_hypothesis,
-                "nli_score": ev.nli_score,
-            }
         return ProcessResponse(
             output=result.output,
             coherence=result.coherence.score if result.coherence else None,
@@ -259,7 +257,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             candidates_evaluated=result.candidates_evaluated,
             warning=result.coherence.warning if result.coherence else False,
             fallback_used=result.fallback_used,
-            evidence=evidence_dict,
+            evidence=_evidence_to_dict(
+                result.coherence.evidence if result.coherence else None
+            ),
         )
 
     # ── Batch ─────────────────────────────────────────────────────────
@@ -381,19 +381,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     await ws.send_json({"error": "server not ready"})
                     continue
 
-                result = agent.process(prompt)
-                ws_evidence = None
-                if result.coherence and result.coherence.evidence:
-                    ev = result.coherence.evidence
-                    ws_evidence = {
-                        "chunks": [
-                            {"text": c.text, "distance": c.distance, "source": c.source}
-                            for c in ev.chunks
-                        ],
-                        "nli_premise": ev.nli_premise,
-                        "nli_hypothesis": ev.nli_hypothesis,
-                        "nli_score": ev.nli_score,
-                    }
+                try:
+                    result = agent.process(prompt)
+                except (RuntimeError, ValueError, TypeError, OSError) as exc:
+                    logger.error("WebSocket agent.process() failed: %s", exc)
+                    await ws.send_json({"error": f"processing failed: {exc}"})
+                    continue
                 await ws.send_json(
                     {
                         "type": "result",
@@ -406,7 +399,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                             result.coherence.warning if result.coherence else False
                         ),
                         "fallback_used": result.fallback_used,
-                        "evidence": ws_evidence,
+                        "evidence": _evidence_to_dict(
+                            result.coherence.evidence if result.coherence else None
+                        ),
                     }
                 )
         except WebSocketDisconnect:

@@ -71,14 +71,14 @@ impl GroundTruthStore for InMemoryKnowledge {
 /// External ground truth store that calls a function pointer.
 ///
 /// Used by the PyO3 FFI layer to delegate RAG retrieval to Python.
+type RetrieveFn = Box<dyn Fn(&str) -> Option<String> + Send + Sync>;
+
 pub struct ExternalKnowledge {
-    retrieve_fn: Box<dyn Fn(&str) -> Option<String> + Send + Sync>,
+    retrieve_fn: RetrieveFn,
 }
 
 impl ExternalKnowledge {
-    pub fn new(
-        retrieve_fn: impl Fn(&str) -> Option<String> + Send + Sync + 'static,
-    ) -> Self {
+    pub fn new(retrieve_fn: impl Fn(&str) -> Option<String> + Send + Sync + 'static) -> Self {
         Self {
             retrieve_fn: Box::new(retrieve_fn),
         }
@@ -139,5 +139,24 @@ mod tests {
         });
         assert!(store.retrieve_context("sky color").is_some());
         assert!(store.retrieve_context("unrelated").is_none());
+    }
+
+    #[test]
+    fn test_add_fact() {
+        let mut store = InMemoryKnowledge::with_facts(HashMap::new());
+        assert!(store.retrieve_context("capital").is_none());
+        store.add_fact("capital".into(), "Paris".into());
+        let ctx = store.retrieve_context("What is the capital?");
+        assert!(ctx.is_some());
+        assert!(ctx.unwrap().contains("Paris"));
+    }
+
+    #[test]
+    fn test_add_fact_overwrites() {
+        let mut store = InMemoryKnowledge::new();
+        store.add_fact("sky color".into(), "green".into());
+        let ctx = store.retrieve_context("sky color").unwrap();
+        assert!(ctx.contains("green"));
+        assert!(!ctx.contains("blue"));
     }
 }

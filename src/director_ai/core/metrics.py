@@ -40,13 +40,22 @@ class _Counter:
         return self.value + sum(self.labels.values())
 
 
+COHERENCE_SCORE_BUCKETS = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
+REVIEW_DURATION_BUCKETS = (0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0)
+BATCH_SIZE_BUCKETS = (1, 5, 10, 25, 50, 100, 500, 1000)
+NLI_INFERENCE_BUCKETS = (0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0)
+FACTUAL_RETRIEVAL_BUCKETS = (0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0)
+CHUNKED_NLI_BUCKETS = (0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0, 30.0)
+HISTOGRAM_MAX_SAMPLES = 100_000
+
+
 @dataclass
 class _Histogram:
     """Histogram with configurable bucket boundaries."""
 
     buckets: tuple[float, ...] = (0.1, 0.25, 0.5, 0.75, 0.9, 0.95, 0.99, 1.0)
     _values: list[float] = field(default_factory=list)
-    max_samples: int = 100_000
+    max_samples: int = HISTOGRAM_MAX_SAMPLES
 
     def observe(self, value: float) -> None:
         self._values.append(value)
@@ -115,7 +124,8 @@ class MetricsCollector:
     - ``nli_model_loaded`` (gauge) — 1 if NLI model is loaded
     """
 
-    def __init__(self) -> None:
+    def __init__(self, enabled: bool = True) -> None:
+        self.enabled = enabled
         self._lock = threading.Lock()
         self._counters: dict[str, _Counter] = {
             "reviews_total": _Counter(),
@@ -124,13 +134,12 @@ class MetricsCollector:
             "halts_total": _Counter(),
         }
         self._histograms: dict[str, _Histogram] = {
-            "coherence_score": _Histogram(
-                buckets=(0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
-            ),
-            "review_duration_seconds": _Histogram(
-                buckets=(0.01, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0, 10.0)
-            ),
-            "batch_size": _Histogram(buckets=(1, 5, 10, 25, 50, 100, 500, 1000)),
+            "coherence_score": _Histogram(buckets=COHERENCE_SCORE_BUCKETS),
+            "review_duration_seconds": _Histogram(buckets=REVIEW_DURATION_BUCKETS),
+            "batch_size": _Histogram(buckets=BATCH_SIZE_BUCKETS),
+            "nli_inference_seconds": _Histogram(buckets=NLI_INFERENCE_BUCKETS),
+            "factual_retrieval_seconds": _Histogram(buckets=FACTUAL_RETRIEVAL_BUCKETS),
+            "chunked_nli_seconds": _Histogram(buckets=CHUNKED_NLI_BUCKETS),
         }
         self._gauges: dict[str, _Gauge] = {
             "active_requests": _Gauge(),
@@ -139,6 +148,8 @@ class MetricsCollector:
 
     def inc(self, name: str, amount: float = 1.0, label: str = "") -> None:
         """Increment a counter."""
+        if not self.enabled:
+            return
         with self._lock:
             if name not in self._counters:
                 self._counters[name] = _Counter()
@@ -146,6 +157,8 @@ class MetricsCollector:
 
     def observe(self, name: str, value: float) -> None:
         """Record a histogram observation."""
+        if not self.enabled:
+            return
         with self._lock:
             if name not in self._histograms:
                 self._histograms[name] = _Histogram()
@@ -153,6 +166,8 @@ class MetricsCollector:
 
     def gauge_set(self, name: str, value: float) -> None:
         """Set a gauge value."""
+        if not self.enabled:
+            return
         with self._lock:
             if name not in self._gauges:
                 self._gauges[name] = _Gauge()
@@ -160,6 +175,8 @@ class MetricsCollector:
 
     def gauge_inc(self, name: str, amount: float = 1.0) -> None:
         """Increment a gauge."""
+        if not self.enabled:
+            return
         with self._lock:
             if name not in self._gauges:
                 self._gauges[name] = _Gauge()
@@ -167,6 +184,8 @@ class MetricsCollector:
 
     def gauge_dec(self, name: str, amount: float = 1.0) -> None:
         """Decrement a gauge."""
+        if not self.enabled:
+            return
         with self._lock:
             if name not in self._gauges:
                 self._gauges[name] = _Gauge()

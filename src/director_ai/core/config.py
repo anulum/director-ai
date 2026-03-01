@@ -56,7 +56,7 @@ class DirectorConfig:
     hard_limit: float = 0.5
     soft_limit: float = 0.6
     use_nli: bool = False
-    nli_model: str = "MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli"
+    nli_model: str = "yaxili96/FactCG-DeBERTa-v3-Large"
     max_candidates: int = 3
     history_window: int = 5
 
