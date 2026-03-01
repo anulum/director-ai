@@ -398,7 +398,14 @@ def main():
                 export_ms = (time.perf_counter() - t0) * 1000
                 print(f"done ({export_ms:.0f} ms)")
 
-        print(f"\n--- ONNX Runtime (CPU) ---")
+        try:
+            import onnxruntime as ort
+            providers = ort.get_available_providers()
+            has_cuda = "CUDAExecutionProvider" in providers
+            label = "ONNX GPU" if has_cuda else "ONNX CPU"
+        except ImportError:
+            label = "ONNX"
+        print(f"\n--- {label} ---")
         print("  Loading session...", end=" ", flush=True)
         t0 = time.perf_counter()
         nli_onnx = NLIScorer(
