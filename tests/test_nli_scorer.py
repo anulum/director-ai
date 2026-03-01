@@ -45,8 +45,42 @@ class TestNLIScorer:
         assert len(results) == 2
         assert results[0] < results[1]
 
+    def test_score_batch_empty(self):
+        scorer = NLIScorer(use_model=False)
+        assert scorer.score_batch([]) == []
+
+    def test_score_batch_matches_sequential(self):
+        scorer = NLIScorer(use_model=False)
+        pairs = [
+            ("sky is blue", "consistent with reality"),
+            ("earth is round", "opposite is true"),
+            ("cats meow", "depends on your perspective"),
+            ("water is wet", "random unrelated text"),
+        ]
+        batch = scorer.score_batch(pairs)
+        sequential = [scorer.score(p, h) for p, h in pairs]
+        assert batch == sequential
+
     def test_score_range(self):
         scorer = NLIScorer(use_model=False)
         for text in ["hello world", "anything", "random noise xyz"]:
             h = scorer.score("test prompt", text)
             assert 0.0 <= h <= 1.0
+
+    def test_onnx_backend_without_path_falls_back(self):
+        scorer = NLIScorer(use_model=True, backend="onnx")
+        s = scorer.score("premise", "hypothesis")
+        assert 0.0 <= s <= 1.0
+
+    def test_onnx_backend_invalid_path_falls_back(self):
+        scorer = NLIScorer(
+            use_model=True,
+            backend="onnx",
+            onnx_path="/nonexistent/path",
+        )
+        s = scorer.score("premise", "hypothesis")
+        assert 0.0 <= s <= 1.0
+
+    def test_invalid_backend_raises(self):
+        with pytest.raises(ValueError, match="backend"):
+            NLIScorer(backend="invalid")

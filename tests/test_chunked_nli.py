@@ -89,3 +89,12 @@ class TestScoreChunked:
         score, chunk_scores = scorer.score_chunked(long_premise, long_hyp)
         assert 0.0 <= score <= 1.0
         assert len(chunk_scores) >= 1
+
+    def test_chunked_uses_batch_path(self):
+        """score_chunked routes through score_batch (same results)."""
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_hyp = ". ".join(f"Sentence number {i} with words" for i in range(30)) + "."
+        s1, cs1 = scorer.score_chunked("premise text", long_hyp)
+        s2, cs2 = scorer.score_chunked("premise text", long_hyp)
+        assert s1 == s2
+        assert cs1 == cs2

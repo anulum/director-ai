@@ -194,16 +194,44 @@ class _BinaryNLIPredictor:
             return float(probs[1])
         return float(probs[0])
 
+    def _score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Batched forward pass — all pairs in one call."""
+        if self._is_factcg:
+            texts = [
+                _FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs
+            ]
+            inputs = self.tokenizer(
+                texts, return_tensors="pt", truncation=True,
+                padding=True, max_length=self.max_length,
+            )
+        else:
+            premises = [p for p, _ in pairs]
+            hypotheses = [h for _, h in pairs]
+            inputs = self.tokenizer(
+                premises, hypotheses, return_tensors="pt", truncation=True,
+                padding=True, max_length=self.max_length,
+            )
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        with self._torch.no_grad():
+            logits = self.model(**inputs).logits
+        probs = self._torch.softmax(logits, dim=1).cpu().numpy()
+        if self._num_labels == 2:
+            return [float(row[1]) for row in probs]
+        return [float(row[0]) for row in probs]
+
     def score(self, premise: str, hypothesis: str) -> float:
         """Return P(supported) with SummaC source chunking for FactCG.
 
         Splits premise into sentence chunks, scores each vs hypothesis,
         returns max (matching official FactCG evaluation).
+        Chunks are batched into a single forward pass.
         """
         if not self._is_factcg:
             return self._score_single(premise, hypothesis)
         chunks = _chunk_source(premise)
-        return max(self._score_single(c, hypothesis) for c in chunks)
+        if len(chunks) == 1:
+            return self._score_single(chunks[0], hypothesis)
+        return max(self._score_batch([(c, hypothesis) for c in chunks]))
 
 
 def _load_aggrefact(max_samples: int | None = None) -> list[dict]:

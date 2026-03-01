@@ -24,7 +24,7 @@ from .audit import AuditEntry, AuditLogger
 from .cache import ScoreCache
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
-from .nli import NLIScorer, nli_available
+from .nli import NLIScorer, export_onnx, nli_available
 from .policy import Policy, Violation
 from .sanitizer import InputSanitizer, SanitizeResult
 from .scorer import CoherenceScorer
@@ -53,6 +53,7 @@ __all__ = [
     # v0.4.0 additions
     "NLIScorer",
     "nli_available",
+    "export_onnx",
     "VectorGroundTruthStore",
     "VectorBackend",
     "InMemoryBackend",

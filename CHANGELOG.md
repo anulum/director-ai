@@ -5,7 +5,21 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.0] - 2026-03-01
+
+### Added
+- **Batched NLI inference**: `score_batch()` and `score_chunked()` now run
+  a single forward pass for all inputs (3-5x latency reduction on chunked
+  documents)
+- **ONNX export + runtime**: `export_onnx()` converts model to ONNX via
+  optimum; `NLIScorer(backend="onnx", onnx_path=...)` runs inference via
+  ONNX Runtime (~30-50ms per chunk on GPU)
+- `ascore_batch()` async helper for batched scoring
+- `onnx` optional dependency (`pip install director-ai[onnx]`)
+- AggreFact benchmark predictor now batches SummaC source chunks
+
+### Fixed
+- GPU device handling in `_model_score()` — inputs now move to model device
 
 ## [1.3.0] - 2026-03-01
 

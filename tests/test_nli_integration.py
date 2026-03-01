@@ -71,14 +71,26 @@ class TestDeBERTaIntegration:
             assert 0.0 <= s <= 1.0, f"Score {s} out of range for ({p}, {h})"
 
     def test_batch_scoring(self, scorer):
-        """score_batch returns correct number of results."""
+        """Batched forward pass returns correct results."""
         pairs = [
             ("A is B.", "A is B."),
             ("A is B.", "A is not B."),
         ]
         scores = scorer.score_batch(pairs)
         assert len(scores) == 2
-        assert scores[1] > scores[0]  # Contradiction > Entailment
+        assert scores[1] > scores[0]
+
+    def test_batch_matches_sequential(self, scorer):
+        """Batched results match sequential scoring."""
+        pairs = [
+            ("Water is wet.", "Water is a liquid."),
+            ("The sky is blue.", "The sky is green."),
+            ("Dogs bark.", "Cats meow."),
+        ]
+        batch = scorer.score_batch(pairs)
+        sequential = [scorer.score(p, h) for p, h in pairs]
+        for b, s in zip(batch, sequential, strict=True):
+            assert abs(b - s) < 0.02
 
     def test_long_input_truncation(self, scorer):
         """Very long inputs are truncated without error."""
