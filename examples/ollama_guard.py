@@ -48,32 +48,45 @@ def score_response():
     print(f"Score:   {score.score:.3f}  Approved: {approved}")
 
 
-def streaming_guard():
-    """Stream tokens from Ollama with real-time halt."""
-    store = GroundTruthStore()
-    store.add("speed of light", "299,792 km/s")
-    scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
-    kernel = StreamingKernel(hard_limit=0.35, window_size=5, window_threshold=0.45)
+def _ollama_token_stream(prompt: str):
+    """Yield tokens from Ollama's streaming endpoint.
 
-    prompt = "What is the speed of light?"
+    The HTTP connection stays open; the caller can stop iterating to
+    close it mid-generation (true mid-stream halt).
+    """
+    import json
+
     resp = requests.post(
         f"{OLLAMA_URL}/api/generate",
         json={"model": MODEL, "prompt": prompt, "stream": True},
         timeout=60,
         stream=True,
     )
-
-    # Collect streamed tokens
-    tokens = []
-    for line in resp.iter_lines():
-        if line:
-            import json
-
+    with resp:
+        for line in resp.iter_lines():
+            if not line:
+                continue
             data = json.loads(line)
             tok = data.get("response", "")
             if tok:
-                tokens.append(tok)
+                yield tok
+            if data.get("done"):
+                break
 
+
+def streaming_guard():
+    """Stream tokens from Ollama with real-time halt.
+
+    Tokens are scored as they arrive from the network. If the kernel
+    fires, iteration stops and the HTTP connection closes — the LLM
+    never finishes generating.
+    """
+    store = GroundTruthStore()
+    store.add("speed of light", "299,792 km/s")
+    scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
+    kernel = StreamingKernel(hard_limit=0.35, window_size=5, window_threshold=0.45)
+
+    prompt = "What is the speed of light?"
     accumulated = ""
 
     def coherence_cb(token: str) -> float:
@@ -82,7 +95,10 @@ def streaming_guard():
         _, sc = scorer.review(prompt, accumulated)
         return sc.score
 
-    session = kernel.stream_tokens(iter(tokens), coherence_cb)
+    session = kernel.stream_tokens(
+        _ollama_token_stream(prompt),
+        coherence_cb,
+    )
 
     for event in session.events:
         print(event.token, end="", flush=True)

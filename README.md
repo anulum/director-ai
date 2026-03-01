@@ -88,6 +88,12 @@ print(result.coherence.h_factual)  # 0.10 — low factual deviation
 
 ## Installation
 
+> **Performance note:** Without a GPU, NLI scoring via ONNX Runtime runs at
+> ~383 ms/pair (CPU) vs 14.6 ms/pair (CUDA). For production NLI workloads,
+> a CUDA-capable GPU is strongly recommended. The heuristic-only mode
+> (`pip install director-ai` without `[nli]`) runs at <0.1 ms but has
+> ~55% accuracy — suitable for development/testing, not production gating.
+
 ```bash
 # Basic install (heuristic scoring, no GPU needed)
 pip install director-ai
