@@ -64,6 +64,9 @@ nav:
     - Streaming Halt: guide/streaming.md
     - Evidence & Fallback: guide/evidence.md
     - Configuration: guide/config.md
+    - ONNX Export: guide/onnx-export.md
+    - Quantization: guide/quantization.md
+    - Rust FFI: guide/rust-ffi.md
   - Integrations:
     - OpenAI / Anthropic SDK: integrations/sdk-guard.md
     - LangChain: integrations/langchain.md
@@ -87,4 +90,5 @@ nav:
     - Legal: cookbook/legal.md
     - Medical: cookbook/medical.md
     - Finance: cookbook/finance.md
+    - Case Studies: cookbook/case-studies.md
   - Changelog: changelog.md

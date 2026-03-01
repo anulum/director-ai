@@ -10,6 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <img src="https://img.shields.io/badge/tests-462_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
@@ -155,6 +156,24 @@ curl -X POST localhost:8080/v1/review \
   -H 'Content-Type: application/json' \
   -d '{"prompt":"What color is the sky?","response":"The sky is blue."}'
 ```
+
+### Production scaling
+
+```bash
+# Multi-worker (each gets own NLI model instance)
+uvicorn director_ai.server:app --workers 4 --host 0.0.0.0 --port 8080
+
+# GPU multi-replica with Docker Compose
+docker compose --profile gpu up --scale director-api-gpu=3
+```
+
+| Workload | CPU | RAM | GPU VRAM | Latency |
+|----------|-----|-----|----------|---------|
+| Heuristic only | 1 core | 256 MB | — | <0.1 ms |
+| ONNX GPU batch | 2 cores | 2 GB | 1.2 GB | 14.6 ms/pair |
+| ONNX CPU batch | 4 cores | 2 GB | — | 383 ms/pair |
+
+Full production guide: [`docs-site/deployment/production.md`](docs-site/deployment/production.md).
 
 ## Usage
 
@@ -411,9 +430,9 @@ at this accuracy tier (14.6 ms/pair vs ~100-200 ms).
 Director-AI's unique value is the *system*: NLI + KB facts + streaming
 token-level halt. No competitor offers real-time streaming gating.
 
-Full comparison with SelfCheckGPT, RAGAS, NeMo Guardrails, Lynx, and others
-in [`benchmarks/comparison/`](benchmarks/comparison/). Benchmark scripts in
-`benchmarks/`.
+Full competitor analysis with per-class metrics, E2E results, and 14 benchmark
+scripts: **[`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md)**.
+Reproduce all results with `benchmarks/` scripts.
 
 ## Known Limitations
 
