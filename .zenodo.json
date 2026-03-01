@@ -42,5 +42,6 @@
   "communities": [
     {"identifier": "zenodo"}
   ],
-  "notes": "Real-time hallucination guardrail by ANULUM. Token-level streaming oversight with NLI + RAG fact-checking."
+  "notes": "Real-time hallucination guardrail by ANULUM. Token-level streaming oversight with NLI + RAG fact-checking.",
+  "doi": "10.5281/zenodo.18822167"
 }
