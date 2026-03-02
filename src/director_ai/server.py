@@ -21,14 +21,12 @@ from __future__ import annotations
 import contextvars
 import hmac
 import logging
-import sqlite3
 import time
 import uuid
 from contextlib import asynccontextmanager
 
 from .core.config import DirectorConfig
 from .core.metrics import metrics
-from .core.stats import StatsStore
 
 __all__ = ["create_app"]
 
@@ -39,7 +37,7 @@ REQUEST_ID_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
 logger = logging.getLogger("DirectorAI.Server")
 
 _WS_MAX_PROMPT_LENGTH = 100_000
-_AUTH_EXEMPT_PATHS = frozenset({"/v1/health", "/v1/metrics/prometheus"})
+_AUTH_EXEMPT_PATHS = frozenset({"/v1/health", "/v1/metrics/prometheus", "/v1/source"})
 
 try:
     from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -194,7 +192,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             _store=store,
         )
         batch_proc = BatchProcessor(agent, max_concurrency=cfg.batch_max_concurrency)
-        stats = StatsStore()
+
+        stats = None
+        if cfg.stats_backend == "sqlite":
+            from .core.stats import StatsStore
+
+            stats = StatsStore(db_path=cfg.stats_db_path)
+            logger.info("SQLite stats backend: %s", cfg.stats_db_path)
 
         _state["agent"] = agent
         _state["scorer"] = scorer
@@ -231,7 +235,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if stats:
             try:
                 stats.close()
-            except sqlite3.Error:
+            except Exception:
                 logger.warning("Failed to close stats database")
 
     app = FastAPI(
@@ -326,6 +330,22 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             nli_loaded=cfg.use_nli,
             uptime_seconds=time.monotonic() - _start_time,
         )
+
+    # ── AGPL §13 source endpoint ────────────────────────────────────
+
+    @app.get("/v1/source")
+    async def source():
+        if not cfg.source_endpoint_enabled:
+            raise HTTPException(404, "Source endpoint disabled")
+        import director_ai
+
+        return {
+            "license": "AGPL-3.0-or-later",
+            "version": director_ai.__version__,
+            "repository_url": cfg.source_repository_url,
+            "instructions": f"git clone {cfg.source_repository_url}",
+            "agpl_section": "13",
+        }
 
     # ── Review ────────────────────────────────────────────────────────
 
@@ -544,26 +564,53 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # ── Stats / Dashboard ────────────────────────────────────────────
 
+    def _prometheus_summary() -> dict:
+        """Derive summary from MetricsCollector when stats_backend=prometheus."""
+        m = metrics.get_metrics()
+        counters = m.get("counters", {})
+        hists = m.get("histograms", {})
+        total = counters.get("reviews_total", {}).get("total", 0)
+        approved = counters.get("reviews_approved", {}).get("total", 0)
+        rejected = counters.get("reviews_rejected", {}).get("total", 0)
+        halted = counters.get("halts_total", {}).get("total", 0)
+        score_hist = hists.get("coherence_score", {})
+        duration_hist = hists.get("review_duration_seconds", {})
+        avg_score = round(score_hist["mean"], 4) if score_hist.get("count") else None
+        avg_latency = (
+            round(duration_hist["mean"] * 1000, 1)
+            if duration_hist.get("count")
+            else None
+        )
+        return {
+            "total": int(total),
+            "approved": int(approved),
+            "rejected": int(rejected),
+            "halted": int(halted),
+            "avg_score": avg_score,
+            "avg_latency_ms": avg_latency,
+        }
+
     @app.get("/v1/stats")
     async def get_stats():
         stats_store = _state.get("stats")
-        if not stats_store:
-            raise HTTPException(503, "Stats not available")
-        return stats_store.summary()
+        if stats_store:
+            return stats_store.summary()
+        return _prometheus_summary()
 
     @app.get("/v1/stats/hourly")
     async def get_stats_hourly(days: int = 7):
         stats_store = _state.get("stats")
-        if not stats_store:
-            raise HTTPException(503, "Stats not available")
-        return stats_store.hourly_breakdown(days=days)
+        if stats_store:
+            return stats_store.hourly_breakdown(days=days)
+        return {
+            "data": [],
+            "note": "hourly breakdown requires stats_backend=sqlite",
+        }
 
     @app.get("/v1/dashboard", response_class=PlainTextResponse)
     async def dashboard():
         stats_store = _state.get("stats")
-        if not stats_store:
-            raise HTTPException(503, "Stats not available")
-        s = stats_store.summary()
+        s = stats_store.summary() if stats_store else _prometheus_summary()
         approval_rate = (
             f"{s['approved'] / s['total'] * 100:.1f}%" if s["total"] else "N/A"
         )
@@ -623,65 +670,28 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     await ws.send_json({"error": "server not ready"})
                     continue
 
-                # Streaming oversight mode
+                # Streaming oversight mode (live token generation)
                 if data.get("streaming_oversight"):
-                    from .core.streaming import StreamingKernel
-
-                    scorer = _state.get("scorer")
-                    if not scorer:
-                        await ws.send_json({"error": "scorer not ready"})
-                        continue
-
-                    kernel = StreamingKernel(
-                        hard_limit=cfg.hard_limit,
-                        soft_limit=cfg.soft_limit,
-                    )
-
                     try:
-                        result = agent.process(prompt)
+                        halted = False
+                        async for token, coherence in agent.stream(prompt):
+                            await ws.send_json(
+                                {
+                                    "type": "token",
+                                    "token": token,
+                                    "coherence": round(coherence, 4),
+                                }
+                            )
+                            if coherence < cfg.hard_limit:
+                                halted = True
+                                await ws.send_json(
+                                    {"type": "halt", "reason": "hard_limit"}
+                                )
+                                break
+                        if not halted:
+                            await ws.send_json({"type": "result", "halted": False})
                     except (RuntimeError, ValueError, TypeError, OSError) as exc:
-                        await ws.send_json({"error": f"processing failed: {exc}"})
-                        continue
-
-                    tokens = result.output.split()
-
-                    def _make_cb(sc, pr):
-                        acc = []
-
-                        def cb(token):
-                            acc.append(token)
-                            text = " ".join(acc)
-                            _, s = sc.review(pr, text)
-                            return s.score
-
-                        return cb
-
-                    session = kernel.stream_tokens(
-                        iter(tokens),
-                        _make_cb(scorer, prompt),
-                    )
-
-                    for event in session.events:
-                        msg = {
-                            "type": "token",
-                            "token": event.token,
-                            "coherence": round(event.coherence, 4),
-                            "index": event.index,
-                        }
-                        if event.halted:
-                            msg["type"] = "halt"
-                            msg["reason"] = session.halt_reason
-                        await ws.send_json(msg)
-
-                    if not session.halted:
-                        await ws.send_json(
-                            {
-                                "type": "result",
-                                "output": session.output,
-                                "halted": False,
-                            }
-                        )
-
+                        await ws.send_json({"error": f"streaming failed: {exc}"})
                     continue
 
                 # Standard (non-streaming) mode

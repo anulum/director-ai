@@ -59,7 +59,6 @@ def create_grpc_server(
     cfg = config or DirectorConfig.from_env()
 
     from .core.agent import CoherenceAgent
-    from .core.streaming import StreamingKernel
 
     store = cfg.build_store()
     scorer = cfg.build_scorer(store=store)
@@ -106,6 +105,12 @@ def create_grpc_server(
             )
 
         def ReviewBatch(self, request, context):  # noqa: N802
+            if len(request.requests) > 1000:
+                context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    f"batch too large: {len(request.requests)} > 1000",
+                )
+                return batch_resp(responses=[])
             responses = []
             for req in request.requests:
                 approved, score = scorer.review(req.prompt, req.response)
@@ -121,35 +126,28 @@ def create_grpc_server(
             return batch_resp(responses=responses)
 
         def StreamTokens(self, request, context):  # noqa: N802
-            # Replay mode: generate full result then stream with scoring
-            result = agent.process(request.prompt)
-            tokens = result.output.split()
-            kernel = StreamingKernel(
-                hard_limit=cfg.hard_limit,
-                soft_limit=cfg.soft_limit,
-            )
+            import asyncio
 
-            def _make_cb(sc, pr):
-                acc = []
+            async def _collect():
+                tokens = []
+                async for tok, coh in agent.stream(request.prompt):
+                    tokens.append((tok, coh))
+                return tokens
 
-                def cb(token):
-                    acc.append(token)
-                    text = " ".join(acc)
-                    _, s = sc.review(pr, text)
-                    return s.score
+            loop = asyncio.new_event_loop()
+            try:
+                pairs = loop.run_until_complete(_collect())
+            finally:
+                loop.close()
 
-                return cb
-
-            session = kernel.stream_tokens(
-                iter(tokens), _make_cb(scorer, request.prompt)
-            )
-            for event in session.events:
+            for i, (tok, coh) in enumerate(pairs):
+                halted = coh < cfg.hard_limit
                 yield token_evt(
-                    token=event.token,
-                    coherence=round(event.coherence, 4),
-                    index=event.index,
-                    halted=event.halted,
-                    halt_reason=session.halt_reason if event.halted else "",
+                    token=tok,
+                    coherence=round(coh, 4),
+                    index=i,
+                    halted=halted,
+                    halt_reason="hard_limit" if halted else "",
                 )
 
     # Auth interceptor
@@ -167,11 +165,35 @@ def create_grpc_server(
                 )
             return continuation(handler_call_details)
 
+    _mb = 1024 * 1024
+    server_options = [
+        ("grpc.max_receive_message_length", cfg.grpc_max_message_mb * _mb),
+        ("grpc.max_send_message_length", 4 * cfg.grpc_max_message_mb * _mb),
+        ("grpc.keepalive_time_ms", 30_000),
+        ("grpc.keepalive_timeout_ms", 10_000),
+    ]
+
     interceptors = [_AuthInterceptor()]
     server = grpc.server(
         futures.ThreadPoolExecutor(max_workers=max_workers),
         interceptors=interceptors,
+        options=server_options,
     )
+
+    # Optional server reflection
+    try:
+        from grpc_reflection.v1alpha import reflection
+
+        service_names = []
+        if has_proto:
+            service_names.append(
+                director_pb2.DESCRIPTOR.services_by_name["DirectorService"].full_name
+            )
+        service_names.append(reflection.SERVICE_NAME)
+        reflection.enable_server_reflection(service_names, server)
+        logger.debug("gRPC reflection enabled")
+    except (ImportError, AttributeError, KeyError):
+        pass
 
     if has_proto:
         from . import director_pb2_grpc

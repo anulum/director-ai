@@ -130,6 +130,18 @@ class DirectorConfig:
     # API key auth (empty list = no auth required)
     api_keys: list[str] = field(default_factory=list)
 
+    # Stats backend: "prometheus" (default, in-memory) or "sqlite" (persistent)
+    stats_backend: str = "prometheus"
+    stats_db_path: str = "~/.director-ai/stats.db"
+
+    # AGPL §13 source code endpoint
+    source_endpoint_enabled: bool = True
+    source_repository_url: str = "https://github.com/anulum/director-ai"
+
+    # gRPC limits
+    grpc_max_message_mb: int = 4
+    grpc_deadline_seconds: float = 30.0
+
     # Profile name (informational)
     profile: str = "default"
 
@@ -172,6 +184,19 @@ class DirectorConfig:
             raise ValueError(f"server_workers must be >= 1, got {self.server_workers}")
         if self.rate_limit_rpm < 0:
             raise ValueError(f"rate_limit_rpm must be >= 0, got {self.rate_limit_rpm}")
+        if self.stats_backend not in ("prometheus", "sqlite"):
+            raise ValueError(
+                f"stats_backend must be 'prometheus' or 'sqlite', "
+                f"got {self.stats_backend!r}"
+            )
+        if self.grpc_max_message_mb < 1:
+            raise ValueError(
+                f"grpc_max_message_mb must be >= 1, got {self.grpc_max_message_mb}"
+            )
+        if self.grpc_deadline_seconds <= 0:
+            raise ValueError(
+                f"grpc_deadline_seconds must be > 0, got {self.grpc_deadline_seconds}"
+            )
         if (self.w_logic != 0.0 or self.w_fact != 0.0) and abs(
             self.w_logic + self.w_fact - 1.0
         ) > 1e-6:

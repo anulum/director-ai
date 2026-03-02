@@ -5,6 +5,29 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.5.0] — 2026-03-03
+
+### Added
+- **Rust scorer in backend registry**: `RustBackend` wrapping `backfire_kernel.RustCoherenceScorer`, registered as `"rust"` / `"backfire"`. Conditional — silent skip when native extension not built.
+- **AGPL §13 `/v1/source` endpoint**: auth-exempt, returns license, version, repo URL. Disabled via `DIRECTOR_SOURCE_ENDPOINT_ENABLED=false` for commercial licensees.
+- **Live token streaming**: `MockGenerator.stream_tokens()` and `LLMGenerator.stream_tokens()` (SSE via httpx). `CoherenceAgent.stream()` yields `(token, coherence)` tuples with per-token scoring. WebSocket `/v1/stream` and gRPC `StreamTokens` use live generation instead of replay.
+- **Optional-deps CI matrix**: `test-extras` job validates `dev,server` / `dev,server,ratelimit` / `dev,grpc` combos on Python 3.12.
+- **Container smoke test**: `docker-smoke` CI job builds image, starts with `DIRECTOR_LLM_PROVIDER=mock`, verifies `/v1/health`, `/v1/source`, `/v1/metrics/prometheus`.
+- **SBOM release attachment**: `attach-sbom` job in publish workflow uploads `sbom.json` to GitHub release.
+- Config fields: `stats_backend`, `stats_db_path`, `source_endpoint_enabled`, `source_repository_url`, `grpc_max_message_mb`, `grpc_deadline_seconds`.
+- `docs-site/guide/agpl-compliance.md` — operator §13 compliance guide.
+
+### Changed
+- **Stats backend**: `StatsStore` (SQLite) only instantiated when `stats_backend=sqlite`. Default `prometheus` derives summary from `MetricsCollector`. `/v1/stats/hourly` returns empty array with note when using prometheus backend.
+- **gRPC server options**: message size limits (`grpc_max_message_mb`), keepalive, optional reflection. `ReviewBatch` rejects > 1000 items.
+- **Agent scorer construction**: `CoherenceAgent._build_scorer()` uses backend registry lookup instead of direct `backfire_kernel` import.
+- `cyclonedx-bom` pinned to `>=4.0,<5` in CI and publish workflows.
+- `httpx>=0.27` added to `[server]` extras.
+- Version bump: 2.4.0 → 2.5.0
+
+### Deprecated
+- `StatsStore` (SQLite backend) — opt-in via `stats_backend=sqlite`, removal planned for v3.0.
+
 ## [2.4.0] — 2026-03-02
 
 ### Fixed

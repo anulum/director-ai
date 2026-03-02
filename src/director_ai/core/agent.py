@@ -6,8 +6,11 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
+from __future__ import annotations
+
 import logging
 import os
+from collections.abc import AsyncIterator
 
 from .actor import LLMGenerator, MockGenerator
 from .kernel import SafetyKernel
@@ -16,14 +19,6 @@ from .scorer import CoherenceScorer
 from .types import HaltEvidence, ReviewResult
 
 __all__ = ["CoherenceAgent"]
-
-try:
-    from backfire_kernel import BackfireConfig as _RustConfig
-    from backfire_kernel import RustCoherenceScorer as _RustScorer
-
-    _RUST_AVAILABLE = True
-except ImportError:
-    _RUST_AVAILABLE = False
 
 _PROVIDER_ENV_KEYS = {
     "openai": "OPENAI_API_KEY",
@@ -85,17 +80,28 @@ class CoherenceAgent:
 
     def _build_scorer(self, use_nli):
         """Construct scorer, preferring Rust backend when installed."""
-        if _RUST_AVAILABLE:
-            try:
-                cfg = _RustConfig(coherence_threshold=0.6)
-                kb_cb = self.store.retrieve_context
-                scorer = _RustScorer(config=cfg, knowledge_callback=kb_cb)
-                self.logger.info("Rust CoherenceScorer active")
-                return scorer
-            except (TypeError, ValueError, RuntimeError, OSError) as exc:
-                self.logger.warning(
-                    "Rust scorer init failed (%s) — Python fallback", exc
-                )
+        from .backends import get_backend
+
+        try:
+            get_backend("rust")  # availability probe
+            from backfire_kernel import BackfireConfig, RustCoherenceScorer
+
+            cfg = BackfireConfig(coherence_threshold=0.6)
+            scorer = RustCoherenceScorer(
+                config=cfg,
+                knowledge_callback=self.store.retrieve_context,
+            )
+            self.logger.info("Rust CoherenceScorer active (via registry)")
+            return scorer
+        except (
+            KeyError,
+            ImportError,
+            TypeError,
+            ValueError,
+            RuntimeError,
+            OSError,
+        ) as exc:
+            self.logger.debug("Rust scorer unavailable (%s) — Python fallback", exc)
         return CoherenceScorer(
             threshold=0.6, ground_truth_store=self.store, use_nli=use_nli
         )
@@ -114,7 +120,7 @@ class CoherenceAgent:
             return OpenAIProvider(api_key=api_key)
         return AnthropicProvider(api_key=api_key)
 
-    def process(self, prompt: str) -> "ReviewResult":
+    def process(self, prompt: str) -> ReviewResult:
         """Process a prompt end-to-end and return the verified output.
 
         Raises:
@@ -216,6 +222,31 @@ class CoherenceAgent:
             candidates_evaluated=len(candidates),
             halt_evidence=halt_ev,
         )
+
+    async def stream(self, prompt: str) -> AsyncIterator[tuple[str, float]]:
+        """Stream tokens with live per-token coherence scoring.
+
+        Yields (token, coherence_score) tuples. Falls back to process()
+        replay if the generator lacks stream_tokens().
+        """
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("prompt must be a non-empty string")
+
+        if not hasattr(self.generator, "stream_tokens"):
+            result = self.process(prompt)
+            for word in result.output.split():
+                yield word, result.coherence.score if result.coherence else 0.0
+            return
+
+        accumulated: list[str] = []
+        async for token in self.generator.stream_tokens(prompt):
+            accumulated.append(token)
+            text = " ".join(accumulated)
+            _, score = self.scorer.review(prompt, text)
+            coherence = score.score
+            yield token, coherence
+            if coherence < getattr(self.kernel, "hard_limit", 0.5):
+                return
 
     # ── Backward-compatible alias ─────────────────────────────────────
 

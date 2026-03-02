@@ -161,8 +161,35 @@ class LiteBackend(ScorerBackend):
         return self._scorer.score_batch(pairs)
 
 
+class RustBackend(ScorerBackend):
+    """Wraps backfire_kernel.RustCoherenceScorer (heuristic-only, sub-1ms)."""
+
+    def __init__(self, **kwargs) -> None:
+        from backfire_kernel import BackfireConfig, RustCoherenceScorer
+
+        self._scorer = RustCoherenceScorer(
+            config=BackfireConfig(coherence_threshold=kwargs.get("threshold", 0.6)),
+            knowledge_callback=kwargs.get("knowledge_callback"),
+        )
+
+    def score(self, premise: str, hypothesis: str) -> float:
+        approved, score_obj = self._scorer.review(premise, hypothesis)
+        return score_obj.score if hasattr(score_obj, "score") else float(score_obj)
+
+    def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        return [self.score(p, h) for p, h in pairs]
+
+
 # Auto-register built-ins
 register_backend("deberta", DeBERTaBackend)
 register_backend("onnx", OnnxBackend)
 register_backend("minicheck", MiniCheckBackend)
 register_backend("lite", LiteBackend)
+
+try:
+    import backfire_kernel as _bk_probe  # noqa: F401
+
+    register_backend("rust", RustBackend)
+    register_backend("backfire", RustBackend)
+except ImportError:
+    pass

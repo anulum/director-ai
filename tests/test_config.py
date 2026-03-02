@@ -308,6 +308,64 @@ class TestEnvCoercionErrors:
             DirectorConfig.from_env()
 
 
+class TestNewV25Fields:
+    """Tests for v2.5.0 config fields: stats, source, gRPC."""
+
+    def test_default_stats_backend(self):
+        cfg = DirectorConfig()
+        assert cfg.stats_backend == "prometheus"
+        assert cfg.stats_db_path == "~/.director-ai/stats.db"
+
+    def test_sqlite_stats_backend(self):
+        cfg = DirectorConfig(stats_backend="sqlite")
+        assert cfg.stats_backend == "sqlite"
+
+    def test_invalid_stats_backend(self):
+        with pytest.raises(ValueError, match="stats_backend"):
+            DirectorConfig(stats_backend="redis")
+
+    def test_default_source_fields(self):
+        cfg = DirectorConfig()
+        assert cfg.source_endpoint_enabled is True
+        assert "github.com" in cfg.source_repository_url
+
+    def test_grpc_defaults(self):
+        cfg = DirectorConfig()
+        assert cfg.grpc_max_message_mb == 4
+        assert cfg.grpc_deadline_seconds == 30.0
+
+    def test_grpc_max_message_mb_below_one(self):
+        with pytest.raises(ValueError, match="grpc_max_message_mb"):
+            DirectorConfig(grpc_max_message_mb=0)
+
+    def test_grpc_deadline_zero(self):
+        with pytest.raises(ValueError, match="grpc_deadline_seconds"):
+            DirectorConfig(grpc_deadline_seconds=0)
+
+    def test_grpc_deadline_negative(self):
+        with pytest.raises(ValueError, match="grpc_deadline_seconds"):
+            DirectorConfig(grpc_deadline_seconds=-1.0)
+
+    def test_env_override_stats_backend(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_STATS_BACKEND", "sqlite")
+        cfg = DirectorConfig.from_env()
+        assert cfg.stats_backend == "sqlite"
+
+    def test_env_override_grpc(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_GRPC_MAX_MESSAGE_MB", "8")
+        monkeypatch.setenv("DIRECTOR_GRPC_DEADLINE_SECONDS", "60.0")
+        cfg = DirectorConfig.from_env()
+        assert cfg.grpc_max_message_mb == 8
+        assert cfg.grpc_deadline_seconds == 60.0
+
+    def test_to_dict_includes_new_fields(self):
+        cfg = DirectorConfig()
+        d = cfg.to_dict()
+        assert "stats_backend" in d
+        assert "grpc_max_message_mb" in d
+        assert "source_endpoint_enabled" in d
+
+
 class TestWeightValidation:
     """Tests for w_logic + w_fact constraint."""
 

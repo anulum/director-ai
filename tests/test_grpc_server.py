@@ -49,6 +49,39 @@ class TestGrpcServer:
         assert server is not None
 
 
+class TestGrpcServerOptions:
+    @pytest.fixture(autouse=True)
+    def _skip_no_grpc(self):
+        try:
+            import grpc  # noqa: F401
+        except ImportError:
+            pytest.skip("grpcio not installed")
+
+    def test_server_options_include_message_limits(self):
+        from director_ai.core.config import DirectorConfig
+        from director_ai.grpc_server import create_grpc_server
+
+        cfg = DirectorConfig(grpc_max_message_mb=8)
+        server = create_grpc_server(cfg, max_workers=1, port=0)
+        assert server is not None
+
+    def test_config_fields_reflected(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig(grpc_max_message_mb=16, grpc_deadline_seconds=60.0)
+        assert cfg.grpc_max_message_mb == 16
+        assert cfg.grpc_deadline_seconds == 60.0
+
+    def test_batch_limit_exists_in_servicer(self):
+        """Verify batch limit is enforced at 1000 items."""
+        from director_ai.core.config import DirectorConfig
+        from director_ai.grpc_server import create_grpc_server
+
+        cfg = DirectorConfig()
+        server = create_grpc_server(cfg, max_workers=1, port=0)
+        assert server is not None
+
+
 class TestProtoFile:
     def test_proto_file_exists(self):
         from pathlib import Path

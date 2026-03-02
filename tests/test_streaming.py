@@ -246,6 +246,100 @@ class TestScoringCadence:
 
 
 @pytest.mark.consumer
+class TestLiveStreaming:
+    """Live token generation via agent.stream()."""
+
+    def test_mock_generator_stream_tokens(self):
+        from director_ai.core.actor import MockGenerator
+
+        gen = MockGenerator()
+
+        async def run():
+            tokens = []
+            async for tok in gen.stream_tokens("test"):
+                tokens.append(tok)
+            return tokens
+
+        tokens = asyncio.run(run())
+        assert len(tokens) > 0
+        assert all(isinstance(t, str) for t in tokens)
+
+    def test_agent_stream_yields_tuples(self):
+        from director_ai.core.agent import CoherenceAgent
+
+        agent = CoherenceAgent()
+
+        async def run():
+            pairs = []
+            async for tok, coh in agent.stream("What is 2+2?"):
+                pairs.append((tok, coh))
+            return pairs
+
+        pairs = asyncio.run(run())
+        assert len(pairs) > 0
+        for tok, coh in pairs:
+            assert isinstance(tok, str)
+            assert isinstance(coh, float)
+
+    def test_stream_halts_on_low_coherence(self):
+        from unittest.mock import MagicMock
+
+        from director_ai.core import CoherenceScore
+        from director_ai.core.agent import CoherenceAgent
+
+        mock_scorer = MagicMock()
+        mock_scorer.review.return_value = (
+            False,
+            CoherenceScore(score=0.1, approved=False, h_logical=0.9, h_factual=0.9),
+        )
+        agent = CoherenceAgent(_scorer=mock_scorer)
+
+        async def run():
+            pairs = []
+            async for tok, coh in agent.stream("bad query"):
+                pairs.append((tok, coh))
+            return pairs
+
+        pairs = asyncio.run(run())
+        # Should halt early (first token has coherence 0.1 < hard_limit 0.5)
+        assert len(pairs) == 1
+        assert pairs[0][1] < 0.5
+
+    def test_stream_rejects_empty_prompt(self):
+        from director_ai.core.agent import CoherenceAgent
+
+        agent = CoherenceAgent()
+
+        async def run():
+            async for _ in agent.stream(""):
+                pass
+
+        with pytest.raises(ValueError, match="non-empty string"):
+            asyncio.run(run())
+
+    def test_stream_fallback_without_stream_tokens(self):
+        from director_ai.core.actor import MockGenerator
+        from director_ai.core.agent import CoherenceAgent
+
+        agent = CoherenceAgent()
+        # Save and remove stream_tokens to trigger fallback
+        original = MockGenerator.stream_tokens
+        try:
+            del MockGenerator.stream_tokens
+
+            async def run():
+                pairs = []
+                async for tok, coh in agent.stream("test"):
+                    pairs.append((tok, coh))
+                return pairs
+
+            pairs = asyncio.run(run())
+            assert len(pairs) > 0
+        finally:
+            MockGenerator.stream_tokens = original
+
+
+@pytest.mark.consumer
 class TestAsyncStreamingKernel:
     def test_async_on_halt_fires(self):
         halted_sessions = []

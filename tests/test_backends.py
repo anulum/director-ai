@@ -105,6 +105,42 @@ class TestNLIScorerCustomBackend:
         assert scorer.model_available is True
 
 
+class TestRustBackend:
+    def test_rust_registration_conditional(self):
+        backends = list_backends()
+        # Rust may or may not be installed — test that registry handles both
+        try:
+            from backfire_kernel import RustCoherenceScorer  # noqa: F401
+
+            assert "rust" in backends
+            assert "backfire" in backends
+        except ImportError:
+            assert "rust" not in backends
+
+    def test_rust_backend_class_exists(self):
+        from director_ai.core.backends import RustBackend
+
+        assert issubclass(RustBackend, ScorerBackend)
+
+    def test_rust_instantiation_without_backfire_raises(self):
+        from unittest.mock import patch
+
+        from director_ai.core.backends import RustBackend
+
+        with (
+            patch.dict("sys.modules", {"backfire_kernel": None}),
+            pytest.raises((ImportError, ModuleNotFoundError)),
+        ):
+            RustBackend()
+
+    def test_agent_falls_back_without_rust(self):
+        from director_ai.core.agent import CoherenceAgent
+
+        agent = CoherenceAgent()
+        # Should not raise — falls back to Python scorer
+        assert agent.scorer is not None
+
+
 class TestEntryPointDiscovery:
     def test_entry_points_loaded_flag(self):
         import director_ai.core.backends as mod

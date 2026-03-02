@@ -149,15 +149,17 @@ class TestCacheGeneration:
 
 class TestRustScorerIntegration:
     def test_default_agent_prefers_rust_if_available(self):
-        from director_ai.core.agent import _RUST_AVAILABLE, CoherenceAgent
+        from director_ai.core.agent import CoherenceAgent
+        from director_ai.core.backends import list_backends
 
         agent = CoherenceAgent()
-        if _RUST_AVAILABLE:
+        if "rust" in list_backends():
             assert agent.scorer.__class__.__name__ == "RustCoherenceScorer"
         else:
             assert agent.scorer.__class__.__name__ == "CoherenceScorer"
 
-    def test_rust_available_flag(self):
-        from director_ai.core.agent import _RUST_AVAILABLE
+    def test_rust_registry_probe(self):
+        from director_ai.core.backends import list_backends
 
-        assert isinstance(_RUST_AVAILABLE, bool)
+        backends = list_backends()
+        assert isinstance(backends, dict)

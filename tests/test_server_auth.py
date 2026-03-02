@@ -134,3 +134,94 @@ def test_valid_body_sizes_accepted():
             json={"prompt": "What is 2+2?", "response": "4"},
         )
     assert r.status_code == 200
+
+
+# ── Stats backend tests ──────────────────────────────────────────────
+
+
+def test_prometheus_stats_returns_summary():
+    """Default prometheus backend returns summary dict from /v1/stats."""
+    cfg = DirectorConfig(api_keys=[], llm_provider="mock", stats_backend="prometheus")
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/stats")
+    assert r.status_code == 200
+    data = r.json()
+    assert "total" in data
+    assert "approved" in data
+
+
+def test_prometheus_hourly_graceful():
+    """Prometheus backend returns empty hourly breakdown with note."""
+    cfg = DirectorConfig(api_keys=[], llm_provider="mock", stats_backend="prometheus")
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/stats/hourly")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["data"] == []
+    assert "sqlite" in data["note"]
+
+
+def test_dashboard_renders_with_prometheus():
+    cfg = DirectorConfig(api_keys=[], llm_provider="mock", stats_backend="prometheus")
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/dashboard")
+    assert r.status_code == 200
+    assert "Dashboard" in r.text
+
+
+# ── AGPL §13 source endpoint tests ───────────────────────────────
+
+
+def test_source_returns_200():
+    with TestClient(_noauth_app()) as client:
+        r = client.get("/v1/source")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["license"] == "AGPL-3.0-or-later"
+    assert "repository_url" in data
+    assert data["agpl_section"] == "13"
+
+
+def test_source_exempt_from_auth():
+    with TestClient(_auth_app()) as client:
+        r = client.get("/v1/source")
+    assert r.status_code == 200
+
+
+def test_source_disabled_returns_404():
+    cfg = DirectorConfig(
+        api_keys=[], llm_provider="mock", source_endpoint_enabled=False
+    )
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/source")
+    assert r.status_code == 404
+
+
+def test_source_custom_repo_url():
+    cfg = DirectorConfig(
+        api_keys=[],
+        llm_provider="mock",
+        source_repository_url="https://git.example.com/fork",
+    )
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/source")
+    assert r.status_code == 200
+    assert r.json()["repository_url"] == "https://git.example.com/fork"
+
+
+def test_sqlite_stats_works(tmp_path):
+    db_path = str(tmp_path / "test_stats.db")
+    cfg = DirectorConfig(
+        api_keys=[], llm_provider="mock", stats_backend="sqlite", stats_db_path=db_path
+    )
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/stats")
+    assert r.status_code == 200
+    data = r.json()
+    assert data["total"] == 0

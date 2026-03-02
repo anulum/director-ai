@@ -24,7 +24,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install build tools
-        run: pip install build twine
+        run: pip install build twine "cyclonedx-bom>=4.0,<5"
 
       - name: Build sdist and wheel
         run: python -m build
@@ -33,9 +33,7 @@ jobs:
         run: twine check dist/*
 
       - name: Generate SBOM
-        run: |
-          pip install cyclonedx-bom
-          cyclonedx-py environment -o sbom.json --of json
+        run: cyclonedx-py environment -o sbom.json --of json
 
       - name: Upload dist
         uses: actions/upload-artifact@v7
@@ -65,3 +63,22 @@ jobs:
 
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
+
+  attach-sbom:
+    name: Attach SBOM to Release
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download SBOM artifact
+        uses: actions/download-artifact@v8
+        with:
+          name: sbom
+
+      - name: Attach to release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "${{ github.event.release.tag_name }}" sbom.json --clobber

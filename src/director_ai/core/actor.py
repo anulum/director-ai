@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import AsyncIterator
 
 import requests
 
@@ -57,6 +58,12 @@ class MockGenerator:
             },
         ]
         return [pool[i % len(pool)] for i in range(n)]
+
+    async def stream_tokens(self, prompt: str) -> AsyncIterator[str]:
+        """Yield individual words as tokens from mock response."""
+        text = self.generate_candidates(prompt, n=1)[0]["text"]
+        for word in text.split():
+            yield word
 
 
 class LLMGenerator:
@@ -149,3 +156,34 @@ class LLMGenerator:
                 )
 
         return candidates
+
+    async def stream_tokens(self, prompt: str) -> AsyncIterator[str]:
+        """Yield tokens via SSE streaming if supported, else replay."""
+        try:
+            import httpx
+
+            payload = {
+                "prompt": prompt,
+                "n_predict": LLM_DEFAULT_MAX_TOKENS,
+                "temperature": LLM_DEFAULT_TEMPERATURE,
+                "stream": True,
+                "stop": ["\nUser:", "\nSystem:"],
+            }
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                async with client.stream("POST", self.api_url, json=payload) as resp:
+                    async for line in resp.aiter_lines():
+                        if line.startswith("data: "):
+                            import json
+
+                            data = json.loads(line[6:])
+                            token = data.get("content", data.get("token", ""))
+                            if token:
+                                yield token
+                return
+        except (ImportError, Exception) as exc:
+            self.logger.debug("SSE streaming unavailable (%s) — replay fallback", exc)
+
+        # Replay fallback
+        candidates = self.generate_candidates(prompt, n=1)
+        for word in candidates[0]["text"].split():
+            yield word
