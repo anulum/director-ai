@@ -43,7 +43,7 @@ class TestOtelWithMock:
         mock_tracer = MagicMock()
         with (
             patch.object(otel_mod, "_OTEL_AVAILABLE", True),
-            patch.object(otel_mod, "trace") as mock_trace,
+            patch.object(otel_mod, "trace", create=True) as mock_trace,
         ):
             mock_trace.get_tracer.return_value = mock_tracer
             setup_otel("test-service")
