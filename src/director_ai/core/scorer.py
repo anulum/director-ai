@@ -391,16 +391,29 @@ class CoherenceScorer:
 
     def review(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
         """Score an action and decide whether to approve it."""
-        if self.cache:
-            cached = self.cache.get(prompt, action)
-            if cached is not None:
-                return self._finalise_review(
-                    cached.score, cached.h_logical, cached.h_factual, action
-                )
-        h_logic, h_fact, coherence, evidence = self._heuristic_coherence(prompt, action)
-        if self.cache:
-            self.cache.put(prompt, action, coherence, h_logic, h_fact)
-        return self._finalise_review(coherence, h_logic, h_fact, action, evidence)
+        from .otel import trace_review
+
+        with trace_review() as span:
+            if self.cache:
+                cached = self.cache.get(prompt, action)
+                if cached is not None:
+                    result = self._finalise_review(
+                        cached.score, cached.h_logical, cached.h_factual, action
+                    )
+                    span.set_attribute("coherence.score", cached.score)
+                    span.set_attribute("coherence.approved", result[0])
+                    span.set_attribute("coherence.cached", True)
+                    return result
+            h_logic, h_fact, coherence, evidence = self._heuristic_coherence(
+                prompt, action
+            )
+            if self.cache:
+                self.cache.put(prompt, action, coherence, h_logic, h_fact)
+            result = self._finalise_review(coherence, h_logic, h_fact, action, evidence)
+            span.set_attribute("coherence.score", result[1].score)
+            span.set_attribute("coherence.approved", result[0])
+            span.set_attribute("coherence.cached", False)
+            return result
 
     # ── Async API ──────────────────────────────────────────────────────
 

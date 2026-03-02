@@ -69,6 +69,7 @@ nav:
     - Threshold Tuning: guide/threshold-tuning.md
     - KB Ingestion: guide/kb-ingestion.md
     - Evidence & Fallback: guide/evidence.md
+    - Domain Presets: guide/presets.md
     - Configuration: guide/config.md
     - ONNX Export: guide/onnx-export.md
     - Quantization: guide/quantization.md
@@ -92,11 +93,17 @@ nav:
     - Production Guide: deployment/production.md
     - Docker: deployment/docker.md
     - Metrics: deployment/metrics.md
+    - Monitoring: deployment/monitoring.md
   - Cookbook:
     - Legal: cookbook/legal.md
     - Medical: cookbook/medical.md
     - Finance: cookbook/finance.md
     - Customer Support: cookbook/customer-support.md
     - Case Studies: cookbook/case-studies.md
+  - Reference:
+    - Scorer: reference/scorer.md
+    - Streaming: reference/streaming.md
+    - Config: reference/config.md
+    - Server: reference/server.md
   - Changelog: changelog.md
   - Licensing: licensing.md

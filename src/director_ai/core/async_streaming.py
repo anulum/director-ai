@@ -61,6 +61,7 @@ class AsyncStreamingKernel(SafetyKernel):
         soft_limit: float = 0.6,
         token_timeout: float = 0.0,
         total_timeout: float = 0.0,
+        halt_mode: str = "hard",
     ) -> None:
         if not (0.0 <= hard_limit <= 1.0):
             raise ValueError(f"hard_limit must be in [0, 1], got {hard_limit}")
@@ -74,6 +75,8 @@ class AsyncStreamingKernel(SafetyKernel):
             raise ValueError(f"trend_window must be >= 2, got {trend_window}")
         if trend_threshold <= 0:
             raise ValueError(f"trend_threshold must be > 0, got {trend_threshold}")
+        if halt_mode not in ("hard", "soft"):
+            raise ValueError(f"halt_mode must be 'hard' or 'soft', got {halt_mode!r}")
         super().__init__(
             hard_limit=hard_limit,
             on_halt=on_halt,
@@ -85,6 +88,7 @@ class AsyncStreamingKernel(SafetyKernel):
         self.trend_window = trend_window
         self.trend_threshold = trend_threshold
         self.soft_limit = soft_limit
+        self.halt_mode = halt_mode
 
     async def stream_tokens(
         self,

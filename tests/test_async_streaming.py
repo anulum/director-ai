@@ -160,3 +160,15 @@ class TestAsyncStreamingKernel:
         kernel = AsyncStreamingKernel(token_timeout=1.5, total_timeout=30.0)
         assert kernel.token_timeout == 1.5
         assert kernel.total_timeout == 30.0
+
+    async def test_halt_mode_default_is_hard(self):
+        kernel = AsyncStreamingKernel()
+        assert kernel.halt_mode == "hard"
+
+    async def test_halt_mode_soft_accepted(self):
+        kernel = AsyncStreamingKernel(halt_mode="soft")
+        assert kernel.halt_mode == "soft"
+
+    async def test_invalid_halt_mode_raises(self):
+        with pytest.raises(ValueError, match="halt_mode"):
+            AsyncStreamingKernel(halt_mode="invalid")

@@ -66,3 +66,26 @@ def test_no_audit_when_path_empty():
             json={"prompt": "test", "response": "test"},
         )
     assert r.status_code == 200
+
+
+def test_request_id_round_trip():
+    cfg = DirectorConfig(llm_provider="mock")
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.post(
+            "/v1/review",
+            json={"prompt": "test", "response": "test"},
+            headers={"X-Request-ID": "my-req-001"},
+        )
+    assert r.status_code == 200
+    assert r.headers["X-Request-ID"] == "my-req-001"
+
+
+def test_request_id_generated_when_absent():
+    cfg = DirectorConfig(llm_provider="mock")
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/health")
+    assert r.status_code == 200
+    rid = r.headers.get("X-Request-ID", "")
+    assert len(rid) > 0

@@ -53,6 +53,7 @@ class StreamSession:
     events: list[TokenEvent] = field(default_factory=list)
     coherence_history: list[float] = field(default_factory=list)
     halted: bool = False
+    soft_halted: bool = False
     halt_index: int = -1
     halt_reason: str = ""
     halt_evidence: str | None = None
@@ -64,6 +65,8 @@ class StreamSession:
 
     @property
     def output(self) -> str:
+        if self.soft_halted:
+            return "".join(self.tokens)
         if self.halted and self.halt_index >= 0:
             return "".join(self.tokens[: self.halt_index])
         return "".join(self.tokens)
@@ -104,6 +107,9 @@ class StreamingKernel(SafetyKernel):
     trend_threshold : float — halt if coherence drops this much over trend window.
     """
 
+    _SENTENCE_ENDS = frozenset(".!?")
+    _SOFT_HALT_CAP = 50
+
     def __init__(
         self,
         hard_limit: float = 0.5,
@@ -114,14 +120,18 @@ class StreamingKernel(SafetyKernel):
         on_halt=None,
         soft_limit: float = 0.6,
         streaming_debug: bool = False,
+        halt_mode: str = "hard",
     ) -> None:
         super().__init__(hard_limit=hard_limit, on_halt=on_halt)
+        if halt_mode not in ("hard", "soft"):
+            raise ValueError(f"halt_mode must be 'hard' or 'soft', got {halt_mode!r}")
         self.window_size = window_size
         self.window_threshold = window_threshold
         self.trend_window = trend_window
         self.trend_threshold = trend_threshold
         self.soft_limit = soft_limit
         self.streaming_debug = streaming_debug
+        self.halt_mode = halt_mode
 
     @staticmethod
     def _suggested_action(reason: str) -> str:
@@ -160,11 +170,15 @@ class StreamingKernel(SafetyKernel):
         """
         session = StreamSession(start_time=time.monotonic())
         window: deque[float] = deque(maxlen=self.window_size)
+        _soft_halt_pending = False
+        _soft_halt_reason = ""
+        _soft_halt_extra_tokens = 0
 
-        def _halt(event: TokenEvent, reason: str) -> None:
+        def _finalize_halt(event: TokenEvent, reason: str) -> None:
             event.halted = True
             session.halted = True
-            session.halt_index = event.index
+            if session.halt_index < 0:
+                session.halt_index = event.index
             session.halt_reason = reason
             if evidence_callback:
                 ev = evidence_callback("".join(session.tokens))
@@ -189,6 +203,10 @@ class StreamingKernel(SafetyKernel):
                 )
                 event.halt_evidence = structured
                 session.halt_evidence_structured = structured
+
+        def _is_sentence_boundary(tok: str) -> bool:
+            stripped = tok.rstrip()
+            return bool(stripped) and stripped[-1] in self._SENTENCE_ENDS
 
         for i, token in enumerate(token_generator):
             if not self.is_active:
@@ -225,9 +243,47 @@ class StreamingKernel(SafetyKernel):
                 event.debug_info = snap
                 session.debug_log.append(snap)
 
+            # If soft-halt pending, check for sentence boundary or cap
+            if _soft_halt_pending:
+                _soft_halt_extra_tokens += 1
+                session.events.append(event)
+                at_cap = _soft_halt_extra_tokens >= self._SOFT_HALT_CAP
+                if _is_sentence_boundary(token) or at_cap:
+                    session.soft_halted = True
+                    _finalize_halt(event, _soft_halt_reason)
+                    break
+                continue
+
+            halt_reason = ""
             if score < self.hard_limit:
-                _halt(event, f"hard_limit ({score:.4f} < {self.hard_limit})")
-                self.emergency_stop()
+                halt_reason = f"hard_limit ({score:.4f} < {self.hard_limit})"
+            elif len(window) >= self.window_size:
+                avg = sum(window) / len(window)
+                if avg < self.window_threshold:
+                    halt_reason = f"window_avg ({avg:.4f} < {self.window_threshold})"
+            if not halt_reason and len(session.coherence_history) >= self.trend_window:
+                recent = session.coherence_history[-self.trend_window :]
+                drop = recent[0] - recent[-1]
+                if drop > self.trend_threshold:
+                    halt_reason = (
+                        f"downward_trend ({drop:.4f} > {self.trend_threshold})"
+                    )
+
+            if halt_reason:
+                if self.halt_mode == "soft" and "hard_limit" not in halt_reason:
+                    _soft_halt_pending = True
+                    _soft_halt_reason = halt_reason
+                    session.halt_index = event.index
+                    session.events.append(event)
+                    if _is_sentence_boundary(token):
+                        session.soft_halted = True
+                        _finalize_halt(event, halt_reason)
+                        break
+                    continue
+                # Hard halt
+                _finalize_halt(event, halt_reason)
+                if "hard_limit" in halt_reason:
+                    self.emergency_stop()
                 session.events.append(event)
                 break
 
@@ -235,27 +291,22 @@ class StreamingKernel(SafetyKernel):
                 event.warning = True
                 session.warning_count += 1
 
-            if len(window) >= self.window_size:
-                avg = sum(window) / len(window)
-                if avg < self.window_threshold:
-                    _halt(event, f"window_avg ({avg:.4f} < {self.window_threshold})")
-                    session.events.append(event)
-                    break
-
-            if len(session.coherence_history) >= self.trend_window:
-                recent = session.coherence_history[-self.trend_window :]
-                drop = recent[0] - recent[-1]
-                if drop > self.trend_threshold:
-                    reason = f"downward_trend ({drop:.4f} > {self.trend_threshold})"
-                    _halt(event, reason)
-                    session.events.append(event)
-                    break
-
             session.events.append(event)
 
         session.end_time = time.monotonic()
         if session.halted and self.on_halt:
             self.on_halt(session)
+
+        from .otel import trace_streaming
+
+        with trace_streaming() as span:
+            span.set_attribute("stream.halted", session.halted)
+            span.set_attribute("stream.soft_halted", session.soft_halted)
+            span.set_attribute("stream.halt_reason", session.halt_reason)
+            span.set_attribute("stream.token_count", session.token_count)
+            span.set_attribute("stream.warning_count", session.warning_count)
+            if session.coherence_history:
+                span.set_attribute("stream.avg_coherence", session.avg_coherence)
         return session
 
     def stream_output(self, token_generator, coherence_callback) -> str:

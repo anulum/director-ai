@@ -16,6 +16,7 @@ Usage::
 from __future__ import annotations
 
 import json
+import logging
 import os
 from dataclasses import dataclass, field
 
@@ -94,6 +95,7 @@ class DirectorConfig:
     metrics_enabled: bool = True
     log_level: str = "INFO"
     log_json: bool = False
+    otel_enabled: bool = False
 
     # Audit
     audit_log_path: str = ""
@@ -214,7 +216,7 @@ class DirectorConfig:
         --------
         - ``"fast"`` — heuristic scoring only, no NLI model, low latency.
         - ``"thorough"`` — NLI + RAG scoring, higher accuracy.
-        - ``"research"`` — all research modules, physics bridge enabled.
+        - ``"research"`` — NLI + RAG + reranker, all scoring modules enabled.
         """
         profiles: dict[str, dict] = {
             "fast": {
@@ -295,6 +297,16 @@ class DirectorConfig:
             )
         return cls(**profiles[name])
 
+    def configure_logging(self) -> None:
+        """Apply log_level and log_json settings to the DirectorAI logger hierarchy."""
+        root = logging.getLogger("DirectorAI")
+        root.setLevel(getattr(logging, self.log_level.upper(), logging.INFO))
+
+        if self.log_json:
+            handler = logging.StreamHandler()
+            handler.setFormatter(_JsonFormatter())
+            root.handlers = [handler]
+
     _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key", "api_keys"})
 
     def to_dict(self) -> dict:
@@ -307,6 +319,25 @@ class DirectorConfig:
             else:
                 d[fld] = val
         return d
+
+
+class _JsonFormatter(logging.Formatter):
+    """Structured JSON log formatter for production use."""
+
+    def format(self, record: logging.LogRecord) -> str:
+        import json as _json
+        import time as _time
+
+        entry = {
+            "ts": _time.time(),
+            "level": record.levelname,
+            "logger": record.name,
+            "msg": record.getMessage(),
+        }
+        request_id = getattr(record, "request_id", None)
+        if request_id:
+            entry["request_id"] = request_id
+        return _json.dumps(entry)
 
 
 def _coerce(value: str, type_hint: str) -> object:

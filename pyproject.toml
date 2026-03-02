@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "1.8.0"
+version = "1.9.0"
 description = "Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
@@ -31,12 +31,12 @@ dependencies = [
 
 [project.optional-dependencies]
 nli = [
-    "torch>=2.0",
-    "transformers>=4.30",
+    "torch>=2.0,<3",
+    "transformers>=4.30,<5",
 ]
 vector = [
     "chromadb>=0.4.0",
-    "sentence-transformers>=2.2.0",
+    "sentence-transformers>=2.2,<4",
 ]
 openai = ["openai>=1.0"]
 anthropic = ["anthropic>=0.20"]
@@ -58,17 +58,17 @@ minicheck = [
     "minicheck>=0.1",
 ]
 onnx = [
-    "onnxruntime>=1.15",
+    "onnxruntime>=1.15,<2",
 ]
 quantize = [
     "bitsandbytes>=0.41",
     "accelerate>=0.21",
 ]
 reranker = [
-    "sentence-transformers>=2.2.0",
+    "sentence-transformers>=2.2,<4",
 ]
 embeddings = [
-    "sentence-transformers>=2.2.0",
+    "sentence-transformers>=2.2,<4",
 ]
 langgraph = [
     "langgraph>=0.2",
@@ -84,6 +84,9 @@ docs = [
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.24",
 ]
+otel = [
+    "opentelemetry-api>=1.20",
+]
 research = []
 train = [
     "transformers>=4.30",
@@ -98,9 +101,6 @@ dev = [
     "ruff>=0.5,<1",
     "mypy>=1.10",
     "pyyaml>=6.0",
-    "sphinx>=7.0",
-    "sphinx-rtd-theme>=2.0",
-    "sphinx-autodoc-typehints>=1.25",
     "build>=1.0",
     "twine>=5.0",
 ]
@@ -142,7 +142,7 @@ branch = true
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 60
+fail_under = 80
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.",

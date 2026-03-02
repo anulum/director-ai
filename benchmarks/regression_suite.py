@@ -310,7 +310,7 @@ _E2E_DELTA_SAMPLES: list[tuple[str, str, dict[str, str], bool]] = [
 
 
 def test_false_halt_rate():
-    """All 20 good passages must complete without false halts (heuristic mode)."""
+    """All 100 good passages must complete without false halts (heuristic mode)."""
     from benchmarks.streaming_false_halt_bench import GOOD_PASSAGES
     from director_ai.core import CoherenceScorer, GroundTruthStore, StreamingKernel
 

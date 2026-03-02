@@ -18,6 +18,7 @@ Usage::
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import sqlite3
 import time
@@ -27,6 +28,10 @@ from contextlib import asynccontextmanager
 from .core.config import DirectorConfig
 from .core.metrics import metrics
 from .core.stats import StatsStore
+
+REQUEST_ID_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
+    "request_id", default=""
+)
 
 logger = logging.getLogger("DirectorAI.Server")
 
@@ -189,6 +194,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             _state["tenant_router"] = TenantRouter()
             logger.info("Tenant routing enabled")
 
+        cfg.configure_logging()
+
+        if cfg.otel_enabled:
+            from .core.otel import setup_otel
+
+            setup_otel()
+
         if cfg.use_nli:
             metrics.gauge_set("nli_model_loaded", 1.0)
 
@@ -250,9 +262,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def _http_middleware(request: Request, call_next):
-        # Correlation ID
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         request.state.request_id = request_id
+        REQUEST_ID_CTX.set(request_id)
 
         # API key auth
         if cfg.api_keys and request.url.path not in _AUTH_EXEMPT_PATHS:

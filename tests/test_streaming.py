@@ -131,6 +131,54 @@ class TestStreamingKernel:
         assert not session.halted
         assert session.warning_count == 2
 
+    def test_soft_halt_finishes_sentence(self):
+        kernel = StreamingKernel(
+            hard_limit=0.3,
+            window_size=3,
+            window_threshold=0.6,
+            halt_mode="soft",
+        )
+        # Window avg drops below 0.6 at token 3, then token 4 ends sentence.
+        scores = iter([0.7, 0.55, 0.5, 0.45, 0.45])
+        tokens = ["Start ", "of ", "sentence ", "end. ", "more "]
+        session = kernel.stream_tokens(tokens, lambda t: next(scores))
+        assert session.halted
+        assert session.soft_halted
+        assert "end." in session.output
+
+    def test_soft_halt_cap_at_50_tokens(self):
+        kernel = StreamingKernel(
+            hard_limit=0.3,
+            window_size=3,
+            window_threshold=0.6,
+            halt_mode="soft",
+        )
+        # Window avg triggers halt, then 50+ tokens without sentence end
+        scores = [0.7, 0.55, 0.5] + [0.55] * 60
+        score_iter = iter(scores)
+        tokens = ["a ", "b ", "c "] + ["word "] * 60
+        session = kernel.stream_tokens(tokens, lambda t: next(score_iter))
+        assert session.halted
+        assert session.soft_halted
+        # Should not process all 63 tokens — cap at halt_index + 50
+        assert session.token_count <= 53 + 1
+
+    def test_soft_halt_mode_default_is_hard(self):
+        kernel = StreamingKernel()
+        assert kernel.halt_mode == "hard"
+
+    def test_hard_halt_still_immediate_in_soft_mode(self):
+        kernel = StreamingKernel(hard_limit=0.5, halt_mode="soft")
+        scores = iter([0.8, 0.3])
+        session = kernel.stream_tokens(["ok ", "bad "], lambda t: next(scores))
+        assert session.halted
+        assert not session.soft_halted
+        assert "hard_limit" in session.halt_reason
+
+    def test_invalid_halt_mode_raises(self):
+        with pytest.raises(ValueError, match="halt_mode"):
+            StreamingKernel(halt_mode="invalid")
+
 
 @pytest.mark.consumer
 class TestAsyncStreamingKernel:

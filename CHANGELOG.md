@@ -5,6 +5,25 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2026-03-02
+
+### Added
+- **Soft-halt mode**: `StreamingKernel(halt_mode="soft")` finishes the current sentence before halting (50-token safety cap)
+- **JSON structured logging**: `log_json=True` config flag wired to `_JsonFormatter` on the `DirectorAI` logger hierarchy
+- **OpenTelemetry integration**: optional `otel_enabled=True` with `trace_review()` and `trace_streaming()` spans
+- **Request ID propagation**: `X-Request-ID` header round-trip via `contextvars.ContextVar` middleware
+- **100-passage false-halt benchmark**: expanded from 20 to 100+ passages across 10 domains
+- **API reference docs**: `reference/scorer.md`, `reference/streaming.md`, `reference/config.md`, `reference/server.md`
+- **Domain presets docs**: `guide/presets.md` with threshold rationale for all 8 profiles
+- **Monitoring docs**: `guide/monitoring.md` with docker-compose + Prometheus + Grafana stack
+- `tests/test_vector_store_reranker.py`, `tests/test_otel.py`, `tests/test_log_json.py`
+
+### Changed
+- Coverage threshold raised from 60% to 80%
+- Dependency pins tightened: `torch<3`, `transformers<5`, `onnxruntime<2`, `sentence-transformers<4`
+- Replaced Sphinx docs deps with MkDocs deps in `[project.optional-dependencies]`
+- Removed "physics bridge enabled" vaporware label from research profile docstring
+
 ## [1.7.0] - 2026-03-01
 
 ### Added
