@@ -33,6 +33,39 @@ class TestScorerBackendForwarding:
         assert scorer._nli._onnx_path == "/tmp/fake_onnx"
 
 
+class TestHybridBackend:
+    def test_hybrid_backend_requires_provider(self):
+        import pytest
+
+        with pytest.raises(
+            ValueError, match="hybrid backend requires llm_judge_provider"
+        ):
+            CoherenceScorer(threshold=0.5, use_nli=False, scorer_backend="hybrid")
+
+    def test_hybrid_backend_auto_enables_judge(self):
+        scorer = CoherenceScorer(
+            threshold=0.5,
+            use_nli=False,
+            scorer_backend="hybrid",
+            llm_judge_provider="openai",
+        )
+        assert scorer._llm_judge_enabled is True
+
+    def test_hybrid_review_calls_judge(self):
+        from unittest.mock import patch
+
+        scorer = CoherenceScorer(
+            threshold=0.5,
+            use_nli=False,
+            scorer_backend="hybrid",
+            llm_judge_provider="openai",
+        )
+        with patch.object(scorer, "_llm_judge_check", return_value=0.3):
+            scorer.review("What color is the sky?", "The sky is blue.")
+            assert scorer._llm_judge_enabled is True
+            assert scorer.scorer_backend == "hybrid"
+
+
 class TestNLIBatchLength:
     def test_batch_returns_correct_length(self):
         nli = NLIScorer(use_model=False, backend="deberta")

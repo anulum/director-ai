@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-835_passed-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-904_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
@@ -45,6 +45,19 @@ graph LR
 1. **Token-level streaming halt** — not post-hoc review. Severs output the moment coherence degrades.
 2. **Dual-entropy scoring** — NLI contradiction detection (DeBERTa) + RAG fact-checking against your knowledge base.
 3. **Your data, your rules** — ingest your own documents. The scorer checks against *your* ground truth.
+
+### Scope
+
+100% Python — no compiled extensions required. Works on any platform with Python 3.10+.
+
+| Layer | Packages | Install |
+|-------|----------|---------|
+| **Core** (zero heavy deps) | `CoherenceScorer`, `StreamingKernel`, `GroundTruthStore`, `SafetyKernel` | `pip install director-ai` |
+| **NLI models** | DeBERTa, FactCG, MiniCheck, ONNX Runtime | `pip install director-ai[nli]` |
+| **Vector DBs** | ChromaDB, Pinecone, Weaviate, Qdrant | `pip install director-ai[vector]` |
+| **LLM judge** | OpenAI, Anthropic escalation | `pip install director-ai[openai]` |
+| **Observability** | OpenTelemetry spans | `pip install director-ai[otel]` |
+| **Server** | FastAPI + Uvicorn | `pip install director-ai[server]` |
 
 ## Quickstart
 
@@ -165,7 +178,7 @@ director-ai config --profile creative  # threshold=0.40, permissive
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {2.0.0},
+  version   = {2.1.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

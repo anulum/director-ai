@@ -74,6 +74,9 @@ class DirectorConfig:
     llm_judge_confidence_threshold: float = 0.3
     llm_judge_provider: str = ""
 
+    # Scorer backend: "deberta", "onnx", "minicheck", "hybrid"
+    scorer_backend: str = "deberta"
+
     # Vector store
     vector_backend: str = "memory"
     chroma_collection: str = "director_ai"
@@ -231,6 +234,9 @@ class DirectorConfig:
                 "coherence_threshold": 0.6,
                 "max_candidates": 3,
                 "metrics_enabled": True,
+                "scorer_backend": "hybrid",
+                "llm_judge_enabled": True,
+                "llm_judge_provider": "openai",
                 "profile": "thorough",
             },
             "research": {

@@ -264,6 +264,223 @@ class RerankedBackend(VectorBackend):
         return self._base.count()
 
 
+class PineconeBackend(VectorBackend):
+    """Pinecone vector database backend.
+
+    Requires ``pip install director-ai[pinecone]``.
+    """
+
+    def __init__(
+        self,
+        api_key: str,
+        index_name: str,
+        namespace: str = "",
+        embed_fn: Any = None,
+    ) -> None:
+        try:
+            import pinecone  # type: ignore[import-untyped]
+        except ImportError as e:
+            raise ImportError(
+                "PineconeBackend requires pinecone. "
+                "Install with: pip install director-ai[pinecone]"
+            ) from e
+        self._pc = pinecone.Pinecone(api_key=api_key)
+        self._index = self._pc.Index(index_name)
+        self._namespace = namespace
+        self._embed_fn = embed_fn
+        self._texts: dict[str, str] = {}
+
+    def _embed(self, text: str) -> list[float]:
+        if self._embed_fn is None:
+            raise ValueError("PineconeBackend requires embed_fn for text embedding")
+        return self._embed_fn(text)
+
+    def add(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
+        vector = self._embed(text)
+        meta = {**(metadata or {}), "text": text}
+        self._index.upsert(
+            vectors=[(doc_id, vector, meta)],
+            namespace=self._namespace,
+        )
+        self._texts[doc_id] = text
+
+    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
+        vector = self._embed(text)
+        results = self._index.query(
+            vector=vector,
+            top_k=n_results,
+            namespace=self._namespace,
+            include_metadata=True,
+        )
+        docs: list[dict[str, Any]] = []
+        for match in results.get("matches", []):
+            meta = match.get("metadata", {})
+            docs.append(
+                {
+                    "id": match["id"],
+                    "text": meta.get("text", ""),
+                    "distance": 1.0 - match.get("score", 0.0),
+                    "metadata": meta,
+                }
+            )
+        return docs
+
+    def count(self) -> int:
+        stats = self._index.describe_index_stats()
+        ns_stats = stats.get("namespaces", {}).get(self._namespace, {})
+        return int(ns_stats.get("vector_count", 0))
+
+
+class WeaviateBackend(VectorBackend):
+    """Weaviate vector database backend.
+
+    Requires ``pip install director-ai[weaviate]``.
+    """
+
+    def __init__(
+        self,
+        url: str = "http://localhost:8080",
+        api_key: str | None = None,
+        class_name: str = "DirectorFact",
+        embed_fn: Any = None,
+    ) -> None:
+        try:
+            import weaviate  # type: ignore[import-untyped]
+        except ImportError as e:
+            raise ImportError(
+                "WeaviateBackend requires weaviate-client. "
+                "Install with: pip install director-ai[weaviate]"
+            ) from e
+        auth = weaviate.auth.AuthApiKey(api_key) if api_key else None
+        self._client = weaviate.Client(url=url, auth_client_secret=auth)
+        self._class_name = class_name
+        self._embed_fn = embed_fn
+        self._count = 0
+
+    def add(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
+        props = {"text": text, "doc_id": doc_id, **(metadata or {})}
+        kwargs: dict[str, Any] = {
+            "data_object": props,
+            "class_name": self._class_name,
+            "uuid": doc_id,
+        }
+        if self._embed_fn:
+            kwargs["vector"] = self._embed_fn(text)
+        self._client.data_object.create(**kwargs)
+        self._count += 1
+
+    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
+        q = self._client.query.get(self._class_name, ["text", "doc_id"])
+        if self._embed_fn:
+            vector = self._embed_fn(text)
+            q = q.with_near_vector({"vector": vector})
+        else:
+            q = q.with_near_text({"concepts": [text]})
+        q = q.with_limit(n_results).with_additional(["distance", "id"])
+        result = q.do()
+        docs: list[dict[str, Any]] = []
+        items = result.get("data", {}).get("Get", {}).get(self._class_name, [])
+        for item in items:
+            extra = item.get("_additional", {})
+            docs.append(
+                {
+                    "id": extra.get("id", item.get("doc_id", "")),
+                    "text": item.get("text", ""),
+                    "distance": float(extra.get("distance", 0.0)),
+                    "metadata": {
+                        k: v for k, v in item.items() if k not in ("_additional",)
+                    },
+                }
+            )
+        return docs
+
+    def count(self) -> int:
+        return self._count
+
+
+class QdrantBackend(VectorBackend):
+    """Qdrant vector database backend.
+
+    Requires ``pip install director-ai[qdrant]``.
+    """
+
+    def __init__(
+        self,
+        url: str = "localhost",
+        port: int = 6333,
+        collection_name: str = "director_facts",
+        embed_fn: Any = None,
+        vector_size: int = 384,
+    ) -> None:
+        try:
+            from qdrant_client import QdrantClient  # type: ignore[import-untyped]
+        except ImportError as e:
+            raise ImportError(
+                "QdrantBackend requires qdrant-client. "
+                "Install with: pip install director-ai[qdrant]"
+            ) from e
+        self._client = QdrantClient(host=url, port=port)
+        self._collection = collection_name
+        self._embed_fn = embed_fn
+        self._vector_size = vector_size
+        self._ensure_collection()
+
+    def _ensure_collection(self) -> None:
+        from qdrant_client.models import Distance, VectorParams
+
+        try:
+            self._client.get_collection(self._collection)
+        except Exception:
+            self._client.create_collection(
+                collection_name=self._collection,
+                vectors_config=VectorParams(
+                    size=self._vector_size, distance=Distance.COSINE
+                ),
+            )
+
+    def add(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
+        from qdrant_client.models import PointStruct
+
+        if self._embed_fn is None:
+            raise ValueError("QdrantBackend requires embed_fn for text embedding")
+        vector = self._embed_fn(text)
+        payload = {"text": text, **(metadata or {})}
+        point = PointStruct(id=doc_id, vector=vector, payload=payload)
+        self._client.upsert(collection_name=self._collection, points=[point])
+
+    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
+        if self._embed_fn is None:
+            raise ValueError("QdrantBackend requires embed_fn for text embedding")
+        vector = self._embed_fn(text)
+        results = self._client.search(
+            collection_name=self._collection,
+            query_vector=vector,
+            limit=n_results,
+        )
+        docs: list[dict[str, Any]] = []
+        for hit in results:
+            payload = hit.payload or {}
+            docs.append(
+                {
+                    "id": str(hit.id),
+                    "text": payload.get("text", ""),
+                    "distance": 1.0 - hit.score,
+                    "metadata": payload,
+                }
+            )
+        return docs
+
+    def count(self) -> int:
+        info = self._client.get_collection(self._collection)
+        return int(info.points_count)
+
+
 class VectorGroundTruthStore(GroundTruthStore):
     """Ground truth store with vector-based semantic retrieval.
 

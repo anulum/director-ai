@@ -97,6 +97,9 @@ class CoherenceScorer:
         self.scorer_backend = scorer_backend
         self.onnx_path = onnx_path
 
+        if scorer_backend == "hybrid" and not llm_judge_provider:
+            raise ValueError("hybrid backend requires llm_judge_provider")
+
         if w_logic is not None or w_fact is not None:
             self.W_LOGIC = w_logic if w_logic is not None else 0.6
             self.W_FACT = w_fact if w_fact is not None else 0.4
@@ -116,11 +119,12 @@ class CoherenceScorer:
         else:
             self.use_nli = use_nli
 
+        nli_backend = "deberta" if scorer_backend == "hybrid" else scorer_backend
         self._nli = (
             NLIScorer(
                 use_model=self.use_nli,
                 model_name=nli_model,
-                backend=scorer_backend,
+                backend=nli_backend,
                 quantize_8bit=nli_quantize_8bit,
                 device=nli_device,
                 torch_dtype=nli_torch_dtype,
@@ -129,7 +133,7 @@ class CoherenceScorer:
             if self.use_nli
             else None
         )
-        self._llm_judge_enabled = llm_judge_enabled
+        self._llm_judge_enabled = llm_judge_enabled or scorer_backend == "hybrid"
         self._llm_judge_threshold = llm_judge_confidence_threshold
         self._llm_judge_provider = llm_judge_provider
 
@@ -261,11 +265,15 @@ class CoherenceScorer:
         else:
             nli_score = self._heuristic_factual(context, text_output)
 
-        if (
+        should_escalate = (
             self._llm_judge_enabled
             and self._llm_judge_provider
-            and abs(nli_score - 0.5) < self._llm_judge_threshold
-        ):
+            and (
+                self.scorer_backend == "hybrid"
+                or abs(nli_score - 0.5) < self._llm_judge_threshold
+            )
+        )
+        if should_escalate:
             nli_score = self._llm_judge_check(prompt, text_output, nli_score)
 
         evidence = ScoringEvidence(
@@ -429,6 +437,9 @@ class CoherenceScorer:
             span.set_attribute("coherence.score", result[1].score)
             span.set_attribute("coherence.approved", result[0])
             span.set_attribute("coherence.cached", False)
+            span.set_attribute("coherence.h_logical", h_logic)
+            span.set_attribute("coherence.h_factual", h_fact)
+            span.set_attribute("coherence.warning", result[1].warning)
             return result
 
     # ── Async API ──────────────────────────────────────────────────────

@@ -99,3 +99,53 @@ class TestOtelWithMock:
         with patch.object(otel_mod, "_OTEL_AVAILABLE", False):
             setup_otel()
         assert otel_mod._tracer is None
+
+
+class TestOtelSpanEnrichment:
+    def test_review_span_has_h_logical_h_factual(self):
+        import director_ai.core.otel as otel_mod
+        from director_ai.core import CoherenceScorer
+
+        mock_span = MagicMock()
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_span)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.return_value = mock_cm
+
+        otel_mod._tracer = mock_tracer
+        try:
+            scorer = CoherenceScorer(threshold=0.5, use_nli=False)
+            scorer.review("test", "consistent with reality")
+            attr_keys = [
+                call.args[0] for call in mock_span.set_attribute.call_args_list
+            ]
+            assert "coherence.h_logical" in attr_keys
+            assert "coherence.h_factual" in attr_keys
+            assert "coherence.warning" in attr_keys
+        finally:
+            otel_mod._tracer = None
+
+    def test_streaming_span_has_token_count(self):
+        import director_ai.core.otel as otel_mod
+        from director_ai.core import StreamingKernel
+
+        mock_span = MagicMock()
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_span)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.return_value = mock_cm
+
+        otel_mod._tracer = mock_tracer
+        try:
+            kernel = StreamingKernel()
+            kernel.stream_tokens(["a", "b"], lambda t: 0.8)
+            attr_keys = [
+                call.args[0] for call in mock_span.set_attribute.call_args_list
+            ]
+            assert "stream.token_count" in attr_keys
+            assert "stream.halted" in attr_keys
+            assert "stream.avg_coherence" in attr_keys
+        finally:
+            otel_mod._tracer = None

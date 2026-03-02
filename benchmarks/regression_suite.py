@@ -349,7 +349,9 @@ def test_false_halt_rate():
     rate = false_halts / n
     print(f"  False-halt rate: {rate:.1%} ({false_halts}/{n})")
     max_allowed = max(1, n // 50)  # 2% tolerance for heuristic-only scoring
-    assert false_halts <= max_allowed, f"{false_halts}/{n} false halts exceeds {max_allowed}"
+    assert false_halts <= max_allowed, (
+        f"{false_halts}/{n} false halts exceeds {max_allowed}"
+    )
 
 
 def test_e2e_heuristic_delta():

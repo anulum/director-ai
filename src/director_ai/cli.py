@@ -12,6 +12,7 @@ Usage::
     director-ai review "What color is the sky?" "The sky is blue."
     director-ai process "What color is the sky?"
     director-ai batch input.jsonl --output results.jsonl
+    director-ai bench --dataset regression --seed 42 --output results.json
     director-ai serve --port 8080 --profile thorough
     director-ai config --profile fast
 """
@@ -41,6 +42,7 @@ def main(argv: list[str] | None = None) -> None:
         "batch": _cmd_batch,
         "ingest": _cmd_ingest,
         "eval": _cmd_eval,
+        "bench": _cmd_bench,
         "serve": _cmd_serve,
         "config": _cmd_config,
         "stress-test": _cmd_stress_test,
@@ -68,6 +70,7 @@ def _print_help() -> None:
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
         "  ingest <file>         Ingest documents into vector store\n"
         "  eval [--dataset D]    Run NLI benchmark suite\n"
+        "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
         "  serve [--port N] [--workers W]  Start the FastAPI server\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
         "  config [--profile X]  Show/set configuration\n"
@@ -448,6 +451,125 @@ def _cmd_eval(args: list[str]) -> None:
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
         print(f"Results written to {output_file}")
+
+
+def _cmd_bench(args: list[str]) -> None:
+    """Run regression benchmark suite.
+
+    Usage::
+
+        director-ai bench
+        director-ai bench --dataset regression --seed 42 --output results.json
+    """
+    import random
+
+    dataset = "regression"
+    seed = None
+    output_file = None
+    max_samples = None
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--dataset" and i + 1 < len(args):
+            dataset = args[i + 1]
+            i += 2
+        elif args[i] == "--seed" and i + 1 < len(args):
+            try:
+                seed = int(args[i + 1])
+            except ValueError:
+                print(f"Error: invalid --seed value: {args[i + 1]}")
+                sys.exit(1)
+            i += 2
+        elif args[i] == "--max-samples" and i + 1 < len(args):
+            try:
+                max_samples = int(args[i + 1])
+            except ValueError:
+                print(f"Error: invalid --max-samples value: {args[i + 1]}")
+                sys.exit(1)
+            i += 2
+        elif args[i] == "--output" and i + 1 < len(args):
+            output_file = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    if seed is not None:
+        random.seed(seed)
+
+    valid_datasets = ("regression", "e2e", "streaming")
+    if dataset not in valid_datasets:
+        print(f"Unknown dataset '{dataset}'. Choose from: {', '.join(valid_datasets)}")
+        sys.exit(1)
+
+    try:
+        from benchmarks import regression_suite
+    except ImportError:
+        print(
+            "Error: benchmarks package not found. "
+            "Run from the director-ai repo root, or install in editable mode."
+        )
+        sys.exit(1)
+
+    print(f"Running benchmarks (dataset={dataset}, seed={seed})...")
+
+    import time
+
+    t0 = time.perf_counter()
+    tests = {
+        "regression": [
+            regression_suite.test_heuristic_accuracy,
+            regression_suite.test_streaming_stability,
+            regression_suite.test_latency_ceiling,
+            regression_suite.test_metrics_integrity,
+            regression_suite.test_evidence_schema,
+        ],
+        "e2e": [
+            regression_suite.test_e2e_heuristic_delta,
+        ],
+        "streaming": [
+            regression_suite.test_false_halt_rate,
+            regression_suite.test_streaming_stability,
+        ],
+    }
+
+    suite = tests[dataset]
+    if max_samples and len(suite) > max_samples:
+        suite = suite[:max_samples]
+
+    passed = 0
+    failed = 0
+    results = []
+    for test_fn in suite:
+        try:
+            test_fn()
+            passed += 1
+            results.append({"test": test_fn.__name__, "status": "passed"})
+        except AssertionError as e:
+            failed += 1
+            results.append(
+                {"test": test_fn.__name__, "status": "failed", "error": str(e)}
+            )
+            print(f"  FAIL: {test_fn.__name__}: {e}")
+
+    elapsed = time.perf_counter() - t0
+    print(f"\n  {passed} passed, {failed} failed in {elapsed:.2f}s")
+
+    report = {
+        "dataset": dataset,
+        "seed": seed,
+        "passed": passed,
+        "failed": failed,
+        "duration_s": round(elapsed, 3),
+        "results": results,
+    }
+
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            json.dump(report, f, indent=2)
+        print(f"Results written to {output_file}")
+
+    if failed > 0:
+        sys.exit(1)
 
 
 def _cmd_serve(args: list[str]) -> None:

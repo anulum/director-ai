@@ -116,3 +116,49 @@ For streaming workloads, you tune 4 parameters:
 | `window_size` | 10 | Smooths noise (less reactive) | Faster response to changes |
 
 Use `streaming_debug=True` to inspect per-token scores and identify which mechanism triggers. See [Streaming Halt](streaming.md#debug-mode).
+
+## Grid-Search Example
+
+Iterate candidate thresholds on a labeled dataset and pick the one that maximizes F1:
+
+```python
+from director_ai.core import CoherenceScorer, GroundTruthStore
+
+thresholds = [0.3, 0.4, 0.5, 0.6, 0.7]
+for t in thresholds:
+    scorer = CoherenceScorer(threshold=t, ground_truth_store=store, use_nli=True)
+    tp = fp = tn = fn = 0
+    for prompt, response, is_hallucinated in labeled_data:
+        approved, _ = scorer.review(prompt, response)
+        if is_hallucinated and not approved:
+            tp += 1
+        elif is_hallucinated and approved:
+            fn += 1
+        elif not is_hallucinated and not approved:
+            fp += 1
+        else:
+            tn += 1
+    precision = tp / (tp + fp) if (tp + fp) else 0
+    recall = tp / (tp + fn) if (tp + fn) else 0
+    f1 = 2 * precision * recall / (precision + recall) if (precision + recall) else 0
+    print(f"  threshold={t:.1f}  P={precision:.2f}  R={recall:.2f}  F1={f1:.2f}")
+```
+
+Or use the CLI: `director-ai bench --dataset e2e` for an automated sweep.
+
+## Domain Recommendation Table
+
+| Domain | Threshold | Rationale |
+|--------|-----------|-----------|
+| Medical | 0.70 | Patient safety demands low false-negative rate |
+| Legal | 0.65 | Regulatory compliance; moderate tolerance |
+| Finance | 0.60 | Quantitative claims must be grounded |
+| Customer support | 0.50 | Balanced; some creative latitude acceptable |
+| Creative | 0.40 | Permissive; hallucination is less harmful |
+
+## Pitfalls
+
+- **Threshold too high** (> 0.75): correct responses get rejected (false positives). Users see "hallucination detected" on accurate text. Reduce threshold or improve KB coverage.
+- **Threshold too low** (< 0.35): hallucinations pass through. The guardrail becomes decorative. Raise threshold or enable NLI.
+- **Empty KB**: without ground truth facts, factual divergence defaults to 0.5 (neutral). The scorer relies entirely on logical divergence. Always populate your `GroundTruthStore`.
+- **Short responses**: NLI models need sufficient text to make meaningful entailment judgments. Responses under 5 words may produce unreliable scores.

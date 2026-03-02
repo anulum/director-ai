@@ -5,6 +5,28 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2026-03-02
+
+### Added
+- `director-ai bench` CLI subcommand with `--dataset`, `--seed`, `--max-samples`, `--output`
+- `scorer_backend="hybrid"` mode: NLI + LLM judge on every review
+- `scorer_backend` field on `DirectorConfig`; `thorough` profile defaults to hybrid
+- Architecture deep-dive doc (`guide/architecture.md`)
+- Production checklist doc (`deployment/checklist.md`)
+- Threshold tuning guide expanded: grid-search example, domain table, pitfalls
+- 35 new streaming false-halt benchmark passages (conversation, long-form, summary, edge-case)
+- `PineconeBackend`, `WeaviateBackend`, `QdrantBackend` vector store backends
+- `[pinecone]`, `[weaviate]`, `[qdrant]` optional dependency groups
+- Bandit + Semgrep SAST job in CI
+- OTel review spans enriched with `coherence.h_logical`, `coherence.h_factual`, `coherence.warning`
+- Scope section in README with core vs optional dependency table
+- Pure-Python import verification step in CI
+- New tests: `test_bench_subcommand_runs`, `test_hybrid_backend_*`, `test_otel_span_enrichment_*`, `test_vector_store_backends`
+
+### Changed
+- README test badge updated from 835 to 904
+- Version bump: 2.0.0 → 2.1.0
+
 ## [2.0.0] - 2026-03-02
 
 ### Fixed
@@ -476,7 +498,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v2.0.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v2.1.0...HEAD
+[2.1.0]: https://github.com/anulum/director-ai/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/anulum/director-ai/compare/v1.9.0...v2.0.0
 [1.9.0]: https://github.com/anulum/director-ai/compare/v1.7.0...v1.9.0
 [1.7.0]: https://github.com/anulum/director-ai/compare/v1.6.0...v1.7.0

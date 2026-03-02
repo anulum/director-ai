@@ -74,6 +74,7 @@ nav:
     - ONNX Export: guide/onnx-export.md
     - Quantization: guide/quantization.md
     - Rust FFI: guide/rust-ffi.md
+    - Architecture: guide/architecture.md
   - Integrations:
     - OpenAI / Anthropic SDK: integrations/sdk-guard.md
     - LangChain: integrations/langchain.md
@@ -94,6 +95,7 @@ nav:
     - Docker: deployment/docker.md
     - Metrics: deployment/metrics.md
     - Monitoring: deployment/monitoring.md
+    - Production Checklist: deployment/checklist.md
   - Cookbook:
     - Legal: cookbook/legal.md
     - Medical: cookbook/medical.md

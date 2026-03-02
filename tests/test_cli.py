@@ -214,3 +214,22 @@ class TestServeWorkers:
         main(["--help"])
         captured = capsys.readouterr()
         assert "stress-test" in captured.out
+
+
+class TestBenchCommand:
+    """Tests for 'director-ai bench'."""
+
+    def test_bench_subcommand_runs(self, capsys):
+        main(["bench", "--dataset", "regression"])
+        captured = capsys.readouterr()
+        assert "passed" in captured.out
+
+    def test_bench_help_shown(self, capsys):
+        main(["--help"])
+        captured = capsys.readouterr()
+        assert "bench" in captured.out
+
+    def test_bench_invalid_dataset(self, capsys):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["bench", "--dataset", "nonexistent"])
+        assert exc_info.value.code == 1
