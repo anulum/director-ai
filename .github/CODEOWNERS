@@ -1,0 +1,18 @@
+# Director-Class AI — Code Ownership
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+
+# Default: all files require maintainer review
+* @anulum/maintainers
+
+# Core scoring engine
+src/director_ai/core/ @anulum/maintainers
+
+# Security-sensitive: server, auth, gRPC
+src/director_ai/server.py @anulum/maintainers
+src/director_ai/grpc_server.py @anulum/maintainers
+
+# CI/CD and release
+.github/ @anulum/maintainers
+
+# Documentation
+docs-site/ @anulum/maintainers
