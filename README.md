@@ -169,6 +169,35 @@ Director-AI's unique value is the *system*: NLI + KB + streaming halt.
 
 Full results: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
 
+### Performance Trade-offs
+
+| Backend | Latency (GPU) | Latency (CPU) | Accuracy | Streaming | When to use |
+|---------|--------------|---------------|----------|-----------|-------------|
+| Heuristic (no NLI) | <0.1 ms | <0.1 ms | ~55% | Yes | Prototyping, latency-critical |
+| ONNX GPU batch | **14.6 ms/pair** | 383 ms/pair | **75.8%** | Yes | Production GPU |
+| PyTorch GPU batch | 19.0 ms/pair | N/A | 75.8% | Yes | When ONNX unavailable |
+| PyTorch GPU seq | 197 ms/pair | N/A | 75.8% | Yes | Single-pair scoring |
+| Hybrid (NLI + LLM judge) | 200-500 ms | 500-2000 ms | ~78% est. | Yes | Max accuracy, summarisation |
+
+Streaming cadence multiplies per-token overhead. At `score_every_n=4`, divide callback
+cost by 4. See [`docs-site/guide/streaming-overhead.md`](docs-site/guide/streaming-overhead.md).
+
+### End-to-End Pipeline (300 traces)
+
+Full pipeline (CoherenceAgent + GroundTruthStore + StreamingKernel):
+
+| Metric | Value |
+|--------|-------|
+| Catch rate (recall) | 46.7% |
+| Precision | 56.9% |
+| F1 | 51.3% |
+| Evidence coverage | 100% (every rejection includes supporting chunks) |
+| Avg latency | 15.8 ms (p95: 40 ms) |
+
+Dialogue catch rate is 80%; QA and summarisation are lower (36%, 24%) due
+to NLI weakness on short-form text. Hybrid mode improves summarisation.
+Run: `python -m benchmarks.e2e_eval`.
+
 ## Domain Presets
 
 8 built-in profiles with tuned thresholds:
@@ -188,6 +217,7 @@ director-ai config --profile creative  # threshold=0.40, permissive
 4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain.
 5. **Chunked NLI**: Very short chunks (<3 sentences) may lose context.
 6. **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider (OpenAI/Anthropic). Do not enable in privacy-sensitive deployments without user consent.
+7. **guard() provider coverage**: `guard()` auto-detects OpenAI-compatible clients (OpenAI, vLLM, Groq, LiteLLM, Ollama, Together) via `client.chat.completions.create` and Anthropic via `client.messages.create`. AWS Bedrock, Google Gemini, and Cohere have different SDK shapes — use the low-level `CoherenceScorer.review()` API instead.
 
 ## Migrating from 1.x
 

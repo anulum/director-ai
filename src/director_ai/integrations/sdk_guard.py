@@ -46,7 +46,10 @@ def guard(
     Supports any client with an OpenAI-compatible shape
     (``client.chat.completions.create``) or Anthropic-compatible shape
     (``client.messages.create`` without ``client.chat``). This covers
-    OpenAI, vLLM, Groq, LiteLLM, Ollama, and Anthropic clients.
+    OpenAI, vLLM, Groq, LiteLLM, Ollama, Together, and Anthropic.
+
+    AWS Bedrock, Google Gemini, and Cohere have different SDK shapes.
+    Use ``CoherenceScorer.review()`` directly for those providers.
 
     Returns the same *client* object with patched sub-objects.
     """

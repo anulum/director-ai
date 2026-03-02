@@ -7,8 +7,12 @@
 | Heuristic only (`use_nli=False`) | < 0.1 ms | Moderate — catches obvious off-topic responses | High-throughput, cost-sensitive, or when KB coverage is strong |
 | NLI (`use_nli=True`) | 15-200 ms (GPU/CPU) | High — catches subtle contradictions | Medical, legal, finance, or any domain where factual precision matters |
 | Chunked NLI (`score_chunked`) | 30-400 ms | Highest — catches localized hallucinations | Long responses where a single hallucinated sentence hides in correct text |
+| Hybrid (`scorer_backend="hybrid"`) | 200-500 ms | ~78% est. | Summarisation, high-stakes pipelines where NLI alone is weak |
 
-**Rule of thumb**: start with heuristic for development. Switch to NLI for production if your domain has high factual stakes.
+**Rule of thumb**: start with heuristic for development. Switch to NLI for production if your domain has high factual stakes. Use hybrid only for summarisation where the extra LLM-judge latency is acceptable.
+
+For per-backend latency numbers and cadence combinations, see
+[Streaming Overhead](streaming-overhead.md#backend-selection).
 
 ## Score Components
 
