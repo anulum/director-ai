@@ -117,6 +117,40 @@ class TestBatchCommand:
         assert exc_info.value.code == 1
 
 
+class TestQuickstartCommand:
+    """Tests for 'director-ai quickstart'."""
+
+    def test_quickstart_creates_files(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        main(["quickstart"])
+        d = tmp_path / "director_guard"
+        assert d.is_dir()
+        assert (d / "config.yaml").is_file()
+        assert (d / "facts.txt").is_file()
+        assert (d / "guard.py").is_file()
+        assert (d / "README.md").is_file()
+
+    def test_quickstart_with_profile(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        main(["quickstart", "--profile", "medical"])
+        cfg_text = (tmp_path / "director_guard" / "config.yaml").read_text()
+        assert "threshold: 0.75" in cfg_text
+        assert "profile: medical" in cfg_text
+
+    def test_quickstart_existing_dir_skips(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        (tmp_path / "director_guard").mkdir()
+        with pytest.raises(SystemExit) as exc_info:
+            main(["quickstart"])
+        assert exc_info.value.code == 1
+
+    def test_quickstart_invalid_profile(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        with pytest.raises(SystemExit) as exc_info:
+            main(["quickstart", "--profile", "nonexistent"])
+        assert exc_info.value.code == 1
+
+
 class TestConfigCommand:
     """Tests for 'director-ai config'."""
 

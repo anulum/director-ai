@@ -6,6 +6,19 @@
 pip install director-ai
 ```
 
+## Architecture
+
+```mermaid
+graph LR
+    LLM["LLM<br/>(any provider)"] --> D["Director-AI"]
+    D --> S["Scorer<br/>NLI + RAG"]
+    D --> K["StreamingKernel<br/>token-level halt"]
+    S --> V{Approved?}
+    K --> V
+    V -->|Yes| U["User"]
+    V -->|No| H["HALT + evidence"]
+```
+
 ## What It Does
 
 Director-AI intercepts LLM outputs and scores them for factual coherence against your knowledge base in real-time. When hallucinations are detected, it halts generation mid-stream — before the user sees incorrect information.
@@ -19,6 +32,7 @@ Director-AI intercepts LLM outputs and scores them for factual coherence against
 - **Graceful fallback** — retrieval or disclaimer modes instead of hard stops
 - **SDK interceptors** — 2-line integration with OpenAI/Anthropic SDKs
 - **Framework integrations** — LangChain, LlamaIndex, LangGraph, Haystack, CrewAI
+- **8 domain presets** — medical, finance, legal, creative, customer support, and more
 
 ## Quick Example
 
@@ -32,7 +46,6 @@ client = guard(
     threshold=0.6,
 )
 
-# Hallucinations are caught automatically
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[{"role": "user", "content": "What is the refund policy?"}],

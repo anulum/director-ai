@@ -10,11 +10,13 @@ from __future__ import annotations
 
 import gradio as gr
 
+import director_ai
 from director_ai.core import (
     CoherenceScorer,
     GroundTruthStore,
     StreamingKernel,
 )
+from director_ai.core.config import DirectorConfig
 
 
 def score_response(
@@ -297,7 +299,7 @@ footer { display: none !important; }
 def build_app() -> gr.Blocks:
     with gr.Blocks(title="Director-AI Demo", css=CSS, theme=gr.themes.Soft()) as app:
         gr.Markdown(
-            "# Director-AI v1.2\n"
+            f"# Director-AI v{director_ai.__version__}\n"
             "**Real-time LLM hallucination guardrail** — "
             "NLI + RAG fact-checking with token-level streaming halt\n\n"
             "`pip install director-ai`"
@@ -391,6 +393,43 @@ def build_app() -> gr.Blocks:
                 run_streaming_demo,
                 inputs=[scenario],
                 outputs=[result_md],
+            )
+
+        with gr.Tab("Domain Presets"):
+            gr.Markdown(
+                "Director-AI ships **8 domain profiles** with tuned thresholds. "
+                "Select one to see its configuration."
+            )
+            profile_dd = gr.Dropdown(
+                label="Profile",
+                choices=[
+                    "fast", "thorough", "research", "medical",
+                    "finance", "legal", "creative", "customer_support",
+                ],
+                value="medical",
+            )
+            profile_btn = gr.Button("Show Config", variant="primary")
+            profile_table = gr.Markdown()
+
+            def _show_profile(name: str) -> str:
+                cfg = DirectorConfig.from_profile(name)
+                d = cfg.to_dict()
+                rows = [
+                    "| Setting | Value |",
+                    "|---------|-------|",
+                ]
+                for k in (
+                    "profile", "coherence_threshold", "hard_limit",
+                    "soft_limit", "use_nli", "reranker_enabled",
+                    "w_logic", "w_fact", "max_candidates",
+                ):
+                    rows.append(f"| `{k}` | `{d[k]}` |")
+                return "\n".join(rows)
+
+            profile_btn.click(
+                _show_profile,
+                inputs=[profile_dd],
+                outputs=[profile_table],
             )
 
         gr.Markdown(

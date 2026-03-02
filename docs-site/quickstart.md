@@ -1,5 +1,15 @@
 # Quickstart
 
+## Choose Your Path
+
+| Method | Command | Time |
+|--------|---------|------|
+| **pip install** | `pip install director-ai` | 30 seconds |
+| **CLI scaffold** | `director-ai quickstart --profile medical` | 1 minute |
+| **Colab notebook** | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | 5 minutes |
+| **Docker** | `docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest` | 2 minutes |
+| **HF Spaces** | [Try it live](https://huggingface.co/spaces/anulum/director-ai-guardrail) | 0 minutes |
+
 ## Installation
 
 ```bash
@@ -12,6 +22,18 @@ For NLI-enhanced scoring (recommended for production):
 pip install director-ai[nli]         # FactCG-DeBERTa-v3-Large (75.8% balanced acc)
 pip install director-ai[minicheck]   # MiniCheck alternative (72.6% balanced acc)
 ```
+
+## CLI Quickstart
+
+Scaffold a working project in one command:
+
+```bash
+director-ai quickstart --profile medical
+cd director_guard
+python guard.py
+```
+
+This creates `director_guard/` with `config.yaml`, `facts.txt`, `guard.py`, and `README.md`.
 
 ## Score a Response
 
@@ -84,3 +106,4 @@ agent = CoherenceAgent(fallback="disclaimer")
 - [Streaming halt](guide/streaming.md) — halt mechanisms, on_halt callbacks
 - [Integrations](integrations/sdk-guard.md) — OpenAI, Anthropic, LangChain, etc.
 - [Production deployment](deployment/production.md) — scaling, caching, metrics
+- [Domain presets](guide/config.md) — medical, finance, legal, creative profiles

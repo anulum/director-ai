@@ -10,27 +10,15 @@
 
 <p align="center">
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-810_passed-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-835_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
-  <a href="https://img.shields.io/badge/mypy-checked-blue"><img src="https://img.shields.io/badge/mypy-checked-blue.svg" alt="mypy"></a>
   <a href="https://hub.docker.com/r/anulum/director-ai"><img src="https://img.shields.io/badge/docker-ready-blue.svg" alt="Docker"></a>
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
   <a href="https://huggingface.co/spaces/anulum/director-ai-guardrail"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-orange.svg" alt="HF Spaces"></a>
   <a href="https://doi.org/10.5281/zenodo.18822167"><img src="https://zenodo.org/badge/doi/10.5281/zenodo.18822167.svg" alt="DOI"></a>
   <a href="https://anulum.github.io/director-ai"><img src="https://img.shields.io/badge/docs-mkdocs-blue.svg" alt="Docs"></a>
-  <a href="https://discord.gg/director-ai"><img src="https://img.shields.io/badge/Discord-Join-7289DA.svg" alt="Discord"></a>
-</p>
-
-<p align="center">
-  <a href="https://huggingface.co/spaces/anulum/director-ai-guardrail"><strong>Try it live on Hugging Face Spaces &rarr;</strong></a>
-</p>
-
-<p align="center">
-  <a href="https://anulum.github.io/director-ai/pitch.html"><strong>Sales Pitch &amp; Pricing</strong></a> &middot;
-  <a href="https://www.anulum.li/contact.html">Contact Sales</a> &middot;
-  <a href="mailto:invest@anulum.li">invest@anulum.li</a>
 </p>
 
 ---
@@ -41,143 +29,52 @@ Director-AI sits between your LLM and the user. It scores every output for
 hallucination before it reaches anyone — and can halt generation mid-stream if
 coherence drops below threshold.
 
-```python
-from director_ai import CoherenceAgent
-
-agent = CoherenceAgent()
-result = agent.process("What color is the sky?")
-
-print(result.coherence.score)      # 0.94 — high coherence
-print(result.coherence.approved)   # True
-print(result.coherence.h_logical)  # 0.10 — low contradiction probability
-print(result.coherence.h_factual)  # 0.10 — low factual deviation
+```mermaid
+graph LR
+    LLM["LLM<br/>(any provider)"] --> D["Director-AI"]
+    D --> S["Scorer<br/>NLI + RAG"]
+    D --> K["StreamingKernel<br/>token-level halt"]
+    S --> V{Approved?}
+    K --> V
+    V -->|Yes| U["User"]
+    V -->|No| H["HALT + evidence"]
 ```
 
 **Three things make it different:**
 
-1. **Token-level streaming halt** — not post-hoc review. The safety kernel
-   monitors coherence token-by-token and severs output the moment it degrades.
-2. **Dual-entropy scoring** — NLI contradiction detection (DeBERTa) + RAG
-   fact-checking against your own knowledge base. Both must pass.
-3. **Your data, your rules** — ingest PDFs, directories, or any text into a
-   ChromaDB-backed knowledge base. The scorer checks LLM output against *your*
-   ground truth, not a generic model.
+1. **Token-level streaming halt** — not post-hoc review. Severs output the moment coherence degrades.
+2. **Dual-entropy scoring** — NLI contradiction detection (DeBERTa) + RAG fact-checking against your knowledge base.
+3. **Your data, your rules** — ingest your own documents. The scorer checks against *your* ground truth.
 
-## Architecture
+## Quickstart
 
-```
-          ┌──────────────────────────┐
-          │    Coherence Agent       │
-          │    (Orchestrator)        │
-          └─────────┬────────────────┘
-                    │
-       ┌────────────┼────────────────┐
-       │            │                │
-┌──────▼──────┐ ┌───▼──────────┐ ┌───▼────────────┐
-│  Generator  │ │  Coherence   │ │  Safety        │
-│  (LLM       │ │  Scorer      │ │  Kernel        │
-│   backend)  │ │              │ │  (streaming    │
-│             │ │  NLI + RAG   │ │   interlock)   │
-└─────────────┘ └───┬──────────┘ └────────────────┘
-                    │
-          ┌─────────▼─────────┐
-          │  Ground Truth     │
-          │  Store            │
-          │  (ChromaDB / RAM) │
-          └───────────────────┘
-```
+| Method | Command |
+|--------|---------|
+| **pip install** | `pip install director-ai` |
+| **CLI scaffold** | `director-ai quickstart --profile medical` |
+| **Colab** | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) |
+| **HF Spaces** | [Try it live](https://huggingface.co/spaces/anulum/director-ai-guardrail) |
+| **Docker** | `docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest` |
 
-## Installation
+### 6-line guard
 
-> **Performance note:** Without a GPU, NLI scoring via ONNX Runtime runs at
-> ~383 ms/pair (CPU) vs 14.6 ms/pair (CUDA). For production NLI workloads,
-> a CUDA-capable GPU is strongly recommended. The heuristic-only mode
-> (`pip install director-ai` without `[nli]`) runs at <0.1 ms but has
-> ~55% accuracy — suitable for development/testing, not production gating.
+```python
+from director_ai import guard
+from openai import OpenAI
 
-```bash
-# Basic install (heuristic scoring, no GPU needed)
-pip install director-ai
+client = guard(
+    OpenAI(),
+    facts={"refund_policy": "Refunds within 30 days only"},
+    threshold=0.6,
+)
 
-# With NLI model (DeBERTa-based contradiction detection)
-pip install director-ai[nli]
-
-# With vector store (ChromaDB for custom knowledge bases)
-pip install director-ai[vector]
-
-# With high-quality embeddings (bge-large-en-v1.5)
-pip install director-ai[embeddings]
-
-# With ONNX Runtime (portable deployment, no PyTorch needed)
-pip install director-ai[onnx]
-
-# With 8-bit quantized NLI
-pip install director-ai[quantize]
-
-# Framework integrations
-pip install director-ai[langchain]
-pip install director-ai[llamaindex]
-pip install director-ai[langgraph]
-pip install director-ai[haystack]
-pip install director-ai[crewai]
-
-# With REST API server
-pip install director-ai[server]
-
-# Everything
-pip install "director-ai[nli,vector,server,embeddings]"
-
-# Development
-git clone https://github.com/anulum/director-ai.git
-cd director-ai
-pip install -e ".[dev]"
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "What is the refund policy?"}],
+)
 ```
 
-## Docker
-
-```bash
-# CPU-only (heuristic scoring, ~200 MB image)
-docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest
-
-# GPU-enabled (ONNX CUDA, 14 ms/pair on GTX 1060, 0.9 ms on Ada)
-docker run --gpus all -p 8080:8080 ghcr.io/anulum/director-ai:gpu
-
-# docker compose
-docker compose up                    # CPU
-docker compose --profile gpu up      # GPU (NVIDIA)
-docker compose --profile full up     # CPU + ChromaDB
-```
-
-Verify:
-
-```bash
-curl localhost:8080/v1/health
-curl -X POST localhost:8080/v1/review \
-  -H 'Content-Type: application/json' \
-  -d '{"prompt":"What color is the sky?","response":"The sky is blue."}'
-```
-
-### Production scaling
-
-```bash
-# Multi-worker (each gets own NLI model instance)
-uvicorn director_ai.server:app --workers 4 --host 0.0.0.0 --port 8080
-
-# GPU multi-replica with Docker Compose
-docker compose --profile gpu up --scale director-api-gpu=3
-```
-
-| Workload | CPU | RAM | GPU VRAM | Latency |
-|----------|-----|-----|----------|---------|
-| Heuristic only | 1 core | 256 MB | — | <0.1 ms |
-| ONNX GPU batch | 2 cores | 2 GB | 1.2 GB | 14.6 ms/pair |
-| ONNX CPU batch | 4 cores | 2 GB | — | 383 ms/pair |
-
-Full production guide: [`docs-site/deployment/production.md`](docs-site/deployment/production.md).
-
-## Usage
-
-### Score a single response
+### Score a response
 
 ```python
 from director_ai.core import CoherenceScorer, GroundTruthStore
@@ -188,371 +85,77 @@ store.add("sky color", "The sky is blue due to Rayleigh scattering.")
 scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
 approved, score = scorer.review("What color is the sky?", "The sky is green.")
 
-print(approved)     # False — contradicts ground truth
+print(approved)     # False
 print(score.score)  # 0.42
 ```
 
-### With a real LLM backend
-
-```python
-from director_ai import CoherenceAgent
-
-# Works with any OpenAI-compatible endpoint (llama.cpp, vLLM, Ollama, etc.)
-agent = CoherenceAgent(llm_api_url="http://localhost:8080/completion")
-result = agent.process("Explain quantum entanglement")
-
-if result.halted:
-    print("Output blocked — coherence too low")
-else:
-    print(result.output)
-```
-
-### Token-level streaming with halt
+### Streaming halt
 
 ```python
 from director_ai.core import StreamingKernel
 
-kernel = StreamingKernel(hard_limit=0.4, window_size=5, window_threshold=0.5)
+kernel = StreamingKernel(hard_limit=0.4, window_size=5)
+session = kernel.stream_tokens(token_generator, lambda tok: my_scorer(tok))
 
-session = kernel.stream_tokens(
-    token_generator=my_token_iterator,
-    coherence_callback=lambda tok: my_scorer(tok),
-)
-
-for event in session.events:
-    if event.halted:
-        print(f"\n[HALTED — {session.halt_reason}]")
-        break
-    print(event.token, end="")
+if session.halted:
+    print(f"Halted at token {session.halt_index}: {session.halt_reason}")
 ```
 
-### NLI-based scoring (requires torch)
-
-```python
-from director_ai.core import CoherenceScorer
-
-scorer = CoherenceScorer(use_nli=True, threshold=0.6)
-approved, score = scorer.review(
-    "The Earth orbits the Sun.",
-    "The Sun orbits the Earth."
-)
-print(score.h_logical)  # High — NLI detects contradiction
-```
-
-### Custom knowledge base with ChromaDB
-
-```python
-from director_ai.core import VectorGroundTruthStore
-
-store = VectorGroundTruthStore()  # Uses ChromaDB
-store.add_fact("company policy", "Refunds are available within 30 days.")
-store.add_fact("pricing", "Enterprise plan starts at $99/month.")
-
-scorer = CoherenceScorer(ground_truth_store=store)
-approved, score = scorer.review(
-    "What is the refund policy?",
-    "We offer full refunds within 90 days."  # Wrong
-)
-# approved = False — contradicts your KB
-```
-
-### LangChain integration
+## Installation
 
 ```bash
-pip install director-ai[langchain,nli]
+pip install director-ai                      # heuristic scoring
+pip install director-ai[nli]                 # NLI model (DeBERTa)
+pip install director-ai[vector]              # ChromaDB knowledge base
+pip install "director-ai[nli,vector,server]" # production stack
 ```
 
-```python
-from director_ai.integrations.langchain import DirectorAIGuard
+Framework integrations: `[langchain]`, `[llamaindex]`, `[langgraph]`, `[haystack]`, `[crewai]`.
 
-guard = DirectorAIGuard(
-    facts={"refund": "Refunds available within 30 days."},
-    threshold=0.6,
-    use_nli=True,
-)
+Full installation guide: [docs](https://anulum.github.io/director-ai/installation/).
 
-# Pipe after any LLM in a chain
-chain = my_llm | guard
-result = chain.invoke({"query": "What is the refund policy?"})
-
-print(result["approved"])  # False if hallucinated
-print(result["score"])     # 0.0–1.0 coherence
-```
-
-Raises `HallucinationError` if `raise_on_fail=True`. Async supported via `ainvoke()`.
-
-### LlamaIndex integration
+## Docker
 
 ```bash
-pip install director-ai[llamaindex,nli]
+docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest        # CPU
+docker run --gpus all -p 8080:8080 ghcr.io/anulum/director-ai:gpu # GPU
 ```
-
-```python
-from director_ai.integrations.llamaindex import DirectorAIPostprocessor
-
-postprocessor = DirectorAIPostprocessor(
-    facts={"pricing": "Enterprise plan starts at $99/month."},
-    threshold=0.6,
-)
-
-# Filters out hallucinated nodes before they reach the user
-query_engine = index.as_query_engine(
-    node_postprocessors=[postprocessor]
-)
-response = query_engine.query("What does Enterprise cost?")
-```
-
-Adds `director_ai_score` metadata to surviving nodes. Also usable standalone via `postprocessor.check(query, response)`.
-
-### LangGraph integration
-
-```python
-from director_ai.integrations.langgraph import director_ai_node, director_ai_conditional_edge
-
-node = director_ai_node(facts={"policy": "Refunds within 30 days."}, on_fail="flag")
-edge = director_ai_conditional_edge("output", "retry")
-# Wire into your LangGraph StateGraph
-```
-
-### Haystack integration
-
-```python
-from director_ai.integrations.haystack import DirectorAIChecker
-
-checker = DirectorAIChecker(facts={"policy": "Refunds within 30 days."})
-result = checker.run(query="Refund policy?", replies=["60-day refunds."])
-print(result["scores"])  # [CoherenceScore(...)]
-```
-
-### CrewAI integration
-
-```python
-from director_ai.integrations.crewai import DirectorAITool
-
-tool = DirectorAITool(facts={"policy": "Refunds within 30 days."})
-result = tool.check("Refund policy?", "We offer 30-day refunds.")
-print(result["approved"])  # True
-```
-
-### Score caching
-
-```python
-scorer = CoherenceScorer(
-    threshold=0.6,
-    cache_size=1024,   # LRU cache for streaming deduplication
-    cache_ttl=300,     # TTL in seconds
-)
-```
-
-### More examples
-
-| Example | Backend | What it shows |
-|---------|---------|---------------|
-| [`quickstart.py`](examples/quickstart.py) | None | Guard any output in 10 lines |
-| [`openai_guard.py`](examples/openai_guard.py) | OpenAI | Score + streaming halt for GPT-4o |
-| [`ollama_guard.py`](examples/ollama_guard.py) | Ollama | Local LLM guard with Llama 3 |
-| [`langchain_guard.py`](examples/langchain_guard.py) | LangChain | Full chain guardrail |
-| [`streaming_halt_demo.py`](examples/streaming_halt_demo.py) | Simulated | All 3 halt mechanisms visualised |
-
-### Interactive demo
-
-[![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb)
-
-```bash
-pip install director-ai gradio
-python demo/app.py
-```
-
-## Scoring Formula
-
-```
-Coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)
-```
-
-| Component | Source | Range | Meaning |
-|-----------|--------|-------|---------|
-| H_logical | NLI model (DeBERTa) | 0-1 | Contradiction probability |
-| H_factual | RAG retrieval | 0-1 | Ground truth deviation |
-
-- **Score >= 0.6** → approved (configurable)
-- **Score < 0.5** → safety kernel emergency halt
 
 ## Benchmarks
 
-### Accuracy — LLM-AggreFact (29,320 samples, 11 datasets)
+### Accuracy — LLM-AggreFact (29,320 samples)
 
-| Model | AggreFact Balanced Acc | Latency (measured) |
-|-------|----------------------|-------------------|
-| FactCG-DeBERTa-v3-Large (default) | **75.8%** | **14.6 ms/pair** (ONNX GPU batch) |
-| FactCG-DeBERTa-v3-Large (PyTorch) | **75.8%** | 19 ms/pair (GPU batch) |
-| DeBERTa-v3-base (legacy) | 66.2% | 220 ms (CPU) |
-
-**Per-dataset highlights** (FactCG, threshold 0.46):
-
-| Dataset | Balanced Accuracy | Notes |
-|---------|------------------|-------|
-| Lfqa | 87.3% | Long-form QA |
-| TofuEval-MediaS | 86.2% | Media summarization |
-| ClaimVerify | 82.1% | Factual claims |
-| FactCheck-GPT | 81.1% | GPT-generated text |
-| RAGTruth | 79.0% | RAG-specific hallucination |
-| AggreFact-CNN | 68.8% | Summarization (weak spot) |
-| ExpertQA | 59.1% | Expert Q&A (weak spot) |
-
-### Latency — Measured on GTX 1060 6GB
-
-| Pipeline | Median | Per-pair | Notes |
-|----------|--------|----------|-------|
-| **ONNX GPU batch (16 pairs)** | **233 ms** | **14.6 ms** | Fastest |
-| PyTorch GPU batch (16 pairs) | 304 ms | 19.0 ms | 10.4x vs sequential |
-| ONNX GPU sequential | 1042 ms | 65.1 ms | — |
-| PyTorch GPU sequential | 3145 ms | 196.6 ms | Baseline |
-| ONNX CPU batch (16 pairs) | 6124 ms | 383 ms | No GPU |
-| Lightweight (no NLI) | 0.08 ms | 0.08 ms | Heuristic only |
-| Streaming session | 0.02 ms | 0.02 ms | Token-level |
-
-Run: `python -m benchmarks.latency_bench --nli --onnx --device cuda`
-
-### Head-to-head (same benchmark — [LLM-AggreFact leaderboard](https://llm-aggrefact.github.io/))
-
-| Tool | Bal. Acc | Params | Latency | Streaming |
-|------|---------|--------|---------|-----------|
-| Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms (GPU) | No |
-| **Director-AI (FactCG)** | **75.8%** | 0.4B | **14.6 ms (ONNX GPU)** | **Yes** |
+| Model | Balanced Acc | Params | Latency | Streaming |
+|-------|-------------|--------|---------|-----------|
+| Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms | No |
+| **Director-AI (FactCG)** | **75.8%** | 0.4B | **14.6 ms** | **Yes** |
 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
 | MiniCheck-DeBERTa-L | 72.6% | 0.4B | ~120 ms | No |
-| HHEM-2.1-Open | 71.8% | ~0.4B | ~200 ms | No |
 
-**Honest assessment**: 75.8% balanced accuracy ranks 4th on the LLM-AggreFact
-leaderboard — within 1.6pp of the top 7B model at 17x fewer params.
-With ONNX GPU batching, Director-AI is now **faster than every competitor**
-at this accuracy tier (14.6 ms/pair vs ~100-200 ms).
-Director-AI's unique value is the *system*: NLI + KB facts + streaming
-token-level halt. No competitor offers real-time streaming gating.
+75.8% balanced accuracy at 17x fewer params than the leader. 14.6 ms/pair with
+ONNX GPU batching — faster than every competitor at this accuracy tier.
+Director-AI's unique value is the *system*: NLI + KB + streaming halt.
 
-Full competitor analysis with per-class metrics, E2E results, and 14 benchmark
-scripts: **[`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md)**.
-Reproduce all results with `benchmarks/` scripts.
+Full results: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
+
+## Domain Presets
+
+8 built-in profiles with tuned thresholds:
+
+```bash
+director-ai config --profile medical   # threshold=0.75, NLI on, reranker on
+director-ai config --profile finance   # threshold=0.70, w_fact=0.6
+director-ai config --profile legal     # threshold=0.68, w_logic=0.6
+director-ai config --profile creative  # threshold=0.40, permissive
+```
 
 ## Known Limitations
 
-1. **Heuristic fallback is weak**: Without `pip install director-ai[nli]`,
-   scoring uses word-overlap heuristics (~55% accuracy). Pass `strict_mode=True`
-   to disable heuristics and return neutral 0.5 instead.
-2. **Summarisation is a weak spot**: NLI models (including DeBERTa) under-perform
-   on summarisation datasets (AggreFact-CNN: 68.8%, ExpertQA: 59.1%).
-   Best for factual QA and claim verification.
-3. **Chunked NLI**: Bidirectional chunked scoring (v1.5.0+) handles long
-   premises and hypotheses. Very short chunks may lose context — prefer
-   documents with 3+ sentences per chunk.
-4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits
-   general QA. Adjust via constructor args for your domain.
-5. **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for
-   production NLI workloads.
-
-## Package Structure
-
-```
-src/director_ai/
-├── core/                           # Production API
-│   ├── agent.py                    # CoherenceAgent — main orchestrator
-│   ├── scorer.py                   # Dual-entropy coherence scorer
-│   ├── kernel.py                   # Safety kernel (streaming interlock)
-│   ├── streaming.py                # Token-level streaming oversight
-│   ├── async_streaming.py          # Non-blocking async streaming
-│   ├── nli.py                      # NLI scorer (FactCG-DeBERTa-v3-Large)
-│   ├── actor.py                    # LLM generator interface
-│   ├── knowledge.py                # Ground truth store (in-memory)
-│   ├── vector_store.py             # Vector store (ChromaDB / sentence-transformers)
-│   ├── cache.py                    # LRU score cache (blake2b, TTL)
-│   ├── policy.py                   # YAML declarative policy engine
-│   ├── audit.py                    # Structured JSONL audit logger
-│   ├── tenant.py                   # Multi-tenant KB isolation
-│   ├── sanitizer.py                # Prompt injection hardening
-│   └── types.py                    # CoherenceScore, ReviewResult
-├── integrations/                   # Framework integrations
-│   ├── langchain.py                # LangChain Runnable guardrail
-│   ├── llamaindex.py               # LlamaIndex postprocessor
-│   ├── langgraph.py                # LangGraph node + conditional edge
-│   ├── haystack.py                 # Haystack 2.x component
-│   └── crewai.py                   # CrewAI tool
-├── cli.py                          # CLI: review, process, batch, serve
-├── server.py                       # FastAPI REST wrapper
-benchmarks/                         # AggreFact evaluation suite
-training/                           # DeBERTa fine-tuning pipeline
-```
-
-## Testing
-
-```bash
-pytest tests/ -v
-```
-
-## License & Pricing
-
-Dual-licensed:
-
-1. **Open-Source**: [GNU AGPL v3.0](LICENSE) — research, personal use, open-source
-   projects. Full source, self-host, no restrictions beyond AGPL copyleft obligations.
-2. **Commercial**: Proprietary license from [ANULUM](https://www.anulum.li/licensing)
-   — removes copyleft, allows closed-source and SaaS deployment.
-
-### Commercial Tiers
-
-| Tier | Monthly | Yearly | Best for |
-|------|---------|--------|----------|
-| **Hobbyist** | $9 | $90 | Students, side projects, experiments. 1 local deployment, community support (GitHub/Discord), delayed updates. |
-| **Indie** | $49 | $490 | Solo devs, bootstrapped teams (<$2M ARR). 1 production deployment, email support, 12 months updates. |
-| **Pro** | $249 | $2,490 | Startups & scale-ups. Unlimited internal devs, multiple envs, Slack priority support, early releases. |
-| **Enterprise** | Custom | Custom | Large orgs. SLA (99.9%), on-prem/air-gapped, SOC2/HIPAA-ready, dedicated engineer, custom NLI fine-tunes. |
-
-**Perpetual license**: $1,299 one-time (Indie equivalent).
-**First 50 commercial licensees**: 50% off first year.
-
-Contact: [anulum.li/contact](https://www.anulum.li/contact.html) or invest@anulum.li
-
-See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
-
-> **Q: Is the core library Apache 2.0?** No. The entire Director-AI package
-> (core, server, integrations) is licensed under AGPL v3.0. A commercial
-> license is available for closed-source deployment.
-
-## Roadmap
-
-### Shipped in v1.2.0
-
-- **Score caching** — LRU cache with blake2b keys and TTL for streaming dedup
-- **Framework integrations** — LangGraph nodes, Haystack components, CrewAI tools
-- **Quantized NLI** — 8-bit bitsandbytes quantization for <80ms GPU inference
-- **Upgraded embeddings** — bge-large-en-v1.5 via `SentenceTransformerBackend`
-- **MkDocs site** — full API reference, deployment guides, domain cookbooks
-- **Enhanced demo** — side-by-side comparison with token-level highlighting
-
-### Shipped in v1.1.0
-
-- **Native SDK interceptors** — `guard(OpenAI(), facts={...})` wraps
-  any OpenAI/Anthropic client with transparent coherence scoring
-- **MiniCheck backend** — 72.6% balanced accuracy on LLM-AggreFact
-- **Evidence return** — every `CoherenceScore` carries top-K chunks,
-  NLI premise/hypothesis, and similarity distances
-- **Graceful fallbacks** — `fallback="retrieval"` / `"disclaimer"` +
-  soft warning zone + streaming `on_halt` callback
-
-### Completed
-
-- [x] Score caching, LangGraph/Haystack/CrewAI, quantized NLI, MkDocs site
-- [x] `director-ai eval` — structured CLI benchmarking
-- [x] Native OpenAI/Anthropic SDK interceptors (`guard()`)
-- [x] Evidence schema on all rejections
-- [x] Graceful fallback patterns (retrieval, disclaimer, soft warning)
-- [x] End-to-end guardrail benchmark (600+ traces, 8 metrics)
-- [x] HuggingFace Spaces live demo
-
-### Next
-
-- [ ] Cross-encoder reranking for RAG retrieval
-- [ ] LLM-as-judge hybrid escalation for low-confidence NLI
-- [ ] `director-ai serve --workers N` multi-process mode
+1. **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to return neutral 0.5 instead.
+2. **Summarisation is a weak spot**: NLI models under-perform on summarisation (AggreFact-CNN: 68.8%, ExpertQA: 59.1%).
+3. **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
+4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain.
+5. **Chunked NLI**: Very short chunks (<3 sentences) may lose context.
 
 ## Citation
 
@@ -562,16 +165,22 @@ See [NOTICE](NOTICE) for full terms and third-party acknowledgements.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {1.5.1},
+  version   = {1.8.0},
   license   = {AGPL-3.0-or-later}
 }
 ```
 
+## License
+
+Dual-licensed:
+
+1. **Open-Source**: [GNU AGPL v3.0](LICENSE) — research, personal use, open-source projects.
+2. **Commercial**: [Proprietary license](https://www.anulum.li/licensing) — removes copyleft for closed-source and SaaS.
+
+See [Licensing](docs-site/licensing.md) for pricing tiers and FAQ.
+
+Contact: [anulum.li/contact](https://www.anulum.li/contact.html) | invest@anulum.li
+
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines. By contributing, you agree
-to the [Code of Conduct](CODE_OF_CONDUCT.md) and AGPL v3 licensing terms.
-
-## Security
-
-See [SECURITY.md](SECURITY.md) for reporting vulnerabilities.
+See [CONTRIBUTING.md](CONTRIBUTING.md). By contributing, you agree to AGPL v3 terms.

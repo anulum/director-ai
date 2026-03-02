@@ -35,6 +35,7 @@ def main(argv: list[str] | None = None) -> None:
 
     commands = {
         "version": _cmd_version,
+        "quickstart": _cmd_quickstart,
         "review": _cmd_review,
         "process": _cmd_process,
         "batch": _cmd_batch,
@@ -61,6 +62,7 @@ def _print_help() -> None:
         "\n"
         "Commands:\n"
         "  version               Show version info\n"
+        "  quickstart [--profile P]  Scaffold a working project\n"
         "  review <prompt> <resp> Review a prompt/response pair\n"
         "  process <prompt>      Process a prompt through the full pipeline\n"
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
@@ -76,6 +78,109 @@ def _cmd_version(args: list[str]) -> None:
     import director_ai
 
     print(f"director-ai {director_ai.__version__}")
+
+
+_VALID_PROFILES = (
+    "medical",
+    "finance",
+    "legal",
+    "creative",
+    "customer_support",
+    "fast",
+    "thorough",
+)
+
+
+def _cmd_quickstart(args: list[str]) -> None:
+    """Scaffold a working director-ai project in one command."""
+    from pathlib import Path
+
+    from director_ai.core.config import DirectorConfig
+
+    profile = "fast"
+    i = 0
+    while i < len(args):
+        if args[i] == "--profile" and i + 1 < len(args):
+            profile = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    if profile not in _VALID_PROFILES:
+        print(f"Unknown profile '{profile}'. Choose from: {', '.join(_VALID_PROFILES)}")
+        sys.exit(1)
+
+    out_dir = Path("director_guard")
+    if out_dir.exists():
+        print(f"Error: {out_dir}/ already exists. Remove it or use a new dir.")
+        sys.exit(1)
+
+    cfg = DirectorConfig.from_profile(profile)
+    out_dir.mkdir()
+
+    # config.yaml
+    (out_dir / "config.yaml").write_text(
+        f"# Director-AI configuration — profile: {profile}\n"
+        f"coherence_threshold: {cfg.coherence_threshold}\n"
+        f"hard_limit: {cfg.hard_limit}\n"
+        f"use_nli: {str(cfg.use_nli).lower()}\n"
+        f"profile: {profile}\n",
+        encoding="utf-8",
+    )
+
+    # facts.txt
+    (out_dir / "facts.txt").write_text(
+        "The sky is blue due to Rayleigh scattering.\n"
+        "Water boils at 100 degrees Celsius at sea level.\n"
+        "The Earth orbits the Sun once every 365.25 days.\n",
+        encoding="utf-8",
+    )
+
+    # guard.py
+    (out_dir / "guard.py").write_text(
+        '"""Minimal Director-AI guard — run: python guard.py"""\n'
+        "from pathlib import Path\n"
+        "\n"
+        "from director_ai.core import CoherenceScorer, GroundTruthStore\n"
+        "from director_ai.core.config import DirectorConfig\n"
+        "\n"
+        "_HERE = Path(__file__).resolve().parent\n"
+        "config = DirectorConfig.from_yaml(str(_HERE / 'config.yaml'))\n"
+        "store = GroundTruthStore()\n"
+        "with open(_HERE / 'facts.txt') as f:\n"
+        "    for line in f:\n"
+        "        line = line.strip()\n"
+        "        if line:\n"
+        "            store.add(line[:20], line)\n"
+        "\n"
+        "scorer = CoherenceScorer(\n"
+        "    threshold=config.coherence_threshold,\n"
+        "    ground_truth_store=store,\n"
+        "    use_nli=config.use_nli,\n"
+        ")\n"
+        "\n"
+        "approved, score = scorer.review(\n"
+        '    "What color is the sky?", "The sky is blue."\n'
+        ")\n"
+        'print(f"Approved: {approved}  Score: {score.score:.3f}")\n',
+        encoding="utf-8",
+    )
+
+    # README.md
+    (out_dir / "README.md").write_text(
+        f"# Director-AI Guard (profile: {profile})\n"
+        "\n"
+        "```bash\n"
+        "pip install director-ai\n"
+        "python guard.py\n"
+        "```\n"
+        "\n"
+        "Edit `facts.txt` to add your own knowledge base.\n"
+        "Edit `config.yaml` to tune thresholds.\n",
+        encoding="utf-8",
+    )
+
+    print(f"Created {out_dir}/ — run: python {out_dir}/guard.py")
 
 
 def _cmd_review(args: list[str]) -> None:
