@@ -20,16 +20,13 @@ Quick start::
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
 from .async_streaming import AsyncStreamingKernel
-from .audit import AuditEntry, AuditLogger
 from .cache import ScoreCache
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .nli import NLIScorer, export_onnx, nli_available
-from .policy import Policy, Violation
 from .sanitizer import InputSanitizer, SanitizeResult
 from .scorer import CoherenceScorer
 from .streaming import StreamingKernel, StreamSession, TokenEvent
-from .tenant import TenantRouter
 from .types import (
     CoherenceScore,
     EvidenceChunk,
@@ -58,7 +55,6 @@ __all__ = [
     "LLMGenerator",
     "GroundTruthStore",
     "CoherenceAgent",
-    # v0.4.0 additions
     "NLIScorer",
     "nli_available",
     "export_onnx",
@@ -81,3 +77,20 @@ __all__ = [
     "SanitizeResult",
     "RerankedBackend",
 ]
+
+_ENTERPRISE_IMPORTS = {
+    "TenantRouter": ".tenant",
+    "Policy": ".policy",
+    "Violation": ".policy",
+    "AuditLogger": ".audit",
+    "AuditEntry": ".audit",
+}
+
+
+def __getattr__(name: str):
+    if name in _ENTERPRISE_IMPORTS:
+        import importlib
+
+        mod = importlib.import_module(_ENTERPRISE_IMPORTS[name], __package__)
+        return getattr(mod, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

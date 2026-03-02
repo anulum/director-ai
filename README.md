@@ -178,7 +178,7 @@ director-ai config --profile creative  # threshold=0.40, permissive
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {2.1.0},
+  version   = {2.2.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

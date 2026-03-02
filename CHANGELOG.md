@@ -5,6 +5,23 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.0] - 2026-03-02
+
+### Added
+- `score_every_n`, `adaptive`, `max_cadence` on `StreamingKernel` and `AsyncStreamingKernel` for scoring cadence control
+- Streaming overhead benchmark (`benchmarks/streaming_overhead_bench.py`) with tokens/sec comparison at cadences 1, 4, 8, adaptive
+- Runtime validation on `CoherenceScorer` constructor: `threshold`, `soft_limit`, `w_logic`, `w_fact`
+- `[enterprise]` optional dependency group and `enterprise` pytest marker
+- Enterprise modules (`TenantRouter`, `Policy`, `AuditLogger`) lazy-loaded via `__getattr__`
+- Streaming overhead docs (`guide/streaming-overhead.md`) with domain recommendations
+- `test_scorer_validation.py` (10 validation cases), `test_lazy_enterprise_import.py`
+
+### Changed
+- Stdlib imports (`re`, `asyncio`, `time`) hoisted to module top in `scorer.py`
+- Internal imports (`otel.trace_review`, `otel.trace_streaming`) hoisted to module top in `scorer.py` and `streaming.py`
+- `soft_limit` default clamped: `min(threshold + 0.1, 1.0)` (handles `threshold=1.0`)
+- Version bump: 2.1.0 → 2.2.0
+
 ## [2.1.0] - 2026-03-02
 
 ### Added
@@ -498,7 +515,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v2.1.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/anulum/director-ai/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/anulum/director-ai/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/anulum/director-ai/compare/v1.9.0...v2.0.0
 [1.9.0]: https://github.com/anulum/director-ai/compare/v1.7.0...v1.9.0

@@ -8,12 +8,16 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import re
 import threading
+import time
 
 from .cache import ScoreCache
 from .metrics import metrics
 from .nli import NLIScorer, nli_available
+from .otel import trace_review
 from .types import CoherenceScore, EvidenceChunk, ScoringEvidence
 
 # Heuristic divergence defaults (used when NLI model unavailable)
@@ -91,8 +95,20 @@ class CoherenceScorer:
         scorer_backend="deberta",
         onnx_path=None,
     ):
+        if not (0.0 <= threshold <= 1.0):
+            raise ValueError(f"threshold must be in [0, 1], got {threshold}")
+
         self.threshold = threshold
-        self.soft_limit = soft_limit if soft_limit is not None else threshold + 0.1
+        self.soft_limit = (
+            soft_limit if soft_limit is not None else min(threshold + 0.1, 1.0)
+        )
+        if not (0.0 <= self.soft_limit <= 1.0):
+            raise ValueError(f"soft_limit must be in [0, 1], got {self.soft_limit}")
+        if self.soft_limit < threshold:
+            raise ValueError(
+                f"soft_limit ({self.soft_limit}) must be >= threshold ({threshold})"
+            )
+
         self.strict_mode = strict_mode
         self.scorer_backend = scorer_backend
         self.onnx_path = onnx_path
@@ -103,6 +119,14 @@ class CoherenceScorer:
         if w_logic is not None or w_fact is not None:
             self.W_LOGIC = w_logic if w_logic is not None else 0.6
             self.W_FACT = w_fact if w_fact is not None else 0.4
+            if not (0.0 <= self.W_LOGIC <= 1.0):
+                raise ValueError(f"w_logic must be in [0, 1], got {self.W_LOGIC}")
+            if not (0.0 <= self.W_FACT <= 1.0):
+                raise ValueError(f"w_fact must be in [0, 1], got {self.W_FACT}")
+            if abs(self.W_LOGIC + self.W_FACT - 1.0) > 1e-9:
+                raise ValueError(
+                    f"w_logic + w_fact must equal 1.0, got {self.W_LOGIC + self.W_FACT}"
+                )
         self.history = []
         self.window = history_window
         self.ground_truth_store = ground_truth_store
@@ -144,8 +168,6 @@ class CoherenceScorer:
 
         Returns adjusted divergence score. Falls back to nli_score on error.
         """
-        import time
-
         t0 = time.monotonic()
         metrics.inc("llm_judge_escalations")
 
@@ -159,7 +181,7 @@ class CoherenceScorer:
         try:
             try:
                 if self._llm_judge_provider == "openai":
-                    import openai
+                    import openai  # lazy: optional dep
 
                     client = openai.OpenAI()
                     result = client.chat.completions.create(
@@ -169,7 +191,7 @@ class CoherenceScorer:
                     )
                     reply = result.choices[0].message.content or ""
                 elif self._llm_judge_provider == "anthropic":
-                    import anthropic
+                    import anthropic  # lazy: optional dep
 
                     client = anthropic.Anthropic()
                     result = client.messages.create(
@@ -295,8 +317,6 @@ class CoherenceScorer:
         in output) and precision (output words grounded in context).
         Install [nli] for production scoring.
         """
-        import re
-
         ctx_words = set(re.findall(r"\w+", context.lower()))
         out_words = set(re.findall(r"\w+", text_output.lower()))
         if not ctx_words or not out_words:
@@ -339,8 +359,6 @@ class CoherenceScorer:
             return DIVERGENCE_NEUTRAL
         if not prompt:
             return DIVERGENCE_NEUTRAL
-        import re
-
         p_words = set(re.findall(r"\w+", prompt.lower()))
         o_words = set(re.findall(r"\w+", out))
         if not p_words or not o_words:
@@ -415,8 +433,6 @@ class CoherenceScorer:
 
     def review(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
         """Score an action and decide whether to approve it."""
-        from .otel import trace_review
-
         with trace_review() as span:
             if self.cache:
                 cached = self.cache.get(prompt, action)
@@ -446,8 +462,6 @@ class CoherenceScorer:
 
     async def areview(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
         """Async version of review() — offloads NLI inference to a thread pool."""
-        import asyncio
-
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.review, prompt, action)
 

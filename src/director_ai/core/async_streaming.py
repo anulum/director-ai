@@ -62,6 +62,9 @@ class AsyncStreamingKernel(SafetyKernel):
         token_timeout: float = 0.0,
         total_timeout: float = 0.0,
         halt_mode: str = "hard",
+        score_every_n: int = 1,
+        adaptive: bool = False,
+        max_cadence: int = 8,
     ) -> None:
         if not (0.0 <= hard_limit <= 1.0):
             raise ValueError(f"hard_limit must be in [0, 1], got {hard_limit}")
@@ -77,6 +80,10 @@ class AsyncStreamingKernel(SafetyKernel):
             raise ValueError(f"trend_threshold must be > 0, got {trend_threshold}")
         if halt_mode not in ("hard", "soft"):
             raise ValueError(f"halt_mode must be 'hard' or 'soft', got {halt_mode!r}")
+        if score_every_n < 1:
+            raise ValueError(f"score_every_n must be >= 1, got {score_every_n}")
+        if max_cadence < 1:
+            raise ValueError(f"max_cadence must be >= 1, got {max_cadence}")
         super().__init__(
             hard_limit=hard_limit,
             on_halt=on_halt,
@@ -89,6 +96,9 @@ class AsyncStreamingKernel(SafetyKernel):
         self.trend_threshold = trend_threshold
         self.soft_limit = soft_limit
         self.halt_mode = halt_mode
+        self.score_every_n = score_every_n
+        self.adaptive = adaptive
+        self.max_cadence = max_cadence
 
     async def stream_tokens(
         self,
@@ -110,6 +120,8 @@ class AsyncStreamingKernel(SafetyKernel):
         coherence_history: list[float] = []
         i = 0
         stream_start = time.monotonic()
+        cadence = self.score_every_n
+        last_score = 0.5
 
         async for token in self._iter_tokens(token_source):
             if not isinstance(token, str):
@@ -138,12 +150,25 @@ class AsyncStreamingKernel(SafetyKernel):
                 )
                 return
 
-            token_start = time.monotonic()
-            try:
-                score = await self._call_callback(coherence_callback, token)
-            except (TypeError, ValueError, RuntimeError) as exc:
-                logger.error("Coherence callback raised %s — treating as score=0", exc)
-                score = 0.0
+            if i % cadence == 0:
+                token_start = time.monotonic()
+                try:
+                    score = await self._call_callback(coherence_callback, token)
+                except (TypeError, ValueError, RuntimeError) as exc:
+                    logger.error(
+                        "Coherence callback raised %s — treating as score=0", exc
+                    )
+                    score = 0.0
+                last_score = score
+                if self.adaptive:
+                    w_avg = sum(window) / len(window) if window else score
+                    if w_avg > self.soft_limit and cadence < self.max_cadence:
+                        cadence = min(cadence + 1, self.max_cadence)
+                    elif score < self.soft_limit:
+                        cadence = 1
+            else:
+                token_start = time.monotonic()
+                score = last_score
             now = time.monotonic()
 
             # Token timeout check

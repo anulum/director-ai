@@ -8,6 +8,8 @@ import pytest
 
 from director_ai.core.policy import Policy, Violation
 
+pytestmark = pytest.mark.enterprise
+
 
 class TestViolationDataclass:
     def test_fields(self):

@@ -74,6 +74,7 @@ nav:
     - ONNX Export: guide/onnx-export.md
     - Quantization: guide/quantization.md
     - Rust FFI: guide/rust-ffi.md
+    - Streaming Overhead: guide/streaming-overhead.md
     - Architecture: guide/architecture.md
   - Integrations:
     - OpenAI / Anthropic SDK: integrations/sdk-guard.md

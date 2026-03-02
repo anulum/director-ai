@@ -13,12 +13,10 @@ Director-AI: Real-time LLM hallucination guardrail.
     from director_ai.core import CoherenceAgent, CoherenceScorer, SafetyKernel
 """
 
-__version__ = "2.1.0"
+__version__ = "2.2.0"
 
 from .core import (
     AsyncStreamingKernel,
-    AuditEntry,
-    AuditLogger,
     CoherenceAgent,
     CoherenceScore,
     CoherenceScorer,
@@ -30,7 +28,6 @@ from .core import (
     LLMGenerator,
     MockGenerator,
     NLIScorer,
-    Policy,
     ReviewResult,
     SafetyKernel,
     SanitizeResult,
@@ -39,10 +36,8 @@ from .core import (
     SentenceTransformerBackend,
     StreamingKernel,
     StreamSession,
-    TenantRouter,
     TokenEvent,
     VectorGroundTruthStore,
-    Violation,
 )
 from .core.exceptions import (
     CoherenceError,
@@ -97,3 +92,19 @@ __all__ = [
     "PhysicsError",
     "NumericalError",
 ]
+
+_LAZY_ENTERPRISE = {
+    "TenantRouter",
+    "Policy",
+    "Violation",
+    "AuditLogger",
+    "AuditEntry",
+}
+
+
+def __getattr__(name: str):
+    if name in _LAZY_ENTERPRISE:
+        from . import core
+
+        return getattr(core, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

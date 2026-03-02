@@ -71,7 +71,7 @@ class TestPostprocessNodes:
         assert result[0].metadata["director_ai_approved"] is True
 
     def test_high_threshold_rejects(self):
-        pp = DirectorAIPostprocessor(threshold=999.0)
+        pp = DirectorAIPostprocessor(threshold=1.0)
         nodes = [_make_node("Any text")]
         result = pp.postprocess_nodes(nodes, _make_query_bundle("test"))
         assert len(result) == 0

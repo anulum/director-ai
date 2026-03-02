@@ -22,6 +22,7 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from .kernel import SafetyKernel
+from .otel import trace_streaming
 from .types import HaltEvidence
 
 if TYPE_CHECKING:
@@ -121,10 +122,17 @@ class StreamingKernel(SafetyKernel):
         soft_limit: float = 0.6,
         streaming_debug: bool = False,
         halt_mode: str = "hard",
+        score_every_n: int = 1,
+        adaptive: bool = False,
+        max_cadence: int = 8,
     ) -> None:
         super().__init__(hard_limit=hard_limit, on_halt=on_halt)
         if halt_mode not in ("hard", "soft"):
             raise ValueError(f"halt_mode must be 'hard' or 'soft', got {halt_mode!r}")
+        if score_every_n < 1:
+            raise ValueError(f"score_every_n must be >= 1, got {score_every_n}")
+        if max_cadence < 1:
+            raise ValueError(f"max_cadence must be >= 1, got {max_cadence}")
         self.window_size = window_size
         self.window_threshold = window_threshold
         self.trend_window = trend_window
@@ -132,6 +140,9 @@ class StreamingKernel(SafetyKernel):
         self.soft_limit = soft_limit
         self.streaming_debug = streaming_debug
         self.halt_mode = halt_mode
+        self.score_every_n = score_every_n
+        self.adaptive = adaptive
+        self.max_cadence = max_cadence
 
     @staticmethod
     def _suggested_action(reason: str) -> str:
@@ -208,6 +219,9 @@ class StreamingKernel(SafetyKernel):
             stripped = tok.rstrip()
             return bool(stripped) and stripped[-1] in self._SENTENCE_ENDS
 
+        cadence = self.score_every_n
+        last_score = 0.5
+
         for i, token in enumerate(token_generator):
             if not self.is_active:
                 session.halted = True
@@ -215,7 +229,17 @@ class StreamingKernel(SafetyKernel):
                 session.halt_reason = "kernel_inactive"
                 break
 
-            score = coherence_callback(token)
+            if i % cadence == 0:
+                score = coherence_callback(token)
+                last_score = score
+                if self.adaptive:
+                    w_avg = sum(window) / len(window) if window else score
+                    if w_avg > self.soft_limit and cadence < self.max_cadence:
+                        cadence = min(cadence + 1, self.max_cadence)
+                    elif score < self.soft_limit:
+                        cadence = 1
+            else:
+                score = last_score
             now = time.monotonic()
 
             event = TokenEvent(
@@ -296,8 +320,6 @@ class StreamingKernel(SafetyKernel):
         session.end_time = time.monotonic()
         if session.halted and self.on_halt:
             self.on_halt(session)
-
-        from .otel import trace_streaming
 
         with trace_streaming() as span:
             span.set_attribute("stream.halted", session.halted)

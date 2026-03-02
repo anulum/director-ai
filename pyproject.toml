@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "2.1.0"
+version = "2.2.0"
 description = "Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
@@ -90,6 +90,7 @@ docs = [
 otel = [
     "opentelemetry-api>=1.20",
 ]
+enterprise = []
 research = []
 train = [
     "transformers>=4.30",
@@ -138,6 +139,7 @@ markers = [
     "consumer: consumer-facing API tests",
     "integration: cross-module integration tests",
     "slow: tests that take > 5s",
+    "enterprise: enterprise module tests (tenant, policy, audit)",
 ]
 
 [tool.coverage.run]

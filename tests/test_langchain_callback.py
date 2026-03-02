@@ -69,7 +69,7 @@ class TestOnLlmEnd:
     def test_raise_on_failure_triggers(self):
         from director_ai.core.exceptions import CoherenceError
 
-        handler = CoherenceCallbackHandler(raise_on_failure=True, threshold=999.0)
+        handler = CoherenceCallbackHandler(raise_on_failure=True, threshold=1.0)
         handler._current_prompt = "test"
         with pytest.raises(CoherenceError, match="below coherence threshold"):
             handler.on_llm_end(_make_llm_result("any response text"))

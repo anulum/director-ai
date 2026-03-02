@@ -181,6 +181,71 @@ class TestStreamingKernel:
 
 
 @pytest.mark.consumer
+class TestScoringCadence:
+    def test_score_every_n_reduces_callbacks(self):
+        call_count = 0
+
+        def counting_cb(token):
+            nonlocal call_count
+            call_count += 1
+            return 0.8
+
+        kernel = StreamingKernel(score_every_n=4)
+        tokens = [f"t{i} " for i in range(20)]
+        session = kernel.stream_tokens(tokens, counting_cb)
+        assert not session.halted
+        assert call_count == 5  # tokens 0, 4, 8, 12, 16
+
+    def test_score_every_n_default_scores_all(self):
+        call_count = 0
+
+        def counting_cb(token):
+            nonlocal call_count
+            call_count += 1
+            return 0.8
+
+        kernel = StreamingKernel()
+        tokens = [f"t{i} " for i in range(20)]
+        kernel.stream_tokens(tokens, counting_cb)
+        assert call_count == 20
+
+    def test_adaptive_increases_cadence(self):
+        call_count = 0
+
+        def counting_cb(token):
+            nonlocal call_count
+            call_count += 1
+            return 0.9  # always high → cadence ramps up
+
+        kernel = StreamingKernel(soft_limit=0.6, adaptive=True, max_cadence=8)
+        tokens = [f"t{i} " for i in range(40)]
+        kernel.stream_tokens(tokens, counting_cb)
+        assert call_count < 40
+
+    def test_adaptive_resets_on_low_score(self):
+        scores = [0.9] * 15 + [0.4] + [0.9] * 24
+        score_iter = iter(scores)
+        call_count = 0
+
+        def counting_cb(token):
+            nonlocal call_count
+            call_count += 1
+            return next(score_iter)
+
+        kernel = StreamingKernel(
+            hard_limit=0.2, soft_limit=0.6, adaptive=True, max_cadence=8
+        )
+        tokens = [f"t{i} " for i in range(40)]
+        kernel.stream_tokens(tokens, counting_cb)
+        # After the low score, cadence resets to 1, so more callbacks
+        assert call_count > 5
+
+    def test_invalid_score_every_n_raises(self):
+        with pytest.raises(ValueError, match="score_every_n"):
+            StreamingKernel(score_every_n=0)
+
+
+@pytest.mark.consumer
 class TestAsyncStreamingKernel:
     def test_async_on_halt_fires(self):
         halted_sessions = []

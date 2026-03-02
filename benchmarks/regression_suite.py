@@ -354,6 +354,45 @@ def test_false_halt_rate():
     )
 
 
+def test_streaming_overhead():
+    """Quick 3-iteration overhead check: cadence=1 must complete in < 100ms."""
+    from director_ai.core import CoherenceScorer, GroundTruthStore, StreamingKernel
+
+    store = GroundTruthStore()
+    store.add("sky", "The sky is blue")
+    scorer = CoherenceScorer(threshold=0.3, ground_truth_store=store, use_nli=False)
+    kernel = StreamingKernel(
+        hard_limit=0.1,
+        window_size=10,
+        window_threshold=0.15,
+        trend_window=5,
+        trend_threshold=0.3,
+        soft_limit=0.15,
+        score_every_n=1,
+    )
+    tokens = [f"tok{i} " for i in range(50)]
+
+    times = []
+    for _ in range(3):
+        accumulated = ""
+
+        def coherence_cb(token, _s=scorer):
+            nonlocal accumulated
+            accumulated += token
+            _, sc = _s.review("sky", accumulated)
+            return sc.score
+
+        t0 = time.perf_counter()
+        kernel.stream_tokens(iter(tokens), coherence_cb)
+        times.append(time.perf_counter() - t0)
+        kernel._active = True
+        accumulated = ""
+
+    avg_ms = sum(times) / len(times) * 1000
+    print(f"  Streaming overhead: {avg_ms:.1f} ms avg (cadence=1, 50 tokens)")
+    assert avg_ms < 100.0, f"Streaming overhead {avg_ms:.1f} ms > 100 ms ceiling"
+
+
 def test_e2e_heuristic_delta():
     """Guardrail must beat random: catch_rate > 0.3, FPR < 0.3."""
     from director_ai.core import CoherenceScorer, GroundTruthStore
@@ -402,6 +441,7 @@ def main():
         test_metrics_integrity,
         test_evidence_schema,
         test_false_halt_rate,
+        test_streaming_overhead,
         test_e2e_heuristic_delta,
     ]
 

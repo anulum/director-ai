@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
 from director_ai.core.tenant import TenantRouter
+
+pytestmark = pytest.mark.enterprise
 
 
 class TestTenantRouterBasic:
