@@ -45,6 +45,9 @@ ENV PYTHONUNBUFFERED=1 \
     DIRECTOR_SERVER_HOST=0.0.0.0 \
     DIRECTOR_SERVER_PORT=8080
 
+RUN adduser --disabled-password --gecos "" appuser
+USER appuser
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \

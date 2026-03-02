@@ -1,44 +1,84 @@
 # Changelog
 
-## v1.2.0 (2026-02-27)
+See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
-### Features
-- **Evidence return**: every `CoherenceScore` carries `ScoringEvidence` with top-K chunks, NLI premise/hypothesis, similarity distances
-- **Fallback modes**: `fallback="retrieval"` swaps in KB answer, `"disclaimer"` prepends confidence warning
-- **Soft warning zone**: configurable `soft_limit` between threshold and full-pass, with disclaimer injection
-- **Score caching**: LRU cache keyed on (query, prefix) to avoid redundant NLI/embedding computation in streams
-- **8-bit quantization**: `nli_quantize_8bit=True` via bitsandbytes for <80ms per scoring window on consumer GPU
-- **Configurable device/dtype**: `nli_device="cuda"`, `nli_torch_dtype="float16"` on CoherenceScorer
-- **SentenceTransformerBackend**: direct embedding backend using bge-large-en-v1.5
-- **ChromaDB custom embedder**: `embedding_model` parameter on ChromaBackend
-- **LangGraph integration**: `director_ai_node()` and `director_ai_conditional_edge()`
-- **Haystack integration**: `DirectorAIChecker` component for Haystack 2.x pipelines
-- **CrewAI integration**: `DirectorAITool` for agent fact-checking
-- **Enhanced HF Spaces demo**: side-by-side raw vs guarded comparison tab with token highlighting
-- **MkDocs documentation site**: full API reference, deployment guide, cookbook
+## v2.0.0 (2026-03-02)
 
-### Bug Fixes
-- `AsyncStreamingKernel.on_halt` now properly wired (was silently ignored)
-- MiniCheck AggreFact benchmark OOM fix: catches CUDA OOM, clears cache, continues
+### Fixed
+- Case-sensitivity bug in `GroundTruthStore.retrieve_context()` — mixed-case keys now match
+- LLM judge error handling: bare `except Exception` replaced with structured try/except
+- `SafetyKernel` validates `hard_limit` in [0, 1] range
+- OTel `setup_otel()` is now thread-safe
+- `case-studies.md` code snippets corrected (wrong constructors, phantom methods)
 
-### Documentation
-- MiniCheck documented as recommended NLI backend
-- Production deployment guide with Docker, metrics, scaling
-- Configuration cookbook for legal, medical, finance domains
+### Added
+- Named constants for LLM judge blending formula
+- `.editorconfig`, `.pre-commit-config.yaml`, `py.typed` PEP 561 marker
+- Documentation URL in `pyproject.toml`
+- Non-root user in Dockerfiles
+- Histogram `bucket_counts()` O(n log n) optimization
+- New tests: knowledge, kernel validation, ingest, cache
+- 12 `inspect.getsource` fragile tests replaced with behavioral equivalents
+
+## v1.9.0 (2026-03-02)
+
+### Added
+- Soft-halt mode: `StreamingKernel(halt_mode="soft")`
+- JSON structured logging: `log_json=True`
+- OpenTelemetry integration: `otel_enabled=True`
+- Request ID propagation: `X-Request-ID` header
+- 100-passage false-halt benchmark
+- Coverage threshold raised to 80%
+
+## v1.7.0 (2026-03-01)
+
+### Added
+- Domain presets: `DirectorConfig.from_profile()`
+- Structured halt evidence
+- Pluggable scorer backend: `deberta`, `onnx`, `minicheck`
+- Batched MiniCheck support
+- False-halt assertion in CI
+
+## v1.6.0 (2026-03-01)
+
+### Added
+- API key auth, correlation IDs, audit logging
+- Tenant routing, rate limiting
+- Streaming WebSocket oversight
+- E2E benchmarks (300 traces)
+- 835 tests
+
+## v1.5.0 — v1.5.1 (2026-03-01)
+
+### Added
+- Bidirectional chunked NLI
+- Prometheus metric compliance
+- Real streaming halt with evidence
+- RAG retrieval bench
+
+## v1.4.0 — v1.4.1 (2026-03-01)
+
+### Added
+- Batched NLI inference (10.8x speedup)
+- ONNX export + runtime (14.6 ms/pair GPU)
+- GPU Docker image, TensorRT provider
+
+## v1.3.0 (2026-03-01)
+
+- Default NLI model: FactCG-DeBERTa-v3-Large (75.8% balanced accuracy)
+
+## v1.2.0 — v1.2.1 (2026-02-27)
+
+- Score caching, LangGraph/Haystack/CrewAI integrations
+- MkDocs documentation, strict_mode, configurable weights
 
 ## v1.1.0 (2026-02-27)
 
-### Features
-- **SDK Guard**: `guard()` wraps OpenAI/Anthropic clients with 2-line integration
-- **MiniCheck NLI**: pluggable backend with 72.6% balanced accuracy on AggreFact
-- **Streaming halt**: 3 mechanisms (hard limit, sliding window, downward trend) + `on_halt` callback
-- **E2E benchmark**: 300 HaluEval traces, QA precision 81.8%, p95 latency 40ms
-- **HF Spaces demo**: live interactive demo
+- SDK Guard `guard()` for OpenAI/Anthropic
+- Streaming guards, `HallucinationError`
 
 ## v1.0.0 (2026-02-26)
 
-- Initial production release
-- Coherence engine with dual-entropy scoring
-- Safety kernel with emergency stop
-- Ground truth store (keyword + vector)
-- Policy engine, audit logging, multi-tenant support
+- Production stable release
+- Enterprise modules: Policy, AuditLogger, TenantRouter, InputSanitizer
+- LangChain + LlamaIndex integrations

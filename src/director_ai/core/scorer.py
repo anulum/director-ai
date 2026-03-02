@@ -21,6 +21,12 @@ DIVERGENCE_NEUTRAL = 0.5  # no signal → agnostic
 DIVERGENCE_ALIGNED = 0.1  # keyword heuristic: "consistent with reality"
 DIVERGENCE_CONTRADICTED = 0.9  # keyword heuristic: "opposite is true"
 
+# LLM-as-judge blending constants
+LLM_JUDGE_AGREE_DIVERGENCE = 0.2
+LLM_JUDGE_DISAGREE_DIVERGENCE = 0.8
+LLM_JUDGE_NLI_WEIGHT = 0.7
+LLM_JUDGE_LLM_WEIGHT = 0.3  # = 1 - NLI_WEIGHT
+
 
 class CoherenceScorer:
     """
@@ -147,36 +153,46 @@ class CoherenceScorer:
             "with a confidence 0-100."
         )
         try:
-            if self._llm_judge_provider == "openai":
-                import openai
+            try:
+                if self._llm_judge_provider == "openai":
+                    import openai
 
-                client = openai.OpenAI()
-                result = client.chat.completions.create(
-                    model="gpt-4o-mini",
-                    messages=[{"role": "user", "content": judge_prompt}],
-                    max_tokens=20,
-                )
-                reply = result.choices[0].message.content or ""
-            elif self._llm_judge_provider == "anthropic":
-                import anthropic
+                    client = openai.OpenAI()
+                    result = client.chat.completions.create(
+                        model="gpt-4o-mini",
+                        messages=[{"role": "user", "content": judge_prompt}],
+                        max_tokens=20,
+                    )
+                    reply = result.choices[0].message.content or ""
+                elif self._llm_judge_provider == "anthropic":
+                    import anthropic
 
-                client = anthropic.Anthropic()
-                result = client.messages.create(
-                    model="claude-haiku-4-5-20251001",
-                    max_tokens=20,
-                    messages=[{"role": "user", "content": judge_prompt}],
-                )
-                reply = result.content[0].text if result.content else ""
-            else:
+                    client = anthropic.Anthropic()
+                    result = client.messages.create(
+                        model="claude-haiku-4-5-20251001",
+                        max_tokens=20,
+                        messages=[{"role": "user", "content": judge_prompt}],
+                    )
+                    reply = result.content[0].text if result.content else ""
+                else:
+                    return nli_score
+            except ImportError as exc:
+                self.logger.warning("LLM judge import failed: %s", exc)
+                return nli_score
+            except Exception as exc:
+                self.logger.warning("LLM judge API call failed: %s", exc)
                 return nli_score
 
             llm_agrees = "YES" in reply.upper()
-            llm_divergence = 0.2 if llm_agrees else 0.8
-            adjusted = 0.7 * nli_score + 0.3 * llm_divergence
+            llm_divergence = (
+                LLM_JUDGE_AGREE_DIVERGENCE
+                if llm_agrees
+                else LLM_JUDGE_DISAGREE_DIVERGENCE
+            )
+            adjusted = (
+                LLM_JUDGE_NLI_WEIGHT * nli_score + LLM_JUDGE_LLM_WEIGHT * llm_divergence
+            )
             return max(0.0, min(1.0, adjusted))
-        except (ImportError, Exception) as exc:
-            self.logger.warning("LLM judge failed: %s", exc)
-            return nli_score
         finally:
             metrics.observe("llm_judge_seconds", time.monotonic() - t0)
 

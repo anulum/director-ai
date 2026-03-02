@@ -34,6 +34,8 @@ class SafetyKernel:
         token_timeout: float = 0.0,
         total_timeout: float = 0.0,
     ):
+        if not (0.0 <= hard_limit <= 1.0):
+            raise ValueError(f"hard_limit must be in [0, 1], got {hard_limit}")
         self.hard_limit = hard_limit
         self.on_halt = on_halt
         self.token_timeout = token_timeout

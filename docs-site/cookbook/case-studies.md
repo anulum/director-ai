@@ -7,7 +7,8 @@ Real-world deployment patterns with Director-AI.
 **Setup**: 400-document contract knowledge base, ChromaDB backend, ONNX GPU.
 
 ```python
-from director_ai import CoherenceAgent, VectorGroundTruthStore, ChromaBackend
+from director_ai import CoherenceScorer, VectorGroundTruthStore
+from director_ai.core.vector_store import ChromaBackend
 
 backend = ChromaBackend(
     collection_name="legal_contracts",
@@ -15,14 +16,16 @@ backend = ChromaBackend(
     embedding_model="BAAI/bge-large-en-v1.5",
 )
 store = VectorGroundTruthStore(backend=backend)
-store.ingest_directory("/data/contracts/", glob="*.pdf")
+store.ingest(["Contract clause 1...", "Contract clause 2..."])
 
-agent = CoherenceAgent(
+scorer = CoherenceScorer(
     ground_truth_store=store,
     use_nli=True,
-    threshold=0.7,       # strict for legal
+    threshold=0.7,
     nli_device="cuda",
 )
+
+approved, score = scorer.review("What is the liability cap?", llm_response)
 ```
 
 **Results** (14-day deployment, 1,247 queries/day):
@@ -41,7 +44,7 @@ rated these as "barely noticeable".
 
 ## Finance Research Agent (CrewAI)
 
-**Setup**: 8-step research → trade recommendation pipeline via CrewAI.
+**Setup**: 8-step research pipeline via CrewAI.
 
 ```python
 from crewai import Agent, Task, Crew
@@ -50,7 +53,6 @@ from director_ai.integrations.crewai import DirectorAITool
 guardrail = DirectorAITool(
     facts={"SEC filing date": "2025-12-15", "quarterly revenue": "$4.2B"},
     threshold=0.65,
-    on_halt="fallback",  # re-retrieve instead of blocking
 )
 
 researcher = Agent(
@@ -61,20 +63,32 @@ researcher = Agent(
 ```
 
 **Pattern**: Streaming halt on outdated SEC filing data triggers
-automatic re-retrieval of the current filing. The `on_halt="fallback"`
-mode re-queries the knowledge base instead of blocking the pipeline.
+automatic re-retrieval of the current filing.
 
 ## Creative Writing Co-Pilot
 
 **Setup**: Long-form fiction with user-provided world bible as KB.
 
 ```python
-agent = CoherenceAgent(
-    ground_truth_store=world_bible_store,
-    threshold=0.4,       # permissive for creative text
-    soft_limit=0.5,      # warn but don't halt
+from director_ai import CoherenceScorer, GroundTruthStore
+
+store = GroundTruthStore()
+store.add("protagonist", "Kael is a frost mage from the Northern Reach.")
+store.add("magic system", "Only three schools of magic exist: frost, flame, void.")
+
+scorer = CoherenceScorer(
+    ground_truth_store=store,
+    threshold=0.4,
+    soft_limit=0.5,
     use_nli=True,
 )
+
+approved, score = scorer.review(
+    "Describe Kael's abilities",
+    draft_paragraph,
+)
+if score.warning:
+    logger.warning("Low coherence: %s", score.score)
 ```
 
 **Results**:
@@ -94,30 +108,34 @@ for final consistency checks against the world bible.
 ### Warn-only mode (development)
 
 ```python
-agent = CoherenceAgent(threshold=0.3, soft_limit=0.5)
-result = agent.process(query)
-if result.coherence.warnings:
-    logger.warning("Low coherence: %s", result.coherence.score)
-# Never halts — just logs warnings
+from director_ai import CoherenceScorer, GroundTruthStore
+
+store = GroundTruthStore()
+scorer = CoherenceScorer(threshold=0.3, soft_limit=0.5, ground_truth_store=store)
+approved, score = scorer.review(query, response)
+if score.warning:
+    logger.warning("Low coherence: %s", score.score)
 ```
 
 ### Strict mode (production)
 
 ```python
-agent = CoherenceAgent(
+from director_ai import CoherenceScorer
+
+scorer = CoherenceScorer(
     threshold=0.6,
-    strict_mode=True,  # no heuristic fallback
+    strict_mode=True,
     use_nli=True,
 )
 ```
 
-### Fallback mode (user-facing)
+### Agent with fallback (user-facing)
 
 ```python
 from director_ai import CoherenceAgent
 
-agent = CoherenceAgent(
-    threshold=0.5,
-    fallback="retrieval",  # on halt: return top KB chunks instead
-)
+agent = CoherenceAgent(fallback="retrieval")
+result = agent.process("What is the refund policy?")
+if result.halted:
+    print("Fell back to KB retrieval")
 ```

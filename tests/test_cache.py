@@ -76,3 +76,15 @@ class TestScoreCache:
 
         scorer = CoherenceScorer(threshold=0.5)
         assert scorer.cache is None
+
+    def test_invalidate_bumps_generation(self):
+        cache = ScoreCache(max_size=100, ttl_seconds=60)
+        cache.put("q1", "p1", 0.85, 0.1, 0.2)
+        gen_before = cache.generation
+        cache.invalidate()
+        assert cache.generation == gen_before + 1
+        assert cache.get("q1", "p1") is None
+
+    def test_empty_hit_rate(self):
+        cache = ScoreCache(max_size=100)
+        assert cache.hit_rate == 0.0

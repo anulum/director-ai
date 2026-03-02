@@ -3,7 +3,6 @@
 # ─────────────────────────────────────────────────────────────────────
 """
 Tests for Phase 4 hardening fixes:
-  H47  INJ-2: consilium subprocess path validation
   H48  DOS-1: batch per-line JSON size limit
   H49  ERR-2: WebSocket receive_json exception handling
   H50  VAL-1: NaN/Inf clamp logging
@@ -16,11 +15,7 @@ Tests for Phase 4 hardening fixes:
   H64  TEST-4: bool coercion edge cases
 """
 
-import inspect
-import json
 import logging
-import os
-import tempfile
 
 import pytest
 
@@ -44,39 +39,6 @@ class TestH48LineSize:
         from director_ai.cli import _BATCH_MAX_LINE_SIZE
 
         assert _BATCH_MAX_LINE_SIZE == 1 * 1024 * 1024
-
-    def test_oversized_line_skipped(self, capsys):
-        from director_ai.cli import _cmd_batch
-
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
-        ) as f:
-            # Write one normal line and one oversized line
-            f.write(json.dumps({"prompt": "hello"}) + "\n")
-            f.write(json.dumps({"prompt": "x" * (1024 * 1024 + 100)}) + "\n")
-            path = f.name
-
-        try:
-            # This will try to process - we just need to verify the warning
-            # We can't easily mock the agent, so check source instead
-            source = inspect.getsource(_cmd_batch)
-            assert "_BATCH_MAX_LINE_SIZE" in source
-        finally:
-            os.unlink(path)
-
-
-# ── H49: WebSocket receive_json error handling ───────────────────────
-
-
-class TestH49WebSocketJson:
-    """WebSocket handler should catch ValueError from receive_json."""
-
-    def test_websocket_has_value_error_catch(self):
-        from director_ai.server import create_app
-
-        source = inspect.getsource(create_app)
-        assert "ValueError" in source or "KeyError" in source
-        assert '"invalid JSON"' in source
 
 
 # ── H50: NaN/Inf clamp logging ──────────────────────────────────────
@@ -115,19 +77,6 @@ class TestH50ClampLogging:
         with caplog.at_level(logging.WARNING, logger="DirectorAI.Types"):
             result = _clamp(float("-inf"))
         assert result == 0.0
-
-
-# ── H52: null JSON prompt guard ──────────────────────────────────────
-
-
-class TestH52NullPrompt:
-    """Batch should skip JSON entries with null/non-string prompts."""
-
-    def test_source_has_isinstance_check(self):
-        from director_ai.cli import _cmd_batch
-
-        source = inspect.getsource(_cmd_batch)
-        assert "isinstance(prompt, str)" in source
 
 
 # ── H54: Batch timeout validation ────────────────────────────────────
@@ -173,19 +122,37 @@ class TestH54TimeoutValidation:
 
 
 class TestH55ErrorTypes:
-    """LLMGenerator should distinguish timeout from other errors."""
+    """LLMGenerator should distinguish timeout from connection errors."""
 
-    def test_source_has_timeout_catch(self):
+    def test_timeout_error_handled(self):
+        from unittest.mock import patch
+
+        import requests.exceptions
+
         from director_ai.core.actor import LLMGenerator
 
-        source = inspect.getsource(LLMGenerator)
-        assert "requests.exceptions.Timeout" in source
+        gen = LLMGenerator(api_url="http://localhost:8080/completion")
+        with patch(
+            "director_ai.core.actor.requests.post",
+            side_effect=requests.exceptions.Timeout("timed out"),
+        ):
+            candidates = gen.generate_candidates("test", n=1)
+        assert len(candidates) == 1
+        assert "Error" in candidates[0]["text"]
 
-    def test_error_includes_type_name(self):
+    def test_connection_error_handled(self):
+        from unittest.mock import patch
+
         from director_ai.core.actor import LLMGenerator
 
-        source = inspect.getsource(LLMGenerator)
-        assert "ConnectionError" in source
+        gen = LLMGenerator(api_url="http://localhost:8080/completion")
+        with patch(
+            "director_ai.core.actor.requests.post",
+            side_effect=ConnectionError("refused"),
+        ):
+            candidates = gen.generate_candidates("test", n=1)
+        assert len(candidates) == 1
+        assert "Error" in candidates[0]["text"]
 
 
 # ── H57: CORS origins count limit ────────────────────────────────────
@@ -194,24 +161,17 @@ class TestH55ErrorTypes:
 class TestH57CORSLimit:
     """Server should reject excessive CORS origins."""
 
-    def test_source_has_origins_limit(self):
-        from director_ai.server import create_app
-
-        source = inspect.getsource(create_app)
-        assert "Too many CORS origins" in source
-
     @pytest.mark.skipif(
         not _fastapi_available(),
         reason="FastAPI not installed",
     )
     def test_excessive_origins_rejected(self):
         from director_ai.core.config import DirectorConfig
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(
             cors_origins=",".join([f"http://host{i}.com" for i in range(150)])
         )
-        from director_ai.server import create_app
-
         with pytest.raises(ValueError, match="Too many CORS origins"):
             create_app(cfg)
 

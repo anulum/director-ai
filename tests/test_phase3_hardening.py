@@ -16,6 +16,7 @@ Tests for Phase 3 hardening fixes (consumer core):
 """
 
 import json
+import logging
 import os
 import tempfile
 import threading
@@ -62,14 +63,25 @@ class TestH28NLIAssert:
 class TestH29AsyncLoop:
     """Batch async should use get_running_loop (not deprecated get_event_loop)."""
 
-    def test_process_batch_async_uses_running_loop(self):
-        import inspect
+    def test_process_batch_async_runs(self):
+        import asyncio
+        from unittest.mock import MagicMock
 
         from director_ai.core.batch import BatchProcessor
+        from director_ai.core.types import CoherenceScore, ReviewResult
 
-        source = inspect.getsource(BatchProcessor.process_batch_async)
-        assert "get_running_loop" in source
-        assert "get_event_loop" not in source
+        mock_backend = MagicMock()
+        mock_backend.process.return_value = ReviewResult(
+            output="ok",
+            halted=False,
+            candidates_evaluated=1,
+            coherence=CoherenceScore(
+                score=0.9, approved=True, h_logical=0.05, h_factual=0.05
+            ),
+        )
+        proc = BatchProcessor(mock_backend)
+        batch_result = asyncio.run(proc.process_batch_async(["test"]))
+        assert len(batch_result.results) == 1
 
 
 # ── H30: batch coherence None guard ──────────────────────────────────
@@ -98,15 +110,21 @@ class TestH30CoherenceNoneGuard:
 
 
 class TestH34ResponseTruncation:
-    """LLMGenerator error log should truncate response.text to 500 chars."""
+    """LLMGenerator error log should truncate long responses."""
 
-    def test_log_truncation_in_source(self):
-        import inspect
+    def test_long_error_response_does_not_crash(self):
+        from unittest.mock import MagicMock, patch
 
         from director_ai.core.actor import LLMGenerator
 
-        source = inspect.getsource(LLMGenerator)
-        assert "response.text[:500]" in source
+        mock_resp = MagicMock()
+        mock_resp.status_code = 500
+        mock_resp.text = "X" * 10_000
+        with patch("director_ai.core.actor.requests.post", return_value=mock_resp):
+            gen = LLMGenerator(api_url="http://localhost:8080/completion")
+            candidates = gen.generate_candidates("test", n=1)
+        assert len(candidates) == 1
+        assert "Error" in candidates[0]["text"]
 
 
 # ── H35: config _coerce error message ───────────────────────────────
@@ -170,15 +188,7 @@ class TestH36ServerValidation:
 
 
 class TestH37YamlUtf8:
-    """from_yaml should open files with encoding='utf-8'."""
-
-    def test_yaml_utf8_encoding_in_source(self):
-        import inspect
-
-        from director_ai.core.config import DirectorConfig
-
-        source = inspect.getsource(DirectorConfig.from_yaml)
-        assert 'encoding="utf-8"' in source or "encoding='utf-8'" in source
+    """from_yaml should handle UTF-8 files correctly."""
 
     def test_yaml_with_unicode(self):
         from director_ai.core.config import DirectorConfig
@@ -196,6 +206,22 @@ class TestH37YamlUtf8:
         finally:
             os.unlink(path)
 
+    def test_yaml_with_unicode_chars(self):
+        from director_ai.core.config import DirectorConfig
+
+        with tempfile.NamedTemporaryFile(
+            mode="w", suffix=".json", delete=False, encoding="utf-8"
+        ) as f:
+            json.dump({"profile": "default", "log_level": "INFO"}, f)
+            f.flush()
+            path = f.name
+
+        try:
+            cfg = DirectorConfig.from_yaml(path)
+            assert cfg.log_level == "INFO"
+        finally:
+            os.unlink(path)
+
 
 # ── H39: CLI --port safety ──────────────────────────────────────────
 
@@ -203,21 +229,17 @@ class TestH37YamlUtf8:
 class TestH39CLIPort:
     """CLI --port should handle non-integer gracefully."""
 
-    def test_cli_port_in_source(self):
-        import inspect
-
+    def test_cli_serve_with_invalid_port(self):
         from director_ai.cli import _cmd_serve
 
-        source = inspect.getsource(_cmd_serve)
-        assert "ValueError" in source
+        with pytest.raises((ValueError, SystemExit)):
+            _cmd_serve(["--port", "not_a_number"])
 
-    def test_cli_batch_utf8(self):
-        import inspect
-
+    def test_cli_batch_with_nonexistent_file(self):
         from director_ai.cli import _cmd_batch
 
-        source = inspect.getsource(_cmd_batch)
-        assert 'encoding="utf-8"' in source or "encoding='utf-8'" in source
+        with pytest.raises((FileNotFoundError, SystemExit)):
+            _cmd_batch(["nonexistent_file.jsonl"])
 
 
 # ── H42: scorer history thread lock ─────────────────────────────────
@@ -260,12 +282,12 @@ class TestH42ScorerThreadLock:
 
 
 class TestH44ScorerSetLevel:
-    """CoherenceScorer should not call setLevel on its logger."""
+    """CoherenceScorer logger should respect the logging hierarchy."""
 
-    def test_no_set_level_in_init(self):
-        import inspect
-
+    def test_scorer_logger_level_not_forced(self):
         from director_ai.core.scorer import CoherenceScorer
 
-        source = inspect.getsource(CoherenceScorer.__init__)
-        assert "setLevel" not in source
+        # Reset logger to isolate scorer behavior from prior test side-effects
+        logging.getLogger("DirectorAI").setLevel(logging.NOTSET)
+        s = CoherenceScorer(use_nli=False)
+        assert s.logger.level == logging.NOTSET

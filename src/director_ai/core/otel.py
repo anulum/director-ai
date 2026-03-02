@@ -21,6 +21,7 @@ Usage::
 
 from __future__ import annotations
 
+import threading
 from contextlib import contextmanager
 
 try:
@@ -31,6 +32,7 @@ except ImportError:
     _OTEL_AVAILABLE = False
 
 _tracer = None
+_tracer_lock = threading.Lock()
 
 
 def setup_otel(service_name: str = "director-ai") -> None:
@@ -38,7 +40,8 @@ def setup_otel(service_name: str = "director-ai") -> None:
     global _tracer
     if not _OTEL_AVAILABLE:
         return
-    _tracer = trace.get_tracer(service_name)
+    with _tracer_lock:
+        _tracer = trace.get_tracer(service_name)
 
 
 @contextmanager

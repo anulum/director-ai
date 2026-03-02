@@ -68,6 +68,9 @@ ENV PYTHONUNBUFFERED=1 \
     DIRECTOR_USE_NLI=true \
     DIRECTOR_ONNX_PATH=/app/models/onnx
 
+RUN adduser --disabled-password --gecos "" appuser
+USER appuser
+
 EXPOSE 8080
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=3 \

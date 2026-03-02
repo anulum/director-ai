@@ -5,6 +5,31 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.0] - 2026-03-02
+
+### Fixed
+- Case-sensitivity bug in `GroundTruthStore.retrieve_context()` — mixed-case keys now match lowercase queries
+- LLM judge error handling: bare `except (ImportError, Exception)` replaced with structured try/except (API call vs response parse)
+- `SafetyKernel` validates `hard_limit` in [0, 1] range on construction
+- `setup_otel()` thread-safe via `threading.Lock`
+- `case-studies.md` all 5 phantom symbols fixed (wrong constructors, nonexistent methods)
+- `docs-site/changelog.md` synced (was frozen at v1.2.0, missing 17 releases)
+- README BibTeX version updated from 1.8.0 to 2.0.0
+
+### Added
+- Named constants for LLM judge blending formula (`LLM_JUDGE_*`)
+- `.editorconfig` for consistent formatting
+- `.pre-commit-config.yaml` (ruff + trailing-whitespace + YAML/TOML checks)
+- `py.typed` PEP 561 marker
+- `Documentation` URL in `pyproject.toml`
+- Non-root `appuser` in Dockerfile and Dockerfile.gpu
+- New tests: `test_knowledge.py` (case-insensitive), `test_kernel_validation.py`, `test_ingest.py`
+- Histogram `bucket_counts()` optimized from O(n*b) to O(n log n + b log n) via `bisect`
+
+### Changed
+- 12 `inspect.getsource` fragile tests in `test_phase3_hardening.py` / `test_phase4_hardening.py` replaced with behavioral equivalents
+- Version bump: 1.9.0 → 2.0.0
+
 ## [1.9.0] - 2026-03-02
 
 ### Added
@@ -451,7 +476,9 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v2.0.0...HEAD
+[2.0.0]: https://github.com/anulum/director-ai/compare/v1.9.0...v2.0.0
+[1.9.0]: https://github.com/anulum/director-ai/compare/v1.7.0...v1.9.0
 [1.7.0]: https://github.com/anulum/director-ai/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/anulum/director-ai/compare/v1.5.1...v1.6.0
 [1.5.1]: https://github.com/anulum/director-ai/compare/v1.5.0...v1.5.1

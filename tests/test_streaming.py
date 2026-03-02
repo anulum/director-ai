@@ -192,7 +192,7 @@ class TestAsyncStreamingKernel:
                 ["Good ", "Bad "], lambda t: next(scores)
             )
 
-        session = asyncio.get_event_loop().run_until_complete(run())
+        session = asyncio.run(run())
         assert session.halted
         assert len(halted_sessions) == 1
         assert "hard_limit" in halted_sessions[0].halt_reason
@@ -204,7 +204,7 @@ class TestAsyncStreamingKernel:
         async def run():
             return await kernel.stream_to_session(["a ", "b "], lambda t: 0.9)
 
-        session = asyncio.get_event_loop().run_until_complete(run())
+        session = asyncio.run(run())
         assert not session.halted
         assert len(halted_sessions) == 0
 
@@ -215,6 +215,6 @@ class TestAsyncStreamingKernel:
         async def run():
             return await kernel.stream_to_session(["a ", "b "], lambda t: next(scores))
 
-        session = asyncio.get_event_loop().run_until_complete(run())
+        session = asyncio.run(run())
         assert not session.halted
         assert session.warning_count == 1

@@ -91,11 +91,14 @@ class _Histogram:
         return s[idx]
 
     def bucket_counts(self) -> dict[str, int]:
-        """Return cumulative bucket counts."""
+        """Return cumulative bucket counts. O(n log n + b log n)."""
+        import bisect
+
+        s = sorted(self._values)
         result = {}
         for b in self.buckets:
-            result[f"le_{b}"] = sum(1 for v in self._values if v <= b)
-        result["le_+Inf"] = len(self._values)
+            result[f"le_{b}"] = bisect.bisect_right(s, b)
+        result["le_+Inf"] = len(s)
         return result
 
 

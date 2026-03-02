@@ -51,3 +51,18 @@ class TestGroundTruthStore:
         store = GroundTruthStore()
         store.facts = {}
         assert store.retrieve_context("anything") is None
+
+    def test_retrieve_case_insensitive_key(self):
+        """A1: mixed-case keys must match lowercase queries."""
+        store = GroundTruthStore()
+        store.facts["Sky Color"] = "blue"
+        result = store.retrieve_context("what is the sky color")
+        assert result is not None
+        assert "blue" in result
+
+    def test_retrieve_uppercase_key(self):
+        store = GroundTruthStore()
+        store.facts["IMPORTANT FACT"] = "42"
+        result = store.retrieve_context("important fact")
+        assert result is not None
+        assert "42" in result
