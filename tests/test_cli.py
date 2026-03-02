@@ -220,6 +220,7 @@ class TestBenchCommand:
     """Tests for 'director-ai bench'."""
 
     def test_bench_subcommand_runs(self, capsys):
+        pytest.importorskip("benchmarks", reason="benchmarks not on sys.path in CI")
         main(["bench", "--dataset", "regression"])
         captured = capsys.readouterr()
         assert "passed" in captured.out

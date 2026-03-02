@@ -293,7 +293,8 @@ class PineconeBackend(VectorBackend):
     def _embed(self, text: str) -> list[float]:
         if self._embed_fn is None:
             raise ValueError("PineconeBackend requires embed_fn for text embedding")
-        return self._embed_fn(text)
+        result: list[float] = self._embed_fn(text)
+        return result
 
     def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
