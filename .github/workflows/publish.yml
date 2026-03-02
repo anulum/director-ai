@@ -35,15 +35,19 @@ jobs:
       - name: Generate SBOM
         run: |
           pip install cyclonedx-bom
-          cyclonedx-py environment --output sbom.json --format json
+          cyclonedx-py environment -o sbom.json --of json
 
-      - name: Upload artifacts
+      - name: Upload dist
         uses: actions/upload-artifact@v7
         with:
           name: dist
-          path: |
-            dist/
-            sbom.json
+          path: dist/
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom
+          path: sbom.json
 
   publish:
     name: Publish
@@ -53,7 +57,7 @@ jobs:
     permissions:
       id-token: write
     steps:
-      - name: Download artifacts
+      - name: Download dist
         uses: actions/download-artifact@v8
         with:
           name: dist
