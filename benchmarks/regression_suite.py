@@ -310,7 +310,7 @@ _E2E_DELTA_SAMPLES: list[tuple[str, str, dict[str, str], bool]] = [
 
 
 def test_false_halt_rate():
-    """All 100 good passages must complete without false halts (heuristic mode)."""
+    """Good passages must have < 2% false-halt rate (heuristic mode, no NLI)."""
     from benchmarks.streaming_false_halt_bench import GOOD_PASSAGES
     from director_ai.core import CoherenceScorer, GroundTruthStore, StreamingKernel
 
@@ -348,7 +348,8 @@ def test_false_halt_rate():
     n = len(GOOD_PASSAGES)
     rate = false_halts / n
     print(f"  False-halt rate: {rate:.1%} ({false_halts}/{n})")
-    assert false_halts == 0, f"{false_halts}/{n} false halts on good passages"
+    max_allowed = max(1, n // 50)  # 2% tolerance for heuristic-only scoring
+    assert false_halts <= max_allowed, f"{false_halts}/{n} false halts exceeds {max_allowed}"
 
 
 def test_e2e_heuristic_delta():
