@@ -16,7 +16,7 @@ scorer = CoherenceScorer(
     use_nli=None,             # True/False/None (auto-detect)
     ground_truth_store=None,  # GroundTruthStore for RAG factual checks
     cache_size=0,             # LRU cache entries (0 = disabled)
-    scorer_backend="deberta", # "deberta" or "onnx"
+    scorer_backend="deberta", # "deberta", "onnx", or "hybrid"
     onnx_path=None,           # ONNX model path
 )
 ```
@@ -63,3 +63,12 @@ approved, cs = scorer.review(
 )
 print(f"approved={approved}  score={cs.score:.3f}  warning={cs.warning}")
 ```
+
+## Validation Rules (v2.2.0+)
+
+- `threshold` must be in [0, 1]
+- `soft_limit` defaults to `min(threshold + 0.1, 1.0)`, must be in [0, 1] and >= threshold
+- `w_logic` and `w_fact` must each be in [0, 1] and sum to 1.0
+- `scorer_backend` accepts `"deberta"`, `"onnx"`, or `"hybrid"`
+
+Invalid values raise `ValueError` at construction time.

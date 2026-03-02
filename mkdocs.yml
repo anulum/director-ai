@@ -76,6 +76,8 @@ nav:
     - Rust FFI: guide/rust-ffi.md
     - Streaming Overhead: guide/streaming-overhead.md
     - Architecture: guide/architecture.md
+    - Enterprise: guide/enterprise.md
+    - Troubleshooting: guide/troubleshooting.md
   - Integrations:
     - OpenAI / Anthropic SDK: integrations/sdk-guard.md
     - LangChain: integrations/langchain.md
@@ -91,6 +93,9 @@ nav:
     - NLI: api/nli.md
     - Cache: api/cache.md
     - Types: api/types.md
+    - Config: api/config.md
+    - Enterprise: api/enterprise.md
+    - Input Sanitizer: api/sanitizer.md
   - Deployment:
     - Production Guide: deployment/production.md
     - Docker: deployment/docker.md

@@ -1,5 +1,8 @@
 # Vector Store API
 
+Vector backends for RAG-based factual grounding. Ingest documents into a vector store,
+then pass it to `CoherenceScorer` for fact-checked scoring.
+
 ::: director_ai.core.vector_store.VectorGroundTruthStore
 
 ::: director_ai.core.vector_store.VectorBackend

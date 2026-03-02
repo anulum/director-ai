@@ -78,3 +78,26 @@ def cb(tok):
 session = kernel.stream_tokens(iter(["The", "capital", "is", "Paris", "."]), cb)
 print(session.output, session.halted, f"{session.avg_coherence:.3f}")
 ```
+
+## Scoring Cadence (v2.2.0+)
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `score_every_n` | `int` | 1 | Score every N-th token |
+| `adaptive` | `bool` | False | Auto-adjust cadence at runtime |
+| `max_cadence` | `int` | 8 | Upper bound for adaptive ramp-up |
+
+### Cadence Examples
+
+```python
+# Medical: score every token (maximum safety)
+kernel = StreamingKernel(hard_limit=0.55, score_every_n=1)
+
+# Latency-critical: score every 8th token
+kernel = StreamingKernel(hard_limit=0.4, score_every_n=8)
+
+# Adaptive: starts at 1, ramps up when stable
+kernel = StreamingKernel(hard_limit=0.4, adaptive=True, max_cadence=8)
+```
+
+See [Streaming Overhead](../guide/streaming-overhead.md) for tokens/sec benchmarks by cadence.

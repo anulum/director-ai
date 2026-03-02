@@ -10,6 +10,7 @@ Dataclass-based configuration with env var, YAML, and profile loaders.
 | `coherence_threshold` | `0.6` | Minimum coherence to approve |
 | `hard_limit` | `0.5` | Safety kernel emergency stop floor |
 | `soft_limit` | `0.6` | Warning zone floor (>= hard_limit) |
+| `scorer_backend` | `"deberta"` | NLI backend: `"deberta"`, `"onnx"`, or `"hybrid"` |
 | `use_nli` | `False` | Load DeBERTa NLI model |
 | `nli_model` | `"yaxili96/FactCG-DeBERTa-v3-Large"` | HF model ID |
 | `max_candidates` | `3` | LLM candidates to generate |

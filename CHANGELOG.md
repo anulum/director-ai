@@ -5,6 +5,23 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.2.1] — 2026-03-02
+
+### Added
+- API autodoc pages for DirectorConfig, Enterprise (TenantRouter/Policy/AuditLogger), InputSanitizer
+- Introductory prose + cross-links on all 10 API autodoc pages
+- Troubleshooting guide (import errors, validation errors, scoring issues, performance, server)
+- Enterprise guide (TenantRouter, Policy, AuditLogger usage + lazy loading explanation)
+- Scoring cadence examples in streaming reference (medical, latency-critical, adaptive)
+- Validation rules section in scorer reference
+
+### Changed
+- ROADMAP.md updated: v2.2.0 marked as current, v2.1.0/v2.0.0 as done, v2.3.0/v2.4.0 planned
+- Scorer reference: added `scorer_backend="hybrid"`, validation rules
+- Streaming reference: added cadence parameters + examples
+- Config reference: added `scorer_backend` field
+- Version bump: 2.2.0 → 2.2.1
+
 ## [2.2.0] - 2026-03-02
 
 ### Added
@@ -515,7 +532,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v2.2.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v2.2.1...HEAD
+[2.2.1]: https://github.com/anulum/director-ai/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/anulum/director-ai/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/anulum/director-ai/compare/v2.0.0...v2.1.0
 [2.0.0]: https://github.com/anulum/director-ai/compare/v1.9.0...v2.0.0
