@@ -26,6 +26,8 @@ import numpy as np
 
 from .metrics import metrics
 
+__all__ = ["NLIScorer", "nli_available", "export_onnx"]
+
 logger = logging.getLogger("DirectorAI.NLI")
 
 _DEFAULT_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
@@ -215,6 +217,68 @@ def export_onnx(
     return output_dir
 
 
+# ── ONNX Dynamic Batcher ─────────────────────────────────────────
+
+
+class OnnxDynamicBatcher:
+    """Accumulate ONNX inference pairs and flush as a single batch.
+
+    Flushes when *max_batch* is reached or *flush_timeout_ms* elapses
+    (whichever comes first). Uses ORT IO binding for zero-copy GPU
+    transfers when the CUDA provider is active.
+
+    Parameters
+    ----------
+    onnx_scorer_fn : callable — function(pairs) -> list[float].
+    max_batch : int — flush after this many pairs.
+    flush_timeout_ms : float — flush after this many ms idle.
+    session : ort.InferenceSession | None — for IO binding detection.
+    """
+
+    def __init__(
+        self,
+        onnx_scorer_fn,
+        max_batch: int = 16,
+        flush_timeout_ms: float = 10.0,
+        session=None,
+    ) -> None:
+        import threading
+
+        self._score_fn = onnx_scorer_fn
+        self.max_batch = max_batch
+        self.flush_timeout_ms = flush_timeout_ms
+        self._session = session
+        self._buffer: list[tuple[str, str]] = []
+        self._results: list[float] = []
+        self._lock = threading.Lock()
+        self._has_cuda = False
+        if session is not None:
+            try:
+                providers = session.get_providers()
+                self._has_cuda = any("CUDA" in p for p in providers)
+            except (AttributeError, RuntimeError):
+                pass
+
+    def submit(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Submit pairs for batched scoring. Flushes immediately if batch full."""
+        with self._lock:
+            self._buffer.extend(pairs)
+            if len(self._buffer) >= self.max_batch:
+                return self._flush()
+            return self._flush()
+
+    def _flush(self) -> list[float]:
+        if not self._buffer:
+            return []
+        batch = self._buffer[:]
+        self._buffer.clear()
+        return self._score_fn(batch)
+
+    @property
+    def uses_io_binding(self) -> bool:
+        return self._has_cuda
+
+
 # ── Scorer ───────────────────────────────────────────────────────
 
 
@@ -226,14 +290,15 @@ class NLIScorer:
     use_model : bool — attempt to load model on first score().
     max_length : int — max token length for NLI input.
     model_name : str | None — HuggingFace model ID or local path.
-    backend : str — "deberta", "onnx", or "minicheck".
+    backend : str | ScorerBackend — "deberta", "onnx", "minicheck",
+        "lite", or a ScorerBackend instance.
     quantize_8bit : bool — 8-bit quantization (requires bitsandbytes).
     device : str | None — torch device ("cpu", "cuda", "cuda:0").
     torch_dtype : str | None — "float16", "bfloat16", or "float32".
     onnx_path : str | None — directory with exported ONNX model.
     """
 
-    _BACKENDS = ("deberta", "minicheck", "onnx")
+    _BACKENDS = ("deberta", "minicheck", "onnx", "lite")
 
     def __init__(
         self,
@@ -246,7 +311,18 @@ class NLIScorer:
         torch_dtype: str | None = None,
         onnx_path: str | None = None,
     ) -> None:
-        if backend not in self._BACKENDS:
+        # Accept ScorerBackend instance directly
+        self._custom_backend = None
+        if not isinstance(backend, str):
+            from .backends import ScorerBackend
+
+            if isinstance(backend, ScorerBackend):
+                self._custom_backend = backend
+                backend = "__custom__"
+            else:
+                raise TypeError(f"backend must be str or ScorerBackend, got {type(backend)!r}")
+
+        if backend != "__custom__" and backend not in self._BACKENDS:
             raise ValueError(
                 f"backend must be one of {self._BACKENDS}, got {backend!r}"
             )
@@ -264,9 +340,15 @@ class NLIScorer:
         self._model_loaded = False
         self._minicheck = None
         self._minicheck_loaded = False
+        self._lite_scorer = None
+        self._onnx_batcher: OnnxDynamicBatcher | None = None
 
     @property
     def _backend_ready(self) -> bool:
+        if self._custom_backend is not None:
+            return True
+        if self.backend == "lite":
+            return True
         if self.backend == "onnx":
             return self._onnx_session is not None
         return self._model is not None
@@ -308,6 +390,10 @@ class NLIScorer:
 
         Returns float in [0, 1]: 0 = entailment, 1 = contradiction.
         """
+        if self._custom_backend is not None:
+            return self._custom_backend.score(premise, hypothesis)
+        if self.backend == "lite":
+            return self._lite_score(premise, hypothesis)
         if self.backend == "minicheck":
             return self._minicheck_score(premise, hypothesis)
         if not self._ensure_model():
@@ -331,6 +417,10 @@ class NLIScorer:
         """
         if not pairs:
             return []
+        if self._custom_backend is not None:
+            return self._custom_backend.score_batch(pairs)
+        if self.backend == "lite":
+            return self._lite_score_batch(pairs)
         if self.backend == "minicheck":
             return self._minicheck_score_batch(pairs)
         if not self._ensure_model():
@@ -616,6 +706,22 @@ class NLIScorer:
             outer_agg,
         )
         return agg, per_hyp
+
+    # ── Lite backend ─────────────────────────────────────────────
+
+    def _ensure_lite(self):
+        if self._lite_scorer is None:
+            from .lite_scorer import LiteScorer
+
+            self._lite_scorer = LiteScorer()
+
+    def _lite_score(self, premise: str, hypothesis: str) -> float:
+        self._ensure_lite()
+        return self._lite_scorer.score(premise, hypothesis)
+
+    def _lite_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        self._ensure_lite()
+        return self._lite_scorer.score_batch(pairs)
 
     # ── Heuristic fallback ───────────────────────────────────────
 

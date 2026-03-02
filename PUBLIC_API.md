@@ -1,0 +1,122 @@
+# Public API — Director-AI v2.3.0
+
+Frozen API surface. Breaking changes to items listed here require a major version bump.
+
+## Core Classes
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `CoherenceScorer` | `core.scorer` | Dual-entropy coherence scorer |
+| `CoherenceAgent` | `core.agent` | End-to-end orchestrator (generator → scorer → kernel) |
+| `SafetyKernel` | `core.kernel` | Output interlock with hard limit |
+| `StreamingKernel` | `core.streaming` | Token-by-token oversight with halt |
+| `AsyncStreamingKernel` | `core.async_streaming` | Async version of StreamingKernel |
+| `NLIScorer` | `core.nli` | NLI-based divergence scorer |
+| `ShardedNLIScorer` | `core.sharded_nli` | Multi-GPU round-robin NLI |
+| `LiteScorer` | `core.lite_scorer` | Lightweight heuristic scorer |
+| `GroundTruthStore` | `core.knowledge` | In-memory RAG store |
+| `VectorGroundTruthStore` | `core.vector_store` | Vector DB RAG store |
+| `ScoreCache` | `core.cache` | LRU score cache |
+| `InputSanitizer` | `core.sanitizer` | Prompt injection detection |
+| `ConversationSession` | `core.session` | Multi-turn conversation tracker |
+| `DirectorConfig` | `core.config` | Configuration dataclass |
+
+## Data Types
+
+| Type | Module | Description |
+|------|--------|-------------|
+| `CoherenceScore` | `core.types` | Score result with h_logical, h_factual, evidence |
+| `ReviewResult` | `core.types` | Full review result (output, coherence, halted) |
+| `HaltEvidence` | `core.types` | Halt reason with evidence chunks |
+| `EvidenceChunk` | `core.types` | Single retrieval chunk |
+| `ScoringEvidence` | `core.types` | NLI scoring evidence |
+| `TokenEvent` | `core.streaming` | Single token event from streaming |
+| `StreamSession` | `core.streaming` | Streaming session metrics |
+| `SanitizeResult` | `core.sanitizer` | Sanitizer check result |
+| `Turn` | `core.session` | Single conversation turn |
+
+## Plugin API
+
+| Symbol | Module | Description |
+|--------|--------|-------------|
+| `ScorerBackend` | `core.backends` | ABC for custom scorer backends |
+| `register_backend()` | `core.backends` | Register a custom backend by name |
+| `get_backend()` | `core.backends` | Retrieve a backend class by name |
+| `list_backends()` | `core.backends` | List all registered backend names |
+
+## Vector Store Backends
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `VectorBackend` | `core.vector_store` | ABC for vector backends |
+| `InMemoryBackend` | `core.vector_store` | Word-overlap proxy (testing) |
+| `ChromaBackend` | `core.vector_store` | ChromaDB production backend |
+| `SentenceTransformerBackend` | `core.vector_store` | bge-large-en-v1.5 embeddings |
+| `RerankedBackend` | `core.vector_store` | Reranking wrapper |
+| `PineconeBackend` | `core.vector_store` | Pinecone backend |
+| `WeaviateBackend` | `core.vector_store` | Weaviate backend |
+| `QdrantBackend` | `core.vector_store` | Qdrant backend |
+
+## Generators
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `MockGenerator` | `core.actor` | Deterministic mock candidates |
+| `LLMGenerator` | `core.actor` | Real LLM candidate generation |
+
+## Enterprise (Lazy-Loaded)
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `TenantRouter` | `core.tenant` | Per-tenant config resolution |
+| `Policy` | `core.policy` | Policy rule engine |
+| `AuditLogger` | `core.audit` | Structured audit logging |
+
+## Functions
+
+| Function | Module | Description |
+|----------|--------|-------------|
+| `nli_available()` | `core.nli` | Check NLI readiness |
+| `export_onnx()` | `core.nli` | Export model to ONNX |
+| `guard()` | `integrations.sdk_guard` | One-liner SDK interceptor |
+| `get_score()` | `integrations.sdk_guard` | Retrieve last score from context |
+| `create_app()` | `server` | Create FastAPI app |
+
+## Exceptions
+
+| Exception | Module |
+|-----------|--------|
+| `DirectorAIError` | `core.exceptions` |
+| `CoherenceError` | `core.exceptions` |
+| `KernelHaltError` | `core.exceptions` |
+| `GeneratorError` | `core.exceptions` |
+| `ValidationError` | `core.exceptions` |
+| `DependencyError` | `core.exceptions` |
+| `HallucinationError` | `core.exceptions` |
+
+## Deprecated Aliases (emit DeprecationWarning)
+
+| Alias | Replacement | Class |
+|-------|-------------|-------|
+| `calculate_factual_entropy()` | `calculate_factual_divergence()` | `CoherenceScorer` |
+| `calculate_logical_entropy()` | `calculate_logical_divergence()` | `CoherenceScorer` |
+| `simulate_future_state()` | `compute_divergence()` | `CoherenceScorer` |
+| `review_action()` | `review()` | `CoherenceScorer` |
+| `process_query()` | `process()` | `CoherenceAgent` |
+
+## Configuration Profiles
+
+`DirectorConfig.from_profile(name)`:
+
+| Profile | Threshold | NLI | Backend | Use Case |
+|---------|-----------|-----|---------|----------|
+| `fast` | 0.3 | off | — | Low-latency, non-critical |
+| `balanced` | 0.5 | on | deberta | General purpose |
+| `strict` | 0.7 | on | deberta | Safety-critical |
+| `medical` | 0.75 | on | deberta | Healthcare |
+| `finance` | 0.7 | on | deberta | Financial services |
+| `legal` | 0.7 | on | deberta | Legal documents |
+| `creative` | 0.3 | off | — | Creative writing |
+| `customer_support` | 0.5 | on | deberta | Support agents |
+| `thorough` | 0.6 | on | hybrid | NLI + LLM judge |
+| `lite` | 0.5 | off | lite | Zero-dependency fast path |

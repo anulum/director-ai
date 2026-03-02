@@ -21,6 +21,9 @@ import os
 from dataclasses import dataclass, field
 
 
+__all__ = ["DirectorConfig"]
+
+
 @dataclass
 class DirectorConfig:
     """Central configuration for Director-Class AI.
@@ -74,8 +77,11 @@ class DirectorConfig:
     llm_judge_confidence_threshold: float = 0.3
     llm_judge_provider: str = ""
 
-    # Scorer backend: "deberta", "onnx", "minicheck", "hybrid"
+    # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite"
     scorer_backend: str = "deberta"
+
+    # Multi-GPU NLI sharding (comma-separated, e.g. "cuda:0,cuda:1")
+    nli_devices: str = ""
 
     # Vector store
     vector_backend: str = "memory"
@@ -90,6 +96,10 @@ class DirectorConfig:
     server_port: int = 8080
     server_workers: int = 1
     cors_origins: str = "*"
+
+    # ONNX batching
+    onnx_batch_size: int = 16
+    onnx_flush_timeout_ms: float = 10.0
 
     # Batch
     batch_max_concurrency: int = 4
@@ -295,6 +305,14 @@ class DirectorConfig:
                 "w_logic": 0.5,
                 "w_fact": 0.5,
                 "profile": "customer_support",
+            },
+            "lite": {
+                "use_nli": False,
+                "scorer_backend": "lite",
+                "coherence_threshold": 0.5,
+                "max_candidates": 1,
+                "metrics_enabled": False,
+                "profile": "lite",
             },
         }
         if name not in profiles:

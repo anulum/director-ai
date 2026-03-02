@@ -29,6 +29,8 @@ from .core.config import DirectorConfig
 from .core.metrics import metrics
 from .core.stats import StatsStore
 
+__all__ = ["create_app"]
+
 REQUEST_ID_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
     "request_id", default=""
 )
@@ -72,6 +74,7 @@ if _FASTAPI_AVAILABLE:
     class ReviewRequest(BaseModel):
         prompt: str = Field(..., min_length=1, description="Input prompt")
         response: str = Field(..., min_length=1, description="LLM response to review")
+        session_id: str | None = Field(None, description="Conversation session ID")
 
     class ProcessRequest(BaseModel):
         prompt: str = Field(..., min_length=1, description="Input prompt")
@@ -185,6 +188,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         _state["batch"] = batch_proc
         _state["config"] = cfg
         _state["stats"] = stats
+        _state["sessions"] = {}  # session_id -> ConversationSession
 
         if cfg.audit_log_path:
             _state["audit"] = AuditLogger(path=cfg.audit_log_path)
@@ -322,10 +326,21 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 use_nli=cfg.use_nli,
             )
 
+        session = None
+        if req.session_id:
+            from .core.session import ConversationSession
+
+            sessions = _state.get("sessions", {})
+            if req.session_id not in sessions:
+                sessions[req.session_id] = ConversationSession(
+                    session_id=req.session_id,
+                )
+            session = sessions[req.session_id]
+
         metrics.inc("reviews_total")
         start = time.monotonic()
         with metrics.timer("review_duration_seconds"):
-            approved, score = scorer.review(req.prompt, req.response)
+            approved, score = scorer.review(req.prompt, req.response, session=session)
         latency_ms = (time.monotonic() - start) * 1000
 
         if approved:
@@ -462,6 +477,36 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             raise HTTPException(404, "Tenant routing not enabled")
         router.add_fact(tenant_id, req.key, req.value)
         return {"status": "ok", "tenant_id": tenant_id, "key": req.key}
+
+    # ── Sessions ──────────────────────────────────────────────────────
+
+    @app.get("/v1/sessions/{session_id}")
+    async def get_session(session_id: str):
+        sessions = _state.get("sessions", {})
+        if session_id not in sessions:
+            raise HTTPException(404, "Session not found")
+        s = sessions[session_id]
+        return {
+            "session_id": s.session_id,
+            "turn_count": len(s),
+            "turns": [
+                {
+                    "prompt": t.prompt,
+                    "response": t.response,
+                    "score": t.score,
+                    "turn_index": t.turn_index,
+                }
+                for t in s.turns
+            ],
+        }
+
+    @app.delete("/v1/sessions/{session_id}")
+    async def delete_session(session_id: str):
+        sessions = _state.get("sessions", {})
+        if session_id not in sessions:
+            raise HTTPException(404, "Session not found")
+        del sessions[session_id]
+        return {"status": "deleted", "session_id": session_id}
 
     # ── Metrics ───────────────────────────────────────────────────────
 

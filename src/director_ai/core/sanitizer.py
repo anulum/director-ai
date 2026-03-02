@@ -26,6 +26,8 @@ import re
 import unicodedata
 from dataclasses import dataclass
 
+__all__ = ["InputSanitizer", "SanitizeResult"]
+
 _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     (
         "instruction_override",
@@ -88,6 +90,25 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         "bidi_override",
         re.compile(
             r"[\u202a-\u202e\u2066-\u2069\u200e\u200f]",
+        ),
+    ),
+    (
+        "path_traversal",
+        re.compile(
+            r"(\.\.[\\/]|\.\.%2[fF])",
+        ),
+    ),
+    (
+        "excessive_unicode_escapes",
+        re.compile(
+            r"(\\u[0-9a-fA-F]{4}){8,}",
+        ),
+    ),
+    (
+        "yaml_json_injection",
+        re.compile(
+            r"(!!python/|!!binary|!!map|__import__|yaml\.unsafe_load)",
+            re.IGNORECASE,
         ),
     ),
 ]

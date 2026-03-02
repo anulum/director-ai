@@ -25,6 +25,8 @@ from .kernel import SafetyKernel
 from .otel import trace_streaming
 from .types import HaltEvidence
 
+__all__ = ["StreamingKernel", "StreamSession", "TokenEvent"]
+
 if TYPE_CHECKING:
     from .scorer import CoherenceScorer
 

@@ -12,6 +12,14 @@ import logging
 import math
 from dataclasses import dataclass
 
+__all__ = [
+    "CoherenceScore",
+    "EvidenceChunk",
+    "HaltEvidence",
+    "ReviewResult",
+    "ScoringEvidence",
+]
+
 _clamp_logger = logging.getLogger("DirectorAI.Types")
 
 
@@ -59,6 +67,7 @@ class CoherenceScore:
     h_factual: float  # Factual divergence (ground truth deviation)
     evidence: ScoringEvidence | None = None
     warning: bool = False
+    cross_turn_divergence: float | None = None
 
 
 @dataclass

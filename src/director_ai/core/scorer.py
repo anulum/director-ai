@@ -20,6 +20,8 @@ from .nli import NLIScorer, nli_available
 from .otel import trace_review
 from .types import CoherenceScore, EvidenceChunk, ScoringEvidence
 
+__all__ = ["CoherenceScorer"]
+
 # Heuristic divergence defaults (used when NLI model unavailable)
 DIVERGENCE_NEUTRAL = 0.5  # no signal → agnostic
 DIVERGENCE_ALIGNED = 0.1  # keyword heuristic: "consistent with reality"
@@ -94,6 +96,7 @@ class CoherenceScorer:
         llm_judge_provider="",
         scorer_backend="deberta",
         onnx_path=None,
+        nli_devices=None,
     ):
         if not (0.0 <= threshold <= 1.0):
             raise ValueError(f"threshold must be in [0, 1], got {threshold}")
@@ -144,8 +147,22 @@ class CoherenceScorer:
             self.use_nli = use_nli
 
         nli_backend = "deberta" if scorer_backend == "hybrid" else scorer_backend
-        self._nli = (
-            NLIScorer(
+        if nli_backend == "lite":
+            self._nli = NLIScorer(use_model=False, backend="lite")
+        elif self.use_nli and nli_devices and len(nli_devices) > 1:
+            from .sharded_nli import ShardedNLIScorer
+
+            self._nli = ShardedNLIScorer(
+                devices=nli_devices,
+                use_model=True,
+                model_name=nli_model,
+                backend=nli_backend,
+                quantize_8bit=nli_quantize_8bit,
+                torch_dtype=nli_torch_dtype,
+                onnx_path=onnx_path,
+            )
+        elif self.use_nli:
+            self._nli = NLIScorer(
                 use_model=self.use_nli,
                 model_name=nli_model,
                 backend=nli_backend,
@@ -154,9 +171,8 @@ class CoherenceScorer:
                 torch_dtype=nli_torch_dtype,
                 onnx_path=onnx_path,
             )
-            if self.use_nli
-            else None
-        )
+        else:
+            self._nli = None
         self._llm_judge_enabled = llm_judge_enabled or scorer_backend == "hybrid"
         self._llm_judge_threshold = llm_judge_confidence_threshold
         self._llm_judge_provider = llm_judge_provider
@@ -431,8 +447,20 @@ class CoherenceScorer:
         )
         return total
 
-    def review(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
-        """Score an action and decide whether to approve it."""
+    def review(
+        self,
+        prompt: str,
+        action: str,
+        session=None,
+    ) -> tuple[bool, CoherenceScore]:
+        """Score an action and decide whether to approve it.
+
+        Parameters
+        ----------
+        session : ConversationSession | None — when provided, cross-turn
+            divergence is blended into the logical score and the turn is
+            recorded after scoring.
+        """
         with trace_review() as span:
             if self.cache:
                 cached = self.cache.get(prompt, action)
@@ -447,9 +475,23 @@ class CoherenceScorer:
             h_logic, h_fact, coherence, evidence = self._heuristic_coherence(
                 prompt, action
             )
+
+            cross_turn = None
+            if session is not None and len(session) > 0:
+                ctx = session.context_text
+                if ctx.strip() and self._nli:
+                    cross_turn = self._nli.score(ctx, action)
+                    h_logic = 0.7 * h_logic + 0.3 * cross_turn
+                    total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
+                    coherence = 1.0 - total_divergence
+
             if self.cache:
                 self.cache.put(prompt, action, coherence, h_logic, h_fact)
             result = self._finalise_review(coherence, h_logic, h_fact, action, evidence)
+            if cross_turn is not None:
+                result[1].cross_turn_divergence = cross_turn
+            if session is not None:
+                session.add_turn(prompt, action, result[1].score)
             span.set_attribute("coherence.score", result[1].score)
             span.set_attribute("coherence.approved", result[0])
             span.set_attribute("coherence.cached", False)
@@ -460,26 +502,64 @@ class CoherenceScorer:
 
     # ── Async API ──────────────────────────────────────────────────────
 
-    async def areview(self, prompt: str, action: str) -> tuple[bool, CoherenceScore]:
+    async def areview(
+        self,
+        prompt: str,
+        action: str,
+        session=None,
+    ) -> tuple[bool, CoherenceScore]:
         """Async version of review() — offloads NLI inference to a thread pool."""
+        import functools
+
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, self.review, prompt, action)
+        return await loop.run_in_executor(
+            None,
+            functools.partial(self.review, prompt, action, session=session),
+        )
 
     # ── Backward-compatible aliases ───────────────────────────────────
 
     def calculate_factual_entropy(self, prompt, text_output):
-        """Alias for ``calculate_factual_divergence`` (backward compat)."""
+        """Deprecated: use ``calculate_factual_divergence``."""
+        import warnings
+
+        warnings.warn(
+            "calculate_factual_entropy is deprecated, use calculate_factual_divergence",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.calculate_factual_divergence(prompt, text_output)
 
     def calculate_logical_entropy(self, prompt, text_output):
-        """Alias for ``calculate_logical_divergence`` (backward compat)."""
+        """Deprecated: use ``calculate_logical_divergence``."""
+        import warnings
+
+        warnings.warn(
+            "calculate_logical_entropy is deprecated, use calculate_logical_divergence",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.calculate_logical_divergence(prompt, text_output)
 
     def simulate_future_state(self, prompt, action):
-        """Alias for ``compute_divergence`` (backward compat)."""
+        """Deprecated: use ``compute_divergence``."""
+        import warnings
+
+        warnings.warn(
+            "simulate_future_state is deprecated, use compute_divergence",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         return self.compute_divergence(prompt, action)
 
     def review_action(self, prompt, action):
-        """Alias for ``review`` returning (approved, score_float) (backward compat)."""
+        """Deprecated: use ``review``."""
+        import warnings
+
+        warnings.warn(
+            "review_action is deprecated, use review",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         approved, cs = self.review(prompt, action)
         return approved, cs.score

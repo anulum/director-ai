@@ -20,12 +20,16 @@ Quick start::
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
 from .async_streaming import AsyncStreamingKernel
+from .backends import ScorerBackend, get_backend, list_backends, register_backend
 from .cache import ScoreCache
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
+from .lite_scorer import LiteScorer
 from .nli import NLIScorer, export_onnx, nli_available
 from .sanitizer import InputSanitizer, SanitizeResult
 from .scorer import CoherenceScorer
+from .session import ConversationSession, Turn
+from .sharded_nli import ShardedNLIScorer
 from .streaming import StreamingKernel, StreamSession, TokenEvent
 from .types import (
     CoherenceScore,
@@ -76,6 +80,14 @@ __all__ = [
     "InputSanitizer",
     "SanitizeResult",
     "RerankedBackend",
+    "ConversationSession",
+    "Turn",
+    "LiteScorer",
+    "ShardedNLIScorer",
+    "ScorerBackend",
+    "register_backend",
+    "get_backend",
+    "list_backends",
 ]
 
 _ENTERPRISE_IMPORTS = {

@@ -1,6 +1,25 @@
 # Roadmap
 
-## v2.2.0 (current)
+## v2.3.0 (current)
+
+### Done
+- Lite scorer backend (`scorer_backend="lite"`) — word overlap + negation heuristics, ~0.5ms/pair
+- Multi-turn conversation tracking (`ConversationSession`) with cross-turn divergence blending
+- ONNX GPU batch optimization (`OnnxDynamicBatcher`) with IO binding for zero-copy transfers
+- Plugin architecture for scorer backends (`ScorerBackend` ABC + entry-point registry)
+- gRPC transport (`proto/director.proto`, `--transport grpc` on CLI)
+- Multi-GPU sharding (`ShardedNLIScorer`) with round-robin device routing
+- Security audit preparation: threat model, SBOM generation, Hypothesis fuzz tests, `InputSanitizer` hardening
+- Public API freeze: `__all__` on all modules, deprecated aliases emit `DeprecationWarning`
+
+## v2.2.1
+
+### Done
+- API autodoc pages for DirectorConfig, Enterprise, InputSanitizer
+- Troubleshooting guide, enterprise guide, streaming cadence examples
+- Validation rules section in scorer reference
+
+## v2.2.0
 
 ### Done
 - `score_every_n`, `adaptive`, `max_cadence` on StreamingKernel + AsyncStreamingKernel
@@ -8,17 +27,13 @@
 - Streaming overhead benchmark (tokens/sec by cadence)
 - Enterprise modules lazy-loaded via `__getattr__`
 - `[enterprise]` optional dependency group + pytest marker
-- Stdlib imports hoisted in scorer.py and streaming.py
 
 ## v2.1.0
 
 ### Done
 - `director-ai bench` CLI subcommand (--dataset, --seed, --output)
 - `scorer_backend="hybrid"` mode (NLI + LLM judge)
-- Architecture deep-dive doc (guide/architecture.md)
-- Production checklist doc (deployment/checklist.md)
-- Threshold tuning guide expanded
-- 35 streaming false-halt benchmark passages
+- Architecture deep-dive, production checklist, threshold tuning docs
 - PineconeBackend, WeaviateBackend, QdrantBackend
 - Bandit + Semgrep SAST in CI
 
@@ -30,18 +45,10 @@
 - SafetyKernel hard_limit validation
 - Thread-safe OTel setup
 - Histogram bucket_counts O(n log n) optimization
-- 12 fragile inspect.getsource tests replaced
-
-## v2.3.0 (planned)
-
-- Multi-turn conversation tracking (session state across reviews)
-- Lite scorer (no-NLI fast path with learned heuristics)
-- ONNX GPU batch inference optimization
-- Stable public API freeze
 
 ## v2.4.0 (planned)
 
-- Plugin architecture for custom scorer backends
-- gRPC transport for server.py
-- Multi-GPU sharding for NLI inference
-- Third-party security audit
+- Rust-accelerated scorer backend via backfire-kernel FFI
+- Adaptive threshold tuning based on domain calibration curves
+- WebSocket multiplexed streaming (multiple sessions per connection)
+- Model-agnostic ONNX quantization pipeline (INT8/FP16 auto-select)

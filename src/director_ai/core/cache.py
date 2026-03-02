@@ -16,6 +16,8 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 
+__all__ = ["ScoreCache"]
+
 
 @dataclass(frozen=True)
 class _CacheEntry:

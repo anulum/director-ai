@@ -1,0 +1,63 @@
+// ─────────────────────────────────────────────────────────────────────
+// Director-Class AI — gRPC Service Definition
+// (C) 1998-2026 Miroslav Sotek. All rights reserved.
+// License: GNU AGPL v3 | Commercial licensing available
+// ─────────────────────────────────────────────────────────────────────
+
+syntax = "proto3";
+
+package director;
+
+service DirectorService {
+  rpc Review (ReviewRequest) returns (ReviewResponse);
+  rpc Process (ProcessRequest) returns (ProcessResponse);
+  rpc ReviewBatch (BatchReviewRequest) returns (BatchReviewResponse);
+  rpc StreamTokens (StreamRequest) returns (stream TokenEvent);
+}
+
+message ReviewRequest {
+  string prompt = 1;
+  string response = 2;
+  string session_id = 3;
+}
+
+message ReviewResponse {
+  bool approved = 1;
+  double coherence = 2;
+  double h_logical = 3;
+  double h_factual = 4;
+  bool warning = 5;
+}
+
+message ProcessRequest {
+  string prompt = 1;
+}
+
+message ProcessResponse {
+  string output = 1;
+  double coherence = 2;
+  bool halted = 3;
+  int32 candidates_evaluated = 4;
+  bool warning = 5;
+  bool fallback_used = 6;
+}
+
+message BatchReviewRequest {
+  repeated ReviewRequest requests = 1;
+}
+
+message BatchReviewResponse {
+  repeated ReviewResponse responses = 1;
+}
+
+message StreamRequest {
+  string prompt = 1;
+}
+
+message TokenEvent {
+  string token = 1;
+  double coherence = 2;
+  int32 index = 3;
+  bool halted = 4;
+  string halt_reason = 5;
+}

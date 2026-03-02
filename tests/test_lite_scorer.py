@@ -1,0 +1,88 @@
+# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — Lite Scorer Tests
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# License: GNU AGPL v3 | Commercial licensing available
+# ─────────────────────────────────────────────────────────────────────
+
+import pytest
+
+from director_ai.core.lite_scorer import LiteScorer
+
+
+class TestLiteScorer:
+    def setup_method(self):
+        self.scorer = LiteScorer()
+
+    def test_score_returns_float_in_range(self):
+        s = self.scorer.score("The sky is blue.", "The sky is blue.")
+        assert isinstance(s, float)
+        assert 0.0 <= s <= 1.0
+
+    def test_aligned_pair_low_divergence(self):
+        s = self.scorer.score(
+            "The capital of France is Paris.",
+            "Paris is the capital of France.",
+        )
+        assert s < 0.5
+
+    def test_contradicted_pair_high_divergence(self):
+        s = self.scorer.score(
+            "Water boils at 100 degrees.",
+            "Quantum entanglement in black holes produces Hawking radiation.",
+        )
+        assert s > 0.4
+
+    def test_negation_penalty(self):
+        base = self.scorer.score("The test passed.", "The test passed.")
+        negated = self.scorer.score("The test passed.", "The test did not pass.")
+        assert negated > base
+
+    def test_empty_premise_returns_neutral(self):
+        assert self.scorer.score("", "anything") == 0.5
+
+    def test_empty_hypothesis_returns_neutral(self):
+        assert self.scorer.score("anything", "") == 0.5
+
+    def test_both_empty_returns_neutral(self):
+        assert self.scorer.score("", "") == 0.5
+
+    def test_batch_consistency(self):
+        pairs = [
+            ("The sky is blue.", "The sky is blue."),
+            ("Dogs are animals.", "Cats are robots."),
+        ]
+        batch_scores = self.scorer.score_batch(pairs)
+        individual = [self.scorer.score(p, h) for p, h in pairs]
+        assert batch_scores == individual
+
+    def test_batch_empty(self):
+        assert self.scorer.score_batch([]) == []
+
+    def test_entity_overlap_boosts_similarity(self):
+        s_with = self.scorer.score(
+            "Albert Einstein developed relativity.",
+            "Albert Einstein was a physicist.",
+        )
+        s_without = self.scorer.score(
+            "A scientist developed relativity.",
+            "A different person was a physicist.",
+        )
+        assert s_with < s_without
+
+    def test_identical_text_low_divergence(self):
+        text = "The quick brown fox jumps over the lazy dog."
+        assert self.scorer.score(text, text) < 0.3
+
+
+class TestLiteScorerIntegration:
+    def test_coherence_scorer_lite_backend(self):
+        from director_ai.core.scorer import CoherenceScorer
+
+        scorer = CoherenceScorer(
+            threshold=0.3,
+            use_nli=False,
+            scorer_backend="lite",
+        )
+        approved, score = scorer.review("The sky is blue.", "The sky is blue.")
+        assert isinstance(approved, bool)
+        assert 0.0 <= score.score <= 1.0

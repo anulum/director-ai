@@ -5,6 +5,29 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] — 2026-03-02
+
+### Added
+- **Lite scorer backend**: `CoherenceScorer(scorer_backend="lite")` — word overlap + negation heuristics, ~0.5ms/pair, ~65% accuracy. Zero heavy dependencies.
+- **Multi-turn conversation tracking**: `ConversationSession` with FIFO eviction, cross-turn divergence blending (0.7 × H_logical + 0.3 × cross_turn), thread-safe. REST session endpoints on server.
+- **ONNX GPU batch optimization**: `OnnxDynamicBatcher` with `max_batch`/`flush_timeout_ms` and CUDA IO binding for zero-copy GPU transfers.
+- **Plugin architecture for scorer backends**: `ScorerBackend` ABC with `register_backend()`, `get_backend()`, `list_backends()`. Entry-point discovery via `director_ai.backends`. Four built-in wrappers auto-registered.
+- **gRPC transport**: `proto/director.proto` with `Review`, `Process`, `ReviewBatch`, `StreamTokens` RPCs. `director-ai serve --transport grpc`.
+- **Multi-GPU sharding**: `ShardedNLIScorer` distributes NLI inference across N CUDA devices via round-robin routing with lock-protected `itertools.cycle`.
+- **Security audit preparation**: `SECURITY_AUDIT_PREP.md` threat model, `tests/test_fuzz.py` (4 Hypothesis property-based tests), `tests/test_security_hardening.py` (15 tests), SBOM generation + fuzz CI jobs. `InputSanitizer` hardened with path traversal, YAML injection, excessive Unicode escape patterns.
+- **Public API freeze**: `__all__` on all 17 public modules. Deprecated aliases (`calculate_factual_entropy`, `calculate_logical_entropy`, `simulate_future_state`, `review_action`, `process_query`) now emit `DeprecationWarning`.
+- `[security]` optional dependency group (`cyclonedx-bom`, `hypothesis`)
+- `[grpc]` optional dependency group (`grpcio`, `grpcio-tools`, `protobuf`)
+- New exports: `ConversationSession`, `Turn`, `LiteScorer`, `ShardedNLIScorer`, `ScorerBackend`, `register_backend`, `get_backend`, `list_backends`
+- `PUBLIC_API.md` — frozen API surface documentation
+- `cross_turn_divergence` field on `CoherenceScore`
+- `nli_devices`, `onnx_batch_size`, `onnx_flush_timeout_ms` on `DirectorConfig`
+- `"lite"` profile on `DirectorConfig`
+
+### Changed
+- Version bump: 2.2.1 → 2.3.0
+- ROADMAP.md: v2.3.0 marked as current with all 8 features
+
 ## [2.2.1] — 2026-03-02
 
 ### Added
@@ -532,7 +555,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v2.2.1...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v2.3.0...HEAD
+[2.3.0]: https://github.com/anulum/director-ai/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/anulum/director-ai/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/anulum/director-ai/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/anulum/director-ai/compare/v2.0.0...v2.1.0

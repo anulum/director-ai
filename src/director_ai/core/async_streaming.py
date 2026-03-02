@@ -23,6 +23,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
+
+__all__ = ["AsyncStreamingKernel"]
 import time
 from collections import deque
 from collections.abc import AsyncIterator, Awaitable, Callable

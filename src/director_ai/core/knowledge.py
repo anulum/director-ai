@@ -8,6 +8,8 @@
 
 import logging
 
+__all__ = ["GroundTruthStore"]
+
 
 class GroundTruthStore:
     """

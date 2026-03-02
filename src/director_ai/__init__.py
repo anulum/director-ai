@@ -13,18 +13,20 @@ Director-AI: Real-time LLM hallucination guardrail.
     from director_ai.core import CoherenceAgent, CoherenceScorer, SafetyKernel
 """
 
-__version__ = "2.2.1"
+__version__ = "2.3.0"
 
 from .core import (
     AsyncStreamingKernel,
     CoherenceAgent,
     CoherenceScore,
     CoherenceScorer,
+    ConversationSession,
     EvidenceChunk,
     GroundTruthStore,
     HaltEvidence,
     InMemoryBackend,
     InputSanitizer,
+    LiteScorer,
     LLMGenerator,
     MockGenerator,
     NLIScorer,
@@ -32,12 +34,18 @@ from .core import (
     SafetyKernel,
     SanitizeResult,
     ScoreCache,
+    ScorerBackend,
     ScoringEvidence,
     SentenceTransformerBackend,
+    ShardedNLIScorer,
     StreamingKernel,
     StreamSession,
     TokenEvent,
+    Turn,
     VectorGroundTruthStore,
+    get_backend,
+    list_backends,
+    register_backend,
 )
 from .core.exceptions import (
     CoherenceError,
@@ -80,6 +88,14 @@ __all__ = [
     "TenantRouter",
     "InputSanitizer",
     "SanitizeResult",
+    "ConversationSession",
+    "Turn",
+    "LiteScorer",
+    "ShardedNLIScorer",
+    "ScorerBackend",
+    "register_backend",
+    "get_backend",
+    "list_backends",
     "guard",
     "get_score",
     "DirectorAIError",

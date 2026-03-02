@@ -15,6 +15,8 @@ from .knowledge import GroundTruthStore
 from .scorer import CoherenceScorer
 from .types import HaltEvidence, ReviewResult
 
+__all__ = ["CoherenceAgent"]
+
 try:
     from backfire_kernel import BackfireConfig as _RustConfig
     from backfire_kernel import RustCoherenceScorer as _RustScorer
@@ -215,6 +217,13 @@ class CoherenceAgent:
     # ── Backward-compatible alias ─────────────────────────────────────
 
     def process_query(self, prompt):
-        """Alias for ``process`` returning just the output string (backward compat)."""
+        """Deprecated: use ``process``."""
+        import warnings
+
+        warnings.warn(
+            "process_query is deprecated, use process",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         result = self.process(prompt)
         return result.output

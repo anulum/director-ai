@@ -91,6 +91,7 @@ _VALID_PROFILES = (
     "customer_support",
     "fast",
     "thorough",
+    "lite",
 )
 
 
@@ -577,6 +578,7 @@ def _cmd_serve(args: list[str]) -> None:
     host = "0.0.0.0"
     profile = "default"
     workers = 1
+    transport = "http"
 
     i = 0
     while i < len(args):
@@ -602,17 +604,16 @@ def _cmd_serve(args: list[str]) -> None:
                 print(f"Error: invalid worker count: {args[i + 1]}")
                 sys.exit(1)
             i += 2
+        elif args[i] == "--transport" and i + 1 < len(args):
+            transport = args[i + 1]
+            if transport not in ("http", "grpc"):
+                print(f"Error: --transport must be 'http' or 'grpc', got '{transport}'")
+                sys.exit(1)
+            i += 2
         else:
             i += 1
 
-    try:
-        import uvicorn
-    except ImportError:
-        print("uvicorn is required: pip install director-ai[server]")
-        sys.exit(1)
-
     from director_ai.core.config import DirectorConfig
-    from director_ai.server import create_app
 
     if profile != "default":
         config = DirectorConfig.from_profile(profile)
@@ -620,6 +621,23 @@ def _cmd_serve(args: list[str]) -> None:
         config = DirectorConfig.from_env()
     config.server_host = host
     config.server_port = port
+
+    if transport == "grpc":
+        from director_ai.grpc_server import create_grpc_server
+
+        print(f"Starting Director AI gRPC server on port {port} (workers={workers})")
+        server = create_grpc_server(config, max_workers=workers, port=port)
+        server.start()
+        server.wait_for_termination()
+        return
+
+    try:
+        import uvicorn
+    except ImportError:
+        print("uvicorn is required: pip install director-ai[server]")
+        sys.exit(1)
+
+    from director_ai.server import create_app
 
     print(
         f"Starting Director AI server on {host}:{port} "
