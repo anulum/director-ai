@@ -216,6 +216,23 @@ class TestServeWorkers:
         assert "stress-test" in captured.out
 
 
+class TestCLIConfigFromEnv:
+    """Tests that CLI commands respect env var overrides."""
+
+    def test_review_uses_env_threshold(self, capsys, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_COHERENCE_THRESHOLD", "0.99")
+        monkeypatch.setenv("DIRECTOR_SOFT_LIMIT", "0.99")
+        main(["review", "What is 2+2?", "4"])
+        captured = capsys.readouterr()
+        assert "Approved:" in captured.out
+
+    def test_process_uses_env_config(self, capsys, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_COHERENCE_THRESHOLD", "0.01")
+        main(["process", "What color is the sky?"])
+        captured = capsys.readouterr()
+        assert "Output:" in captured.out
+
+
 class TestBenchCommand:
     """Tests for 'director-ai bench'."""
 

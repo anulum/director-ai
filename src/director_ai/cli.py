@@ -196,9 +196,10 @@ def _cmd_review(args: list[str]) -> None:
 
     prompt, response = args[0], args[1]
 
-    from director_ai.core.scorer import CoherenceScorer
+    from director_ai.core.config import DirectorConfig
 
-    scorer = CoherenceScorer(threshold=0.6)
+    cfg = DirectorConfig.from_env()
+    scorer = cfg.build_scorer()
     approved, score = scorer.review(prompt, response)
 
     print(f"Approved:  {approved}")
@@ -215,8 +216,12 @@ def _cmd_process(args: list[str]) -> None:
     prompt = args[0]
 
     from director_ai.core.agent import CoherenceAgent
+    from director_ai.core.config import DirectorConfig
 
-    agent = CoherenceAgent()
+    cfg = DirectorConfig.from_env()
+    store = cfg.build_store()
+    scorer = cfg.build_scorer(store=store)
+    agent = CoherenceAgent(_scorer=scorer, _store=store)
     result = agent.process(prompt)
 
     print(f"Output:     {result.output}")
@@ -286,7 +291,12 @@ def _cmd_batch(args: list[str]) -> None:
                 continue
             prompts.append(prompt)
 
-    agent = CoherenceAgent()
+    from director_ai.core.config import DirectorConfig
+
+    cfg = DirectorConfig.from_env()
+    store = cfg.build_store()
+    scorer = cfg.build_scorer(store=store)
+    agent = CoherenceAgent(_scorer=scorer, _store=store)
     processor = BatchProcessor(agent)
     result = processor.process_batch(prompts)
 

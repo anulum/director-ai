@@ -88,6 +88,7 @@ class BatchProcessor:
         metrics.observe("batch_size", float(len(prompts)))
 
         result = BatchResult(total=len(prompts))
+        ordered: list[ReviewResult | None] = [None] * len(prompts)
 
         with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
             futures = {
@@ -97,7 +98,7 @@ class BatchProcessor:
                 idx = futures[future]
                 try:
                     item_result = future.result(timeout=self.item_timeout)
-                    result.results.append(item_result)
+                    ordered[idx] = item_result
                     result.succeeded += 1
                 except TimeoutError:
                     result.errors.append((idx, "item timeout"))
@@ -117,6 +118,7 @@ class BatchProcessor:
                     result.failed += 1
                     logger.warning("Batch item %d failed: %s", idx, e)
 
+        result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
         return result
 
@@ -129,6 +131,7 @@ class BatchProcessor:
         metrics.observe("batch_size", float(len(items)))
 
         result = BatchResult(total=len(items))
+        ordered: list[tuple[bool, CoherenceScore] | None] = [None] * len(items)
 
         with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
             futures = {
@@ -139,7 +142,7 @@ class BatchProcessor:
                 idx = futures[future]
                 try:
                     item_result = future.result(timeout=self.item_timeout)
-                    result.results.append(item_result)
+                    ordered[idx] = item_result
                     result.succeeded += 1
                 except TimeoutError:
                     result.errors.append((idx, "item timeout"))
@@ -155,6 +158,7 @@ class BatchProcessor:
                     result.errors.append((idx, str(e)))
                     result.failed += 1
 
+        result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
         return result
 

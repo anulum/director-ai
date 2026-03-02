@@ -23,7 +23,8 @@ WORKDIR /build
 COPY pyproject.toml README.md LICENSE NOTICE ./
 COPY src/ src/
 
-RUN pip install --no-cache-dir --prefix=/install ".[server]"
+ARG EXTRAS="server"
+RUN pip install --no-cache-dir --prefix=/install ".[$EXTRAS]"
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
 

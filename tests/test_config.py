@@ -169,6 +169,37 @@ class TestYamlLoading:
             DirectorConfig.from_yaml("/nonexistent/path.json")
 
 
+class TestBuildStore:
+    """Tests for DirectorConfig.build_store()."""
+
+    def test_build_store_returns_vector_store(self):
+        from director_ai.core.vector_store import VectorGroundTruthStore
+
+        cfg = DirectorConfig()
+        store = cfg.build_store()
+        assert isinstance(store, VectorGroundTruthStore)
+
+    def test_build_store_memory_backend_default(self):
+        from director_ai.core.vector_store import InMemoryBackend
+
+        cfg = DirectorConfig(vector_backend="memory")
+        store = cfg.build_store()
+        assert isinstance(store.backend, InMemoryBackend)
+
+    def test_build_scorer_receives_store(self):
+        cfg = DirectorConfig()
+        scorer = cfg.build_scorer()
+        assert scorer.ground_truth_store is not None
+
+    def test_build_scorer_custom_store_override(self):
+        from director_ai.core.vector_store import VectorGroundTruthStore
+
+        cfg = DirectorConfig()
+        custom_store = VectorGroundTruthStore()
+        scorer = cfg.build_scorer(store=custom_store)
+        assert scorer.ground_truth_store is custom_store
+
+
 class TestValidationBoundaries:
     """Negative tests for __post_init__ validation constraints."""
 

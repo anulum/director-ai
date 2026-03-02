@@ -23,7 +23,7 @@ from director_ai.core import (
 @pytest.mark.consumer
 class TestVersion:
     def test_version_string(self):
-        assert director_ai.__version__ == "2.3.0"
+        assert director_ai.__version__ == "2.4.0"
 
     def test_all_exports_present(self):
         for name in [
@@ -37,6 +37,38 @@ class TestVersion:
             "ReviewResult",
         ]:
             assert hasattr(director_ai, name), f"Missing export: {name}"
+
+
+class TestAgentInjection:
+    """Tests for _scorer/_store injection on CoherenceAgent."""
+
+    def test_injected_scorer_is_used(self):
+        from director_ai.core.agent import CoherenceAgent
+
+        mock_scorer = MagicMock()
+        mock_scorer.review.return_value = (
+            True,
+            CoherenceScore(score=0.99, approved=True, h_logical=0.01, h_factual=0.01),
+        )
+        agent = CoherenceAgent(_scorer=mock_scorer)
+        result = agent.process("test")
+        assert mock_scorer.review.called
+
+    def test_injected_store_is_used(self):
+        from director_ai.core.agent import CoherenceAgent
+        from director_ai.core.knowledge import GroundTruthStore
+
+        custom_store = GroundTruthStore()
+        custom_store.add("sky", "The sky is blue.")
+        agent = CoherenceAgent(_store=custom_store)
+        assert agent.store is custom_store
+
+    def test_no_args_backward_compatible(self):
+        from director_ai.core.agent import CoherenceAgent
+
+        agent = CoherenceAgent()
+        assert agent.scorer is not None
+        assert agent.store is not None
 
 
 class TestCoherenceScore:

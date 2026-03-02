@@ -22,6 +22,8 @@ from dataclasses import dataclass, field
 
 __all__ = ["DirectorConfig"]
 
+logger = logging.getLogger("DirectorAI.Config")
+
 
 @dataclass
 class DirectorConfig:
@@ -333,9 +335,39 @@ class DirectorConfig:
             handler.setFormatter(_JsonFormatter())
             root.handlers = [handler]
 
-    def build_scorer(self):
+    def build_store(self):
+        """Construct a VectorGroundTruthStore from config fields."""
+        from .vector_store import InMemoryBackend, VectorGroundTruthStore
+
+        if self.vector_backend == "chroma":
+            try:
+                from .vector_store import ChromaBackend
+
+                backend = ChromaBackend(
+                    collection_name=self.chroma_collection,
+                    persist_directory=self.chroma_persist_dir or None,
+                )
+            except ImportError:
+                logger.warning("chromadb not installed, falling back to memory backend")
+                backend = InMemoryBackend()
+        else:
+            backend = InMemoryBackend()
+
+        store = VectorGroundTruthStore(backend=backend)
+
+        if self.reranker_enabled:
+            store.reranker_enabled = True
+            store.reranker_model = self.reranker_model
+            store.reranker_top_k_multiplier = self.reranker_top_k_multiplier
+
+        return store
+
+    def build_scorer(self, store=None):
         """Construct a CoherenceScorer wired to all relevant config fields."""
         from .scorer import CoherenceScorer
+
+        if store is None:
+            store = self.build_store()
 
         kw: dict = {
             "threshold": self.coherence_threshold,
@@ -346,6 +378,7 @@ class DirectorConfig:
             "llm_judge_enabled": self.llm_judge_enabled,
             "llm_judge_confidence_threshold": self.llm_judge_confidence_threshold,
             "llm_judge_provider": self.llm_judge_provider,
+            "ground_truth_store": store,
         }
         if self.w_logic != 0.0:
             kw["w_logic"] = self.w_logic

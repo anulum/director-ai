@@ -56,6 +56,9 @@ class CoherenceAgent:
         provider=None,
         fallback=None,
         disclaimer_prefix="[Confidence: moderate] ",
+        *,
+        _scorer=None,
+        _store=None,
     ):
         self.logger = logging.getLogger("CoherenceAgent")
         self.fallback = fallback
@@ -76,8 +79,8 @@ class CoherenceAgent:
             if use_nli is None:
                 use_nli = False
 
-        self.store = GroundTruthStore()
-        self.scorer = self._build_scorer(use_nli)
+        self.store = _store if _store is not None else GroundTruthStore()
+        self.scorer = _scorer if _scorer is not None else self._build_scorer(use_nli)
         self.kernel = SafetyKernel()
 
     def _build_scorer(self, use_nli):

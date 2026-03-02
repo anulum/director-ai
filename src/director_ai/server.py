@@ -71,15 +71,27 @@ def _check_fastapi() -> None:
 
 # ── Pydantic request/response models ─────────────────────────────────
 
+_MAX_PROMPT_CHARS = 100_000
+_MAX_RESPONSE_CHARS = 500_000
+
 if _FASTAPI_AVAILABLE:
 
     class ReviewRequest(BaseModel):
-        prompt: str = Field(..., min_length=1, description="Input prompt")
-        response: str = Field(..., min_length=1, description="LLM response to review")
+        prompt: str = Field(
+            ..., min_length=1, max_length=_MAX_PROMPT_CHARS, description="Input prompt"
+        )
+        response: str = Field(
+            ...,
+            min_length=1,
+            max_length=_MAX_RESPONSE_CHARS,
+            description="LLM response to review",
+        )
         session_id: str | None = Field(None, description="Conversation session ID")
 
     class ProcessRequest(BaseModel):
-        prompt: str = Field(..., min_length=1, description="Input prompt")
+        prompt: str = Field(
+            ..., min_length=1, max_length=_MAX_PROMPT_CHARS, description="Input prompt"
+        )
 
     class BatchRequest(BaseModel):
         prompts: list[str] = Field(
@@ -174,9 +186,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         from .core.batch import BatchProcessor
         from .core.tenant import TenantRouter
 
-        scorer = cfg.build_scorer()
+        store = cfg.build_store()
+        scorer = cfg.build_scorer(store=store)
         agent = CoherenceAgent(
             llm_api_url=cfg.llm_api_url if cfg.llm_provider == "local" else None,
+            _scorer=scorer,
+            _store=store,
         )
         batch_proc = BatchProcessor(agent, max_concurrency=cfg.batch_max_concurrency)
         stats = StatsStore()
@@ -238,6 +253,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # ── Rate limiting ─────────────────────────────────────────────────
 
+    _rate_str = f"{cfg.rate_limit_rpm}/minute" if cfg.rate_limit_rpm > 0 else ""
+
     limiter = None
     if cfg.rate_limit_rpm > 0:
         if not _SLOWAPI_AVAILABLE:
@@ -247,7 +264,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 cfg.rate_limit_rpm,
             )
         else:
-            limiter = Limiter(key_func=get_remote_address)
+            limiter = Limiter(
+                key_func=get_remote_address,
+                default_limits=[_rate_str],
+            )
             app.state.limiter = limiter
             from slowapi.errors import RateLimitExceeded
 
@@ -259,8 +279,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     status_code=429,
                     content={"detail": "Rate limit exceeded"},
                 )
-
-    _rate_str = f"{cfg.rate_limit_rpm}/minute" if cfg.rate_limit_rpm > 0 else ""
 
     # ── Middleware: correlation IDs + API key auth + metrics ───────────
 

@@ -17,11 +17,18 @@ class TestOnnxDynamicBatcher:
 
         return score_fn
 
-    def test_flush_on_submit(self):
+    def test_below_max_returns_empty(self):
         fn = self._make_scorer()
         batcher = OnnxDynamicBatcher(fn, max_batch=4)
         pairs = [("a", "b"), ("c", "d")]
         results = batcher.submit(pairs)
+        assert results == []
+
+    def test_explicit_flush_drains_buffer(self):
+        fn = self._make_scorer()
+        batcher = OnnxDynamicBatcher(fn, max_batch=4)
+        batcher.submit([("a", "b"), ("c", "d")])
+        results = batcher.flush()
         assert results == [0.5, 0.5]
 
     def test_flush_at_max_batch(self):
@@ -48,7 +55,8 @@ class TestOnnxDynamicBatcher:
 
         batcher = OnnxDynamicBatcher(score_fn, max_batch=8)
         pairs = [("hello", "world"), ("foo", "bar")]
-        results = batcher.submit(pairs)
+        batcher.submit(pairs)
+        results = batcher.flush()
         assert len(results) == 2
         assert results[0] == 0.1  # (5+5)/100
         assert results[1] == 0.06  # (3+3)/100
@@ -79,7 +87,8 @@ class TestOnnxDynamicBatcher:
         def score_fn(pairs):
             return [0.5] * len(pairs)
 
-        batcher = OnnxDynamicBatcher(score_fn, max_batch=16)
+        # max_batch=1 so every submit triggers a flush
+        batcher = OnnxDynamicBatcher(score_fn, max_batch=1)
         barrier = threading.Barrier(4)
 
         def worker():
@@ -104,6 +113,7 @@ class TestOnnxDynamicBatcher:
             return [0.5] * len(pairs)
 
         batcher = OnnxDynamicBatcher(tracking_fn, max_batch=4)
+        # 10 pairs >= max_batch=4, so submit flushes all at once
         results = batcher.submit([("a", "b")] * 10)
         assert len(results) == 10
 

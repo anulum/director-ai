@@ -61,8 +61,9 @@ def create_grpc_server(
     from .core.agent import CoherenceAgent
     from .core.streaming import StreamingKernel
 
-    scorer = cfg.build_scorer()
-    agent = CoherenceAgent()
+    store = cfg.build_store()
+    scorer = cfg.build_scorer(store=store)
+    agent = CoherenceAgent(_scorer=scorer, _store=store)
 
     # Resolve proto message factories
     try:

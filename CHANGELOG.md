@@ -5,6 +5,25 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.4.0] — 2026-03-02
+
+### Fixed
+- **Unified runtime wiring**: server, gRPC, and CLI now share a single `build_store()` → `build_scorer(store)` → `CoherenceAgent(_scorer, _store)` chain. Previously `/v1/review` used config threshold with no KB store while `/v1/process` used hardcoded `threshold=0.6` with a keyword-only store.
+- **Rate limiting enforced**: `Limiter(default_limits=[...])` replaces bare `Limiter()` which was a no-op.
+- **ONNX batcher double-flush**: `OnnxDynamicBatcher.submit()` no longer flushes unconditionally when below `max_batch`; added explicit `flush()` method.
+- **Batch result ordering**: `process_batch()` and `review_batch()` pre-allocate results by index, preserving input order despite `as_completed` execution.
+
+### Added
+- `DirectorConfig.build_store()` — constructs `VectorGroundTruthStore` from `vector_backend`, `chroma_*`, `reranker_*` config fields (previously dead config).
+- `CoherenceAgent(_scorer=, _store=)` keyword-only injection params for external scorer/store objects.
+- REST body size limits: `max_length=100_000` on prompt fields, `max_length=500_000` on response fields (Pydantic v2 returns 422 on violation).
+- Dockerfile `EXTRAS` build ARG: `--build-arg EXTRAS="server,nli"` for NLI-enabled images.
+
+### Changed
+- `DirectorConfig.build_scorer(store=None)` now accepts optional store; auto-builds via `build_store()` when omitted.
+- CLI `review`/`process`/`batch` commands load config from env via `DirectorConfig.from_env()` instead of hardcoded defaults.
+- Version bump: 2.3.0 → 2.4.0
+
 ## [2.3.0] — 2026-03-02
 
 ### Security
@@ -581,7 +600,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v2.3.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v2.4.0...HEAD
+[2.4.0]: https://github.com/anulum/director-ai/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/anulum/director-ai/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/anulum/director-ai/compare/v2.2.0...v2.2.1
 [2.2.0]: https://github.com/anulum/director-ai/compare/v2.1.0...v2.2.0

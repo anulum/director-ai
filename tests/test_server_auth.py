@@ -92,3 +92,45 @@ def test_api_keys_redacted_in_config():
     assert r.status_code == 200
     data = r.json()
     assert data["config"]["api_keys"] == "***"
+
+
+def test_rate_limiter_has_default_limits():
+    """Limiter is constructed with default_limits when rate_limit_rpm > 0."""
+    try:
+        from slowapi import Limiter  # noqa: F401
+    except ImportError:
+        pytest.skip("slowapi not installed")
+
+    cfg = DirectorConfig(rate_limit_rpm=60, llm_provider="mock")
+    app = create_app(cfg)
+    limiter = app.state.limiter
+    assert limiter is not None
+    assert limiter._default_limits is not None
+    assert len(limiter._default_limits) > 0
+
+
+def test_prompt_too_long_returns_422():
+    with TestClient(_noauth_app()) as client:
+        r = client.post(
+            "/v1/review",
+            json={"prompt": "x" * 100_001, "response": "ok"},
+        )
+    assert r.status_code == 422
+
+
+def test_response_too_long_returns_422():
+    with TestClient(_noauth_app()) as client:
+        r = client.post(
+            "/v1/review",
+            json={"prompt": "ok", "response": "x" * 500_001},
+        )
+    assert r.status_code == 422
+
+
+def test_valid_body_sizes_accepted():
+    with TestClient(_noauth_app()) as client:
+        r = client.post(
+            "/v1/review",
+            json={"prompt": "What is 2+2?", "response": "4"},
+        )
+    assert r.status_code == 200

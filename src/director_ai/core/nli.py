@@ -265,6 +265,11 @@ class OnnxDynamicBatcher:
             self._buffer.extend(pairs)
             if len(self._buffer) >= self.max_batch:
                 return self._flush()
+            return []
+
+    def flush(self) -> list[float]:
+        """Explicitly drain the buffer."""
+        with self._lock:
             return self._flush()
 
     def _flush(self) -> list[float]:
