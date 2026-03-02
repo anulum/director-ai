@@ -28,6 +28,14 @@ jobs:
       - name: Install linters
         run: pip install "ruff>=0.5,<1"
 
+      - name: Version consistency
+        run: |
+          V_TOML=$(python -c "import tomllib; print(tomllib.load(open('pyproject.toml','rb'))['project']['version'])")
+          V_INIT=$(python -c "import re, pathlib; print(re.search(r'__version__\s*=\s*\"([^\"]+)\"', pathlib.Path('src/director_ai/__init__.py').read_text()).group(1))")
+          V_CFF=$(grep -m1 '^version:' CITATION.cff | sed 's/version: *"\{0,1\}\([^"]*\)"\{0,1\}/\1/')
+          echo "pyproject.toml=$V_TOML  __init__.py=$V_INIT  CITATION.cff=$V_CFF"
+          [ "$V_TOML" = "$V_INIT" ] && [ "$V_TOML" = "$V_CFF" ] || { echo "::error::Version mismatch"; exit 1; }
+
       - name: Check formatting (ruff)
         run: ruff format --check src/ tests/ examples/
 
