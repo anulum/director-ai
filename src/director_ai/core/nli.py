@@ -272,7 +272,7 @@ class OnnxDynamicBatcher:
             return []
         batch = self._buffer[:]
         self._buffer.clear()
-        return self._score_fn(batch)
+        return self._score_fn(batch)  # type: ignore[no-any-return]
 
     @property
     def uses_io_binding(self) -> bool:
@@ -320,7 +320,9 @@ class NLIScorer:
                 self._custom_backend = backend
                 backend = "__custom__"
             else:
-                raise TypeError(f"backend must be str or ScorerBackend, got {type(backend)!r}")
+                raise TypeError(
+                    f"backend must be str or ScorerBackend, got {type(backend)!r}"
+                )
 
         if backend != "__custom__" and backend not in self._BACKENDS:
             raise ValueError(
@@ -713,15 +715,15 @@ class NLIScorer:
         if self._lite_scorer is None:
             from .lite_scorer import LiteScorer
 
-            self._lite_scorer = LiteScorer()
+            self._lite_scorer = LiteScorer()  # type: ignore[assignment]
 
     def _lite_score(self, premise: str, hypothesis: str) -> float:
         self._ensure_lite()
-        return self._lite_scorer.score(premise, hypothesis)
+        return self._lite_scorer.score(premise, hypothesis)  # type: ignore[attr-defined, no-any-return]
 
     def _lite_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         self._ensure_lite()
-        return self._lite_scorer.score_batch(pairs)
+        return self._lite_scorer.score_batch(pairs)  # type: ignore[attr-defined, no-any-return]
 
     # ── Heuristic fallback ───────────────────────────────────────
 

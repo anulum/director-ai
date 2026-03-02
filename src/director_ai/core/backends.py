@@ -80,7 +80,7 @@ def _load_entry_points() -> None:
         from importlib.metadata import entry_points
 
         eps = entry_points()
-        group = (
+        group: list = (  # type: ignore[assignment]
             eps.get("director_ai.backends", [])
             if isinstance(eps, dict)
             else eps.select(group="director_ai.backends")

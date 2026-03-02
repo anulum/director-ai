@@ -4,7 +4,7 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -12,12 +12,15 @@ import pytest
 class TestGrpcImport:
     def test_grpc_server_module_importable(self):
         import director_ai.grpc_server as mod
+
         assert hasattr(mod, "create_grpc_server")
 
     def test_missing_grpcio_raises(self):
         with patch.dict("sys.modules", {"grpc": None}):
             import importlib
+
             import director_ai.grpc_server as mod
+
             importlib.reload(mod)
             with pytest.raises(ImportError, match="grpcio"):
                 mod.create_grpc_server()
@@ -49,6 +52,7 @@ class TestGrpcServer:
 class TestProtoFile:
     def test_proto_file_exists(self):
         from pathlib import Path
+
         proto = Path(__file__).parent.parent / "proto" / "director.proto"
         assert proto.exists()
         content = proto.read_text()
@@ -60,13 +64,14 @@ class TestProtoFile:
 class TestCliTransportFlag:
     def test_invalid_transport_exits(self):
         from director_ai.cli import main
+
         with pytest.raises(SystemExit):
             main(["serve", "--transport", "websocket"])
 
     def test_grpc_transport_flag_parsed(self):
         """Verify --transport grpc is parsed without crashing in arg parser."""
         # We only test the arg parsing, not actual server start
-        from director_ai.cli import _cmd_serve
+
         # Calling with --transport grpc --port 0 would start a server;
         # we test the flag is accepted by checking no arg parse error
         # (actual server test is above)

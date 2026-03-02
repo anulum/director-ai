@@ -14,6 +14,7 @@ class TestOnnxDynamicBatcher:
     def _make_scorer(self):
         def score_fn(pairs):
             return [0.5] * len(pairs)
+
         return score_fn
 
     def test_flush_on_submit(self):
@@ -54,7 +55,10 @@ class TestOnnxDynamicBatcher:
 
     def test_cuda_detection_with_mock_session(self):
         mock_session = MagicMock()
-        mock_session.get_providers.return_value = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        mock_session.get_providers.return_value = [
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
+        ]
         batcher = OnnxDynamicBatcher(lambda p: [], session=mock_session)
         assert batcher.uses_io_binding is True
 

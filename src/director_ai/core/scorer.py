@@ -152,7 +152,7 @@ class CoherenceScorer:
         elif self.use_nli and nli_devices and len(nli_devices) > 1:
             from .sharded_nli import ShardedNLIScorer
 
-            self._nli = ShardedNLIScorer(
+            self._nli = ShardedNLIScorer(  # type: ignore[assignment]
                 devices=nli_devices,
                 use_model=True,
                 model_name=nli_model,
@@ -172,7 +172,7 @@ class CoherenceScorer:
                 onnx_path=onnx_path,
             )
         else:
-            self._nli = None
+            self._nli = None  # type: ignore[assignment]
         self._llm_judge_enabled = llm_judge_enabled or scorer_backend == "hybrid"
         self._llm_judge_threshold = llm_judge_confidence_threshold
         self._llm_judge_provider = llm_judge_provider
@@ -209,8 +209,8 @@ class CoherenceScorer:
                 elif self._llm_judge_provider == "anthropic":
                     import anthropic  # lazy: optional dep
 
-                    client = anthropic.Anthropic()
-                    result = client.messages.create(
+                    client = anthropic.Anthropic()  # type: ignore[assignment]
+                    result = client.messages.create(  # type: ignore[attr-defined]
                         model="claude-haiku-4-5-20251001",
                         max_tokens=20,
                         messages=[{"role": "user", "content": judge_prompt}],

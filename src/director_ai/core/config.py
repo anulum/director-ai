@@ -20,7 +20,6 @@ import logging
 import os
 from dataclasses import dataclass, field
 
-
 __all__ = ["DirectorConfig"]
 
 

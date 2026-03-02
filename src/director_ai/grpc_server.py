@@ -20,10 +20,15 @@ from __future__ import annotations
 
 import logging
 import math
+from types import SimpleNamespace
 
 from .core.config import DirectorConfig
 
 logger = logging.getLogger("DirectorAI.gRPC")
+
+
+def _ns(**kw):
+    return SimpleNamespace(**kw)
 
 
 def create_grpc_server(
@@ -36,8 +41,9 @@ def create_grpc_server(
     Raises ImportError with install instructions if grpcio is missing.
     """
     try:
-        import grpc
         from concurrent import futures
+
+        import grpc
     except ImportError as exc:
         raise ImportError(
             "gRPC transport requires grpcio. "
@@ -56,12 +62,28 @@ def create_grpc_server(
     )
     agent = CoherenceAgent()
 
-    class DirectorServicer:
+    # Resolve proto message factories
+    try:
+        from . import director_pb2
+
+        review_resp = director_pb2.ReviewResponse
+        process_resp = director_pb2.ProcessResponse
+        batch_resp = director_pb2.BatchReviewResponse
+        token_evt = director_pb2.TokenEvent
+        has_proto = True
+    except ImportError:
+        review_resp = _ns  # type: ignore[assignment]
+        process_resp = _ns  # type: ignore[assignment]
+        batch_resp = _ns  # type: ignore[assignment]
+        token_evt = _ns  # type: ignore[assignment]
+        has_proto = False
+
+    class DirectorServicer:  # noqa: N801
         """Implements the DirectorService RPC methods."""
 
-        def Review(self, request, context):
+        def Review(self, request, context):  # noqa: N802
             approved, score = scorer.review(request.prompt, request.response)
-            return _ReviewResponse(
+            return review_resp(
                 approved=approved,
                 coherence=score.score,
                 h_logical=score.h_logical,
@@ -69,9 +91,9 @@ def create_grpc_server(
                 warning=score.warning,
             )
 
-        def Process(self, request, context):
+        def Process(self, request, context):  # noqa: N802
             result = agent.process(request.prompt)
-            return _ProcessResponse(
+            return process_resp(
                 output=result.output,
                 coherence=result.coherence.score if result.coherence else 0.0,
                 halted=result.halted,
@@ -80,12 +102,12 @@ def create_grpc_server(
                 fallback_used=result.fallback_used,
             )
 
-        def ReviewBatch(self, request, context):
+        def ReviewBatch(self, request, context):  # noqa: N802
             responses = []
             for req in request.requests:
                 approved, score = scorer.review(req.prompt, req.response)
                 responses.append(
-                    _ReviewResponse(
+                    review_resp(
                         approved=approved,
                         coherence=score.score,
                         h_logical=score.h_logical,
@@ -93,9 +115,9 @@ def create_grpc_server(
                         warning=score.warning,
                     )
                 )
-            return _BatchReviewResponse(responses=responses)
+            return batch_resp(responses=responses)
 
-        def StreamTokens(self, request, context):
+        def StreamTokens(self, request, context):  # noqa: N802
             result = agent.process(request.prompt)
             tokens = result.output.split()
             kernel = StreamingKernel(
@@ -109,7 +131,7 @@ def create_grpc_server(
 
             session = kernel.stream_tokens(iter(tokens), _coherence_cb)
             for event in session.events:
-                yield _TokenEvent(
+                yield token_evt(
                     token=event.token,
                     coherence=round(event.coherence, 4),
                     index=event.index,
@@ -117,29 +139,16 @@ def create_grpc_server(
                     halt_reason=session.halt_reason if event.halted else "",
                 )
 
-    # Build stub message classes dynamically to avoid requiring generated code
-    try:
-        from . import director_pb2, director_pb2_grpc
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
 
-        _ReviewResponse = director_pb2.ReviewResponse
-        _ProcessResponse = director_pb2.ProcessResponse
-        _BatchReviewResponse = director_pb2.BatchReviewResponse
-        _TokenEvent = director_pb2.TokenEvent
+    if has_proto:
+        from . import director_pb2_grpc
 
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
         director_pb2_grpc.add_DirectorServiceServicer_to_server(
-            DirectorServicer(), server,
+            DirectorServicer(),
+            server,
         )
-    except ImportError:
-        # Fallback: use SimpleNamespace as proto-like messages for testing
-        from types import SimpleNamespace
-
-        _ReviewResponse = lambda **kw: SimpleNamespace(**kw)
-        _ProcessResponse = lambda **kw: SimpleNamespace(**kw)
-        _BatchReviewResponse = lambda **kw: SimpleNamespace(**kw)
-        _TokenEvent = lambda **kw: SimpleNamespace(**kw)
-
-        server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
+    else:
         logger.warning(
             "Proto stubs not found — run scripts/gen_proto.sh. "
             "Server created but service not registered."

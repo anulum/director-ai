@@ -16,6 +16,18 @@ try:
 except ImportError:
     _HAS_HYPOTHESIS = False
 
+    def settings(**_kw):  # type: ignore[misc]
+        return lambda f: f
+
+    def given(**_kw):  # type: ignore[misc]
+        return lambda f: f
+
+    class st:  # type: ignore[no-redef]  # noqa: N801
+        @staticmethod
+        def text(**_kw):
+            return None
+
+
 pytestmark = pytest.mark.skipif(not _HAS_HYPOTHESIS, reason="hypothesis not installed")
 
 _MAX_EXAMPLES = int(os.environ.get("HYPOTHESIS_MAX_EXAMPLES", "200"))

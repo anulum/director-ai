@@ -4,7 +4,6 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
-import pytest
 
 from director_ai.core.lite_scorer import LiteScorer
 

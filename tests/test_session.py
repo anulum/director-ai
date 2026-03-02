@@ -93,11 +93,15 @@ class TestScorerSessionIntegration:
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         session = ConversationSession()
 
-        approved1, score1 = scorer.review("What is AI?", "AI is technology.", session=session)
+        approved1, score1 = scorer.review(
+            "What is AI?", "AI is technology.", session=session
+        )
         assert len(session) == 1
         assert score1.cross_turn_divergence is None  # no prior turns
 
-        approved2, score2 = scorer.review("Tell me more.", "AI uses data.", session=session)
+        approved2, score2 = scorer.review(
+            "Tell me more.", "AI uses data.", session=session
+        )
         assert len(session) == 2
 
     def test_review_without_session(self):

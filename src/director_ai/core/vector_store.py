@@ -118,7 +118,7 @@ class SentenceTransformerBackend(VectorBackend):
         if not self._docs:
             return []
         q_emb = self._model.encode(text, normalize_embeddings=True)
-        q_emb = _np.asarray(q_emb, dtype=_np.float32)
+        q_emb = _np.asarray(q_emb, dtype=_np.float32)  # type: ignore[assignment]
         similarities = [float(_np.dot(q_emb, e)) for e in self._embeddings]
         indices = sorted(
             range(len(similarities)), key=lambda i: similarities[i], reverse=True

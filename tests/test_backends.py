@@ -7,7 +7,6 @@
 import pytest
 
 from director_ai.core.backends import (
-    DeBERTaBackend,
     LiteBackend,
     ScorerBackend,
     get_backend,
@@ -35,6 +34,7 @@ class TestRegistry:
         class Custom(ScorerBackend):
             def score(self, premise, hypothesis):
                 return 0.42
+
             def score_batch(self, pairs):
                 return [0.42] * len(pairs)
 
@@ -77,6 +77,7 @@ class TestNLIScorerCustomBackend:
         class ConstBackend(ScorerBackend):
             def score(self, premise, hypothesis):
                 return 0.33
+
             def score_batch(self, pairs):
                 return [0.33] * len(pairs)
 
@@ -96,6 +97,7 @@ class TestNLIScorerCustomBackend:
         class Dummy(ScorerBackend):
             def score(self, premise, hypothesis):
                 return 0.5
+
             def score_batch(self, pairs):
                 return [0.5] * len(pairs)
 
@@ -106,5 +108,6 @@ class TestNLIScorerCustomBackend:
 class TestEntryPointDiscovery:
     def test_entry_points_loaded_flag(self):
         import director_ai.core.backends as mod
+
         mod._load_entry_points()
         assert mod._ENTRY_POINTS_LOADED is True
