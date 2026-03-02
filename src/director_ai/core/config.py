@@ -337,8 +337,9 @@ class DirectorConfig:
 
     def build_store(self):
         """Construct a VectorGroundTruthStore from config fields."""
-        from .vector_store import InMemoryBackend, VectorGroundTruthStore
+        from .vector_store import InMemoryBackend, VectorBackend, VectorGroundTruthStore
 
+        backend: VectorBackend
         if self.vector_backend == "chroma":
             try:
                 from .vector_store import ChromaBackend
@@ -353,14 +354,7 @@ class DirectorConfig:
         else:
             backend = InMemoryBackend()
 
-        store = VectorGroundTruthStore(backend=backend)
-
-        if self.reranker_enabled:
-            store.reranker_enabled = True
-            store.reranker_model = self.reranker_model
-            store.reranker_top_k_multiplier = self.reranker_top_k_multiplier
-
-        return store
+        return VectorGroundTruthStore(backend=backend)
 
     def build_scorer(self, store=None):
         """Construct a CoherenceScorer wired to all relevant config fields."""

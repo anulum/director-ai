@@ -51,7 +51,7 @@ class TestAgentInjection:
             CoherenceScore(score=0.99, approved=True, h_logical=0.01, h_factual=0.01),
         )
         agent = CoherenceAgent(_scorer=mock_scorer)
-        result = agent.process("test")
+        agent.process("test")
         assert mock_scorer.review.called
 
     def test_injected_store_is_used(self):
