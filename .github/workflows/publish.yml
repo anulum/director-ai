@@ -32,11 +32,18 @@ jobs:
       - name: Check distribution
         run: twine check dist/*
 
+      - name: Generate SBOM
+        run: |
+          pip install cyclonedx-bom
+          cyclonedx-py environment --output sbom.json --format json
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: dist
-          path: dist/
+          path: |
+            dist/
+            sbom.json
 
   publish:
     name: Publish

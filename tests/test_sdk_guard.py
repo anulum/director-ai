@@ -21,12 +21,12 @@ from director_ai.integrations.sdk_guard import (
 
 # ── Fake SDK scaffolding ────────────────────────────────────────────
 
-# guard() detects SDK type via type(client).__module__. We define
-# concrete classes whose __module__ starts with the expected prefix.
-
 _FakeOpenAI = type("OpenAI", (), {"__module__": "openai"})
 _FakeAnthropic = type("Anthropic", (), {"__module__": "anthropic"})
 _FakeUnknown = type("SomeClient", (), {"__module__": "some_lib"})
+_FakeVLLM = type("VLLMClient", (), {"__module__": "vllm.client"})
+_FakeGroq = type("Groq", (), {"__module__": "groq"})
+_FakeLiteLLM = type("LiteLLM", (), {"__module__": "litellm"})
 
 
 def _make_openai_client(response_text="The sky is blue."):
@@ -219,6 +219,78 @@ class TestPromptExtraction:
     def test_no_user_message(self):
         msgs = [{"role": "system", "content": "Only system."}]
         assert _extract_prompt(msgs) == "Only system."
+
+
+def _make_openai_shaped_client(cls, response_text="The sky is blue."):
+    """Build a client with OpenAI-compatible shape from any class."""
+    choice = SimpleNamespace(
+        message=SimpleNamespace(content=response_text),
+        delta=SimpleNamespace(content=None),
+    )
+    response = SimpleNamespace(choices=[choice])
+    completions = MagicMock()
+    completions.create = MagicMock(return_value=response)
+    chat = SimpleNamespace(completions=completions)
+    client = cls()
+    client.chat = chat
+    return client, response
+
+
+@pytest.mark.consumer
+class TestDuckTypeDetection:
+    def test_vllm_client(self):
+        client, resp = _make_openai_shaped_client(_FakeVLLM)
+        guarded = guard(
+            client,
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        result = guarded.chat.completions.create(
+            messages=[{"role": "user", "content": "What color is the sky?"}],
+        )
+        assert result is resp
+
+    def test_groq_client(self):
+        client, resp = _make_openai_shaped_client(_FakeGroq)
+        guarded = guard(
+            client,
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        result = guarded.chat.completions.create(
+            messages=[{"role": "user", "content": "What color is the sky?"}],
+        )
+        assert result is resp
+
+    def test_litellm_client(self):
+        client, resp = _make_openai_shaped_client(_FakeLiteLLM)
+        guarded = guard(
+            client,
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        result = guarded.chat.completions.create(
+            messages=[{"role": "user", "content": "What color is the sky?"}],
+        )
+        assert result is resp
+
+    def test_no_shape_raises(self):
+        client = _FakeUnknown()
+        with pytest.raises(TypeError, match="Unsupported client type"):
+            guard(client, facts={"k": "v"})
+
+    def test_anthropic_shape_with_no_chat(self):
+        client, resp = _make_anthropic_client("The sky is blue.")
+        assert not hasattr(client, "chat")
+        guarded = guard(
+            client,
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        result = guarded.messages.create(
+            messages=[{"role": "user", "content": "What color is the sky?"}],
+        )
+        assert result is resp
 
 
 @pytest.mark.consumer

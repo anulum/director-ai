@@ -68,6 +68,7 @@ class CoherenceScore:
     evidence: ScoringEvidence | None = None
     warning: bool = False
     cross_turn_divergence: float | None = None
+    strict_mode_rejected: bool = False
 
 
 @dataclass

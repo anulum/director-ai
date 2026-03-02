@@ -49,6 +49,16 @@
 ## v2.4.0 (planned)
 
 - Rust-accelerated scorer backend via backfire-kernel FFI
-- Adaptive threshold tuning based on domain calibration curves
 - WebSocket multiplexed streaming (multiple sessions per connection)
 - Model-agnostic ONNX quantization pipeline (INT8/FP16 auto-select)
+
+## v3.0 (vision)
+
+- **Simplified public API**: `guard()` as the primary interface; enterprise behind `director_ai.enterprise`
+- **Rust-accelerated scorer**: PyO3 binding to backfire-ffi for sub-1ms heuristic scoring
+- **Adaptive threshold calibration**: `director-ai tune` with labeled data → optimal threshold + weights
+- **Provider-agnostic guard()**: duck-type detection supports any OpenAI-compatible client (done in 2.3.0)
+- **WebSocket multiplexed streaming**: multiple concurrent sessions per connection with back-pressure
+- **ONNX INT8/FP16 auto-select**: quantization pipeline picks precision based on hardware capability
+- **Remove deprecated 1.x aliases**: `DirectorModule`, `BackfireKernel`, `StrangeLoopAgent`, etc.
+- **Drop Python 3.10**: minimum Python 3.11 for `ExceptionGroup` and `TaskGroup` support

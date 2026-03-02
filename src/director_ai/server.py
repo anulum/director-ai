@@ -19,6 +19,7 @@ Usage::
 from __future__ import annotations
 
 import contextvars
+import hmac
 import logging
 import sqlite3
 import time
@@ -52,6 +53,7 @@ except ImportError:
 
 try:
     from slowapi import Limiter
+    from slowapi.middleware import SlowAPIMiddleware
     from slowapi.util import get_remote_address
 
     _SLOWAPI_AVAILABLE = True
@@ -170,13 +172,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         from .core.agent import CoherenceAgent
         from .core.audit import AuditLogger
         from .core.batch import BatchProcessor
-        from .core.scorer import CoherenceScorer
         from .core.tenant import TenantRouter
 
-        scorer = CoherenceScorer(
-            threshold=cfg.coherence_threshold,
-            use_nli=cfg.use_nli,
-        )
+        scorer = cfg.build_scorer()
         agent = CoherenceAgent(
             llm_api_url=cfg.llm_api_url if cfg.llm_provider == "local" else None,
         )
@@ -253,6 +251,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             app.state.limiter = limiter
             from slowapi.errors import RateLimitExceeded
 
+            app.add_middleware(SlowAPIMiddleware)
+
             @app.exception_handler(RateLimitExceeded)
             async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
                 return JSONResponse(
@@ -270,10 +270,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         request.state.request_id = request_id
         REQUEST_ID_CTX.set(request_id)
 
-        # API key auth
+        # API key auth (constant-time comparison)
         if cfg.api_keys and request.url.path not in _AUTH_EXEMPT_PATHS:
             provided = request.headers.get("X-API-Key", "")
-            if provided not in cfg.api_keys:
+            if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
                 return JSONResponse(
                     status_code=401,
                     content={"detail": "Invalid or missing API key"},
@@ -570,6 +570,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):
+        if cfg.api_keys:
+            provided = ws.headers.get("X-API-Key", "")
+            if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
+                await ws.close(code=1008, reason="unauthorized")
+                return
         await ws.accept()
         try:
             while True:

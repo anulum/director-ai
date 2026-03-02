@@ -18,8 +18,8 @@ Requires ``pip install director-ai[grpc]``.
 
 from __future__ import annotations
 
+import hmac
 import logging
-import math
 from types import SimpleNamespace
 
 from .core.config import DirectorConfig
@@ -35,10 +35,16 @@ def create_grpc_server(
     config: DirectorConfig | None = None,
     max_workers: int = 4,
     port: int = 50051,
+    tls_cert_path: str | None = None,
+    tls_key_path: str | None = None,
 ):
     """Create and return a gRPC server (not yet started).
 
     Raises ImportError with install instructions if grpcio is missing.
+
+    When *tls_cert_path* and *tls_key_path* are provided, the server
+    binds a secure port with TLS.  Otherwise it falls back to an
+    insecure port.
     """
     try:
         from concurrent import futures
@@ -53,13 +59,9 @@ def create_grpc_server(
     cfg = config or DirectorConfig.from_env()
 
     from .core.agent import CoherenceAgent
-    from .core.scorer import CoherenceScorer
     from .core.streaming import StreamingKernel
 
-    scorer = CoherenceScorer(
-        threshold=cfg.coherence_threshold,
-        use_nli=cfg.use_nli,
-    )
+    scorer = cfg.build_scorer()
     agent = CoherenceAgent()
 
     # Resolve proto message factories
@@ -118,6 +120,7 @@ def create_grpc_server(
             return batch_resp(responses=responses)
 
         def StreamTokens(self, request, context):  # noqa: N802
+            # Replay mode: generate full result then stream with scoring
             result = agent.process(request.prompt)
             tokens = result.output.split()
             kernel = StreamingKernel(
@@ -125,11 +128,20 @@ def create_grpc_server(
                 soft_limit=cfg.soft_limit,
             )
 
-            def _coherence_cb(token):
-                h = hash(token) & 0xFFFFFFFF
-                return 0.8 + 0.1 * math.sin(h)
+            def _make_cb(sc, pr):
+                acc = []
 
-            session = kernel.stream_tokens(iter(tokens), _coherence_cb)
+                def cb(token):
+                    acc.append(token)
+                    text = " ".join(acc)
+                    _, s = sc.review(pr, text)
+                    return s.score
+
+                return cb
+
+            session = kernel.stream_tokens(
+                iter(tokens), _make_cb(scorer, request.prompt)
+            )
             for event in session.events:
                 yield token_evt(
                     token=event.token,
@@ -139,7 +151,26 @@ def create_grpc_server(
                     halt_reason=session.halt_reason if event.halted else "",
                 )
 
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=max_workers))
+    # Auth interceptor
+    class _AuthInterceptor(grpc.ServerInterceptor):
+        def intercept_service(self, continuation, handler_call_details):
+            if not cfg.api_keys:
+                return continuation(handler_call_details)
+            metadata = dict(handler_call_details.invocation_metadata)
+            provided = metadata.get("x-api-key", "")
+            if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
+                return grpc.unary_unary_rpc_method_handler(
+                    lambda req, ctx: ctx.abort(
+                        grpc.StatusCode.UNAUTHENTICATED, "invalid API key"
+                    )
+                )
+            return continuation(handler_call_details)
+
+    interceptors = [_AuthInterceptor()]
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=max_workers),
+        interceptors=interceptors,
+    )
 
     if has_proto:
         from . import director_pb2_grpc
@@ -154,6 +185,21 @@ def create_grpc_server(
             "Server created but service not registered."
         )
 
-    server.add_insecure_port(f"[::]:{port}")
-    logger.info("gRPC server configured on port %d (workers=%d)", port, max_workers)
+    if tls_cert_path and tls_key_path:
+        with open(tls_cert_path, "rb") as cf, open(tls_key_path, "rb") as kf:
+            creds = grpc.ssl_server_credentials([(kf.read(), cf.read())])
+        server.add_secure_port(f"[::]:{port}", creds)
+        logger.info(
+            "gRPC server configured on port %d (TLS, workers=%d)",
+            port,
+            max_workers,
+        )
+    else:
+        server.add_insecure_port(f"[::]:{port}")
+        logger.info(
+            "gRPC server configured on port %d (insecure, workers=%d)",
+            port,
+            max_workers,
+        )
+
     return server

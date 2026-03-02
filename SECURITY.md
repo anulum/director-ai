@@ -4,8 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 1.7.x   | Yes |
-| < 1.7   | No  |
+| 2.3.x   | Yes |
+| < 2.3   | No  |
 
 Only the latest release receives security fixes.
 
@@ -42,8 +42,22 @@ Security concerns for Director-AI:
 - **No pickle.load of untrusted data** in any module
 - **CI security audit**: `pip-audit` runs on every push
 
+## AGPL-3.0 Compliance
+
+Director-AI is licensed under GNU AGPL v3. Key obligations:
+
+1. **Source disclosure**: if you modify Director-AI and deploy it as a
+   network service, you must make your modified source available to users
+   of that service under the same license.
+2. **Commercial alternative**: a commercial license is available for
+   organisations that cannot comply with AGPL requirements. Contact
+   protoscience@anulum.li.
+3. **Dependency compatibility**: all runtime dependencies are
+   permissively licensed (MIT/Apache-2.0/BSD). The AGPL obligation
+   applies to Director-AI code, not to your application code that calls
+   it through the public API.
+
 ## Known Limitations
 
-- No fuzzing harness. Adversarial prompt testing is manual.
 - No third-party security audit.
 - Heuristic scorer (without NLI model) is deterministic and trivially bypassed.

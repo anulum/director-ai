@@ -72,6 +72,9 @@ class DirectorConfig:
     llm_max_tokens: int = 512
 
     # LLM-as-judge escalation
+    # WARNING: when enabled, user prompts and responses are sent to the
+    # configured external LLM provider (OpenAI / Anthropic) for scoring.
+    # Do not enable in privacy-sensitive deployments without user consent.
     llm_judge_enabled: bool = False
     llm_judge_confidence_threshold: float = 0.3
     llm_judge_provider: str = ""
@@ -329,6 +332,29 @@ class DirectorConfig:
             handler = logging.StreamHandler()
             handler.setFormatter(_JsonFormatter())
             root.handlers = [handler]
+
+    def build_scorer(self):
+        """Construct a CoherenceScorer wired to all relevant config fields."""
+        from .scorer import CoherenceScorer
+
+        kw: dict = {
+            "threshold": self.coherence_threshold,
+            "use_nli": self.use_nli,
+            "scorer_backend": self.scorer_backend,
+            "soft_limit": self.soft_limit,
+            "nli_model": self.nli_model,
+            "llm_judge_enabled": self.llm_judge_enabled,
+            "llm_judge_confidence_threshold": self.llm_judge_confidence_threshold,
+            "llm_judge_provider": self.llm_judge_provider,
+        }
+        if self.w_logic != 0.0:
+            kw["w_logic"] = self.w_logic
+            kw["w_fact"] = self.w_fact
+        if self.nli_devices:
+            kw["nli_devices"] = [
+                d.strip() for d in self.nli_devices.split(",") if d.strip()
+            ]
+        return CoherenceScorer(**kw)
 
     _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key", "api_keys"})
 

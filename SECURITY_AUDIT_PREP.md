@@ -30,8 +30,11 @@
 ## Existing Mitigations
 
 - [x] `InputSanitizer` with 9 injection patterns + Unicode detection
-- [x] `X-API-Key` middleware with timing-safe comparison
-- [x] Rate limiting via slowapi (`rate_limit_rpm`)
+- [x] `X-API-Key` middleware with `hmac.compare_digest` (constant-time)
+- [x] WebSocket auth enforcement (X-API-Key check before accept)
+- [x] gRPC auth interceptor (metadata x-api-key, constant-time)
+- [x] gRPC optional TLS via `tls_cert_path`/`tls_key_path`
+- [x] Rate limiting via `SlowAPIMiddleware` (`rate_limit_rpm`)
 - [x] Input length limits (100KB prompts, 100MB batch files)
 - [x] CORS origin validation
 - [x] Null byte stripping and Unicode normalization

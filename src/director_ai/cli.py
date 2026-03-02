@@ -43,6 +43,7 @@ def main(argv: list[str] | None = None) -> None:
         "ingest": _cmd_ingest,
         "eval": _cmd_eval,
         "bench": _cmd_bench,
+        "tune": _cmd_tune,
         "serve": _cmd_serve,
         "config": _cmd_config,
         "stress-test": _cmd_stress_test,
@@ -71,6 +72,7 @@ def _print_help() -> None:
         "  ingest <file>         Ingest documents into vector store\n"
         "  eval [--dataset D]    Run NLI benchmark suite\n"
         "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
+        "  tune <file.jsonl> [--output config.yaml]  Find optimal threshold\n"
         "  serve [--port N] [--workers W]  Start the FastAPI server\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
         "  config [--profile X]  Show/set configuration\n"
@@ -571,6 +573,71 @@ def _cmd_bench(args: list[str]) -> None:
 
     if failed > 0:
         sys.exit(1)
+
+
+def _cmd_tune(args: list[str]) -> None:
+    """Find optimal threshold via grid search over labeled JSONL data.
+
+    Input format: one JSON object per line with
+    ``{"prompt": str, "response": str, "label": bool}``.
+    """
+    if not args:
+        print("Usage: director-ai tune <labeled.jsonl> [--output config.yaml]")
+        sys.exit(1)
+
+    import os
+
+    input_file = args[0]
+    output_file = None
+    if "--output" in args:
+        idx = args.index("--output")
+        if idx + 1 < len(args):
+            output_file = args[idx + 1]
+
+    if not os.path.isfile(input_file):
+        print(f"Error: file not found: {input_file}")
+        sys.exit(1)
+
+    samples: list[dict] = []
+    with open(input_file, encoding="utf-8") as f:
+        for line_no, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError as e:
+                print(f"Warning: skipping line {line_no}: {e}")
+                continue
+            if "prompt" not in data or "response" not in data or "label" not in data:
+                print(f"Warning: skipping line {line_no}: missing required fields")
+                continue
+            samples.append(data)
+
+    if not samples:
+        print("Error: no valid samples found")
+        sys.exit(1)
+
+    from director_ai.core.tuner import tune
+
+    result = tune(samples)
+
+    print(f"Best threshold: {result.threshold}")
+    print(f"Weights:        w_logic={result.w_logic}, w_fact={result.w_fact}")
+    print(f"Balanced Acc:   {result.balanced_accuracy:.4f}")
+    print(f"Precision:      {result.precision:.4f}")
+    print(f"Recall:         {result.recall:.4f}")
+    print(f"F1:             {result.f1:.4f}")
+    print(f"Samples:        {result.samples}")
+
+    if output_file:
+        with open(output_file, "w", encoding="utf-8") as f:
+            f.write(
+                f"coherence_threshold: {result.threshold}\n"
+                f"w_logic: {result.w_logic}\n"
+                f"w_fact: {result.w_fact}\n"
+            )
+        print(f"Config written to {output_file}")
 
 
 def _cmd_serve(args: list[str]) -> None:

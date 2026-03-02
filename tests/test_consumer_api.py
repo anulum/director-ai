@@ -197,12 +197,12 @@ class TestCoherenceScorer:
 
 
 class TestScorerStrictMode:
-    def test_strict_mode_logical_returns_neutral(self):
+    def test_strict_mode_logical_rejects(self):
         scorer = CoherenceScorer(threshold=0.5, use_nli=False, strict_mode=True)
         h = scorer.calculate_logical_divergence("test", "opposite is true")
-        assert h == 0.5
+        assert h == 0.9
 
-    def test_strict_mode_factual_returns_neutral(self, store):
+    def test_strict_mode_factual_rejects(self, store):
         scorer = CoherenceScorer(
             threshold=0.5,
             ground_truth_store=store,
@@ -212,7 +212,13 @@ class TestScorerStrictMode:
         h = scorer.calculate_factual_divergence(
             "What color is the sky?", "totally wrong"
         )
-        assert h == 0.5
+        assert h == 0.9
+
+    def test_strict_mode_review_not_approved(self):
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False, strict_mode=True)
+        approved, cs = scorer.review("test", "anything")
+        assert approved is False
+        assert cs.strict_mode_rejected is True
 
     def test_heuristic_mode_logical_differs(self):
         scorer = CoherenceScorer(threshold=0.5, use_nli=False, strict_mode=False)

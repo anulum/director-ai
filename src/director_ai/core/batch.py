@@ -22,7 +22,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 
 from .exceptions import ValidationError
@@ -93,7 +93,7 @@ class BatchProcessor:
             futures = {
                 pool.submit(self._process_one, i, p): i for i, p in enumerate(prompts)
             }
-            for future in futures:
+            for future in as_completed(futures):
                 idx = futures[future]
                 try:
                     item_result = future.result(timeout=self.item_timeout)
@@ -135,7 +135,7 @@ class BatchProcessor:
                 pool.submit(self._review_one, i, p, r): i
                 for i, (p, r) in enumerate(items)
             }
-            for future in futures:
+            for future in as_completed(futures):
                 idx = futures[future]
                 try:
                     item_result = future.result(timeout=self.item_timeout)

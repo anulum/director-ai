@@ -72,15 +72,30 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `Policy` | `core.policy` | Policy rule engine |
 | `AuditLogger` | `core.audit` | Structured audit logging |
 
+## Batch Processing
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `BatchProcessor` | `core.batch` | Thread-pool batch processing wrapper |
+| `BatchResult` | `core.batch` | Batch operation result |
+
+## Threshold Tuning
+
+| Symbol | Module | Description |
+|--------|--------|-------------|
+| `TuneResult` | `core.tuner` | Tuning grid search result |
+| `tune()` | `core.tuner` | Threshold + weight grid search |
+
 ## Functions
 
 | Function | Module | Description |
 |----------|--------|-------------|
 | `nli_available()` | `core.nli` | Check NLI readiness |
 | `export_onnx()` | `core.nli` | Export model to ONNX |
-| `guard()` | `integrations.sdk_guard` | One-liner SDK interceptor |
+| `guard()` | `integrations.sdk_guard` | One-liner SDK interceptor (duck-type detection) |
 | `get_score()` | `integrations.sdk_guard` | Retrieve last score from context |
 | `create_app()` | `server` | Create FastAPI app |
+| `create_grpc_server()` | `grpc_server` | Create gRPC server (optional TLS) |
 
 ## Exceptions
 
@@ -110,13 +125,12 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 
 | Profile | Threshold | NLI | Backend | Use Case |
 |---------|-----------|-----|---------|----------|
-| `fast` | 0.3 | off | — | Low-latency, non-critical |
-| `balanced` | 0.5 | on | deberta | General purpose |
-| `strict` | 0.7 | on | deberta | Safety-critical |
+| `fast` | 0.5 | off | deberta | Low-latency, non-critical |
+| `thorough` | 0.6 | on | hybrid | NLI + LLM judge |
+| `research` | 0.7 | on | deberta | Full scoring |
 | `medical` | 0.75 | on | deberta | Healthcare |
 | `finance` | 0.7 | on | deberta | Financial services |
-| `legal` | 0.7 | on | deberta | Legal documents |
-| `creative` | 0.3 | off | — | Creative writing |
-| `customer_support` | 0.5 | on | deberta | Support agents |
-| `thorough` | 0.6 | on | hybrid | NLI + LLM judge |
+| `legal` | 0.68 | on | deberta | Legal documents |
+| `creative` | 0.4 | off | deberta | Creative writing |
+| `customer_support` | 0.55 | off | deberta | Support agents |
 | `lite` | 0.5 | off | lite | Zero-dependency fast path |

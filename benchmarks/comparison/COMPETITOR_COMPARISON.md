@@ -1,6 +1,6 @@
 # Director-AI -- Competitor Benchmark Comparison
 
-Last updated: 2026-03-01 (v1.7.0)
+Last updated: 2026-03-02 (v2.3.0)
 
 ## One-Pager Summary
 
@@ -197,6 +197,19 @@ python -m benchmarks.retrieval_bench --backend sentence-transformer
 python -m benchmarks.streaming_false_halt_bench
 ```
 
+## Methodology
+
+- **Balanced accuracy**: macro-averaged recall across supported/not-supported classes.
+  Standard metric for the LLM-AggreFact benchmark (Tang et al., 2024).
+- **Latency**: median of 30 iterations after 5 warmup runs, single batch of 16
+  premise-hypothesis pairs. GPU clock not locked; reported on idle systems.
+- **E2E eval**: synthetic traces with ground-truth labels. TP/FP/TN/FN computed
+  against agent `halted` flag at the stated threshold.
+- **False-halt rate**: 20 known-good Wikipedia passages streamed through
+  StreamingKernel; a halt on any passage counts as a false halt.
+- **Competitor latency**: values marked "~" or "(est.)" are from published
+  papers or documentation, not our own measurements.
+
 ## Sources
 
 - [LLM-AggreFact Leaderboard](https://llm-aggrefact.github.io/)
@@ -207,3 +220,4 @@ python -m benchmarks.streaming_false_halt_bench
 - [SelfCheckGPT (arXiv 2303.08896)](https://arxiv.org/abs/2303.08896)
 - [NVIDIA NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/latest/)
 - [RAGAS Docs](https://docs.ragas.io/)
+- Tang et al. (2024). "MiniCheck: Efficient Fact-Checking of LLMs on Grounding Documents." arXiv:2404.10774.

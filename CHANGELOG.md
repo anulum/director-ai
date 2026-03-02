@@ -7,7 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [2.3.0] — 2026-03-02
 
+### Security
+- **Constant-time API key comparison**: `hmac.compare_digest` replaces `in` operator in REST middleware
+- **WebSocket auth enforcement**: X-API-Key checked before `ws.accept()`
+- **gRPC auth interceptor**: metadata `x-api-key` check with constant-time comparison
+- **gRPC TLS support**: `tls_cert_path`/`tls_key_path` params for `create_grpc_server()`
+- **Rate limiting wired**: `SlowAPIMiddleware` now added to FastAPI app (was missing)
+- **LLM judge privacy warning**: documented that `llm_judge_enabled` sends data to external providers
+- **SBOM in release**: CycloneDX SBOM generated as artifact in publish workflow
+- AGPL compliance guidance added to SECURITY.md
+- SECURITY.md version table updated to v2.3.x
+
+### Changed
+- **strict_mode rejects**: `strict_mode=True` without NLI now returns divergence 0.9 (reject) instead of 0.5 (neutral). `CoherenceScore.strict_mode_rejected` field added.
+- **guard() duck-type detection**: provider detection uses shape checks (`client.chat.completions.create` / `client.messages.create`) instead of module-name prefix. Supports vLLM, Groq, LiteLLM, Ollama clients.
+- **Config.build_scorer()**: single method wires all config fields (scorer_backend, w_logic/w_fact, nli_model, llm_judge_*, nli_devices) through to CoherenceScorer. Used by both server.py and grpc_server.py.
+- **BatchProcessor uses as_completed()**: futures processed in completion order, not insertion order.
+- **gRPC StreamTokens uses real scoring**: replaced fake hash→sin callback with actual CoherenceScorer.
+- README: test badge 1020→1063, migration section, halt example, strict_mode description update, LLM judge privacy limitation
+- ROADMAP: v3.0 vision section
+- PUBLIC_API.md: synced config profiles to actual values, added tuner and batch exports
+- SECURITY_AUDIT_PREP.md: synced mitigations to actual state
+- Benchmark COMPETITOR_COMPARISON.md: methodology section added, version updated
+
 ### Added
+- `director-ai tune <file.jsonl>` CLI: grid-search over thresholds × weight pairs, maximize balanced accuracy, optional `--output config.yaml`
+- `TuneResult` dataclass and `tune()` function in `core.tuner`
+- `tests/test_safety_contracts.py`: safety contract tests for build_scorer wiring, auth, strict_mode, WS auth
 - **Lite scorer backend**: `CoherenceScorer(scorer_backend="lite")` — word overlap + negation heuristics, ~0.5ms/pair, ~65% accuracy. Zero heavy dependencies.
 - **Multi-turn conversation tracking**: `ConversationSession` with FIFO eviction, cross-turn divergence blending (0.7 × H_logical + 0.3 × cross_turn), thread-safe. REST session endpoints on server.
 - **ONNX GPU batch optimization**: `OnnxDynamicBatcher` with `max_batch`/`flush_timeout_ms` and CUDA IO binding for zero-copy GPU transfers.

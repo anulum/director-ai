@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-1020%2B_passed-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-1063%2B_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
@@ -85,6 +85,24 @@ response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[{"role": "user", "content": "What is the refund policy?"}],
 )
+```
+
+### Catch and inspect a halt
+
+```python
+from director_ai import guard, HallucinationError
+from openai import OpenAI
+
+client = guard(OpenAI(), facts={"policy": "Refunds within 30 days only"})
+
+try:
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[{"role": "user", "content": "What is the refund policy?"}],
+    )
+except HallucinationError as exc:
+    print(f"HALTED: coherence={exc.score.score:.3f}")
+    print(f"Evidence: {exc.score.evidence}")
 ```
 
 ### Score a response
@@ -164,11 +182,30 @@ director-ai config --profile creative  # threshold=0.40, permissive
 
 ## Known Limitations
 
-1. **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to return neutral 0.5 instead.
+1. **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to reject (0.9) instead of guessing.
 2. **Summarisation is a weak spot**: NLI models under-perform on summarisation (AggreFact-CNN: 68.8%, ExpertQA: 59.1%).
 3. **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
 4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain.
 5. **Chunked NLI**: Very short chunks (<3 sentences) may lose context.
+6. **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider (OpenAI/Anthropic). Do not enable in privacy-sensitive deployments without user consent.
+
+## Migrating from 1.x
+
+| 1.x name | 2.x name | Notes |
+|----------|----------|-------|
+| `DirectorModule` | `CoherenceScorer` | Same API, new name |
+| `BackfireKernel` | `SafetyKernel` | Same API, new name |
+| `StrangeLoopAgent` | `CoherenceAgent` | Same API, new name |
+| `KnowledgeBase` | `GroundTruthStore` | Same API, new name |
+| `MockActor` | `MockGenerator` | Same API, new name |
+| `RealActor` | `LLMGenerator` | Same API, new name |
+
+Old names still work but emit `DeprecationWarning`. They will be removed in 3.0.
+
+**Breaking changes in 2.3.0:**
+- `strict_mode=True` now **rejects** (divergence=0.9) when NLI is unavailable, instead of returning neutral 0.5.
+- `guard()` uses duck-type detection instead of module-name checks. Custom clients that expose `client.chat.completions.create` are now accepted.
+- Enterprise modules are lazy-loaded since 2.2.0 — `import director_ai` no longer pulls heavy deps.
 
 ## Citation
 

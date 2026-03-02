@@ -41,7 +41,12 @@ def guard(
     use_nli: bool | None = None,
     on_fail: str = "raise",
 ):
-    """Wrap an OpenAI/Anthropic SDK client with coherence scoring.
+    """Wrap an LLM SDK client with coherence scoring.
+
+    Supports any client with an OpenAI-compatible shape
+    (``client.chat.completions.create``) or Anthropic-compatible shape
+    (``client.messages.create`` without ``client.chat``). This covers
+    OpenAI, vLLM, Groq, LiteLLM, Ollama, and Anthropic clients.
 
     Returns the same *client* object with patched sub-objects.
     """
@@ -58,19 +63,40 @@ def guard(
         threshold=threshold, ground_truth_store=gts, use_nli=use_nli
     )
 
-    mod = type(client).__module__ or ""
-    if mod.startswith("openai"):
+    if _has_openai_shape(client):
         client.chat.completions = _OpenAICompletionsProxy(
             client.chat.completions, scorer, on_fail
         )
-    elif mod.startswith("anthropic"):
+    elif _has_anthropic_shape(client):
         client.messages = _AnthropicMessagesProxy(client.messages, scorer, on_fail)
     else:
         raise TypeError(
-            f"Unsupported client type: {type(client).__qualname__} "
-            f"(module={mod!r}). Expected openai or anthropic SDK."
+            f"Unsupported client type: {type(client).__qualname__}. "
+            "Expected client.chat.completions.create (OpenAI-compatible) "
+            "or client.messages.create (Anthropic-compatible)."
         )
     return client
+
+
+def _has_openai_shape(client) -> bool:
+    """True if client exposes ``client.chat.completions.create`` callable."""
+    chat = getattr(client, "chat", None)
+    if chat is None:
+        return False
+    completions = getattr(chat, "completions", None)
+    if completions is None:
+        return False
+    return callable(getattr(completions, "create", None))
+
+
+def _has_anthropic_shape(client) -> bool:
+    """True if client exposes ``client.messages.create`` without ``client.chat``."""
+    if getattr(client, "chat", None) is not None:
+        return False
+    messages = getattr(client, "messages", None)
+    if messages is None:
+        return False
+    return callable(getattr(messages, "create", None))
 
 
 def _extract_prompt(messages: list[dict]) -> str:

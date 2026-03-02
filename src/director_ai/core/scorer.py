@@ -54,8 +54,8 @@ class CoherenceScorer:
     w_fact : float — weight for factual divergence (default 0.4).
         Must satisfy w_logic + w_fact = 1.0.
     strict_mode : bool — when True, disables heuristic fallbacks entirely.
-        If NLI model is unavailable and strict_mode is True, logical
-        divergence returns 0.5 (neutral) instead of keyword heuristics.
+        If NLI model is unavailable and strict_mode is True, divergence
+        returns 0.9 (reject) and sets ``strict_mode_rejected=True``.
     history_window : int — rolling history size.
     use_nli : bool | None — True forces NLI, False disables it,
         None (default) auto-detects based on installed packages.
@@ -183,6 +183,9 @@ class CoherenceScorer:
         """Escalate to LLM-as-judge when NLI confidence is low.
 
         Returns adjusted divergence score. Falls back to nli_score on error.
+
+        **Privacy note**: sends truncated prompt+response (500 chars each) to
+        the configured external LLM provider.
         """
         t0 = time.monotonic()
         metrics.inc("llm_judge_escalations")
@@ -244,7 +247,7 @@ class CoherenceScorer:
         """Check output against the Ground Truth Store.
 
         Returns 0.0 (aligned) to 1.0 (hallucinated).
-        When strict_mode is True and NLI is unavailable, returns 0.5.
+        When strict_mode is True and NLI is unavailable, returns 0.9 (reject).
         """
         if not self.ground_truth_store:
             return DIVERGENCE_NEUTRAL
@@ -260,7 +263,7 @@ class CoherenceScorer:
             return score
 
         if self.strict_mode:
-            return DIVERGENCE_NEUTRAL
+            return DIVERGENCE_CONTRADICTED
 
         return self._heuristic_factual(context, text_output)
 
@@ -299,7 +302,7 @@ class CoherenceScorer:
                     self._nli._score_chunked_with_counts(context, text_output)
                 )
         elif self.strict_mode:
-            nli_score = DIVERGENCE_NEUTRAL
+            nli_score = DIVERGENCE_CONTRADICTED
         else:
             nli_score = self._heuristic_factual(context, text_output)
 
@@ -348,7 +351,7 @@ class CoherenceScorer:
     def calculate_logical_divergence(self, prompt, text_output):
         """Compute logical contradiction probability via NLI.
 
-        When strict_mode is True and NLI is unavailable, returns 0.5.
+        When strict_mode is True and NLI is unavailable, returns 0.9 (reject).
         """
         if self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
@@ -356,7 +359,7 @@ class CoherenceScorer:
             return score
 
         if self.strict_mode:
-            return DIVERGENCE_NEUTRAL
+            return DIVERGENCE_CONTRADICTED
 
         return self._heuristic_logical(text_output, prompt)
 
@@ -421,6 +424,9 @@ class CoherenceScorer:
                 if len(self.history) > self.window:
                     self.history.pop(0)
 
+        strict_rejected = self.strict_mode and not (
+            self._nli and self._nli.model_available
+        )
         score = CoherenceScore(
             score=coherence,
             approved=approved,
@@ -428,6 +434,7 @@ class CoherenceScorer:
             h_factual=h_fact,
             evidence=evidence,
             warning=warning,
+            strict_mode_rejected=strict_rejected,
         )
         return approved, score
 
