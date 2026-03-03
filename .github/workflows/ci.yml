@@ -319,6 +319,20 @@ jobs:
           else
             echo "passed=true" >> "$GITHUB_OUTPUT"
           fi
+          # Build per-job summary
+          SUMMARY=""
+          for JOB in lint typecheck test test-extras security fuzz sast benchmark rust; do
+            eval "R=\${{ needs.${JOB}.result }}"
+            case "$R" in
+              success)   ICON="✅" ;;
+              failure)   ICON="❌" ;;
+              cancelled) ICON="⏹️" ;;
+              skipped)   ICON="⏭️" ;;
+              *)         ICON="❓" ;;
+            esac
+            SUMMARY="${SUMMARY}${ICON} ${JOB}  "
+          done
+          echo "summary=${SUMMARY}" >> "$GITHUB_OUTPUT"
 
       - name: Post to Discord
         if: env.DISCORD_WEBHOOK_URL != ''
@@ -330,11 +344,13 @@ jobs:
             STATUS="passed"
           else
             COLOR=15158332  # red
-            STATUS="failed"
+            STATUS="FAILED"
           fi
           SHA="${GITHUB_SHA:0:7}"
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           BRANCH="${GITHUB_REF_NAME}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+          JOBS="${{ steps.result.outputs.summary }}"
           curl -sf -H "Content-Type: application/json" -d "{
             \"embeds\": [{
               \"title\": \"CI ${STATUS}\",
@@ -342,9 +358,11 @@ jobs:
               \"url\": \"${RUN_URL}\",
               \"fields\": [
                 {\"name\": \"Branch\", \"value\": \"\`${BRANCH}\`\", \"inline\": true},
-                {\"name\": \"Commit\", \"value\": \"\`${SHA}\`\", \"inline\": true},
-                {\"name\": \"Run\", \"value\": \"[View](${RUN_URL})\", \"inline\": true}
+                {\"name\": \"Commit\", \"value\": \"[\`${SHA}\`](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/commit/${GITHUB_SHA})\", \"inline\": true},
+                {\"name\": \"Run\", \"value\": \"[View](${RUN_URL})\", \"inline\": true},
+                {\"name\": \"Jobs\", \"value\": \"${JOBS}\", \"inline\": false}
               ],
-              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\"}
+              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\", \"icon_url\": \"https://github.com/anulum.png\"},
+              \"timestamp\": \"${TIMESTAMP}\"
             }]
           }" "$DISCORD_WEBHOOK_URL"

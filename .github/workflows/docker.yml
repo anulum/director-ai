@@ -87,14 +87,17 @@ jobs:
         run: |
           VERSION="${{ github.event.release.tag_name }}"
           VERSION="${VERSION#v}"
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           curl -sf -H "Content-Type: application/json" -d "{
             \"embeds\": [{
               \"title\": \"Docker images published\",
               \"color\": 3447003,
               \"fields\": [
                 {\"name\": \"CPU\", \"value\": \"\`ghcr.io/anulum/director-ai:${VERSION}\`\\n\`ghcr.io/anulum/director-ai:latest\`\", \"inline\": true},
-                {\"name\": \"GPU\", \"value\": \"\`ghcr.io/anulum/director-ai:${VERSION}-gpu\`\\n\`ghcr.io/anulum/director-ai:gpu\`\", \"inline\": true}
+                {\"name\": \"GPU\", \"value\": \"\`ghcr.io/anulum/director-ai:${VERSION}-gpu\`\\n\`ghcr.io/anulum/director-ai:gpu\`\", \"inline\": true},
+                {\"name\": \"Pull\", \"value\": \"\`\`\`\\ndocker pull ghcr.io/anulum/director-ai:latest\\n\`\`\`\", \"inline\": false}
               ],
-              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\"}
+              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\", \"icon_url\": \"https://github.com/anulum.png\"},
+              \"timestamp\": \"${TIMESTAMP}\"
             }]
           }" "$DISCORD_WEBHOOK_URL"

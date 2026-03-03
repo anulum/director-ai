@@ -2,38 +2,51 @@
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
+
 import discord
 
 BLURPLE = 0x5865F2
 GREEN = 0x2ECC71
 RED = 0xE74C3C
 DOCKER_BLUE = 0x3498DB
+AMBER = 0xF1C40F
+
+REPO = "anulum/director-ai"
+DOCS_URL = "https://anulum.github.io/director-ai"
+PYPI_URL = "https://pypi.org/project/director-ai"
+GHCR_URL = "https://ghcr.io/anulum/director-ai"
 
 
 def release_embed(
     version: str,
     changelog_bullets: list[str],
     release_url: str,
-    repo: str = "anulum/director-ai",
 ) -> discord.Embed:
-    desc = "\n".join(f"- {b}" for b in changelog_bullets[:3]) or "See release notes."
+    desc = "\n".join(f"- {b}" for b in changelog_bullets[:5]) or "See release notes."
     em = discord.Embed(
         title=f"Director-AI v{version} released",
         description=desc,
         color=BLURPLE,
         url=release_url,
+        timestamp=datetime.now(timezone.utc),
     )
-    em.add_field(name="Install", value=f"```\npip install director-ai=={version}\n```", inline=False)
+    em.add_field(
+        name="Install",
+        value=f"```\npip install director-ai=={version}\n```",
+        inline=False,
+    )
     em.add_field(
         name="Links",
         value=(
-            f"[PyPI](https://pypi.org/project/director-ai/{version}/) · "
+            f"[PyPI]({PYPI_URL}/{version}/) · "
             f"[Release]({release_url}) · "
-            f"[Docs](https://anulum.github.io/director-ai/)"
+            f"[Docs]({DOCS_URL}) · "
+            f"[Docker]({GHCR_URL})"
         ),
         inline=False,
     )
-    em.set_footer(text=repo)
+    em.set_footer(text=REPO, icon_url="https://github.com/anulum.png")
     return em
 
 
@@ -42,18 +55,22 @@ def ci_embed(
     branch: str,
     sha: str,
     run_url: str,
-    repo: str = "anulum/director-ai",
+    job_summary: str = "",
 ) -> discord.Embed:
-    status = "passed" if passed else "failed"
+    status = "passed" if passed else "FAILED"
+    color = GREEN if passed else RED
     em = discord.Embed(
         title=f"CI {status}",
-        color=GREEN if passed else RED,
+        color=color,
         url=run_url,
+        timestamp=datetime.now(timezone.utc),
     )
     em.add_field(name="Branch", value=f"`{branch}`", inline=True)
     em.add_field(name="Commit", value=f"`{sha[:7]}`", inline=True)
     em.add_field(name="Run", value=f"[View]({run_url})", inline=True)
-    em.set_footer(text=repo)
+    if job_summary:
+        em.add_field(name="Jobs", value=job_summary, inline=False)
+    em.set_footer(text=REPO, icon_url="https://github.com/anulum.png")
     return em
 
 
@@ -62,27 +79,80 @@ def status_embed(
     ci_conclusion: str | None,
     ci_run_url: str | None,
 ) -> discord.Embed:
-    em = discord.Embed(title="Director-AI Status", color=BLURPLE)
+    ci_icon = {
+        "success": "\u2705",
+        "failure": "\u274c",
+        "cancelled": "\u23f9\ufe0f",
+    }
+    em = discord.Embed(
+        title="Director-AI Status",
+        color=BLURPLE,
+        timestamp=datetime.now(timezone.utc),
+    )
     em.add_field(name="PyPI", value=f"`{pypi_version}`", inline=True)
     if ci_conclusion and ci_run_url:
-        em.add_field(name="CI", value=f"{ci_conclusion} — [run]({ci_run_url})", inline=True)
+        icon = ci_icon.get(ci_conclusion, "\u2753")
+        em.add_field(
+            name="CI",
+            value=f"{icon} {ci_conclusion} — [run]({ci_run_url})",
+            inline=True,
+        )
     em.add_field(
-        name="Docs",
-        value="[anulum.github.io/director-ai](https://anulum.github.io/director-ai/)",
+        name="Links",
+        value=(
+            f"[Docs]({DOCS_URL}) · "
+            f"[PyPI]({PYPI_URL}) · "
+            f"[GitHub](https://github.com/{REPO})"
+        ),
         inline=False,
     )
+    em.set_footer(text=REPO, icon_url="https://github.com/anulum.png")
     return em
 
 
 def docker_embed(
     cpu_tags: list[str],
     gpu_tags: list[str],
-    repo: str = "anulum/director-ai",
 ) -> discord.Embed:
-    em = discord.Embed(title="Docker images published", color=DOCKER_BLUE)
+    em = discord.Embed(
+        title="Docker images published",
+        color=DOCKER_BLUE,
+        timestamp=datetime.now(timezone.utc),
+    )
     if cpu_tags:
-        em.add_field(name="CPU", value="\n".join(f"`{t}`" for t in cpu_tags), inline=True)
+        em.add_field(
+            name="CPU", value="\n".join(f"`{t}`" for t in cpu_tags), inline=True
+        )
     if gpu_tags:
-        em.add_field(name="GPU", value="\n".join(f"`{t}`" for t in gpu_tags), inline=True)
-    em.set_footer(text=repo)
+        em.add_field(
+            name="GPU", value="\n".join(f"`{t}`" for t in gpu_tags), inline=True
+        )
+    em.add_field(
+        name="Pull",
+        value=f"```\ndocker pull {GHCR_URL}:latest\n```",
+        inline=False,
+    )
+    em.set_footer(text=REPO, icon_url="https://github.com/anulum.png")
+    return em
+
+
+def welcome_embed(display_name: str) -> discord.Embed:
+    em = discord.Embed(
+        title=f"Welcome, {display_name}!",
+        description=(
+            "**Director-AI** is a real-time LLM hallucination guardrail "
+            "with NLI + RAG fact-checking and token-level streaming halt.\n\n"
+            "Get started:\n"
+            "- `/quickstart` — 6-line guard snippet\n"
+            "- `/install` — installation options\n"
+            "- `/docs` — full documentation\n"
+            "- `/profiles` — domain presets (medical, finance, legal, ...)\n\n"
+            f"[GitHub](https://github.com/{REPO}) · "
+            f"[Docs]({DOCS_URL}) · "
+            f"[PyPI]({PYPI_URL})"
+        ),
+        color=BLURPLE,
+        timestamp=datetime.now(timezone.utc),
+    )
+    em.set_footer(text=REPO, icon_url="https://github.com/anulum.png")
     return em

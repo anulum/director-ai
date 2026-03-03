@@ -96,7 +96,7 @@ jobs:
           VERSION="${{ github.event.release.tag_name }}"
           VERSION="${VERSION#v}"
           BULLETS=$(sed -n "/^## \[${VERSION}\]/,/^## \[/{/^## \[${VERSION}\]/d;/^## \[/d;/^$/d;p;}" CHANGELOG.md \
-            | grep -E '^\s*-' | head -3 | sed 's/^ *- *//' | jq -Rsc 'split("\n") | map(select(length>0))')
+            | grep -E '^\s*-' | head -5 | sed 's/^ *- *//' | jq -Rsc 'split("\n") | map(select(length>0))')
           echo "bullets=${BULLETS}" >> "$GITHUB_OUTPUT"
 
       - name: Post to Discord
@@ -109,6 +109,7 @@ jobs:
           RELEASE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${{ github.event.release.tag_name }}"
           BULLETS='${{ steps.changelog.outputs.bullets }}'
           DESC=$(echo "$BULLETS" | jq -r 'map("- " + .) | join("\n")' 2>/dev/null || echo "See release notes.")
+          TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           curl -sf -H "Content-Type: application/json" -d "{
             \"embeds\": [{
               \"title\": \"Director-AI v${VERSION} released\",
@@ -117,8 +118,9 @@ jobs:
               \"url\": \"${RELEASE_URL}\",
               \"fields\": [
                 {\"name\": \"Install\", \"value\": \"\`\`\`\\npip install director-ai==${VERSION}\\n\`\`\`\", \"inline\": false},
-                {\"name\": \"Links\", \"value\": \"[PyPI](https://pypi.org/project/director-ai/${VERSION}/) · [Release](${RELEASE_URL}) · [Docs](https://anulum.github.io/director-ai/)\", \"inline\": false}
+                {\"name\": \"Links\", \"value\": \"[PyPI](https://pypi.org/project/director-ai/${VERSION}/) · [Release](${RELEASE_URL}) · [Docs](https://anulum.github.io/director-ai/) · [Docker](https://ghcr.io/anulum/director-ai)\", \"inline\": false}
               ],
-              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\"}
+              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\", \"icon_url\": \"https://github.com/anulum.png\"},
+              \"timestamp\": \"${TIMESTAMP}\"
             }]
           }" "$DISCORD_ANNOUNCE_WEBHOOK"
