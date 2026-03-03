@@ -319,20 +319,33 @@ jobs:
           else
             echo "passed=true" >> "$GITHUB_OUTPUT"
           fi
-          # Build per-job summary
-          SUMMARY=""
-          for JOB in lint typecheck test test-extras security fuzz sast benchmark rust; do
-            eval "R=\${{ needs.${JOB}.result }}"
-            case "$R" in
-              success)   ICON="✅" ;;
-              failure)   ICON="❌" ;;
-              cancelled) ICON="⏹️" ;;
-              skipped)   ICON="⏭️" ;;
-              *)         ICON="❓" ;;
-            esac
-            SUMMARY="${SUMMARY}${ICON} ${JOB}  "
-          done
-          echo "summary=${SUMMARY}" >> "$GITHUB_OUTPUT"
+        env:
+          LINT: ${{ needs.lint.result }}
+          TYPECHECK: ${{ needs.typecheck.result }}
+          TEST: ${{ needs.test.result }}
+          TEST_EXTRAS: ${{ needs.test-extras.result }}
+          SECURITY: ${{ needs.security.result }}
+          FUZZ: ${{ needs.fuzz.result }}
+          SAST: ${{ needs.sast.result }}
+          BENCHMARK: ${{ needs.benchmark.result }}
+          RUST: ${{ needs.rust.result }}
+
+      - name: Build job summary
+        id: summary
+        run: |
+          icon() { case "$1" in success) echo "✅";; failure) echo "❌";; cancelled) echo "⏹️";; skipped) echo "⏭️";; *) echo "❓";; esac; }
+          S="$(icon "$LINT") lint  $(icon "$TYPECHECK") typecheck  $(icon "$TEST") test  $(icon "$TEST_EXTRAS") extras  $(icon "$SECURITY") security  $(icon "$FUZZ") fuzz  $(icon "$SAST") sast  $(icon "$BENCHMARK") bench  $(icon "$RUST") rust"
+          echo "jobs=$S" >> "$GITHUB_OUTPUT"
+        env:
+          LINT: ${{ needs.lint.result }}
+          TYPECHECK: ${{ needs.typecheck.result }}
+          TEST: ${{ needs.test.result }}
+          TEST_EXTRAS: ${{ needs.test-extras.result }}
+          SECURITY: ${{ needs.security.result }}
+          FUZZ: ${{ needs.fuzz.result }}
+          SAST: ${{ needs.sast.result }}
+          BENCHMARK: ${{ needs.benchmark.result }}
+          RUST: ${{ needs.rust.result }}
 
       - name: Post to Discord
         if: env.DISCORD_WEBHOOK_URL != ''
@@ -350,7 +363,7 @@ jobs:
           RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
           BRANCH="${GITHUB_REF_NAME}"
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          JOBS="${{ steps.result.outputs.summary }}"
+          JOBS="${{ steps.summary.outputs.jobs }}"
           curl -sf -H "Content-Type: application/json" -d "{
             \"embeds\": [{
               \"title\": \"CI ${STATUS}\",
