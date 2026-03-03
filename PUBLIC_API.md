@@ -1,4 +1,4 @@
-# Public API — Director-AI v2.6.0
+# Public API — Director-AI v2.6.1
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -34,6 +34,10 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `StreamSession` | `core.streaming` | Streaming session metrics |
 | `SanitizeResult` | `core.sanitizer` | Sanitizer check result |
 | `Turn` | `core.session` | Single conversation turn |
+
+### Retrieval Strategy
+
+`CoherenceScorer.review(prompt, response)` retrieves KB context using the **prompt** only (not the response claims). This is by design: retrieval must happen before scoring to provide the fact basis against which claims are evaluated. Searching by response claims would create a circular dependency — you can't retrieve evidence for claims you haven't scored yet. For vague prompts, the heuristic and NLI scoring layers compensate by comparing the response against whatever context the prompt retrieves.
 
 ## Plugin API
 

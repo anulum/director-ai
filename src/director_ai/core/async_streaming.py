@@ -52,6 +52,9 @@ class AsyncStreamingKernel(SafetyKernel):
     trend_threshold : float — halt if coherence drops this much.
     """
 
+    _SENTENCE_ENDS = frozenset(".!?")
+    _SOFT_HALT_CAP = 50
+
     def __init__(
         self,
         hard_limit: float = 0.5,
@@ -124,6 +127,8 @@ class AsyncStreamingKernel(SafetyKernel):
         stream_start = time.monotonic()
         cadence = self.score_every_n
         last_score = 0.5
+        _soft_halt_pending = False
+        _soft_halt_extra_tokens = 0
 
         async for token in self._iter_tokens(token_source):
             if not isinstance(token, str):
@@ -197,7 +202,19 @@ class AsyncStreamingKernel(SafetyKernel):
             coherence_history.append(score)
             window.append(score)
 
-            # Hard limit
+            # Soft-halt pending: yield token, check sentence boundary or cap
+            if _soft_halt_pending:
+                _soft_halt_extra_tokens += 1
+                at_cap = _soft_halt_extra_tokens >= self._SOFT_HALT_CAP
+                if self._is_sentence_boundary(token) or at_cap:
+                    event.halted = True
+                    yield event
+                    return
+                yield event
+                i += 1
+                continue
+
+            # Hard limit — always immediate halt
             if score < self.hard_limit:
                 event.halted = True
                 self.emergency_stop()
@@ -209,24 +226,40 @@ class AsyncStreamingKernel(SafetyKernel):
                 event.warning = True
 
             # Sliding window average
+            halt_reason = ""
             if len(window) >= self.window_size:
                 avg = sum(window) / len(window)
                 if avg < self.window_threshold:
-                    event.halted = True
-                    yield event
-                    return
+                    halt_reason = "window_avg"
 
             # Downward trend
-            if len(coherence_history) >= self.trend_window:
+            if not halt_reason and len(coherence_history) >= self.trend_window:
                 recent = coherence_history[-self.trend_window :]
                 drop = recent[0] - recent[-1]
                 if drop > self.trend_threshold:
-                    event.halted = True
+                    halt_reason = "downward_trend"
+
+            if halt_reason:
+                if self.halt_mode == "soft":
+                    _soft_halt_pending = True
+                    if self._is_sentence_boundary(token):
+                        event.halted = True
+                        yield event
+                        return
                     yield event
-                    return
+                    i += 1
+                    continue
+                event.halted = True
+                yield event
+                return
 
             yield event
             i += 1
+
+    @staticmethod
+    def _is_sentence_boundary(token: str) -> bool:
+        stripped = token.rstrip()
+        return bool(stripped) and stripped[-1] in AsyncStreamingKernel._SENTENCE_ENDS
 
     async def stream_to_session(
         self,

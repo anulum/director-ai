@@ -128,8 +128,14 @@ class DirectorConfig:
     w_logic: float = 0.0
     w_fact: float = 0.0
 
+    # Metrics auth: when True, /v1/metrics/prometheus requires API key
+    metrics_require_auth: bool = False
+
     # Rate limiting (requests per minute, 0 = disabled)
     rate_limit_rpm: int = 0
+
+    # When True, raise ImportError if rate_limit_rpm > 0 and slowapi missing
+    rate_limit_strict: bool = False
 
     # API key auth (empty list = no auth required)
     api_keys: list[str] = field(default_factory=list)

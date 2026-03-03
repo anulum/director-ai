@@ -74,6 +74,28 @@ class TestEmergencyStop:
         assert k.is_active is False
 
 
+class TestReactivate:
+    def test_reactivate_after_emergency_stop(self):
+        k = SafetyKernel()
+        k.emergency_stop()
+        assert k.is_active is False
+        k.reactivate()
+        assert k.is_active is True
+
+    def test_reactivate_allows_new_stream(self):
+        k = SafetyKernel(hard_limit=0.5)
+        k.stream_output(iter(["x"]), lambda _t: 0.1)
+        assert k.is_active is False
+        k.reactivate()
+        result = k.stream_output(iter(["ok"]), lambda _t: 0.9)
+        assert result == "ok"
+
+    def test_reactivate_idempotent_on_active(self):
+        k = SafetyKernel()
+        k.reactivate()
+        assert k.is_active is True
+
+
 class TestOnHaltCallback:
     def test_on_halt_called_with_score(self):
         received = []

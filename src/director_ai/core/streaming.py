@@ -169,9 +169,10 @@ class StreamingKernel(SafetyKernel):
         return False
 
     def reset_state(self) -> None:
-        """Clear internal window/trend state for a new stream."""
+        """Clear internal window/trend state and re-arm kernel for a new stream."""
         self._window.clear()
         self._history.clear()
+        self.reactivate()
 
     @staticmethod
     def _suggested_action(reason: str) -> str:

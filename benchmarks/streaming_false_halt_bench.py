@@ -1297,7 +1297,7 @@ def run_benchmark(use_nli: bool = False) -> dict:
         )
 
         # Reset kernel for next passage
-        kernel._active = True
+        kernel.reactivate()
 
     false_halts = [r for r in results if r.halted]
     fh_rate = len(false_halts) / n
@@ -1387,7 +1387,7 @@ def run_window_sweep(use_nli: bool = False) -> dict:
             session = kernel.stream_tokens(iter(tokens), coh_cb, ev_cb)
             if session.halted:
                 false_halts += 1
-            kernel._active = True
+            kernel.reactivate()
 
         correct_halts = 0
         halt_coherences = []
@@ -1406,7 +1406,7 @@ def run_window_sweep(use_nli: bool = False) -> dict:
             if session.halted:
                 correct_halts += 1
                 halt_coherences.append(session.avg_coherence)
-            kernel._active = True
+            kernel.reactivate()
 
         n_good = len(GOOD_PASSAGES)
         n_bad = len(BAD_PASSAGES)

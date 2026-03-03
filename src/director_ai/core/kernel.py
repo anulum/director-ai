@@ -84,3 +84,8 @@ class SafetyKernel:
         """Halt the inference engine."""
         self.logger.critical(">>> SAFETY KERNEL ACTIVATED: INFERENCE HALTED <<<")
         self.is_active = False
+
+    def reactivate(self):
+        """Re-arm the kernel after an emergency stop."""
+        self.is_active = True
+        self.logger.info("Safety kernel reactivated")

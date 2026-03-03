@@ -37,7 +37,7 @@ REQUEST_ID_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
 logger = logging.getLogger("DirectorAI.Server")
 
 _WS_MAX_PROMPT_LENGTH = 100_000
-_AUTH_EXEMPT_PATHS = frozenset({"/v1/health", "/v1/metrics/prometheus", "/v1/source"})
+_AUTH_EXEMPT_PATHS_BASE = frozenset({"/v1/health", "/v1/source"})
 
 try:
     from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -195,11 +195,21 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         store = cfg.build_store()
         scorer = cfg.build_scorer(store=store)
-        agent = CoherenceAgent(
-            llm_api_url=cfg.llm_api_url if cfg.llm_provider == "local" else None,
-            _scorer=scorer,
-            _store=store,
-        )
+        agent_kwargs: dict = {"_scorer": scorer, "_store": store}
+        if cfg.llm_provider == "local":
+            agent_kwargs["llm_api_url"] = cfg.llm_api_url
+        elif cfg.llm_provider in ("openai", "anthropic"):
+            agent_kwargs["provider"] = cfg.llm_provider
+            if cfg.llm_api_key:
+                import os as _os
+
+                _env_keys = {
+                    "openai": "OPENAI_API_KEY",
+                    "anthropic": "ANTHROPIC_API_KEY",
+                }
+                _os.environ.setdefault(_env_keys[cfg.llm_provider], cfg.llm_api_key)
+            logger.info("LLM provider: %s", cfg.llm_provider)
+        agent = CoherenceAgent(**agent_kwargs)
         batch_proc = BatchProcessor(agent, max_concurrency=cfg.batch_max_concurrency)
 
         stats = None
@@ -271,6 +281,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     limiter = None
     if cfg.rate_limit_rpm > 0:
         if not _SLOWAPI_AVAILABLE:
+            if cfg.rate_limit_strict:
+                raise ImportError(
+                    "rate_limit_strict=True but slowapi not installed. "
+                    "Install with: pip install director-ai[ratelimit]"
+                )
             logger.warning(
                 "rate_limit_rpm=%d but slowapi not installed. "
                 "Install with: pip install director-ai[ratelimit]",
@@ -295,6 +310,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # ── Middleware: correlation IDs + API key auth + metrics ───────────
 
+    _auth_exempt = (
+        _AUTH_EXEMPT_PATHS_BASE
+        if cfg.metrics_require_auth
+        else _AUTH_EXEMPT_PATHS_BASE | {"/v1/metrics/prometheus"}
+    )
+
     @app.middleware("http")
     async def _http_middleware(request: Request, call_next):
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
@@ -302,7 +323,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         REQUEST_ID_CTX.set(request_id)
 
         # API key auth (constant-time comparison)
-        if cfg.api_keys and request.url.path not in _AUTH_EXEMPT_PATHS:
+        if cfg.api_keys and request.url.path not in _auth_exempt:
             provided = request.headers.get("X-API-Key", "")
             if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
                 return JSONResponse(

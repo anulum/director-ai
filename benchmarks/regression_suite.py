@@ -154,7 +154,7 @@ def test_streaming_stability():
         session = kernel.stream_tokens(iter(tokens), coherence_cb)
         if session.halted:
             false_halts += 1
-        kernel._active = True
+        kernel.reactivate()
         accumulated = ""
 
     print(f"  Streaming stability: {false_halts} false halts in 5 passages")
@@ -342,7 +342,7 @@ def test_false_halt_rate():
         session = kernel.stream_tokens(iter(tokens), coherence_cb)
         if session.halted:
             false_halts += 1
-        kernel._active = True
+        kernel.reactivate()
         accumulated = ""
 
     n = len(GOOD_PASSAGES)
@@ -385,7 +385,7 @@ def test_streaming_overhead():
         t0 = time.perf_counter()
         kernel.stream_tokens(iter(tokens), coherence_cb)
         times.append(time.perf_counter() - t0)
-        kernel._active = True
+        kernel.reactivate()
         accumulated = ""
 
     avg_ms = sum(times) / len(times) * 1000

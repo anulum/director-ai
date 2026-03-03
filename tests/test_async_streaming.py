@@ -172,3 +172,60 @@ class TestAsyncStreamingKernel:
     async def test_invalid_halt_mode_raises(self):
         with pytest.raises(ValueError, match="halt_mode"):
             AsyncStreamingKernel(halt_mode="invalid")
+
+    async def test_soft_halt_waits_for_sentence_boundary(self):
+        """Soft-halt yields tokens until sentence boundary, not immediately."""
+        kernel = AsyncStreamingKernel(
+            hard_limit=0.1,
+            window_size=3,
+            window_threshold=0.55,
+            halt_mode="soft",
+        )
+        # First 3 tokens have low scores (trigger window halt),
+        # then continue until sentence end.
+        scores = [0.4, 0.4, 0.4, 0.4, 0.4]
+        idx = 0
+
+        def callback(t):
+            nonlocal idx
+            s = scores[idx] if idx < len(scores) else 0.4
+            idx += 1
+            return s
+
+        tokens = ["The", " sky", " is", " blue", "."]
+        events = await self._collect_events(kernel, tokens, callback)
+        assert events[-1].halted
+        assert events[-1].token == "."
+        assert len(events) == 5
+
+    async def test_soft_halt_cap_after_50_tokens(self):
+        """Soft-halt stops after _SOFT_HALT_CAP tokens without boundary."""
+        kernel = AsyncStreamingKernel(
+            hard_limit=0.1,
+            window_size=3,
+            window_threshold=0.55,
+            halt_mode="soft",
+        )
+        # Generate enough tokens to trigger window halt then reach cap
+        n = 3 + kernel._SOFT_HALT_CAP + 5
+        tokens = [f"w{i}" for i in range(n)]
+
+        events = await self._collect_events(kernel, tokens, lambda t: 0.4)
+        assert events[-1].halted
+        # 3 tokens to fill window + SOFT_HALT_CAP extra
+        assert len(events) <= 3 + kernel._SOFT_HALT_CAP + 1
+
+    async def test_soft_halt_hard_limit_still_immediate(self):
+        """Hard limit violations halt immediately even in soft mode."""
+        kernel = AsyncStreamingKernel(
+            hard_limit=0.3,
+            window_size=10,
+            window_threshold=0.5,
+            halt_mode="soft",
+        )
+        scores = iter([0.8, 0.1])
+        events = await self._collect_events(
+            kernel, ["ok", "bad", "more"], lambda t: next(scores)
+        )
+        assert events[-1].halted
+        assert len(events) == 2

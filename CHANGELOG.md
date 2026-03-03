@@ -5,6 +5,21 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.1] — 2026-03-03
+
+### Added
+- `SafetyKernel.reactivate()` — public method to re-arm kernel after emergency stop. Benchmarks no longer hack `_active`.
+- `DirectorConfig.metrics_require_auth` — when `True`, `/v1/metrics/prometheus` requires API key auth.
+- `DirectorConfig.rate_limit_strict` — when `True` + slowapi missing, `create_app()` raises `ImportError` instead of silent degradation.
+- `AsyncStreamingKernel` soft-halt logic — `halt_mode="soft"` now yields tokens until sentence boundary or 50-token cap (ported from `StreamingKernel`).
+
+### Fixed
+- Server lifespan now wires `openai`/`anthropic` provider configs through to `CoherenceAgent` (previously only `local` was connected).
+- `StreamingKernel.reset_state()` calls `reactivate()` to re-arm the kernel.
+
+### Docs
+- `PUBLIC_API.md`: retrieval strategy note explaining prompt-only KB lookup rationale.
+
 ## [2.6.0] — 2026-03-03
 
 ### Changed
@@ -660,7 +675,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v2.6.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v2.6.1...HEAD
+[2.6.1]: https://github.com/anulum/director-ai/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/anulum/director-ai/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/anulum/director-ai/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/anulum/director-ai/compare/v2.3.0...v2.4.0

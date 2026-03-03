@@ -214,6 +214,47 @@ def test_source_custom_repo_url():
     assert r.json()["repository_url"] == "https://git.example.com/fork"
 
 
+def test_metrics_auth_required_returns_401():
+    """When metrics_require_auth=True, /v1/metrics/prometheus needs API key."""
+    cfg = DirectorConfig(
+        api_keys=["secret"], llm_provider="mock", metrics_require_auth=True
+    )
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/metrics/prometheus")
+    assert r.status_code == 401
+
+
+def test_metrics_auth_required_with_key_returns_200():
+    cfg = DirectorConfig(
+        api_keys=["secret"], llm_provider="mock", metrics_require_auth=True
+    )
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/metrics/prometheus", headers={"X-API-Key": "secret"})
+    assert r.status_code == 200
+
+
+def test_rate_limit_strict_raises_without_slowapi(monkeypatch):
+    """rate_limit_strict=True + missing slowapi raises ImportError."""
+    import director_ai.server as srv
+
+    monkeypatch.setattr(srv, "_SLOWAPI_AVAILABLE", False)
+    cfg = DirectorConfig(rate_limit_rpm=60, rate_limit_strict=True, llm_provider="mock")
+    with pytest.raises(ImportError, match="rate_limit_strict"):
+        create_app(cfg)
+
+
+def test_server_provider_wiring_openai(monkeypatch):
+    """Non-local provider config sets env key for CoherenceAgent."""
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key-openai")
+    cfg = DirectorConfig(llm_provider="openai", llm_api_key="from-config")
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/health")
+    assert r.status_code == 200
+
+
 def test_sqlite_stats_works(tmp_path):
     db_path = str(tmp_path / "test_stats.db")
     cfg = DirectorConfig(
