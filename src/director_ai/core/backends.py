@@ -187,9 +187,10 @@ register_backend("minicheck", MiniCheckBackend)
 register_backend("lite", LiteBackend)
 
 try:
-    import backfire_kernel as _bk_probe  # noqa: F401
+    from backfire_kernel import BackfireConfig as _BkCfg  # noqa: F401
+    from backfire_kernel import RustCoherenceScorer as _RustScorer  # noqa: F401
 
     register_backend("rust", RustBackend)
     register_backend("backfire", RustBackend)
-except ImportError:
+except (ImportError, AttributeError):
     pass
