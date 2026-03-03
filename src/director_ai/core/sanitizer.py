@@ -202,22 +202,24 @@ class InputSanitizer:
                 matches=["unicode"],
             )
 
+        allowlisted = self._is_allowlisted(text)
         matched: list[str] = []
         total = 0.0
         for name, pat in self._patterns:
             if pat.search(text):
-                if self._is_allowlisted(text):
+                if allowlisted:
                     continue
                 weight = self._weights.get(name, 0.5)
-                total = max(total, weight)
+                total += weight
                 matched.append(name)
 
-        blocked = total >= self.block_threshold
+        clamped = min(total, 1.0)
+        blocked = clamped >= self.block_threshold
         return SanitizeResult(
             blocked=blocked,
             reason=matched[0] if matched else "",
             pattern=matched[0] if matched else "",
-            suspicion_score=min(total, 1.0),
+            suspicion_score=clamped,
             matches=matched,
         )
 

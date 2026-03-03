@@ -305,7 +305,7 @@ def main():
     args = parser.parse_args()
 
     print("\n" + "=" * 72)
-    print("Director-AI Latency Benchmark (v1.4.0)")
+    print("Director-AI Latency Benchmark (v2.6.0)")
     print(f"  iterations={args.iterations}  warmup={args.warmup}")
     print(f"  python={sys.version.split()[0]}")
 

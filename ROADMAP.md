@@ -1,6 +1,30 @@
 # Roadmap
 
-## v2.3.0 (current)
+## v2.6.0 (current)
+
+### Done
+- StreamingKernel wired into `CoherenceAgent.stream()` for unified token-level oversight
+- gRPC incremental streaming with per-chunk coherence scores
+- CLI multi-worker config propagation (`--workers`)
+- ONNX batch config wiring end-to-end (`onnx_path` in DirectorConfig)
+- Prompt content removed from logs — HMAC audit hashing
+- `guard()` duck-type detection for OpenAI/Anthropic SDK interceptor
+- `strict_mode` reject in `CoherenceScorer.review()`
+- Domain profiles: medical, finance, legal, creative, customer_support, summarization
+- Discord bot + CI/release webhook automation
+- E2E benchmark context leakage fix (per-sample store isolation)
+- InputSanitizer additive scoring model fix
+
+## v2.5.0
+
+### Done
+- Domain-specific scoring profiles (medical, finance, legal, creative, customer_support, summarization)
+- `strict_mode` reject in CoherenceScorer
+- `guard()` SDK interceptor with duck-type provider detection
+- Persistent stats backend (SQLite)
+- AGPL §13 `/v1/source` compliance endpoint
+
+## v2.3.0
 
 ### Done
 - Lite scorer backend (`scorer_backend="lite"`) — word overlap + negation heuristics, ~0.5ms/pair
@@ -46,18 +70,19 @@
 - Thread-safe OTel setup
 - Histogram bucket_counts O(n log n) optimization
 
-## v2.4.0 (planned)
+## v2.7.0 (planned)
 
 - Rust-accelerated scorer backend via backfire-kernel FFI
 - WebSocket multiplexed streaming (multiple sessions per connection)
 - Model-agnostic ONNX quantization pipeline (INT8/FP16 auto-select)
+- VectorBackend entry-point registry (parity with ScorerBackend plugins)
+- Tenant-isolated VectorStores
 
 ## v3.0 (vision)
 
 - **Simplified public API**: `guard()` as the primary interface; enterprise behind `director_ai.enterprise`
 - **Rust-accelerated scorer**: PyO3 binding to backfire-ffi for sub-1ms heuristic scoring
 - **Adaptive threshold calibration**: `director-ai tune` with labeled data → optimal threshold + weights
-- **Provider-agnostic guard()**: duck-type detection supports any OpenAI-compatible client (done in 2.3.0)
 - **WebSocket multiplexed streaming**: multiple concurrent sessions per connection with back-pressure
 - **ONNX INT8/FP16 auto-select**: quantization pipeline picks precision based on hardware capability
 - **Remove deprecated 1.x aliases**: `DirectorModule`, `BackfireKernel`, `StrangeLoopAgent`, etc.

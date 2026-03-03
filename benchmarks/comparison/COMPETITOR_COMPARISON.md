@@ -1,6 +1,6 @@
 # Director-AI -- Competitor Benchmark Comparison
 
-Last updated: 2026-03-02 (v2.3.0)
+Last updated: 2026-03-03 (v2.6.0)
 
 ## One-Pager Summary
 

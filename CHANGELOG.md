@@ -29,9 +29,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **R15: HMAC audit hashing** — `AuditLogger` uses HMAC-SHA256 (keyed via `DIRECTOR_AUDIT_HMAC_SECRET` env var or random secret) instead of plain SHA-256 for query hashes.
 
 ### Added
-- **Discord bot** (`discord-bot/`) — channel bootstrap, 5 slash commands (`/version`, `/docs`, `/install`, `/status`, `/quickstart`), CI/release/Docker webhook embeds.
+- **Discord bot** (`discord-bot/`) — channel bootstrap, 7 slash commands, CI/release/Docker webhook embeds.
 - CI `discord-notify` job posts pass/fail to Discord `#ci-status` channel.
 - Publish `discord-announce` job posts release notes to Discord `#announcements` channel.
+- `onnx_path` field in `DirectorConfig` — env var `DIRECTOR_ONNX_PATH` now wires through to `NLIScorer`.
+- Coverage gate raised from 70% to 79%.
+
+### Fixed (review-driven)
+- **R16: ONNX config wiring** — `Dockerfile.gpu` sets `DIRECTOR_ONNX_PATH` but `DirectorConfig` had no `onnx_path` field. Added field + `build_scorer()` pass-through.
+- **R17: E2E benchmark context leakage** — `benchmarks/e2e_eval.py` shared a single `VectorGroundTruthStore` across all samples. Earlier contexts leaked into later scores. Fixed: fresh store per sample.
+- **R18: InputSanitizer scoring model** — `score()` used `max(total, weight)` instead of additive accumulation. Multiple low-weight pattern matches now correctly sum to exceed the block threshold.
+- **R19: Doc version drift** — `PUBLIC_API.md`, `ROADMAP.md`, `SECURITY.md` referenced v2.3.x. Updated to v2.6.0. Fixed stale version labels in `latency_bench.py` (v1.4.0→v2.6.0) and `COMPETITOR_COMPARISON.md`.
 - Version bump: 2.5.0 → 2.6.0
 
 ## [2.5.0] — 2026-03-03

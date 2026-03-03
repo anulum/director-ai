@@ -394,6 +394,26 @@ class TestNewV25Fields:
         assert "stats_backend" in d
         assert "grpc_max_message_mb" in d
         assert "source_endpoint_enabled" in d
+        assert "onnx_path" in d
+
+    def test_onnx_path_default_empty(self):
+        cfg = DirectorConfig()
+        assert cfg.onnx_path == ""
+
+    def test_onnx_path_from_env(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_ONNX_PATH", "/models/onnx")
+        cfg = DirectorConfig.from_env()
+        assert cfg.onnx_path == "/models/onnx"
+
+    def test_build_scorer_passes_onnx_path(self):
+        cfg = DirectorConfig(
+            scorer_backend="onnx",
+            use_nli=True,
+            onnx_path="/tmp/onnx_model",
+        )
+        scorer = cfg.build_scorer()
+        assert scorer._nli is not None
+        assert scorer._nli._onnx_path == "/tmp/onnx_model"
 
 
 class TestWeightValidation:

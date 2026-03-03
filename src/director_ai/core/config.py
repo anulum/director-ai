@@ -47,6 +47,7 @@ class DirectorConfig:
     vector_backend : str — "memory" or "chroma".
     chroma_collection : str — ChromaDB collection name.
     chroma_persist_dir : str — ChromaDB persistence directory (None=in-memory).
+    onnx_path : str — directory with exported ONNX model (for scorer_backend="onnx").
     server_host : str — FastAPI server bind address.
     server_port : int — FastAPI server port.
     server_workers : int — Uvicorn worker count.
@@ -103,7 +104,8 @@ class DirectorConfig:
     server_workers: int = 1
     cors_origins: str = "*"
 
-    # ONNX batching
+    # ONNX
+    onnx_path: str = ""
     onnx_batch_size: int = 16
     onnx_flush_timeout_ms: float = 10.0
 
@@ -437,6 +439,8 @@ class DirectorConfig:
             "onnx_batch_size": self.onnx_batch_size,
             "onnx_flush_timeout_ms": self.onnx_flush_timeout_ms,
         }
+        if self.onnx_path:
+            kw["onnx_path"] = self.onnx_path
         if self.w_logic != 0.0:
             kw["w_logic"] = self.w_logic
             kw["w_fact"] = self.w_fact

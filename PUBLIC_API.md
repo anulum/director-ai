@@ -1,4 +1,4 @@
-# Public API — Director-AI v2.3.0
+# Public API — Director-AI v2.6.0
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -133,4 +133,5 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `legal` | 0.68 | on | deberta | Legal documents |
 | `creative` | 0.4 | off | deberta | Creative writing |
 | `customer_support` | 0.55 | off | deberta | Support agents |
+| `summarization` | 0.55 | on | deberta | Document summarization |
 | `lite` | 0.5 | off | lite | Zero-dependency fast path |

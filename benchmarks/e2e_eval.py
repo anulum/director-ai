@@ -230,15 +230,6 @@ def run_e2e_benchmark(
     if tasks is None:
         tasks = ["qa", "summarization", "dialogue"]
 
-    store = VectorGroundTruthStore()
-    scorer = CoherenceScorer(
-        threshold=threshold,
-        soft_limit=soft_limit,
-        use_nli=use_nli,
-        ground_truth_store=store,
-        nli_model=nli_model,
-    )
-
     metrics = E2EMetrics(
         threshold=threshold,
         soft_limit=soft_limit,
@@ -261,7 +252,15 @@ def run_e2e_benchmark(
                 if not context or not response:
                     continue
 
-                # Ingest context into vector store for this sample
+                # Fresh store per sample to prevent context leakage
+                store = VectorGroundTruthStore()
+                scorer = CoherenceScorer(
+                    threshold=threshold,
+                    soft_limit=soft_limit,
+                    use_nli=use_nli,
+                    ground_truth_store=store,
+                    nli_model=nli_model,
+                )
                 store.ingest([context])
 
                 t0 = time.perf_counter()
@@ -313,17 +312,8 @@ def sweep_thresholds(
     if tasks is None:
         tasks = ["qa", "summarization", "dialogue"]
 
-    store = VectorGroundTruthStore()
-
     # Pre-score all samples once, then sweep threshold
     raw_scores: list[tuple[str, bool, float]] = []  # (task, is_halluc, score)
-
-    scorer = CoherenceScorer(
-        threshold=0.1,
-        use_nli=use_nli,
-        ground_truth_store=store,
-        nli_model=nli_model,
-    )
 
     for task in tasks:
         try:
@@ -339,6 +329,14 @@ def sweep_thresholds(
             for context, response, is_hallucinated in pairs:
                 if not context or not response:
                     continue
+                # Fresh store per sample to prevent context leakage
+                store = VectorGroundTruthStore()
+                scorer = CoherenceScorer(
+                    threshold=0.1,
+                    use_nli=use_nli,
+                    ground_truth_store=store,
+                    nli_model=nli_model,
+                )
                 store.ingest([context])
                 _, score = scorer.review(context, response)
                 raw_scores.append((task, is_hallucinated, score.score))
