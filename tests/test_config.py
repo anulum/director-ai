@@ -221,9 +221,7 @@ class TestBuildStore:
 
         mock_st = MagicMock()
         mock_st.SentenceTransformer = MagicMock()
-        monkeypatch.setitem(
-            __import__("sys").modules, "sentence_transformers", mock_st
-        )
+        monkeypatch.setitem(__import__("sys").modules, "sentence_transformers", mock_st)
 
         from director_ai.core.vector_store import SentenceTransformerBackend
 

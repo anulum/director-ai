@@ -372,7 +372,7 @@ def _cmd_ingest(args: list[str]) -> None:
         p = Path(path)
         if p.is_file():
             return [p]
-        files = []
+        files: list[Path] = []
         for ext in _SUPPORTED_EXTS:
             files.extend(p.rglob(f"*{ext}"))
         return sorted(files)

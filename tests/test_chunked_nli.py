@@ -130,10 +130,14 @@ class TestScoreChunked:
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Premise detail {i} info" for i in range(30)) + "."
         agg_max, _, _, _ = scorer._score_chunked_with_counts(
-            long_prem, "Short claim.", inner_agg="max",
+            long_prem,
+            "Short claim.",
+            inner_agg="max",
         )
         agg_mean, _, _, _ = scorer._score_chunked_with_counts(
-            long_prem, "Short claim.", inner_agg="mean",
+            long_prem,
+            "Short claim.",
+            inner_agg="mean",
         )
         assert agg_mean <= agg_max
 

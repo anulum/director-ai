@@ -412,9 +412,7 @@ class DirectorConfig:
                     top_k_multiplier=self.reranker_top_k_multiplier,
                 )
             except ImportError:
-                logger.warning(
-                    "sentence-transformers not installed, skipping reranker"
-                )
+                logger.warning("sentence-transformers not installed, skipping reranker")
 
         return VectorGroundTruthStore(backend=backend)
 
