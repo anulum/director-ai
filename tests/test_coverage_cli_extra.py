@@ -27,14 +27,18 @@ def _noop():
 
 class TestCliEval:
     def test_eval_no_benchmarks(self, capsys):
-        with patch.dict(sys.modules, {"benchmarks": None, "benchmarks.run_all": None}):
-            with pytest.raises(SystemExit):
-                main(["eval"])
+        with (
+            patch.dict(sys.modules, {"benchmarks": None, "benchmarks.run_all": None}),
+            pytest.raises(SystemExit),
+        ):
+            main(["eval"])
 
     def test_eval_bad_max_samples(self, capsys):
-        with patch.dict(sys.modules, {"benchmarks": None, "benchmarks.run_all": None}):
-            with pytest.raises(SystemExit):
-                main(["eval", "--max-samples", "abc"])
+        with (
+            patch.dict(sys.modules, {"benchmarks": None, "benchmarks.run_all": None}),
+            pytest.raises(SystemExit),
+        ):
+            main(["eval", "--max-samples", "abc"])
 
 
 class TestCliBench:
@@ -55,12 +59,17 @@ class TestCliBench:
             test_evidence_schema=lambda: None,
         )
         bm = ModuleType("benchmarks")
-        with patch.dict(sys.modules, {
-            "benchmarks": bm,
-            "benchmarks.regression_suite": mod,
-        }):
-            with pytest.raises(SystemExit):
-                main(["bench", "--dataset", "unknown"])
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "benchmarks": bm,
+                    "benchmarks.regression_suite": mod,
+                },
+            ),
+            pytest.raises(SystemExit),
+        ):
+            main(["bench", "--dataset", "unknown"])
 
     def _reg_module(self):
         return _make_bench_module(
@@ -76,18 +85,26 @@ class TestCliBench:
     def test_bench_regression(self, capsys):
         mod = self._reg_module()
         bm = ModuleType("benchmarks")
-        with patch.dict(sys.modules, {
-            "benchmarks": bm, "benchmarks.regression_suite": mod,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": bm,
+                "benchmarks.regression_suite": mod,
+            },
+        ):
             main(["bench", "--dataset", "regression", "--seed", "42"])
             assert "passed" in capsys.readouterr().out
 
     def test_bench_with_output(self, capsys, tmp_path):
         mod = self._reg_module()
         bm = ModuleType("benchmarks")
-        with patch.dict(sys.modules, {
-            "benchmarks": bm, "benchmarks.regression_suite": mod,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": bm,
+                "benchmarks.regression_suite": mod,
+            },
+        ):
             out_file = str(tmp_path / "results.json")
             main(["bench", "--output", out_file])
             assert os.path.exists(out_file)
@@ -106,44 +123,67 @@ class TestCliBench:
             test_false_halt_rate=lambda: None,
         )
         bm = ModuleType("benchmarks")
-        with patch.dict(sys.modules, {
-            "benchmarks": bm, "benchmarks.regression_suite": mod,
-        }):
-            with pytest.raises(SystemExit):
-                main(["bench"])
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "benchmarks": bm,
+                    "benchmarks.regression_suite": mod,
+                },
+            ),
+            pytest.raises(SystemExit),
+        ):
+            main(["bench"])
 
     def test_bench_max_samples(self, capsys):
         mod = self._reg_module()
         bm = ModuleType("benchmarks")
-        with patch.dict(sys.modules, {
-            "benchmarks": bm, "benchmarks.regression_suite": mod,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": bm,
+                "benchmarks.regression_suite": mod,
+            },
+        ):
             main(["bench", "--max-samples", "2"])
             assert "passed" in capsys.readouterr().out
 
     def test_bench_no_benchmarks(self, capsys):
-        with patch.dict(sys.modules, {
-            "benchmarks": None,
-            "benchmarks.regression_suite": None,
-        }):
-            with pytest.raises(SystemExit):
-                main(["bench"])
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "benchmarks": None,
+                    "benchmarks.regression_suite": None,
+                },
+            ),
+            pytest.raises(SystemExit),
+        ):
+            main(["bench"])
 
     def test_bench_streaming_dataset(self, capsys):
         mod = self._reg_module()
         bm = ModuleType("benchmarks")
-        with patch.dict(sys.modules, {
-            "benchmarks": bm, "benchmarks.regression_suite": mod,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": bm,
+                "benchmarks.regression_suite": mod,
+            },
+        ):
             main(["bench", "--dataset", "streaming"])
             assert "passed" in capsys.readouterr().out
 
     def test_bench_e2e_dataset(self, capsys):
         mod = self._reg_module()
         bm = ModuleType("benchmarks")
-        with patch.dict(sys.modules, {
-            "benchmarks": bm, "benchmarks.regression_suite": mod,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": bm,
+                "benchmarks.regression_suite": mod,
+            },
+        ):
             main(["bench", "--dataset", "e2e"])
             assert "passed" in capsys.readouterr().out
 
@@ -166,6 +206,5 @@ class TestCliServe:
             main(["serve", "--transport", "websocket"])
 
     def test_serve_no_uvicorn(self, capsys):
-        with patch.dict(sys.modules, {"uvicorn": None}):
-            with pytest.raises(SystemExit):
-                main(["serve"])
+        with patch.dict(sys.modules, {"uvicorn": None}), pytest.raises(SystemExit):
+            main(["serve"])

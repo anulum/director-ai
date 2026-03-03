@@ -2,10 +2,9 @@
 
 from __future__ import annotations
 
-import sys
-from unittest.mock import MagicMock, patch
-
 import pytest
+
+pytest.importorskip("fastapi", reason="fastapi not installed")
 
 from director_ai.core.config import DirectorConfig
 
@@ -89,9 +88,7 @@ class TestAuditEndpoints:
 
 class TestProcessAudit:
     def test_process_with_audit(self, audit_client):
-        resp = audit_client.post(
-            "/v1/process", json={"prompt": "What is 2+2?"}
-        )
+        resp = audit_client.post("/v1/process", json={"prompt": "What is 2+2?"})
         assert resp.status_code == 200
 
 
@@ -165,10 +162,14 @@ class TestWsAuthAndErrors:
         from director_ai.server import create_app
 
         app = create_app(config=cfg)
-        with TestClient(app) as c:
-            with pytest.raises(Exception):
-                with c.websocket_connect("/v1/stream") as ws:
-                    ws.receive_json()
+        with (
+            TestClient(app) as c,
+            pytest.raises(  # noqa: B017
+                Exception
+            ),
+            c.websocket_connect("/v1/stream") as ws,
+        ):
+            ws.receive_json()
 
     def test_ws_non_dict(self):
         from starlette.testclient import TestClient
@@ -177,11 +178,10 @@ class TestWsAuthAndErrors:
         from director_ai.server import create_app
 
         app = create_app(config=cfg)
-        with TestClient(app) as c:
-            with c.websocket_connect("/v1/stream") as ws:
-                ws.send_json([1, 2, 3])
-                data = ws.receive_json()
-                assert "error" in data
+        with TestClient(app) as c, c.websocket_connect("/v1/stream") as ws:
+            ws.send_json([1, 2, 3])
+            data = ws.receive_json()
+            assert "error" in data
 
 
 class TestSourceEndpoint:

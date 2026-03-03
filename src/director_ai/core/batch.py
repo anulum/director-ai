@@ -23,6 +23,7 @@ import asyncio
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
 
 from .exceptions import ValidationError
@@ -100,7 +101,7 @@ class BatchProcessor:
                     item_result = future.result(timeout=self.item_timeout)
                     ordered[idx] = item_result
                     result.succeeded += 1
-                except TimeoutError:
+                except (TimeoutError, FuturesTimeoutError):
                     result.errors.append((idx, "item timeout"))
                     result.failed += 1
                     logger.warning(
@@ -144,7 +145,7 @@ class BatchProcessor:
                     item_result = future.result(timeout=self.item_timeout)
                     ordered[idx] = item_result
                     result.succeeded += 1
-                except TimeoutError:
+                except (TimeoutError, FuturesTimeoutError):
                     result.errors.append((idx, "item timeout"))
                     result.failed += 1
                 except (

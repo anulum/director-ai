@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
 import requests
 
 from director_ai.integrations.providers import (
@@ -53,9 +51,7 @@ class TestOpenAIProvider:
     def test_generate_success(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
-        mock_resp.json.return_value = {
-            "choices": [{"message": {"content": "Yes"}}]
-        }
+        mock_resp.json.return_value = {"choices": [{"message": {"content": "Yes"}}]}
         mock_post.return_value = mock_resp
 
         p = OpenAIProvider(api_key="k")
@@ -132,9 +128,7 @@ class TestAnthropicProvider:
     def test_generate_success(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
-        mock_resp.json.return_value = {
-            "content": [{"type": "text", "text": "Answer"}]
-        }
+        mock_resp.json.return_value = {"content": [{"type": "text", "text": "Answer"}]}
         mock_post.return_value = mock_resp
 
         result = AnthropicProvider().generate_candidates("hi", n=1)
@@ -226,9 +220,7 @@ class TestLocalProvider:
     def test_generate_with_model(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.raise_for_status = MagicMock()
-        mock_resp.json.return_value = {
-            "choices": [{"message": {"content": "hi"}}]
-        }
+        mock_resp.json.return_value = {"choices": [{"message": {"content": "hi"}}]}
         mock_post.return_value = mock_resp
 
         result = LocalProvider(model="llama3").generate_candidates("q", n=1)

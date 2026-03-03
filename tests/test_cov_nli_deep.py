@@ -4,11 +4,9 @@ from __future__ import annotations
 
 import os
 import sys
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-import pytest
 
 from director_ai.core.nli import NLIScorer
 
@@ -31,11 +29,15 @@ class TestOnnxSessionLoading:
         onnx_dir.mkdir()
         (onnx_dir / "model.onnx").write_bytes(b"fake")
 
-        with patch.dict(sys.modules, {
-            "onnxruntime": mock_ort,
-            "transformers": mock_transformers,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "onnxruntime": mock_ort,
+                "transformers": mock_transformers,
+            },
+        ):
             from director_ai.core.nli import _load_onnx_session
+
             _load_onnx_session.cache_clear()
             tok, session = _load_onnx_session(str(onnx_dir))
             assert tok is mock_tok
@@ -44,7 +46,8 @@ class TestOnnxSessionLoading:
     def test_load_onnx_session_cuda(self, tmp_path):
         mock_ort = MagicMock()
         mock_ort.get_available_providers.return_value = [
-            "CUDAExecutionProvider", "CPUExecutionProvider"
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
         ]
         mock_ort.GraphOptimizationLevel.ORT_ENABLE_ALL = 99
         mock_session = MagicMock()
@@ -59,11 +62,15 @@ class TestOnnxSessionLoading:
         onnx_dir.mkdir()
         (onnx_dir / "model.onnx").write_bytes(b"fake")
 
-        with patch.dict(sys.modules, {
-            "onnxruntime": mock_ort,
-            "transformers": mock_transformers,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "onnxruntime": mock_ort,
+                "transformers": mock_transformers,
+            },
+        ):
             from director_ai.core.nli import _load_onnx_session
+
             _load_onnx_session.cache_clear()
             tok, session = _load_onnx_session(str(onnx_dir), device="cuda:0")
             assert session is mock_session
@@ -71,7 +78,8 @@ class TestOnnxSessionLoading:
     def test_load_onnx_session_trt(self, tmp_path):
         mock_ort = MagicMock()
         mock_ort.get_available_providers.return_value = [
-            "TensorrtExecutionProvider", "CPUExecutionProvider"
+            "TensorrtExecutionProvider",
+            "CPUExecutionProvider",
         ]
         mock_ort.GraphOptimizationLevel.ORT_ENABLE_ALL = 99
         mock_session = MagicMock()
@@ -86,21 +94,29 @@ class TestOnnxSessionLoading:
         onnx_dir.mkdir()
         (onnx_dir / "model.onnx").write_bytes(b"fake")
 
-        with patch.dict(
-            sys.modules,
-            {"onnxruntime": mock_ort, "transformers": mock_transformers},
-        ), patch.dict(os.environ, {"DIRECTOR_ENABLE_TRT": "1"}):
+        with (
+            patch.dict(
+                sys.modules,
+                {"onnxruntime": mock_ort, "transformers": mock_transformers},
+            ),
+            patch.dict(os.environ, {"DIRECTOR_ENABLE_TRT": "1"}),
+        ):
             from director_ai.core.nli import _load_onnx_session
+
             _load_onnx_session.cache_clear()
             tok, session = _load_onnx_session(str(onnx_dir))
             assert session is mock_session
 
     def test_load_onnx_not_a_dir(self):
-        with patch.dict(sys.modules, {
-            "onnxruntime": MagicMock(),
-            "transformers": MagicMock(),
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "onnxruntime": MagicMock(),
+                "transformers": MagicMock(),
+            },
+        ):
             from director_ai.core.nli import _load_onnx_session
+
             _load_onnx_session.cache_clear()
             tok, session = _load_onnx_session("/nonexistent/path")
             assert tok is None
@@ -122,11 +138,15 @@ class TestOnnxSessionLoading:
         onnx_dir.mkdir()
         (onnx_dir / "custom_model.onnx").write_bytes(b"fake")
 
-        with patch.dict(sys.modules, {
-            "onnxruntime": mock_ort,
-            "transformers": mock_transformers,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "onnxruntime": mock_ort,
+                "transformers": mock_transformers,
+            },
+        ):
             from director_ai.core.nli import _load_onnx_session
+
             _load_onnx_session.cache_clear()
             tok, session = _load_onnx_session(str(onnx_dir))
             assert session is mock_session
@@ -142,16 +162,21 @@ class TestQuantize8bit:
         tok = MagicMock()
         model = MagicMock()
         mock_transformers.AutoTokenizer.from_pretrained.return_value = tok
-        mock_transformers.AutoModelForSequenceClassification.from_pretrained.return_value = model
+        auto_cls = mock_transformers.AutoModelForSequenceClassification
+        auto_cls.from_pretrained.return_value = model
 
         bnb_config = MagicMock()
         mock_transformers.BitsAndBytesConfig.return_value = bnb_config
 
-        with patch.dict(sys.modules, {
-            "torch": mock_torch,
-            "transformers": mock_transformers,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "torch": mock_torch,
+                "transformers": mock_transformers,
+            },
+        ):
             from director_ai.core.nli import _load_nli_model
+
             _load_nli_model.cache_clear()
             t, m = _load_nli_model("quant-model", quantize_8bit=True)
             assert t is tok
@@ -168,13 +193,18 @@ class TestQuantize8bit:
         tok = MagicMock()
         model = MagicMock()
         mock_transformers.AutoTokenizer.from_pretrained.return_value = tok
-        mock_transformers.AutoModelForSequenceClassification.from_pretrained.return_value = model
+        auto_cls = mock_transformers.AutoModelForSequenceClassification
+        auto_cls.from_pretrained.return_value = model
 
-        with patch.dict(sys.modules, {
-            "torch": mock_torch,
-            "transformers": mock_transformers,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "torch": mock_torch,
+                "transformers": mock_transformers,
+            },
+        ):
             from director_ai.core.nli import _load_nli_model
+
             _load_nli_model.cache_clear()
             t, m = _load_nli_model("quant-model-nobnb", quantize_8bit=True)
             assert t is tok
@@ -210,9 +240,7 @@ class TestScoreRouting:
         input_info.name = "input_ids"
         scorer._onnx_session.get_inputs.return_value = [input_info]
 
-        fake_logits = np.array(
-            [[0.1, 0.3, 0.6], [0.8, 0.1, 0.1]], dtype=np.float32
-        )
+        fake_logits = np.array([[0.1, 0.3, 0.6], [0.8, 0.1, 0.1]], dtype=np.float32)
         scorer._onnx_session.run.return_value = [fake_logits]
         scorer._tokenizer.return_value = {
             "input_ids": np.array([[1, 2], [3, 4]], dtype=np.int64),
@@ -256,4 +284,5 @@ class TestNliAvailable:
     def test_nli_available_false(self):
         with patch.dict(sys.modules, {"torch": None, "transformers": None}):
             from director_ai.core.nli import nli_available
+
             assert nli_available() is False

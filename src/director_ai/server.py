@@ -697,9 +697,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                                     {"type": "halt", "reason": "hard_limit"}
                                 )
                                 break
-                        if not halted:  # pragma: no cover — requires real streaming agent
+                        if (
+                            not halted
+                        ):  # pragma: no cover — requires real streaming agent
                             await ws.send_json({"type": "result", "halted": False})
-                    except (RuntimeError, ValueError, TypeError, OSError) as exc:  # pragma: no cover
+                    except (
+                        RuntimeError,
+                        ValueError,
+                        TypeError,
+                        OSError,
+                    ) as exc:  # pragma: no cover
                         await ws.send_json({"error": f"streaming failed: {exc}"})
                     continue
 

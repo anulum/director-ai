@@ -6,7 +6,6 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import numpy as np
 import pytest
 
 from director_ai.core.nli import NLIScorer
@@ -22,13 +21,18 @@ class TestModelLoading:
         tok = MagicMock()
         model = MagicMock()
         mock_transformers.AutoTokenizer.from_pretrained.return_value = tok
-        mock_transformers.AutoModelForSequenceClassification.from_pretrained.return_value = model
+        auto_cls = mock_transformers.AutoModelForSequenceClassification
+        auto_cls.from_pretrained.return_value = model
 
-        with patch.dict(sys.modules, {
-            "torch": mock_torch,
-            "transformers": mock_transformers,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "torch": mock_torch,
+                "transformers": mock_transformers,
+            },
+        ):
             from director_ai.core.nli import _load_nli_model
+
             _load_nli_model.cache_clear()
             t, m = _load_nli_model("test-model", device="cpu")
             assert t is tok
@@ -43,13 +47,18 @@ class TestModelLoading:
         tok = MagicMock()
         model = MagicMock()
         mock_transformers.AutoTokenizer.from_pretrained.return_value = tok
-        mock_transformers.AutoModelForSequenceClassification.from_pretrained.return_value = model
+        auto_cls = mock_transformers.AutoModelForSequenceClassification
+        auto_cls.from_pretrained.return_value = model
 
-        with patch.dict(sys.modules, {
-            "torch": mock_torch,
-            "transformers": mock_transformers,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "torch": mock_torch,
+                "transformers": mock_transformers,
+            },
+        ):
             from director_ai.core.nli import _load_nli_model
+
             _load_nli_model.cache_clear()
             t, m = _load_nli_model("test-model-fp16", torch_dtype="float16")
             assert t is tok
@@ -57,6 +66,7 @@ class TestModelLoading:
     def test_load_nli_model_import_error(self):
         with patch.dict(sys.modules, {"torch": None, "transformers": None}):
             from director_ai.core.nli import _load_nli_model
+
             _load_nli_model.cache_clear()
             t, m = _load_nli_model("no-model")
             assert t is None
@@ -70,6 +80,7 @@ class TestModelScoring:
         mock_model = MagicMock()
 
         import torch
+
         mock_param = torch.zeros(1)
         mock_model.parameters.return_value = iter([mock_param])
 
@@ -97,6 +108,7 @@ class TestModelScoring:
     )
     def test_model_score_2class(self):
         import torch
+
         scorer = self._scorer_with_mock_model()
         logits_2class = torch.tensor([[0.3, 0.7]])
         scorer._model.return_value = SimpleNamespace(logits=logits_2class)
@@ -110,6 +122,7 @@ class TestModelScoring:
     def test_model_score_batch(self):
         scorer = self._scorer_with_mock_model()
         import torch
+
         logits = torch.tensor([[0.1, 0.3, 0.6], [0.8, 0.1, 0.1]])
         scorer._model.return_value = SimpleNamespace(logits=logits)
         scorer._tokenizer.return_value = {

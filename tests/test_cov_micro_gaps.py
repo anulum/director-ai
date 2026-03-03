@@ -4,22 +4,29 @@ langchain callback AttributeError."""
 from __future__ import annotations
 
 import sys
-from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
 from director_ai.core.config import DirectorConfig
 
+_HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
+_skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
+
 
 # ── Server: halted process response + tenant not enabled ──────────
 
+
+@_skip_no_server
 class TestServerHaltedProcess:
     def test_process_halted_increments_counters(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
 
-        cfg = DirectorConfig(use_nli=False, coherence_threshold=1.0, hard_limit=1.0, soft_limit=1.0)
+        from director_ai.server import create_app
+
+        cfg = DirectorConfig(
+            use_nli=False, coherence_threshold=1.0, hard_limit=1.0, soft_limit=1.0
+        )
         app = create_app(config=cfg)
         with TestClient(app) as c:
             resp = c.post("/v1/process", json={"prompt": "Tell me about bananas."})
@@ -28,10 +35,12 @@ class TestServerHaltedProcess:
             assert "halted" in data
 
 
+@_skip_no_server
 class TestServerTenantNotEnabled:
     def test_add_fact_no_tenant(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
@@ -40,10 +49,12 @@ class TestServerTenantNotEnabled:
             assert resp.status_code == 404
 
 
+@_skip_no_server
 class TestServerBatchNotReady:
     def test_batch_503(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
@@ -53,6 +64,7 @@ class TestServerBatchNotReady:
 
 
 # ── NLI: minicheck import failure ─────────────────────────────────
+
 
 class TestNliMinicheckImportFailure:
     def test_ensure_minicheck_import_error(self):
@@ -77,6 +89,7 @@ class TestNliMinicheckImportFailure:
 
 
 # ── LangChain callback: AttributeError extraction path ───────────
+
 
 class TestLangchainAttributeError:
     def test_on_llm_end_attribute_error(self):

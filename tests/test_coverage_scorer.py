@@ -54,7 +54,9 @@ class TestScorerReview:
 
     def test_review_warning(self):
         scorer = CoherenceScorer(
-            threshold=0.2, soft_limit=0.9, use_nli=False,
+            threshold=0.2,
+            soft_limit=0.9,
+            use_nli=False,
         )
         approved, cs = scorer.review("sky?", "The sky is blue.")
         assert approved
@@ -62,7 +64,9 @@ class TestScorerReview:
 
     def test_strict_mode_rejected(self):
         scorer = CoherenceScorer(
-            threshold=0.5, use_nli=False, strict_mode=True,
+            threshold=0.5,
+            use_nli=False,
+            strict_mode=True,
         )
         store = GroundTruthStore()
         store.add("sky", "blue")
@@ -114,7 +118,9 @@ class TestScorerFactualEvidence:
         store = GroundTruthStore()
         store.add("sky", "The sky is blue.")
         scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
-        div, ev = scorer.calculate_factual_divergence_with_evidence("sky", "The sky is blue.")
+        div, ev = scorer.calculate_factual_divergence_with_evidence(
+            "sky", "The sky is blue."
+        )
         assert ev is not None
         assert ev.nli_premise is not None
 
@@ -122,7 +128,9 @@ class TestScorerFactualEvidence:
         store = GroundTruthStore()
         store.add("sky", "The sky is blue.")
         scorer = CoherenceScorer(
-            use_nli=False, strict_mode=True, ground_truth_store=store,
+            use_nli=False,
+            strict_mode=True,
+            ground_truth_store=store,
         )
         div, ev = scorer.calculate_factual_divergence_with_evidence("sky", "a")
         assert div == 0.9
@@ -171,10 +179,14 @@ class TestScorerHeuristicFactual:
 
 class TestScorerParseJudgeReply:
     def test_json_yes(self):
-        assert CoherenceScorer._parse_judge_reply('{"verdict": "YES", "confidence": 90}')
+        assert CoherenceScorer._parse_judge_reply(
+            '{"verdict": "YES", "confidence": 90}'
+        )
 
     def test_json_no(self):
-        assert not CoherenceScorer._parse_judge_reply('{"verdict": "NO", "confidence": 80}')
+        assert not CoherenceScorer._parse_judge_reply(
+            '{"verdict": "NO", "confidence": 80}'
+        )
 
     def test_plain_yes(self):
         assert CoherenceScorer._parse_judge_reply("I think YES this is correct")

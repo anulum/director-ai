@@ -4,9 +4,7 @@ from __future__ import annotations
 
 import asyncio
 import sys
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from director_ai.core.actor import LLMGenerator
 
@@ -17,11 +15,13 @@ class TestLLMGeneratorStreamFallback:
 
         async def run():
             tokens = []
-            with patch.dict(sys.modules, {"httpx": None}):
-                with patch.object(gen, "generate_candidates") as mock_gc:
-                    mock_gc.return_value = [{"text": "hello world test"}]
-                    async for tok in gen.stream_tokens("test"):
-                        tokens.append(tok)
+            with (
+                patch.dict(sys.modules, {"httpx": None}),
+                patch.object(gen, "generate_candidates") as mock_gc,
+            ):
+                mock_gc.return_value = [{"text": "hello world test"}]
+                async for tok in gen.stream_tokens("test"):
+                    tokens.append(tok)
             return tokens
 
         tokens = asyncio.get_event_loop().run_until_complete(run())

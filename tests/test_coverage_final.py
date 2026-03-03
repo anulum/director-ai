@@ -5,7 +5,6 @@ from __future__ import annotations
 import json
 import os
 import sys
-import tempfile
 from types import ModuleType
 from unittest.mock import MagicMock, patch
 
@@ -13,6 +12,9 @@ import pytest
 
 from director_ai.cli import main
 from director_ai.core.config import DirectorConfig
+
+_HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
+_skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
 
 
 class TestCliIngestProcessing:
@@ -61,10 +63,13 @@ class TestCliEvalWithMocks:
         mock_run_all._run_suite = MagicMock(return_value={"accuracy": 0.9})
         mock_run_all._print_comparison_table = MagicMock()
 
-        with patch.dict(sys.modules, {
-            "benchmarks": ModuleType("benchmarks"),
-            "benchmarks.run_all": mock_run_all,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": ModuleType("benchmarks"),
+                "benchmarks.run_all": mock_run_all,
+            },
+        ):
             main(["eval"])
             mock_run_all._run_suite.assert_called_once()
 
@@ -73,10 +78,13 @@ class TestCliEvalWithMocks:
         mock_run_all._run_suite = MagicMock(return_value={"accuracy": 0.9})
         mock_run_all._print_comparison_table = MagicMock()
 
-        with patch.dict(sys.modules, {
-            "benchmarks": ModuleType("benchmarks"),
-            "benchmarks.run_all": mock_run_all,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": ModuleType("benchmarks"),
+                "benchmarks.run_all": mock_run_all,
+            },
+        ):
             out_file = str(tmp_path / "eval.json")
             main(["eval", "--output", out_file])
             assert os.path.exists(out_file)
@@ -86,10 +94,13 @@ class TestCliEvalWithMocks:
         mock_run_all._run_suite = MagicMock(return_value={"accuracy": 0.9})
         mock_run_all._print_comparison_table = MagicMock()
 
-        with patch.dict(sys.modules, {
-            "benchmarks": ModuleType("benchmarks"),
-            "benchmarks.run_all": mock_run_all,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": ModuleType("benchmarks"),
+                "benchmarks.run_all": mock_run_all,
+            },
+        ):
             main(["eval", "--dataset", "aggrefact", "--max-samples", "10"])
 
 
@@ -105,21 +116,29 @@ class TestCliServeMultiWorker:
             )
 
 
+@_skip_no_server
 class TestServerOtelBranch:
     def test_otel_enabled(self):
         from starlette.testclient import TestClient
+
         cfg = DirectorConfig(use_nli=False, otel_enabled=True)
-        app = __import__("director_ai.server", fromlist=["create_app"]).create_app(config=cfg)
+        app = __import__("director_ai.server", fromlist=["create_app"]).create_app(
+            config=cfg
+        )
         with TestClient(app) as c:
             resp = c.get("/v1/health")
             assert resp.status_code == 200
 
 
+@_skip_no_server
 class TestServerReviewWithTenant:
     def test_review_with_tenant_header(self):
         from starlette.testclient import TestClient
+
         cfg = DirectorConfig(use_nli=False, tenant_routing=True)
-        app = __import__("director_ai.server", fromlist=["create_app"]).create_app(config=cfg)
+        app = __import__("director_ai.server", fromlist=["create_app"]).create_app(
+            config=cfg
+        )
         with TestClient(app) as c:
             resp = c.post(
                 "/v1/review",

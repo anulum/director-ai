@@ -3,12 +3,10 @@
 from __future__ import annotations
 
 import asyncio
-import time
 
 import pytest
 
 from director_ai.core.async_streaming import AsyncStreamingKernel
-from director_ai.core.streaming import StreamSession, TokenEvent
 
 
 async def _async_tokens(tokens):
@@ -229,8 +227,11 @@ class TestAsyncStreamingFeatures:
 
     def test_adaptive_cadence_drop(self):
         kernel = AsyncStreamingKernel(
-            adaptive=True, score_every_n=2, max_cadence=4,
-            soft_limit=0.7, hard_limit=0.1,
+            adaptive=True,
+            score_every_n=2,
+            max_cadence=4,
+            soft_limit=0.7,
+            hard_limit=0.1,
         )
         call_count = 0
 

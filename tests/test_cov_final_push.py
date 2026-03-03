@@ -12,11 +12,17 @@ import pytest
 
 from director_ai.core.config import DirectorConfig
 
+_HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
+_skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
+
 
 # ── Server: rate limit with slowapi installed ──────────────────────
 
+
+@_skip_no_server
 class TestServerRateLimitSlowapi:
     def test_rate_limit_creates_limiter(self):
+        pytest.importorskip("slowapi", reason="slowapi not installed")
         cfg = DirectorConfig(use_nli=False, rate_limit_rpm=120)
         from director_ai.server import create_app
 
@@ -24,24 +30,35 @@ class TestServerRateLimitSlowapi:
         assert hasattr(app.state, "limiter")
 
     def test_rate_limit_429_response(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False, rate_limit_rpm=1)
         app = create_app(config=cfg)
         with TestClient(app) as c:
-            c.post("/v1/review", json={
-                "prompt": "q", "response": "a",
-            })
-            resp2 = c.post("/v1/review", json={
-                "prompt": "q2", "response": "a2",
-            })
+            c.post(
+                "/v1/review",
+                json={
+                    "prompt": "q",
+                    "response": "a",
+                },
+            )
+            resp2 = c.post(
+                "/v1/review",
+                json={
+                    "prompt": "q2",
+                    "response": "a2",
+                },
+            )
             # either succeeds or 429
             assert resp2.status_code in (200, 429)
 
 
 # ── Server: _halt_evidence_to_dict with non-None ──────────────────
 
+
+@_skip_no_server
 class TestHaltEvidenceToDict:
     def test_halt_evidence_serialization(self):
         from director_ai.server import _halt_evidence_to_dict
@@ -61,6 +78,8 @@ class TestHaltEvidenceToDict:
 
 # ── Server: CORS allow origins ────────────────────────────────────
 
+
+@_skip_no_server
 class TestServerCorsOrigins:
     def test_cors_with_custom_origins(self):
         cfg = DirectorConfig(use_nli=False, cors_origins="http://localhost:3000")
@@ -72,10 +91,13 @@ class TestServerCorsOrigins:
 
 # ── Server: stats close on shutdown ───────────────────────────────
 
+
+@_skip_no_server
 class TestServerStatsClose:
     def test_stats_close_on_shutdown(self, tmp_path):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False, stats_backend="sqlite")
         app = create_app(config=cfg)
@@ -85,9 +107,11 @@ class TestServerStatsClose:
 
 # ── NLI: score_batch onnx + model paths ──────────────────────────
 
+
 class TestNliScoreBatchPaths:
     def test_score_batch_onnx(self):
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -115,6 +139,7 @@ class TestNliScoreBatchPaths:
 
     def test_score_batch_model(self):
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -165,9 +190,11 @@ class TestNliScoreBatchPaths:
 
 # ── NLI: _model_score (single pair) ─────────────────────────────
 
+
 class TestNliModelScoreSingle:
     def test_model_score_2class(self):
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -184,7 +211,9 @@ class TestNliModelScoreSingle:
         mock_torch = MagicMock()
         mock_torch.no_grad.return_value.__enter__ = MagicMock()
         mock_torch.no_grad.return_value.__exit__ = MagicMock()
-        mock_torch.softmax.return_value.cpu.return_value.numpy.return_value = [mock_probs]
+        mock_torch.softmax.return_value.cpu.return_value.numpy.return_value = [
+            mock_probs
+        ]
         scorer._model.return_value.logits = MagicMock()
 
         with patch.dict(sys.modules, {"torch": mock_torch}):
@@ -193,6 +222,7 @@ class TestNliModelScoreSingle:
 
 
 # ── Agent: _build_scorer with Rust available ──────────────────────
+
 
 class TestAgentBuildScorerRust:
     def test_build_scorer_with_rust(self):
@@ -209,19 +239,23 @@ class TestAgentBuildScorerRust:
 
 # ── Backends: entry point load failure ────────────────────────────
 
+
 class TestBackendsRegistry:
     def test_registry_has_rust(self):
         from director_ai.core import backends
 
-        assert "rust" in backends._REGISTRY
+        if "rust" not in backends._REGISTRY:
+            pytest.skip("backfire_kernel not built/installed")
         assert "backfire" in backends._REGISTRY
 
 
 # ── Providers: OpenAI timeout, Anthropic, Local stream error ─────
 
+
 class TestProvidersTimeout:
     def test_openai_timeout(self):
         import requests as req_lib
+
         from director_ai.integrations.providers import OpenAIProvider
 
         with patch("director_ai.integrations.providers.requests.post") as mock_post:
@@ -232,6 +266,7 @@ class TestProvidersTimeout:
 
     def test_openai_http_error(self):
         import requests as req_lib
+
         from director_ai.integrations.providers import OpenAIProvider
 
         with patch("director_ai.integrations.providers.requests.post") as mock_post:
@@ -246,6 +281,7 @@ class TestProvidersTimeout:
 class TestProvidersLocalStream:
     def test_local_stream_error(self):
         import requests as req_lib
+
         from director_ai.integrations.providers import LocalProvider
 
         with patch("director_ai.integrations.providers.requests.post") as mock_post:
@@ -256,6 +292,7 @@ class TestProvidersLocalStream:
 
 
 # ── LangChain callback: TYPE_CHECKING import branch ──────────────
+
 
 class TestLangchainCallbackNoText:
     def test_on_llm_end_no_generations(self):
@@ -277,14 +314,21 @@ class TestLangchainCallbackNoText:
 
 # ── CLI: evaluate with output flag ────────────────────────────────
 
+
 class TestCliTuneCommand:
     def test_tune_basic(self, tmp_path, capsys):
         import json
 
         input_f = tmp_path / "tune.jsonl"
         input_f.write_text(
-            json.dumps({"prompt": "sky?", "response": "The sky is blue.", "label": True}) + "\n"
-            + json.dumps({"prompt": "sun?", "response": "The sun is cold.", "label": False}) + "\n",
+            json.dumps(
+                {"prompt": "sky?", "response": "The sky is blue.", "label": True}
+            )
+            + "\n"
+            + json.dumps(
+                {"prompt": "sun?", "response": "The sun is cold.", "label": False}
+            )
+            + "\n",
             encoding="utf-8",
         )
         from director_ai.cli import main

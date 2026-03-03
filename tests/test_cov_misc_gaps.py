@@ -1,8 +1,7 @@
-"""Coverage for small gaps: scorer, streaming, backends, agent, config, metrics, langchain_callback, providers, async_streaming, core/__init__."""
+"""Coverage for small gaps across multiple modules."""
 
 from __future__ import annotations
 
-import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -24,8 +23,8 @@ class TestScorerShardedNli:
 
 class TestScorerFactualWithNli:
     def test_factual_divergence_with_nli(self):
-        from director_ai.core.scorer import CoherenceScorer
         from director_ai.core.knowledge import GroundTruthStore
+        from director_ai.core.scorer import CoherenceScorer
 
         store = GroundTruthStore()
         store.add("sky", "The sky is blue.")
@@ -143,7 +142,8 @@ class TestProvidersEdges:
         with patch("requests.post") as mock_post:
             mock_resp = MagicMock()
             mock_resp.iter_lines.return_value = [
-                'data: {"type": "content_block_delta", "delta": {"type": "text_delta", "text": "hello"}}',
+                'data: {"type": "content_block_delta",'
+                ' "delta": {"type": "text_delta", "text": "hello"}}',
                 "data: [DONE]",
             ]
             mock_resp.raise_for_status = MagicMock()

@@ -5,7 +5,6 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import MagicMock, patch
 
-import pytest
 import requests
 
 from director_ai.core.actor import (
@@ -62,9 +61,7 @@ class TestLLMGenerator:
     def test_generate_choices_format(self, mock_post):
         mock_resp = MagicMock()
         mock_resp.status_code = 200
-        mock_resp.json.return_value = {
-            "choices": [{"text": "World"}]
-        }
+        mock_resp.json.return_value = {"choices": [{"text": "World"}]}
         mock_post.return_value = mock_resp
 
         gen = LLMGenerator(api_url="http://test")

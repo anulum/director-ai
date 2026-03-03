@@ -4,12 +4,12 @@ from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
 
+from director_ai.core.exceptions import HallucinationError
 from director_ai.integrations.sdk_guard import (
-    STREAM_CHECK_INTERVAL,
     _anthropic_response_text,
     _extract_anthropic_event_text,
     _extract_prompt,
@@ -18,11 +18,9 @@ from director_ai.integrations.sdk_guard import (
     _has_anthropic_shape,
     _has_openai_shape,
     _openai_response_text,
-    _score_and_gate,
     get_score,
     guard,
 )
-from director_ai.core.exceptions import HallucinationError
 
 
 class TestGuardBasics:
@@ -60,7 +58,9 @@ class TestShapeDetection:
         assert _has_anthropic_shape(_make_anthropic_client())
 
     def test_anthropic_shape_false_has_chat(self):
-        obj = SimpleNamespace(chat=MagicMock(), messages=SimpleNamespace(create=lambda: None))
+        obj = SimpleNamespace(
+            chat=MagicMock(), messages=SimpleNamespace(create=lambda: None)
+        )
         assert not _has_anthropic_shape(obj)
 
     def test_anthropic_shape_no_messages(self):
@@ -133,9 +133,7 @@ class TestAnthropicProxy:
     def test_sync_create(self):
         client = _make_anthropic_client()
         client = guard(client, on_fail="log")
-        resp = client.messages.create(
-            messages=[{"role": "user", "content": "hello"}]
-        )
+        resp = client.messages.create(messages=[{"role": "user", "content": "hello"}])
         assert resp is not None
 
     def test_sync_streaming(self):
@@ -157,18 +155,24 @@ class TestAnthropicProxy:
 
 class TestExtractors:
     def test_openai_response_text(self):
-        resp = SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content="hi"))])
+        resp = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="hi"))]
+        )
         assert _openai_response_text(resp) == "hi"
 
     def test_openai_response_text_empty(self):
         assert _openai_response_text(SimpleNamespace()) == ""
 
     def test_stream_delta_present(self):
-        chunk = SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="tok"))])
+        chunk = SimpleNamespace(
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="tok"))]
+        )
         assert _extract_stream_delta(chunk) == "tok"
 
     def test_stream_delta_none(self):
-        chunk = SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None))])
+        chunk = SimpleNamespace(
+            choices=[SimpleNamespace(delta=SimpleNamespace(content=None))]
+        )
         assert _extract_stream_delta(chunk) is None
 
     def test_stream_delta_error(self):
@@ -189,7 +193,10 @@ class TestExtractors:
         assert _extract_anthropic_event_text(event) == "hello"
 
     def test_anthropic_event_none(self):
-        assert _extract_anthropic_event_text(SimpleNamespace(text=None, delta=None)) is None
+        assert (
+            _extract_anthropic_event_text(SimpleNamespace(text=None, delta=None))
+            is None
+        )
 
     def test_anthropic_event_delta_none_val(self):
         event = SimpleNamespace(text=None, delta={"text": None})
@@ -201,7 +208,9 @@ class TestAsyncOpenAIStream:
         chunk = SimpleNamespace(
             choices=[SimpleNamespace(delta=SimpleNamespace(content="word "))]
         )
-        client = _make_openai_client(streaming=True, chunks=[chunk] * 10, async_mode=True)
+        client = _make_openai_client(
+            streaming=True, chunks=[chunk] * 10, async_mode=True
+        )
         client = guard(client, on_fail="log")
         stream = asyncio.get_event_loop().run_until_complete(
             client.chat.completions.create(
@@ -219,7 +228,9 @@ class TestAsyncOpenAIStream:
 class TestAsyncAnthropicStream:
     def test_aiter(self):
         event = SimpleNamespace(text="token ")
-        client = _make_anthropic_client(streaming=True, events=[event] * 10, async_mode=True)
+        client = _make_anthropic_client(
+            streaming=True, events=[event] * 10, async_mode=True
+        )
         client = guard(client, on_fail="log")
         stream = asyncio.get_event_loop().run_until_complete(
             client.messages.create(
@@ -243,11 +254,13 @@ def _make_openai_client(streaming=False, chunks=None, async_mode=False):
     )
 
     if async_mode:
+
         async def create(**kwargs):
             if kwargs.get("stream"):
                 return _AsyncIter(chunks or [])
             return resp
     else:
+
         def create(**kwargs):
             if kwargs.get("stream"):
                 return chunks or []
@@ -259,16 +272,16 @@ def _make_openai_client(streaming=False, chunks=None, async_mode=False):
 
 
 def _make_anthropic_client(streaming=False, events=None, async_mode=False):
-    resp = SimpleNamespace(
-        content=[SimpleNamespace(text="The sky is blue.")]
-    )
+    resp = SimpleNamespace(content=[SimpleNamespace(text="The sky is blue.")])
 
     if async_mode:
+
         async def create(**kwargs):
             if kwargs.get("stream"):
                 return _AsyncIter(events or [])
             return resp
     else:
+
         def create(**kwargs):
             if kwargs.get("stream"):
                 return events or []

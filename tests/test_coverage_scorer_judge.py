@@ -5,8 +5,6 @@ from __future__ import annotations
 import sys
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from director_ai.core import CoherenceScorer
 
 
@@ -105,6 +103,7 @@ class TestScorerEscalation:
 
         with patch.dict(sys.modules, {"openai": mock_openai}):
             div, ev = scorer.calculate_factual_divergence_with_evidence(
-                "sky", "The sky is blue.",
+                "sky",
+                "The sky is blue.",
             )
             assert 0.0 <= div <= 1.0

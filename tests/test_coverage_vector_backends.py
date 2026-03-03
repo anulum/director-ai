@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from director_ai.core.vector_store import (
-    InMemoryBackend,
     VectorGroundTruthStore,
 )
 
@@ -214,10 +213,13 @@ class TestQdrantBackend:
         from director_ai.core import vector_store
 
         mock_models = MagicMock()
-        with patch.dict(sys.modules, {
-            "qdrant_client": MagicMock(),
-            "qdrant_client.models": mock_models,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "qdrant_client": MagicMock(),
+                "qdrant_client.models": mock_models,
+            },
+        ):
             be = vector_store.QdrantBackend.__new__(vector_store.QdrantBackend)
             be._embed_fn = None
             be._client = MagicMock()
@@ -234,10 +236,13 @@ class TestQdrantBackend:
         from director_ai.core import vector_store
 
         mock_models = MagicMock()
-        with patch.dict(sys.modules, {
-            "qdrant_client": MagicMock(),
-            "qdrant_client.models": mock_models,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "qdrant_client": MagicMock(),
+                "qdrant_client.models": mock_models,
+            },
+        ):
             be = vector_store.QdrantBackend.__new__(vector_store.QdrantBackend)
             be._embed_fn = lambda t: [0.1, 0.2, 0.3]
             be._client = MagicMock()

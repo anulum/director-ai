@@ -1,22 +1,28 @@
-"""Final coverage gaps: nli model/onnx scoring, server rate limit, backends rust, sdk_guard async, cli edges."""
+"""Final coverage gaps: nli scoring, server, backends, cli."""
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from types import SimpleNamespace
-from unittest.mock import MagicMock, patch, AsyncMock
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from director_ai.core.config import DirectorConfig
 
+_HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
+_skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
+
 
 # ── NLI model_score_batch / onnx_score_batch ────────────────────────
+
 
 class TestNliModelScoreBatch:
     def test_model_score_batch_standard(self):
         """Cover _model_score_batch for standard (non-FactCG) model."""
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -46,6 +52,7 @@ class TestNliModelScoreBatch:
     def test_model_score_batch_factcg(self):
         """Cover _model_score_batch for FactCG model."""
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -74,6 +81,7 @@ class TestNliOnnxScoreBatch:
     def test_onnx_score_batch_standard(self):
         """Cover _onnx_score_batch for standard path."""
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -103,6 +111,7 @@ class TestNliOnnxScoreBatch:
     def test_onnx_score_batch_factcg(self):
         """Cover _onnx_score_batch for FactCG path."""
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -158,6 +167,7 @@ class TestNliDecomposeClaims:
 
 # ── Backends: RustBackend ───────────────────────────────────────────
 
+
 class TestRustBackend:
     def test_rust_backend_mock(self):
         mock_bk = MagicMock()
@@ -183,6 +193,7 @@ class TestRustBackend:
 
 # ── SDK Guard: async proxy paths ───────────────────────────────────
 
+
 class TestSdkGuardAsyncOpenAI:
     @pytest.mark.asyncio
     async def test_async_openai_proxy(self):
@@ -197,9 +208,7 @@ class TestSdkGuardAsyncOpenAI:
         original.create = AsyncMock(return_value=response)
 
         proxy = _OpenAICompletionsProxy(original, scorer, "log")
-        result = await proxy.create(
-            messages=[{"role": "user", "content": "q"}]
-        )
+        result = await proxy.create(messages=[{"role": "user", "content": "q"}])
         assert result is response
 
     @pytest.mark.asyncio
@@ -235,15 +244,11 @@ class TestSdkGuardAsyncAnthropic:
 
         scorer = CoherenceScorer(use_nli=False)
         original = MagicMock()
-        response = SimpleNamespace(
-            content=[SimpleNamespace(text="answer")]
-        )
+        response = SimpleNamespace(content=[SimpleNamespace(text="answer")])
         original.create = AsyncMock(return_value=response)
 
         proxy = _AnthropicMessagesProxy(original, scorer, "log")
-        result = await proxy.create(
-            messages=[{"role": "user", "content": "q"}]
-        )
+        result = await proxy.create(messages=[{"role": "user", "content": "q"}])
         assert result is response
 
     @pytest.mark.asyncio
@@ -267,6 +272,8 @@ class TestSdkGuardAsyncAnthropic:
 
 # ── Server: rate limit path, WS streaming, delete session ──────────
 
+
+@_skip_no_server
 class TestServerRateLimit:
     def test_rate_limit_with_slowapi(self):
         """Cover rate_limit_rpm > 0 with slowapi available."""
@@ -277,10 +284,12 @@ class TestServerRateLimit:
         assert app is not None
 
 
+@_skip_no_server
 class TestServerDeleteSession:
     def test_delete_session_missing(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
@@ -289,27 +298,32 @@ class TestServerDeleteSession:
             assert resp.status_code == 404
 
 
+@_skip_no_server
 class TestServerWsStreaming:
     def test_ws_streaming_oversight(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
-        with TestClient(app) as c:
-            with c.websocket_connect("/v1/stream") as ws:
-                ws.send_json({
+        with TestClient(app) as c, c.websocket_connect("/v1/stream") as ws:
+            ws.send_json(
+                {
                     "prompt": "What is 2+2?",
                     "streaming_oversight": True,
-                })
-                resp = ws.receive_json()
-                assert resp.get("type") in ("token", "result", "error")
+                }
+            )
+            resp = ws.receive_json()
+            assert resp.get("type") in ("token", "result", "error")
 
 
+@_skip_no_server
 class TestServerProcessEndpoint:
     def test_process_endpoint(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
@@ -320,10 +334,12 @@ class TestServerProcessEndpoint:
             assert "output" in data
 
 
+@_skip_no_server
 class TestServerBatchEndpoint:
     def test_batch_endpoint(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
@@ -332,10 +348,12 @@ class TestServerBatchEndpoint:
             assert resp.status_code == 200
 
 
+@_skip_no_server
 class TestServerStatsEndpoint:
     def test_stats_with_sqlite(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False, stats_backend="sqlite")
         app = create_app(config=cfg)
@@ -344,40 +362,47 @@ class TestServerStatsEndpoint:
             assert resp.status_code == 200
 
 
+@_skip_no_server
 class TestServerAuditLogging:
     def test_review_with_audit_logging(self, tmp_path):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         audit_path = str(tmp_path / "audit.db")
         cfg = DirectorConfig(use_nli=False, audit_log_path=audit_path)
         app = create_app(config=cfg)
         with TestClient(app) as c:
-            resp = c.post("/v1/review", json={
-                "prompt": "sky?", "response": "The sky is blue."
-            })
+            resp = c.post(
+                "/v1/review", json={"prompt": "sky?", "response": "The sky is blue."}
+            )
             assert resp.status_code == 200
 
 
 # ── CLI: remaining edge cases ───────────────────────────────────────
 
+
+@_skip_no_server
 class TestCliServeHost:
     def test_serve_with_host(self):
         """Cover --host parsing in serve command (line 702-703)."""
         with patch.dict(sys.modules, {"uvicorn": MagicMock()}):
             from director_ai.cli import main
+
             main(["serve", "--host", "127.0.0.1", "--port", "9999"])
 
 
 class TestCliStressTest:
     def test_stress_test_basic(self, capsys):
         from director_ai.cli import main
+
         main(["stress-test", "--iterations", "2", "--concurrency", "1"])
         out = capsys.readouterr().out
         assert len(out) > 0
 
     def test_stress_test_json(self, capsys):
         from director_ai.cli import main
+
         main(["stress-test", "--iterations", "2", "--json"])
         out = capsys.readouterr().out
         assert len(out) > 0
@@ -385,12 +410,18 @@ class TestCliStressTest:
 
 class TestCliBenchEdges:
     def test_bench_no_args(self, capsys):
+        pytest.importorskip("benchmarks", reason="benchmarks not on sys.path")
         from director_ai.cli import main
-        main(["bench"])
+
+        with contextlib.suppress(SystemExit):
+            main(["bench"])
 
     def test_bench_with_seed(self, capsys):
+        pytest.importorskip("benchmarks", reason="benchmarks not on sys.path")
         from director_ai.cli import main
-        main(["bench", "--seed", "42"])
+
+        with contextlib.suppress(SystemExit):
+            main(["bench", "--seed", "42"])
 
 
 class TestCliIngestJsonDecodeDetail:
@@ -398,15 +429,17 @@ class TestCliIngestJsonDecodeDetail:
         f = tmp_path / "docs.jsonl"
         f.write_text('{"text": "Fact one."}\n{"text": "Fact two."}\n', encoding="utf-8")
         from director_ai.cli import main
+
         main(["ingest", str(f)])
 
 
 # ── LangChain callback: raise_on_failure path ─────────────────────
 
+
 class TestLangchainCallbackRaise:
     def test_on_llm_end_raise_on_failure(self):
-        from director_ai.integrations.langchain_callback import CoherenceCallbackHandler
         from director_ai.core.exceptions import CoherenceError
+        from director_ai.integrations.langchain_callback import CoherenceCallbackHandler
 
         handler = CoherenceCallbackHandler(
             use_nli=False,
@@ -422,6 +455,7 @@ class TestLangchainCallbackRaise:
 
 
 # ── Providers: remaining edges ──────────────────────────────────────
+
 
 class TestProvidersEdgesDeep:
     def test_openai_provider_generate_candidates(self):

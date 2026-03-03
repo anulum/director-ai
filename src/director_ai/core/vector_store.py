@@ -39,7 +39,9 @@ class VectorBackend(ABC):
     ) -> None: ...  # pragma: no cover
 
     @abstractmethod
-    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]: ...  # pragma: no cover
+    def query(
+        self, text: str, n_results: int = 3
+    ) -> list[dict[str, Any]]: ...  # pragma: no cover
 
     @abstractmethod
     def count(self) -> int: ...  # pragma: no cover

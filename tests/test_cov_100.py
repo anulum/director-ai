@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import json
 import sys
 import types
@@ -10,7 +9,6 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
-
 
 # ── metrics: histogram overflow + gauge_inc/gauge_dec new gauge ──────
 
@@ -65,7 +63,9 @@ class TestSdkGuardPeriodicCheck:
 
         chunks = []
         for i in range(STREAM_CHECK_INTERVAL + 1):
-            c = SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=f"t{i}"))])
+            c = SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=f"t{i}"))]
+            )
             chunks.append(c)
 
         scorer = self._make_scorer(approved=False)
@@ -105,14 +105,16 @@ class TestLocalProviderStreamParsing:
             b"",  # empty line — hits continue on line 382
             b"event: ping",  # non-data line — hits continue
             b"data: not-json",
-            b"data: {\"choices\":[{\"delta\":{\"content\":\"hi\"}}]}",
+            b'data: {"choices":[{"delta":{"content":"hi"}}]}',
             b"data: [DONE]",
         ]
         mock_resp = MagicMock()
-        mock_resp.iter_lines.return_value = [l.decode() for l in lines]
+        mock_resp.iter_lines.return_value = [raw.decode() for raw in lines]
         mock_resp.raise_for_status.return_value = None
 
-        with patch("director_ai.integrations.providers.requests.post", return_value=mock_resp):
+        with patch(
+            "director_ai.integrations.providers.requests.post", return_value=mock_resp
+        ):
             tokens = list(p.stream_generate("test"))
         assert tokens == ["hi"]
 
@@ -129,7 +131,9 @@ class TestLocalProviderStreamParsing:
         mock_resp.iter_lines.return_value = lines
         mock_resp.raise_for_status.return_value = None
 
-        with patch("director_ai.integrations.providers.requests.post", return_value=mock_resp):
+        with patch(
+            "director_ai.integrations.providers.requests.post", return_value=mock_resp
+        ):
             tokens = list(p.stream_generate("test"))
         assert tokens == ["ok"]
 
@@ -231,7 +235,9 @@ class TestCliEdgeBranches:
             big = tmp_path / "big.txt"
             big.write_text("x" * 100, encoding="utf-8")
 
-            with patch("director_ai.core.config.DirectorConfig.from_env") as mock_from_env:
+            with patch(
+                "director_ai.core.config.DirectorConfig.from_env"
+            ) as mock_from_env:
                 mock_cfg = MagicMock()
                 mock_store = MagicMock()
                 mock_store.ingest.return_value = 0
@@ -253,10 +259,13 @@ class TestCliEdgeBranches:
         bench_mod._run_suite = mock_run
         bench_mod._print_comparison_table = mock_print
 
-        with patch.dict(sys.modules, {
-            "benchmarks": types.ModuleType("benchmarks"),
-            "benchmarks.run_all": bench_mod,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": types.ModuleType("benchmarks"),
+                "benchmarks.run_all": bench_mod,
+            },
+        ):
             _cmd_eval(["--model", "deberta-large"])
         mock_run.assert_called_once()
         args, kwargs = mock_run.call_args
@@ -272,10 +281,13 @@ class TestCliEdgeBranches:
         bench_mod._run_suite = mock_run
         bench_mod._print_comparison_table = mock_print
 
-        with patch.dict(sys.modules, {
-            "benchmarks": types.ModuleType("benchmarks"),
-            "benchmarks.run_all": bench_mod,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "benchmarks": types.ModuleType("benchmarks"),
+                "benchmarks.run_all": bench_mod,
+            },
+        ):
             _cmd_eval(["--unknown-flag", "val"])
         mock_run.assert_called_once()
 
@@ -286,14 +298,22 @@ class TestCliEdgeBranches:
         labeled = tmp_path / "labeled.jsonl"
         out = tmp_path / "config.yaml"
         labeled.write_text(
-            json.dumps({"prompt": "q", "response": "a", "label": True}) + "\n"
-            + json.dumps({"prompt": "q2", "response": "a2", "label": False}) + "\n",
+            json.dumps({"prompt": "q", "response": "a", "label": True})
+            + "\n"
+            + json.dumps({"prompt": "q2", "response": "a2", "label": False})
+            + "\n",
             encoding="utf-8",
         )
 
         tune_result = SimpleNamespace(
-            threshold=0.65, w_logic=0.5, w_fact=0.5,
-            balanced_accuracy=0.85, precision=0.9, recall=0.8, f1=0.85, samples=2,
+            threshold=0.65,
+            w_logic=0.5,
+            w_fact=0.5,
+            balanced_accuracy=0.85,
+            precision=0.9,
+            recall=0.8,
+            f1=0.85,
+            samples=2,
         )
         with patch("director_ai.core.tuner.tune", return_value=tune_result):
             _cmd_tune([str(labeled), "--output", str(out)])
@@ -309,9 +329,14 @@ class TestCliEdgeBranches:
         mock_cfg.server_port = 8080
 
         mock_uv = MagicMock()
-        with patch("director_ai.core.config.DirectorConfig.from_profile", return_value=mock_cfg), \
-             patch.dict(sys.modules, {"uvicorn": mock_uv}), \
-             patch("director_ai.server.create_app", MagicMock()):
+        with (
+            patch(
+                "director_ai.core.config.DirectorConfig.from_profile",
+                return_value=mock_cfg,
+            ),
+            patch.dict(sys.modules, {"uvicorn": mock_uv}),
+            patch("director_ai.server.create_app", MagicMock()),
+        ):
             _cmd_serve(["--unknown", "val", "--profile", "fast"])
         mock_uv.run.assert_called_once()
 
@@ -319,10 +344,15 @@ class TestCliEdgeBranches:
 # ── server: NLI gauge, rate_limit no slowapi, halted-all stats ───────
 
 
+_HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
+_skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
+
+
+@_skip_no_server
 class TestServerNliGaugeAndRateLimit:
     def test_nli_gauge_set_on_startup(self):
-        """use_nli=True triggers gauge_set('nli_model_loaded', 1.0) (line 235)."""
         from director_ai.core.config import DirectorConfig
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(
             use_nli=True,
@@ -330,18 +360,9 @@ class TestServerNliGaugeAndRateLimit:
             hard_limit=0.3,
             soft_limit=0.5,
         )
-        with patch("director_ai.server._FASTAPI_AVAILABLE", True), \
-             patch("director_ai.server.FastAPI") as MockApp, \
-             patch("director_ai.server.CORSMiddleware"), \
-             patch("director_ai.server.metrics") as mock_metrics:
-            app = MagicMock()
-            MockApp.return_value = app
-            from director_ai.server import create_app
-
-            create_app(config=cfg)
+        create_app(config=cfg)
 
     def test_rate_limit_warning_when_slowapi_missing(self):
-        """rate_limit_rpm>0 + no slowapi logs warning (line 274)."""
         import director_ai.server as srv
 
         orig = srv._SLOWAPI_AVAILABLE
@@ -362,7 +383,6 @@ class TestServerNliGaugeAndRateLimit:
 class TestVectorStoreQdrantEnsureCollection:
     def test_qdrant_creates_collection_on_not_found(self):
         mock_qdrant = MagicMock()
-        mock_models = MagicMock()
         fake_qdrant_client = types.ModuleType("qdrant_client")
         fake_qdrant_client.QdrantClient = MagicMock(return_value=mock_qdrant)
         fake_qdrant_models = types.ModuleType("qdrant_client.models")
@@ -372,10 +392,13 @@ class TestVectorStoreQdrantEnsureCollection:
 
         mock_qdrant.get_collection.side_effect = Exception("Not found")
 
-        with patch.dict(sys.modules, {
-            "qdrant_client": fake_qdrant_client,
-            "qdrant_client.models": fake_qdrant_models,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "qdrant_client": fake_qdrant_client,
+                "qdrant_client.models": fake_qdrant_models,
+            },
+        ):
             from director_ai.core.vector_store import QdrantBackend
 
             store = object.__new__(QdrantBackend)
@@ -392,14 +415,17 @@ class TestVectorStoreQdrantEnsureCollection:
 
 class TestExtractPromptBranches:
     def test_content_list_with_non_text_blocks(self):
-        """Content list with non-text dict → loop continues (114->113), falls through (113->116)."""
+        """Content list with non-text dict — falls through."""
         from director_ai.integrations.sdk_guard import _extract_prompt
 
         messages = [
-            {"role": "user", "content": [
-                {"type": "image_url", "url": "http://example.com/img.png"},
-                {"type": "tool_use", "data": "xyz"},
-            ]},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "image_url", "url": "http://example.com/img.png"},
+                    {"type": "tool_use", "data": "xyz"},
+                ],
+            },
         ]
         result = _extract_prompt(messages)
         assert isinstance(result, str)
@@ -420,7 +446,11 @@ class TestSdkGuardEmptyStreams:
     def _make_scorer(self):
         scorer = MagicMock()
         score = SimpleNamespace(
-            score=0.9, h_logical=0.0, h_factual=0.0, warning=False, evidence=None,
+            score=0.9,
+            h_logical=0.0,
+            h_factual=0.0,
+            warning=False,
+            evidence=None,
         )
         scorer.review.return_value = (True, score)
         return scorer
@@ -430,8 +460,12 @@ class TestSdkGuardEmptyStreams:
         from director_ai.integrations.sdk_guard import _GuardedOpenAIStream
 
         chunks = [
-            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=""))]),
-            SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=None))]),
+            SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=""))]
+            ),
+            SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=None))]
+            ),
         ]
         scorer = self._make_scorer()
         stream = _GuardedOpenAIStream(iter(chunks), scorer, "log", "prompt")
@@ -461,7 +495,11 @@ class TestSdkGuardAsyncIteration:
     def _make_scorer(self):
         scorer = MagicMock()
         score = SimpleNamespace(
-            score=0.9, h_logical=0.0, h_factual=0.0, warning=False, evidence=None,
+            score=0.9,
+            h_logical=0.0,
+            h_factual=0.0,
+            warning=False,
+            evidence=None,
         )
         scorer.review.return_value = (True, score)
         return scorer
@@ -472,9 +510,15 @@ class TestSdkGuardAsyncIteration:
         from director_ai.integrations.sdk_guard import _GuardedOpenAIStream
 
         async def _async_chunks():
-            yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=""))])
-            yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="hello"))])
-            yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content=""))])
+            yield SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=""))]
+            )
+            yield SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content="hello"))]
+            )
+            yield SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=""))]
+            )
 
         scorer = self._make_scorer()
         stream = _GuardedOpenAIStream(_async_chunks(), scorer, "log", "prompt")
@@ -485,7 +529,7 @@ class TestSdkGuardAsyncIteration:
 
     @pytest.mark.asyncio
     async def test_async_anthropic_stream_empty_and_nonempty_text(self):
-        """Async Anthropic: some events without text (316->321) + not-at-interval (330->335)."""
+        """Async Anthropic: events with and without text."""
         from director_ai.integrations.sdk_guard import _GuardedAnthropicStream
 
         async def _async_events():
@@ -506,7 +550,7 @@ class TestSdkGuardAsyncIteration:
 
 class TestStreamingWindowAboveThreshold:
     def test_window_full_but_average_above_threshold(self):
-        """Window fills up but avg >= threshold → 163->165 (falls through to trend check)."""
+        """Window fills up but avg >= threshold — falls through."""
         from director_ai.core.streaming import StreamingKernel
 
         k = StreamingKernel(
@@ -539,7 +583,10 @@ class TestLanggraphEmptyContextRewrite:
             "response": "Unknown cosmic answer that won't pass threshold.",
         }
         result = node(state)
-        assert "director_ai_rewritten" not in result or result.get("director_ai_rewritten") is not True
+        assert (
+            "director_ai_rewritten" not in result
+            or result.get("director_ai_rewritten") is not True
+        )
 
 
 # ── Branch partial: providers Anthropic non-text block ────────────────
@@ -559,7 +606,9 @@ class TestProviderAnthropicNonTextBlock:
                 {"type": "text", "text": "actual answer"},
             ],
         }
-        with patch("director_ai.integrations.providers.requests.post", return_value=mock_resp):
+        with patch(
+            "director_ai.integrations.providers.requests.post", return_value=mock_resp
+        ):
             candidates = p.generate_candidates("test", n=1)
         assert candidates[0]["text"] == "actual answer"
 
@@ -580,7 +629,9 @@ class TestProviderOpenAIEmptyContent:
             'data: {"choices":[{"delta":{"content":"word"}}]}',
             "data: [DONE]",
         ]
-        with patch("director_ai.integrations.providers.requests.post", return_value=mock_resp):
+        with patch(
+            "director_ai.integrations.providers.requests.post", return_value=mock_resp
+        ):
             tokens = list(p.stream_generate("test"))
         assert tokens == ["word"]
 
@@ -593,11 +644,13 @@ class TestPolicyNonMatchingPattern:
         """Multiple forbidden patterns, only some match → 132->131 (loop continues)."""
         from director_ai.core.policy import Policy
 
-        policy = Policy.from_dict({
-            "forbidden": ["badword", "anotherbad"],
-            "required": [],
-            "max_length": 1000,
-        })
+        policy = Policy.from_dict(
+            {
+                "forbidden": ["badword", "anotherbad"],
+                "required": [],
+                "max_length": 1000,
+            }
+        )
         violations = policy.check("this contains badword but not the other")
         assert len(violations) == 1
         assert "badword" in violations[0].detail
@@ -609,8 +662,9 @@ class TestPolicyNonMatchingPattern:
 class TestVectorStoreZeroSimilarity:
     def test_query_with_zero_similarity_items_filtered(self):
         """similarity <= 0 → 128->127 (item not appended)."""
-        from director_ai.core.vector_store import SentenceTransformerBackend
         import numpy as np
+
+        from director_ai.core.vector_store import SentenceTransformerBackend
 
         backend = object.__new__(SentenceTransformerBackend)
         backend._docs = [
@@ -628,5 +682,3 @@ class TestVectorStoreZeroSimilarity:
         results = backend.query("test", n_results=10)
         assert len(results) == 1
         assert results[0]["id"] == "a"
-
-

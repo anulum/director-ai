@@ -12,9 +12,11 @@ class TestPineconeBackend:
     def test_pinecone_import_error(self):
         from director_ai.core.vector_store import PineconeBackend
 
-        with patch.dict(sys.modules, {"pinecone": None}):
-            with pytest.raises(ImportError, match="pinecone"):
-                PineconeBackend(api_key="fake", index_name="test")
+        with (
+            patch.dict(sys.modules, {"pinecone": None}),
+            pytest.raises(ImportError, match="pinecone"),
+        ):
+            PineconeBackend(api_key="fake", index_name="test")
 
     def test_pinecone_success(self):
         mock_pinecone = MagicMock()
@@ -58,7 +60,9 @@ class TestWeaviateBackend:
         with patch.dict(sys.modules, {"weaviate": mock_weaviate}):
             from director_ai.core.vector_store import WeaviateBackend
 
-            embed_fn = lambda t: [0.1, 0.2, 0.3]
+            def embed_fn(t):
+                return [0.1, 0.2, 0.3]
+
             backend = WeaviateBackend(embed_fn=embed_fn)
             backend.add("id1", "text1")
             assert backend.count() == 1
@@ -74,15 +78,25 @@ class TestWeaviateBackend:
         mock_query.with_limit.return_value = mock_query
         mock_query.with_additional.return_value = mock_query
         mock_query.do.return_value = {
-            "data": {"Get": {"DirectorFact": [
-                {"text": "fact", "doc_id": "id1", "_additional": {"distance": 0.1, "id": "id1"}},
-            ]}}
+            "data": {
+                "Get": {
+                    "DirectorFact": [
+                        {
+                            "text": "fact",
+                            "doc_id": "id1",
+                            "_additional": {"distance": 0.1, "id": "id1"},
+                        },
+                    ]
+                }
+            }
         }
 
         with patch.dict(sys.modules, {"weaviate": mock_weaviate}):
             from director_ai.core.vector_store import WeaviateBackend
 
-            embed_fn = lambda t: [0.1, 0.2, 0.3]
+            def embed_fn(t):
+                return [0.1, 0.2, 0.3]
+
             backend = WeaviateBackend(embed_fn=embed_fn)
             results = backend.query("test")
             assert len(results) == 1
@@ -119,10 +133,13 @@ class TestQdrantBackend:
         mock_qdrant = MagicMock()
         mock_models = MagicMock()
 
-        with patch.dict(sys.modules, {
-            "qdrant_client": mock_qdrant,
-            "qdrant_client.models": mock_models,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "qdrant_client": mock_qdrant,
+                "qdrant_client.models": mock_models,
+            },
+        ):
             from director_ai.core.vector_store import QdrantBackend
 
             backend = QdrantBackend()
@@ -138,11 +155,14 @@ class TestChromaEmbeddingModel:
             side_effect=ImportError("no st")
         )
 
-        with patch.dict(sys.modules, {
-            "chromadb": mock_chromadb,
-            "chromadb.utils": mock_chromadb_utils,
-            "chromadb.utils.embedding_functions": mock_ef,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "chromadb": mock_chromadb,
+                "chromadb.utils": mock_chromadb_utils,
+                "chromadb.utils.embedding_functions": mock_ef,
+            },
+        ):
             from director_ai.core.vector_store import ChromaBackend
 
             backend = ChromaBackend(embedding_model="all-MiniLM-L6-v2")

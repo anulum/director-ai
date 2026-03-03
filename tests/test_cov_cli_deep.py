@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from types import ModuleType
 from unittest.mock import MagicMock, patch
@@ -25,8 +24,10 @@ class TestBatchEdges:
     def test_batch_with_output(self, tmp_path, capsys):
         inp = tmp_path / "input.jsonl"
         inp.write_text(
-            json.dumps({"prompt": "What is 1+1?"}) + "\n"
-            + json.dumps({"prompt": "What is 2+2?"}) + "\n",
+            json.dumps({"prompt": "What is 1+1?"})
+            + "\n"
+            + json.dumps({"prompt": "What is 2+2?"})
+            + "\n",
             encoding="utf-8",
         )
         out = tmp_path / "output.jsonl"
@@ -43,9 +44,7 @@ class TestBatchEdges:
 
     def test_batch_max_prompts(self, tmp_path, capsys):
         inp = tmp_path / "many.jsonl"
-        lines = "\n".join(
-            json.dumps({"prompt": f"q{i}"}) for i in range(10_001)
-        )
+        lines = "\n".join(json.dumps({"prompt": f"q{i}"}) for i in range(10_001))
         inp.write_text(lines, encoding="utf-8")
         main(["batch", str(inp)])
         out = capsys.readouterr().out
@@ -66,9 +65,11 @@ class TestBatchEdges:
     def test_batch_file_too_large(self, tmp_path):
         inp = tmp_path / "huge.jsonl"
         inp.write_text("x", encoding="utf-8")
-        with patch("director_ai.cli._BATCH_MAX_FILE_SIZE", 0):
-            with pytest.raises(SystemExit):
-                main(["batch", str(inp)])
+        with (
+            patch("director_ai.cli._BATCH_MAX_FILE_SIZE", 0),
+            pytest.raises(SystemExit),
+        ):
+            main(["batch", str(inp)])
 
 
 class TestIngestEdges:
@@ -120,8 +121,12 @@ class TestTune:
     def test_tune_valid(self, tmp_path, capsys):
         f = tmp_path / "labeled.jsonl"
         lines = [
-            json.dumps({"prompt": "sky?", "response": "The sky is blue.", "label": True}),
-            json.dumps({"prompt": "sky?", "response": "The sky is green.", "label": False}),
+            json.dumps(
+                {"prompt": "sky?", "response": "The sky is blue.", "label": True}
+            ),
+            json.dumps(
+                {"prompt": "sky?", "response": "The sky is green.", "label": False}
+            ),
         ]
         f.write_text("\n".join(lines), encoding="utf-8")
         main(["tune", str(f)])
@@ -176,9 +181,8 @@ class TestServeEdges:
             main(["serve", "--transport", "mqtt"])
 
     def test_serve_missing_uvicorn(self):
-        with patch.dict(sys.modules, {"uvicorn": None}):
-            with pytest.raises(SystemExit):
-                main(["serve"])
+        with patch.dict(sys.modules, {"uvicorn": None}), pytest.raises(SystemExit):
+            main(["serve"])
 
 
 class TestEvalEdges:
@@ -187,12 +191,17 @@ class TestEvalEdges:
         mock_run_all._run_suite = MagicMock(return_value={"accuracy": 0.9})
         mock_run_all._print_comparison_table = MagicMock()
 
-        with patch.dict(sys.modules, {
-            "benchmarks": ModuleType("benchmarks"),
-            "benchmarks.run_all": mock_run_all,
-        }):
-            with pytest.raises(SystemExit):
-                main(["eval", "--max-samples", "abc"])
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "benchmarks": ModuleType("benchmarks"),
+                    "benchmarks.run_all": mock_run_all,
+                },
+            ),
+            pytest.raises(SystemExit),
+        ):
+            main(["eval", "--max-samples", "abc"])
 
 
 class TestConfigEdges:

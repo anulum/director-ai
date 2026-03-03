@@ -64,9 +64,7 @@ class TestCliBatch:
             main(["batch", "/nonexistent/file.jsonl"])
 
     def test_batch_processes_jsonl(self, capsys):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             f.write(json.dumps({"prompt": "Is water wet?"}) + "\n")
             f.write(json.dumps({"prompt": "Is fire hot?"}) + "\n")
             path = f.name
@@ -79,9 +77,7 @@ class TestCliBatch:
             os.unlink(path)
 
     def test_batch_with_output(self, capsys):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             f.write(json.dumps({"prompt": "test"}) + "\n")
             inpath = f.name
 
@@ -97,9 +93,7 @@ class TestCliBatch:
                 os.unlink(outpath)
 
     def test_batch_skips_bad_json(self, capsys):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             f.write("not json\n")
             f.write(json.dumps({"prompt": "valid"}) + "\n")
             path = f.name
@@ -112,9 +106,7 @@ class TestCliBatch:
             os.unlink(path)
 
     def test_batch_skips_invalid_prompt(self, capsys):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             f.write(json.dumps({"prompt": ""}) + "\n")
             f.write(json.dumps({"prompt": "valid"}) + "\n")
             path = f.name
@@ -127,16 +119,16 @@ class TestCliBatch:
             os.unlink(path)
 
     def test_batch_file_too_large(self, capsys):
-        with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False
-        ) as f:
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             path = f.name
 
         from unittest.mock import patch
 
-        with patch("os.path.getsize", return_value=200_000_000):
-            with pytest.raises(SystemExit):
-                main(["batch", path])
+        with (
+            patch("os.path.getsize", return_value=200_000_000),
+            pytest.raises(SystemExit),
+        ):
+            main(["batch", path])
 
         os.unlink(path)
 
@@ -236,11 +228,15 @@ class TestCliTune:
         f = tmp_path / "labeled.jsonl"
         lines = []
         for i in range(20):
-            lines.append(json.dumps({
-                "prompt": f"q{i}",
-                "response": f"a{i}",
-                "label": i % 2 == 0,
-            }))
+            lines.append(
+                json.dumps(
+                    {
+                        "prompt": f"q{i}",
+                        "response": f"a{i}",
+                        "label": i % 2 == 0,
+                    }
+                )
+            )
         f.write_text("\n".join(lines) + "\n")
 
         main(["tune", str(f)])
@@ -260,8 +256,10 @@ class TestCliTune:
     def test_tune_skips_incomplete(self, capsys, tmp_path):
         f = tmp_path / "partial.jsonl"
         f.write_text(
-            json.dumps({"prompt": "q"}) + "\n"
-            + json.dumps({"prompt": "q", "response": "a", "label": True}) + "\n"
+            json.dumps({"prompt": "q"})
+            + "\n"
+            + json.dumps({"prompt": "q", "response": "a", "label": True})
+            + "\n"
         )
         main(["tune", str(f)])
         out = capsys.readouterr().out
@@ -287,13 +285,18 @@ class TestCliStressTest:
         assert "Streams:" in out
 
     def test_stress_test_json(self, capsys):
-        main([
-            "stress-test",
-            "--streams", "5",
-            "--tokens-per-stream", "10",
-            "--concurrency", "2",
-            "--json",
-        ])
+        main(
+            [
+                "stress-test",
+                "--streams",
+                "5",
+                "--tokens-per-stream",
+                "10",
+                "--concurrency",
+                "2",
+                "--json",
+            ]
+        )
         out = capsys.readouterr().out
         data = json.loads(out)
         assert "streams_per_second" in data

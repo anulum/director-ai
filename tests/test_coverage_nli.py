@@ -2,8 +2,7 @@
 
 from __future__ import annotations
 
-import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
 import numpy as np
 import pytest
@@ -54,6 +53,7 @@ class TestNLIScorerInit:
         class Stub(ScorerBackend):
             def score(self, p, h):
                 return 0.5
+
             def score_batch(self, pairs):
                 return [0.5] * len(pairs)
 
@@ -66,6 +66,7 @@ class TestNLIScorerInit:
         class Stub(ScorerBackend):
             def score(self, p, h):
                 return 0.5
+
             def score_batch(self, pairs):
                 return [0.5] * len(pairs)
 
@@ -131,8 +132,7 @@ class TestNLIScorerChunked:
     def test_score_decomposed_multi(self):
         scorer = NLIScorer(use_model=False)
         agg, scores = scorer.score_decomposed(
-            "sky is blue",
-            "The sky is blue. Water is wet."
+            "sky is blue", "The sky is blue. Water is wet."
         )
         assert len(scores) == 2
 
@@ -187,7 +187,10 @@ class TestOnnxDynamicBatcher:
 
     def test_uses_io_binding_with_cuda(self):
         session = MagicMock()
-        session.get_providers.return_value = ["CUDAExecutionProvider", "CPUExecutionProvider"]
+        session.get_providers.return_value = [
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
+        ]
         batcher = OnnxDynamicBatcher(lambda x: x, session=session)
         assert batcher.uses_io_binding
 

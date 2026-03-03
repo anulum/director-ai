@@ -10,14 +10,11 @@ import pytest
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.integrations.sdk_guard import (
     _AnthropicMessagesProxy,
-    _GuardedAnthropicStream,
-    _GuardedOpenAIStream,
-    _OpenAICompletionsProxy,
     _extract_anthropic_event_text,
     _extract_prompt,
     _extract_stream_delta,
     _handle_failure,
-    _score_and_gate,
+    _OpenAICompletionsProxy,
     guard,
 )
 
@@ -28,9 +25,7 @@ class TestExtractPrompt:
         assert _extract_prompt(msgs) == "hello"
 
     def test_user_list_blocks(self):
-        msgs = [{"role": "user", "content": [
-            {"type": "text", "text": "block text"}
-        ]}]
+        msgs = [{"role": "user", "content": [{"type": "text", "text": "block text"}]}]
         assert _extract_prompt(msgs) == "block text"
 
     def test_no_user_fallback(self):
@@ -61,7 +56,9 @@ class TestOpenAIProxy:
         scorer = CoherenceScorer(use_nli=False)
         original = MagicMock()
         response = SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="The sky is blue."))]
+            choices=[
+                SimpleNamespace(message=SimpleNamespace(content="The sky is blue."))
+            ]
         )
         original.create.return_value = response
 
@@ -79,9 +76,7 @@ class TestOpenAIProxy:
         original.create.return_value = [chunk]
 
         proxy = _OpenAICompletionsProxy(original, scorer, "log")
-        result = proxy.create(
-            messages=[{"role": "user", "content": "q"}], stream=True
-        )
+        result = proxy.create(messages=[{"role": "user", "content": "q"}], stream=True)
         chunks = list(result)
         assert len(chunks) == 1
 
@@ -98,9 +93,7 @@ class TestAnthropicProxy:
     def test_sync_create(self):
         scorer = CoherenceScorer(use_nli=False)
         original = MagicMock()
-        response = SimpleNamespace(
-            content=[SimpleNamespace(text="The sky is blue.")]
-        )
+        response = SimpleNamespace(content=[SimpleNamespace(text="The sky is blue.")])
         original.create.return_value = response
 
         proxy = _AnthropicMessagesProxy(original, scorer, "log")
@@ -115,9 +108,7 @@ class TestAnthropicProxy:
         original.create.return_value = [event]
 
         proxy = _AnthropicMessagesProxy(original, scorer, "log")
-        result = proxy.create(
-            messages=[{"role": "user", "content": "q"}], stream=True
-        )
+        result = proxy.create(messages=[{"role": "user", "content": "q"}], stream=True)
         events = list(result)
         assert len(events) == 1
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import sys
 from unittest.mock import MagicMock, patch
 
@@ -9,7 +10,11 @@ import pytest
 
 from director_ai.cli import main
 
+_HAS_FASTAPI = importlib.util.find_spec("fastapi") is not None
+_skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
 
+
+@_skip_no_server
 class TestCliServeExec:
     def test_serve_http_runs_uvicorn(self):
         mock_uvicorn = MagicMock()

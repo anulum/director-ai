@@ -2,9 +2,7 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
-import pytest
+from unittest.mock import patch
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.vector_store import VectorGroundTruthStore
@@ -36,7 +34,8 @@ class TestScorerWithVectorStore:
         store = VectorGroundTruthStore()
         store.add_fact("sky", "The sky is blue.")
         scorer = CoherenceScorer(
-            use_nli=False, ground_truth_store=store,
+            use_nli=False,
+            ground_truth_store=store,
         )
         div, ev = scorer.calculate_factual_divergence_with_evidence(
             "sky", "The sky is blue."
@@ -46,7 +45,8 @@ class TestScorerWithVectorStore:
     def test_evidence_no_context(self):
         store = VectorGroundTruthStore()
         scorer = CoherenceScorer(
-            use_nli=False, ground_truth_store=store,
+            use_nli=False,
+            ground_truth_store=store,
         )
         div, ev = scorer.calculate_factual_divergence_with_evidence(
             "zzz_nonexistent_xyz", "anything"
@@ -65,7 +65,9 @@ class TestScorerComputeDivergence:
         store = GroundTruthStore()
         store.add("sky", "The sky is blue.")
         scorer = CoherenceScorer(
-            use_nli=False, strict_mode=True, ground_truth_store=store,
+            use_nli=False,
+            strict_mode=True,
+            ground_truth_store=store,
         )
         div = scorer.compute_divergence("sky", "The sky is blue.")
         assert div > 0.5

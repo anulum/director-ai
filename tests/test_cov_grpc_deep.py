@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import sys
 import tempfile
-from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -59,7 +58,7 @@ class TestCreateGrpcServer:
             with tempfile.NamedTemporaryFile(suffix=".pem", delete=False) as kf:
                 kf.write(b"key")
                 key_path = kf.name
-            result = create_grpc_server(
+            create_grpc_server(
                 port=50099, tls_cert_path=cert_path, tls_key_path=key_path
             )
             srv.add_secure_port.assert_called_once()
@@ -88,7 +87,6 @@ class TestDirectorServicer:
 
             # Capture the servicer via the mock server
             captured = {}
-            original_server = grpc.server
 
             def _capture_server(*a, **kw):
                 s = MagicMock()

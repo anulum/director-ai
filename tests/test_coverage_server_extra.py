@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
+
+pytest.importorskip("fastapi", reason="fastapi not installed")
 
 from director_ai.core.config import DirectorConfig
 from director_ai.server import create_app
@@ -46,11 +48,14 @@ class TestConfigBranches:
 class TestRateLimiting:
     def test_rate_limit_no_slowapi(self):
         cfg = DirectorConfig(use_nli=False, rate_limit_rpm=60)
-        with patch.dict(sys.modules, {
-            "slowapi": None,
-            "slowapi.middleware": None,
-            "slowapi.util": None,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "slowapi": None,
+                "slowapi.middleware": None,
+                "slowapi.util": None,
+            },
+        ):
             app = create_app(config=cfg)
             assert app is not None
 
@@ -118,10 +123,12 @@ class TestSessionEndpoint:
 class TestWebSocketOversight:
     def test_ws_streaming_oversight(self, client):
         with client.websocket_connect("/v1/stream") as ws:
-            ws.send_json({
-                "prompt": "What is 2+2?",
-                "streaming_oversight": True,
-            })
+            ws.send_json(
+                {
+                    "prompt": "What is 2+2?",
+                    "streaming_oversight": True,
+                }
+            )
             msgs = []
             for _ in range(20):
                 data = ws.receive_json()

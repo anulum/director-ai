@@ -2,13 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
-import pytest
-
 from director_ai.core.backends import (
     DeBERTaBackend,
-    LiteBackend,
     MiniCheckBackend,
     OnnxBackend,
     _load_entry_points,
@@ -54,6 +49,7 @@ class TestMiniCheckBackend:
 class TestEntryPoints:
     def test_load_entry_points_no_error(self):
         import director_ai.core.backends as bmod
+
         bmod._ENTRY_POINTS_LOADED = False
         _load_entry_points()
         assert bmod._ENTRY_POINTS_LOADED

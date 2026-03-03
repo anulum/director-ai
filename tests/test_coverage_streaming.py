@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from director_ai.core.streaming import StreamSession, StreamingKernel, TokenEvent
+from director_ai.core.streaming import StreamingKernel, StreamSession
 
 
 class TestStreamingKernelValidation:
@@ -161,14 +161,19 @@ class TestStreamingKernelStreamTokens:
         assert call_count == 2  # tokens 0 and 3
 
     def test_adaptive_cadence_increase(self):
-        k = StreamingKernel(adaptive=True, score_every_n=1, max_cadence=4, soft_limit=0.7)
+        k = StreamingKernel(
+            adaptive=True, score_every_n=1, max_cadence=4, soft_limit=0.7
+        )
         session = k.stream_tokens([f"t{i}" for i in range(10)], lambda t: 0.9)
         assert session.token_count == 10
 
     def test_adaptive_cadence_reset_on_low_score(self):
         k = StreamingKernel(
-            adaptive=True, score_every_n=1, max_cadence=4,
-            soft_limit=0.7, hard_limit=0.1,
+            adaptive=True,
+            score_every_n=1,
+            max_cadence=4,
+            soft_limit=0.7,
+            hard_limit=0.1,
         )
         session = k.stream_tokens([f"t{i}" for i in range(6)], lambda t: 0.5)
         assert session.token_count == 6
@@ -176,7 +181,8 @@ class TestStreamingKernelStreamTokens:
     def test_evidence_callback(self):
         k = StreamingKernel(hard_limit=0.5)
         session = k.stream_tokens(
-            ["a"], lambda t: 0.3,
+            ["a"],
+            lambda t: 0.3,
             evidence_callback=lambda text: "bad evidence",
         )
         assert session.halted

@@ -18,6 +18,7 @@ class TestRegistration:
         class Dummy(ScorerBackend):
             def score(self, p, h):
                 return 0.5
+
             def score_batch(self, pairs):
                 return [0.5] * len(pairs)
 

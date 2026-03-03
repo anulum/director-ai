@@ -6,8 +6,6 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 
 def _build_grpc_mocks(*, with_proto=False, with_reflection=False):
     grpc = MagicMock()
@@ -126,7 +124,9 @@ class TestProtoFallback:
 
 class TestReflection:
     def test_reflection_enabled(self):
-        grpc_mock, server, mods = _build_grpc_mocks(with_proto=True, with_reflection=True)
+        grpc_mock, server, mods = _build_grpc_mocks(
+            with_proto=True, with_reflection=True
+        )
 
         with patch.dict(sys.modules, mods):
             from director_ai.grpc_server import create_grpc_server
@@ -212,5 +212,5 @@ class TestAuthInterceptor:
             handler_details.invocation_metadata = [("x-api-key", "wrong")]
             continuation = MagicMock()
 
-            result = interceptor.intercept_service(continuation, handler_details)
+            interceptor.intercept_service(continuation, handler_details)
             continuation.assert_not_called()

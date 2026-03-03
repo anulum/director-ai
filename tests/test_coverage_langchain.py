@@ -28,7 +28,9 @@ class TestDirectorAIGuard:
 
     def test_raise_on_fail(self):
         guard = DirectorAIGuard(
-            threshold=0.99, use_nli=False, raise_on_fail=True,
+            threshold=0.99,
+            use_nli=False,
+            raise_on_fail=True,
         )
         with pytest.raises(HallucinationError):
             guard.check("xyz", "totally unrelated abc")
@@ -37,10 +39,12 @@ class TestDirectorAIGuard:
 class TestInvoke:
     def test_invoke_dict(self):
         guard = DirectorAIGuard(threshold=0.3, use_nli=False)
-        result = guard.invoke({
-            "query": "sky",
-            "response": "The sky is blue.",
-        })
+        result = guard.invoke(
+            {
+                "query": "sky",
+                "response": "The sky is blue.",
+            }
+        )
         assert "approved" in result
 
     def test_invoke_str(self):
@@ -50,10 +54,12 @@ class TestInvoke:
 
     def test_invoke_input_output_keys(self):
         guard = DirectorAIGuard(threshold=0.3, use_nli=False)
-        result = guard.invoke({
-            "input": "sky",
-            "output": "The sky is blue.",
-        })
+        result = guard.invoke(
+            {
+                "input": "sky",
+                "output": "The sky is blue.",
+            }
+        )
         assert "approved" in result
 
 
@@ -87,7 +93,9 @@ class TestAsync:
 
     def test_acheck_raise(self):
         guard = DirectorAIGuard(
-            threshold=0.99, use_nli=False, raise_on_fail=True,
+            threshold=0.99,
+            use_nli=False,
+            raise_on_fail=True,
         )
 
         async def run():

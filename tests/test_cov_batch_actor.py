@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 import sys
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from unittest.mock import MagicMock, patch
@@ -17,7 +16,9 @@ class TestBatchTimeoutErrors:
         agent = MagicMock()
         agent.process.return_value = MagicMock(
             output="ok",
-            coherence=MagicMock(score=0.9, h_logical=0.1, h_factual=0.05, warning=False),
+            coherence=MagicMock(
+                score=0.9, h_logical=0.1, h_factual=0.05, warning=False
+            ),
             halted=False,
             candidates_evaluated=1,
             fallback_used=False,
@@ -60,9 +61,7 @@ class TestBatchAsync:
         agent = MagicMock()
         proc = BatchProcessor(agent, max_concurrency=2, item_timeout=0.001)
 
-        with patch.object(
-            proc, "_process_one", side_effect=RuntimeError("async fail")
-        ):
+        with patch.object(proc, "_process_one", side_effect=RuntimeError("async fail")):
             result = await proc.process_batch_async(["q1"])
             assert result.total == 1
 

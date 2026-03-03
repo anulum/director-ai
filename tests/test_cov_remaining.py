@@ -1,18 +1,21 @@
-"""Close remaining coverage gaps: grpc StreamTokens, server rate-limit handler,
-cli edges, nli score paths, providers stream, streaming halt_evidence, agent Rust path."""
+"""Close remaining coverage gaps: grpc, server, cli, nli, providers, streaming."""
 
 from __future__ import annotations
 
 import sys
 from types import SimpleNamespace
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from director_ai.core.config import DirectorConfig
 
+_HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
+_skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
+
 
 # ── gRPC StreamTokens ──────────────────────────────────────────────
+
 
 class TestGrpcStreamTokens:
     def test_stream_tokens_rpc(self):
@@ -53,6 +56,8 @@ class TestGrpcStreamTokens:
 
 # ── Server: rate limit 429 handler, WS non-streaming, lifespan ────
 
+
+@_skip_no_server
 class TestServerRateLimitHandler:
     def test_rate_limit_handler_registered(self):
         cfg = DirectorConfig(use_nli=False, rate_limit_rpm=60)
@@ -62,72 +67,79 @@ class TestServerRateLimitHandler:
         assert app is not None
 
 
+@_skip_no_server
 class TestServerWsNonStreaming:
     def test_ws_standard_mode(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
-        with TestClient(app) as c:
-            with c.websocket_connect("/v1/stream") as ws:
-                ws.send_json({"prompt": "What is 2+2?"})
-                resp = ws.receive_json()
-                assert "type" in resp or "error" in resp
+        with TestClient(app) as c, c.websocket_connect("/v1/stream") as ws:
+            ws.send_json({"prompt": "What is 2+2?"})
+            resp = ws.receive_json()
+            assert "type" in resp or "error" in resp
 
     def test_ws_bad_json(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
-        with TestClient(app) as c:
-            with c.websocket_connect("/v1/stream") as ws:
-                ws.send_text("not valid json{{{")
-                resp = ws.receive_json()
-                assert "error" in resp
+        with TestClient(app) as c, c.websocket_connect("/v1/stream") as ws:
+            ws.send_text("not valid json{{{")
+            resp = ws.receive_json()
+            assert "error" in resp
 
     def test_ws_empty_prompt(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
-        with TestClient(app) as c:
-            with c.websocket_connect("/v1/stream") as ws:
-                ws.send_json({"prompt": ""})
-                resp = ws.receive_json()
-                assert "error" in resp
+        with TestClient(app) as c, c.websocket_connect("/v1/stream") as ws:
+            ws.send_json({"prompt": ""})
+            resp = ws.receive_json()
+            assert "error" in resp
 
     def test_ws_non_dict(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
-        with TestClient(app) as c:
-            with c.websocket_connect("/v1/stream") as ws:
-                ws.send_json([1, 2, 3])
-                resp = ws.receive_json()
-                assert "error" in resp
+        with TestClient(app) as c, c.websocket_connect("/v1/stream") as ws:
+            ws.send_json([1, 2, 3])
+            resp = ws.receive_json()
+            assert "error" in resp
 
 
+@_skip_no_server
 class TestServerReviewSession:
     def test_review_with_session(self):
-        from director_ai.server import create_app
         from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
 
         cfg = DirectorConfig(use_nli=False)
         app = create_app(config=cfg)
         with TestClient(app) as c:
-            resp = c.post("/v1/review", json={
-                "prompt": "sky?",
-                "response": "The sky is blue.",
-                "session_id": "test-session-1",
-            })
+            resp = c.post(
+                "/v1/review",
+                json={
+                    "prompt": "sky?",
+                    "response": "The sky is blue.",
+                    "session_id": "test-session-1",
+                },
+            )
             assert resp.status_code == 200
 
 
+@_skip_no_server
 class TestServerNliMetric:
     def test_nli_enabled_gauge(self):
         cfg = DirectorConfig(use_nli=True)
@@ -138,6 +150,7 @@ class TestServerNliMetric:
 
 
 # ── CLI: remaining uncovered lines ─────────────────────────────────
+
 
 class TestCliUnknownProfile:
     def test_unknown_profile(self, capsys):
@@ -164,6 +177,7 @@ class TestCliBatchFile:
 
 class TestCliBenchModel:
     def test_bench_with_model(self, capsys):
+        pytest.importorskip("benchmarks", reason="benchmarks not on sys.path")
         from director_ai.cli import main
 
         main(["bench", "--model", "heuristic"])
@@ -172,7 +186,9 @@ class TestCliBenchModel:
 class TestCliIngestChunkSize:
     def test_ingest_with_chunk_size(self, tmp_path, capsys):
         f = tmp_path / "doc.txt"
-        f.write_text("Some facts about the world.\n\nAnother paragraph.\n", encoding="utf-8")
+        f.write_text(
+            "Some facts about the world.\n\nAnother paragraph.\n", encoding="utf-8"
+        )
         from director_ai.cli import main
 
         main(["ingest", str(f), "--chunk-size", "50"])
@@ -195,15 +211,20 @@ class TestCliServeGrpc:
         mock_grpc_server = MagicMock()
         mock_grpc_mod.server.return_value = mock_grpc_server
         mock_grpc_mod.ServerInterceptor = type("SI", (), {})
-        with patch.dict(sys.modules, {
-            "grpc": mock_grpc_mod,
-            "director_ai.director_pb2": None,
-        }):
+        with patch.dict(
+            sys.modules,
+            {
+                "grpc": mock_grpc_mod,
+                "director_ai.director_pb2": None,
+            },
+        ):
             from director_ai.cli import main
+
             main(["serve", "--transport", "grpc", "--port", "50333"])
 
 
 # ── NLI: line 751 (score_detailed empty claims) + score path ──────
+
 
 class TestNliScoreDecomposed:
     def test_score_decomposed_empty_claims(self):
@@ -231,6 +252,7 @@ class TestNliScoreDecomposed:
 class TestNliScoreDispatch:
     def test_score_onnx_path(self):
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -279,6 +301,7 @@ class TestNliEnsureModel:
 
 # ── Providers: streaming + Anthropic + Local ──────────────────────
 
+
 class TestProvidersStreaming:
     def test_openai_stream_generate(self):
         from director_ai.integrations.providers import OpenAIProvider
@@ -316,6 +339,7 @@ class TestProvidersStreaming:
 
 # ── LangChain callback: extraction failure + no text ──────────────
 
+
 class TestLangchainCallbackEdges:
     def test_on_llm_end_extraction_failure(self):
         from director_ai.integrations.langchain_callback import CoherenceCallbackHandler
@@ -330,13 +354,12 @@ class TestLangchainCallbackEdges:
 
         handler = CoherenceCallbackHandler(use_nli=False, threshold=0.5)
         handler._current_prompt = "test"
-        response = SimpleNamespace(
-            generations=[[SimpleNamespace(text="")]]
-        )
+        response = SimpleNamespace(generations=[[SimpleNamespace(text="")]])
         handler.on_llm_end(response)
 
 
 # ── Streaming: halt_evidence with chunks ──────────────────────────
+
 
 class TestStreamingHaltEvidence:
     def test_streaming_halt_with_evidence(self):
@@ -363,13 +386,16 @@ class TestStreamingHaltEvidence:
             return 0.2
 
         session = kernel.stream_tokens(
-            token_gen(), coherence_cb,
-            scorer=scorer, prompt="test",
+            token_gen(),
+            coherence_cb,
+            scorer=scorer,
+            prompt="test",
         )
         assert session.halted
 
 
 # ── Agent: Rust scorer path ──────────────────────────────────────
+
 
 class TestAgentRustScorerFallback:
     def test_build_scorer_rust_unavailable(self):
@@ -380,6 +406,7 @@ class TestAgentRustScorerFallback:
 
 
 # ── Async streaming: halt return path ────────────────────────────
+
 
 class TestAsyncStreamingHalt:
     @pytest.mark.asyncio
@@ -406,7 +433,9 @@ class TestAsyncStreamingHalt:
 
         scores = iter([0.9, 0.8, 0.7, 0.6, 0.3])
         kernel = AsyncStreamingKernel(
-            hard_limit=0.1, trend_window=3, trend_threshold=0.1,
+            hard_limit=0.1,
+            trend_window=3,
+            trend_threshold=0.1,
         )
 
         async def token_gen():

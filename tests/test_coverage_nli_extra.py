@@ -3,10 +3,7 @@
 from __future__ import annotations
 
 import sys
-from unittest.mock import MagicMock, patch
-
-import numpy as np
-import pytest
+from unittest.mock import patch
 
 from director_ai.core.nli import NLIScorer
 
@@ -45,6 +42,7 @@ class TestNLIScorerEnsureModel:
         class Stub(ScorerBackend):
             def score(self, p, h):
                 return 0.5
+
             def score_batch(self, pairs):
                 return [0.5] * len(pairs)
 

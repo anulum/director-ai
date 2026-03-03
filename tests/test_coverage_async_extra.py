@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import time
-
-import pytest
 
 from director_ai.core.async_streaming import AsyncStreamingKernel
 
@@ -34,7 +31,9 @@ class TestHaltReasonBranches:
 
     def test_halt_reason_window_avg(self):
         kernel = AsyncStreamingKernel(
-            hard_limit=0.1, window_size=2, window_threshold=0.7,
+            hard_limit=0.1,
+            window_size=2,
+            window_threshold=0.7,
         )
         scores = iter([0.5, 0.5, 0.5])
 
@@ -49,7 +48,10 @@ class TestHaltReasonBranches:
 
     def test_halt_reason_downward_trend(self):
         kernel = AsyncStreamingKernel(
-            hard_limit=0.1, window_size=100, trend_window=3, trend_threshold=0.1,
+            hard_limit=0.1,
+            window_size=100,
+            trend_window=3,
+            trend_threshold=0.1,
         )
         scores = iter([0.9, 0.8, 0.7, 0.5])
 
@@ -66,8 +68,12 @@ class TestHaltReasonBranches:
         kernel = AsyncStreamingKernel()
         reason = kernel._halt_reason(
             type("E", (), {"coherence": 0.9})(),
-            type("S", (), {
-                "coherence_history": [],
-            })(),
+            type(
+                "S",
+                (),
+                {
+                    "coherence_history": [],
+                },
+            )(),
         )
         assert reason == "unknown"

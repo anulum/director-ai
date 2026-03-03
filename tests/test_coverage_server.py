@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import pytest
 
+pytest.importorskip("fastapi", reason="fastapi not installed")
+
 from director_ai.core.config import DirectorConfig
 from director_ai.server import create_app
 
@@ -43,21 +45,27 @@ class TestHealth:
 
 class TestReview:
     def test_review_approved(self, client):
-        resp = client.post("/v1/review", json={
-            "prompt": "What color is the sky?",
-            "response": "The sky is blue.",
-        })
+        resp = client.post(
+            "/v1/review",
+            json={
+                "prompt": "What color is the sky?",
+                "response": "The sky is blue.",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert "approved" in data
         assert "coherence" in data
 
     def test_review_with_session(self, client):
-        resp = client.post("/v1/review", json={
-            "prompt": "What color is the sky?",
-            "response": "The sky is blue.",
-            "session_id": "test-session-1",
-        })
+        resp = client.post(
+            "/v1/review",
+            json={
+                "prompt": "What color is the sky?",
+                "response": "The sky is blue.",
+                "session_id": "test-session-1",
+            },
+        )
         assert resp.status_code == 200
 
 
@@ -72,9 +80,9 @@ class TestProcess:
 
 class TestBatch:
     def test_batch(self, client):
-        resp = client.post("/v1/batch", json={
-            "prompts": ["What is 2+2?", "What color is the sky?"]
-        })
+        resp = client.post(
+            "/v1/batch", json={"prompts": ["What is 2+2?", "What color is the sky?"]}
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2
@@ -96,21 +104,27 @@ class TestSessions:
         assert resp.status_code == 404
 
     def test_session_create_and_get(self, client):
-        client.post("/v1/review", json={
-            "prompt": "Test",
-            "response": "Answer",
-            "session_id": "s1",
-        })
+        client.post(
+            "/v1/review",
+            json={
+                "prompt": "Test",
+                "response": "Answer",
+                "session_id": "s1",
+            },
+        )
         resp = client.get("/v1/sessions/s1")
         assert resp.status_code == 200
         assert resp.json()["session_id"] == "s1"
 
     def test_session_delete(self, client):
-        client.post("/v1/review", json={
-            "prompt": "Test",
-            "response": "Answer",
-            "session_id": "del-me",
-        })
+        client.post(
+            "/v1/review",
+            json={
+                "prompt": "Test",
+                "response": "Answer",
+                "session_id": "del-me",
+            },
+        )
         resp = client.delete("/v1/sessions/del-me")
         assert resp.status_code == 200
         assert resp.json()["status"] == "deleted"
@@ -152,9 +166,13 @@ class TestDashboard:
 
 class TestAuth:
     def test_no_key_rejected(self, auth_client):
-        resp = auth_client.post("/v1/review", json={
-            "prompt": "Test", "response": "Answer",
-        })
+        resp = auth_client.post(
+            "/v1/review",
+            json={
+                "prompt": "Test",
+                "response": "Answer",
+            },
+        )
         assert resp.status_code == 401
 
     def test_valid_key(self, auth_client):
