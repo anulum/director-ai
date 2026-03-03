@@ -198,7 +198,10 @@ class StreamingKernel(SafetyKernel):
         Parameters
         ----------
         token_generator : iterable of str — token source.
-        coherence_callback : callable(str) -> float — per-token coherence.
+        coherence_callback : callable(str) -> float — receives the
+            accumulated output so far (not the individual token) and
+            returns a coherence score in [0, 1]. Called every
+            ``score_every_n`` tokens; cadence adapts when ``adaptive=True``.
         evidence_callback : callable(str) -> str | None — optional, returns
             human-readable evidence snippet explaining the coherence score.
             Called only on halt events to avoid overhead on every token.
@@ -263,7 +266,8 @@ class StreamingKernel(SafetyKernel):
                 break
 
             if i % cadence == 0:
-                score = coherence_callback(token)
+                accumulated = "".join(session.tokens) + token
+                score = coherence_callback(accumulated)
                 last_score = score
                 if self.adaptive:
                     w_avg = sum(window) / len(window) if window else score

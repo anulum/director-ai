@@ -21,8 +21,12 @@ except ImportError:
 pytestmark = pytest.mark.skipif(not _SERVER_AVAILABLE, reason="fastapi not installed")
 
 
-def _auth_app():
-    cfg = DirectorConfig(api_keys=["test-key-123"], llm_provider="mock")
+def _auth_app(metrics_require_auth=True):
+    cfg = DirectorConfig(
+        api_keys=["test-key-123"],
+        llm_provider="mock",
+        metrics_require_auth=metrics_require_auth,
+    )
     return create_app(cfg)
 
 
@@ -55,10 +59,16 @@ def test_health_exempt_from_auth():
     assert r.status_code == 200
 
 
-def test_prometheus_exempt_from_auth():
-    with TestClient(_auth_app()) as client:
+def test_prometheus_exempt_when_metrics_auth_disabled():
+    with TestClient(_auth_app(metrics_require_auth=False)) as client:
         r = client.get("/v1/metrics/prometheus")
     assert r.status_code == 200
+
+
+def test_prometheus_requires_auth_by_default():
+    with TestClient(_auth_app()) as client:
+        r = client.get("/v1/metrics/prometheus")
+    assert r.status_code == 401
 
 
 def test_no_auth_when_keys_empty():

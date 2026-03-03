@@ -63,7 +63,8 @@ class SafetyKernel:
                     return "[KERNEL INTERRUPT: TOTAL TIMEOUT EXCEEDED]"
 
             token_start = time.monotonic()
-            current_score = coherence_callback(token)
+            accumulated = "".join(output_buffer) + token
+            current_score = coherence_callback(accumulated)
             token_elapsed = time.monotonic() - token_start
 
             if self.token_timeout > 0 and token_elapsed > self.token_timeout:

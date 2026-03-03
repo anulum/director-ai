@@ -22,7 +22,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
 from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
 
@@ -95,29 +95,48 @@ class BatchProcessor:
             futures = {
                 pool.submit(self._process_one, i, p): i for i, p in enumerate(prompts)
             }
-            for future in as_completed(futures):
-                idx = futures[future]
-                try:
-                    item_result = future.result(timeout=self.item_timeout)
-                    ordered[idx] = item_result
-                    result.succeeded += 1
-                except (TimeoutError, FuturesTimeoutError):
-                    result.errors.append((idx, "item timeout"))
-                    result.failed += 1
-                    logger.warning(
-                        "Batch item %d timed out after %.1fs", idx, self.item_timeout
-                    )
-                except (
-                    RuntimeError,
-                    ValueError,
-                    TypeError,
-                    AttributeError,
-                    KeyError,
-                    OSError,
-                ) as e:
-                    result.errors.append((idx, str(e)))
-                    result.failed += 1
-                    logger.warning("Batch item %d failed: %s", idx, e)
+            pending = set(futures)
+            while pending:
+                done, pending = wait(
+                    pending, timeout=self.item_timeout, return_when=FIRST_COMPLETED
+                )
+                if not done:
+                    for f in pending:
+                        f.cancel()
+                        idx = futures[f]
+                        result.errors.append((idx, "item timeout"))
+                        result.failed += 1
+                        logger.warning(
+                            "Batch item %d timed out after %.1fs",
+                            idx,
+                            self.item_timeout,
+                        )
+                    break
+                for future in done:
+                    idx = futures[future]
+                    try:
+                        item_result = future.result()
+                        ordered[idx] = item_result
+                        result.succeeded += 1
+                    except (TimeoutError, FuturesTimeoutError):
+                        result.errors.append((idx, "item timeout"))
+                        result.failed += 1
+                        logger.warning(
+                            "Batch item %d timed out after %.1fs",
+                            idx,
+                            self.item_timeout,
+                        )
+                    except (
+                        RuntimeError,
+                        ValueError,
+                        TypeError,
+                        AttributeError,
+                        KeyError,
+                        OSError,
+                    ) as e:
+                        result.errors.append((idx, str(e)))
+                        result.failed += 1
+                        logger.warning("Batch item %d failed: %s", idx, e)
 
         result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
@@ -139,25 +158,37 @@ class BatchProcessor:
                 pool.submit(self._review_one, i, p, r): i
                 for i, (p, r) in enumerate(items)
             }
-            for future in as_completed(futures):
-                idx = futures[future]
-                try:
-                    item_result = future.result(timeout=self.item_timeout)
-                    ordered[idx] = item_result
-                    result.succeeded += 1
-                except (TimeoutError, FuturesTimeoutError):
-                    result.errors.append((idx, "item timeout"))
-                    result.failed += 1
-                except (
-                    RuntimeError,
-                    ValueError,
-                    TypeError,
-                    AttributeError,
-                    KeyError,
-                    OSError,
-                ) as e:
-                    result.errors.append((idx, str(e)))
-                    result.failed += 1
+            pending = set(futures)
+            while pending:
+                done, pending = wait(
+                    pending, timeout=self.item_timeout, return_when=FIRST_COMPLETED
+                )
+                if not done:
+                    for f in pending:
+                        f.cancel()
+                        idx = futures[f]
+                        result.errors.append((idx, "item timeout"))
+                        result.failed += 1
+                    break
+                for future in done:
+                    idx = futures[future]
+                    try:
+                        item_result = future.result()
+                        ordered[idx] = item_result
+                        result.succeeded += 1
+                    except (TimeoutError, FuturesTimeoutError):
+                        result.errors.append((idx, "item timeout"))
+                        result.failed += 1
+                    except (
+                        RuntimeError,
+                        ValueError,
+                        TypeError,
+                        AttributeError,
+                        KeyError,
+                        OSError,
+                    ) as e:
+                        result.errors.append((idx, str(e)))
+                        result.failed += 1
 
         result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start

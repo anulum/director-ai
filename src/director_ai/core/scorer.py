@@ -70,6 +70,8 @@ class CoherenceScorer:
     llm_judge_confidence_threshold : float — softmax margin below which
         to escalate (default 0.3).
     llm_judge_provider : str — "openai" or "anthropic".
+    privacy_mode : bool — redact PII (emails, phones, SSN-like patterns)
+        before sending text to external LLM judge.
     """
 
     W_LOGIC = 0.6
@@ -100,6 +102,7 @@ class CoherenceScorer:
         nli_devices=None,
         onnx_batch_size=16,
         onnx_flush_timeout_ms=10.0,
+        privacy_mode=False,
     ):
         if not (0.0 <= threshold <= 1.0):
             raise ValueError(f"threshold must be in [0, 1], got {threshold}")
@@ -186,6 +189,25 @@ class CoherenceScorer:
         self._llm_judge_threshold = llm_judge_confidence_threshold
         self._llm_judge_provider = llm_judge_provider
         self._llm_judge_model = llm_judge_model
+        self._privacy_mode = privacy_mode
+
+    # ── PII redaction for privacy_mode ────────────────────────────────
+
+    _PII_PATTERNS = [
+        (re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"), "[EMAIL]"),
+        (re.compile(r"\b\d{3}[-.]?\d{2}[-.]?\d{4}\b"), "[SSN]"),
+        (
+            re.compile(r"(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),
+            "[PHONE]",
+        ),
+        (re.compile(r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"), "[CARD]"),
+    ]
+
+    @classmethod
+    def _redact_pii(cls, text: str) -> str:
+        for pat, repl in cls._PII_PATTERNS:
+            text = pat.sub(repl, text)
+        return text
 
     # ── LLM-as-judge escalation ───────────────────────────────────────
 
@@ -198,9 +220,7 @@ class CoherenceScorer:
         """Escalate to LLM-as-judge when NLI confidence is low.
 
         Returns adjusted divergence score. Falls back to nli_score on error.
-
-        **Privacy note**: sends truncated prompt+response (500 chars each) to
-        the configured external LLM provider.
+        When privacy_mode is enabled, PII is redacted before sending.
         """
         import os
 
@@ -213,9 +233,15 @@ class CoherenceScorer:
             or self._DEFAULT_MODELS.get(self._llm_judge_provider, "")
         )
 
+        p_text = prompt[:500]
+        r_text = response[:500]
+        if self._privacy_mode:
+            p_text = self._redact_pii(p_text)
+            r_text = self._redact_pii(r_text)
+
         judge_prompt = (
-            f"Given the prompt: {prompt[:500]}\n"
-            f"Response: {response[:500]}\n"
+            f"Given the prompt: {p_text}\n"
+            f"Response: {r_text}\n"
             f"NLI divergence score: {nli_score:.3f}\n"
             "Is this response factually correct? "
             'Reply with JSON: {"verdict": "YES" or "NO", "confidence": 0-100}'

@@ -116,6 +116,8 @@ class AsyncStreamingKernel(SafetyKernel):
         ----------
         token_source : async iterable of str — token source.
         coherence_callback : (str) -> float OR async (str) -> Awaitable[float].
+            Receives the accumulated output so far (not the individual
+            token). Called every ``score_every_n`` tokens.
 
         Yields
         ------
@@ -123,6 +125,7 @@ class AsyncStreamingKernel(SafetyKernel):
         """
         window: deque[float] = deque(maxlen=self.window_size)
         coherence_history: list[float] = []
+        accumulated_tokens: list[str] = []
         i = 0
         stream_start = time.monotonic()
         cadence = self.score_every_n
@@ -159,8 +162,9 @@ class AsyncStreamingKernel(SafetyKernel):
 
             if i % cadence == 0:
                 token_start = time.monotonic()
+                accumulated = "".join(accumulated_tokens) + token
                 try:
-                    score = await self._call_callback(coherence_callback, token)
+                    score = await self._call_callback(coherence_callback, accumulated)
                 except (TypeError, ValueError, RuntimeError) as exc:
                     logger.error(
                         "Coherence callback raised %s — treating as score=0", exc
@@ -199,6 +203,7 @@ class AsyncStreamingKernel(SafetyKernel):
                 timestamp=now,
             )
 
+            accumulated_tokens.append(token)
             coherence_history.append(score)
             window.append(score)
 

@@ -270,8 +270,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_origins,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-API-Key",
+            "X-Request-ID",
+            "X-Tenant-ID",
+        ],
     )
 
     # ── Rate limiting ─────────────────────────────────────────────────

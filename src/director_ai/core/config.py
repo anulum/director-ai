@@ -82,6 +82,7 @@ class DirectorConfig:
     llm_judge_confidence_threshold: float = 0.3
     llm_judge_provider: str = ""
     llm_judge_model: str = ""
+    privacy_mode: bool = False
 
     # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite"
     scorer_backend: str = "deberta"
@@ -129,7 +130,7 @@ class DirectorConfig:
     w_fact: float = 0.0
 
     # Metrics auth: when True, /v1/metrics/prometheus requires API key
-    metrics_require_auth: bool = False
+    metrics_require_auth: bool = True
 
     # Rate limiting (requests per minute, 0 = disabled)
     rate_limit_rpm: int = 0
@@ -451,6 +452,7 @@ class DirectorConfig:
             "llm_judge_confidence_threshold": self.llm_judge_confidence_threshold,
             "llm_judge_provider": self.llm_judge_provider,
             "llm_judge_model": self.llm_judge_model,
+            "privacy_mode": self.privacy_mode,
             "ground_truth_store": store,
             "onnx_batch_size": self.onnx_batch_size,
             "onnx_flush_timeout_ms": self.onnx_flush_timeout_ms,

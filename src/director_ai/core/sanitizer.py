@@ -242,12 +242,18 @@ class InputSanitizer:
 
     @staticmethod
     def _has_suspicious_unicode(text: str) -> bool:
-        """Detect high ratio of unusual Unicode categories (homoglyphs, etc.)."""
+        """Detect high ratio of unusual Unicode categories (homoglyphs, etc.).
+
+        Mn (nonspacing marks) and Mc (spacing combining marks) are legitimate
+        in Arabic, Hebrew, Devanagari, Thai, and other scripts — not flagged.
+        Only Me (enclosing marks), Cf (format), Co (private use), and
+        Cn (unassigned) count as suspicious.
+        """
         if not text:
             return False
         suspicious = 0
         for ch in text:
             cat = unicodedata.category(ch)
-            if cat in ("Cf", "Co", "Cn") or cat.startswith("M"):
+            if cat in ("Cf", "Co", "Cn", "Me"):
                 suspicious += 1
         return (suspicious / len(text)) > _MAX_UNICODE_CATEGORY_RATIO

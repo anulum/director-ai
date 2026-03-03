@@ -140,14 +140,11 @@ def test_streaming_stability():
             ground_truth_store=store,
             use_nli=False,
         )
-        accumulated = ""
 
-        def coherence_cb(token, _s=scorer, _p=passage[:50]):
-            nonlocal accumulated
-            accumulated += (" " if accumulated else "") + token
-            if len(accumulated.split()) < 4:
+        def coherence_cb(text, _s=scorer, _p=passage[:50]):
+            if len(text.split()) < 4:
                 return 0.5
-            _, sc = _s.review(_p, accumulated)
+            _, sc = _s.review(_p, text)
             return sc.score
 
         tokens = passage.split()
@@ -155,7 +152,6 @@ def test_streaming_stability():
         if session.halted:
             false_halts += 1
         kernel.reactivate()
-        accumulated = ""
 
     print(f"  Streaming stability: {false_halts} false halts in 5 passages")
     assert false_halts == 0, f"{false_halts} false halts on known-good passages"
@@ -328,14 +324,11 @@ def test_false_halt_rate():
         for k, v in facts.items():
             store.add(k, v)
         scorer = CoherenceScorer(threshold=0.3, ground_truth_store=store, use_nli=False)
-        accumulated = ""
 
-        def coherence_cb(token, _s=scorer, _p=passage[:50]):
-            nonlocal accumulated
-            accumulated += (" " if accumulated else "") + token
-            if len(accumulated.split()) < 4:
+        def coherence_cb(text, _s=scorer, _p=passage[:50]):
+            if len(text.split()) < 4:
                 return 0.5
-            _, sc = _s.review(_p, accumulated)
+            _, sc = _s.review(_p, text)
             return sc.score
 
         tokens = passage.split()
@@ -343,7 +336,6 @@ def test_false_halt_rate():
         if session.halted:
             false_halts += 1
         kernel.reactivate()
-        accumulated = ""
 
     n = len(GOOD_PASSAGES)
     rate = false_halts / n
@@ -374,19 +366,15 @@ def test_streaming_overhead():
 
     times = []
     for _ in range(3):
-        accumulated = ""
 
-        def coherence_cb(token, _s=scorer):
-            nonlocal accumulated
-            accumulated += token
-            _, sc = _s.review("sky", accumulated)
+        def coherence_cb(text, _s=scorer):
+            _, sc = _s.review("sky", text)
             return sc.score
 
         t0 = time.perf_counter()
         kernel.stream_tokens(iter(tokens), coherence_cb)
         times.append(time.perf_counter() - t0)
         kernel.reactivate()
-        accumulated = ""
 
     avg_ms = sum(times) / len(times) * 1000
     print(f"  Streaming overhead: {avg_ms:.1f} ms avg (cadence=1, 50 tokens)")

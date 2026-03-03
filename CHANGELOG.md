@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **FreshQA benchmark** (`benchmarks/freshqa_eval.py`): evaluates on `freshllms/freshqa` dataset.
 - Tutorial notebooks: `06_medical_rag_chatbot.ipynb`, `07_langchain_integration.ipynb`, `08_provider_adapters.ipynb`.
 - `"research"` added to valid CLI profiles.
+- **`privacy_mode`** on `CoherenceScorer`: redacts emails, phone numbers, SSNs, and card numbers before sending text to external LLM judge.
 
 ### Changed
 - **Hybrid backend default**: medical, finance, legal, summarization, research profiles now use `scorer_backend="hybrid"` with LLM judge enabled.
@@ -22,6 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **mypy**: `check_untyped_defs = true` enforced in CI (catches type bugs inside untyped functions).
 - `benchmarks/run_all.py` includes ragtruth and freshqa in suite.
 - Version bump: 2.6.1 → 2.7.0
+
+### Fixed
+- **Streaming callback**: `coherence_callback` in `StreamingKernel`, `AsyncStreamingKernel`, and `SafetyKernel.stream_output()` now receives accumulated text instead of individual tokens, matching the documented contract.
+- **BatchProcessor timeout**: `process_batch()` and `review_batch()` now use `wait(FIRST_COMPLETED)` loop so `item_timeout` actually cancels stalled futures (previously `as_completed` + `future.result(timeout=)` was ineffective).
+- **Sanitizer multilingual FP**: `_has_suspicious_unicode()` no longer flags Mn (nonspacing marks) and Mc (spacing combining marks), fixing false positives on Arabic, Hebrew, Devanagari, and Thai text.
+
+### Security
+- **CORS hardening**: `allow_methods` restricted from `["*"]` to `["GET", "POST", "DELETE", "OPTIONS"]`; `allow_headers` restricted to actual header names.
+- **Metrics auth default**: `metrics_require_auth` defaults to `True` (previously `False`), so `/v1/metrics/prometheus` requires API key when keys are configured.
+- **GitHub Actions pinned to commit SHAs** in all 3 workflow files (ci.yml, docker.yml, publish.yml) to prevent supply-chain attacks via tag mutation.
 
 ## [2.6.1] — 2026-03-03
 
