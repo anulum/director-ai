@@ -127,8 +127,6 @@ deberta = "director_ai.core.backends:DeBERTaBackend"
 onnx = "director_ai.core.backends:OnnxBackend"
 minicheck = "director_ai.core.backends:MiniCheckBackend"
 lite = "director_ai.core.backends:LiteBackend"
-rust = "director_ai.core.backends:RustBackend"
-backfire = "director_ai.core.backends:RustBackend"
 
 [project.urls]
 Homepage = "https://www.anulum.li"
