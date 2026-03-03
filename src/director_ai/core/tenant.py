@@ -27,6 +27,11 @@ import threading
 
 from .knowledge import GroundTruthStore
 from .scorer import CoherenceScorer
+from .vector_store import (
+    InMemoryBackend,
+    VectorBackend,
+    VectorGroundTruthStore,
+)
 
 
 class TenantRouter:
@@ -37,6 +42,7 @@ class TenantRouter:
 
     def __init__(self) -> None:
         self._stores: dict[str, GroundTruthStore] = {}
+        self._vector_stores: dict[tuple[str, str], VectorGroundTruthStore] = {}
         self._lock = threading.Lock()
 
     @property
@@ -74,6 +80,61 @@ class TenantRouter:
             ground_truth_store=self.get_store(tenant_id),
             use_nli=use_nli,
         )
+
+    def get_vector_store(
+        self,
+        tenant_id: str,
+        backend_type: str = "memory",
+        **kwargs,
+    ) -> VectorGroundTruthStore:
+        """Get or create a tenant-isolated VectorGroundTruthStore.
+
+        Supported backend_type values: "memory", "chroma", "pinecone", "qdrant".
+        Extra kwargs are forwarded to the backend constructor.
+        """
+        key = (tenant_id, backend_type)
+        with self._lock:
+            if key in self._vector_stores:
+                return self._vector_stores[key]
+            backend: VectorBackend = self._build_vector_backend(
+                tenant_id, backend_type, **kwargs
+            )
+            store = VectorGroundTruthStore(backend=backend, tenant_id=tenant_id)
+            self._vector_stores[key] = store
+            return store
+
+    @staticmethod
+    def _build_vector_backend(
+        tenant_id: str, backend_type: str, **kwargs
+    ) -> VectorBackend:
+        if backend_type == "memory":
+            return InMemoryBackend()
+        if backend_type == "chroma":
+            from .vector_store import ChromaBackend
+
+            return ChromaBackend(
+                collection_name=kwargs.get(
+                    "collection_name", f"director_ai_{tenant_id}"
+                ),
+                **{k: v for k, v in kwargs.items() if k != "collection_name"},
+            )
+        if backend_type == "pinecone":
+            from .vector_store import PineconeBackend
+
+            return PineconeBackend(
+                namespace=kwargs.pop("namespace", tenant_id),
+                **kwargs,
+            )
+        if backend_type == "qdrant":
+            from .vector_store import QdrantBackend
+
+            return QdrantBackend(
+                collection_name=kwargs.get(
+                    "collection_name", f"director_facts_{tenant_id}"
+                ),
+                **{k: v for k, v in kwargs.items() if k != "collection_name"},
+            )
+        raise ValueError(f"Unknown vector backend_type: {backend_type!r}")
 
     def fact_count(self, tenant_id: str) -> int:
         """Number of facts in a tenant's store."""

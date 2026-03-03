@@ -84,7 +84,7 @@ class DirectorConfig:
     llm_judge_model: str = ""
     privacy_mode: bool = False
 
-    # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite"
+    # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite", "rust"
     scorer_backend: str = "deberta"
 
     # Multi-GPU NLI sharding (comma-separated, e.g. "cuda:0,cuda:1")
@@ -420,7 +420,18 @@ class DirectorConfig:
                 )
                 backend = InMemoryBackend()
         else:
-            backend = InMemoryBackend()
+            # Try vector backend registry for third-party / unrecognized names
+            try:
+                from .vector_store import get_vector_backend
+
+                backend_cls = get_vector_backend(self.vector_backend)
+                backend = backend_cls()
+            except (KeyError, TypeError):
+                logger.warning(
+                    "Unknown vector_backend %r, falling back to memory",
+                    self.vector_backend,
+                )
+                backend = InMemoryBackend()
 
         if self.reranker_enabled:
             try:

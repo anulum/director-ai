@@ -7,8 +7,13 @@
 import pytest
 
 from director_ai.core.vector_store import (
+    _VECTOR_REGISTRY,
     InMemoryBackend,
+    VectorBackend,
     VectorGroundTruthStore,
+    get_vector_backend,
+    list_vector_backends,
+    register_vector_backend,
 )
 
 
@@ -74,3 +79,75 @@ class TestVectorGroundTruthStore:
         store.add("sky color", "blue")
         context = store.retrieve_context("sky color")
         assert context is not None
+
+    def test_tenant_id_stored(self):
+        store = VectorGroundTruthStore(tenant_id="acme")
+        assert store.tenant_id == "acme"
+
+    def test_tenant_id_default_empty(self):
+        store = VectorGroundTruthStore()
+        assert store.tenant_id == ""
+
+
+@pytest.mark.consumer
+class TestVectorRegistry:
+    def test_register_and_get(self):
+        class _TestBackend(VectorBackend):
+            def add(self, doc_id, text, metadata=None):
+                pass
+
+            def query(self, text, n_results=3):
+                return []
+
+            def count(self):
+                return 0
+
+        register_vector_backend("_test_dummy", _TestBackend)
+        assert get_vector_backend("_test_dummy") is _TestBackend
+        _VECTOR_REGISTRY.pop("_test_dummy", None)
+
+    def test_list_includes_memory(self):
+        backends = list_vector_backends()
+        assert "memory" in backends
+        assert backends["memory"] is InMemoryBackend
+
+    def test_get_unknown_raises_key_error(self):
+        with pytest.raises(KeyError, match="Unknown vector backend"):
+            get_vector_backend("__nonexistent__")
+
+    def test_register_non_subclass_raises_type_error(self):
+        with pytest.raises(TypeError, match="VectorBackend subclass"):
+            register_vector_backend("bad", str)  # type: ignore[arg-type]
+
+
+@pytest.mark.enterprise
+class TestTenantVectorIsolation:
+    def test_two_tenants_no_data_leak(self):
+        from director_ai.core.tenant import TenantRouter
+
+        router = TenantRouter()
+        store_a = router.get_vector_store("tenant_a")
+        store_b = router.get_vector_store("tenant_b")
+        store_a.add_fact("secret", "Tenant A secret data")
+        store_b.add_fact("secret", "Tenant B secret data")
+
+        ctx_a = store_a.retrieve_context("secret")
+        ctx_b = store_b.retrieve_context("secret")
+        assert "Tenant A" in ctx_a
+        assert "Tenant B" in ctx_b
+        assert "Tenant B" not in ctx_a
+        assert "Tenant A" not in ctx_b
+
+    def test_tenant_id_propagated(self):
+        from director_ai.core.tenant import TenantRouter
+
+        router = TenantRouter()
+        store = router.get_vector_store("t1")
+        assert store.tenant_id == "t1"
+
+    def test_unknown_backend_type_raises(self):
+        from director_ai.core.tenant import TenantRouter
+
+        router = TenantRouter()
+        with pytest.raises(ValueError, match="Unknown vector backend_type"):
+            router.get_vector_store("t1", backend_type="invalid")

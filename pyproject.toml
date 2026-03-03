@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "2.7.1"
+version = "2.8.0"
 description = "Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
@@ -127,6 +127,11 @@ deberta = "director_ai.core.backends:DeBERTaBackend"
 onnx = "director_ai.core.backends:OnnxBackend"
 minicheck = "director_ai.core.backends:MiniCheckBackend"
 lite = "director_ai.core.backends:LiteBackend"
+rust = "director_ai.core.backends:RustBackend"
+backfire = "director_ai.core.backends:RustBackend"
+
+[project.entry-points."director_ai.vector_backends"]
+memory = "director_ai.core.vector_store:InMemoryBackend"
 
 [project.urls]
 Homepage = "https://www.anulum.li"

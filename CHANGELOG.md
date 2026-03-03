@@ -5,6 +5,23 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.8.0] — 2026-03-04
+
+### Added
+- **Rust scorer backend**: `CoherenceScorer(scorer_backend="rust")` delegates to `backfire_kernel` FFI. Falls back to heuristic scoring when crate is absent.
+- **VectorBackend registry**: `register_vector_backend()`, `get_vector_backend()`, `list_vector_backends()` mirror the `ScorerBackend` plugin pattern. Built-in backends auto-registered; third-party via `director_ai.vector_backends` entry points.
+- **WebSocket multiplexed streaming**: `/v1/stream` now supports concurrent sessions per connection. `session_id` field tags all frames. `{"action": "cancel", "session_id": "..."}` cancels running sessions. `Semaphore(8)` backpressure limit.
+- **Tenant-isolated VectorStores**: `TenantRouter.get_vector_store(tenant_id, backend_type)` creates per-tenant `VectorGroundTruthStore` instances. Supports `"memory"`, `"chroma"`, `"pinecone"`, `"qdrant"` backends.
+- **`POST /v1/tenants/{tenant_id}/vector-facts`**: REST endpoint to add facts to tenant vector stores.
+- `tenant_id` parameter on `VectorGroundTruthStore`.
+- `rust` and `backfire` entry points in `director_ai.backends`.
+- `memory` entry point in `director_ai.vector_backends`.
+
+### Changed
+- `DirectorConfig.build_store()` falls back to vector registry for unrecognized `vector_backend` names.
+- `DirectorConfig.scorer_backend` docstring includes `"rust"`.
+- Version bump: 2.7.1 → 2.8.0.
+
 ## [2.7.1] — 2026-03-03
 
 ### Fixed

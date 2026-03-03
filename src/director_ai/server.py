@@ -18,6 +18,7 @@ Usage::
 
 from __future__ import annotations
 
+import asyncio
 import contextvars
 import hmac
 import logging
@@ -37,6 +38,7 @@ REQUEST_ID_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
 logger = logging.getLogger("DirectorAI.Server")
 
 _WS_MAX_PROMPT_LENGTH = 100_000
+_WS_MAX_CONCURRENT = 8
 _AUTH_EXEMPT_PATHS_BASE = frozenset({"/v1/health", "/v1/source"})
 
 try:
@@ -135,6 +137,11 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
     class TenantFactRequest(BaseModel):
         key: str = Field(..., min_length=1)
         value: str = Field(..., min_length=1)
+
+    class TenantVectorFactRequest(BaseModel):
+        key: str = Field(..., min_length=1)
+        value: str = Field(..., min_length=1)
+        backend_type: str = Field("memory", description="Vector backend type")
 
 
 def _halt_evidence_to_dict(halt_ev) -> dict | None:
@@ -552,6 +559,21 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         router.add_fact(tenant_id, req.key, req.value)
         return {"status": "ok", "tenant_id": tenant_id, "key": req.key}
 
+    @app.post("/v1/tenants/{tenant_id}/vector-facts")
+    async def add_tenant_vector_fact(tenant_id: str, req: TenantVectorFactRequest):
+        router = _state.get("tenant_router")
+        if not router:
+            raise HTTPException(404, "Tenant routing not enabled")
+        store = router.get_vector_store(tenant_id, backend_type=req.backend_type)
+        store.add_fact(req.key, req.value)
+        return {
+            "status": "ok",
+            "tenant_id": tenant_id,
+            "key": req.key,
+            "backend_type": req.backend_type,
+            "count": store.backend.count(),
+        }
+
     # ── Sessions ──────────────────────────────────────────────────────
 
     @app.get("/v1/sessions/{session_id}")
@@ -667,7 +689,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "</table></body></html>"
         )
 
-    # ── WebSocket streaming ───────────────────────────────────────────
+    # ── WebSocket streaming (multiplexed) ──────────────────────────────
 
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):
@@ -677,92 +699,141 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 await ws.close(code=1008, reason="unauthorized")
                 return
         await ws.accept()
+
+        send_lock = asyncio.Lock()
+        semaphore = asyncio.Semaphore(_WS_MAX_CONCURRENT)
+        active_tasks: dict[str, asyncio.Task] = {}
+
+        async def _send(payload: dict) -> None:
+            async with send_lock:
+                await ws.send_json(payload)
+
+        async def _handle_session(session_id: str, data: dict) -> None:
+            prompt = data.get("prompt", "")
+            agent = _state.get("agent")
+            if not agent:
+                await _send({"session_id": session_id, "error": "server not ready"})
+                return
+
+            if data.get("streaming_oversight"):
+                try:
+                    halted = False
+                    async for token, coherence in agent.stream(prompt):
+                        await _send(
+                            {
+                                "session_id": session_id,
+                                "type": "token",
+                                "token": token,
+                                "coherence": round(coherence, 4),
+                            }
+                        )
+                        if coherence < cfg.hard_limit:  # pragma: no branch
+                            halted = True
+                            await _send(
+                                {
+                                    "session_id": session_id,
+                                    "type": "halt",
+                                    "reason": "hard_limit",
+                                }
+                            )
+                            break
+                    if not halted:  # pragma: no cover
+                        msg = {
+                            "session_id": session_id,
+                            "type": "result",
+                            "halted": False,
+                        }
+                        await _send(msg)
+                except (
+                    RuntimeError,
+                    ValueError,
+                    TypeError,
+                    OSError,
+                ) as exc:  # pragma: no cover
+                    await _send(
+                        {"session_id": session_id, "error": f"streaming failed: {exc}"}
+                    )
+                return
+
+            try:
+                import functools
+
+                loop = asyncio.get_running_loop()
+                result = await loop.run_in_executor(
+                    None, functools.partial(agent.process, prompt)
+                )
+            except (RuntimeError, ValueError, TypeError, OSError) as exc:
+                logger.error("WebSocket agent.process() failed: %s", exc)
+                await _send(
+                    {"session_id": session_id, "error": f"processing failed: {exc}"}
+                )
+                return
+            await _send(
+                {
+                    "session_id": session_id,
+                    "type": "result",
+                    "output": result.output,
+                    "coherence": (result.coherence.score if result.coherence else None),
+                    "halted": result.halted,
+                    "warning": (
+                        result.coherence.warning if result.coherence else False
+                    ),
+                    "fallback_used": result.fallback_used,
+                    "evidence": _evidence_to_dict(
+                        result.coherence.evidence if result.coherence else None
+                    ),
+                    "halt_evidence": _halt_evidence_to_dict(result.halt_evidence),
+                }
+            )
+
+        async def _run_session(session_id: str, data: dict) -> None:
+            async with semaphore:
+                try:
+                    await _handle_session(session_id, data)
+                finally:
+                    active_tasks.pop(session_id, None)
+
         try:
             while True:
                 try:
                     data = await ws.receive_json()
                 except (ValueError, KeyError) as exc:
                     logger.warning("WebSocket bad JSON: %s", exc)
-                    await ws.send_json({"error": "invalid JSON"})
+                    await _send({"error": "invalid JSON"})
                     continue
 
                 if not isinstance(data, dict):
-                    await ws.send_json({"error": "expected JSON object"})
+                    await _send({"error": "expected JSON object"})
+                    continue
+
+                # Cancel action
+                action = data.get("action", "")
+                if action == "cancel":
+                    cancel_sid = data.get("session_id", "")
+                    task = active_tasks.get(cancel_sid)
+                    if task and not task.done():
+                        task.cancel()
+                        active_tasks.pop(cancel_sid, None)
+                    await _send({"session_id": cancel_sid, "type": "cancelled"})
                     continue
 
                 prompt = data.get("prompt", "")
                 if not isinstance(prompt, str) or not prompt.strip():
-                    await ws.send_json({"error": "prompt must be a non-empty string"})
+                    await _send({"error": "prompt must be a non-empty string"})
                     continue
 
                 if len(prompt) > _WS_MAX_PROMPT_LENGTH:
-                    await ws.send_json(
+                    await _send(
                         {"error": f"prompt exceeds {_WS_MAX_PROMPT_LENGTH} chars"}
                     )
                     continue
 
-                agent = _state.get("agent")
-                if not agent:
-                    await ws.send_json({"error": "server not ready"})
-                    continue
+                session_id = data.get("session_id") or str(uuid.uuid4())
+                task = asyncio.create_task(_run_session(session_id, data))
+                active_tasks[session_id] = task
 
-                # Streaming oversight mode (live token generation)
-                if data.get("streaming_oversight"):
-                    try:
-                        halted = False
-                        async for token, coherence in agent.stream(prompt):
-                            await ws.send_json(
-                                {
-                                    "type": "token",
-                                    "token": token,
-                                    "coherence": round(coherence, 4),
-                                }
-                            )
-                            if coherence < cfg.hard_limit:  # pragma: no branch
-                                halted = True
-                                await ws.send_json(
-                                    {"type": "halt", "reason": "hard_limit"}
-                                )
-                                break
-                        if (
-                            not halted
-                        ):  # pragma: no cover — requires real streaming agent
-                            await ws.send_json({"type": "result", "halted": False})
-                    except (
-                        RuntimeError,
-                        ValueError,
-                        TypeError,
-                        OSError,
-                    ) as exc:  # pragma: no cover
-                        await ws.send_json({"error": f"streaming failed: {exc}"})
-                    continue
-
-                # Standard (non-streaming) mode
-                try:
-                    result = agent.process(prompt)
-                except (RuntimeError, ValueError, TypeError, OSError) as exc:
-                    logger.error("WebSocket agent.process() failed: %s", exc)
-                    await ws.send_json({"error": f"processing failed: {exc}"})
-                    continue
-                await ws.send_json(
-                    {
-                        "type": "result",
-                        "output": result.output,
-                        "coherence": (
-                            result.coherence.score if result.coherence else None
-                        ),
-                        "halted": result.halted,
-                        "warning": (
-                            result.coherence.warning if result.coherence else False
-                        ),
-                        "fallback_used": result.fallback_used,
-                        "evidence": _evidence_to_dict(
-                            result.coherence.evidence if result.coherence else None
-                        ),
-                        "halt_evidence": _halt_evidence_to_dict(result.halt_evidence),
-                    }
-                )
         except WebSocketDisconnect:
-            pass
+            for task in active_tasks.values():
+                task.cancel()
 
     return app

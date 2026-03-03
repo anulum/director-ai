@@ -45,6 +45,9 @@ from .vector_store import (
     SentenceTransformerBackend,
     VectorBackend,
     VectorGroundTruthStore,
+    get_vector_backend,
+    list_vector_backends,
+    register_vector_backend,
 )
 
 __all__ = [
@@ -88,6 +91,9 @@ __all__ = [
     "register_backend",
     "get_backend",
     "list_backends",
+    "register_vector_backend",
+    "get_vector_backend",
+    "list_vector_backends",
 ]
 
 _ENTERPRISE_IMPORTS = {

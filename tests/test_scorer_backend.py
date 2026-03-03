@@ -123,6 +123,73 @@ class TestLLMJudgeParsing:
         assert result < 0.5  # agrees → lower divergence
 
 
+class TestRustBackend:
+    def test_rust_fallback_without_backfire_kernel(self):
+        """When backfire_kernel is not installed, _rust_scorer is None."""
+        from unittest.mock import patch
+
+        with patch.dict("sys.modules", {"backfire_kernel": None}):
+            scorer = CoherenceScorer(
+                threshold=0.5, use_nli=False, scorer_backend="rust"
+            )
+            assert scorer._rust_scorer is None
+            assert scorer.scorer_backend == "rust"
+
+    def test_rust_dispatch_with_mock(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False, scorer_backend="rust")
+        mock_score = MagicMock()
+        mock_score.score = 0.85
+        mock_score.h_logical = 0.1
+        mock_score.h_factual = 0.05
+        mock_rust = MagicMock()
+        mock_rust.review.return_value = (True, mock_score)
+        scorer._rust_scorer = mock_rust
+
+        approved, cs = scorer.review("test prompt", "test response")
+        mock_rust.review.assert_called_once_with("test prompt", "test response")
+        assert approved is True
+
+    def test_rust_threshold_forwarded(self):
+        """Threshold value is stored even when Rust import fails."""
+        from unittest.mock import patch
+
+        with patch.dict("sys.modules", {"backfire_kernel": None}):
+            scorer = CoherenceScorer(
+                threshold=0.7, use_nli=False, scorer_backend="rust"
+            )
+            assert scorer.threshold == 0.7
+
+    def test_rust_knowledge_callback_wiring(self):
+        from unittest.mock import MagicMock, patch
+
+        mock_store = MagicMock()
+        mock_store.retrieve_context.return_value = "test context"
+
+        mock_config_cls = MagicMock()
+        mock_scorer_cls = MagicMock()
+
+        with patch.dict(
+            "sys.modules",
+            {
+                "backfire_kernel": MagicMock(
+                    BackfireConfig=mock_config_cls,
+                    RustCoherenceScorer=mock_scorer_cls,
+                )
+            },
+        ):
+            scorer = CoherenceScorer(
+                threshold=0.5,
+                use_nli=False,
+                scorer_backend="rust",
+                ground_truth_store=mock_store,
+            )
+            assert scorer._rust_scorer is not None
+            call_kwargs = mock_scorer_cls.call_args[1]
+            assert call_kwargs["knowledge_callback"] is not None
+
+
 class TestNLIBatchLength:
     def test_batch_returns_correct_length(self):
         nli = NLIScorer(use_model=False, backend="deberta")

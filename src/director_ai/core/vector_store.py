@@ -29,6 +29,63 @@ RECOMMENDED_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"
 
 logger = logging.getLogger("DirectorAI.VectorStore")
 
+# ── VectorBackend registry (mirrors backends.py pattern) ─────────
+
+_VECTOR_REGISTRY: dict[str, type[VectorBackend]] = {}
+_VECTOR_EP_LOADED = False
+
+
+def register_vector_backend(name: str, cls: type[VectorBackend]) -> None:
+    """Register a vector backend class under *name*."""
+    if not (isinstance(cls, type) and issubclass(cls, VectorBackend)):
+        raise TypeError(f"{cls!r} must be a VectorBackend subclass")
+    _VECTOR_REGISTRY[name] = cls
+    logger.debug("Registered vector backend: %s", name)
+
+
+def get_vector_backend(name: str) -> type[VectorBackend]:
+    """Look up a registered vector backend by name. Raises KeyError if unknown."""
+    _load_vector_entry_points()
+    if name not in _VECTOR_REGISTRY:
+        raise KeyError(
+            f"Unknown vector backend {name!r}. Available: {list(_VECTOR_REGISTRY)}"
+        )
+    return _VECTOR_REGISTRY[name]
+
+
+def list_vector_backends() -> dict[str, type[VectorBackend]]:
+    """Return all registered vector backends."""
+    _load_vector_entry_points()
+    return dict(_VECTOR_REGISTRY)
+
+
+def _load_vector_entry_points() -> None:
+    """Discover backends from ``director_ai.vector_backends`` entry points (once)."""
+    global _VECTOR_EP_LOADED
+    if _VECTOR_EP_LOADED:
+        return
+    _VECTOR_EP_LOADED = True
+    try:
+        from importlib.metadata import entry_points
+
+        eps = entry_points()
+        group: list = (  # type: ignore[assignment]
+            eps.get("director_ai.vector_backends", [])
+            if isinstance(eps, dict)
+            else eps.select(group="director_ai.vector_backends")
+        )
+        for ep in group:
+            try:
+                cls = ep.load()
+                if ep.name not in _VECTOR_REGISTRY:  # pragma: no cover
+                    register_vector_backend(ep.name, cls)
+            except (ImportError, AttributeError, TypeError) as exc:  # pragma: no cover
+                logger.warning(
+                    "Failed to load vector backend entry point %s: %s", ep.name, exc
+                )
+    except ImportError:
+        pass
+
 
 class VectorBackend(ABC):
     """Protocol for vector database backends."""
@@ -499,9 +556,11 @@ class VectorGroundTruthStore(GroundTruthStore):
     def __init__(
         self,
         backend: VectorBackend | None = None,
+        tenant_id: str = "",
     ) -> None:
         super().__init__()
         self.backend = backend if backend is not None else InMemoryBackend()
+        self.tenant_id = tenant_id
 
     def ingest(self, texts: list[str]) -> int:
         """Bulk-add plain text documents into the vector backend."""
@@ -557,3 +616,37 @@ class VectorGroundTruthStore(GroundTruthStore):
         # Fall back to keyword matching
         result: str | None = super().retrieve_context(query)
         return result
+
+
+# ── Auto-register built-in vector backends ───────────────────────
+
+register_vector_backend("memory", InMemoryBackend)
+register_vector_backend("sentence-transformer", SentenceTransformerBackend)
+
+try:
+    import chromadb as _chromadb  # noqa: F401
+
+    register_vector_backend("chroma", ChromaBackend)
+except ImportError:
+    pass
+
+try:
+    import pinecone as _pinecone  # noqa: F401
+
+    register_vector_backend("pinecone", PineconeBackend)
+except ImportError:
+    pass
+
+try:
+    import weaviate as _weaviate  # noqa: F401
+
+    register_vector_backend("weaviate", WeaviateBackend)
+except ImportError:
+    pass
+
+try:
+    from qdrant_client import QdrantClient as _QdrantClient  # noqa: F401
+
+    register_vector_backend("qdrant", QdrantBackend)
+except ImportError:
+    pass

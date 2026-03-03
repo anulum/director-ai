@@ -70,20 +70,19 @@
 - Thread-safe OTel setup
 - Histogram bucket_counts O(n log n) optimization
 
-## v2.7.0 (planned)
+## v2.8.0
 
-- Rust-accelerated scorer backend via backfire-kernel FFI
-- WebSocket multiplexed streaming (multiple sessions per connection)
-- Model-agnostic ONNX quantization pipeline (INT8/FP16 auto-select)
-- VectorBackend entry-point registry (parity with ScorerBackend plugins)
-- Tenant-isolated VectorStores
+### Done
+- Rust-accelerated scorer backend wired into `CoherenceScorer(scorer_backend="rust")`
+- WebSocket multiplexed streaming (concurrent sessions per connection, cancel, backpressure)
+- VectorBackend entry-point registry (`register_vector_backend`, `get_vector_backend`, `list_vector_backends`)
+- Tenant-isolated VectorStores via `TenantRouter.get_vector_store()`
+- `/v1/tenants/{tenant_id}/vector-facts` REST endpoint
+- ONNX INT8/FP16 quantization shipped in v2.3.0 (retired from planned)
 
 ## v3.0 (vision)
 
 - **Simplified public API**: `guard()` as the primary interface; enterprise behind `director_ai.enterprise`
-- **Rust-accelerated scorer**: PyO3 binding to backfire-ffi for sub-1ms heuristic scoring
 - **Adaptive threshold calibration**: `director-ai tune` with labeled data → optimal threshold + weights
-- **WebSocket multiplexed streaming**: multiple concurrent sessions per connection with back-pressure
-- **ONNX INT8/FP16 auto-select**: quantization pipeline picks precision based on hardware capability
 - **Remove deprecated 1.x aliases**: `DirectorModule`, `BackfireKernel`, `StrangeLoopAgent`, etc.
 - **Drop Python 3.10**: minimum Python 3.11 for `ExceptionGroup` and `TaskGroup` support

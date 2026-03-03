@@ -154,6 +154,28 @@ class CoherenceScorer:
         else:
             self.use_nli = use_nli
 
+        # Rust/backfire backend: delegate to backfire_kernel FFI
+        if scorer_backend in ("rust", "backfire"):
+            try:
+                from backfire_kernel import BackfireConfig, RustCoherenceScorer
+
+                self._rust_scorer = RustCoherenceScorer(
+                    config=BackfireConfig(coherence_threshold=threshold),
+                    knowledge_callback=(
+                        ground_truth_store.retrieve_context
+                        if ground_truth_store
+                        else None
+                    ),
+                )
+                self._nli = None  # type: ignore[assignment]
+                self.use_nli = False
+            except (ImportError, AttributeError, OSError):
+                self._rust_scorer = None
+                if strict_mode:
+                    raise
+        else:
+            self._rust_scorer = None
+
         nli_backend = "deberta" if scorer_backend == "hybrid" else scorer_backend
         if nli_backend == "lite":
             self._nli = NLIScorer(use_model=False, backend="lite")
@@ -310,6 +332,11 @@ class CoherenceScorer:
         Returns 0.0 (aligned) to 1.0 (hallucinated).
         When strict_mode is True and NLI is unavailable, returns 0.9 (reject).
         """
+        if self._rust_scorer is not None:
+            _, score_obj = self._rust_scorer.review(prompt, text_output)
+            fallback = 1.0 - getattr(score_obj, "score", 0.5)
+            return getattr(score_obj, "h_factual", fallback)
+
         if not self.ground_truth_store:
             return DIVERGENCE_NEUTRAL
 
@@ -430,6 +457,11 @@ class CoherenceScorer:
 
         When strict_mode is True and NLI is unavailable, returns 0.9 (reject).
         """
+        if self._rust_scorer is not None:
+            _, score_obj = self._rust_scorer.review(prompt, text_output)
+            fallback = 1.0 - getattr(score_obj, "score", 0.5)
+            return getattr(score_obj, "h_logical", fallback)
+
         if self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
                 score, _ = self._nli.score_chunked(prompt, text_output)
@@ -546,6 +578,19 @@ class CoherenceScorer:
             recorded after scoring.
         """
         with trace_review() as span:
+            # Rust fast-path: delegate full review to backfire_kernel
+            if self._rust_scorer is not None:
+                approved_r, score_obj = self._rust_scorer.review(prompt, action)
+                h_l = getattr(score_obj, "h_logical", 0.0)
+                h_f = getattr(score_obj, "h_factual", 0.0)
+                fallback = 1.0 - (self.W_LOGIC * h_l + self.W_FACT * h_f)
+                coh = getattr(score_obj, "score", fallback)
+                result = self._finalise_review(coh, h_l, h_f, action)
+                span.set_attribute("coherence.score", result[1].score)
+                span.set_attribute("coherence.approved", result[0])
+                span.set_attribute("coherence.backend", "rust")
+                return result
+
             if self.cache:
                 cached = self.cache.get(prompt, action)
                 if cached is not None:

@@ -13,7 +13,7 @@ Director-AI: Real-time LLM hallucination guardrail.
     from director_ai.core import CoherenceAgent, CoherenceScorer, SafetyKernel
 """
 
-__version__ = "2.7.1"
+__version__ = "2.8.0"
 
 from .core import (
     AsyncStreamingKernel,
@@ -44,8 +44,11 @@ from .core import (
     Turn,
     VectorGroundTruthStore,
     get_backend,
+    get_vector_backend,
     list_backends,
+    list_vector_backends,
     register_backend,
+    register_vector_backend,
 )
 from .core.exceptions import (
     CoherenceError,
@@ -96,6 +99,9 @@ __all__ = [
     "register_backend",
     "get_backend",
     "list_backends",
+    "register_vector_backend",
+    "get_vector_backend",
+    "list_vector_backends",
     "guard",
     "get_score",
     "DirectorAIError",

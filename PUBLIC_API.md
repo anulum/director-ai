@@ -1,4 +1,4 @@
-# Public API — Director-AI v2.7.1
+# Public API — Director-AI v2.8.0
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -60,6 +60,14 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `PineconeBackend` | `core.vector_store` | Pinecone backend |
 | `WeaviateBackend` | `core.vector_store` | Weaviate backend |
 | `QdrantBackend` | `core.vector_store` | Qdrant backend |
+
+## Vector Backend Plugin API
+
+| Symbol | Module | Description |
+|--------|--------|-------------|
+| `register_vector_backend()` | `core.vector_store` | Register a custom vector backend by name |
+| `get_vector_backend()` | `core.vector_store` | Retrieve a vector backend class by name |
+| `list_vector_backends()` | `core.vector_store` | List all registered vector backend names |
 
 ## Generators
 
