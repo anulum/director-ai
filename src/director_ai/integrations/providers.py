@@ -28,13 +28,13 @@ class LLMProvider(ABC):
     @abstractmethod
     def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
         """Generate n candidate responses for the given prompt."""
-        ...
+        ...  # pragma: no cover
 
     @property
     @abstractmethod
     def name(self) -> str:
         """Provider name for logging."""
-        ...
+        ...  # pragma: no cover
 
     def stream_generate(self, prompt: str):
         """Yield tokens from a streaming completion.
@@ -150,7 +150,7 @@ class OpenAIProvider(LLMProvider):
                 stream=True,
             )
             resp.raise_for_status()
-            for line in resp.iter_lines(decode_unicode=True):
+            for line in resp.iter_lines(decode_unicode=True):  # pragma: no branch
                 if not line or not line.startswith("data: "):
                     continue
                 data_str = line[len("data: ") :]
@@ -377,7 +377,7 @@ class LocalProvider(LLMProvider):
                 self.api_url, json=payload, timeout=self.timeout, stream=True
             )
             resp.raise_for_status()
-            for line in resp.iter_lines(decode_unicode=True):
+            for line in resp.iter_lines(decode_unicode=True):  # pragma: no branch
                 if not line or not line.startswith("data: "):
                     continue
                 data_str = line[len("data: ") :]

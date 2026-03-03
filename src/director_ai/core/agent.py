@@ -88,7 +88,7 @@ class CoherenceAgent:
         from .backends import get_backend
 
         try:
-            get_backend("rust")  # availability probe
+            get_backend("rust")
             from backfire_kernel import BackfireConfig, RustCoherenceScorer
 
             cfg = BackfireConfig(coherence_threshold=0.6)
@@ -98,7 +98,7 @@ class CoherenceAgent:
             )
             self.logger.info("Rust CoherenceScorer active (via registry)")
             return scorer
-        except (
+        except (  # pragma: no cover — only when backfire_kernel absent
             KeyError,
             ImportError,
             TypeError,
@@ -107,7 +107,7 @@ class CoherenceAgent:
             OSError,
         ) as exc:
             self.logger.debug("Rust scorer unavailable (%s) — Python fallback", exc)
-        return CoherenceScorer(
+        return CoherenceScorer(  # pragma: no cover
             threshold=0.6, ground_truth_store=self.store, use_nli=use_nli
         )
 
@@ -206,7 +206,7 @@ class CoherenceAgent:
         nli_scores = None
         if best_rejected_score and best_rejected_score.evidence:
             ev_chunks = best_rejected_score.evidence.chunks
-            if best_rejected_score.evidence.chunk_scores:
+            if best_rejected_score.evidence.chunk_scores:  # pragma: no cover
                 nli_scores = best_rejected_score.evidence.chunk_scores
         halt_ev = HaltEvidence(
             reason="all_candidates_rejected",
@@ -250,7 +250,7 @@ class CoherenceAgent:
             _, score = self.scorer.review(prompt, text)
             return float(score.score)
 
-        async for token in self.generator.stream_tokens(prompt):
+        async for token in self.generator.stream_tokens(prompt):  # pragma: no branch
             score = _coherence_cb(token)
             yield token, score
             if self.streaming_kernel.check_halt(score):

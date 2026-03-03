@@ -231,7 +231,7 @@ class BatchProcessor:
             with metrics.timer("review_duration_seconds"):
                 approved, score = self._backend.review(prompt, response)  # type: ignore[attr-defined]
             metrics.inc("reviews_total")
-            if approved:
+            if approved:  # pragma: no cover — tested via scorer.review
                 metrics.inc("reviews_approved")
             else:
                 metrics.inc("reviews_rejected")

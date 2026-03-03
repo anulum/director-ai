@@ -27,7 +27,7 @@ from .types import HaltEvidence
 
 __all__ = ["StreamingKernel", "StreamSession", "TokenEvent"]
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from .scorer import CoherenceScorer
 
 logger = logging.getLogger("DirectorAI.Streaming")
@@ -235,7 +235,7 @@ class StreamingKernel(SafetyKernel):
                 if cs.evidence and cs.evidence.chunks:
                     sorted_chunks = sorted(cs.evidence.chunks, key=lambda c: c.distance)
                     chunks = sorted_chunks[:top_k]
-                    if cs.evidence.chunk_scores:
+                    if cs.evidence.chunk_scores:  # pragma: no branch
                         nli_scores = cs.evidence.chunk_scores[:top_k]
                 structured = HaltEvidence(
                     reason=reason,

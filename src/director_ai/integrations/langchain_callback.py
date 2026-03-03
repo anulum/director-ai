@@ -22,7 +22,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, Any
 
-if TYPE_CHECKING:
+if TYPE_CHECKING:  # pragma: no cover
     from director_ai.core.types import CoherenceScore
 
 logger = logging.getLogger("DirectorAI.LangChain")

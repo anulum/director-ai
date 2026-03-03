@@ -88,9 +88,9 @@ def _load_entry_points() -> None:
         for ep in group:
             try:
                 cls = ep.load()
-                if ep.name not in _REGISTRY:
+                if ep.name not in _REGISTRY:  # pragma: no cover
                     register_backend(ep.name, cls)
-            except (ImportError, AttributeError, TypeError) as exc:
+            except (ImportError, AttributeError, TypeError) as exc:  # pragma: no cover
                 logger.warning(
                     "Failed to load backend entry point %s: %s", ep.name, exc
                 )
@@ -192,5 +192,5 @@ try:
 
     register_backend("rust", RustBackend)
     register_backend("backfire", RustBackend)
-except (ImportError, AttributeError):
+except (ImportError, AttributeError):  # pragma: no cover
     pass

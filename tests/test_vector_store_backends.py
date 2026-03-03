@@ -28,16 +28,12 @@ class TestPineconeBackend:
         }
 
         with patch.dict("sys.modules", {"pinecone": mock_pinecone}):
-            from importlib import reload
-
-            import director_ai.core.vector_store as vs
-
-            reload(vs)
+            from director_ai.core.vector_store import PineconeBackend
 
             def embed_fn(text):
                 return [0.1, 0.2, 0.3]
 
-            backend = vs.PineconeBackend(api_key="k", index_name="i", embed_fn=embed_fn)
+            backend = PineconeBackend(api_key="k", index_name="i", embed_fn=embed_fn)
             backend.add("d1", "hello world")
             mock_index.upsert.assert_called_once()
 

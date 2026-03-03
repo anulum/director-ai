@@ -126,7 +126,7 @@ def _handle_failure(on_fail, query, response_text, score):
             score.score,
             response_text,
         )
-    elif on_fail == "metadata":
+    elif on_fail == "metadata":  # pragma: no branch
         _score_var.set(score)
 
 

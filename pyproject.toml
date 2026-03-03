@@ -164,13 +164,16 @@ branch = true
 
 [tool.coverage.report]
 show_missing = true
-fail_under = 92
+fail_under = 100
 exclude_lines = [
     "pragma: no cover",
     "if __name__ == .__main__.",
     "pass",
     "raise NotImplementedError",
     "except ImportError",
+]
+partial_branches = [
+    "pragma: no branch",
 ]
 
 [tool.mypy]
