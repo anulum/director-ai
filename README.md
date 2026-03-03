@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-1063%2B_passed-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-1166%2B_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
@@ -123,10 +123,18 @@ print(score.score)  # 0.42
 ### Streaming halt
 
 ```python
-from director_ai.core import StreamingKernel
+from director_ai.core import CoherenceScorer
+from director_ai.core.streaming import StreamingKernel
 
+scorer = CoherenceScorer(threshold=0.5)
 kernel = StreamingKernel(hard_limit=0.4, window_size=5)
-session = kernel.stream_tokens(token_generator, lambda tok: my_scorer(tok))
+
+accumulated = []
+def coherence_cb(token):
+    accumulated.append(token)
+    return scorer.review("my prompt", " ".join(accumulated))[1].score
+
+session = kernel.stream_tokens(token_generator, coherence_cb)
 
 if session.halted:
     print(f"Halted at token {session.halt_index}: {session.halt_reason}")
@@ -260,6 +268,10 @@ Dual-licensed:
 See [Licensing](docs-site/licensing.md) for pricing tiers and FAQ.
 
 Contact: [anulum.li/contact](https://www.anulum.li/contact.html) | invest@anulum.li
+
+## Community
+
+Join the [Director-AI Discord](https://discord.gg/JvMdKv49) for CI notifications, release announcements, and support. The Discord bot also provides `/version`, `/docs`, `/install`, `/status`, and `/quickstart` slash commands.
 
 ## Contributing
 

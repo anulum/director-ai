@@ -17,6 +17,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **R8: Sanitizer scoring mode** — `InputSanitizer.score()` returns weighted `suspicion_score` (0.0-1.0). Low-weight patterns (e.g. `output_manipulation` at 0.3) flag but don't block. `allowlist` parameter exempts false-positive patterns. `check()` calls `score()` internally.
 - **R9: Clean branding** — removed `[AGI Output]:` prefix, changed halt message to `[HALT]: All candidates rejected.`, changed disclaimer prefix to `[Unverified]`.
 - **R2: Streaming docs** — clarified accumulated-text re-scoring (not per-token). Added Limitations section documenting no-retraction and NLI latency.
+
+### Fixed
+- **R10: StreamingKernel wired into agent.stream()** — `CoherenceAgent.stream()` now uses `StreamingKernel.check_halt()` with sliding window and trend detection instead of a bare coherence threshold.
+- **R11: gRPC incremental streaming** — `StreamTokens` RPC pushes tokens incrementally via thread+queue bridge instead of collecting all tokens before yielding.
+- **R12: CLI multi-worker config propagation** — `--workers N` with `--profile` now propagates config via `DIRECTOR_PROFILE` env var so each Uvicorn worker builds the correct scorer.
+- **R13: ONNX batch config wiring** — `onnx_batch_size` and `onnx_flush_timeout_ms` from `DirectorConfig` now flow through `CoherenceScorer` → `NLIScorer` → `OnnxDynamicBatcher`.
+- **R14: Prompt content removed from logs** — `CoherenceAgent` logs prompt length at DEBUG level, never the content.
+
+### Security
+- **R15: HMAC audit hashing** — `AuditLogger` uses HMAC-SHA256 (keyed via `DIRECTOR_AUDIT_HMAC_SECRET` env var or random secret) instead of plain SHA-256 for query hashes.
+
+### Added
+- **Discord bot** (`discord-bot/`) — channel bootstrap, 5 slash commands (`/version`, `/docs`, `/install`, `/status`, `/quickstart`), CI/release/Docker webhook embeds.
+- CI `discord-notify` job posts pass/fail to Discord `#ci-status` channel.
+- Publish `discord-announce` job posts release notes to Discord `#announcements` channel.
 - Version bump: 2.5.0 → 2.6.0
 
 ## [2.5.0] — 2026-03-03
@@ -637,7 +652,9 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v2.4.0...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v2.6.0...HEAD
+[2.6.0]: https://github.com/anulum/director-ai/compare/v2.5.0...v2.6.0
+[2.5.0]: https://github.com/anulum/director-ai/compare/v2.4.0...v2.5.0
 [2.4.0]: https://github.com/anulum/director-ai/compare/v2.3.0...v2.4.0
 [2.3.0]: https://github.com/anulum/director-ai/compare/v2.2.1...v2.3.0
 [2.2.1]: https://github.com/anulum/director-ai/compare/v2.2.0...v2.2.1
