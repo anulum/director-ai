@@ -80,6 +80,14 @@ class TestProfileLoading:
             DirectorConfig.from_profile("nonexistent")
 
     @pytest.mark.parametrize(
+        "name", ["medical", "finance", "legal", "summarization", "research"]
+    )
+    def test_high_stakes_profiles_use_hybrid(self, name):
+        cfg = DirectorConfig.from_profile(name)
+        assert cfg.scorer_backend == "hybrid"
+        assert cfg.llm_judge_enabled is True
+
+    @pytest.mark.parametrize(
         "name,threshold,hard,soft,nli,reranker,wl,wf",
         [
             ("medical", 0.75, 0.55, 0.75, True, True, 0.5, 0.5),

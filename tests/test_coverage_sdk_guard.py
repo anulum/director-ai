@@ -16,6 +16,9 @@ from director_ai.integrations.sdk_guard import (
     _extract_stream_delta,
     _handle_failure,
     _has_anthropic_shape,
+    _has_bedrock_shape,
+    _has_cohere_shape,
+    _has_gemini_shape,
     _has_openai_shape,
     _openai_response_text,
     get_score,
@@ -225,6 +228,97 @@ class TestAsyncOpenAIStream:
         assert len(collected) == 10
 
 
+class TestBedrockProvider:
+    def test_bedrock_shape_true(self):
+        assert _has_bedrock_shape(_make_bedrock_client())
+
+    def test_bedrock_shape_missing_invoke_model(self):
+        assert not _has_bedrock_shape(SimpleNamespace(converse=lambda: None))
+
+    def test_bedrock_shape_missing_converse(self):
+        assert not _has_bedrock_shape(SimpleNamespace(invoke_model=lambda: None))
+
+    def test_guard_bedrock_client(self):
+        client = _make_bedrock_client()
+        result = guard(client, on_fail="log")
+        assert result is not client  # bedrock wraps the client
+
+    def test_bedrock_converse(self):
+        client = _make_bedrock_client()
+        client = guard(client, on_fail="log")
+        resp = client.converse(
+            messages=[{"role": "user", "content": [{"text": "Sky color?"}]}]
+        )
+        assert "output" in resp
+
+    def test_bedrock_streaming(self):
+        events = [{"contentBlockDelta": {"delta": {"text": "word "}}}] * 10
+        client = _make_bedrock_client(streaming=True, events=events)
+        client = guard(client, on_fail="log")
+        stream = client.converse_stream(
+            messages=[{"role": "user", "content": [{"text": "hi"}]}]
+        )
+        collected = list(stream)
+        assert len(collected) == 10
+
+
+class TestGeminiProvider:
+    def test_gemini_shape_true(self):
+        assert _has_gemini_shape(_make_gemini_client())
+
+    def test_gemini_shape_false(self):
+        assert not _has_gemini_shape(SimpleNamespace())
+
+    def test_guard_gemini_client(self):
+        client = _make_gemini_client()
+        result = guard(client, on_fail="log")
+        assert result is not client
+
+    def test_gemini_generate(self):
+        client = _make_gemini_client()
+        client = guard(client, on_fail="log")
+        resp = client.generate_content("What color is the sky?")
+        assert resp.text == "The sky is blue."
+
+    def test_gemini_streaming(self):
+        chunks = [SimpleNamespace(text="word ")] * 10
+        client = _make_gemini_client(streaming=True, chunks=chunks)
+        client = guard(client, on_fail="log")
+        stream = client.generate_content("hi", stream=True)
+        collected = list(stream)
+        assert len(collected) == 10
+
+
+class TestCohereProvider:
+    def test_cohere_shape_true(self):
+        assert _has_cohere_shape(_make_cohere_client())
+
+    def test_cohere_shape_false_openai(self):
+        assert not _has_cohere_shape(_make_openai_client())
+
+    def test_cohere_shape_false_empty(self):
+        assert not _has_cohere_shape(SimpleNamespace())
+
+    def test_guard_cohere_client(self):
+        client = _make_cohere_client()
+        result = guard(client, on_fail="log")
+        assert result is not client
+
+    def test_cohere_chat(self):
+        client = _make_cohere_client()
+        client = guard(client, on_fail="log")
+        resp = client.chat(message="What color is the sky?")
+        assert resp.text == "The sky is blue."
+
+    def test_cohere_streaming(self):
+        events = [SimpleNamespace(text="word ")] * 10
+        client = _make_cohere_client(streaming=True, events=events)
+        client = guard(client, on_fail="log")
+        stream = client.chat_stream(message="hi")
+        collected = list(stream)
+        assert len(collected) == 10
+
+
 class TestAsyncAnthropicStream:
     def test_aiter(self):
         event = SimpleNamespace(text="token ")
@@ -289,6 +383,39 @@ def _make_anthropic_client(streaming=False, events=None, async_mode=False):
 
     messages = SimpleNamespace(create=create)
     return SimpleNamespace(messages=messages)
+
+
+def _make_bedrock_client(streaming=False, events=None):
+    def converse(**kwargs):
+        return {"output": {"message": {"content": [{"text": "The sky is blue."}]}}}
+
+    def converse_stream(**kwargs):
+        return {"stream": events or []}
+
+    return SimpleNamespace(
+        converse=converse,
+        invoke_model=lambda **kw: {},
+        converse_stream=converse_stream,
+    )
+
+
+def _make_gemini_client(streaming=False, chunks=None):
+    def generate_content(*args, **kwargs):
+        if kwargs.get("stream"):
+            return chunks or []
+        return SimpleNamespace(text="The sky is blue.")
+
+    return SimpleNamespace(generate_content=generate_content)
+
+
+def _make_cohere_client(streaming=False, events=None):
+    def chat(**kwargs):
+        return SimpleNamespace(text="The sky is blue.")
+
+    def chat_stream(**kwargs):
+        return events or []
+
+    return SimpleNamespace(chat=chat, chat_stream=chat_stream)
 
 
 class _AsyncIter:

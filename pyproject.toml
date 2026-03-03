@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "2.6.0"
+version = "2.7.0"
 description = "Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
@@ -20,7 +20,7 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "Topic :: Software Development :: Libraries :: Python Modules",
-    "Development Status :: 5 - Production/Stable",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Science/Research",
     "Operating System :: OS Independent",
 ]
@@ -180,7 +180,7 @@ partial_branches = [
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
+disallow_untyped_defs = true
 check_untyped_defs = true
 ignore_missing_imports = true
 
@@ -191,3 +191,7 @@ skips = ["B101", "B104", "B608", "B615"]
 [[tool.mypy.overrides]]
 module = "benchmarks.*"
 ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false

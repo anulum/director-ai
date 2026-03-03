@@ -5,6 +5,24 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.0] — 2026-03-03
+
+### Added
+- **Provider adapters**: `guard()` now supports 5 SDK shapes — OpenAI, Anthropic, AWS Bedrock (`converse()`), Google Gemini (`generate_content()`), and Cohere (`chat()`). Each with streaming support and periodic coherence checks.
+- **`director-ai doctor`** CLI command: checks Python version, torch, transformers, NLI readiness, onnxruntime, chromadb, sentence-transformers, slowapi, grpcio.
+- **ONNX quantization**: `export_onnx(quantize="int8"|"fp16")` produces quantized models. `_load_onnx_session()` auto-detects `model_quantized.onnx` on CPU.
+- **RAGTruth benchmark** (`benchmarks/ragtruth_eval.py`): evaluates on `yixuantt/ragtruth` dataset.
+- **FreshQA benchmark** (`benchmarks/freshqa_eval.py`): evaluates on `freshllms/freshqa` dataset.
+- Tutorial notebooks: `06_medical_rag_chatbot.ipynb`, `07_langchain_integration.ipynb`, `08_provider_adapters.ipynb`.
+- `"research"` added to valid CLI profiles.
+
+### Changed
+- **Hybrid backend default**: medical, finance, legal, summarization, research profiles now use `scorer_backend="hybrid"` with LLM judge enabled.
+- **Development Status**: `Production/Stable` → `Beta` in pyproject.toml classifiers.
+- **Strict mypy**: `disallow_untyped_defs = true` globally (tests exempt).
+- `benchmarks/run_all.py` includes ragtruth and freshqa in suite.
+- Version bump: 2.6.1 → 2.7.0
+
 ## [2.6.1] — 2026-03-03
 
 ### Added
@@ -675,7 +693,8 @@ Production stable release. Research modules permanently removed.
 - Demo script for end-to-end flow validation
 - Documentation: Manifesto, Architecture, Roadmap, Technical Spec, API Reference
 
-[Unreleased]: https://github.com/anulum/director-ai/compare/v2.6.1...HEAD
+[Unreleased]: https://github.com/anulum/director-ai/compare/v2.7.0...HEAD
+[2.7.0]: https://github.com/anulum/director-ai/compare/v2.6.1...v2.7.0
 [2.6.1]: https://github.com/anulum/director-ai/compare/v2.6.0...v2.6.1
 [2.6.0]: https://github.com/anulum/director-ai/compare/v2.5.0...v2.6.0
 [2.5.0]: https://github.com/anulum/director-ai/compare/v2.4.0...v2.5.0

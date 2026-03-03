@@ -43,13 +43,14 @@ def guard(
 ):
     """Wrap an LLM SDK client with coherence scoring.
 
-    Supports any client with an OpenAI-compatible shape
-    (``client.chat.completions.create``) or Anthropic-compatible shape
-    (``client.messages.create`` without ``client.chat``). This covers
-    OpenAI, vLLM, Groq, LiteLLM, Ollama, Together, and Anthropic.
+    Supports five SDK shapes:
 
-    AWS Bedrock, Google Gemini, and Cohere have different SDK shapes.
-    Use ``CoherenceScorer.review()`` directly for those providers.
+    - **OpenAI-compatible** (``client.chat.completions.create``):
+      OpenAI, vLLM, Groq, LiteLLM, Ollama, Together.
+    - **Anthropic** (``client.messages.create``).
+    - **AWS Bedrock** (``client.converse`` / ``client.converse_stream``).
+    - **Google Gemini** (``client.generate_content``).
+    - **Cohere** (``client.chat`` without ``client.completions``).
 
     Returns the same *client* object with patched sub-objects.
     """
@@ -72,11 +73,16 @@ def guard(
         )
     elif _has_anthropic_shape(client):
         client.messages = _AnthropicMessagesProxy(client.messages, scorer, on_fail)
+    elif _has_bedrock_shape(client):
+        client = _BedrockProxy(client, scorer, on_fail)
+    elif _has_gemini_shape(client):
+        client = _GeminiProxy(client, scorer, on_fail)
+    elif _has_cohere_shape(client):
+        client = _CohereProxy(client, scorer, on_fail)
     else:
         raise TypeError(
             f"Unsupported client type: {type(client).__qualname__}. "
-            "Expected client.chat.completions.create (OpenAI-compatible) "
-            "or client.messages.create (Anthropic-compatible)."
+            "Expected OpenAI, Anthropic, Bedrock, Gemini, or Cohere shape."
         )
     return client
 
@@ -327,6 +333,253 @@ class _GuardedAnthropicStream:
     async def _aiter_impl(self):
         async for event in self._stream:
             text = _extract_anthropic_event_text(event)
+            if text:
+                self._buffer.append(text)
+                self._token_count += 1
+                if self._token_count % STREAM_CHECK_INTERVAL == 0:
+                    self._periodic_check()
+            yield event
+        self._final_check()
+
+    def _periodic_check(self):
+        text = "".join(self._buffer)
+        approved, cs = self._scorer.review(self._prompt, text)
+        if not approved:
+            _handle_failure(self._on_fail, self._prompt, text, cs)
+
+    def _final_check(self):
+        text = "".join(self._buffer)
+        if text:
+            _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
+
+
+# ── Bedrock proxy ──────────────────────────────────────────────────
+
+
+def _has_bedrock_shape(client) -> bool:
+    """True if client exposes ``converse()`` and ``invoke_model()`` (boto3 Bedrock)."""
+    return callable(getattr(client, "converse", None)) and callable(
+        getattr(client, "invoke_model", None)
+    )
+
+
+def _bedrock_response_text(response: dict) -> str:
+    """Extract text from Bedrock Converse API response."""
+    with contextlib.suppress(KeyError, IndexError, TypeError):
+        return response["output"]["message"]["content"][0]["text"] or ""
+    return ""
+
+
+def _extract_bedrock_prompt(messages: list[dict]) -> str:
+    for msg in reversed(messages):
+        if msg.get("role") == "user":
+            content = msg.get("content", [])
+            if isinstance(content, list):
+                for block in content:
+                    if isinstance(block, dict) and "text" in block:
+                        return str(block["text"])
+            if isinstance(content, str):
+                return content
+    return ""
+
+
+def _extract_bedrock_stream_delta(event: dict) -> str | None:
+    with contextlib.suppress(KeyError, TypeError):
+        return event["contentBlockDelta"]["delta"]["text"]
+    return None
+
+
+class _BedrockProxy:
+    """Wraps a boto3 Bedrock Runtime client with coherence scoring."""
+
+    def __init__(self, client, scorer, on_fail):
+        self._client = client
+        self._scorer = scorer
+        self._on_fail = on_fail
+
+    def converse(self, **kwargs):
+        prompt = _extract_bedrock_prompt(kwargs.get("messages", []))
+        response = self._client.converse(**kwargs)
+        text = _bedrock_response_text(response)
+        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        return response
+
+    def converse_stream(self, **kwargs):
+        prompt = _extract_bedrock_prompt(kwargs.get("messages", []))
+        response = self._client.converse_stream(**kwargs)
+        return _GuardedBedrockStream(response, self._scorer, self._on_fail, prompt)
+
+    def __getattr__(self, name):
+        return getattr(self._client, name)
+
+
+class _GuardedBedrockStream:
+    """Wraps Bedrock converse_stream with periodic coherence checks."""
+
+    def __init__(self, response, scorer, on_fail, prompt):
+        self._response = response
+        self._scorer = scorer
+        self._on_fail = on_fail
+        self._prompt = prompt
+        self._buffer: list[str] = []
+        self._token_count = 0
+
+    def __iter__(self):
+        stream = self._response.get("stream", self._response)
+        for event in stream:
+            delta = _extract_bedrock_stream_delta(event)
+            if delta:
+                self._buffer.append(delta)
+                self._token_count += 1
+                if self._token_count % STREAM_CHECK_INTERVAL == 0:
+                    self._periodic_check()
+            yield event
+        self._final_check()
+
+    def _periodic_check(self):
+        text = "".join(self._buffer)
+        approved, cs = self._scorer.review(self._prompt, text)
+        if not approved:
+            _handle_failure(self._on_fail, self._prompt, text, cs)
+
+    def _final_check(self):
+        text = "".join(self._buffer)
+        if text:
+            _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
+
+
+# ── Gemini proxy ───────────────────────────────────────────────────
+
+
+def _has_gemini_shape(client) -> bool:
+    """True if client exposes ``generate_content()`` (google-generativeai)."""
+    return callable(getattr(client, "generate_content", None))
+
+
+def _extract_gemini_prompt(args: tuple, kwargs: dict) -> str:
+    contents = args[0] if args else kwargs.get("contents", "")
+    if isinstance(contents, str):
+        return contents
+    if isinstance(contents, list):
+        for item in reversed(contents):
+            if isinstance(item, str):
+                return item
+            if isinstance(item, dict):
+                parts = item.get("parts", [])
+                for p in parts:
+                    if isinstance(p, str):
+                        return p
+                    if isinstance(p, dict) and "text" in p:
+                        return str(p["text"])
+    return str(contents)
+
+
+class _GeminiProxy:
+    """Wraps a google.generativeai GenerativeModel with coherence scoring."""
+
+    def __init__(self, client, scorer, on_fail):
+        self._client = client
+        self._scorer = scorer
+        self._on_fail = on_fail
+
+    def generate_content(self, *args, **kwargs):
+        prompt = _extract_gemini_prompt(args, kwargs)
+        streaming = kwargs.get("stream", False)
+        response = self._client.generate_content(*args, **kwargs)
+        if streaming:
+            return _GuardedGeminiStream(response, self._scorer, self._on_fail, prompt)
+        text = getattr(response, "text", "") or ""
+        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        return response
+
+    def __getattr__(self, name):
+        return getattr(self._client, name)
+
+
+class _GuardedGeminiStream:
+    """Wraps a Gemini streaming response with periodic coherence checks."""
+
+    def __init__(self, stream, scorer, on_fail, prompt):
+        self._stream = stream
+        self._scorer = scorer
+        self._on_fail = on_fail
+        self._prompt = prompt
+        self._buffer: list[str] = []
+        self._token_count = 0
+
+    def __iter__(self):
+        for chunk in self._stream:
+            text = getattr(chunk, "text", None)
+            if text:
+                self._buffer.append(text)
+                self._token_count += 1
+                if self._token_count % STREAM_CHECK_INTERVAL == 0:
+                    self._periodic_check()
+            yield chunk
+        self._final_check()
+
+    def _periodic_check(self):
+        text = "".join(self._buffer)
+        approved, cs = self._scorer.review(self._prompt, text)
+        if not approved:
+            _handle_failure(self._on_fail, self._prompt, text, cs)
+
+    def _final_check(self):
+        text = "".join(self._buffer)
+        if text:
+            _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
+
+
+# ── Cohere proxy ───────────────────────────────────────────────────
+
+
+def _has_cohere_shape(client) -> bool:
+    """True if client exposes ``chat()`` without OpenAI-compatible shape (Cohere v2)."""
+    if _has_openai_shape(client):
+        return False
+    return callable(getattr(client, "chat", None)) and not callable(
+        getattr(getattr(client, "chat", None), "completions", None)
+    )
+
+
+class _CohereProxy:
+    """Wraps a Cohere client with coherence scoring."""
+
+    def __init__(self, client, scorer, on_fail):
+        self._client = client
+        self._scorer = scorer
+        self._on_fail = on_fail
+
+    def chat(self, **kwargs):
+        prompt = kwargs.get("message", "")
+        response = self._client.chat(**kwargs)
+        text = getattr(response, "text", "") or ""
+        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        return response
+
+    def chat_stream(self, **kwargs):
+        prompt = kwargs.get("message", "")
+        response = self._client.chat_stream(**kwargs)
+        return _GuardedCohereStream(response, self._scorer, self._on_fail, prompt)
+
+    def __getattr__(self, name):
+        return getattr(self._client, name)
+
+
+class _GuardedCohereStream:
+    """Wraps a Cohere chat_stream with periodic coherence checks."""
+
+    def __init__(self, stream, scorer, on_fail, prompt):
+        self._stream = stream
+        self._scorer = scorer
+        self._on_fail = on_fail
+        self._prompt = prompt
+        self._buffer: list[str] = []
+        self._token_count = 0
+
+    def __iter__(self):
+        for event in self._stream:
+            text = getattr(event, "text", None)
             if text:
                 self._buffer.append(text)
                 self._token_count += 1

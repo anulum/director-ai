@@ -278,6 +278,18 @@ class TestCliConfig:
         assert "coherence_threshold" in out
 
 
+class TestCliDoctor:
+    def test_doctor_runs(self, capsys):
+        main(["doctor"])
+        out = capsys.readouterr().out
+        assert "checks passed" in out
+
+    def test_doctor_output_includes_version(self, capsys):
+        main(["doctor"])
+        out = capsys.readouterr().out
+        assert "director-ai" in out
+
+
 class TestCliStressTest:
     def test_stress_test_default(self, capsys):
         main(["stress-test", "--streams", "5", "--tokens-per-stream", "10"])

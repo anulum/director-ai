@@ -90,6 +90,24 @@ def _run_suite(model_name: str | None, max_samples: int | None) -> dict:
     else:
         logger.info("=== aggrefact === SKIPPED (no HF_TOKEN)")
 
+    # RAGTruth (requires datasets)
+    try:
+        from benchmarks.ragtruth_eval import run_ragtruth
+        logger.info("=== ragtruth ===")
+        rt = run_ragtruth(max_samples=max_samples)
+        results["ragtruth"] = rt.to_dict()
+    except ImportError:
+        logger.info("=== ragtruth === SKIPPED (missing datasets)")
+
+    # FreshQA (requires datasets)
+    try:
+        from benchmarks.freshqa_eval import run_freshqa
+        logger.info("=== freshqa ===")
+        fq = run_freshqa(max_samples=max_samples)
+        results["freshqa"] = fq.to_dict()
+    except ImportError:
+        logger.info("=== freshqa === SKIPPED (missing datasets)")
+
     results["total_time_seconds"] = round(time.time() - t_total, 1)
     return results
 

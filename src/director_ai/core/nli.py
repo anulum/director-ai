@@ -141,8 +141,13 @@ def _load_onnx_session(
             raise FileNotFoundError(f"Not a directory: {onnx_path}")
         tokenizer = AutoTokenizer.from_pretrained(onnx_path)
 
+        # Prefer quantized model on CPU
+        quantized = os.path.join(onnx_path, "model_quantized.onnx")
         model_file = os.path.join(onnx_path, "model.onnx")
-        if not os.path.exists(model_file):
+        if os.path.exists(quantized) and (device is None or "cpu" in (device or "")):
+            model_file = quantized
+            logger.info("Using INT8 quantized model: %s", quantized)
+        elif not os.path.exists(model_file):
             for f in os.listdir(onnx_path):  # pragma: no branch
                 if f.endswith(".onnx"):  # pragma: no branch
                     model_file = os.path.join(onnx_path, f)
@@ -198,12 +203,18 @@ def nli_available() -> bool:
 def export_onnx(
     model_name: str = _DEFAULT_MODEL,
     output_dir: str = "factcg_onnx",
+    quantize: str | None = None,
 ) -> str:
-    """Export NLI model to ONNX format.
+    """Export NLI model to ONNX format, optionally quantized.
+
+    Parameters
+    ----------
+    quantize : "int8", "fp16", or None (default FP32).
 
     Requires ``pip install optimum[onnxruntime]``.
+    For int8: also requires ``onnxruntime`` quantization module.
     Load the result with
-    ``NLIScorer(backend="onnx", onnx_path=output_dir)``.
+    ``NLIScorer(backend="onnx", onnx_path=<returned_dir>)``.
     """
     from optimum.onnxruntime import (
         ORTModelForSequenceClassification,
@@ -214,6 +225,25 @@ def export_onnx(
     model.save_pretrained(output_dir)
     AutoTokenizer.from_pretrained(model_name).save_pretrained(output_dir)
     logger.info("ONNX model exported to %s", output_dir)
+
+    if quantize == "int8":
+        from onnxruntime.quantization import QuantType, quantize_dynamic
+
+        src = os.path.join(output_dir, "model.onnx")
+        dst = os.path.join(output_dir, "model_quantized.onnx")
+        quantize_dynamic(src, dst, weight_type=QuantType.QInt8)
+        logger.info("INT8 quantized model saved to %s", dst)
+    elif quantize == "fp16":
+        import onnx
+        from onnxruntime.transformers import float16
+
+        src = os.path.join(output_dir, "model.onnx")
+        model_fp32 = onnx.load(src)
+        model_fp16 = float16.convert_float_to_float16(model_fp32)
+        dst = os.path.join(output_dir, "model_fp16.onnx")
+        onnx.save(model_fp16, dst)
+        logger.info("FP16 model saved to %s", dst)
+
     return output_dir
 
 

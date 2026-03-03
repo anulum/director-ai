@@ -1,4 +1,4 @@
-# Public API — Director-AI v2.6.1
+# Public API — Director-AI v2.7.0
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -131,11 +131,11 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 |---------|-----------|-----|---------|----------|
 | `fast` | 0.5 | off | deberta | Low-latency, non-critical |
 | `thorough` | 0.6 | on | hybrid | NLI + LLM judge |
-| `research` | 0.7 | on | deberta | Full scoring |
-| `medical` | 0.75 | on | deberta | Healthcare |
-| `finance` | 0.7 | on | deberta | Financial services |
-| `legal` | 0.68 | on | deberta | Legal documents |
+| `research` | 0.7 | on | hybrid | Full scoring |
+| `medical` | 0.75 | on | hybrid | Healthcare |
+| `finance` | 0.7 | on | hybrid | Financial services |
+| `legal` | 0.68 | on | hybrid | Legal documents |
 | `creative` | 0.4 | off | deberta | Creative writing |
 | `customer_support` | 0.55 | off | deberta | Support agents |
-| `summarization` | 0.55 | on | deberta | Document summarization |
+| `summarization` | 0.55 | on | hybrid | Document summarization |
 | `lite` | 0.5 | off | lite | Zero-dependency fast path |

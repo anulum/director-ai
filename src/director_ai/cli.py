@@ -47,6 +47,7 @@ def main(argv: list[str] | None = None) -> None:
         "serve": _cmd_serve,
         "config": _cmd_config,
         "stress-test": _cmd_stress_test,
+        "doctor": _cmd_doctor,
     }
 
     if cmd not in commands:
@@ -75,6 +76,7 @@ def _print_help() -> None:
         "  tune <file.jsonl> [--output config.yaml]  Find optimal threshold\n"
         "  serve [--port N] [--workers W]  Start the FastAPI server\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
+        "  doctor                Check runtime dependencies and readiness\n"
         "  config [--profile X]  Show/set configuration\n"
     )
 
@@ -94,6 +96,7 @@ _VALID_PROFILES = (
     "summarization",
     "fast",
     "thorough",
+    "research",
     "lite",
 )
 
@@ -450,6 +453,7 @@ def _cmd_eval(args: list[str]) -> None:
     max_samples = None
     output_file = None
     model = None
+    quantize_mode = None
 
     i = 0
     while i < len(args):
@@ -469,8 +473,24 @@ def _cmd_eval(args: list[str]) -> None:
         elif args[i] == "--model" and i + 1 < len(args):
             model = args[i + 1]
             i += 2
+        elif args[i] == "--quantize" and i + 1 < len(args):
+            quantize_mode = args[i + 1]
+            if quantize_mode not in ("int8", "fp16"):
+                print(
+                    f"Error: --quantize must be 'int8' or 'fp16', got '{quantize_mode}'"
+                )
+                sys.exit(1)
+            i += 2
         else:
             i += 1
+
+    if quantize_mode:
+        from director_ai.core.nli import export_onnx
+
+        print(f"Exporting ONNX with {quantize_mode} quantization...")
+        export_onnx(quantize=quantize_mode)
+        print("Export complete.")
+        return
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -862,6 +882,98 @@ def _cmd_stress_test(args: list[str]) -> None:
         print(f"Latency p95: {report['latency_p95'] * 1000:.2f}ms")
         print(f"Latency p99: {report['latency_p99'] * 1000:.2f}ms")
         print(f"Total time:  {report['total_seconds']:.2f}s")
+
+
+def _cmd_doctor(args: list[str]) -> None:
+    """Check runtime dependencies and print readiness summary."""
+    import platform
+
+    import director_ai
+
+    checks: list[tuple[str, bool, str]] = []
+
+    # Python version
+    py_ver = platform.python_version()
+    py_ok = tuple(int(x) for x in py_ver.split(".")[:2]) >= (3, 10)
+    checks.append(("Python >= 3.10", py_ok, py_ver))
+
+    # torch
+    try:
+        import torch
+
+        cuda = torch.cuda.is_available()
+        checks.append(("torch", True, f"{torch.__version__} (CUDA: {cuda})"))
+    except ImportError:
+        checks.append(("torch", False, "not installed"))
+
+    # transformers
+    try:
+        import transformers
+
+        checks.append(("transformers", True, transformers.__version__))
+    except ImportError:
+        checks.append(("transformers", False, "not installed"))
+
+    # NLI model availability
+    try:
+        from director_ai.core.nli import nli_available
+
+        avail = nli_available()
+        detail = "torch+transformers" if avail else "missing deps"
+        checks.append(("NLI model ready", avail, detail))
+    except Exception as exc:
+        checks.append(("NLI model ready", False, str(exc)))
+
+    # onnxruntime
+    try:
+        import onnxruntime as ort
+
+        provs = ort.get_available_providers()
+        checks.append(("onnxruntime", True, f"{ort.__version__} ({', '.join(provs)})"))
+    except ImportError:
+        checks.append(("onnxruntime", False, "not installed"))
+
+    # chromadb
+    try:
+        import chromadb
+
+        checks.append(("chromadb", True, chromadb.__version__))
+    except ImportError:
+        checks.append(("chromadb", False, "not installed"))
+
+    # sentence_transformers
+    try:
+        import sentence_transformers
+
+        ver = sentence_transformers.__version__
+        checks.append(("sentence-transformers", True, ver))
+    except ImportError:
+        checks.append(("sentence-transformers", False, "not installed"))
+
+    # slowapi
+    try:
+        import slowapi
+
+        checks.append(("slowapi", True, getattr(slowapi, "__version__", "installed")))
+    except ImportError:
+        checks.append(("slowapi", False, "not installed"))
+
+    # grpcio
+    try:
+        import grpc
+
+        checks.append(("grpcio", True, grpc.__version__))
+    except ImportError:
+        checks.append(("grpcio", False, "not installed"))
+
+    passed = sum(1 for _, ok, _ in checks if ok)
+    total = len(checks)
+
+    print(f"director-ai {director_ai.__version__} — dependency check\n")
+    for name, ok, detail in checks:
+        mark = "+" if ok else "-"
+        print(f"  [{mark}] {name}: {detail}")
+    print(f"\n{passed}/{total} checks passed")
 
 
 def _cmd_config(args: list[str]) -> None:
