@@ -52,7 +52,7 @@ class SafetyKernel:
         Returns assembled output string, or an interrupt message if halted.
         Respects token_timeout and total_timeout when > 0.
         """
-        output_buffer = []
+        output_buffer: list[str] = []
         stream_start = time.monotonic()
 
         for token in token_generator:
