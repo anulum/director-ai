@@ -72,7 +72,7 @@ automatic re-retrieval of the current filing.
 ```python
 from director_ai import CoherenceScorer, GroundTruthStore
 
-store = GroundTruthStore()
+store = GroundTruthStore()  # empty — populate with your KB
 store.add("protagonist", "Kael is a frost mage from the Northern Reach.")
 store.add("magic system", "Only three schools of magic exist: frost, flame, void.")
 
@@ -110,7 +110,7 @@ for final consistency checks against the world bible.
 ```python
 from director_ai import CoherenceScorer, GroundTruthStore
 
-store = GroundTruthStore()
+store = GroundTruthStore()  # empty — populate with your KB
 scorer = CoherenceScorer(threshold=0.3, soft_limit=0.5, ground_truth_store=store)
 approved, score = scorer.review(query, response)
 if score.warning:

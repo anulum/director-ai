@@ -245,7 +245,7 @@ Old names still work but emit `DeprecationWarning`. They will be removed in 3.0.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {2.3.0},
+  version   = {2.6.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

@@ -32,7 +32,7 @@ backend = ChromaBackend(
     persist_directory="/data/chroma",
     embedding_model="BAAI/bge-large-en-v1.5",
 )
-store = VectorGroundTruthStore(backend=backend, auto_index=False)
+store = VectorGroundTruthStore(backend=backend)
 
 # Ingest your knowledge base
 store.ingest(your_documents)

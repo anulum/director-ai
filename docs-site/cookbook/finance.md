@@ -5,7 +5,7 @@
 ```python
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
-store = GroundTruthStore()
+store = GroundTruthStore()  # empty — populate with your KB
 store.add("savings APY", "Our savings account APY is 4.25% as of February 2026.")
 store.add("FDIC", "FDIC insurance covers up to $250,000 per depositor per bank.")
 store.add("wire transfer", "Wire transfers take 1-3 business days.")
@@ -39,7 +39,7 @@ scorer = CoherenceScorer(
 ## Knowledge Base
 
 ```python
-store = VectorGroundTruthStore(auto_index=False)
+store = VectorGroundTruthStore()
 store.ingest([
     "Our savings account APY is 4.25% as of February 2026.",
     "Wire transfers take 1-3 business days.",

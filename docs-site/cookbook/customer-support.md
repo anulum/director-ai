@@ -5,7 +5,7 @@
 ```python
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
-store = GroundTruthStore()
+store = GroundTruthStore()  # empty — populate with your KB
 store.add("refund policy", "Refunds are available within 30 days of purchase.")
 store.add("shipping", "Standard shipping takes 5-7 business days.")
 store.add("pricing", "Pro plan costs $49/month, Enterprise is $199/month.")
@@ -43,7 +43,7 @@ scorer = CoherenceScorer(
 ## Knowledge Base
 
 ```python
-store = VectorGroundTruthStore(auto_index=False)
+store = VectorGroundTruthStore()
 store.ingest([
     "Refunds are available within 30 days of purchase with receipt.",
     "Standard shipping takes 5-7 business days within the US.",

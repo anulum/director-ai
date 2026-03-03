@@ -9,7 +9,7 @@ For small KBs (< 1000 facts), use `GroundTruthStore` directly:
 ```python
 from director_ai import GroundTruthStore, CoherenceScorer
 
-store = GroundTruthStore()
+store = GroundTruthStore()  # starts empty — add your own facts
 store.add("boiling_point", "Water boils at 100°C at standard atmospheric pressure.")
 store.add("speed_of_light", "The speed of light in vacuum is 299,792 km/s.")
 store.add("capital_france", "The capital of France is Paris.")
@@ -35,7 +35,7 @@ For larger KBs or when you need semantic search, use `VectorGroundTruthStore`:
 ```python
 from director_ai import VectorGroundTruthStore, CoherenceScorer
 
-store = VectorGroundTruthStore(auto_index=True)
+store = VectorGroundTruthStore()
 
 # Ingest documents (splits into chunks, embeds, indexes)
 store.ingest([
@@ -67,7 +67,7 @@ backend = ChromaBackend(
     embedding_model="BAAI/bge-large-en-v1.5",
 )
 
-store = VectorGroundTruthStore(backend=backend, auto_index=False)
+store = VectorGroundTruthStore(backend=backend)
 
 # Ingest once — data persists across restarts
 store.ingest(your_documents)

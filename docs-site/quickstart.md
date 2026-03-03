@@ -40,7 +40,7 @@ This creates `director_guard/` with `config.yaml`, `facts.txt`, `guard.py`, and 
 ```python
 from director_ai import CoherenceScorer, GroundTruthStore
 
-store = GroundTruthStore()
+store = GroundTruthStore()  # empty store — add your own facts
 store.add("capital", "Paris is the capital of France.")
 
 scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)

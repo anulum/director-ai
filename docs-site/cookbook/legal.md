@@ -5,7 +5,7 @@
 ```python
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
-store = GroundTruthStore()
+store = GroundTruthStore()  # empty — populate with your KB
 store.add("statute of limitations", "The statute of limitations for personal injury in California is 2 years.")
 store.add("contract elements", "A contract requires offer, acceptance, consideration, and mutual assent.")
 
@@ -27,7 +27,7 @@ print(f"Wrong:   approved={approved}, score={score.score:.2f}")
 ```python
 from director_ai import CoherenceScorer, VectorGroundTruthStore
 
-store = VectorGroundTruthStore(auto_index=False)
+store = VectorGroundTruthStore()
 store.ingest([
     "The statute of limitations for personal injury in California is 2 years.",
     "Attorney-client privilege protects communications made for legal advice.",

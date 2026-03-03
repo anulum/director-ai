@@ -52,7 +52,7 @@ Raw composite divergence in `[0, 1]` (lower is better).
 from director_ai import CoherenceScorer
 from director_ai.core.vector_store import VectorGroundTruthStore
 
-store = VectorGroundTruthStore()
+store = VectorGroundTruthStore()  # empty — add your own facts
 store.add("photosynthesis", "Plants convert CO2 into glucose using sunlight.")
 
 scorer = CoherenceScorer(threshold=0.6, use_nli=True, ground_truth_store=store)

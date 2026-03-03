@@ -5,7 +5,7 @@
 ```python
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
-store = GroundTruthStore()
+store = GroundTruthStore()  # empty — populate with your KB
 store.add("aspirin children", "Aspirin should not be given to children under 16 due to Reye's syndrome risk.")
 store.add("blood pressure", "Normal blood pressure is below 120/80 mmHg.")
 store.add("diabetes diagnosis", "Type 2 diabetes is diagnosed when fasting glucose exceeds 126 mg/dL.")
@@ -41,7 +41,7 @@ scorer = CoherenceScorer(
 ## Knowledge Base Setup
 
 ```python
-store = VectorGroundTruthStore(auto_index=False)
+store = VectorGroundTruthStore()
 store.ingest([
     "Aspirin should not be given to children under 16 due to Reye's syndrome risk.",
     "Normal blood pressure is below 120/80 mmHg.",
