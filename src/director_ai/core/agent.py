@@ -248,7 +248,7 @@ class CoherenceAgent:
             accumulated.append(token)
             text = " ".join(accumulated)
             _, score = self.scorer.review(prompt, text)
-            return score.score
+            return float(score.score)
 
         async for token in self.generator.stream_tokens(prompt):
             score = _coherence_cb(token)
