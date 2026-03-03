@@ -754,6 +754,11 @@ def _cmd_serve(args: list[str]) -> None:
     )
 
     if workers > 1:
+        import os
+
+        os.environ["DIRECTOR_PROFILE"] = profile
+        os.environ["DIRECTOR_SERVER_HOST"] = host
+        os.environ["DIRECTOR_SERVER_PORT"] = str(port)
         uvicorn.run(
             "director_ai.server:create_app",
             factory=True,

@@ -434,6 +434,8 @@ class DirectorConfig:
             "llm_judge_provider": self.llm_judge_provider,
             "llm_judge_model": self.llm_judge_model,
             "ground_truth_store": store,
+            "onnx_batch_size": self.onnx_batch_size,
+            "onnx_flush_timeout_ms": self.onnx_flush_timeout_ms,
         }
         if self.w_logic != 0.0:
             kw["w_logic"] = self.w_logic

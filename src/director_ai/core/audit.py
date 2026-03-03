@@ -24,8 +24,10 @@ Usage::
 from __future__ import annotations
 
 import hashlib
+import hmac as _hmac
 import json
 import logging
+import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
@@ -64,9 +66,13 @@ class AuditLogger:
         self,
         path: str | Path | None = None,
         logger_name: str = "DirectorAI.Audit",
+        hmac_secret: str | None = None,
     ) -> None:
         self._path = Path(path) if path else None
         self._logger = logging.getLogger(logger_name)
+        self._hmac_key = (
+            hmac_secret or os.environ.get("DIRECTOR_AUDIT_HMAC_SECRET") or ""
+        ).encode("utf-8") or os.urandom(32)
         if self._path:
             self._path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -86,7 +92,7 @@ class AuditLogger:
         """Record a review decision."""
         entry = AuditEntry(
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),
-            query_hash=hashlib.sha256(query.encode("utf-8")).hexdigest()[:16],
+            query_hash=_hmac.new(self._hmac_key, query.encode("utf-8"), hashlib.sha256).hexdigest()[:16],
             response_length=len(response),
             approved=approved,
             score=round(score, 4),

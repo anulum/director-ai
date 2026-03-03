@@ -16,6 +16,7 @@ from .actor import LLMGenerator, MockGenerator
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .scorer import CoherenceScorer
+from .streaming import StreamingKernel
 from .types import HaltEvidence, ReviewResult
 
 __all__ = ["CoherenceAgent"]
@@ -77,6 +78,10 @@ class CoherenceAgent:
         self.store = _store if _store is not None else GroundTruthStore()
         self.scorer = _scorer if _scorer is not None else self._build_scorer(use_nli)
         self.kernel = SafetyKernel()
+        self.streaming_kernel = StreamingKernel(
+            hard_limit=self.kernel.hard_limit,
+            adaptive=True,
+        )
 
     def _build_scorer(self, use_nli):
         """Construct scorer, preferring Rust backend when installed."""
@@ -129,7 +134,7 @@ class CoherenceAgent:
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
 
-        self.logger.info(f"Received Prompt: '{prompt}'")
+        self.logger.debug("Processing prompt (%d chars)", len(prompt))
 
         candidates = self.generator.generate_candidates(prompt)
 
@@ -221,12 +226,11 @@ class CoherenceAgent:
         )
 
     async def stream(self, prompt: str) -> AsyncIterator[tuple[str, float]]:
-        """Stream tokens with accumulated-text coherence re-scoring.
+        """Stream tokens with StreamingKernel oversight.
 
-        Yields ``(token, coherence)`` where ``coherence`` is the score of
-        all tokens accumulated so far, not the token in isolation. Each
-        yield triggers a full ``scorer.review(prompt, accumulated_text)``
-        call. Halting stops future tokens but does not retract delivered ones.
+        Uses sliding window, trend detection, and hard/soft halt from
+        ``StreamingKernel``. Yields ``(token, coherence)`` tuples.
+        Halting stops future tokens but does not retract delivered ones.
         """
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
@@ -237,14 +241,19 @@ class CoherenceAgent:
                 yield word, result.coherence.score if result.coherence else 0.0
             return
 
+        self.streaming_kernel.reset_state()
         accumulated: list[str] = []
-        async for token in self.generator.stream_tokens(prompt):
+
+        def _coherence_cb(token: str) -> float:
             accumulated.append(token)
             text = " ".join(accumulated)
             _, score = self.scorer.review(prompt, text)
-            coherence = score.score
-            yield token, coherence
-            if coherence < getattr(self.kernel, "hard_limit", 0.5):
+            return score.score
+
+        async for token in self.generator.stream_tokens(prompt):
+            score = _coherence_cb(token)
+            yield token, score
+            if self.streaming_kernel.check_halt(score):
                 return
 
     # ── Backward-compatible alias ─────────────────────────────────────

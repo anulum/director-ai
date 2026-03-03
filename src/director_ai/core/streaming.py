@@ -145,6 +145,33 @@ class StreamingKernel(SafetyKernel):
         self.score_every_n = score_every_n
         self.adaptive = adaptive
         self.max_cadence = max_cadence
+        self._window: deque[float] = deque(maxlen=window_size)
+        self._history: list[float] = []
+
+    def check_halt(self, score: float) -> bool:
+        """Evaluate halt conditions for a single score update.
+
+        Maintains internal sliding window and trend history.
+        Returns True if any halt condition is met.
+        """
+        self._window.append(score)
+        self._history.append(score)
+        if score < self.hard_limit:
+            return True
+        if len(self._window) >= self.window_size:
+            avg = sum(self._window) / len(self._window)
+            if avg < self.window_threshold:
+                return True
+        if len(self._history) >= self.trend_window:
+            recent = self._history[-self.trend_window :]
+            if recent[0] - recent[-1] > self.trend_threshold:
+                return True
+        return False
+
+    def reset_state(self) -> None:
+        """Clear internal window/trend state for a new stream."""
+        self._window.clear()
+        self._history.clear()
 
     @staticmethod
     def _suggested_action(reason: str) -> str:
@@ -163,6 +190,7 @@ class StreamingKernel(SafetyKernel):
         evidence_callback=None,
         scorer: CoherenceScorer | None = None,
         top_k: int = 3,
+        prompt: str = "",
     ) -> StreamSession:
         """Process tokens one by one with sliding window oversight.
 
@@ -176,6 +204,8 @@ class StreamingKernel(SafetyKernel):
         scorer : CoherenceScorer | None — when provided, halt events
             include structured HaltEvidence with top-K contradicting chunks.
         top_k : int — number of evidence chunks to include (default 3).
+        prompt : str — original user prompt, passed to scorer.review() for
+            KB/RAG context in halt evidence.
 
         Returns
         -------
@@ -199,7 +229,7 @@ class StreamingKernel(SafetyKernel):
                 session.halt_evidence = ev
             if scorer is not None:
                 accumulated = "".join(session.tokens)
-                _, cs = scorer.review("", accumulated)
+                _, cs = scorer.review(prompt, accumulated)
                 chunks = []
                 nli_scores = None
                 if cs.evidence and cs.evidence.chunks:

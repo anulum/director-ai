@@ -98,6 +98,8 @@ class CoherenceScorer:
         scorer_backend="deberta",
         onnx_path=None,
         nli_devices=None,
+        onnx_batch_size=16,
+        onnx_flush_timeout_ms=10.0,
     ):
         if not (0.0 <= threshold <= 1.0):
             raise ValueError(f"threshold must be in [0, 1], got {threshold}")
@@ -116,6 +118,8 @@ class CoherenceScorer:
         self.strict_mode = strict_mode
         self.scorer_backend = scorer_backend
         self.onnx_path = onnx_path
+        self._onnx_batch_size = onnx_batch_size
+        self._onnx_flush_timeout_ms = onnx_flush_timeout_ms
 
         if scorer_backend == "hybrid" and not llm_judge_provider:
             raise ValueError("hybrid backend requires llm_judge_provider")
@@ -161,6 +165,8 @@ class CoherenceScorer:
                 quantize_8bit=nli_quantize_8bit,
                 torch_dtype=nli_torch_dtype,
                 onnx_path=onnx_path,
+                onnx_batch_size=onnx_batch_size,
+                onnx_flush_timeout_ms=onnx_flush_timeout_ms,
             )
         elif self.use_nli:
             self._nli = NLIScorer(
@@ -171,6 +177,8 @@ class CoherenceScorer:
                 device=nli_device,
                 torch_dtype=nli_torch_dtype,
                 onnx_path=onnx_path,
+                onnx_batch_size=onnx_batch_size,
+                onnx_flush_timeout_ms=onnx_flush_timeout_ms,
             )
         else:
             self._nli = None  # type: ignore[assignment]

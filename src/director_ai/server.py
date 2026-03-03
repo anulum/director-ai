@@ -172,7 +172,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
     _check_fastapi()
 
-    cfg = config or DirectorConfig.from_env()
+    if config is None:
+        import os
+
+        profile = os.environ.get("DIRECTOR_PROFILE", "")
+        if profile and profile != "default":
+            cfg = DirectorConfig.from_profile(profile)
+        else:
+            cfg = DirectorConfig.from_env()
+    else:
+        cfg = config
     _start_time = time.monotonic()
 
     _state: dict = {}

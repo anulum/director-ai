@@ -127,20 +127,29 @@ def create_grpc_server(
 
         def StreamTokens(self, request, context):  # noqa: N802
             import asyncio
+            import queue
 
-            async def _collect():
-                tokens = []
-                async for tok, coh in agent.stream(request.prompt):
-                    tokens.append((tok, coh))
-                return tokens
+            q: queue.Queue[tuple[str, float] | None] = queue.Queue()
+
+            async def _produce():
+                try:
+                    async for tok, coh in agent.stream(request.prompt):
+                        q.put((tok, coh))
+                finally:
+                    q.put(None)
 
             loop = asyncio.new_event_loop()
-            try:
-                pairs = loop.run_until_complete(_collect())
-            finally:
-                loop.close()
+            import threading
 
-            for i, (tok, coh) in enumerate(pairs):
+            t = threading.Thread(target=loop.run_until_complete, args=(_produce(),))
+            t.start()
+
+            i = 0
+            while True:
+                item = q.get()
+                if item is None:
+                    break
+                tok, coh = item
                 halted = coh < cfg.hard_limit
                 yield token_evt(
                     token=tok,
@@ -149,6 +158,10 @@ def create_grpc_server(
                     halted=halted,
                     halt_reason="hard_limit" if halted else "",
                 )
+                i += 1
+
+            t.join()
+            loop.close()
 
     # Auth interceptor
     class _AuthInterceptor(grpc.ServerInterceptor):

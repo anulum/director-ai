@@ -315,6 +315,8 @@ class NLIScorer:
         device: str | None = None,
         torch_dtype: str | None = None,
         onnx_path: str | None = None,
+        onnx_batch_size: int = 16,
+        onnx_flush_timeout_ms: float = 10.0,
     ) -> None:
         # Accept ScorerBackend instance directly
         self._custom_backend = None
@@ -341,6 +343,8 @@ class NLIScorer:
         self._device = device
         self._torch_dtype = torch_dtype
         self._onnx_path = onnx_path
+        self._onnx_batch_size = onnx_batch_size
+        self._onnx_flush_timeout_ms = onnx_flush_timeout_ms
         self._tokenizer = None
         self._model = None
         self._onnx_session = None
@@ -377,6 +381,12 @@ class NLIScorer:
                 return False
             self._tokenizer, self._onnx_session = _load_onnx_session(
                 self._onnx_path, device=self._device
+            )
+            self._onnx_batcher = OnnxDynamicBatcher(
+                onnx_scorer_fn=self._onnx_score_batch,
+                max_batch=self._onnx_batch_size,
+                flush_timeout_ms=self._onnx_flush_timeout_ms,
+                session=self._onnx_session,
             )
         else:
             self._tokenizer, self._model = _load_nli_model(
