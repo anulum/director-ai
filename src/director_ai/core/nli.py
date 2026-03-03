@@ -648,12 +648,18 @@ class NLIScorer:
         premise: str,
         hypothesis: str,
         outer_agg: str = "max",
+        inner_agg: str = "max",
     ) -> tuple[float, list[float], int, int]:
         """Bidirectional chunked scoring with chunk counts.
 
         Returns (agg_score, per_hyp_scores, prem_count, hyp_count).
-        Inner aggregation (across premise chunks per hypothesis chunk): min.
-        Outer aggregation (across hypothesis chunks): max (default) or mean.
+
+        inner_agg controls how premise-chunk scores are combined per
+        hypothesis chunk: "max" (default, conservative — worst evidence
+        wins) or "mean".
+
+        outer_agg controls how hypothesis-chunk scores are combined:
+        "max" (default) or "mean".
         """
         hyp_budget = int(self.max_length * 0.6)
         prem_budget = int(self.max_length * 0.4)
@@ -689,7 +695,10 @@ class NLIScorer:
         per_hyp: list[float] = []
         for h_idx in range(n_hyp):
             scores_h = [all_scores[p * n_hyp + h_idx] for p in range(n_prem)]
-            per_hyp.append(min(scores_h))
+            if inner_agg == "mean":
+                per_hyp.append(sum(scores_h) / len(scores_h))
+            else:
+                per_hyp.append(max(scores_h))
 
         agg = max(per_hyp) if outer_agg == "max" else sum(per_hyp) / len(per_hyp)
 
@@ -713,6 +722,31 @@ class NLIScorer:
             outer_agg,
         )
         return agg, per_hyp
+
+    # ── Claim decomposition ────────────────────────────────────────
+
+    def decompose_claims(self, text: str) -> list[str]:
+        """Split text into individual claim sentences."""
+        return self._split_sentences(text)
+
+    def score_decomposed(
+        self, premise: str, hypothesis: str
+    ) -> tuple[float, list[float]]:
+        """Score each claim in hypothesis independently against premise.
+
+        Returns (max_score, per_claim_scores).
+        """
+        claims = self.decompose_claims(hypothesis)
+        if not claims:
+            return self.score(premise, hypothesis), [self.score(premise, hypothesis)]
+
+        if len(claims) == 1:
+            s = self.score(premise, claims[0])
+            return s, [s]
+
+        pairs = [(premise, c) for c in claims]
+        scores = self.score_batch(pairs)
+        return max(scores), scores
 
     # ── Lite backend ─────────────────────────────────────────────
 

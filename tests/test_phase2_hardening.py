@@ -98,15 +98,15 @@ class TestVectorStoreMetadata:
         assert backend.count() == 1
 
     def test_vector_store_add_fact(self):
-        store = VectorGroundTruthStore(auto_index=True)
+        store = VectorGroundTruthStore()
         store.add_fact("test key", "test value")
         result = store.retrieve_context("test key")
         assert result is not None
         assert "test" in result
 
-    def test_vector_store_facts_indexed(self):
-        store = VectorGroundTruthStore(auto_index=True)
-        assert store.backend.count() > 0
+    def test_vector_store_starts_empty(self):
+        store = VectorGroundTruthStore()
+        assert store.backend.count() == 0
 
 
 # ── H19: CORS Origins Configurable ────────────────────────────────

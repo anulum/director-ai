@@ -6,6 +6,7 @@
 
 import pytest
 
+from director_ai.core.knowledge import GroundTruthStore
 from director_ai.core.vector_store import (
     InMemoryBackend,
     VectorGroundTruthStore,
@@ -37,27 +38,29 @@ class TestInMemoryBackend:
 
 @pytest.mark.consumer
 class TestVectorGroundTruthStore:
-    def test_auto_index_builtin_facts(self):
+    def test_default_store_is_empty(self):
         store = VectorGroundTruthStore()
-        assert store.backend.count() == len(store.facts)
+        assert store.backend.count() == 0
+        assert store.facts == {}
 
-    def test_retrieve_context_vector(self):
+    def test_ingest_and_retrieve(self):
         store = VectorGroundTruthStore()
+        store.ingest(["The sky is blue", "SCPN has 16 layers"])
         context = store.retrieve_context("How many layers in SCPN?")
         assert context is not None
         assert "16" in context
 
     def test_retrieve_context_sky_color(self):
         store = VectorGroundTruthStore()
+        store.ingest(["sky color is blue"])
         context = store.retrieve_context("What color is the sky?")
         assert context is not None
         assert "blue" in context.lower()
 
     def test_add_custom_fact(self):
         store = VectorGroundTruthStore()
-        initial_count = store.backend.count()
         store.add_fact("gravity", "9.81 m/s²")
-        assert store.backend.count() == initial_count + 1
+        assert store.backend.count() == 1
         assert "gravity" in store.facts
 
     def test_retrieve_custom_fact(self):
@@ -68,7 +71,7 @@ class TestVectorGroundTruthStore:
 
     def test_keyword_fallback(self):
         """If vector search fails, keyword matching should still work."""
-        store = VectorGroundTruthStore(backend=InMemoryBackend(), auto_index=False)
-        # No vector-indexed facts, but keyword store still has them
+        store = VectorGroundTruthStore(backend=InMemoryBackend())
+        store.add("sky color", "blue")
         context = store.retrieve_context("sky color")
         assert context is not None

@@ -70,7 +70,7 @@ def run_ragbench(
     if subsets is None:
         subsets = RAGBENCH_SUBSETS
 
-    store = VectorGroundTruthStore(auto_index=True)
+    store = VectorGroundTruthStore()
     scorer = CoherenceScorer(
         threshold=threshold,
         soft_limit=soft_limit,

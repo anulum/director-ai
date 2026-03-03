@@ -150,7 +150,7 @@ def _build_store(backend_name: str):
         choices = list(backends)
         raise ValueError(f"Unknown backend: {backend_name}. Choose from {choices}")
 
-    store = VectorGroundTruthStore(backend=factory(), auto_index=False)
+    store = VectorGroundTruthStore(backend=factory())
 
     for key, value, _, _ in EVAL_SET:
         store.add_fact(key, value)

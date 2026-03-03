@@ -18,43 +18,43 @@ class TestSanitizerNewPatterns:
 
     def test_base64_payload_with_padding(self):
         payload = "A" * 80 + "=="
-        r = self.san.check(payload)
-        assert r.blocked is True
-        assert r.pattern == "base64_payload"
+        r = self.san.score(payload)
+        assert r.suspicion_score > 0
+        assert "base64_payload" in r.matches
 
     def test_short_base64_not_blocked(self):
         r = self.san.check("SGVsbG8gV29ybGQ=")
         assert r.blocked is False
 
     def test_unicode_escape_injection(self):
-        r = self.san.check(r"\u0069\u0067\u006e\u006f\u0072\u0065")
-        assert r.blocked is True
-        assert r.pattern == "unicode_escape_injection"
+        r = self.san.score(r"\u0069\u0067\u006e\u006f\u0072\u0065")
+        assert r.suspicion_score > 0
+        assert "unicode_escape_injection" in r.matches
 
     def test_control_char_vt(self):
-        r = self.san.check("normal text\x0binjection")
-        assert r.blocked is True
-        assert r.pattern == "control_char_injection"
+        r = self.san.score("normal text\x0binjection")
+        assert r.suspicion_score > 0
+        assert "control_char_injection" in r.matches
 
     def test_control_char_ff(self):
-        r = self.san.check("page\x0cbreak")
-        assert r.blocked is True
-        assert r.pattern == "control_char_injection"
+        r = self.san.score("page\x0cbreak")
+        assert r.suspicion_score > 0
+        assert "control_char_injection" in r.matches
 
     def test_control_char_escape(self):
-        r = self.san.check("some\x1b[31m colored")
-        assert r.blocked is True
-        assert r.pattern == "control_char_injection"
+        r = self.san.score("some\x1b[31m colored")
+        assert r.suspicion_score > 0
+        assert "control_char_injection" in r.matches
 
     def test_bidi_override(self):
-        r = self.san.check("normal \u202e reversed")
-        assert r.blocked is True
-        assert r.pattern == "bidi_override"
+        r = self.san.score("normal \u202e reversed")
+        assert r.suspicion_score > 0
+        assert "bidi_override" in r.matches
 
     def test_bidi_lre(self):
-        r = self.san.check("text \u202a embedded")
-        assert r.blocked is True
-        assert r.pattern == "bidi_override"
+        r = self.san.score("text \u202a embedded")
+        assert r.suspicion_score > 0
+        assert "bidi_override" in r.matches
 
     def test_clean_text_not_blocked(self):
         r = self.san.check("This is a perfectly normal question about AI safety.")

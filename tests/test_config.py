@@ -87,6 +87,7 @@ class TestProfileLoading:
             ("legal", 0.68, 0.45, 0.68, True, False, 0.6, 0.4),
             ("creative", 0.40, 0.30, 0.45, False, False, 0.7, 0.3),
             ("customer_support", 0.55, 0.40, 0.60, False, False, 0.5, 0.5),
+            ("summarization", 0.55, 0.45, 0.60, True, False, 0.5, 0.5),
         ],
     )
     def test_domain_profile(self, name, threshold, hard, soft, nli, reranker, wl, wf):
@@ -198,6 +199,37 @@ class TestBuildStore:
         custom_store = VectorGroundTruthStore()
         scorer = cfg.build_scorer(store=custom_store)
         assert scorer.ground_truth_store is custom_store
+
+    def test_build_store_reranker_wraps_backend(self, monkeypatch):
+        from unittest.mock import MagicMock
+
+        mock_ce = MagicMock()
+        mock_module = MagicMock()
+        mock_module.CrossEncoder = MagicMock(return_value=mock_ce)
+        monkeypatch.setitem(
+            __import__("sys").modules, "sentence_transformers", mock_module
+        )
+
+        from director_ai.core.vector_store import RerankedBackend
+
+        cfg = DirectorConfig(reranker_enabled=True)
+        store = cfg.build_store()
+        assert isinstance(store.backend, RerankedBackend)
+
+    def test_build_store_sentence_transformer_backend(self, monkeypatch):
+        from unittest.mock import MagicMock
+
+        mock_st = MagicMock()
+        mock_st.SentenceTransformer = MagicMock()
+        monkeypatch.setitem(
+            __import__("sys").modules, "sentence_transformers", mock_st
+        )
+
+        from director_ai.core.vector_store import SentenceTransformerBackend
+
+        cfg = DirectorConfig(vector_backend="sentence-transformer")
+        store = cfg.build_store()
+        assert isinstance(store.backend, SentenceTransformerBackend)
 
 
 class TestValidationBoundaries:

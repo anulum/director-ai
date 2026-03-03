@@ -16,40 +16,11 @@ Usage::
 
 from __future__ import annotations
 
-import re
+from ._heuristics import ENTITY_RE as _ENTITY_RE
+from ._heuristics import NEGATION_WORDS as _NEGATION_WORDS
+from ._heuristics import WORD_RE as _WORD_RE
 
 __all__ = ["LiteScorer"]
-
-_NEGATION_WORDS = frozenset(
-    {
-        "not",
-        "no",
-        "never",
-        "neither",
-        "nobody",
-        "nothing",
-        "nowhere",
-        "nor",
-        "cannot",
-        "can't",
-        "don't",
-        "doesn't",
-        "didn't",
-        "won't",
-        "wouldn't",
-        "shouldn't",
-        "isn't",
-        "aren't",
-        "wasn't",
-        "weren't",
-        "hasn't",
-        "haven't",
-        "hadn't",
-    }
-)
-
-_WORD_RE = re.compile(r"\b\w+\b")
-_ENTITY_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b")
 
 
 class LiteScorer:

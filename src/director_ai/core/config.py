@@ -80,6 +80,7 @@ class DirectorConfig:
     llm_judge_enabled: bool = False
     llm_judge_confidence_threshold: float = 0.3
     llm_judge_provider: str = ""
+    llm_judge_model: str = ""
 
     # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite"
     scorer_backend: str = "deberta"
@@ -89,6 +90,7 @@ class DirectorConfig:
 
     # Vector store
     vector_backend: str = "memory"
+    embedding_model: str = "BAAI/bge-large-en-v1.5"
     chroma_collection: str = "director_ai"
     chroma_persist_dir: str = ""
     reranker_enabled: bool = False
@@ -335,6 +337,15 @@ class DirectorConfig:
                 "w_fact": 0.5,
                 "profile": "customer_support",
             },
+            "summarization": {
+                "coherence_threshold": 0.55,
+                "hard_limit": 0.45,
+                "soft_limit": 0.60,
+                "use_nli": True,
+                "w_logic": 0.5,
+                "w_fact": 0.5,
+                "profile": "summarization",
+            },
             "lite": {
                 "use_nli": False,
                 "scorer_backend": "lite",
@@ -376,8 +387,34 @@ class DirectorConfig:
             except ImportError:
                 logger.warning("chromadb not installed, falling back to memory backend")
                 backend = InMemoryBackend()
+        elif self.vector_backend == "sentence-transformer":
+            try:
+                from .vector_store import SentenceTransformerBackend
+
+                backend = SentenceTransformerBackend(
+                    model_name=self.embedding_model,
+                )
+            except ImportError:
+                logger.warning(
+                    "sentence-transformers not installed, falling back to memory"
+                )
+                backend = InMemoryBackend()
         else:
             backend = InMemoryBackend()
+
+        if self.reranker_enabled:
+            try:
+                from .vector_store import RerankedBackend
+
+                backend = RerankedBackend(
+                    base=backend,
+                    reranker_model=self.reranker_model,
+                    top_k_multiplier=self.reranker_top_k_multiplier,
+                )
+            except ImportError:
+                logger.warning(
+                    "sentence-transformers not installed, skipping reranker"
+                )
 
         return VectorGroundTruthStore(backend=backend)
 
@@ -397,6 +434,7 @@ class DirectorConfig:
             "llm_judge_enabled": self.llm_judge_enabled,
             "llm_judge_confidence_threshold": self.llm_judge_confidence_threshold,
             "llm_judge_provider": self.llm_judge_provider,
+            "llm_judge_model": self.llm_judge_model,
             "ground_truth_store": store,
         }
         if self.w_logic != 0.0:

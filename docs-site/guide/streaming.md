@@ -2,7 +2,11 @@
 
 ## Overview
 
-`StreamingKernel` monitors coherence token-by-token and halts generation the moment quality degrades. Three independent halt mechanisms:
+`StreamingKernel` monitors coherence by re-scoring the accumulated text
+after each token (or every N-th token with `score_every_n`). Scoring is
+sentence-level re-evaluation of the full accumulated output, not
+independent per-token analysis. When coherence degrades, generation is
+halted. Three independent halt mechanisms:
 
 1. **Hard limit** — any single token below threshold
 2. **Sliding window** — rolling average drops below window threshold
@@ -199,3 +203,20 @@ Each `TokenEvent` on halt also carries a `halt_evidence` field with the same `Ha
 | `warning_count` | int | Tokens in soft warning zone |
 | `duration_ms` | float | Total processing time |
 | `debug_log` | list[dict] | Debug snapshots (only when `streaming_debug=True`) |
+
+## Limitations
+
+- **Accumulated-text scoring, not per-token**: Each coherence score
+  reflects the full accumulated output re-evaluated against the premise.
+  Individual tokens don't have independent scores.
+- **No retraction**: Halting stops future tokens from being generated,
+  but tokens already delivered to the client cannot be retracted.
+  Applications that need full rollback should buffer output until a
+  sentence boundary passes scoring.
+- **Scoring granularity depends on the NLI backend**: Heuristic mode uses
+  word overlap (~0.1 ms/call), NLI mode runs the full DeBERTa pipeline
+  (~15-50 ms/call). Use `score_every_n > 1` or `adaptive=True` for
+  production latency budgets.
+- **Hosted API constraints**: When using OpenAI/Anthropic providers, the
+  scorer re-runs the full NLI pipeline on the accumulated text. There is
+  no server-side per-token scoring.

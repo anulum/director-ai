@@ -20,18 +20,26 @@ class GroundTruthStore:
     for deterministic testing.
     """
 
+    _DEMO_FACTS = {
+        "sky color": "blue",
+        "scpn layers": "16",
+        "layer 1": "quantum biological",
+        "layer 16": "director",
+        "sec metric": "sustainable ethical coherence",
+        "backfire limit": "entropy threshold",
+        "vibrana symmetry": "13-fold",
+    }
+
     def __init__(self):
         self.logger = logging.getLogger("DirectorAI.GroundTruthStore")
-        # Mock ground truth database
-        self.facts = {
-            "sky color": "blue",
-            "scpn layers": "16",
-            "layer 1": "quantum biological",
-            "layer 16": "director",
-            "sec metric": "sustainable ethical coherence",
-            "backfire limit": "entropy threshold",
-            "vibrana symmetry": "13-fold",
-        }
+        self.facts = {}
+
+    @classmethod
+    def with_demo_facts(cls) -> "GroundTruthStore":
+        """Return a store pre-loaded with demo facts (for tests and --demo)."""
+        store = cls()
+        store.facts.update(cls._DEMO_FACTS)
+        return store
 
     def add(self, key: str, value: str) -> None:
         """Add or update a fact in the store."""
@@ -44,6 +52,13 @@ class GroundTruthStore:
         Returns a semicolon-separated context string, or ``None`` if
         no relevant facts are found.
         """
+        if not self.facts:
+            self.logger.info(
+                "GroundTruthStore is empty — add facts via .add() "
+                "or use VectorGroundTruthStore.ingest()"
+            )
+            return None
+
         query_lower = query.lower()
         context = []
 

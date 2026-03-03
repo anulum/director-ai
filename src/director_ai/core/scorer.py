@@ -94,6 +94,7 @@ class CoherenceScorer:
         llm_judge_enabled=False,
         llm_judge_confidence_threshold=0.3,
         llm_judge_provider="",
+        llm_judge_model="",
         scorer_backend="deberta",
         onnx_path=None,
         nli_devices=None,
@@ -176,8 +177,14 @@ class CoherenceScorer:
         self._llm_judge_enabled = llm_judge_enabled or scorer_backend == "hybrid"
         self._llm_judge_threshold = llm_judge_confidence_threshold
         self._llm_judge_provider = llm_judge_provider
+        self._llm_judge_model = llm_judge_model
 
     # ── LLM-as-judge escalation ───────────────────────────────────────
+
+    _DEFAULT_MODELS = {
+        "openai": "gpt-4o-mini",
+        "anthropic": "claude-haiku-4-5-20251001",
+    }
 
     def _llm_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
         """Escalate to LLM-as-judge when NLI confidence is low.
@@ -187,35 +194,45 @@ class CoherenceScorer:
         **Privacy note**: sends truncated prompt+response (500 chars each) to
         the configured external LLM provider.
         """
+        import json as _json
+        import os
+
         t0 = time.monotonic()
         metrics.inc("llm_judge_escalations")
+
+        model = (
+            os.environ.get("DIRECTOR_LLM_JUDGE_MODEL")
+            or getattr(self, "_llm_judge_model", "")
+            or self._DEFAULT_MODELS.get(self._llm_judge_provider, "")
+        )
 
         judge_prompt = (
             f"Given the prompt: {prompt[:500]}\n"
             f"Response: {response[:500]}\n"
             f"NLI divergence score: {nli_score:.3f}\n"
-            "Is this response factually correct? Reply YES or NO "
-            "with a confidence 0-100."
+            "Is this response factually correct? "
+            'Reply with JSON: {"verdict": "YES" or "NO", "confidence": 0-100}'
         )
         try:
             try:
                 if self._llm_judge_provider == "openai":
-                    import openai  # lazy: optional dep
+                    import openai
 
                     client = openai.OpenAI()
                     result = client.chat.completions.create(
-                        model="gpt-4o-mini",
+                        model=model,
                         messages=[{"role": "user", "content": judge_prompt}],
-                        max_tokens=20,
+                        max_tokens=50,
+                        response_format={"type": "json_object"},
                     )
                     reply = result.choices[0].message.content or ""
                 elif self._llm_judge_provider == "anthropic":
-                    import anthropic  # lazy: optional dep
+                    import anthropic
 
                     client = anthropic.Anthropic()  # type: ignore[assignment]
                     result = client.messages.create(  # type: ignore[attr-defined]
-                        model="claude-haiku-4-5-20251001",
-                        max_tokens=20,
+                        model=model,
+                        max_tokens=50,
                         messages=[{"role": "user", "content": judge_prompt}],
                     )
                     reply = result.content[0].text if result.content else ""
@@ -228,7 +245,7 @@ class CoherenceScorer:
                 self.logger.warning("LLM judge API call failed: %s", exc)
                 return nli_score
 
-            llm_agrees = "YES" in reply.upper()
+            llm_agrees = self._parse_judge_reply(reply)
             llm_divergence = (
                 LLM_JUDGE_AGREE_DIVERGENCE
                 if llm_agrees
@@ -240,6 +257,17 @@ class CoherenceScorer:
             return max(0.0, min(1.0, adjusted))
         finally:
             metrics.observe("llm_judge_seconds", time.monotonic() - t0)
+
+    @staticmethod
+    def _parse_judge_reply(reply: str) -> bool:
+        """Parse structured JSON from LLM judge, fall back to string matching."""
+        import json as _json
+
+        try:
+            data = _json.loads(reply)
+            return str(data.get("verdict", "")).upper() == "YES"
+        except (ValueError, TypeError, AttributeError):
+            return "YES" in reply.upper()
 
     # ── Factual divergence ────────────────────────────────────────────
 
@@ -330,21 +358,37 @@ class CoherenceScorer:
 
     @staticmethod
     def _heuristic_factual(context, text_output):
-        """Word-overlap factual divergence (no-NLI fallback).
+        """Word-overlap factual divergence with negation and entity checks.
 
-        Uses bidirectional containment: max of recall (context words
-        in output) and precision (output words grounded in context).
         Install [nli] for production scoring.
         """
+        from ._heuristics import ENTITY_RE, NEGATION_WORDS
+
         ctx_words = set(re.findall(r"\w+", context.lower()))
         out_words = set(re.findall(r"\w+", text_output.lower()))
         if not ctx_words or not out_words:
             return DIVERGENCE_NEUTRAL
+
         overlap = len(ctx_words & out_words)
         recall = overlap / len(ctx_words)
         precision = overlap / len(out_words)
         similarity = max(recall, precision)
-        return max(0.0, min(1.0, 1.0 - similarity))
+        divergence = 1.0 - similarity
+
+        # Negation asymmetry: one side negates, other doesn't → +0.25
+        ctx_neg = bool(ctx_words & NEGATION_WORDS)
+        out_neg = bool(out_words & NEGATION_WORDS)
+        if ctx_neg != out_neg:
+            divergence += 0.25
+
+        # Novel entities in output not grounded in context → +0.15
+        ctx_ents = set(ENTITY_RE.findall(context))
+        out_ents = set(ENTITY_RE.findall(text_output))
+        novel_ents = out_ents - ctx_ents
+        if novel_ents:
+            divergence += 0.15
+
+        return max(0.0, min(1.0, divergence))
 
     # ── Logical divergence ────────────────────────────────────────────
 

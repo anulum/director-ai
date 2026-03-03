@@ -28,8 +28,10 @@ Measured with 200 tokens, heuristic scorer (no NLI), 5 iterations:
 | adaptive | ~18K | ~11 | +730% | ~38 |
 
 Numbers are CPU-only (heuristic word-overlap scorer). NLI-backed
-scoring is ~10x slower per callback; cadence reduction is more
-impactful.
+scoring re-runs the full DeBERTa pipeline on the accumulated text
+per callback (~15-50 ms on GPU). Cadence reduction via
+`score_every_n` or `adaptive=True` is critical for NLI production
+deployments.
 
 ## Domain Recommendations
 

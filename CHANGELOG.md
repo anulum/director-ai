@@ -5,6 +5,20 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.6.0] — 2026-03-03
+
+### Changed
+- **R1: Empty default GroundTruthStore** — `GroundTruthStore()` no longer ships hardcoded SCPN facts. Use `GroundTruthStore.with_demo_facts()` for demo/test data. `VectorGroundTruthStore` no longer auto-indexes built-in facts.
+- **R3: Chunked NLI inner aggregation** — inner agg changed from `min` to `max`. Most contradictory premise chunk now drives the score (conservative for safety). Added `inner_agg` parameter for `"mean"` alternative.
+- **R4: Catch rate improvements** — heuristic scorer adds negation asymmetry (+0.25) and novel entity detection (+0.15). Claim decomposition via `NLIScorer.score_decomposed()`. New `"summarization"` profile. Shared `_heuristics.py` module.
+- **R5: Retrieval wiring** — `build_store()` supports `vector_backend="sentence-transformer"` with configurable `embedding_model`. CLI `ingest` handles directories, `.md` files, and paragraph-level chunking.
+- **R6: Reranker config wired** — `build_store()` wraps backend with `RerankedBackend` when `reranker_enabled=True`. Medical/finance profiles now actually use the reranker.
+- **R7: LLM judge structured output** — `_llm_judge_check()` requests JSON (`{"verdict": "YES"|"NO", "confidence": 0-100}`), falls back to string matching. Configurable model via `llm_judge_model` config field or `DIRECTOR_LLM_JUDGE_MODEL` env var.
+- **R8: Sanitizer scoring mode** — `InputSanitizer.score()` returns weighted `suspicion_score` (0.0-1.0). Low-weight patterns (e.g. `output_manipulation` at 0.3) flag but don't block. `allowlist` parameter exempts false-positive patterns. `check()` calls `score()` internally.
+- **R9: Clean branding** — removed `[AGI Output]:` prefix, changed halt message to `[HALT]: All candidates rejected.`, changed disclaimer prefix to `[Unverified]`.
+- **R2: Streaming docs** — clarified accumulated-text re-scoring (not per-token). Added Limitations section documenting no-retraction and NLI latency.
+- Version bump: 2.5.0 → 2.6.0
+
 ## [2.5.0] — 2026-03-03
 
 ### Added

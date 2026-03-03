@@ -17,21 +17,23 @@ from director_ai.core import (
 
 @pytest.fixture
 def agent():
-    """Pre-configured CoherenceAgent (mock mode)."""
-    return CoherenceAgent()
+    """Pre-configured CoherenceAgent (mock mode, demo facts)."""
+    store = GroundTruthStore.with_demo_facts()
+    scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store, use_nli=False)
+    return CoherenceAgent(_scorer=scorer, _store=store)
 
 
 @pytest.fixture
 def scorer():
-    """CoherenceScorer with heuristic scoring (no NLI model)."""
-    store = GroundTruthStore()
+    """CoherenceScorer with heuristic scoring and demo facts."""
+    store = GroundTruthStore.with_demo_facts()
     return CoherenceScorer(threshold=0.6, ground_truth_store=store, use_nli=False)
 
 
 @pytest.fixture
 def strict_scorer():
     """CoherenceScorer with a strict threshold (0.7), heuristic scoring."""
-    store = GroundTruthStore()
+    store = GroundTruthStore.with_demo_facts()
     return CoherenceScorer(threshold=0.7, ground_truth_store=store, use_nli=False)
 
 
@@ -43,8 +45,8 @@ def kernel():
 
 @pytest.fixture
 def store():
-    """GroundTruthStore with mock facts."""
-    return GroundTruthStore()
+    """GroundTruthStore with demo facts."""
+    return GroundTruthStore.with_demo_facts()
 
 
 @pytest.fixture

@@ -50,7 +50,7 @@ class CoherenceAgent:
         use_nli=None,
         provider=None,
         fallback=None,
-        disclaimer_prefix="[Confidence: moderate] ",
+        disclaimer_prefix="[Unverified] ",
         *,
         _scorer=None,
         _store=None,
@@ -167,7 +167,7 @@ class CoherenceAgent:
             if best_score and best_score.warning:
                 prefix = self.disclaimer_prefix
             return ReviewResult(
-                output=f"{prefix}[AGI Output]: {final_output}",
+                output=f"{prefix}{final_output}",
                 coherence=best_score,
                 halted=False,
                 candidates_evaluated=len(candidates),
@@ -213,10 +213,7 @@ class CoherenceAgent:
             ),
         )
         return ReviewResult(
-            output=(
-                "[SYSTEM HALT]: No coherent response found."
-                " Self-termination to prevent divergence."
-            ),
+            output="[HALT]: All candidates rejected.",
             coherence=best_rejected_score,
             halted=True,
             candidates_evaluated=len(candidates),
@@ -224,10 +221,12 @@ class CoherenceAgent:
         )
 
     async def stream(self, prompt: str) -> AsyncIterator[tuple[str, float]]:
-        """Stream tokens with live per-token coherence scoring.
+        """Stream tokens with accumulated-text coherence re-scoring.
 
-        Yields (token, coherence_score) tuples. Falls back to process()
-        replay if the generator lacks stream_tokens().
+        Yields ``(token, coherence)`` where ``coherence`` is the score of
+        all tokens accumulated so far, not the token in isolation. Each
+        yield triggers a full ``scorer.review(prompt, accumulated_text)``
+        call. Halting stops future tokens but does not retract delivered ones.
         """
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")

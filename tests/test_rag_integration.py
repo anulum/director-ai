@@ -17,7 +17,7 @@ class TestRAG(unittest.TestCase):
     """
 
     def setUp(self):
-        self.store = GroundTruthStore()
+        self.store = GroundTruthStore.with_demo_facts()
         self.scorer = CoherenceScorer(ground_truth_store=self.store, use_nli=False)
 
     def test_retrieval(self):

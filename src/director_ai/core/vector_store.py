@@ -492,29 +492,14 @@ class VectorGroundTruthStore(GroundTruthStore):
     Parameters
     ----------
     backend : VectorBackend — vector DB backend (default: InMemoryBackend).
-    auto_index : bool — index built-in facts on init (default: True).
     """
 
     def __init__(
         self,
         backend: VectorBackend | None = None,
-        auto_index: bool = True,
     ) -> None:
         super().__init__()
         self.backend = backend if backend is not None else InMemoryBackend()
-
-        if auto_index:
-            self._index_builtin_facts()
-
-    def _index_builtin_facts(self) -> None:
-        """Index the built-in fact dictionary into the vector backend."""
-        for key, value in self.facts.items():
-            self.backend.add(
-                doc_id=f"builtin_{key.replace(' ', '_')}",
-                text=f"{key} is {value}",
-                metadata={"source": "builtin", "key": key},
-            )
-        logger.info("Indexed %d built-in facts into vector backend.", len(self.facts))
 
     def ingest(self, texts: list[str]) -> int:
         """Bulk-add plain text documents into the vector backend."""

@@ -114,8 +114,8 @@ class TestScoreChunked:
         assert 0.0 <= score <= 1.0
         assert len(chunk_scores) > 1
 
-    def test_inner_agg_is_min(self):
-        """min-across-premises: per_hyp is min of premise chunk scores."""
+    def test_inner_agg_is_max(self):
+        """max-across-premises: per_hyp is max of premise chunk scores."""
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Premise detail {i} info" for i in range(30)) + "."
         _, per_hyp, np, nh = scorer._score_chunked_with_counts(
@@ -125,6 +125,17 @@ class TestScoreChunked:
         assert np > 1
         assert nh == 1
         assert len(per_hyp) == 1
+
+    def test_inner_mean_aggregation(self):
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Premise detail {i} info" for i in range(30)) + "."
+        agg_max, _, _, _ = scorer._score_chunked_with_counts(
+            long_prem, "Short claim.", inner_agg="max",
+        )
+        agg_mean, _, _, _ = scorer._score_chunked_with_counts(
+            long_prem, "Short claim.", inner_agg="mean",
+        )
+        assert agg_mean <= agg_max
 
     def test_mean_aggregation(self):
         scorer = NLIScorer(use_model=False, max_length=64)

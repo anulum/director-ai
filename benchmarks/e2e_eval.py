@@ -230,7 +230,7 @@ def run_e2e_benchmark(
     if tasks is None:
         tasks = ["qa", "summarization", "dialogue"]
 
-    store = VectorGroundTruthStore(auto_index=True)
+    store = VectorGroundTruthStore()
     scorer = CoherenceScorer(
         threshold=threshold,
         soft_limit=soft_limit,
@@ -313,7 +313,7 @@ def sweep_thresholds(
     if tasks is None:
         tasks = ["qa", "summarization", "dialogue"]
 
-    store = VectorGroundTruthStore(auto_index=True)
+    store = VectorGroundTruthStore()
 
     # Pre-score all samples once, then sweep threshold
     raw_scores: list[tuple[str, bool, float]] = []  # (task, is_halluc, score)

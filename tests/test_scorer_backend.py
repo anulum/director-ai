@@ -66,6 +66,59 @@ class TestHybridBackend:
             assert scorer.scorer_backend == "hybrid"
 
 
+class TestLLMJudgeParsing:
+    def test_parse_json_yes(self):
+        assert CoherenceScorer._parse_judge_reply('{"verdict": "YES", "confidence": 90}')
+
+    def test_parse_json_no(self):
+        assert not CoherenceScorer._parse_judge_reply('{"verdict": "NO", "confidence": 20}')
+
+    def test_parse_fallback_string_yes(self):
+        assert CoherenceScorer._parse_judge_reply("YES, I believe so")
+
+    def test_parse_fallback_string_no(self):
+        assert not CoherenceScorer._parse_judge_reply("NO, it is incorrect")
+
+    def test_parse_malformed_json_fallback(self):
+        assert CoherenceScorer._parse_judge_reply('{invalid json YES}')
+
+    def test_custom_model_stored(self):
+        scorer = CoherenceScorer(
+            threshold=0.5,
+            use_nli=False,
+            scorer_backend="hybrid",
+            llm_judge_provider="openai",
+            llm_judge_model="gpt-4o",
+        )
+        assert scorer._llm_judge_model == "gpt-4o"
+
+    def test_judge_check_uses_custom_model(self):
+        from unittest.mock import MagicMock, patch
+
+        scorer = CoherenceScorer(
+            threshold=0.5,
+            use_nli=False,
+            scorer_backend="hybrid",
+            llm_judge_provider="openai",
+            llm_judge_model="gpt-4o",
+        )
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.choices = [MagicMock()]
+        mock_resp.choices[0].message.content = '{"verdict": "YES", "confidence": 85}'
+        mock_client.chat.completions.create.return_value = mock_resp
+
+        mock_openai = MagicMock()
+        mock_openai.OpenAI.return_value = mock_client
+
+        with patch.dict("sys.modules", {"openai": mock_openai}):
+            result = scorer._llm_judge_check("prompt", "response", 0.5)
+
+        call_kwargs = mock_client.chat.completions.create.call_args
+        assert call_kwargs[1]["model"] == "gpt-4o"
+        assert result < 0.5  # agrees → lower divergence
+
+
 class TestNLIBatchLength:
     def test_batch_returns_correct_length(self):
         nli = NLIScorer(use_model=False, backend="deberta")

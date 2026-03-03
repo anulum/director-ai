@@ -52,7 +52,7 @@ SCIENCE_FACTS = [
 def main():
     # 1. Create a vector store with InMemoryBackend
     backend = InMemoryBackend()
-    store = VectorGroundTruthStore(backend=backend, auto_index=True)
+    store = VectorGroundTruthStore(backend=backend)
 
     # 2. Add domain-specific facts
     print("Populating VectorGroundTruthStore with science facts...\n")

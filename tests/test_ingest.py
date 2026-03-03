@@ -35,7 +35,7 @@ class TestIngest:
 
     def test_retrieve_from_empty_backend(self):
         backend = InMemoryBackend()
-        store = VectorGroundTruthStore(backend=backend, auto_index=False)
+        store = VectorGroundTruthStore(backend=backend)
         store.facts.clear()
         result = store.retrieve_context("anything")
         assert result is None

@@ -91,7 +91,8 @@ class TestVectorStoreDistances:
         assert 0.0 <= results[0]["distance"] <= 1.0
 
     def test_retrieve_context_with_chunks(self):
-        store = VectorGroundTruthStore(auto_index=True)
+        store = VectorGroundTruthStore()
+        store.ingest(["sky color is blue", "SCPN has 16 layers"])
         chunks = store.retrieve_context_with_chunks("What color is the sky?")
         assert len(chunks) > 0
         assert isinstance(chunks[0], EvidenceChunk)
@@ -100,7 +101,7 @@ class TestVectorStoreDistances:
 
 class TestScorerEvidence:
     def test_review_returns_evidence_on_match(self):
-        store = GroundTruthStore()
+        store = GroundTruthStore.with_demo_facts()
         scorer = CoherenceScorer(threshold=0.5, ground_truth_store=store, use_nli=False)
         approved, score = scorer.review("What color is the sky?", "The sky is blue.")
         assert score.evidence is not None
@@ -114,7 +115,7 @@ class TestScorerEvidence:
         assert score.evidence is None
 
     def test_rejected_output_has_evidence(self):
-        store = GroundTruthStore()
+        store = GroundTruthStore.with_demo_facts()
         scorer = CoherenceScorer(threshold=0.9, ground_truth_store=store, use_nli=False)
         approved, score = scorer.review(
             "What color is the sky?", "The sky color is green."
@@ -126,7 +127,7 @@ class TestScorerEvidence:
 
 class TestSoftZone:
     def test_soft_zone_sets_warning(self):
-        store = GroundTruthStore()
+        store = GroundTruthStore.with_demo_facts()
         # threshold=0.5, soft_limit=0.8 — anything between 0.5 and 0.8 gets warning
         scorer = CoherenceScorer(
             threshold=0.5,
@@ -143,7 +144,7 @@ class TestSoftZone:
             assert score.warning is True
 
     def test_above_soft_limit_no_warning(self):
-        store = GroundTruthStore()
+        store = GroundTruthStore.with_demo_facts()
         scorer = CoherenceScorer(
             threshold=0.3,
             ground_truth_store=store,
@@ -160,8 +161,8 @@ class TestSoftZone:
 
 class TestFallbackRetrieval:
     def test_fallback_retrieval_on_halt(self):
-        agent = CoherenceAgent(fallback="retrieval")
-        # Force a high threshold so everything fails
+        store = GroundTruthStore.with_demo_facts()
+        agent = CoherenceAgent(fallback="retrieval", _store=store)
         agent.scorer.threshold = 0.99
         result = agent.process("What color is the sky?")
         assert not result.halted
@@ -182,14 +183,13 @@ class TestFallbackRetrieval:
         result = agent.process("What color is the sky?")
         assert result.halted
         assert result.fallback_used is False
-        assert "SYSTEM HALT" in result.output
+        assert "HALT" in result.output
 
     def test_best_rejected_score_on_halt(self):
         agent = CoherenceAgent()
         agent.scorer.threshold = 0.99
         result = agent.process("What color is the sky?")
         assert result.halted
-        # best_rejected_score should be populated instead of None
         assert result.coherence is not None
         assert result.coherence.score > 0.0
 
@@ -200,7 +200,7 @@ class TestAgentDisclaimer:
         agent.scorer.soft_limit = 1.0  # everything approved gets a warning
         result = agent.process("What color is the sky?")
         if not result.halted:
-            assert result.output.startswith("[Confidence: moderate]")
+            assert result.output.startswith("[Unverified]")
 
     def test_custom_disclaimer_prefix(self):
         agent = CoherenceAgent(disclaimer_prefix="[LOW CONFIDENCE] ")

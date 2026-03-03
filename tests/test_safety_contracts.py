@@ -81,7 +81,7 @@ class TestStrictModeRejects:
         from director_ai.core.knowledge import GroundTruthStore
 
         store = GroundTruthStore()
-        store.add("test", "The sky is blue.")
+        store.add("sky color", "The sky is blue.")
         scorer = CoherenceScorer(
             strict_mode=True,
             use_nli=False,
