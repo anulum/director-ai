@@ -82,3 +82,43 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "${{ github.event.release.tag_name }}" sbom.json --clobber
+
+  discord-announce:
+    name: Discord Release Announcement
+    runs-on: ubuntu-latest
+    needs: [publish, attach-sbom]
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Extract changelog bullets
+        id: changelog
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          BULLETS=$(sed -n "/^## \[${VERSION}\]/,/^## \[/{/^## \[${VERSION}\]/d;/^## \[/d;/^$/d;p;}" CHANGELOG.md \
+            | grep -E '^\s*-' | head -3 | sed 's/^ *- *//' | jq -Rsc 'split("\n") | map(select(length>0))')
+          echo "bullets=${BULLETS}" >> "$GITHUB_OUTPUT"
+
+      - name: Post to Discord
+        if: env.DISCORD_ANNOUNCE_WEBHOOK != ''
+        env:
+          DISCORD_ANNOUNCE_WEBHOOK: ${{ secrets.DISCORD_ANNOUNCE_WEBHOOK }}
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          RELEASE_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${{ github.event.release.tag_name }}"
+          BULLETS='${{ steps.changelog.outputs.bullets }}'
+          DESC=$(echo "$BULLETS" | jq -r 'map("- " + .) | join("\n")' 2>/dev/null || echo "See release notes.")
+          curl -sf -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"Director-AI v${VERSION} released\",
+              \"description\": $(echo "$DESC" | jq -Rs .),
+              \"color\": 5793266,
+              \"url\": \"${RELEASE_URL}\",
+              \"fields\": [
+                {\"name\": \"Install\", \"value\": \"\`\`\`\\npip install director-ai==${VERSION}\\n\`\`\`\", \"inline\": false},
+                {\"name\": \"Links\", \"value\": \"[PyPI](https://pypi.org/project/director-ai/${VERSION}/) · [Release](${RELEASE_URL}) · [Docs](https://anulum.github.io/director-ai/)\", \"inline\": false}
+              ],
+              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\"}
+            }]
+          }" "$DISCORD_ANNOUNCE_WEBHOOK"

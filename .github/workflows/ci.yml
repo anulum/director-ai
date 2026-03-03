@@ -303,3 +303,48 @@ jobs:
 
       - name: Test
         run: cargo test --workspace
+
+  discord-notify:
+    name: Discord CI Notification
+    runs-on: ubuntu-latest
+    needs: [lint, typecheck, test, test-extras, security, fuzz, sast, benchmark, rust]
+    if: always() && github.ref == 'refs/heads/main'
+    steps:
+      - name: Resolve overall result
+        id: result
+        run: |
+          RESULTS="${{ needs.lint.result }} ${{ needs.typecheck.result }} ${{ needs.test.result }} ${{ needs.test-extras.result }} ${{ needs.security.result }} ${{ needs.fuzz.result }} ${{ needs.sast.result }} ${{ needs.benchmark.result }} ${{ needs.rust.result }}"
+          if echo "$RESULTS" | grep -qE "failure|cancelled"; then
+            echo "passed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "passed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Post to Discord
+        if: env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          if [ "${{ steps.result.outputs.passed }}" = "true" ]; then
+            COLOR=3066993  # green
+            STATUS="passed"
+          else
+            COLOR=15158332  # red
+            STATUS="failed"
+          fi
+          SHA="${GITHUB_SHA:0:7}"
+          RUN_URL="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}"
+          BRANCH="${GITHUB_REF_NAME}"
+          curl -sf -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"CI ${STATUS}\",
+              \"color\": ${COLOR},
+              \"url\": \"${RUN_URL}\",
+              \"fields\": [
+                {\"name\": \"Branch\", \"value\": \"\`${BRANCH}\`\", \"inline\": true},
+                {\"name\": \"Commit\", \"value\": \"\`${SHA}\`\", \"inline\": true},
+                {\"name\": \"Run\", \"value\": \"[View](${RUN_URL})\", \"inline\": true}
+              ],
+              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\"}
+            }]
+          }" "$DISCORD_WEBHOOK_URL"

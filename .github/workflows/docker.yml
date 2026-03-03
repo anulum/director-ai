@@ -73,3 +73,28 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+
+  discord-notify:
+    name: Discord Docker Notification
+    runs-on: ubuntu-latest
+    needs: [docker-cpu, docker-gpu]
+    if: always() && needs.docker-cpu.result == 'success'
+    steps:
+      - name: Post to Discord
+        if: env.DISCORD_WEBHOOK_URL != ''
+        env:
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        run: |
+          VERSION="${{ github.event.release.tag_name }}"
+          VERSION="${VERSION#v}"
+          curl -sf -H "Content-Type: application/json" -d "{
+            \"embeds\": [{
+              \"title\": \"Docker images published\",
+              \"color\": 3447003,
+              \"fields\": [
+                {\"name\": \"CPU\", \"value\": \"\`ghcr.io/anulum/director-ai:${VERSION}\`\\n\`ghcr.io/anulum/director-ai:latest\`\", \"inline\": true},
+                {\"name\": \"GPU\", \"value\": \"\`ghcr.io/anulum/director-ai:${VERSION}-gpu\`\\n\`ghcr.io/anulum/director-ai:gpu\`\", \"inline\": true}
+              ],
+              \"footer\": {\"text\": \"${GITHUB_REPOSITORY}\"}
+            }]
+          }" "$DISCORD_WEBHOOK_URL"
