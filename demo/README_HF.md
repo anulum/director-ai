@@ -14,7 +14,7 @@ short_description: Real-time LLM hallucination guardrail
 # Director-AI Demo
 
 Real-time LLM hallucination guardrail with NLI + RAG fact-checking and
-token-level streaming halt. v2.3.0.
+token-level streaming halt.
 
 **Tab 1 — Score a Response:** Enter facts, a query, and an LLM response.
 See the coherence score with PASS/FAIL verdict and evidence.

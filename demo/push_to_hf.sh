@@ -6,6 +6,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 SPACE_REPO="https://huggingface.co/spaces/anulum/director-ai-guardrail"
 TMP_DIR="$(mktemp -d)"
+VERSION=$(grep -m1 '^version' "$SCRIPT_DIR/../pyproject.toml" | sed 's/.*"\(.*\)".*/\1/')
 
 echo "Cloning Space repo to $TMP_DIR ..."
 git clone "$SPACE_REPO" "$TMP_DIR"
@@ -22,7 +23,7 @@ git diff --cached --stat
 echo ""
 read -p "Push to HF Space? [y/N] " confirm
 if [[ "$confirm" =~ ^[Yy]$ ]]; then
-    git commit -m "Update demo to v2.3.0 — 4 tabs, fixed requirements"
+    git commit -m "Update demo to v${VERSION}"
     git push
     echo "Done. Space will rebuild at: $SPACE_REPO"
 else

@@ -23,14 +23,11 @@ Usage::
 
 from __future__ import annotations
 
-import json
 import logging
 import os
-import sys
 import time
-from pathlib import Path
 
-from benchmarks._common import RESULTS_DIR, save_results
+from benchmarks._common import save_results
 
 logger = logging.getLogger("DirectorAI.Benchmark.RunAll")
 
@@ -58,7 +55,9 @@ def _run_suite(model_name: str | None, max_samples: int | None) -> dict:
     for rnd in ["r1", "r2", "r3"]:
         label = f"anli_{rnd}"
         logger.info("=== %s ===", label)
-        m = run_anli_benchmark(rnd, "test", max_samples=max_samples, model_name=model_name)
+        m = run_anli_benchmark(
+            rnd, "test", max_samples=max_samples, model_name=model_name
+        )
         results[label] = m.to_dict()
 
     # FEVER dev
@@ -68,7 +67,9 @@ def _run_suite(model_name: str | None, max_samples: int | None) -> dict:
 
     # VitaminC dev
     logger.info("=== vitaminc_dev ===")
-    m = run_vitaminc_benchmark("validation", max_samples=max_samples, model_name=model_name)
+    m = run_vitaminc_benchmark(
+        "validation", max_samples=max_samples, model_name=model_name
+    )
     results["vitaminc_dev"] = m.to_dict()
 
     # PAWS
@@ -84,6 +85,7 @@ def _run_suite(model_name: str | None, max_samples: int | None) -> dict:
     # LLM-AggreFact (gated — skip if no HF_TOKEN)
     if os.environ.get("HF_TOKEN"):
         from benchmarks.aggrefact_eval import run_aggrefact_benchmark
+
         logger.info("=== aggrefact ===")
         af = run_aggrefact_benchmark(max_samples=max_samples, model_name=model_name)
         results["aggrefact"] = af.to_dict()
@@ -93,6 +95,7 @@ def _run_suite(model_name: str | None, max_samples: int | None) -> dict:
     # RAGTruth (requires datasets)
     try:
         from benchmarks.ragtruth_eval import run_ragtruth
+
         logger.info("=== ragtruth ===")
         rt = run_ragtruth(max_samples=max_samples)
         results["ragtruth"] = rt.to_dict()
@@ -102,6 +105,7 @@ def _run_suite(model_name: str | None, max_samples: int | None) -> dict:
     # FreshQA (requires datasets)
     try:
         from benchmarks.freshqa_eval import run_freshqa
+
         logger.info("=== freshqa ===")
         fq = run_freshqa(max_samples=max_samples)
         results["freshqa"] = fq.to_dict()
@@ -125,6 +129,12 @@ def _print_comparison_table(all_results: dict[str, dict]) -> None:
         ("paws", "accuracy", "PAWS Acc"),
         ("false_positive", "false_positive_rate", "FP Rate (lower=better)"),
         ("aggrefact", "avg_balanced_accuracy_pct", "AggreFact Bal Acc %"),
+        ("ragtruth", "catch_rate", "RAGTruth Catch Rate"),
+        ("ragtruth", "precision", "RAGTruth Precision"),
+        ("ragtruth", "f1", "RAGTruth F1"),
+        ("freshqa", "catch_rate", "FreshQA Catch Rate"),
+        ("freshqa", "precision", "FreshQA Precision"),
+        ("freshqa", "f1", "FreshQA F1"),
     ]
 
     models = list(all_results.keys())
@@ -161,8 +171,12 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Run all NLI benchmarks")
     parser.add_argument("--max-samples", type=int, default=None)
-    parser.add_argument("--models", nargs="+", metavar="NAME=PATH",
-                        help="Model specs as name=path pairs (e.g., baseline=model_id finetuned=./path)")
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        metavar="NAME=PATH",
+        help="Model specs as name=path pairs (e.g., baseline=model_id)",
+    )
     args = parser.parse_args()
 
     if args.models:

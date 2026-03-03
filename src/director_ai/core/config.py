@@ -296,6 +296,7 @@ class DirectorConfig:
                 "metrics_enabled": True,
                 "scorer_backend": "hybrid",
                 "llm_judge_enabled": True,
+                "llm_judge_provider": "openai",
                 "profile": "research",
             },
             "medical": {

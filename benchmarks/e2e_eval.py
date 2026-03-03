@@ -211,6 +211,9 @@ def run_e2e_benchmark(
     use_nli: bool = False,
     nli_model: str | None = None,
     fallback: str | None = None,
+    scorer_backend: str = "deberta",
+    llm_judge_provider: str | None = None,
+    llm_judge_model: str | None = None,
 ) -> E2EMetrics:
     """Run end-to-end guardrail benchmark on HaluEval.
 
@@ -223,6 +226,9 @@ def run_e2e_benchmark(
     use_nli : enable NLI model (requires torch + transformers).
     nli_model : HuggingFace model ID for NLI.
     fallback : None, "retrieval", or "disclaimer".
+    scorer_backend : "deberta", "hybrid", "onnx", or "lite".
+    llm_judge_provider : "openai" or "anthropic" (required for hybrid).
+    llm_judge_model : model name for LLM judge.
     """
     from director_ai.core.scorer import CoherenceScorer
     from director_ai.core.vector_store import VectorGroundTruthStore
@@ -260,6 +266,10 @@ def run_e2e_benchmark(
                     use_nli=use_nli,
                     ground_truth_store=store,
                     nli_model=nli_model,
+                    scorer_backend=scorer_backend,
+                    llm_judge_enabled=llm_judge_provider is not None,
+                    llm_judge_provider=llm_judge_provider or "",
+                    llm_judge_model=llm_judge_model or "",
                 )
                 store.ingest([context])
 
@@ -520,6 +530,26 @@ if __name__ == "__main__":
         default=None,
         help="Save comparison JSON to this path (e.g. results/e2e_comparison.json)",
     )
+    parser.add_argument(
+        "--scorer-backend",
+        type=str,
+        default="deberta",
+        choices=["deberta", "hybrid", "onnx", "lite"],
+        help="Scorer backend (default: deberta)",
+    )
+    parser.add_argument(
+        "--llm-judge-provider",
+        type=str,
+        default=None,
+        choices=["openai", "anthropic"],
+        help="LLM judge provider (required for hybrid backend)",
+    )
+    parser.add_argument(
+        "--llm-judge-model",
+        type=str,
+        default=None,
+        help="LLM judge model name",
+    )
     args = parser.parse_args()
 
     if args.sweep_thresholds:
@@ -554,6 +584,9 @@ if __name__ == "__main__":
             use_nli=args.nli,
             nli_model=args.nli_model,
             fallback=args.fallback,
+            scorer_backend=args.scorer_backend,
+            llm_judge_provider=args.llm_judge_provider,
+            llm_judge_model=args.llm_judge_model,
         )
         label = "NLI (DeBERTa)" if args.nli else "Heuristic"
         print_e2e_results(m, baseline=bl)
@@ -573,6 +606,9 @@ if __name__ == "__main__":
             use_nli=args.nli,
             nli_model=args.nli_model,
             fallback=args.fallback,
+            scorer_backend=args.scorer_backend,
+            llm_judge_provider=args.llm_judge_provider,
+            llm_judge_model=args.llm_judge_model,
         )
         print_e2e_results(m)
         save_results(

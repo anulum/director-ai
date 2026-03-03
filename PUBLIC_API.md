@@ -1,4 +1,4 @@
-# Public API — Director-AI v2.7.0
+# Public API — Director-AI v2.7.1
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 

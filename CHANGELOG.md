@@ -5,6 +5,22 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.7.1] — 2026-03-03
+
+### Fixed
+- `research` profile missing `llm_judge_provider` — caused `ValueError` on construction.
+- `run_all.py` comparison table omitted RAGTruth and FreshQA rows.
+- README badge test count stale (1166 → 1837).
+
+### Added
+- `benchmarks/BENCHMARK_REPORT.md` — consolidated public benchmark report.
+- `e2e_eval.py` now accepts `--scorer-backend`, `--llm-judge-provider`, `--llm-judge-model` CLI flags for hybrid-mode E2E benchmarking.
+
+### Changed
+- `demo/requirements.txt` pinned to `>=2.7.1`.
+- `demo/push_to_hf.sh` reads version from `pyproject.toml` instead of hardcoding.
+- Version bump: 2.7.0 → 2.7.1
+
 ## [2.7.0] — 2026-03-03
 
 ### Added
