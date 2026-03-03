@@ -6,7 +6,6 @@
 
 import pytest
 
-from director_ai.core.knowledge import GroundTruthStore
 from director_ai.core.vector_store import (
     InMemoryBackend,
     VectorGroundTruthStore,

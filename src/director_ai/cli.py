@@ -358,7 +358,6 @@ def _cmd_ingest(args: list[str]) -> None:
         sys.exit(1)
 
     from director_ai.core.config import DirectorConfig
-    from director_ai.core.vector_store import VectorGroundTruthStore
 
     cfg = DirectorConfig.from_env()
     if persist_dir:
@@ -366,14 +365,14 @@ def _cmd_ingest(args: list[str]) -> None:
         cfg.chroma_persist_dir = persist_dir
     store = cfg.build_store()
 
-    _SUPPORTED_EXTS = {".txt", ".md", ".json", ".jsonl"}
+    supported_exts = {".txt", ".md", ".json", ".jsonl"}
 
     def _collect_files(path: str) -> list[Path]:
         p = Path(path)
         if p.is_file():
             return [p]
         files: list[Path] = []
-        for ext in _SUPPORTED_EXTS:
+        for ext in supported_exts:
             files.extend(p.rglob(f"*{ext}"))
         return sorted(files)
 

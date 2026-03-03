@@ -194,7 +194,6 @@ class CoherenceScorer:
         **Privacy note**: sends truncated prompt+response (500 chars each) to
         the configured external LLM provider.
         """
-        import json as _json
         import os
 
         t0 = time.monotonic()
