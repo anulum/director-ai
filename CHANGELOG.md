@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - **Hybrid backend default**: medical, finance, legal, summarization, research profiles now use `scorer_backend="hybrid"` with LLM judge enabled.
 - **Development Status**: `Production/Stable` → `Beta` in pyproject.toml classifiers.
-- **Strict mypy**: `disallow_untyped_defs = true` globally (tests exempt).
+- **mypy**: `check_untyped_defs = true` enforced in CI (catches type bugs inside untyped functions).
 - `benchmarks/run_all.py` includes ragtruth and freshqa in suite.
 - Version bump: 2.6.1 → 2.7.0
 

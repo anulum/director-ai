@@ -385,7 +385,8 @@ def _extract_bedrock_prompt(messages: list[dict]) -> str:
 
 def _extract_bedrock_stream_delta(event: dict) -> str | None:
     with contextlib.suppress(KeyError, TypeError):
-        return event["contentBlockDelta"]["delta"]["text"]
+        val = event["contentBlockDelta"]["delta"]["text"]
+        return str(val) if val is not None else None
     return None
 
 
