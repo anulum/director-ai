@@ -131,6 +131,10 @@ class DirectorConfig:
 
     # Tenant routing
     tenant_routing: bool = False
+    
+    # Rate Limiting
+    rate_limit_enabled: bool = False
+    rate_limit_requests: str = "100/minute" # slowapi format
 
     # Input Sanitization
     sanitize_inputs: bool = True

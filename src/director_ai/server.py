@@ -52,12 +52,15 @@ except ImportError:
     _FASTAPI_AVAILABLE = False
 
 try:
+    import slowapi
     from slowapi import Limiter
     from slowapi.middleware import SlowAPIMiddleware
     from slowapi.util import get_remote_address
 
     _SLOWAPI_AVAILABLE = True
 except ImportError:
+    slowapi = None
+    Limiter = None
     _SLOWAPI_AVAILABLE = False
 
 
@@ -196,11 +199,46 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     else:
         cfg = config
     _start_time = time.monotonic()
-
     _state: dict = {}
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
+        """Lifecycle events for the FastAPI server."""
+        cfg = app.state.config
+        logger.info("Starting Director-AI server [%s]", cfg.director_domain)
+
+        app.state._state = {} # Initialize _state on app.state
+
+        # Optional Rate Limiter Setup
+        if _SLOWAPI_AVAILABLE and getattr(cfg, "rate_limit_enabled", False):
+            from slowapi.util import get_remote_address
+            from slowapi.errors import RateLimitExceeded
+
+            def _get_tenant_or_ip(request: Request) -> str:
+                # Group rate limits heavily by tenant if present, fall back to IP.
+                if hasattr(request.state, "tenant_id"):
+                    return f"tenant:{request.state.tenant_id}"
+                auth_header = request.headers.get("Authorization")
+                if auth_header and auth_header.startswith("Bearer "):
+                    token = auth_header.split(" ")[1]
+                    try:
+                        payload = jwt.decode(token, options={"verify_signature": False})
+                        tenant_id = payload.get("tenant_id")
+                        if tenant_id:
+                            return f"tenant:{tenant_id}"
+                    except Exception:
+                        pass
+                return get_remote_address(request)
+
+            limiter = Limiter(key_func=_get_tenant_or_ip)
+            app.state.limiter = limiter
+            def _rate_limit_exceeded_handler(request: Request, exc: Exception):
+                return JSONResponse({"detail": "Rate limit exceeded"}, status_code=429)
+            app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+            logger.info("Tenant-Aware Rate Limiting enabled: %s", getattr(cfg, "rate_limit_requests", "100/minute"))
+        else:
+            app.state.limiter = None
+
         from .core.agent import CoherenceAgent
         from .core.audit import AuditLogger
         from .core.batch import BatchProcessor
@@ -208,12 +246,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         from .core.tenant import TenantRouter
 
         if cfg.sanitize_inputs:
-            _state["sanitizer"] = InputSanitizer(
+            app.state._state["sanitizer"] = InputSanitizer(
                 block_threshold=cfg.sanitizer_block_threshold
             )
-        
+
         from .enterprise.redactor import PIIRedactor
-        _state["redactor"] = PIIRedactor(enabled=cfg.redact_pii)
+        app.state._state["redactor"] = PIIRedactor(enabled=cfg.redact_pii)
         if cfg.redact_pii:
             logger.info("Enterprise PII Redaction enabled")
 
@@ -243,25 +281,25 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             stats = StatsStore(db_path=cfg.stats_db_path)
             logger.info("SQLite stats backend: %s", cfg.stats_db_path)
 
-        _state["agent"] = agent
-        _state["scorer"] = scorer
-        _state["batch"] = batch_proc
-        _state["config"] = cfg
-        _state["stats"] = stats
-        _state["sessions"] = {}  # session_id -> ConversationSession
+        app.state._state["agent"] = agent
+        app.state._state["scorer"] = scorer
+        app.state._state["batch"] = batch_proc
+        app.state._state["config"] = cfg
+        app.state._state["stats"] = stats
+        app.state._state["sessions"] = {}  # session_id -> ConversationSession
 
         if cfg.audit_log_path or cfg.audit_postgres_url:
             audit_logger = AuditLogger(path=cfg.audit_log_path)
             if cfg.audit_postgres_url:
                 from .enterprise.audit_pg import PostgresAuditSink
                 audit_logger.add_sink(PostgresAuditSink(db_url=cfg.audit_postgres_url))
-                
-            _state["audit"] = audit_logger
-            logger.info("Audit logging initialized (path: %s, db: %s)", 
+
+            app.state._state["audit"] = audit_logger
+            logger.info("Audit logging initialized (path: %s, db: %s)",
                         bool(cfg.audit_log_path), bool(cfg.audit_postgres_url))
 
         if cfg.tenant_routing:
-            _state["tenant_router"] = TenantRouter()
+            app.state._state["tenant_router"] = TenantRouter()
             logger.info("Tenant routing enabled")
 
         cfg.configure_logging()
@@ -289,10 +327,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Director-Class AI",
-        description="Coherence Engine — AI Output Verification & Safety Oversight",
-        version=__import__("director_ai").__version__,
+        version="0.1.0",
+        description="Real-time multi-agent orchestration and coherence scoring.",
         lifespan=lifespan,
     )
+    app.state.config = cfg
+
+    if _SLOWAPI_AVAILABLE and getattr(cfg, "rate_limit_enabled", False):
+        app.add_middleware(SlowAPIMiddleware)
 
     _origins = [o.strip() for o in cfg.cors_origins.split(",") if o.strip()]
     if len(_origins) > 100:
@@ -416,7 +458,17 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Review ────────────────────────────────────────────────────────
 
     @app.post("/v1/review", response_model=ReviewResponse)
-    async def review(req: ReviewRequest, request: Request):
+    async def review(
+        req: ReviewRequest,
+        request: Request,
+    ) -> ReviewResponse:
+        """Score an AI response against a given prompt using the active agent."""
+        limiter = request.app.state.limiter
+        if limiter:
+            cfg = request.app.state.config
+            limit_str = getattr(cfg, "rate_limit_requests", "100/minute")
+            # Apply limit manually within endpoint
+            limiter._check_request_limit(request, limiter._endpoint_from_request(request), [limit_str])
         sanitizer = _state.get("sanitizer")
         if sanitizer:
             check = sanitizer.check(req.prompt)
@@ -494,7 +546,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Process ───────────────────────────────────────────────────────
 
     @app.post("/v1/process", response_model=ProcessResponse)
-    async def process(req: ProcessRequest, request: Request):
+    async def process(
+        req: ProcessRequest,
+        request: Request,
+    ) -> ProcessResponse | PlainTextResponse:
+        """Process a prompt through the Director AI pipeline."""
+        limiter = request.app.state.limiter
+        if limiter:
+            cfg = request.app.state.config
+            limit_str = getattr(cfg, "rate_limit_requests", "100/minute")
+            limiter._check_request_limit(request, limiter._endpoint_from_request(request), [limit_str])
         sanitizer = _state.get("sanitizer")
         if sanitizer:
             check = sanitizer.check(req.prompt)
@@ -511,15 +572,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         metrics.inc("reviews_total")
         start = time.monotonic()
 
-        loop = asyncio.get_running_loop()
-        import functools
-
         tenant_id = getattr(request.state, "tenant_id", request.headers.get("X-Tenant-ID", ""))
         
-        with metrics.timer("review_duration_seconds"):
-            result = await loop.run_in_executor(
-                None, functools.partial(agent.process, req.prompt, tenant_id=tenant_id)
-            )
+        try:
+            with metrics.timer("review_duration_seconds"):
+                result = await agent.process(req.prompt, tenant_id=tenant_id)
+        except Exception as e:
+            logger.error(f"Error during process: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
         latency_ms = (time.monotonic() - start) * 1000
 
         if result.halted:
@@ -565,7 +625,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Batch ─────────────────────────────────────────────────────────
 
     @app.post("/v1/batch", response_model=BatchResponse)
-    async def batch(req: BatchRequest, request: Request):
+    async def batch(
+        req: BatchRequest,
+        request: Request,
+    ) -> BatchResponse:
+        """Process a batch of prompts through the active pipeline."""
+        limiter = request.app.state.limiter
+        if limiter:
+            cfg = request.app.state.config
+            limit_str = getattr(cfg, "rate_limit_requests", "100/minute")
+            limiter._check_request_limit(request, limiter._endpoint_from_request(request), [limit_str])
         sanitizer = _state.get("sanitizer")
         if sanitizer:
             for p in req.prompts:
@@ -575,43 +644,58 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         400, f"Prompt injection rejected: {check.reason}"
                     )
 
-        batch_proc = _state.get("batch")
-        if not batch_proc:  # pragma: no cover — lifespan always sets batch
+        batcher = _state.get("batch")
+        if not batcher:  # pragma: no cover — lifespan always sets batch
             raise HTTPException(503, "Server not ready")
 
         redactor = _state.get("redactor")
         if redactor and hasattr(redactor, "enabled") and redactor.enabled:
             req.prompts = [redactor.redact(p) for p in req.prompts]
-
-        loop = asyncio.get_running_loop()
-        import functools
+            if req.responses:
+                req.responses = [redactor.redact(r) for r in req.responses]
 
         tenant_id = getattr(request.state, "tenant_id", request.headers.get("X-Tenant-ID", ""))
-        batch_result = await loop.run_in_executor(
-            None, functools.partial(batch_proc.process_batch, req.prompts, tenant_id=tenant_id)
-        )
-
+        
         results = []
-        for r in batch_result.results:
-            output_text = r.output
-            if redactor and hasattr(redactor, "enabled") and redactor.enabled:
-                output_text = redactor.redact(output_text)
-            results.append(
-                ProcessResponse(
-                    output=output_text,
-                    coherence=r.coherence.score if r.coherence else None,
-                    halted=r.halted,
-                    candidates_evaluated=r.candidates_evaluated,
-                )
+        try:
+            import time
+            start_t = time.monotonic()
+            if req.task == "review":
+                pairs = [(p, r) if r else (p, "") for p, r in zip(req.prompts, req.responses)]
+                batch_res = await batcher.review_batch(pairs, tenant_id=tenant_id)
+            else:
+                batch_res = await batcher.process_batch(req.prompts, tenant_id=tenant_id)
+            duration = time.monotonic() - start_t
+            
+            from director_ai.core.types import ReviewResult
+            for idx, item in enumerate(batch_res.results):
+                if isinstance(item, tuple): # review
+                    appr, sc = item
+                    results.append({
+                        "index": idx,
+                        "approved": appr,
+                        "score": sc.score,
+                    })
+                elif isinstance(item, ReviewResult): # process
+                    score_val = item.coherence.score if item.coherence else 0.0
+                    results.append({
+                        "index": idx,
+                        "output": item.output,
+                        "approved": not item.halted,
+                        "score": score_val
+                    })
+            
+            return BatchResponse(
+                results=results, # type: ignore
+                total=batch_res.total,
+                succeeded=batch_res.succeeded,
+                failed=batch_res.failed,
+                duration_seconds=duration,
+                errors=[{"index": e[0], "error": e[1]} for e in batch_res.errors]
             )
-        return BatchResponse(
-            results=results,
-            errors=[{"index": i, "error": e} for i, e in batch_result.errors],
-            total=batch_result.total,
-            succeeded=batch_result.succeeded,
-            failed=batch_result.failed,
-            duration_seconds=batch_result.duration_seconds,
-        )
+        except Exception as e:
+            logger.error(f"Error during batching: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
 
     # ── Tenants ───────────────────────────────────────────────────────
 

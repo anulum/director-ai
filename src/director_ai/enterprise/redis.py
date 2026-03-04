@@ -37,15 +37,17 @@ class RedisGroundTruthStore(GroundTruthStore):
         self.client = redis.from_url(redis_url, decode_responses=True)
         logger.info(f"Initialized RedisGroundTruthStore at {redis_url}")
 
-    def add(self, key: str, value: str) -> None:
+    async def add(self, key: str, value: str) -> None:
         """Add or update a fact in the distributed Redis store."""
+        import asyncio
         # Store locally for backward compatibility, but primarily store in Redis
-        super().add(key, value)
-        self.client.hset(f"{self.prefix}hash", key, value)
+        await super().add(key, value)
+        await asyncio.to_thread(self.client.hset, f"{self.prefix}hash", key, value)
         
-    def retrieve_context(self, query: str) -> str | None:
+    async def retrieve_context(self, query: str) -> str | None:
         """Retrieve relevant facts from the Redis hash."""
-        facts_dict = self.client.hgetall(f"{self.prefix}hash")
+        import asyncio
+        facts_dict = await asyncio.to_thread(self.client.hgetall, f"{self.prefix}hash")
         if not facts_dict:
             logger.info("RedisGroundTruthStore is empty")
             return None

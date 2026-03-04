@@ -41,12 +41,12 @@ class GroundTruthStore:
         store.facts.update(cls._DEMO_FACTS)
         return store
 
-    def add(self, key: str, value: str, tenant_id: str = "") -> None:
+    async def add(self, key: str, value: str, tenant_id: str = "") -> None:
         """Add or update a fact in the store."""
         full_key = f"{tenant_id}:{key}" if tenant_id else key
         self.facts[full_key] = value
 
-    def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
+    async def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
         """
         Retrieve relevant facts matching *query*.
 

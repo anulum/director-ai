@@ -21,7 +21,7 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any
 
-from .knowledge import GroundTruthStore
+from .otel import trace_vector_add, trace_vector_query
 from .types import EvidenceChunk
 
 # Re-export recommended model name for documentation
@@ -91,12 +91,12 @@ class VectorBackend(ABC):
     """Protocol for vector database backends."""
 
     @abstractmethod
-    def add(
+    async def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None: ...  # pragma: no cover
 
     @abstractmethod
-    def query(
+    async def query(
         self, text: str, n_results: int = 3, tenant_id: str = ""
     ) -> list[dict[str, Any]]: ...  # pragma: no cover
 
@@ -114,19 +114,21 @@ class InMemoryBackend(VectorBackend):
     def __init__(self) -> None:
         self._docs: list[dict[str, Any]] = []
 
-    def add(
+    async def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
         self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
 
-    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+    async def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        import asyncio
+        await asyncio.sleep(0) # Yield control
         if not self._docs:
             return []
         docs = [d for d in self._docs if not tenant_id or d["metadata"].get("tenant_id") == tenant_id]
         if not docs:
             return []
         query_words = set(text.lower().split())
-        scored = []
+        scored: list[tuple[float, dict[str, Any]]] = []
         for doc in docs:
             doc_words = set(doc["text"].lower().split())
             overlap = len(query_words & doc_words)
@@ -135,9 +137,9 @@ class InMemoryBackend(VectorBackend):
             scored.append((similarity, doc))
         scored.sort(key=lambda x: x[0], reverse=True)
         results = []
-        for sim, doc in scored[:n_results]:
+        for sim, doc2 in scored_sliced:
             if sim > 0:
-                results.append({**doc, "distance": 1.0 - sim})
+                results.append({**doc2, "distance": 1.0 - sim})
         return results
 
     def count(self) -> int:
@@ -165,7 +167,7 @@ class SentenceTransformerBackend(VectorBackend):
         self._docs: list[dict[str, Any]] = []
         self._embeddings: list[Any] = []
 
-    def add(
+    async def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
         import numpy as _np
@@ -174,7 +176,7 @@ class SentenceTransformerBackend(VectorBackend):
         self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
         self._embeddings.append(_np.asarray(emb, dtype=_np.float32))
 
-    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+    async def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
         import numpy as _np
 
         if not self._docs:
@@ -250,18 +252,26 @@ class ChromaBackend(VectorBackend):
 
         self._collection = self._client.get_or_create_collection(**create_kwargs)
 
-    def add(
+    async def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
-        self._collection.add(
+        import asyncio
+        await asyncio.to_thread(
+            self._collection.add,
             ids=[doc_id],
             documents=[text],
             metadatas=[metadata] if metadata else None,
         )
 
-    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+    async def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        import asyncio
         where = {"tenant_id": tenant_id} if tenant_id else None
-        results = self._collection.query(query_texts=[text], n_results=n_results, where=where)
+        results = await asyncio.to_thread(
+            self._collection.query,
+            query_texts=[text],
+            n_results=n_results,
+            where=where
+        )
         docs: list[dict[str, Any]] = []
         documents = results.get("documents")
         metadatas = results.get("metadatas")
@@ -313,13 +323,13 @@ class RerankedBackend(VectorBackend):
             ) from e
         self._reranker = CrossEncoder(reranker_model)
 
-    def add(
+    async def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
-        self._base.add(doc_id, text, metadata)
+        await self._base.add(doc_id, text, metadata)
 
-    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
-        candidates = self._base.query(
+    async def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        candidates = await self._base.query(
             text, n_results=n_results * self._multiplier, tenant_id=tenant_id
         )
         if not candidates:
@@ -369,25 +379,29 @@ class PineconeBackend(VectorBackend):
         result: list[float] = self._embed_fn(text)
         return result
 
-    def add(
+    async def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
+        import asyncio
         vector = self._embed(text)
         meta = {**(metadata or {}), "text": text}
-        self._index.upsert(
+        await asyncio.to_thread(
+            self._index.upsert,
             vectors=[(doc_id, vector, meta)],
             namespace=self._namespace,
         )
         self._texts[doc_id] = text
 
-    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+    async def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        import asyncio
         vector = self._embed(text)
         
         filter_dict = None
         if tenant_id:
             filter_dict = {"tenant_id": {"$eq": tenant_id}}
             
-        results = self._index.query(
+        results = await asyncio.to_thread(
+            self._index.query,
             vector=vector,
             top_k=n_results,
             namespace=self._namespace,
@@ -439,9 +453,10 @@ class WeaviateBackend(VectorBackend):
         self._embed_fn = embed_fn
         self._count = 0
 
-    def add(
+    async def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
+        import asyncio
         props = {"text": text, "doc_id": doc_id, **(metadata or {})}
         kwargs: dict[str, Any] = {
             "data_object": props,
@@ -450,10 +465,11 @@ class WeaviateBackend(VectorBackend):
         }
         if self._embed_fn:  # pragma: no branch
             kwargs["vector"] = self._embed_fn(text)
-        self._client.data_object.create(**kwargs)
+        await asyncio.to_thread(self._client.data_object.create, **kwargs)
         self._count += 1
 
-    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+    async def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        import asyncio
         where_filter = None
         if tenant_id:
             where_filter = {
@@ -476,7 +492,7 @@ class WeaviateBackend(VectorBackend):
         if where_filter:
             query_builder = query_builder.with_where(where_filter)
             
-        result = query_builder.do()
+        result = await asyncio.to_thread(query_builder.do)
         docs: list[dict[str, Any]] = []
         items = result.get("data", {}).get("Get", {}).get(self._class_name, [])
         for item in items:
@@ -537,9 +553,10 @@ class QdrantBackend(VectorBackend):
                 ),
             )
 
-    def add(
+    async def add(
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
+        import asyncio
         from qdrant_client.models import PointStruct
 
         if self._embed_fn is None:
@@ -547,9 +564,10 @@ class QdrantBackend(VectorBackend):
         vector = self._embed_fn(text)
         payload = {"text": text, **(metadata or {})}
         point = PointStruct(id=doc_id, vector=vector, payload=payload)
-        self._client.upsert(collection_name=self._collection, points=[point])
+        await asyncio.to_thread(self._client.upsert, collection_name=self._collection, points=[point])
 
-    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+    async def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        import asyncio
         from qdrant_client.models import Filter, FieldCondition, MatchValue
 
         query_filter = None
@@ -566,7 +584,8 @@ class QdrantBackend(VectorBackend):
         if self._embed_fn is None:
             raise ValueError("QdrantBackend requires embed_fn for text embedding")
         vector = self._embed_fn(text)
-        results = self._client.search(
+        results = await asyncio.to_thread(
+            self._client.search,
             collection_name=self._collection,
             query_vector=vector,
             limit=n_results,
@@ -620,39 +639,70 @@ class VectorGroundTruthStore(GroundTruthStore):
         logger.info("Ingested %d documents into vector backend.", len(texts))
         return len(texts)
 
-    def add_fact(
-        self, key: str, value: str, metadata: dict[str, Any] | None = None, tenant_id: str = ""
+    async def add(
+        self,
+        key: str,
+        value: str,
+        metadata: dict[str, Any] | None = None,
+        tenant_id: str = "",
     ) -> None:
-        """Add a fact to both the keyword store and vector backend."""
-        full_key = f"{tenant_id}:{key}" if tenant_id else key
-        self.facts[full_key] = value
-        self.backend.add(
-            doc_id=f"user_{key.replace(' ', '_')}_{tenant_id}",
-            text=f"{key} is {value}",
-            metadata={"source": "user", "key": key, "tenant_id": tenant_id, **(metadata or {})},
-        )
+        import time
+        doc_id = f"{tenant_id}::{key}" if tenant_id else key
+        combined_text = f"{key}: {value}"
+        meta = {**(metadata or {}), "key": key, "value": value}
+        if tenant_id:
+            meta["tenant_id"] = tenant_id
 
-    def retrieve_context_with_chunks(self, query: str, tenant_id: str = "") -> list[EvidenceChunk]:
-        """Retrieve context as structured EvidenceChunk list."""
-        results = self.backend.query(query, n_results=3, tenant_id=tenant_id)
-        if not results:
-            return []
-        chunks = []
-        for r in results:
-            chunks.append(
-                EvidenceChunk(
-                    text=r["text"],
-                    distance=r.get("distance", 0.0),
-                    source=r.get("metadata", {}).get("source", ""),
-                )
-            )
-        return chunks
+        with trace_vector_add() as span:
+            start_time = time.monotonic()
+            metrics.inc("knowledge_adds_total")
+            try:
+                await self.backend.add(doc_id=doc_id, text=combined_text, metadata=meta)
+                duration = time.monotonic() - start_time
+                metrics.observe("knowledge_add_duration_seconds", duration)
+                span.set_attribute("vector.doc_id", doc_id)
+                span.set_attribute("vector.tenant_id", tenant_id)
+            except Exception as e:
+                metrics.inc("knowledge_add_errors")
+                span.set_attribute("error", True)
+                span.set_attribute("error.message", str(e))
+                from .exceptions import DirectorError
+                raise DirectorError(f"Failed to add to vector store: {e}") from e
 
-    def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
-        """Retrieve context using vector similarity with keyword fallback.
+    async def retrieve_context(self, query: str, top_k: int = 3, tenant_id: str = "") -> list[EvidenceChunk]:
+        import time
+        with trace_vector_query() as span:
+            start_time = time.monotonic()
+            metrics.inc("knowledge_queries_total")
+            try:
+                results = await self.backend.query(query, n_results=top_k, tenant_id=tenant_id)
+                span.set_attribute("vector.query.k", top_k)
+                span.set_attribute("vector.tenant_id", tenant_id)
+                
+                chunks = []
+                for r in results:
+                    meta = r.get("metadata", {})
+                    chunks.append(
+                        EvidenceChunk(
+                            content=r["text"],
+                            source=f"vector:{r['id']}",
+                            score=1.0 - r.get("distance", 0.0),
+                            metadata=meta,
+                        )
+                    )
+                duration = time.monotonic() - start_time
+                metrics.observe("knowledge_query_duration_seconds", duration)
+                return chunks
+            except Exception as e:
+                metrics.inc("knowledge_query_errors")
+                span.set_attribute("error", True)
+                span.set_attribute("error.message", str(e))
+                from .exceptions import DirectorError
+                raise DirectorError(f"Failed to query vector store: {e}") from e
 
-        1. Try vector backend (semantic similarity)
-        2. Fall back to keyword matching if no results
+
+        # 1. Try vector backend (semantic similarity)
+        # 2. Fall back to keyword matching if no results
         """
         # Try vector search first
         results = self.backend.query(query, n_results=3, tenant_id=tenant_id)

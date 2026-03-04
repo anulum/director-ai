@@ -125,18 +125,23 @@ class CoherenceAgent:
             return OpenAIProvider(api_key=api_key)
         return AnthropicProvider(api_key=api_key)
 
-    def process(self, prompt: str, tenant_id: str = "") -> ReviewResult:
+    async def process(self, prompt: str, tenant_id: str = "") -> ReviewResult:
         """Process a prompt end-to-end and return the verified output.
 
         Raises:
             ValueError: If *prompt* is empty or not a string.
         """
+        import asyncio
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
 
         self.logger.debug("Processing prompt (%d chars)", len(prompt))
 
-        candidates = self.generator.generate_candidates(prompt)
+        # Assume generator is synchronous for now depending on its implementation
+        if asyncio.iscoroutinefunction(self.generator.generate_candidates):
+            candidates = await self.generator.generate_candidates(prompt)
+        else:
+            candidates = await asyncio.to_thread(self.generator.generate_candidates, prompt)
 
         best_response = None
         best_score = None
@@ -147,7 +152,7 @@ class CoherenceAgent:
 
         for i, cand in enumerate(candidates):
             text = cand["text"]
-            approved, score = self.scorer.review(prompt, text, tenant_id=tenant_id)
+            approved, score = await self.scorer.review(prompt, text, tenant_id=tenant_id)
 
             self.logger.info(
                 f"Candidate {i} Coherence={score.score:.4f} | Approved={approved}"
@@ -180,7 +185,13 @@ class CoherenceAgent:
 
         # All candidates rejected — try fallback
         if self.fallback and self.fallback == "retrieval":
-            context = self.store.retrieve_context(prompt, tenant_id=tenant_id)
+            from .vector_store import VectorGroundTruthStore
+            if isinstance(self.store, VectorGroundTruthStore):
+                 context = await self.store.retrieve_context(prompt, tenant_id=tenant_id)
+                 if context and isinstance(context, list):
+                     context = "; ".join(c.text for c in context)
+            else:
+                 context = await self.store.retrieve_context(prompt, tenant_id=tenant_id)
             if context:
                 return ReviewResult(
                     output=f"Based on verified sources: {context}",
@@ -247,7 +258,7 @@ class CoherenceAgent:
         async def _coherence_cb(token: str) -> float:
             accumulated.append(token)
             text = " ".join(accumulated)
-            _, score = await self.scorer.areview(prompt, text, tenant_id=tenant_id)
+            _, score = await self.scorer.review(prompt, text, tenant_id=tenant_id)
             return float(score.score)
 
         async for token in self.generator.stream_tokens(prompt):  # pragma: no branch
@@ -258,7 +269,7 @@ class CoherenceAgent:
 
     # ── Backward-compatible alias ─────────────────────────────────────
 
-    def process_query(self, prompt):
+    async def process_query(self, prompt):
         """Deprecated: use ``process``."""
         import warnings
 
@@ -267,5 +278,5 @@ class CoherenceAgent:
             DeprecationWarning,
             stacklevel=2,
         )
-        result = self.process(prompt)
+        result = await self.process(prompt)
         return result.output

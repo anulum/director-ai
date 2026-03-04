@@ -64,6 +64,26 @@ def trace_streaming():
         yield span
 
 
+@contextmanager
+def trace_vector_query():
+    """Span around a VectorStore query."""
+    if _tracer is None:
+        yield _NoopSpan()
+        return
+    with _tracer.start_as_current_span("director_ai.vector_query") as span:
+        yield span
+
+
+@contextmanager
+def trace_vector_add():
+    """Span around a VectorStore add."""
+    if _tracer is None:
+        yield _NoopSpan()
+        return
+    with _tracer.start_as_current_span("director_ai.vector_add") as span:
+        yield span
+
+
 class _NoopSpan:
     """Attribute-sink when OTel is not available."""
 

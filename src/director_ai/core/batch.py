@@ -80,115 +80,75 @@ class BatchProcessor:
         self.max_concurrency = max_concurrency
         self.item_timeout = item_timeout
 
-    def process_batch(self, prompts: list[str], tenant_id: str = "") -> BatchResult:
-        """Process a batch of prompts synchronously using thread pool.
+    async def process_batch(self, prompts: list[str], tenant_id: str = "") -> BatchResult:
+        """Process a batch of prompts asynchronously.
 
-        Uses ``backend.process(prompt)`` if backend is CoherenceAgent.
+        Uses ``await backend.process(prompt)`` if backend is CoherenceAgent.
         """
         start = time.monotonic()
         metrics.observe("batch_size", float(len(prompts)))
 
         result = BatchResult(total=len(prompts))
-        ordered: list[ReviewResult | None] = [None] * len(prompts)
+        ordered: list[ReviewResult | None] = [None for _ in range(len(prompts))]
+        sem = asyncio.Semaphore(self.max_concurrency)
 
-        with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
-            futures = {
-                pool.submit(self._process_one, i, p, tenant_id): i for i, p in enumerate(prompts)
-            }
-            pending = set(futures)
-            while pending:
-                done, pending = wait(
-                    pending, timeout=self.item_timeout, return_when=FIRST_COMPLETED
-                )
-                if not done:
-                    for f in pending:
-                        f.cancel()
-                        idx = futures[f]
-                        result.errors.append((idx, "item timeout"))
-                        result.failed += 1
-                        logger.warning(
-                            "Batch item %d timed out after %.1fs",
-                            idx,
-                            self.item_timeout,
-                        )
-                    break
-                for future in done:
-                    idx = futures[future]
-                    try:
-                        item_result = future.result()
-                        ordered[idx] = item_result
-                        result.succeeded += 1
-                    except (TimeoutError, FuturesTimeoutError):
-                        result.errors.append((idx, "item timeout"))
-                        result.failed += 1
-                        logger.warning(
-                            "Batch item %d timed out after %.1fs",
-                            idx,
-                            self.item_timeout,
-                        )
-                    except (
-                        RuntimeError,
-                        ValueError,
-                        TypeError,
-                        AttributeError,
-                        KeyError,
-                        OSError,
-                    ) as e:
-                        result.errors.append((idx, str(e)))
-                        result.failed += 1
-                        logger.warning("Batch item %d failed: %s", idx, e)
+        async def _run(idx: int, p: str):
+            async with sem:
+                try:
+                    item_result = await asyncio.wait_for(
+                        self._process_one(idx, p, tenant_id),
+                        timeout=self.item_timeout,
+                    )
+                    ordered[idx] = item_result
+                    result.succeeded += 1
+                except asyncio.TimeoutError:
+                    result.errors.append((idx, "item timeout"))
+                    result.failed += 1
+                    logger.warning(
+                        "Batch item %d timed out after %.1fs",
+                        idx,
+                        self.item_timeout,
+                    )
+                except Exception as e:
+                    result.errors.append((idx, str(e)))
+                    result.failed += 1
+                    logger.warning("Batch item %d failed: %s", idx, e)
+
+        await asyncio.gather(*[_run(i, p) for i, p in enumerate(prompts)])
 
         result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
         return result
 
-    def review_batch(self, items: list[tuple[str, str]], tenant_id: str = "") -> BatchResult:
-        """Batch-review (prompt, response) pairs synchronously.
+    async def review_batch(self, items: list[tuple[str, str]], tenant_id: str = "") -> BatchResult:
+        """Batch-review (prompt, response) pairs asynchronously.
 
-        Uses ``backend.review(prompt, response)`` — backend must be CoherenceScorer.
+        Uses ``await backend.review(prompt, response)`` — backend must be CoherenceScorer.
         """
         start = time.monotonic()
         metrics.observe("batch_size", float(len(items)))
 
         result = BatchResult(total=len(items))
-        ordered: list[tuple[bool, CoherenceScore] | None] = [None] * len(items)
+        ordered: list[tuple[bool, CoherenceScore] | None] = [None for _ in range(len(items))]
+        sem = asyncio.Semaphore(self.max_concurrency)
 
-        with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
-            futures = {
-                pool.submit(self._review_one, i, p, r, tenant_id): i
-                for i, (p, r) in enumerate(items)
-            }
-            pending = set(futures)
-            while pending:
-                done, pending = wait(
-                    pending, timeout=self.item_timeout, return_when=FIRST_COMPLETED
-                )
-                if not done:
-                    for f in pending:
-                        f.cancel()
-                        idx = futures[f]
-                        result.errors.append((idx, "item timeout"))
-                        result.failed += 1
-                    break
-                for future in done:
-                    idx = futures[future]
-                    try:
-                        item_result = future.result()
-                        ordered[idx] = item_result
-                        result.succeeded += 1
-                    except (TimeoutError, FuturesTimeoutError):
-                        result.errors.append((idx, "item timeout"))
-                        result.failed += 1
-                    except (
-                        RuntimeError,
-                        ValueError,
-                        TypeError,
-                        AttributeError,
-                        KeyError,
-                        OSError,
-                    ) as e:
-                        result.errors.append((idx, str(e)))
-                        result.failed += 1
+        async def _run(idx: int, p: str, r: str):
+            async with sem:
+                try:
+                    item_result = await asyncio.wait_for(
+                        self._review_one(idx, p, r, tenant_id),
+                        timeout=self.item_timeout,
+                    )
+                    ordered[idx] = item_result
+                    result.succeeded += 1
+                except asyncio.TimeoutError:
+                    result.errors.append((idx, "item timeout"))
+                    result.failed += 1
+                except Exception as e:
+                    result.errors.append((idx, str(e)))
+                    result.failed += 1
+
+        await asyncio.gather(*[_run(i, p, r) for i, (p, r) in enumerate(items)])
 
         result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
@@ -197,52 +157,22 @@ class BatchProcessor:
     async def process_batch_async(
         self, prompts: list[str], max_concurrency: int | None = None, tenant_id: str = ""
     ) -> BatchResult:
-        """Process a batch of prompts asynchronously with concurrency control."""
-        start = time.monotonic()
-        metrics.observe("batch_size", float(len(prompts)))
-        sem = asyncio.Semaphore(max_concurrency or self.max_concurrency)
+        """Process a batch of prompts asynchronously (legacy alias)."""
+        import warnings
+        warnings.warn("process_batch_async is deprecated, use process_batch instead", DeprecationWarning)
+        old_mc = self.max_concurrency
+        if max_concurrency:
+            self.max_concurrency = max_concurrency
+        res = await self.process_batch(prompts, tenant_id)
+        self.max_concurrency = old_mc
+        return res
 
-        result = BatchResult(total=len(prompts))
-        loop = asyncio.get_running_loop()
-
-        async def _run(idx: int, prompt: str) -> None:
-            async with sem:
-                try:
-                    item_result = await asyncio.wait_for(
-                        loop.run_in_executor(None, self._process_one, idx, prompt, tenant_id),
-                        timeout=self.item_timeout,
-                    )
-                    result.results.append(item_result)
-                    result.succeeded += 1
-                except asyncio.TimeoutError:
-                    result.errors.append((idx, "item timeout"))
-                    result.failed += 1
-                    logger.warning(
-                        "Async batch item %d timed out after %.1fs",
-                        idx,
-                        self.item_timeout,
-                    )
-                except (
-                    RuntimeError,
-                    ValueError,
-                    TypeError,
-                    AttributeError,
-                    KeyError,
-                    OSError,
-                ) as e:
-                    result.errors.append((idx, str(e)))
-                    result.failed += 1
-
-        await asyncio.gather(*[_run(i, p) for i, p in enumerate(prompts)])
-        result.duration_seconds = time.monotonic() - start
-        return result
-
-    def _process_one(self, index: int, prompt: str, tenant_id: str = "") -> ReviewResult:
+    async def _process_one(self, index: int, prompt: str, tenant_id: str = "") -> ReviewResult:
         """Process a single prompt."""
         metrics.gauge_inc("active_requests")
         try:
             with metrics.timer("review_duration_seconds"):
-                result = self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]
+                result = await self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]
             metrics.inc("reviews_total")
             if result.halted:
                 metrics.inc("reviews_rejected")
@@ -254,14 +184,14 @@ class BatchProcessor:
         finally:
             metrics.gauge_dec("active_requests")
 
-    def _review_one(
+    async def _review_one(
         self, index: int, prompt: str, response: str, tenant_id: str = ""
     ) -> tuple[bool, CoherenceScore]:
         """Review a single (prompt, response) pair."""
         metrics.gauge_inc("active_requests")
         try:
             with metrics.timer("review_duration_seconds"):
-                approved, score = self._backend.review(prompt, response, tenant_id=tenant_id)  # type: ignore[attr-defined]
+                approved, score = await self._backend.review(prompt, response, tenant_id=tenant_id)  # type: ignore[attr-defined]
             metrics.inc("reviews_total")
             if approved:  # pragma: no cover — tested via scorer.review
                 metrics.inc("reviews_approved")
