@@ -33,7 +33,7 @@ class RedisGroundTruthStore(GroundTruthStore):
     ):
         if redis is None:
             raise ImportError(
-                "redis wrapper requires the 'redis' package. Run: pip install director-ai[enterprise]"
+                "redis wrapper requires the 'redis' package. Run: pip install director-ai[enterprise]"  # noqa: E501
             )
         super().__init__()
         self.redis_url = redis_url
@@ -88,7 +88,7 @@ class RedisScoreCache(ScoreCache):
     ):
         if redis is None:
             raise ImportError(
-                "redis wrapper requires the 'redis' package. Run: pip install director-ai[enterprise]"
+                "redis wrapper requires the 'redis' package. Run: pip install director-ai[enterprise]"  # noqa: E501
             )
         # We call super to keep local state properties if needed, but override behavior
         super().__init__(ttl_seconds=ttl_seconds)

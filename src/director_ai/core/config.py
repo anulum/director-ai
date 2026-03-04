@@ -226,7 +226,7 @@ class DirectorConfig:
             )
         if not (0.0 <= self.sanitizer_block_threshold <= 1.0):
             raise ValueError(
-                f"sanitizer_block_threshold must be in [0, 1], got {self.sanitizer_block_threshold}"
+                f"sanitizer_block_threshold must be in [0, 1], got {self.sanitizer_block_threshold}"  # noqa: E501
             )
         if (self.w_logic != 0.0 or self.w_fact != 0.0) and abs(
             self.w_logic + self.w_fact - 1.0
@@ -253,7 +253,7 @@ class DirectorConfig:
             if field_name in field_map:
                 fld = field_map[field_name]
                 try:
-                    kwargs[fld.name] = _coerce(value, fld.type)  # type: ignore[arg-type]
+                    kwargs[fld.name] = _coerce(value, fld.type)  # type: ignore[arg-type]  # noqa: E501
                 except (ValueError, TypeError) as exc:
                     raise ValueError(
                         f"Invalid value for env var {key}={value!r}: {exc}"
@@ -422,7 +422,7 @@ class DirectorConfig:
                 )
             except ImportError:
                 logger.warning(
-                    "director-ai[enterprise] not installed, falling back to local vector store"
+                    "director-ai[enterprise] not installed, falling back to local vector store"  # noqa: E501
                 )
 
         from .vector_store import InMemoryBackend, VectorBackend, VectorGroundTruthStore

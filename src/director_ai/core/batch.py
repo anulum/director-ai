@@ -126,7 +126,7 @@ class BatchProcessor:
     ) -> BatchResult:
         """Batch-review (prompt, response) pairs asynchronously.
 
-        Uses ``await backend.review(prompt, response)`` — backend must be CoherenceScorer.
+        Uses ``await backend.review(prompt, response)`` — backend must be CoherenceScorer.  # noqa: E501
         """
         start = time.monotonic()
         metrics.observe("batch_size", float(len(items)))
@@ -187,7 +187,7 @@ class BatchProcessor:
         metrics.gauge_inc("active_requests")
         try:
             with metrics.timer("review_duration_seconds"):
-                result = await self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]
+                result = await self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]  # noqa: E501
             metrics.inc("reviews_total")
             if result.halted:
                 metrics.inc("reviews_rejected")

@@ -22,7 +22,8 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 from .knowledge import GroundTruthStore
-from .metrics import metrics, trace_vector_add, trace_vector_query
+from .metrics import metrics
+from .otel import trace_vector_add, trace_vector_query
 from .types import EvidenceChunk
 
 # Re-export recommended model name for documentation
@@ -698,9 +699,8 @@ class VectorGroundTruthStore(GroundTruthStore):
                 metrics.inc("knowledge_add_errors")
                 span.set_attribute("error", True)
                 span.set_attribute("error.message", str(e))
-                from .exceptions import ValueError
 
-                raise DirectorError(f"Failed to add to vector store: {e}") from e
+                raise ValueError(f"Failed to add to vector store: {e}") from e
 
     async def retrieve_context(  # type: ignore[override]
         self, query: str, top_k: int = 3, tenant_id: str = ""
@@ -735,9 +735,8 @@ class VectorGroundTruthStore(GroundTruthStore):
                 metrics.inc("knowledge_query_errors")
                 span.set_attribute("error", True)
                 span.set_attribute("error.message", str(e))
-                from .exceptions import ValueError
 
-                raise DirectorError(f"Failed to query vector store: {e}") from e
+                raise ValueError(f"Failed to query vector store: {e}") from e
 
 
 # ── Auto-register built-in vector backends ───────────────────────

@@ -6,7 +6,7 @@
 """
 Immutable Audit Logging to PostgreSQL.
 
-Provides compliance-grade persistence for AI decisions, halt events, and policy violations.
+Provides compliance-grade persistence for AI decisions, halt events, and policy violations.  # noqa: E501
 """
 
 from __future__ import annotations
@@ -117,7 +117,7 @@ class PostgresAuditSink:
                     timestamp, query_hash, response_length, approved,
                     score, h_logical, h_factual, policy_violations,
                     tenant_id, halt_reason, latency_ms
-                ) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})
+                ) VALUES ({placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder}, {placeholder})  # noqa: E501
                 """
 
                 values = (

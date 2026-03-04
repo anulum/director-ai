@@ -109,7 +109,9 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         prompts: list[str] = Field(
             ..., min_length=1, max_length=1000, description="List of prompts"
         )
-        responses: list[str] = Field(default_factory=list, description="Optional responses")
+        responses: list[str] = Field(
+            default_factory=list, description="Optional responses"
+        )
 
     class ReviewResponse(BaseModel):
         approved: bool
