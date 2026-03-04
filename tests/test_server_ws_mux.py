@@ -6,33 +6,29 @@
 
 import pytest
 
+pytest.importorskip("fastapi", reason="server extras not installed")
+
+from starlette.testclient import TestClient
+
 from director_ai.core.config import DirectorConfig
+from director_ai.server import create_app
 
 
 @pytest.fixture
 def ws_app():
     """Create a test app with mocked agent."""
-    from director_ai.server import create_app
-
     cfg = DirectorConfig(
         use_nli=False,
         llm_provider="mock",
         tenant_routing=True,
     )
-    app = create_app(config=cfg)
-    return app
+    return create_app(config=cfg)
 
 
 @pytest.fixture
 def client(ws_app):
-    """HTTPX test client with ASGI transport."""
-    try:
-        from starlette.testclient import TestClient
-
-        with TestClient(ws_app) as c:
-            yield c
-    except ImportError:
-        pytest.skip("starlette testclient not available")
+    with TestClient(ws_app) as c:
+        yield c
 
 
 class TestWSMuxProtocol:
@@ -91,18 +87,11 @@ class TestTenantVectorFactEndpoint:
 
     def test_vector_fact_without_tenant_routing(self):
         """Endpoint returns 404 when tenant routing is disabled."""
-        from director_ai.server import create_app
-
         cfg = DirectorConfig(use_nli=False, tenant_routing=False)
         app = create_app(config=cfg)
-        try:
-            from starlette.testclient import TestClient
-
-            with TestClient(app) as client:
-                resp = client.post(
-                    "/v1/tenants/acme/vector-facts",
-                    json={"key": "hq", "value": "Acme HQ"},
-                )
-                assert resp.status_code == 404
-        except ImportError:
-            pytest.skip("starlette testclient not available")
+        with TestClient(app) as client:
+            resp = client.post(
+                "/v1/tenants/acme/vector-facts",
+                json={"key": "hq", "value": "Acme HQ"},
+            )
+            assert resp.status_code == 404
