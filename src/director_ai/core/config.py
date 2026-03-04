@@ -127,6 +127,7 @@ class DirectorConfig:
 
     # Audit
     audit_log_path: str = ""
+    audit_postgres_url: str = ""
 
     # Tenant routing
     tenant_routing: bool = False
@@ -134,6 +135,7 @@ class DirectorConfig:
     # Input Sanitization
     sanitize_inputs: bool = True
     sanitizer_block_threshold: float = 0.8
+    redact_pii: bool = False
 
     # Scoring weights (0.0 = use CoherenceScorer class defaults)
     w_logic: float = 0.0

@@ -211,6 +211,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             _state["sanitizer"] = InputSanitizer(
                 block_threshold=cfg.sanitizer_block_threshold
             )
+        
+        from .enterprise.redactor import PIIRedactor
+        _state["redactor"] = PIIRedactor(enabled=cfg.redact_pii)
+        if cfg.redact_pii:
+            logger.info("Enterprise PII Redaction enabled")
 
         store = cfg.build_store()
         scorer = cfg.build_scorer(store=store)
@@ -245,9 +250,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         _state["stats"] = stats
         _state["sessions"] = {}  # session_id -> ConversationSession
 
-        if cfg.audit_log_path:
-            _state["audit"] = AuditLogger(path=cfg.audit_log_path)
-            logger.info("Audit logging enabled: %s", cfg.audit_log_path)
+        if cfg.audit_log_path or cfg.audit_postgres_url:
+            audit_logger = AuditLogger(path=cfg.audit_log_path)
+            if cfg.audit_postgres_url:
+                from .enterprise.audit_pg import PostgresAuditSink
+                audit_logger.add_sink(PostgresAuditSink(db_url=cfg.audit_postgres_url))
+                
+            _state["audit"] = audit_logger
+            logger.info("Audit logging initialized (path: %s, db: %s)", 
+                        bool(cfg.audit_log_path), bool(cfg.audit_postgres_url))
 
         if cfg.tenant_routing:
             _state["tenant_router"] = TenantRouter()
@@ -412,6 +423,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             if check.blocked:
                 raise HTTPException(400, f"Prompt injection rejected: {check.reason}")
 
+        redactor = _state.get("redactor")
+        if redactor and hasattr(redactor, "enabled") and redactor.enabled:
+            req.prompt = redactor.redact(req.prompt)
+            req.response = redactor.redact(req.response)
+
         scorer = _state.get("scorer")
         if not scorer:  # pragma: no cover — lifespan always sets scorer
             raise HTTPException(503, "Server not ready")
@@ -485,6 +501,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             if check.blocked:
                 raise HTTPException(400, f"Prompt injection rejected: {check.reason}")
 
+        redactor = _state.get("redactor")
+        if redactor and redactor.enabled:
+            req.prompt = redactor(req.prompt)
+
         agent = _state.get("agent")
         if not agent:  # pragma: no cover — lifespan always sets agent
             raise HTTPException(503, "Server not ready")
@@ -525,8 +545,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 latency_ms=latency_ms,
             )
 
+        output_text = result.output
+        if redactor and hasattr(redactor, "enabled") and redactor.enabled:
+            output_text = redactor.redact(output_text)
+
         return ProcessResponse(
-            output=result.output,
+            output=output_text,
             coherence=result.coherence.score if result.coherence else None,
             halted=result.halted,
             candidates_evaluated=result.candidates_evaluated,
@@ -555,6 +579,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if not batch_proc:  # pragma: no cover — lifespan always sets batch
             raise HTTPException(503, "Server not ready")
 
+        redactor = _state.get("redactor")
+        if redactor and hasattr(redactor, "enabled") and redactor.enabled:
+            req.prompts = [redactor.redact(p) for p in req.prompts]
+
         loop = asyncio.get_running_loop()
         import functools
 
@@ -565,9 +593,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         results = []
         for r in batch_result.results:
+            output_text = r.output
+            if redactor and hasattr(redactor, "enabled") and redactor.enabled:
+                output_text = redactor.redact(output_text)
             results.append(
                 ProcessResponse(
-                    output=r.output,
+                    output=output_text,
                     coherence=r.coherence.score if r.coherence else None,
                     halted=r.halted,
                     candidates_evaluated=r.candidates_evaluated,

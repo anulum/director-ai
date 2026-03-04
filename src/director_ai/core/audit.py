@@ -73,8 +73,13 @@ class AuditLogger:
         self._hmac_key = (
             hmac_secret or os.environ.get("DIRECTOR_AUDIT_HMAC_SECRET") or ""
         ).encode("utf-8") or os.urandom(32)
+        self._sinks: list[Any] = []
         if self._path:
             self._path.parent.mkdir(parents=True, exist_ok=True)
+
+    def add_sink(self, sink: Any) -> None:
+        """Add an external consumer for audit records (e.g. PostgresAuditSink)."""
+        self._sinks.append(sink)
 
     def log_review(
         self,
@@ -110,4 +115,8 @@ class AuditLogger:
         if self._path:
             with open(self._path, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
+        
+        for sink in self._sinks:
+            sink.write(entry)
+            
         return entry

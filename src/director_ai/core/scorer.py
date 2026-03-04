@@ -17,8 +17,9 @@ import time
 from .cache import ScoreCache
 from .metrics import metrics
 from .nli import NLIScorer, nli_available
-from .otel import trace_review
-from .types import CoherenceScore, EvidenceChunk, ScoringEvidence
+from .otel import trace_method, trace_review
+from .types import CoherenceScore, EvidenceChunk, ScoringEvidence, DivergenceEvidence
+from ..enterprise.redactor import PIIRedactor
 
 __all__ = ["CoherenceScorer"]
 
@@ -215,24 +216,7 @@ class CoherenceScorer:
         self._llm_judge_provider = llm_judge_provider
         self._llm_judge_model = llm_judge_model
         self._privacy_mode = privacy_mode
-
-    # ── PII redaction for privacy_mode ────────────────────────────────
-
-    _PII_PATTERNS = [
-        (re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"), "[EMAIL]"),
-        (re.compile(r"\b\d{3}[-.]?\d{2}[-.]?\d{4}\b"), "[SSN]"),
-        (
-            re.compile(r"(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),
-            "[PHONE]",
-        ),
-        (re.compile(r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b"), "[CARD]"),
-    ]
-
-    @classmethod
-    def _redact_pii(cls, text: str) -> str:
-        for pat, repl in cls._PII_PATTERNS:
-            text = pat.sub(repl, text)
-        return text
+        self._redactor = PIIRedactor(enabled=privacy_mode)
 
     # ── LLM-as-judge escalation ───────────────────────────────────────
 
@@ -261,8 +245,8 @@ class CoherenceScorer:
         p_text = prompt[:500]
         r_text = response[:500]
         if self._privacy_mode:
-            p_text = self._redact_pii(p_text)
-            r_text = self._redact_pii(r_text)
+            p_text = self._redactor(p_text)
+            r_text = self._redactor(r_text)
 
         judge_prompt = (
             f"Given the prompt: {p_text}\n"
