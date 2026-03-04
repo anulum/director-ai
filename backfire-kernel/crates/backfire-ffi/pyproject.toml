@@ -9,6 +9,18 @@ description = "Director-Class AI — Rust Backfire Kernel (50ms safety gate)"
 authors = [{name = "Miroslav Sotek", email = "protoscience@anulum.li"}]
 requires-python = ">=3.10"
 license = {text = "AGPL-3.0-or-later"}
+classifiers = [
+    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Programming Language :: Rust",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+[project.urls]
+Repository = "https://github.com/anulum/director-ai"
 
 [tool.maturin]
 features = ["pyo3/extension-module"]

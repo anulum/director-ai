@@ -96,6 +96,7 @@ docs = [
 otel = [
     "opentelemetry-api>=1.20",
 ]
+rust = ["backfire-kernel>=0.1.0"]
 enterprise = []
 research = []
 train = [

@@ -1,0 +1,18 @@
+# Coverage config for test-extras CI jobs.
+# Extras (server, grpc) are installed, so server.py / grpc_server.py
+# are importable and should be measured.
+[run]
+source = src/director_ai
+branch = true
+
+[report]
+show_missing = true
+fail_under = 85
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.
+    pass
+    raise NotImplementedError
+    except ImportError
+partial_branches =
+    pragma: no branch

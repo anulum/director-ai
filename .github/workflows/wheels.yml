@@ -1,0 +1,93 @@
+# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — Build & Publish Rust Wheels (backfire-kernel)
+# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# ─────────────────────────────────────────────────────────────────────
+
+name: Build & Publish Rust Wheels
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-wheels:
+    name: Wheels (${{ matrix.os }}, ${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64
+          - os: ubuntu-latest
+            target: aarch64
+          - os: macos-latest
+            target: x86_64
+          - os: macos-latest
+            target: aarch64
+          - os: windows-latest
+            target: x64
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+
+      - uses: goto-bus-stop/setup-zig@7ab2955eb728f5440978d7b4680c7d6d3e5e1e1e # v2
+        if: matrix.target == 'aarch64' && runner.os == 'Linux'
+
+      - name: Build wheels
+        uses: PyO3/maturin-action@aef21716ff3dcae8a1c301d23ec3e4446972a6c2 # v1
+        with:
+          target: ${{ matrix.target }}
+          args: --release --out dist --find-interpreter
+          manylinux: auto
+          working-directory: backfire-kernel/crates/backfire-ffi
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: wheels-${{ matrix.os }}-${{ matrix.target }}
+          path: backfire-kernel/crates/backfire-ffi/dist/
+
+  build-sdist:
+    name: Source Distribution
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - name: Build sdist
+        uses: PyO3/maturin-action@aef21716ff3dcae8a1c301d23ec3e4446972a6c2 # v1
+        with:
+          command: sdist
+          args: --out dist
+          working-directory: backfire-kernel/crates/backfire-ffi
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: wheels-sdist
+          path: backfire-kernel/crates/backfire-ffi/dist/
+
+  publish:
+    name: Publish backfire-kernel
+    needs: [build-wheels, build-sdist]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'release'
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@70fc10c6e5e1ce46ad2ea6f2b72d43f7d47b13c3 # v8
+        with:
+          pattern: wheels-*
+          merge-multiple: true
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0

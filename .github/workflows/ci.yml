@@ -124,8 +124,19 @@ jobs:
       - name: Import smoke test
         run: python -c "import director_ai; assert director_ai.__version__"
 
-      - name: Run tests
-        run: pytest tests/ -v --tb=short
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ -v --tb=short \
+            --cov=director_ai \
+            --cov-report=term-missing \
+            --cov-report=xml \
+            --cov-config=.coveragerc-extras
+
+      - name: Upload extras coverage artifact
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: coverage-extras-${{ matrix.extras }}
+          path: coverage.xml
 
   security:
     name: Security Audit
