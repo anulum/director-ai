@@ -12,6 +12,7 @@ members = [
     "crates/backfire-observers",
     "crates/backfire-ssgf",
     "crates/backfire-ffi",
+    "crates/backfire-wasm",
 ]
 resolver = "2"
 
