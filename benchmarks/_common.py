@@ -10,7 +10,6 @@ from __future__ import annotations
 import json
 import logging
 import os
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -39,19 +38,26 @@ class NLIMetrics:
     def accuracy(self) -> float:
         if not self.y_true:
             return 0.0
-        return sum(t == p for t, p in zip(self.y_true, self.y_pred)) / len(self.y_true)
+        return sum(
+            t == p for t, p in zip(self.y_true, self.y_pred, strict=False)
+        ) / len(self.y_true)
 
     def f1_per_class(self) -> dict[str, float]:
         from sklearn.metrics import f1_score
+
         f1s = f1_score(self.y_true, self.y_pred, average=None, labels=[0, 1, 2])
         return {name: float(f1s[i]) for i, name in enumerate(LABEL_NAMES)}
 
     def macro_f1(self) -> float:
         from sklearn.metrics import f1_score
-        return float(f1_score(self.y_true, self.y_pred, average="macro", labels=[0, 1, 2]))
+
+        return float(
+            f1_score(self.y_true, self.y_pred, average="macro", labels=[0, 1, 2])
+        )
 
     def precision_recall_per_class(self) -> dict[str, dict[str, float]]:
         from sklearn.metrics import precision_score, recall_score
+
         prec = precision_score(self.y_true, self.y_pred, average=None, labels=[0, 1, 2])
         rec = recall_score(self.y_true, self.y_pred, average=None, labels=[0, 1, 2])
         return {
@@ -119,21 +125,29 @@ class NLIPredictor:
         import torch
 
         inputs = self.tokenizer(
-            premise, hypothesis,
-            return_tensors="pt", truncation=True, max_length=self.max_length,
+            premise,
+            hypothesis,
+            return_tensors="pt",
+            truncation=True,
+            max_length=self.max_length,
         )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         with torch.no_grad():
             logits = self.model(**inputs).logits
         return int(logits.argmax(dim=1).item())
 
-    def predict_with_probs(self, premise: str, hypothesis: str) -> tuple[int, np.ndarray]:
+    def predict_with_probs(
+        self, premise: str, hypothesis: str
+    ) -> tuple[int, np.ndarray]:
         """Return (predicted_label, probability_array[3])."""
         import torch
 
         inputs = self.tokenizer(
-            premise, hypothesis,
-            return_tensors="pt", truncation=True, max_length=self.max_length,
+            premise,
+            hypothesis,
+            return_tensors="pt",
+            truncation=True,
+            max_length=self.max_length,
         )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         with torch.no_grad():
@@ -155,7 +169,9 @@ def print_nli_metrics(metrics: NLIMetrics, benchmark_name: str) -> None:
         p, r = pr[name]["precision"], pr[name]["recall"]
         print(f"    {name:15s}  F1={per_class[name]:.4f}  P={p:.4f}  R={r:.4f}")
     if metrics.inference_times:
-        print(f"  Latency:    {metrics.avg_latency_ms:.1f} ms avg, {metrics.p95_latency_ms:.1f} ms p95")
+        print(
+            f"  Latency:    {metrics.avg_latency_ms:.1f} ms avg, {metrics.p95_latency_ms:.1f} ms p95"
+        )
     print(f"{'=' * 65}")
 
 
@@ -169,7 +185,13 @@ def save_results(data: dict, filename: str) -> Path:
 
 def add_common_args(parser) -> None:
     """Add --model and --max-samples to an argparse parser."""
-    parser.add_argument("max_samples", nargs="?", type=int, default=None,
-                        help="Limit evaluation samples (default: all)")
-    parser.add_argument("--model", type=str, default=None,
-                        help="HuggingFace model ID or local path")
+    parser.add_argument(
+        "max_samples",
+        nargs="?",
+        type=int,
+        default=None,
+        help="Limit evaluation samples (default: all)",
+    )
+    parser.add_argument(
+        "--model", type=str, default=None, help="HuggingFace model ID or local path"
+    )

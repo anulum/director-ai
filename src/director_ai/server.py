@@ -59,8 +59,8 @@ try:
 
     _SLOWAPI_AVAILABLE = True
 except ImportError:
-    slowapi = None
-    Limiter = None
+    slowapi = None  # type: ignore
+    Limiter = None  # type: ignore
     _SLOWAPI_AVAILABLE = False
 
 
@@ -71,8 +71,10 @@ def _check_fastapi() -> None:
             "Install with: pip install director-ai[server]"
         )
 
+
 try:
     import jwt
+
     _JWT_AVAILABLE = True
 except ImportError:
     _JWT_AVAILABLE = False
@@ -103,9 +105,11 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         )
 
     class BatchRequest(BaseModel):
+        task: str = Field("process", description="Task type: process or review")
         prompts: list[str] = Field(
             ..., min_length=1, max_length=1000, description="List of prompts"
         )
+        responses: list[str] = Field(default_factory=list, description="Optional responses")
 
     class ReviewResponse(BaseModel):
         approved: bool
@@ -207,12 +211,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         cfg = app.state.config
         logger.info("Starting Director-AI server [%s]", cfg.director_domain)
 
-        app.state._state = {} # Initialize _state on app.state
+        app.state._state = {}  # Initialize _state on app.state
 
         # Optional Rate Limiter Setup
         if _SLOWAPI_AVAILABLE and getattr(cfg, "rate_limit_enabled", False):
-            from slowapi.util import get_remote_address
             from slowapi.errors import RateLimitExceeded
+            from slowapi.util import get_remote_address
 
             def _get_tenant_or_ip(request: Request) -> str:
                 # Group rate limits heavily by tenant if present, fall back to IP.
@@ -232,10 +236,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
             limiter = Limiter(key_func=_get_tenant_or_ip)
             app.state.limiter = limiter
+
             def _rate_limit_exceeded_handler(request: Request, exc: Exception):
                 return JSONResponse({"detail": "Rate limit exceeded"}, status_code=429)
+
             app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-            logger.info("Tenant-Aware Rate Limiting enabled: %s", getattr(cfg, "rate_limit_requests", "100/minute"))
+            logger.info(
+                "Tenant-Aware Rate Limiting enabled: %s",
+                getattr(cfg, "rate_limit_requests", "100/minute"),
+            )
         else:
             app.state.limiter = None
 
@@ -251,6 +260,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             )
 
         from .enterprise.redactor import PIIRedactor
+
         app.state._state["redactor"] = PIIRedactor(enabled=cfg.redact_pii)
         if cfg.redact_pii:
             logger.info("Enterprise PII Redaction enabled")
@@ -292,11 +302,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             audit_logger = AuditLogger(path=cfg.audit_log_path)
             if cfg.audit_postgres_url:
                 from .enterprise.audit_pg import PostgresAuditSink
+
                 audit_logger.add_sink(PostgresAuditSink(db_url=cfg.audit_postgres_url))
 
             app.state._state["audit"] = audit_logger
-            logger.info("Audit logging initialized (path: %s, db: %s)",
-                        bool(cfg.audit_log_path), bool(cfg.audit_postgres_url))
+            logger.info(
+                "Audit logging initialized (path: %s, db: %s)",
+                bool(cfg.audit_log_path),
+                bool(cfg.audit_postgres_url),
+            )
 
         if cfg.tenant_routing:
             app.state._state["tenant_router"] = TenantRouter()
@@ -468,7 +482,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             cfg = request.app.state.config
             limit_str = getattr(cfg, "rate_limit_requests", "100/minute")
             # Apply limit manually within endpoint
-            limiter._check_request_limit(request, limiter._endpoint_from_request(request), [limit_str])
+            limiter._check_request_limit(
+                request, limiter._endpoint_from_request(request), [limit_str]
+            )
         sanitizer = _state.get("sanitizer")
         if sanitizer:
             check = sanitizer.check(req.prompt)
@@ -485,7 +501,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             raise HTTPException(503, "Server not ready")
 
         # Tenant routing
-        tenant_id = getattr(request.state, "tenant_id", request.headers.get("X-Tenant-ID", ""))
+        tenant_id = getattr(
+            request.state, "tenant_id", request.headers.get("X-Tenant-ID", "")
+        )
 
         session = None
         if req.session_id:
@@ -555,7 +573,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if limiter:
             cfg = request.app.state.config
             limit_str = getattr(cfg, "rate_limit_requests", "100/minute")
-            limiter._check_request_limit(request, limiter._endpoint_from_request(request), [limit_str])
+            limiter._check_request_limit(
+                request, limiter._endpoint_from_request(request), [limit_str]
+            )
         sanitizer = _state.get("sanitizer")
         if sanitizer:
             check = sanitizer.check(req.prompt)
@@ -572,14 +592,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         metrics.inc("reviews_total")
         start = time.monotonic()
 
-        tenant_id = getattr(request.state, "tenant_id", request.headers.get("X-Tenant-ID", ""))
-        
+        tenant_id = getattr(
+            request.state, "tenant_id", request.headers.get("X-Tenant-ID", "")
+        )
+
         try:
             with metrics.timer("review_duration_seconds"):
                 result = await agent.process(req.prompt, tenant_id=tenant_id)
         except Exception as e:
             logger.error(f"Error during process: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
         latency_ms = (time.monotonic() - start) * 1000
 
         if result.halted:
@@ -634,7 +656,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if limiter:
             cfg = request.app.state.config
             limit_str = getattr(cfg, "rate_limit_requests", "100/minute")
-            limiter._check_request_limit(request, limiter._endpoint_from_request(request), [limit_str])
+            limiter._check_request_limit(
+                request, limiter._endpoint_from_request(request), [limit_str]
+            )
         sanitizer = _state.get("sanitizer")
         if sanitizer:
             for p in req.prompts:
@@ -654,48 +678,61 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             if req.responses:
                 req.responses = [redactor.redact(r) for r in req.responses]
 
-        tenant_id = getattr(request.state, "tenant_id", request.headers.get("X-Tenant-ID", ""))
-        
+        tenant_id = getattr(
+            request.state, "tenant_id", request.headers.get("X-Tenant-ID", "")
+        )
+
         results = []
         try:
             import time
+
             start_t = time.monotonic()
             if req.task == "review":
-                pairs = [(p, r) if r else (p, "") for p, r in zip(req.prompts, req.responses)]
+                pairs = [
+                    (p, r) if r else (p, "")
+                    for p, r in zip(req.prompts, req.responses, strict=True)
+                ]
                 batch_res = await batcher.review_batch(pairs, tenant_id=tenant_id)
             else:
-                batch_res = await batcher.process_batch(req.prompts, tenant_id=tenant_id)
+                batch_res = await batcher.process_batch(
+                    req.prompts, tenant_id=tenant_id
+                )
             duration = time.monotonic() - start_t
-            
+
             from director_ai.core.types import ReviewResult
+
             for idx, item in enumerate(batch_res.results):
-                if isinstance(item, tuple): # review
+                if isinstance(item, tuple):  # review
                     appr, sc = item
-                    results.append({
-                        "index": idx,
-                        "approved": appr,
-                        "score": sc.score,
-                    })
-                elif isinstance(item, ReviewResult): # process
+                    results.append(
+                        {
+                            "index": idx,
+                            "approved": appr,
+                            "score": sc.score,
+                        }
+                    )
+                elif isinstance(item, ReviewResult):  # process
                     score_val = item.coherence.score if item.coherence else 0.0
-                    results.append({
-                        "index": idx,
-                        "output": item.output,
-                        "approved": not item.halted,
-                        "score": score_val
-                    })
-            
+                    results.append(
+                        {
+                            "index": idx,
+                            "output": item.output,
+                            "approved": not item.halted,
+                            "score": score_val,
+                        }
+                    )
+
             return BatchResponse(
-                results=results, # type: ignore
+                results=results,  # type: ignore
                 total=batch_res.total,
                 succeeded=batch_res.succeeded,
                 failed=batch_res.failed,
                 duration_seconds=duration,
-                errors=[{"index": e[0], "error": e[1]} for e in batch_res.errors]
+                errors=[{"index": e[0], "error": e[1]} for e in batch_res.errors],
             )
         except Exception as e:
             logger.error(f"Error during batching: {e}")
-            raise HTTPException(status_code=500, detail=str(e))
+            raise HTTPException(status_code=500, detail=str(e)) from e
 
     # ── Tenants ───────────────────────────────────────────────────────
 

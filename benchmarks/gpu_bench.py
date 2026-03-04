@@ -122,7 +122,7 @@ def _run_pytorch(
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
-    from director_ai.core.nli import _FACTCG_TEMPLATE, _DEFAULT_MODEL
+    from director_ai.core.nli import _DEFAULT_MODEL, _FACTCG_TEMPLATE
 
     tokenizer = AutoTokenizer.from_pretrained(_DEFAULT_MODEL)
     model = AutoModelForSequenceClassification.from_pretrained(_DEFAULT_MODEL)
@@ -134,7 +134,11 @@ def _run_pytorch(
 
     texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
     inputs = tokenizer(
-        texts, return_tensors="pt", truncation=True, padding=True, max_length=512,
+        texts,
+        return_tensors="pt",
+        truncation=True,
+        padding=True,
+        max_length=512,
     )
     inputs = {k: v.to("cuda") for k, v in inputs.items()}
 
@@ -197,12 +201,21 @@ def _run_onnx(
     active = session.get_providers()[0]
     print(f"    active provider: {active}")
 
-    if provider == "TensorrtExecutionProvider" and active != "TensorrtExecutionProvider":
-        raise RuntimeError(f"TRT requested but got {active} (libnvinfer not installed?)")
+    if (
+        provider == "TensorrtExecutionProvider"
+        and active != "TensorrtExecutionProvider"
+    ):
+        raise RuntimeError(
+            f"TRT requested but got {active} (libnvinfer not installed?)"
+        )
 
     texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
     inputs = tokenizer(
-        texts, return_tensors="np", truncation=True, padding=True, max_length=512,
+        texts,
+        return_tensors="np",
+        truncation=True,
+        padding=True,
+        max_length=512,
     )
     expected = {i.name for i in session.get_inputs()}
     feed = {
@@ -257,15 +270,20 @@ def main():
     parser.add_argument("--iterations", type=int, default=50)
     parser.add_argument("--warmup", type=int, default=10)
     parser.add_argument(
-        "--onnx-path", type=str,
+        "--onnx-path",
+        type=str,
         default=str(Path(__file__).parent / "results" / "factcg_onnx"),
     )
     parser.add_argument(
-        "--backends", type=str, default=None,
+        "--backends",
+        type=str,
+        default=None,
         help=f"Comma-separated subset of: {','.join(ALL_BACKENDS)}",
     )
     parser.add_argument(
-        "--batch-sizes", type=str, default="1,8,16,32",
+        "--batch-sizes",
+        type=str,
+        default="1,8,16,32",
         help="Comma-separated batch sizes (default: 1,8,16,32)",
     )
     args = parser.parse_args()
@@ -283,7 +301,9 @@ def main():
         backends = detected
 
     if not backends:
-        print("No GPU backends available. Need CUDA-capable GPU + torch/onnxruntime-gpu.")
+        print(
+            "No GPU backends available. Need CUDA-capable GPU + torch/onnxruntime-gpu."
+        )
         sys.exit(1)
 
     info = _gpu_info()
@@ -299,11 +319,13 @@ def main():
 
     try:
         import torch
+
         info["torch_version"] = torch.__version__
     except ImportError:
         pass
     try:
         import onnxruntime as ort
+
         info["onnxruntime_version"] = ort.__version__
     except ImportError:
         pass
@@ -320,23 +342,36 @@ def main():
 
             try:
                 if backend == "pytorch_fp32":
-                    times = _run_pytorch(pairs, args.iterations, args.warmup, fp16=False)
+                    times = _run_pytorch(
+                        pairs, args.iterations, args.warmup, fp16=False
+                    )
                 elif backend == "pytorch_fp16":
                     times = _run_pytorch(pairs, args.iterations, args.warmup, fp16=True)
                 elif backend == "onnx_cuda":
                     times = _run_onnx(
-                        pairs, args.iterations, args.warmup,
-                        args.onnx_path, "CUDAExecutionProvider",
+                        pairs,
+                        args.iterations,
+                        args.warmup,
+                        args.onnx_path,
+                        "CUDAExecutionProvider",
                     )
                 elif backend == "onnx_trt_fp32":
                     times = _run_onnx(
-                        pairs, args.iterations, args.warmup,
-                        args.onnx_path, "TensorrtExecutionProvider", trt_fp16=False,
+                        pairs,
+                        args.iterations,
+                        args.warmup,
+                        args.onnx_path,
+                        "TensorrtExecutionProvider",
+                        trt_fp16=False,
                     )
                 elif backend == "onnx_trt_fp16":
                     times = _run_onnx(
-                        pairs, args.iterations, args.warmup,
-                        args.onnx_path, "TensorrtExecutionProvider", trt_fp16=True,
+                        pairs,
+                        args.iterations,
+                        args.warmup,
+                        args.onnx_path,
+                        "TensorrtExecutionProvider",
+                        trt_fp16=True,
                     )
                 else:
                     print(f"    unknown backend: {backend}")
@@ -360,7 +395,9 @@ def main():
 
     # ── Summary table ────────────────────────────────────────────
     print(f"\n{'=' * 72}")
-    print(f"  {'Backend':20s} {'Batch':>5s} {'Median':>9s} {'Per-pair':>9s} {'P95':>9s} {'Mem':>8s}")
+    print(
+        f"  {'Backend':20s} {'Batch':>5s} {'Median':>9s} {'Per-pair':>9s} {'P95':>9s} {'Mem':>8s}"
+    )
     print(f"  {'-' * 62}")
     for r in all_results:
         print(

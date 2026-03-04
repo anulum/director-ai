@@ -131,10 +131,10 @@ class DirectorConfig:
 
     # Tenant routing
     tenant_routing: bool = False
-    
+
     # Rate Limiting
     rate_limit_enabled: bool = False
-    rate_limit_requests: str = "100/minute" # slowapi format
+    rate_limit_requests: str = "100/minute"  # slowapi format
 
     # Input Sanitization
     sanitize_inputs: bool = True
@@ -416,12 +416,14 @@ class DirectorConfig:
         if self.redis_url:
             try:
                 from director_ai.enterprise.redis import RedisGroundTruthStore
+
                 return RedisGroundTruthStore(
-                    redis_url=self.redis_url, 
-                    prefix=self.redis_prefix + "facts:"
+                    redis_url=self.redis_url, prefix=self.redis_prefix + "facts:"
                 )
             except ImportError:
-                logger.warning("director-ai[enterprise] not installed, falling back to local vector store")
+                logger.warning(
+                    "director-ai[enterprise] not installed, falling back to local vector store"
+                )
 
         from .vector_store import InMemoryBackend, VectorBackend, VectorGroundTruthStore
 
@@ -502,10 +504,11 @@ class DirectorConfig:
         if self.redis_url:
             try:
                 from director_ai.enterprise.redis import RedisScoreCache
+
                 kw["cache"] = RedisScoreCache(
-                    redis_url=self.redis_url, 
-                    prefix=self.redis_prefix + "cache:", 
-                    ttl_seconds=self.cache_ttl
+                    redis_url=self.redis_url,
+                    prefix=self.redis_prefix + "cache:",
+                    ttl_seconds=self.cache_ttl,
                 )
             except ImportError:
                 pass

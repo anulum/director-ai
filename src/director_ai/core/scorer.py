@@ -14,12 +14,12 @@ import re
 import threading
 import time
 
+from ..enterprise.redactor import PIIRedactor
 from .cache import ScoreCache
 from .metrics import metrics
 from .nli import NLIScorer, nli_available
-from .otel import trace_method, trace_review
-from .types import CoherenceScore, EvidenceChunk, ScoringEvidence, DivergenceEvidence
-from ..enterprise.redactor import PIIRedactor
+from .otel import trace_review
+from .types import CoherenceScore, EvidenceChunk, ScoringEvidence
 
 __all__ = ["CoherenceScorer"]
 
@@ -145,7 +145,7 @@ class CoherenceScorer:
         self.ground_truth_store = ground_truth_store
         self.logger = logging.getLogger("DirectorAI")
         self._history_lock = threading.Lock()
-        
+
         if cache is not None:
             self.cache = cache
         elif cache_size > 0:
@@ -313,7 +313,9 @@ class CoherenceScorer:
 
     # ── Factual divergence ────────────────────────────────────────────
 
-    async def calculate_factual_divergence(self, prompt, text_output, tenant_id: str = ""):
+    async def calculate_factual_divergence(
+        self, prompt, text_output, tenant_id: str = ""
+    ):
         """Check output against the Ground Truth Store.
 
         Returns 0.0 (aligned) to 1.0 (hallucinated).
@@ -321,7 +323,10 @@ class CoherenceScorer:
         """
         if self._rust_scorer is not None:
             import asyncio
-            _, score_obj = await asyncio.to_thread(self._rust_scorer.review, prompt, text_output)
+
+            _, score_obj = await asyncio.to_thread(
+                self._rust_scorer.review, prompt, text_output
+            )
             fallback = 1.0 - getattr(score_obj, "score", 0.5)
             return getattr(score_obj, "h_factual", fallback)
 
@@ -329,7 +334,9 @@ class CoherenceScorer:
             return DIVERGENCE_NEUTRAL
 
         with metrics.timer("factual_retrieval_seconds"):
-            context = await self.ground_truth_store.retrieve_context(prompt, tenant_id=tenant_id)
+            context = await self.ground_truth_store.retrieve_context(
+                prompt, tenant_id=tenant_id
+            )
         if not context:
             return DIVERGENCE_NEUTRAL
 
@@ -356,11 +363,15 @@ class CoherenceScorer:
             from .vector_store import VectorGroundTruthStore
 
             if isinstance(self.ground_truth_store, VectorGroundTruthStore):
-                chunks = await self.ground_truth_store.retrieve_context_with_chunks(prompt, tenant_id=tenant_id)
+                chunks = await self.ground_truth_store.retrieve_context_with_chunks(
+                    prompt, tenant_id=tenant_id
+                )
                 if chunks:
                     context = "; ".join(c.text for c in chunks)
             else:
-                context = await self.ground_truth_store.retrieve_context(prompt, tenant_id=tenant_id)
+                context = await self.ground_truth_store.retrieve_context(
+                    prompt, tenant_id=tenant_id
+                )
                 if context:
                     chunks = [
                         EvidenceChunk(text=context, distance=0.0, source="keyword")
@@ -475,8 +486,9 @@ class CoherenceScorer:
             return DIVERGENCE_NEUTRAL
         if not prompt:
             return DIVERGENCE_NEUTRAL
-        
+
         from ._heuristics import STOP_WORDS
+
         p_words = set(re.findall(r"\w+", prompt.lower())) - STOP_WORDS
         o_words = set(re.findall(r"\w+", out)) - STOP_WORDS
         if not p_words or not o_words:
@@ -572,7 +584,10 @@ class CoherenceScorer:
             # Rust fast-path: delegate full review to backfire_kernel
             if self._rust_scorer is not None:
                 import asyncio
-                approved_r, score_obj = await asyncio.to_thread(self._rust_scorer.review, prompt, action)
+
+                approved_r, score_obj = await asyncio.to_thread(
+                    self._rust_scorer.review, prompt, action
+                )
                 h_l = getattr(score_obj, "h_logical", 0.0)
                 h_f = getattr(score_obj, "h_factual", 0.0)
                 fallback = 1.0 - (self.W_LOGIC * h_l + self.W_FACT * h_f)
@@ -636,7 +651,9 @@ class CoherenceScorer:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None,
-            functools.partial(self.review, prompt, action, session=session, tenant_id=tenant_id),
+            functools.partial(
+                self.review, prompt, action, session=session, tenant_id=tenant_id
+            ),
         )
 
     # ── Backward-compatible aliases ───────────────────────────────────

@@ -60,7 +60,9 @@ def score_response(
     if score.evidence:
         evidence_md = f"**NLI score:** {score.evidence.nli_score:.3f}\n\n"
         for i, c in enumerate(score.evidence.chunks):
-            evidence_md += f"**Chunk {i+1}** (dist={c.distance:.3f}): {c.text[:120]}\n\n"
+            evidence_md += (
+                f"**Chunk {i + 1}** (dist={c.distance:.3f}): {c.text[:120]}\n\n"
+            )
 
     bar_pct = int(score.score * 100)
     if score.score >= 0.6:
@@ -121,8 +123,10 @@ def run_comparison(scenario_name: str) -> tuple[str, str, str]:
         store.add(key.strip(), value.strip())
 
     scorer = CoherenceScorer(
-        threshold=0.6, soft_limit=0.7,
-        ground_truth_store=store, use_nli=False,
+        threshold=0.6,
+        soft_limit=0.7,
+        ground_truth_store=store,
+        use_nli=False,
     )
 
     _, score = scorer.review(sc["query"], sc["guarded_response"])
@@ -135,7 +139,7 @@ def run_comparison(scenario_name: str) -> tuple[str, str, str]:
     fake_scores = []
     approved = score.approved
     halt_idx = len(tokens)
-    for i, tok in enumerate(tokens):
+    for i, _tok in enumerate(tokens):
         _, tok_score = scorer.review(sc["query"], " ".join(tokens[: i + 1]))
         fake_scores.append(tok_score.score)
         if not tok_score.approved and halt_idx == len(tokens):
@@ -208,30 +212,132 @@ def _render_tokens_html(
 STREAMING_SCENARIOS = {
     "Truthful response (APPROVED)": {
         "tokens": [
-            "Water", " boils", " at", " 100", " degrees", " Celsius",
-            " (212", " F)", " at", " standard", " atmospheric", " pressure", ".",
+            "Water",
+            " boils",
+            " at",
+            " 100",
+            " degrees",
+            " Celsius",
+            " (212",
+            " F)",
+            " at",
+            " standard",
+            " atmospheric",
+            " pressure",
+            ".",
         ],
-        "scores": [0.92, 0.90, 0.88, 0.91, 0.93, 0.90, 0.88, 0.87, 0.89, 0.91, 0.90, 0.89, 0.90],
+        "scores": [
+            0.92,
+            0.90,
+            0.88,
+            0.91,
+            0.93,
+            0.90,
+            0.88,
+            0.87,
+            0.89,
+            0.91,
+            0.90,
+            0.89,
+            0.90,
+        ],
     },
     "Blatant hallucination (HARD LIMIT halt)": {
         "tokens": [
-            "Water", " boils", " at", " 100", " degrees", " Celsius", ".",
-            " But", " the", " real", " temperature", " is", " negative",
-            " forty", " degrees", ".",
+            "Water",
+            " boils",
+            " at",
+            " 100",
+            " degrees",
+            " Celsius",
+            ".",
+            " But",
+            " the",
+            " real",
+            " temperature",
+            " is",
+            " negative",
+            " forty",
+            " degrees",
+            ".",
         ],
-        "scores": [0.92, 0.90, 0.91, 0.89, 0.88, 0.87, 0.86, 0.85, 0.84, 0.83, 0.30, 0.15, 0.10, 0.08, 0.05, 0.03],
+        "scores": [
+            0.92,
+            0.90,
+            0.91,
+            0.89,
+            0.88,
+            0.87,
+            0.86,
+            0.85,
+            0.84,
+            0.83,
+            0.30,
+            0.15,
+            0.10,
+            0.08,
+            0.05,
+            0.03,
+        ],
     },
     "Gradual drift (TREND halt)": {
         "tokens": [
-            "Water", " boils", " at", " 100", " C.", " However", " at",
-            " high", " altitude", " it", " actually", " boils", " at",
-            " only", " 50", " C,", " which", " means", " climbers", " can",
-            " boil", " water", " with", " body", " heat", " alone", ".",
+            "Water",
+            " boils",
+            " at",
+            " 100",
+            " C.",
+            " However",
+            " at",
+            " high",
+            " altitude",
+            " it",
+            " actually",
+            " boils",
+            " at",
+            " only",
+            " 50",
+            " C,",
+            " which",
+            " means",
+            " climbers",
+            " can",
+            " boil",
+            " water",
+            " with",
+            " body",
+            " heat",
+            " alone",
+            ".",
         ],
         "scores": [
-            0.91, 0.89, 0.87, 0.90, 0.88, 0.78, 0.72, 0.65, 0.58, 0.52,
-            0.46, 0.41, 0.38, 0.33, 0.28, 0.22, 0.18, 0.15, 0.12, 0.10,
-            0.08, 0.05, 0.03, 0.02, 0.01, 0.01, 0.01,
+            0.91,
+            0.89,
+            0.87,
+            0.90,
+            0.88,
+            0.78,
+            0.72,
+            0.65,
+            0.58,
+            0.52,
+            0.46,
+            0.41,
+            0.38,
+            0.33,
+            0.28,
+            0.22,
+            0.18,
+            0.15,
+            0.12,
+            0.10,
+            0.08,
+            0.05,
+            0.03,
+            0.02,
+            0.01,
+            0.01,
+            0.01,
         ],
     },
 }
@@ -244,8 +350,11 @@ def run_streaming_demo(scenario_name: str) -> str:
     scores = scenario["scores"]
 
     kernel = StreamingKernel(
-        hard_limit=0.35, window_size=5, window_threshold=0.45,
-        trend_window=4, trend_threshold=0.20,
+        hard_limit=0.35,
+        window_size=5,
+        window_threshold=0.45,
+        trend_window=4,
+        trend_threshold=0.20,
     )
 
     idx = 0
@@ -317,7 +426,8 @@ def build_app() -> gr.Blocks:
                     )
                     facts = gr.Textbox(
                         label="Knowledge base (key: value, one per line)",
-                        lines=4, value=default_facts,
+                        lines=4,
+                        value=default_facts,
                     )
                     query = gr.Textbox(label="Query", value="What color is the sky?")
                     response = gr.Textbox(
@@ -339,10 +449,26 @@ def build_app() -> gr.Blocks:
 
             gr.Examples(
                 examples=[
-                    ["sky color: The sky is blue due to Rayleigh scattering.", "What color is the sky?", "The sky is blue on a clear day."],
-                    ["sky color: The sky is blue due to Rayleigh scattering.", "What color is the sky?", "The sky is green, obviously."],
-                    ["capital: Paris is the capital of France.", "What is the capital of France?", "The capital of France is Berlin."],
-                    ["boiling point: Water boils at 100 C.", "At what temperature does water boil?", "Water boils at 100 degrees Celsius."],
+                    [
+                        "sky color: The sky is blue due to Rayleigh scattering.",
+                        "What color is the sky?",
+                        "The sky is blue on a clear day.",
+                    ],
+                    [
+                        "sky color: The sky is blue due to Rayleigh scattering.",
+                        "What color is the sky?",
+                        "The sky is green, obviously.",
+                    ],
+                    [
+                        "capital: Paris is the capital of France.",
+                        "What is the capital of France?",
+                        "The capital of France is Berlin.",
+                    ],
+                    [
+                        "boiling point: Water boils at 100 C.",
+                        "At what temperature does water boil?",
+                        "Water boils at 100 degrees Celsius.",
+                    ],
                 ],
                 inputs=[facts, query, response],
             )
@@ -403,8 +529,14 @@ def build_app() -> gr.Blocks:
             profile_dd = gr.Dropdown(
                 label="Profile",
                 choices=[
-                    "fast", "thorough", "research", "medical",
-                    "finance", "legal", "creative", "customer_support",
+                    "fast",
+                    "thorough",
+                    "research",
+                    "medical",
+                    "finance",
+                    "legal",
+                    "creative",
+                    "customer_support",
                 ],
                 value="medical",
             )
@@ -419,9 +551,15 @@ def build_app() -> gr.Blocks:
                     "|---------|-------|",
                 ]
                 for k in (
-                    "profile", "coherence_threshold", "hard_limit",
-                    "soft_limit", "use_nli", "reranker_enabled",
-                    "w_logic", "w_fact", "max_candidates",
+                    "profile",
+                    "coherence_threshold",
+                    "hard_limit",
+                    "soft_limit",
+                    "use_nli",
+                    "reranker_enabled",
+                    "w_logic",
+                    "w_fact",
+                    "max_candidates",
                 ):
                     rows.append(f"| `{k}` | `{d[k]}` |")
                 return "\n".join(rows)

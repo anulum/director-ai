@@ -120,15 +120,16 @@ class AggreFactMetrics:
 
 
 _FACTCG_TEMPLATE = (
-    '{text_a}\n\nChoose your answer: based on the paragraph above '
+    "{text_a}\n\nChoose your answer: based on the paragraph above "
     'can we conclude that "{text_b}"?\n\nOPTIONS:\n- Yes\n- No\n'
-    'I think the answer is '
+    "I think the answer is "
 )
 
 
 def _chunk_source(text: str, max_tokens: int = 550) -> list[str]:
     """Split source document into sentence-level chunks (SummaC-style)."""
     import nltk
+
     try:
         sents = nltk.sent_tokenize(text)
     except LookupError:
@@ -176,7 +177,10 @@ class _BinaryNLIPredictor:
         self._is_factcg = "factcg" in self.model_name.lower()
         logger.info(
             "Model loaded on %s (%s, %d labels, factcg=%s)",
-            self.device, self.model_name, self._num_labels, self._is_factcg,
+            self.device,
+            self.model_name,
+            self._num_labels,
+            self._is_factcg,
         )
 
     def _score_single(self, premise: str, hypothesis: str) -> float:
@@ -185,12 +189,17 @@ class _BinaryNLIPredictor:
             text = _FACTCG_TEMPLATE.format(text_a=premise, text_b=hypothesis)
             inputs = self.tokenizer(
                 text,
-                return_tensors="pt", truncation=True, max_length=self.max_length,
+                return_tensors="pt",
+                truncation=True,
+                max_length=self.max_length,
             )
         else:
             inputs = self.tokenizer(
-                premise, hypothesis,
-                return_tensors="pt", truncation=True, max_length=self.max_length,
+                premise,
+                hypothesis,
+                return_tensors="pt",
+                truncation=True,
+                max_length=self.max_length,
             )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         with self._torch.no_grad():
@@ -203,19 +212,24 @@ class _BinaryNLIPredictor:
     def _score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Batched forward pass — all pairs in one call."""
         if self._is_factcg:
-            texts = [
-                _FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs
-            ]
+            texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
             inputs = self.tokenizer(
-                texts, return_tensors="pt", truncation=True,
-                padding=True, max_length=self.max_length,
+                texts,
+                return_tensors="pt",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
             )
         else:
             premises = [p for p, _ in pairs]
             hypotheses = [h for _, h in pairs]
             inputs = self.tokenizer(
-                premises, hypotheses, return_tensors="pt", truncation=True,
-                padding=True, max_length=self.max_length,
+                premises,
+                hypotheses,
+                return_tensors="pt",
+                truncation=True,
+                padding=True,
+                max_length=self.max_length,
             )
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
         with self._torch.no_grad():
@@ -248,9 +262,8 @@ class _NLIScorerPredictor:
 
         self.scorer = NLIScorer(
             use_model=True,
-            model_name=model_name or os.environ.get(
-                "DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"
-            ),
+            model_name=model_name
+            or os.environ.get("DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"),
         )
         logger.info("NLIScorerPredictor (bidirectional) ready")
 
@@ -415,19 +428,14 @@ def _print_aggrefact_results(m: AggreFactMetrics, model_label: str = "") -> None
         print(f"  Latency:    {m.avg_latency_ms:.1f} ms avg")
     print()
 
-    has_pr = any(
-        "hallucination_recall" in d for d in m.per_dataset.values()
-    )
+    has_pr = any("hallucination_recall" in d for d in m.per_dataset.values())
     if has_pr:
         hdr = (
             f"  {'Dataset':<20} {'N':>5} {'BalAcc':>7}"
             f" {'H-Prec':>7} {'H-Rec':>7} {'H-F1':>7}"
         )
     else:
-        hdr = (
-            f"  {'Dataset':<20} {'N':>5} {'Pos':>5}"
-            f" {'Neg':>5} {'Bal Acc':>9}"
-        )
+        hdr = f"  {'Dataset':<20} {'N':>5} {'Pos':>5} {'Neg':>5} {'Bal Acc':>9}"
     print(hdr)
     print(f"  {'-' * len(hdr.strip())}")
     for ds_name, d in sorted(m.per_dataset.items()):
@@ -465,6 +473,7 @@ def _print_aggrefact_results(m: AggreFactMetrics, model_label: str = "") -> None
 
 # ── Pytest ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.slow
 def test_aggrefact_sample():
     """Smoke test on a small sample (requires HF_TOKEN)."""
@@ -481,18 +490,29 @@ if __name__ == "__main__":
     import argparse
 
     logging.basicConfig(
-        level=logging.INFO, format="%(levelname)s: %(message)s",
+        level=logging.INFO,
+        format="%(levelname)s: %(message)s",
     )
     parser = argparse.ArgumentParser(
         description="LLM-AggreFact factual consistency benchmark",
     )
     add_common_args(parser)
-    parser.add_argument("--threshold", type=float, default=0.5,
-                        help="Entailment probability threshold (default: 0.5)")
-    parser.add_argument("--sweep", action="store_true",
-                        help="Sweep thresholds 0.10-0.90 to find optimal")
-    parser.add_argument("--bidirectional", action="store_true",
-                        help="Use NLIScorer.score_chunked() bidirectional path")
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=0.5,
+        help="Entailment probability threshold (default: 0.5)",
+    )
+    parser.add_argument(
+        "--sweep",
+        action="store_true",
+        help="Sweep thresholds 0.10-0.90 to find optimal",
+    )
+    parser.add_argument(
+        "--bidirectional",
+        action="store_true",
+        help="Use NLIScorer.score_chunked() bidirectional path",
+    )
     args = parser.parse_args()
 
     if args.sweep:
@@ -524,8 +544,10 @@ if __name__ == "__main__":
             b = m_bidir.per_dataset.get(ds, {}).get("balanced_acc", 0)
             print(f"  {ds:<20} {s:.1%} → {b:.1%}  ({b - s:+.1%})")
         delta = m_bidir.avg_balanced_acc - m_summac.avg_balanced_acc
-        print(f"\n  Overall: {m_summac.avg_balanced_acc:.1%} → "
-              f"{m_bidir.avg_balanced_acc:.1%}  ({delta:+.1%})")
+        print(
+            f"\n  Overall: {m_summac.avg_balanced_acc:.1%} → "
+            f"{m_bidir.avg_balanced_acc:.1%}  ({delta:+.1%})"
+        )
         print(f"{'=' * 55}")
     else:
         m = run_aggrefact_benchmark(

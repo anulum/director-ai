@@ -77,6 +77,7 @@ def run_anli_benchmark(
 
 # ── Pytest ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.slow
 def test_anli_r1_sample():
     m = run_anli_benchmark("r1", "test", max_samples=200)
@@ -106,8 +107,9 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description="ANLI adversarial NLI benchmark")
     add_common_args(parser)
-    parser.add_argument("--rounds", nargs="+", default=["r1", "r2", "r3"],
-                        choices=["r1", "r2", "r3"])
+    parser.add_argument(
+        "--rounds", nargs="+", default=["r1", "r2", "r3"], choices=["r1", "r2", "r3"]
+    )
     parser.add_argument("--split", default="test", choices=["dev", "test"])
     args = parser.parse_args()
 

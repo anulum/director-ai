@@ -19,6 +19,7 @@ Requires ``pip install director-ai[langchain]``.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import TYPE_CHECKING, Any
 
@@ -102,7 +103,7 @@ class CoherenceCallbackHandler(BaseCallbackHandler):
         if not text:
             return
 
-        approved, score = self.scorer.review(self._current_prompt, text)
+        approved, score = asyncio.run(self.scorer.review(self._current_prompt, text))
         self.last_score = score
         self.scores.append(score)
 

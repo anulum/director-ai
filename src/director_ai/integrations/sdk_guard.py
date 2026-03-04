@@ -10,6 +10,7 @@ Usage::
 
 from __future__ import annotations
 
+import asyncio
 import contextlib
 import inspect
 import logging
@@ -137,7 +138,7 @@ def _handle_failure(on_fail, query, response_text, score):
 
 
 def _score_and_gate(scorer, on_fail, query, response_text):
-    approved, cs = scorer.review(query, response_text)
+    approved, cs = asyncio.run(scorer.review(query, response_text))
     if on_fail == "metadata":
         _score_var.set(cs)
     if not approved:

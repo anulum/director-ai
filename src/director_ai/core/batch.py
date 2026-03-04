@@ -22,9 +22,8 @@ from __future__ import annotations
 import asyncio
 import logging
 import time
-from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
-from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, field
+from typing import Any
 
 from .exceptions import ValidationError
 from .metrics import metrics
@@ -67,7 +66,7 @@ class BatchProcessor:
 
     def __init__(
         self,
-        backend: object,
+        backend: Any,
         max_concurrency: int = 4,
         item_timeout: float = 60.0,
     ) -> None:
@@ -80,7 +79,9 @@ class BatchProcessor:
         self.max_concurrency = max_concurrency
         self.item_timeout = item_timeout
 
-    async def process_batch(self, prompts: list[str], tenant_id: str = "") -> BatchResult:
+    async def process_batch(
+        self, prompts: list[str], tenant_id: str = ""
+    ) -> BatchResult:
         """Process a batch of prompts asynchronously.
 
         Uses ``await backend.process(prompt)`` if backend is CoherenceAgent.
@@ -120,7 +121,9 @@ class BatchProcessor:
         result.duration_seconds = time.monotonic() - start
         return result
 
-    async def review_batch(self, items: list[tuple[str, str]], tenant_id: str = "") -> BatchResult:
+    async def review_batch(
+        self, items: list[tuple[str, str]], tenant_id: str = ""
+    ) -> BatchResult:
         """Batch-review (prompt, response) pairs asynchronously.
 
         Uses ``await backend.review(prompt, response)`` — backend must be CoherenceScorer.
@@ -129,7 +132,9 @@ class BatchProcessor:
         metrics.observe("batch_size", float(len(items)))
 
         result = BatchResult(total=len(items))
-        ordered: list[tuple[bool, CoherenceScore] | None] = [None for _ in range(len(items))]
+        ordered: list[tuple[bool, CoherenceScore] | None] = [
+            None for _ in range(len(items))
+        ]
         sem = asyncio.Semaphore(self.max_concurrency)
 
         async def _run(idx: int, p: str, r: str):
@@ -155,11 +160,19 @@ class BatchProcessor:
         return result
 
     async def process_batch_async(
-        self, prompts: list[str], max_concurrency: int | None = None, tenant_id: str = ""
+        self,
+        prompts: list[str],
+        max_concurrency: int | None = None,
+        tenant_id: str = "",
     ) -> BatchResult:
         """Process a batch of prompts asynchronously (legacy alias)."""
         import warnings
-        warnings.warn("process_batch_async is deprecated, use process_batch instead", DeprecationWarning)
+
+        warnings.warn(
+            "process_batch_async is deprecated, use process_batch instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         old_mc = self.max_concurrency
         if max_concurrency:
             self.max_concurrency = max_concurrency
@@ -167,7 +180,9 @@ class BatchProcessor:
         self.max_concurrency = old_mc
         return res
 
-    async def _process_one(self, index: int, prompt: str, tenant_id: str = "") -> ReviewResult:
+    async def _process_one(
+        self, index: int, prompt: str, tenant_id: str = ""
+    ) -> ReviewResult:
         """Process a single prompt."""
         metrics.gauge_inc("active_requests")
         try:
@@ -180,7 +195,7 @@ class BatchProcessor:
                 metrics.inc("reviews_approved")
                 if result.coherence is not None:
                     metrics.observe("coherence_score", result.coherence.score)
-            return result
+            return result  # type: ignore[no-any-return]
         finally:
             metrics.gauge_dec("active_requests")
 
@@ -191,13 +206,15 @@ class BatchProcessor:
         metrics.gauge_inc("active_requests")
         try:
             with metrics.timer("review_duration_seconds"):
-                approved, score = await self._backend.review(prompt, response, tenant_id=tenant_id)  # type: ignore[attr-defined]
+                approved, score = await self._backend.review(
+                    prompt, response, tenant_id=tenant_id
+                )  # type: ignore[attr-defined]
             metrics.inc("reviews_total")
             if approved:  # pragma: no cover — tested via scorer.review
                 metrics.inc("reviews_approved")
             else:
                 metrics.inc("reviews_rejected")
             metrics.observe("coherence_score", score.score)
-            return approved, score
+            return approved, score  # type: ignore[no-any-return]
         finally:
             metrics.gauge_dec("active_requests")

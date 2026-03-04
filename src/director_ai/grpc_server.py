@@ -18,6 +18,7 @@ Requires ``pip install director-ai[grpc]``.
 
 from __future__ import annotations
 
+import asyncio
 import hmac
 import logging
 from types import SimpleNamespace
@@ -84,7 +85,9 @@ def create_grpc_server(
         """Implements the DirectorService RPC methods."""
 
         def Review(self, request, context):  # noqa: N802
-            approved, score = scorer.review(request.prompt, request.response)
+            approved, score = asyncio.run(
+                scorer.review(request.prompt, request.response)
+            )
             return review_resp(
                 approved=approved,
                 coherence=score.score,
@@ -94,7 +97,7 @@ def create_grpc_server(
             )
 
         def Process(self, request, context):  # noqa: N802
-            result = agent.process(request.prompt)
+            result = asyncio.run(agent.process(request.prompt))
             return process_resp(
                 output=result.output,
                 coherence=result.coherence.score if result.coherence else 0.0,
@@ -113,7 +116,7 @@ def create_grpc_server(
                 return batch_resp(responses=[])
             responses = []
             for req in request.requests:
-                approved, score = scorer.review(req.prompt, req.response)
+                approved, score = asyncio.run(scorer.review(req.prompt, req.response))
                 responses.append(
                     review_resp(
                         approved=approved,

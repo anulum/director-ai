@@ -154,8 +154,10 @@ def main():
         )
 
     delta = _run_delta()
-    print(f"\nHallucination delta: catch_rate={delta['catch_rate']:.1%} "
-          f"(tp={delta['tp']} fn={delta['fn']})")
+    print(
+        f"\nHallucination delta: catch_rate={delta['catch_rate']:.1%} "
+        f"(tp={delta['tp']} fn={delta['fn']})"
+    )
 
     results = {"throughput": rows, "delta": delta}
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)

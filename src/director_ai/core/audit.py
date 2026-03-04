@@ -31,6 +31,7 @@ import os
 import time
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass
@@ -115,8 +116,8 @@ class AuditLogger:
         if self._path:
             with open(self._path, "a", encoding="utf-8") as f:
                 f.write(line + "\n")
-        
+
         for sink in self._sinks:
             sink.write(entry)
-            
+
         return entry

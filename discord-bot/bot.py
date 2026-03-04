@@ -10,8 +10,7 @@ from datetime import datetime, timezone
 import discord
 import httpx
 from discord import app_commands
-
-from embeds import ci_embed, release_embed, status_embed, welcome_embed
+from embeds import status_embed, welcome_embed
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("director-bot")

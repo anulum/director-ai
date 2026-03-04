@@ -19,17 +19,13 @@ Usage::
 from __future__ import annotations
 
 import logging
-import os
 import time
 
-import numpy as np
 import torch
 from sklearn.metrics import balanced_accuracy_score
 
-from benchmarks._common import RESULTS_DIR, save_results
+from benchmarks._common import save_results
 from benchmarks.aggrefact_eval import (
-    AGGREFACT_DATASETS,
-    REFERENCE_SCORES,
     AggreFactMetrics,
     _load_aggrefact,
     _print_aggrefact_results,
@@ -69,7 +65,8 @@ def run_minicheck_aggrefact(
             skipped_oom += 1
             logger.warning(
                 "OOM on sample (doc len=%d, dataset=%s) — skipping",
-                len(doc), ds_name,
+                len(doc),
+                ds_name,
             )
             continue
         metrics.inference_times.append(time.perf_counter() - t0)
@@ -100,10 +97,19 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     parser = argparse.ArgumentParser(description="MiniCheck × LLM-AggreFact benchmark")
-    parser.add_argument("max_samples", nargs="?", type=int, default=None,
-                        help="Limit evaluation samples (default: all)")
-    parser.add_argument("--model", type=str, default="deberta-v3-large",
-                        help="MiniCheck model name (default: deberta-v3-large)")
+    parser.add_argument(
+        "max_samples",
+        nargs="?",
+        type=int,
+        default=None,
+        help="Limit evaluation samples (default: all)",
+    )
+    parser.add_argument(
+        "--model",
+        type=str,
+        default="deberta-v3-large",
+        help="MiniCheck model name (default: deberta-v3-large)",
+    )
     args = parser.parse_args()
 
     m = run_minicheck_aggrefact(max_samples=args.max_samples, model_name=args.model)
@@ -111,6 +117,10 @@ if __name__ == "__main__":
 
     model_tag = args.model.replace("/", "_").replace("\\", "_")
     save_results(
-        {"benchmark": "LLM-AggreFact", "model": f"MiniCheck-{args.model}", **m.to_dict()},
+        {
+            "benchmark": "LLM-AggreFact",
+            "model": f"MiniCheck-{args.model}",
+            **m.to_dict(),
+        },
         f"aggrefact_minicheck_{model_tag}.json",
     )

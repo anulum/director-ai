@@ -15,6 +15,7 @@ Usage::
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
@@ -53,7 +54,7 @@ def director_ai_node(
     def _node(state: dict[str, Any]) -> dict[str, Any]:
         query = state.get(query_key, "")
         response = state.get(response_key, "")
-        approved, cs = scorer.review(str(query), str(response))
+        approved, cs = asyncio.run(scorer.review(str(query)), str(response))
 
         state["director_ai_score"] = cs.score
         state["director_ai_approved"] = approved

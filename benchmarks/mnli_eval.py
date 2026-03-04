@@ -77,11 +77,14 @@ def run_mnli_benchmark(
 
 # ── Pytest ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.slow
 def test_mnli_matched_sample():
     m = run_mnli_benchmark("validation_matched", max_samples=200)
     print_nli_metrics(m, "MNLI Matched (200 sample)")
-    assert m.accuracy > 0.60, f"MNLI accuracy {m.accuracy:.1%} below 60% — possible regression"
+    assert m.accuracy > 0.60, (
+        f"MNLI accuracy {m.accuracy:.1%} below 60% — possible regression"
+    )
 
 
 @pytest.mark.slow
@@ -99,17 +102,22 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description="MNLI NLI regression benchmark")
     add_common_args(parser)
-    parser.add_argument("--split", choices=["matched", "mismatched", "both"],
-                        default="both")
+    parser.add_argument(
+        "--split", choices=["matched", "mismatched", "both"], default="both"
+    )
     args = parser.parse_args()
 
     results = {"benchmark": "MNLI"}
-    splits = (["validation_matched", "validation_mismatched"]
-              if args.split == "both"
-              else [f"validation_{args.split}"])
+    splits = (
+        ["validation_matched", "validation_mismatched"]
+        if args.split == "both"
+        else [f"validation_{args.split}"]
+    )
 
     for split in splits:
-        m = run_mnli_benchmark(split, max_samples=args.max_samples, model_name=args.model)
+        m = run_mnli_benchmark(
+            split, max_samples=args.max_samples, model_name=args.model
+        )
         label = split.replace("validation_", "")
         print_nli_metrics(m, f"MNLI {label}")
         results[label] = m.to_dict()

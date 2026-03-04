@@ -81,6 +81,7 @@ def run_vitaminc_benchmark(
 
 # ── Pytest ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.slow
 def test_vitaminc_dev_sample():
     m = run_vitaminc_benchmark("validation", max_samples=200)
@@ -103,12 +104,12 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(description="VitaminC fact-verification benchmark")
     add_common_args(parser)
-    parser.add_argument("--split", default="validation",
-                        choices=["validation", "test"])
+    parser.add_argument("--split", default="validation", choices=["validation", "test"])
     args = parser.parse_args()
 
     m = run_vitaminc_benchmark(args.split, args.max_samples, args.model)
     print_nli_metrics(m, f"VitaminC {args.split}")
 
-    save_results({"benchmark": f"VitaminC_{args.split}", **m.to_dict()},
-                 "vitaminc_results.json")
+    save_results(
+        {"benchmark": f"VitaminC_{args.split}", **m.to_dict()}, "vitaminc_results.json"
+    )

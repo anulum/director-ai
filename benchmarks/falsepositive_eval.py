@@ -29,20 +29,16 @@ Usage::
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 from dataclasses import dataclass, field
-from pathlib import Path
 
 import numpy as np
 import pytest
 from datasets import load_dataset
 
 from benchmarks._common import (
-    LABEL_NAMES,
     NLIPredictor,
-    RESULTS_DIR,
     add_common_args,
     save_results,
 )
@@ -56,8 +52,8 @@ class FPMetrics:
 
     total: int = 0
     false_positives: int = 0  # predicted contradiction on correct answer
-    uncertain: int = 0        # predicted neutral on correct answer
-    correct: int = 0          # predicted entailment on correct answer
+    uncertain: int = 0  # predicted neutral on correct answer
+    correct: int = 0  # predicted entailment on correct answer
     per_source: dict[str, dict[str, int]] = field(default_factory=dict)
     inference_times: list[float] = field(default_factory=list, repr=False)
 
@@ -206,7 +202,12 @@ def run_falsepositive_benchmark(
         metrics.total += 1
 
         if source not in metrics.per_source:
-            metrics.per_source[source] = {"total": 0, "fp": 0, "uncertain": 0, "correct": 0}
+            metrics.per_source[source] = {
+                "total": 0,
+                "fp": 0,
+                "uncertain": 0,
+                "correct": 0,
+            }
         metrics.per_source[source]["total"] += 1
 
         if pred == 2:  # contradiction — false positive
@@ -229,23 +230,30 @@ def _print_fp_results(m: FPMetrics) -> None:
     print(f"  Total pairs:      {m.total}")
     print(f"  Entailment:       {m.correct} ({m.entailment_rate:.1%})")
     print(f"  Neutral:          {m.uncertain} ({m.uncertain_rate:.1%})")
-    print(f"  Contradiction:    {m.false_positives} ({m.fp_rate:.1%})  ← FALSE POSITIVES")
+    print(
+        f"  Contradiction:    {m.false_positives} ({m.fp_rate:.1%})  ← FALSE POSITIVES"
+    )
     print()
     print(f"  FP Rate:          {m.fp_rate:.2%}")
     print(f"  FP+Uncertain:     {(m.fp_rate + m.uncertain_rate):.2%}")
     if m.per_source:
-        print(f"\n  {'Source':<12} {'Total':>6} {'FP':>6} {'Unc':>6} {'OK':>6} {'FP%':>8}")
+        print(
+            f"\n  {'Source':<12} {'Total':>6} {'FP':>6} {'Unc':>6} {'OK':>6} {'FP%':>8}"
+        )
         print(f"  {'-' * 50}")
         for src, counts in sorted(m.per_source.items()):
             fp_pct = counts["fp"] / max(counts["total"], 1)
-            print(f"  {src:<12} {counts['total']:>6} {counts['fp']:>6} "
-                  f"{counts['uncertain']:>6} {counts['correct']:>6} {fp_pct:>7.1%}")
+            print(
+                f"  {src:<12} {counts['total']:>6} {counts['fp']:>6} "
+                f"{counts['uncertain']:>6} {counts['correct']:>6} {fp_pct:>7.1%}"
+            )
     if m.inference_times:
         print(f"\n  Latency:          {m.avg_latency_ms:.1f} ms avg")
     print(f"{'=' * 65}")
 
 
 # ── Pytest ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.slow
 def test_falsepositive_squad():
@@ -267,10 +275,13 @@ if __name__ == "__main__":
     import argparse
 
     logging.basicConfig(level=logging.INFO)
-    parser = argparse.ArgumentParser(description="False-positive rate on clean RAG data")
+    parser = argparse.ArgumentParser(
+        description="False-positive rate on clean RAG data"
+    )
     add_common_args(parser)
-    parser.add_argument("--sources", nargs="+", default=None,
-                        choices=list(_SOURCE_LOADERS.keys()))
+    parser.add_argument(
+        "--sources", nargs="+", default=None, choices=list(_SOURCE_LOADERS.keys())
+    )
     args = parser.parse_args()
 
     m = run_falsepositive_benchmark(
@@ -278,5 +289,7 @@ if __name__ == "__main__":
     )
     _print_fp_results(m)
 
-    save_results({"benchmark": "FalsePositive_CleanRAG", **m.to_dict()},
-                 "falsepositive_results.json")
+    save_results(
+        {"benchmark": "FalsePositive_CleanRAG", **m.to_dict()},
+        "falsepositive_results.json",
+    )

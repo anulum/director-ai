@@ -80,6 +80,7 @@ def run_fever_benchmark(
 
 # ── Pytest ─────────────────────────────────────────────────────────
 
+
 @pytest.mark.slow
 def test_fever_dev_sample():
     m = run_fever_benchmark(max_samples=200)

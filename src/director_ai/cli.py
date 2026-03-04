@@ -19,6 +19,7 @@ Usage::
 
 from __future__ import annotations
 
+import asyncio
 import json
 import sys
 
@@ -161,7 +162,7 @@ def _cmd_quickstart(args: list[str]) -> None:
         "    for line in f:\n"
         "        line = line.strip()\n"
         "        if line:\n"
-        "            store.add(line[:20], line)\n"
+        "            asyncio.run(store.add(line[:20], line))\n"
         "\n"
         "scorer = CoherenceScorer(\n"
         "    threshold=config.coherence_threshold,\n"
@@ -169,9 +170,9 @@ def _cmd_quickstart(args: list[str]) -> None:
         "    use_nli=config.use_nli,\n"
         ")\n"
         "\n"
-        "approved, score = scorer.review(\n"
+        "approved, score = asyncio.run(scorer.review(\n"
         '    "What color is the sky?", "The sky is blue."\n'
-        ")\n"
+        "))\n"
         'print(f"Approved: {approved}  Score: {score.score:.3f}")\n',
         encoding="utf-8",
     )
@@ -204,7 +205,7 @@ def _cmd_review(args: list[str]) -> None:
 
     cfg = DirectorConfig.from_env()
     scorer = cfg.build_scorer()
-    approved, score = scorer.review(prompt, response)
+    approved, score = asyncio.run(scorer.review(prompt, response))
 
     print(f"Approved:  {approved}")
     print(f"Coherence: {score.score:.4f}")
@@ -226,7 +227,7 @@ def _cmd_process(args: list[str]) -> None:
     store = cfg.build_store()
     scorer = cfg.build_scorer(store=store)
     agent = CoherenceAgent(_scorer=scorer, _store=store)
-    result = agent.process(prompt)
+    result = asyncio.run(agent.process(prompt))
 
     print(f"Output:     {result.output}")
     print(f"Halted:     {result.halted}")
@@ -302,7 +303,7 @@ def _cmd_batch(args: list[str]) -> None:
     scorer = cfg.build_scorer(store=store)
     agent = CoherenceAgent(_scorer=scorer, _store=store)
     processor = BatchProcessor(agent)
-    result = processor.process_batch(prompts)
+    result = asyncio.run(processor.process_batch(prompts))
 
     print(f"Total:    {result.total}")
     print(f"Success:  {result.succeeded}")

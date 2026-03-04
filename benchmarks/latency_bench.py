@@ -93,26 +93,32 @@ BENCH_PAIRS = [
 ]
 
 # Long document for chunked scoring test
-LONG_SOURCE = ". ".join([
-    "The global mean surface temperature has increased by approximately 1.1 degrees "
-    "Celsius since the pre-industrial era",
-    "Carbon dioxide concentrations have risen from 280 ppm to over 420 ppm",
-    "Arctic sea ice extent has declined by roughly 13 percent per decade",
-    "Sea levels have risen about 20 centimeters since 1900",
-    "Ocean acidification has increased by 30 percent due to CO2 absorption",
-    "Extreme weather events have become more frequent and intense",
-    "The Paris Agreement aims to limit warming to 1.5 degrees Celsius",
-    "Renewable energy capacity has doubled in the past decade",
-    "Methane emissions from agriculture contribute significantly to warming",
-    "Permafrost thaw releases stored carbon into the atmosphere",
-    "Coral reef bleaching events have tripled in frequency since 1980",
-    "Global ice sheet mass loss has accelerated to 150 billion tonnes per year",
-]) + "."
+LONG_SOURCE = (
+    ". ".join(
+        [
+            "The global mean surface temperature has increased by approximately 1.1 degrees "
+            "Celsius since the pre-industrial era",
+            "Carbon dioxide concentrations have risen from 280 ppm to over 420 ppm",
+            "Arctic sea ice extent has declined by roughly 13 percent per decade",
+            "Sea levels have risen about 20 centimeters since 1900",
+            "Ocean acidification has increased by 30 percent due to CO2 absorption",
+            "Extreme weather events have become more frequent and intense",
+            "The Paris Agreement aims to limit warming to 1.5 degrees Celsius",
+            "Renewable energy capacity has doubled in the past decade",
+            "Methane emissions from agriculture contribute significantly to warming",
+            "Permafrost thaw releases stored carbon into the atmosphere",
+            "Coral reef bleaching events have tripled in frequency since 1980",
+            "Global ice sheet mass loss has accelerated to 150 billion tonnes per year",
+        ]
+    )
+    + "."
+)
 
 LONG_CLAIM = "Climate change has caused significant environmental impacts."
 
 
 # ── Lightweight / streaming ────────────────────────────────────
+
 
 def bench_lightweight(iterations: int, warmup: int) -> LatencyResult:
     from director_ai.core import CoherenceScorer, GroundTruthStore
@@ -138,15 +144,26 @@ def bench_streaming(iterations: int, warmup: int) -> LatencyResult:
     from director_ai.core import StreamingKernel
 
     scores = [0.9, 0.85, 0.88, 0.92, 0.87, 0.90, 0.86, 0.91, 0.89]
-    tokens = ["The", " sky", " is", " blue", " due",
-              " to", " Rayleigh", " scattering", "."]
+    tokens = [
+        "The",
+        " sky",
+        " is",
+        " blue",
+        " due",
+        " to",
+        " Rayleigh",
+        " scattering",
+        ".",
+    ]
 
     def make_callback():
         idx = [0]
+
         def cb(_token):
             s = scores[idx[0] % len(scores)]
             idx[0] += 1
             return s
+
         return cb
 
     sk = StreamingKernel()
@@ -164,13 +181,14 @@ def bench_streaming(iterations: int, warmup: int) -> LatencyResult:
 
 # ── NLI: sequential vs batched ─────────────────────────────────
 
+
 def bench_nli_sequential(nli, iterations: int, warmup: int) -> LatencyResult:
     """Time N sequential score() calls on all 16 pairs."""
     for _ in range(warmup):
         for p, h in BENCH_PAIRS:
             nli.score(p, h)
 
-    result = LatencyResult(f"PyTorch seq (16 pairs)")
+    result = LatencyResult("PyTorch seq (16 pairs)")
     for _ in range(iterations):
         t0 = time.perf_counter()
         for p, h in BENCH_PAIRS:
@@ -184,7 +202,7 @@ def bench_nli_batched(nli, iterations: int, warmup: int) -> LatencyResult:
     for _ in range(warmup):
         nli.score_batch(BENCH_PAIRS)
 
-    result = LatencyResult(f"PyTorch batch (16 pairs)")
+    result = LatencyResult("PyTorch batch (16 pairs)")
     for _ in range(iterations):
         t0 = time.perf_counter()
         nli.score_batch(BENCH_PAIRS)
@@ -234,7 +252,7 @@ def bench_onnx_sequential(nli, iterations: int, warmup: int) -> LatencyResult:
         for p, h in BENCH_PAIRS:
             nli.score(p, h)
 
-    result = LatencyResult(f"ONNX seq (16 pairs)")
+    result = LatencyResult("ONNX seq (16 pairs)")
     for _ in range(iterations):
         t0 = time.perf_counter()
         for p, h in BENCH_PAIRS:
@@ -248,7 +266,7 @@ def bench_onnx_batched(nli, iterations: int, warmup: int) -> LatencyResult:
     for _ in range(warmup):
         nli.score_batch(BENCH_PAIRS)
 
-    result = LatencyResult(f"ONNX batch (16 pairs)")
+    result = LatencyResult("ONNX batch (16 pairs)")
     for _ in range(iterations):
         t0 = time.perf_counter()
         nli.score_batch(BENCH_PAIRS)
@@ -258,48 +276,65 @@ def bench_onnx_batched(nli, iterations: int, warmup: int) -> LatencyResult:
 
 # ── Output ─────────────────────────────────────────────────────
 
+
 def print_result(r: LatencyResult) -> None:
-    print(f"  {r.name:28s}  mean={r.mean:8.2f} ms  "
-          f"median={r.median:8.2f} ms  p95={r.p95:8.2f} ms  "
-          f"(n={len(r.times_ms)})")
+    print(
+        f"  {r.name:28s}  mean={r.mean:8.2f} ms  "
+        f"median={r.median:8.2f} ms  p95={r.p95:8.2f} ms  "
+        f"(n={len(r.times_ms)})"
+    )
 
 
 def print_comparison(label: str, a: LatencyResult, b: LatencyResult) -> None:
     if a.median > 0 and b.median > 0:
         if a.median >= b.median:
             ratio = a.median / b.median
-            print(f"  >> {label}: {b.name} is {ratio:.1f}x faster "
-                  f"({a.median:.1f} ms vs {b.median:.1f} ms)")
+            print(
+                f"  >> {label}: {b.name} is {ratio:.1f}x faster "
+                f"({a.median:.1f} ms vs {b.median:.1f} ms)"
+            )
         else:
             ratio = b.median / a.median
-            print(f"  >> {label}: {a.name} is {ratio:.1f}x faster "
-                  f"({a.median:.1f} ms vs {b.median:.1f} ms)")
+            print(
+                f"  >> {label}: {a.name} is {ratio:.1f}x faster "
+                f"({a.median:.1f} ms vs {b.median:.1f} ms)"
+            )
 
 
 def main():
     parser = argparse.ArgumentParser(description="Director-AI latency benchmark")
     parser.add_argument(
-        "--nli", action="store_true",
+        "--nli",
+        action="store_true",
         help="PyTorch NLI benchmarks (requires torch + transformers)",
     )
     parser.add_argument(
-        "--onnx", action="store_true",
+        "--onnx",
+        action="store_true",
         help="ONNX Runtime benchmarks (exports model, requires optimum)",
     )
     parser.add_argument(
-        "--onnx-path", type=str, default=None,
+        "--onnx-path",
+        type=str,
+        default=None,
         help="Path to pre-exported ONNX model (skip export step)",
     )
     parser.add_argument(
-        "--device", type=str, default=None,
+        "--device",
+        type=str,
+        default=None,
         help="Torch device for PyTorch backend (cpu, cuda, cuda:0)",
     )
     parser.add_argument(
-        "--iterations", type=int, default=30,
+        "--iterations",
+        type=int,
+        default=30,
         help="Iterations per benchmark (default: 30)",
     )
     parser.add_argument(
-        "--warmup", type=int, default=5,
+        "--warmup",
+        type=int,
+        default=5,
         help="Warmup iterations (default: 5)",
     )
     args = parser.parse_args()
@@ -311,17 +346,21 @@ def main():
 
     try:
         import torch
-        cuda_info = (f"cuda={torch.cuda.is_available()}"
-                     + (f" ({torch.cuda.get_device_name(0)})"
-                        if torch.cuda.is_available() else ""))
+
+        cuda_info = f"cuda={torch.cuda.is_available()}" + (
+            f" ({torch.cuda.get_device_name(0)})" if torch.cuda.is_available() else ""
+        )
         print(f"  torch={torch.__version__}  {cuda_info}")
     except ImportError:
         print("  torch=N/A")
 
     try:
         import onnxruntime as ort
-        print(f"  onnxruntime={ort.__version__}  "
-              f"providers={ort.get_available_providers()}")
+
+        print(
+            f"  onnxruntime={ort.__version__}  "
+            f"providers={ort.get_available_providers()}"
+        )
     except ImportError:
         print("  onnxruntime=N/A")
 
@@ -387,7 +426,8 @@ def main():
             print("\n--- ONNX Export ---")
             onnx_dir = Path(__file__).parent / "results" / "factcg_onnx"
             if (onnx_dir / "model.onnx").exists() or any(
-                f.endswith(".onnx") for f in (onnx_dir.iterdir() if onnx_dir.exists() else [])
+                f.endswith(".onnx")
+                for f in (onnx_dir.iterdir() if onnx_dir.exists() else [])
             ):
                 print(f"  Using cached export: {onnx_dir}")
                 onnx_path = str(onnx_dir)
@@ -400,6 +440,7 @@ def main():
 
         try:
             import onnxruntime as ort
+
             providers = ort.get_available_providers()
             has_cuda = "CUDAExecutionProvider" in providers
             label = "ONNX GPU" if has_cuda else "ONNX CPU"
@@ -409,7 +450,9 @@ def main():
         print("  Loading session...", end=" ", flush=True)
         t0 = time.perf_counter()
         nli_onnx = NLIScorer(
-            use_model=True, backend="onnx", onnx_path=onnx_path,
+            use_model=True,
+            backend="onnx",
+            onnx_path=onnx_path,
         )
         if not nli_onnx.model_available:
             print("FAILED (ONNX session unavailable)")
@@ -429,20 +472,24 @@ def main():
 
     # ── Cross-backend comparison ───────────────────────────────
     if pt_batch and onnx_batch:
-        print(f"\n--- Cross-Backend (16-pair batch) ---")
+        print("\n--- Cross-Backend (16-pair batch) ---")
         print_comparison("ONNX vs PyTorch (batch)", pt_batch, onnx_batch)
     if pt_seq and onnx_seq:
         print_comparison("ONNX vs PyTorch (seq)", pt_seq, onnx_seq)
 
     # ── Summary table ─────────────────────────────────────────
     print(f"\n{'=' * 72}")
-    print(f"  {'Benchmark':28s}  {'mean':>8s}  {'median':>8s}  {'p95':>8s}  {'per-pair':>8s}")
+    print(
+        f"  {'Benchmark':28s}  {'mean':>8s}  {'median':>8s}  {'p95':>8s}  {'per-pair':>8s}"
+    )
     print(f"  {'-' * 64}")
     for r in results:
         n_pairs = 16 if "16 pairs" in r.name else 1
         per_pair = r.median / n_pairs
-        print(f"  {r.name:28s}  {r.mean:7.1f}ms  {r.median:7.1f}ms  "
-              f"{r.p95:7.1f}ms  {per_pair:7.1f}ms")
+        print(
+            f"  {r.name:28s}  {r.mean:7.1f}ms  {r.median:7.1f}ms  "
+            f"{r.p95:7.1f}ms  {per_pair:7.1f}ms"
+        )
     print(f"{'=' * 72}\n")
 
     # ── Save results ──────────────────────────────────────────
@@ -456,6 +503,7 @@ def main():
 
     try:
         import torch
+
         out["torch_version"] = torch.__version__
         out["cuda_available"] = torch.cuda.is_available()
         if torch.cuda.is_available():
@@ -465,6 +513,7 @@ def main():
 
     try:
         import onnxruntime as ort
+
         out["onnxruntime_version"] = ort.__version__
         out["onnx_providers"] = ort.get_available_providers()
     except ImportError:

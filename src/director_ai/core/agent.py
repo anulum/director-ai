@@ -132,6 +132,7 @@ class CoherenceAgent:
             ValueError: If *prompt* is empty or not a string.
         """
         import asyncio
+
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
 
@@ -141,7 +142,9 @@ class CoherenceAgent:
         if asyncio.iscoroutinefunction(self.generator.generate_candidates):
             candidates = await self.generator.generate_candidates(prompt)
         else:
-            candidates = await asyncio.to_thread(self.generator.generate_candidates, prompt)
+            candidates = await asyncio.to_thread(
+                self.generator.generate_candidates, prompt
+            )
 
         best_response = None
         best_score = None
@@ -152,7 +155,9 @@ class CoherenceAgent:
 
         for i, cand in enumerate(candidates):
             text = cand["text"]
-            approved, score = await self.scorer.review(prompt, text, tenant_id=tenant_id)
+            approved, score = await self.scorer.review(
+                prompt, text, tenant_id=tenant_id
+            )
 
             self.logger.info(
                 f"Candidate {i} Coherence={score.score:.4f} | Approved={approved}"
@@ -186,12 +191,13 @@ class CoherenceAgent:
         # All candidates rejected — try fallback
         if self.fallback and self.fallback == "retrieval":
             from .vector_store import VectorGroundTruthStore
+
             if isinstance(self.store, VectorGroundTruthStore):
-                 context = await self.store.retrieve_context(prompt, tenant_id=tenant_id)
-                 if context and isinstance(context, list):
-                     context = "; ".join(c.text for c in context)
+                context = await self.store.retrieve_context(prompt, tenant_id=tenant_id)
+                if context and isinstance(context, list):
+                    context = "; ".join(c.text for c in context)
             else:
-                 context = await self.store.retrieve_context(prompt, tenant_id=tenant_id)
+                context = await self.store.retrieve_context(prompt, tenant_id=tenant_id)
             if context:
                 return ReviewResult(
                     output=f"Based on verified sources: {context}",
@@ -236,7 +242,9 @@ class CoherenceAgent:
             halt_evidence=halt_ev,
         )
 
-    async def stream(self, prompt: str, tenant_id: str = "") -> AsyncIterator[tuple[str, float]]:
+    async def stream(
+        self, prompt: str, tenant_id: str = ""
+    ) -> AsyncIterator[tuple[str, float]]:
         """Stream tokens with StreamingKernel oversight.
 
         Uses sliding window, trend detection, and hard/soft halt from
@@ -247,7 +255,7 @@ class CoherenceAgent:
             raise ValueError("prompt must be a non-empty string")
 
         if not hasattr(self.generator, "stream_tokens"):
-            result = self.process(prompt, tenant_id=tenant_id)
+            result = await self.process(prompt, tenant_id=tenant_id)
             for word in result.output.split():
                 yield word, result.coherence.score if result.coherence else 0.0
             return

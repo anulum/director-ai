@@ -26,7 +26,6 @@ Usage::
 
 from __future__ import annotations
 
-import json
 import logging
 import time
 from dataclasses import dataclass, field
@@ -35,7 +34,7 @@ import numpy as np
 import pytest
 from datasets import load_dataset
 
-from benchmarks._common import NLIPredictor, RESULTS_DIR, add_common_args, save_results
+from benchmarks._common import NLIPredictor, add_common_args, save_results
 
 logger = logging.getLogger("DirectorAI.Benchmark.PAWS")
 
@@ -87,7 +86,10 @@ class PAWSMetrics:
             "recall": round(self.recall, 4),
             "f1": round(self.f1, 4),
             "adversarial_accuracy": round(self.adversarial_accuracy, 4),
-            "tp": self.tp, "fp": self.fp, "tn": self.tn, "fn": self.fn,
+            "tp": self.tp,
+            "fp": self.fp,
+            "tn": self.tn,
+            "fn": self.fn,
             "latency_ms_avg": round(self.avg_latency_ms, 2),
         }
 
@@ -142,7 +144,9 @@ def _print_paws_results(m: PAWSMetrics) -> None:
     print(f"  F1:                   {m.f1:.4f}")
     print(f"  Precision:            {m.precision:.4f}")
     print(f"  Recall:               {m.recall:.4f}")
-    print(f"  Adversarial Acc:      {m.adversarial_accuracy:.1%}  (non-paraphrase detection)")
+    print(
+        f"  Adversarial Acc:      {m.adversarial_accuracy:.1%}  (non-paraphrase detection)"
+    )
     print(f"  (TP={m.tp} FP={m.fp} TN={m.tn} FN={m.fn})")
     if m.inference_times:
         print(f"  Latency:              {m.avg_latency_ms:.1f} ms avg")
@@ -150,6 +154,7 @@ def _print_paws_results(m: PAWSMetrics) -> None:
 
 
 # ── Pytest ─────────────────────────────────────────────────────────
+
 
 @pytest.mark.slow
 def test_paws_sample():
@@ -164,7 +169,9 @@ if __name__ == "__main__":
     import argparse
 
     logging.basicConfig(level=logging.INFO)
-    parser = argparse.ArgumentParser(description="PAWS adversarial paraphrase benchmark")
+    parser = argparse.ArgumentParser(
+        description="PAWS adversarial paraphrase benchmark"
+    )
     add_common_args(parser)
     args = parser.parse_args()
 

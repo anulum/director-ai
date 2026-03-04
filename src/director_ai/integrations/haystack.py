@@ -16,6 +16,7 @@ Usage::
 
 from __future__ import annotations
 
+import asyncio
 from typing import Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
@@ -39,7 +40,7 @@ class DirectorAIChecker:
         self.store = store or GroundTruthStore()
         if facts:
             for k, v in facts.items():
-                self.store.add(k, v)
+                asyncio.run(self.store.add(k, v))
         self.scorer = CoherenceScorer(
             threshold=threshold,
             ground_truth_store=self.store,
@@ -72,7 +73,7 @@ class DirectorAIChecker:
         approved_list = []
 
         for reply in replies:
-            approved, cs = self.scorer.review(query, reply)
+            approved, cs = asyncio.run(self.scorer.review(query, reply))
             scores.append(
                 {
                     "score": cs.score,

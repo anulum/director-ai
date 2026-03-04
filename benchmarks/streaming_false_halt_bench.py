@@ -1373,7 +1373,7 @@ def run_window_sweep(use_nli: bool = False) -> dict:
         )
 
         false_halts = 0
-        for pid, facts, passage in GOOD_PASSAGES:
+        for _pid, facts, passage in GOOD_PASSAGES:
             store = GroundTruthStore()
             for k, v in facts.items():
                 store.add(k, v)
@@ -1391,7 +1391,7 @@ def run_window_sweep(use_nli: bool = False) -> dict:
 
         correct_halts = 0
         halt_coherences = []
-        for pid, facts, passage in BAD_PASSAGES:
+        for _pid, facts, passage in BAD_PASSAGES:
             store = GroundTruthStore()
             for k, v in facts.items():
                 store.add(k, v)

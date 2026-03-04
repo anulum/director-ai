@@ -35,7 +35,7 @@ import pytest
 logger = logging.getLogger("DirectorAI.Benchmark.TruthfulQA")
 
 _DATASET_URL = (
-    "https://raw.githubusercontent.com/sylinrl/TruthfulQA/" "main/TruthfulQA.csv"
+    "https://raw.githubusercontent.com/sylinrl/TruthfulQA/main/TruthfulQA.csv"
 )
 
 _CACHE_DIR = Path(__file__).parent / ".cache"
@@ -112,7 +112,6 @@ def run_truthfulqa_benchmark(
     model_name : str | None — HuggingFace model ID for NLI scorer.
     """
     from director_ai.core import CoherenceScorer, VectorGroundTruthStore
-    from director_ai.core.nli import NLIScorer
 
     if model_name and use_nli:
         import os
