@@ -151,3 +151,55 @@ class TestTenantVectorIsolation:
         router = TenantRouter()
         with pytest.raises(ValueError, match="Unknown vector backend_type"):
             router.get_vector_store("t1", backend_type="invalid")
+
+    def test_vector_store_cache_hit(self):
+        from director_ai.core.tenant import TenantRouter
+
+        router = TenantRouter()
+        store_1 = router.get_vector_store("t1")
+        store_2 = router.get_vector_store("t1")
+        assert store_1 is store_2
+
+    def test_chroma_backend_dispatch(self):
+        from unittest.mock import MagicMock, patch
+
+        from director_ai.core.tenant import TenantRouter
+
+        mock_chroma = MagicMock()
+        with patch("director_ai.core.vector_store.ChromaBackend", mock_chroma):
+            router = TenantRouter()
+            router.get_vector_store("t1", backend_type="chroma")
+            mock_chroma.assert_called_once()
+            call_kwargs = mock_chroma.call_args[1]
+            assert call_kwargs["collection_name"] == "director_ai_t1"
+
+    def test_pinecone_backend_dispatch(self):
+        from unittest.mock import MagicMock, patch
+
+        from director_ai.core.tenant import TenantRouter
+
+        mock_pinecone = MagicMock()
+        with patch(
+            "director_ai.core.vector_store.PineconeBackend",
+            mock_pinecone,
+        ):
+            router = TenantRouter()
+            router.get_vector_store("t1", backend_type="pinecone")
+            mock_pinecone.assert_called_once()
+            assert mock_pinecone.call_args[1]["namespace"] == "t1"
+
+    def test_qdrant_backend_dispatch(self):
+        from unittest.mock import MagicMock, patch
+
+        from director_ai.core.tenant import TenantRouter
+
+        mock_qdrant = MagicMock()
+        with patch(
+            "director_ai.core.vector_store.QdrantBackend",
+            mock_qdrant,
+        ):
+            router = TenantRouter()
+            router.get_vector_store("t1", backend_type="qdrant")
+            mock_qdrant.assert_called_once()
+            call_kwargs = mock_qdrant.call_args[1]
+            assert call_kwargs["collection_name"] == "director_facts_t1"

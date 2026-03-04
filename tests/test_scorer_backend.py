@@ -190,6 +190,88 @@ class TestRustBackend:
             assert call_kwargs["knowledge_callback"] is not None
 
 
+class TestRustDivergenceDispatch:
+    def test_rust_logical_divergence(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False, scorer_backend="rust")
+        mock_score = MagicMock()
+        mock_score.score = 0.9
+        mock_score.h_logical = 0.15
+        mock_rust = MagicMock()
+        mock_rust.review.return_value = (True, mock_score)
+        scorer._rust_scorer = mock_rust
+
+        result = scorer.calculate_logical_divergence("p", "r")
+        assert result == 0.15
+
+    def test_rust_factual_divergence(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False, scorer_backend="rust")
+        mock_score = MagicMock()
+        mock_score.score = 0.8
+        mock_score.h_factual = 0.2
+        mock_rust = MagicMock()
+        mock_rust.review.return_value = (True, mock_score)
+        scorer._rust_scorer = mock_rust
+
+        result = scorer.calculate_factual_divergence("p", "r")
+        assert result == 0.2
+
+    def test_rust_strict_mode_import_raises(self):
+        from unittest.mock import patch
+
+        import pytest
+
+        with (
+            patch.dict("sys.modules", {"backfire_kernel": None}),
+            pytest.raises(ImportError),
+        ):
+            CoherenceScorer(
+                threshold=0.5,
+                use_nli=False,
+                scorer_backend="rust",
+                strict_mode=True,
+            )
+
+
+class TestPrivacyModeRedaction:
+    def test_redact_pii_email(self):
+        assert "[EMAIL]" in CoherenceScorer._redact_pii("contact user@example.com now")
+
+    def test_redact_pii_phone(self):
+        assert "[PHONE]" in CoherenceScorer._redact_pii("call 555-123-4567 today")
+
+    def test_privacy_mode_judge_redacts(self):
+        from unittest.mock import MagicMock, patch
+
+        scorer = CoherenceScorer(
+            threshold=0.5,
+            use_nli=False,
+            scorer_backend="hybrid",
+            llm_judge_provider="openai",
+            privacy_mode=True,
+        )
+        mock_client = MagicMock()
+        mock_resp = MagicMock()
+        mock_resp.choices = [MagicMock()]
+        mock_resp.choices[0].message.content = '{"verdict": "YES", "confidence": 80}'
+        mock_client.chat.completions.create.return_value = mock_resp
+
+        mock_openai = MagicMock()
+        mock_openai.OpenAI.return_value = mock_client
+
+        with patch.dict("sys.modules", {"openai": mock_openai}):
+            scorer._llm_judge_check("email: user@test.com", "response", 0.5)
+
+        sent_prompt = mock_client.chat.completions.create.call_args[1]["messages"][0][
+            "content"
+        ]
+        assert "user@test.com" not in sent_prompt
+        assert "[EMAIL]" in sent_prompt
+
+
 class TestNLIBatchLength:
     def test_batch_returns_correct_length(self):
         nli = NLIScorer(use_model=False, backend="deberta")

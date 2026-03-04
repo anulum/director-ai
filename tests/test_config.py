@@ -237,6 +237,13 @@ class TestBuildStore:
         store = cfg.build_store()
         assert isinstance(store.backend, SentenceTransformerBackend)
 
+    def test_build_store_registry_fallback(self):
+        from director_ai.core.vector_store import InMemoryBackend
+
+        cfg = DirectorConfig(vector_backend="__nonexistent_backend__")
+        store = cfg.build_store()
+        assert isinstance(store.backend, InMemoryBackend)
+
 
 class TestValidationBoundaries:
     """Negative tests for __post_init__ validation constraints."""
