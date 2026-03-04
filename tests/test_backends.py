@@ -108,14 +108,10 @@ class TestNLIScorerCustomBackend:
 class TestRustBackend:
     def test_rust_registration_conditional(self):
         backends = list_backends()
-        # Rust may or may not be installed — test that registry handles both
-        try:
-            from backfire_kernel import RustCoherenceScorer  # noqa: F401
-
-            assert "rust" in backends
-            assert "backfire" in backends
-        except ImportError:
-            assert "rust" not in backends
+        # Entry-point always registers RustBackend; actual FFI availability
+        # is checked at instantiation time, not registration.
+        assert "rust" in backends
+        assert "backfire" in backends
 
     def test_rust_backend_class_exists(self):
         from director_ai.core.backends import RustBackend
