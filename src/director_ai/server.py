@@ -68,6 +68,12 @@ def _check_fastapi() -> None:
             "Install with: pip install director-ai[server]"
         )
 
+try:
+    import jwt
+    _JWT_AVAILABLE = True
+except ImportError:
+    _JWT_AVAILABLE = False
+
 
 # ── Pydantic request/response models ─────────────────────────────────
 
@@ -411,13 +417,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             raise HTTPException(503, "Server not ready")
 
         # Tenant routing
-        tenant_id = request.headers.get("X-Tenant-ID", "")
-        if tenant_id and "tenant_router" in _state:
-            scorer = _state["tenant_router"].get_scorer(
-                tenant_id,
-                threshold=cfg.coherence_threshold,
-                use_nli=cfg.use_nli,
-            )
+        tenant_id = getattr(request.state, "tenant_id", request.headers.get("X-Tenant-ID", ""))
 
         session = None
         if req.session_id:
@@ -434,7 +434,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         start = time.monotonic()
         with metrics.timer("review_duration_seconds"):
             approved, score = await scorer.areview(
-                req.prompt, req.response, session=session
+                req.prompt, req.response, session=session, tenant_id=tenant_id
             )
         latency_ms = (time.monotonic() - start) * 1000
 
@@ -494,9 +494,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         loop = asyncio.get_running_loop()
         import functools
 
+        tenant_id = getattr(request.state, "tenant_id", request.headers.get("X-Tenant-ID", ""))
+        
         with metrics.timer("review_duration_seconds"):
             result = await loop.run_in_executor(
-                None, functools.partial(agent.process, req.prompt)
+                None, functools.partial(agent.process, req.prompt, tenant_id=tenant_id)
             )
         latency_ms = (time.monotonic() - start) * 1000
 
@@ -539,7 +541,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Batch ─────────────────────────────────────────────────────────
 
     @app.post("/v1/batch", response_model=BatchResponse)
-    async def batch(req: BatchRequest):
+    async def batch(req: BatchRequest, request: Request):
         sanitizer = _state.get("sanitizer")
         if sanitizer:
             for p in req.prompts:
@@ -556,8 +558,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         loop = asyncio.get_running_loop()
         import functools
 
+        tenant_id = getattr(request.state, "tenant_id", request.headers.get("X-Tenant-ID", ""))
         batch_result = await loop.run_in_executor(
-            None, functools.partial(batch_proc.process_batch, req.prompts)
+            None, functools.partial(batch_proc.process_batch, req.prompts, tenant_id=tenant_id)
         )
 
         results = []

@@ -97,7 +97,11 @@ otel = [
     "opentelemetry-api>=1.20",
 ]
 rust = ["backfire-kernel>=0.1.0"]
-enterprise = []
+enterprise = [
+    "redis>=4.5",
+    "pyjwt>=2.8",
+    "argon2-cffi>=23.1",
+]
 research = []
 train = [
     "transformers>=4.30",

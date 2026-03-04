@@ -80,7 +80,7 @@ class BatchProcessor:
         self.max_concurrency = max_concurrency
         self.item_timeout = item_timeout
 
-    def process_batch(self, prompts: list[str]) -> BatchResult:
+    def process_batch(self, prompts: list[str], tenant_id: str = "") -> BatchResult:
         """Process a batch of prompts synchronously using thread pool.
 
         Uses ``backend.process(prompt)`` if backend is CoherenceAgent.
@@ -93,7 +93,7 @@ class BatchProcessor:
 
         with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
             futures = {
-                pool.submit(self._process_one, i, p): i for i, p in enumerate(prompts)
+                pool.submit(self._process_one, i, p, tenant_id): i for i, p in enumerate(prompts)
             }
             pending = set(futures)
             while pending:
@@ -142,7 +142,7 @@ class BatchProcessor:
         result.duration_seconds = time.monotonic() - start
         return result
 
-    def review_batch(self, items: list[tuple[str, str]]) -> BatchResult:
+    def review_batch(self, items: list[tuple[str, str]], tenant_id: str = "") -> BatchResult:
         """Batch-review (prompt, response) pairs synchronously.
 
         Uses ``backend.review(prompt, response)`` — backend must be CoherenceScorer.
@@ -155,7 +155,7 @@ class BatchProcessor:
 
         with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
             futures = {
-                pool.submit(self._review_one, i, p, r): i
+                pool.submit(self._review_one, i, p, r, tenant_id): i
                 for i, (p, r) in enumerate(items)
             }
             pending = set(futures)
@@ -195,7 +195,7 @@ class BatchProcessor:
         return result
 
     async def process_batch_async(
-        self, prompts: list[str], max_concurrency: int | None = None
+        self, prompts: list[str], max_concurrency: int | None = None, tenant_id: str = ""
     ) -> BatchResult:
         """Process a batch of prompts asynchronously with concurrency control."""
         start = time.monotonic()
@@ -209,7 +209,7 @@ class BatchProcessor:
             async with sem:
                 try:
                     item_result = await asyncio.wait_for(
-                        loop.run_in_executor(None, self._process_one, idx, prompt),
+                        loop.run_in_executor(None, self._process_one, idx, prompt, tenant_id),
                         timeout=self.item_timeout,
                     )
                     result.results.append(item_result)
@@ -237,12 +237,12 @@ class BatchProcessor:
         result.duration_seconds = time.monotonic() - start
         return result
 
-    def _process_one(self, index: int, prompt: str) -> ReviewResult:
+    def _process_one(self, index: int, prompt: str, tenant_id: str = "") -> ReviewResult:
         """Process a single prompt."""
         metrics.gauge_inc("active_requests")
         try:
             with metrics.timer("review_duration_seconds"):
-                result = self._backend.process(prompt)  # type: ignore[attr-defined]
+                result = self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]
             metrics.inc("reviews_total")
             if result.halted:
                 metrics.inc("reviews_rejected")
@@ -250,18 +250,18 @@ class BatchProcessor:
                 metrics.inc("reviews_approved")
                 if result.coherence is not None:
                     metrics.observe("coherence_score", result.coherence.score)
-            return result  # type: ignore[no-any-return]
+            return result
         finally:
             metrics.gauge_dec("active_requests")
 
     def _review_one(
-        self, index: int, prompt: str, response: str
+        self, index: int, prompt: str, response: str, tenant_id: str = ""
     ) -> tuple[bool, CoherenceScore]:
         """Review a single (prompt, response) pair."""
         metrics.gauge_inc("active_requests")
         try:
             with metrics.timer("review_duration_seconds"):
-                approved, score = self._backend.review(prompt, response)  # type: ignore[attr-defined]
+                approved, score = self._backend.review(prompt, response, tenant_id=tenant_id)  # type: ignore[attr-defined]
             metrics.inc("reviews_total")
             if approved:  # pragma: no cover — tested via scorer.review
                 metrics.inc("reviews_approved")

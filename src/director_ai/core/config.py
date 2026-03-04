@@ -99,6 +99,12 @@ class DirectorConfig:
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     reranker_top_k_multiplier: int = 3
 
+    # Enterprise & Caching
+    redis_url: str = ""
+    redis_prefix: str = "dai:"
+    cache_size: int = 1024
+    cache_ttl: float = 300.0
+
     # Server
     server_host: str = "0.0.0.0"
     server_port: int = 8080
@@ -401,6 +407,16 @@ class DirectorConfig:
 
     def build_store(self):
         """Construct a VectorGroundTruthStore from config fields."""
+        if self.redis_url:
+            try:
+                from director_ai.enterprise.redis import RedisGroundTruthStore
+                return RedisGroundTruthStore(
+                    redis_url=self.redis_url, 
+                    prefix=self.redis_prefix + "facts:"
+                )
+            except ImportError:
+                logger.warning("director-ai[enterprise] not installed, falling back to local vector store")
+
         from .vector_store import InMemoryBackend, VectorBackend, VectorGroundTruthStore
 
         backend: VectorBackend
@@ -477,6 +493,20 @@ class DirectorConfig:
             "onnx_batch_size": self.onnx_batch_size,
             "onnx_flush_timeout_ms": self.onnx_flush_timeout_ms,
         }
+        if self.redis_url:
+            try:
+                from director_ai.enterprise.redis import RedisScoreCache
+                kw["cache"] = RedisScoreCache(
+                    redis_url=self.redis_url, 
+                    prefix=self.redis_prefix + "cache:", 
+                    ttl_seconds=self.cache_ttl
+                )
+            except ImportError:
+                pass
+        else:
+            kw["cache_size"] = self.cache_size
+            kw["cache_ttl"] = self.cache_ttl
+
         if self.onnx_path:
             kw["onnx_path"] = self.onnx_path
         if self.w_logic != 0.0:

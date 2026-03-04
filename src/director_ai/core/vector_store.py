@@ -97,7 +97,7 @@ class VectorBackend(ABC):
 
     @abstractmethod
     def query(
-        self, text: str, n_results: int = 3
+        self, text: str, n_results: int = 3, tenant_id: str = ""
     ) -> list[dict[str, Any]]: ...  # pragma: no cover
 
     @abstractmethod
@@ -119,12 +119,15 @@ class InMemoryBackend(VectorBackend):
     ) -> None:
         self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
 
-    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
+    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
         if not self._docs:
+            return []
+        docs = [d for d in self._docs if not tenant_id or d["metadata"].get("tenant_id") == tenant_id]
+        if not docs:
             return []
         query_words = set(text.lower().split())
         scored = []
-        for doc in self._docs:
+        for doc in docs:
             doc_words = set(doc["text"].lower().split())
             overlap = len(query_words & doc_words)
             total = max(len(query_words | doc_words), 1)
@@ -171,14 +174,22 @@ class SentenceTransformerBackend(VectorBackend):
         self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
         self._embeddings.append(_np.asarray(emb, dtype=_np.float32))
 
-    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
+    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
         import numpy as _np
 
         if not self._docs:
             return []
+            
+        docs_and_embs = [(d, e) for d, e in zip(self._docs, self._embeddings) 
+                         if not tenant_id or d["metadata"].get("tenant_id") == tenant_id]
+        if not docs_and_embs:
+            return []
+            
+        filtered_docs, filtered_embs = zip(*docs_and_embs)
+        
         q_emb = self._model.encode(text, normalize_embeddings=True)
         q_emb = _np.asarray(q_emb, dtype=_np.float32)  # type: ignore[assignment]
-        similarities = [float(_np.dot(q_emb, e)) for e in self._embeddings]
+        similarities = [float(_np.dot(q_emb, e)) for e in filtered_embs]
         indices = sorted(
             range(len(similarities)), key=lambda i: similarities[i], reverse=True
         )
@@ -187,7 +198,7 @@ class SentenceTransformerBackend(VectorBackend):
             if similarities[idx] > 0:
                 results.append(
                     {
-                        **self._docs[idx],
+                        **filtered_docs[idx],
                         "distance": 1.0 - similarities[idx],
                     }
                 )
@@ -248,8 +259,9 @@ class ChromaBackend(VectorBackend):
             metadatas=[metadata] if metadata else None,
         )
 
-    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
-        results = self._collection.query(query_texts=[text], n_results=n_results)
+    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        where = {"tenant_id": tenant_id} if tenant_id else None
+        results = self._collection.query(query_texts=[text], n_results=n_results, where=where)
         docs: list[dict[str, Any]] = []
         documents = results.get("documents")
         metadatas = results.get("metadatas")
@@ -306,8 +318,10 @@ class RerankedBackend(VectorBackend):
     ) -> None:
         self._base.add(doc_id, text, metadata)
 
-    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
-        candidates = self._base.query(text, n_results=n_results * self._multiplier)
+    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        candidates = self._base.query(
+            text, n_results=n_results * self._multiplier, tenant_id=tenant_id
+        )
         if not candidates:
             return []
         pairs = [(text, c["text"]) for c in candidates]
@@ -366,13 +380,19 @@ class PineconeBackend(VectorBackend):
         )
         self._texts[doc_id] = text
 
-    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
+    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
         vector = self._embed(text)
+        
+        filter_dict = None
+        if tenant_id:
+            filter_dict = {"tenant_id": {"$eq": tenant_id}}
+            
         results = self._index.query(
             vector=vector,
             top_k=n_results,
             namespace=self._namespace,
             include_metadata=True,
+            filter=filter_dict
         )
         docs: list[dict[str, Any]] = []
         for match in results.get("matches", []):
@@ -433,15 +453,30 @@ class WeaviateBackend(VectorBackend):
         self._client.data_object.create(**kwargs)
         self._count += 1
 
-    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
-        q = self._client.query.get(self._class_name, ["text", "doc_id"])
+    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        where_filter = None
+        if tenant_id:
+            where_filter = {
+                "path": ["tenant_id"],
+                "operator": "Equal",
+                "valueText": tenant_id,
+            }
+
+        query_builder = (
+            self._client.query.get(self._class_name, ["text", "doc_id"])
+        )
         if self._embed_fn:
             vector = self._embed_fn(text)
-            q = q.with_near_vector({"vector": vector})
+            query_builder = query_builder.with_near_vector({"vector": vector})
         else:
-            q = q.with_near_text({"concepts": [text]})
-        q = q.with_limit(n_results).with_additional(["distance", "id"])
-        result = q.do()
+            query_builder = query_builder.with_near_text({"concepts": [text]})
+        
+        query_builder = query_builder.with_limit(n_results).with_additional(["distance", "id"])
+        
+        if where_filter:
+            query_builder = query_builder.with_where(where_filter)
+            
+        result = query_builder.do()
         docs: list[dict[str, Any]] = []
         items = result.get("data", {}).get("Get", {}).get(self._class_name, [])
         for item in items:
@@ -514,7 +549,20 @@ class QdrantBackend(VectorBackend):
         point = PointStruct(id=doc_id, vector=vector, payload=payload)
         self._client.upsert(collection_name=self._collection, points=[point])
 
-    def query(self, text: str, n_results: int = 3) -> list[dict[str, Any]]:
+    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+        from qdrant_client.models import Filter, FieldCondition, MatchValue
+
+        query_filter = None
+        if tenant_id:
+            query_filter = Filter(
+                must=[
+                    FieldCondition(
+                        key="tenant_id",
+                        match=MatchValue(value=tenant_id),
+                    )
+                ]
+            )
+
         if self._embed_fn is None:
             raise ValueError("QdrantBackend requires embed_fn for text embedding")
         vector = self._embed_fn(text)
@@ -522,6 +570,7 @@ class QdrantBackend(VectorBackend):
             collection_name=self._collection,
             query_vector=vector,
             limit=n_results,
+            query_filter=query_filter,
         )
         docs: list[dict[str, Any]] = []
         for hit in results:
@@ -556,35 +605,36 @@ class VectorGroundTruthStore(GroundTruthStore):
     def __init__(
         self,
         backend: VectorBackend | None = None,
-        tenant_id: str = "",
     ) -> None:
         super().__init__()
         self.backend = backend if backend is not None else InMemoryBackend()
-        self.tenant_id = tenant_id
 
-    def ingest(self, texts: list[str]) -> int:
+    def ingest(self, texts: list[str], tenant_id: str = "") -> int:
         """Bulk-add plain text documents into the vector backend."""
         for i, text in enumerate(texts):
             self.backend.add(
-                doc_id=f"ingest_{i}", text=text, metadata={"source": "ingest"}
+                doc_id=f"ingest_{i}_{tenant_id}", 
+                text=text, 
+                metadata={"source": "ingest", "tenant_id": tenant_id}
             )
         logger.info("Ingested %d documents into vector backend.", len(texts))
         return len(texts)
 
     def add_fact(
-        self, key: str, value: str, metadata: dict[str, Any] | None = None
+        self, key: str, value: str, metadata: dict[str, Any] | None = None, tenant_id: str = ""
     ) -> None:
         """Add a fact to both the keyword store and vector backend."""
-        self.facts[key] = value
+        full_key = f"{tenant_id}:{key}" if tenant_id else key
+        self.facts[full_key] = value
         self.backend.add(
-            doc_id=f"user_{key.replace(' ', '_')}",
+            doc_id=f"user_{key.replace(' ', '_')}_{tenant_id}",
             text=f"{key} is {value}",
-            metadata={"source": "user", "key": key, **(metadata or {})},
+            metadata={"source": "user", "key": key, "tenant_id": tenant_id, **(metadata or {})},
         )
 
-    def retrieve_context_with_chunks(self, query: str) -> list[EvidenceChunk]:
+    def retrieve_context_with_chunks(self, query: str, tenant_id: str = "") -> list[EvidenceChunk]:
         """Retrieve context as structured EvidenceChunk list."""
-        results = self.backend.query(query, n_results=3)
+        results = self.backend.query(query, n_results=3, tenant_id=tenant_id)
         if not results:
             return []
         chunks = []
@@ -598,14 +648,14 @@ class VectorGroundTruthStore(GroundTruthStore):
             )
         return chunks
 
-    def retrieve_context(self, query: str) -> str | None:
+    def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
         """Retrieve context using vector similarity with keyword fallback.
 
         1. Try vector backend (semantic similarity)
         2. Fall back to keyword matching if no results
         """
         # Try vector search first
-        results = self.backend.query(query, n_results=3)
+        results = self.backend.query(query, n_results=3, tenant_id=tenant_id)
         if results:
             context = "; ".join(r["text"] for r in results)
             self.logger.info(

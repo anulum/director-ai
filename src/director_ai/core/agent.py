@@ -125,7 +125,7 @@ class CoherenceAgent:
             return OpenAIProvider(api_key=api_key)
         return AnthropicProvider(api_key=api_key)
 
-    def process(self, prompt: str) -> ReviewResult:
+    def process(self, prompt: str, tenant_id: str = "") -> ReviewResult:
         """Process a prompt end-to-end and return the verified output.
 
         Raises:
@@ -147,7 +147,7 @@ class CoherenceAgent:
 
         for i, cand in enumerate(candidates):
             text = cand["text"]
-            approved, score = self.scorer.review(prompt, text)
+            approved, score = self.scorer.review(prompt, text, tenant_id=tenant_id)
 
             self.logger.info(
                 f"Candidate {i} Coherence={score.score:.4f} | Approved={approved}"
@@ -180,7 +180,7 @@ class CoherenceAgent:
 
         # All candidates rejected — try fallback
         if self.fallback and self.fallback == "retrieval":
-            context = self.store.retrieve_context(prompt)
+            context = self.store.retrieve_context(prompt, tenant_id=tenant_id)
             if context:
                 return ReviewResult(
                     output=f"Based on verified sources: {context}",
@@ -225,7 +225,7 @@ class CoherenceAgent:
             halt_evidence=halt_ev,
         )
 
-    async def stream(self, prompt: str) -> AsyncIterator[tuple[str, float]]:
+    async def stream(self, prompt: str, tenant_id: str = "") -> AsyncIterator[tuple[str, float]]:
         """Stream tokens with StreamingKernel oversight.
 
         Uses sliding window, trend detection, and hard/soft halt from
@@ -236,7 +236,7 @@ class CoherenceAgent:
             raise ValueError("prompt must be a non-empty string")
 
         if not hasattr(self.generator, "stream_tokens"):
-            result = self.process(prompt)
+            result = self.process(prompt, tenant_id=tenant_id)
             for word in result.output.split():
                 yield word, result.coherence.score if result.coherence else 0.0
             return
@@ -247,7 +247,7 @@ class CoherenceAgent:
         async def _coherence_cb(token: str) -> float:
             accumulated.append(token)
             text = " ".join(accumulated)
-            _, score = await self.scorer.areview(prompt, text)
+            _, score = await self.scorer.areview(prompt, text, tenant_id=tenant_id)
             return float(score.score)
 
         async for token in self.generator.stream_tokens(prompt):  # pragma: no branch

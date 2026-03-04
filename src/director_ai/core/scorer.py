@@ -103,6 +103,7 @@ class CoherenceScorer:
         onnx_batch_size=16,
         onnx_flush_timeout_ms=10.0,
         privacy_mode=False,
+        cache=None,
     ):
         if not (0.0 <= threshold <= 1.0):
             raise ValueError(f"threshold must be in [0, 1], got {threshold}")
@@ -143,11 +144,13 @@ class CoherenceScorer:
         self.ground_truth_store = ground_truth_store
         self.logger = logging.getLogger("DirectorAI")
         self._history_lock = threading.Lock()
-        self.cache = (
-            ScoreCache(max_size=cache_size, ttl_seconds=cache_ttl)
-            if cache_size > 0
-            else None
-        )
+        
+        if cache is not None:
+            self.cache = cache
+        elif cache_size > 0:
+            self.cache = ScoreCache(max_size=cache_size, ttl_seconds=cache_ttl)
+        else:
+            self.cache = None
 
         if use_nli is None:
             self.use_nli = nli_available()
@@ -326,7 +329,7 @@ class CoherenceScorer:
 
     # ── Factual divergence ────────────────────────────────────────────
 
-    def calculate_factual_divergence(self, prompt, text_output):
+    def calculate_factual_divergence(self, prompt, text_output, tenant_id: str = ""):
         """Check output against the Ground Truth Store.
 
         Returns 0.0 (aligned) to 1.0 (hallucinated).
@@ -341,7 +344,7 @@ class CoherenceScorer:
             return DIVERGENCE_NEUTRAL
 
         with metrics.timer("factual_retrieval_seconds"):
-            context = self.ground_truth_store.retrieve_context(prompt)
+            context = self.ground_truth_store.retrieve_context(prompt, tenant_id=tenant_id)
         if not context:
             return DIVERGENCE_NEUTRAL
 
@@ -356,7 +359,7 @@ class CoherenceScorer:
         return self._heuristic_factual(context, text_output)
 
     def calculate_factual_divergence_with_evidence(
-        self, prompt, text_output
+        self, prompt, text_output, tenant_id: str = ""
     ) -> tuple[float, ScoringEvidence | None]:
         """Like calculate_factual_divergence but also returns evidence."""
         if not self.ground_truth_store:
@@ -368,11 +371,11 @@ class CoherenceScorer:
             from .vector_store import VectorGroundTruthStore
 
             if isinstance(self.ground_truth_store, VectorGroundTruthStore):
-                chunks = self.ground_truth_store.retrieve_context_with_chunks(prompt)
+                chunks = self.ground_truth_store.retrieve_context_with_chunks(prompt, tenant_id=tenant_id)
                 if chunks:
                     context = "; ".join(c.text for c in chunks)
             else:
-                context = self.ground_truth_store.retrieve_context(prompt)
+                context = self.ground_truth_store.retrieve_context(prompt, tenant_id=tenant_id)
                 if context:
                     chunks = [
                         EvidenceChunk(text=context, distance=0.0, source="keyword")
@@ -498,14 +501,14 @@ class CoherenceScorer:
 
     # ── Shared helpers ────────────────────────────────────────────────
 
-    def _heuristic_coherence(self, prompt, action):
+    def _heuristic_coherence(self, prompt, action, tenant_id: str = ""):
         """Compute coherence components.
 
         Returns (h_logical, h_factual, coherence, evidence).
         """
         h_logic = self.calculate_logical_divergence(prompt, action)
         h_fact, evidence = self.calculate_factual_divergence_with_evidence(
-            prompt, action
+            prompt, action, tenant_id=tenant_id
         )
         total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
         coherence = 1.0 - total_divergence
@@ -570,6 +573,7 @@ class CoherenceScorer:
         prompt: str,
         action: str,
         session=None,
+        tenant_id: str = "",
     ) -> tuple[bool, CoherenceScore]:
         """Score an action and decide whether to approve it.
 
@@ -604,7 +608,7 @@ class CoherenceScorer:
                     span.set_attribute("coherence.cached", True)
                     return result
             h_logic, h_fact, coherence, evidence = self._heuristic_coherence(
-                prompt, action
+                prompt, action, tenant_id=tenant_id
             )
 
             cross_turn = None
@@ -638,6 +642,7 @@ class CoherenceScorer:
         prompt: str,
         action: str,
         session=None,
+        tenant_id: str = "",
     ) -> tuple[bool, CoherenceScore]:
         """Async version of review() — offloads NLI inference to a thread pool."""
         import functools
@@ -645,7 +650,7 @@ class CoherenceScorer:
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(
             None,
-            functools.partial(self.review, prompt, action, session=session),
+            functools.partial(self.review, prompt, action, session=session, tenant_id=tenant_id),
         )
 
     # ── Backward-compatible aliases ───────────────────────────────────
