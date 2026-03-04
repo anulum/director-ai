@@ -44,10 +44,10 @@
 
 ## Needed Mitigations Checklist
 
-- [ ] Path traversal detection in `InputSanitizer`
-- [ ] YAML bomb rejection in `from_yaml()`
+- [x] Path traversal detection in `InputSanitizer`
+- [x] YAML bomb rejection in `from_yaml()` and `InputSanitizer`
 - [ ] JSON depth limit on API request bodies
-- [ ] Excessive Unicode escape detection
+- [x] Excessive Unicode escape detection
 - [ ] Request body size limit in FastAPI middleware
 - [ ] Secrets rotation documentation
 - [ ] SBOM generation (CycloneDX) in CI

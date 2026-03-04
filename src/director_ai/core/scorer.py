@@ -422,10 +422,10 @@ class CoherenceScorer:
 
         Install [nli] for production scoring.
         """
-        from ._heuristics import ENTITY_RE, NEGATION_WORDS
+        from ._heuristics import ENTITY_RE, NEGATION_WORDS, STOP_WORDS
 
-        ctx_words = set(re.findall(r"\w+", context.lower()))
-        out_words = set(re.findall(r"\w+", text_output.lower()))
+        ctx_words = set(re.findall(r"\w+", context.lower())) - STOP_WORDS
+        out_words = set(re.findall(r"\w+", text_output.lower())) - STOP_WORDS
         if not ctx_words or not out_words:
             return DIVERGENCE_NEUTRAL
 
@@ -487,8 +487,10 @@ class CoherenceScorer:
             return DIVERGENCE_NEUTRAL
         if not prompt:
             return DIVERGENCE_NEUTRAL
-        p_words = set(re.findall(r"\w+", prompt.lower()))
-        o_words = set(re.findall(r"\w+", out))
+        
+        from ._heuristics import STOP_WORDS
+        p_words = set(re.findall(r"\w+", prompt.lower())) - STOP_WORDS
+        o_words = set(re.findall(r"\w+", out)) - STOP_WORDS
         if not p_words or not o_words:
             return DIVERGENCE_NEUTRAL
         similarity = len(p_words & o_words) / len(p_words | o_words)

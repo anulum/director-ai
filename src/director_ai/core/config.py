@@ -125,6 +125,10 @@ class DirectorConfig:
     # Tenant routing
     tenant_routing: bool = False
 
+    # Input Sanitization
+    sanitize_inputs: bool = True
+    sanitizer_block_threshold: float = 0.8
+
     # Scoring weights (0.0 = use CoherenceScorer class defaults)
     w_logic: float = 0.0
     w_fact: float = 0.0
@@ -207,6 +211,10 @@ class DirectorConfig:
         if self.grpc_deadline_seconds <= 0:
             raise ValueError(
                 f"grpc_deadline_seconds must be > 0, got {self.grpc_deadline_seconds}"
+            )
+        if not (0.0 <= self.sanitizer_block_threshold <= 1.0):
+            raise ValueError(
+                f"sanitizer_block_threshold must be in [0, 1], got {self.sanitizer_block_threshold}"
             )
         if (self.w_logic != 0.0 or self.w_fact != 0.0) and abs(
             self.w_logic + self.w_fact - 1.0

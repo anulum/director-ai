@@ -198,7 +198,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         from .core.agent import CoherenceAgent
         from .core.audit import AuditLogger
         from .core.batch import BatchProcessor
+        from .core.sanitizer import InputSanitizer
         from .core.tenant import TenantRouter
+
+        if cfg.sanitize_inputs:
+            _state["sanitizer"] = InputSanitizer(
+                block_threshold=cfg.sanitizer_block_threshold
+            )
 
         store = cfg.build_store()
         scorer = cfg.build_scorer(store=store)
@@ -394,6 +400,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.post("/v1/review", response_model=ReviewResponse)
     async def review(req: ReviewRequest, request: Request):
+        sanitizer = _state.get("sanitizer")
+        if sanitizer:
+            check = sanitizer.check(req.prompt)
+            if check.blocked:
+                raise HTTPException(400, f"Prompt injection rejected: {check.reason}")
+
         scorer = _state.get("scorer")
         if not scorer:  # pragma: no cover — lifespan always sets scorer
             raise HTTPException(503, "Server not ready")
@@ -421,7 +433,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         metrics.inc("reviews_total")
         start = time.monotonic()
         with metrics.timer("review_duration_seconds"):
-            approved, score = scorer.review(req.prompt, req.response, session=session)
+            approved, score = await scorer.areview(
+                req.prompt, req.response, session=session
+            )
         latency_ms = (time.monotonic() - start) * 1000
 
         if approved:
@@ -465,13 +479,25 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.post("/v1/process", response_model=ProcessResponse)
     async def process(req: ProcessRequest, request: Request):
+        sanitizer = _state.get("sanitizer")
+        if sanitizer:
+            check = sanitizer.check(req.prompt)
+            if check.blocked:
+                raise HTTPException(400, f"Prompt injection rejected: {check.reason}")
+
         agent = _state.get("agent")
         if not agent:  # pragma: no cover — lifespan always sets agent
             raise HTTPException(503, "Server not ready")
         metrics.inc("reviews_total")
         start = time.monotonic()
+
+        loop = asyncio.get_running_loop()
+        import functools
+
         with metrics.timer("review_duration_seconds"):
-            result = agent.process(req.prompt)
+            result = await loop.run_in_executor(
+                None, functools.partial(agent.process, req.prompt)
+            )
         latency_ms = (time.monotonic() - start) * 1000
 
         if result.halted:
@@ -514,10 +540,26 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.post("/v1/batch", response_model=BatchResponse)
     async def batch(req: BatchRequest):
+        sanitizer = _state.get("sanitizer")
+        if sanitizer:
+            for p in req.prompts:
+                check = sanitizer.check(p)
+                if check.blocked:
+                    raise HTTPException(
+                        400, f"Prompt injection rejected: {check.reason}"
+                    )
+
         batch_proc = _state.get("batch")
         if not batch_proc:  # pragma: no cover — lifespan always sets batch
             raise HTTPException(503, "Server not ready")
-        batch_result = batch_proc.process_batch(req.prompts)
+
+        loop = asyncio.get_running_loop()
+        import functools
+
+        batch_result = await loop.run_in_executor(
+            None, functools.partial(batch_proc.process_batch, req.prompts)
+        )
+
         results = []
         for r in batch_result.results:
             results.append(
@@ -710,6 +752,19 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         async def _handle_session(session_id: str, data: dict) -> None:
             prompt = data.get("prompt", "")
+
+            sanitizer = _state.get("sanitizer")
+            if sanitizer:
+                check = sanitizer.check(prompt)
+                if check.blocked:
+                    await _send(
+                        {
+                            "session_id": session_id,
+                            "error": f"injection rejected: {check.reason}",
+                        }
+                    )
+                    return
+
             agent = _state.get("agent")
             if not agent:
                 await _send({"session_id": session_id, "error": "server not ready"})

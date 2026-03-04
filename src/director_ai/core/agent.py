@@ -244,14 +244,14 @@ class CoherenceAgent:
         self.streaming_kernel.reset_state()
         accumulated: list[str] = []
 
-        def _coherence_cb(token: str) -> float:
+        async def _coherence_cb(token: str) -> float:
             accumulated.append(token)
             text = " ".join(accumulated)
-            _, score = self.scorer.review(prompt, text)
+            _, score = await self.scorer.areview(prompt, text)
             return float(score.score)
 
         async for token in self.generator.stream_tokens(prompt):  # pragma: no branch
-            score = _coherence_cb(token)
+            score = await _coherence_cb(token)
             yield token, score
             if self.streaming_kernel.check_halt(score):
                 return
