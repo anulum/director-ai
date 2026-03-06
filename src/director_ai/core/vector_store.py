@@ -282,9 +282,11 @@ class ChromaBackend(VectorBackend):
         self, text: str, n_results: int = 3, tenant_id: str = ""
     ) -> list[dict[str, Any]]:
 
-        where = {"tenant_id": tenant_id} if tenant_id else None
+        where: dict[str, str] | None = {"tenant_id": tenant_id} if tenant_id else None
         results = self._collection.query(
-            query_texts=[text], n_results=n_results, where=where
+            query_texts=[text],
+            n_results=n_results,
+            where=where,  # type: ignore[arg-type]
         )
         docs: list[dict[str, Any]] = []
         documents = results.get("documents")
