@@ -1,15 +1,59 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 version = 1
 
+# --- Source code (AGPL) ---
+
 [[annotations]]
 path = ["src/**", "tests/**", "benchmarks/**", "tools/**"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
 
 [[annotations]]
-path = ["*.md", "*.txt", "*.json", "*.yaml", "*.yml", "*.toml", "*.cfg", "*.ini", "*.lock"]
+path = ["backfire-kernel/**", "demo/**", "discord-bot/**", "examples/**", "training/**", "proto/**", "scripts/**"]
 SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
 SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = [".github/**", ".githooks/**", ".local/**"]
+SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# --- Root config/text files (AGPL) ---
+
+[[annotations]]
+path = [
+    "*.md", "*.txt", "*.json", "*.yaml", "*.yml", "*.toml",
+    "*.cfg", "*.ini", "*.lock", "*.in",
+    "*.sh", "*.proto",
+]
+SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+[[annotations]]
+path = [
+    ".editorconfig", ".dockerignore", ".gitignore", ".gitattributes",
+    ".coveragerc-extras", ".env.example",
+    "Dockerfile", "Dockerfile.gpu", "MANIFEST.in",
+    "CITATION.cff", "Makefile",
+]
+SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# --- Binary/model artifacts (AGPL) ---
+
+[[annotations]]
+path = ["*.arrow", "*.pt", "*.safetensors", "*.onnx", "*.npz", "*.tmp"]
+SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# --- Cached model snapshots (third-party, AGPL annotation for REUSE coverage) ---
+
+[[annotations]]
+path = ["ckpts/**"]
+SPDX-FileCopyrightText = "1998-2026 Miroslav Šotek <protoscience@anulum.li>"
+SPDX-License-Identifier = "AGPL-3.0-or-later"
+
+# --- Documentation & media (CC-BY-4.0) ---
 
 [[annotations]]
 path = ["docs/**", "docs-site/**", "notebooks/**", "*.png", "*.svg", "*.jpg"]
