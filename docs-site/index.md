@@ -62,6 +62,52 @@ response = client.chat.completions.create(
 | NLI scoring | Yes | No | No | Partial |
 | Evidence return | Yes | No | No | No |
 
+## Obtain
+
+```bash
+pip install director-ai
+```
+
+PyPI: [pypi.org/project/director-ai](https://pypi.org/project/director-ai/)
+| Source: [github.com/anulum/director-ai](https://github.com/anulum/director-ai)
+
+See [Installation](installation.md) for extras and GPU setup.
+
+## Feedback & Bug Reports
+
+- **Bug reports**: [GitHub Issues](https://github.com/anulum/director-ai/issues/new?labels=bug)
+- **Feature requests**: [GitHub Issues](https://github.com/anulum/director-ai/issues/new?labels=enhancement)
+- **Security vulnerabilities**: see [SECURITY.md](https://github.com/anulum/director-ai/blob/main/SECURITY.md)
+- **Discussion**: [GitHub Discussions](https://github.com/anulum/director-ai/discussions)
+- **Commercial inquiries**: [anulum.li](https://www.anulum.li)
+
+All feedback is accepted in English.
+
+## Contributing
+
+See [CONTRIBUTING.md](https://github.com/anulum/director-ai/blob/main/CONTRIBUTING.md) for:
+
+- Code style (ruff, type hints on public API)
+- Test requirements (pytest, 90% coverage gate)
+- PR workflow (squash merge, CI must pass)
+- Preflight checks (`make preflight`)
+- Licensing (AGPL-3.0, CLA)
+
+## API Reference
+
+Full reference documentation for the external interface:
+
+- [Core API](api/core.md) — `CoherenceScorer`, `guard()`, `review()`
+- [Scorer](api/scorer.md) — scoring backends (NLI, lite, hybrid, rust)
+- [Streaming](api/streaming.md) — `StreamingKernel`, token-level halt
+- [Vector Store](api/vector-store.md) — knowledge base backends
+- [Config](api/config.md) — `DirectorConfig` options
+- [Input Sanitizer](api/sanitizer.md) — prompt injection defense
+
+## Maintenance
+
+Director-AI is actively maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v2.8.0 (March 2026). See [CHANGELOG](changelog.md) and [ROADMAP](https://github.com/anulum/director-ai/blob/main/ROADMAP.md).
+
 ## License
 
 AGPL-3.0 for open source / research. Commercial licensing available at [anulum.li](https://www.anulum.li).
