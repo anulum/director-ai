@@ -159,6 +159,7 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 
 [tool.pytest.ini_options]
+asyncio_mode = "auto"
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 addopts = "-v --tb=short"

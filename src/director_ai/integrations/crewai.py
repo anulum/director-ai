@@ -46,7 +46,7 @@ class DirectorAITool:
         self.store = store or GroundTruthStore()
         if facts:
             for k, v in facts.items():
-                asyncio.run(self.store.add(k, v))
+                self.store.add(k, v)
         self.scorer = CoherenceScorer(
             threshold=threshold,
             ground_truth_store=self.store,
@@ -61,7 +61,7 @@ class DirectorAITool:
             query = ""
             claim = input_text
 
-        approved, cs = asyncio.run(self.scorer.review(query.strip(), claim.strip()))
+        approved, cs = self.scorer.review(query.strip(), claim.strip())
 
         status = "APPROVED" if approved else "REJECTED"
         warning = " (low confidence)" if cs.warning else ""
@@ -76,7 +76,7 @@ class DirectorAITool:
 
     def check(self, query: str, response: str) -> dict[str, Any]:
         """Direct API for programmatic use."""
-        approved, cs = asyncio.run(self.scorer.review(query, response))
+        approved, cs = self.scorer.review(query, response)
         return {
             "approved": approved,
             "score": cs.score,

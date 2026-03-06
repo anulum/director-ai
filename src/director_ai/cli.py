@@ -205,7 +205,7 @@ def _cmd_review(args: list[str]) -> None:
 
     cfg = DirectorConfig.from_env()
     scorer = cfg.build_scorer()
-    approved, score = asyncio.run(scorer.review(prompt, response))
+    approved, score = scorer.review(prompt, response)
 
     print(f"Approved:  {approved}")
     print(f"Coherence: {score.score:.4f}")
@@ -227,7 +227,7 @@ def _cmd_process(args: list[str]) -> None:
     store = cfg.build_store()
     scorer = cfg.build_scorer(store=store)
     agent = CoherenceAgent(_scorer=scorer, _store=store)
-    result = asyncio.run(agent.process(prompt))
+    result = agent.process(prompt)
 
     print(f"Output:     {result.output}")
     print(f"Halted:     {result.halted}")
@@ -303,7 +303,7 @@ def _cmd_batch(args: list[str]) -> None:
     scorer = cfg.build_scorer(store=store)
     agent = CoherenceAgent(_scorer=scorer, _store=store)
     processor = BatchProcessor(agent)
-    result = asyncio.run(processor.process_batch(prompts))
+    result = processor.process_batch(prompts)
 
     print(f"Total:    {result.total}")
     print(f"Success:  {result.succeeded}")

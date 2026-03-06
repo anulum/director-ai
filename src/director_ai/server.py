@@ -22,9 +22,11 @@ import asyncio
 import contextvars
 import hmac
 import logging
-import time
 import uuid
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
+import time
 
 from .core.config import DirectorConfig
 from .core.metrics import metrics
@@ -132,7 +134,7 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         halt_evidence: dict | None = None
 
     class BatchResponse(BaseModel):
-        results: list[ProcessResponse]
+        results: list[dict[str, Any]]
         errors: list[dict]
         total: int
         succeeded: int
@@ -211,7 +213,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         """Lifecycle events for the FastAPI server."""
         cfg = app.state.config
-        logger.info("Starting Director-AI server [%s]", cfg.director_domain)
+        logger.info("Starting Director-AI server")
 
         app.state._state = {}  # Initialize _state on app.state
 
@@ -487,18 +489,18 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             limiter._check_request_limit(
                 request, limiter._endpoint_from_request(request), [limit_str]
             )
-        sanitizer = _state.get("sanitizer")
+        sanitizer = request.app.state._state.get("sanitizer")
         if sanitizer:
             check = sanitizer.check(req.prompt)
             if check.blocked:
                 raise HTTPException(400, f"Prompt injection rejected: {check.reason}")
 
-        redactor = _state.get("redactor")
+        redactor = request.app.state._state.get("redactor")
         if redactor and hasattr(redactor, "enabled") and redactor.enabled:
             req.prompt = redactor.redact(req.prompt)
             req.response = redactor.redact(req.response)
 
-        scorer = _state.get("scorer")
+        scorer = request.app.state._state.get("scorer")
         if not scorer:  # pragma: no cover — lifespan always sets scorer
             raise HTTPException(503, "Server not ready")
 
@@ -511,7 +513,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if req.session_id:
             from .core.session import ConversationSession
 
-            sessions = _state.get("sessions", {})
+            sessions = request.app.state._state.get("sessions", {})
             if req.session_id not in sessions:  # pragma: no branch
                 sessions[req.session_id] = ConversationSession(
                     session_id=req.session_id,
@@ -521,7 +523,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         metrics.inc("reviews_total")
         start = time.monotonic()
         with metrics.timer("review_duration_seconds"):
-            approved, score = await scorer.areview(
+            approved, score = scorer.review(
                 req.prompt, req.response, session=session, tenant_id=tenant_id
             )
         latency_ms = (time.monotonic() - start) * 1000
@@ -532,7 +534,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             metrics.inc("reviews_rejected")
         metrics.observe("coherence_score", score.score)
 
-        stats_store = _state.get("stats")
+        stats_store = request.app.state._state.get("stats")
         if stats_store:
             stats_store.record_review(
                 approved=approved,
@@ -541,7 +543,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 h_factual=score.h_factual,
             )
 
-        audit = _state.get("audit")
+        audit = request.app.state._state.get("audit")
         if audit:
             audit.log_review(
                 query=req.prompt,
@@ -578,17 +580,17 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             limiter._check_request_limit(
                 request, limiter._endpoint_from_request(request), [limit_str]
             )
-        sanitizer = _state.get("sanitizer")
+        sanitizer = request.app.state._state.get("sanitizer")
         if sanitizer:
             check = sanitizer.check(req.prompt)
             if check.blocked:
                 raise HTTPException(400, f"Prompt injection rejected: {check.reason}")
 
-        redactor = _state.get("redactor")
+        redactor = request.app.state._state.get("redactor")
         if redactor and redactor.enabled:
             req.prompt = redactor(req.prompt)
 
-        agent = _state.get("agent")
+        agent = request.app.state._state.get("agent")
         if not agent:  # pragma: no cover — lifespan always sets agent
             raise HTTPException(503, "Server not ready")
         metrics.inc("reviews_total")
@@ -600,7 +602,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         try:
             with metrics.timer("review_duration_seconds"):
-                result = await agent.process(req.prompt, tenant_id=tenant_id)
+                result = agent.process(req.prompt, tenant_id=tenant_id)
         except Exception as e:
             logger.error(f"Error during process: {e}")
             raise HTTPException(status_code=500, detail=str(e)) from e
@@ -614,7 +616,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             if result.coherence:  # pragma: no branch
                 metrics.observe("coherence_score", result.coherence.score)
 
-        audit = _state.get("audit")
+        audit = request.app.state._state.get("audit")
         if audit:
             audit.log_review(
                 query=req.prompt,
@@ -661,7 +663,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             limiter._check_request_limit(
                 request, limiter._endpoint_from_request(request), [limit_str]
             )
-        sanitizer = _state.get("sanitizer")
+        sanitizer = request.app.state._state.get("sanitizer")
         if sanitizer:
             for p in req.prompts:
                 check = sanitizer.check(p)
@@ -670,11 +672,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         400, f"Prompt injection rejected: {check.reason}"
                     )
 
-        batcher = _state.get("batch")
+        batcher = request.app.state._state.get("batch")
         if not batcher:  # pragma: no cover — lifespan always sets batch
             raise HTTPException(503, "Server not ready")
 
-        redactor = _state.get("redactor")
+        redactor = request.app.state._state.get("redactor")
         if redactor and hasattr(redactor, "enabled") and redactor.enabled:
             req.prompts = [redactor.redact(p) for p in req.prompts]
             if req.responses:
@@ -694,9 +696,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     (p, r) if r else (p, "")
                     for p, r in zip(req.prompts, req.responses, strict=True)
                 ]
-                batch_res = await batcher.review_batch(pairs, tenant_id=tenant_id)
+                batch_res = batcher.review_batch(pairs, tenant_id=tenant_id)
             else:
-                batch_res = await batcher.process_batch(
+                batch_res = batcher.process_batch(
                     req.prompts, tenant_id=tenant_id
                 )
             duration = time.monotonic() - start_t
@@ -739,8 +741,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Tenants ───────────────────────────────────────────────────────
 
     @app.get("/v1/tenants")
-    async def list_tenants():
-        router = _state.get("tenant_router")
+    async def list_tenants(request: Request):
+        router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
         return {
@@ -751,16 +753,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     @app.post("/v1/tenants/{tenant_id}/facts")
-    async def add_tenant_fact(tenant_id: str, req: TenantFactRequest):
-        router = _state.get("tenant_router")
+    async def add_tenant_fact(request: Request, tenant_id: str, req: TenantFactRequest):
+        router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
         router.add_fact(tenant_id, req.key, req.value)
         return {"status": "ok", "tenant_id": tenant_id, "key": req.key}
 
     @app.post("/v1/tenants/{tenant_id}/vector-facts")
-    async def add_tenant_vector_fact(tenant_id: str, req: TenantVectorFactRequest):
-        router = _state.get("tenant_router")
+    async def add_tenant_vector_fact(request: Request, tenant_id: str, req: TenantVectorFactRequest):
+        router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
         store = router.get_vector_store(tenant_id, backend_type=req.backend_type)
@@ -776,8 +778,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Sessions ──────────────────────────────────────────────────────
 
     @app.get("/v1/sessions/{session_id}")
-    async def get_session(session_id: str):
-        sessions = _state.get("sessions", {})
+    async def get_session(request: Request, session_id: str):
+        sessions = request.app.state._state.get("sessions", {})
         if session_id not in sessions:
             raise HTTPException(404, "Session not found")
         s = sessions[session_id]
@@ -796,8 +798,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     @app.delete("/v1/sessions/{session_id}")
-    async def delete_session(session_id: str):
-        sessions = _state.get("sessions", {})
+    async def delete_session(request: Request, session_id: str):
+        sessions = request.app.state._state.get("sessions", {})
         if session_id not in sessions:
             raise HTTPException(404, "Session not found")
         del sessions[session_id]
@@ -806,11 +808,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Metrics ───────────────────────────────────────────────────────
 
     @app.get("/v1/metrics")
-    async def get_metrics():
+    async def get_metrics(request: Request):
         return metrics.get_metrics()
 
     @app.get("/v1/metrics/prometheus", response_class=PlainTextResponse)
-    async def get_prometheus():
+    async def get_prometheus(request: Request):
         return metrics.prometheus_format()
 
     # ── Config ────────────────────────────────────────────────────────
@@ -848,15 +850,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     @app.get("/v1/stats")
-    async def get_stats():
-        stats_store = _state.get("stats")
+    async def get_stats(request: Request):
+        stats_store = request.app.state._state.get("stats")
         if stats_store:
             return stats_store.summary()
         return _prometheus_summary()
 
     @app.get("/v1/stats/hourly")
-    async def get_stats_hourly(days: int = 7):
-        stats_store = _state.get("stats")
+    async def get_stats_hourly(request: Request, days: int = 7):
+        stats_store = request.app.state._state.get("stats")
         if stats_store:
             return stats_store.hourly_breakdown(days=days)
         return {
@@ -865,8 +867,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     @app.get("/v1/dashboard", response_class=PlainTextResponse)
-    async def dashboard():
-        stats_store = _state.get("stats")
+    async def dashboard(request: Request):
+        stats_store = request.app.state._state.get("stats")
         s = stats_store.summary() if stats_store else _prometheus_summary()
         approval_rate = (
             f"{s['approved'] / s['total'] * 100:.1f}%" if s["total"] else "N/A"
@@ -910,7 +912,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         async def _handle_session(session_id: str, data: dict) -> None:
             prompt = data.get("prompt", "")
 
-            sanitizer = _state.get("sanitizer")
+            sanitizer = ws.app.state._state.get("sanitizer")
             if sanitizer:
                 check = sanitizer.check(prompt)
                 if check.blocked:
@@ -922,7 +924,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
                     return
 
-            agent = _state.get("agent")
+            agent = ws.app.state._state.get("agent")
             if not agent:
                 await _send({"session_id": session_id, "error": "server not ready"})
                 return
@@ -968,12 +970,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 return
 
             try:
-                import functools
-
-                loop = asyncio.get_running_loop()
-                result = await loop.run_in_executor(
-                    None, functools.partial(agent.process, prompt)
-                )
+                result = agent.process(prompt)
             except (RuntimeError, ValueError, TypeError, OSError) as exc:
                 logger.error("WebSocket agent.process() failed: %s", exc)
                 await _send(

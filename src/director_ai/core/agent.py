@@ -125,26 +125,18 @@ class CoherenceAgent:
             return OpenAIProvider(api_key=api_key)
         return AnthropicProvider(api_key=api_key)
 
-    async def process(self, prompt: str, tenant_id: str = "") -> ReviewResult:
+    def process(self, prompt: str, tenant_id: str = "") -> ReviewResult:
         """Process a prompt end-to-end and return the verified output.
 
         Raises:
             ValueError: If *prompt* is empty or not a string.
         """
-        import asyncio
-
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
 
         self.logger.debug("Processing prompt (%d chars)", len(prompt))
 
-        # Assume generator is synchronous for now depending on its implementation
-        if asyncio.iscoroutinefunction(self.generator.generate_candidates):
-            candidates = await self.generator.generate_candidates(prompt)
-        else:
-            candidates = await asyncio.to_thread(
-                self.generator.generate_candidates, prompt
-            )
+        candidates = self.generator.generate_candidates(prompt)
 
         best_response = None
         best_score = None
@@ -155,9 +147,10 @@ class CoherenceAgent:
 
         for i, cand in enumerate(candidates):
             text = cand["text"]
-            approved, score = await self.scorer.review(
-                prompt, text, tenant_id=tenant_id
-            )
+            try:
+                approved, score = self.scorer.review(prompt, text, tenant_id=tenant_id)
+            except TypeError:
+                approved, score = self.scorer.review(prompt, text)
 
             self.logger.info(
                 f"Candidate {i} Coherence={score.score:.4f} | Approved={approved}"
@@ -193,11 +186,11 @@ class CoherenceAgent:
             from .vector_store import VectorGroundTruthStore
 
             if isinstance(self.store, VectorGroundTruthStore):
-                context = await self.store.retrieve_context(prompt, tenant_id=tenant_id)
+                context = self.store.retrieve_context(prompt, tenant_id=tenant_id)
                 if context and isinstance(context, list):
                     context = "; ".join(c.text for c in context)
             else:
-                context = await self.store.retrieve_context(prompt, tenant_id=tenant_id)
+                context = self.store.retrieve_context(prompt, tenant_id=tenant_id)
             if context:
                 return ReviewResult(
                     output=f"Based on verified sources: {context}",
@@ -255,7 +248,7 @@ class CoherenceAgent:
             raise ValueError("prompt must be a non-empty string")
 
         if not hasattr(self.generator, "stream_tokens"):
-            result = await self.process(prompt, tenant_id=tenant_id)
+            result = self.process(prompt, tenant_id=tenant_id)
             for word in result.output.split():
                 yield word, result.coherence.score if result.coherence else 0.0
             return
@@ -263,21 +256,24 @@ class CoherenceAgent:
         self.streaming_kernel.reset_state()
         accumulated: list[str] = []
 
-        async def _coherence_cb(token: str) -> float:
+        def _coherence_cb(token: str) -> float:
             accumulated.append(token)
             text = " ".join(accumulated)
-            _, score = await self.scorer.review(prompt, text, tenant_id=tenant_id)
+            try:
+                _, score = self.scorer.review(prompt, text, tenant_id=tenant_id)
+            except TypeError:
+                _, score = self.scorer.review(prompt, text)
             return float(score.score)
 
         async for token in self.generator.stream_tokens(prompt):  # pragma: no branch
-            score = await _coherence_cb(token)
+            score = _coherence_cb(token)
             yield token, score
             if self.streaming_kernel.check_halt(score):
                 return
 
     # ── Backward-compatible alias ─────────────────────────────────────
 
-    async def process_query(self, prompt):
+    def process_query(self, prompt):
         """Deprecated: use ``process``."""
         import warnings
 
@@ -286,5 +282,5 @@ class CoherenceAgent:
             DeprecationWarning,
             stacklevel=2,
         )
-        result = await self.process(prompt)
+        result = self.process(prompt)
         return result.output

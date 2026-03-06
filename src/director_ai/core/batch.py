@@ -19,9 +19,9 @@ Usage::
 
 from __future__ import annotations
 
-import asyncio
 import logging
 import time
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -79,30 +79,31 @@ class BatchProcessor:
         self.max_concurrency = max_concurrency
         self.item_timeout = item_timeout
 
-    async def process_batch(
+    def process_batch(
         self, prompts: list[str], tenant_id: str = ""
     ) -> BatchResult:
-        """Process a batch of prompts asynchronously.
+        """Process a batch of prompts with concurrent execution.
 
-        Uses ``await backend.process(prompt)`` if backend is CoherenceAgent.
+        Uses ``backend.process(prompt)`` if backend is CoherenceAgent.
         """
         start = time.monotonic()
         metrics.observe("batch_size", float(len(prompts)))
 
         result = BatchResult(total=len(prompts))
         ordered: list[ReviewResult | None] = [None for _ in range(len(prompts))]
-        sem = asyncio.Semaphore(self.max_concurrency)
 
-        async def _run(idx: int, p: str):
-            async with sem:
+        with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
+            futures = {
+                pool.submit(self._process_one, i, p, tenant_id): i
+                for i, p in enumerate(prompts)
+            }
+            for future in futures:
+                idx = futures[future]
                 try:
-                    item_result = await asyncio.wait_for(
-                        self._process_one(idx, p, tenant_id),
-                        timeout=self.item_timeout,
-                    )
+                    item_result = future.result(timeout=self.item_timeout)
                     ordered[idx] = item_result
                     result.succeeded += 1
-                except asyncio.TimeoutError:
+                except FutureTimeout:
                     result.errors.append((idx, "item timeout"))
                     result.failed += 1
                     logger.warning(
@@ -115,18 +116,16 @@ class BatchProcessor:
                     result.failed += 1
                     logger.warning("Batch item %d failed: %s", idx, e)
 
-        await asyncio.gather(*[_run(i, p) for i, p in enumerate(prompts)])
-
         result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
         return result
 
-    async def review_batch(
+    def review_batch(
         self, items: list[tuple[str, str]], tenant_id: str = ""
     ) -> BatchResult:
-        """Batch-review (prompt, response) pairs asynchronously.
+        """Batch-review (prompt, response) pairs with concurrent execution.
 
-        Uses ``await backend.review(prompt, response)`` — backend must be CoherenceScorer.  # noqa: E501
+        Uses ``backend.review(prompt, response)`` — backend must be CoherenceScorer.
         """
         start = time.monotonic()
         metrics.observe("batch_size", float(len(items)))
@@ -135,25 +134,24 @@ class BatchProcessor:
         ordered: list[tuple[bool, CoherenceScore] | None] = [
             None for _ in range(len(items))
         ]
-        sem = asyncio.Semaphore(self.max_concurrency)
 
-        async def _run(idx: int, p: str, r: str):
-            async with sem:
+        with ThreadPoolExecutor(max_workers=self.max_concurrency) as pool:
+            futures = {
+                pool.submit(self._review_one, i, p, r, tenant_id): i
+                for i, (p, r) in enumerate(items)
+            }
+            for future in futures:
+                idx = futures[future]
                 try:
-                    item_result = await asyncio.wait_for(
-                        self._review_one(idx, p, r, tenant_id),
-                        timeout=self.item_timeout,
-                    )
+                    item_result = future.result(timeout=self.item_timeout)
                     ordered[idx] = item_result
                     result.succeeded += 1
-                except asyncio.TimeoutError:
+                except FutureTimeout:
                     result.errors.append((idx, "item timeout"))
                     result.failed += 1
                 except Exception as e:
                     result.errors.append((idx, str(e)))
                     result.failed += 1
-
-        await asyncio.gather(*[_run(i, p, r) for i, (p, r) in enumerate(items)])
 
         result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
@@ -176,18 +174,22 @@ class BatchProcessor:
         old_mc = self.max_concurrency
         if max_concurrency:
             self.max_concurrency = max_concurrency
-        res = await self.process_batch(prompts, tenant_id)
+        res = self.process_batch(prompts, tenant_id)
         self.max_concurrency = old_mc
         return res
 
-    async def _process_one(
+    def _process_one(
         self, index: int, prompt: str, tenant_id: str = ""
     ) -> ReviewResult:
         """Process a single prompt."""
         metrics.gauge_inc("active_requests")
         try:
             with metrics.timer("review_duration_seconds"):
-                result = await self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]  # noqa: E501
+                try:
+                result = self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]  # noqa: E501
+            except TypeError:
+                # Backend doesn't accept tenant_id
+                result = self._backend.process(prompt)  # type: ignore[attr-defined]
             metrics.inc("reviews_total")
             if result.halted:
                 metrics.inc("reviews_rejected")
@@ -199,14 +201,14 @@ class BatchProcessor:
         finally:
             metrics.gauge_dec("active_requests")
 
-    async def _review_one(
+    def _review_one(
         self, index: int, prompt: str, response: str, tenant_id: str = ""
     ) -> tuple[bool, CoherenceScore]:
         """Review a single (prompt, response) pair."""
         metrics.gauge_inc("active_requests")
         try:
             with metrics.timer("review_duration_seconds"):
-                approved, score = await self._backend.review(
+                approved, score = self._backend.review(
                     prompt, response, tenant_id=tenant_id
                 )  # type: ignore[attr-defined]
             metrics.inc("reviews_total")

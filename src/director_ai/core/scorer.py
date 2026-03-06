@@ -218,6 +218,11 @@ class CoherenceScorer:
         self._privacy_mode = privacy_mode
         self._redactor = PIIRedactor(enabled=privacy_mode)
 
+    @staticmethod
+    def _redact_pii(text: str) -> str:
+        """Redact PII from text (static convenience method)."""
+        return PIIRedactor(enabled=True)(text)
+
     # ── LLM-as-judge escalation ───────────────────────────────────────
 
     _DEFAULT_MODELS = {
@@ -313,7 +318,7 @@ class CoherenceScorer:
 
     # ── Factual divergence ────────────────────────────────────────────
 
-    async def calculate_factual_divergence(
+    def calculate_factual_divergence(
         self, prompt, text_output, tenant_id: str = ""
     ):
         """Check output against the Ground Truth Store.
@@ -322,11 +327,7 @@ class CoherenceScorer:
         When strict_mode is True and NLI is unavailable, returns 0.9 (reject).
         """
         if self._rust_scorer is not None:
-            import asyncio
-
-            _, score_obj = await asyncio.to_thread(
-                self._rust_scorer.review, prompt, text_output
-            )
+            _, score_obj = self._rust_scorer.review(prompt, text_output)
             fallback = 1.0 - getattr(score_obj, "score", 0.5)
             return getattr(score_obj, "h_factual", fallback)
 
@@ -334,7 +335,7 @@ class CoherenceScorer:
             return DIVERGENCE_NEUTRAL
 
         with metrics.timer("factual_retrieval_seconds"):
-            context = await self.ground_truth_store.retrieve_context(
+            context = self.ground_truth_store.retrieve_context(
                 prompt, tenant_id=tenant_id
             )
         if not context:
@@ -350,7 +351,7 @@ class CoherenceScorer:
 
         return self._heuristic_factual(context, text_output)
 
-    async def calculate_factual_divergence_with_evidence(
+    def calculate_factual_divergence_with_evidence(
         self, prompt, text_output, tenant_id: str = ""
     ) -> tuple[float, ScoringEvidence | None]:
         """Like calculate_factual_divergence but also returns evidence."""
@@ -363,13 +364,13 @@ class CoherenceScorer:
             from .vector_store import VectorGroundTruthStore
 
             if isinstance(self.ground_truth_store, VectorGroundTruthStore):
-                chunks = await self.ground_truth_store.retrieve_context_with_chunks(
+                chunks = self.ground_truth_store.retrieve_context_with_chunks(
                     prompt, tenant_id=tenant_id
                 )
                 if chunks:
                     context = "; ".join(c.text for c in chunks)
             else:
-                context = await self.ground_truth_store.retrieve_context(
+                context = self.ground_truth_store.retrieve_context(
                     prompt, tenant_id=tenant_id
                 )
                 if context:
@@ -498,13 +499,13 @@ class CoherenceScorer:
 
     # ── Shared helpers ────────────────────────────────────────────────
 
-    async def _heuristic_coherence(self, prompt, action, tenant_id: str = ""):
+    def _heuristic_coherence(self, prompt, action, tenant_id: str = ""):
         """Compute coherence components.
 
         Returns (h_logical, h_factual, coherence, evidence).
         """
         h_logic = self.calculate_logical_divergence(prompt, action)
-        h_fact, evidence = await self.calculate_factual_divergence_with_evidence(
+        h_fact, evidence = self.calculate_factual_divergence_with_evidence(
             prompt, action, tenant_id=tenant_id
         )
         total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
@@ -551,21 +552,21 @@ class CoherenceScorer:
 
     # ── Composite scoring ─────────────────────────────────────────────
 
-    async def compute_divergence(self, prompt, action):
+    def compute_divergence(self, prompt, action):
         """
         Compute composite divergence (lower is better).
 
         Weighted sum: ``W_LOGIC * H_logical + W_FACT * H_factual``.
         """
         h_logic = self.calculate_logical_divergence(prompt, action)
-        h_fact = await self.calculate_factual_divergence(prompt, action)
+        h_fact = self.calculate_factual_divergence(prompt, action)
         total = (self.W_LOGIC * h_logic) + (self.W_FACT * h_fact)
         self.logger.debug(
             f"Divergence: Logic={h_logic:.2f}, Fact={h_fact:.2f} -> Total={total:.2f}"
         )
         return total
 
-    async def review(
+    def review(
         self,
         prompt: str,
         action: str,
@@ -583,11 +584,7 @@ class CoherenceScorer:
         with trace_review() as span:
             # Rust fast-path: delegate full review to backfire_kernel
             if self._rust_scorer is not None:
-                import asyncio
-
-                approved_r, score_obj = await asyncio.to_thread(
-                    self._rust_scorer.review, prompt, action
-                )
+                approved_r, score_obj = self._rust_scorer.review(prompt, action)
                 h_l = getattr(score_obj, "h_logical", 0.0)
                 h_f = getattr(score_obj, "h_factual", 0.0)
                 fallback = 1.0 - (self.W_LOGIC * h_l + self.W_FACT * h_f)
@@ -608,7 +605,7 @@ class CoherenceScorer:
                     span.set_attribute("coherence.approved", result[0])
                     span.set_attribute("coherence.cached", True)
                     return result
-            h_logic, h_fact, coherence, evidence = await self._heuristic_coherence(
+            h_logic, h_fact, coherence, evidence = self._heuristic_coherence(
                 prompt, action, tenant_id=tenant_id
             )
 

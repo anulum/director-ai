@@ -51,7 +51,7 @@ class DirectorAIPostprocessor:
         self.store = store or GroundTruthStore()
         if facts:
             for k, v in facts.items():
-                asyncio.run(self.store.add(k, v))
+                self.store.add(k, v)
         self.scorer = CoherenceScorer(
             threshold=threshold,
             ground_truth_store=self.store,
@@ -61,7 +61,7 @@ class DirectorAIPostprocessor:
 
     def check(self, query: str, response: str) -> dict[str, Any]:
         """Score a response against the knowledge base."""
-        approved, cs = asyncio.run(self.scorer.review(query, response))
+        approved, cs = self.scorer.review(query, response)
         return {
             "approved": approved,
             "score": cs.score,
@@ -84,7 +84,7 @@ class DirectorAIPostprocessor:
         filtered = []
         for node in nodes:
             text = getattr(node, "text", "") or str(node)
-            approved, cs = asyncio.run(self.scorer.review(query_str, text))
+            approved, cs = self.scorer.review(query_str, text)
             if approved:
                 if hasattr(node, "metadata") and isinstance(node.metadata, dict):
                     node.metadata["director_ai_score"] = cs.score
@@ -96,4 +96,4 @@ class DirectorAIPostprocessor:
         self, query: str, response: str
     ) -> tuple[bool, CoherenceScore]:
         """Validate a final response (not node-level)."""
-        return asyncio.run(self.scorer.review(query, response))
+        return self.scorer.review(query, response)

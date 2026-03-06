@@ -103,7 +103,7 @@ class CoherenceCallbackHandler(BaseCallbackHandler):
         if not text:
             return
 
-        approved, score = asyncio.run(self.scorer.review(self._current_prompt, text))
+        approved, score = self.scorer.review(self._current_prompt, text)
         self.last_score = score
         self.scores.append(score)
 

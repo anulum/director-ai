@@ -40,7 +40,7 @@ class DirectorAIChecker:
         self.store = store or GroundTruthStore()
         if facts:
             for k, v in facts.items():
-                asyncio.run(self.store.add(k, v))
+                self.store.add(k, v)
         self.scorer = CoherenceScorer(
             threshold=threshold,
             ground_truth_store=self.store,
@@ -73,7 +73,7 @@ class DirectorAIChecker:
         approved_list = []
 
         for reply in replies:
-            approved, cs = asyncio.run(self.scorer.review(query, reply))
+            approved, cs = self.scorer.review(query, reply)
             scores.append(
                 {
                     "score": cs.score,

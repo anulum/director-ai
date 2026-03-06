@@ -138,7 +138,33 @@ def _handle_failure(on_fail, query, response_text, score):
 
 
 def _score_and_gate(scorer, on_fail, query, response_text):
-    approved, cs = asyncio.run(scorer.review(query, response_text))
+    result = scorer.review(query, response_text)
+    if asyncio.iscoroutine(result):
+        try:
+            loop = asyncio.get_running_loop()
+        except RuntimeError:
+            loop = None
+        if loop and loop.is_running():
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                approved, cs = pool.submit(asyncio.run, result).result()
+        else:
+            approved, cs = asyncio.run(result)
+    else:
+        approved, cs = result
+    if on_fail == "metadata":
+        _score_var.set(cs)
+    if not approved:
+        _handle_failure(on_fail, query, response_text, cs)
+    return cs
+
+
+async def _ascore_and_gate(scorer, on_fail, query, response_text):
+    result = scorer.review(query, response_text)
+    if asyncio.iscoroutine(result):
+        approved, cs = await result
+    else:
+        approved, cs = result
     if on_fail == "metadata":
         _score_var.set(cs)
     if not approved:
@@ -178,7 +204,7 @@ class _OpenAICompletionsProxy:
         if streaming:
             return _GuardedOpenAIStream(response, self._scorer, self._on_fail, prompt)
         text = _openai_response_text(response)
-        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        await _ascore_and_gate(self._scorer, self._on_fail, prompt, text)
         return response
 
     def __getattr__(self, name):
@@ -230,9 +256,20 @@ class _GuardedOpenAIStream:
                 self._buffer.append(delta)
                 self._token_count += 1
                 if self._token_count % STREAM_CHECK_INTERVAL == 0:
-                    self._periodic_check()
+                    await self._aperiodic_check()
             yield chunk
-        self._final_check()
+        await self._afinal_check()
+
+    async def _aperiodic_check(self):
+        text = "".join(self._buffer)
+        approved, cs = await self._scorer.review(self._prompt, text)
+        if not approved:
+            _handle_failure(self._on_fail, self._prompt, text, cs)
+
+    async def _afinal_check(self):
+        text = "".join(self._buffer)
+        if text:
+            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
     def _periodic_check(self):
         text = "".join(self._buffer)
@@ -282,7 +319,7 @@ class _AnthropicMessagesProxy:
                 response, self._scorer, self._on_fail, prompt
             )
         text = _anthropic_response_text(response)
-        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        await _ascore_and_gate(self._scorer, self._on_fail, prompt, text)
         return response
 
     def __getattr__(self, name):
@@ -338,9 +375,20 @@ class _GuardedAnthropicStream:
                 self._buffer.append(text)
                 self._token_count += 1
                 if self._token_count % STREAM_CHECK_INTERVAL == 0:
-                    self._periodic_check()
+                    await self._aperiodic_check()
             yield event
-        self._final_check()
+        await self._afinal_check()
+
+    async def _aperiodic_check(self):
+        text = "".join(self._buffer)
+        approved, cs = await self._scorer.review(self._prompt, text)
+        if not approved:
+            _handle_failure(self._on_fail, self._prompt, text, cs)
+
+    async def _afinal_check(self):
+        text = "".join(self._buffer)
+        if text:
+            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
     def _periodic_check(self):
         text = "".join(self._buffer)
