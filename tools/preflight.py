@@ -14,7 +14,19 @@ SPDX_MARKER = "SPDX-License-Identifier"
 GATES = [
     ("ruff-format", ["python", "-m", "ruff", "format", "--check", "src/", "tests/"]),
     ("ruff-check", ["python", "-m", "ruff", "check", "src/", "tests/"]),
-    ("bandit", ["python", "-m", "bandit", "-r", "src/director_ai/", "-c", "pyproject.toml", "-q"]),
+    (
+        "bandit",
+        [
+            "python",
+            "-m",
+            "bandit",
+            "-r",
+            "src/director_ai/",
+            "-c",
+            "pyproject.toml",
+            "-q",
+        ],
+    ),
     ("spdx-guard", None),
     (
         "pytest",
