@@ -13,6 +13,12 @@ inout = "inout"
 nd = "nd"
 rag = "rag"
 hlt = "hlt"
+FPR = "FPR"
+fpr = "fpr"
+ba = "ba"
+Wice = "Wice"
+arange = "arange"
+thr = "thr"
 
 [files]
 extend-exclude = [
