@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import discord
 
@@ -29,7 +29,7 @@ def release_embed(
         description=desc,
         color=BLURPLE,
         url=release_url,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     em.add_field(
         name="Install",
@@ -63,7 +63,7 @@ def ci_embed(
         title=f"CI {status}",
         color=color,
         url=run_url,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     em.add_field(name="Branch", value=f"`{branch}`", inline=True)
     em.add_field(name="Commit", value=f"`{sha[:7]}`", inline=True)
@@ -87,7 +87,7 @@ def status_embed(
     em = discord.Embed(
         title="Director-AI Status",
         color=BLURPLE,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     em.add_field(name="PyPI", value=f"`{pypi_version}`", inline=True)
     if ci_conclusion and ci_run_url:
@@ -117,7 +117,7 @@ def docker_embed(
     em = discord.Embed(
         title="Docker images published",
         color=DOCKER_BLUE,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     if cpu_tags:
         em.add_field(
@@ -152,7 +152,7 @@ def welcome_embed(display_name: str) -> discord.Embed:
             f"[PyPI]({PYPI_URL})"
         ),
         color=BLURPLE,
-        timestamp=datetime.now(timezone.utc),
+        timestamp=datetime.now(UTC),
     )
     em.set_footer(text=REPO, icon_url="https://github.com/anulum.png")
     return em

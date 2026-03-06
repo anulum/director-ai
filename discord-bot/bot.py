@@ -5,7 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import discord
 import httpx
@@ -241,7 +241,7 @@ def register_commands(tree: app_commands.CommandTree) -> None:
             description=desc or "No release notes.",
             color=0x5865F2,
             url=url,
-            timestamp=datetime.now(timezone.utc),
+            timestamp=datetime.now(UTC),
         )
         em.set_footer(text=REPO)
         await interaction.followup.send(embed=em)
