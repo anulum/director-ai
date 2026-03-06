@@ -46,7 +46,7 @@ class TestRerankedBackend:
 
         reranker = _make_reranked(base, top_k_multiplier=3)
         results = reranker.query("test", n_results=2)
-        base.query.assert_called_once_with("test", n_results=6)
+        base.query.assert_called_once_with("test", n_results=6, tenant_id="")
         assert len(results) == 2
 
     def test_add_delegates_to_base(self):

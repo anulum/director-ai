@@ -318,9 +318,7 @@ class CoherenceScorer:
 
     # ── Factual divergence ────────────────────────────────────────────
 
-    def calculate_factual_divergence(
-        self, prompt, text_output, tenant_id: str = ""
-    ):
+    def calculate_factual_divergence(self, prompt, text_output, tenant_id: str = ""):
         """Check output against the Ground Truth Store.
 
         Returns 0.0 (aligned) to 1.0 (hallucinated).
@@ -424,8 +422,10 @@ class CoherenceScorer:
         """
         from ._heuristics import ENTITY_RE, NEGATION_WORDS, STOP_WORDS
 
-        ctx_words = set(re.findall(r"\w+", context.lower())) - STOP_WORDS
-        out_words = set(re.findall(r"\w+", text_output.lower())) - STOP_WORDS
+        ctx_raw = set(re.findall(r"\w+", context.lower()))
+        out_raw = set(re.findall(r"\w+", text_output.lower()))
+        ctx_words = ctx_raw - STOP_WORDS
+        out_words = out_raw - STOP_WORDS
         if not ctx_words or not out_words:
             return DIVERGENCE_NEUTRAL
 
@@ -435,9 +435,9 @@ class CoherenceScorer:
         similarity = max(recall, precision)
         divergence = 1.0 - similarity
 
-        # Negation asymmetry: one side negates, other doesn't → +0.25
-        ctx_neg = bool(ctx_words & NEGATION_WORDS)
-        out_neg = bool(out_words & NEGATION_WORDS)
+        # Negation asymmetry: check raw words (before stop-word removal)
+        ctx_neg = bool(ctx_raw & NEGATION_WORDS)
+        out_neg = bool(out_raw & NEGATION_WORDS)
         if ctx_neg != out_neg:
             divergence += 0.25
 
@@ -488,10 +488,8 @@ class CoherenceScorer:
         if not prompt:
             return DIVERGENCE_NEUTRAL
 
-        from ._heuristics import STOP_WORDS
-
-        p_words = set(re.findall(r"\w+", prompt.lower())) - STOP_WORDS
-        o_words = set(re.findall(r"\w+", out)) - STOP_WORDS
+        p_words = set(re.findall(r"\w+", prompt.lower()))
+        o_words = set(re.findall(r"\w+", out))
         if not p_words or not o_words:
             return DIVERGENCE_NEUTRAL
         similarity = len(p_words & o_words) / len(p_words | o_words)

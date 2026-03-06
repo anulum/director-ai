@@ -22,7 +22,7 @@ impl WasmStreamingKernel {
     pub fn new(config_json: &str) -> Result<WasmStreamingKernel, JsValue> {
         let config = BackfireConfig::from_json(config_json)
             .map_err(|e| JsValue::from_str(&e.to_string()))?;
-            
+
         Ok(WasmStreamingKernel {
             window: VecDeque::with_capacity(config.window_size),
             config,
@@ -34,7 +34,7 @@ impl WasmStreamingKernel {
     #[wasm_bindgen]
     pub fn process_token(&mut self, token: &str, score: f64) -> JsValue {
         let i = self.session.tokens.len();
-        
+
         let mut event = TokenEvent {
             token: token.to_string(),
             index: i as u32,
@@ -51,7 +51,7 @@ impl WasmStreamingKernel {
         self.session.tokens.push(token.to_string());
         self.session.coherence_history.push(score);
         self.window.push_back(score);
-        
+
         if self.window.len() > self.config.window_size {
             self.window.pop_front();
         }
@@ -66,7 +66,13 @@ impl WasmStreamingKernel {
         if self.window.len() >= self.config.window_size {
             let avg: f64 = self.window.iter().sum::<f64>() / self.window.len() as f64;
             if avg < self.config.window_threshold {
-                self.halt(i, "window_avg", avg, self.config.window_threshold, &mut event);
+                self.halt(
+                    i,
+                    "window_avg",
+                    avg,
+                    self.config.window_threshold,
+                    &mut event,
+                );
                 return serde_wasm_bindgen::to_value(&self.session).unwrap();
             }
         }
@@ -77,7 +83,13 @@ impl WasmStreamingKernel {
                 [self.session.coherence_history.len() - self.config.trend_window..];
             let drop = recent[0] - recent[recent.len() - 1];
             if drop > self.config.trend_threshold {
-                self.halt(i, "downward_trend", drop, self.config.trend_threshold, &mut event);
+                self.halt(
+                    i,
+                    "downward_trend",
+                    drop,
+                    self.config.trend_threshold,
+                    &mut event,
+                );
                 return serde_wasm_bindgen::to_value(&self.session).unwrap();
             }
         }
@@ -85,12 +97,12 @@ impl WasmStreamingKernel {
         self.session.events.push(event);
         serde_wasm_bindgen::to_value(&self.session).unwrap()
     }
-    
+
     #[wasm_bindgen]
     pub fn is_active(&self) -> bool {
         self.is_active
     }
-    
+
     #[wasm_bindgen]
     pub fn get_session(&self) -> JsValue {
         serde_wasm_bindgen::to_value(&self.session).unwrap()
@@ -102,10 +114,14 @@ impl WasmStreamingKernel {
         event.halted = true;
         self.session.halted = true;
         self.session.halt_index = i as i32;
-        
-        let operator = if reason_key == "downward_trend" { ">" } else { "<" };
+
+        let operator = if reason_key == "downward_trend" {
+            ">"
+        } else {
+            "<"
+        };
         self.session.halt_reason = format!("{reason_key} ({val:.4} {operator} {limit})");
-        
+
         self.is_active = false;
         self.session.events.push(event.clone());
     }

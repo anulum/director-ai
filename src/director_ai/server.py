@@ -22,11 +22,10 @@ import asyncio
 import contextvars
 import hmac
 import logging
+import time
 import uuid
-from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import Any
-import time
 
 from .core.config import DirectorConfig
 from .core.metrics import metrics
@@ -72,14 +71,6 @@ def _check_fastapi() -> None:
             "FastAPI is required for the server. "
             "Install with: pip install director-ai[server]"
         )
-
-
-try:
-    import jwt
-
-    _JWT_AVAILABLE = True
-except ImportError:
-    _JWT_AVAILABLE = False
 
 
 # ── Pydantic request/response models ─────────────────────────────────
@@ -217,41 +208,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         app.state._state = {}  # Initialize _state on app.state
 
-        # Optional Rate Limiter Setup
-        if _SLOWAPI_AVAILABLE and getattr(cfg, "rate_limit_enabled", False):
-            from slowapi.errors import RateLimitExceeded
-            from slowapi.util import get_remote_address
-
-            def _get_tenant_or_ip(request: Request) -> str:
-                # Group rate limits heavily by tenant if present, fall back to IP.
-                if hasattr(request.state, "tenant_id"):
-                    return f"tenant:{request.state.tenant_id}"
-                auth_header = request.headers.get("Authorization")
-                if auth_header and auth_header.startswith("Bearer "):
-                    token = auth_header.split(" ")[1]
-                    try:
-                        payload = jwt.decode(token, options={"verify_signature": False})
-                        tenant_id = payload.get("tenant_id")
-                        if tenant_id:
-                            return f"tenant:{tenant_id}"
-                    except Exception:
-                        pass
-                return get_remote_address(request)
-
-            limiter = Limiter(key_func=_get_tenant_or_ip)
-            app.state.limiter = limiter
-
-            def _rate_limit_exceeded_handler(request: Request, exc: Exception):
-                return JSONResponse({"detail": "Rate limit exceeded"}, status_code=429)
-
-            app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-            logger.info(
-                "Tenant-Aware Rate Limiting enabled: %s",
-                getattr(cfg, "rate_limit_requests", "100/minute"),
-            )
-        else:
-            app.state.limiter = None
-
         from .core.agent import CoherenceAgent
         from .core.audit import AuditLogger
         from .core.batch import BatchProcessor
@@ -350,9 +306,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.config = cfg
-
-    if _SLOWAPI_AVAILABLE and getattr(cfg, "rate_limit_enabled", False):
-        app.add_middleware(SlowAPIMiddleware)
 
     _origins = [o.strip() for o in cfg.cors_origins.split(",") if o.strip()]
     if len(_origins) > 100:
@@ -481,14 +434,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         request: Request,
     ) -> ReviewResponse:
         """Score an AI response against a given prompt using the active agent."""
-        limiter = request.app.state.limiter
-        if limiter:
-            cfg = request.app.state.config
-            limit_str = getattr(cfg, "rate_limit_requests", "100/minute")
-            # Apply limit manually within endpoint
-            limiter._check_request_limit(
-                request, limiter._endpoint_from_request(request), [limit_str]
-            )
         sanitizer = request.app.state._state.get("sanitizer")
         if sanitizer:
             check = sanitizer.check(req.prompt)
@@ -573,13 +518,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         request: Request,
     ) -> ProcessResponse | PlainTextResponse:
         """Process a prompt through the Director AI pipeline."""
-        limiter = request.app.state.limiter
-        if limiter:
-            cfg = request.app.state.config
-            limit_str = getattr(cfg, "rate_limit_requests", "100/minute")
-            limiter._check_request_limit(
-                request, limiter._endpoint_from_request(request), [limit_str]
-            )
         sanitizer = request.app.state._state.get("sanitizer")
         if sanitizer:
             check = sanitizer.check(req.prompt)
@@ -656,13 +594,6 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         request: Request,
     ) -> BatchResponse:
         """Process a batch of prompts through the active pipeline."""
-        limiter = request.app.state.limiter
-        if limiter:
-            cfg = request.app.state.config
-            limit_str = getattr(cfg, "rate_limit_requests", "100/minute")
-            limiter._check_request_limit(
-                request, limiter._endpoint_from_request(request), [limit_str]
-            )
         sanitizer = request.app.state._state.get("sanitizer")
         if sanitizer:
             for p in req.prompts:
@@ -698,9 +629,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 ]
                 batch_res = batcher.review_batch(pairs, tenant_id=tenant_id)
             else:
-                batch_res = batcher.process_batch(
-                    req.prompts, tenant_id=tenant_id
-                )
+                batch_res = batcher.process_batch(req.prompts, tenant_id=tenant_id)
             duration = time.monotonic() - start_t
 
             from director_ai.core.types import ReviewResult
@@ -761,7 +690,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         return {"status": "ok", "tenant_id": tenant_id, "key": req.key}
 
     @app.post("/v1/tenants/{tenant_id}/vector-facts")
-    async def add_tenant_vector_fact(request: Request, tenant_id: str, req: TenantVectorFactRequest):
+    async def add_tenant_vector_fact(
+        request: Request, tenant_id: str, req: TenantVectorFactRequest
+    ):
         router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")

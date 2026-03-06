@@ -85,9 +85,7 @@ def create_grpc_server(
         """Implements the DirectorService RPC methods."""
 
         def Review(self, request, context):  # noqa: N802
-            approved, score = scorer.review(
-                request.prompt, request.response
-            )
+            approved, score = scorer.review(request.prompt, request.response)
             return review_resp(
                 approved=approved,
                 coherence=score.score,
@@ -129,7 +127,6 @@ def create_grpc_server(
             return batch_resp(responses=responses)
 
         def StreamTokens(self, request, context):  # noqa: N802
-            import asyncio
             import queue
 
             q: queue.Queue[tuple[str, float] | None] = queue.Queue()

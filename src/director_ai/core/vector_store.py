@@ -134,10 +134,13 @@ class InMemoryBackend(VectorBackend):
         ]
         if not docs:
             return []
-        query_words = set(text.lower().split())
+        import re
+
+        _strip = re.compile(r"[^\w\s]")
+        query_words = set(_strip.sub("", text).lower().split())
         scored: list[tuple[float, dict[str, Any]]] = []
         for doc in docs:
-            doc_words = set(doc["text"].lower().split())
+            doc_words = set(_strip.sub("", doc["text"]).lower().split())
             overlap = len(query_words & doc_words)
             total = max(len(query_words | doc_words), 1)
             similarity = overlap / total
@@ -579,9 +582,7 @@ class QdrantBackend(VectorBackend):
         vector = self._embed_fn(text)
         payload = {"text": text, **(metadata or {})}
         point = PointStruct(id=doc_id, vector=vector, payload=payload)
-        self._client.upsert(
-            collection_name=self._collection, points=[point]
-        )
+        self._client.upsert(collection_name=self._collection, points=[point])
 
     def query(
         self, text: str, n_results: int = 3, tenant_id: str = ""
@@ -649,7 +650,8 @@ class VectorGroundTruthStore(GroundTruthStore):
         self.tenant_id = tenant_id
 
     def add_fact(self, key: str, value: str, tenant_id: str = "") -> None:
-        """Alias for add() — used by some callers."""
+        """Alias for add() — also populates parent keyword store."""
+        self.facts[key] = value
         self.add(key, value, tenant_id=tenant_id)
 
     def ingest(self, texts: list[str], tenant_id: str = "") -> int:

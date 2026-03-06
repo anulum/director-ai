@@ -146,6 +146,7 @@ def _score_and_gate(scorer, on_fail, query, response_text):
             loop = None
         if loop and loop.is_running():
             import concurrent.futures
+
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
                 approved, cs = pool.submit(asyncio.run, result).result()
         else:
@@ -262,9 +263,7 @@ class _GuardedOpenAIStream:
 
     async def _aperiodic_check(self):
         text = "".join(self._buffer)
-        approved, cs = await self._scorer.review(self._prompt, text)
-        if not approved:
-            _handle_failure(self._on_fail, self._prompt, text, cs)
+        await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
     async def _afinal_check(self):
         text = "".join(self._buffer)
@@ -381,9 +380,7 @@ class _GuardedAnthropicStream:
 
     async def _aperiodic_check(self):
         text = "".join(self._buffer)
-        approved, cs = await self._scorer.review(self._prompt, text)
-        if not approved:
-            _handle_failure(self._on_fail, self._prompt, text, cs)
+        await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
     async def _afinal_check(self):
         text = "".join(self._buffer)

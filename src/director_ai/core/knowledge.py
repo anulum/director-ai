@@ -50,20 +50,13 @@ class GroundTruthStore:
         """Alias for add() — used by some callers."""
         self.add(key, value, tenant_id=tenant_id)
 
-
     def retrieve_context_with_chunks(self, query: str, tenant_id: str = "") -> list:
         from .types import EvidenceChunk
+
         context_str = self.retrieve_context(query, tenant_id=tenant_id)
         if not context_str:
             return []
-        return [
-            EvidenceChunk(
-                text=context_str,
-                distance=0.0,
-                source="keyword"
-            )
-        ]
-
+        return [EvidenceChunk(text=context_str, distance=0.0, source="keyword")]
 
     def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
         """

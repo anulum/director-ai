@@ -21,7 +21,8 @@ from __future__ import annotations
 
 import logging
 import time
-from concurrent.futures import ThreadPoolExecutor, TimeoutError as FutureTimeout
+from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -79,9 +80,7 @@ class BatchProcessor:
         self.max_concurrency = max_concurrency
         self.item_timeout = item_timeout
 
-    def process_batch(
-        self, prompts: list[str], tenant_id: str = ""
-    ) -> BatchResult:
+    def process_batch(self, prompts: list[str], tenant_id: str = "") -> BatchResult:
         """Process a batch of prompts with concurrent execution.
 
         Uses ``backend.process(prompt)`` if backend is CoherenceAgent.
@@ -186,10 +185,9 @@ class BatchProcessor:
         try:
             with metrics.timer("review_duration_seconds"):
                 try:
-                result = self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]  # noqa: E501
-            except TypeError:
-                # Backend doesn't accept tenant_id
-                result = self._backend.process(prompt)  # type: ignore[attr-defined]
+                    result = self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]  # noqa: E501
+                except TypeError:
+                    result = self._backend.process(prompt)  # type: ignore[attr-defined]
             metrics.inc("reviews_total")
             if result.halted:
                 metrics.inc("reviews_rejected")
