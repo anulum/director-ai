@@ -1,0 +1,25 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+[default.extend-words]
+# Domain-specific terms that are not typos
+nli = "nli"
+otel = "otel"
+qdrant = "qdrant"
+grpc = "grpc"
+deberta = "deberta"
+onnx = "onnx"
+hallucinated = "hallucinated"
+ser = "ser"
+inout = "inout"
+nd = "nd"
+rag = "rag"
+hlt = "hlt"
+
+[files]
+extend-exclude = [
+    "*.npz",
+    "*.npy",
+    "*.onnx",
+    "*.pkl",
+    "*.pt",
+    "backfire-kernel/target/",
+]

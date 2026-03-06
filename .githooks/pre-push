@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Pre-push hook: run lint-only preflight (no tests for speed).
+python tools/preflight.py --no-tests

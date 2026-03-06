@@ -119,6 +119,7 @@ dev = [
     "pytest-asyncio>=0.21",
     "ruff>=0.5,<1",
     "mypy>=1.10",
+    "bandit>=1.7",
     "pyyaml>=6.0",
     "build>=1.0",
     "twine>=5.0",
@@ -144,6 +145,7 @@ Repository = "https://github.com/anulum/director-ai"
 Issues = "https://github.com/anulum/director-ai/issues"
 Changelog = "https://github.com/anulum/director-ai/blob/main/CHANGELOG.md"
 Documentation = "https://anulum.github.io/director-ai"
+Discussions = "https://discord.gg/JvMdKv49"
 
 [tool.setuptools.packages.find]
 where = ["src"]

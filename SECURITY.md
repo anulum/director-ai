@@ -4,16 +4,17 @@
 
 | Version | Supported |
 |---------|-----------|
-| 2.6.x   | Yes |
-| < 2.6   | No  |
+| 2.8.x   | Yes |
+| < 2.8   | No  |
 
 Only the latest release receives security fixes.
 
 ## Reporting a Vulnerability
 
-1. **Email:** protoscience@anulum.li
-2. **Subject:** `[SECURITY] Director-AI — <brief description>`
-3. **Do not** open a public GitHub issue for security vulnerabilities.
+1. **GitHub Security Advisories** (preferred): [Report here](https://github.com/anulum/director-ai/security/advisories/new)
+2. **Email:** protoscience@anulum.li
+3. **Subject:** `[SECURITY] Director-AI — <brief description>`
+4. **Do not** open a public GitHub issue for security vulnerabilities.
 
 We will acknowledge receipt within 48 hours and aim to provide a fix within
 7 days for critical issues.

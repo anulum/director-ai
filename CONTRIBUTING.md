@@ -11,8 +11,26 @@
 
 ```bash
 pip install -e ".[dev,research]"
+make install-hooks
 pytest tests/ -v
 ```
+
+## Makefile Targets
+
+| Target | Command | Description |
+|--------|---------|-------------|
+| `make test` | `pytest tests/ -v --cov` | Run tests with coverage |
+| `make test-rust` | `cargo test` in backfire-kernel | Run Rust tests |
+| `make test-all` | test + test-rust | Both suites |
+| `make lint` | `ruff format --check` + `ruff check` | Check style |
+| `make fmt` | `ruff format` + `ruff check --fix` | Auto-fix style |
+| `make bandit` | `bandit -r src/director_ai/` | SAST scan |
+| `make preflight` | `python tools/preflight.py` | Full preflight gate |
+| `make preflight-fast` | `preflight.py --no-tests` | Lint-only (~5s) |
+| `make docs` | `mkdocs serve` | Local docs server |
+| `make build` | `python -m build` | Build sdist + wheel |
+| `make install-hooks` | `git config core.hooksPath .githooks` | Install pre-push hook |
+| `make clean` | Remove dist/, build/, __pycache__ | Clean build artifacts |
 
 ## Code Style
 
@@ -88,4 +106,4 @@ The package lives in `src/director_ai/` with two profiles:
 ## License
 
 By contributing, you agree that your contributions will be licensed under
-GNU AGPL v3.0. See [NOTICE](NOTICE) for dual-licensing details.
+GNU AGPL v3.0. See [NOTICE.md](NOTICE.md) for dual-licensing details.

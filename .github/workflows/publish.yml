@@ -1,8 +1,6 @@
-# ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — PyPI Publish
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# ─────────────────────────────────────────────────────────────────────
-
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# © 1998–2026 Miroslav Šotek. All rights reserved.
+# Contact: www.anulum.li | protoscience@anulum.li
 name: Publish to PyPI
 
 on:
@@ -11,6 +9,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
