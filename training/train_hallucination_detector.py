@@ -153,7 +153,7 @@ def main():
     weights = compute_class_weight(
         "balanced", classes=np.array([0, 1, 2]), y=train_labels
     )
-    logger.info("Class weights: %s", dict(zip(LABEL_NAMES, weights)))
+    logger.info("Class weights: %s", dict(zip(LABEL_NAMES, weights, strict=False)))
 
     training_args = TrainingArguments(
         output_dir=str(OUTPUT_DIR),

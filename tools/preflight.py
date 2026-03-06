@@ -56,9 +56,9 @@ def check_spdx() -> bool:
 
 
 def run_gate(name: str, cmd) -> bool:
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  GATE: {name}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     if cmd is None:
         ok = check_spdx()
     else:
@@ -69,9 +69,13 @@ def run_gate(name: str, cmd) -> bool:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Director-AI preflight checks")
-    parser.add_argument("--no-tests", action="store_true", help="Skip pytest (fast lint-only mode)")
     parser.add_argument(
-        "--coverage", action="store_true", help="Same as default (tests always include coverage)"
+        "--no-tests", action="store_true", help="Skip pytest (fast lint-only mode)"
+    )
+    parser.add_argument(
+        "--coverage",
+        action="store_true",
+        help="Same as default (tests always include coverage)",
     )
     args = parser.parse_args()
 
@@ -86,11 +90,11 @@ def main() -> int:
         else:
             failed.append(name)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  PREFLIGHT: {len(passed)} passed, {len(failed)} failed")
     if failed:
         print(f"  FAILED: {', '.join(failed)}")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     return 1 if failed else 0
 
 

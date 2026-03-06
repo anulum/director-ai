@@ -279,7 +279,7 @@ def main():
     weights = compute_class_weight(
         "balanced", classes=np.array([0, 1, 2]), y=train_labels
     )
-    logger.info("Class weights: %s", dict(zip(LABEL_NAMES, weights)))
+    logger.info("Class weights: %s", dict(zip(LABEL_NAMES, weights, strict=False)))
 
     # L40S 48GB: batch 16 fits comfortably, accumulate 2 for effective 32
     training_args = TrainingArguments(
