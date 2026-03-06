@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-.PHONY: test lint fmt docs bench clean build preflight bandit sast install-hooks docker-build docker-run
+.PHONY: test lint fmt docs bench clean build preflight bandit sast install-hooks docker-build docker-run backup
 
 test:
 	pytest tests/ -v --cov=director_ai --cov-report=term --cov-fail-under=90
@@ -50,6 +50,12 @@ docker-build:
 
 docker-run:
 	docker run --rm -it -p 8080:8080 director-ai:latest
+
+backup:
+	@VERSION=$$(python -c "from director_ai import __version__; print(__version__)") && \
+	DEST="../../.coordination/backups/director-ai-v$${VERSION}-stable-$$(date +%Y%m%d).bundle" && \
+	git bundle create "$$DEST" --all && \
+	echo "Backup: $$DEST ($$(du -h "$$DEST" | cut -f1))"
 
 clean:
 	rm -rf dist/ build/ *.egg-info
