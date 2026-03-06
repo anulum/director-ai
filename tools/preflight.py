@@ -71,10 +71,7 @@ def run_gate(name: str, cmd) -> bool:
     print(f"\n{'=' * 60}")
     print(f"  GATE: {name}")
     print(f"{'=' * 60}")
-    if cmd is None:
-        ok = check_spdx()
-    else:
-        ok = subprocess.run(cmd).returncode == 0
+    ok = check_spdx() if cmd is None else subprocess.run(cmd).returncode == 0
     print(f"  {'PASS' if ok else 'FAIL'}: {name}")
     return ok
 

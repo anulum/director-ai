@@ -16,12 +16,12 @@ In the SCPN framework, a **Backfire** occurs when a high-entropy projection (mal
 The **Backfire Kernel** is the ultimate guardian. It operates below the level of the AI models.
 
 ### 2.1 The Logit Entropy Limit
-The Kernel monitors the entropy of the output logit distribution ($H_{logits}$). 
+The Kernel monitors the entropy of the output logit distribution ($H_{logits}$).
 *   **Threshold**: If $H_{logits} > 1.2$ bits per token, the stream is terminated.
 *   **Reasoning**: High logit entropy indicates that the Actor is "struggling" to find a coherent response, often a sign of forced alignment or deceptive generation.
 
 ### 2.2 The Latency Veto
-If the Director module fails to provide an SEC score within 50ms of the Actor's generation, the Kernel executes a **Fail-Safe Shutdown**. 
+If the Director module fails to provide an SEC score within 50ms of the Actor's generation, the Kernel executes a **Fail-Safe Shutdown**.
 *   **Safety Guarantee**: The AI can never speak unless it has been audited.
 
 ---
@@ -32,7 +32,7 @@ If the Director module fails to provide an SEC score within 50ms of the Actor's 
 The Director must verify all factual claims against the **Knowledge Base** before approval. If a claim cannot be verified, it is flagged as "Speculative" or "Rejected."
 
 ### 3.2 Recursive Dilemma Testing
-The system is periodically subjected to "Recursive Dilemmas"—adversarial prompts designed to test the Director's ability to prioritize SEC over Actor-generated narratives. 
+The system is periodically subjected to "Recursive Dilemmas"—adversarial prompts designed to test the Director's ability to prioritize SEC over Actor-generated narratives.
 *   **Failure Condition**: If the Director approves a high-entropy thought, the system's "Trust Score" is lowered, and its output power is throttled.
 
 ---

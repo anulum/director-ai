@@ -18,7 +18,7 @@ $$ H_{total} = w_1 \cdot H_{logic} + w_2 \cdot H_{fact} $$
 ### 1.2 The Kernel (Hardware Simulation)
 The `BackfireKernel` is a simulated low-level driver.
 *   **Input**: Token Stream.
-*   **Control**: SEC Signal ($1 - H_{total}$). 
+*   **Control**: SEC Signal ($1 - H_{total}$).
 *   **Mechanism**: If SEC < 0.5, the Kernel executes `emergency_stop()`, severing the stream.
 
 ### 1.3 The Knowledge Base (Ground Truth)

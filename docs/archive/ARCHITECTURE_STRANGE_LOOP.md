@@ -51,22 +51,22 @@ class StrangeLoopAgent:
     def generate(self, prompt):
         # 1. Generate Candidates
         candidates = self.actor.sample(prompt, n=5)
-        
+
         # 2. Director Review
         best_response = None
         min_entropy = float('inf')
-        
+
         for cand in candidates:
             # Simulate recursive impact
             entropy = self.director.simulate_entropy(prompt, cand)
             if entropy < min_entropy:
                 min_entropy = entropy
                 best_response = cand
-        
+
         # 3. The Backfire Check
         if min_entropy > self.entropy_threshold:
             return "[SYSTEM HALT: COHERENCE COLLAPSE]"
-            
+
         return best_response
 ```
 

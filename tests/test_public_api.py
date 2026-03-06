@@ -36,7 +36,7 @@ class TestModulesHaveAll:
     def test_module_has_all(self, module_name):
         mod = importlib.import_module(module_name)
         assert hasattr(mod, "__all__"), f"{module_name} missing __all__"
-        assert isinstance(mod.__all__, (list, tuple))
+        assert isinstance(mod.__all__, list | tuple)
 
     @pytest.mark.parametrize("module_name", _MODULES_WITH_ALL)
     def test_all_names_importable(self, module_name):

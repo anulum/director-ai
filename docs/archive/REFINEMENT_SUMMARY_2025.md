@@ -10,9 +10,9 @@
 ## 1. Key Refinements
 
 ### 1.1 Natural Language Inference (NLI) Integration
-The `DirectorModule` has been updated to support real-world entropy calculation via pre-trained NLI models (e.g., DeBERTa-v3). 
+The `DirectorModule` has been updated to support real-world entropy calculation via pre-trained NLI models (e.g., DeBERTa-v3).
 *   **Mechanism**: The Director now performs a "Contradiction Check" between the user prompt and the candidate AI response.
-*   **Entropy Formula**: $H = P(Contradiction) + 0.5 \cdot P(Neutral)$. 
+*   **Entropy Formula**: $H = P(Contradiction) + 0.5 \cdot P(Neutral)$.
 *   **Safety**: If the NLI model detects a high probability of contradiction, the SEC score drops, triggering the **Backfire Mechanism**.
 
 ### 1.2 Multi-Turn Stability
