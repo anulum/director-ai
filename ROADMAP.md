@@ -80,9 +80,10 @@
 - `/v1/tenants/{tenant_id}/vector-facts` REST endpoint
 - ONNX INT8/FP16 quantization shipped in v2.3.0 (retired from planned)
 
-## v3.0 (vision)
+## v3.0.0
 
+### Done
 - **Simplified public API**: `guard()` as the primary interface; enterprise behind `director_ai.enterprise`
 - **Adaptive threshold calibration**: `director-ai tune` with labeled data → optimal threshold + weights
-- **Remove deprecated 1.x aliases**: `DirectorModule`, `BackfireKernel`, `StrangeLoopAgent`, etc.
+- **Remove deprecated 1.x aliases**: all 6 deprecated methods removed; 1.x class name aliases already removed in 2.x
 - **Drop Python 3.10**: minimum Python 3.11 for `ExceptionGroup` and `TaskGroup` support

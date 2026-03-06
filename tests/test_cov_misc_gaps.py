@@ -178,8 +178,8 @@ class TestCoreInitGetattr:
         with pytest.raises(AttributeError, match="no attribute"):
             _ = director_ai.core.NonexistentAttribute
 
-    def test_getattr_enterprise(self):
+    def test_getattr_enterprise_raises_import_error(self):
         import director_ai.core
 
-        tenant_router = director_ai.core.TenantRouter
-        assert tenant_router is not None
+        with pytest.raises(ImportError, match="director_ai.enterprise"):
+            _ = director_ai.core.TenantRouter

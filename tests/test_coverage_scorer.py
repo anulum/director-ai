@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import warnings
 
 import pytest
 
@@ -209,31 +208,23 @@ class TestScorerAsync:
         assert isinstance(approved, bool)
 
 
-class TestScorerDeprecated:
-    def test_calculate_factual_entropy(self):
+class TestScorerCurrentAPI:
+    def test_calculate_factual_divergence(self):
         scorer = CoherenceScorer(use_nli=False)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            result = scorer.calculate_factual_entropy("q", "a")
+        result = scorer.calculate_factual_divergence("q", "a")
         assert 0.0 <= result <= 1.0
 
-    def test_calculate_logical_entropy(self):
+    def test_calculate_logical_divergence(self):
         scorer = CoherenceScorer(use_nli=False)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            result = scorer.calculate_logical_entropy("q", "a")
+        result = scorer.calculate_logical_divergence("q", "a")
         assert 0.0 <= result <= 1.0
 
-    def test_simulate_future_state(self):
+    def test_compute_divergence(self):
         scorer = CoherenceScorer(use_nli=False)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            result = scorer.simulate_future_state("q", "a")
+        result = scorer.compute_divergence("q", "a")
         assert 0.0 <= result <= 1.0
 
-    def test_review_action(self):
+    def test_review(self):
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore", DeprecationWarning)
-            approved, score = scorer.review_action("q", "consistent with reality")
+        approved, cs = scorer.review("q", "consistent with reality")
         assert isinstance(approved, bool)

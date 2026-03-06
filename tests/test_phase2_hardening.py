@@ -246,18 +246,16 @@ class TestCLIBatchSafety:
 # ── H25: Async Batch Timeout ──────────────────────────────────────
 
 
-class TestAsyncBatchTimeout:
-    """Verify async batch respects item_timeout."""
+class TestBatchTimeout:
+    """Verify batch respects item_timeout."""
 
-    @pytest.mark.asyncio
-    async def test_async_batch_has_timeout_handling(self):
+    def test_batch_has_timeout_handling(self):
         from director_ai.core.agent import CoherenceAgent
         from director_ai.core.batch import BatchProcessor
 
         agent = CoherenceAgent()
         processor = BatchProcessor(agent, max_concurrency=2, item_timeout=60.0)
-        # Normal prompts should work fine within timeout
-        result = await processor.process_batch_async(["Q1", "Q2"])
+        result = processor.process_batch(["Q1", "Q2"])
         assert result.total == 2
         assert result.succeeded == 2
 

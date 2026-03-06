@@ -75,11 +75,6 @@ __all__ = [
     "StreamSession",
     "TokenEvent",
     "AsyncStreamingKernel",
-    "Policy",
-    "Violation",
-    "AuditLogger",
-    "AuditEntry",
-    "TenantRouter",
     "InputSanitizer",
     "SanitizeResult",
     "RerankedBackend",
@@ -96,7 +91,7 @@ __all__ = [
     "list_vector_backends",
 ]
 
-_ENTERPRISE_IMPORTS = {
+_MOVED_TO_ENTERPRISE = {
     "TenantRouter": ".tenant",
     "Policy": ".policy",
     "Violation": ".policy",
@@ -106,9 +101,9 @@ _ENTERPRISE_IMPORTS = {
 
 
 def __getattr__(name: str):
-    if name in _ENTERPRISE_IMPORTS:
-        import importlib
-
-        mod = importlib.import_module(_ENTERPRISE_IMPORTS[name], __package__)
-        return getattr(mod, name)
+    if name in _MOVED_TO_ENTERPRISE:
+        raise ImportError(
+            f"{name} moved to director_ai.enterprise in v3.0. "
+            f"Use: from director_ai.enterprise import {name}"
+        )
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

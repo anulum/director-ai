@@ -156,27 +156,6 @@ class BatchProcessor:
         result.duration_seconds = time.monotonic() - start
         return result
 
-    async def process_batch_async(
-        self,
-        prompts: list[str],
-        max_concurrency: int | None = None,
-        tenant_id: str = "",
-    ) -> BatchResult:
-        """Process a batch of prompts asynchronously (legacy alias)."""
-        import warnings
-
-        warnings.warn(
-            "process_batch_async is deprecated, use process_batch instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        old_mc = self.max_concurrency
-        if max_concurrency:
-            self.max_concurrency = max_concurrency
-        res = self.process_batch(prompts, tenant_id)
-        self.max_concurrency = old_mc
-        return res
-
     def _process_one(
         self, index: int, prompt: str, tenant_id: str = ""
     ) -> ReviewResult:

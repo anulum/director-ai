@@ -106,7 +106,7 @@ Full reference documentation for the external interface:
 
 ## Maintenance
 
-Director-AI is actively maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v2.8.0 (March 2026). See [CHANGELOG](changelog.md) and [ROADMAP](https://github.com/anulum/director-ai/blob/main/ROADMAP.md).
+Director-AI is actively maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.0.0 (March 2026). See [CHANGELOG](changelog.md) and [ROADMAP](https://github.com/anulum/director-ai/blob/main/ROADMAP.md).
 
 ## License
 

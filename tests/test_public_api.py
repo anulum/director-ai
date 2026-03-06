@@ -5,7 +5,6 @@
 # ─────────────────────────────────────────────────────────────────────
 
 import importlib
-import warnings
 
 import pytest
 
@@ -78,55 +77,21 @@ class TestNewExports:
         assert ShardedNLIScorer is not None
 
 
-class TestDeprecationWarnings:
-    def test_calculate_factual_entropy_warns(self):
+class TestDeprecated1xRemoved:
+    def test_scorer_has_no_factual_entropy(self):
         from director_ai.core.scorer import CoherenceScorer
 
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            scorer.calculate_factual_entropy("prompt", "action")
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "calculate_factual_entropy" in str(w[0].message)
+        assert not hasattr(scorer, "calculate_factual_entropy")
 
-    def test_calculate_logical_entropy_warns(self):
+    def test_scorer_has_no_review_action(self):
         from director_ai.core.scorer import CoherenceScorer
 
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            scorer.calculate_logical_entropy("prompt", "action")
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
+        assert not hasattr(scorer, "review_action")
 
-    def test_simulate_future_state_warns(self):
-        from director_ai.core.scorer import CoherenceScorer
-
-        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            scorer.simulate_future_state("prompt", "action")
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-
-    def test_review_action_warns(self):
-        from director_ai.core.scorer import CoherenceScorer
-
-        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            scorer.review_action("prompt", "action")
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-
-    def test_process_query_warns(self):
+    def test_agent_has_no_process_query(self):
         from director_ai.core.agent import CoherenceAgent
 
         agent = CoherenceAgent()
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
-            agent.process_query("What is AI?")
-            assert len(w) == 1
-            assert issubclass(w[0].category, DeprecationWarning)
-            assert "process_query" in str(w[0].message)
+        assert not hasattr(agent, "process_query")

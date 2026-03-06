@@ -130,13 +130,3 @@ class TestFallbacks:
         result = agent.process("test")
         if not result.halted and result.coherence and result.coherence.warning:
             assert result.output.startswith("[LOW] ")
-
-
-# ── process_query backward compat ────────────────────────────────────
-
-
-class TestBackwardCompat:
-    def test_process_query_returns_string(self):
-        agent = CoherenceAgent()
-        output = agent.process_query("test")
-        assert isinstance(output, str)

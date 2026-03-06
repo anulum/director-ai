@@ -270,17 +270,3 @@ class CoherenceAgent:
             yield token, score
             if self.streaming_kernel.check_halt(score):
                 return
-
-    # ── Backward-compatible alias ─────────────────────────────────────
-
-    def process_query(self, prompt):
-        """Deprecated: use ``process``."""
-        import warnings
-
-        warnings.warn(
-            "process_query is deprecated, use process",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        result = self.process(prompt)
-        return result.output

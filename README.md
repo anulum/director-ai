@@ -13,7 +13,7 @@
   <img src="https://img.shields.io/badge/tests-1869_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
-  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.10+-blue.svg" alt="Python 3.10+"></a>
+  <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
   <a href="https://hub.docker.com/r/anulum/director-ai"><img src="https://img.shields.io/badge/docker-ready-blue.svg" alt="Docker"></a>
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
   <a href="https://huggingface.co/spaces/anulum/director-ai-guardrail"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-orange.svg" alt="HF Spaces"></a>
@@ -51,7 +51,7 @@ graph LR
 
 ### Scope
 
-100% Python — no compiled extensions required. Works on any platform with Python 3.10+.
+100% Python — no compiled extensions required. Works on any platform with Python 3.11+.
 
 | Layer | Packages | Install |
 |-------|----------|---------|
@@ -230,23 +230,24 @@ director-ai config --profile creative  # threshold=0.40, permissive
 6. **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider (OpenAI/Anthropic). Do not enable in privacy-sensitive deployments without user consent.
 7. **guard() provider coverage**: `guard()` auto-detects OpenAI-compatible clients (OpenAI, vLLM, Groq, LiteLLM, Ollama, Together) via `client.chat.completions.create` and Anthropic via `client.messages.create`. AWS Bedrock, Google Gemini, and Cohere have different SDK shapes — use the low-level `CoherenceScorer.review()` API instead.
 
-## Migrating from 1.x
+## Migrating to 3.0
 
-| 1.x name | 2.x name | Notes |
-|----------|----------|-------|
-| `DirectorModule` | `CoherenceScorer` | Same API, new name |
-| `BackfireKernel` | `SafetyKernel` | Same API, new name |
-| `StrangeLoopAgent` | `CoherenceAgent` | Same API, new name |
-| `KnowledgeBase` | `GroundTruthStore` | Same API, new name |
-| `MockActor` | `MockGenerator` | Same API, new name |
-| `RealActor` | `LLMGenerator` | Same API, new name |
+v3.0 removed all deprecated 1.x aliases (`DirectorModule`, `BackfireKernel`,
+`StrangeLoopAgent`, `KnowledgeBase`, `MockActor`, `RealActor`) and deprecated
+methods (`calculate_factual_entropy`, `calculate_logical_entropy`,
+`simulate_future_state`, `review_action`, `process_query`, `process_batch_async`).
 
-Old names still work but emit `DeprecationWarning`. They will be removed in 3.0.
+Enterprise classes (`TenantRouter`, `Policy`, `Violation`, `AuditLogger`,
+`AuditEntry`) moved to `director_ai.enterprise`:
 
-**Breaking changes in 2.3.0:**
-- `strict_mode=True` now **rejects** (divergence=0.9) when NLI is unavailable, instead of returning neutral 0.5.
-- `guard()` uses duck-type detection instead of module-name checks. Custom clients that expose `client.chat.completions.create` are now accepted.
-- Enterprise modules are lazy-loaded since 2.2.0 — `import director_ai` no longer pulls heavy deps.
+```python
+# Before (2.x):
+from director_ai import TenantRouter
+# After (3.0):
+from director_ai.enterprise import TenantRouter
+```
+
+See [CHANGELOG](CHANGELOG.md) for the full list of breaking changes.
 
 ## Citation
 
@@ -256,7 +257,7 @@ Old names still work but emit `DeprecationWarning`. They will be removed in 3.0.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {2.6.0},
+  version   = {3.0.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

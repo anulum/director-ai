@@ -63,8 +63,7 @@ class TestH28NLIAssert:
 class TestH29AsyncLoop:
     """Batch async should use get_running_loop (not deprecated get_event_loop)."""
 
-    def test_process_batch_async_runs(self):
-        import asyncio
+    def test_process_batch_runs(self):
         from unittest.mock import MagicMock
 
         from director_ai.core.batch import BatchProcessor
@@ -80,7 +79,7 @@ class TestH29AsyncLoop:
             ),
         )
         proc = BatchProcessor(mock_backend)
-        batch_result = asyncio.run(proc.process_batch_async(["test"]))
+        batch_result = proc.process_batch(["test"])
         assert len(batch_result.results) == 1
 
 

@@ -4,8 +4,8 @@
 
 | Version | Supported |
 |---------|-----------|
-| 2.8.x   | Yes |
-| < 2.8   | No  |
+| 3.0.x   | Yes |
+| < 3.0   | No  |
 
 Only the latest release receives security fixes.
 

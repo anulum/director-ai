@@ -155,25 +155,21 @@ class TestBatchErrorPaths:
         assert result.failed == 1
 
 
-class TestBatchAsync:
-    """Tests for BatchProcessor.process_batch_async()."""
-
-    @pytest.mark.asyncio
-    async def test_async_batch(self):
+class TestBatchConcurrent:
+    def test_concurrent_batch(self):
         agent = CoherenceAgent()
         processor = BatchProcessor(agent, max_concurrency=2)
-        result = await processor.process_batch_async(["Q1", "Q2"])
+        result = processor.process_batch(["Q1", "Q2"])
         assert result.total == 2
         assert result.succeeded == 2
         assert result.duration_seconds >= 0.0
 
-    @pytest.mark.asyncio
-    async def test_async_batch_exception(self):
+    def test_batch_exception(self):
         class FailingAgent:
             def process(self, prompt):
-                raise RuntimeError("async fail")
+                raise RuntimeError("fail")
 
         proc = BatchProcessor(FailingAgent(), max_concurrency=1)
-        result = await proc.process_batch_async(["x"])
+        result = proc.process_batch(["x"])
         assert result.failed == 1
         assert result.succeeded == 0

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.0.0] — 2026-03-07
+
+### Breaking Changes
+- **Minimum Python 3.11**: dropped Python 3.10 support. Requires 3.11+ for `ExceptionGroup` and `TaskGroup`.
+- **Enterprise classes moved**: `TenantRouter`, `Policy`, `Violation`, `AuditLogger`, `AuditEntry` moved from `director_ai` / `director_ai.core` to `director_ai.enterprise`. Importing from the old location raises `ImportError` with migration hint.
+- **Removed deprecated 1.x aliases**: `calculate_factual_entropy`, `calculate_logical_entropy`, `simulate_future_state`, `review_action` (on `CoherenceScorer`), `process_query` (on `CoherenceAgent`), `process_batch_async` (on `BatchProcessor`). Use current names: `calculate_factual_divergence`, `calculate_logical_divergence`, `compute_divergence`, `review`, `process`, `process_batch`.
+- **Slimmed root `__all__`**: internal classes (`ScoreCache`, `ScorerBackend`, `ShardedNLIScorer`, etc.) removed from `__all__` — still importable, no longer in public API surface.
+
+### Added
+- `director_ai.enterprise` package re-exporting all 5 enterprise classes.
+- `director-ai tune` adaptive threshold calibration (implemented in v2.8.0, now documented as stable).
+- Python 3.13 in CI matrix.
+
 ## [2.8.0] — 2026-03-04
 
 ### Added

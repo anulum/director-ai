@@ -56,13 +56,12 @@ class TestBatchTimeoutErrors:
 
 
 class TestBatchAsync:
-    @pytest.mark.asyncio
-    async def test_process_batch_async_timeout(self):
+    def test_process_batch_timeout(self):
         agent = MagicMock()
         proc = BatchProcessor(agent, max_concurrency=2, item_timeout=0.001)
 
-        with patch.object(proc, "_process_one", side_effect=RuntimeError("async fail")):
-            result = await proc.process_batch_async(["q1"])
+        with patch.object(proc, "_process_one", side_effect=RuntimeError("fail")):
+            result = proc.process_batch(["q1"])
             assert result.total == 1
 
 

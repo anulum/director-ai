@@ -13,7 +13,7 @@ Director-AI: Real-time LLM hallucination guardrail.
     from director_ai.core import CoherenceAgent, CoherenceScorer, SafetyKernel
 """
 
-__version__ = "2.8.0"
+__version__ = "3.0.0"
 
 from .core import (
     AsyncStreamingKernel,
@@ -64,58 +64,29 @@ from .core.exceptions import (
 from .integrations.sdk_guard import get_score, guard
 
 __all__ = [
+    "guard",
+    "get_score",
     "CoherenceAgent",
     "CoherenceScorer",
     "SafetyKernel",
+    "GroundTruthStore",
+    "StreamingKernel",
+    "CoherenceScore",
+    "ReviewResult",
     "MockGenerator",
     "LLMGenerator",
-    "GroundTruthStore",
-    "CoherenceScore",
-    "EvidenceChunk",
-    "HaltEvidence",
-    "ScoringEvidence",
-    "ReviewResult",
-    "NLIScorer",
-    "VectorGroundTruthStore",
-    "InMemoryBackend",
-    "SentenceTransformerBackend",
-    "ScoreCache",
-    "StreamingKernel",
-    "StreamSession",
-    "TokenEvent",
-    "AsyncStreamingKernel",
-    "Policy",
-    "Violation",
-    "AuditLogger",
-    "AuditEntry",
-    "TenantRouter",
-    "InputSanitizer",
-    "SanitizeResult",
-    "ConversationSession",
-    "Turn",
-    "LiteScorer",
-    "ShardedNLIScorer",
-    "ScorerBackend",
-    "register_backend",
-    "get_backend",
-    "list_backends",
-    "register_vector_backend",
-    "get_vector_backend",
-    "list_vector_backends",
-    "guard",
-    "get_score",
+    "HallucinationError",
     "DirectorAIError",
     "CoherenceError",
     "KernelHaltError",
     "GeneratorError",
     "ValidationError",
     "DependencyError",
-    "HallucinationError",
     "PhysicsError",
     "NumericalError",
 ]
 
-_LAZY_ENTERPRISE = {
+_MOVED_TO_ENTERPRISE = {
     "TenantRouter",
     "Policy",
     "Violation",
@@ -125,8 +96,9 @@ _LAZY_ENTERPRISE = {
 
 
 def __getattr__(name: str):
-    if name in _LAZY_ENTERPRISE:
-        from . import core
-
-        return getattr(core, name)
+    if name in _MOVED_TO_ENTERPRISE:
+        raise ImportError(
+            f"{name} moved to director_ai.enterprise in v3.0. "
+            f"Use: from director_ai.enterprise import {name}"
+        )
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
