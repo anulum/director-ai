@@ -90,29 +90,29 @@
 
 ## v3.1.0
 
-### Hybrid Scorer Hardening
+### Hybrid Scorer Hardening (Done)
 - Fix NLI confidence margin calculation — `nli_margin` never computed, hybrid escalation broken
 - LLM judge verdict caching (LRU keyed on prompt+response hash) to avoid redundant API calls
 - Retry with exponential back-off on transient LLM API failures
 - Escalation-rate telemetry via `metrics.counter("llm_judge_escalations")`
 - Run hybrid-mode E2E benchmark on HaluEval (300 traces) and publish numbers
 
-### Enterprise Module Completion
+### Enterprise Module Completion (Done)
 - `PostgresAuditSink.log()` implementation with async connection pooling (`asyncpg`)
 - Schema migration framework (version-tracked DDL with forward-only migrations)
 - `RedisGroundTruthStore.retrieve_context()` implementation with Redis Vector Search (RediSearch)
 - Redis connection pooling, TTL management, batch `add_many()`/`retrieve_batch()`
 
-### WASM Edge Runtime
+### WASM Edge Runtime (Done)
 - CI pipeline: `wasm-pack build` in wheels.yml, publish `.wasm` + JS glue to npm
 - Browser integration tutorial (vanilla JS + webpack example)
 - Benchmark: WASM vs native Rust `StreamingKernel` overhead on 1000-token streams
 
-### Rust Backend
+### Rust Backend (Done)
 - PyO3 0.23 → 0.24 upgrade (unblocks Python 3.14 wheels)
 - SIMD vectorization of backfire-ssgf micro-cycle inner loop (`std::simd` or `packed_simd2`)
 
-### Benchmarks
+### Benchmarks (Done)
 - Run RAGTruth + FreshQA full-scale GPU benchmark, publish results in BENCHMARK_REPORT.md
 - Cross-platform latency profiling (Windows/macOS/Linux) with memory + GC overhead
 - Quantify PyO3 FFI overhead (Rust-native vs Python-via-FFI round-trip)
