@@ -4,6 +4,9 @@
 [run]
 source = src/director_ai
 branch = true
+omit =
+    src/director_ai/director_pb2.py
+    src/director_ai/director_pb2_grpc.py
 
 [report]
 show_missing = true

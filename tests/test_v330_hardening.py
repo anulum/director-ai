@@ -8,8 +8,12 @@ from __future__ import annotations
 import asyncio
 from unittest.mock import MagicMock
 
+import pytest
+
 from director_ai.core.agent import CoherenceAgent
 from director_ai.core.config import DirectorConfig
+
+_HAS_GRPC = __import__("importlib").util.find_spec("grpc") is not None
 
 # ── Item 1: version sync ────────────────────────────────────────────
 
@@ -24,6 +28,7 @@ class TestVersionSync:
 # ── Item 3: gRPC proto stubs ────────────────────────────────────────
 
 
+@pytest.mark.skipif(not _HAS_GRPC, reason="grpc not installed")
 class TestGRPCProtoStubs:
     def test_director_pb2_importable(self):
         from director_ai import director_pb2
