@@ -215,6 +215,7 @@ class CoherenceScorer:
         self._llm_judge_threshold = llm_judge_confidence_threshold
         self._llm_judge_provider = llm_judge_provider
         self._llm_judge_model = llm_judge_model
+        self._judge_cache: dict[int, float] = {}
         self._privacy_mode = privacy_mode
         self._redactor = PIIRedactor(enabled=privacy_mode)
 
@@ -229,14 +230,36 @@ class CoherenceScorer:
         "openai": "gpt-4o-mini",
         "anthropic": "claude-haiku-4-5-20251001",
     }
+    _JUDGE_CACHE_MAX = 256
+    _JUDGE_RETRY_MAX = 3
+    _JUDGE_RETRY_BACKOFF = (0.5, 1.0)
+
+    def _should_escalate(self, nli_score: float) -> bool:
+        """True when the LLM judge should be consulted."""
+        return (
+            self._llm_judge_enabled
+            and bool(self._llm_judge_provider)
+            and (
+                self.scorer_backend == "hybrid"
+                or abs(nli_score - 0.5) < self._llm_judge_threshold
+            )
+        )
 
     def _llm_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
         """Escalate to LLM-as-judge when NLI confidence is low.
 
         Returns adjusted divergence score. Falls back to nli_score on error.
-        When privacy_mode is enabled, PII is redacted before sending.
+        Uses an LRU cache keyed on truncated prompt+response to avoid
+        redundant API calls, and retries transient failures twice.
         """
         import os
+
+        cache_key = hash((prompt[:500], response[:500]))
+        cached = self._judge_cache.get(cache_key)
+        if cached is not None:
+            metrics.inc("llm_judge_cache_hits")
+            return cached
+        metrics.inc("llm_judge_cache_misses")
 
         t0 = time.monotonic()
         metrics.inc("llm_judge_escalations")
@@ -261,6 +284,41 @@ class CoherenceScorer:
             'Reply with JSON: {"verdict": "YES" or "NO", "confidence": 0-100}'
         )
         try:
+            reply = self._call_llm_judge(model, judge_prompt, nli_score)
+            if reply is None:
+                return nli_score
+
+            llm_agrees = self._parse_judge_reply(reply)
+            llm_divergence = (
+                LLM_JUDGE_AGREE_DIVERGENCE
+                if llm_agrees
+                else LLM_JUDGE_DISAGREE_DIVERGENCE
+            )
+            adjusted = max(
+                0.0,
+                min(
+                    1.0,
+                    LLM_JUDGE_NLI_WEIGHT * nli_score
+                    + LLM_JUDGE_LLM_WEIGHT * llm_divergence,
+                ),
+            )
+            # Cache the result; evict oldest if full.
+            if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
+                self._judge_cache.pop(next(iter(self._judge_cache)))
+            self._judge_cache[cache_key] = adjusted
+            return adjusted
+        finally:
+            metrics.observe("llm_judge_seconds", time.monotonic() - t0)
+
+    def _call_llm_judge(
+        self, model: str, judge_prompt: str, fallback: float
+    ) -> str | None:
+        """Call LLM provider with retry on transient errors.
+
+        Returns reply text, or None on permanent/exhausted failure.
+        """
+        last_exc: Exception | None = None
+        for attempt in range(self._JUDGE_RETRY_MAX):
             try:
                 if self._llm_judge_provider == "openai":
                     import openai
@@ -272,7 +330,7 @@ class CoherenceScorer:
                         max_tokens=50,
                         response_format={"type": "json_object"},
                     )
-                    reply = result.choices[0].message.content or ""
+                    return result.choices[0].message.content or ""
                 elif self._llm_judge_provider == "anthropic":
                     import anthropic
 
@@ -282,28 +340,23 @@ class CoherenceScorer:
                         max_tokens=50,
                         messages=[{"role": "user", "content": judge_prompt}],
                     )
-                    reply = result.content[0].text if result.content else ""
+                    return result.content[0].text if result.content else ""
                 else:
-                    return nli_score
+                    return None
             except ImportError as exc:
                 self.logger.warning("LLM judge import failed: %s", exc)
-                return nli_score
+                return None
             except Exception as exc:
-                self.logger.warning("LLM judge API call failed: %s", exc)
-                return nli_score
+                last_exc = exc
+                if attempt < len(self._JUDGE_RETRY_BACKOFF):
+                    time.sleep(self._JUDGE_RETRY_BACKOFF[attempt])
 
-            llm_agrees = self._parse_judge_reply(reply)
-            llm_divergence = (
-                LLM_JUDGE_AGREE_DIVERGENCE
-                if llm_agrees
-                else LLM_JUDGE_DISAGREE_DIVERGENCE
-            )
-            adjusted = (
-                LLM_JUDGE_NLI_WEIGHT * nli_score + LLM_JUDGE_LLM_WEIGHT * llm_divergence
-            )
-            return max(0.0, min(1.0, adjusted))
-        finally:
-            metrics.observe("llm_judge_seconds", time.monotonic() - t0)
+        self.logger.warning(
+            "LLM judge failed after %d attempts: %s",
+            self._JUDGE_RETRY_MAX,
+            last_exc,
+        )
+        return None
 
     @staticmethod
     def _parse_judge_reply(reply: str) -> bool:
@@ -342,12 +395,14 @@ class CoherenceScorer:
         if self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
                 score, _ = self._nli.score_chunked(context, text_output)
-            return score
+        elif self.strict_mode:
+            score = DIVERGENCE_CONTRADICTED
+        else:
+            score = self._heuristic_factual(context, text_output)
 
-        if self.strict_mode:
-            return DIVERGENCE_CONTRADICTED
-
-        return self._heuristic_factual(context, text_output)
+        if self._should_escalate(score):
+            score = self._llm_judge_check(prompt, text_output, score)
+        return score
 
     def calculate_factual_divergence_with_evidence(
         self, prompt, text_output, tenant_id: str = ""
@@ -392,15 +447,7 @@ class CoherenceScorer:
         else:
             nli_score = self._heuristic_factual(context, text_output)
 
-        should_escalate = (
-            self._llm_judge_enabled
-            and self._llm_judge_provider
-            and (
-                self.scorer_backend == "hybrid"
-                or abs(nli_score - 0.5) < self._llm_judge_threshold
-            )
-        )
-        if should_escalate:
+        if self._should_escalate(nli_score):
             nli_score = self._llm_judge_check(prompt, text_output, nli_score)
 
         evidence = ScoringEvidence(
