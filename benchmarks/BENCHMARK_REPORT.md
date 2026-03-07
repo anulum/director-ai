@@ -1,7 +1,7 @@
 # Director-AI Benchmark Report
 
-Version: 2.7.1
-Date: 2026-03-03
+Version: 3.0.0
+Date: 2026-03-07
 
 ## Hardware
 
@@ -112,7 +112,36 @@ python -m benchmarks.ragtruth_eval --max-samples 500
 python -m benchmarks.freshqa_eval --max-samples 500
 ```
 
-## 6. Honest Limitations
+## 6. Cross-Platform Latency
+
+Platform-specific latency profiling with GC overhead measurement.
+Covers heuristic, lite, and streaming backends without GPU dependency.
+
+```bash
+python -m benchmarks.platform_latency_bench --iterations 100
+```
+
+Reports: platform info, GC pause distribution, per-backend latency,
+peak RSS. Results saved to `results/platform_latency_results.json`.
+
+## 7. PyO3 FFI Overhead
+
+Quantifies the cost of crossing the Python->Rust FFI boundary via PyO3 0.24.
+
+| Operation | Python | Rust FFI | Speedup |
+|-----------|--------|----------|---------|
+| StreamingKernel (500 tok) | 1.970 ms | 0.139 ms | 14.2x |
+| CoherenceScorer.review() | 0.022 ms | 0.002 ms | 11.0x |
+| Kuramoto UPDE 100 steps | 2.626 ms | 0.272 ms | 9.7x |
+
+Measured on Intel i7-10700K, Python 3.12, 10 iterations. Reproduce:
+
+```bash
+pip install -e backfire-kernel/crates/backfire-ffi
+python -m benchmarks.ffi_overhead_bench --iterations 100
+```
+
+## 8. Honest Limitations
 
 1. **Summarization is weakest**: AggreFact-CNN 68.8%, ExpertQA 59.1%. NLI
    models under-perform on abstractive summarization where surface forms
@@ -126,7 +155,7 @@ python -m benchmarks.freshqa_eval --max-samples 500
    from published papers, not our measurements.
 6. **No hybrid-mode E2E numbers yet**: infrastructure exists, results pending.
 
-## 7. Competitive Position
+## 9. Competitive Position
 
 | Feature | Director-AI | NeMo Guardrails | Lynx | GuardrailsAI | SelfCheckGPT |
 |---------|-------------|----------------|------|-------------|-------------|
