@@ -27,19 +27,22 @@ Metric: macro-averaged balanced accuracy (standard for LLM-AggreFact).
 
 ### Per-Dataset Breakdown (threshold=0.46)
 
-| Dataset | Bal. Acc | Pos | Neg | Failure Mode |
-|---------|---------|-----|-----|-------------|
-| Reveal | 89.1% | 400 | 1310 | — |
-| Lfqa | 86.4% | 1121 | 790 | — |
-| RAGTruth | 82.2% | 15102 | 1269 | — |
-| ClaimVerify | 78.1% | 789 | 299 | — |
-| Wice | 76.9% | 111 | 247 | — |
-| TofuEval-MeetB | 74.3% | 622 | 150 | Summarization |
-| AggreFact-XSum | 74.3% | 285 | 273 | Extreme summarization |
-| FactCheck-GPT | 73.0% | 376 | 1190 | GPT-generated claims |
-| TofuEval-MediaS | 71.9% | 554 | 172 | Summarization (media) |
-| AggreFact-CNN | 68.8% | 501 | 57 | Extreme class imbalance (9:1) |
-| ExpertQA | 59.1% | 2971 | 731 | Long expert answers |
+| Dataset | Bal. Acc | Bal. Acc (L40S) | Pos | Neg | Failure Mode |
+|---------|---------|-----------------|-----|-----|-------------|
+| Reveal | 89.1% | 88.4% | 400 | 1310 | — |
+| Lfqa | 86.4% | 86.6% | 1121 | 790 | — |
+| RAGTruth | 82.2% | 82.5% | 15102 | 1269 | — |
+| ClaimVerify | 78.1% | 78.0% | 789 | 299 | — |
+| Wice | 76.9% | 76.7% | 111 | 247 | — |
+| TofuEval-MeetB | 74.3% | 73.6% | 622 | 150 | Summarization |
+| AggreFact-XSum | 74.3% | 74.1% | 285 | 273 | Extreme summarization |
+| FactCheck-GPT | 73.0% | 72.1% | 376 | 1190 | GPT-generated claims |
+| TofuEval-MediaS | 71.9% | 71.9% | 554 | 172 | Summarization (media) |
+| AggreFact-CNN | 68.8% | 69.1% | 501 | 57 | Extreme class imbalance (9:1) |
+| ExpertQA | 59.1% | 59.0% | 2971 | 731 | Long expert answers |
+
+L40S column: threshold=0.50, 55 ms avg latency, 29,320 samples in 1,619s.
+Accuracy differences within ±0.7% — GPU choice does not affect accuracy.
 
 Reproduce: `python -m benchmarks.aggrefact_eval --sweep`
 
@@ -62,10 +65,13 @@ Reproduce: `python -m benchmarks.aggrefact_eval --sweep`
 | GPU | VRAM | ONNX CUDA | PyTorch FP16 | PyTorch FP32 |
 |-----|------|-----------|--------------|--------------|
 | RTX 6000 Ada | 48 GB | **0.9 ms** | 1.2 ms | 2.1 ms |
+| L40S | 45 GB | — | — | 3.4 ms† |
 | RTX A5000 | 24 GB | 2.0 ms | 3.4 ms | 4.8 ms |
 | RTX A6000 | 48 GB | 3.5 ms | 9.7 ms | 10.1 ms |
 | Quadro RTX 5000 | 16 GB | 5.1 ms | 2.5 ms | 5.9 ms |
 | GTX 1060 | 6 GB | 13.9 ms | N/A | 17.4 ms |
+
+† L40S 3.4 ms = 55 ms / 16-pair batch, measured via AggreFact sweep (29,320 samples).
 
 Reproduce: `python -m benchmarks.latency_bench`
 

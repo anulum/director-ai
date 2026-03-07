@@ -1,0 +1,149 @@
+{
+  "benchmark": "AggreFact-L40S",
+  "elapsed_s": 1618.6,
+  "avg_balanced_accuracy": 0.7563,
+  "avg_balanced_accuracy_pct": 75.6,
+  "threshold": 0.5,
+  "total_samples": 29320,
+  "per_dataset": {
+    "AggreFact-CNN": {
+      "total": 558,
+      "positive": 501,
+      "negative": 57,
+      "balanced_acc": 0.6909,
+      "hallucination_precision": 0.3699,
+      "hallucination_recall": 0.4737,
+      "hallucination_f1": 0.4154,
+      "supported_precision": 0.9381,
+      "supported_recall": 0.9082,
+      "supported_f1": 0.9229
+    },
+    "AggreFact-XSum": {
+      "total": 558,
+      "positive": 285,
+      "negative": 273,
+      "balanced_acc": 0.7409,
+      "hallucination_precision": 0.6851,
+      "hallucination_recall": 0.8608,
+      "hallucination_f1": 0.763,
+      "supported_precision": 0.8233,
+      "supported_recall": 0.6211,
+      "supported_f1": 0.708
+    },
+    "ClaimVerify": {
+      "total": 1088,
+      "positive": 789,
+      "negative": 299,
+      "balanced_acc": 0.7797,
+      "hallucination_precision": 0.6424,
+      "hallucination_recall": 0.709,
+      "hallucination_f1": 0.6741,
+      "supported_precision": 0.8852,
+      "supported_recall": 0.8504,
+      "supported_f1": 0.8675
+    },
+    "ExpertQA": {
+      "total": 3702,
+      "positive": 2971,
+      "negative": 731,
+      "balanced_acc": 0.5901,
+      "hallucination_precision": 0.2461,
+      "hallucination_recall": 0.7319,
+      "hallucination_f1": 0.3683,
+      "supported_precision": 0.8717,
+      "supported_recall": 0.4483,
+      "supported_f1": 0.5921
+    },
+    "FactCheck-GPT": {
+      "total": 1566,
+      "positive": 376,
+      "negative": 1190,
+      "balanced_acc": 0.7206,
+      "hallucination_precision": 0.8604,
+      "hallucination_recall": 0.9067,
+      "hallucination_f1": 0.883,
+      "supported_precision": 0.6442,
+      "supported_recall": 0.5346,
+      "supported_f1": 0.5843
+    },
+    "Lfqa": {
+      "total": 1911,
+      "positive": 1121,
+      "negative": 790,
+      "balanced_acc": 0.8661,
+      "hallucination_precision": 0.8313,
+      "hallucination_recall": 0.8544,
+      "hallucination_f1": 0.8427,
+      "supported_precision": 0.8954,
+      "supported_recall": 0.8778,
+      "supported_f1": 0.8865
+    },
+    "RAGTruth": {
+      "total": 16371,
+      "positive": 15102,
+      "negative": 1269,
+      "balanced_acc": 0.8253,
+      "hallucination_precision": 0.3271,
+      "hallucination_recall": 0.7864,
+      "hallucination_f1": 0.462,
+      "supported_precision": 0.9797,
+      "supported_recall": 0.8641,
+      "supported_f1": 0.9182
+    },
+    "Reveal": {
+      "total": 1710,
+      "positive": 400,
+      "negative": 1310,
+      "balanced_acc": 0.8839,
+      "hallucination_precision": 0.9531,
+      "hallucination_recall": 0.9153,
+      "hallucination_f1": 0.9338,
+      "supported_precision": 0.7544,
+      "supported_recall": 0.8525,
+      "supported_f1": 0.8005
+    },
+    "TofuEval-MediaS": {
+      "total": 726,
+      "positive": 554,
+      "negative": 172,
+      "balanced_acc": 0.7189,
+      "hallucination_precision": 0.62,
+      "hallucination_recall": 0.5407,
+      "hallucination_f1": 0.5776,
+      "supported_precision": 0.8628,
+      "supported_recall": 0.8971,
+      "supported_f1": 0.8796
+    },
+    "TofuEval-MeetB": {
+      "total": 772,
+      "positive": 622,
+      "negative": 150,
+      "balanced_acc": 0.7363,
+      "hallucination_precision": 0.4872,
+      "hallucination_recall": 0.6333,
+      "hallucination_f1": 0.5507,
+      "supported_precision": 0.9047,
+      "supported_recall": 0.8392,
+      "supported_f1": 0.8707
+    },
+    "Wice": {
+      "total": 358,
+      "positive": 111,
+      "negative": 247,
+      "balanced_acc": 0.7665,
+      "hallucination_precision": 0.8357,
+      "hallucination_recall": 0.9474,
+      "hallucination_f1": 0.888,
+      "supported_precision": 0.8333,
+      "supported_recall": 0.5856,
+      "supported_f1": 0.6878
+    }
+  },
+  "latency_ms_avg": 55.04,
+  "hw": {
+    "gpu": "NVIDIA L40S",
+    "vram_gb": 44.4,
+    "cuda": true,
+    "torch": "2.6.0+cu124"
+  }
+}

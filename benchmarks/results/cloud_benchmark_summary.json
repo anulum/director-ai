@@ -16,7 +16,7 @@
     "elapsed_s": 1391.5
   },
   "AggreFact-L40S": {
-    "status": "failed",
-    "error": "Dataset 'lytang/LLM-AggreFact' is a gated dataset on the Hub. You must be authenticated to access it."
+    "status": "ok",
+    "elapsed_s": 1618.6
   }
 }
