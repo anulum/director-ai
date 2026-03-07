@@ -73,6 +73,8 @@ quantize = [
 pinecone = ["pinecone>=5.0"]
 weaviate = ["weaviate-client>=4.0"]
 qdrant = ["qdrant-client>=1.7"]
+faiss = ["faiss-cpu>=1.7"]
+elasticsearch = ["elasticsearch>=8.0,<9"]
 reranker = [
     "sentence-transformers>=2.2,<4",
 ]

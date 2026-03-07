@@ -117,6 +117,6 @@
 - Cross-platform latency profiling (Windows/macOS/Linux) with memory + GC overhead
 - Quantify PyO3 FFI overhead (Rust-native vs Python-via-FFI round-trip)
 
-### Vector Backends
+### Vector Backends (Done)
 - FAISS backend (in-process dense search for edge/offline deployments)
 - Elasticsearch backend (hybrid BM25 + dense retrieval)

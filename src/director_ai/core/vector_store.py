@@ -630,6 +630,212 @@ class QdrantBackend(VectorBackend):
         return int(info.points_count)
 
 
+class FAISSBackend(VectorBackend):
+    """FAISS backend for in-process dense vector search.
+
+    Operates entirely in-process with no external server. Ideal for
+    edge/offline deployments where sub-millisecond retrieval matters.
+
+    Requires ``pip install director-ai[faiss]``.
+    """
+
+    def __init__(
+        self,
+        embed_fn: Any = None,
+        vector_size: int = 384,
+        index_type: str = "flat",
+    ) -> None:
+        try:
+            import faiss  # type: ignore[import-untyped]
+        except ImportError as e:
+            raise ImportError(
+                "FAISSBackend requires faiss-cpu or faiss-gpu. "
+                "Install with: pip install director-ai[faiss]"
+            ) from e
+
+        self._faiss = faiss
+        if index_type == "ivf":
+            quantizer = faiss.IndexFlatIP(vector_size)
+            self._index = faiss.IndexIVFFlat(quantizer, vector_size, 16)
+            self._needs_training = True
+        else:
+            self._index = faiss.IndexFlatIP(vector_size)
+            self._needs_training = False
+
+        self._embed_fn = embed_fn
+        self._docs: list[dict[str, Any]] = []
+        self._trained = False
+
+    def _embed(self, text: str) -> Any:
+        if self._embed_fn is None:
+            raise ValueError("FAISSBackend requires embed_fn for text embedding")
+        import numpy as np
+
+        vec = np.asarray(self._embed_fn(text), dtype=np.float32).reshape(1, -1)
+        self._faiss.normalize_L2(vec)
+        return vec
+
+    def add(  # type: ignore[override]
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
+        vec = self._embed(text)
+        if self._needs_training and not self._trained:
+            self._index.train(vec)
+            self._trained = True
+        self._index.add(vec)
+        self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
+
+    def query(
+        self, text: str, n_results: int = 3, tenant_id: str = ""
+    ) -> list[dict[str, Any]]:
+        if not self._docs:
+            return []
+
+        vec = self._embed(text)
+        k = min(n_results * 3 if tenant_id else n_results, len(self._docs))
+        distances, indices = self._index.search(vec, k)
+
+        results: list[dict[str, Any]] = []
+        for dist, idx in zip(distances[0], indices[0], strict=True):
+            if idx < 0:
+                continue
+            doc = self._docs[idx]
+            if tenant_id and doc["metadata"].get("tenant_id") != tenant_id:
+                continue
+            results.append({**doc, "distance": 1.0 - float(dist)})
+            if len(results) >= n_results:
+                break
+        return results
+
+    def count(self) -> int:
+        return len(self._docs)
+
+
+class ElasticsearchBackend(VectorBackend):
+    """Elasticsearch backend with hybrid BM25 + dense retrieval.
+
+    Combines lexical (BM25) and semantic (kNN) search via Elasticsearch's
+    built-in vector search. Requires Elasticsearch 8.x+ with vector support.
+
+    Requires ``pip install director-ai[elasticsearch]``.
+    """
+
+    def __init__(
+        self,
+        url: str = "http://localhost:9200",
+        api_key: str | None = None,
+        index_name: str = "director_facts",
+        embed_fn: Any = None,
+        vector_size: int = 384,
+        hybrid_weight: float = 0.5,
+    ) -> None:
+        try:
+            from elasticsearch import Elasticsearch  # type: ignore[import-untyped]
+        except ImportError as e:
+            raise ImportError(
+                "ElasticsearchBackend requires elasticsearch. "
+                "Install with: pip install director-ai[elasticsearch]"
+            ) from e
+
+        kwargs: dict[str, Any] = {"hosts": [url]}
+        if api_key:
+            kwargs["api_key"] = api_key
+        self._client = Elasticsearch(**kwargs)
+        self._index = index_name
+        self._embed_fn = embed_fn
+        self._vector_size = vector_size
+        self._hybrid_weight = max(0.0, min(1.0, hybrid_weight))
+        self._count = 0
+        self._ensure_index()
+
+    def _ensure_index(self) -> None:
+        if self._client.indices.exists(index=self._index):
+            return
+        mappings: dict[str, Any] = {
+            "properties": {
+                "text": {"type": "text"},
+                "doc_id": {"type": "keyword"},
+                "tenant_id": {"type": "keyword"},
+            }
+        }
+        if self._embed_fn:
+            mappings["properties"]["embedding"] = {
+                "type": "dense_vector",
+                "dims": self._vector_size,
+                "index": True,
+                "similarity": "cosine",
+            }
+        self._client.indices.create(index=self._index, mappings=mappings)
+
+    def add(  # type: ignore[override]
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
+        body: dict[str, Any] = {"text": text, "doc_id": doc_id, **(metadata or {})}
+        if self._embed_fn:
+            body["embedding"] = self._embed_fn(text)
+        self._client.index(index=self._index, id=doc_id, document=body)
+        self._count += 1
+
+    def query(
+        self, text: str, n_results: int = 3, tenant_id: str = ""
+    ) -> list[dict[str, Any]]:
+        filters: list[dict[str, Any]] = []
+        if tenant_id:
+            filters.append({"term": {"tenant_id": tenant_id}})
+
+        has_vector = self._embed_fn is not None
+
+        if has_vector and self._hybrid_weight < 1.0:
+            # Hybrid: RRF over BM25 + kNN sub-queries
+            bm25_query: dict[str, Any] = {"match": {"text": text}}
+            knn_query: dict[str, Any] = {
+                "field": "embedding",
+                "query_vector": self._embed_fn(text),
+                "k": n_results,
+                "num_candidates": n_results * 5,
+            }
+            if filters:
+                bm25_query = {"bool": {"must": bm25_query, "filter": filters}}
+                knn_query["filter"] = {"bool": {"filter": filters}}
+
+            resp = self._client.search(
+                index=self._index,
+                size=n_results,
+                query=bm25_query,
+                knn=knn_query,
+                rank={"rrf": {"window_size": n_results * 5}},
+            )
+        else:
+            # Pure BM25 fallback
+            body_query: dict[str, Any] = {"match": {"text": text}}
+            if filters:
+                body_query = {"bool": {"must": body_query, "filter": filters}}
+            resp = self._client.search(
+                index=self._index, size=n_results, query=body_query
+            )
+
+        docs: list[dict[str, Any]] = []
+        for hit in resp["hits"]["hits"]:
+            source = hit["_source"]
+            score = hit.get("_score", 0.0) or 0.0
+            docs.append(
+                {
+                    "id": hit["_id"],
+                    "text": source.get("text", ""),
+                    "distance": 1.0 / (1.0 + score),
+                    "metadata": {
+                        k: v
+                        for k, v in source.items()
+                        if k not in ("text", "embedding")
+                    },
+                }
+            )
+        return docs
+
+    def count(self) -> int:
+        return self._count
+
+
 class VectorGroundTruthStore(GroundTruthStore):
     """Ground truth store with vector-based semantic retrieval.
 
@@ -802,5 +1008,19 @@ try:
     from qdrant_client import QdrantClient as _QdrantClient  # noqa: F401
 
     register_vector_backend("qdrant", QdrantBackend)
+except ImportError:
+    pass
+
+try:
+    import faiss as _faiss  # noqa: F401
+
+    register_vector_backend("faiss", FAISSBackend)
+except ImportError:
+    pass
+
+try:
+    from elasticsearch import Elasticsearch as _Elasticsearch  # noqa: F401
+
+    register_vector_backend("elasticsearch", ElasticsearchBackend)
 except ImportError:
     pass
