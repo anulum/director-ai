@@ -25,7 +25,19 @@ pub struct MicroCycleEngine {
     pgbo_weight: f64,
     // Scratch arrays
     dtheta: Vec<f64>,
+    sin_diffs: Vec<f64>, // n×n pre-computed sin(theta[j] - theta[i])
     rng: SimpleRng,
+}
+
+/// Dot product of two equal-length slices.
+/// Kept as a simple loop so LLVM can auto-vectorize (SSE2/AVX2/NEON).
+#[inline]
+fn dot_product(a: &[f64], b: &[f64]) -> f64 {
+    let mut sum = 0.0;
+    for i in 0..a.len() {
+        sum += a[i] * b[i];
+    }
+    sum
 }
 
 impl MicroCycleEngine {
@@ -51,6 +63,7 @@ impl MicroCycleEngine {
             field_pressure,
             pgbo_weight,
             dtheta: vec![0.0; n],
+            sin_diffs: vec![0.0; n * n],
             rng: SimpleRng::new(seed),
         }
     }
@@ -65,20 +78,26 @@ impl MicroCycleEngine {
         let sqrt_dt = self.dt_micro.sqrt();
         let tau = std::f64::consts::TAU;
 
+        // Phase 1: Pre-compute sin(theta[j] - theta[i]) into contiguous buffer.
+        // Separating sin() from the weighted sums lets LLVM auto-vectorize
+        // the dot-product loops below (SSE2/AVX2/NEON).
         for i in 0..n {
-            // Baseline Kuramoto coupling
-            let mut coupling_k = 0.0;
-            let mut coupling_w = 0.0;
-            let mut coupling_h = 0.0;
-
+            let theta_i = theta[i];
+            let row = i * n;
             for j in 0..n {
-                let sin_diff = (theta[j] - theta[i]).sin();
-                coupling_k += self.k[i * n + j] * sin_diff;
-                coupling_w += w[i * n + j] * sin_diff;
-                if let Some(h) = h_munu {
-                    coupling_h += h[i * n + j] * sin_diff;
-                }
+                self.sin_diffs[row + j] = (theta[j] - theta_i).sin();
             }
+        }
+
+        // Phase 2: Weighted sums as dot products over contiguous slices.
+        for i in 0..n {
+            let row = i * n;
+            let coupling_k = dot_product(&self.k[row..row + n], &self.sin_diffs[row..row + n]);
+            let coupling_w = dot_product(&w[row..row + n], &self.sin_diffs[row..row + n]);
+            let coupling_h = match h_munu {
+                Some(h) => dot_product(&h[row..row + n], &self.sin_diffs[row..row + n]),
+                None => 0.0,
+            };
 
             self.dtheta[i] = self.omega[i]
                 + coupling_k
@@ -88,7 +107,7 @@ impl MicroCycleEngine {
                 + self.noise_amp * sqrt_dt * self.rng.next_normal();
         }
 
-        // Apply Euler update with modular reduction
+        // Phase 3: Euler update with modular reduction.
         for i in 0..n {
             theta[i] += self.dtheta[i] * self.dt_micro;
             theta[i] = theta[i].rem_euclid(tau);
