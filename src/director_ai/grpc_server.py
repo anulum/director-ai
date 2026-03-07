@@ -71,10 +71,10 @@ def create_grpc_server(
             "proto/director.proto"
         ) from exc
 
-    review_resp = director_pb2.ReviewResponse
-    process_resp = director_pb2.ProcessResponse
-    batch_resp = director_pb2.BatchReviewResponse
-    token_evt = director_pb2.TokenEvent
+    review_resp = director_pb2.ReviewResponse  # type: ignore[attr-defined]
+    process_resp = director_pb2.ProcessResponse  # type: ignore[attr-defined]
+    batch_resp = director_pb2.BatchReviewResponse  # type: ignore[attr-defined]
+    token_evt = director_pb2.TokenEvent  # type: ignore[attr-defined]
     has_proto = True
 
     class DirectorServicer:  # noqa: N801
