@@ -109,7 +109,7 @@ class DirectorConfig:
     server_host: str = "0.0.0.0"
     server_port: int = 8080
     server_workers: int = 1
-    cors_origins: str = "*"
+    cors_origins: str = ""
 
     # ONNX
     onnx_path: str = ""

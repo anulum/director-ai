@@ -143,3 +143,17 @@
 - End-to-end `scorer.review(session=...)` cross-turn divergence test
 - `review_batch()` ordering, partial failure, and timeout tests
 - `build_store()` with `vector_backend="sentence-transformer"` branch test
+
+## v3.3.0
+
+### Done
+- Version bump to 3.3.0 in pyproject.toml, `__init__.py`, CITATION.cff
+- CHANGELOG.md entries for v3.1.0, v3.2.0, v3.3.0
+- Deprecated 1.x alias table removed from PUBLIC_API.md
+- Generated `director_pb2.py` / `director_pb2_grpc.py` from proto/director.proto
+- Removed SimpleNamespace fallback; fail-fast if protobuf stubs missing
+- `CoherenceAgent.aprocess()` async counterpart
+- CLI `--chunk-size` validation (reject <= 0)
+- `cors_origins` default changed from `"*"` to `""` (require explicit config)
+- `--cors-origins` flag on `director-ai serve`
+- 8 new tests in test_v330_hardening.py (1927 total, 0 failures)

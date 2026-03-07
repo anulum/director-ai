@@ -8,15 +8,6 @@ from unittest.mock import patch
 import pytest
 
 
-class TestNsHelper:
-    def test_ns(self):
-        from director_ai.grpc_server import _ns
-
-        obj = _ns(a=1, b="two")
-        assert obj.a == 1
-        assert obj.b == "two"
-
-
 class TestCreateGrpcServer:
     def test_grpc_import_error(self):
         with (

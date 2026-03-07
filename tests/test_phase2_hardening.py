@@ -115,9 +115,9 @@ class TestVectorStoreMetadata:
 class TestCORSConfig:
     """Verify cors_origins field in DirectorConfig."""
 
-    def test_default_cors_is_star(self):
+    def test_default_cors_is_empty(self):
         cfg = DirectorConfig()
-        assert cfg.cors_origins == "*"
+        assert cfg.cors_origins == ""
 
     def test_custom_cors_origins(self):
         cfg = DirectorConfig(cors_origins="https://example.com,https://app.example.com")

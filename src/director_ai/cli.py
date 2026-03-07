@@ -355,6 +355,9 @@ def _cmd_ingest(args: list[str]) -> None:
         idx = args.index("--chunk-size")
         if idx + 1 < len(args):  # pragma: no branch
             chunk_size = int(args[idx + 1])
+    if chunk_size <= 0:
+        print(f"Error: --chunk-size must be > 0, got {chunk_size}")
+        sys.exit(1)
 
     if not os.path.exists(input_path):
         print(f"Error: path not found: {input_path}")
@@ -708,6 +711,7 @@ def _cmd_serve(args: list[str]) -> None:
     profile = "default"
     workers = 1
     transport = "http"
+    cors_origins = ""
 
     i = 0
     while i < len(args):
@@ -733,6 +737,9 @@ def _cmd_serve(args: list[str]) -> None:
                 print(f"Error: invalid worker count: {args[i + 1]}")
                 sys.exit(1)
             i += 2
+        elif args[i] == "--cors-origins" and i + 1 < len(args):
+            cors_origins = args[i + 1]
+            i += 2
         elif args[i] == "--transport" and i + 1 < len(args):
             transport = args[i + 1]
             if transport not in ("http", "grpc"):
@@ -750,6 +757,8 @@ def _cmd_serve(args: list[str]) -> None:
         config = DirectorConfig.from_env()
     config.server_host = host
     config.server_port = port
+    if cors_origins:
+        config.cors_origins = cors_origins
 
     if transport == "grpc":
         from director_ai.grpc_server import create_grpc_server

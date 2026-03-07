@@ -121,15 +121,9 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `DependencyError` | `core.exceptions` |
 | `HallucinationError` | `core.exceptions` |
 
-## Deprecated Aliases (emit DeprecationWarning)
+## Removed Aliases (v3.0.0)
 
-| Alias | Replacement | Class |
-|-------|-------------|-------|
-| `calculate_factual_entropy()` | `calculate_factual_divergence()` | `CoherenceScorer` |
-| `calculate_logical_entropy()` | `calculate_logical_divergence()` | `CoherenceScorer` |
-| `simulate_future_state()` | `compute_divergence()` | `CoherenceScorer` |
-| `review_action()` | `review()` | `CoherenceScorer` |
-| `process_query()` | `process()` | `CoherenceAgent` |
+All 1.x deprecated aliases were removed in v3.0.0. See CHANGELOG for migration.
 
 ## Configuration Profiles
 

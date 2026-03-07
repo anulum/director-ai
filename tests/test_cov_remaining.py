@@ -2,16 +2,36 @@
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+import director_ai as _director_pkg
 from director_ai.core.config import DirectorConfig
 
 _HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
 _skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
+
+_SENTINEL = object()
+
+
+@contextlib.contextmanager
+def _grpc_context(mods):
+    """Patch sys.modules AND clear director_ai submodule attr cache."""
+    saved = {}
+    for attr in ("director_pb2", "director_pb2_grpc"):
+        old = _director_pkg.__dict__.pop(attr, _SENTINEL)
+        if old is not _SENTINEL:
+            saved[attr] = old
+    try:
+        with patch.dict(sys.modules, mods):
+            yield
+    finally:
+        for attr, old in saved.items():
+            setattr(_director_pkg, attr, old)
 
 
 # ── gRPC StreamTokens ──────────────────────────────────────────────
@@ -20,6 +40,7 @@ _skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not insta
 class TestGrpcStreamTokens:
     def test_stream_tokens_rpc(self):
         grpc = MagicMock()
+        grpc.__version__ = "1.78.0"
         server = MagicMock()
         grpc.server.return_value = server
         grpc.ServerInterceptor = type("ServerInterceptor", (), {})
@@ -43,7 +64,7 @@ class TestGrpcStreamTokens:
             "director_ai.director_pb2_grpc": pb2_grpc,
         }
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(port=50220)
@@ -208,6 +229,7 @@ class TestCliIngestPersist:
 class TestCliServeGrpc:
     def test_serve_grpc_transport(self):
         mock_grpc_mod = MagicMock()
+        mock_grpc_mod.__version__ = "1.78.0"
         mock_grpc_server = MagicMock()
         mock_grpc_mod.server.return_value = mock_grpc_server
         mock_grpc_mod.ServerInterceptor = type("SI", (), {})
@@ -215,7 +237,6 @@ class TestCliServeGrpc:
             sys.modules,
             {
                 "grpc": mock_grpc_mod,
-                "director_ai.director_pb2": None,
             },
         ):
             from director_ai.cli import main

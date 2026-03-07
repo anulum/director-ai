@@ -12,6 +12,7 @@ import pytest
 def _build_grpc_mocks():
     """Build mock grpc module + stubs for create_grpc_server internals."""
     grpc = MagicMock()
+    grpc.__version__ = "1.78.0"
     grpc.StatusCode.INVALID_ARGUMENT = "INVALID_ARGUMENT"
     grpc.StatusCode.UNAUTHENTICATED = "UNAUTHENTICATED"
     grpc.ServerInterceptor = type("ServerInterceptor", (), {})
@@ -97,13 +98,6 @@ class TestDirectorServicer:
 
             create_grpc_server(port=50098)
 
-            # The servicer won't be directly accessible since proto stubs are missing,
-            # but the server is still created. We test the _ns fallback path instead.
-            from director_ai.grpc_server import _ns
-
-            ns = _ns(field="value")
-            assert ns.field == "value"
-
             yield captured.get("server"), grpc
 
 
@@ -142,12 +136,3 @@ class TestAuthInterceptor:
 
             result = create_grpc_server(config=cfg, port=50096)
             assert result is not None
-
-
-class TestNsHelper:
-    def test_ns(self):
-        from director_ai.grpc_server import _ns
-
-        obj = _ns(a=1, b="two")
-        assert obj.a == 1
-        assert obj.b == "two"

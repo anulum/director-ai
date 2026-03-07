@@ -2,13 +2,44 @@
 
 from __future__ import annotations
 
+import contextlib
 import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import director_ai as _director_pkg
+
+_SENTINEL = object()
+
+
+@contextlib.contextmanager
+def _grpc_context(mods):
+    """Patch sys.modules AND clear director_ai package-level submodule caches.
+
+    Python caches submodules as attributes on the parent package. ``from . import
+    director_pb2_grpc`` checks ``getattr(director_ai, 'director_pb2_grpc')``
+    before ``sys.modules``, so we must clear those attrs for the mock to take
+    effect. Only clears attrs for modules actually present in *mods*.
+    """
+    saved = {}
+    for attr in ("director_pb2", "director_pb2_grpc"):
+        full_key = f"director_ai.{attr}"
+        if full_key not in mods:
+            continue
+        old = _director_pkg.__dict__.pop(attr, _SENTINEL)
+        if old is not _SENTINEL:
+            saved[attr] = old
+    try:
+        with patch.dict(sys.modules, mods):
+            yield
+    finally:
+        for attr, old in saved.items():
+            setattr(_director_pkg, attr, old)
+
 
 def _build_grpc_mocks(*, with_proto=False, with_reflection=False):
     grpc = MagicMock()
+    grpc.__version__ = "1.78.0"
     server = MagicMock()
     grpc.server.return_value = server
     grpc.ServerInterceptor = type("ServerInterceptor", (), {})
@@ -30,8 +61,6 @@ def _build_grpc_mocks(*, with_proto=False, with_reflection=False):
         pb2_grpc = MagicMock()
         mods["director_ai.director_pb2"] = pb2
         mods["director_ai.director_pb2_grpc"] = pb2_grpc
-    else:
-        mods["director_ai.director_pb2"] = None
 
     if with_reflection:
         reflection_mod = MagicMock()
@@ -58,7 +87,7 @@ class TestServicerReview:
     def test_review_rpc(self):
         grpc_mock, server, mods = _build_grpc_mocks(with_proto=True)
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(port=50199)
@@ -71,7 +100,7 @@ class TestServicerReview:
     def test_process_rpc(self):
         grpc_mock, server, mods = _build_grpc_mocks(with_proto=True)
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(port=50200)
@@ -84,7 +113,7 @@ class TestServicerReview:
     def test_review_batch_rpc(self):
         grpc_mock, server, mods = _build_grpc_mocks(with_proto=True)
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(port=50201)
@@ -99,7 +128,7 @@ class TestServicerReview:
     def test_review_batch_too_large(self):
         grpc_mock, server, mods = _build_grpc_mocks(with_proto=True)
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(port=50202)
@@ -112,10 +141,10 @@ class TestServicerReview:
 
 
 class TestProtoFallback:
-    def test_no_proto_stubs(self):
-        grpc_mock, server, mods = _build_grpc_mocks(with_proto=False)
+    def test_proto_stubs_present(self):
+        grpc_mock, server, mods = _build_grpc_mocks(with_proto=True)
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             result = create_grpc_server(port=50203)
@@ -128,7 +157,7 @@ class TestReflection:
             with_proto=True, with_reflection=True
         )
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(port=50204)
@@ -145,7 +174,7 @@ class TestTLSPort:
 
         grpc_mock, server, mods = _build_grpc_mocks(with_proto=False)
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(
@@ -164,7 +193,7 @@ class TestAuthInterceptor:
         grpc_mock, server, mods = _build_grpc_mocks(with_proto=False)
         cfg = DirectorConfig(use_nli=False, api_keys=[])
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(config=cfg, port=50206)
@@ -183,7 +212,7 @@ class TestAuthInterceptor:
         grpc_mock, server, mods = _build_grpc_mocks(with_proto=False)
         cfg = DirectorConfig(use_nli=False, api_keys=["secret-key-123"])
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(config=cfg, port=50207)
@@ -202,7 +231,7 @@ class TestAuthInterceptor:
         grpc_mock, server, mods = _build_grpc_mocks(with_proto=False)
         cfg = DirectorConfig(use_nli=False, api_keys=["secret-key-123"])
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(config=cfg, port=50208)

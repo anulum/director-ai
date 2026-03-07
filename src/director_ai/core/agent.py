@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from collections.abc import AsyncIterator
@@ -234,6 +235,11 @@ class CoherenceAgent:
             candidates_evaluated=len(candidates),
             halt_evidence=halt_ev,
         )
+
+    async def aprocess(self, prompt: str, tenant_id: str = "") -> ReviewResult:
+        """Async version of :meth:`process` via ``run_in_executor``."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.process, prompt, tenant_id)
 
     async def stream(
         self, prompt: str, tenant_id: str = ""

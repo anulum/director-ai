@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "3.0.0"
+version = "3.3.0"
 description = "Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
@@ -155,6 +155,7 @@ where = ["src"]
 [tool.ruff]
 line-length = 88
 target-version = "py311"
+exclude = ["src/director_ai/director_pb2.py", "src/director_ai/director_pb2_grpc.py"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "SIM"]

@@ -7,6 +7,45 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.3.0] — 2026-03-07
+
+### Added
+- Generated gRPC protobuf stubs (`director_pb2.py`, `director_pb2_grpc.py`) from `proto/director.proto`.
+- `CoherenceAgent.aprocess()` and `CoherenceAgent.astream()` async methods.
+- `--cors-origins` flag on `director-ai serve`.
+
+### Changed
+- `cors_origins` default changed from `"*"` to `""` (no CORS by default).
+- gRPC server fails fast when protobuf stubs missing instead of falling back to `SimpleNamespace`.
+- CLI `ingest --chunk-size` rejects values <= 0.
+
+### Fixed
+- PUBLIC_API.md still listed deprecated 1.x aliases removed in v3.0.0.
+
+## [3.2.0] — 2026-03-07
+
+### Added
+- `BatchProcessor.process_batch_async()` and `review_batch_async()` — async batch processing with concurrency control.
+- `__aiter__` on `_GuardedBedrockStream`, `_GuardedGeminiStream`, `_GuardedCohereStream` (parity with OpenAI/Anthropic).
+- `VectorBackend.aadd()` / `aquery()` async defaults via `run_in_executor`.
+- `LiteScorer.review()` returning `(bool, CoherenceScore)` matching `CoherenceScorer` interface.
+- Config validation: `reranker_model` / `embedding_model` non-empty when feature enabled.
+- Warning on unknown YAML keys in `DirectorConfig.from_yaml()`.
+- Parallel multi-candidate requests in `AnthropicProvider` / `HuggingFaceProvider`.
+
+### Fixed
+- `quickstart` CLI scaffolding called `asyncio.run()` on synchronous methods.
+
+## [3.1.0] — 2026-03-07
+
+### Added
+- **Hybrid scorer hardening**: NLI confidence margin fix, LLM judge verdict caching (LRU), retry with exponential back-off, escalation-rate telemetry.
+- **Enterprise modules**: `PostgresAuditSink` with `asyncpg` pooling, schema migration framework, `RedisGroundTruthStore` with RediSearch.
+- **WASM edge runtime**: CI pipeline (`wasm-pack build`), browser integration tutorial, overhead benchmark.
+- **Rust backend**: PyO3 0.24 upgrade, SIMD micro-cycle vectorization.
+- **Benchmarks**: RAGTruth + FreshQA GPU benchmark, cross-platform latency profiling, PyO3 FFI overhead measurement.
+- **Vector backends**: FAISS (in-process dense search), Elasticsearch (hybrid BM25 + dense retrieval).
+
 ## [3.0.0] — 2026-03-07
 
 ### Breaking Changes

@@ -11,6 +11,7 @@ from director_ai.core.config import DirectorConfig
 def _make_grpc_mock():
     """Build a minimal grpc mock sufficient for create_grpc_server."""
     grpc = MagicMock()
+    grpc.__version__ = "1.78.0"
     grpc.StatusCode.INVALID_ARGUMENT = "INVALID_ARGUMENT"
     grpc.StatusCode.UNAUTHENTICATED = "UNAUTHENTICATED"
     grpc.server.return_value = MagicMock()
@@ -47,7 +48,7 @@ class TestCreateGrpcServerNoProto:
 
 
 class TestServicerMethods:
-    def test_review_method(self):
+    def test_create_server_returns_server(self):
         grpc_mock = _make_grpc_mock()
         with patch.dict(
             sys.modules,
@@ -69,9 +70,6 @@ class TestServicerMethods:
             importlib.reload(gs_mod)
 
             cfg = DirectorConfig(use_nli=False)
-            gs_mod.create_grpc_server(cfg)
-
-            # Find the servicer class
-            obj = gs_mod._ns(approved=True, coherence=0.95)
-            assert obj.approved is True
-            assert obj.coherence == 0.95
+            server = gs_mod.create_grpc_server(cfg)
+            assert server is not None
+            grpc_mock.server.return_value.add_insecure_port.assert_called_once()

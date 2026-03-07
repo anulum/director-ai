@@ -21,15 +21,10 @@ from __future__ import annotations
 import asyncio
 import hmac
 import logging
-from types import SimpleNamespace
 
 from .core.config import DirectorConfig
 
 logger = logging.getLogger("DirectorAI.gRPC")
-
-
-def _ns(**kw):
-    return SimpleNamespace(**kw)
 
 
 def create_grpc_server(
@@ -68,18 +63,19 @@ def create_grpc_server(
     # Resolve proto message factories
     try:
         from . import director_pb2
+    except ImportError as exc:
+        raise ImportError(
+            "gRPC protobuf stubs not found. "
+            "Run: python -m grpc_tools.protoc -Iproto "
+            "--python_out=src/director_ai --grpc_python_out=src/director_ai "
+            "proto/director.proto"
+        ) from exc
 
-        review_resp = director_pb2.ReviewResponse
-        process_resp = director_pb2.ProcessResponse
-        batch_resp = director_pb2.BatchReviewResponse
-        token_evt = director_pb2.TokenEvent
-        has_proto = True
-    except ImportError:
-        review_resp = _ns  # type: ignore[assignment]
-        process_resp = _ns  # type: ignore[assignment]
-        batch_resp = _ns  # type: ignore[assignment]
-        token_evt = _ns  # type: ignore[assignment]
-        has_proto = False
+    review_resp = director_pb2.ReviewResponse
+    process_resp = director_pb2.ProcessResponse
+    batch_resp = director_pb2.BatchReviewResponse
+    token_evt = director_pb2.TokenEvent
+    has_proto = True
 
     class DirectorServicer:  # noqa: N801
         """Implements the DirectorService RPC methods."""
