@@ -20,6 +20,7 @@ Wice = "Wice"
 arange = "arange"
 thr = "thr"
 aadd = "aadd"
+hel = "hel"
 
 [files]
 extend-exclude = [
