@@ -123,14 +123,48 @@ class BatchProcessor:
     def review_batch(
         self, items: list[tuple[str, str]], tenant_id: str = ""
     ) -> BatchResult:
-        """Batch-review (prompt, response) pairs with concurrent execution.
+        """Batch-review (prompt, response) pairs.
 
-        Uses ``backend.review(prompt, response)`` — backend must be CoherenceScorer.
+        When the backend has a ``review_batch`` method (CoherenceScorer),
+        delegates to it for coalesced NLI inference (2 GPU kernel calls
+        total instead of 2*N). Falls back to per-item ThreadPoolExecutor.
         """
         start = time.monotonic()
         metrics.observe("batch_size", float(len(items)))
-
         result = BatchResult(total=len(items))
+
+        scorer_batch_fn = getattr(self._backend, "review_batch", None)
+        if scorer_batch_fn is not None and not isinstance(
+            self._backend, BatchProcessor
+        ):
+            try:
+                batch_results = scorer_batch_fn(items, tenant_id=tenant_id)
+                if not isinstance(batch_results, list) or len(batch_results) != len(
+                    items
+                ):
+                    raise TypeError("review_batch returned invalid result")
+                for idx, item_result in enumerate(batch_results):
+                    if item_result is not None:
+                        result.succeeded += 1
+                        approved = item_result[0]
+                        score = item_result[1]
+                        metrics.inc("reviews_total")
+                        if approved:
+                            metrics.inc("reviews_approved")
+                        else:
+                            metrics.inc("reviews_rejected")
+                        metrics.observe("coherence_score", score.score)
+                    else:
+                        result.errors.append((idx, "scorer returned None"))
+                        result.failed += 1
+                result.results = [r for r in batch_results if r is not None]
+                result.duration_seconds = time.monotonic() - start
+                return result
+            except Exception as exc:
+                logger.warning(
+                    "Coalesced review_batch failed, falling back to per-item: %s", exc
+                )
+
         ordered: list[tuple[bool, CoherenceScore] | None] = [
             None for _ in range(len(items))
         ]
@@ -243,12 +277,30 @@ class BatchProcessor:
         max_concurrency: int | None = None,
         tenant_id: str = "",
     ) -> BatchResult:
-        """Async version of review_batch using asyncio concurrency."""
+        """Async version of review_batch.
+
+        Offloads coalesced scorer.review_batch() to the thread pool when
+        available, falling back to per-item asyncio concurrency.
+        """
         start = time.monotonic()
         metrics.observe("batch_size", float(len(items)))
-        sem = asyncio.Semaphore(max_concurrency or self.max_concurrency)
         loop = asyncio.get_running_loop()
 
+        scorer_batch_fn = getattr(self._backend, "review_batch", None)
+        if scorer_batch_fn is not None and not isinstance(
+            self._backend, BatchProcessor
+        ):
+            try:
+                result = await loop.run_in_executor(
+                    None, lambda: self.review_batch(items, tenant_id=tenant_id)
+                )
+                return result
+            except Exception as exc:
+                logger.warning(
+                    "Async coalesced review_batch failed, falling back: %s", exc
+                )
+
+        sem = asyncio.Semaphore(max_concurrency or self.max_concurrency)
         result = BatchResult(total=len(items))
         ordered: list[tuple[bool, CoherenceScore] | None] = [None] * len(items)
 
