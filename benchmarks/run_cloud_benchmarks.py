@@ -148,12 +148,20 @@ def bench_hybrid_openai() -> None:
 
 def bench_aggrefact_l40s() -> None:
     logger.info("=== AggreFact sweep (29K samples, L40S latency) ===")
-    from benchmarks.aggrefact_eval import run_aggrefact
+    from benchmarks.aggrefact_eval import (
+        _print_aggrefact_results,
+        run_aggrefact_benchmark,
+    )
 
     t0 = time.time()
-    result = run_aggrefact(sweep=True)
+    m = run_aggrefact_benchmark()
     elapsed = time.time() - t0
-    result["elapsed_s"] = round(elapsed, 1)
+    _print_aggrefact_results(m)
+    result = {
+        "benchmark": "AggreFact-L40S",
+        "elapsed_s": round(elapsed, 1),
+        **m.to_dict(),
+    }
     result["hw"] = _gpu_info()
     _save(result, "aggrefact_l40s_results.json")
 

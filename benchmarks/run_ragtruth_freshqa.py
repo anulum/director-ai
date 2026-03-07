@@ -8,15 +8,21 @@
 RAGTruth and FreshQA with corrected dataset sources.
 
 - RAGTruth: wandb/RAGTruth-processed (HuggingFace)
-- FreshQA: freshllms/freshqa GitHub CSV
+  Fields: context, query, output, hallucination_labels_processed
+- FreshQA: Google Sheets CSV export (Nov 2025 snapshot)
+  Fields: question, false_premise, answer_0..answer_9
 """
 
 from __future__ import annotations
 
+import ast
+import csv
+import io
 import json
 import logging
 import sys
 import time
+import urllib.request
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -29,6 +35,8 @@ logger = logging.getLogger("CloudBench")
 
 RESULTS_DIR = Path(__file__).parent / "results"
 RESULTS_DIR.mkdir(exist_ok=True)
+
+FRESHQA_SHEET_ID = "1X6oTXzU1L9PWc2uim1eVzdX8V7y7_4crWfdJhVV08L4"
 
 
 def _gpu_info() -> dict:
@@ -64,23 +72,28 @@ def bench_ragtruth_nli() -> None:
     items = list(ds)
     logger.info("Loaded %d RAGTruth samples", len(items))
 
+    scorer = CoherenceScorer(threshold=0.5, soft_limit=0.6, use_nli=True)
+
     metrics = E2EMetrics()
     for i, item in enumerate(items):
-        context = item.get("source", item.get("context", item.get("source_text", "")))
-        question = item.get("query", item.get("question", ""))
-        response = item.get("response", item.get("answer", ""))
-        is_hallucinated = bool(item.get("label", item.get("is_hallucinated", 0)))
+        context = item.get("context", "")
+        question = item.get("query", "")
+        response = item.get("output", "")
+
+        labels_raw = item.get("hallucination_labels_processed", "{}")
+        if isinstance(labels_raw, str):
+            labels = ast.literal_eval(labels_raw)
+        else:
+            labels = labels_raw
+        is_hallucinated = (labels.get("evident_conflict", 0) > 0) or (
+            labels.get("baseless_info", 0) > 0
+        )
 
         if not response:
             continue
 
         store = VectorGroundTruthStore()
-        scorer = CoherenceScorer(
-            threshold=0.5,
-            soft_limit=0.6,
-            use_nli=True,
-            ground_truth_store=store,
-        )
+        scorer._ground_truth_store = store
         if context:
             store.ingest([context])
 
@@ -113,40 +126,49 @@ def bench_ragtruth_nli() -> None:
 
 
 def bench_freshqa_nli() -> None:
-    """FreshQA via GitHub CSV."""
-    import csv
-    import io
-    import urllib.request
-
+    """FreshQA via Google Sheets CSV export."""
     from benchmarks.e2e_eval import E2EMetrics, E2ESample, print_e2e_results
     from director_ai.core.scorer import CoherenceScorer
-    from director_ai.core.vector_store import VectorGroundTruthStore
 
-    logger.info("=== FreshQA (NLI, GitHub CSV) ===")
-    url = "https://raw.githubusercontent.com/freshllms/freshqa/main/data/freshqa.csv"
+    logger.info("=== FreshQA (NLI, Google Sheets CSV) ===")
+    url = f"https://docs.google.com/spreadsheets/d/{FRESHQA_SHEET_ID}/export?format=csv"
     resp = urllib.request.urlopen(url)
     text = resp.read().decode("utf-8")
-    reader = csv.DictReader(io.StringIO(text))
+
+    # Skip warning rows (first 2 lines) before the actual header
+    lines = text.split("\n")
+    header_idx = None
+    for idx, line in enumerate(lines):
+        if line.startswith("id,") or line.startswith('"id",'):
+            header_idx = idx
+            break
+    if header_idx is None:
+        logger.error("Could not find header row in FreshQA CSV")
+        return
+
+    csv_text = "\n".join(lines[header_idx:])
+    reader = csv.DictReader(io.StringIO(csv_text))
     items = list(reader)
     logger.info("Loaded %d FreshQA samples", len(items))
+
+    scorer = CoherenceScorer(threshold=0.5, soft_limit=0.6, use_nli=True)
 
     metrics = E2EMetrics()
     for i, item in enumerate(items):
         question = item.get("question", "")
-        answer = item.get("answer", item.get("best_answer", ""))
-        validity = item.get("validity", item.get("label", "valid"))
-        is_hallucinated = validity in ("false_premise", "outdated", "False", "false")
+        is_false_premise = str(item.get("false_premise", "")).upper() == "TRUE"
 
-        if not answer or not question:
+        # Collect all non-empty answers
+        answers = []
+        for k in range(10):
+            a = item.get(f"answer_{k}", "")
+            if a and a.strip():
+                answers.append(a.strip())
+        if not answers or not question:
             continue
 
-        store = VectorGroundTruthStore()
-        scorer = CoherenceScorer(
-            threshold=0.5,
-            soft_limit=0.6,
-            use_nli=True,
-            ground_truth_store=store,
-        )
+        answer = answers[0]  # Use first (primary) answer
+        is_hallucinated = is_false_premise
 
         t0 = time.perf_counter()
         approved, score = scorer.review(question, answer)

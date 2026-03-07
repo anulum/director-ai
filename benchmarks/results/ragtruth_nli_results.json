@@ -1,0 +1,41 @@
+{
+  "benchmark": "RAGTruth-NLI",
+  "total": 2700,
+  "threshold": 0.5,
+  "soft_limit": 0.6,
+  "fallback_mode": null,
+  "tp": 465,
+  "fp": 719,
+  "tn": 1038,
+  "fn": 478,
+  "catch_rate": 0.4931,
+  "false_positive_rate": 0.4092,
+  "precision": 0.3927,
+  "f1": 0.4372,
+  "accuracy": 0.5567,
+  "warning_rate": 0.0,
+  "fallback_rate": 0.0,
+  "evidence_coverage": 0.0,
+  "avg_latency_ms": 2649.95,
+  "p95_latency_ms": 10401.09,
+  "per_task": {
+    "ragtruth": {
+      "total": 2700,
+      "tp": 465,
+      "fp": 719,
+      "tn": 1038,
+      "fn": 478,
+      "catch_rate": 0.4931,
+      "false_positive_rate": 0.4092,
+      "precision": 0.3927,
+      "f1": 0.4372,
+      "avg_latency_ms": 2649.95
+    }
+  },
+  "hw": {
+    "gpu": "NVIDIA L40S",
+    "vram_gb": 44.4,
+    "cuda": true,
+    "torch": "2.6.0+cu124"
+  }
+}

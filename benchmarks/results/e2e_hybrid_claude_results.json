@@ -1,0 +1,66 @@
+{
+  "benchmark": "E2E-Hybrid-Claude",
+  "elapsed_s": 8541.1,
+  "total": 600,
+  "threshold": 0.35,
+  "soft_limit": 0.45,
+  "fallback_mode": null,
+  "tp": 272,
+  "fp": 192,
+  "tn": 108,
+  "fn": 28,
+  "catch_rate": 0.9067,
+  "false_positive_rate": 0.64,
+  "precision": 0.5862,
+  "f1": 0.712,
+  "accuracy": 0.6333,
+  "warning_rate": 0.0882,
+  "fallback_rate": 0.0,
+  "evidence_coverage": 1.0,
+  "avg_latency_ms": 14230.25,
+  "p95_latency_ms": 31799.74,
+  "per_task": {
+    "dialogue": {
+      "total": 200,
+      "tp": 99,
+      "fp": 95,
+      "tn": 5,
+      "fn": 1,
+      "catch_rate": 0.99,
+      "false_positive_rate": 0.95,
+      "precision": 0.5103,
+      "f1": 0.6735,
+      "avg_latency_ms": 6239.2
+    },
+    "qa": {
+      "total": 200,
+      "tp": 78,
+      "fp": 4,
+      "tn": 96,
+      "fn": 22,
+      "catch_rate": 0.78,
+      "false_positive_rate": 0.04,
+      "precision": 0.9512,
+      "f1": 0.8571,
+      "avg_latency_ms": 10125.51
+    },
+    "summarization": {
+      "total": 200,
+      "tp": 95,
+      "fp": 93,
+      "tn": 7,
+      "fn": 5,
+      "catch_rate": 0.95,
+      "false_positive_rate": 0.93,
+      "precision": 0.5053,
+      "f1": 0.6597,
+      "avg_latency_ms": 26326.03
+    }
+  },
+  "hw": {
+    "gpu": "NVIDIA L40S",
+    "vram_gb": 44.4,
+    "cuda": true,
+    "torch": "2.6.0+cu124"
+  }
+}

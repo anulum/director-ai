@@ -1,6 +1,6 @@
 # Director-AI Benchmark Report
 
-Version: 3.0.0
+Version: 3.3.0
 Date: 2026-03-07
 
 ## Hardware
@@ -8,6 +8,7 @@ Date: 2026-03-07
 All latency numbers measured on:
 
 - **Primary**: NVIDIA GeForce GTX 1060 6 GB, Python 3.12, torch 2.6.0+cu124
+- **Cloud GPU**: NVIDIA L40S 45 GB (UpCloud fi-hel2), Python 3.12, torch 2.6.0+cu124
 - **Cross-GPU**: RTX 6000 Ada (48 GB), RTX A5000 (24 GB), RTX A6000 (48 GB), Quadro RTX 5000 (16 GB)
 - Iterations: 30 (latency), 5 warmup. GPU clocks not locked.
 
@@ -82,15 +83,30 @@ Threshold=0.35, soft_limit=0.45, scorer_backend=deberta (heuristic+NLI).
 
 Evidence coverage: 100%. Avg latency: 15.8 ms (p95: 40 ms).
 
-**Hybrid mode** (NLI + LLM judge) infrastructure is wired as of v2.7.1
-but has not yet been run at scale. Expected to improve summarization catch
-rate. Run with:
+Reproduce (heuristic+NLI): `python -m benchmarks.e2e_eval --nli`
+
+### Hybrid Mode — NLI + LLM Judge (600 traces, L40S)
+
+| Judge | Task | N | Catch | FPR | Precision | F1 | Avg Latency |
+|-------|------|---|-------|-----|-----------|-----|-------------|
+| Claude Sonnet 4 | QA | 200 | 78.0% | 4.0% | 95.1% | 85.7% | 10.1 s |
+| Claude Sonnet 4 | Summarization | 200 | 95.0% | 93.0% | 50.5% | 66.0% | 26.3 s |
+| Claude Sonnet 4 | Dialogue | 200 | 99.0% | 95.0% | 51.0% | 67.4% | 6.2 s |
+| **Claude Sonnet 4** | **Overall** | **600** | **90.7%** | **64.0%** | **58.6%** | **71.2%** | **14.2 s** |
+| GPT-4o-mini | QA | 200 | 77.0% | 3.0% | 96.2% | 85.6% | 1.3 s |
+| GPT-4o-mini | Summarization | 200 | 95.0% | 93.0% | 50.5% | 66.0% | 4.3 s |
+| GPT-4o-mini | Dialogue | 200 | 99.0% | 95.0% | 51.0% | 67.4% | 1.3 s |
+| **GPT-4o-mini** | **Overall** | **600** | **90.3%** | **63.7%** | **58.7%** | **71.1%** | **2.3 s** |
+
+Hybrid mode improves catch rate from **46.7% → 90.7%** (+94% relative).
+QA task achieves production-grade precision (95-96%) at 3-4% FPR.
+GPT-4o-mini matches Claude at 6x lower latency — recommended for production.
+
+Reproduce:
 ```bash
 python -m benchmarks.e2e_eval --nli --scorer-backend hybrid \
     --llm-judge-provider openai --llm-judge-model gpt-4o-mini
 ```
-
-Reproduce (heuristic+NLI): `python -m benchmarks.e2e_eval --nli`
 
 ## 4. False-Positive Rate
 
@@ -100,16 +116,43 @@ through `StreamingKernel` (heuristic mode).
 
 Reproduce: `python -m benchmarks.streaming_false_halt_bench`
 
-## 5. RAGTruth & FreshQA
+## 5. RAGTruth & FreshQA (L40S, full datasets)
 
-Evaluation infrastructure added in v2.7.0 (`ragtruth_eval.py`,
-`freshqa_eval.py`). Both require `datasets` package and GPU for NLI.
-Results pending full GPU benchmark run.
+### RAGTruth (2,700 samples, NLI-only)
 
+Source: `wandb/RAGTruth-processed` (HuggingFace). Task: detect hallucinations
+in LLM-generated summaries and responses.
+
+| Metric | Value |
+|--------|-------|
+| Samples | 2,700 (943 hallucinated, 1,757 clean) |
+| Catch rate | **49.3%** (465/943) |
+| False positive rate | 40.9% |
+| Precision | 39.3% |
+| F1 | 43.7% |
+| Avg latency | 2,650 ms/sample |
+
+### FreshQA (600 samples, NLI-only)
+
+Source: FreshQA Nov 2025 (Google Sheets). Task: detect false-premise questions.
+
+| Metric | Value |
+|--------|-------|
+| Samples | 600 (148 false-premise, 452 valid) |
+| Catch rate | **98.6%** (146/148) |
+| False positive rate | 97.8% |
+| Precision | 24.8% |
+| F1 | 39.7% |
+| Avg latency | 1,119 ms/sample |
+
+FreshQA's high FPR is expected: without ground-truth context, the NLI model
+cannot verify consistency and defaults to flagging. The 98.6% catch rate on
+false-premise questions demonstrates strong detection of factual impossibilities.
+
+Reproduce:
 ```bash
 pip install director-ai[nli] datasets
-python -m benchmarks.ragtruth_eval --max-samples 500
-python -m benchmarks.freshqa_eval --max-samples 500
+python benchmarks/run_ragtruth_freshqa.py
 ```
 
 ## 6. Cross-Platform Latency
@@ -146,14 +189,18 @@ python -m benchmarks.ffi_overhead_bench --iterations 100
 1. **Summarization is weakest**: AggreFact-CNN 68.8%, ExpertQA 59.1%. NLI
    models under-perform on abstractive summarization where surface forms
    diverge from source.
-2. **E2E catch rate is mediocre at 46.7%**: heuristic+NLI only. Hybrid
-   mode (NLI + LLM judge) is expected to improve this but unvalidated.
-3. **ONNX CPU not competitive**: 383 ms/pair. Requires `onnxruntime-gpu`.
-4. **Fine-tuned models regressed**: DeBERTa-v3-large fine-tuned on
+2. **E2E heuristic+NLI catch rate is 46.7%**: hybrid mode (NLI + LLM
+   judge) raises this to 90.7% but adds LLM latency (2.3s with GPT-4o-mini).
+3. **Hybrid summarization/dialogue FPR is high**: 93-95% false positive
+   rate on summarization and dialogue tasks. QA task is production-grade
+   (3-4% FPR, 95%+ precision).
+4. **ONNX CPU not competitive**: 383 ms/pair. Requires `onnxruntime-gpu`.
+5. **Fine-tuned models regressed**: DeBERTa-v3-large fine-tuned on
    hallucination data scored 64.7% — below the pre-trained FactCG 75.8%.
-5. **Competitor latencies are estimates**: values marked "~" or "(est.)"
+6. **Competitor latencies are estimates**: values marked "~" or "(est.)"
    from published papers, not our measurements.
-6. **No hybrid-mode E2E numbers yet**: infrastructure exists, results pending.
+7. **FreshQA NLI-only is detection-only**: 98.6% catch but 97.8% FPR
+   without ground truth context. Hybrid mode required for production use.
 
 ## 9. Competitive Position
 

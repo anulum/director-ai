@@ -1,0 +1,41 @@
+{
+  "benchmark": "FreshQA-NLI",
+  "total": 600,
+  "threshold": 0.5,
+  "soft_limit": 0.6,
+  "fallback_mode": null,
+  "tp": 146,
+  "fp": 442,
+  "tn": 10,
+  "fn": 2,
+  "catch_rate": 0.9865,
+  "false_positive_rate": 0.9779,
+  "precision": 0.2483,
+  "f1": 0.3967,
+  "accuracy": 0.26,
+  "warning_rate": 0.0,
+  "fallback_rate": 0.0,
+  "evidence_coverage": 0.0,
+  "avg_latency_ms": 1118.96,
+  "p95_latency_ms": 7206.13,
+  "per_task": {
+    "freshqa": {
+      "total": 600,
+      "tp": 146,
+      "fp": 442,
+      "tn": 10,
+      "fn": 2,
+      "catch_rate": 0.9865,
+      "false_positive_rate": 0.9779,
+      "precision": 0.2483,
+      "f1": 0.3967,
+      "avg_latency_ms": 1118.96
+    }
+  },
+  "hw": {
+    "gpu": "NVIDIA L40S",
+    "vram_gb": 44.4,
+    "cuda": true,
+    "torch": "2.6.0+cu124"
+  }
+}

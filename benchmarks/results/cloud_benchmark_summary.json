@@ -1,0 +1,22 @@
+{
+  "RAGTruth": {
+    "status": "failed",
+    "error": "Dataset 'yixuantt/ragtruth' doesn't exist on the Hub or cannot be accessed."
+  },
+  "FreshQA": {
+    "status": "failed",
+    "error": "Dataset 'freshllms/freshqa' doesn't exist on the Hub or cannot be accessed."
+  },
+  "Hybrid-Claude": {
+    "status": "ok",
+    "elapsed_s": 8541.1
+  },
+  "Hybrid-OpenAI": {
+    "status": "ok",
+    "elapsed_s": 1391.5
+  },
+  "AggreFact-L40S": {
+    "status": "failed",
+    "error": "Dataset 'lytang/LLM-AggreFact' is a gated dataset on the Hub. You must be authenticated to access it."
+  }
+}
