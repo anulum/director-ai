@@ -1,18 +1,20 @@
 # Director-AI -- Competitor Benchmark Comparison
 
-Last updated: 2026-03-03 (v2.6.0)
+Last updated: 2026-03-07 (v3.3.0)
 
 ## One-Pager Summary
 
 | Feature | Director-AI | NeMo Guardrails | Lynx | GuardrailsAI | SelfCheckGPT |
 |---------|-------------|----------------|------|-------------|-------------|
-| **Approach** | NLI + RAG dual-entropy | LLM self-consistency | Fine-tuned LLM | LLM-as-judge | Multi-call LLM |
-| **Model size** | 0.4B (DeBERTa) | LLM-dependent | 8-70B | LLM-dependent | LLM-dependent |
-| **Latency** | 0.9 ms/pair (Ada GPU) | 50-300 ms + LLM | 1-10 s | 2.26 s | 5-10 s |
+| **Approach** | NLI + RAG + hybrid LLM judge | LLM self-consistency | Fine-tuned LLM | LLM-as-judge | Multi-call LLM |
+| **Model size** | 0.4B (DeBERTa) + optional LLM | LLM-dependent | 8-70B | LLM-dependent | LLM-dependent |
+| **Latency (NLI)** | 0.9 ms/pair (Ada GPU) | 50-300 ms + LLM | 1-10 s | 2.26 s | 5-10 s |
+| **Latency (hybrid)** | 2.3 s (GPT-4o-mini judge) | — | — | — | — |
+| **E2E catch rate** | 90.7% (hybrid), 46.7% (NLI) | N/A | N/A | N/A | N/A |
 | **Streaming halt** | Yes (token-level) | No | No | No | No |
-| **Offline/local** | Yes | No (needs LLM) | Yes (GPU) | No (needs LLM) | No (needs LLM) |
+| **Offline/local** | Yes (NLI mode) | No (needs LLM) | Yes (GPU) | No (needs LLM) | No (needs LLM) |
 | **False-halt rate** | 0.0% (20 passages) | N/A | N/A | N/A | N/A |
-| **AggreFact bal. acc** | 75.8% | N/A | N/A | N/A | N/A |
+| **AggreFact bal. acc** | 75.8% (0.4B) | N/A | N/A | N/A | N/A |
 | **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
 | **License** | AGPL v3 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
 
@@ -45,10 +47,13 @@ ONNX GPU sequential (65 ms/pair) is 3x faster than PyTorch GPU sequential (197 m
 | GPU | VRAM | Compute | ONNX CUDA | PyTorch FP16 | PyTorch FP32 |
 |-----|------|---------|-----------|--------------|--------------|
 | **RTX 6000 Ada** | 48 GB | 8.9 | **0.9 ms** | 1.2 ms | 2.1 ms |
+| L40S | 45 GB | 8.9 | — | — | 3.4 ms† |
 | RTX A5000 | 24 GB | 8.6 | 2.0 ms | 3.4 ms | 4.8 ms |
 | RTX A6000 | 48 GB | 8.6 | 3.5 ms | 9.7 ms | 10.1 ms |
 | Quadro RTX 5000 | 16 GB | 7.5 | 5.1 ms | 2.5 ms | 5.9 ms |
 | GTX 1060 6GB | 6 GB | 6.1 | 13.9 ms | N/A | 17.4 ms |
+
+† L40S 3.4 ms = 55 ms / 16-pair batch, measured via AggreFact sweep (29,320 samples).
 
 ONNX CUDA is the fastest backend on all GPUs. RTX 6000 Ada achieves **sub-1ms per pair**.
 GTX 1060 lacks tensor cores (compute 6.1) — FP16 auto-skips.
@@ -124,6 +129,8 @@ the numbers that matter for a guardrail.
 
 ## End-to-End Guardrail Results (benchmarks/e2e_eval.py)
 
+### Heuristic+NLI Mode (300 traces, GTX 1060)
+
 Full pipeline (CoherenceAgent + GroundTruthStore + SafetyKernel), 300 traces
 across QA, summarization, and dialogue tasks. Threshold=0.35, soft_limit=0.45.
 
@@ -137,26 +144,77 @@ across QA, summarization, and dialogue tasks. Threshold=0.35, soft_limit=0.45.
 Evidence coverage: 100% (every rejection includes supporting chunks).
 Avg latency: 15.8 ms (p95: 40 ms).
 
+### Hybrid Mode — NLI + LLM Judge (600 traces, L40S)
+
+Hybrid mode adds an LLM judge fallback when NLI confidence is in the
+uncertain zone. Two judges tested: Claude Sonnet 4 and GPT-4o-mini.
+
+| Judge | Task | N | Catch | FPR | Precision | F1 | Avg Latency |
+|-------|------|---|-------|-----|-----------|-----|-------------|
+| Claude Sonnet 4 | QA | 200 | 78.0% | 4.0% | 95.1% | 85.7% | 10.1 s |
+| Claude Sonnet 4 | Summarization | 200 | 95.0% | 93.0% | 50.5% | 66.0% | 26.3 s |
+| Claude Sonnet 4 | Dialogue | 200 | 99.0% | 95.0% | 51.0% | 67.4% | 6.2 s |
+| **Claude Sonnet 4** | **Overall** | **600** | **90.7%** | **64.0%** | **58.6%** | **71.2%** | **14.2 s** |
+| GPT-4o-mini | QA | 200 | 77.0% | 3.0% | 96.2% | 85.6% | 1.3 s |
+| GPT-4o-mini | Summarization | 200 | 95.0% | 93.0% | 50.5% | 66.0% | 4.3 s |
+| GPT-4o-mini | Dialogue | 200 | 99.0% | 95.0% | 51.0% | 67.4% | 1.3 s |
+| **GPT-4o-mini** | **Overall** | **600** | **90.3%** | **63.7%** | **58.7%** | **71.1%** | **2.3 s** |
+
+Hybrid mode improves catch rate from **46.7% → 90.7%** (+94% relative).
+QA task achieves production-grade precision (95-96%) at 3-4% FPR.
+GPT-4o-mini matches Claude at 6x lower latency and 13x lower cost.
+
+### RAGTruth (2,700 samples, NLI-only, L40S)
+
+Source: `wandb/RAGTruth-processed`. Detect hallucinations in LLM-generated
+summaries and responses.
+
+| Metric | Value |
+|--------|-------|
+| Catch rate | 49.3% (465/943) |
+| False positive rate | 40.9% |
+| Precision | 39.3% |
+| F1 | 43.7% |
+| Avg latency | 2,650 ms/sample |
+
+### FreshQA (600 samples, NLI-only, L40S)
+
+Source: FreshQA Nov 2025 (Google Sheets). Detect false-premise questions.
+
+| Metric | Value |
+|--------|-------|
+| Catch rate | 98.6% (146/148) |
+| False positive rate | 97.8% |
+| Precision | 24.8% |
+| F1 | 39.7% |
+| Avg latency | 1,119 ms/sample |
+
+FreshQA's high FPR is expected: without ground-truth context, the NLI model
+cannot verify consistency and defaults to flagging.
+
 ## Where Director-AI Wins
 
-1. **0.9 ms/pair on Ada GPU, 14.6 ms on GTX 1060** — faster than any competitor at this accuracy tier.
-2. **Token-level streaming halt** — no competitor offers this. All others are post-hoc.
-3. **75.8% balanced accuracy** — 4th on LLM-AggreFact, within 1.6pp of top 7B model at 17x fewer params.
-4. **No LLM API dependency** — local DeBERTa model, runs offline on CPU/GPU.
-5. **Sub-ms lightweight path** — embedding-only mode at <0.1 ms for real-time streaming.
-6. **10.8x batch speedup** — single padded forward pass for multi-chunk documents.
-7. **Dual-entropy** — NLI + RAG combined signal. Most competitors do one or the other.
-8. **Ecosystem integration** — LangChain, LlamaIndex, LangGraph, Haystack, CrewAI.
+1. **90.7% E2E catch rate (hybrid)** — NLI + LLM judge catches 9 out of 10 hallucinations.
+2. **0.9 ms/pair on Ada GPU, 14.6 ms on GTX 1060** — faster than any competitor at this accuracy tier.
+3. **Token-level streaming halt** — no competitor offers this. All others are post-hoc.
+4. **75.8% balanced accuracy** — 4th on LLM-AggreFact, within 1.6pp of top 7B model at 17x fewer params.
+5. **95-96% QA precision at 3-4% FPR** — production-grade on QA tasks in hybrid mode.
+6. **No LLM API dependency in NLI mode** — local DeBERTa model, runs offline on CPU/GPU.
+7. **GPT-4o-mini hybrid at 2.3s** — matches Claude quality at 6x lower latency, 13x lower cost.
+8. **Sub-ms lightweight path** — embedding-only mode at <0.1 ms for real-time streaming.
+9. **Ecosystem integration** — LangChain, LlamaIndex, LangGraph, Haystack, CrewAI.
 
 ## Where Director-AI Loses
 
-1. **Summarization still weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1% drag the average.
-2. **ONNX CPU not competitive** — 383 ms/pair without CUDAExecutionProvider. Needs onnxruntime-gpu.
-3. **Fine-tuned models regress** — fine-tuned DeBERTa-v3-large scored 64.7%, below baseline.
+1. **Hybrid summarization/dialogue FPR is 93-95%** — LLM judges are too conservative on these tasks. QA is production-grade; summarization and dialogue need task-specific thresholds.
+2. **Summarization NLI accuracy weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1%.
+3. **ONNX CPU not competitive** — 383 ms/pair without CUDAExecutionProvider.
+4. **Fine-tuned models regress** — fine-tuned DeBERTa-v3-large scored 64.7%, below baseline.
+5. **Hybrid mode requires LLM API** — NLI-only mode is fully local, but hybrid needs OpenAI/Anthropic.
 
 ## Path Forward
 
-1. **ONNX + CUDA** — install onnxruntime-gpu for GPU-accelerated ONNX inference.
+1. **Task-specific hybrid thresholds** — reduce summarization/dialogue FPR via prompt tuning.
 2. **TensorRT** — sub-10ms/pair target via TensorRT optimization.
 3. **Summarization ensemble** — claim decomposition for AggreFact-CNN/ExpertQA.
 
@@ -167,9 +225,12 @@ Scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 | Script | Dataset | What it Tests | Metric | Status |
 |--------|---------|---------------|--------|--------|
 | `aggrefact_eval` | LLM-AggreFact (29K) | Factual consistency (11 datasets) | Balanced accuracy | **75.8%** (FactCG) |
-| `e2e_eval` | Synthetic (300 traces) | Full pipeline: Agent + KB + Kernel | Catch rate, precision, F1 | **46.7% catch, 56.9% prec** |
+| `e2e_eval` | HaluEval (300-600) | Full pipeline: Agent + KB + Kernel | Catch rate, precision, F1 | **90.7% catch (hybrid)** |
+| `e2e_eval --hybrid` | HaluEval (600) | Hybrid NLI + LLM judge | Catch, FPR, F1 | **90.7% / 71.2% F1** |
+| `run_ragtruth_freshqa` | RAGTruth (2,700) | NLI hallucination detection | Catch, precision, F1 | **49.3% catch (NLI-only)** |
+| `run_ragtruth_freshqa` | FreshQA (600) | False-premise detection | Catch rate | **98.6% catch** |
 | `latency_bench` | N/A | Inference latency across backends | Median/P95 ms | **0.9 ms (Ada GPU)** |
-| `gpu_bench` | N/A | Cross-GPU latency comparison | Per-pair ms | **5 GPUs benchmarked** |
+| `gpu_bench` | N/A | Cross-GPU latency comparison | Per-pair ms | **6 GPUs benchmarked** |
 | `retrieval_bench` | Synthetic (50 facts) | RAG retrieval quality (Hit@k, P@k) | Hit@1, Hit@3, P@3 | **40% / 63% (inmemory)** |
 | `anli_eval` | ANLI R1/R2/R3 | Adversarial NLI robustness | Accuracy, F1 per class | Requires GPU + HF_TOKEN |
 | `fever_eval` | FEVER dev | Fact verification | Accuracy, F1 per class | Requires GPU + HF_TOKEN |
