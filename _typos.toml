@@ -19,6 +19,7 @@ ba = "ba"
 Wice = "Wice"
 arange = "arange"
 thr = "thr"
+aadd = "aadd"
 
 [files]
 extend-exclude = [

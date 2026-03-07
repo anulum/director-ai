@@ -61,6 +61,10 @@ def _build_grpc_mocks(*, with_proto=False, with_reflection=False):
         pb2_grpc = MagicMock()
         mods["director_ai.director_pb2"] = pb2
         mods["director_ai.director_pb2_grpc"] = pb2_grpc
+    else:
+        # Prevent real proto modules from importing with mocked grpc
+        mods["director_ai.director_pb2"] = MagicMock()
+        mods["director_ai.director_pb2_grpc"] = MagicMock()
 
     if with_reflection:
         reflection_mod = MagicMock()

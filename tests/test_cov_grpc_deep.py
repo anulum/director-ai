@@ -2,11 +2,35 @@
 
 from __future__ import annotations
 
+import contextlib
 import sys
 import tempfile
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+import director_ai as _director_pkg
+
+_SENTINEL = object()
+
+
+@contextlib.contextmanager
+def _grpc_context(mods):
+    """Patch sys.modules AND clear director_ai submodule attr cache."""
+    saved = {}
+    for attr in ("director_pb2", "director_pb2_grpc"):
+        full_key = f"director_ai.{attr}"
+        if full_key not in mods:
+            continue
+        old = _director_pkg.__dict__.pop(attr, _SENTINEL)
+        if old is not _SENTINEL:
+            saved[attr] = old
+    try:
+        with patch.dict(sys.modules, mods):
+            yield
+    finally:
+        for attr, old in saved.items():
+            setattr(_director_pkg, attr, old)
 
 
 def _build_grpc_mocks():
@@ -26,12 +50,14 @@ def _build_grpc_mocks():
 
 
 def _inject_grpc(grpc_mock):
-    """Inject grpc mock into sys.modules and reimport grpc_server."""
+    """Build sys.modules patch dict with grpc + proto mocks."""
     mods = {
         "grpc": grpc_mock,
         "grpc_reflection": MagicMock(),
         "grpc_reflection.v1alpha": MagicMock(),
         "grpc_reflection.v1alpha.reflection": MagicMock(),
+        "director_ai.director_pb2": MagicMock(),
+        "director_ai.director_pb2_grpc": MagicMock(),
     }
     return mods
 
@@ -40,7 +66,7 @@ class TestCreateGrpcServer:
     def test_insecure_port(self):
         grpc, srv = _build_grpc_mocks()
         mods = _inject_grpc(grpc)
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             result = create_grpc_server(port=50099)
@@ -50,7 +76,7 @@ class TestCreateGrpcServer:
     def test_tls_port(self):
         grpc, srv = _build_grpc_mocks()
         mods = _inject_grpc(grpc)
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             with tempfile.NamedTemporaryFile(suffix=".pem", delete=False) as cf:
@@ -66,7 +92,6 @@ class TestCreateGrpcServer:
 
     def test_grpc_import_error(self):
         with patch.dict(sys.modules, {"grpc": None}):
-            # Force reimport
             if "director_ai.grpc_server" in sys.modules:
                 del sys.modules["director_ai.grpc_server"]
             from director_ai.grpc_server import create_grpc_server
@@ -75,35 +100,7 @@ class TestCreateGrpcServer:
                 create_grpc_server()
 
 
-class TestDirectorServicer:
-    """Test the inner servicer by extracting it from create_grpc_server."""
-
-    @pytest.fixture
-    def servicer_and_deps(self):
-        grpc, srv = _build_grpc_mocks()
-        mods = _inject_grpc(grpc)
-
-        with patch.dict(sys.modules, mods):
-            from director_ai.grpc_server import create_grpc_server
-
-            # Capture the servicer via the mock server
-            captured = {}
-
-            def _capture_server(*a, **kw):
-                s = MagicMock()
-                captured["server"] = s
-                return s
-
-            grpc.server.side_effect = _capture_server
-
-            create_grpc_server(port=50098)
-
-            yield captured.get("server"), grpc
-
-
 class TestAuthInterceptor:
-    """Test auth interceptor by accessing it through the server creation."""
-
     def test_auth_with_api_keys(self):
         grpc, srv = _build_grpc_mocks()
         mods = _inject_grpc(grpc)
@@ -112,11 +109,10 @@ class TestAuthInterceptor:
 
         cfg = DirectorConfig(use_nli=False, api_keys=["secret-key-123"])
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             create_grpc_server(config=cfg, port=50097)
-            # Interceptors are passed to grpc.server
             call_kwargs = grpc.server.call_args
             interceptors = call_kwargs.get("interceptors") or (
                 call_kwargs[1].get("interceptors") if len(call_kwargs) > 1 else []
@@ -131,7 +127,7 @@ class TestAuthInterceptor:
 
         cfg = DirectorConfig(use_nli=False, api_keys=[])
 
-        with patch.dict(sys.modules, mods):
+        with _grpc_context(mods):
             from director_ai.grpc_server import create_grpc_server
 
             result = create_grpc_server(config=cfg, port=50096)

@@ -233,12 +233,12 @@ class TestCliServeGrpc:
         mock_grpc_server = MagicMock()
         mock_grpc_mod.server.return_value = mock_grpc_server
         mock_grpc_mod.ServerInterceptor = type("SI", (), {})
-        with patch.dict(
-            sys.modules,
-            {
-                "grpc": mock_grpc_mod,
-            },
-        ):
+        mods = {
+            "grpc": mock_grpc_mod,
+            "director_ai.director_pb2": MagicMock(),
+            "director_ai.director_pb2_grpc": MagicMock(),
+        }
+        with _grpc_context(mods):
             from director_ai.cli import main
 
             main(["serve", "--transport", "grpc", "--port", "50333"])
