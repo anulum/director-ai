@@ -24,8 +24,7 @@ logger = logging.getLogger("DirectorAI.Enterprise.Redis")
 class RedisGroundTruthStore(GroundTruthStore):
     """Distributed GroundTruthStore using Redis for high availability.
 
-    Subclasses GroundTruthStore to intercept add/retrieve_context
-    and route them through a central Redis cluster instead of local RAM.
+    Facts are stored in per-tenant Redis hashes for isolation.
     """
 
     def __init__(
@@ -33,40 +32,47 @@ class RedisGroundTruthStore(GroundTruthStore):
     ):
         if redis is None:
             raise ImportError(
-                "redis wrapper requires the 'redis' package. Run: pip install director-ai[enterprise]"  # noqa: E501
+                "redis package required. Run: pip install director-ai[enterprise]"
             )
         super().__init__()
         self.redis_url = redis_url
         self.prefix = prefix
         self.client = redis.from_url(redis_url, decode_responses=True)
-        logger.info(f"Initialized RedisGroundTruthStore at {redis_url}")
+
+    def _hash_key(self, tenant_id: str = "") -> str:
+        return f"{self.prefix}{tenant_id or '_default'}:hash"
 
     def add(self, key: str, value: str, tenant_id: str = "") -> None:
-        """Add or update a fact in the distributed Redis store."""
         super().add(key, value, tenant_id=tenant_id)
-        self.client.hset(f"{self.prefix}hash", key, value)
+        self.client.hset(self._hash_key(tenant_id), key, value)
+
+    def add_many(self, facts: dict[str, str], tenant_id: str = "") -> int:
+        """Batch-add facts. Returns count added."""
+        if not facts:
+            return 0
+        hk = self._hash_key(tenant_id)
+        pipe = self.client.pipeline()
+        for k, v in facts.items():
+            super().add(k, v, tenant_id=tenant_id)
+            pipe.hset(hk, k, v)
+        pipe.execute()
+        return len(facts)
 
     def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
-        """Retrieve relevant facts from the Redis hash."""
-        facts_dict = self.client.hgetall(f"{self.prefix}hash")
+        facts_dict = self.client.hgetall(self._hash_key(tenant_id))
         if not facts_dict:
-            logger.info("RedisGroundTruthStore is empty")
             return None
 
         query_lower = query.lower()
-        context = []
+        context = [
+            value
+            for key, value in facts_dict.items()
+            if any(word in query_lower for word in key.lower().split())
+        ]
+        return "; ".join(context) if context else None
 
-        for key, value in facts_dict.items():
-            key_words = key.lower().split()
-            if any(word in query_lower for word in key_words):
-                context.append(value)
-
-        if context:
-            retrieved = "; ".join(context)
-            logger.info(f"RAG Retrieval (Redis): Found context '{retrieved}'")
-            return retrieved
-
-        return None
+    def count(self, tenant_id: str = "") -> int:
+        return self.client.hlen(self._hash_key(tenant_id))
 
 
 class RedisScoreCache(ScoreCache):
