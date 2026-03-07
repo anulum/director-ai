@@ -72,7 +72,7 @@ class RedisGroundTruthStore(GroundTruthStore):
         return "; ".join(context) if context else None
 
     def count(self, tenant_id: str = "") -> int:
-        return self.client.hlen(self._hash_key(tenant_id))
+        return int(self.client.hlen(self._hash_key(tenant_id)))
 
 
 class RedisScoreCache(ScoreCache):

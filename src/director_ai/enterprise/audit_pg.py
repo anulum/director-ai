@@ -106,7 +106,7 @@ class PostgresAuditSink:
 
     def _current_version(self, cur: Any) -> int:
         cur.execute("SELECT COALESCE(MAX(version), 0) FROM _schema_version")
-        return cur.fetchone()[0]
+        return int(cur.fetchone()[0])
 
     def _set_version(self, cur: Any, version: int) -> None:
         ph = "?" if self._is_sqlite else "%s"
@@ -271,7 +271,7 @@ class PostgresAuditSink:
             try:
                 cur = self._conn.cursor()
                 cur.execute(sql, params)
-                return cur.fetchone()[0]
+                return int(cur.fetchone()[0])
             except Exception as e:
                 logger.error("Audit count failed: %s", e)
                 return 0
