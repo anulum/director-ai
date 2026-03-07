@@ -120,3 +120,26 @@
 ### Vector Backends (Done)
 - FAISS backend (in-process dense search for edge/offline deployments)
 - Elasticsearch backend (hybrid BM25 + dense retrieval)
+
+## v3.2.0
+
+### Bug Fixes (Done)
+- Fix `quickstart` CLI scaffolding broken `asyncio.run()` on sync methods
+- Implement `BatchProcessor.process_batch_async()` — docstring-advertised method missing
+
+### Async Correctness (Done)
+- Add `__aiter__` to Bedrock/Gemini/Cohere guarded stream wrappers (parity with OpenAI/Anthropic)
+- Add `async aadd()`/`aquery()` defaults on `VectorBackend` ABC for non-blocking server use
+- Parallelize `AnthropicProvider`/`HuggingFaceProvider` multi-candidate requests
+
+### API Consistency (Done)
+- Add `LiteScorer.review()` returning `(bool, CoherenceScore)` to match `CoherenceScorer` interface
+
+### Configuration Hardening (Done)
+- Validate `reranker_model`/`embedding_model` non-empty when feature enabled
+- Warn on unknown YAML keys in `DirectorConfig.from_yaml()`
+
+### Test Coverage (Done)
+- End-to-end `scorer.review(session=...)` cross-turn divergence test
+- `review_batch()` ordering, partial failure, and timeout tests
+- `build_store()` with `vector_backend="sentence-transformer"` branch test

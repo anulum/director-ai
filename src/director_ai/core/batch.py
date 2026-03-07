@@ -19,6 +19,7 @@ Usage::
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -197,3 +198,79 @@ class BatchProcessor:
             return approved, score  # type: ignore[no-any-return]
         finally:
             metrics.gauge_dec("active_requests")
+
+    async def process_batch_async(
+        self,
+        prompts: list[str],
+        max_concurrency: int | None = None,
+        tenant_id: str = "",
+    ) -> BatchResult:
+        """Async version of process_batch using asyncio concurrency."""
+        start = time.monotonic()
+        metrics.observe("batch_size", float(len(prompts)))
+        sem = asyncio.Semaphore(max_concurrency or self.max_concurrency)
+        loop = asyncio.get_running_loop()
+
+        result = BatchResult(total=len(prompts))
+        ordered: list[ReviewResult | None] = [None] * len(prompts)
+
+        async def _run(idx: int, prompt: str) -> None:
+            async with sem:
+                try:
+                    item = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            None, self._process_one, idx, prompt, tenant_id
+                        ),
+                        timeout=self.item_timeout,
+                    )
+                    ordered[idx] = item
+                    result.succeeded += 1
+                except TimeoutError:
+                    result.errors.append((idx, "item timeout"))
+                    result.failed += 1
+                except Exception as e:
+                    result.errors.append((idx, str(e)))
+                    result.failed += 1
+
+        await asyncio.gather(*[_run(i, p) for i, p in enumerate(prompts)])
+        result.results = [r for r in ordered if r is not None]
+        result.duration_seconds = time.monotonic() - start
+        return result
+
+    async def review_batch_async(
+        self,
+        items: list[tuple[str, str]],
+        max_concurrency: int | None = None,
+        tenant_id: str = "",
+    ) -> BatchResult:
+        """Async version of review_batch using asyncio concurrency."""
+        start = time.monotonic()
+        metrics.observe("batch_size", float(len(items)))
+        sem = asyncio.Semaphore(max_concurrency or self.max_concurrency)
+        loop = asyncio.get_running_loop()
+
+        result = BatchResult(total=len(items))
+        ordered: list[tuple[bool, CoherenceScore] | None] = [None] * len(items)
+
+        async def _run(idx: int, prompt: str, response: str) -> None:
+            async with sem:
+                try:
+                    item = await asyncio.wait_for(
+                        loop.run_in_executor(
+                            None, self._review_one, idx, prompt, response, tenant_id
+                        ),
+                        timeout=self.item_timeout,
+                    )
+                    ordered[idx] = item
+                    result.succeeded += 1
+                except TimeoutError:
+                    result.errors.append((idx, "item timeout"))
+                    result.failed += 1
+                except Exception as e:
+                    result.errors.append((idx, str(e)))
+                    result.failed += 1
+
+        await asyncio.gather(*[_run(i, p, r) for i, (p, r) in enumerate(items)])
+        result.results = [r for r in ordered if r is not None]
+        result.duration_seconds = time.monotonic() - start
+        return result

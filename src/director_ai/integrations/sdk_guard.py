@@ -483,6 +483,28 @@ class _GuardedBedrockStream:
             yield event
         self._final_check()
 
+    def __aiter__(self):
+        return self._aiter_impl()
+
+    async def _aiter_impl(self):
+        stream = self._response.get("stream", self._response)
+        async for event in stream:
+            delta = _extract_bedrock_stream_delta(event)
+            if delta:
+                self._buffer.append(delta)
+                self._token_count += 1
+                if self._token_count % STREAM_CHECK_INTERVAL == 0:
+                    await _ascore_and_gate(
+                        self._scorer,
+                        self._on_fail,
+                        self._prompt,
+                        "".join(self._buffer),
+                    )
+            yield event
+        text = "".join(self._buffer)
+        if text:
+            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
+
     def _periodic_check(self):
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
@@ -565,6 +587,27 @@ class _GuardedGeminiStream:
             yield chunk
         self._final_check()
 
+    def __aiter__(self):
+        return self._aiter_impl()
+
+    async def _aiter_impl(self):
+        async for chunk in self._stream:
+            text = getattr(chunk, "text", None)
+            if text:
+                self._buffer.append(text)
+                self._token_count += 1
+                if self._token_count % STREAM_CHECK_INTERVAL == 0:
+                    await _ascore_and_gate(
+                        self._scorer,
+                        self._on_fail,
+                        self._prompt,
+                        "".join(self._buffer),
+                    )
+            yield chunk
+        text = "".join(self._buffer)
+        if text:
+            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
+
     def _periodic_check(self):
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
@@ -634,6 +677,27 @@ class _GuardedCohereStream:
                     self._periodic_check()
             yield event
         self._final_check()
+
+    def __aiter__(self):
+        return self._aiter_impl()
+
+    async def _aiter_impl(self):
+        async for event in self._stream:
+            text = getattr(event, "text", None)
+            if text:
+                self._buffer.append(text)
+                self._token_count += 1
+                if self._token_count % STREAM_CHECK_INTERVAL == 0:
+                    await _ascore_and_gate(
+                        self._scorer,
+                        self._on_fail,
+                        self._prompt,
+                        "".join(self._buffer),
+                    )
+            yield event
+        text = "".join(self._buffer)
+        if text:
+            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
     def _periodic_check(self):
         text = "".join(self._buffer)

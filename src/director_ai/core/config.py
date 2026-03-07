@@ -235,6 +235,15 @@ class DirectorConfig:
                 f"w_logic + w_fact must equal 1.0 when set, "
                 f"got {self.w_logic} + {self.w_fact}"
             )
+        if self.reranker_enabled and not self.reranker_model.strip():
+            raise ValueError("reranker_model must be set when reranker_enabled=True")
+        if (
+            self.vector_backend == "sentence-transformer"
+            and not self.embedding_model.strip()
+        ):
+            raise ValueError(
+                "embedding_model must be set when vector_backend='sentence-transformer'"
+            )
 
     @classmethod
     def from_env(cls, prefix: str = "DIRECTOR_") -> DirectorConfig:
@@ -279,6 +288,9 @@ class DirectorConfig:
 
         if not isinstance(data, dict):
             return cls()
+        unknown = set(data) - set(cls.__dataclass_fields__)
+        if unknown:
+            logger.warning("Unknown config key(s) ignored: %s", sorted(unknown))
         return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
 
     @classmethod

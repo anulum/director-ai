@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 
@@ -196,8 +197,7 @@ class AnthropicProvider(LLMProvider):
     def name(self) -> str:
         return f"anthropic/{self.model}"
 
-    def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
-        candidates = []
+    def _fetch_one(self, prompt: str) -> dict[str, str]:
         url = "https://api.anthropic.com/v1/messages"
         headers = {
             "x-api-key": self.api_key,
@@ -209,33 +209,39 @@ class AnthropicProvider(LLMProvider):
             "messages": [{"role": "user", "content": prompt}],
             "max_tokens": self.max_tokens,
         }
+        try:
+            resp = requests.post(
+                url, json=payload, headers=headers, timeout=self.timeout
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            text = ""
+            for block in data.get("content", []):
+                if block.get("type") == "text":
+                    text += block.get("text", "")
+            return {"text": text, "source": self.name}
+        except requests.exceptions.Timeout as e:
+            logger.error("Anthropic request timed out: %s", e)
+            return {"text": "[Timeout]", "source": "error"}
+        except requests.exceptions.HTTPError as e:
+            logger.error("Anthropic HTTP error: %s", e)
+            return {"text": f"[HTTP Error: {e}]", "source": "error"}
+        except requests.exceptions.ConnectionError as e:
+            logger.error("Anthropic connection failed: %s", e)
+            return {"text": "[Connection Error]", "source": "error"}
+        except (ValueError, KeyError) as e:
+            logger.error("Anthropic response parsing failed: %s", e)
+            return {"text": "[Parse Error]", "source": "error"}
 
-        for _ in range(n):
-            try:
-                resp = requests.post(
-                    url, json=payload, headers=headers, timeout=self.timeout
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                text = ""
-                for block in data.get("content", []):
-                    if block.get("type") == "text":
-                        text += block.get("text", "")
-                candidates.append({"text": text, "source": self.name})
-            except requests.exceptions.Timeout as e:
-                logger.error("Anthropic request timed out: %s", e)
-                candidates.append({"text": "[Timeout]", "source": "error"})
-            except requests.exceptions.HTTPError as e:
-                logger.error("Anthropic HTTP error: %s", e)
-                candidates.append({"text": f"[HTTP Error: {e}]", "source": "error"})
-            except requests.exceptions.ConnectionError as e:
-                logger.error("Anthropic connection failed: %s", e)
-                candidates.append({"text": "[Connection Error]", "source": "error"})
-            except (ValueError, KeyError) as e:
-                logger.error("Anthropic response parsing failed: %s", e)
-                candidates.append({"text": "[Parse Error]", "source": "error"})
-
-        return candidates
+    def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
+        if n == 1:
+            return [self._fetch_one(prompt)]
+        results: list[dict[str, str]] = [{}] * n
+        with ThreadPoolExecutor(max_workers=min(n, 4)) as pool:
+            futures = {pool.submit(self._fetch_one, prompt): i for i in range(n)}
+            for future in as_completed(futures):
+                results[futures[future]] = future.result()
+        return results
 
 
 class HuggingFaceProvider(LLMProvider):
@@ -262,40 +268,45 @@ class HuggingFaceProvider(LLMProvider):
     def name(self) -> str:
         return f"huggingface/{self.model}"
 
-    def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
-        candidates = []
+    def _fetch_one(self, prompt: str) -> dict[str, str]:
         url = f"https://api-inference.huggingface.co/models/{self.model}"
         headers = {"Authorization": f"Bearer {self.api_key}"}
+        try:
+            resp = requests.post(
+                url,
+                json={"inputs": prompt, "parameters": {"max_new_tokens": 256}},
+                headers=headers,
+                timeout=self.timeout,
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            if isinstance(data, list) and data:
+                text = data[0].get("generated_text", "")
+            else:
+                text = str(data)
+            return {"text": text, "source": self.name}
+        except requests.exceptions.Timeout as e:
+            logger.error("HuggingFace request timed out: %s", e)
+            return {"text": "[Timeout]", "source": "error"}
+        except requests.exceptions.HTTPError as e:
+            logger.error("HuggingFace HTTP error: %s", e)
+            return {"text": f"[HTTP Error: {e}]", "source": "error"}
+        except requests.exceptions.ConnectionError as e:
+            logger.error("HuggingFace connection failed: %s", e)
+            return {"text": "[Connection Error]", "source": "error"}
+        except (ValueError, KeyError) as e:
+            logger.error("HuggingFace response parsing failed: %s", e)
+            return {"text": "[Parse Error]", "source": "error"}
 
-        for _ in range(n):
-            try:
-                resp = requests.post(
-                    url,
-                    json={"inputs": prompt, "parameters": {"max_new_tokens": 256}},
-                    headers=headers,
-                    timeout=self.timeout,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                if isinstance(data, list) and data:
-                    text = data[0].get("generated_text", "")
-                else:
-                    text = str(data)
-                candidates.append({"text": text, "source": self.name})
-            except requests.exceptions.Timeout as e:
-                logger.error("HuggingFace request timed out: %s", e)
-                candidates.append({"text": "[Timeout]", "source": "error"})
-            except requests.exceptions.HTTPError as e:
-                logger.error("HuggingFace HTTP error: %s", e)
-                candidates.append({"text": f"[HTTP Error: {e}]", "source": "error"})
-            except requests.exceptions.ConnectionError as e:
-                logger.error("HuggingFace connection failed: %s", e)
-                candidates.append({"text": "[Connection Error]", "source": "error"})
-            except (ValueError, KeyError) as e:
-                logger.error("HuggingFace response parsing failed: %s", e)
-                candidates.append({"text": "[Parse Error]", "source": "error"})
-
-        return candidates
+    def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
+        if n == 1:
+            return [self._fetch_one(prompt)]
+        results: list[dict[str, str]] = [{}] * n
+        with ThreadPoolExecutor(max_workers=min(n, 4)) as pool:
+            futures = {pool.submit(self._fetch_one, prompt): i for i in range(n)}
+            for future in as_completed(futures):
+                results[futures[future]] = future.result()
+        return results
 
 
 class LocalProvider(LLMProvider):

@@ -19,6 +19,7 @@ from __future__ import annotations
 from ._heuristics import ENTITY_RE as _ENTITY_RE
 from ._heuristics import NEGATION_WORDS as _NEGATION_WORDS
 from ._heuristics import WORD_RE as _WORD_RE
+from .types import CoherenceScore
 
 __all__ = ["LiteScorer"]
 
@@ -74,3 +75,17 @@ class LiteScorer:
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Score multiple (premise, hypothesis) pairs."""
         return [self.score(p, h) for p, h in pairs]
+
+    def review(
+        self, prompt: str, action: str, threshold: float = 0.5
+    ) -> tuple[bool, CoherenceScore]:
+        """Review a prompt/response pair, matching CoherenceScorer.review() interface."""
+        div = self.score(prompt, action)
+        coherence = 1.0 - div
+        approved = coherence >= threshold
+        return approved, CoherenceScore(
+            score=coherence,
+            approved=approved,
+            h_logical=div,
+            h_factual=div,
+        )

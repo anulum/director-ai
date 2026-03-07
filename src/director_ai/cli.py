@@ -161,7 +161,7 @@ def _cmd_quickstart(args: list[str]) -> None:
         "    for line in f:\n"
         "        line = line.strip()\n"
         "        if line:\n"
-        "            asyncio.run(store.add(line[:20], line))\n"
+        "            store.add(line[:20], line)\n"
         "\n"
         "scorer = CoherenceScorer(\n"
         "    threshold=config.coherence_threshold,\n"
@@ -169,9 +169,9 @@ def _cmd_quickstart(args: list[str]) -> None:
         "    use_nli=config.use_nli,\n"
         ")\n"
         "\n"
-        "approved, score = asyncio.run(scorer.review(\n"
+        "approved, score = scorer.review(\n"
         '    "What color is the sky?", "The sky is blue."\n'
-        "))\n"
+        ")\n"
         'print(f"Approved: {approved}  Score: {score.score:.3f}")\n',
         encoding="utf-8",
     )

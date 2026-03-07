@@ -105,6 +105,30 @@ class VectorBackend(ABC):
     @abstractmethod
     def count(self) -> int: ...  # pragma: no cover
 
+    async def aadd(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
+        """Async add — delegates to sync add via executor by default."""
+        import asyncio
+
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self.add, doc_id, text, metadata)
+
+    async def aquery(
+        self, text: str, n_results: int = 3, tenant_id: str = ""
+    ) -> list[dict[str, Any]]:
+        """Async query — delegates to sync query via executor by default."""
+        import asyncio
+        import functools
+
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(
+            None,
+            functools.partial(
+                self.query, text, n_results=n_results, tenant_id=tenant_id
+            ),
+        )
+
 
 class InMemoryBackend(VectorBackend):
     """Simple in-memory cosine-similarity backend (no external deps).
