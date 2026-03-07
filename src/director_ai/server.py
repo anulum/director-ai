@@ -256,7 +256,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         app.state._state["batch"] = batch_proc
         app.state._state["config"] = cfg
         app.state._state["stats"] = stats
-        app.state._state["sessions"] = {}  # session_id -> ConversationSession
+        app.state._state["sessions"] = {}
+        app.state._state["sessions_lock"] = asyncio.Lock()
 
         if cfg.audit_log_path or cfg.audit_postgres_url:
             audit_logger = AuditLogger(path=cfg.audit_log_path)
@@ -458,18 +459,23 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if req.session_id:
             from .core.session import ConversationSession
 
-            sessions = request.app.state._state.get("sessions", {})
-            if req.session_id not in sessions:  # pragma: no branch
-                sessions[req.session_id] = ConversationSession(
-                    session_id=req.session_id,
-                )
-            session = sessions[req.session_id]
+            async with request.app.state._state["sessions_lock"]:
+                sessions = request.app.state._state["sessions"]
+                if req.session_id not in sessions:
+                    sessions[req.session_id] = ConversationSession(
+                        session_id=req.session_id,
+                    )
+                session = sessions[req.session_id]
 
         metrics.inc("reviews_total")
         start = time.monotonic()
+        loop = asyncio.get_running_loop()
         with metrics.timer("review_duration_seconds"):
-            approved, score = scorer.review(
-                req.prompt, req.response, session=session, tenant_id=tenant_id
+            approved, score = await loop.run_in_executor(
+                None,
+                lambda: scorer.review(
+                    req.prompt, req.response, session=session, tenant_id=tenant_id
+                ),
             )
         latency_ms = (time.monotonic() - start) * 1000
 
@@ -540,7 +546,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         try:
             with metrics.timer("review_duration_seconds"):
-                result = agent.process(req.prompt, tenant_id=tenant_id)
+                result = await agent.aprocess(req.prompt, tenant_id=tenant_id)
         except Exception as e:
             logger.error(f"Error during process: {e}")
             raise HTTPException(status_code=500, detail=str(e)) from e
@@ -627,9 +633,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     (p, r) if r else (p, "")
                     for p, r in zip(req.prompts, req.responses, strict=True)
                 ]
-                batch_res = batcher.review_batch(pairs, tenant_id=tenant_id)
+                batch_res = await batcher.review_batch_async(pairs, tenant_id=tenant_id)
             else:
-                batch_res = batcher.process_batch(req.prompts, tenant_id=tenant_id)
+                batch_res = await batcher.process_batch_async(
+                    req.prompts, tenant_id=tenant_id
+                )
             duration = time.monotonic() - start_t
 
             from director_ai.core.types import ReviewResult
@@ -710,10 +718,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/sessions/{session_id}")
     async def get_session(request: Request, session_id: str):
-        sessions = request.app.state._state.get("sessions", {})
-        if session_id not in sessions:
-            raise HTTPException(404, "Session not found")
-        s = sessions[session_id]
+        async with request.app.state._state["sessions_lock"]:
+            sessions = request.app.state._state["sessions"]
+            if session_id not in sessions:
+                raise HTTPException(404, "Session not found")
+            s = sessions[session_id]
         return {
             "session_id": s.session_id,
             "turn_count": len(s),
@@ -730,10 +739,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.delete("/v1/sessions/{session_id}")
     async def delete_session(request: Request, session_id: str):
-        sessions = request.app.state._state.get("sessions", {})
-        if session_id not in sessions:
-            raise HTTPException(404, "Session not found")
-        del sessions[session_id]
+        async with request.app.state._state["sessions_lock"]:
+            sessions = request.app.state._state["sessions"]
+            if session_id not in sessions:
+                raise HTTPException(404, "Session not found")
+            del sessions[session_id]
         return {"status": "deleted", "session_id": session_id}
 
     # ── Metrics ───────────────────────────────────────────────────────
@@ -901,7 +911,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 return
 
             try:
-                result = agent.process(prompt)
+                result = await agent.aprocess(prompt)
             except (RuntimeError, ValueError, TypeError, OSError) as exc:
                 logger.error("WebSocket agent.process() failed: %s", exc)
                 await _send(

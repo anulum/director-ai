@@ -44,43 +44,57 @@ def setup_otel(service_name: str = "director-ai") -> None:
         _tracer = trace.get_tracer(service_name)
 
 
+def _get_tracer():
+    """Return tracer, lazy-initialising from global TracerProvider if needed."""
+    global _tracer
+    if _tracer is None and _OTEL_AVAILABLE:
+        with _tracer_lock:
+            if _tracer is None:
+                _tracer = trace.get_tracer("director-ai")
+    return _tracer
+
+
 @contextmanager
 def trace_review():
     """Span around a CoherenceScorer.review() call."""
-    if _tracer is None:
+    tracer = _get_tracer()
+    if tracer is None:
         yield _NoopSpan()
         return
-    with _tracer.start_as_current_span("director_ai.review") as span:
+    with tracer.start_as_current_span("director_ai.review") as span:
         yield span
 
 
 @contextmanager
 def trace_streaming():
     """Span around a StreamingKernel session."""
-    if _tracer is None:
+    tracer = _get_tracer()
+    if tracer is None:
         yield _NoopSpan()
         return
-    with _tracer.start_as_current_span("director_ai.stream") as span:
+    with tracer.start_as_current_span("director_ai.stream") as span:
         yield span
 
 
 @contextmanager
 def trace_vector_query():
     """Span around a VectorStore query."""
-    if _tracer is None:
+    tracer = _get_tracer()
+    if tracer is None:
         yield _NoopSpan()
         return
-    with _tracer.start_as_current_span("director_ai.vector_query") as span:
+    with tracer.start_as_current_span("director_ai.vector_query") as span:
         yield span
 
 
 @contextmanager
 def trace_vector_add():
     """Span around a VectorStore add."""
-    if _tracer is None:
+    tracer = _get_tracer()
+    if tracer is None:
         yield _NoopSpan()
         return
-    with _tracer.start_as_current_span("director_ai.vector_add") as span:
+    with tracer.start_as_current_span("director_ai.vector_add") as span:
         yield span
 
 

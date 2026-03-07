@@ -23,17 +23,19 @@ class TestOtelNoopFallback:
         import director_ai.core.otel as otel_mod
 
         otel_mod._tracer = None
-        with trace_review() as span:
-            span.set_attribute("coherence.score", 0.8)
-        assert isinstance(span, _NoopSpan)
+        with patch.object(otel_mod, "_OTEL_AVAILABLE", False):
+            with trace_review() as span:
+                span.set_attribute("coherence.score", 0.8)
+            assert isinstance(span, _NoopSpan)
 
     def test_trace_streaming_noop(self):
         import director_ai.core.otel as otel_mod
 
         otel_mod._tracer = None
-        with trace_streaming() as span:
-            span.set_attribute("stream.halted", False)
-        assert isinstance(span, _NoopSpan)
+        with patch.object(otel_mod, "_OTEL_AVAILABLE", False):
+            with trace_streaming() as span:
+                span.set_attribute("stream.halted", False)
+            assert isinstance(span, _NoopSpan)
 
 
 class TestOtelWithMock:
