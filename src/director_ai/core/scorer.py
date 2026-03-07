@@ -710,13 +710,16 @@ class CoherenceScorer:
             return [self.review(items[0][0], items[0][1], tenant_id=tenant_id)]
 
         if self._rust_scorer is not None:
-            return [
-                self._finalise_review(
-                    *self._rust_scorer.review(p, r),
-                    r,
-                )[:2]
-                for p, r in items
-            ]
+            out: list[tuple[bool, CoherenceScore]] = []
+            for p, r in items:
+                approved_r, score_obj = self._rust_scorer.review(p, r)
+                h_l = getattr(score_obj, "h_logical", 0.0)
+                h_f = getattr(score_obj, "h_factual", 0.0)
+                coh = getattr(
+                    score_obj, "score", 1.0 - (self.W_LOGIC * h_l + self.W_FACT * h_f)
+                )
+                out.append(self._finalise_review(coh, h_l, h_f, r))
+            return out
 
         results: list[tuple[bool, CoherenceScore] | None] = [None] * n
         misses: list[int] = []
@@ -812,13 +815,13 @@ class CoherenceScorer:
                     nli_score=score,
                 )
 
-        if nli_fact_pairs:
+        if nli_fact_pairs and self._nli:
             fact_scores = self._nli.score_batch(nli_fact_pairs)
             for idx, score in zip(nli_fact_indices, fact_scores, strict=True):
                 h_factual[idx] = score
                 evidence_map[idx] = ScoringEvidence(
                     chunks=chunks_map.get(idx, []),
-                    nli_premise=contexts[idx],
+                    nli_premise=contexts[idx] or "",
                     nli_hypothesis=items[idx][1],
                     nli_score=score,
                 )
