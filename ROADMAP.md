@@ -1,6 +1,6 @@
 # Roadmap
 
-## v2.6.0 (current)
+## v2.6.0
 
 ### Done
 - StreamingKernel wired into `CoherenceAgent.stream()` for unified token-level oversight
@@ -87,3 +87,36 @@
 - **Adaptive threshold calibration**: `director-ai tune` with labeled data → optimal threshold + weights
 - **Remove deprecated 1.x aliases**: all 6 deprecated methods removed; 1.x class name aliases already removed in 2.x
 - **Drop Python 3.10**: minimum Python 3.11 for `ExceptionGroup` and `TaskGroup` support
+
+## v3.1.0
+
+### Hybrid Scorer Hardening
+- Fix NLI confidence margin calculation — `nli_margin` never computed, hybrid escalation broken
+- LLM judge verdict caching (LRU keyed on prompt+response hash) to avoid redundant API calls
+- Retry with exponential back-off on transient LLM API failures
+- Escalation-rate telemetry via `metrics.counter("llm_judge_escalations")`
+- Run hybrid-mode E2E benchmark on HaluEval (300 traces) and publish numbers
+
+### Enterprise Module Completion
+- `PostgresAuditSink.log()` implementation with async connection pooling (`asyncpg`)
+- Schema migration framework (version-tracked DDL with forward-only migrations)
+- `RedisGroundTruthStore.retrieve_context()` implementation with Redis Vector Search (RediSearch)
+- Redis connection pooling, TTL management, batch `add_many()`/`retrieve_batch()`
+
+### WASM Edge Runtime
+- CI pipeline: `wasm-pack build` in wheels.yml, publish `.wasm` + JS glue to npm
+- Browser integration tutorial (vanilla JS + webpack example)
+- Benchmark: WASM vs native Rust `StreamingKernel` overhead on 1000-token streams
+
+### Rust Backend
+- PyO3 0.23 → 0.24 upgrade (unblocks Python 3.14 wheels)
+- SIMD vectorization of backfire-ssgf micro-cycle inner loop (`std::simd` or `packed_simd2`)
+
+### Benchmarks
+- Run RAGTruth + FreshQA full-scale GPU benchmark, publish results in BENCHMARK_REPORT.md
+- Cross-platform latency profiling (Windows/macOS/Linux) with memory + GC overhead
+- Quantify PyO3 FFI overhead (Rust-native vs Python-via-FFI round-trip)
+
+### Vector Backends
+- FAISS backend (in-process dense search for edge/offline deployments)
+- Elasticsearch backend (hybrid BM25 + dense retrieval)
