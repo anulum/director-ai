@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<!--
+  Director-AI WASM Edge Runtime — Browser Integration Example
+  © 1998–2026 Miroslav Šotek. All rights reserved.
+  License: AGPL-3.0-or-later
+
+  Usage:
+    1. Build: cd backfire-kernel/crates/backfire-wasm && wasm-pack build --target web
+    2. Serve: python -m http.server 8080
+    3. Open:  http://localhost:8080/example/
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Director-AI WASM Streaming Kernel</title>
+<style>
+  body { font-family: monospace; max-width: 720px; margin: 2em auto; background: #1a1a2e; color: #e0e0e0; }
+  h1 { color: #00d4ff; font-size: 1.4em; }
+  .controls { margin: 1em 0; }
+  button { background: #00d4ff; color: #1a1a2e; border: none; padding: 0.5em 1.2em; cursor: pointer; font-weight: bold; margin-right: 0.5em; }
+  button:hover { background: #00a8cc; }
+  #output { background: #0f0f23; padding: 1em; border: 1px solid #333; white-space: pre-wrap; min-height: 100px; }
+  .halted { color: #ff4444; }
+  .ok { color: #44ff44; }
+  .warn { color: #ffaa00; }
+  #stats { margin-top: 1em; font-size: 0.9em; color: #888; }
+  textarea { width: 100%; height: 60px; background: #0f0f23; color: #e0e0e0; border: 1px solid #333; font-family: monospace; }
+</style>
+</head>
+<body>
+<h1>Director-AI WASM Streaming Kernel</h1>
+<p>Real-time coherence oversight running entirely in the browser via WebAssembly.</p>
+
+<div class="controls">
+  <label>Tokens (comma-separated):</label><br>
+  <textarea id="tokens">The sky is blue, and grass is green, but sometimes facts get twisted, leading to incoherent nonsense gibberish</textarea>
+</div>
+
+<div class="controls">
+  <label>Score pattern (comma-separated, cycles):</label><br>
+  <textarea id="scores">0.9, 0.85, 0.8, 0.75, 0.7, 0.65, 0.6, 0.55, 0.5, 0.45, 0.4</textarea>
+</div>
+
+<div class="controls">
+  <button id="run">Run Streaming Kernel</button>
+  <button id="run1000">Benchmark 1000 tokens</button>
+</div>
+
+<div id="output"></div>
+<div id="stats"></div>
+
+<script type="module">
+import init, { WasmStreamingKernel } from '../pkg/backfire_wasm.js';
+
+async function setup() {
+  await init();
+
+  const config = JSON.stringify({
+    coherence_threshold: 0.6,
+    hard_limit: 0.5,
+    soft_limit: 0.7,
+    w_logic: 0.6,
+    w_fact: 0.4,
+    window_size: 10,
+    window_threshold: 0.55,
+    trend_window: 5,
+    trend_threshold: 0.15,
+    history_window: 5,
+    deadline_ms: 50,
+    logit_entropy_limit: 1.2,
+  });
+
+  document.getElementById('run').addEventListener('click', () => {
+    const kernel = new WasmStreamingKernel(config);
+    const tokens = document.getElementById('tokens').value.split(',').map(t => t.trim());
+    const scores = document.getElementById('scores').value.split(',').map(s => parseFloat(s.trim()));
+    const out = document.getElementById('output');
+    const stats = document.getElementById('stats');
+    out.innerHTML = '';
+
+    const t0 = performance.now();
+    let session;
+    for (let i = 0; i < tokens.length; i++) {
+      const score = scores[i % scores.length];
+      session = kernel.process_token(tokens[i], score);
+      const cls = score >= 0.6 ? 'ok' : score >= 0.5 ? 'warn' : 'halted';
+      out.innerHTML += `<span class="${cls}">[${score.toFixed(2)}] ${tokens[i]} </span>`;
+      if (session.halted) {
+        out.innerHTML += `\n<span class="halted">HALTED: ${session.halt_reason}</span>`;
+        break;
+      }
+    }
+    const elapsed = performance.now() - t0;
+
+    stats.textContent = [
+      `Tokens processed: ${session.tokens.length}`,
+      `Halted: ${session.halted}`,
+      `Avg coherence: ${session.coherence_history.length > 0 ? (session.coherence_history.reduce((a,b) => a+b, 0) / session.coherence_history.length).toFixed(4) : 'N/A'}`,
+      `Time: ${elapsed.toFixed(2)}ms`,
+    ].join(' | ');
+  });
+
+  document.getElementById('run1000').addEventListener('click', () => {
+    const out = document.getElementById('output');
+    const stats = document.getElementById('stats');
+    const iterations = 50;
+    const tokenCount = 1000;
+    const timings = [];
+
+    for (let iter = 0; iter < iterations; iter++) {
+      const kernel = new WasmStreamingKernel(config);
+      const t0 = performance.now();
+      for (let i = 0; i < tokenCount; i++) {
+        kernel.process_token(`token_${i}`, 0.8);
+      }
+      timings.push(performance.now() - t0);
+    }
+
+    timings.sort((a, b) => a - b);
+    const median = timings[Math.floor(timings.length / 2)];
+    const p95 = timings[Math.floor(timings.length * 0.95)];
+    const usPerToken = (median * 1000 / tokenCount).toFixed(2);
+
+    out.innerHTML = `<span class="ok">Benchmark: ${tokenCount} tokens × ${iterations} iterations</span>\n`;
+    out.innerHTML += `Median: ${median.toFixed(3)}ms | P95: ${p95.toFixed(3)}ms\n`;
+    out.innerHTML += `Per token: ${usPerToken} µs\n`;
+    out.innerHTML += `Min: ${timings[0].toFixed(3)}ms | Max: ${timings[timings.length-1].toFixed(3)}ms`;
+    stats.textContent = '';
+  });
+}
+
+setup().catch(e => {
+  document.getElementById('output').textContent = `Failed to load WASM: ${e}\n\nBuild first: wasm-pack build --target web --release`;
+});
+</script>
+</body>
+</html>

@@ -58,6 +58,34 @@ jobs:
           name: wheels-${{ matrix.os }}-${{ matrix.target }}
           path: backfire-kernel/crates/backfire-ffi/dist/
 
+  build-wasm:
+    name: WASM Edge Runtime
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Install wasm-pack
+        run: curl https://rustwasm.github.io/wasm-pack/installer/init.sh -sSf | sh
+
+      - name: Build WASM package
+        run: wasm-pack build --target web --release --out-dir pkg
+        working-directory: backfire-kernel/crates/backfire-wasm
+
+      - name: Verify output
+        run: |
+          test -f backfire-kernel/crates/backfire-wasm/pkg/backfire_wasm_bg.wasm
+          test -f backfire-kernel/crates/backfire-wasm/pkg/backfire_wasm.js
+          ls -lh backfire-kernel/crates/backfire-wasm/pkg/
+
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: wasm-edge-runtime
+          path: backfire-kernel/crates/backfire-wasm/pkg/
+
   build-sdist:
     name: Source Distribution
     runs-on: ubuntu-latest
