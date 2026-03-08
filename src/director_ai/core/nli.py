@@ -112,6 +112,7 @@ def _load_nli_model(
                     "bitsandbytes not installed — loading without quantization"
                 )
 
+        load_kwargs.setdefault("low_cpu_mem_usage", False)
         model = AutoModelForSequenceClassification.from_pretrained(
             model_name, **load_kwargs
         )

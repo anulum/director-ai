@@ -238,7 +238,9 @@ class CoherenceScorer:
 
             self._local_judge_tokenizer = AutoTokenizer.from_pretrained(model_path)
             self._local_judge_model = (
-                AutoModelForSequenceClassification.from_pretrained(model_path)
+                AutoModelForSequenceClassification.from_pretrained(
+                    model_path, low_cpu_mem_usage=False
+                )
             )
             self._local_judge_device = device or (
                 "cuda" if torch.cuda.is_available() else "cpu"
@@ -652,6 +654,12 @@ class CoherenceScorer:
         H_logical and H_factual run in parallel — vector retrieval overlaps
         with the logical NLI forward pass.
         """
+        # Eager-load NLI in the main thread to avoid PyTorch 2.6 dispatch
+        # corruption when from_pretrained runs inside a ThreadPoolExecutor
+        # worker after a CUDA model was already loaded.
+        if self._nli is not None:
+            self._nli._ensure_model()
+
         future_logic = self._parallel_pool.submit(
             self.calculate_logical_divergence, prompt, action
         )
