@@ -9,8 +9,8 @@ import pytest
 
 torch = pytest.importorskip("torch")
 
-from director_ai.core import CoherenceScorer
-from director_ai.core.config import DirectorConfig
+from director_ai.core import CoherenceScorer  # noqa: E402, I001
+from director_ai.core.config import DirectorConfig  # noqa: E402, I001
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -101,7 +101,7 @@ class TestLocalJudgeBatch:
         responses = [f"response_{i}" for i in range(16)]
 
         results = []
-        for p, r in zip(prompts, responses):
+        for p, r in zip(prompts, responses, strict=True):
             scorer._judge_cache.clear()
             results.append(scorer._local_judge_check(p, r, nli_score=0.5))
 

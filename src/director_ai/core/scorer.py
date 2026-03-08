@@ -284,13 +284,16 @@ class CoherenceScorer:
             f"Context: {prompt[:400]}\n"
             f"Response: {response[:400]}"
         )
-        inputs = self._local_judge_tokenizer(
+        tokenizer = self._local_judge_tokenizer
+        model = self._local_judge_model
+        assert tokenizer is not None and model is not None
+        inputs = tokenizer(
             judge_input, return_tensors="pt", max_length=384, truncation=True
         )
         inputs = {k: v.to(self._local_judge_device) for k, v in inputs.items()}
 
         with torch.no_grad():
-            logits = self._local_judge_model(**inputs).logits
+            logits = model(**inputs).logits
         probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
 
         judge_agrees = probs[0] > 0.5  # class 0 = approve

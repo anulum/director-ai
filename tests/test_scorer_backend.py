@@ -288,3 +288,25 @@ class TestNLIBatchLength:
         pairs = [("a", "b"), ("c", "d"), ("e", "f")]
         results = nli.score_batch(pairs)
         assert len(results) == 3
+
+
+class TestLocalJudgeFallbackPaths:
+    """Exercise local-judge code paths without torch (model=None)."""
+
+    def _scorer(self):
+        return CoherenceScorer(
+            use_nli=False,
+            llm_judge_enabled=True,
+            llm_judge_provider="local",
+            llm_judge_model="",
+            scorer_backend="hybrid",
+        )
+
+    def test_local_judge_check_returns_nli_score(self):
+        assert self._scorer()._local_judge_check("p", "r", nli_score=0.42) == 0.42
+
+    def test_should_not_escalate_without_model(self):
+        assert self._scorer()._should_escalate(0.5) is False
+
+    def test_llm_judge_check_routes_local_fallback(self):
+        assert self._scorer()._llm_judge_check("p", "r", 0.37) == 0.37
