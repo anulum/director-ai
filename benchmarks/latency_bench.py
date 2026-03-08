@@ -340,7 +340,7 @@ def main():
     args = parser.parse_args()
 
     print("\n" + "=" * 72)
-    print("Director-AI Latency Benchmark (v2.6.0)")
+    print("Director-AI Latency Benchmark (v3.3.0)")
     print(f"  iterations={args.iterations}  warmup={args.warmup}")
     print(f"  python={sys.version.split()[0]}")
 
@@ -447,7 +447,7 @@ def main():
         except ImportError:
             label = "ONNX"
         print(f"\n--- {label} ---")
-        print("  Loading session...", end=" ", flush=True)
+        print("  Loading ONNX session...", end=" ", flush=True)
         t0 = time.perf_counter()
         nli_onnx = NLIScorer(
             use_model=True,
@@ -469,6 +469,46 @@ def main():
             results.append(onnx_batch)
 
             print_comparison("ONNX batch vs seq", onnx_seq, onnx_batch)
+
+    # ── Scorer-level: review() and review_batch() ──────────────
+    if args.nli:
+        from director_ai.core import CoherenceScorer, GroundTruthStore
+
+        print("\n--- Scorer-level (NLI + heuristics, H_parallel) ---")
+        store = GroundTruthStore()
+        for k, v in FACTS.items():
+            store.add(k, v)
+        scorer_nli = CoherenceScorer(
+            threshold=0.6,
+            ground_truth_store=store,
+            use_nli=True,
+            nli_device=args.device,
+        )
+
+        for _ in range(args.warmup):
+            scorer_nli.review(BENCH_PAIRS[0][0], BENCH_PAIRS[0][1])
+
+        r_review = LatencyResult("scorer.review() × 16 (serial)")
+        for _ in range(args.iterations):
+            t0 = time.perf_counter()
+            for p, h in BENCH_PAIRS:
+                scorer_nli.review(p, h)
+            r_review.times_ms.append((time.perf_counter() - t0) * 1000)
+        print_result(r_review)
+        results.append(r_review)
+
+        for _ in range(args.warmup):
+            scorer_nli.review_batch(BENCH_PAIRS[:4])
+
+        r_batch = LatencyResult("scorer.review_batch(16)")
+        for _ in range(args.iterations):
+            t0 = time.perf_counter()
+            scorer_nli.review_batch(BENCH_PAIRS)
+            r_batch.times_ms.append((time.perf_counter() - t0) * 1000)
+        print_result(r_batch)
+        results.append(r_batch)
+
+        print_comparison("review_batch vs serial review", r_review, r_batch)
 
     # ── Cross-backend comparison ───────────────────────────────
     if pt_batch and onnx_batch:

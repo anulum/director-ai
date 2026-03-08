@@ -195,15 +195,25 @@ python -m benchmarks.ffi_overhead_bench --iterations 100
 ### CoherenceScorer.review_batch()
 
 Coalesced NLI inference: single `.forward()` for all H_logical pairs + single
-`.forward()` for all H_factual pairs, instead of per-item calls.
+`.forward()` for all H_factual pairs, instead of per-item calls. H_logical and
+H_factual run in parallel via `ThreadPoolExecutor`.
 
-| Mode | GPU Kernels | Total (16-pair) | Per-Pair |
-|------|-------------|-----------------|----------|
-| `review()` × 16 (serial) | 32 | ~304 ms | 19.0 ms |
-| `review_batch(16)` (coalesced) | 2 | ~233 ms | 14.6 ms |
+**Measured** (GTX 1060, PyTorch backend, 30 iterations, 5 warmup):
 
-H_logical and H_factual run in parallel via `ThreadPoolExecutor`, cutting
-single-review latency by ~40%.
+| Mode | Median (16-pair) | Per-Pair | Speedup |
+|------|------------------|----------|---------|
+| `scorer.review()` × 16 (serial) | 14,099 ms | 881 ms | baseline |
+| `scorer.review_batch(16)` (coalesced) | 5,627 ms | 352 ms | **2.5x** |
+
+NLI-primitive batch speedup (same run):
+
+| Backend | Median (16-pair) | Per-Pair |
+|---------|------------------|----------|
+| ONNX GPU batch | 222 ms | 13.8 ms |
+| PyTorch batch | 4,142 ms | 258.9 ms |
+| ONNX vs PyTorch (batch) | — | **18.7x** |
+
+Reproduce: `python -m benchmarks.latency_bench --nli --onnx`
 
 ### ReviewQueue (Continuous Batching)
 
