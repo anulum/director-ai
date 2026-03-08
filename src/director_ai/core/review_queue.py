@@ -25,10 +25,13 @@ from __future__ import annotations
 
 import asyncio
 import contextlib
+import functools
 import logging
 
 from .metrics import metrics
 from .types import CoherenceScore
+
+_ReviewResult = tuple[bool, CoherenceScore]
 
 logger = logging.getLogger("DirectorAI.ReviewQueue")
 
@@ -42,7 +45,7 @@ class _PendingReview:
         response: str,
         session,
         tenant_id: str,
-        future: asyncio.Future,
+        future: asyncio.Future[_ReviewResult],
     ):
         self.prompt = prompt
         self.response = response
@@ -102,9 +105,9 @@ class ReviewQueue:
         response: str,
         session=None,
         tenant_id: str = "",
-    ) -> tuple[bool, CoherenceScore]:
+    ) -> _ReviewResult:
         loop = asyncio.get_running_loop()
-        future: asyncio.Future = loop.create_future()
+        future: asyncio.Future[_ReviewResult] = loop.create_future()
         async with self._lock:
             self._pending.append(
                 _PendingReview(prompt, response, session, tenant_id, future)
@@ -144,8 +147,8 @@ class ReviewQueue:
             try:
                 results = await loop.run_in_executor(
                     None,
-                    lambda it=items, tid=tenant_id: self._scorer.review_batch(
-                        it, tenant_id=tid
+                    functools.partial(
+                        self._scorer.review_batch, items, tenant_id=tenant_id
                     ),
                 )
                 for pending, result in zip(group, results, strict=True):
@@ -159,11 +162,12 @@ class ReviewQueue:
                     try:
                         result = await loop.run_in_executor(
                             None,
-                            lambda p=pending: self._scorer.review(
-                                p.prompt,
-                                p.response,
-                                session=p.session,
-                                tenant_id=p.tenant_id,
+                            functools.partial(
+                                self._scorer.review,
+                                pending.prompt,
+                                pending.response,
+                                session=pending.session,
+                                tenant_id=pending.tenant_id,
                             ),
                         )
                         pending.future.set_result(result)
