@@ -139,6 +139,43 @@ def health():
     }
 ```
 
+## Continuous Batching (ReviewQueue)
+
+For API servers under concurrent load, enable server-level request accumulation.
+The queue collects incoming `/v1/review` requests and flushes them as a single
+`review_batch()` call, reducing GPU kernel launches from 2*N to 2 per flush window.
+
+```python
+from director_ai.core.config import DirectorConfig
+from director_ai.server import create_app
+
+config = DirectorConfig(
+    review_queue_enabled=True,
+    review_queue_max_batch=32,
+    review_queue_flush_timeout_ms=10.0,
+)
+app = create_app(config)
+```
+
+Environment variable override:
+
+```bash
+DIRECTOR_REVIEW_QUEUE_ENABLED=1 \
+DIRECTOR_REVIEW_QUEUE_MAX_BATCH=64 \
+DIRECTOR_REVIEW_QUEUE_FLUSH_TIMEOUT_MS=20 \
+uvicorn director_ai.server:app --host 0.0.0.0 --port 8080
+```
+
+Session-bound requests (with `session_id`) bypass the queue automatically.
+
+### Throughput Comparison
+
+| Mode | GPU Kernels | Per-Pair Latency | Use Case |
+|------|-------------|------------------|----------|
+| `review()` serial | 2*N | 14.6 ms (ONNX GPU) | Single requests |
+| `review_batch()` | 2 | ~14.6 ms amortised | Batch API (`/v1/batch`) |
+| ReviewQueue (10ms flush) | ~2 per window | 10-20 ms p95 | High-concurrency API |
+
 ## Security
 
 - Store API keys in environment variables, not config files

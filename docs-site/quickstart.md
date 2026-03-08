@@ -100,6 +100,40 @@ agent = CoherenceAgent(fallback="retrieval")
 agent = CoherenceAgent(fallback="disclaimer")
 ```
 
+## Batch Scoring
+
+```python
+from director_ai import CoherenceScorer
+
+scorer = CoherenceScorer(threshold=0.6, use_nli=True)
+
+items = [
+    ("What is 2+2?", "The answer is 4."),
+    ("Capital of France?", "Paris is in Germany."),
+]
+results = scorer.review_batch(items)
+for approved, score in results:
+    print(f"approved={approved}  score={score.score:.3f}")
+```
+
+`review_batch()` runs 2 GPU kernel calls total instead of 2*N — use it
+for bulk evaluation or API batch endpoints.
+
+## Async Usage
+
+```python
+import asyncio
+from director_ai import CoherenceAgent
+
+agent = CoherenceAgent(use_nli=True)
+
+async def main():
+    result = await agent.aprocess("What is the capital of France?")
+    print(result)
+
+asyncio.run(main())
+```
+
 ## Next Steps
 
 - [Scoring guide](guide/scoring.md) — thresholds, weights, soft zones

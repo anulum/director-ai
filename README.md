@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-1869_passed-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-1966_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
@@ -43,11 +43,12 @@ graph LR
     V -->|No| H["HALT + evidence"]
 ```
 
-**Three things make it different:**
+**Four things make it different:**
 
 1. **Token-level streaming halt** — not post-hoc review. Severs output the moment coherence degrades.
 2. **Dual-entropy scoring** — NLI contradiction detection (DeBERTa) + RAG fact-checking against your knowledge base.
-3. **Your data, your rules** — ingest your own documents. The scorer checks against *your* ground truth.
+3. **Continuous batching** — server-level request queue coalesces NLI calls (2 GPU kernels per flush, not 2*N per request).
+4. **Your data, your rules** — ingest your own documents. The scorer checks against *your* ground truth.
 
 ### Scope
 

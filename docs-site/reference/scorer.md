@@ -31,6 +31,24 @@ Score a response. Returns `(approved, CoherenceScore)`.
 
 Async version. Offloads NLI to a thread pool.
 
+### `review_batch(items) -> list[tuple[bool, CoherenceScore]]`
+
+Coalesced batch review. Accepts `list[tuple[str, str]]` of (prompt, response)
+pairs. Runs 2 GPU kernel calls total (one for H_logical, one for H_factual)
+instead of 2*N per-item calls.
+
+```python
+items = [
+    ("What is 2+2?", "The answer is 4."),
+    ("Capital of France?", "Paris is in Germany."),
+]
+results = scorer.review_batch(items)
+for approved, score in results:
+    print(f"approved={approved}  score={score.score:.3f}")
+```
+
+Falls back to per-item `review()` if the batch path raises an exception.
+
 ### `compute_divergence(prompt, action) -> float`
 
 Raw composite divergence in `[0, 1]` (lower is better).

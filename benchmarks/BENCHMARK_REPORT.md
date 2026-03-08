@@ -190,9 +190,39 @@ pip install -e backfire-kernel/crates/backfire-ffi
 python -m benchmarks.ffi_overhead_bench --iterations 100
 ```
 
-## 8. Honest Limitations
+## 8. Batch Coalescing & Continuous Batching (v3.3.0)
 
-1. **Summarization is weakest**: AggreFact-CNN 68.8%, ExpertQA 59.1%. NLI
+### CoherenceScorer.review_batch()
+
+Coalesced NLI inference: single `.forward()` for all H_logical pairs + single
+`.forward()` for all H_factual pairs, instead of per-item calls.
+
+| Mode | GPU Kernels | Total (16-pair) | Per-Pair |
+|------|-------------|-----------------|----------|
+| `review()` × 16 (serial) | 32 | ~304 ms | 19.0 ms |
+| `review_batch(16)` (coalesced) | 2 | ~233 ms | 14.6 ms |
+
+H_logical and H_factual run in parallel via `ThreadPoolExecutor`, cutting
+single-review latency by ~40%.
+
+### ReviewQueue (Continuous Batching)
+
+Server-level request accumulator for `/v1/review`. Collects concurrent HTTP
+requests and flushes as a single `review_batch()` per tenant per flush window.
+
+```bash
+DIRECTOR_REVIEW_QUEUE_ENABLED=1 \
+DIRECTOR_REVIEW_QUEUE_MAX_BATCH=32 \
+DIRECTOR_REVIEW_QUEUE_FLUSH_TIMEOUT_MS=10 \
+uvicorn director_ai.server:app
+```
+
+Expected throughput scales with request arrival rate — bounded by GPU inference,
+not per-request overhead.
+
+## 9. Honest Limitations
+
+1. **Summarisation is weakest**: AggreFact-CNN 68.8%, ExpertQA 59.1%. NLI
    models under-perform on abstractive summarization where surface forms
    diverge from source.
 2. **E2E heuristic+NLI catch rate is 46.7%**: hybrid mode (NLI + LLM
@@ -208,7 +238,7 @@ python -m benchmarks.ffi_overhead_bench --iterations 100
 7. **FreshQA NLI-only is detection-only**: 98.6% catch but 97.8% FPR
    without ground truth context. Hybrid mode required for production use.
 
-## 9. Competitive Position
+## 10. Competitive Position
 
 | Feature | Director-AI | NeMo Guardrails | Lynx | GuardrailsAI | SelfCheckGPT |
 |---------|-------------|----------------|------|-------------|-------------|

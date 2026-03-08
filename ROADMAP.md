@@ -157,3 +157,21 @@
 - `cors_origins` default changed from `"*"` to `""` (require explicit config)
 - `--cors-origins` flag on `director-ai serve`
 - 8 new tests in test_v330_hardening.py (1927 total, 0 failures)
+
+### Performance Sprint (Done)
+- H_logical and H_factual parallelised via `ThreadPoolExecutor` (~40% latency reduction)
+- `CoherenceScorer.review_batch()` — coalesced batch NLI (2 GPU kernels instead of 2*N)
+- `BatchProcessor.review_batch()` delegates to scorer coalesced path
+- `ReviewQueue` — server-level continuous batching for `/v1/review` with flush window
+- Config fields: `review_queue_enabled`, `review_queue_max_batch`, `review_queue_flush_timeout_ms`
+- TensorRT path verified deployment-ready (no code changes needed)
+- Async hygiene: 5 sync→async fixes in server.py, sessions lock, OTel lazy init
+- 1966 tests, 0 failures
+
+## v3.4.0
+
+### Planned
+- Distill smaller NLI model (DeBERTa-base from FactCG-Large teacher + hybrid labels)
+- Replace LLM judge with fast local classifier (DeBERTa-base on "NLI uncertain" cases)
+- Claim decomposition for summarisation domain (weakest at 68.8%)
+- ReviewQueue adaptive flushing (dynamic max_batch based on request rate)

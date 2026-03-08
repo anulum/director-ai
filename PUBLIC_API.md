@@ -1,4 +1,4 @@
-# Public API — Director-AI v2.8.0
+# Public API — Director-AI v3.3.0
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -90,6 +90,27 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 |-------|--------|-------------|
 | `BatchProcessor` | `core.batch` | Thread-pool batch processing wrapper |
 | `BatchResult` | `core.batch` | Batch operation result |
+| `ReviewQueue` | `core.review_queue` | Server-level continuous batching accumulator |
+
+### CoherenceScorer Batch Methods
+
+| Method | Description |
+|--------|-------------|
+| `review(prompt, response)` | Single review → `(bool, CoherenceScore)` |
+| `areview(prompt, response)` | Async single review (thread pool offload) |
+| `review_batch(items)` | Coalesced batch NLI (2 GPU kernels instead of 2*N) → `list[(bool, CoherenceScore)]` |
+
+### ReviewQueue (Continuous Batching)
+
+Server-level request accumulator. Collects incoming `/v1/review` requests and
+flushes them as a single `review_batch()` call per tenant. Session-bound requests
+bypass the queue.
+
+| Config Field | Type | Default | Description |
+|-------------|------|---------|-------------|
+| `review_queue_enabled` | `bool` | `False` | Enable continuous batching queue |
+| `review_queue_max_batch` | `int` | `32` | Flush after N requests accumulate |
+| `review_queue_flush_timeout_ms` | `float` | `10.0` | Flush after N ms (whichever first) |
 
 ## Threshold Tuning
 

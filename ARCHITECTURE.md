@@ -19,6 +19,7 @@ director-ai/
 │   │   ├── agent.py           CoherenceAgent — orchestrator pipeline
 │   │   ├── actor.py           LLMGenerator, MockGenerator
 │   │   ├── batch.py           BatchProcessor — parallel evaluation
+│   │   ├── review_queue.py    ReviewQueue — continuous batching accumulator
 │   │   ├── config.py          DirectorConfig — YAML/JSON config
 │   │   ├── audit.py           AuditLogger — JSONL audit trail
 │   │   ├── tenant.py          TenantRouter — multi-tenant KB isolation
@@ -42,7 +43,7 @@ director-ai/
 │   └── crates/
 │       └── backfire-ffi/      Python ↔ Rust bridge
 │
-├── tests/                     1869 tests, ≥90% coverage
+├── tests/                     1966 tests, ≥90% coverage
 ├── benchmarks/                24 evaluators (AggreFact, FEVER, MNLI, ...)
 ├── notebooks/                 Jupyter quickstart + domain notebooks
 ├── docs-site/                 MkDocs documentation source
@@ -55,9 +56,14 @@ director-ai/
 LLM Provider ──► guard() / CoherenceAgent
                       │
                       ├──► CoherenceScorer
+                      │       ├── H_logical + H_factual (parallel)
                       │       ├── NLIScorer (DeBERTa/FactCG/ONNX/Rust)
                       │       ├── GroundTruthStore / VectorGroundTruthStore
+                      │       ├── review_batch() — coalesced NLI (2 kernels)
                       │       └── _heuristics (fallback)
+                      │
+                      ├──► ReviewQueue (continuous batching)
+                      │       └── accumulate → flush → review_batch()
                       │
                       ├──► StreamingKernel (token-level halt)
                       │
