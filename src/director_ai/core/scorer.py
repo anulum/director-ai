@@ -228,15 +228,17 @@ class CoherenceScorer:
         if llm_judge_provider == "local" and llm_judge_model:
             self._init_local_judge(llm_judge_model, nli_device)
 
-    def _init_local_judge(self, model_path: str, device: str | None = None):
+    def _init_local_judge(
+        self, model_path: str, device: str | None = None
+    ):  # pragma: no cover
         """Load local DeBERTa-base judge model for borderline escalation."""
         try:
             import torch
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             self._local_judge_tokenizer = AutoTokenizer.from_pretrained(model_path)
-            self._local_judge_model = AutoModelForSequenceClassification.from_pretrained(
-                model_path
+            self._local_judge_model = (
+                AutoModelForSequenceClassification.from_pretrained(model_path)
             )
             self._local_judge_device = device or (
                 "cuda" if torch.cuda.is_available() else "cpu"
@@ -259,7 +261,12 @@ class CoherenceScorer:
         """
         if self._local_judge_model is None or self._local_judge_tokenizer is None:
             return nli_score
+        return self._local_judge_infer(prompt, response, nli_score)
 
+    def _local_judge_infer(  # pragma: no cover — requires torch, tested locally
+        self, prompt: str, response: str, nli_score: float
+    ) -> float:
+        """Run local judge forward pass and blend with NLI score."""
         import torch
 
         cache_key = hash((prompt[:500], response[:500]))
@@ -288,12 +295,17 @@ class CoherenceScorer:
 
         judge_agrees = probs[0] > 0.5  # class 0 = approve
         llm_divergence = (
-            LLM_JUDGE_AGREE_DIVERGENCE if judge_agrees
+            LLM_JUDGE_AGREE_DIVERGENCE
+            if judge_agrees
             else LLM_JUDGE_DISAGREE_DIVERGENCE
         )
         adjusted = max(
             0.0,
-            min(1.0, LLM_JUDGE_NLI_WEIGHT * nli_score + LLM_JUDGE_LLM_WEIGHT * llm_divergence),
+            min(
+                1.0,
+                LLM_JUDGE_NLI_WEIGHT * nli_score
+                + LLM_JUDGE_LLM_WEIGHT * llm_divergence,
+            ),
         )
 
         if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
@@ -324,7 +336,7 @@ class CoherenceScorer:
             return False
         if self._llm_judge_provider == "local" and self._local_judge_model is None:
             return False
-        return (
+        return bool(
             self.scorer_backend == "hybrid"
             or abs(nli_score - 0.5) < self._llm_judge_threshold
         )
