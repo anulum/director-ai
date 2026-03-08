@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import time
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import numpy as np
 import pytest
 
-from director_ai.core import CoherenceScorer, GroundTruthStore
+torch = pytest.importorskip("torch")
+
+from director_ai.core import CoherenceScorer
 from director_ai.core.config import DirectorConfig
 
 
@@ -17,8 +18,6 @@ from director_ai.core.config import DirectorConfig
 
 def _mock_judge_model(approve_prob=0.8):
     """Build mock judge model that returns fixed approve probability."""
-    import torch
-
     model = MagicMock()
     logits = torch.tensor([[approve_prob, 1 - approve_prob]])
     model.return_value = MagicMock(logits=logits)
@@ -29,8 +28,6 @@ def _mock_judge_model(approve_prob=0.8):
 
 def _mock_judge_tokenizer():
     """Build mock tokenizer returning dict with input_ids."""
-    import torch
-
     tokenizer = MagicMock()
     tokenizer.return_value = {
         "input_ids": torch.tensor([[1, 2, 3]]),
@@ -67,7 +64,6 @@ class TestLocalJudgeCheck:
             "The capital of France is Berlin.",
             nli_score=0.5,
         )
-        # 0.7*0.5 + 0.3*0.8 = 0.59 (reject divergence blended)
         assert result > 0.5
 
     def test_known_correct_approves(self):
@@ -78,7 +74,6 @@ class TestLocalJudgeCheck:
             "The capital of France is Paris.",
             nli_score=0.3,
         )
-        # 0.7*0.3 + 0.3*0.2 = 0.27 (approve divergence blended)
         assert result < 0.4
 
     def test_borderline_nli_hallucinated_rejects(self):
@@ -87,7 +82,6 @@ class TestLocalJudgeCheck:
         result = scorer._local_judge_check(
             "Context about topic", "Hallucinated response", nli_score=0.5
         )
-        # 0.7*0.5 + 0.3*0.8 = 0.59
         assert result >= 0.55
 
     def test_borderline_nli_correct_approves(self):
@@ -96,7 +90,6 @@ class TestLocalJudgeCheck:
         result = scorer._local_judge_check(
             "Context about topic", "Correct response", nli_score=0.5
         )
-        # 0.7*0.5 + 0.3*0.2 = 0.41
         assert result <= 0.45
 
 
@@ -112,7 +105,6 @@ class TestLocalJudgeBatch:
             scorer._judge_cache.clear()
             results.append(scorer._local_judge_check(p, r, nli_score=0.5))
 
-        # All should produce the same value since the mock is fixed
         assert len(set(results)) == 1
         assert len(results) == 16
 
@@ -139,14 +131,12 @@ class TestLocalJudgeConfig:
             llm_judge_model="",
             scorer_backend="hybrid",
         )
-        # _local_judge_model is None since no valid path was given
         assert scorer._should_escalate(0.5) is False
 
     def test_llm_judge_check_routes_to_local(self):
         """_llm_judge_check routes to _local_judge_check when provider='local'."""
         scorer = _make_local_scorer(approve_prob=0.9)
         result = scorer._llm_judge_check("prompt", "response", 0.5)
-        # Should have gone through local path, not tried API
         assert 0.0 <= result <= 1.0
         scorer._local_judge_model.assert_called()
 
@@ -184,7 +174,6 @@ class TestLocalJudgeCaching:
         r1 = scorer._local_judge_check("prompt", "response", 0.5)
         r2 = scorer._local_judge_check("prompt", "response", 0.5)
         assert r1 == r2
-        # Model should only be called once (second call hits cache)
         assert scorer._local_judge_model.call_count == 1
 
 
