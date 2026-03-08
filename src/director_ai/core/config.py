@@ -80,8 +80,9 @@ class DirectorConfig:
     # Do not enable in privacy-sensitive deployments without user consent.
     llm_judge_enabled: bool = False
     llm_judge_confidence_threshold: float = 0.3
-    llm_judge_provider: str = ""
+    llm_judge_provider: str = ""  # "openai", "anthropic", or "local"
     llm_judge_model: str = ""
+    llm_judge_local_model: str = ""  # path to local judge checkpoint
     privacy_mode: bool = False
 
     # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite", "rust"
@@ -323,7 +324,7 @@ class DirectorConfig:
                 "metrics_enabled": True,
                 "scorer_backend": "hybrid",
                 "llm_judge_enabled": True,
-                "llm_judge_provider": "openai",
+                "llm_judge_provider": "local",
                 "profile": "thorough",
             },
             "research": {
@@ -333,7 +334,7 @@ class DirectorConfig:
                 "metrics_enabled": True,
                 "scorer_backend": "hybrid",
                 "llm_judge_enabled": True,
-                "llm_judge_provider": "openai",
+                "llm_judge_provider": "local",
                 "profile": "research",
             },
             "medical": {
@@ -503,6 +504,10 @@ class DirectorConfig:
         if store is None:
             store = self.build_store()
 
+        judge_model = self.llm_judge_model
+        if self.llm_judge_provider == "local" and self.llm_judge_local_model:
+            judge_model = self.llm_judge_local_model
+
         kw: dict = {
             "threshold": self.coherence_threshold,
             "use_nli": self.use_nli,
@@ -512,7 +517,7 @@ class DirectorConfig:
             "llm_judge_enabled": self.llm_judge_enabled,
             "llm_judge_confidence_threshold": self.llm_judge_confidence_threshold,
             "llm_judge_provider": self.llm_judge_provider,
-            "llm_judge_model": self.llm_judge_model,
+            "llm_judge_model": judge_model,
             "privacy_mode": self.privacy_mode,
             "ground_truth_store": store,
             "onnx_batch_size": self.onnx_batch_size,

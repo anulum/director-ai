@@ -221,6 +221,88 @@ class CoherenceScorer:
         self._redactor = PIIRedactor(enabled=privacy_mode)
         self._parallel_pool = ThreadPoolExecutor(max_workers=2)
 
+        # Local DeBERTa-base judge model (replaces LLM API calls)
+        self._local_judge_model = None
+        self._local_judge_tokenizer = None
+        self._local_judge_device = "cpu"
+        if llm_judge_provider == "local" and llm_judge_model:
+            self._init_local_judge(llm_judge_model, nli_device)
+
+    def _init_local_judge(self, model_path: str, device: str | None = None):
+        """Load local DeBERTa-base judge model for borderline escalation."""
+        try:
+            import torch
+            from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
+            self._local_judge_tokenizer = AutoTokenizer.from_pretrained(model_path)
+            self._local_judge_model = AutoModelForSequenceClassification.from_pretrained(
+                model_path
+            )
+            self._local_judge_device = device or (
+                "cuda" if torch.cuda.is_available() else "cpu"
+            )
+            self._local_judge_model.to(self._local_judge_device)
+            self._local_judge_model.eval()
+            self.logger.info(
+                "Local judge loaded: %s on %s", model_path, self._local_judge_device
+            )
+        except Exception as exc:
+            self.logger.warning("Failed to load local judge model: %s", exc)
+            self._local_judge_model = None
+            self._local_judge_tokenizer = None
+
+    def _local_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
+        """Local DeBERTa-base binary judge (replaces LLM API call).
+
+        Returns adjusted divergence via the same 70/30 blending as the LLM path.
+        Falls back to raw nli_score if model unavailable.
+        """
+        if self._local_judge_model is None or self._local_judge_tokenizer is None:
+            return nli_score
+
+        import torch
+
+        cache_key = hash((prompt[:500], response[:500]))
+        cached = self._judge_cache.get(cache_key)
+        if cached is not None:
+            metrics.inc("llm_judge_cache_hits")
+            return cached
+        metrics.inc("llm_judge_cache_misses")
+
+        t0 = time.monotonic()
+        metrics.inc("llm_judge_escalations")
+
+        judge_input = (
+            f"NLI divergence: {nli_score:.2f}\n"
+            f"Context: {prompt[:400]}\n"
+            f"Response: {response[:400]}"
+        )
+        inputs = self._local_judge_tokenizer(
+            judge_input, return_tensors="pt", max_length=384, truncation=True
+        )
+        inputs = {k: v.to(self._local_judge_device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            logits = self._local_judge_model(**inputs).logits
+        probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
+
+        judge_agrees = probs[0] > 0.5  # class 0 = approve
+        llm_divergence = (
+            LLM_JUDGE_AGREE_DIVERGENCE if judge_agrees
+            else LLM_JUDGE_DISAGREE_DIVERGENCE
+        )
+        adjusted = max(
+            0.0,
+            min(1.0, LLM_JUDGE_NLI_WEIGHT * nli_score + LLM_JUDGE_LLM_WEIGHT * llm_divergence),
+        )
+
+        if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
+            self._judge_cache.pop(next(iter(self._judge_cache)))
+        self._judge_cache[cache_key] = adjusted
+
+        metrics.observe("llm_judge_seconds", time.monotonic() - t0)
+        return adjusted
+
     @staticmethod
     def _redact_pii(text: str) -> str:
         """Redact PII from text (static convenience method)."""
@@ -237,23 +319,25 @@ class CoherenceScorer:
     _JUDGE_RETRY_BACKOFF = (0.5, 1.0)
 
     def _should_escalate(self, nli_score: float) -> bool:
-        """True when the LLM judge should be consulted."""
+        """True when the judge (LLM or local) should be consulted."""
+        if not self._llm_judge_enabled or not self._llm_judge_provider:
+            return False
+        if self._llm_judge_provider == "local" and self._local_judge_model is None:
+            return False
         return (
-            self._llm_judge_enabled
-            and bool(self._llm_judge_provider)
-            and (
-                self.scorer_backend == "hybrid"
-                or abs(nli_score - 0.5) < self._llm_judge_threshold
-            )
+            self.scorer_backend == "hybrid"
+            or abs(nli_score - 0.5) < self._llm_judge_threshold
         )
 
     def _llm_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
-        """Escalate to LLM-as-judge when NLI confidence is low.
+        """Escalate to judge when NLI confidence is low.
 
-        Returns adjusted divergence score. Falls back to nli_score on error.
-        Uses an LRU cache keyed on truncated prompt+response to avoid
-        redundant API calls, and retries transient failures twice.
+        Routes to local DeBERTa judge or external LLM API depending on
+        llm_judge_provider. Returns adjusted divergence score.
         """
+        if self._llm_judge_provider == "local":
+            return self._local_judge_check(prompt, response, nli_score)
+
         import os
 
         cache_key = hash((prompt[:500], response[:500]))
