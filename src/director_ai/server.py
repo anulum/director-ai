@@ -259,6 +259,18 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         app.state._state["sessions"] = {}
         app.state._state["sessions_lock"] = asyncio.Lock()
 
+        review_queue = None
+        if cfg.review_queue_enabled:
+            from .core.review_queue import ReviewQueue
+
+            review_queue = ReviewQueue(
+                scorer,
+                max_batch=cfg.review_queue_max_batch,
+                flush_timeout_ms=cfg.review_queue_flush_timeout_ms,
+            )
+            await review_queue.start()
+        app.state._state["review_queue"] = review_queue
+
         if cfg.audit_log_path or cfg.audit_postgres_url:
             audit_logger = AuditLogger(path=cfg.audit_log_path)
             if cfg.audit_postgres_url:
@@ -294,6 +306,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
         yield
         logger.info("Director AI server shutting down")
+        if review_queue:
+            await review_queue.stop()
         if stats:
             try:
                 stats.close()
@@ -469,14 +483,24 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         metrics.inc("reviews_total")
         start = time.monotonic()
-        loop = asyncio.get_running_loop()
-        with metrics.timer("review_duration_seconds"):
-            approved, score = await loop.run_in_executor(
-                None,
-                lambda: scorer.review(
-                    req.prompt, req.response, session=session, tenant_id=tenant_id
-                ),
-            )
+        review_queue = request.app.state._state.get("review_queue")
+        if review_queue and not session:
+            with metrics.timer("review_duration_seconds"):
+                approved, score = await review_queue.submit(
+                    req.prompt, req.response, tenant_id=tenant_id
+                )
+        else:
+            loop = asyncio.get_running_loop()
+            with metrics.timer("review_duration_seconds"):
+                approved, score = await loop.run_in_executor(
+                    None,
+                    lambda: scorer.review(
+                        req.prompt,
+                        req.response,
+                        session=session,
+                        tenant_id=tenant_id,
+                    ),
+                )
         latency_ms = (time.monotonic() - start) * 1000
 
         if approved:

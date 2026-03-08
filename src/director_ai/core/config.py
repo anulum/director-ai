@@ -119,6 +119,11 @@ class DirectorConfig:
     # Batch
     batch_max_concurrency: int = 4
 
+    # Continuous batching (review queue)
+    review_queue_enabled: bool = False
+    review_queue_max_batch: int = 32
+    review_queue_flush_timeout_ms: float = 10.0
+
     # Observability
     metrics_enabled: bool = True
     log_level: str = "INFO"
