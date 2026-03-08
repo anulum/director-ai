@@ -170,8 +170,10 @@
 
 ## v3.4.0
 
+### Done
+- Local DeBERTa-v3-base binary judge replaces LLM judge for borderline NLI escalation (F1=0.915, latency ~15ms vs 1.3–14.2s, zero API cost)
+
 ### Planned
 - Distill smaller NLI model (DeBERTa-base from FactCG-Large teacher + hybrid labels)
-- Replace LLM judge with fast local classifier (DeBERTa-base on "NLI uncertain" cases)
 - Claim decomposition for summarisation domain (weakest at 68.8%)
 - ReviewQueue adaptive flushing (dynamic max_batch based on request rate)
