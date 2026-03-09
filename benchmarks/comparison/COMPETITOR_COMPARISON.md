@@ -1,6 +1,6 @@
 # Director-AI -- Competitor Benchmark Comparison
 
-Last updated: 2026-03-07 (v3.3.0)
+Last updated: 2026-03-09 (v3.4.0)
 
 ## One-Pager Summary
 
@@ -206,15 +206,15 @@ cannot verify consistency and defaults to flagging.
 
 ## Where Director-AI Loses
 
-1. **Hybrid summarization/dialogue FPR is 93-95%** — LLM judges are too conservative on these tasks. QA is production-grade; summarization and dialogue need task-specific thresholds.
-2. **Summarization NLI accuracy weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1%.
+1. **Hybrid summarization/dialogue FPR is 93-95%** — LLM judges are too conservative on these tasks. NLI-only summarization FPR improved to 25.5% in v3.4.0 via direct scoring. QA is production-grade.
+2. **Summarization NLI accuracy weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1%. Summarization FPR reduced 95% → 25.5% with direct NLI scoring (v3.4.0).
 3. **ONNX CPU not competitive** — 383 ms/pair without CUDAExecutionProvider.
 4. **Fine-tuned models regress** — fine-tuned DeBERTa-v3-large scored 64.7%, below baseline.
 5. **Hybrid mode requires LLM API** — NLI-only mode is fully local, but hybrid needs OpenAI/Anthropic.
 
 ## Path Forward
 
-1. **Task-specific hybrid thresholds** — reduce summarization/dialogue FPR via prompt tuning.
+1. **Task-specific hybrid thresholds** — reduce dialogue FPR via prompt tuning. Summarization NLI-only FPR already at 25.5% (v3.4.0).
 2. **TensorRT** — sub-10ms/pair target via TensorRT optimization.
 3. **Summarization ensemble** — claim decomposition for AggreFact-CNN/ExpertQA.
 

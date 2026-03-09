@@ -7,6 +7,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.4.0] — 2026-03-09
+
+### Added
+- `trimmed_mean` outer aggregation for chunked NLI — drops top 25% of per-hypothesis divergence scores before averaging, more robust to outlier sentences.
+- `_use_prompt_as_premise` flag on `CoherenceScorer` — bypasses vector store retrieval and scores document→summary directly via NLI, eliminating context loss from partial chunk retrieval.
+- Configurable `nli_fact_retrieval_top_k` on `DirectorConfig` (default 3, summarization profile uses 8).
+- `nli_use_prompt_as_premise` config field wired through `build_scorer()`.
+- Summarization FPR diagnostic benchmark (`benchmarks/summarization_fpr_diag.py`).
+- Phase 3 variant in summarization FPR A/B benchmark (`benchmarks/summarization_fpr_eval.py`).
+- 5 new tests: `test_trimmed_mean_outer_agg`, `test_trimmed_mean_single_chunk`, `test_summarization_profile_w_logic_zero`, `test_summarization_profile_retrieval_top_k`, `test_summarization_profile_prompt_as_premise`.
+- `TestWLogicZeroShortCircuit` test class in `test_scorer_backend.py`.
+
+### Changed
+- Summarization profile: `w_logic=0.0, w_fact=1.0` (was 0.5/0.5) — eliminates redundant h_logic==h_fact duplication and halves GPU time.
+- Summarization profile thresholds: `coherence_threshold=0.15` (was 0.35), `hard_limit=0.08` (was 0.25), `soft_limit=0.25` (was 0.45).
+- Summarization profile: `nli_fact_outer_agg="trimmed_mean"` (was `"mean"`).
+- Summarization profile: `nli_use_prompt_as_premise=True` (new).
+- `_heuristic_coherence` short-circuits logical divergence when `W_LOGIC < 1e-9`.
+- `build_scorer` guard: `if self.w_logic != 0.0` → `if self.w_logic != 0.0 or self.w_fact != 0.0`.
+- `retrieve_context` calls wrapped in `try/except TypeError` for `top_k` compatibility with base `GroundTruthStore`.
+
+### Fixed
+- Summarization false-positive rate reduced from 95% → 25.5% (at threshold=0.15, 200 HaluEval correct samples on L4 GPU). Three-phase fix:
+  - Phase 1: MIN inner aggregation (95% → 60%)
+  - Phase 2: premise_ratio=0.85 + logic agg bug fix (60% → 42.5%)
+  - Phase 3: direct NLI scoring + w_logic=0 + trimmed_mean (42.5% → 25.5%)
+
 ## [3.3.0] — 2026-03-07
 
 ### Added

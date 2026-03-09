@@ -168,6 +168,46 @@ python benchmarks/run_judge_benchmark.py --samples 1000
 
 ## 4. False-Positive Rate
 
+### Summarization FPR (200 correct HaluEval samples, L4 GPU)
+
+Measures how often correct (non-hallucinated) summaries are falsely rejected.
+Three-phase fix in v3.4.0:
+
+| Phase | Config | Threshold | FPR | Relative Reduction |
+|-------|--------|-----------|-----|-------------------|
+| 0 (original) | max-max | 0.55 | 95.0% | baseline |
+| 1 (min agg) | min-mean | 0.35 | 60.0% | -37% |
+| 2 (summ-profile) | min-mean + premise_ratio 0.85 | 0.35 | 42.5% | -55% |
+| **3 (direct scoring)** | **w_logic=0, trimmed_mean, direct NLI** | **0.15** | **25.5%** | **-73%** |
+
+**Phase 3 fixes:**
+- `w_logic=0.0`: Eliminates redundant h_logic==h_fact duplication, halves GPU time.
+- `_use_prompt_as_premise=True`: Bypasses lossy vector store retrieval, scores
+  document→summary directly via NLI. Scores drop from 0.97 to 0.06-0.27.
+- `trimmed_mean` outer aggregation: Drops top 25% of per-hypothesis divergence
+  scores before averaging.
+- Lower threshold (0.15): Matches the actual score distribution.
+
+**Remaining 25.5% FPR** is a fundamental FactCG model limitation — highly
+abstractive rephrasing that DeBERTa classifies as "not supported." Further
+reduction requires a better NLI model or LLM judge escalation (available
+in hybrid mode).
+
+FPR at various thresholds (Phase 3, 200 samples):
+
+| Threshold | FPR | False Positives |
+|-----------|-----|-----------------|
+| 0.15 | 25.5% | 51 |
+| 0.20 | 30.0% | 60 |
+| 0.25 | 34.0% | 68 |
+| 0.35 | 42.5% | 85 |
+
+Reproduce:
+```bash
+python -m benchmarks.summarization_fpr_diag 200 --threshold 0.15
+python -m benchmarks.summarization_fpr_eval 200 --threshold 0.10
+```
+
 ### Streaming False-Halt
 0.0% false-halt rate across 20 known-good Wikipedia passages streamed
 through `StreamingKernel` (heuristic mode).
@@ -284,15 +324,17 @@ not per-request overhead.
 
 ## 9. Honest Limitations
 
-1. **Summarisation is weakest**: AggreFact-CNN 68.8%, ExpertQA 59.1%. NLI
-   models under-perform on abstractive summarization where surface forms
-   diverge from source.
+1. **Summarisation FPR improved**: v3.4.0 reduced FPR on correct summaries
+   from 95% to 25.5% via direct NLI scoring, w_logic=0, and trimmed_mean
+   aggregation. Remaining 25.5% is a FactCG model limitation on highly
+   abstractive text. AggreFact-CNN 68.8%, ExpertQA 59.1% balanced accuracy.
 2. **E2E heuristic+NLI catch rate is 46.7%**: hybrid mode (NLI + LLM
    judge) raises this to 90.7% but adds LLM latency (2.3s with GPT-4o-mini).
    Local judge mode achieves equivalent accuracy at 3.97ms and zero API cost.
-3. **Hybrid summarization/dialogue FPR is high**: 93-95% false positive
-   rate on summarization and dialogue tasks. QA task is production-grade
-   (3-4% FPR, 95%+ precision).
+3. **Hybrid summarization/dialogue FPR is high**: 93-95% FPR in hybrid
+   mode (LLM judges too conservative). NLI-only summarization FPR improved
+   to 25.5% in v3.4.0 with direct scoring profile. QA task is
+   production-grade (3-4% FPR, 95%+ precision).
 4. **ONNX CPU not competitive**: 383 ms/pair. Requires `onnxruntime-gpu`.
 5. **Fine-tuned NLI replacement regressed**: DeBERTa-v3-large fine-tuned as
    a 3-class NLI replacement scored 64.7% — below FactCG 75.8%. The local

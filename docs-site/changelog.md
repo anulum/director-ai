@@ -2,6 +2,22 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
+## v3.4.0 (2026-03-09)
+
+### Fixed
+- **Summarization FPR reduced from 95% to 25.5%** — three-phase fix: MIN inner aggregation, direct NLI scoring (bypass vector store), w_logic=0 (eliminate h_logic==h_fact duplication), trimmed_mean outer aggregation.
+
+### Added
+- `trimmed_mean` outer aggregation for chunked NLI scoring
+- `_use_prompt_as_premise` flag — direct document→summary NLI scoring
+- Configurable `nli_fact_retrieval_top_k` and `nli_use_prompt_as_premise` config fields
+- Summarization FPR diagnostic benchmark (`benchmarks/summarization_fpr_diag.py`)
+- 5 new tests, `TestWLogicZeroShortCircuit` test class
+
+### Changed
+- Summarization profile: `w_logic=0.0, w_fact=1.0`, `coherence_threshold=0.15`, `nli_fact_outer_agg="trimmed_mean"`, `nli_use_prompt_as_premise=True`
+- `_heuristic_coherence` short-circuits logical divergence when `W_LOGIC < 1e-9`
+
 ## v2.0.0 (2026-03-02)
 
 ### Fixed
