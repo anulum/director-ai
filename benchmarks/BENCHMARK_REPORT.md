@@ -1,7 +1,7 @@
 # Director-AI Benchmark Report
 
-Version: 3.3.0
-Date: 2026-03-07
+Version: 3.4.0
+Date: 2026-03-09
 
 ## Hardware
 
@@ -112,6 +112,58 @@ Reproduce:
 ```bash
 python -m benchmarks.e2e_eval --nli --scorer-backend hybrid \
     --llm-judge-provider openai --llm-judge-model gpt-4o-mini
+```
+
+### Local Judge — NLI + DeBERTa-v3-base Binary Classifier (L40S)
+
+Replaces LLM API judge with a locally fine-tuned DeBERTa-v3-base (86M params)
+trained on 35K borderline NLI samples (HaluEval + AggreFact + FEVER + VitaminC).
+The judge runs on borderline NLI scores only; same 70/30 blending as hybrid mode.
+
+**Judge inference latency (L40S, 200 iterations):**
+
+| Metric | Value |
+|--------|-------|
+| Median | 3.97 ms |
+| Mean | 3.98 ms |
+| P5 | 3.94 ms |
+| P95 | 4.01 ms |
+
+**E2E comparison — 500 samples/task (3000 reviews per pass):**
+
+| Metric | NLI-Only | + Local Judge | Delta |
+|--------|----------|---------------|-------|
+| Catch rate | 93.47% | 93.67% | +0.20pp |
+| FPR | 67.13% | 66.47% | -0.67pp |
+| Precision | 58.21% | 58.54% | +0.33pp |
+| F1 | 71.73% | 72.01% | +0.28pp |
+
+**E2E comparison — 1000 samples/task (6000 reviews per pass):**
+
+| Metric | NLI-Only | + Local Judge | Delta |
+|--------|----------|---------------|-------|
+| Catch rate | 93.63% | 93.80% | +0.17pp |
+| FPR | 66.87% | **66.33%** | **-0.54pp** |
+| Precision | 58.34% | **58.58%** | **+0.24pp** |
+| F1 | 71.89% | **72.12%** | **+0.23pp** |
+
+**Per-task QA (1000 samples/task):**
+
+| Metric | NLI-Only | + Local Judge | Delta |
+|--------|----------|---------------|-------|
+| QA Catch rate | 81.90% | 82.40% | +0.50pp |
+| QA FPR | 4.90% | **4.20%** | **-0.70pp** |
+| QA Precision | 94.35% | **95.15%** | **+0.80pp** |
+| QA F1 | 87.69% | **88.32%** | **+0.63pp** |
+
+The local judge matches or exceeds GPT-4o-mini hybrid accuracy at 575x lower
+latency (3.97ms vs 2,300ms) and zero API cost. QA precision exceeds the 90%
+acceptance threshold at 95.15%. Summarization/dialogue are unchanged because
+NLI divergence in those tasks is too extreme for the 30% judge weight to flip.
+
+Reproduce:
+```bash
+python benchmarks/run_judge_benchmark.py --samples 1000
 ```
 
 ## 4. False-Positive Rate
@@ -237,12 +289,15 @@ not per-request overhead.
    diverge from source.
 2. **E2E heuristic+NLI catch rate is 46.7%**: hybrid mode (NLI + LLM
    judge) raises this to 90.7% but adds LLM latency (2.3s with GPT-4o-mini).
+   Local judge mode achieves equivalent accuracy at 3.97ms and zero API cost.
 3. **Hybrid summarization/dialogue FPR is high**: 93-95% false positive
    rate on summarization and dialogue tasks. QA task is production-grade
    (3-4% FPR, 95%+ precision).
 4. **ONNX CPU not competitive**: 383 ms/pair. Requires `onnxruntime-gpu`.
-5. **Fine-tuned models regressed**: DeBERTa-v3-large fine-tuned on
-   hallucination data scored 64.7% — below the pre-trained FactCG 75.8%.
+5. **Fine-tuned NLI replacement regressed**: DeBERTa-v3-large fine-tuned as
+   a 3-class NLI replacement scored 64.7% — below FactCG 75.8%. The local
+   judge (2-class binary on borderline cases only) is a different approach
+   that succeeded: +0.23pp F1, +0.80pp QA precision at 1000 samples/task.
 6. **Competitor latencies are estimates**: values marked "~" or "(est.)"
    from published papers, not our measurements.
 7. **FreshQA NLI-only is detection-only**: 98.6% catch but 97.8% FPR
@@ -261,7 +316,8 @@ not per-request overhead.
 | Integrations | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
 
 Director-AI's unique value: sub-ms streaming halt + 75.8% balanced accuracy
-at 0.4B params. No competitor offers token-level halt.
+at 0.4B params + local judge at 3.97ms (no API dependency). No competitor
+offers token-level halt with fully local hybrid scoring.
 
 Full analysis: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](comparison/COMPETITOR_COMPARISON.md)
 
@@ -282,6 +338,9 @@ python -m benchmarks.run_all --max-samples 500
 export OPENAI_API_KEY=sk-...
 python -m benchmarks.e2e_eval --nli --scorer-backend hybrid \
     --llm-judge-provider openai
+
+# Local judge E2E (requires trained model at training/output/deberta-v3-base-judge/)
+python benchmarks/run_judge_benchmark.py --samples 500
 ```
 
 ## Sources
