@@ -220,6 +220,8 @@ class CoherenceScorer:
         self._privacy_mode = privacy_mode
         self._redactor = PIIRedactor(enabled=privacy_mode)
         self._parallel_pool = ThreadPoolExecutor(max_workers=2)
+        self._fact_inner_agg = "max"
+        self._fact_outer_agg = "max"
 
         # Local DeBERTa-base judge model (replaces LLM API calls)
         self._local_judge_model = None
@@ -497,7 +499,12 @@ class CoherenceScorer:
 
         if self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
-                score, _ = self._nli.score_chunked(context, text_output)
+                score, _ = self._nli.score_chunked(
+                    context,
+                    text_output,
+                    inner_agg=self._fact_inner_agg,
+                    outer_agg=self._fact_outer_agg,
+                )
         elif self.strict_mode:
             score = DIVERGENCE_CONTRADICTED
         else:
@@ -543,7 +550,12 @@ class CoherenceScorer:
         if self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
                 nli_score, chunk_scores, prem_count, hyp_count = (
-                    self._nli._score_chunked_with_counts(context, text_output)
+                    self._nli._score_chunked_with_counts(
+                        context,
+                        text_output,
+                        inner_agg=self._fact_inner_agg,
+                        outer_agg=self._fact_outer_agg,
+                    )
                 )
         elif self.strict_mode:
             nli_score = DIVERGENCE_CONTRADICTED

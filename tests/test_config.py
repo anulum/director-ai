@@ -110,6 +110,18 @@ class TestProfileLoading:
         assert cfg.w_fact == pytest.approx(wf)
 
 
+class TestSummarizationAggregation:
+    def test_summarization_profile_uses_min_inner_mean_outer(self):
+        cfg = DirectorConfig.from_profile("summarization")
+        assert cfg.nli_fact_inner_agg == "min"
+        assert cfg.nli_fact_outer_agg == "mean"
+
+    def test_default_profile_uses_max_max(self):
+        cfg = DirectorConfig()
+        assert cfg.nli_fact_inner_agg == "max"
+        assert cfg.nli_fact_outer_agg == "max"
+
+
 class TestEnvLoading:
     """Tests for from_env()."""
 

@@ -148,6 +148,49 @@ class TestScoreChunked:
         s_mean, _ = scorer.score_chunked("premise", long_hyp, outer_agg="mean")
         assert s_mean <= s_max
 
+    def test_min_inner_agg(self):
+        """min inner agg picks the lowest divergence across premise chunks."""
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Premise detail {i} info" for i in range(30)) + "."
+        agg_max, _, _, _ = scorer._score_chunked_with_counts(
+            long_prem,
+            "Short claim.",
+            inner_agg="max",
+        )
+        agg_min, _, _, _ = scorer._score_chunked_with_counts(
+            long_prem,
+            "Short claim.",
+            inner_agg="min",
+        )
+        assert agg_min <= agg_max
+
+    def test_min_inner_mean_outer(self):
+        """Combined min-inner + mean-outer gives lower score than max-max."""
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Source paragraph {i} content" for i in range(30)) + "."
+        long_hyp = ". ".join(f"Summary claim {i} text" for i in range(20)) + "."
+        agg_maxmax, _, _, _ = scorer._score_chunked_with_counts(
+            long_prem,
+            long_hyp,
+            inner_agg="max",
+            outer_agg="max",
+        )
+        agg_minmean, _, _, _ = scorer._score_chunked_with_counts(
+            long_prem,
+            long_hyp,
+            inner_agg="min",
+            outer_agg="mean",
+        )
+        assert agg_minmean <= agg_maxmax
+
+    def test_score_chunked_forwards_inner_agg(self):
+        """score_chunked() accepts and forwards inner_agg kwarg."""
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Premise detail {i} info" for i in range(30)) + "."
+        s_max, _ = scorer.score_chunked(long_prem, "Short claim.", inner_agg="max")
+        s_min, _ = scorer.score_chunked(long_prem, "Short claim.", inner_agg="min")
+        assert s_min <= s_max
+
     def test_score_chunked_with_counts(self):
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Evidence {i} text" for i in range(30)) + "."

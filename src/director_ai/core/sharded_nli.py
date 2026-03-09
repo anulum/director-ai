@@ -54,8 +54,14 @@ class ShardedNLIScorer:
         premise: str,
         hypothesis: str,
         outer_agg: str = "max",
+        inner_agg: str = "max",
     ) -> tuple[float, list[float]]:
-        return self._next_scorer().score_chunked(premise, hypothesis, outer_agg)
+        return self._next_scorer().score_chunked(
+            premise,
+            hypothesis,
+            outer_agg=outer_agg,
+            inner_agg=inner_agg,
+        )
 
     @property
     def model_available(self) -> bool:

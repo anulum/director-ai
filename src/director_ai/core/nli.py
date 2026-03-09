@@ -697,7 +697,8 @@ class NLIScorer:
 
         inner_agg controls how premise-chunk scores are combined per
         hypothesis chunk: "max" (default, conservative — worst evidence
-        wins) or "mean".
+        wins), "min" (best evidence wins — use for summarization), or
+        "mean".
 
         outer_agg controls how hypothesis-chunk scores are combined:
         "max" (default) or "mean".
@@ -736,7 +737,9 @@ class NLIScorer:
         per_hyp: list[float] = []
         for h_idx in range(n_hyp):
             scores_h = [all_scores[p * n_hyp + h_idx] for p in range(n_prem)]
-            if inner_agg == "mean":
+            if inner_agg == "min":
+                per_hyp.append(min(scores_h))
+            elif inner_agg == "mean":
                 per_hyp.append(sum(scores_h) / len(scores_h))
             else:
                 per_hyp.append(max(scores_h))
@@ -752,6 +755,7 @@ class NLIScorer:
         premise: str,
         hypothesis: str,
         outer_agg: str = "max",
+        inner_agg: str = "max",
     ) -> tuple[float, list[float]]:
         """Bidirectional chunked scoring for long premises and hypotheses.
 
@@ -760,7 +764,8 @@ class NLIScorer:
         agg, per_hyp, _, _ = self._score_chunked_with_counts(
             premise,
             hypothesis,
-            outer_agg,
+            outer_agg=outer_agg,
+            inner_agg=inner_agg,
         )
         return agg, per_hyp
 

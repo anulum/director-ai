@@ -171,6 +171,10 @@ class DirectorConfig:
     source_endpoint_enabled: bool = True
     source_repository_url: str = "https://github.com/anulum/director-ai"
 
+    # Chunked NLI aggregation: "max"|"min"|"mean"
+    nli_fact_inner_agg: str = "max"
+    nli_fact_outer_agg: str = "max"
+
     # gRPC limits
     grpc_max_message_mb: int = 4
     grpc_deadline_seconds: float = 30.0
@@ -402,6 +406,8 @@ class DirectorConfig:
                 "llm_judge_enabled": True,
                 "w_logic": 0.5,
                 "w_fact": 0.5,
+                "nli_fact_inner_agg": "min",
+                "nli_fact_outer_agg": "mean",
                 "profile": "summarization",
             },
             "lite": {
@@ -547,7 +553,10 @@ class DirectorConfig:
             kw["nli_devices"] = [
                 d.strip() for d in self.nli_devices.split(",") if d.strip()
             ]
-        return CoherenceScorer(**kw)
+        scorer = CoherenceScorer(**kw)
+        scorer._fact_inner_agg = self.nli_fact_inner_agg
+        scorer._fact_outer_agg = self.nli_fact_outer_agg
+        return scorer
 
     _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key", "api_keys"})
 

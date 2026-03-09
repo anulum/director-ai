@@ -290,6 +290,45 @@ class TestNLIBatchLength:
         assert len(results) == 3
 
 
+class TestAggregationPassthrough:
+    def test_scorer_passes_aggregation_params(self):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig.from_profile("summarization")
+        cfg.llm_judge_provider = "openai"
+        scorer = cfg.build_scorer()
+        assert scorer._fact_inner_agg == "min"
+        assert scorer._fact_outer_agg == "mean"
+
+    def test_default_config_max_max(self):
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False)
+        assert scorer._fact_inner_agg == "max"
+        assert scorer._fact_outer_agg == "max"
+
+    def test_scorer_calls_nli_with_agg_params(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(threshold=0.5, use_nli=True)
+        scorer._fact_inner_agg = "min"
+        scorer._fact_outer_agg = "mean"
+        mock_nli = MagicMock()
+        mock_nli.model_available = True
+        mock_nli.score_chunked.return_value = (0.3, [0.3])
+        scorer._nli = mock_nli
+
+        mock_store = MagicMock()
+        mock_store.retrieve_context.return_value = "some context"
+        scorer.ground_truth_store = mock_store
+
+        scorer.calculate_factual_divergence("prompt", "output")
+        mock_nli.score_chunked.assert_called_once_with(
+            "some context",
+            "output",
+            inner_agg="min",
+            outer_agg="mean",
+        )
+
+
 class TestLocalJudgeFallbackPaths:
     """Exercise local-judge code paths without torch (model=None)."""
 
