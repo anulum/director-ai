@@ -172,8 +172,19 @@
 
 ### Done
 - Local DeBERTa-v3-base binary judge replaces LLM judge for borderline NLI escalation (F1=0.915, latency ~15ms vs 1.3–14.2s, zero API cost)
+- Summarization FPR reduced from 95% to 25.5% (three-phase fix):
+  - Phase 1: MIN inner aggregation (95% → 60%)
+  - Phase 2: `premise_ratio=0.85` + logic aggregation bug fix (60% → 42.5%)
+  - Phase 3: `w_logic=0` (eliminate h_logic==h_fact duplication), `_use_prompt_as_premise=True` (bypass lossy vector store), `trimmed_mean` outer aggregation (42.5% → 25.5%)
+- Summarization profile: `w_logic=0.0, w_fact=1.0`, `coherence_threshold=0.15`, `nli_fact_outer_agg="trimmed_mean"`, `nli_use_prompt_as_premise=True`
+- `_heuristic_coherence` short-circuits logical divergence when `W_LOGIC < 1e-9`
+- Configurable `nli_fact_retrieval_top_k` and `nli_use_prompt_as_premise` config fields
+- Summarization FPR diagnostic benchmark (`benchmarks/summarization_fpr_diag.py`)
+- `workflow_dispatch` added to `publish.yml` and `docker.yml` (fix GITHUB_TOKEN anti-loop)
+- 1991 tests, 0 failures
 
 ### Planned
 - Distill smaller NLI model (DeBERTa-base from FactCG-Large teacher + hybrid labels)
-- Claim decomposition for summarisation domain (weakest at 68.8%)
+- Claim decomposition for summarisation domain (weakest at 68.8% bal. acc, remaining 25.5% FPR)
 - ReviewQueue adaptive flushing (dynamic max_batch based on request rate)
+- Dialogue FPR reduction (95% in hybrid mode — LLM judge prompt tuning)
