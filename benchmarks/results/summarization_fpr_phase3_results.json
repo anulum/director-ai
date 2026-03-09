@@ -1,0 +1,37 @@
+{
+  "benchmark": "Summarization_FPR_Phase3",
+  "date": "2026-03-09",
+  "hardware": "JarvisLabs L4 GPU (machine_id=382900)",
+  "total": 200,
+  "config": {
+    "w_logic": 0.0,
+    "w_fact": 1.0,
+    "fact_inner_agg": "min",
+    "fact_outer_agg": "trimmed_mean",
+    "premise_ratio": 0.85,
+    "use_prompt_as_premise": true,
+    "fact_retrieval_top_k": 8
+  },
+  "phases": {
+    "phase0_max_max": {"threshold": 0.55, "fpr": 0.95, "fp": 190},
+    "phase1_min_mean": {"threshold": 0.35, "fpr": 0.60, "fp": 120},
+    "phase2_summ_profile": {"threshold": 0.35, "fpr": 0.425, "fp": 85},
+    "phase3_direct_scoring": {"threshold": 0.15, "fpr": 0.255, "fp": 51}
+  },
+  "phase3_fpr_at_thresholds": {
+    "0.15": {"fpr": 0.255, "fp": 51},
+    "0.20": {"fpr": 0.30, "fp": 60},
+    "0.25": {"fpr": 0.34, "fp": 68},
+    "0.30": {"fpr": 0.375, "fp": 75},
+    "0.35": {"fpr": 0.425, "fp": 85}
+  },
+  "phase3_scores": {
+    "h_logic_mean": 0.0,
+    "h_fact_mean_all": 0.4653,
+    "h_fact_mean_approved": 0.2751,
+    "h_fact_mean_fp": 0.9092,
+    "coherence_mean_all": 0.5347,
+    "coherence_mean_approved": 0.7249,
+    "coherence_mean_fp": 0.0908
+  }
+}

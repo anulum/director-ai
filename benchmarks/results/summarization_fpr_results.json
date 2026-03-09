@@ -1,0 +1,19 @@
+{
+  "benchmark": "Summarization_FPR_AggComparison",
+  "date": "2026-03-09",
+  "hardware": "JarvisLabs L4 GPU (machine_id=382900)",
+  "total": 200,
+  "fp_max_max": 190,
+  "fp_min_mean": 120,
+  "fp_summ_profile": 85,
+  "fp_phase3": 51,
+  "fpr_max_max": 0.95,
+  "fpr_min_mean": 0.60,
+  "fpr_summ_profile": 0.425,
+  "fpr_phase3": 0.255,
+  "fpr_reduction_phase1_pct": 36.84,
+  "fpr_reduction_phase3_pct": 73.16,
+  "avg_score_max_max": 0.0521,
+  "avg_score_min_mean": 0.1435,
+  "avg_latency_ms": 2632.06
+}
