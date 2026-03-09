@@ -607,7 +607,7 @@ class CoherenceScorer:
         if not context:
             return DIVERGENCE_NEUTRAL, None
 
-        chunk_scores = None
+        chunk_scores: list[float] | None = None
         prem_count = 1
         hyp_count = 1
         if self._nli and self._nli.model_available:
