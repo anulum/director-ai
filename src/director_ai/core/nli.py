@@ -690,6 +690,7 @@ class NLIScorer:
         hypothesis: str,
         outer_agg: str = "max",
         inner_agg: str = "max",
+        premise_ratio: float = 0.4,
     ) -> tuple[float, list[float], int, int]:
         """Bidirectional chunked scoring with chunk counts.
 
@@ -702,9 +703,14 @@ class NLIScorer:
 
         outer_agg controls how hypothesis-chunk scores are combined:
         "max" (default) or "mean".
+
+        premise_ratio controls the token budget split between premise and
+        hypothesis.  Default 0.4 (40% premise, 60% hypothesis) suits QA;
+        use 0.85 for summarization where source documents are long and
+        summary sentences are short.
         """
-        hyp_budget = int(self.max_length * 0.6)
-        prem_budget = int(self.max_length * 0.4)
+        hyp_budget = int(self.max_length * (1 - premise_ratio))
+        prem_budget = int(self.max_length * premise_ratio)
 
         hyp_fits = self._estimate_tokens(hypothesis) <= hyp_budget
         prem_fits = self._estimate_tokens(premise) <= prem_budget
@@ -744,7 +750,16 @@ class NLIScorer:
             else:
                 per_hyp.append(max(scores_h))
 
-        agg = max(per_hyp) if outer_agg == "max" else sum(per_hyp) / len(per_hyp)
+        if outer_agg == "max":
+            agg = max(per_hyp)
+        elif outer_agg == "trimmed_mean":
+            # Drop top 25% of per-hypothesis scores (most divergent) before averaging.
+            # More robust to outlier sentences that NLI can't match.
+            sorted_scores = sorted(per_hyp)
+            keep = max(1, int(len(sorted_scores) * 0.75))
+            agg = sum(sorted_scores[:keep]) / keep
+        else:
+            agg = sum(per_hyp) / len(per_hyp)
 
         metrics.observe("nli_premise_chunks", n_prem)
         metrics.observe("nli_hypothesis_chunks", n_hyp)
@@ -756,6 +771,7 @@ class NLIScorer:
         hypothesis: str,
         outer_agg: str = "max",
         inner_agg: str = "max",
+        premise_ratio: float = 0.4,
     ) -> tuple[float, list[float]]:
         """Bidirectional chunked scoring for long premises and hypotheses.
 
@@ -766,6 +782,7 @@ class NLIScorer:
             hypothesis,
             outer_agg=outer_agg,
             inner_agg=inner_agg,
+            premise_ratio=premise_ratio,
         )
         return agg, per_hyp
 

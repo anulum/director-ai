@@ -174,6 +174,11 @@ class DirectorConfig:
     # Chunked NLI aggregation: "max"|"min"|"mean"
     nli_fact_inner_agg: str = "max"
     nli_fact_outer_agg: str = "max"
+    nli_logic_inner_agg: str = "max"
+    nli_logic_outer_agg: str = "max"
+    nli_premise_ratio: float = 0.4
+    nli_fact_retrieval_top_k: int = 3
+    nli_use_prompt_as_premise: bool = False
 
     # gRPC limits
     grpc_max_message_mb: int = 4
@@ -398,16 +403,21 @@ class DirectorConfig:
                 "profile": "customer_support",
             },
             "summarization": {
-                "coherence_threshold": 0.55,
-                "hard_limit": 0.45,
-                "soft_limit": 0.60,
+                "coherence_threshold": 0.15,
+                "hard_limit": 0.08,
+                "soft_limit": 0.25,
                 "use_nli": True,
                 "scorer_backend": "hybrid",
                 "llm_judge_enabled": True,
-                "w_logic": 0.5,
-                "w_fact": 0.5,
+                "w_logic": 0.0,
+                "w_fact": 1.0,
                 "nli_fact_inner_agg": "min",
-                "nli_fact_outer_agg": "mean",
+                "nli_fact_outer_agg": "trimmed_mean",
+                "nli_logic_inner_agg": "min",
+                "nli_logic_outer_agg": "mean",
+                "nli_premise_ratio": 0.85,
+                "nli_fact_retrieval_top_k": 8,
+                "nli_use_prompt_as_premise": True,
                 "profile": "summarization",
             },
             "lite": {
@@ -546,7 +556,7 @@ class DirectorConfig:
 
         if self.onnx_path:
             kw["onnx_path"] = self.onnx_path
-        if self.w_logic != 0.0:
+        if self.w_logic != 0.0 or self.w_fact != 0.0:
             kw["w_logic"] = self.w_logic
             kw["w_fact"] = self.w_fact
         if self.nli_devices:
@@ -556,6 +566,11 @@ class DirectorConfig:
         scorer = CoherenceScorer(**kw)
         scorer._fact_inner_agg = self.nli_fact_inner_agg
         scorer._fact_outer_agg = self.nli_fact_outer_agg
+        scorer._logic_inner_agg = self.nli_logic_inner_agg
+        scorer._logic_outer_agg = self.nli_logic_outer_agg
+        scorer._premise_ratio = self.nli_premise_ratio
+        scorer._fact_retrieval_top_k = self.nli_fact_retrieval_top_k
+        scorer._use_prompt_as_premise = self.nli_use_prompt_as_premise
         return scorer
 
     _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key", "api_keys"})

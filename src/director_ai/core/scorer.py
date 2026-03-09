@@ -222,6 +222,11 @@ class CoherenceScorer:
         self._parallel_pool = ThreadPoolExecutor(max_workers=2)
         self._fact_inner_agg = "max"
         self._fact_outer_agg = "max"
+        self._logic_inner_agg = "max"
+        self._logic_outer_agg = "max"
+        self._premise_ratio = 0.4
+        self._fact_retrieval_top_k = 3
+        self._use_prompt_as_premise = False
 
         # Local DeBERTa-base judge model (replaces LLM API calls)
         self._local_judge_model = None
@@ -487,13 +492,34 @@ class CoherenceScorer:
             fallback = 1.0 - getattr(score_obj, "score", 0.5)
             return getattr(score_obj, "h_factual", fallback)
 
+        # Summarization mode: score prompt (source document) directly as premise.
+        # Bypasses vector store retrieval which loses context and degrades scores.
+        if self._use_prompt_as_premise and self._nli and self._nli.model_available:
+            with metrics.timer("chunked_nli_seconds"):
+                score, _ = self._nli.score_chunked(
+                    prompt,
+                    text_output,
+                    inner_agg=self._fact_inner_agg,
+                    outer_agg=self._fact_outer_agg,
+                    premise_ratio=self._premise_ratio,
+                )
+            if self._should_escalate(score):
+                score = self._llm_judge_check(prompt, text_output, score)
+            return score
+
         if not self.ground_truth_store:
             return DIVERGENCE_NEUTRAL
 
         with metrics.timer("factual_retrieval_seconds"):
-            context = self.ground_truth_store.retrieve_context(
-                prompt, tenant_id=tenant_id
-            )
+            try:
+                context = self.ground_truth_store.retrieve_context(
+                    prompt, top_k=self._fact_retrieval_top_k, tenant_id=tenant_id
+                )
+            except TypeError:
+                # Base GroundTruthStore doesn't accept top_k
+                context = self.ground_truth_store.retrieve_context(
+                    prompt, tenant_id=tenant_id
+                )
         if not context:
             return DIVERGENCE_NEUTRAL
 
@@ -504,6 +530,7 @@ class CoherenceScorer:
                     text_output,
                     inner_agg=self._fact_inner_agg,
                     outer_agg=self._fact_outer_agg,
+                    premise_ratio=self._premise_ratio,
                 )
         elif self.strict_mode:
             score = DIVERGENCE_CONTRADICTED
@@ -518,6 +545,33 @@ class CoherenceScorer:
         self, prompt, text_output, tenant_id: str = ""
     ) -> tuple[float, ScoringEvidence | None]:
         """Like calculate_factual_divergence but also returns evidence."""
+        # Summarization mode: score prompt directly, skip store retrieval.
+        if self._use_prompt_as_premise and self._nli and self._nli.model_available:
+            with metrics.timer("chunked_nli_seconds"):
+                nli_score, chunk_scores, prem_count, hyp_count = (
+                    self._nli._score_chunked_with_counts(
+                        prompt,
+                        text_output,
+                        inner_agg=self._fact_inner_agg,
+                        outer_agg=self._fact_outer_agg,
+                        premise_ratio=self._premise_ratio,
+                    )
+                )
+            if self._should_escalate(nli_score):
+                nli_score = self._llm_judge_check(prompt, text_output, nli_score)
+            evidence = ScoringEvidence(
+                chunks=[
+                    EvidenceChunk(text=prompt[:500], distance=0.0, source="prompt")
+                ],
+                nli_premise=prompt,
+                nli_hypothesis=text_output,
+                nli_score=nli_score,
+                chunk_scores=chunk_scores,
+                premise_chunk_count=prem_count,
+                hypothesis_chunk_count=hyp_count,
+            )
+            return nli_score, evidence
+
         if not self.ground_truth_store:
             return DIVERGENCE_NEUTRAL, None
 
@@ -528,14 +582,23 @@ class CoherenceScorer:
 
             if isinstance(self.ground_truth_store, VectorGroundTruthStore):
                 chunks = self.ground_truth_store.retrieve_context_with_chunks(
-                    prompt, tenant_id=tenant_id
+                    prompt,
+                    top_k=self._fact_retrieval_top_k,
+                    tenant_id=tenant_id,
                 )
                 if chunks:
                     context = "; ".join(c.text for c in chunks)
             else:
-                context = self.ground_truth_store.retrieve_context(
-                    prompt, tenant_id=tenant_id
-                )
+                try:
+                    context = self.ground_truth_store.retrieve_context(
+                        prompt,
+                        top_k=self._fact_retrieval_top_k,
+                        tenant_id=tenant_id,
+                    )
+                except TypeError:
+                    context = self.ground_truth_store.retrieve_context(
+                        prompt, tenant_id=tenant_id
+                    )
                 if context:
                     chunks = [
                         EvidenceChunk(text=context, distance=0.0, source="keyword")
@@ -555,6 +618,7 @@ class CoherenceScorer:
                         text_output,
                         inner_agg=self._fact_inner_agg,
                         outer_agg=self._fact_outer_agg,
+                        premise_ratio=self._premise_ratio,
                     )
                 )
         elif self.strict_mode:
@@ -626,7 +690,13 @@ class CoherenceScorer:
 
         if self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
-                score, _ = self._nli.score_chunked(prompt, text_output)
+                score, _ = self._nli.score_chunked(
+                    prompt,
+                    text_output,
+                    inner_agg=self._logic_inner_agg,
+                    outer_agg=self._logic_outer_agg,
+                    premise_ratio=self._premise_ratio,
+                )
             return score
 
         if self.strict_mode:
@@ -672,17 +742,25 @@ class CoherenceScorer:
         if self._nli is not None:
             self._nli._ensure_model()
 
-        future_logic = self._parallel_pool.submit(
-            self.calculate_logical_divergence, prompt, action
-        )
-        future_fact = self._parallel_pool.submit(
-            self.calculate_factual_divergence_with_evidence,
-            prompt,
-            action,
-            tenant_id,
-        )
-        h_logic = future_logic.result()
-        h_fact, evidence = future_fact.result()
+        # Short-circuit: skip logical divergence when W_LOGIC is zero
+        # (e.g. summarization profile where h_logic duplicates h_fact).
+        if self.W_LOGIC < 1e-9:
+            h_logic = 0.0
+            h_fact, evidence = self.calculate_factual_divergence_with_evidence(
+                prompt, action, tenant_id
+            )
+        else:
+            future_logic = self._parallel_pool.submit(
+                self.calculate_logical_divergence, prompt, action
+            )
+            future_fact = self._parallel_pool.submit(
+                self.calculate_factual_divergence_with_evidence,
+                prompt,
+                action,
+                tenant_id,
+            )
+            h_logic = future_logic.result()
+            h_fact, evidence = future_fact.result()
         total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
         coherence = 1.0 - total_divergence
         return h_logic, h_fact, coherence, evidence

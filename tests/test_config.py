@@ -95,7 +95,7 @@ class TestProfileLoading:
             ("legal", 0.68, 0.45, 0.68, True, False, 0.6, 0.4),
             ("creative", 0.40, 0.30, 0.45, False, False, 0.7, 0.3),
             ("customer_support", 0.55, 0.40, 0.60, False, False, 0.5, 0.5),
-            ("summarization", 0.55, 0.45, 0.60, True, False, 0.5, 0.5),
+            ("summarization", 0.15, 0.08, 0.25, True, False, 0.0, 1.0),
         ],
     )
     def test_domain_profile(self, name, threshold, hard, soft, nli, reranker, wl, wf):
@@ -111,15 +111,47 @@ class TestProfileLoading:
 
 
 class TestSummarizationAggregation:
-    def test_summarization_profile_uses_min_inner_mean_outer(self):
+    def test_summarization_profile_uses_min_inner_trimmed_mean_outer(self):
         cfg = DirectorConfig.from_profile("summarization")
         assert cfg.nli_fact_inner_agg == "min"
-        assert cfg.nli_fact_outer_agg == "mean"
+        assert cfg.nli_fact_outer_agg == "trimmed_mean"
+
+    def test_summarization_profile_logic_agg(self):
+        cfg = DirectorConfig.from_profile("summarization")
+        assert cfg.nli_logic_inner_agg == "min"
+        assert cfg.nli_logic_outer_agg == "mean"
+
+    def test_summarization_profile_premise_ratio(self):
+        cfg = DirectorConfig.from_profile("summarization")
+        assert cfg.nli_premise_ratio == 0.85
+
+    def test_summarization_profile_thresholds(self):
+        cfg = DirectorConfig.from_profile("summarization")
+        assert cfg.coherence_threshold == 0.15
+        assert cfg.hard_limit == 0.08
+        assert cfg.soft_limit == 0.25
+
+    def test_summarization_profile_w_logic_zero(self):
+        cfg = DirectorConfig.from_profile("summarization")
+        assert cfg.w_logic == 0.0
+        assert cfg.w_fact == 1.0
+
+    def test_summarization_profile_retrieval_top_k(self):
+        cfg = DirectorConfig.from_profile("summarization")
+        assert cfg.nli_fact_retrieval_top_k == 8
+
+    def test_summarization_profile_prompt_as_premise(self):
+        cfg = DirectorConfig.from_profile("summarization")
+        assert cfg.nli_use_prompt_as_premise is True
 
     def test_default_profile_uses_max_max(self):
         cfg = DirectorConfig()
         assert cfg.nli_fact_inner_agg == "max"
         assert cfg.nli_fact_outer_agg == "max"
+        assert cfg.nli_logic_inner_agg == "max"
+        assert cfg.nli_logic_outer_agg == "max"
+        assert cfg.nli_premise_ratio == 0.4
+        assert cfg.nli_fact_retrieval_top_k == 3
 
 
 class TestEnvLoading:

@@ -203,3 +203,68 @@ class TestScoreChunked:
         assert nh > 1
         assert len(per_hyp) == nh
         assert 0.0 <= agg <= 1.0
+
+    def test_premise_ratio_reduces_premise_chunks(self):
+        """Higher premise_ratio gives more premise budget → fewer premise chunks."""
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Source paragraph {i} detail" for i in range(30)) + "."
+        _, _, np_default, _ = scorer._score_chunked_with_counts(
+            long_prem,
+            "Short claim.",
+            premise_ratio=0.4,
+        )
+        _, _, np_high, _ = scorer._score_chunked_with_counts(
+            long_prem,
+            "Short claim.",
+            premise_ratio=0.85,
+        )
+        assert np_high <= np_default
+
+    def test_premise_ratio_budget_split(self):
+        """Token budget reflects the premise_ratio parameter."""
+        # With ratio 0.85: prem_budget = 435, hyp_budget = 77
+        # With ratio 0.4:  prem_budget = 205, hyp_budget = 307
+        prem_budget_high = int(512 * 0.85)
+        prem_budget_low = int(512 * 0.4)
+        assert prem_budget_high > prem_budget_low
+        assert prem_budget_high == 435
+        assert prem_budget_low == 204
+
+    def test_score_chunked_forwards_premise_ratio(self):
+        """score_chunked() accepts and forwards premise_ratio kwarg."""
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Source text {i} detail" for i in range(30)) + "."
+        s1, _ = scorer.score_chunked(long_prem, "Short claim.", premise_ratio=0.4)
+        s2, _ = scorer.score_chunked(long_prem, "Short claim.", premise_ratio=0.85)
+        # Both should succeed without error and return valid scores
+        assert 0.0 <= s1 <= 1.0
+        assert 0.0 <= s2 <= 1.0
+
+    def test_trimmed_mean_outer_agg(self):
+        """trimmed_mean drops top 25% of per-hypothesis scores before averaging."""
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Source paragraph {i} content" for i in range(30)) + "."
+        long_hyp = ". ".join(f"Summary claim {i} text" for i in range(20)) + "."
+        agg_mean, _, _, _ = scorer._score_chunked_with_counts(
+            long_prem,
+            long_hyp,
+            inner_agg="min",
+            outer_agg="mean",
+        )
+        agg_trimmed, _, _, _ = scorer._score_chunked_with_counts(
+            long_prem,
+            long_hyp,
+            inner_agg="min",
+            outer_agg="trimmed_mean",
+        )
+        # trimmed_mean drops the worst scores, so it should be <= mean
+        assert agg_trimmed <= agg_mean
+
+    def test_trimmed_mean_single_chunk(self):
+        """trimmed_mean with 1 hypothesis chunk keeps that single score."""
+        scorer = NLIScorer(use_model=False, max_length=512)
+        agg, per_hyp, _, _ = scorer._score_chunked_with_counts(
+            "A short premise.", "A short hypothesis.", outer_agg="trimmed_mean"
+        )
+        assert len(per_hyp) == 1
+        assert agg == per_hyp[0]

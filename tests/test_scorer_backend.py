@@ -298,7 +298,10 @@ class TestAggregationPassthrough:
         cfg.llm_judge_provider = "openai"
         scorer = cfg.build_scorer()
         assert scorer._fact_inner_agg == "min"
-        assert scorer._fact_outer_agg == "mean"
+        assert scorer._fact_outer_agg == "trimmed_mean"
+        assert scorer._fact_retrieval_top_k == 8
+        assert scorer.W_LOGIC == 0.0
+        assert scorer.W_FACT == 1.0
 
     def test_default_config_max_max(self):
         scorer = CoherenceScorer(threshold=0.5, use_nli=False)
@@ -321,12 +324,48 @@ class TestAggregationPassthrough:
         scorer.ground_truth_store = mock_store
 
         scorer.calculate_factual_divergence("prompt", "output")
+        mock_store.retrieve_context.assert_called_once_with(
+            "prompt", top_k=3, tenant_id=""
+        )
         mock_nli.score_chunked.assert_called_once_with(
             "some context",
             "output",
             inner_agg="min",
             outer_agg="mean",
+            premise_ratio=0.4,
         )
+
+
+class TestWLogicZeroShortCircuit:
+    def test_w_logic_zero_skips_logical_divergence(self):
+        from unittest.mock import MagicMock, patch
+
+        scorer = CoherenceScorer(threshold=0.2, use_nli=True, w_logic=0.0, w_fact=1.0)
+        mock_nli = MagicMock()
+        mock_nli.model_available = True
+        mock_nli._ensure_model.return_value = True
+        mock_nli._score_chunked_with_counts.return_value = (0.3, [0.3], 1, 1)
+        scorer._nli = mock_nli
+
+        mock_store = MagicMock()
+        mock_store.retrieve_context_with_chunks.return_value = [
+            MagicMock(text="some context", distance=0.0, source="test")
+        ]
+        scorer.ground_truth_store = mock_store
+
+        # Patch isinstance check so VectorGroundTruthStore matches
+        with patch(
+            "director_ai.core.scorer.CoherenceScorer.calculate_logical_divergence"
+        ) as mock_logic:
+            h_logic, h_fact, coherence, _ = scorer._heuristic_coherence(
+                "prompt", "action"
+            )
+            mock_logic.assert_not_called()
+            assert h_logic == 0.0
+
+    def test_default_retrieval_top_k(self):
+        scorer = CoherenceScorer(threshold=0.5, use_nli=False)
+        assert scorer._fact_retrieval_top_k == 3
 
 
 class TestLocalJudgeFallbackPaths:
