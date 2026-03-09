@@ -242,6 +242,21 @@ def run_e2e_benchmark(
         fallback_mode=fallback,
     )
 
+    # Reuse one scorer across all samples — avoids reloading models per sample.
+    # Only the VectorGroundTruthStore is swapped to prevent context leakage.
+    scorer = CoherenceScorer(
+        threshold=threshold,
+        soft_limit=soft_limit,
+        use_nli=use_nli,
+        ground_truth_store=VectorGroundTruthStore(),
+        nli_model=nli_model,
+        scorer_backend=scorer_backend,
+        llm_judge_enabled=llm_judge_provider is not None,
+        llm_judge_provider=llm_judge_provider or "",
+        llm_judge_model=llm_judge_model or "",
+    )
+
+    total_pairs = 0
     for task in tasks:
         try:
             samples = _download_task_data(task)
@@ -258,19 +273,13 @@ def run_e2e_benchmark(
                 if not context or not response:
                     continue
 
+                total_pairs += 1
+                if total_pairs % 100 == 0:
+                    logger.info("Progress: %d samples scored", total_pairs)
+
                 # Fresh store per sample to prevent context leakage
                 store = VectorGroundTruthStore()
-                scorer = CoherenceScorer(
-                    threshold=threshold,
-                    soft_limit=soft_limit,
-                    use_nli=use_nli,
-                    ground_truth_store=store,
-                    nli_model=nli_model,
-                    scorer_backend=scorer_backend,
-                    llm_judge_enabled=llm_judge_provider is not None,
-                    llm_judge_provider=llm_judge_provider or "",
-                    llm_judge_model=llm_judge_model or "",
-                )
+                scorer.ground_truth_store = store
                 store.ingest([context])
 
                 t0 = time.perf_counter()
@@ -280,12 +289,9 @@ def run_e2e_benchmark(
                 has_evidence = score.evidence is not None
                 n_chunks = len(score.evidence.chunks) if score.evidence else 0
 
-                # Simulate fallback behavior
                 fallback_used = False
                 if not approved and fallback:
                     fallback_used = True
-                    # In fallback mode, the halt is "recovered"
-                    # but we still count it as a detection for metrics
 
                 e2e_sample = E2ESample(
                     task=task,
@@ -302,6 +308,7 @@ def run_e2e_benchmark(
                 )
                 metrics.samples.append(e2e_sample)
 
+    logger.info("Benchmark complete: %d total samples scored", total_pairs)
     return metrics
 
 
@@ -325,6 +332,13 @@ def sweep_thresholds(
     # Pre-score all samples once, then sweep threshold
     raw_scores: list[tuple[str, bool, float]] = []  # (task, is_halluc, score)
 
+    scorer = CoherenceScorer(
+        threshold=0.1,
+        use_nli=use_nli,
+        ground_truth_store=VectorGroundTruthStore(),
+        nli_model=nli_model,
+    )
+
     for task in tasks:
         try:
             samples = _download_task_data(task)
@@ -339,14 +353,8 @@ def sweep_thresholds(
             for context, response, is_hallucinated in pairs:
                 if not context or not response:
                     continue
-                # Fresh store per sample to prevent context leakage
                 store = VectorGroundTruthStore()
-                scorer = CoherenceScorer(
-                    threshold=0.1,
-                    use_nli=use_nli,
-                    ground_truth_store=store,
-                    nli_model=nli_model,
-                )
+                scorer.ground_truth_store = store
                 store.ingest([context])
                 _, score = scorer.review(context, response)
                 raw_scores.append((task, is_hallucinated, score.score))
@@ -541,7 +549,7 @@ if __name__ == "__main__":
         "--llm-judge-provider",
         type=str,
         default=None,
-        choices=["openai", "anthropic"],
+        choices=["openai", "anthropic", "local"],
         help="LLM judge provider (required for hybrid backend)",
     )
     parser.add_argument(
