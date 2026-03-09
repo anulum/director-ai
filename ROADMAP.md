@@ -181,10 +181,17 @@
 - Configurable `nli_fact_retrieval_top_k` and `nli_use_prompt_as_premise` config fields
 - Summarization FPR diagnostic benchmark (`benchmarks/summarization_fpr_diag.py`)
 - `workflow_dispatch` added to `publish.yml` and `docker.yml` (fix GITHUB_TOKEN anti-loop)
-- 1991 tests, 0 failures
+- 2027 tests, 0 failures
+
+### In Progress
+- Dialogue FPR reduction: auto-detect dialogue prompts, apply min-mean aggregation profile
+  - `_detect_task_type()` classifies dialogue via speaker-turn regex
+  - `_resolve_agg_profile()` applies min-mean (vs default max-max) for dialogue
+  - Diagnostic benchmark: `benchmarks/dialogue_fpr_diag.py` (4 phase configs)
+  - Awaiting GPU benchmark run to measure FPR improvement
 
 ### Planned
 - Distill smaller NLI model (DeBERTa-base from FactCG-Large teacher + hybrid labels)
 - Claim decomposition for summarisation domain (weakest at 68.8% bal. acc, remaining 25.5% FPR)
 - ReviewQueue adaptive flushing (dynamic max_batch based on request rate)
-- Dialogue FPR reduction (95% in hybrid mode — LLM judge prompt tuning)
+- Customer-trainable models: allow customers to fine-tune NLI scorer on their own domain data

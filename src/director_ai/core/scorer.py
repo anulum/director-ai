@@ -35,6 +35,17 @@ LLM_JUDGE_DISAGREE_DIVERGENCE = 0.8
 LLM_JUDGE_NLI_WEIGHT = 0.7
 LLM_JUDGE_LLM_WEIGHT = 0.3  # = 1 - NLI_WEIGHT
 
+# Dialogue detection: ≥2 speaker-turn markers → dialogue task
+_DIALOGUE_TURN_RE = re.compile(
+    r"(?:^|\n)\s*(?:"
+    r"(?:User|Human|Customer|Patient|Student|Interviewer|Speaker"
+    r"|Assistant|AI|Bot|Agent|Doctor|Teacher|Interviewee|System)"
+    r"(?:\s*\d*)?\s*:"
+    r"|\[(?:User|Human|Assistant|AI|System)\]"
+    r")",
+    re.IGNORECASE,
+)
+
 
 class CoherenceScorer:
     """
@@ -227,6 +238,7 @@ class CoherenceScorer:
         self._premise_ratio = 0.4
         self._fact_retrieval_top_k = 3
         self._use_prompt_as_premise = False
+        self._auto_dialogue_profile = True  # auto-detect dialogue, apply min-mean agg
 
         # Local DeBERTa-base judge model (replaces LLM API calls)
         self._local_judge_model = None
@@ -479,9 +491,52 @@ class CoherenceScorer:
         except (ValueError, TypeError, AttributeError):
             return "YES" in reply.upper()
 
+    # ── Task-aware scoring profiles ────────────────────────────────────
+
+    @staticmethod
+    def _detect_task_type(prompt: str) -> str:
+        """Detect task type from prompt content.
+
+        Returns ``"dialogue"`` when the prompt contains ≥2 speaker-turn
+        markers (e.g. "User:", "Assistant:").  Returns ``"default"``
+        otherwise.  Summarization is detected separately via
+        ``_use_prompt_as_premise``.
+        """
+        matches = _DIALOGUE_TURN_RE.findall(prompt)
+        return "dialogue" if len(matches) >= 2 else "default"
+
+    def _resolve_agg_profile(
+        self, prompt: str
+    ) -> tuple[str, str, str, str]:
+        """Return (fact_inner, fact_outer, logic_inner, logic_outer) agg settings.
+
+        Auto-applies the dialogue profile (min-mean) when:
+        - ``_auto_dialogue_profile`` is True
+        - User hasn't customized aggregation (still at max-max defaults)
+        - User hasn't enabled summarization profile (_use_prompt_as_premise)
+        - Prompt is classified as dialogue
+        """
+        fi, fo = self._fact_inner_agg, self._fact_outer_agg
+        li, lo = self._logic_inner_agg, self._logic_outer_agg
+
+        if (
+            self._auto_dialogue_profile
+            and not self._use_prompt_as_premise
+            and fi == "max"
+            and fo == "max"
+            and li == "max"
+            and lo == "max"
+            and self._detect_task_type(prompt) == "dialogue"
+        ):
+            return "min", "mean", "min", "mean"
+
+        return fi, fo, li, lo
+
     # ── Factual divergence ────────────────────────────────────────────
 
-    def calculate_factual_divergence(self, prompt, text_output, tenant_id: str = ""):
+    def calculate_factual_divergence(
+        self, prompt, text_output, tenant_id: str = "", *, _inner_agg=None, _outer_agg=None
+    ):
         """Check output against the Ground Truth Store.
 
         Returns 0.0 (aligned) to 1.0 (hallucinated).
@@ -492,6 +547,9 @@ class CoherenceScorer:
             fallback = 1.0 - getattr(score_obj, "score", 0.5)
             return getattr(score_obj, "h_factual", fallback)
 
+        fact_inner = _inner_agg if _inner_agg is not None else self._fact_inner_agg
+        fact_outer = _outer_agg if _outer_agg is not None else self._fact_outer_agg
+
         # Summarization mode: score prompt (source document) directly as premise.
         # Bypasses vector store retrieval which loses context and degrades scores.
         if self._use_prompt_as_premise and self._nli and self._nli.model_available:
@@ -499,8 +557,8 @@ class CoherenceScorer:
                 score, _ = self._nli.score_chunked(
                     prompt,
                     text_output,
-                    inner_agg=self._fact_inner_agg,
-                    outer_agg=self._fact_outer_agg,
+                    inner_agg=fact_inner,
+                    outer_agg=fact_outer,
                     premise_ratio=self._premise_ratio,
                 )
             if self._should_escalate(score):
@@ -528,8 +586,8 @@ class CoherenceScorer:
                 score, _ = self._nli.score_chunked(
                     context,
                     text_output,
-                    inner_agg=self._fact_inner_agg,
-                    outer_agg=self._fact_outer_agg,
+                    inner_agg=fact_inner,
+                    outer_agg=fact_outer,
                     premise_ratio=self._premise_ratio,
                 )
         elif self.strict_mode:
@@ -542,9 +600,18 @@ class CoherenceScorer:
         return score
 
     def calculate_factual_divergence_with_evidence(
-        self, prompt, text_output, tenant_id: str = ""
+        self,
+        prompt,
+        text_output,
+        tenant_id: str = "",
+        *,
+        _inner_agg=None,
+        _outer_agg=None,
     ) -> tuple[float, ScoringEvidence | None]:
         """Like calculate_factual_divergence but also returns evidence."""
+        fact_inner = _inner_agg if _inner_agg is not None else self._fact_inner_agg
+        fact_outer = _outer_agg if _outer_agg is not None else self._fact_outer_agg
+
         # Summarization mode: score prompt directly, skip store retrieval.
         if self._use_prompt_as_premise and self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
@@ -552,8 +619,8 @@ class CoherenceScorer:
                     self._nli._score_chunked_with_counts(
                         prompt,
                         text_output,
-                        inner_agg=self._fact_inner_agg,
-                        outer_agg=self._fact_outer_agg,
+                        inner_agg=fact_inner,
+                        outer_agg=fact_outer,
                         premise_ratio=self._premise_ratio,
                     )
                 )
@@ -616,8 +683,8 @@ class CoherenceScorer:
                     self._nli._score_chunked_with_counts(
                         context,
                         text_output,
-                        inner_agg=self._fact_inner_agg,
-                        outer_agg=self._fact_outer_agg,
+                        inner_agg=fact_inner,
+                        outer_agg=fact_outer,
                         premise_ratio=self._premise_ratio,
                     )
                 )
@@ -678,7 +745,9 @@ class CoherenceScorer:
 
     # ── Logical divergence ────────────────────────────────────────────
 
-    def calculate_logical_divergence(self, prompt, text_output):
+    def calculate_logical_divergence(
+        self, prompt, text_output, *, _inner_agg=None, _outer_agg=None
+    ):
         """Compute logical contradiction probability via NLI.
 
         When strict_mode is True and NLI is unavailable, returns 0.9 (reject).
@@ -689,12 +758,14 @@ class CoherenceScorer:
             return getattr(score_obj, "h_logical", fallback)
 
         if self._nli and self._nli.model_available:
+            logic_inner = _inner_agg if _inner_agg is not None else self._logic_inner_agg
+            logic_outer = _outer_agg if _outer_agg is not None else self._logic_outer_agg
             with metrics.timer("chunked_nli_seconds"):
                 score, _ = self._nli.score_chunked(
                     prompt,
                     text_output,
-                    inner_agg=self._logic_inner_agg,
-                    outer_agg=self._logic_outer_agg,
+                    inner_agg=logic_inner,
+                    outer_agg=logic_outer,
                     premise_ratio=self._premise_ratio,
                 )
             return score
@@ -742,22 +813,29 @@ class CoherenceScorer:
         if self._nli is not None:
             self._nli._ensure_model()
 
+        # Task-aware aggregation: auto-detect dialogue and apply min-mean
+        # profile to reduce false-positive rate on conversational outputs.
+        fact_ia, fact_oa, logic_ia, logic_oa = self._resolve_agg_profile(prompt)
+
         # Short-circuit: skip logical divergence when W_LOGIC is zero
         # (e.g. summarization profile where h_logic duplicates h_fact).
         if self.W_LOGIC < 1e-9:
             h_logic = 0.0
             h_fact, evidence = self.calculate_factual_divergence_with_evidence(
-                prompt, action, tenant_id
+                prompt, action, tenant_id,
+                _inner_agg=fact_ia, _outer_agg=fact_oa,
             )
         else:
             future_logic = self._parallel_pool.submit(
-                self.calculate_logical_divergence, prompt, action
+                self.calculate_logical_divergence, prompt, action,
+                _inner_agg=logic_ia, _outer_agg=logic_oa,
             )
             future_fact = self._parallel_pool.submit(
                 self.calculate_factual_divergence_with_evidence,
                 prompt,
                 action,
                 tenant_id,
+                _inner_agg=fact_ia, _outer_agg=fact_oa,
             )
             h_logic = future_logic.result()
             h_fact, evidence = future_fact.result()
