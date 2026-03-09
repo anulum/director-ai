@@ -19,6 +19,7 @@ Usage on UpCloud:
     # Full 10K (expensive, ~3h on L40S):
     python benchmarks/run_judge_benchmark.py --samples 10000 2>&1 | tee /tmp/judge_bench_10k.log
 """
+
 from __future__ import annotations
 
 import argparse
@@ -219,10 +220,14 @@ def print_comparison(nli_only: dict, local_judge: dict) -> None:
         sign = "+" if delta >= 0 else ""
         print(f"  {label:<25} {nv:>11.1%} {jv:>13.1%} {sign}{delta:>10.1%}")
 
-    print(f"\n  {'Latency avg (ms)':<25} {nli_only.get('avg_latency_ms', 0):>11.0f} "
-          f"{local_judge.get('avg_latency_ms', 0):>13.0f}")
-    print(f"  {'Runtime (s)':<25} {nli_only.get('elapsed_s', 0):>11.0f} "
-          f"{local_judge.get('elapsed_s', 0):>13.0f}")
+    print(
+        f"\n  {'Latency avg (ms)':<25} {nli_only.get('avg_latency_ms', 0):>11.0f} "
+        f"{local_judge.get('avg_latency_ms', 0):>13.0f}"
+    )
+    print(
+        f"  {'Runtime (s)':<25} {nli_only.get('elapsed_s', 0):>11.0f} "
+        f"{local_judge.get('elapsed_s', 0):>13.0f}"
+    )
 
     # Per-task breakdown
     print(f"\n  {'Per-task F1:':<25}")
@@ -239,19 +244,25 @@ def print_comparison(nli_only: dict, local_judge: dict) -> None:
 def main() -> None:
     parser = argparse.ArgumentParser(description="Local judge E2E benchmark")
     parser.add_argument(
-        "--samples", type=int, default=500,
+        "--samples",
+        type=int,
+        default=500,
         help="Max samples per task (default: 500)",
     )
     parser.add_argument(
-        "--latency-iters", type=int, default=200,
+        "--latency-iters",
+        type=int,
+        default=200,
         help="Iterations for latency measurement (default: 200)",
     )
     parser.add_argument(
-        "--skip-latency", action="store_true",
+        "--skip-latency",
+        action="store_true",
         help="Skip latency benchmark",
     )
     parser.add_argument(
-        "--skip-nli-only", action="store_true",
+        "--skip-nli-only",
+        action="store_true",
         help="Skip NLI-only baseline (if already have results)",
     )
     args = parser.parse_args()
@@ -285,7 +296,10 @@ def main() -> None:
     judge_result = None
     try:
         judge_result = run_local_judge(args.samples)
-        results["local_judge"] = {"status": "ok", "elapsed_s": judge_result["elapsed_s"]}
+        results["local_judge"] = {
+            "status": "ok",
+            "elapsed_s": judge_result["elapsed_s"],
+        }
     except Exception as e:
         logger.error("Local judge benchmark failed: %s", e, exc_info=True)
         results["local_judge"] = {"status": "failed", "error": str(e)}
