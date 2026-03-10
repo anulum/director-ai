@@ -26,7 +26,7 @@ import numpy as np
 
 from .metrics import metrics
 
-__all__ = ["NLIScorer", "nli_available", "export_onnx"]
+__all__ = ["NLIScorer", "nli_available", "export_onnx", "export_tensorrt"]
 
 logger = logging.getLogger("DirectorAI.NLI")
 
@@ -161,12 +161,17 @@ def _load_onnx_session(
         if (device and "cuda" in device) or "CUDAExecutionProvider" in available:
             providers.insert(0, "CUDAExecutionProvider")
 
+        trt_cache = os.path.join(onnx_path, "trt_cache")
         trt_requested = os.environ.get("DIRECTOR_ENABLE_TRT") == "1"
-        if trt_requested and "TensorrtExecutionProvider" in available:
+        trt_cache_exists = os.path.isdir(trt_cache)
+        if (trt_requested or trt_cache_exists) and (
+            "TensorrtExecutionProvider" in available
+        ):
             trt_opts: dict[str, object] = {
                 "trt_engine_cache_enable": True,
-                "trt_engine_cache_path": os.path.join(onnx_path, "trt_cache"),
+                "trt_engine_cache_path": trt_cache,
                 "trt_fp16_enable": True,
+                "trt_max_workspace_size": 1 << 30,
             }
             providers.insert(0, ("TensorrtExecutionProvider", trt_opts))
 
@@ -245,6 +250,97 @@ def export_onnx(
         onnx.save(model_fp16, dst)
         logger.info("FP16 model saved to %s", dst)
 
+    return output_dir
+
+
+def export_tensorrt(
+    onnx_dir: str = "factcg_onnx",
+    output_dir: str | None = None,
+    fp16: bool = True,
+    max_batch: int = 16,
+    max_seq_len: int = 512,
+    warmup_pairs: int = 4,
+) -> str:
+    """Pre-build TensorRT engine cache from an exported ONNX model.
+
+    Runs a warmup pass through ORT's TensorrtExecutionProvider to trigger
+    engine compilation and cache it to disk. Subsequent loads skip the
+    multi-minute cold-start.
+
+    Parameters
+    ----------
+    onnx_dir : path to directory with model.onnx + tokenizer files.
+    output_dir : where to write the TRT cache (default: <onnx_dir>/trt_cache).
+    fp16 : enable FP16 mode (default True, ~2x speedup on Ada/Ampere).
+    max_batch : max batch size for engine optimization profile.
+    max_seq_len : max sequence length for optimization profile.
+    warmup_pairs : number of dummy pairs to run for engine build.
+
+    Requires ``pip install onnxruntime-gpu tensorrt``.
+    """
+    import onnxruntime as ort
+
+    if output_dir is None:
+        output_dir = os.path.join(onnx_dir, "trt_cache")
+    os.makedirs(output_dir, exist_ok=True)
+
+    model_file = os.path.join(onnx_dir, "model.onnx")
+    if not os.path.exists(model_file):
+        raise FileNotFoundError(f"ONNX model not found: {model_file}")
+
+    available = ort.get_available_providers()
+    if "TensorrtExecutionProvider" not in available:
+        raise RuntimeError(
+            "TensorrtExecutionProvider not available. "
+            "Install onnxruntime-gpu and tensorrt."
+        )
+
+    trt_opts: dict[str, object] = {
+        "trt_engine_cache_enable": True,
+        "trt_engine_cache_path": output_dir,
+        "trt_fp16_enable": fp16,
+        "trt_max_workspace_size": 1 << 30,  # 1 GB
+    }
+    providers: list[str | tuple[str, dict[str, object]]] = [
+        ("TensorrtExecutionProvider", trt_opts),
+        "CUDAExecutionProvider",
+        "CPUExecutionProvider",
+    ]
+
+    opts = ort.SessionOptions()
+    opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+    opts.log_severity_level = 2  # show TRT build progress
+    session = ort.InferenceSession(model_file, opts, providers=providers)
+
+    active = session.get_providers()[0]
+    logger.info("TRT export session using: %s", active)
+
+    # Warmup pass to trigger engine compilation
+    from transformers import AutoTokenizer
+
+    tokenizer = AutoTokenizer.from_pretrained(onnx_dir)
+    dummy_pairs = [
+        ("The sky is blue due to Rayleigh scattering.", "The sky is blue.")
+    ] * warmup_pairs
+
+    texts = [
+        _FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in dummy_pairs
+    ]
+    inputs = tokenizer(
+        texts,
+        return_tensors="np",
+        truncation=True,
+        padding=True,
+        max_length=max_seq_len,
+    )
+    expected = {i.name for i in session.get_inputs()}
+    feed = {
+        k: v.astype(np.int64) if v.dtype != np.int64 else v
+        for k, v in inputs.items()
+        if k in expected
+    }
+    session.run(None, feed)
+    logger.info("TRT engine cache built at %s", output_dir)
     return output_dir
 
 

@@ -44,6 +44,7 @@ def main(argv: list[str] | None = None) -> None:
         "eval": _cmd_eval,
         "bench": _cmd_bench,
         "tune": _cmd_tune,
+        "export": _cmd_export,
         "serve": _cmd_serve,
         "config": _cmd_config,
         "stress-test": _cmd_stress_test,
@@ -75,6 +76,7 @@ def _print_help() -> None:
         "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
         "  tune <file.jsonl> [--output config.yaml]  Find optimal threshold\n"
         "  serve [--port N] [--workers W]  Start the FastAPI server\n"
+        "  export [--format F]   Export model to ONNX/TensorRT\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
         "  doctor                Check runtime dependencies and readiness\n"
         "  config [--profile X]  Show/set configuration\n"
@@ -703,6 +705,66 @@ def _cmd_tune(args: list[str]) -> None:
                 f"w_fact: {result.w_fact}\n"
             )
         print(f"Config written to {output_file}")
+
+
+def _cmd_export(args: list[str]) -> None:
+    """Export NLI model to ONNX or pre-build TensorRT engine cache.
+
+    Usage::
+
+        director-ai export --format onnx --output factcg_onnx
+        director-ai export --format onnx --quantize int8
+        director-ai export --format tensorrt --onnx-dir factcg_onnx
+    """
+    fmt = "onnx"
+    output_dir = "factcg_onnx"
+    onnx_dir = "factcg_onnx"
+    quantize = None
+    fp16 = True
+    model = None
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--format" and i + 1 < len(args):
+            fmt = args[i + 1]
+            i += 2
+        elif args[i] == "--output" and i + 1 < len(args):
+            output_dir = args[i + 1]
+            i += 2
+        elif args[i] == "--onnx-dir" and i + 1 < len(args):
+            onnx_dir = args[i + 1]
+            i += 2
+        elif args[i] == "--quantize" and i + 1 < len(args):
+            quantize = args[i + 1]
+            i += 2
+        elif args[i] == "--model" and i + 1 < len(args):
+            model = args[i + 1]
+            i += 2
+        elif args[i] == "--no-fp16":
+            fp16 = False
+            i += 1
+        else:
+            i += 1
+
+    if fmt == "onnx":
+        from director_ai.core.nli import export_onnx
+
+        print(f"Exporting ONNX model to {output_dir}...")
+        export_onnx(
+            model_name=model or "yaxili96/FactCG-DeBERTa-v3-Large",
+            output_dir=output_dir,
+            quantize=quantize,
+        )
+        print(f"Done. Load with: NLIScorer(backend='onnx', onnx_path='{output_dir}')")
+    elif fmt == "tensorrt":
+        from director_ai.core.nli import export_tensorrt
+
+        print(f"Building TensorRT engine cache from {onnx_dir}...")
+        cache_dir = export_tensorrt(onnx_dir=onnx_dir, output_dir=output_dir, fp16=fp16)
+        print(f"Done. Cache at {cache_dir}. TRT will auto-activate on next load.")
+    else:
+        print(f"Unknown format '{fmt}'. Use 'onnx' or 'tensorrt'.")
+        sys.exit(1)
 
 
 def _cmd_serve(args: list[str]) -> None:

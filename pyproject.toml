@@ -61,6 +61,9 @@ minicheck = [
 onnx = [
     "onnxruntime>=1.15,<2",
 ]
+tensorrt = [
+    "onnxruntime-gpu>=1.15,<2",
+]
 grpc = [
     "grpcio>=1.60",
     "grpcio-tools>=1.60",

@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `export_tensorrt()` — pre-builds TRT engine cache from ONNX model,
+  avoids multi-minute cold-start on first inference.
+- Auto-detect TRT cache: `_load_onnx_session` enables TensorRT EP
+  when `trt_cache/` directory exists (no `DIRECTOR_ENABLE_TRT` env var needed).
+- CLI `director-ai export` subcommand (`--format onnx|tensorrt`).
+- `tensorrt` extras in pyproject.toml (`onnxruntime-gpu`).
+- TensorRT latency benchmark (`benchmarks/tensorrt_latency_bench.py`).
+- 12 new tests (2084 total).
+
+### Performance
+- ONNX CUDA: 4.5ms/pair median (2.4x vs PyTorch 10.9ms), L4 GPU.
+- ONNX FP16: 4.2ms/pair median. ONNX CPU: 4.1ms/pair (competitive at batch=4).
+
 ## [3.6.0] — 2026-03-10
 
 ### Added
@@ -23,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Claim coverage FPR diagnostic benchmark (`benchmarks/claim_coverage_fpr_diag.py`).
 - 21 new tests in `tests/test_claim_coverage.py` (unit, config, integration,
   evidence, server serialization).
-- 2072 tests passing (was 2051).
+- 2084 tests passing (was 2051).
 
 ### Fixed
 - Summarization FPR reduced from 10.5% → 2.0% (Layer C with alpha=0.4,

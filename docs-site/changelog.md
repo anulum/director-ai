@@ -11,7 +11,7 @@ See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/dir
 - `NLIScorer.score_claim_coverage()` method
 - Config: `nli_claim_coverage_enabled`, `nli_claim_support_threshold` (0.6), `nli_claim_coverage_alpha` (0.4)
 - `ScoringEvidence` includes `claim_coverage`, `per_claim_divergences`, `claims`
-- 21 new tests (2072 total)
+- 21 new tests (2084 total)
 - Claim coverage FPR diagnostic benchmark
 
 ## v3.5.0 (2026-03-10)
