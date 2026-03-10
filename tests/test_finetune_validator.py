@@ -178,6 +178,52 @@ class TestValidateFieldAliases:
         assert report.is_valid
 
 
+class TestSummaryOutput:
+    def test_summary_with_warnings(self):
+        r = DataQualityReport(total_samples=500, warnings=["imbalance"])
+        s = r.summary()
+        assert "Warnings: 1" in s
+
+    def test_summary_with_errors(self):
+        r = DataQualityReport(total_samples=500, errors=["too few"])
+        s = r.summary()
+        assert "Errors: 1" in s
+        assert "Valid: False" in s
+
+
+class TestLabelEdgeCases:
+    def test_label_none_counted_as_empty(self, tmp_path):
+        rows = _make_samples(300, 300)
+        rows.append({"premise": "text", "hypothesis": "claim"})
+        f = tmp_path / "train.jsonl"
+        _write_jsonl(f, rows)
+        report = validate_finetune_data(f)
+        assert report.empty_field_count == 1
+
+    def test_label_non_numeric_counted_as_parse_error(self, tmp_path):
+        rows = _make_samples(300, 300)
+        rows.append({"premise": "text", "hypothesis": "claim", "label": "maybe"})
+        f = tmp_path / "train.jsonl"
+        _write_jsonl(f, rows)
+        report = validate_finetune_data(f)
+        assert report.parse_error_count == 1
+
+    def test_too_many_bad_labels_truncates_errors(self, tmp_path):
+        rows = [{"premise": f"P{i}", "hypothesis": f"H{i}", "label": 99} for i in range(20)]
+        f = tmp_path / "train.jsonl"
+        _write_jsonl(f, rows)
+        report = validate_finetune_data(f)
+        assert any("truncated" in e for e in report.errors)
+
+    def test_long_text_warning(self, tmp_path):
+        rows = _make_samples(300, 300)
+        rows.append({"premise": "word " * 5000, "hypothesis": "claim", "label": 1})
+        f = tmp_path / "train.jsonl"
+        _write_jsonl(f, rows)
+        report = validate_finetune_data(f)
+        assert any("truncated" in w.lower() for w in report.warnings)
+
+
 class TestExports:
     def test_importable_from_core(self):
         from director_ai.core import DataQualityReport, validate_finetune_data
