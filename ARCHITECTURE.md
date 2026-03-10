@@ -44,7 +44,7 @@ director-ai/
 │       └── backfire-ffi/      Python ↔ Rust bridge
 │
 ├── tests/                     2101 tests, ≥90% coverage
-├── benchmarks/                24 evaluators (AggreFact, FEVER, MNLI, ...)
+├── benchmarks/                27 evaluators (AggreFact, FEVER, MNLI, Medical, Legal, Finance, ...)
 ├── notebooks/                 Jupyter quickstart + domain notebooks
 ├── docs-site/                 MkDocs documentation source
 └── demo/                      HF Spaces Gradio demo

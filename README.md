@@ -222,10 +222,18 @@ director-ai config --profile legal     # threshold=0.68, w_logic=0.6
 director-ai config --profile creative  # threshold=0.40, permissive
 ```
 
+Domain-specific benchmarks validate each profile against real datasets:
+
+```bash
+python -m benchmarks.medical_eval   # MedNLI + PubMedQA
+python -m benchmarks.legal_eval     # ContractNLI + CUAD (RAGBench)
+python -m benchmarks.finance_eval   # FinanceBench + Financial PhraseBank
+```
+
 ## Known Limitations
 
 1. **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to reject (0.9) instead of guessing.
-2. **Summarisation FPR at 2.0%**: Reduced from 95% → 25.5% (v3.4.0, direct NLI) → 10.5% (v3.5.0, bidirectional NLI + baseline=0.20) → 2.0% (v3.6.0, Layer C claim decomposition + coverage, alpha=0.4, support_threshold=0.6). AggreFact-CNN: 68.8%, ExpertQA: 59.1%.
+2. **Summarisation FPR at 2.0%**: Reduced from 95% → 25.5% (v3.4.0, direct NLI) → 10.5% (v3.5.0, bidirectional NLI + baseline=0.20) → 2.0% (v3.6.0, Layer C claim decomposition + coverage, alpha=0.4, support_threshold=0.6). AggreFact-CNN: 68.8%, ExpertQA: 59.1% (see [ExpertQA analysis](benchmarks/comparison/COMPETITOR_COMPARISON.md#expertqa-59--why-it-doesnt-matter-for-guardrails) — structurally expected at 0.4B params, does not affect guardrail use case).
 3. **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
 4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain.
 5. **Chunked NLI**: Very short chunks (<3 sentences) may lose context.

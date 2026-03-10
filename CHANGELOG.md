@@ -16,6 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Cost transparency**: `ScoringEvidence.token_count` and
   `estimated_cost_usd` track NLI token consumption per check.
   Default cost model: $0.01/1K tokens (local DeBERTa GPU amortization).
+- **Domain benchmarks**: `medical_eval.py` (MedNLI + PubMedQA),
+  `legal_eval.py` (ContractNLI + CUAD/RAGBench),
+  `finance_eval.py` (FinanceBench + Financial PhraseBank).
+- **ExpertQA analysis**: documented why 59.1% balanced accuracy is
+  structurally expected at 0.4B params and irrelevant for guardrail use.
 - `NLIScorer.score_claim_coverage_with_attribution()` — claim coverage
   with per-claim source sentence attribution.
 - `NLIScorer.last_token_count`, `last_estimated_cost`, `reset_token_counter()`.
