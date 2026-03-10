@@ -107,7 +107,8 @@ class TestOnnxSessionLoading:
             tok, session = _load_onnx_session(str(onnx_dir))
             assert session is mock_session
 
-    def test_load_onnx_not_a_dir(self):
+    def test_load_onnx_not_a_dir(self, tmp_path):
+        bogus = str(tmp_path / "does_not_exist_abc123")
         with patch.dict(
             sys.modules,
             {
@@ -118,7 +119,7 @@ class TestOnnxSessionLoading:
             from director_ai.core.nli import _load_onnx_session
 
             _load_onnx_session.cache_clear()
-            tok, session = _load_onnx_session("/nonexistent/path")
+            tok, session = _load_onnx_session(bogus)
             assert tok is None
             assert session is None
 
