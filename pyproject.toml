@@ -69,6 +69,13 @@ grpc = [
     "grpcio-tools>=1.60",
     "protobuf>=4.25",
 ]
+finetune = [
+    "torch>=2.0,<3",
+    "transformers>=4.30,<5",
+    "datasets>=2.14",
+    "accelerate>=0.21",
+    "scikit-learn>=1.3",
+]
 quantize = [
     "bitsandbytes>=0.41",
     "accelerate>=0.21",

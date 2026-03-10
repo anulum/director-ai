@@ -44,6 +44,7 @@ def main(argv: list[str] | None = None) -> None:
         "eval": _cmd_eval,
         "bench": _cmd_bench,
         "tune": _cmd_tune,
+        "finetune": _cmd_finetune,
         "export": _cmd_export,
         "serve": _cmd_serve,
         "config": _cmd_config,
@@ -75,6 +76,7 @@ def _print_help() -> None:
         "  eval [--dataset D]    Run NLI benchmark suite\n"
         "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
         "  tune <file.jsonl> [--output config.yaml]  Find optimal threshold\n"
+        "  finetune <train.jsonl> [options]  Fine-tune NLI model on domain data\n"
         "  serve [--port N] [--workers W]  Start the FastAPI server\n"
         "  export [--format F]   Export model to ONNX/TensorRT\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
@@ -705,6 +707,76 @@ def _cmd_tune(args: list[str]) -> None:
                 f"w_fact: {result.w_fact}\n"
             )
         print(f"Config written to {output_file}")
+
+
+def _cmd_finetune(args: list[str]) -> None:
+    """Fine-tune NLI model on domain-specific labeled data.
+
+    Input JSONL format: ``{"premise": str, "hypothesis": str, "label": int}``
+    Also accepts: ``{"doc": str, "claim": str, "label": int}``
+    """
+    if not args:
+        print(
+            "Usage: director-ai finetune <train.jsonl> [options]\n"
+            "\n"
+            "Options:\n"
+            "  --eval <eval.jsonl>  Evaluation data\n"
+            "  --output <dir>      Output directory (default: ./director-finetuned)\n"
+            "  --epochs N          Training epochs (default: 3)\n"
+            "  --lr FLOAT          Learning rate (default: 2e-5)\n"
+            "  --batch-size N      Batch size (default: 16)\n"
+            "  --base-model ID     Base model (default: FactCG-DeBERTa-v3-Large)\n"
+        )
+        sys.exit(1)
+
+    import os
+
+    train_file = args[0]
+    if not os.path.isfile(train_file):
+        print(f"Error: file not found: {train_file}")
+        sys.exit(1)
+
+    from director_ai.core.finetune import FinetuneConfig, finetune_nli
+
+    config = FinetuneConfig()
+    eval_file = None
+
+    i = 1
+    while i < len(args):
+        if args[i] == "--eval" and i + 1 < len(args):
+            eval_file = args[i + 1]
+            i += 2
+        elif args[i] == "--output" and i + 1 < len(args):
+            config.output_dir = args[i + 1]
+            i += 2
+        elif args[i] == "--epochs" and i + 1 < len(args):
+            config.epochs = int(args[i + 1])
+            i += 2
+        elif args[i] == "--lr" and i + 1 < len(args):
+            config.learning_rate = float(args[i + 1])
+            i += 2
+        elif args[i] == "--batch-size" and i + 1 < len(args):
+            config.batch_size = int(args[i + 1])
+            i += 2
+        elif args[i] == "--base-model" and i + 1 < len(args):
+            config.base_model = args[i + 1]
+            i += 2
+        else:
+            print(f"Unknown option: {args[i]}")
+            sys.exit(1)
+
+    result = finetune_nli(train_file, eval_path=eval_file, config=config)
+
+    print(f"\nFine-tuning complete.")
+    print(f"  Model saved to:  {result.output_dir}")
+    print(f"  Train samples:   {result.train_samples}")
+    print(f"  Epochs:          {result.epochs_completed}")
+    print(f"  Final loss:      {result.final_loss:.4f}")
+    if result.eval_samples:
+        print(f"  Eval samples:    {result.eval_samples}")
+        print(f"  Best bal. acc:   {result.best_balanced_accuracy:.1%}")
+    print(f"\nUse the model:")
+    print(f'  scorer = NLIScorer(model_name="{result.output_dir}")')
 
 
 def _cmd_export(args: list[str]) -> None:

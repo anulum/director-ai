@@ -21,6 +21,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `finance_eval.py` (FinanceBench + Financial PhraseBank).
 - **ExpertQA analysis**: documented why 59.1% balanced accuracy is
   structurally expected at 0.4B params and irrelevant for guardrail use.
+- **Fine-tuning pipeline**: `director_ai.core.finetune` module with
+  `finetune_nli()`, `FinetuneConfig`, `FinetuneResult`. CLI command
+  `director-ai finetune train.jsonl --eval eval.jsonl --epochs 3`.
+  Supports FactCG instruction template and standard NLI pair format.
+  Install: `pip install director-ai[finetune]`.
+- **Load testing benchmark**: `benchmarks/load_test.py` — concurrent
+  RPS measurement with P50/P95/P99 latency percentiles for both
+  direct scorer and server endpoints.
 - `NLIScorer.score_claim_coverage_with_attribution()` — claim coverage
   with per-claim source sentence attribution.
 - `NLIScorer.last_token_count`, `last_estimated_cost`, `reset_token_counter()`.

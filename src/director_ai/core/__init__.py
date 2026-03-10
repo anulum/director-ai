@@ -25,6 +25,7 @@ from .cache import ScoreCache
 from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .lite_scorer import LiteScorer
+from .finetune import FinetuneConfig, FinetuneResult, finetune_nli
 from .nli import NLIScorer, export_onnx, nli_available
 from .sanitizer import InputSanitizer, SanitizeResult
 from .scorer import CoherenceScorer
@@ -91,6 +92,9 @@ __all__ = [
     "register_vector_backend",
     "get_vector_backend",
     "list_vector_backends",
+    "finetune_nli",
+    "FinetuneConfig",
+    "FinetuneResult",
 ]
 
 _MOVED_TO_ENTERPRISE = {
