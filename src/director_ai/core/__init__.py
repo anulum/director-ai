@@ -32,6 +32,7 @@ from .session import ConversationSession, Turn
 from .sharded_nli import ShardedNLIScorer
 from .streaming import StreamingKernel, StreamSession, TokenEvent
 from .types import (
+    ClaimAttribution,
     CoherenceScore,
     EvidenceChunk,
     HaltEvidence,
@@ -51,6 +52,7 @@ from .vector_store import (
 )
 
 __all__ = [
+    "ClaimAttribution",
     "CoherenceScore",
     "EvidenceChunk",
     "HaltEvidence",

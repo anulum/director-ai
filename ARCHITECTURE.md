@@ -43,7 +43,7 @@ director-ai/
 │   └── crates/
 │       └── backfire-ffi/      Python ↔ Rust bridge
 │
-├── tests/                     2084 tests, ≥90% coverage
+├── tests/                     2101 tests, ≥90% coverage
 ├── benchmarks/                24 evaluators (AggreFact, FEVER, MNLI, ...)
 ├── notebooks/                 Jupyter quickstart + domain notebooks
 ├── docs-site/                 MkDocs documentation source

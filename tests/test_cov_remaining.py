@@ -287,6 +287,7 @@ class TestNliScoreDispatch:
         scorer._minicheck_loaded = True
         scorer._custom_backend = None
         scorer._model_loaded = True
+        scorer._last_token_count = 0
 
         input_mock = MagicMock()
         input_mock.name = "input_ids"

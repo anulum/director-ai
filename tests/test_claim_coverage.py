@@ -181,12 +181,24 @@ class TestScorerClaimCoverageIntegration:
         )
         mock_nli.score_chunked.return_value = (layer_a_div, [])
 
-        # Layer C: claim coverage
+        # Layer C: claim coverage with attribution
+        from director_ai.core.types import ClaimAttribution
+
         num_claims = 5
         supported = int(coverage * num_claims)
         divs = [0.1] * supported + [0.8] * (num_claims - supported)
         claims = [f"Claim {i}." for i in range(num_claims)]
+        attrs = [
+            ClaimAttribution(
+                claim=c, claim_index=i, source_sentence="src",
+                source_index=0, divergence=d, supported=d < 0.6,
+            )
+            for i, (c, d) in enumerate(zip(claims, divs))
+        ]
         mock_nli.score_claim_coverage.return_value = (coverage, divs, claims)
+        mock_nli.score_claim_coverage_with_attribution.return_value = (
+            coverage, divs, claims, attrs,
+        )
 
         scorer._nli = mock_nli
         return scorer

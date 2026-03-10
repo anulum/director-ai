@@ -72,11 +72,11 @@ class TestNLIScorer:
         s = scorer.score("premise", "hypothesis")
         assert 0.0 <= s <= 1.0
 
-    def test_onnx_backend_invalid_path_falls_back(self):
+    def test_onnx_backend_invalid_path_falls_back(self, tmp_path):
         scorer = NLIScorer(
             use_model=True,
             backend="onnx",
-            onnx_path="/nonexistent/path",
+            onnx_path=str(tmp_path / "no_such_dir_xyz"),
         )
         s = scorer.score("premise", "hypothesis")
         assert 0.0 <= s <= 1.0

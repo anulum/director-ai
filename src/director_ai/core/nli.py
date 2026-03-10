@@ -26,7 +26,15 @@ import numpy as np
 
 from .metrics import metrics
 
-__all__ = ["NLIScorer", "nli_available", "export_onnx", "export_tensorrt"]
+__all__ = [
+    "NLIScorer",
+    "nli_available",
+    "export_onnx",
+    "export_tensorrt",
+]
+
+# GPU amortization: ~$0.01/1K tokens for local DeBERTa inference
+_DEFAULT_COST_PER_TOKEN = 1e-5
 
 logger = logging.getLogger("DirectorAI.NLI")
 
@@ -444,6 +452,7 @@ class NLIScorer:
         onnx_path: str | None = None,
         onnx_batch_size: int = 16,
         onnx_flush_timeout_ms: float = 10.0,
+        cost_per_token: float = _DEFAULT_COST_PER_TOKEN,
     ) -> None:
         # Accept ScorerBackend instance directly
         self._custom_backend = None
@@ -480,6 +489,8 @@ class NLIScorer:
         self._minicheck_loaded = False
         self._lite_scorer = None
         self._onnx_batcher: OnnxDynamicBatcher | None = None
+        self._last_token_count: int = 0
+        self._cost_per_token: float = cost_per_token
 
     @property
     def _backend_ready(self) -> bool:
@@ -528,6 +539,17 @@ class NLIScorer:
     @property
     def model_available(self) -> bool:
         return self._ensure_model()
+
+    @property
+    def last_token_count(self) -> int:
+        return self._last_token_count
+
+    @property
+    def last_estimated_cost(self) -> float:
+        return self._last_token_count * self._cost_per_token
+
+    def reset_token_counter(self) -> None:
+        self._last_token_count = 0
 
     def score(self, premise: str, hypothesis: str) -> float:
         """Compute logical divergence between premise and hypothesis.
@@ -659,6 +681,7 @@ class NLIScorer:
                     max_length=self.max_length,
                 )
 
+            self._last_token_count += inputs["input_ids"].numel()
             inputs = {k: v.to(device) for k, v in inputs.items()}
             with torch.no_grad():
                 logits = self._model(**inputs).logits
@@ -700,6 +723,7 @@ class NLIScorer:
                     max_length=self.max_length,
                 )
 
+            self._last_token_count += inputs["input_ids"].numel()
             inputs = {k: v.to(device) for k, v in inputs.items()}
             with torch.no_grad():
                 logits = self._model(**inputs).logits
@@ -737,6 +761,7 @@ class NLIScorer:
                     max_length=self.max_length,
                 )
 
+            self._last_token_count += inputs["input_ids"].size
             # Feed only inputs the ONNX graph expects, cast to int64
             expected = {i.name for i in self._onnx_session.get_inputs()}
             feed = {
@@ -942,6 +967,66 @@ class NLIScorer:
         supported = sum(1 for d in divs if d < support_threshold)
         coverage = supported / len(claims)
         return coverage, divs, claims
+
+    def score_claim_coverage_with_attribution(
+        self,
+        source: str,
+        summary: str,
+        support_threshold: float = 0.6,
+    ) -> tuple[float, list[float], list[str], list]:
+        """Like score_claim_coverage but also returns sentence-level attributions.
+
+        For each claim, finds the source sentence with lowest divergence
+        (best evidence match). Returns list of ClaimAttribution objects.
+        """
+        from .types import ClaimAttribution
+
+        claims = self.decompose_claims(summary)
+        source_sents = self._split_sentences(source)
+
+        if not claims:
+            s = self.score(source, summary)
+            attr = [ClaimAttribution(
+                claim=summary, claim_index=0,
+                source_sentence=source_sents[0] if source_sents else source,
+                source_index=0, divergence=s, supported=s < support_threshold,
+            )]
+            return float(s < support_threshold), [s], [summary], attr
+
+        if not source_sents:
+            source_sents = [source]
+
+        # Score all (source_sentence, claim) pairs in one batch
+        pairs = [
+            (src_s, claim)
+            for claim in claims
+            for src_s in source_sents
+        ]
+        all_divs = self.score_batch(pairs)
+
+        n_src = len(source_sents)
+        per_claim_divs: list[float] = []
+        attributions: list[ClaimAttribution] = []
+
+        for c_idx, claim in enumerate(claims):
+            # Slice this claim's scores across all source sentences
+            claim_scores = all_divs[c_idx * n_src : (c_idx + 1) * n_src]
+            best_idx = int(np.argmin(claim_scores))
+            best_div = claim_scores[best_idx]
+            per_claim_divs.append(best_div)
+
+            attributions.append(ClaimAttribution(
+                claim=claim,
+                claim_index=c_idx,
+                source_sentence=source_sents[best_idx],
+                source_index=best_idx,
+                divergence=best_div,
+                supported=best_div < support_threshold,
+            ))
+
+        supported = sum(1 for d in per_claim_divs if d < support_threshold)
+        coverage = supported / len(claims)
+        return coverage, per_claim_divs, claims, attributions
 
     # ── Lite backend ─────────────────────────────────────────────
 

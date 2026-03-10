@@ -7,7 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.7.0] — 2026-03-10
+
 ### Added
+- **Sentence-level attribution**: `ClaimAttribution` dataclass maps each
+  summary claim to the source sentence with lowest divergence. Available in
+  `ScoringEvidence.attributions` and the `/v1/review` API response.
+- **Cost transparency**: `ScoringEvidence.token_count` and
+  `estimated_cost_usd` track NLI token consumption per check.
+  Default cost model: $0.01/1K tokens (local DeBERTa GPU amortization).
+- `NLIScorer.score_claim_coverage_with_attribution()` — claim coverage
+  with per-claim source sentence attribution.
+- `NLIScorer.last_token_count`, `last_estimated_cost`, `reset_token_counter()`.
+- `ClaimAttribution` exported from `director_ai` and `director_ai.core`.
 - `export_tensorrt()` — pre-builds TRT engine cache from ONNX model,
   avoids multi-minute cold-start on first inference.
 - Auto-detect TRT cache: `_load_onnx_session` enables TensorRT EP
@@ -15,7 +27,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - CLI `director-ai export` subcommand (`--format onnx|tensorrt`).
 - `tensorrt` extras in pyproject.toml (`onnxruntime-gpu`).
 - TensorRT latency benchmark (`benchmarks/tensorrt_latency_bench.py`).
-- 12 new tests (2084 total).
 
 ### Performance
 - ONNX CUDA: 4.5ms/pair median (2.4x vs PyTorch 10.9ms), L4 GPU.

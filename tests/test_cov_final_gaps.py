@@ -34,6 +34,7 @@ class TestNliModelScoreBatch:
         scorer._minicheck = None
         scorer._minicheck_loaded = True
         scorer._custom_backend = None
+        scorer._last_token_count = 0
 
         mock_device = MagicMock()
         scorer._model.parameters.return_value = iter([MagicMock(device=mock_device)])
@@ -61,6 +62,7 @@ class TestNliModelScoreBatch:
         scorer.max_length = 512
         scorer._model = MagicMock()
         scorer._tokenizer = MagicMock()
+        scorer._last_token_count = 0
 
         mock_device = MagicMock()
         scorer._model.parameters.return_value = iter([MagicMock(device=mock_device)])
@@ -94,6 +96,7 @@ class TestNliOnnxScoreBatch:
         scorer._minicheck = None
         scorer._minicheck_loaded = True
         scorer._custom_backend = None
+        scorer._last_token_count = 0
 
         input_mock = MagicMock()
         input_mock.name = "input_ids"
@@ -120,6 +123,7 @@ class TestNliOnnxScoreBatch:
         scorer.max_length = 512
         scorer._onnx_session = MagicMock()
         scorer._tokenizer = MagicMock()
+        scorer._last_token_count = 0
 
         input_mock = MagicMock()
         input_mock.name = "input_ids"

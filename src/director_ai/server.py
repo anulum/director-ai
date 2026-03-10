@@ -185,6 +185,21 @@ def _evidence_to_dict(evidence) -> dict | None:
         d["claim_coverage"] = evidence.claim_coverage
         d["per_claim_divergences"] = evidence.per_claim_divergences
         d["claims"] = evidence.claims
+    if evidence.attributions is not None:
+        d["attributions"] = [
+            {
+                "claim": a.claim,
+                "claim_index": a.claim_index,
+                "source_sentence": a.source_sentence,
+                "source_index": a.source_index,
+                "divergence": a.divergence,
+                "supported": a.supported,
+            }
+            for a in evidence.attributions
+        ]
+    if evidence.token_count is not None:
+        d["token_count"] = evidence.token_count
+        d["estimated_cost_usd"] = evidence.estimated_cost_usd
     return d
 
 

@@ -13,6 +13,7 @@ import math
 from dataclasses import dataclass
 
 __all__ = [
+    "ClaimAttribution",
     "CoherenceScore",
     "EvidenceChunk",
     "HaltEvidence",
@@ -33,6 +34,18 @@ def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
         _clamp_logger.warning("Inf detected in _clamp — replacing with %s", replacement)
         return replacement
     return max(lo, min(hi, value))
+
+
+@dataclass
+class ClaimAttribution:
+    """Maps a summary claim to the source sentence that best supports/contradicts it."""
+
+    claim: str
+    claim_index: int
+    source_sentence: str
+    source_index: int
+    divergence: float
+    supported: bool
 
 
 @dataclass
@@ -58,6 +71,9 @@ class ScoringEvidence:
     claim_coverage: float | None = None
     per_claim_divergences: list[float] | None = None
     claims: list[str] | None = None
+    attributions: list[ClaimAttribution] | None = None
+    token_count: int | None = None
+    estimated_cost_usd: float | None = None
 
 
 @dataclass

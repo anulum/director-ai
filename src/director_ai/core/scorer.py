@@ -636,11 +636,13 @@ class CoherenceScorer:
         else:
             layer_a = raw_div
 
-        # Layer C: claim decomposition + coverage scoring
+        # Layer C: claim decomposition + coverage scoring with attribution
         if self._claim_coverage_enabled:
-            coverage, per_claim_divs, claims = self._nli.score_claim_coverage(
-                prompt, response,
-                support_threshold=self._claim_support_threshold,
+            coverage, per_claim_divs, claims, attributions = (
+                self._nli.score_claim_coverage_with_attribution(
+                    prompt, response,
+                    support_threshold=self._claim_support_threshold,
+                )
             )
             alpha = self._claim_coverage_alpha
             adjusted = alpha * (1.0 - coverage) + (1.0 - alpha) * layer_a
@@ -649,6 +651,7 @@ class CoherenceScorer:
                 evidence.claim_coverage = coverage
                 evidence.per_claim_divergences = per_claim_divs
                 evidence.claims = claims
+                evidence.attributions = attributions
         else:
             adjusted = layer_a
 
@@ -736,6 +739,7 @@ class CoherenceScorer:
 
         # Summarization mode: score prompt directly, skip store retrieval.
         if self._use_prompt_as_premise and self._nli and self._nli.model_available:
+            self._nli.reset_token_counter()
             with metrics.timer("chunked_nli_seconds"):
                 nli_score, chunk_scores, prem_count, hyp_count = (
                     self._nli._score_chunked_with_counts(
@@ -758,6 +762,8 @@ class CoherenceScorer:
                 chunk_scores=chunk_scores,
                 premise_chunk_count=prem_count,
                 hypothesis_chunk_count=hyp_count,
+                token_count=self._nli.last_token_count,
+                estimated_cost_usd=self._nli.last_estimated_cost,
             )
             return nli_score, evidence
 
@@ -799,7 +805,9 @@ class CoherenceScorer:
         chunk_scores = None  # type: ignore[assignment]
         prem_count = 1
         hyp_count = 1
+        tok_count = 0
         if self._nli and self._nli.model_available:
+            self._nli.reset_token_counter()
             with metrics.timer("chunked_nli_seconds"):
                 nli_score, chunk_scores, prem_count, hyp_count = (
                     self._nli._score_chunked_with_counts(
@@ -810,6 +818,7 @@ class CoherenceScorer:
                         premise_ratio=self._premise_ratio,
                     )
                 )
+            tok_count = self._nli.last_token_count
         elif self.strict_mode:
             nli_score = DIVERGENCE_CONTRADICTED
         else:
@@ -826,6 +835,10 @@ class CoherenceScorer:
             chunk_scores=chunk_scores,
             premise_chunk_count=prem_count,
             hypothesis_chunk_count=hyp_count,
+            token_count=tok_count or None,
+            estimated_cost_usd=(
+                tok_count * self._nli._cost_per_token if tok_count and self._nli else None
+            ),
         )
         return nli_score, evidence
 
