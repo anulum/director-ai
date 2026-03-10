@@ -331,10 +331,10 @@ not per-request overhead.
 2. **E2E heuristic+NLI catch rate is 46.7%**: hybrid mode (NLI + LLM
    judge) raises this to 90.7% but adds LLM latency (2.3s with GPT-4o-mini).
    Local judge mode achieves equivalent accuracy at 3.97ms and zero API cost.
-3. **Hybrid summarization/dialogue FPR is high**: 93-95% FPR in hybrid
-   mode (LLM judges too conservative). NLI-only summarization FPR improved
-   to 25.5% in v3.4.0 with direct scoring profile. QA task is
-   production-grade (3-4% FPR, 95%+ precision).
+3. **Hybrid summarization FPR was high**: NLI-only summarization FPR
+   improved to 25.5% in v3.4.0 with direct scoring profile. Dialogue FPR
+   reduced 97.5% → 4.5% via bidirectional NLI + baseline calibration.
+   QA task is production-grade (3-4% FPR, 95%+ precision).
 4. **ONNX CPU not competitive**: 383 ms/pair. Requires `onnxruntime-gpu`.
 5. **Fine-tuned NLI replacement regressed**: DeBERTa-v3-large fine-tuned as
    a 3-class NLI replacement scored 64.7% — below FactCG 75.8%. The local

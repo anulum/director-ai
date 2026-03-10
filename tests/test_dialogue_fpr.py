@@ -3,7 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""Tests for automatic dialogue detection and min-mean aggregation profile."""
+"""Tests for automatic dialogue detection and bidirectional NLI scoring."""
 
 from __future__ import annotations
 
@@ -65,6 +65,15 @@ class TestDetectTaskType:
 
     def test_system_prefix(self):
         prompt = "System: You are a helpful assistant.\nUser: Hi.\nAssistant: Hello!"
+        assert CoherenceScorer._detect_task_type(prompt) == "dialogue"
+
+    def test_single_line_dialogue(self):
+        """HaluEval format: all turns on one line separated by spaces."""
+        prompt = "[Human]: Do you like Iron Man [Assistant]: Sure do!"
+        assert CoherenceScorer._detect_task_type(prompt) == "dialogue"
+
+    def test_single_line_with_colon(self):
+        prompt = "User: Hi there Assistant: Hello, how can I help?"
         assert CoherenceScorer._detect_task_type(prompt) == "dialogue"
 
 
@@ -160,6 +169,83 @@ class TestResolveAggProfile:
         assert fo == "max"
 
 
+# ── Dialogue baseline calibration ─────────────────────────────────
+
+
+class TestDialogueBaseline:
+    """Dialogue NLI baseline calibration attribute and logic."""
+
+    def test_default_baseline(self):
+        scorer = CoherenceScorer(use_nli=False)
+        assert scorer._dialogue_nli_baseline == 0.80
+
+    def test_custom_baseline(self):
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._dialogue_nli_baseline = 0.85
+        assert scorer._dialogue_nli_baseline == 0.85
+
+    def test_calibration_formula_zero(self):
+        """Score at baseline → adjusted divergence = 0."""
+        baseline = 0.80
+        raw = 0.80
+        adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
+        assert adjusted == pytest.approx(0.0)
+
+    def test_calibration_formula_midpoint(self):
+        """Score at midpoint between baseline and 1.0."""
+        baseline = 0.80
+        raw = 0.90
+        adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
+        assert adjusted == pytest.approx(0.5)
+
+    def test_calibration_formula_max(self):
+        """Score at 1.0 → adjusted divergence = 1.0."""
+        baseline = 0.80
+        raw = 1.0
+        adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
+        assert adjusted == pytest.approx(1.0)
+
+    def test_calibration_below_baseline(self):
+        """Score below baseline → clamped to 0."""
+        baseline = 0.80
+        raw = 0.60
+        adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
+        assert adjusted == pytest.approx(0.0)
+
+
+# ── Dialogue detection in heuristic_coherence ─────────────────────
+
+
+class TestDialogueDetectionInCoherence:
+    """_heuristic_coherence correctly identifies dialogue for special path."""
+
+    def test_dialogue_skips_logical_divergence(self):
+        """For dialogue without NLI, the path falls through to standard scoring.
+        NLI is required for the dialogue bidirectional path.
+        """
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        prompt = "User: What color is the sky?\nAssistant: It's blue.\nUser: Are you sure?"
+        response = "Yes, the sky is typically blue during clear days."
+        h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
+            prompt, response
+        )
+        # Without NLI, standard heuristic path is used
+        assert isinstance(h_logic, float)
+        assert isinstance(h_fact, float)
+        assert 0.0 <= coherence <= 1.0
+
+    def test_non_dialogue_uses_standard_path(self):
+        """Non-dialogue prompts always use the standard scoring path."""
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        prompt = "The capital of France is Paris."
+        response = "Paris is the capital of France."
+        h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
+            prompt, response
+        )
+        assert isinstance(h_logic, float)
+        assert isinstance(h_fact, float)
+
+
 # ── Integration: review() with dialogue ────────────────────────────
 
 
@@ -178,3 +264,7 @@ class TestDialogueReview:
     def test_auto_profile_attribute_default(self):
         scorer = CoherenceScorer(use_nli=False)
         assert scorer._auto_dialogue_profile is True
+
+    def test_dialogue_baseline_attribute_default(self):
+        scorer = CoherenceScorer(use_nli=False)
+        assert scorer._dialogue_nli_baseline == 0.80

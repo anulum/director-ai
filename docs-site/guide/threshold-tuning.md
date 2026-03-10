@@ -9,7 +9,7 @@
 | Chunked NLI (`score_chunked`) | 30-400 ms | Highest — catches localized hallucinations | Long responses where a single hallucinated sentence hides in correct text |
 | Hybrid (`scorer_backend="hybrid"`) | 200-500 ms | ~78% est. | High-stakes pipelines, dialogue tasks where extra precision is needed |
 
-**Rule of thumb**: start with heuristic for development. Switch to NLI for production if your domain has high factual stakes. Summarisation FPR improved to 25.5% in v3.4.0 with direct NLI scoring (`nli_use_prompt_as_premise=True`). Use hybrid for dialogue or when the extra LLM-judge precision is needed.
+**Rule of thumb**: start with heuristic for development. Switch to NLI for production if your domain has high factual stakes. Summarisation FPR improved to 25.5% in v3.4.0 with direct NLI scoring (`nli_use_prompt_as_premise=True`). Dialogue FPR reduced to 4.5% via auto-detected bidirectional NLI + baseline calibration.
 
 For per-backend latency numbers and cadence combinations, see
 [Streaming Overhead](streaming-overhead.md#backend-selection).

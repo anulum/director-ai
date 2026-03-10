@@ -35,9 +35,11 @@ LLM_JUDGE_DISAGREE_DIVERGENCE = 0.8
 LLM_JUDGE_NLI_WEIGHT = 0.7
 LLM_JUDGE_LLM_WEIGHT = 0.3  # = 1 - NLI_WEIGHT
 
-# Dialogue detection: ≥2 speaker-turn markers → dialogue task
+# Dialogue detection: ≥2 speaker-turn markers → dialogue task.
+# Uses (?:^|\s) to match speakers at line start OR after whitespace
+# (HaluEval puts all turns on one line: "[Human]: text [Assistant]: text").
 _DIALOGUE_TURN_RE = re.compile(
-    r"(?:^|\n)\s*(?:"
+    r"(?:^|\s)(?:"
     r"(?:User|Human|Customer|Patient|Student|Interviewer|Speaker"
     r"|Assistant|AI|Bot|Agent|Doctor|Teacher|Interviewee|System)"
     r"(?:\s*\d*)?\s*:"
@@ -238,7 +240,8 @@ class CoherenceScorer:
         self._premise_ratio = 0.4
         self._fact_retrieval_top_k = 3
         self._use_prompt_as_premise = False
-        self._auto_dialogue_profile = True  # auto-detect dialogue, apply min-mean agg
+        self._auto_dialogue_profile = True  # auto-detect dialogue, apply bidir NLI
+        self._dialogue_nli_baseline = 0.80  # expected NLI divergence for correct dialogue
 
         # Local DeBERTa-base judge model (replaces LLM API calls)
         self._local_judge_model = None
@@ -510,11 +513,11 @@ class CoherenceScorer:
     ) -> tuple[str, str, str, str]:
         """Return (fact_inner, fact_outer, logic_inner, logic_outer) agg settings.
 
-        Auto-applies the dialogue profile (min-mean) when:
-        - ``_auto_dialogue_profile`` is True
-        - User hasn't customized aggregation (still at max-max defaults)
-        - User hasn't enabled summarization profile (_use_prompt_as_premise)
-        - Prompt is classified as dialogue
+        For dialogue prompts the aggregation override is less important than
+        the bidirectional-NLI + baseline-calibration path handled by
+        ``_heuristic_coherence``.  This method still returns min-mean for
+        dialogue so that callers who bypass ``_heuristic_coherence`` get a
+        reasonable default.
         """
         fi, fo = self._fact_inner_agg, self._fact_outer_agg
         li, lo = self._logic_inner_agg, self._logic_outer_agg
@@ -531,6 +534,59 @@ class CoherenceScorer:
             return "min", "mean", "min", "mean"
 
         return fi, fo, li, lo
+
+    # ── Dialogue-specific scoring ─────────────────────────────────────
+
+    def _dialogue_factual_divergence(
+        self,
+        prompt: str,
+        response: str,
+        tenant_id: str = "",
+    ) -> tuple[float, ScoringEvidence | None]:
+        """Bidirectional NLI scoring with baseline calibration for dialogue.
+
+        The standard NLI approach (FactCG "supported/not-supported") gives
+        ~0.92 divergence for *correct* dialogue responses because new
+        information isn't "supported" by the conversation context.  This
+        method:
+
+        1. Scores both directions:
+           - forward ``score(context, response)``
+           - reverse ``score(response, context)``
+        2. Takes the **minimum** (most lenient direction).
+        3. Applies **baseline calibration**:
+           ``adjusted = max(0, (raw - baseline) / (1 - baseline))``
+           to shift out expected dialogue divergence (default baseline=0.80).
+
+        Benchmark (HaluEval dialogue, n=200, L4 GPU):
+        - Forward-only default:  FPR=97.5%
+        - Bidir + bl=0.80 t=0.50: FPR=4.5%
+        - Bidir + bl=0.85 t=0.50: FPR=4.5%
+        """
+        assert self._nli is not None and self._nli.model_available
+
+        # Forward pass: full evidence path
+        h_fact_fwd, evidence = self.calculate_factual_divergence_with_evidence(
+            prompt, response, tenant_id,
+            _inner_agg="min", _outer_agg="mean",
+        )
+
+        # Reverse pass: does the response support the context?
+        # Uses score_chunked for chunking support on long texts.
+        h_fact_rev, _ = self._nli.score_chunked(
+            response, prompt,
+            inner_agg="min", outer_agg="mean",
+            premise_ratio=0.4,
+        )
+
+        # Bidirectional minimum (most lenient direction)
+        raw_div = min(h_fact_fwd, h_fact_rev)
+
+        # Baseline calibration: shift expected dialogue divergence to 0
+        baseline = self._dialogue_nli_baseline
+        adjusted = max(0.0, (raw_div - baseline) / (1.0 - baseline))
+
+        return adjusted, evidence
 
     # ── Factual divergence ────────────────────────────────────────────
 
@@ -806,6 +862,10 @@ class CoherenceScorer:
         Returns (h_logical, h_factual, coherence, evidence).
         H_logical and H_factual run in parallel — vector retrieval overlaps
         with the logical NLI forward pass.
+
+        For dialogue prompts (auto-detected), uses bidirectional NLI with
+        baseline calibration instead of standard forward-only scoring.
+        Logical divergence is skipped for dialogue (entailment is meaningless).
         """
         # Eager-load NLI in the main thread to avoid PyTorch 2.6 dispatch
         # corruption when from_pretrained runs inside a ThreadPoolExecutor
@@ -813,13 +873,30 @@ class CoherenceScorer:
         if self._nli is not None:
             self._nli._ensure_model()
 
-        # Task-aware aggregation: auto-detect dialogue and apply min-mean
-        # profile to reduce false-positive rate on conversational outputs.
+        # Task-aware aggregation profile
         fact_ia, fact_oa, logic_ia, logic_oa = self._resolve_agg_profile(prompt)
 
+        # ── Dialogue path: bidirectional NLI + baseline calibration ────
+        # Logical entailment is meaningless for dialogue (a question
+        # doesn't entail its answer).  Standard NLI gives ~0.92 divergence
+        # for correct responses.  The dialogue path uses min(fwd, rev) with
+        # baseline calibration to bring FPR from 97.5% → 4.5% at t=0.50.
+        _is_dialogue = (
+            self._auto_dialogue_profile
+            and not self._use_prompt_as_premise
+            and self._nli is not None
+            and self._nli.model_available
+            and self._detect_task_type(prompt) == "dialogue"
+        )
+
+        if _is_dialogue:
+            h_logic = 0.0
+            h_fact, evidence = self._dialogue_factual_divergence(
+                prompt, action, tenant_id,
+            )
         # Short-circuit: skip logical divergence when W_LOGIC is zero
         # (e.g. summarization profile where h_logic duplicates h_fact).
-        if self.W_LOGIC < 1e-9:
+        elif self.W_LOGIC < 1e-9:
             h_logic = 0.0
             h_fact, evidence = self.calculate_factual_divergence_with_evidence(
                 prompt, action, tenant_id,

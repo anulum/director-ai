@@ -7,15 +7,15 @@
 Diagnostic benchmark: per-sample h_logic, h_fact, coherence breakdown
 for dialogue FPR reduction.
 
-Tests multiple aggregation profiles on HaluEval dialogue correct responses
+Tests multiple scoring profiles on HaluEval dialogue correct responses
 to identify the configuration that minimises false-positive rate.
 
 Configurations tested:
 
-- **Phase 0** (baseline): max-max (default)
-- **Phase 1** (auto-profile): min-mean (auto-detected dialogue profile)
-- **Phase 2** (direct NLI): min-mean + use_prompt_as_premise
-- **Phase 3** (trimmed): min-trimmed_mean + use_prompt_as_premise
+- **Phase 0** (baseline): forward-only NLI, no calibration (max-max)
+- **Phase 1** (bidir): bidirectional NLI + baseline calibration (auto-profile)
+- **Phase 2** (bidir-85): same as phase 1 with baseline=0.85
+- **Phase 3** (bidir-75): same as phase 1 with baseline=0.75
 
 Usage::
 
@@ -36,52 +36,42 @@ logger = logging.getLogger("DirectorAI.Benchmark.DialogueDiag")
 # Aggregation configurations to sweep
 PROFILES = {
     "phase0_baseline": {
-        "desc": "max-max (default)",
-        "fact_inner_agg": "max",
-        "fact_outer_agg": "max",
-        "logic_inner_agg": "max",
-        "logic_outer_agg": "max",
-        "use_prompt_as_premise": False,
+        "desc": "forward-only NLI, no calibration (default)",
         "auto_dialogue_profile": False,
-    },
-    "phase1_auto": {
-        "desc": "min-mean (auto dialogue profile)",
-        "fact_inner_agg": "max",  # will be overridden by auto-detection
-        "fact_outer_agg": "max",
-        "logic_inner_agg": "max",
-        "logic_outer_agg": "max",
+        "dialogue_nli_baseline": 0.80,
         "use_prompt_as_premise": False,
+    },
+    "phase1_bidir_80": {
+        "desc": "bidirectional NLI + baseline=0.80 (auto-profile)",
         "auto_dialogue_profile": True,
+        "dialogue_nli_baseline": 0.80,
+        "use_prompt_as_premise": False,
     },
-    "phase2_direct_nli": {
-        "desc": "min-mean + use_prompt_as_premise",
-        "fact_inner_agg": "min",
-        "fact_outer_agg": "mean",
-        "logic_inner_agg": "min",
-        "logic_outer_agg": "mean",
-        "use_prompt_as_premise": True,
-        "auto_dialogue_profile": False,
+    "phase2_bidir_85": {
+        "desc": "bidirectional NLI + baseline=0.85",
+        "auto_dialogue_profile": True,
+        "dialogue_nli_baseline": 0.85,
+        "use_prompt_as_premise": False,
     },
-    "phase3_trimmed": {
-        "desc": "min-trimmed_mean + use_prompt_as_premise",
-        "fact_inner_agg": "min",
-        "fact_outer_agg": "trimmed_mean",
-        "logic_inner_agg": "min",
-        "logic_outer_agg": "mean",
-        "use_prompt_as_premise": True,
-        "auto_dialogue_profile": False,
+    "phase3_bidir_75": {
+        "desc": "bidirectional NLI + baseline=0.75",
+        "auto_dialogue_profile": True,
+        "dialogue_nli_baseline": 0.75,
+        "use_prompt_as_premise": False,
     },
 }
 
 
 def _apply_profile(scorer, profile: dict) -> None:
-    """Apply aggregation profile settings to a scorer."""
-    scorer._fact_inner_agg = profile["fact_inner_agg"]
-    scorer._fact_outer_agg = profile["fact_outer_agg"]
-    scorer._logic_inner_agg = profile["logic_inner_agg"]
-    scorer._logic_outer_agg = profile["logic_outer_agg"]
-    scorer._use_prompt_as_premise = profile["use_prompt_as_premise"]
+    """Apply scoring profile settings to a scorer."""
     scorer._auto_dialogue_profile = profile["auto_dialogue_profile"]
+    scorer._dialogue_nli_baseline = profile["dialogue_nli_baseline"]
+    scorer._use_prompt_as_premise = profile["use_prompt_as_premise"]
+    # Reset aggregation to defaults (the dialogue path doesn't use them)
+    scorer._fact_inner_agg = "max"
+    scorer._fact_outer_agg = "max"
+    scorer._logic_inner_agg = "max"
+    scorer._logic_outer_agg = "max"
 
 
 def run_diagnostic(
