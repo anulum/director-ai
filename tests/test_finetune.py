@@ -30,6 +30,34 @@ class TestFinetuneConfig:
         assert cfg.learning_rate == 1e-5
         assert cfg.output_dir == "/tmp/test"
 
+    def test_phase_e_defaults(self):
+        from director_ai.core.finetune import FinetuneConfig
+
+        cfg = FinetuneConfig()
+        assert cfg.mix_general_data is False
+        assert cfg.general_data_path is None
+        assert cfg.general_data_ratio == 0.2
+        assert cfg.early_stopping_patience == 0
+        assert cfg.class_weighted_loss is False
+        assert cfg.auto_benchmark is False
+        assert cfg.auto_onnx_export is False
+
+    def test_phase_e_custom(self):
+        from director_ai.core.finetune import FinetuneConfig
+
+        cfg = FinetuneConfig(
+            mix_general_data=True,
+            general_data_ratio=0.3,
+            early_stopping_patience=5,
+            class_weighted_loss=True,
+            auto_benchmark=True,
+        )
+        assert cfg.mix_general_data is True
+        assert cfg.general_data_ratio == 0.3
+        assert cfg.early_stopping_patience == 5
+        assert cfg.class_weighted_loss is True
+        assert cfg.auto_benchmark is True
+
 
 class TestFinetuneResult:
     def test_defaults(self):
@@ -39,6 +67,9 @@ class TestFinetuneResult:
         assert result.epochs_completed == 0
         assert result.best_balanced_accuracy == 0.0
         assert result.eval_metrics == {}
+        assert result.regression_report == {}
+        assert result.onnx_path == ""
+        assert result.mixed_general_samples == 0
 
     def test_with_values(self):
         from director_ai.core.finetune import FinetuneResult
@@ -114,6 +145,64 @@ class TestLoadJsonl:
         f.write_text("", encoding="utf-8")
         rows = _load_jsonl(f)
         assert rows == []
+
+
+class TestMixGeneralData:
+    def _make_jsonl(self, tmp_path, name, n):
+        rows = [
+            {"premise": f"P{i}", "hypothesis": f"H{i}", "label": i % 2}
+            for i in range(n)
+        ]
+        f = tmp_path / name
+        f.write_text(
+            "\n".join(json.dumps(r) for r in rows) + "\n",
+            encoding="utf-8",
+        )
+        return f
+
+    def test_mix_adds_general_data(self, tmp_path):
+        from director_ai.core.finetune import _mix_general_data
+
+        domain = [{"premise": f"D{i}", "hypothesis": f"C{i}", "label": i % 2} for i in range(100)]
+        general_file = self._make_jsonl(tmp_path, "general.jsonl", 50)
+        mixed, n_added = _mix_general_data(domain, str(general_file), ratio=0.2, seed=42)
+        assert n_added > 0
+        assert len(mixed) == len(domain) + n_added
+
+    def test_mix_with_missing_file_returns_original(self):
+        from director_ai.core.finetune import _mix_general_data
+
+        domain = [{"premise": "D", "hypothesis": "C", "label": 1}]
+        mixed, n_added = _mix_general_data(domain, "/nonexistent_path_xyz.jsonl", 0.2, 42)
+        assert n_added == 0
+        assert mixed is domain
+
+    def test_mix_ratio_is_approximate(self, tmp_path):
+        from director_ai.core.finetune import _mix_general_data
+
+        domain = [{"premise": f"D{i}", "hypothesis": f"C{i}", "label": i % 2} for i in range(800)]
+        general_file = self._make_jsonl(tmp_path, "general.jsonl", 500)
+        mixed, n_added = _mix_general_data(domain, str(general_file), ratio=0.2, seed=42)
+        actual_ratio = n_added / len(mixed)
+        assert 0.15 < actual_ratio < 0.25
+
+
+class TestComputeClassWeights:
+    def test_balanced_weights_are_equal(self):
+        from director_ai.core.finetune import _compute_class_weights
+
+        rows = [{"label": 0}] * 100 + [{"label": 1}] * 100
+        weights = _compute_class_weights(rows)
+        assert len(weights) == 2
+        assert abs(weights[0] - weights[1]) < 1e-6
+
+    def test_imbalanced_weights_compensate(self):
+        from director_ai.core.finetune import _compute_class_weights
+
+        rows = [{"label": 0}] * 900 + [{"label": 1}] * 100
+        weights = _compute_class_weights(rows)
+        assert weights[1] > weights[0]
+        assert weights[1] / weights[0] > 5
 
 
 class TestExports:

@@ -728,6 +728,12 @@ def _cmd_finetune(args: list[str]) -> None:
             "  --lr FLOAT          Learning rate (default: 2e-5)\n"
             "  --batch-size N      Batch size (default: 16)\n"
             "  --base-model ID     Base model (default: FactCG-DeBERTa-v3-Large)\n"
+            "  --mix-general       Mix 20% general NLI data to prevent forgetting\n"
+            "  --general-data P    Path to general NLI JSONL (for --mix-general)\n"
+            "  --early-stopping N  Stop after N evals without improvement\n"
+            "  --class-weights     Apply inverse-frequency class weights\n"
+            "  --auto-benchmark    Run anti-regression check after training\n"
+            "  --auto-onnx         Export to ONNX after training\n"
         )
         sys.exit(1)
 
@@ -763,6 +769,25 @@ def _cmd_finetune(args: list[str]) -> None:
         elif args[i] == "--base-model" and i + 1 < len(args):
             config.base_model = args[i + 1]
             i += 2
+        elif args[i] == "--mix-general":
+            config.mix_general_data = True
+            i += 1
+        elif args[i] == "--general-data" and i + 1 < len(args):
+            config.general_data_path = args[i + 1]
+            config.mix_general_data = True
+            i += 2
+        elif args[i] == "--early-stopping" and i + 1 < len(args):
+            config.early_stopping_patience = int(args[i + 1])
+            i += 2
+        elif args[i] == "--class-weights":
+            config.class_weighted_loss = True
+            i += 1
+        elif args[i] == "--auto-benchmark":
+            config.auto_benchmark = True
+            i += 1
+        elif args[i] == "--auto-onnx":
+            config.auto_onnx_export = True
+            i += 1
         else:
             print(f"Unknown option: {args[i]}")
             sys.exit(1)
@@ -772,11 +797,18 @@ def _cmd_finetune(args: list[str]) -> None:
     print(f"\nFine-tuning complete.")
     print(f"  Model saved to:  {result.output_dir}")
     print(f"  Train samples:   {result.train_samples}")
+    if result.mixed_general_samples:
+        print(f"  Mixed general:   {result.mixed_general_samples}")
     print(f"  Epochs:          {result.epochs_completed}")
     print(f"  Final loss:      {result.final_loss:.4f}")
     if result.eval_samples:
         print(f"  Eval samples:    {result.eval_samples}")
         print(f"  Best bal. acc:   {result.best_balanced_accuracy:.1%}")
+    if result.regression_report:
+        rr = result.regression_report
+        print(f"  Regression:      {rr['regression_pp']:+.1f}pp → {rr['recommendation']}")
+    if result.onnx_path:
+        print(f"  ONNX export:     {result.onnx_path}")
     print(f"\nUse the model:")
     print(f'  scorer = NLIScorer(model_name="{result.output_dir}")')
 

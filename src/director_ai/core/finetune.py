@@ -32,6 +32,8 @@ from __future__ import annotations
 
 import json
 import logging
+import random
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -65,6 +67,15 @@ class FinetuneConfig:
     save_strategy: str = "epoch"
     gradient_accumulation_steps: int = 1
 
+    # Phase E: training optimization
+    mix_general_data: bool = False
+    general_data_path: str | None = None
+    general_data_ratio: float = 0.2
+    early_stopping_patience: int = 0
+    class_weighted_loss: bool = False
+    auto_benchmark: bool = False
+    auto_onnx_export: bool = False
+
 
 @dataclass
 class FinetuneResult:
@@ -77,6 +88,9 @@ class FinetuneResult:
     best_balanced_accuracy: float = 0.0
     final_loss: float = 0.0
     eval_metrics: dict = field(default_factory=dict)
+    regression_report: dict = field(default_factory=dict)
+    onnx_path: str = ""
+    mixed_general_samples: int = 0
 
 
 def _load_jsonl(path: str | Path) -> list[dict]:
@@ -101,6 +115,54 @@ def _load_jsonl(path: str | Path) -> list[dict]:
             })
     logger.info("Loaded %d samples from %s", len(rows), path)
     return rows
+
+
+def _mix_general_data(
+    domain_rows: list[dict],
+    general_path: str | Path | None,
+    ratio: float,
+    seed: int,
+) -> tuple[list[dict], int]:
+    """Mix general-purpose NLI data into domain data to prevent catastrophic forgetting.
+
+    Returns (mixed_rows, n_general_added).
+    """
+    if general_path is None:
+        pkg_dir = Path(__file__).parent.parent
+        general_path = pkg_dir / "data" / "aggrefact_benchmark_1k.jsonl"
+
+    general_path = Path(general_path)
+    if not general_path.exists():
+        logger.warning("General data not found at %s, skipping mix", general_path)
+        return domain_rows, 0
+
+    general_rows = _load_jsonl(general_path)
+    if not general_rows:
+        return domain_rows, 0
+
+    n_general = int(len(domain_rows) * ratio / (1 - ratio))
+    rng = random.Random(seed)
+    if n_general < len(general_rows):
+        general_sample = rng.sample(general_rows, n_general)
+    else:
+        general_sample = general_rows
+
+    mixed = domain_rows + general_sample
+    rng.shuffle(mixed)
+    logger.info("Mixed %d general samples into %d domain samples (%.0f%% general)",
+                len(general_sample), len(domain_rows), len(general_sample) / len(mixed) * 100)
+    return mixed, len(general_sample)
+
+
+def _compute_class_weights(rows: list[dict]) -> list[float]:
+    """Compute inverse-frequency class weights for imbalanced datasets."""
+    counts = Counter(r["label"] for r in rows)
+    total = sum(counts.values())
+    n_classes = len(counts)
+    weights = []
+    for label in sorted(counts.keys()):
+        weights.append(total / (n_classes * counts[label]))
+    return weights
 
 
 def _prepare_dataset(rows: list[dict], tokenizer, max_length: int, is_factcg: bool):
@@ -152,6 +214,25 @@ def _compute_metrics(eval_pred):
     return {"balanced_accuracy": bal_acc, "f1": f1}
 
 
+def _make_weighted_trainer_class(class_weights: list[float]):
+    """Create a Trainer subclass that applies class-weighted cross-entropy loss."""
+    import torch
+    from transformers import Trainer
+
+    weight_tensor = torch.tensor(class_weights, dtype=torch.float32)
+
+    class WeightedTrainer(Trainer):
+        def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+            labels = inputs.pop("labels")
+            outputs = model(**inputs)
+            logits = outputs.logits
+            loss_fn = torch.nn.CrossEntropyLoss(weight=weight_tensor.to(logits.device))
+            loss = loss_fn(logits, labels)
+            return (loss, outputs) if return_outputs else loss
+
+    return WeightedTrainer
+
+
 def finetune_nli(
     train_path: str | Path,
     eval_path: str | Path | None = None,
@@ -172,6 +253,7 @@ def finetune_nli(
     from transformers import (
         AutoModelForSequenceClassification,
         AutoTokenizer,
+        EarlyStoppingCallback,
         Trainer,
         TrainingArguments,
     )
@@ -184,6 +266,19 @@ def finetune_nli(
         raise ValueError(f"No valid samples in {train_path}")
 
     eval_rows = _load_jsonl(eval_path) if eval_path else None
+
+    # Phase E: mix general data to prevent catastrophic forgetting
+    n_general_mixed = 0
+    if config.mix_general_data:
+        train_rows, n_general_mixed = _mix_general_data(
+            train_rows, config.general_data_path, config.general_data_ratio, config.seed,
+        )
+
+    # Phase E: compute class weights for imbalanced datasets
+    class_weights = None
+    if config.class_weighted_loss:
+        class_weights = _compute_class_weights(train_rows)
+        logger.info("Class weights: %s", class_weights)
 
     logger.info("Base model: %s", config.base_model)
     tokenizer = AutoTokenizer.from_pretrained(config.base_model)
@@ -223,12 +318,25 @@ def finetune_nli(
         dataloader_num_workers=4,
     )
 
-    trainer = Trainer(
+    # Phase E: early stopping callback
+    callbacks = []
+    if config.early_stopping_patience > 0 and eval_dataset:
+        callbacks.append(EarlyStoppingCallback(
+            early_stopping_patience=config.early_stopping_patience,
+        ))
+
+    # Phase E: class-weighted loss via custom Trainer
+    trainer_cls = Trainer
+    if class_weights is not None:
+        trainer_cls = _make_weighted_trainer_class(class_weights)
+
+    trainer = trainer_cls(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
         eval_dataset=eval_dataset,
         compute_metrics=_compute_metrics if eval_dataset else None,
+        callbacks=callbacks or None,
     )
 
     logger.info("Starting fine-tuning: %d train, %d eval, %d epochs",
@@ -245,6 +353,7 @@ def finetune_nli(
         train_samples=len(train_rows),
         eval_samples=len(eval_rows or []),
         final_loss=train_result.training_loss,
+        mixed_general_samples=n_general_mixed,
     )
 
     if eval_dataset:
@@ -252,5 +361,35 @@ def finetune_nli(
         result.eval_metrics = eval_metrics
         result.best_balanced_accuracy = eval_metrics.get("eval_balanced_accuracy", 0.0)
         logger.info("Best balanced accuracy: %.1f%%", result.best_balanced_accuracy * 100)
+
+    # Phase E: auto-benchmark against baseline
+    if config.auto_benchmark:
+        try:
+            from director_ai.core.finetune_benchmark import benchmark_finetuned_model
+
+            report = benchmark_finetuned_model(
+                config.output_dir, eval_path=eval_path,
+            )
+            result.regression_report = {
+                "recommendation": report.recommendation,
+                "general_accuracy": report.general_accuracy,
+                "domain_accuracy": report.domain_accuracy,
+                "regression_pp": report.regression_pp,
+            }
+            logger.info("Anti-regression: %s (%.1fpp)", report.recommendation, report.regression_pp)
+        except Exception as exc:
+            logger.warning("Auto-benchmark failed: %s", exc)
+
+    # Phase E: auto ONNX export
+    if config.auto_onnx_export:
+        try:
+            from director_ai.core.nli import export_onnx
+
+            onnx_dir = str(Path(config.output_dir) / "onnx")
+            export_onnx(config.output_dir, onnx_dir)
+            result.onnx_path = onnx_dir
+            logger.info("ONNX exported to %s", onnx_dir)
+        except Exception as exc:
+            logger.warning("ONNX export failed: %s", exc)
 
     return result
