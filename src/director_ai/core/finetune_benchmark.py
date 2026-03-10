@@ -68,7 +68,10 @@ def _load_benchmark_jsonl(path: str | Path) -> list[dict]:
             line = line.strip()
             if not line:
                 continue
-            row = json.loads(line)
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
             premise = row.get("premise") or row.get("doc") or row.get("context", "")
             hypothesis = row.get("hypothesis") or row.get("claim") or row.get("response", "")
             label = row.get("label")
@@ -81,8 +84,6 @@ def _evaluate_model(model_path: str | Path, samples: list[dict], batch_size: int
     """Run a model on samples and return balanced_accuracy + f1."""
     import numpy as np
     from sklearn.metrics import balanced_accuracy_score, f1_score
-
-    from director_ai.core.finetune import _FACTCG_TEMPLATE
 
     try:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
@@ -98,10 +99,16 @@ def _evaluate_model(model_path: str | Path, samples: list[dict], batch_size: int
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
-    texts = [
-        _FACTCG_TEMPLATE.format(premise=s["premise"], hypothesis=s["hypothesis"])
-        for s in samples
-    ]
+    is_factcg = "factcg" in str(model_path).lower()
+    if is_factcg:
+        from director_ai.core.finetune import _FACTCG_TEMPLATE
+
+        texts = [
+            _FACTCG_TEMPLATE.format(premise=s["premise"], hypothesis=s["hypothesis"])
+            for s in samples
+        ]
+    else:
+        texts = [f"{s['premise']} {tokenizer.sep_token} {s['hypothesis']}" for s in samples]
     labels = [s["label"] for s in samples]
 
     all_preds = []
@@ -181,7 +188,7 @@ def benchmark_finetuned_model(
             report.regression_acceptable = True
         elif regression_magnitude <= _REJECT_THRESHOLD_PP:
             report.recommendation = "deploy_domain_only"
-            report.regression_acceptable = True
+            report.regression_acceptable = False
         else:
             report.recommendation = "reject"
             report.regression_acceptable = False

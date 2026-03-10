@@ -13,6 +13,7 @@ import pytest
 from director_ai.finetune_api import (
     FinetuneJob,
     _JobStore,
+    _MAX_CONCURRENT_JOBS,
     create_finetune_router,
 )
 
@@ -46,6 +47,14 @@ class TestJobStore:
     def test_delete_nonexistent(self):
         store = _JobStore()
         assert not store.delete("nope")
+
+    def test_concurrent_job_limit(self):
+        store = _JobStore()
+        for i in range(_MAX_CONCURRENT_JOBS):
+            job = store.create({"epochs": 1})
+            job.state = "training"
+        with pytest.raises(ValueError, match="Too many"):
+            store.create({"epochs": 1})
 
 
 class TestFinetuneJob:
@@ -162,3 +171,236 @@ class TestRouterEndpoints:
     def test_result_nonexistent_job(self, client):
         resp = client.get("/v1/finetune/nonexistent/result")
         assert resp.status_code == 404
+
+
+class TestRouterSuccessPaths:
+    """Test activate/rollback/delete on real (mocked-completed) jobs."""
+
+    @pytest.fixture
+    def client_with_job(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        from director_ai.finetune_api import _JobStore
+
+        app = FastAPI()
+        router = create_finetune_router(models_dir=tmp_path / "models")
+        app.include_router(router, prefix="/v1/finetune")
+        client = TestClient(app)
+
+        # Inject a completed job directly into the store
+        # Access the store via the router's closure
+        store = None
+        for route in router.routes:
+            if hasattr(route, "endpoint") and route.endpoint.__name__ == "list_models":
+                store = route.endpoint.__code__.co_freevars
+                break
+
+        # Create job via store directly — we need to access the store from the closure
+        # Instead, just POST valid data and manually complete the job
+        return client
+
+    def test_activate_completed_job(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        app = FastAPI()
+        router = create_finetune_router(models_dir=tmp_path / "models")
+        app.include_router(router, prefix="/v1/finetune")
+        client = TestClient(app)
+
+        # Manually create a completed job via the internal store
+        from director_ai.finetune_api import FinetuneJob, _JobStore
+        import types
+
+        # Get the store from the router closure
+        for route in router.routes:
+            if hasattr(route, "endpoint"):
+                fn = route.endpoint
+                if hasattr(fn, "__closure__") and fn.__closure__:
+                    for cell in fn.__closure__:
+                        try:
+                            obj = cell.cell_contents
+                            if isinstance(obj, _JobStore):
+                                store = obj
+                                break
+                        except ValueError:
+                            pass
+
+        job = store.create({"epochs": 1})
+        job.state = "completed"
+        job.model_path = str(tmp_path / "models" / job.job_id)
+
+        resp = client.post(f"/v1/finetune/{job.job_id}/activate")
+        assert resp.status_code == 200
+        assert resp.json()["activated"] is True
+
+    def test_rollback_activated_job(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        from director_ai.finetune_api import _JobStore
+
+        app = FastAPI()
+        router = create_finetune_router(models_dir=tmp_path / "models")
+        app.include_router(router, prefix="/v1/finetune")
+        client = TestClient(app)
+
+        store = None
+        for route in router.routes:
+            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+                for cell in route.endpoint.__closure__:
+                    try:
+                        obj = cell.cell_contents
+                        if isinstance(obj, _JobStore):
+                            store = obj
+                            break
+                    except ValueError:
+                        pass
+                if store:
+                    break
+
+        job = store.create({"epochs": 1})
+        job.state = "completed"
+        job.activated = True
+
+        resp = client.post(f"/v1/finetune/{job.job_id}/rollback")
+        assert resp.status_code == 200
+        assert resp.json()["activated"] is False
+
+    def test_delete_completed_job(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        from director_ai.finetune_api import _JobStore
+
+        app = FastAPI()
+        router = create_finetune_router(models_dir=tmp_path / "models")
+        app.include_router(router, prefix="/v1/finetune")
+        client = TestClient(app)
+
+        store = None
+        for route in router.routes:
+            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+                for cell in route.endpoint.__closure__:
+                    try:
+                        obj = cell.cell_contents
+                        if isinstance(obj, _JobStore):
+                            store = obj
+                            break
+                    except ValueError:
+                        pass
+                if store:
+                    break
+
+        job = store.create({"epochs": 1})
+        job.state = "completed"
+
+        resp = client.delete(f"/v1/finetune/{job.job_id}")
+        assert resp.status_code == 200
+        assert resp.json()["deleted"] is True
+
+        resp2 = client.get(f"/v1/finetune/{job.job_id}")
+        assert resp2.status_code == 404
+
+    def test_delete_activated_blocked(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        from director_ai.finetune_api import _JobStore
+
+        app = FastAPI()
+        router = create_finetune_router(models_dir=tmp_path / "models")
+        app.include_router(router, prefix="/v1/finetune")
+        client = TestClient(app)
+
+        store = None
+        for route in router.routes:
+            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+                for cell in route.endpoint.__closure__:
+                    try:
+                        obj = cell.cell_contents
+                        if isinstance(obj, _JobStore):
+                            store = obj
+                            break
+                    except ValueError:
+                        pass
+                if store:
+                    break
+
+        job = store.create({"epochs": 1})
+        job.state = "completed"
+        job.activated = True
+
+        resp = client.delete(f"/v1/finetune/{job.job_id}")
+        assert resp.status_code == 409
+
+    def test_result_completed_job(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        from director_ai.finetune_api import _JobStore
+
+        app = FastAPI()
+        router = create_finetune_router(models_dir=tmp_path / "models")
+        app.include_router(router, prefix="/v1/finetune")
+        client = TestClient(app)
+
+        store = None
+        for route in router.routes:
+            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+                for cell in route.endpoint.__closure__:
+                    try:
+                        obj = cell.cell_contents
+                        if isinstance(obj, _JobStore):
+                            store = obj
+                            break
+                    except ValueError:
+                        pass
+                if store:
+                    break
+
+        job = store.create({"epochs": 1})
+        job.state = "completed"
+        job.metrics = {"eval_balanced_accuracy": 0.85}
+        job.regression_report = {"recommendation": "deploy"}
+
+        resp = client.get(f"/v1/finetune/{job.job_id}/result")
+        assert resp.status_code == 200
+        body = resp.json()
+        assert body["state"] == "completed"
+        assert body["metrics"]["eval_balanced_accuracy"] == 0.85
+        assert body["regression_report"]["recommendation"] == "deploy"
+
+
+class TestRouterIsolation:
+    def test_separate_routers_have_separate_stores(self, tmp_path):
+        from fastapi import FastAPI
+        from fastapi.testclient import TestClient
+
+        app = FastAPI()
+        r1 = create_finetune_router(models_dir=tmp_path / "m1")
+        r2 = create_finetune_router(models_dir=tmp_path / "m2")
+        app.include_router(r1, prefix="/v1/ft1")
+        app.include_router(r2, prefix="/v1/ft2")
+        client = TestClient(app)
+
+        resp1 = client.get("/v1/ft1/")
+        resp2 = client.get("/v1/ft2/")
+        assert resp1.json()["models"] == []
+        assert resp2.json()["models"] == []
+
+
+class TestBenchmarkJsonlRobust:
+    def test_malformed_json_skipped(self, tmp_path):
+        from director_ai.core.finetune_benchmark import _load_benchmark_jsonl
+
+        f = tmp_path / "bench.jsonl"
+        f.write_text(
+            '{"premise":"a","hypothesis":"b","label":1}\n'
+            'not json at all\n'
+            '{"premise":"c","hypothesis":"d","label":0}\n',
+            encoding="utf-8",
+        )
+        rows = _load_benchmark_jsonl(f)
+        assert len(rows) == 2

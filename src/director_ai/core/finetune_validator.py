@@ -87,7 +87,6 @@ def _rough_token_count(text: str) -> int:
 def validate_finetune_data(
     path: str | Path,
     epochs: int = 3,
-    batch_size: int = 24,
 ) -> DataQualityReport:
     """Validate a JSONL file for fine-tuning readiness.
 
@@ -95,7 +94,6 @@ def validate_finetune_data(
     ----------
     path : path to JSONL with premise/hypothesis/label
     epochs : planned training epochs (for cost estimate)
-    batch_size : planned batch size (for cost estimate)
     """
     path = Path(path)
     report = DataQualityReport()
@@ -163,7 +161,8 @@ def validate_finetune_data(
         report.errors.append("No valid samples found")
         return report
 
-    # Label distribution
+    # Label distribution (use unique count for validation thresholds)
+    unique_count = report.total_samples - report.duplicate_count
     label_counts = Counter(r["label"] for r in rows)
     report.label_distribution = dict(label_counts)
 
@@ -177,7 +176,7 @@ def validate_finetune_data(
     report.max_premise_tokens = max(premise_lengths)
     report.max_hypothesis_tokens = max(hypothesis_lengths)
 
-    # Cost estimate
+    # Cost estimate (based on total rows including duplicates — that's what training sees)
     total_seconds = report.total_samples * epochs * _SECONDS_PER_SAMPLE_PER_EPOCH
     report.estimated_train_time_min = total_seconds / 60
     report.estimated_cost_usd = (total_seconds / 3600) * _GPU_COST_PER_HOUR

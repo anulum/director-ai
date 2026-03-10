@@ -202,3 +202,23 @@ class TestTenantManifest:
         router = TenantRouter()
         count = router.load_manifest(tmp_path / "nope.json")
         assert count == 0
+
+    def test_load_malformed_json(self, tmp_path):
+        bad = tmp_path / "bad.json"
+        bad.write_text("not valid json {{{", encoding="utf-8")
+        router = TenantRouter()
+        with pytest.raises(Exception):
+            router.load_manifest(bad)
+
+    def test_round_trip_preserves_inactive(self, tmp_path):
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/m/v1", balanced_accuracy=0.80)
+        manifest = tmp_path / "m.json"
+        router.save_manifest(manifest)
+
+        router2 = TenantRouter()
+        count = router2.load_manifest(manifest)
+        assert count == 1
+        assert router2.get_active_model("acme") is None
+        models = router2.list_models("acme")
+        assert models[0].balanced_accuracy == 0.80

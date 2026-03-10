@@ -107,7 +107,7 @@ class TestBenchmarkDecisionLogic:
             "/fake/model", general_path=general, baseline_accuracy=0.758,
         )
         assert report.recommendation == "deploy_domain_only"
-        assert report.regression_acceptable
+        assert not report.regression_acceptable
 
     @patch("director_ai.core.finetune_benchmark._evaluate_model")
     def test_reject_catastrophic_regression(self, mock_eval, tmp_path):

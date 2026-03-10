@@ -46,6 +46,8 @@ except ImportError:
     _FASTAPI_AVAILABLE = False
 
 _DEFAULT_MODELS_DIR = Path("./director-models")
+_MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MB
+_MAX_CONCURRENT_JOBS = 4
 
 
 # ── Job state ────────────────────────────────────────────────────────
@@ -76,8 +78,12 @@ class _JobStore:
         self._lock = threading.Lock()
 
     def create(self, config: dict) -> FinetuneJob:
+        with self._lock:
+            active = sum(1 for j in self._jobs.values() if j.state in ("training", "validating", "benchmarking"))
+            if active >= _MAX_CONCURRENT_JOBS:
+                raise ValueError(f"Too many concurrent jobs ({active}/{_MAX_CONCURRENT_JOBS})")
         job = FinetuneJob(
-            job_id=str(uuid.uuid4())[:8],
+            job_id=uuid.uuid4().hex,
             config=config,
             created_at=time.time(),
         )
@@ -96,9 +102,6 @@ class _JobStore:
     def delete(self, job_id: str) -> bool:
         with self._lock:
             return self._jobs.pop(job_id, None) is not None
-
-
-_store = _JobStore()
 
 
 # ── Pydantic models ──────────────────────────────────────────────────
@@ -141,6 +144,7 @@ if _FASTAPI_AVAILABLE:
 
 def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
     """Background thread that runs the fine-tuning pipeline."""
+    train_path = eval_path = None
     try:
         from director_ai.core.finetune import FinetuneConfig, finetune_nli
 
@@ -161,9 +165,9 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
             auto_onnx_export=cfg.get("auto_onnx_export", False),
         )
 
-        # Split uploaded data into train/eval (90/10)
-        from director_ai.core.finetune import _load_jsonl
         import random
+
+        from director_ai.core.finetune import _load_jsonl
 
         rows = _load_jsonl(data_path)
         rng = random.Random(42)
@@ -183,27 +187,37 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
 
         result = finetune_nli(str(train_path), eval_path=str(eval_path), config=config)
 
-        job.state = "completed"
-        job.progress = 1.0
+        # Set result fields before state so readers see consistent data
         job.model_path = result.output_dir
         job.metrics = result.eval_metrics
         job.regression_report = result.regression_report
         job.completed_at = time.time()
-
-        # Cleanup temp files
-        train_path.unlink(missing_ok=True)
-        eval_path.unlink(missing_ok=True)
+        job.progress = 1.0
+        job.state = "completed"
 
         logger.info("Job %s completed: bal_acc=%.1f%%", job.job_id,
                      result.best_balanced_accuracy * 100)
 
     except Exception as exc:
-        job.state = "failed"
         job.error = str(exc)
+        job.state = "failed"
         logger.error("Job %s failed: %s", job.job_id, exc)
+    finally:
+        for p in (data_path, train_path, eval_path):
+            if p is not None:
+                p.unlink(missing_ok=True)
 
 
 # ── Router factory ───────────────────────────────────────────────────
+
+def _read_upload_with_limit(content: bytes) -> bytes:
+    """Reject uploads exceeding _MAX_UPLOAD_BYTES."""
+    if len(content) > _MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            413, f"Upload too large ({len(content)} bytes, max {_MAX_UPLOAD_BYTES})"
+        )
+    return content
+
 
 def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     """Create the fine-tuning API router.
@@ -217,12 +231,13 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
 
     if models_dir is None:
         models_dir = _DEFAULT_MODELS_DIR
-    models_dir = Path(models_dir)
+    models_dir = Path(models_dir).resolve()
     models_dir.mkdir(parents=True, exist_ok=True)
 
     upload_dir = models_dir / "_uploads"
     upload_dir.mkdir(parents=True, exist_ok=True)
 
+    store = _JobStore()
     router = APIRouter(tags=["finetune"])
 
     @router.post("/validate")
@@ -231,14 +246,14 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         if req is None:
             req = ValidateRequest()
 
+        content = _read_upload_with_limit(await file.read())
         data_path = upload_dir / f"validate_{uuid.uuid4().hex[:8]}.jsonl"
         try:
-            content = await file.read()
             data_path.write_bytes(content)
 
             from director_ai.core.finetune_validator import validate_finetune_data
 
-            report = validate_finetune_data(str(data_path), epochs=req.epochs, batch_size=req.batch_size)
+            report = validate_finetune_data(str(data_path), epochs=req.epochs)
             return {
                 "is_valid": report.is_valid,
                 "total_samples": report.total_samples,
@@ -259,13 +274,11 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         if req is None:
             req = StartRequest()
 
-        # Save uploaded file
+        content = _read_upload_with_limit(await file.read())
         job_id_prefix = uuid.uuid4().hex[:8]
         data_path = upload_dir / f"data_{job_id_prefix}.jsonl"
-        content = await file.read()
         data_path.write_bytes(content)
 
-        # Validate first
         from director_ai.core.finetune_validator import validate_finetune_data
 
         report = validate_finetune_data(str(data_path))
@@ -280,8 +293,12 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
                 },
             )
 
-        # Create job and start background training
-        job = _store.create(req.model_dump())
+        try:
+            job = store.create(req.model_dump())
+        except ValueError as exc:
+            data_path.unlink(missing_ok=True)
+            raise HTTPException(429, str(exc)) from exc
+
         job.validation_report = {
             "total_samples": report.total_samples,
             "label_distribution": report.label_distribution,
@@ -307,7 +324,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     @router.get("/{job_id}")
     async def get_job_status(job_id: str):
         """Get job status and progress."""
-        job = _store.get(job_id)
+        job = store.get(job_id)
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
         return JobStatus(
@@ -322,7 +339,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     @router.get("/{job_id}/result")
     async def get_job_result(job_id: str):
         """Get training results and regression report."""
-        job = _store.get(job_id)
+        job = store.get(job_id)
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
         if job.state not in ("completed", "failed"):
@@ -339,7 +356,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     @router.post("/{job_id}/activate")
     async def activate_model(job_id: str):
         """Activate a fine-tuned model as the default scorer."""
-        job = _store.get(job_id)
+        job = store.get(job_id)
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
         if job.state != "completed":
@@ -351,7 +368,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     @router.post("/{job_id}/rollback")
     async def rollback_model(job_id: str):
         """Deactivate fine-tuned model, revert to baseline."""
-        job = _store.get(job_id)
+        job = store.get(job_id)
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
         job.activated = False
@@ -361,7 +378,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     @router.get("/", name="list_models")
     async def list_models():
         """List all fine-tuning jobs and models."""
-        jobs = _store.list_all()
+        jobs = store.list_all()
         return {
             "models": [
                 ModelInfo(
@@ -379,16 +396,18 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     @router.delete("/{job_id}")
     async def delete_model(job_id: str):
         """Delete a fine-tuned model and its artifacts."""
-        job = _store.get(job_id)
+        job = store.get(job_id)
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
         if job.activated:
             raise HTTPException(409, "Cannot delete an activated model — rollback first")
 
-        if job.model_path and Path(job.model_path).exists():
-            shutil.rmtree(job.model_path, ignore_errors=True)
+        if job.model_path:
+            target = Path(job.model_path).resolve()
+            if target.is_relative_to(models_dir) and target.exists():
+                shutil.rmtree(target, ignore_errors=True)
 
-        _store.delete(job_id)
+        store.delete(job_id)
         logger.info("Job %s deleted", job_id)
         return {"deleted": True, "job_id": job_id}
 
