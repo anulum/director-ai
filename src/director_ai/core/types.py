@@ -55,6 +55,9 @@ class ScoringEvidence:
     chunk_scores: list[float] | None = None
     premise_chunk_count: int = 1
     hypothesis_chunk_count: int = 1
+    claim_coverage: float | None = None
+    per_claim_divergences: list[float] | None = None
+    claims: list[str] | None = None
 
 
 @dataclass

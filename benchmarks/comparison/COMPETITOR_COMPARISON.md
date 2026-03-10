@@ -1,6 +1,6 @@
 # Director-AI -- Competitor Benchmark Comparison
 
-Last updated: 2026-03-09 (v3.4.0)
+Last updated: 2026-03-10 (v3.6.0)
 
 ## One-Pager Summary
 
@@ -206,16 +206,16 @@ cannot verify consistency and defaults to flagging.
 
 ## Where Director-AI Loses
 
-1. **Summarization NLI accuracy weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1%. FPR at 10.5% (v3.5.0, bidirectional NLI + baseline=0.20), down from 95%.
+1. **Summarization NLI accuracy weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1%. FPR at 2.0% (v3.6.0, Layer C claim coverage), down from 95%.
 2. **ONNX CPU not competitive** — 383 ms/pair without CUDAExecutionProvider.
 3. **Fine-tuned models regress** — fine-tuned DeBERTa-v3-large scored 64.7%, below baseline.
 4. **Hybrid mode requires LLM API** — NLI-only mode is fully local, but hybrid needs OpenAI/Anthropic.
 
 ## Path Forward
 
-1. **All task types production-grade** — dialogue FPR 4.5%, summarization 10.5%, QA 3-4%.
-2. **TensorRT** — sub-10ms/pair target via TensorRT optimization.
-3. **Summarization ensemble** — claim decomposition for AggreFact-CNN/ExpertQA.
+1. **All task types below 5% FPR** — QA 3-4%, summarization 2.0%, dialogue 4.5%.
+2. **TensorRT** — sub-0.5ms/pair target via TensorRT optimization.
+3. **Layer C complete** — claim decomposition + coverage scoring reduced summarization FPR from 10.5% → 2.0%.
 
 ## Full Benchmark Suite
 

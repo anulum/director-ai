@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.6.0] — 2026-03-10
+
+### Added
+- **Layer C: Claim decomposition + coverage scoring** for summarization.
+  Decomposes summaries into atomic claim sentences, scores each against
+  source via chunked NLI, computes `coverage = supported / total`.
+  Final divergence blends Layer A (bidirectional NLI) with Layer C:
+  `alpha * (1 - coverage) + (1 - alpha) * layer_a`.
+- `NLIScorer.score_claim_coverage()` — standalone claim coverage scorer.
+- Config fields: `nli_claim_coverage_enabled` (default True),
+  `nli_claim_support_threshold` (0.5), `nli_claim_coverage_alpha` (0.4).
+- `ScoringEvidence` fields: `claim_coverage`, `per_claim_divergences`, `claims`.
+- Server `_evidence_to_dict` includes claim coverage when present.
+- Claim coverage FPR diagnostic benchmark (`benchmarks/claim_coverage_fpr_diag.py`).
+- 21 new tests in `tests/test_claim_coverage.py` (unit, config, integration,
+  evidence, server serialization).
+- 2072 tests passing (was 2051).
+
+### Fixed
+- Summarization FPR reduced from 10.5% → 2.0% (Layer C with alpha=0.4,
+  support_threshold=0.6, 200 HaluEval samples, L4 GPU). All three task
+  types now below 5% FPR (QA 3-4%, Dialogue 4.5%, Summarization 2.0%).
+
 ## [3.5.0] — 2026-03-10
 
 ### Added

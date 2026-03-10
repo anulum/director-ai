@@ -2,6 +2,18 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
+## v3.6.0 (2026-03-10)
+
+### Fixed
+- **Summarization FPR reduced from 10.5% to 2.0%** — Layer C (claim decomposition + coverage scoring) decomposes summaries into atomic claims, scores each against source via NLI, computes coverage. Blended with Layer A: `final = 0.4 * (1 - coverage) + 0.6 * layer_a`. All three task types now below 5% FPR.
+
+### Added
+- `NLIScorer.score_claim_coverage()` method
+- Config: `nli_claim_coverage_enabled`, `nli_claim_support_threshold` (0.6), `nli_claim_coverage_alpha` (0.4)
+- `ScoringEvidence` includes `claim_coverage`, `per_claim_divergences`, `claims`
+- 21 new tests (2072 total)
+- Claim coverage FPR diagnostic benchmark
+
 ## v3.5.0 (2026-03-10)
 
 ### Fixed

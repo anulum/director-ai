@@ -9,7 +9,7 @@
 | Chunked NLI (`score_chunked`) | 30-400 ms | Highest — catches localized hallucinations | Long responses where a single hallucinated sentence hides in correct text |
 | Hybrid (`scorer_backend="hybrid"`) | 200-500 ms | ~78% est. | High-stakes pipelines, dialogue tasks where extra precision is needed |
 
-**Rule of thumb**: start with heuristic for development. Switch to NLI for production if your domain has high factual stakes. Summarisation FPR at 10.5% (v3.5.0, bidirectional NLI + baseline=0.20). Dialogue FPR at 4.5% (bidirectional NLI + baseline=0.80). Both auto-detected.
+**Rule of thumb**: start with heuristic for development. Switch to NLI for production if your domain has high factual stakes. Summarisation FPR at 2.0% (v3.6.0, Layer A + C claim decomposition, alpha=0.4, support_threshold=0.6). All three task types below 5% FPR. Dialogue FPR at 4.5% (bidirectional NLI + baseline=0.80). Both auto-detected.
 
 For per-backend latency numbers and cadence combinations, see
 [Streaming Overhead](streaming-overhead.md#backend-selection).

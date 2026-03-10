@@ -22,7 +22,7 @@ class TestVersionSync:
     def test_version_is_3_3_0(self):
         from director_ai import __version__
 
-        assert __version__ == "3.5.0"
+        assert __version__ == "3.6.0"
 
 
 # ── Item 3: gRPC proto stubs ────────────────────────────────────────

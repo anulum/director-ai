@@ -180,6 +180,9 @@ class DirectorConfig:
     nli_fact_retrieval_top_k: int = 3
     nli_use_prompt_as_premise: bool = False
     nli_summarization_baseline: float = 0.20
+    nli_claim_coverage_enabled: bool = True
+    nli_claim_support_threshold: float = 0.6
+    nli_claim_coverage_alpha: float = 0.4
 
     # gRPC limits
     grpc_max_message_mb: int = 4
@@ -420,6 +423,9 @@ class DirectorConfig:
                 "nli_fact_retrieval_top_k": 8,
                 "nli_use_prompt_as_premise": True,
                 "nli_summarization_baseline": 0.20,
+                "nli_claim_coverage_enabled": True,
+                "nli_claim_support_threshold": 0.6,
+                "nli_claim_coverage_alpha": 0.4,
                 "profile": "summarization",
             },
             "lite": {
@@ -574,6 +580,9 @@ class DirectorConfig:
         scorer._fact_retrieval_top_k = self.nli_fact_retrieval_top_k
         scorer._use_prompt_as_premise = self.nli_use_prompt_as_premise
         scorer._summarization_nli_baseline = self.nli_summarization_baseline
+        scorer._claim_coverage_enabled = self.nli_claim_coverage_enabled
+        scorer._claim_support_threshold = self.nli_claim_support_threshold
+        scorer._claim_coverage_alpha = self.nli_claim_coverage_alpha
         return scorer
 
     _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key", "api_keys"})

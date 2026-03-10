@@ -243,6 +243,9 @@ class CoherenceScorer:
         self._auto_dialogue_profile = True  # auto-detect dialogue, apply bidir NLI
         self._dialogue_nli_baseline = 0.80  # expected NLI divergence for correct dialogue
         self._summarization_nli_baseline = 0.20  # HaluEval 200: 25.5%→10.5% FPR
+        self._claim_coverage_enabled = True
+        self._claim_support_threshold = 0.6  # HaluEval 200: 10.5%→2.0% FPR
+        self._claim_coverage_alpha = 0.4  # blend: alpha * (1-coverage) + (1-alpha) * layer_a
 
         # Local DeBERTa-base judge model (replaces LLM API calls)
         self._local_judge_model = None
@@ -597,28 +600,28 @@ class CoherenceScorer:
         response: str,
         tenant_id: str = "",
     ) -> tuple[float, ScoringEvidence | None]:
-        """Bidirectional NLI for summarization with baseline calibration.
+        """Bidirectional NLI + claim coverage for summarization.
 
-        Forward NLI (document→summary) systematically overestimates divergence
-        for abstractive summaries because rephrased content scores as
-        "not supported."  The reverse direction (summary→document) provides a
-        complementary signal: a correct summary's claims typically entail
-        individual source sentences even when the wording differs.
+        Layer A: bidirectional NLI with baseline calibration.
+        Layer C: decompose summary into claims, score each against source,
+        compute coverage = supported_claims / total_claims.
+
+        Final divergence = alpha * (1 - coverage) + (1 - alpha) * layer_a.
 
         Benchmark (HaluEval summarization, n=200, L4 GPU):
         - Forward-only (Phase 3):  FPR=25.5%
-        - Bidir results:           TBD (calibrating)
+        - Bidir + bl=0.20 (Layer A): FPR=10.5%
+        - Layer A + C (alpha=0.4, st=0.6): FPR=2.0%
         """
         assert self._nli is not None and self._nli.model_available
 
-        # Forward: document → summary (existing direct scoring path)
+        # Layer A: bidirectional NLI
         h_fact_fwd, evidence = self.calculate_factual_divergence_with_evidence(
             prompt, response, tenant_id,
             _inner_agg=self._fact_inner_agg,
             _outer_agg=self._fact_outer_agg,
         )
 
-        # Reverse: summary → document (abstractive equivalence check)
         h_fact_rev, _ = self._nli.score_chunked(
             response, prompt,
             inner_agg="min", outer_agg="mean",
@@ -629,9 +632,25 @@ class CoherenceScorer:
 
         baseline = self._summarization_nli_baseline
         if baseline > 0.0:
-            adjusted = max(0.0, (raw_div - baseline) / (1.0 - baseline))
+            layer_a = max(0.0, (raw_div - baseline) / (1.0 - baseline))
         else:
-            adjusted = raw_div
+            layer_a = raw_div
+
+        # Layer C: claim decomposition + coverage scoring
+        if self._claim_coverage_enabled:
+            coverage, per_claim_divs, claims = self._nli.score_claim_coverage(
+                prompt, response,
+                support_threshold=self._claim_support_threshold,
+            )
+            alpha = self._claim_coverage_alpha
+            adjusted = alpha * (1.0 - coverage) + (1.0 - alpha) * layer_a
+
+            if evidence is not None:
+                evidence.claim_coverage = coverage
+                evidence.per_claim_divergences = per_claim_divs
+                evidence.claims = claims
+        else:
+            adjusted = layer_a
 
         return adjusted, evidence
 

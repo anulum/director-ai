@@ -170,7 +170,7 @@ def _halt_evidence_to_dict(halt_ev) -> dict | None:
 def _evidence_to_dict(evidence) -> dict | None:
     if evidence is None:
         return None
-    return {
+    d = {
         "chunks": [
             {"text": c.text, "distance": c.distance, "source": c.source}
             for c in evidence.chunks
@@ -181,6 +181,11 @@ def _evidence_to_dict(evidence) -> dict | None:
         "premise_chunk_count": evidence.premise_chunk_count,
         "hypothesis_chunk_count": evidence.hypothesis_chunk_count,
     }
+    if evidence.claim_coverage is not None:
+        d["claim_coverage"] = evidence.claim_coverage
+        d["per_claim_divergences"] = evidence.per_claim_divergences
+        d["claims"] = evidence.claims
+    return d
 
 
 def create_app(config: DirectorConfig | None = None) -> FastAPI:

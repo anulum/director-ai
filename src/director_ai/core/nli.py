@@ -811,6 +811,42 @@ class NLIScorer:
         scores = self.score_batch(pairs)
         return max(scores), scores
 
+    def score_claim_coverage(
+        self,
+        source: str,
+        summary: str,
+        support_threshold: float = 0.6,
+    ) -> tuple[float, list[float], list[str]]:
+        """Decompose summary into claims and compute coverage against source.
+
+        A claim is "supported" when its NLI divergence < support_threshold.
+        Coverage = supported_claims / total_claims.
+
+        For long sources, each claim is scored with chunked NLI so that
+        at least one source chunk can provide evidence.
+
+        Returns (coverage, per_claim_divergences, claims).
+        """
+        claims = self.decompose_claims(summary)
+        if not claims:
+            s = self.score(source, summary)
+            return float(s < support_threshold), [s], [summary]
+
+        # Score each claim against the full source via chunked NLI.
+        # inner_agg="min" picks the best-matching source chunk per claim.
+        divs: list[float] = []
+        for claim in claims:
+            div, _ = self.score_chunked(
+                source, claim,
+                inner_agg="min", outer_agg="mean",
+                premise_ratio=0.85,
+            )
+            divs.append(div)
+
+        supported = sum(1 for d in divs if d < support_threshold)
+        coverage = supported / len(claims)
+        return coverage, divs, claims
+
     # ── Lite backend ─────────────────────────────────────────────
 
     def _ensure_lite(self):
