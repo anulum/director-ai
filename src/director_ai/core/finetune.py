@@ -104,38 +104,40 @@ def _load_jsonl(path: str | Path) -> list[dict]:
 
 
 def _prepare_dataset(rows: list[dict], tokenizer, max_length: int, is_factcg: bool):
-    """Tokenize rows into a HuggingFace Dataset."""
+    """Tokenize rows into a HuggingFace Dataset via batched map (OOM-safe)."""
     from datasets import Dataset
 
-    texts, labels = [], []
-    for row in rows:
-        if is_factcg:
-            text = _FACTCG_TEMPLATE.format(
-                premise=row["premise"], hypothesis=row["hypothesis"],
-            )
-            texts.append(text)
-        else:
-            texts.append((row["premise"], row["hypothesis"]))
-        labels.append(row["label"])
-
     if is_factcg:
-        encodings = tokenizer(
-            texts, truncation=True, padding="max_length",
-            max_length=max_length, return_tensors="np",
-        )
-    else:
-        premises = [t[0] for t in texts]
-        hypotheses = [t[1] for t in texts]
-        encodings = tokenizer(
-            premises, hypotheses, truncation=True, padding="max_length",
-            max_length=max_length, return_tensors="np",
-        )
+        texts = [
+            _FACTCG_TEMPLATE.format(premise=r["premise"], hypothesis=r["hypothesis"])
+            for r in rows
+        ]
+        ds = Dataset.from_dict({"text": texts, "labels": [r["label"] for r in rows]})
 
-    return Dataset.from_dict({
-        "input_ids": encodings["input_ids"].tolist(),
-        "attention_mask": encodings["attention_mask"].tolist(),
-        "labels": labels,
-    })
+        def _tok(batch):
+            return tokenizer(
+                batch["text"], truncation=True, padding="max_length", max_length=max_length,
+            )
+
+        ds = ds.map(_tok, batched=True, batch_size=256, remove_columns=["text"])
+    else:
+        premises = [r["premise"] for r in rows]
+        hypotheses = [r["hypothesis"] for r in rows]
+        ds = Dataset.from_dict({
+            "premise": premises, "hypothesis": hypotheses,
+            "labels": [r["label"] for r in rows],
+        })
+
+        def _tok_pair(batch):
+            return tokenizer(
+                batch["premise"], batch["hypothesis"],
+                truncation=True, padding="max_length", max_length=max_length,
+            )
+
+        ds = ds.map(_tok_pair, batched=True, batch_size=256, remove_columns=["premise", "hypothesis"])
+
+    ds.set_format("torch")
+    return ds
 
 
 def _compute_metrics(eval_pred):
@@ -194,11 +196,14 @@ def finetune_nli(
     train_dataset = _prepare_dataset(train_rows, tokenizer, config.max_length, is_factcg)
     eval_dataset = _prepare_dataset(eval_rows, tokenizer, config.max_length, is_factcg) if eval_rows else None
 
+    # save_strategy must match eval_strategy when load_best_model_at_end=True
+    save_strat = "steps" if eval_dataset else config.save_strategy
+
     training_args = TrainingArguments(
         output_dir=config.output_dir,
         num_train_epochs=config.epochs,
         per_device_train_batch_size=config.batch_size,
-        per_device_eval_batch_size=config.batch_size,
+        per_device_eval_batch_size=config.batch_size * 2,
         learning_rate=config.learning_rate,
         warmup_ratio=config.warmup_ratio,
         weight_decay=config.weight_decay,
@@ -206,13 +211,16 @@ def finetune_nli(
         seed=config.seed,
         eval_strategy="steps" if eval_dataset else "no",
         eval_steps=config.eval_steps if eval_dataset else None,
-        save_strategy=config.save_strategy,
+        save_strategy=save_strat,
+        save_steps=config.eval_steps if eval_dataset else None,
+        save_total_limit=2,
         load_best_model_at_end=bool(eval_dataset),
         metric_for_best_model="balanced_accuracy" if eval_dataset else None,
         greater_is_better=True,
         gradient_accumulation_steps=config.gradient_accumulation_steps,
         logging_steps=50,
         report_to="none",
+        dataloader_num_workers=4,
     )
 
     trainer = Trainer(

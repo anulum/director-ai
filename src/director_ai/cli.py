@@ -45,6 +45,7 @@ def main(argv: list[str] | None = None) -> None:
         "bench": _cmd_bench,
         "tune": _cmd_tune,
         "finetune": _cmd_finetune,
+        "validate-data": _cmd_validate_data,
         "export": _cmd_export,
         "serve": _cmd_serve,
         "config": _cmd_config,
@@ -77,6 +78,7 @@ def _print_help() -> None:
         "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
         "  tune <file.jsonl> [--output config.yaml]  Find optimal threshold\n"
         "  finetune <train.jsonl> [options]  Fine-tune NLI model on domain data\n"
+        "  validate-data <file.jsonl>       Validate data before fine-tuning\n"
         "  serve [--port N] [--workers W]  Start the FastAPI server\n"
         "  export [--format F]   Export model to ONNX/TensorRT\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
@@ -777,6 +779,36 @@ def _cmd_finetune(args: list[str]) -> None:
         print(f"  Best bal. acc:   {result.best_balanced_accuracy:.1%}")
     print(f"\nUse the model:")
     print(f'  scorer = NLIScorer(model_name="{result.output_dir}")')
+
+
+def _cmd_validate_data(args: list[str]) -> None:
+    """Validate JSONL data before fine-tuning."""
+    if not args:
+        print("Usage: director-ai validate-data <file.jsonl>")
+        sys.exit(1)
+
+    import os
+
+    data_file = args[0]
+    if not os.path.isfile(data_file):
+        print(f"Error: file not found: {data_file}")
+        sys.exit(1)
+
+    from director_ai.core.finetune_validator import validate_finetune_data
+
+    report = validate_finetune_data(data_file)
+    print(report.summary())
+
+    if report.warnings:
+        print(f"\nWarnings:")
+        for w in report.warnings:
+            print(f"  - {w}")
+
+    if report.errors:
+        print(f"\nErrors:")
+        for e in report.errors:
+            print(f"  - {e}")
+        sys.exit(1)
 
 
 def _cmd_export(args: list[str]) -> None:

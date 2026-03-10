@@ -26,6 +26,8 @@ from .kernel import SafetyKernel
 from .knowledge import GroundTruthStore
 from .lite_scorer import LiteScorer
 from .finetune import FinetuneConfig, FinetuneResult, finetune_nli
+from .finetune_benchmark import RegressionReport, benchmark_finetuned_model
+from .finetune_validator import DataQualityReport, validate_finetune_data
 from .nli import NLIScorer, export_onnx, nli_available
 from .sanitizer import InputSanitizer, SanitizeResult
 from .scorer import CoherenceScorer
@@ -95,6 +97,10 @@ __all__ = [
     "finetune_nli",
     "FinetuneConfig",
     "FinetuneResult",
+    "validate_finetune_data",
+    "DataQualityReport",
+    "benchmark_finetuned_model",
+    "RegressionReport",
 ]
 
 _MOVED_TO_ENTERPRISE = {
