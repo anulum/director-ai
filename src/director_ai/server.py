@@ -342,6 +342,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     )
     app.state.config = cfg
 
+    # Fine-tuning API router (Phase C)
+    try:
+        from .finetune_api import create_finetune_router
+
+        app.include_router(create_finetune_router(), prefix="/v1/finetune")
+    except ImportError:
+        pass
+
     _origins = [o.strip() for o in cfg.cors_origins.split(",") if o.strip()]
     if len(_origins) > 100:
         raise ValueError(f"Too many CORS origins: {len(_origins)} (max 100)")
