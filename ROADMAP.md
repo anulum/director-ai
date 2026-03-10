@@ -188,10 +188,19 @@
   - Logical divergence skipped for dialogue (entailment is meaningless)
   - Diagnostic benchmark: `benchmarks/dialogue_fpr_diag.py` (4 baseline configs)
 
-### In Progress
+## v3.5.0
+
+### Done
+- Summarization FPR: 25.5% → 10.5% via bidirectional NLI + baseline=0.20
+  - `_summarization_factual_divergence()` scores source→summary and summary→source, takes min
+  - Baseline calibration: `adjusted = max(0, (raw - 0.20) / 0.80)`
+  - `nli_summarization_baseline` config field (default 0.20)
+  - Bidirectional FPR diagnostic benchmark (`benchmarks/summarization_fpr_diag.py`)
+  - 13 new tests (`tests/test_summarization_bidir.py`)
+  - 2065 tests, 0 failures
 
 ### Planned
 - Distill smaller NLI model (DeBERTa-base from FactCG-Large teacher + hybrid labels)
-- Claim decomposition for summarisation domain (weakest at 68.8% bal. acc, remaining 25.5% FPR)
+- Claim decomposition for summarisation domain (remaining 10.5% FPR)
 - ReviewQueue adaptive flushing (dynamic max_batch based on request rate)
 - Customer-trainable models: allow customers to fine-tune NLI scorer on their own domain data

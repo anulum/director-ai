@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-2038_passed-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-2051_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
@@ -208,7 +208,7 @@ Full pipeline (CoherenceAgent + GroundTruthStore + StreamingKernel):
 
 Dialogue catch rate is 80%; QA and summarisation are lower (36%, 24%) due
 to NLI weakness on short-form text. Hybrid mode improves summarisation.
-Summarisation FPR reduced from 95% to 25.5% in v3.4.0 via direct NLI scoring.
+Summarisation FPR reduced from 95% to 10.5% in v3.5.0 via bidirectional NLI + baseline calibration.
 Run: `python -m benchmarks.e2e_eval`.
 
 ## Domain Presets
@@ -225,7 +225,7 @@ director-ai config --profile creative  # threshold=0.40, permissive
 ## Known Limitations
 
 1. **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to reject (0.9) instead of guessing.
-2. **Summarisation improving**: NLI FPR on correct summaries reduced from 95% to 25.5% (v3.4.0) via direct scoring and trimmed-mean aggregation. Remaining FP is a FactCG model limitation on highly abstractive text. AggreFact-CNN: 68.8%, ExpertQA: 59.1%.
+2. **Summarisation FPR at 10.5%**: Reduced from 95% → 25.5% (v3.4.0, direct NLI) → 10.5% (v3.5.0, bidirectional NLI + baseline=0.20). Remaining FP is FactCG model limitation on highly abstractive text. AggreFact-CNN: 68.8%, ExpertQA: 59.1%.
 3. **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
 4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain.
 5. **Chunked NLI**: Very short chunks (<3 sentences) may lose context.

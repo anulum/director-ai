@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.5.0] — 2026-03-10
+
+### Added
+- Bidirectional NLI for summarization: `_summarization_factual_divergence()` scores
+  both source→summary and summary→source, takes min.
+- `nli_summarization_baseline` config field (default 0.20) — calibrated baseline
+  subtraction: `adjusted = max(0, (raw - baseline) / (1 - baseline))`.
+- `_detect_task_type()` static method for routing dialogue vs summarization.
+- Summarization bidirectional FPR diagnostic benchmark (`benchmarks/summarization_fpr_diag.py`).
+- 13 new tests in `tests/test_summarization_bidir.py` (baseline calibration,
+  routing logic, config wiring).
+
+### Fixed
+- Summarization FPR reduced from 25.5% → 10.5% (bidirectional NLI + baseline=0.20,
+  200 HaluEval samples, L4 GPU). Combined with Phase 3: 95% → 10.5% total reduction.
+- Dialogue FPR reduced from 97.5% → 4.5% (bidirectional NLI + baseline=0.80).
+
 ## [3.4.0] — 2026-03-09
 
 ### Added

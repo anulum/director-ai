@@ -1,0 +1,50 @@
+{
+  "phase3_fwd_only": {
+    "total": 200,
+    "fp": 51,
+    "fpr": 0.255,
+    "mean_h_fact": 0.4653,
+    "mean_coherence": 0.5347,
+    "fp_mean_h_fact": 0.9223
+  },
+  "bidir_bl00": {
+    "total": 200,
+    "fp": 34,
+    "fpr": 0.17,
+    "mean_h_fact": 0.4494,
+    "mean_coherence": 0.5506,
+    "fp_mean_h_fact": 0.8922
+  },
+  "bidir_bl10": {
+    "total": 200,
+    "fp": 26,
+    "fpr": 0.13,
+    "mean_h_fact": 0.4013,
+    "mean_coherence": 0.5987,
+    "fp_mean_h_fact": 0.8914
+  },
+  "bidir_bl15": {
+    "total": 200,
+    "fp": 23,
+    "fpr": 0.115,
+    "mean_h_fact": 0.3836,
+    "mean_coherence": 0.6164,
+    "fp_mean_h_fact": 0.8904
+  },
+  "bidir_bl20": {
+    "total": 200,
+    "fp": 21,
+    "fpr": 0.105,
+    "mean_h_fact": 0.3683,
+    "mean_coherence": 0.6317,
+    "fp_mean_h_fact": 0.8869
+  },
+  "bidir_bl25": {
+    "total": 200,
+    "fp": 19,
+    "fpr": 0.095,
+    "mean_h_fact": 0.3533,
+    "mean_coherence": 0.6467,
+    "fp_mean_h_fact": 0.8829
+  }
+}

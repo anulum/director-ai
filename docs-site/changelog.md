@@ -2,6 +2,19 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
+## v3.5.0 (2026-03-10)
+
+### Fixed
+- **Summarization FPR reduced from 25.5% to 10.5%** — bidirectional NLI scores both source→summary and summary→source, takes min. Baseline calibration (0.20) shifts expected NLI noise to zero.
+- **Dialogue FPR reduced from 97.5% to 4.5%** — bidirectional NLI + baseline=0.80.
+
+### Added
+- `_summarization_factual_divergence()` method with bidirectional NLI scoring
+- `nli_summarization_baseline` config field (default 0.20)
+- `_detect_task_type()` static method for dialogue vs summarization routing
+- 13 new tests in `tests/test_summarization_bidir.py`
+- Bidirectional FPR diagnostic benchmark with 6 baseline profiles
+
 ## v3.4.0 (2026-03-09)
 
 ### Fixed

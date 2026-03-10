@@ -179,6 +179,7 @@ class DirectorConfig:
     nli_premise_ratio: float = 0.4
     nli_fact_retrieval_top_k: int = 3
     nli_use_prompt_as_premise: bool = False
+    nli_summarization_baseline: float = 0.20
 
     # gRPC limits
     grpc_max_message_mb: int = 4
@@ -418,6 +419,7 @@ class DirectorConfig:
                 "nli_premise_ratio": 0.85,
                 "nli_fact_retrieval_top_k": 8,
                 "nli_use_prompt_as_premise": True,
+                "nli_summarization_baseline": 0.20,
                 "profile": "summarization",
             },
             "lite": {
@@ -571,6 +573,7 @@ class DirectorConfig:
         scorer._premise_ratio = self.nli_premise_ratio
         scorer._fact_retrieval_top_k = self.nli_fact_retrieval_top_k
         scorer._use_prompt_as_premise = self.nli_use_prompt_as_premise
+        scorer._summarization_nli_baseline = self.nli_summarization_baseline
         return scorer
 
     _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key", "api_keys"})
