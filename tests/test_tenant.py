@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from director_ai.core.tenant import TenantRouter
+from director_ai.core.tenant import ModelVersion, TenantRouter
 
 pytestmark = pytest.mark.enterprise
 
@@ -77,3 +77,128 @@ class TestTenantRouterScorer:
         scorer = router.get_scorer("acme", threshold=0.5, use_nli=False)
         h = scorer.calculate_factual_divergence("sky color?", "The sky is blue")
         assert h < 0.5
+
+
+class TestModelVersion:
+    def test_defaults(self):
+        mv = ModelVersion(model_id="v1", model_path="/models/v1")
+        assert mv.active is False
+        assert mv.balanced_accuracy == 0.0
+
+    def test_custom(self):
+        mv = ModelVersion(
+            model_id="ft-med-v1", model_path="/models/med",
+            balanced_accuracy=0.88, regression_pp=-1.5,
+            recommendation="deploy", active=True,
+        )
+        assert mv.active
+        assert mv.regression_pp == -1.5
+
+
+class TestTenantModelVersioning:
+    def test_set_model(self):
+        router = TenantRouter()
+        mv = router.set_model("acme", "v1", "/models/v1", balanced_accuracy=0.85)
+        assert mv.model_id == "v1"
+        assert mv.balanced_accuracy == 0.85
+        assert mv.active is False
+
+    def test_list_models_empty(self):
+        router = TenantRouter()
+        assert router.list_models("acme") == []
+
+    def test_list_models(self):
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/m/v1")
+        router.set_model("acme", "v2", "/m/v2")
+        models = router.list_models("acme")
+        assert len(models) == 2
+
+    def test_activate_model(self):
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/m/v1")
+        router.set_model("acme", "v2", "/m/v2")
+        assert router.activate_model("acme", "v2")
+        active = router.get_active_model("acme")
+        assert active is not None
+        assert active.model_id == "v2"
+
+    def test_activate_deactivates_others(self):
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/m/v1")
+        router.set_model("acme", "v2", "/m/v2")
+        router.activate_model("acme", "v1")
+        router.activate_model("acme", "v2")
+        models = router.list_models("acme")
+        active_count = sum(1 for m in models if m.active)
+        assert active_count == 1
+
+    def test_activate_nonexistent(self):
+        router = TenantRouter()
+        assert not router.activate_model("acme", "nope")
+
+    def test_rollback(self):
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/m/v1")
+        router.activate_model("acme", "v1")
+        assert router.rollback_model("acme")
+        assert router.get_active_model("acme") is None
+
+    def test_rollback_empty(self):
+        router = TenantRouter()
+        assert not router.rollback_model("acme")
+
+    def test_get_active_model_none(self):
+        router = TenantRouter()
+        assert router.get_active_model("acme") is None
+
+    def test_delete_model(self):
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/m/v1")
+        assert router.delete_model("acme", "v1")
+        assert router.list_models("acme") == []
+
+    def test_delete_active_model_blocked(self):
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/m/v1")
+        router.activate_model("acme", "v1")
+        assert not router.delete_model("acme", "v1")
+
+    def test_delete_nonexistent(self):
+        router = TenantRouter()
+        assert not router.delete_model("acme", "nope")
+
+    def test_tenant_isolation(self):
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/m/acme")
+        router.set_model("globex", "v1", "/m/globex")
+        assert len(router.list_models("acme")) == 1
+        assert len(router.list_models("globex")) == 1
+        router.activate_model("acme", "v1")
+        assert router.get_active_model("globex") is None
+
+
+class TestTenantManifest:
+    def test_save_and_load(self, tmp_path):
+        router = TenantRouter()
+        router.set_model("acme", "v1", "/m/v1", balanced_accuracy=0.85)
+        router.set_model("acme", "v2", "/m/v2", balanced_accuracy=0.90)
+        router.activate_model("acme", "v2")
+
+        manifest_path = tmp_path / "manifest.json"
+        router.save_manifest(manifest_path)
+
+        router2 = TenantRouter()
+        count = router2.load_manifest(manifest_path)
+        assert count == 2
+        models = router2.list_models("acme")
+        assert len(models) == 2
+        active = router2.get_active_model("acme")
+        assert active is not None
+        assert active.model_id == "v2"
+        assert active.balanced_accuracy == 0.90
+
+    def test_load_nonexistent(self, tmp_path):
+        router = TenantRouter()
+        count = router.load_manifest(tmp_path / "nope.json")
+        assert count == 0
