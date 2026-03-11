@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import threading
@@ -180,6 +181,16 @@ class PostgresAuditSink:
                 logger.error("Failed to persist audit log: %s", e)
             finally:
                 cur.close()
+
+    async def async_write(self, entry: AuditEntry) -> None:
+        """Non-blocking write for async callers (FastAPI handlers)."""
+        loop = asyncio.get_running_loop()
+        await loop.run_in_executor(None, self.write, entry)
+
+    async def async_write_batch(self, entries: list[AuditEntry]) -> int:
+        """Non-blocking batch write for async callers."""
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.write_batch, entries)
 
     def write_batch(self, entries: list[AuditEntry]) -> int:
         """Write multiple entries in a single transaction. Returns count written."""

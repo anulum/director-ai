@@ -82,6 +82,7 @@ class TestNliMinicheckImportFailure:
         scorer.max_length = 512
         scorer.use_model = False
         scorer._model_loaded = False
+        scorer._label_indices = None
 
         with patch.dict(sys.modules, {"minicheck": None}):
             result = scorer._ensure_minicheck()

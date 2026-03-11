@@ -278,6 +278,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         app.state._state["stats"] = stats
         app.state._state["sessions"] = {}
         app.state._state["sessions_lock"] = asyncio.Lock()
+        app.state._state["max_sessions"] = getattr(cfg, "max_sessions", 10000)
 
         review_queue = None
         if cfg.review_queue_enabled:
@@ -504,6 +505,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             async with request.app.state._state["sessions_lock"]:
                 sessions = request.app.state._state["sessions"]
                 if req.session_id not in sessions:
+                    max_s = request.app.state._state.get("max_sessions", 10000)
+                    if len(sessions) >= max_s:
+                        oldest = next(iter(sessions))
+                        del sessions[oldest]
                     sessions[req.session_id] = ConversationSession(
                         session_id=req.session_id,
                     )
@@ -924,33 +929,28 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
             if data.get("streaming_oversight"):
                 try:
-                    halted = False
-                    async for token, coherence in agent.stream(prompt):
-                        await _send(
-                            {
-                                "session_id": session_id,
-                                "type": "token",
-                                "token": token,
-                                "coherence": round(coherence, 4),
-                            }
-                        )
-                        if coherence < cfg.hard_limit:  # pragma: no branch
-                            halted = True
-                            await _send(
-                                {
-                                    "session_id": session_id,
-                                    "type": "halt",
-                                    "reason": "hard_limit",
-                                }
-                            )
-                            break
-                    if not halted:  # pragma: no cover
-                        msg = {
-                            "session_id": session_id,
-                            "type": "result",
-                            "halted": False,
-                        }
-                        await _send(msg)
+                    from .core import StreamingKernel
+
+                    kernel = StreamingKernel(
+                        hard_limit=cfg.hard_limit,
+                        window_size=getattr(cfg, "window_size", 5),
+                        window_threshold=getattr(cfg, "window_threshold", 0.5),
+                    )
+                    result = await agent.aprocess(prompt)
+                    coherence = result.coherence.score if result.coherence else 0.0
+                    ev = kernel.ingest_token(result.output, coherence)
+                    halted = ev.halted if ev else False
+                    halt_reason = (ev.halt_reason or "hard_limit") if halted else None
+                    msg = {
+                        "session_id": session_id,
+                        "type": "halt" if halted else "result",
+                        "output": result.output,
+                        "coherence": round(coherence, 4),
+                        "halted": halted,
+                    }
+                    if halt_reason:
+                        msg["reason"] = halt_reason
+                    await _send(msg)
                 except (
                     RuntimeError,
                     ValueError,

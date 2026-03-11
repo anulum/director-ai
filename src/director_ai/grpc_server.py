@@ -21,6 +21,7 @@ from __future__ import annotations
 import asyncio
 import hmac
 import logging
+import threading
 
 from .core.config import DirectorConfig
 
@@ -76,6 +77,13 @@ def create_grpc_server(
     batch_resp = director_pb2.BatchReviewResponse  # type: ignore[attr-defined]
     token_evt = director_pb2.TokenEvent  # type: ignore[attr-defined]
     has_proto = True
+
+    # Shared background event loop for async streaming RPCs
+    _bg_loop = asyncio.new_event_loop()
+    _bg_thread = threading.Thread(
+        target=_bg_loop.run_forever, daemon=True, name="grpc-async"
+    )
+    _bg_thread.start()
 
     class DirectorServicer:  # noqa: N801
         """Implements the DirectorService RPC methods."""
@@ -134,11 +142,7 @@ def create_grpc_server(
                 finally:
                     q.put(None)
 
-            loop = asyncio.new_event_loop()
-            import threading
-
-            t = threading.Thread(target=loop.run_until_complete, args=(_produce(),))
-            t.start()
+            future = asyncio.run_coroutine_threadsafe(_produce(), _bg_loop)
 
             i = 0
             while True:
@@ -156,8 +160,7 @@ def create_grpc_server(
                 )
                 i += 1
 
-            t.join()
-            loop.close()
+            future.result()
 
     # Auth interceptor
     class _AuthInterceptor(grpc.ServerInterceptor):
@@ -167,11 +170,17 @@ def create_grpc_server(
             metadata = dict(handler_call_details.invocation_metadata)
             provided = metadata.get("x-api-key", "")
             if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
-                return grpc.unary_unary_rpc_method_handler(
-                    lambda req, ctx: ctx.abort(
-                        grpc.StatusCode.UNAUTHENTICATED, "invalid API key"
+
+                def _abort(req, ctx):
+                    ctx.abort(grpc.StatusCode.UNAUTHENTICATED, "invalid API key")
+
+                # Detect RPC type from method name to return correct handler
+                method = handler_call_details.method or ""
+                if "Stream" in method.rsplit("/", 1)[-1]:
+                    return grpc.unary_stream_rpc_method_handler(
+                        lambda req, ctx: iter([_abort(req, ctx)])
                     )
-                )
+                return grpc.unary_unary_rpc_method_handler(_abort)
             return continuation(handler_call_details)
 
     _mb = 1024 * 1024

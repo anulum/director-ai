@@ -35,6 +35,7 @@ class TestNliModelScoreBatch:
         scorer._minicheck_loaded = True
         scorer._custom_backend = None
         scorer._last_token_count = 0
+        scorer._label_indices = None
 
         mock_device = MagicMock()
         scorer._model.parameters.return_value = iter([MagicMock(device=mock_device)])
@@ -63,6 +64,7 @@ class TestNliModelScoreBatch:
         scorer._model = MagicMock()
         scorer._tokenizer = MagicMock()
         scorer._last_token_count = 0
+        scorer._label_indices = None
 
         mock_device = MagicMock()
         scorer._model.parameters.return_value = iter([MagicMock(device=mock_device)])
@@ -97,6 +99,7 @@ class TestNliOnnxScoreBatch:
         scorer._minicheck_loaded = True
         scorer._custom_backend = None
         scorer._last_token_count = 0
+        scorer._label_indices = None
 
         input_mock = MagicMock()
         input_mock.name = "input_ids"
@@ -124,6 +127,7 @@ class TestNliOnnxScoreBatch:
         scorer._onnx_session = MagicMock()
         scorer._tokenizer = MagicMock()
         scorer._last_token_count = 0
+        scorer._label_indices = None
 
         input_mock = MagicMock()
         input_mock.name = "input_ids"
@@ -152,6 +156,7 @@ class TestNliMinicheck:
         scorer._tokenizer = None
         scorer._onnx_session = None
         scorer._custom_backend = None
+        scorer._label_indices = None
 
         scorer._minicheck.score.return_value = [0.9]
         result = scorer._minicheck_score_batch([("premise", "hypothesis")])
@@ -319,7 +324,7 @@ class TestServerWsStreaming:
                 }
             )
             resp = ws.receive_json()
-            assert resp.get("type") in ("token", "result", "error")
+            assert resp.get("type") in ("token", "result", "halt", "error")
 
 
 @_skip_no_server

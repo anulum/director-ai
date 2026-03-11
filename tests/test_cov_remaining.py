@@ -264,6 +264,7 @@ class TestNliScoreDecomposed:
         scorer.max_length = 512
         scorer._model_loaded = False
         scorer.use_model = False
+        scorer._label_indices = None
 
         max_s, per_claim = scorer.score_decomposed("premise", "")
         assert isinstance(max_s, float)
@@ -288,6 +289,7 @@ class TestNliScoreDispatch:
         scorer._custom_backend = None
         scorer._model_loaded = True
         scorer._last_token_count = 0
+        scorer._label_indices = None
 
         input_mock = MagicMock()
         input_mock.name = "input_ids"
@@ -316,6 +318,7 @@ class TestNliEnsureModel:
         scorer.max_length = 512
         scorer._model_loaded = False
         scorer.use_model = False
+        scorer._label_indices = None
 
         result = scorer.score("The sky is blue.", "The sky is blue.")
         assert isinstance(result, float)

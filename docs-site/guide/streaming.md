@@ -144,11 +144,11 @@ Each `TokenEvent` also gets a `debug_info` dict with the same fields. Use this t
 
 ## False-Halt Rate
 
-Measured with `benchmarks/streaming_false_halt_bench.py` on 100 factually correct passages (heuristic mode, `use_nli=False`):
+Measured with `benchmarks/streaming_false_halt_bench.py` on 138 factually correct passages (heuristic mode, `use_nli=False`):
 
 | Metric | Value |
 |--------|-------|
-| Passages tested | 100 |
+| Passages tested | 138 |
 | False halts | 0 |
 | False-halt rate | **0.0%** |
 | Avg coherence | 0.45+ |

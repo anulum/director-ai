@@ -127,6 +127,7 @@ class TestNliScoreBatchPaths:
         scorer._model_loaded = True
         scorer.use_model = True
         scorer._last_token_count = 0
+        scorer._label_indices = None
 
         input_mock = MagicMock()
         input_mock.name = "input_ids"
@@ -155,6 +156,7 @@ class TestNliScoreBatchPaths:
         scorer._model_loaded = True
         scorer.use_model = True
         scorer._last_token_count = 0
+        scorer._label_indices = None
 
         mock_device = MagicMock()
         scorer._model.parameters.return_value = iter([MagicMock(device=mock_device)])
@@ -206,6 +208,7 @@ class TestNliModelScoreSingle:
         scorer._model = MagicMock()
         scorer._tokenizer = MagicMock()
         scorer._last_token_count = 0
+        scorer._label_indices = None
 
         mock_device = MagicMock()
         scorer._model.parameters.return_value = iter([MagicMock(device=mock_device)])

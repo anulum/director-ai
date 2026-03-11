@@ -64,16 +64,42 @@ def _softmax_np(x: np.ndarray) -> np.ndarray:
     return s
 
 
-def _probs_to_divergence(probs: np.ndarray) -> list[float]:
+def _resolve_label_indices(model) -> tuple[int, int]:
+    """Read model.config.id2label to find contradiction and neutral indices.
+
+    Returns (contradiction_idx, neutral_idx). Falls back to (2, 1) if
+    id2label is missing or labels are unrecognisable.
+    """
+    id2label = getattr(getattr(model, "config", None), "id2label", None)
+    if not id2label:
+        return (2, 1)
+    contra_idx = 2
+    neutral_idx = 1
+    for idx, label in id2label.items():
+        normed = str(label).lower().strip()
+        if normed in ("contradiction", "contradict"):
+            contra_idx = int(idx)
+        elif normed == "neutral":
+            neutral_idx = int(idx)
+    return (contra_idx, neutral_idx)
+
+
+def _probs_to_divergence(
+    probs: np.ndarray,
+    label_indices: tuple[int, int] | None = None,
+) -> list[float]:
     """Convert softmax rows to divergence scores.
 
     2-class: divergence = 1 - P(supported).
     3-class: divergence = P(contradiction) + 0.5 * P(neutral).
+    ``label_indices`` is (contradiction_idx, neutral_idx) from
+    ``_resolve_label_indices``; defaults to (2, 1).
     """
     ncols = probs.shape[1]
     if ncols == 2:
         return [float(1.0 - row[1]) for row in probs]
-    return [float(row[2]) + float(row[1]) * 0.5 for row in probs]
+    ci, ni = label_indices or (2, 1)
+    return [float(row[ci]) + float(row[ni]) * 0.5 for row in probs]
 
 
 # ── Model Loaders ───────────────────────────────────────────────
@@ -489,6 +515,9 @@ class NLIScorer:
         self._onnx_batcher: OnnxDynamicBatcher | None = None
         self._last_token_count: int = 0
         self._cost_per_token: float = cost_per_token
+        # Label indices resolved from model.config.id2label after loading.
+        # None = not yet resolved; tuple = (contradiction_idx, neutral_idx)
+        self._label_indices: tuple[int, int] | None = None
 
     @property
     def _backend_ready(self) -> bool:
@@ -531,6 +560,8 @@ class NLIScorer:
                 device=self._device,
                 torch_dtype=self._torch_dtype,
             )
+            if self._model is not None:
+                self._label_indices = _resolve_label_indices(self._model)
         self._model_loaded = True
         return self._backend_ready
 
@@ -688,7 +719,8 @@ class NLIScorer:
 
         if len(probs) == 2:
             return float(1.0 - probs[1])
-        return float(probs[2]) + float(probs[1]) * 0.5  # pragma: no cover
+        ci, ni = self._label_indices or (2, 1)
+        return float(probs[ci]) + float(probs[ni]) * 0.5
 
     def _model_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Batched PyTorch inference — single forward pass."""
@@ -728,7 +760,7 @@ class NLIScorer:
 
             probs = torch.softmax(logits, dim=1).cpu().numpy()
 
-        return _probs_to_divergence(probs)
+        return _probs_to_divergence(probs, self._label_indices)
 
     # ── ONNX backend ─────────────────────────────────────────────
 
@@ -769,7 +801,7 @@ class NLIScorer:
             }
             logits = self._onnx_session.run(None, feed)[0]
 
-        return _probs_to_divergence(_softmax_np(logits))
+        return _probs_to_divergence(_softmax_np(logits), self._label_indices)
 
     # ── Chunked scoring ──────────────────────────────────────────
 
