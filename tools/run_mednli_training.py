@@ -7,6 +7,7 @@ Labels: entailment / contradiction / neutral → binary (entailment vs not).
 Usage:
     python run_mednli_training.py [--resume]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -24,7 +25,6 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
-
 
 BASE_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 OUTPUT_DIR = "/home/director-ai/models/factcg-mednli"
@@ -59,6 +59,7 @@ def tokenize_fn(tokenizer, max_length=512):
         return tokenizer(
             batch["text"], truncation=True, max_length=max_length, padding=False
         )
+
     return _tok
 
 
@@ -78,7 +79,9 @@ def main():
     print("=== MedNLI Fine-Tuning ===")
     print(f"Base model: {BASE_MODEL}")
     print(f"Output: {OUTPUT_DIR}")
-    print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
+    print(
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
     model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)
@@ -126,7 +129,7 @@ def main():
         trainer.train()
     elapsed = time.time() - start
 
-    print(f"\nTraining time: {elapsed/60:.1f} min")
+    print(f"\nTraining time: {elapsed / 60:.1f} min")
 
     # Evaluate on test set
     test_result = trainer.evaluate(test_ds)

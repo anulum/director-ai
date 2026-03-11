@@ -80,7 +80,9 @@ def prepare_snli():
                 continue
             label = nli_to_binary(label_raw)
             if label is not None:
-                rows.append({"premise": premise, "hypothesis": hypothesis, "label": label})
+                rows.append(
+                    {"premise": premise, "hypothesis": hypothesis, "label": label}
+                )
 
     logger.info("SNLI: %d binary samples", len(rows))
     rng = random.Random(42)
@@ -121,7 +123,9 @@ def tokenize_dataset(rows, tokenizer, max_length=512):
     ds = Dataset.from_dict({"text": texts, "labels": labels})
 
     def _tokenize(batch):
-        return tokenizer(batch["text"], truncation=True, padding="max_length", max_length=max_length)
+        return tokenizer(
+            batch["text"], truncation=True, padding="max_length", max_length=max_length
+        )
 
     ds = ds.map(_tokenize, batched=True, batch_size=256, remove_columns=["text"])
     ds.set_format("torch")
@@ -221,12 +225,23 @@ def train_snli(resume_from_checkpoint=False):
     print("\n" + "=" * 60)
     print("  SNLI TRAINING COMPLETE")
     print("=" * 60)
-    print(f"  bal_acc={bal_acc:.1%}, f1={result['f1']:.3f}, time={result['training_time_min']:.1f}min")
-    print(f"  GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
+    print(
+        f"  bal_acc={bal_acc:.1%}, f1={result['f1']:.3f}, time={result['training_time_min']:.1f}min"
+    )
+    print(
+        f"  GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+    )
     print("=" * 60)
 
     subprocess.run(
-        ["tar", "czf", "/home/director-ai/factcg-snli.tar.gz", "-C", str(MODELS_DIR), "factcg-snli"],
+        [
+            "tar",
+            "czf",
+            "/home/director-ai/factcg-snli.tar.gz",
+            "-C",
+            str(MODELS_DIR),
+            "factcg-snli",
+        ],
         check=True,
     )
     size = os.path.getsize("/home/director-ai/factcg-snli.tar.gz") / 1e6
@@ -242,7 +257,11 @@ if __name__ == "__main__":
     cli_args = parser.parse_args()
 
     gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
-    vram = torch.cuda.get_device_properties(0).total_memory / 1e9 if torch.cuda.is_available() else 0
+    vram = (
+        torch.cuda.get_device_properties(0).total_memory / 1e9
+        if torch.cuda.is_available()
+        else 0
+    )
     print(f"GPU: {gpu_name}, VRAM: {vram:.1f} GB")
 
     train_snli(resume_from_checkpoint=cli_args.resume)
