@@ -195,11 +195,13 @@ markers = [
 source = ["src/director_ai"]
 branch = true
 omit = [
-    "src/director_ai/server.py",           # requires [server] extras (FastAPI)
+    "src/director_ai/server.py",            # requires [server] extras (FastAPI)
     "src/director_ai/grpc_server.py",       # requires [grpc] extras (grpcio)
     "src/director_ai/director_pb2.py",      # generated protobuf stubs
     "src/director_ai/director_pb2_grpc.py", # generated gRPC stubs
     "src/director_ai/enterprise/*",         # requires [enterprise] extras (Redis)
+    "src/director_ai/core/finetune.py",     # requires [nli] extras (torch)
+    "src/director_ai/core/finetune_benchmark.py",
 ]
 
 [tool.coverage.report]
