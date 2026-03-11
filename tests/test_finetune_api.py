@@ -11,7 +11,9 @@ from unittest.mock import patch
 
 import pytest
 
-from director_ai.finetune_api import (
+pytest.importorskip("fastapi", reason="fastapi required for finetune API tests")
+
+from director_ai.finetune_api import (  # noqa: E402
     _MAX_CONCURRENT_JOBS,
     FinetuneJob,
     _JobStore,
