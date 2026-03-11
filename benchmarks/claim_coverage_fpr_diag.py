@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 import time
 
 import numpy as np
@@ -98,7 +97,7 @@ def run_benchmark(
             if (i + 1) % 50 == 0:
                 elapsed = time.monotonic() - t0
                 print(
-                    f"  [{name}] {i+1}/{n_samples} "
+                    f"  [{name}] {i + 1}/{n_samples} "
                     f"FP={fp_count} elapsed={elapsed:.1f}s"
                 )
 
@@ -142,7 +141,9 @@ def main():
         description="Layer C claim coverage FPR diagnostic"
     )
     parser.add_argument("--samples", type=int, default=200)
-    parser.add_argument("--out", default="benchmarks/results/claim_coverage_fpr_diag.json")
+    parser.add_argument(
+        "--out", default="benchmarks/results/claim_coverage_fpr_diag.json"
+    )
     parser.add_argument("--model", default=None)
     args = parser.parse_args()
 

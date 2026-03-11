@@ -21,6 +21,8 @@ arange = "arange"
 thr = "thr"
 aadd = "aadd"
 hel = "hel"
+fo = "fo"
+strat = "strat"
 
 [files]
 extend-exclude = [

@@ -26,9 +26,6 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass, field
-
-import numpy as np
 
 from benchmarks._common import save_results
 from benchmarks.medical_eval import DomainMetrics, _print_domain_results
@@ -61,7 +58,10 @@ def _load_phrasebank(max_samples: int | None = None) -> list[dict]:
     from datasets import load_dataset
 
     ds = load_dataset(
-        PHRASEBANK_HF_ID, "sentences_allagree", split="train", trust_remote_code=True,
+        PHRASEBANK_HF_ID,
+        "sentences_allagree",
+        split="train",
+        trust_remote_code=True,
     )
     rows = list(ds)
     if max_samples:
@@ -196,7 +196,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Director-AI finance domain benchmark")
     parser.add_argument(
-        "--dataset", choices=["financebench", "phrasebank", "all"], default="all",
+        "--dataset",
+        choices=["financebench", "phrasebank", "all"],
+        default="all",
     )
     parser.add_argument("--max-samples", type=int, default=None)
     parser.add_argument("--threshold", type=float, default=0.70)

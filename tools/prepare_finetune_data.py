@@ -58,7 +58,9 @@ def _write_jsonl(rows: list[dict], path: Path) -> None:
     logger.info("Wrote %d samples to %s", len(rows), path)
 
 
-def _split(rows: list[dict], eval_ratio: float, seed: int) -> tuple[list[dict], list[dict]]:
+def _split(
+    rows: list[dict], eval_ratio: float, seed: int
+) -> tuple[list[dict], list[dict]]:
     rng = random.Random(seed)
     rng.shuffle(rows)
     n_eval = max(1, int(len(rows) * eval_ratio))
@@ -82,11 +84,13 @@ def prepare_aggrefact(eval_ratio: float = 0.1, seed: int = 42) -> None:
                 label = item.get("label")
                 if not doc or not claim or label is None:
                     continue
-                rows.append({
-                    "premise": doc,
-                    "hypothesis": claim,
-                    "label": int(label),
-                })
+                rows.append(
+                    {
+                        "premise": doc,
+                        "hypothesis": claim,
+                        "label": int(label),
+                    }
+                )
         except Exception as exc:
             logger.warning("AggreFact split '%s' unavailable: %s", split, exc)
 
@@ -122,10 +126,16 @@ def _load_mednli_binary() -> list[dict]:
                         label_int = int(label_raw)
                         if label_int == 1:  # neutral
                             continue
-                        label = 1 if label_int == 0 else 0  # 0=entailment→1, 2=contradiction→0
-                    rows.append({"premise": premise, "hypothesis": hypothesis, "label": label})
+                        label = (
+                            1 if label_int == 0 else 0
+                        )  # 0=entailment→1, 2=contradiction→0
+                    rows.append(
+                        {"premise": premise, "hypothesis": hypothesis, "label": label}
+                    )
             if rows:
-                logger.info("Loaded MedNLI from %s: %d binary samples", hf_id, len(rows))
+                logger.info(
+                    "Loaded MedNLI from %s: %d binary samples", hf_id, len(rows)
+                )
                 return rows
         except Exception as exc:
             logger.debug("MedNLI source %s failed: %s", hf_id, exc)
@@ -202,9 +212,13 @@ def _load_contractnli_binary() -> list[dict]:
                         if label_int == 1:
                             continue
                         label = 1 if label_int == 0 else 0
-                    rows.append({"premise": premise, "hypothesis": hypothesis, "label": label})
+                    rows.append(
+                        {"premise": premise, "hypothesis": hypothesis, "label": label}
+                    )
             if rows:
-                logger.info("Loaded ContractNLI from %s: %d binary samples", hf_id, len(rows))
+                logger.info(
+                    "Loaded ContractNLI from %s: %d binary samples", hf_id, len(rows)
+                )
                 return rows
         except Exception as exc:
             logger.debug("ContractNLI source %s failed: %s", hf_id, exc)

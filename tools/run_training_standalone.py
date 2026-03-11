@@ -44,7 +44,7 @@ logger = logging.getLogger("train")
 BASE_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 FACTCG_TEMPLATE = (
     "{premise}\n\nChoose your answer: based on the paragraph above "
-    "can we conclude that \"{hypothesis}\"?\n\nOPTIONS:\n- Yes\n- No\n"
+    'can we conclude that "{hypothesis}"?\n\nOPTIONS:\n- Yes\n- No\n'
     "I think the answer is "
 )
 DATA_DIR = Path("/home/director-ai/data")
@@ -103,7 +103,9 @@ def prepare_vitaminc(max_samples):
                     continue
                 label = nli_to_binary(label_raw)
                 if label is not None:
-                    rows.append({"premise": evidence, "hypothesis": claim, "label": label})
+                    rows.append(
+                        {"premise": evidence, "hypothesis": claim, "label": label}
+                    )
         except Exception as e:
             logger.warning("VitaminC split %s failed: %s", split, e)
 
@@ -134,7 +136,9 @@ def prepare_snli(max_samples):
                     continue
                 label = nli_to_binary(label_raw)
                 if label is not None:
-                    rows.append({"premise": premise, "hypothesis": hypothesis, "label": label})
+                    rows.append(
+                        {"premise": premise, "hypothesis": hypothesis, "label": label}
+                    )
         except Exception as e:
             logger.warning("SNLI split %s failed: %s", split, e)
 
@@ -157,8 +161,10 @@ def prepare_legal(max_samples):
     for split in ["train", "test"]:
         try:
             ds = load_dataset(
-                "kiddothe2b/contract-nli", "contractnli_a",
-                split=split, trust_remote_code=True,
+                "kiddothe2b/contract-nli",
+                "contractnli_a",
+                split=split,
+                trust_remote_code=True,
             )
             for item in ds:
                 premise = item.get("premise", "")
@@ -168,7 +174,9 @@ def prepare_legal(max_samples):
                     continue
                 label = nli_to_binary(label_raw)
                 if label is not None:
-                    rows.append({"premise": premise, "hypothesis": hypothesis, "label": label})
+                    rows.append(
+                        {"premise": premise, "hypothesis": hypothesis, "label": label}
+                    )
         except Exception as e:
             logger.warning("ContractNLI split %s failed: %s", split, e)
 
@@ -209,7 +217,10 @@ def tokenize_dataset(rows, tokenizer, max_length=512):
 
     def _tokenize(batch):
         return tokenizer(
-            batch["text"], truncation=True, padding="max_length", max_length=max_length,
+            batch["text"],
+            truncation=True,
+            padding="max_length",
+            max_length=max_length,
         )
 
     ds = ds.map(_tokenize, batched=True, batch_size=256, remove_columns=["text"])
@@ -317,7 +328,11 @@ if __name__ == "__main__":
     max_samples = cli_args.max_samples
 
     gpu_name = torch.cuda.get_device_name(0) if torch.cuda.is_available() else "CPU"
-    vram = torch.cuda.get_device_properties(0).total_memory / 1e9 if torch.cuda.is_available() else 0
+    vram = (
+        torch.cuda.get_device_properties(0).total_memory / 1e9
+        if torch.cuda.is_available()
+        else 0
+    )
     print(f"GPU: {gpu_name}, VRAM: {vram:.1f} GB")
 
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
@@ -337,6 +352,7 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error("%s prep failed: %s", name, e)
             import traceback
+
             traceback.print_exc()
     logger.info("Data stats: %s", stats)
 
@@ -345,9 +361,24 @@ if __name__ == "__main__":
     total_start = time.time()
 
     runs = [
-        ("vitaminc", DATA_DIR / "vitaminc_train.jsonl", DATA_DIR / "vitaminc_eval.jsonl", MODELS_DIR / "factcg-vitaminc"),
-        ("snli", DATA_DIR / "snli_train.jsonl", DATA_DIR / "snli_eval.jsonl", MODELS_DIR / "factcg-snli"),
-        ("legal", DATA_DIR / "legal_train.jsonl", DATA_DIR / "legal_eval.jsonl", MODELS_DIR / "factcg-legal"),
+        (
+            "vitaminc",
+            DATA_DIR / "vitaminc_train.jsonl",
+            DATA_DIR / "vitaminc_eval.jsonl",
+            MODELS_DIR / "factcg-vitaminc",
+        ),
+        (
+            "snli",
+            DATA_DIR / "snli_train.jsonl",
+            DATA_DIR / "snli_eval.jsonl",
+            MODELS_DIR / "factcg-snli",
+        ),
+        (
+            "legal",
+            DATA_DIR / "legal_train.jsonl",
+            DATA_DIR / "legal_eval.jsonl",
+            MODELS_DIR / "factcg-legal",
+        ),
     ]
 
     for name, train_path, eval_path, output_dir in runs:
@@ -361,6 +392,7 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error("%s training failed: %s", name, e)
             import traceback
+
             traceback.print_exc()
 
     total_time = (time.time() - total_start) / 60
@@ -370,7 +402,9 @@ if __name__ == "__main__":
     print("  TRAINING SUMMARY")
     print("=" * 60)
     for name, r in results.items():
-        print(f"  {name}: bal_acc={r['balanced_accuracy']:.1%}, f1={r['f1']:.3f}, time={r['training_time_min']:.1f}min")
+        print(
+            f"  {name}: bal_acc={r['balanced_accuracy']:.1%}, f1={r['f1']:.3f}, time={r['training_time_min']:.1f}min"
+        )
     print(f"  Total time: {total_time:.1f} minutes")
     print(f"  GPU: {gpu_name}")
     print("=" * 60)
@@ -386,8 +420,17 @@ if __name__ == "__main__":
 
     # Create tarball for download
     subprocess.run(
-        ["tar", "czf", "/home/director-ai/models_trained.tar.gz", "-C", str(MODELS_DIR), "."],
+        [
+            "tar",
+            "czf",
+            "/home/director-ai/models_trained.tar.gz",
+            "-C",
+            str(MODELS_DIR),
+            ".",
+        ],
         check=True,
     )
     size = os.path.getsize("/home/director-ai/models_trained.tar.gz") / 1e6
-    logger.info("Models tarball: /home/director-ai/models_trained.tar.gz (%.0f MB)", size)
+    logger.info(
+        "Models tarball: /home/director-ai/models_trained.tar.gz (%.0f MB)", size
+    )

@@ -1,4 +1,4 @@
-# Pinned dev dependencies for Director-AI v2.8.0
+# Pinned dev dependencies for Director-AI v3.7.0
 # Canonical source of truth: pyproject.toml [project.optional-dependencies.dev]
 -r requirements.txt
 pytest>=7.0

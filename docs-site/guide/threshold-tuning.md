@@ -19,17 +19,14 @@ For per-backend latency numbers and cadence combinations, see
 The coherence score is a weighted combination:
 
 ```
-score = (1 - w_logic) * (1 - w_fact) * heuristic_base
-      + w_logic * (1 - h_logical)
-      + w_fact * (1 - h_factual)
+score = 1 - (w_logic * h_logical + w_fact * h_factual)
 ```
 
 Where:
 
-- `heuristic_base` — word-overlap between response and KB facts (0-1)
 - `h_logical` — NLI-derived logical divergence (0 = entailed, 1 = contradicted)
 - `h_factual` — NLI-derived factual divergence from KB retrieval
-- `w_logic`, `w_fact` — configurable weights (default 0.3, 0.3)
+- `w_logic`, `w_fact` — configurable weights (default 0.6, 0.4; must sum to 1.0)
 
 **Adjusting weights:**
 

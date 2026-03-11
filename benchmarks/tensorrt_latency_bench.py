@@ -27,9 +27,7 @@ import argparse
 import json
 import os
 import statistics
-import sys
 import time
-
 
 PAIRS = [
     (
@@ -164,9 +162,7 @@ def main():
         elif b == "onnx-cpu":
             results.append(_bench_onnx(args.onnx_dir, "cpu", args.warmup, args.trials))
         elif b == "onnx-cuda":
-            results.append(
-                _bench_onnx(args.onnx_dir, "cuda", args.warmup, args.trials)
-            )
+            results.append(_bench_onnx(args.onnx_dir, "cuda", args.warmup, args.trials))
         elif b == "trt":
             results.append(_bench_trt(args.onnx_dir, args.warmup, args.trials))
         else:

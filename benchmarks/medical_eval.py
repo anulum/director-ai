@@ -27,7 +27,9 @@ import time
 from dataclasses import dataclass, field
 
 import numpy as np
-from sklearn.metrics import balanced_accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    balanced_accuracy_score,
+)
 
 from benchmarks._common import save_results
 
@@ -73,7 +75,9 @@ class DomainMetrics:
 
     @property
     def avg_latency_ms(self) -> float:
-        return float(np.mean(self.inference_times)) * 1000 if self.inference_times else 0.0
+        return (
+            float(np.mean(self.inference_times)) * 1000 if self.inference_times else 0.0
+        )
 
     def to_dict(self) -> dict:
         return {
@@ -113,7 +117,9 @@ def _load_pubmedqa(max_samples: int | None = None) -> list[dict]:
     """Load PubMedQA labeled subset."""
     from datasets import load_dataset
 
-    ds = load_dataset(PUBMEDQA_HF_ID, "pqa_labeled", split="train", trust_remote_code=True)
+    ds = load_dataset(
+        PUBMEDQA_HF_ID, "pqa_labeled", split="train", trust_remote_code=True
+    )
     rows = list(ds)
     if max_samples:
         rows = rows[:max_samples]
@@ -241,8 +247,10 @@ def _print_domain_results(m: DomainMetrics) -> None:
     print(f"  F1:         {m.f1:.1%}")
     if m.inference_times:
         print(f"  Latency:    {m.avg_latency_ms:.1f} ms avg")
-    print(f"  TP={m.true_positives}  FP={m.false_positives}  "
-          f"TN={m.true_negatives}  FN={m.false_negatives}")
+    print(
+        f"  TP={m.true_positives}  FP={m.false_positives}  "
+        f"TN={m.true_negatives}  FN={m.false_negatives}"
+    )
     print(f"{'=' * 60}")
 
 
@@ -252,7 +260,9 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(description="Director-AI medical domain benchmark")
-    parser.add_argument("--dataset", choices=["mednli", "pubmedqa", "all"], default="all")
+    parser.add_argument(
+        "--dataset", choices=["mednli", "pubmedqa", "all"], default="all"
+    )
     parser.add_argument("--max-samples", type=int, default=None)
     parser.add_argument("--threshold", type=float, default=0.75)
     parser.add_argument("--nli", action="store_true")

@@ -25,9 +25,7 @@ from __future__ import annotations
 
 import logging
 import time
-from dataclasses import dataclass, field
 
-import numpy as np
 from sklearn.metrics import balanced_accuracy_score
 
 from benchmarks._common import save_results
@@ -38,7 +36,9 @@ logger = logging.getLogger("DirectorAI.Benchmark.Legal")
 CONTRACTNLI_HF_ID = "kiddothe2b/contract-nli"
 
 
-def _load_contractnli(split: str = "test", max_samples: int | None = None) -> list[dict]:
+def _load_contractnli(
+    split: str = "test", max_samples: int | None = None
+) -> list[dict]:
     """Load ContractNLI dataset."""
     from datasets import load_dataset
 
@@ -53,8 +53,7 @@ def _load_contractnli(split: str = "test", max_samples: int | None = None) -> li
         except Exception as exc:
             logger.debug("Could not load %s: %s", hf_id, exc)
     raise RuntimeError(
-        "ContractNLI not available. "
-        "Try: pip install datasets && export HF_TOKEN=..."
+        "ContractNLI not available. Try: pip install datasets && export HF_TOKEN=..."
     )
 
 
@@ -62,7 +61,9 @@ def _load_cuad_ragbench(max_samples: int | None = None) -> list[dict]:
     """Load CUAD subset from RAGBench (rungalileo/ragbench)."""
     from datasets import load_dataset
 
-    ds = load_dataset("rungalileo/ragbench", "cuad", split="test", trust_remote_code=True)
+    ds = load_dataset(
+        "rungalileo/ragbench", "cuad", split="test", trust_remote_code=True
+    )
     rows = list(ds)
     if max_samples:
         rows = rows[:max_samples]
@@ -178,7 +179,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Director-AI legal domain benchmark")
     parser.add_argument(
-        "--dataset", choices=["contractnli", "cuad", "all"], default="all",
+        "--dataset",
+        choices=["contractnli", "cuad", "all"],
+        default="all",
     )
     parser.add_argument("--max-samples", type=int, default=None)
     parser.add_argument("--threshold", type=float, default=0.68)
