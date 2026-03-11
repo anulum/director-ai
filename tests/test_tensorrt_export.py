@@ -10,16 +10,15 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-
 # ── export_tensorrt unit tests ──────────────────────────────────────
 
 
 class TestExportTensorrt:
-    def test_missing_onnx_dir_raises(self):
+    def test_missing_onnx_dir_raises(self, tmp_path):
         from director_ai.core.nli import export_tensorrt
 
         with pytest.raises(FileNotFoundError, match="ONNX model not found"):
-            export_tensorrt(onnx_dir="/nonexistent/path")
+            export_tensorrt(onnx_dir=str(tmp_path / "no_such_dir"))
 
     def test_no_trt_provider_raises(self, tmp_path):
         onnx_dir = tmp_path / "onnx"
@@ -28,9 +27,16 @@ class TestExportTensorrt:
 
         from director_ai.core.nli import export_tensorrt
 
-        with patch("onnxruntime.get_available_providers", return_value=["CPUExecutionProvider"]):
-            with pytest.raises(RuntimeError, match="TensorrtExecutionProvider not available"):
-                export_tensorrt(onnx_dir=str(onnx_dir))
+        with (
+            patch(
+                "onnxruntime.get_available_providers",
+                return_value=["CPUExecutionProvider"],
+            ),
+            pytest.raises(
+                RuntimeError, match="TensorrtExecutionProvider not available"
+            ),
+        ):
+            export_tensorrt(onnx_dir=str(onnx_dir))
 
     def test_creates_cache_dir(self, tmp_path):
         onnx_dir = tmp_path / "onnx"
@@ -48,15 +54,25 @@ class TestExportTensorrt:
 
         mock_tokenizer = MagicMock()
         mock_tokenizer.return_value = {
-            "input_ids": __import__("numpy").ones((4, 10), dtype=__import__("numpy").int64),
-            "attention_mask": __import__("numpy").ones((4, 10), dtype=__import__("numpy").int64),
+            "input_ids": __import__("numpy").ones(
+                (4, 10), dtype=__import__("numpy").int64
+            ),
+            "attention_mask": __import__("numpy").ones(
+                (4, 10), dtype=__import__("numpy").int64
+            ),
         }
 
         with (
-            patch("onnxruntime.get_available_providers", return_value=["TensorrtExecutionProvider", "CUDAExecutionProvider"]),
+            patch(
+                "onnxruntime.get_available_providers",
+                return_value=["TensorrtExecutionProvider", "CUDAExecutionProvider"],
+            ),
             patch("onnxruntime.InferenceSession", return_value=mock_session),
             patch("onnxruntime.SessionOptions"),
-            patch("transformers.AutoTokenizer.from_pretrained", return_value=mock_tokenizer),
+            patch(
+                "transformers.AutoTokenizer.from_pretrained",
+                return_value=mock_tokenizer,
+            ),
         ):
             from director_ai.core.nli import export_tensorrt
 
@@ -90,14 +106,22 @@ class TestExportTensorrt:
 
         mock_tokenizer = MagicMock()
         mock_tokenizer.return_value = {
-            "input_ids": __import__("numpy").ones((4, 10), dtype=__import__("numpy").int64),
+            "input_ids": __import__("numpy").ones(
+                (4, 10), dtype=__import__("numpy").int64
+            ),
         }
 
         with (
-            patch("onnxruntime.get_available_providers", return_value=["TensorrtExecutionProvider", "CUDAExecutionProvider"]),
+            patch(
+                "onnxruntime.get_available_providers",
+                return_value=["TensorrtExecutionProvider", "CUDAExecutionProvider"],
+            ),
             patch("onnxruntime.InferenceSession", side_effect=capture_session),
             patch("onnxruntime.SessionOptions", return_value=MagicMock()),
-            patch("transformers.AutoTokenizer.from_pretrained", return_value=mock_tokenizer),
+            patch(
+                "transformers.AutoTokenizer.from_pretrained",
+                return_value=mock_tokenizer,
+            ),
         ):
             from director_ai.core.nli import export_tensorrt
 
@@ -128,10 +152,20 @@ class TestTrtAutoDetection:
         mock_tokenizer = MagicMock()
 
         with (
-            patch("onnxruntime.get_available_providers", return_value=["TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"]),
+            patch(
+                "onnxruntime.get_available_providers",
+                return_value=[
+                    "TensorrtExecutionProvider",
+                    "CUDAExecutionProvider",
+                    "CPUExecutionProvider",
+                ],
+            ),
             patch("onnxruntime.InferenceSession", side_effect=capture_session),
             patch("onnxruntime.SessionOptions", return_value=MagicMock()),
-            patch("transformers.AutoTokenizer.from_pretrained", return_value=mock_tokenizer),
+            patch(
+                "transformers.AutoTokenizer.from_pretrained",
+                return_value=mock_tokenizer,
+            ),
         ):
             from director_ai.core.nli import _load_onnx_session
 
@@ -163,10 +197,20 @@ class TestTrtAutoDetection:
 
         os.environ.pop("DIRECTOR_ENABLE_TRT", None)
         with (
-            patch("onnxruntime.get_available_providers", return_value=["TensorrtExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"]),
+            patch(
+                "onnxruntime.get_available_providers",
+                return_value=[
+                    "TensorrtExecutionProvider",
+                    "CUDAExecutionProvider",
+                    "CPUExecutionProvider",
+                ],
+            ),
             patch("onnxruntime.InferenceSession", side_effect=capture_session),
             patch("onnxruntime.SessionOptions", return_value=MagicMock()),
-            patch("transformers.AutoTokenizer.from_pretrained", return_value=mock_tokenizer),
+            patch(
+                "transformers.AutoTokenizer.from_pretrained",
+                return_value=mock_tokenizer,
+            ),
         ):
             from director_ai.core.nli import _load_onnx_session
 

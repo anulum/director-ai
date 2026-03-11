@@ -103,16 +103,22 @@ def _load_jsonl(path: str | Path) -> list[dict]:
                 continue
             row = json.loads(line)
             premise = row.get("premise") or row.get("doc") or row.get("context", "")
-            hypothesis = row.get("hypothesis") or row.get("claim") or row.get("response", "")
+            hypothesis = (
+                row.get("hypothesis") or row.get("claim") or row.get("response", "")
+            )
             label = row.get("label")
             if not premise or not hypothesis or label is None:
-                logger.warning("Skipping line %d: missing premise/hypothesis/label", line_num)
+                logger.warning(
+                    "Skipping line %d: missing premise/hypothesis/label", line_num
+                )
                 continue
-            rows.append({
-                "premise": premise,
-                "hypothesis": hypothesis,
-                "label": int(label),
-            })
+            rows.append(
+                {
+                    "premise": premise,
+                    "hypothesis": hypothesis,
+                    "label": int(label),
+                }
+            )
     logger.info("Loaded %d samples from %s", len(rows), path)
     return rows
 
@@ -149,8 +155,12 @@ def _mix_general_data(
 
     mixed = domain_rows + general_sample
     rng.shuffle(mixed)
-    logger.info("Mixed %d general samples into %d domain samples (%.0f%% general)",
-                len(general_sample), len(domain_rows), len(general_sample) / len(mixed) * 100)
+    logger.info(
+        "Mixed %d general samples into %d domain samples (%.0f%% general)",
+        len(general_sample),
+        len(domain_rows),
+        len(general_sample) / len(mixed) * 100,
+    )
     return mixed, len(general_sample)
 
 
@@ -178,25 +188,39 @@ def _prepare_dataset(rows: list[dict], tokenizer, max_length: int, is_factcg: bo
 
         def _tok(batch):
             return tokenizer(
-                batch["text"], truncation=True, padding="max_length", max_length=max_length,
+                batch["text"],
+                truncation=True,
+                padding="max_length",
+                max_length=max_length,
             )
 
         ds = ds.map(_tok, batched=True, batch_size=256, remove_columns=["text"])
     else:
         premises = [r["premise"] for r in rows]
         hypotheses = [r["hypothesis"] for r in rows]
-        ds = Dataset.from_dict({
-            "premise": premises, "hypothesis": hypotheses,
-            "labels": [r["label"] for r in rows],
-        })
+        ds = Dataset.from_dict(
+            {
+                "premise": premises,
+                "hypothesis": hypotheses,
+                "labels": [r["label"] for r in rows],
+            }
+        )
 
         def _tok_pair(batch):
             return tokenizer(
-                batch["premise"], batch["hypothesis"],
-                truncation=True, padding="max_length", max_length=max_length,
+                batch["premise"],
+                batch["hypothesis"],
+                truncation=True,
+                padding="max_length",
+                max_length=max_length,
             )
 
-        ds = ds.map(_tok_pair, batched=True, batch_size=256, remove_columns=["premise", "hypothesis"])
+        ds = ds.map(
+            _tok_pair,
+            batched=True,
+            batch_size=256,
+            remove_columns=["premise", "hypothesis"],
+        )
 
     ds.set_format("torch")
     return ds
@@ -222,7 +246,7 @@ def _make_weighted_trainer_class(class_weights: list[float]):
     weight_tensor = torch.tensor(class_weights, dtype=torch.float32)
 
     class WeightedTrainer(Trainer):
-        def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        def compute_loss(self, model, inputs, return_outputs=False, **kwargs):  # type: ignore[override]
             labels = inputs.pop("labels")
             outputs = model(**inputs)
             logits = outputs.logits
@@ -271,7 +295,10 @@ def finetune_nli(
     n_general_mixed = 0
     if config.mix_general_data:
         train_rows, n_general_mixed = _mix_general_data(
-            train_rows, config.general_data_path, config.general_data_ratio, config.seed,
+            train_rows,
+            config.general_data_path,
+            config.general_data_ratio,
+            config.seed,
         )
 
     # Phase E: compute class weights for imbalanced datasets
@@ -283,13 +310,20 @@ def finetune_nli(
     logger.info("Base model: %s", config.base_model)
     tokenizer = AutoTokenizer.from_pretrained(config.base_model)
     model = AutoModelForSequenceClassification.from_pretrained(
-        config.base_model, num_labels=2,
+        config.base_model,
+        num_labels=2,
     )
 
     is_factcg = "factcg" in config.base_model.lower()
 
-    train_dataset = _prepare_dataset(train_rows, tokenizer, config.max_length, is_factcg)
-    eval_dataset = _prepare_dataset(eval_rows, tokenizer, config.max_length, is_factcg) if eval_rows else None
+    train_dataset = _prepare_dataset(
+        train_rows, tokenizer, config.max_length, is_factcg
+    )
+    eval_dataset = (
+        _prepare_dataset(eval_rows, tokenizer, config.max_length, is_factcg)
+        if eval_rows
+        else None
+    )
 
     # save_strategy must match eval_strategy when load_best_model_at_end=True
     save_strat = "steps" if eval_dataset else config.save_strategy
@@ -307,7 +341,7 @@ def finetune_nli(
         eval_strategy="steps" if eval_dataset else "no",
         eval_steps=config.eval_steps if eval_dataset else None,
         save_strategy=save_strat,
-        save_steps=config.eval_steps if eval_dataset else None,
+        save_steps=float(config.eval_steps) if eval_dataset else None,  # type: ignore[arg-type]
         save_total_limit=2,
         load_best_model_at_end=bool(eval_dataset),
         metric_for_best_model="balanced_accuracy" if eval_dataset else None,
@@ -321,9 +355,11 @@ def finetune_nli(
     # Phase E: early stopping callback
     callbacks = []
     if config.early_stopping_patience > 0 and eval_dataset:
-        callbacks.append(EarlyStoppingCallback(
-            early_stopping_patience=config.early_stopping_patience,
-        ))
+        callbacks.append(
+            EarlyStoppingCallback(
+                early_stopping_patience=config.early_stopping_patience,
+            )
+        )
 
     # Phase E: class-weighted loss via custom Trainer
     trainer_cls = Trainer
@@ -339,8 +375,12 @@ def finetune_nli(
         callbacks=callbacks or None,
     )
 
-    logger.info("Starting fine-tuning: %d train, %d eval, %d epochs",
-                len(train_rows), len(eval_rows or []), config.epochs)
+    logger.info(
+        "Starting fine-tuning: %d train, %d eval, %d epochs",
+        len(train_rows),
+        len(eval_rows or []),
+        config.epochs,
+    )
     train_result = trainer.train()
 
     trainer.save_model(config.output_dir)
@@ -360,7 +400,9 @@ def finetune_nli(
         eval_metrics = trainer.evaluate()
         result.eval_metrics = eval_metrics
         result.best_balanced_accuracy = eval_metrics.get("eval_balanced_accuracy", 0.0)
-        logger.info("Best balanced accuracy: %.1f%%", result.best_balanced_accuracy * 100)
+        logger.info(
+            "Best balanced accuracy: %.1f%%", result.best_balanced_accuracy * 100
+        )
 
     # Phase E: auto-benchmark against baseline
     if config.auto_benchmark:
@@ -368,7 +410,8 @@ def finetune_nli(
             from director_ai.core.finetune_benchmark import benchmark_finetuned_model
 
             report = benchmark_finetuned_model(
-                config.output_dir, eval_path=eval_path,
+                config.output_dir,
+                eval_path=eval_path,
             )
             result.regression_report = {
                 "recommendation": report.recommendation,
@@ -376,7 +419,11 @@ def finetune_nli(
                 "domain_accuracy": report.domain_accuracy,
                 "regression_pp": report.regression_pp,
             }
-            logger.info("Anti-regression: %s (%.1fpp)", report.recommendation, report.regression_pp)
+            logger.info(
+                "Anti-regression: %s (%.1fpp)",
+                report.recommendation,
+                report.regression_pp,
+            )
         except Exception as exc:
             logger.warning("Auto-benchmark failed: %s", exc)
 

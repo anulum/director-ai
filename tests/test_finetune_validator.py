@@ -8,8 +8,6 @@ from __future__ import annotations
 
 import json
 
-import pytest
-
 from director_ai.core.finetune_validator import (
     DataQualityReport,
     validate_finetune_data,
@@ -21,7 +19,9 @@ def _make_samples(n_pos: int, n_neg: int) -> list[dict]:
     for i in range(n_pos):
         rows.append({"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1})
     for i in range(n_neg):
-        rows.append({"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0})
+        rows.append(
+            {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0}
+        )
     return rows
 
 
@@ -107,10 +107,7 @@ class TestValidateFail:
         assert any("no valid" in e.lower() for e in report.errors)
 
     def test_invalid_labels(self, tmp_path):
-        rows = [
-            {"premise": "a", "hypothesis": "b", "label": 5}
-            for _ in range(100)
-        ]
+        rows = [{"premise": "a", "hypothesis": "b", "label": 5} for _ in range(100)]
         f = tmp_path / "bad_labels.jsonl"
         _write_jsonl(f, rows)
         report = validate_finetune_data(f)
@@ -163,7 +160,10 @@ class TestValidateWarnings:
 
 class TestValidateFieldAliases:
     def test_doc_claim_aliases(self, tmp_path):
-        rows = [{"doc": f"Doc {i}.", "claim": f"Claim {i}.", "label": i % 2} for i in range(600)]
+        rows = [
+            {"doc": f"Doc {i}.", "claim": f"Claim {i}.", "label": i % 2}
+            for i in range(600)
+        ]
         f = tmp_path / "train.jsonl"
         _write_jsonl(f, rows)
         report = validate_finetune_data(f)
@@ -171,7 +171,10 @@ class TestValidateFieldAliases:
         assert report.total_samples == 600
 
     def test_context_response_aliases(self, tmp_path):
-        rows = [{"context": f"Ctx {i}.", "response": f"Resp {i}.", "label": i % 2} for i in range(600)]
+        rows = [
+            {"context": f"Ctx {i}.", "response": f"Resp {i}.", "label": i % 2}
+            for i in range(600)
+        ]
         f = tmp_path / "train.jsonl"
         _write_jsonl(f, rows)
         report = validate_finetune_data(f)
@@ -209,7 +212,9 @@ class TestLabelEdgeCases:
         assert report.parse_error_count == 1
 
     def test_too_many_bad_labels_truncates_errors(self, tmp_path):
-        rows = [{"premise": f"P{i}", "hypothesis": f"H{i}", "label": 99} for i in range(20)]
+        rows = [
+            {"premise": f"P{i}", "hypothesis": f"H{i}", "label": 99} for i in range(20)
+        ]
         f = tmp_path / "train.jsonl"
         _write_jsonl(f, rows)
         report = validate_finetune_data(f)

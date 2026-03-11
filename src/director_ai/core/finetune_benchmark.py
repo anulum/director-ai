@@ -73,16 +73,21 @@ def _load_benchmark_jsonl(path: str | Path) -> list[dict]:
             except json.JSONDecodeError:
                 continue
             premise = row.get("premise") or row.get("doc") or row.get("context", "")
-            hypothesis = row.get("hypothesis") or row.get("claim") or row.get("response", "")
+            hypothesis = (
+                row.get("hypothesis") or row.get("claim") or row.get("response", "")
+            )
             label = row.get("label")
             if premise and hypothesis and label is not None:
-                rows.append({"premise": premise, "hypothesis": hypothesis, "label": int(label)})
+                rows.append(
+                    {"premise": premise, "hypothesis": hypothesis, "label": int(label)}
+                )
     return rows
 
 
-def _evaluate_model(model_path: str | Path, samples: list[dict], batch_size: int = 48) -> dict:
+def _evaluate_model(
+    model_path: str | Path, samples: list[dict], batch_size: int = 48
+) -> dict:
     """Run a model on samples and return balanced_accuracy + f1."""
-    import numpy as np
     from sklearn.metrics import balanced_accuracy_score, f1_score
 
     try:
@@ -108,14 +113,19 @@ def _evaluate_model(model_path: str | Path, samples: list[dict], batch_size: int
             for s in samples
         ]
     else:
-        texts = [f"{s['premise']} {tokenizer.sep_token} {s['hypothesis']}" for s in samples]
+        texts = [
+            f"{s['premise']} {tokenizer.sep_token} {s['hypothesis']}" for s in samples
+        ]
     labels = [s["label"] for s in samples]
 
     all_preds = []
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i : i + batch_size]
         encodings = tokenizer(
-            batch_texts, truncation=True, padding=True, max_length=512,
+            batch_texts,
+            truncation=True,
+            padding=True,
+            max_length=512,
             return_tensors="pt",
         )
         encodings = {k: v.to(device) for k, v in encodings.items()}
@@ -169,7 +179,9 @@ def benchmark_finetuned_model(
     if general_path is not None:
         general_samples = _load_benchmark_jsonl(general_path)
         if general_samples:
-            logger.info("Evaluating general benchmark: %d samples", len(general_samples))
+            logger.info(
+                "Evaluating general benchmark: %d samples", len(general_samples)
+            )
             general_metrics = _evaluate_model(model_path, general_samples, batch_size)
             report.general_accuracy = general_metrics["balanced_accuracy"]
             report.general_f1 = general_metrics["f1"]
@@ -198,7 +210,9 @@ def benchmark_finetuned_model(
 
     logger.info(
         "Benchmark: domain=%.1f%%, general=%.1f%%, regression=%+.1fpp, rec=%s",
-        report.domain_accuracy * 100, report.general_accuracy * 100,
-        report.regression_pp, report.recommendation,
+        report.domain_accuracy * 100,
+        report.general_accuracy * 100,
+        report.regression_pp,
+        report.recommendation,
     )
     return report

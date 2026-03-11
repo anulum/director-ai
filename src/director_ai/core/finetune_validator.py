@@ -120,7 +120,9 @@ def validate_finetune_data(
                 continue
 
             premise = row.get("premise") or row.get("doc") or row.get("context", "")
-            hypothesis = row.get("hypothesis") or row.get("claim") or row.get("response", "")
+            hypothesis = (
+                row.get("hypothesis") or row.get("claim") or row.get("response", "")
+            )
             label = row.get("label")
 
             if not premise or not hypothesis:
@@ -161,8 +163,6 @@ def validate_finetune_data(
         report.errors.append("No valid samples found")
         return report
 
-    # Label distribution (use unique count for validation thresholds)
-    unique_count = report.total_samples - report.duplicate_count
     label_counts = Counter(r["label"] for r in rows)
     report.label_distribution = dict(label_counts)
 
@@ -199,13 +199,13 @@ def validate_finetune_data(
 
     if report.class_balance_ratio < 1 / MAX_IMBALANCE_RATIO:
         report.warnings.append(
-            f"Class imbalance {max_class}:{min_class} ({1/report.class_balance_ratio:.1f}:1) — "
+            f"Class imbalance {max_class}:{min_class} ({1 / report.class_balance_ratio:.1f}:1) — "
             f"consider downsampling the majority class"
         )
 
     if report.duplicate_count > report.total_samples * 0.1:
         report.warnings.append(
-            f"{report.duplicate_count} duplicates ({report.duplicate_count/report.total_samples:.0%}) — "
+            f"{report.duplicate_count} duplicates ({report.duplicate_count / report.total_samples:.0%}) — "
             f"consider deduplication"
         )
 
@@ -219,8 +219,15 @@ def validate_finetune_data(
         report.warnings.append(f"{report.parse_error_count} lines failed to parse")
 
     if report.empty_field_count > 0:
-        report.warnings.append(f"{report.empty_field_count} lines had empty/missing fields")
+        report.warnings.append(
+            f"{report.empty_field_count} lines had empty/missing fields"
+        )
 
-    logger.info("Validation: %d samples, valid=%s, %d warnings, %d errors",
-                report.total_samples, report.is_valid, len(report.warnings), len(report.errors))
+    logger.info(
+        "Validation: %d samples, valid=%s, %d warnings, %d errors",
+        report.total_samples,
+        report.is_valid,
+        len(report.warnings),
+        len(report.errors),
+    )
     return report

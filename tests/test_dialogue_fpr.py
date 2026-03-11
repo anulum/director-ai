@@ -9,8 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from director_ai.core.scorer import CoherenceScorer, _DIALOGUE_TURN_RE
-
+from director_ai.core.scorer import _DIALOGUE_TURN_RE, CoherenceScorer
 
 # ── Task detection ─────────────────────────────────────────────────
 
@@ -224,7 +223,9 @@ class TestDialogueDetectionInCoherence:
         NLI is required for the dialogue bidirectional path.
         """
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
-        prompt = "User: What color is the sky?\nAssistant: It's blue.\nUser: Are you sure?"
+        prompt = (
+            "User: What color is the sky?\nAssistant: It's blue.\nUser: Are you sure?"
+        )
         response = "Yes, the sky is typically blue during clear days."
         h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
             prompt, response
@@ -255,7 +256,9 @@ class TestDialogueReview:
     def test_dialogue_review_runs(self):
         """Smoke test: dialogue prompt doesn't crash review()."""
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
-        prompt = "User: What color is the sky?\nAssistant: It's blue.\nUser: Are you sure?"
+        prompt = (
+            "User: What color is the sky?\nAssistant: It's blue.\nUser: Are you sure?"
+        )
         response = "Yes, the sky is typically blue during clear days."
         approved, score = scorer.review(prompt, response)
         assert isinstance(approved, bool)

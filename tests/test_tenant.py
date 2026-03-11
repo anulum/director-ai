@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from director_ai.core.tenant import ModelVersion, TenantRouter
@@ -87,9 +89,12 @@ class TestModelVersion:
 
     def test_custom(self):
         mv = ModelVersion(
-            model_id="ft-med-v1", model_path="/models/med",
-            balanced_accuracy=0.88, regression_pp=-1.5,
-            recommendation="deploy", active=True,
+            model_id="ft-med-v1",
+            model_path="/models/med",
+            balanced_accuracy=0.88,
+            regression_pp=-1.5,
+            recommendation="deploy",
+            active=True,
         )
         assert mv.active
         assert mv.regression_pp == -1.5
@@ -207,7 +212,7 @@ class TestTenantManifest:
         bad = tmp_path / "bad.json"
         bad.write_text("not valid json {{{", encoding="utf-8")
         router = TenantRouter()
-        with pytest.raises(Exception):
+        with pytest.raises(json.JSONDecodeError):
             router.load_manifest(bad)
 
     def test_round_trip_preserves_inactive(self, tmp_path):

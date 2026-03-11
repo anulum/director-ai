@@ -794,7 +794,7 @@ def _cmd_finetune(args: list[str]) -> None:
 
     result = finetune_nli(train_file, eval_path=eval_file, config=config)
 
-    print(f"\nFine-tuning complete.")
+    print("\nFine-tuning complete.")
     print(f"  Model saved to:  {result.output_dir}")
     print(f"  Train samples:   {result.train_samples}")
     if result.mixed_general_samples:
@@ -806,10 +806,12 @@ def _cmd_finetune(args: list[str]) -> None:
         print(f"  Best bal. acc:   {result.best_balanced_accuracy:.1%}")
     if result.regression_report:
         rr = result.regression_report
-        print(f"  Regression:      {rr['regression_pp']:+.1f}pp → {rr['recommendation']}")
+        print(
+            f"  Regression:      {rr['regression_pp']:+.1f}pp → {rr['recommendation']}"
+        )
     if result.onnx_path:
         print(f"  ONNX export:     {result.onnx_path}")
-    print(f"\nUse the model:")
+    print("\nUse the model:")
     print(f'  scorer = NLIScorer(model_name="{result.output_dir}")')
 
 
@@ -832,12 +834,12 @@ def _cmd_validate_data(args: list[str]) -> None:
     print(report.summary())
 
     if report.warnings:
-        print(f"\nWarnings:")
+        print("\nWarnings:")
         for w in report.warnings:
             print(f"  - {w}")
 
     if report.errors:
-        print(f"\nErrors:")
+        print("\nErrors:")
         for e in report.errors:
             print(f"  - {e}")
         sys.exit(1)

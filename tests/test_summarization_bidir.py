@@ -11,7 +11,6 @@ import pytest
 
 from director_ai.core.scorer import CoherenceScorer
 
-
 # ── Attribute defaults ────────────────────────────────────────────
 
 
@@ -102,9 +101,6 @@ class TestSummarizationRouting:
         scorer._auto_dialogue_profile = True
         # Dialogue prompt — should be detected as dialogue, not summarization
         prompt = "User: Hi\nAssistant: Hello\nUser: How are you?"
-        response = "I'm doing well, thanks!"
-        # Without NLI, both paths fall through to heuristic, but the
-        # detection logic should still classify correctly
         task = CoherenceScorer._detect_task_type(prompt)
         assert task == "dialogue"
 

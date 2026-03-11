@@ -33,13 +33,26 @@ def _write_jsonl(path, rows):
 def _make_nli_data(n_pos=50, n_neg=50):
     rows = []
     for i in range(n_pos):
-        rows.append({"premise": f"The capital of country {i} is city {i}.", "hypothesis": f"City {i} is a capital.", "label": 1})
+        rows.append(
+            {
+                "premise": f"The capital of country {i} is city {i}.",
+                "hypothesis": f"City {i} is a capital.",
+                "label": 1,
+            }
+        )
     for i in range(n_neg):
-        rows.append({"premise": f"Country {i} has no coastline.", "hypothesis": f"Country {i} is an island.", "label": 0})
+        rows.append(
+            {
+                "premise": f"Country {i} has no coastline.",
+                "hypothesis": f"Country {i} is an island.",
+                "label": 0,
+            }
+        )
     return rows
 
 
 # ── _evaluate_model (real inference) ─────────────────────────────────
+
 
 class TestEvaluateModelReal:
     """Test _evaluate_model with real FactCG model on CPU (fits in RAM)."""
@@ -48,12 +61,36 @@ class TestEvaluateModelReal:
     def benchmark_file(self, tmp_path_factory):
         tmp = tmp_path_factory.mktemp("bench")
         rows = [
-            {"premise": "Paris is the capital of France.", "hypothesis": "Paris is in France.", "label": 1},
-            {"premise": "Paris is the capital of France.", "hypothesis": "Paris is in Germany.", "label": 0},
-            {"premise": "Water boils at 100 degrees Celsius.", "hypothesis": "Water boils at 100C.", "label": 1},
-            {"premise": "Water boils at 100 degrees Celsius.", "hypothesis": "Water freezes at 100C.", "label": 0},
-            {"premise": "The Earth orbits the Sun.", "hypothesis": "The Sun orbits the Earth.", "label": 0},
-            {"premise": "The Earth orbits the Sun.", "hypothesis": "Earth goes around the Sun.", "label": 1},
+            {
+                "premise": "Paris is the capital of France.",
+                "hypothesis": "Paris is in France.",
+                "label": 1,
+            },
+            {
+                "premise": "Paris is the capital of France.",
+                "hypothesis": "Paris is in Germany.",
+                "label": 0,
+            },
+            {
+                "premise": "Water boils at 100 degrees Celsius.",
+                "hypothesis": "Water boils at 100C.",
+                "label": 1,
+            },
+            {
+                "premise": "Water boils at 100 degrees Celsius.",
+                "hypothesis": "Water freezes at 100C.",
+                "label": 0,
+            },
+            {
+                "premise": "The Earth orbits the Sun.",
+                "hypothesis": "The Sun orbits the Earth.",
+                "label": 0,
+            },
+            {
+                "premise": "The Earth orbits the Sun.",
+                "hypothesis": "Earth goes around the Sun.",
+                "label": 1,
+            },
         ]
         f = tmp / "bench.jsonl"
         _write_jsonl(f, rows)
@@ -62,10 +99,22 @@ class TestEvaluateModelReal:
     def test_evaluate_returns_metrics(self, benchmark_file):
         from director_ai.core.finetune_benchmark import _evaluate_model
 
-        result = _evaluate_model(_FACTCG_MODEL, [
-            {"premise": "Paris is the capital of France.", "hypothesis": "Paris is in France.", "label": 1},
-            {"premise": "Paris is the capital of France.", "hypothesis": "Paris is in Germany.", "label": 0},
-        ], batch_size=2)
+        result = _evaluate_model(
+            _FACTCG_MODEL,
+            [
+                {
+                    "premise": "Paris is the capital of France.",
+                    "hypothesis": "Paris is in France.",
+                    "label": 1,
+                },
+                {
+                    "premise": "Paris is the capital of France.",
+                    "hypothesis": "Paris is in Germany.",
+                    "label": 0,
+                },
+            ],
+            batch_size=2,
+        )
         assert "balanced_accuracy" in result
         assert "f1" in result
         assert 0 <= result["balanced_accuracy"] <= 1
@@ -74,10 +123,26 @@ class TestEvaluateModelReal:
         from director_ai.core.finetune_benchmark import _evaluate_model
 
         samples = [
-            {"premise": "Paris is the capital of France.", "hypothesis": "Paris is in France.", "label": 1},
-            {"premise": "Paris is the capital of France.", "hypothesis": "Paris is in Germany.", "label": 0},
-            {"premise": "Water boils at 100 degrees Celsius.", "hypothesis": "Water boils at 100C.", "label": 1},
-            {"premise": "Water boils at 100 degrees Celsius.", "hypothesis": "Water freezes at 100C.", "label": 0},
+            {
+                "premise": "Paris is the capital of France.",
+                "hypothesis": "Paris is in France.",
+                "label": 1,
+            },
+            {
+                "premise": "Paris is the capital of France.",
+                "hypothesis": "Paris is in Germany.",
+                "label": 0,
+            },
+            {
+                "premise": "Water boils at 100 degrees Celsius.",
+                "hypothesis": "Water boils at 100C.",
+                "label": 1,
+            },
+            {
+                "premise": "Water boils at 100 degrees Celsius.",
+                "hypothesis": "Water freezes at 100C.",
+                "label": 0,
+            },
         ]
         result = _evaluate_model(_FACTCG_MODEL, samples, batch_size=4)
         assert result["balanced_accuracy"] >= 0.75
@@ -86,7 +151,8 @@ class TestEvaluateModelReal:
         from director_ai.core.finetune_benchmark import benchmark_finetuned_model
 
         report = benchmark_finetuned_model(
-            _FACTCG_MODEL, general_path=benchmark_file,
+            _FACTCG_MODEL,
+            general_path=benchmark_file,
         )
         assert report.general_accuracy > 0
         assert report.recommendation in ("deploy", "deploy_domain_only", "reject")
@@ -94,6 +160,7 @@ class TestEvaluateModelReal:
 
 
 # ── _prepare_dataset ─────────────────────────────────────────────────
+
 
 class TestPrepareDataset:
     def test_factcg_template(self):
@@ -117,6 +184,7 @@ class TestPrepareDataset:
 
 
 # ── finetune_nli (micro-training on GPU) ─────────────────────────────
+
 
 class TestFinetuneNliGPU:
     """Micro-training: 1 epoch, bs=2, 100 samples, deberta-v3-base."""
@@ -273,6 +341,7 @@ class TestFinetuneNliGPU:
 
 # ── _evaluate_model non-FactCG branch ────────────────────────────────
 
+
 class TestEvaluateNonFactCG:
     """Test _evaluate_model with a non-FactCG model (sep_token template)."""
 
@@ -280,11 +349,17 @@ class TestEvaluateNonFactCG:
         from director_ai.core.finetune_benchmark import _evaluate_model
 
         samples = [
-            {"premise": "Paris is the capital of France.", "hypothesis": "Paris is in France.", "label": 1},
-            {"premise": "Paris is the capital of France.", "hypothesis": "Paris is in Germany.", "label": 0},
+            {
+                "premise": "Paris is the capital of France.",
+                "hypothesis": "Paris is in France.",
+                "label": 1,
+            },
+            {
+                "premise": "Paris is the capital of France.",
+                "hypothesis": "Paris is in Germany.",
+                "label": 0,
+            },
         ]
         result = _evaluate_model(_NON_FACTCG_MODEL, samples, batch_size=2)
         assert "balanced_accuracy" in result
         assert 0 <= result["balanced_accuracy"] <= 1
-
-

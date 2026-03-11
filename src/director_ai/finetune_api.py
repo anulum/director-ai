@@ -31,9 +31,8 @@ import shutil
 import threading
 import time
 import uuid
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 logger = logging.getLogger("DirectorAI.FinetuneAPI")
 
@@ -52,10 +51,13 @@ _MAX_CONCURRENT_JOBS = 4
 
 # ── Job state ────────────────────────────────────────────────────────
 
+
 @dataclass
 class FinetuneJob:
     job_id: str
-    state: str = "pending"  # pending, validating, training, benchmarking, completed, failed
+    state: str = (
+        "pending"  # pending, validating, training, benchmarking, completed, failed
+    )
     progress: float = 0.0
     current_step: int = 0
     total_steps: int = 0
@@ -79,9 +81,15 @@ class _JobStore:
 
     def create(self, config: dict) -> FinetuneJob:
         with self._lock:
-            active = sum(1 for j in self._jobs.values() if j.state in ("training", "validating", "benchmarking"))
+            active = sum(
+                1
+                for j in self._jobs.values()
+                if j.state in ("training", "validating", "benchmarking")
+            )
             if active >= _MAX_CONCURRENT_JOBS:
-                raise ValueError(f"Too many concurrent jobs ({active}/{_MAX_CONCURRENT_JOBS})")
+                raise ValueError(
+                    f"Too many concurrent jobs ({active}/{_MAX_CONCURRENT_JOBS})"
+                )
         job = FinetuneJob(
             job_id=uuid.uuid4().hex,
             config=config,
@@ -142,9 +150,11 @@ if _FASTAPI_AVAILABLE:
 
 # ── Training worker ──────────────────────────────────────────────────
 
+
 def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
     """Background thread that runs the fine-tuning pipeline."""
-    train_path = eval_path = None
+    train_path: Path | None = None
+    eval_path: Path | None = None
     try:
         from director_ai.core.finetune import FinetuneConfig, finetune_nli
 
@@ -195,20 +205,25 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
         job.progress = 1.0
         job.state = "completed"
 
-        logger.info("Job %s completed: bal_acc=%.1f%%", job.job_id,
-                     result.best_balanced_accuracy * 100)
+        logger.info(
+            "Job %s completed: bal_acc=%.1f%%",
+            job.job_id,
+            result.best_balanced_accuracy * 100,
+        )
 
     except Exception as exc:
         job.error = str(exc)
         job.state = "failed"
         logger.error("Job %s failed: %s", job.job_id, exc)
     finally:
-        for p in (data_path, train_path, eval_path):
-            if p is not None:
-                p.unlink(missing_ok=True)
+        paths_to_clean: tuple[Path | None, ...] = (data_path, train_path, eval_path)
+        for _p in paths_to_clean:
+            if _p is not None:
+                _p.unlink(missing_ok=True)
 
 
 # ── Router factory ───────────────────────────────────────────────────
+
 
 def _read_upload_with_limit(content: bytes) -> bytes:
     """Reject uploads exceeding _MAX_UPLOAD_BYTES."""
@@ -244,7 +259,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     async def validate_data(file: UploadFile, req: ValidateRequest | None = None):
         """Validate uploaded JSONL data before training."""
         if req is None:
-            req = ValidateRequest()
+            req = ValidateRequest()  # type: ignore[call-arg]
 
         content = _read_upload_with_limit(await file.read())
         data_path = upload_dir / f"validate_{uuid.uuid4().hex[:8]}.jsonl"
@@ -272,7 +287,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     async def start_training(file: UploadFile, req: StartRequest | None = None):
         """Upload data and start a fine-tuning job."""
         if req is None:
-            req = StartRequest()
+            req = StartRequest()  # type: ignore[call-arg]
 
         content = _read_upload_with_limit(await file.read())
         job_id_prefix = uuid.uuid4().hex[:8]
@@ -360,7 +375,9 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
         if job.state != "completed":
-            raise HTTPException(409, f"Job {job_id} is not completed (state={job.state})")
+            raise HTTPException(
+                409, f"Job {job_id} is not completed (state={job.state})"
+            )
         job.activated = True
         logger.info("Model %s activated: %s", job_id, job.model_path)
         return {"job_id": job_id, "activated": True, "model_path": job.model_path}
@@ -400,7 +417,9 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         if not job:
             raise HTTPException(404, f"Job {job_id} not found")
         if job.activated:
-            raise HTTPException(409, "Cannot delete an activated model — rollback first")
+            raise HTTPException(
+                409, "Cannot delete an activated model — rollback first"
+            )
 
         if job.model_path:
             target = Path(job.model_path).resolve()

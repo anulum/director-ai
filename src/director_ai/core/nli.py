@@ -331,9 +331,7 @@ def export_tensorrt(
         ("The sky is blue due to Rayleigh scattering.", "The sky is blue.")
     ] * warmup_pairs
 
-    texts = [
-        _FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in dummy_pairs
-    ]
+    texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in dummy_pairs]
     inputs = tokenizer(
         texts,
         return_tensors="np",
@@ -958,8 +956,10 @@ class NLIScorer:
         divs: list[float] = []
         for claim in claims:
             div, _ = self.score_chunked(
-                source, claim,
-                inner_agg="min", outer_agg="mean",
+                source,
+                claim,
+                inner_agg="min",
+                outer_agg="mean",
                 premise_ratio=0.85,
             )
             divs.append(div)
@@ -986,22 +986,23 @@ class NLIScorer:
 
         if not claims:
             s = self.score(source, summary)
-            attr = [ClaimAttribution(
-                claim=summary, claim_index=0,
-                source_sentence=source_sents[0] if source_sents else source,
-                source_index=0, divergence=s, supported=s < support_threshold,
-            )]
+            attr = [
+                ClaimAttribution(
+                    claim=summary,
+                    claim_index=0,
+                    source_sentence=source_sents[0] if source_sents else source,
+                    source_index=0,
+                    divergence=s,
+                    supported=s < support_threshold,
+                )
+            ]
             return float(s < support_threshold), [s], [summary], attr
 
         if not source_sents:
             source_sents = [source]
 
         # Score all (source_sentence, claim) pairs in one batch
-        pairs = [
-            (src_s, claim)
-            for claim in claims
-            for src_s in source_sents
-        ]
+        pairs = [(src_s, claim) for claim in claims for src_s in source_sents]
         all_divs = self.score_batch(pairs)
 
         n_src = len(source_sents)
@@ -1015,14 +1016,16 @@ class NLIScorer:
             best_div = claim_scores[best_idx]
             per_claim_divs.append(best_div)
 
-            attributions.append(ClaimAttribution(
-                claim=claim,
-                claim_index=c_idx,
-                source_sentence=source_sents[best_idx],
-                source_index=best_idx,
-                divergence=best_div,
-                supported=best_div < support_threshold,
-            ))
+            attributions.append(
+                ClaimAttribution(
+                    claim=claim,
+                    claim_index=c_idx,
+                    source_sentence=source_sents[best_idx],
+                    source_index=best_idx,
+                    divergence=best_div,
+                    supported=best_div < support_threshold,
+                )
+            )
 
         supported = sum(1 for d in per_claim_divs if d < support_threshold)
         coverage = supported / len(claims)

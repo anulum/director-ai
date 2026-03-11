@@ -5,11 +5,9 @@
 # ─────────────────────────────────────────────────────────────────────
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock
 
-import numpy as np
 import pytest
-
 
 # ── ClaimAttribution dataclass ────────────────────────────────────
 
@@ -77,9 +75,12 @@ class TestScoringEvidenceNewFields:
             estimated_cost_usd=0.01024,
             attributions=[
                 ClaimAttribution(
-                    claim="c", claim_index=0,
-                    source_sentence="s", source_index=0,
-                    divergence=0.2, supported=True,
+                    claim="c",
+                    claim_index=0,
+                    source_sentence="s",
+                    source_index=0,
+                    divergence=0.2,
+                    supported=True,
                 )
             ],
         )
@@ -207,9 +208,12 @@ class TestEvidenceToDictExtensions:
             nli_score=0.3,
             attributions=[
                 ClaimAttribution(
-                    claim="c", claim_index=0,
-                    source_sentence="s", source_index=1,
-                    divergence=0.2, supported=True,
+                    claim="c",
+                    claim_index=0,
+                    source_sentence="s",
+                    source_index=1,
+                    divergence=0.2,
+                    supported=True,
                 ),
             ],
         )

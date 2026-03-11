@@ -220,7 +220,7 @@ ignore_missing_imports = true
 
 [tool.bandit]
 exclude_dirs = ["tests", "benchmarks"]
-skips = ["B101", "B104", "B608", "B615"]
+skips = ["B101", "B104", "B311", "B608", "B615"]
 
 [[tool.mypy.overrides]]
 module = "director_ai.director_pb2"
@@ -228,6 +228,10 @@ ignore_errors = true
 
 [[tool.mypy.overrides]]
 module = "director_ai.director_pb2_grpc"
+ignore_errors = true
+
+[[tool.mypy.overrides]]
+module = "director_ai.enterprise.redis"
 ignore_errors = true
 
 [[tool.mypy.overrides]]

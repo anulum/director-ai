@@ -164,9 +164,9 @@ class TestCliIngest:
         with pytest.raises(SystemExit):
             main(["ingest"])
 
-    def test_ingest_path_not_found(self):
+    def test_ingest_path_not_found(self, tmp_path):
         with pytest.raises(SystemExit):
-            main(["ingest", "/nonexistent/path"])
+            main(["ingest", str(tmp_path / "definitely_nonexistent_dir")])
 
     def test_ingest_txt_file(self, capsys, tmp_path):
         txt = tmp_path / "facts.txt"

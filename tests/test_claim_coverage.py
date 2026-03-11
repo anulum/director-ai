@@ -20,7 +20,6 @@ from director_ai.core.nli import NLIScorer
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.types import ScoringEvidence
 
-
 # ── NLIScorer.score_claim_coverage ──────────────────────────────────
 
 
@@ -61,11 +60,13 @@ class TestScoreClaimCoverage:
         assert divs[0] == 0.8
 
     def test_mixed_claims(self):
-        scorer = self._make_scorer({
-            "The sky is blue.": 0.1,   # supported
-            "Water is wet.": 0.2,       # supported
-            "Mars is flat.": 0.9,       # unsupported
-        })
+        scorer = self._make_scorer(
+            {
+                "The sky is blue.": 0.1,  # supported
+                "Water is wet.": 0.2,  # supported
+                "Mars is flat.": 0.9,  # unsupported
+            }
+        )
         cov, divs, claims = scorer.score_claim_coverage(
             "Source about sky and water.",
             "The sky is blue. Water is wet. Mars is flat.",
@@ -74,34 +75,46 @@ class TestScoreClaimCoverage:
         assert cov == pytest.approx(2.0 / 3.0)
 
     def test_all_supported(self):
-        scorer = self._make_scorer({
-            "Claim A.": 0.1,
-            "Claim B.": 0.2,
-        })
+        scorer = self._make_scorer(
+            {
+                "Claim A.": 0.1,
+                "Claim B.": 0.2,
+            }
+        )
         cov, divs, claims = scorer.score_claim_coverage(
-            "Source.", "Claim A. Claim B.",
+            "Source.",
+            "Claim A. Claim B.",
         )
         assert cov == 1.0
 
     def test_none_supported(self):
-        scorer = self._make_scorer({
-            "Bad claim A.": 0.8,
-            "Bad claim B.": 0.9,
-        })
+        scorer = self._make_scorer(
+            {
+                "Bad claim A.": 0.8,
+                "Bad claim B.": 0.9,
+            }
+        )
         cov, divs, claims = scorer.score_claim_coverage(
-            "Source.", "Bad claim A. Bad claim B.",
+            "Source.",
+            "Bad claim A. Bad claim B.",
         )
         assert cov == 0.0
 
     def test_custom_threshold(self):
-        scorer = self._make_scorer({
-            "Claim X.": 0.35,  # supported at 0.5, not at 0.3
-        })
+        scorer = self._make_scorer(
+            {
+                "Claim X.": 0.35,  # supported at 0.5, not at 0.3
+            }
+        )
         cov_loose, _, _ = scorer.score_claim_coverage(
-            "Source.", "Claim X.", support_threshold=0.5,
+            "Source.",
+            "Claim X.",
+            support_threshold=0.5,
         )
         cov_strict, _, _ = scorer.score_claim_coverage(
-            "Source.", "Claim X.", support_threshold=0.3,
+            "Source.",
+            "Claim X.",
+            support_threshold=0.3,
         )
         assert cov_loose == 1.0
         assert cov_strict == 0.0
@@ -143,10 +156,13 @@ class TestClaimCoverageConfig:
         assert scorer._claim_coverage_alpha == 0.3
 
     def test_env_override(self):
-        with patch.dict("os.environ", {
-            "DIRECTOR_NLI_CLAIM_COVERAGE_ENABLED": "false",
-            "DIRECTOR_NLI_CLAIM_COVERAGE_ALPHA": "0.6",
-        }):
+        with patch.dict(
+            "os.environ",
+            {
+                "DIRECTOR_NLI_CLAIM_COVERAGE_ENABLED": "false",
+                "DIRECTOR_NLI_CLAIM_COVERAGE_ALPHA": "0.6",
+            },
+        ):
             cfg = DirectorConfig.from_env()
             assert cfg.nli_claim_coverage_enabled is False
             assert cfg.nli_claim_coverage_alpha == 0.6
@@ -177,7 +193,10 @@ class TestScorerClaimCoverageIntegration:
 
         # Layer A: forward + reverse scoring
         mock_nli._score_chunked_with_counts.return_value = (
-            layer_a_div, [layer_a_div], 1, 1,
+            layer_a_div,
+            [layer_a_div],
+            1,
+            1,
         )
         mock_nli.score_chunked.return_value = (layer_a_div, [])
 
@@ -190,14 +209,21 @@ class TestScorerClaimCoverageIntegration:
         claims = [f"Claim {i}." for i in range(num_claims)]
         attrs = [
             ClaimAttribution(
-                claim=c, claim_index=i, source_sentence="src",
-                source_index=0, divergence=d, supported=d < 0.6,
+                claim=c,
+                claim_index=i,
+                source_sentence="src",
+                source_index=0,
+                divergence=d,
+                supported=d < 0.6,
             )
-            for i, (c, d) in enumerate(zip(claims, divs))
+            for i, (c, d) in enumerate(zip(claims, divs, strict=False))
         ]
         mock_nli.score_claim_coverage.return_value = (coverage, divs, claims)
         mock_nli.score_claim_coverage_with_attribution.return_value = (
-            coverage, divs, claims, attrs,
+            coverage,
+            divs,
+            claims,
+            attrs,
         )
 
         scorer._nli = mock_nli
@@ -241,7 +267,7 @@ class TestScorerClaimCoverageIntegration:
     def test_zero_coverage_increases_divergence(self):
         scorer = self._make_scorer_with_mocked_nli(coverage=0.0, layer_a_div=0.15)
         div, _ = scorer._summarization_factual_divergence("doc", "summary")
-        layer_a = max(0, (0.15 - 0.20) / 0.80)  # 0.0 (below baseline)
+        # layer_a = max(0, (0.15-0.20)/0.80) = 0.0 (below baseline)
         # Layer C: alpha * 1.0 + (1-alpha) * 0.0 = 0.4
         assert div == pytest.approx(0.4, abs=0.01)
 
@@ -254,7 +280,10 @@ class TestScoringEvidenceClaimFields:
 
     def test_defaults_none(self):
         ev = ScoringEvidence(
-            chunks=[], nli_premise="p", nli_hypothesis="h", nli_score=0.5,
+            chunks=[],
+            nli_premise="p",
+            nli_hypothesis="h",
+            nli_score=0.5,
         )
         assert ev.claim_coverage is None
         assert ev.per_claim_divergences is None
@@ -262,7 +291,10 @@ class TestScoringEvidenceClaimFields:
 
     def test_set_fields(self):
         ev = ScoringEvidence(
-            chunks=[], nli_premise="p", nli_hypothesis="h", nli_score=0.5,
+            chunks=[],
+            nli_premise="p",
+            nli_hypothesis="h",
+            nli_score=0.5,
             claim_coverage=0.75,
             per_claim_divergences=[0.1, 0.2, 0.8],
             claims=["A.", "B.", "C."],
@@ -282,7 +314,10 @@ class TestServerEvidenceSerialization:
         from director_ai.server import _evidence_to_dict
 
         ev = ScoringEvidence(
-            chunks=[], nli_premise="p", nli_hypothesis="h", nli_score=0.5,
+            chunks=[],
+            nli_premise="p",
+            nli_hypothesis="h",
+            nli_score=0.5,
         )
         d = _evidence_to_dict(ev)
         assert "claim_coverage" not in d
@@ -291,7 +326,10 @@ class TestServerEvidenceSerialization:
         from director_ai.server import _evidence_to_dict
 
         ev = ScoringEvidence(
-            chunks=[], nli_premise="p", nli_hypothesis="h", nli_score=0.5,
+            chunks=[],
+            nli_premise="p",
+            nli_hypothesis="h",
+            nli_score=0.5,
             claim_coverage=0.75,
             per_claim_divergences=[0.1, 0.8],
             claims=["Good.", "Bad."],

@@ -12,9 +12,9 @@ from unittest.mock import patch
 import pytest
 
 from director_ai.finetune_api import (
+    _MAX_CONCURRENT_JOBS,
     FinetuneJob,
     _JobStore,
-    _MAX_CONCURRENT_JOBS,
     _run_training_worker,
     create_finetune_router,
 )
@@ -52,7 +52,7 @@ class TestJobStore:
 
     def test_concurrent_job_limit(self):
         store = _JobStore()
-        for i in range(_MAX_CONCURRENT_JOBS):
+        for _i in range(_MAX_CONCURRENT_JOBS):
             job = store.create({"epochs": 1})
             job.state = "training"
         with pytest.raises(ValueError, match="Too many"):
@@ -113,9 +113,13 @@ class TestRouterEndpoints:
     def _make_jsonl_bytes(self, n_pos=300, n_neg=300):
         rows = []
         for i in range(n_pos):
-            rows.append({"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1})
+            rows.append(
+                {"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1}
+            )
         for i in range(n_neg):
-            rows.append({"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0})
+            rows.append(
+                {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0}
+            )
         return ("\n".join(json.dumps(r) for r in rows) + "\n").encode("utf-8")
 
     def test_validate_valid_data(self, client):
@@ -142,7 +146,7 @@ class TestRouterEndpoints:
         assert len(body["errors"]) > 0
 
     def test_start_rejects_bad_data(self, client):
-        data = b'not json\n'
+        data = b"not json\n"
         resp = client.post(
             "/v1/finetune/start",
             files={"file": ("bad.jsonl", data, "application/jsonl")},
@@ -183,24 +187,10 @@ class TestRouterSuccessPaths:
         from fastapi import FastAPI
         from fastapi.testclient import TestClient
 
-        from director_ai.finetune_api import _JobStore
-
         app = FastAPI()
         router = create_finetune_router(models_dir=tmp_path / "models")
         app.include_router(router, prefix="/v1/finetune")
-        client = TestClient(app)
-
-        # Inject a completed job directly into the store
-        # Access the store via the router's closure
-        store = None
-        for route in router.routes:
-            if hasattr(route, "endpoint") and route.endpoint.__name__ == "list_models":
-                store = route.endpoint.__code__.co_freevars
-                break
-
-        # Create job via store directly — we need to access the store from the closure
-        # Instead, just POST valid data and manually complete the job
-        return client
+        return TestClient(app)
 
     def test_activate_completed_job(self, tmp_path):
         from fastapi import FastAPI
@@ -212,8 +202,8 @@ class TestRouterSuccessPaths:
         client = TestClient(app)
 
         # Manually create a completed job via the internal store
-        from director_ai.finetune_api import FinetuneJob, _JobStore
-        import types
+
+        from director_ai.finetune_api import _JobStore
 
         # Get the store from the router closure
         for route in router.routes:
@@ -250,7 +240,11 @@ class TestRouterSuccessPaths:
 
         store = None
         for route in router.routes:
-            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+            if (
+                hasattr(route, "endpoint")
+                and hasattr(route.endpoint, "__closure__")
+                and route.endpoint.__closure__
+            ):
                 for cell in route.endpoint.__closure__:
                     try:
                         obj = cell.cell_contents
@@ -283,7 +277,11 @@ class TestRouterSuccessPaths:
 
         store = None
         for route in router.routes:
-            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+            if (
+                hasattr(route, "endpoint")
+                and hasattr(route.endpoint, "__closure__")
+                and route.endpoint.__closure__
+            ):
                 for cell in route.endpoint.__closure__:
                     try:
                         obj = cell.cell_contents
@@ -318,7 +316,11 @@ class TestRouterSuccessPaths:
 
         store = None
         for route in router.routes:
-            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+            if (
+                hasattr(route, "endpoint")
+                and hasattr(route.endpoint, "__closure__")
+                and route.endpoint.__closure__
+            ):
                 for cell in route.endpoint.__closure__:
                     try:
                         obj = cell.cell_contents
@@ -350,7 +352,11 @@ class TestRouterSuccessPaths:
 
         store = None
         for route in router.routes:
-            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+            if (
+                hasattr(route, "endpoint")
+                and hasattr(route.endpoint, "__closure__")
+                and route.endpoint.__closure__
+            ):
                 for cell in route.endpoint.__closure__:
                     try:
                         obj = cell.cell_contents
@@ -382,7 +388,11 @@ class TestRouterSuccessPaths:
 
         store = None
         for route in router.routes:
-            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+            if (
+                hasattr(route, "endpoint")
+                and hasattr(route.endpoint, "__closure__")
+                and route.endpoint.__closure__
+            ):
                 for cell in route.endpoint.__closure__:
                     try:
                         obj = cell.cell_contents
@@ -419,7 +429,11 @@ class TestRouterSuccessPaths:
 
         store = None
         for route in router.routes:
-            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+            if (
+                hasattr(route, "endpoint")
+                and hasattr(route.endpoint, "__closure__")
+                and route.endpoint.__closure__
+            ):
                 for cell in route.endpoint.__closure__:
                     try:
                         obj = cell.cell_contents
@@ -478,9 +492,13 @@ class TestRouterStartEndpoint:
     def _make_jsonl_bytes(self, n_pos=300, n_neg=300):
         rows = []
         for i in range(n_pos):
-            rows.append({"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1})
+            rows.append(
+                {"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1}
+            )
         for i in range(n_neg):
-            rows.append({"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0})
+            rows.append(
+                {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0}
+            )
         return ("\n".join(json.dumps(r) for r in rows) + "\n").encode("utf-8")
 
     @patch("director_ai.finetune_api._run_training_worker")
@@ -543,7 +561,11 @@ class TestRouterStartEndpoint:
         # Fill up the concurrent limit
         store = None
         for route in router.routes:
-            if hasattr(route, "endpoint") and hasattr(route.endpoint, "__closure__") and route.endpoint.__closure__:
+            if (
+                hasattr(route, "endpoint")
+                and hasattr(route.endpoint, "__closure__")
+                and route.endpoint.__closure__
+            ):
                 for cell in route.endpoint.__closure__:
                     try:
                         obj = cell.cell_contents
@@ -555,7 +577,7 @@ class TestRouterStartEndpoint:
                 if store:
                     break
 
-        for i in range(_MAX_CONCURRENT_JOBS):
+        for _i in range(_MAX_CONCURRENT_JOBS):
             job = store.create({"epochs": 1})
             job.state = "training"
 
@@ -574,7 +596,7 @@ class TestBenchmarkJsonlRobust:
         f = tmp_path / "bench.jsonl"
         f.write_text(
             '{"premise":"a","hypothesis":"b","label":1}\n'
-            'not json at all\n'
+            "not json at all\n"
             '{"premise":"c","hypothesis":"d","label":0}\n',
             encoding="utf-8",
         )
@@ -587,7 +609,9 @@ def _make_jsonl_file(path, n_pos=60, n_neg=60):
     for i in range(n_pos):
         rows.append({"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1})
     for i in range(n_neg):
-        rows.append({"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0})
+        rows.append(
+            {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0}
+        )
     path.write_text(
         "\n".join(json.dumps(r) for r in rows) + "\n",
         encoding="utf-8",
@@ -635,7 +659,10 @@ class TestTrainingWorkerDirect:
         assert job.completed_at > 0
         assert not data_path.exists()
 
-    @patch("director_ai.core.finetune.finetune_nli", side_effect=ValueError("No valid samples"))
+    @patch(
+        "director_ai.core.finetune.finetune_nli",
+        side_effect=ValueError("No valid samples"),
+    )
     def test_worker_handles_training_error(self, mock_ft, tmp_path):
         data_path = tmp_path / "data.jsonl"
         _make_jsonl_file(data_path, 10, 10)
@@ -676,7 +703,9 @@ class TestTrainingWorkerDirect:
         assert train_path.endswith("_train.jsonl")
         assert eval_path.endswith("_eval.jsonl")
 
-    @patch("director_ai.core.finetune.finetune_nli", side_effect=RuntimeError("GPU OOM"))
+    @patch(
+        "director_ai.core.finetune.finetune_nli", side_effect=RuntimeError("GPU OOM")
+    )
     def test_worker_cleans_up_on_exception(self, mock_ft, tmp_path):
         data_path = tmp_path / "data.jsonl"
         _make_jsonl_file(data_path)

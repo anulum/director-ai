@@ -90,8 +90,18 @@ class TestLoadJsonl:
 
         f = tmp_path / "train.jsonl"
         f.write_text(
-            json.dumps({"premise": "The sky is blue.", "hypothesis": "Sky is blue.", "label": 1}) + "\n"
-            + json.dumps({"premise": "Cats are dogs.", "hypothesis": "Cats bark.", "label": 0}) + "\n",
+            json.dumps(
+                {
+                    "premise": "The sky is blue.",
+                    "hypothesis": "Sky is blue.",
+                    "label": 1,
+                }
+            )
+            + "\n"
+            + json.dumps(
+                {"premise": "Cats are dogs.", "hypothesis": "Cats bark.", "label": 0}
+            )
+            + "\n",
             encoding="utf-8",
         )
         rows = _load_jsonl(f)
@@ -104,7 +114,8 @@ class TestLoadJsonl:
 
         f = tmp_path / "train.jsonl"
         f.write_text(
-            json.dumps({"doc": "Source text.", "claim": "Derived claim.", "label": 1}) + "\n",
+            json.dumps({"doc": "Source text.", "claim": "Derived claim.", "label": 1})
+            + "\n",
             encoding="utf-8",
         )
         rows = _load_jsonl(f)
@@ -117,9 +128,12 @@ class TestLoadJsonl:
 
         f = tmp_path / "train.jsonl"
         f.write_text(
-            json.dumps({"premise": "ok", "hypothesis": "ok", "label": 1}) + "\n"
-            + json.dumps({"premise": "missing hypothesis"}) + "\n"
-            + json.dumps({"hypothesis": "missing premise", "label": 0}) + "\n",
+            json.dumps({"premise": "ok", "hypothesis": "ok", "label": 1})
+            + "\n"
+            + json.dumps({"premise": "missing hypothesis"})
+            + "\n"
+            + json.dumps({"hypothesis": "missing premise", "label": 0})
+            + "\n",
             encoding="utf-8",
         )
         rows = _load_jsonl(f)
@@ -131,7 +145,8 @@ class TestLoadJsonl:
         f = tmp_path / "train.jsonl"
         f.write_text(
             "\n"
-            + json.dumps({"premise": "a", "hypothesis": "b", "label": 1}) + "\n"
+            + json.dumps({"premise": "a", "hypothesis": "b", "label": 1})
+            + "\n"
             + "\n",
             encoding="utf-8",
         )
@@ -163,9 +178,14 @@ class TestMixGeneralData:
     def test_mix_adds_general_data(self, tmp_path):
         from director_ai.core.finetune import _mix_general_data
 
-        domain = [{"premise": f"D{i}", "hypothesis": f"C{i}", "label": i % 2} for i in range(100)]
+        domain = [
+            {"premise": f"D{i}", "hypothesis": f"C{i}", "label": i % 2}
+            for i in range(100)
+        ]
         general_file = self._make_jsonl(tmp_path, "general.jsonl", 50)
-        mixed, n_added = _mix_general_data(domain, str(general_file), ratio=0.2, seed=42)
+        mixed, n_added = _mix_general_data(
+            domain, str(general_file), ratio=0.2, seed=42
+        )
         assert n_added > 0
         assert len(mixed) == len(domain) + n_added
 
@@ -173,16 +193,23 @@ class TestMixGeneralData:
         from director_ai.core.finetune import _mix_general_data
 
         domain = [{"premise": "D", "hypothesis": "C", "label": 1}]
-        mixed, n_added = _mix_general_data(domain, "/nonexistent_path_xyz.jsonl", 0.2, 42)
+        mixed, n_added = _mix_general_data(
+            domain, "/nonexistent_path_xyz.jsonl", 0.2, 42
+        )
         assert n_added == 0
         assert mixed is domain
 
     def test_mix_ratio_is_approximate(self, tmp_path):
         from director_ai.core.finetune import _mix_general_data
 
-        domain = [{"premise": f"D{i}", "hypothesis": f"C{i}", "label": i % 2} for i in range(800)]
+        domain = [
+            {"premise": f"D{i}", "hypothesis": f"C{i}", "label": i % 2}
+            for i in range(800)
+        ]
         general_file = self._make_jsonl(tmp_path, "general.jsonl", 500)
-        mixed, n_added = _mix_general_data(domain, str(general_file), ratio=0.2, seed=42)
+        mixed, n_added = _mix_general_data(
+            domain, str(general_file), ratio=0.2, seed=42
+        )
         actual_ratio = n_added / len(mixed)
         assert 0.15 < actual_ratio < 0.25
 
