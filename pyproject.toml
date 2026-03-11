@@ -199,6 +199,7 @@ omit = [
     "src/director_ai/grpc_server.py",       # requires [grpc] extras (grpcio)
     "src/director_ai/director_pb2.py",      # generated protobuf stubs
     "src/director_ai/director_pb2_grpc.py", # generated gRPC stubs
+    "src/director_ai/enterprise/*",         # requires [enterprise] extras (Redis)
 ]
 
 [tool.coverage.report]
