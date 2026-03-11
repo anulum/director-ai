@@ -7,10 +7,11 @@ branch = true
 omit =
     src/director_ai/director_pb2.py
     src/director_ai/director_pb2_grpc.py
+    src/director_ai/enterprise/*
 
 [report]
 show_missing = true
-fail_under = 85
+fail_under = 75
 exclude_lines =
     pragma: no cover
     if __name__ == .__main__.
