@@ -32,7 +32,7 @@ Director-AI intercepts LLM outputs and scores them for factual coherence against
 - **Graceful fallback** — retrieval or disclaimer modes instead of hard stops
 - **SDK interceptors** — 2-line integration with OpenAI/Anthropic SDKs
 - **Framework integrations** — LangChain, LlamaIndex, LangGraph, Haystack, CrewAI
-- **8 domain presets** — medical, finance, legal, creative, customer support, and more
+- **10 domain presets** — medical, finance, legal, creative, customer support, and more
 
 ## Quick Example
 
@@ -106,7 +106,7 @@ Full reference documentation for the external interface:
 
 ## Maintenance
 
-Director-AI is actively maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.4.0 (March 2026). See [CHANGELOG](changelog.md) and [ROADMAP](https://github.com/anulum/director-ai/blob/main/ROADMAP.md).
+Director-AI is actively maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.7.0 (March 2026). See [CHANGELOG](changelog.md) and [ROADMAP](https://github.com/anulum/director-ai/blob/main/ROADMAP.md).
 
 ## License
 

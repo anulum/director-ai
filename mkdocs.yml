@@ -114,5 +114,6 @@ nav:
     - Streaming: reference/streaming.md
     - Config: reference/config.md
     - Server: reference/server.md
+  - Tutorials: tutorials.md
   - Changelog: changelog.md
   - Licensing: licensing.md

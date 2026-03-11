@@ -86,7 +86,7 @@ pip install director-ai[vector]
 Use `TenantRouter` to isolate KBs per tenant:
 
 ```python
-from director_ai import TenantRouter
+from director_ai.enterprise import TenantRouter
 
 router = TenantRouter()
 

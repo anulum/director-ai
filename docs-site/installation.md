@@ -25,7 +25,11 @@ Includes: coherence scorer, streaming kernel, safety kernel, ground truth store,
 | `langgraph` | `pip install director-ai[langgraph]` | LangGraph integration |
 | `haystack` | `pip install director-ai[haystack]` | Haystack integration |
 | `crewai` | `pip install director-ai[crewai]` | CrewAI integration |
+| `finetune` | `pip install director-ai[finetune]` | Domain-specific NLI fine-tuning (torch, transformers, datasets) |
+| `grpc` | `pip install director-ai[grpc]` | gRPC server (grpcio, protobuf) |
 | `server` | `pip install director-ai[server]` | FastAPI server |
+| `otel` | `pip install director-ai[otel]` | OpenTelemetry tracing |
+| `enterprise` | `pip install director-ai[enterprise]` | Multi-tenant, audit, Redis |
 | `docs` | `pip install director-ai[docs]` | MkDocs documentation tools |
 | `dev` | `pip install director-ai[dev]` | pytest, ruff, mypy, sphinx |
 
@@ -60,4 +64,4 @@ scorer = CoherenceScorer(
 
 ## Python Version
 
-Requires Python 3.10+.
+Requires Python 3.11+.

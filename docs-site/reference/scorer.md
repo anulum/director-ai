@@ -16,7 +16,7 @@ scorer = CoherenceScorer(
     use_nli=None,             # True/False/None (auto-detect)
     ground_truth_store=None,  # GroundTruthStore for RAG factual checks
     cache_size=0,             # LRU cache entries (0 = disabled)
-    scorer_backend="deberta", # "deberta", "onnx", or "hybrid"
+    scorer_backend="deberta", # "deberta", "onnx", "minicheck", "lite", "rust", or "hybrid"
     onnx_path=None,           # ONNX model path
 )
 ```

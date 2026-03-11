@@ -114,6 +114,7 @@ enterprise = [
     "redis>=4.5",
     "pyjwt>=2.8",
     "argon2-cffi>=23.1",
+    "psycopg2-binary>=2.9",
 ]
 research = []
 train = [

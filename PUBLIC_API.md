@@ -1,4 +1,4 @@
-# Public API — Director-AI v3.4.0
+# Public API — Director-AI v3.7.0
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -60,6 +60,8 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `PineconeBackend` | `core.vector_store` | Pinecone backend |
 | `WeaviateBackend` | `core.vector_store` | Weaviate backend |
 | `QdrantBackend` | `core.vector_store` | Qdrant backend |
+| `FAISSBackend` | `core.vector_store` | FAISS backend |
+| `ElasticsearchBackend` | `core.vector_store` | Elasticsearch backend |
 
 ## Vector Backend Plugin API
 
@@ -112,6 +114,18 @@ bypass the queue.
 | `review_queue_max_batch` | `int` | `32` | Flush after N requests accumulate |
 | `review_queue_flush_timeout_ms` | `float` | `10.0` | Flush after N ms (whichever first) |
 
+## Fine-Tuning
+
+| Symbol | Module | Description |
+|--------|--------|-------------|
+| `FinetuneConfig` | `core.finetune` | Training configuration dataclass |
+| `FinetuneResult` | `core.finetune` | Training result (metrics, output path) |
+| `finetune_nli()` | `core.finetune` | Fine-tune NLI model on domain data |
+| `validate_finetune_data()` | `core.finetune_validator` | Validate JSONL training data |
+| `DataQualityReport` | `core.finetune_validator` | Validation report dataclass |
+| `benchmark_finetuned_model()` | `core.finetune_benchmark` | Benchmark fine-tuned vs baseline |
+| `RegressionReport` | `core.finetune_benchmark` | Benchmark result dataclass |
+
 ## Threshold Tuning
 
 | Symbol | Module | Description |
@@ -125,6 +139,7 @@ bypass the queue.
 |----------|--------|-------------|
 | `nli_available()` | `core.nli` | Check NLI readiness |
 | `export_onnx()` | `core.nli` | Export model to ONNX |
+| `export_tensorrt()` | `core.nli` | Export ONNX model to TensorRT |
 | `guard()` | `integrations.sdk_guard` | One-liner SDK interceptor (duck-type detection) |
 | `get_score()` | `integrations.sdk_guard` | Retrieve last score from context |
 | `create_app()` | `server` | Create FastAPI app |

@@ -199,8 +199,25 @@
   - 13 new tests (`tests/test_summarization_bidir.py`)
   - 2065 tests, 0 failures
 
+## v3.6.0
+
+### Done
+- Summarization FPR: 10.5% → 2.0% via Layer C (claim decomposition + coverage scoring)
+  - `NLIScorer.score_claim_coverage()` decomposes summaries into atomic claims
+  - Config: `nli_claim_coverage_enabled`, `nli_claim_support_threshold` (0.5), `nli_claim_coverage_alpha` (0.4)
+  - `ScoringEvidence` includes `claim_coverage`, `per_claim_divergences`, `claims`
+  - 21 new tests, 2084 total
+
+## v3.7.0
+
+### Done
+- Sentence-level attribution: `ClaimAttribution` maps claims to source sentences
+- Cost transparency: `ScoringEvidence.token_count`, `estimated_cost_usd`
+- Domain benchmarks: medical_eval (MedNLI + PubMedQA), legal_eval (ContractNLI + CUAD), finance_eval (FinanceBench)
+- Fine-tuning pipeline: `finetune_nli()`, `FinetuneConfig`, `FinetuneResult`, CLI `director-ai finetune`
+- TensorRT export: `export_tensorrt()`, CLI `director-ai export --format tensorrt`
+- ONNX CUDA: 4.5ms/pair median (2.4x faster than PyTorch)
+
 ### Planned
 - Distill smaller NLI model (DeBERTa-base from FactCG-Large teacher + hybrid labels)
-- Claim decomposition for summarisation domain (remaining 10.5% FPR)
 - ReviewQueue adaptive flushing (dynamic max_batch based on request rate)
-- Customer-trainable models: allow customers to fine-tune NLI scorer on their own domain data

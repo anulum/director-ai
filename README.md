@@ -214,7 +214,7 @@ Run: `python -m benchmarks.e2e_eval`.
 
 ## Domain Presets
 
-8 built-in profiles with tuned thresholds:
+10 built-in profiles with tuned thresholds:
 
 ```bash
 director-ai config --profile medical   # threshold=0.75, NLI on, reranker on
@@ -268,7 +268,7 @@ See [CHANGELOG](CHANGELOG.md) for the full list of breaking changes.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.6.0},
+  version   = {3.7.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

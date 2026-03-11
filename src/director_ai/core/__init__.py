@@ -22,6 +22,7 @@ from .agent import CoherenceAgent
 from .async_streaming import AsyncStreamingKernel
 from .backends import ScorerBackend, get_backend, list_backends, register_backend
 from .cache import ScoreCache
+from .config import DirectorConfig
 from .finetune import FinetuneConfig, FinetuneResult, finetune_nli
 from .finetune_benchmark import RegressionReport, benchmark_finetuned_model
 from .finetune_validator import DataQualityReport, validate_finetune_data
@@ -101,6 +102,7 @@ __all__ = [
     "DataQualityReport",
     "benchmark_finetuned_model",
     "RegressionReport",
+    "DirectorConfig",
 ]
 
 _MOVED_TO_ENTERPRISE = {

@@ -2,6 +2,21 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
+## v3.7.0 (2026-03-10)
+
+### Added
+- **Sentence-level attribution**: `ClaimAttribution` dataclass maps each summary claim to the source sentence with lowest divergence. Available in `ScoringEvidence.attributions` and the `/v1/review` API response.
+- **Cost transparency**: `ScoringEvidence.token_count` and `estimated_cost_usd` track NLI token consumption per check.
+- **Domain benchmarks**: `medical_eval.py` (MedNLI + PubMedQA), `legal_eval.py` (ContractNLI + CUAD/RAGBench), `finance_eval.py` (FinanceBench + Financial PhraseBank).
+- **Fine-tuning pipeline**: `finetune_nli()`, `FinetuneConfig`, `FinetuneResult`. CLI: `director-ai finetune train.jsonl`. Install: `pip install director-ai[finetune]`.
+- **Load testing benchmark**: concurrent RPS measurement with P50/P95/P99 latency.
+- `export_tensorrt()` — pre-builds TRT engine cache from ONNX model.
+- CLI `director-ai export` subcommand (`--format onnx|tensorrt`).
+
+### Performance
+- ONNX CUDA: 4.5ms/pair median (2.4x vs PyTorch 10.9ms), L4 GPU.
+- ONNX FP16: 4.2ms/pair. ONNX CPU: 4.1ms/pair (competitive at batch=4).
+
 ## v3.6.0 (2026-03-10)
 
 ### Fixed
@@ -42,6 +57,51 @@ See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/dir
 ### Changed
 - Summarization profile: `w_logic=0.0, w_fact=1.0`, `coherence_threshold=0.15`, `nli_fact_outer_agg="trimmed_mean"`, `nli_use_prompt_as_premise=True`
 - `_heuristic_coherence` short-circuits logical divergence when `W_LOGIC < 1e-9`
+
+## v3.3.0 (2026-03-07)
+
+### Added
+- Generated gRPC protobuf stubs from `proto/director.proto`
+- `CoherenceAgent.aprocess()` and `CoherenceAgent.astream()` async methods
+- `CoherenceScorer.review_batch()` — coalesced batch NLI (2 GPU kernels instead of 2*N)
+- `ReviewQueue` — server-level continuous batching with configurable flush window
+- `--cors-origins` flag on `director-ai serve`
+
+### Changed
+- `cors_origins` default changed from `"*"` to `""` (no CORS by default)
+- H_logical and H_factual computed in parallel via `ThreadPoolExecutor` (~40% latency reduction)
+
+## v3.2.0 (2026-03-07)
+
+### Added
+- `BatchProcessor.process_batch_async()` and `review_batch_async()` — async batch processing
+- `__aiter__` on Bedrock, Gemini, Cohere guarded streams (parity with OpenAI/Anthropic)
+- `VectorBackend.aadd()` / `aquery()` async defaults via `run_in_executor`
+- `LiteScorer.review()` returning `(bool, CoherenceScore)` matching `CoherenceScorer` interface
+- Config validation: `reranker_model` / `embedding_model` non-empty when feature enabled
+
+## v3.1.0 (2026-03-07)
+
+### Added
+- Hybrid scorer hardening: NLI confidence margin fix, LLM judge verdict caching, retry with back-off
+- Enterprise modules: `PostgresAuditSink`, `RedisGroundTruthStore`
+- WASM edge runtime: CI pipeline, browser integration tutorial, overhead benchmark
+- Rust backend: PyO3 0.24 upgrade, SIMD micro-cycle vectorization
+- Vector backends: FAISS (dense search), Elasticsearch (hybrid BM25 + dense)
+- RAGTruth + FreshQA GPU benchmark, cross-platform latency profiling
+
+## v3.0.0 (2026-03-07)
+
+### Breaking Changes
+- Minimum Python 3.11 (dropped 3.10)
+- Enterprise classes moved: `TenantRouter`, `Policy`, `AuditLogger` → `director_ai.enterprise`
+- Removed deprecated 1.x aliases (`calculate_factual_entropy`, `review_action`, etc.)
+- Slimmed root `__all__`: internal classes removed from public API surface
+
+### Added
+- `director_ai.enterprise` package re-exporting all 5 enterprise classes
+- `director-ai tune` adaptive threshold calibration
+- Python 3.13 in CI matrix
 
 ## v2.0.0 (2026-03-02)
 

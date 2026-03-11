@@ -15,7 +15,7 @@ curl https://your-server:8080/v1/source
 ```json
 {
   "license": "AGPL-3.0-or-later",
-  "version": "3.4.0",
+  "version": "3.7.0",
   "repository_url": "https://github.com/anulum/director-ai",
   "instructions": "git clone https://github.com/anulum/director-ai",
   "agpl_section": "13"
