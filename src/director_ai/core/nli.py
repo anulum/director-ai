@@ -812,12 +812,14 @@ class NLIScorer:
         Avoids splitting after abbreviations (e.g. U.S., Dr., etc.)
         and decimal numbers (e.g. 2.3%).
         """
-        _ABBREV = re.compile(
+        abbrev_re = re.compile(
             r"(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Inc|Ltd|Corp|vs|etc|e\.g|i\.e|U\.S|U\.K)\.\s+",
             re.IGNORECASE,
         )
         # Protect abbreviations with placeholder
-        protected = _ABBREV.sub(lambda m: m.group().replace(". ", ".<NOSPLIT>"), text.strip())
+        protected = abbrev_re.sub(
+            lambda m: m.group().replace(". ", ".<NOSPLIT>"), text.strip()
+        )
         # Protect decimals: digit.digit
         protected = re.sub(r"(\d)\.(\d)", r"\1.<NOSPLIT>\2", protected)
         parts = re.split(r"(?<=[.!?])\s+", protected)
@@ -1046,13 +1048,13 @@ class NLIScorer:
         if not source_sents:
             source_sents = [source]
 
-        _MAX_ATTRIBUTION_PAIRS = 10_000
+        max_attribution_pairs = 10_000
         n_pairs = len(claims) * len(source_sents)
-        if n_pairs > _MAX_ATTRIBUTION_PAIRS:
+        if n_pairs > max_attribution_pairs:
             raise ValueError(
                 f"Attribution would create {n_pairs} pairs "
                 f"({len(claims)} claims × {len(source_sents)} source sentences), "
-                f"exceeding limit of {_MAX_ATTRIBUTION_PAIRS}"
+                f"exceeding limit of {max_attribution_pairs}"
             )
 
         pairs = [(src_s, claim) for claim in claims for src_s in source_sents]
