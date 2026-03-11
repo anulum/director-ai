@@ -25,6 +25,7 @@ Mount via::
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import shutil
@@ -247,10 +248,14 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     if models_dir is None:
         models_dir = _DEFAULT_MODELS_DIR
     models_dir = Path(models_dir).resolve()
-    models_dir.mkdir(parents=True, exist_ok=True)
+    try:
+        models_dir.mkdir(parents=True, exist_ok=True)
+    except PermissionError:
+        logger.warning("Cannot create models dir %s (read-only filesystem)", models_dir)
 
     upload_dir = models_dir / "_uploads"
-    upload_dir.mkdir(parents=True, exist_ok=True)
+    with contextlib.suppress(PermissionError):
+        upload_dir.mkdir(parents=True, exist_ok=True)
 
     store = _JobStore()
     router = APIRouter(tags=["finetune"])
