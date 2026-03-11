@@ -179,6 +179,7 @@ ignore = ["E501"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/director_ai/__init__.py" = ["F401"]
+"notebooks/*.ipynb" = ["N802", "N803", "N806", "B007", "SIM108", "F401", "I001"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
