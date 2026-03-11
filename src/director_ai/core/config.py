@@ -303,6 +303,8 @@ class DirectorConfig:
 
             data = yaml.safe_load(raw)
         except ImportError:
+            if path.endswith((".yaml", ".yml")):
+                logger.warning("PyYAML not installed — parsing %s as JSON fallback", path)
             data = json.loads(raw)
 
         if not isinstance(data, dict):
@@ -585,7 +587,10 @@ class DirectorConfig:
         scorer._claim_coverage_alpha = self.nli_claim_coverage_alpha
         return scorer
 
-    _REDACTED_FIELDS: frozenset[str] = frozenset({"llm_api_key", "api_keys"})
+    _REDACTED_FIELDS: frozenset[str] = frozenset({
+        "llm_api_key", "api_keys",
+        "audit_postgres_url", "redis_url",
+    })
 
     def to_dict(self) -> dict:
         """Serialize to a plain dict (safe for JSON/API responses)."""

@@ -146,8 +146,13 @@ class CoherenceAgent:
         best_rejected_score = None
         best_rejected_coherence = -1.0
 
+        _ERROR_MARKERS = ("[Timeout]", "[Error]", "[ConnectionError]")
+
         for i, cand in enumerate(candidates):
             text = cand["text"]
+            if any(text.strip().startswith(m) for m in _ERROR_MARKERS):
+                self.logger.warning("Candidate %d is error text, skipping: %s", i, text[:60])
+                continue
             try:
                 approved, score = self.scorer.review(prompt, text, tenant_id=tenant_id)
             except TypeError:

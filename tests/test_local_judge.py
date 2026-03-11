@@ -117,10 +117,12 @@ class TestLocalJudgeConfig:
         assert scorer._local_judge_model is not None
 
     def test_should_escalate_with_local(self):
-        """Local judge escalates on hybrid backend."""
+        """Local judge escalates when NLI confidence is low (near 0.5)."""
         scorer = _make_local_scorer()
         assert scorer._should_escalate(0.5) is True
-        assert scorer._should_escalate(0.1) is True
+        assert scorer._should_escalate(0.45) is True
+        # High confidence → no escalation needed
+        assert scorer._should_escalate(0.1) is False
 
     def test_should_not_escalate_without_model(self):
         """No model loaded → no escalation."""

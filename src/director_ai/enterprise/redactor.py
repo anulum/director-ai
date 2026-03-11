@@ -20,13 +20,13 @@ class PIIRedactor:
 
     _PATTERNS = [
         (re.compile(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+"), "[EMAIL]"),
-        (re.compile(r"\b\d{3}[-.]?\d{2}[-.]?\d{4}\b"), "[SSN]"),
+        (re.compile(r"\b(?:\d{4}[\s-]?){3}\d{4}\b"), "[CARD]"),
+        # SSN before phone: 3-2-4 digit pattern with dash/dot separators
+        (re.compile(r"\b\d{3}[-]\d{2}[-]\d{4}\b"), "[SSN]"),
         (
             re.compile(r"(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b"),
             "[PHONE]",
         ),
-        (re.compile(r"\b(?:\d{4}[\s-]?){3}\d{4}\b"), "[CARD]"),
-        # Basic PHI/Health ID indicators (simulated)
         (re.compile(r"\b(?:MRN|DOB|NHS)[\s:]*[A-Z0-9-]+\b", re.IGNORECASE), "[PHI]"),
     ]
 

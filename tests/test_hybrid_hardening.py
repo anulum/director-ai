@@ -29,10 +29,14 @@ def _mock_openai_yes():
 
 
 class TestShouldEscalate:
-    def test_hybrid_always_escalates(self):
+    def test_hybrid_escalates_near_boundary(self):
         scorer = _make_hybrid_scorer()
-        assert scorer._should_escalate(0.1) is True
-        assert scorer._should_escalate(0.9) is True
+        # High-confidence scores (far from 0.5) should NOT escalate
+        assert scorer._should_escalate(0.1) is False
+        assert scorer._should_escalate(0.9) is False
+        # Low-confidence scores (near 0.5) should escalate
+        assert scorer._should_escalate(0.5) is True
+        assert scorer._should_escalate(0.45) is True
 
     def test_disabled_never_escalates(self):
         scorer = CoherenceScorer(use_nli=False, llm_judge_enabled=False)
@@ -60,12 +64,18 @@ class TestShouldEscalate:
 class TestNonEvidenceEscalation:
     def test_calculate_factual_divergence_triggers_judge(self):
         store = GroundTruthStore()
-        store.add("sky", "The sky is blue.")
-        scorer = _make_hybrid_scorer(ground_truth_store=store)
+        # Use mismatched text so heuristic score lands near the ambiguity boundary
+        store.add("weather", "Today is partly cloudy with mild temperatures.")
+        scorer = _make_hybrid_scorer(
+            ground_truth_store=store,
+            llm_judge_confidence_threshold=0.51,
+        )
 
         mock_openai, client = _mock_openai_yes()
         with patch.dict(sys.modules, {"openai": mock_openai}):
-            result = scorer.calculate_factual_divergence("sky?", "The sky is blue.")
+            result = scorer.calculate_factual_divergence(
+                "weather?", "The weather will be sunny and warm tomorrow."
+            )
         assert 0.0 <= result <= 1.0
         client.chat.completions.create.assert_called_once()
 
@@ -84,13 +94,20 @@ class TestNonEvidenceEscalation:
 class TestJudgeCache:
     def test_cache_hit_avoids_api_call(self):
         store = GroundTruthStore()
-        store.add("sky", "The sky is blue.")
-        scorer = _make_hybrid_scorer(ground_truth_store=store)
+        store.add("weather", "Today is partly cloudy with mild temperatures.")
+        scorer = _make_hybrid_scorer(
+            ground_truth_store=store,
+            llm_judge_confidence_threshold=0.51,
+        )
 
         mock_openai, client = _mock_openai_yes()
         with patch.dict(sys.modules, {"openai": mock_openai}):
-            r1 = scorer.calculate_factual_divergence("sky?", "The sky is blue.")
-            r2 = scorer.calculate_factual_divergence("sky?", "The sky is blue.")
+            r1 = scorer.calculate_factual_divergence(
+                "weather?", "The weather will be sunny and warm tomorrow."
+            )
+            r2 = scorer.calculate_factual_divergence(
+                "weather?", "The weather will be sunny and warm tomorrow."
+            )
 
         assert r1 == r2
         client.chat.completions.create.assert_called_once()

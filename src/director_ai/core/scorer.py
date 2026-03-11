@@ -40,8 +40,8 @@ LLM_JUDGE_LLM_WEIGHT = 0.3  # = 1 - NLI_WEIGHT
 # (HaluEval puts all turns on one line: "[Human]: text [Assistant]: text").
 _DIALOGUE_TURN_RE = re.compile(
     r"(?:^|\s)(?:"
-    r"(?:User|Human|Customer|Patient|Student|Interviewer|Speaker"
-    r"|Assistant|AI|Bot|Agent|Doctor|Teacher|Interviewee|System)"
+    r"(?:User|Human|Customer|Student|Interviewer|Speaker"
+    r"|Assistant|AI|Bot|Agent|Interviewee|System)"
     r"(?:\s*\d*)?\s*:"
     r"|\[(?:User|Human|Assistant|AI|System)\]"
     r")",
@@ -371,10 +371,7 @@ class CoherenceScorer:
             return False
         if self._llm_judge_provider == "local" and self._local_judge_model is None:
             return False
-        return bool(
-            self.scorer_backend == "hybrid"
-            or abs(nli_score - 0.5) < self._llm_judge_threshold
-        )
+        return abs(nli_score - 0.5) < self._llm_judge_threshold
 
     def _llm_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
         """Escalate to judge when NLI confidence is low.
@@ -595,7 +592,8 @@ class CoherenceScorer:
 
         # Baseline calibration: shift expected dialogue divergence to 0
         baseline = self._dialogue_nli_baseline
-        adjusted = max(0.0, (raw_div - baseline) / (1.0 - baseline))
+        denom = 1.0 - baseline
+        adjusted = max(0.0, (raw_div - baseline) / denom) if denom > 1e-9 else raw_div
 
         return adjusted, evidence
 

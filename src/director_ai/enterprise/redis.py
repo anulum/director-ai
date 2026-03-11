@@ -152,12 +152,22 @@ class RedisScoreCache(ScoreCache):
 
     @property
     def size(self) -> int:
-        # Approximate size of keys matching prefix
-        return len(self.client.keys(f"{self.prefix}*"))
+        count = 0
+        cursor = 0
+        while True:
+            cursor, keys = self.client.scan(cursor, match=f"{self.prefix}*", count=100)
+            count += len(keys)
+            if cursor == 0:
+                break
+        return count
 
     def clear(self) -> None:
-        keys = self.client.keys(f"{self.prefix}*")
-        if keys:
-            self.client.delete(*keys)
+        cursor = 0
+        while True:
+            cursor, keys = self.client.scan(cursor, match=f"{self.prefix}*", count=100)
+            if keys:
+                self.client.delete(*keys)
+            if cursor == 0:
+                break
         self.hits = 0
         self.misses = 0

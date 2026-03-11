@@ -807,8 +807,21 @@ class NLIScorer:
 
     @staticmethod
     def _split_sentences(text: str) -> list[str]:
-        """Split on sentence-ending punctuation + whitespace."""
-        return [s for s in re.split(r"(?<=[.!?])\s+", text.strip()) if s.strip()]
+        """Split on sentence-ending punctuation + whitespace.
+
+        Avoids splitting after abbreviations (e.g. U.S., Dr., etc.)
+        and decimal numbers (e.g. 2.3%).
+        """
+        _ABBREV = re.compile(
+            r"(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Inc|Ltd|Corp|vs|etc|e\.g|i\.e|U\.S|U\.K)\.\s+",
+            re.IGNORECASE,
+        )
+        # Protect abbreviations with placeholder
+        protected = _ABBREV.sub(lambda m: m.group().replace(". ", ".<NOSPLIT>"), text.strip())
+        # Protect decimals: digit.digit
+        protected = re.sub(r"(\d)\.(\d)", r"\1.<NOSPLIT>\2", protected)
+        parts = re.split(r"(?<=[.!?])\s+", protected)
+        return [s.replace("<NOSPLIT>", " ").strip() for s in parts if s.strip()]
 
     @staticmethod
     def _estimate_tokens(text: str) -> int:
@@ -1033,7 +1046,15 @@ class NLIScorer:
         if not source_sents:
             source_sents = [source]
 
-        # Score all (source_sentence, claim) pairs in one batch
+        _MAX_ATTRIBUTION_PAIRS = 10_000
+        n_pairs = len(claims) * len(source_sents)
+        if n_pairs > _MAX_ATTRIBUTION_PAIRS:
+            raise ValueError(
+                f"Attribution would create {n_pairs} pairs "
+                f"({len(claims)} claims × {len(source_sents)} source sentences), "
+                f"exceeding limit of {_MAX_ATTRIBUTION_PAIRS}"
+            )
+
         pairs = [(src_s, claim) for claim in claims for src_s in source_sents]
         all_divs = self.score_batch(pairs)
 
