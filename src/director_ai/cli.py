@@ -48,6 +48,7 @@ def main(argv: list[str] | None = None) -> None:
         "validate-data": _cmd_validate_data,
         "export": _cmd_export,
         "serve": _cmd_serve,
+        "proxy": _cmd_proxy,
         "config": _cmd_config,
         "stress-test": _cmd_stress_test,
         "doctor": _cmd_doctor,
@@ -80,6 +81,7 @@ def _print_help() -> None:
         "  finetune <train.jsonl> [options]  Fine-tune NLI model on domain data\n"
         "  validate-data <file.jsonl>       Validate data before fine-tuning\n"
         "  serve [--port N] [--workers W]  Start the FastAPI server\n"
+        "  proxy [--port N] [--facts F]   OpenAI-compatible guardrail proxy\n"
         "  export [--format F]   Export model to ONNX/TensorRT\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
         "  doctor                Check runtime dependencies and readiness\n"
@@ -903,6 +905,59 @@ def _cmd_export(args: list[str]) -> None:
     else:
         print(f"Unknown format '{fmt}'. Use 'onnx' or 'tensorrt'.")
         sys.exit(1)
+
+
+def _cmd_proxy(args: list[str]) -> None:
+    """Start OpenAI-compatible guardrail proxy."""
+    port = 8080
+    threshold = 0.6
+    facts_path = None
+    upstream_url = "https://api.openai.com"
+    on_fail = "reject"
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--port" and i + 1 < len(args):
+            port = int(args[i + 1])
+            i += 2
+        elif args[i] == "--threshold" and i + 1 < len(args):
+            threshold = float(args[i + 1])
+            i += 2
+        elif args[i] == "--facts" and i + 1 < len(args):
+            facts_path = args[i + 1]
+            i += 2
+        elif args[i] == "--upstream-url" and i + 1 < len(args):
+            upstream_url = args[i + 1]
+            i += 2
+        elif args[i] == "--on-fail" and i + 1 < len(args):
+            on_fail = args[i + 1]
+            if on_fail not in ("reject", "warn"):
+                print(f"Error: --on-fail must be 'reject' or 'warn', got '{on_fail}'")
+                sys.exit(1)
+            i += 2
+        else:
+            i += 1
+
+    try:
+        import uvicorn
+    except ImportError:
+        print("uvicorn is required: pip install director-ai[server]")
+        sys.exit(1)
+
+    from director_ai.proxy import create_proxy_app
+
+    app = create_proxy_app(
+        threshold=threshold,
+        facts_path=facts_path,
+        upstream_url=upstream_url,
+        on_fail=on_fail,
+    )
+
+    print(
+        f"Director-AI proxy on :{port} → {upstream_url} "
+        f"(threshold={threshold}, on_fail={on_fail})"
+    )
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
 def _cmd_serve(args: list[str]) -> None:

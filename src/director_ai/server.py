@@ -337,7 +337,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Director-Class AI",
-        version="3.7.0",
+        version="3.8.0",
         description="Real-time multi-agent orchestration and coherence scoring.",
         lifespan=lifespan,
     )
@@ -419,6 +419,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if cfg.api_keys and request.url.path not in _auth_exempt:
             provided = request.headers.get("X-API-Key", "")
             if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
+                logger.warning(
+                    "Auth failed from %s on %s",
+                    request.client.host if request.client else "unknown",
+                    request.url.path,
+                )
                 return JSONResponse(
                     status_code=401,
                     content={"detail": "Invalid or missing API key"},
@@ -493,10 +498,17 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if not scorer:  # pragma: no cover — lifespan always sets scorer
             raise HTTPException(503, "Server not ready")
 
-        # Tenant routing
+        # Tenant routing — S-05: log tenant access for audit trail
         tenant_id = getattr(
             request.state, "tenant_id", request.headers.get("X-Tenant-ID", "")
         )
+        if tenant_id:
+            logger.info(
+                "Tenant access: tenant=%s src=%s path=%s",
+                tenant_id,
+                request.client.host if request.client else "unknown",
+                request.url.path,
+            )
 
         session = None
         if req.session_id:
@@ -600,13 +612,22 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         tenant_id = getattr(
             request.state, "tenant_id", request.headers.get("X-Tenant-ID", "")
         )
+        if tenant_id:
+            logger.info(
+                "Tenant access: tenant=%s src=%s path=%s",
+                tenant_id,
+                request.client.host if request.client else "unknown",
+                request.url.path,
+            )
 
         try:
             with metrics.timer("review_duration_seconds"):
                 result = await agent.aprocess(req.prompt, tenant_id=tenant_id)
         except Exception as e:
-            logger.error(f"Error during process: {e}")
-            raise HTTPException(status_code=500, detail=str(e)) from e
+            logger.error("Review processing failed: %s", e, exc_info=True)
+            raise HTTPException(
+                status_code=500, detail="Internal processing error"
+            ) from e
         latency_ms = (time.monotonic() - start) * 1000
 
         if result.halted:
@@ -679,6 +700,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         tenant_id = getattr(
             request.state, "tenant_id", request.headers.get("X-Tenant-ID", "")
         )
+        if tenant_id:
+            logger.info(
+                "Tenant access: tenant=%s src=%s path=%s",
+                tenant_id,
+                request.client.host if request.client else "unknown",
+                request.url.path,
+            )
 
         results = []
         try:
@@ -729,8 +757,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 errors=[{"index": e[0], "error": e[1]} for e in batch_res.errors],
             )
         except Exception as e:
-            logger.error(f"Error during batching: {e}")
-            raise HTTPException(status_code=500, detail=str(e)) from e
+            logger.error("Batch processing failed: %s", e, exc_info=True)
+            raise HTTPException(
+                status_code=500, detail="Internal processing error"
+            ) from e
 
     # ── Tenants ───────────────────────────────────────────────────────
 

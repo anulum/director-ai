@@ -33,6 +33,41 @@ def get_score() -> CoherenceScore | None:
     return _score_var.get()
 
 
+def score(
+    prompt: str,
+    response: str,
+    *,
+    facts: dict[str, str] | None = None,
+    store: GroundTruthStore | None = None,
+    threshold: float = 0.5,
+    use_nli: bool | None = None,
+    profile: str | None = None,
+) -> CoherenceScore:
+    """Score a single prompt/response pair for hallucination.
+
+    Returns a ``CoherenceScore`` without requiring an SDK client.
+    """
+    if profile is not None:
+        from director_ai.core.config import DirectorConfig
+
+        cfg = DirectorConfig.from_profile(profile)
+        gts = store or GroundTruthStore()
+        if facts:
+            for k, v in facts.items():
+                gts.add(k, v)
+        scorer = cfg.build_scorer(store=gts)
+    else:
+        gts = store or GroundTruthStore()
+        if facts:
+            for k, v in facts.items():
+                gts.add(k, v)
+        scorer = CoherenceScorer(
+            threshold=threshold, ground_truth_store=gts, use_nli=use_nli
+        )
+    _approved, cs = scorer.review(prompt, response)
+    return cs  # type: ignore[no-any-return]
+
+
 def guard(
     client,
     *,

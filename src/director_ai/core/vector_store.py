@@ -18,6 +18,7 @@ Install with::
 from __future__ import annotations
 
 import logging
+import threading
 from abc import ABC, abstractmethod
 from typing import Any
 
@@ -139,21 +140,25 @@ class InMemoryBackend(VectorBackend):
 
     def __init__(self) -> None:
         self._docs: list[dict[str, Any]] = []
+        self._lock = threading.Lock()
 
     def add(  # type: ignore[override]
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
-        self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
+        with self._lock:
+            self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
 
     def query(
         self, text: str, n_results: int = 3, tenant_id: str = ""
     ) -> list[dict[str, Any]]:
+        with self._lock:
+            snapshot = list(self._docs)
 
-        if not self._docs:
+        if not snapshot:
             return []
         docs = [
             d
-            for d in self._docs
+            for d in snapshot
             if not tenant_id or d["metadata"].get("tenant_id") == tenant_id
         ]
         if not docs:
@@ -178,7 +183,8 @@ class InMemoryBackend(VectorBackend):
         return results
 
     def count(self) -> int:
-        return len(self._docs)
+        with self._lock:
+            return len(self._docs)
 
 
 class SentenceTransformerBackend(VectorBackend):
@@ -201,6 +207,7 @@ class SentenceTransformerBackend(VectorBackend):
         self._model = SentenceTransformer(model_name)
         self._docs: list[dict[str, Any]] = []
         self._embeddings: list[Any] = []
+        self._lock = threading.Lock()
 
     def add(  # type: ignore[override]
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
@@ -208,20 +215,24 @@ class SentenceTransformerBackend(VectorBackend):
         import numpy as _np
 
         emb = self._model.encode(text, normalize_embeddings=True)
-        self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
-        self._embeddings.append(_np.asarray(emb, dtype=_np.float32))
+        with self._lock:
+            self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
+            self._embeddings.append(_np.asarray(emb, dtype=_np.float32))
 
     def query(
         self, text: str, n_results: int = 3, tenant_id: str = ""
     ) -> list[dict[str, Any]]:
         import numpy as _np
 
-        if not self._docs:
-            return []
+        with self._lock:
+            if not self._docs:
+                return []
+            docs_snapshot = list(self._docs)
+            embs_snapshot = list(self._embeddings)
 
         docs_and_embs = [
             (d, e)
-            for d, e in zip(self._docs, self._embeddings, strict=True)
+            for d, e in zip(docs_snapshot, embs_snapshot, strict=True)
             if not tenant_id or d["metadata"].get("tenant_id") == tenant_id
         ]
         if not docs_and_embs:
@@ -247,7 +258,8 @@ class SentenceTransformerBackend(VectorBackend):
         return results
 
     def count(self) -> int:
-        return len(self._docs)
+        with self._lock:
+            return len(self._docs)
 
 
 class ChromaBackend(VectorBackend):
@@ -689,6 +701,7 @@ class FAISSBackend(VectorBackend):
         self._embed_fn = embed_fn
         self._docs: list[dict[str, Any]] = []
         self._trained = False
+        self._lock = threading.Lock()
 
     def _embed(self, text: str) -> Any:
         if self._embed_fn is None:
@@ -703,27 +716,29 @@ class FAISSBackend(VectorBackend):
         self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
     ) -> None:
         vec = self._embed(text)
-        if self._needs_training and not self._trained:
-            self._index.train(vec)
-            self._trained = True
-        self._index.add(vec)
-        self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
+        with self._lock:
+            if self._needs_training and not self._trained:
+                self._index.train(vec)
+                self._trained = True
+            self._index.add(vec)
+            self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
 
     def query(
         self, text: str, n_results: int = 3, tenant_id: str = ""
     ) -> list[dict[str, Any]]:
-        if not self._docs:
-            return []
-
         vec = self._embed(text)
-        k = min(n_results * 3 if tenant_id else n_results, len(self._docs))
-        distances, indices = self._index.search(vec, k)
+        with self._lock:
+            if not self._docs:
+                return []
+            k = min(n_results * 3 if tenant_id else n_results, len(self._docs))
+            distances, indices = self._index.search(vec, k)
+            docs_snapshot = list(self._docs)
 
         results: list[dict[str, Any]] = []
         for dist, idx in zip(distances[0], indices[0], strict=True):
-            if idx < 0:
+            if idx < 0 or idx >= len(docs_snapshot):
                 continue
-            doc = self._docs[idx]
+            doc = docs_snapshot[idx]
             if tenant_id and doc["metadata"].get("tenant_id") != tenant_id:
                 continue
             results.append({**doc, "distance": 1.0 - float(dist)})
@@ -732,7 +747,8 @@ class FAISSBackend(VectorBackend):
         return results
 
     def count(self) -> int:
-        return len(self._docs)
+        with self._lock:
+            return len(self._docs)
 
 
 class ElasticsearchBackend(VectorBackend):

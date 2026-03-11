@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
@@ -55,6 +56,16 @@ class BatchResult:
     succeeded: int = 0
     failed: int = 0
     duration_seconds: float = 0.0
+    _lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
+
+    def record_success(self) -> None:
+        with self._lock:
+            self.succeeded += 1
+
+    def record_failure(self, idx: int, reason: str) -> None:
+        with self._lock:
+            self.errors.append((idx, reason))
+            self.failed += 1
 
 
 class BatchProcessor:
@@ -102,18 +113,16 @@ class BatchProcessor:
                 try:
                     item_result = future.result(timeout=self.item_timeout)
                     ordered[idx] = item_result
-                    result.succeeded += 1
+                    result.record_success()
                 except FutureTimeout:
-                    result.errors.append((idx, "item timeout"))
-                    result.failed += 1
+                    result.record_failure(idx, "item timeout")
                     logger.warning(
                         "Batch item %d timed out after %.1fs",
                         idx,
                         self.item_timeout,
                     )
                 except Exception as e:
-                    result.errors.append((idx, str(e)))
-                    result.failed += 1
+                    result.record_failure(idx, str(e))
                     logger.warning("Batch item %d failed: %s", idx, e)
 
         result.results = [r for r in ordered if r is not None]
@@ -145,7 +154,7 @@ class BatchProcessor:
                     raise TypeError("review_batch returned invalid result")
                 for idx, item_result in enumerate(batch_results):
                     if item_result is not None:
-                        result.succeeded += 1
+                        result.record_success()
                         approved = item_result[0]
                         score = item_result[1]
                         metrics.inc("reviews_total")
@@ -155,8 +164,7 @@ class BatchProcessor:
                             metrics.inc("reviews_rejected")
                         metrics.observe("coherence_score", score.score)
                     else:
-                        result.errors.append((idx, "scorer returned None"))
-                        result.failed += 1
+                        result.record_failure(idx, "scorer returned None")
                 result.results = [r for r in batch_results if r is not None]
                 result.duration_seconds = time.monotonic() - start
                 return result
@@ -179,13 +187,11 @@ class BatchProcessor:
                 try:
                     item_result = future.result(timeout=self.item_timeout)
                     ordered[idx] = item_result
-                    result.succeeded += 1
+                    result.record_success()
                 except FutureTimeout:
-                    result.errors.append((idx, "item timeout"))
-                    result.failed += 1
+                    result.record_failure(idx, "item timeout")
                 except Exception as e:
-                    result.errors.append((idx, str(e)))
-                    result.failed += 1
+                    result.record_failure(idx, str(e))
 
         result.results = [r for r in ordered if r is not None]
         result.duration_seconds = time.monotonic() - start
@@ -258,13 +264,11 @@ class BatchProcessor:
                         timeout=self.item_timeout,
                     )
                     ordered[idx] = item
-                    result.succeeded += 1
+                    result.record_success()
                 except TimeoutError:
-                    result.errors.append((idx, "item timeout"))
-                    result.failed += 1
+                    result.record_failure(idx, "item timeout")
                 except Exception as e:
-                    result.errors.append((idx, str(e)))
-                    result.failed += 1
+                    result.record_failure(idx, str(e))
 
         await asyncio.gather(*[_run(i, p) for i, p in enumerate(prompts)])
         result.results = [r for r in ordered if r is not None]
@@ -314,13 +318,11 @@ class BatchProcessor:
                         timeout=self.item_timeout,
                     )
                     ordered[idx] = item
-                    result.succeeded += 1
+                    result.record_success()
                 except TimeoutError:
-                    result.errors.append((idx, "item timeout"))
-                    result.failed += 1
+                    result.record_failure(idx, "item timeout")
                 except Exception as e:
-                    result.errors.append((idx, str(e)))
-                    result.failed += 1
+                    result.record_failure(idx, str(e))
 
         await asyncio.gather(*[_run(i, p, r) for i, (p, r) in enumerate(items)])
         result.results = [r for r in ordered if r is not None]

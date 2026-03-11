@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "director-ai"
-version = "3.7.0"
+version = "3.8.0"
 description = "Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt"
 authors = [
     {name = "Miroslav Sotek", email = "protoscience@anulum.li"}
@@ -198,6 +198,7 @@ source = ["src/director_ai"]
 branch = true
 omit = [
     "src/director_ai/server.py",            # requires [server] extras (FastAPI)
+    "src/director_ai/proxy.py",             # requires [server] extras (FastAPI)
     "src/director_ai/grpc_server.py",       # requires [grpc] extras (grpcio)
     "src/director_ai/director_pb2.py",      # generated protobuf stubs
     "src/director_ai/director_pb2_grpc.py", # generated gRPC stubs

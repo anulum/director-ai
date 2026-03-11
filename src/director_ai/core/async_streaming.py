@@ -166,10 +166,10 @@ class AsyncStreamingKernel(SafetyKernel):
                 try:
                     score = await self._call_callback(coherence_callback, accumulated)
                 except (TypeError, ValueError, RuntimeError) as exc:
-                    logger.error(
-                        "Coherence callback raised %s — treating as score=0", exc
+                    logger.warning(
+                        "Coherence callback error — using last score: %s", exc
                     )
-                    score = 0.0
+                    score = last_score
                 last_score = score
                 if self.adaptive:
                     w_avg = sum(window) / len(window) if window else score
@@ -237,11 +237,16 @@ class AsyncStreamingKernel(SafetyKernel):
                 if avg < self.window_threshold:
                     halt_reason = "window_avg"
 
-            # Downward trend
+            # Downward trend (linear regression, matching sync kernel)
             if not halt_reason and len(coherence_history) >= self.trend_window:
                 recent = coherence_history[-self.trend_window :]
-                drop = recent[0] - recent[-1]
-                if drop > self.trend_threshold:
+                n = len(recent)
+                x_mean = (n - 1) / 2.0
+                y_mean = sum(recent) / n
+                num = sum((j - x_mean) * (y - y_mean) for j, y in enumerate(recent))
+                den = sum((j - x_mean) ** 2 for j in range(n))
+                slope = num / den if den > 1e-12 else 0.0
+                if -slope * (n - 1) > self.trend_threshold:
                     halt_reason = "downward_trend"
 
             if halt_reason:
@@ -302,7 +307,13 @@ class AsyncStreamingKernel(SafetyKernel):
                 return f"window_avg ({avg:.4f} < {self.window_threshold})"
         if len(session.coherence_history) >= self.trend_window:
             recent = session.coherence_history[-self.trend_window :]
-            drop = recent[0] - recent[-1]
+            n = len(recent)
+            x_mean = (n - 1) / 2.0
+            y_mean = sum(recent) / n
+            num = sum((j - x_mean) * (y - y_mean) for j, y in enumerate(recent))
+            den = sum((j - x_mean) ** 2 for j in range(n))
+            slope = num / den if den > 1e-12 else 0.0
+            drop = -slope * (n - 1)
             if drop > self.trend_threshold:
                 return f"downward_trend ({drop:.4f} > {self.trend_threshold})"
         if not self.is_active:  # pragma: no cover

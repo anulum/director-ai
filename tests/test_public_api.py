@@ -76,6 +76,12 @@ class TestNewExports:
 
         assert ShardedNLIScorer is not None
 
+    def test_score_in_all(self):
+        import director_ai
+
+        assert "score" in director_ai.__all__
+        assert callable(director_ai.score)
+
 
 class TestDeprecated1xRemoved:
     def test_scorer_has_no_factual_entropy(self):

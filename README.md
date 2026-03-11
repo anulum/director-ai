@@ -63,17 +63,11 @@ graph LR
 | **Observability** | OpenTelemetry spans | `pip install director-ai[otel]` |
 | **Server** | FastAPI + Uvicorn | `pip install director-ai[server]` |
 
-## Quickstart
+## Four Ways to Add Guardrails
 
-| Method | Command |
-|--------|---------|
-| **pip install** | `pip install director-ai` |
-| **CLI scaffold** | `director-ai quickstart --profile medical` |
-| **Colab** | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) |
-| **HF Spaces** | [Try it live](https://huggingface.co/spaces/anulum/director-ai-guardrail) |
-| **Docker** | `docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest` |
+### A: Wrap your SDK (6 lines)
 
-### 6-line guard
+Works with OpenAI, Anthropic, Bedrock, Gemini, Cohere, vLLM, Groq, LiteLLM, Ollama.
 
 ```python
 from director_ai import guard
@@ -84,65 +78,51 @@ client = guard(
     facts={"refund_policy": "Refunds within 30 days only"},
     threshold=0.6,
 )
-
 response = client.chat.completions.create(
     model="gpt-4o-mini",
     messages=[{"role": "user", "content": "What is the refund policy?"}],
 )
 ```
 
-### Catch and inspect a halt
+### B: One-shot check (4 lines)
+
+Score a single prompt/response pair without an SDK client:
 
 ```python
-from director_ai import guard, HallucinationError
-from openai import OpenAI
+from director_ai import score
 
-client = guard(OpenAI(), facts={"policy": "Refunds within 30 days only"})
-
-try:
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[{"role": "user", "content": "What is the refund policy?"}],
-    )
-except HallucinationError as exc:
-    print(f"HALTED: coherence={exc.score.score:.3f}")
-    print(f"Evidence: {exc.score.evidence}")
+cs = score("What is the refund policy?", response_text,
+           facts={"refund": "Refunds within 30 days only"})
+print(f"Coherence: {cs.score:.3f}")
 ```
 
-### Score a response
+### C: Zero code changes (2 lines)
+
+Point any OpenAI-compatible client at the proxy:
+
+```bash
+pip install director-ai[server]
+director-ai proxy --port 8080 --facts kb.txt --threshold 0.6
+```
+
+Then set `OPENAI_BASE_URL=http://localhost:8080/v1` in your app. Every response
+gets scored; hallucinations are rejected (or flagged with `--on-fail warn`).
+
+### D: FastAPI middleware (3 lines)
+
+Guard your own API endpoints:
 
 ```python
-from director_ai.core import CoherenceScorer, GroundTruthStore
+from director_ai.integrations.fastapi_guard import DirectorGuard
 
-store = GroundTruthStore()
-store.add("sky color", "The sky is blue due to Rayleigh scattering.")
-
-scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
-approved, score = scorer.review("What color is the sky?", "The sky is green.")
-
-print(approved)     # False
-print(score.score)  # 0.42
+app.add_middleware(DirectorGuard,
+    facts={"policy": "Refunds within 30 days only"},
+    on_fail="reject",
+)
 ```
 
-### Streaming halt
-
-```python
-from director_ai.core import CoherenceScorer
-from director_ai.core.streaming import StreamingKernel
-
-scorer = CoherenceScorer(threshold=0.5)
-kernel = StreamingKernel(hard_limit=0.4, window_size=5)
-
-accumulated = []
-def coherence_cb(token):
-    accumulated.append(token)
-    return scorer.review("my prompt", " ".join(accumulated))[1].score
-
-session = kernel.stream_tokens(token_generator, coherence_cb)
-
-if session.halted:
-    print(f"Halted at token {session.halt_index}: {session.halt_reason}")
-```
+Responses on POST endpoints get `X-Director-Score` and `X-Director-Approved`
+headers. Set `paths=["/api/chat"]` to limit which endpoints are scored.
 
 ## Installation
 
@@ -181,36 +161,7 @@ ONNX GPU batching — faster than every competitor at this accuracy tier.
 Director-AI's unique value is the *system*: NLI + KB + streaming halt.
 
 Full results: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
-
-### Performance Trade-offs
-
-| Backend | Latency (GPU) | Latency (CPU) | Accuracy | Streaming | When to use |
-|---------|--------------|---------------|----------|-----------|-------------|
-| Heuristic (no NLI) | <0.1 ms | <0.1 ms | ~55% | Yes | Prototyping, latency-critical |
-| ONNX GPU batch | **14.6 ms/pair** | 383 ms/pair | **75.8%** | Yes | Production GPU |
-| PyTorch GPU batch | 19.0 ms/pair | N/A | 75.8% | Yes | When ONNX unavailable |
-| PyTorch GPU seq | 197 ms/pair | N/A | 75.8% | Yes | Single-pair scoring |
-| Hybrid (NLI + LLM judge) | 200-500 ms | 500-2000 ms | ~78% est. | Yes | Max accuracy, summarisation |
-
-Streaming cadence multiplies per-token overhead. At `score_every_n=4`, divide callback
-cost by 4. See [`docs-site/guide/streaming-overhead.md`](docs-site/guide/streaming-overhead.md).
-
-### End-to-End Pipeline (300 traces)
-
-Full pipeline (CoherenceAgent + GroundTruthStore + StreamingKernel):
-
-| Metric | Value |
-|--------|-------|
-| Catch rate (recall) | 46.7% |
-| Precision | 56.9% |
-| F1 | 51.3% |
-| Evidence coverage | 100% (every rejection includes supporting chunks) |
-| Avg latency | 15.8 ms (p95: 40 ms) |
-
-Dialogue catch rate is 80%; QA and summarisation are lower (36%, 24%) due
-to NLI weakness on short-form text. Hybrid mode improves summarisation.
-Summarisation FPR reduced from 95% → 10.5% (v3.5.0, bidirectional NLI) → 2.0% (v3.6.0, Layer C claim decomposition + coverage).
-Run: `python -m benchmarks.e2e_eval`.
+Performance trade-offs and E2E pipeline metrics: [docs](https://anulum.github.io/director-ai/guide/streaming/).
 
 ## Domain Presets
 
@@ -234,31 +185,10 @@ python -m benchmarks.finance_eval   # FinanceBench + Financial PhraseBank
 ## Known Limitations
 
 1. **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to reject (0.9) instead of guessing.
-2. **Summarisation FPR at 2.0%**: Reduced from 95% → 25.5% (v3.4.0, direct NLI) → 10.5% (v3.5.0, bidirectional NLI + baseline=0.20) → 2.0% (v3.6.0, Layer C claim decomposition + coverage, alpha=0.4, support_threshold=0.6). AggreFact-CNN: 68.8%, ExpertQA: 59.1% (see [ExpertQA analysis](benchmarks/comparison/COMPETITOR_COMPARISON.md#expertqa-59--why-it-doesnt-matter-for-guardrails) — structurally expected at 0.4B params, does not affect guardrail use case).
+2. **Summarisation FPR at 2.0%**: Reduced from 95% via bidirectional NLI + Layer C claim decomposition. AggreFact-CNN: 68.8%, ExpertQA: 59.1% (structurally expected at 0.4B params).
 3. **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
-4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain.
-5. **Chunked NLI**: Very short chunks (<3 sentences) may lose context.
-6. **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider (OpenAI/Anthropic). Do not enable in privacy-sensitive deployments without user consent.
-7. **guard() provider coverage**: `guard()` auto-detects OpenAI-compatible clients (OpenAI, vLLM, Groq, LiteLLM, Ollama, Together) via `client.chat.completions.create` and Anthropic via `client.messages.create`. AWS Bedrock, Google Gemini, and Cohere have different SDK shapes — use the low-level `CoherenceScorer.review()` API instead.
-
-## Migrating to 3.0
-
-v3.0 removed all deprecated 1.x aliases (`DirectorModule`, `BackfireKernel`,
-`StrangeLoopAgent`, `KnowledgeBase`, `MockActor`, `RealActor`) and deprecated
-methods (`calculate_factual_entropy`, `calculate_logical_entropy`,
-`simulate_future_state`, `review_action`, `process_query`, `process_batch_async`).
-
-Enterprise classes (`TenantRouter`, `Policy`, `Violation`, `AuditLogger`,
-`AuditEntry`) moved to `director_ai.enterprise`:
-
-```python
-# Before (2.x):
-from director_ai import TenantRouter
-# After (3.0):
-from director_ai.enterprise import TenantRouter
-```
-
-See [CHANGELOG](CHANGELOG.md) for the full list of breaking changes.
+4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain or use a built-in profile.
+5. **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider. Do not enable in privacy-sensitive deployments without user consent.
 
 ## Citation
 
@@ -268,7 +198,7 @@ See [CHANGELOG](CHANGELOG.md) for the full list of breaking changes.
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.7.0},
+  version   = {3.8.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

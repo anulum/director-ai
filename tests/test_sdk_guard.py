@@ -13,10 +13,12 @@ from unittest.mock import MagicMock
 import pytest
 
 from director_ai.core.exceptions import HallucinationError
+from director_ai.core.types import CoherenceScore
 from director_ai.integrations.sdk_guard import (
     _extract_prompt,
     get_score,
     guard,
+    score,
 )
 
 # ── Fake SDK scaffolding ────────────────────────────────────────────
@@ -316,3 +318,46 @@ class TestHallucinationErrorReExport:
         )
 
         assert TopHallucinationError is HallucinationError
+
+
+@pytest.mark.consumer
+class TestScore:
+    def test_score_basic(self):
+        cs = score("What color is the sky?", "The sky is blue.", use_nli=False)
+        assert isinstance(cs, CoherenceScore)
+        assert 0.0 <= cs.score <= 1.0
+
+    def test_score_with_facts_approved(self):
+        cs = score(
+            "What color is the sky?",
+            "The sky is blue.",
+            facts={"sky": "The sky is blue due to Rayleigh scattering."},
+            use_nli=False,
+        )
+        assert cs.score >= 0.5
+
+    def test_score_with_facts_hallucination(self):
+        cs = score(
+            "What color is the sky?",
+            "Mars has two moons named Phobos and Deimos.",
+            facts={"sky": "The sky is blue due to Rayleigh scattering."},
+            threshold=0.6,
+            use_nli=False,
+        )
+        assert cs.score < 0.6
+
+    def test_score_with_profile(self):
+        cs = score(
+            "What is the refund policy?",
+            "Refunds within 30 days.",
+            facts={"refund": "Refunds within 30 days only."},
+            profile="fast",
+        )
+        assert isinstance(cs, CoherenceScore)
+
+    def test_score_returns_coherence_score(self):
+        cs = score("Hello", "Hi there!", use_nli=False)
+        assert isinstance(cs, CoherenceScore)
+        assert hasattr(cs, "score")
+        assert hasattr(cs, "h_logical")
+        assert hasattr(cs, "h_factual")

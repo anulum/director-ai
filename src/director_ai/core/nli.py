@@ -1104,8 +1104,39 @@ class NLIScorer:
 
     # ── Heuristic fallback ───────────────────────────────────────
 
-    @staticmethod
-    def _heuristic_score(premise: str, hypothesis: str) -> float:
+    _NEGATION_WORDS = frozenset(
+        {
+            "not",
+            "no",
+            "never",
+            "neither",
+            "nobody",
+            "nothing",
+            "nowhere",
+            "nor",
+            "cannot",
+            "can't",
+            "isn't",
+            "aren't",
+            "wasn't",
+            "weren't",
+            "won't",
+            "wouldn't",
+            "shouldn't",
+            "couldn't",
+            "doesn't",
+            "don't",
+            "didn't",
+            "hasn't",
+            "haven't",
+            "hadn't",
+            "without",
+            "false",
+        }
+    )
+
+    @classmethod
+    def _heuristic_score(cls, premise: str, hypothesis: str) -> float:
         """Deterministic heuristic fallback (no model needed)."""
         h_lower = hypothesis.lower()
         if "consistent with reality" in h_lower:
@@ -1120,4 +1151,10 @@ class NLIScorer:
             return _DIVERGENCE_NEUTRAL
         overlap = len(p_words & h_words) / max(len(p_words), 1)
         raw = _DIVERGENCE_NEUTRAL - overlap * 0.3
+        # Negation asymmetry: if one side has negation and the other
+        # doesn't, high overlap likely means semantic contradiction.
+        p_neg = bool(p_words & cls._NEGATION_WORDS)
+        h_neg = bool(h_words & cls._NEGATION_WORDS)
+        if p_neg != h_neg and overlap > 0.3:
+            raw = max(raw, 0.7)
         return float(np.clip(raw, _DIVERGENCE_ALIGNED, _DIVERGENCE_CONTRADICTED))

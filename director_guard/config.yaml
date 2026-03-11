@@ -1,0 +1,5 @@
+# Director-AI configuration — profile: fast
+coherence_threshold: 0.5
+hard_limit: 0.5
+use_nli: false
+profile: fast

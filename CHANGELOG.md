@@ -7,6 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.8.0] — 2026-03-11
+
+### Added
+- `score()` one-shot convenience function for standalone (prompt, response) scoring.
+- OpenAI-compatible proxy server (`director-ai proxy`): set `OPENAI_BASE_URL` for zero-code guardrails.
+- FastAPI middleware (`DirectorGuard`): ASGI middleware for scoring LLM responses in web apps.
+- `guard()` now supports all 5 provider response shapes (OpenAI, Anthropic, Google, dict, str).
+
+### Security
+- Sanitize error messages in server 500 responses (no internal detail leakage).
+- Validate facts_path in proxy to prevent path traversal.
+- Log failed authentication attempts.
+- Warn on HTTP (non-HTTPS) upstream URLs in proxy.
+- Tenant access audit logging on all endpoints using `X-Tenant-ID` (S-05).
+
+### Fixed
+- Async streaming trend detection now uses linear regression (parity with sync kernel).
+- Async streaming callback errors use last-known score instead of 0.0 (prevents false hard-halt).
+- Batch processor counter mutations now thread-safe via Lock (A-05).
+- InMemoryBackend, SentenceTransformerBackend, FAISSBackend protected with threading.Lock (A-06).
+- NLI heuristic fallback now detects negation asymmetry (A-08).
+- Makefile `help` target added; all targets documented (C-01).
+
 ## [3.7.0] — 2026-03-10
 
 ### Added
