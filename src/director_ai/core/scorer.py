@@ -371,7 +371,7 @@ class CoherenceScorer:
             return False
         if self._llm_judge_provider == "local" and self._local_judge_model is None:
             return False
-        return abs(nli_score - 0.5) < self._llm_judge_threshold
+        return bool(abs(nli_score - 0.5) < self._llm_judge_threshold)
 
     def _llm_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
         """Escalate to judge when NLI confidence is low.

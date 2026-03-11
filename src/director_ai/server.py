@@ -938,7 +938,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
                     result = await agent.aprocess(prompt)
                     coherence = result.coherence.score if result.coherence else 0.0
-                    ev = kernel.ingest_token(result.output, coherence)
+                    ev = kernel.ingest_token(result.output, coherence)  # type: ignore[attr-defined]
                     halted = ev.halted if ev else False
                     halt_reason = (ev.halt_reason or "hard_limit") if halted else None
                     msg = {
