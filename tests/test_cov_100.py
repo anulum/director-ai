@@ -662,11 +662,14 @@ class TestPolicyNonMatchingPattern:
 class TestVectorStoreZeroSimilarity:
     def test_query_with_zero_similarity_items_filtered(self):
         """similarity <= 0 → 128->127 (item not appended)."""
+        import threading
+
         import numpy as np
 
         from director_ai.core.vector_store import SentenceTransformerBackend
 
         backend = object.__new__(SentenceTransformerBackend)
+        backend._lock = threading.Lock()
         backend._docs = [
             {"id": "a", "text": "hello", "metadata": {}},
             {"id": "b", "text": "world", "metadata": {}},
