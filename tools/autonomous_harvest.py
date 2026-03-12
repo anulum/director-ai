@@ -9,7 +9,6 @@ and destroys UpCloud.
 import json
 import os
 import subprocess
-import sys
 import time
 
 MODELS_DIR = "C:/aaa_God_of_the_Math_Collection/03_CODE/DIRECTOR_AI/models"
@@ -25,7 +24,11 @@ INSTANCES = [
         "id": 383719,
         "ssh": "ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 -p 11414 root@sshj.jarvislabs.ai",
         "models": [
-            {"name": "factcg-record", "done_file": "/home/director-ai/RECORD_DONE", "result_json": "/home/director-ai/models/factcg-record/training_result.json"},
+            {
+                "name": "factcg-record",
+                "done_file": "/home/director-ai/RECORD_DONE",
+                "result_json": "/home/director-ai/models/factcg-record/training_result.json",
+            },
         ],
         "type": "jarvis",
     },
@@ -41,7 +44,9 @@ def run(cmd, timeout=60):
     try:
         r = subprocess.run(
             [BASH, "-c", cmd],
-            capture_output=True, text=True, timeout=timeout,
+            capture_output=True,
+            text=True,
+            timeout=timeout,
         )
         return r.returncode, r.stdout.strip(), r.stderr.strip()
     except subprocess.TimeoutExpired:
@@ -104,7 +109,9 @@ def download_model(inst, model):
     os.makedirs(local_dir, exist_ok=True)
     local_tar_u = local_tar.replace("\\", "/")
     local_dir_u = local_dir.replace("\\", "/")
-    code, _, err = run(f'tar --force-local -xzf "{local_tar_u}" -C "{local_dir_u}"', timeout=120)
+    code, _, err = run(
+        f'tar --force-local -xzf "{local_tar_u}" -C "{local_dir_u}"', timeout=120
+    )
     if code != 0:
         log(f"  EXTRACT FAILED: {err}")
         return False
@@ -155,7 +162,9 @@ def get_balance():
 def main():
     log("=" * 60)
     log("AUTONOMOUS HARVEST STARTED")
-    log(f"Monitoring {len(INSTANCES)} instances, {sum(len(i['models']) for i in INSTANCES)} models")
+    log(
+        f"Monitoring {len(INSTANCES)} instances, {sum(len(i['models']) for i in INSTANCES)} models"
+    )
     log("=" * 60)
 
     completed_instances = set()
@@ -206,9 +215,13 @@ def main():
                 completed_instances.add(inst["name"])
                 log(f"Instance {inst['name']} fully harvested and destroyed")
             elif all_done:
-                log(f"Instance {inst['name']}: some downloads failed, retrying next cycle")
+                log(
+                    f"Instance {inst['name']}: some downloads failed, retrying next cycle"
+                )
 
-        remaining = [i["name"] for i in INSTANCES if i["name"] not in completed_instances]
+        remaining = [
+            i["name"] for i in INSTANCES if i["name"] not in completed_instances
+        ]
         if remaining:
             log(f"Waiting 120s... Remaining: {remaining}")
             log(f"Downloaded: {len(downloaded_models)} models")
@@ -232,10 +245,17 @@ def main():
     # Tar all local models and upload to UpCloud
     log("Tarring all local models for upload...")
     all_models_tar = os.path.join(MODELS_DIR, "all_models.tar.gz")
-    model_dirs = [d for d in os.listdir(MODELS_DIR) if d.startswith("factcg-") and os.path.isdir(os.path.join(MODELS_DIR, d))]
+    model_dirs = [
+        d
+        for d in os.listdir(MODELS_DIR)
+        if d.startswith("factcg-") and os.path.isdir(os.path.join(MODELS_DIR, d))
+    ]
     tar_args = " ".join(model_dirs)
     models_u = MODELS_DIR.replace("\\", "/")
-    run(f'cd "{models_u}" && tar --force-local -czf all_models.tar.gz {tar_args}', timeout=600)
+    run(
+        f'cd "{models_u}" && tar --force-local -czf all_models.tar.gz {tar_args}',
+        timeout=600,
+    )
 
     log(f"Uploading {len(model_dirs)} models to UpCloud (this takes a while)...")
     code, _, err = run(
@@ -246,17 +266,26 @@ def main():
         log(f"Upload failed: {err}")
         log("Trying individual model uploads instead...")
         for mdir in model_dirs:
-            local_model = os.path.join(MODELS_DIR, mdir)
+            local_model = os.path.join(MODELS_DIR, mdir)  # noqa: F841
             # Tar individual model
             ind_tar = os.path.join(MODELS_DIR, f"{mdir}.tar.gz")
             run(f'cd "{MODELS_DIR}" && tar czf {mdir}.tar.gz {mdir}', timeout=120)
-            run(f'{scp_uc} "{ind_tar}" root@{UPCLOUD_IP}:/home/director-ai/models/', timeout=600)
-            run(f'{ssh_uc} "cd /home/director-ai/models && tar xzf {mdir}.tar.gz && rm {mdir}.tar.gz"', timeout=120)
+            run(
+                f'{scp_uc} "{ind_tar}" root@{UPCLOUD_IP}:/home/director-ai/models/',
+                timeout=600,
+            )
+            run(
+                f'{ssh_uc} "cd /home/director-ai/models && tar xzf {mdir}.tar.gz && rm {mdir}.tar.gz"',
+                timeout=120,
+            )
             os.remove(ind_tar)
             log(f"  Uploaded {mdir}")
     else:
         log("Extracting models on UpCloud...")
-        run(f'{ssh_uc} "cd /home/director-ai && tar xzf all_models.tar.gz -C /home/director-ai/models/ && rm all_models.tar.gz"', timeout=600)
+        run(
+            f'{ssh_uc} "cd /home/director-ai && tar xzf all_models.tar.gz -C /home/director-ai/models/ && rm all_models.tar.gz"',
+            timeout=600,
+        )
 
     os.remove(all_models_tar) if os.path.exists(all_models_tar) else None
 
@@ -264,8 +293,8 @@ def main():
     log("Running ensemble benchmark on UpCloud...")
     run(
         f'{ssh_uc} "cd /home/director-ai && python aggrefact_ensemble.py '
-        f'--models-dir /home/director-ai/models '
-        f'--base-model yaxili96/FactCG-DeBERTa-v3-Large '
+        f"--models-dir /home/director-ai/models "
+        f"--base-model yaxili96/FactCG-DeBERTa-v3-Large "
         f'2>&1 | tee benchmark_results.log"',
         timeout=7200,
     )
@@ -274,8 +303,14 @@ def main():
     log("Downloading benchmark results...")
     results_dir = os.path.join(BENCH_DIR, "results")
     os.makedirs(results_dir, exist_ok=True)
-    run(f'{scp_uc} root@{UPCLOUD_IP}:/home/director-ai/benchmark_results.log "{results_dir}/"', timeout=60)
-    run(f'{scp_uc} "root@{UPCLOUD_IP}:/home/director-ai/ensemble_results*.json" "{results_dir}/"', timeout=60)
+    run(
+        f'{scp_uc} root@{UPCLOUD_IP}:/home/director-ai/benchmark_results.log "{results_dir}/"',
+        timeout=60,
+    )
+    run(
+        f'{scp_uc} "root@{UPCLOUD_IP}:/home/director-ai/ensemble_results*.json" "{results_dir}/"',
+        timeout=60,
+    )
 
     log("Benchmark complete. Results in benchmarks/results/")
 
@@ -283,8 +318,8 @@ def main():
     log("PHASE 3: Destroying UpCloud instance")
     # UpCloud destruction via API
     code, out, _ = run(
-        f'curl -s -X DELETE -u "protoscience@anulum.li:$(cat ~/.upcloud_password 2>/dev/null || echo NOPASS)" '
-        f'"https://api.upcloud.com/1.3/server/00ef27ca-xxxx/stop_and_destroy"',  # placeholder
+        'curl -s -X DELETE -u "protoscience@anulum.li:$(cat ~/.upcloud_password 2>/dev/null || echo NOPASS)" '
+        '"https://api.upcloud.com/1.3/server/00ef27ca-xxxx/stop_and_destroy"',  # placeholder
         timeout=30,
     )
     log(f"UpCloud destroy result: {out[:200]}")

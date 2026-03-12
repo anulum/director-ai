@@ -8,15 +8,15 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(mes
 log = logging.getLogger("ensemble")
 
 sys.path.insert(0, "/home/director-ai")
-from benchmarks._load_aggrefact_patch import _load_aggrefact_local
-import benchmarks.aggrefact_eval as ae
+import benchmarks.aggrefact_eval as ae  # noqa: E402
+from benchmarks._load_aggrefact_patch import _load_aggrefact_local  # noqa: E402
 
 ae._load_aggrefact = _load_aggrefact_local
-from benchmarks.aggrefact_eval import _BinaryNLIPredictor
-from benchmarks._common import save_results
+import numpy as np  # noqa: E402
+from sklearn.metrics import balanced_accuracy_score  # noqa: E402
 
-import numpy as np
-from sklearn.metrics import balanced_accuracy_score
+from benchmarks._common import save_results  # noqa: E402
+from benchmarks.aggrefact_eval import _BinaryNLIPredictor  # noqa: E402
 
 MODELS_DIR = Path("/home/director-ai/models")
 SCORES_DIR = Path("/home/director-ai/scores")
@@ -92,7 +92,10 @@ def sweep(strategy, thresh):
             agg.append((label, p))
         y_true = [x[0] for x in agg]
         y_pred = [1 if x[1] >= thresh else 0 for x in agg]
-        per_ds[ds] = {"balanced_acc": float(balanced_accuracy_score(y_true, y_pred)), "total": n}
+        per_ds[ds] = {
+            "balanced_acc": float(balanced_accuracy_score(y_true, y_pred)),
+            "total": n,
+        }
     return float(np.mean([v["balanced_acc"] for v in per_ds.values()])), per_ds
 
 
@@ -109,7 +112,7 @@ _, best_per_ds = sweep(best_strat, best_thresh)
 individual = {}
 for mname, mscores in all_scores.items():
     accs = []
-    for ds, pairs in mscores.items():
+    for _ds, pairs in mscores.items():
         y_true = [p[0] for p in pairs]
         y_pred = [1 if p[1] >= best_thresh else 0 for p in pairs]
         accs.append(balanced_accuracy_score(y_true, y_pred))

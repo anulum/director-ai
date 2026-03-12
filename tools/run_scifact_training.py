@@ -16,7 +16,6 @@ import os
 import time
 
 import numpy as np
-import torch
 from datasets import load_dataset
 from sklearn.metrics import balanced_accuracy_score
 from transformers import (
@@ -36,7 +35,7 @@ TEMPLATE = (
 
 
 def load_scifact():
-    ds = load_dataset("allenai/scifact", "corpus")
+    _ds = load_dataset("allenai/scifact", "corpus")
     claims = load_dataset("allenai/scifact", "claims")
 
     # Claims have: claim, evidence_doc_id, evidence_label, cited_doc_ids
@@ -54,30 +53,43 @@ def load_scifact():
         # Fallback: load as flat dataset
         try:
             ds2 = load_dataset("allenai/scifact_entailment")
+
             def convert(example):
                 label = 1 if example["label"] == 0 else 0  # entailment=supported
-                text = TEMPLATE.format(text_a=example["premise"], text_b=example["hypothesis"])
+                text = TEMPLATE.format(
+                    text_a=example["premise"], text_b=example["hypothesis"]
+                )
                 return {"text": text, "label": label}
+
             mapped = ds2["train"].map(convert, remove_columns=ds2["train"].column_names)
             from datasets import Dataset
+
             split = mapped.train_test_split(test_size=0.2, seed=42)
             val_split = split["test"].train_test_split(test_size=0.5, seed=42)
-            print(f"SciFact (entailment) loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}")
+            print(
+                f"SciFact (entailment) loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}"
+            )
             return split["train"], val_split["train"], val_split["test"]
         except Exception:
             pass
 
     from datasets import Dataset
+
     full = Dataset.from_list(train_examples)
     split = full.train_test_split(test_size=0.2, seed=42)
     val_split = split["test"].train_test_split(test_size=0.5, seed=42)
-    print(f"SciFact loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}")
+    print(
+        f"SciFact loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}"
+    )
     return split["train"], val_split["train"], val_split["test"]
 
 
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
-        return tokenizer(batch["text"], truncation=True, max_length=max_length, padding=False)
+        return tokenizer(
+            batch["text"], truncation=True, max_length=max_length, padding=False
+        )
+
     return _tok
 
 
@@ -105,17 +117,31 @@ def main():
     test_ds = test_ds.map(tok_fn, batched=True, remove_columns=["text"])
 
     training_args = TrainingArguments(
-        output_dir=OUTPUT_DIR, num_train_epochs=10, per_device_train_batch_size=16,
-        per_device_eval_batch_size=32, learning_rate=2e-5, weight_decay=0.01,
-        warmup_ratio=0.1, eval_strategy="epoch", save_strategy="epoch",
-        save_total_limit=2, load_best_model_at_end=True,
-        metric_for_best_model="balanced_accuracy", greater_is_better=True,
-        fp16=True, logging_steps=20, report_to="none",
+        output_dir=OUTPUT_DIR,
+        num_train_epochs=10,
+        per_device_train_batch_size=16,
+        per_device_eval_batch_size=32,
+        learning_rate=2e-5,
+        weight_decay=0.01,
+        warmup_ratio=0.1,
+        eval_strategy="epoch",
+        save_strategy="epoch",
+        save_total_limit=2,
+        load_best_model_at_end=True,
+        metric_for_best_model="balanced_accuracy",
+        greater_is_better=True,
+        fp16=True,
+        logging_steps=20,
+        report_to="none",
     )
 
     trainer = Trainer(
-        model=model, args=training_args, train_dataset=train_ds,
-        eval_dataset=val_ds, tokenizer=tokenizer, compute_metrics=compute_metrics,
+        model=model,
+        args=training_args,
+        train_dataset=train_ds,
+        eval_dataset=val_ds,
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics,
     )
 
     start = time.time()
@@ -127,10 +153,13 @@ def main():
     tokenizer.save_pretrained(OUTPUT_DIR)
 
     result = {
-        "dataset": "scifact", "base_model": BASE_MODEL,
+        "dataset": "scifact",
+        "base_model": BASE_MODEL,
         "test_balanced_accuracy": test_result["eval_balanced_accuracy"],
         "test_accuracy": test_result["eval_accuracy"],
-        "training_time_minutes": round(elapsed / 60, 1), "epochs": 10, "status": "COMPLETE",
+        "training_time_minutes": round(elapsed / 60, 1),
+        "epochs": 10,
+        "status": "COMPLETE",
     }
     with open(os.path.join(OUTPUT_DIR, "training_result.json"), "w") as f:
         json.dump(result, f, indent=2)

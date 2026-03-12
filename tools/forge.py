@@ -34,10 +34,10 @@ Post-training:
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as F  # noqa: N812
 from transformers import Trainer
 
 
@@ -81,9 +81,7 @@ def focal_loss(
     return ((1 - p_t) ** gamma * ce).mean()
 
 
-def symmetric_kl(
-    logits_a: torch.Tensor, logits_b: torch.Tensor
-) -> torch.Tensor:
+def symmetric_kl(logits_a: torch.Tensor, logits_b: torch.Tensor) -> torch.Tensor:
     """Symmetric KL divergence: 0.5 · (KL(a‖b) + KL(b‖a))."""
     p = F.softmax(logits_a, dim=-1)
     q = F.softmax(logits_b, dim=-1)
@@ -140,7 +138,9 @@ class ForgeTrainer(Trainer):
 
     def training_step(self, model, inputs, num_items_in_batch=None, **kwargs):
         if self.forge.fgm_epsilon <= 0:
-            return super().training_step(model, inputs, num_items_in_batch=num_items_in_batch, **kwargs)
+            return super().training_step(
+                model, inputs, num_items_in_batch=num_items_in_batch, **kwargs
+            )
 
         model.train()
         inputs = self._prepare_inputs(inputs)
