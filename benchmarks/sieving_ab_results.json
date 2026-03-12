@@ -1,0 +1,25 @@
+{
+  "noise_ratio": 0.1,
+  "epochs": 10,
+  "dataset": "climate_fever",
+  "standard": {
+    "name": "standard",
+    "clean_bal_acc": 0.7887,
+    "noisy_bal_acc": 0.7650,
+    "robustness_gap": 0.0237,
+    "training_minutes": 30.1
+  },
+  "sieving": {
+    "name": "sieving_0.1",
+    "clean_bal_acc": 0.8090,
+    "noisy_bal_acc": 0.7976,
+    "robustness_gap": 0.0113,
+    "training_minutes": 30.0
+  },
+  "delta_clean": 0.0203,
+  "delta_noisy": 0.0326,
+  "delta_robustness_gap": 0.0124,
+  "gpu": "JarvisLabs RTX 6000",
+  "date": "2026-03-12",
+  "model": "microsoft/deberta-v3-large"
+}
