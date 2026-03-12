@@ -6,7 +6,7 @@
 
 import json
 
-import pytest  # noqa: I001
+import pytest
 
 # ── Policy Engine ──────────────────────────────────────────────────────
 

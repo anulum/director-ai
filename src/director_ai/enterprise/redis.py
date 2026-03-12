@@ -89,7 +89,8 @@ class RedisScoreCache(ScoreCache):
     ):
         if redis is None:
             raise ImportError(
-                "redis wrapper requires the 'redis' package. Run: pip install director-ai[enterprise]"  # noqa: E501
+                "redis wrapper requires the 'redis' package. "
+                "Run: pip install director-ai[enterprise]"
             )
         # We call super to keep local state properties if needed, but override behavior
         super().__init__(ttl_seconds=ttl_seconds)

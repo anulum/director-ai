@@ -205,7 +205,9 @@ class BatchProcessor:
         try:
             with metrics.timer("review_duration_seconds"):
                 try:
-                    result = self._backend.process(prompt, tenant_id=tenant_id)  # type: ignore[attr-defined]  # noqa: E501
+                    result = self._backend.process(  # type: ignore[attr-defined]
+                        prompt, tenant_id=tenant_id
+                    )
                 except TypeError:
                     result = self._backend.process(prompt)  # type: ignore[attr-defined]
             metrics.inc("reviews_total")

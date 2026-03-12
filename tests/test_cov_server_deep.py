@@ -6,6 +6,8 @@ import pytest
 
 pytest.importorskip("fastapi", reason="fastapi not installed")
 
+from starlette.websockets import WebSocketDisconnect  # noqa: E402
+
 from director_ai.core.config import DirectorConfig
 
 
@@ -164,9 +166,7 @@ class TestWsAuthAndErrors:
         app = create_app(config=cfg)
         with (
             TestClient(app) as c,
-            pytest.raises(  # noqa: B017
-                Exception
-            ),
+            pytest.raises(WebSocketDisconnect),
             c.websocket_connect("/v1/stream") as ws,
         ):
             ws.receive_json()
