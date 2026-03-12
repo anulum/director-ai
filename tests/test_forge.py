@@ -2,18 +2,17 @@
 
 from __future__ import annotations
 
-import sys
 import os
+import sys
 
 import pytest
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 
-# Add tools/ to path so forge is importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))
 
-from forge import ForgeConfig, ForgeTrainer, focal_loss, model_soup, symmetric_kl
+torch = pytest.importorskip("torch")
+nn = torch.nn
+F = torch.nn.functional  # noqa: N812
+from forge import ForgeConfig, ForgeTrainer, focal_loss, model_soup, symmetric_kl  # noqa: E402, I001
 
 
 # ── Focal loss ──────────────────────────────────────────────────
@@ -100,7 +99,9 @@ class SimpleModel(nn.Module):
         super().__init__()
         self.word_embeddings = nn.Embedding(100, 16)
         self.classifier = nn.Linear(16, 2)
-        self.config = type("Config", (), {"id2label": {0: "not_supported", 1: "supported"}})()
+        self.config = type(
+            "Config", (), {"id2label": {0: "not_supported", 1: "supported"}}
+        )()
 
     def forward(self, input_ids, attention_mask=None, **kwargs):
         emb = self.word_embeddings(input_ids).mean(dim=1)

@@ -383,9 +383,12 @@ class HybridBackend(VectorBackend):
     @staticmethod
     def _tokenize(text: str) -> list[str]:
         import re
+
         return re.findall(r"\w+", text.lower())
 
-    def add(self, doc_id: str, text: str, metadata: dict[str, Any] | None = None) -> None:
+    def add(
+        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+    ) -> None:
         self._base.add(doc_id, text, metadata)
         tokens = self._tokenize(text)
         tf: dict[str, int] = {}
@@ -398,9 +401,12 @@ class HybridBackend(VectorBackend):
             for term in set(tokens):
                 self._df[term] = self._df.get(term, 0) + 1
 
-    def _bm25_query(self, text: str, n_results: int, tenant_id: str) -> list[dict[str, Any]]:
+    def _bm25_query(
+        self, text: str, n_results: int, tenant_id: str
+    ) -> list[dict[str, Any]]:
         """BM25 scoring: k1=1.2, b=0.75."""
         import math
+
         query_tokens = self._tokenize(text)
         if not query_tokens:
             return []
@@ -418,7 +424,7 @@ class HybridBackend(VectorBackend):
         k1, b = 1.2, 0.75
 
         scores: list[tuple[float, int]] = []
-        for i, (doc, tf) in enumerate(zip(docs, tfs)):
+        for i, (doc, tf) in enumerate(zip(docs, tfs, strict=False)):
             if tenant_id and doc["metadata"].get("tenant_id") != tenant_id:
                 continue
             dl = sum(tf.values())
@@ -438,7 +444,9 @@ class HybridBackend(VectorBackend):
                 results.append({**docs[idx], "distance": 1.0 / (1.0 + score)})
         return results
 
-    def query(self, text: str, n_results: int = 3, tenant_id: str = "") -> list[dict[str, Any]]:
+    def query(
+        self, text: str, n_results: int = 3, tenant_id: str = ""
+    ) -> list[dict[str, Any]]:
         fetch_n = n_results * self._fetch_mul
 
         # Run both retrieval paths
@@ -451,12 +459,16 @@ class HybridBackend(VectorBackend):
 
         for rank, doc in enumerate(sparse_results):
             did = doc["id"]
-            rrf_scores[did] = rrf_scores.get(did, 0.0) + self._sparse_w / (self._rrf_k + rank + 1)
+            rrf_scores[did] = rrf_scores.get(did, 0.0) + self._sparse_w / (
+                self._rrf_k + rank + 1
+            )
             doc_map[did] = doc
 
         for rank, doc in enumerate(dense_results):
             did = doc["id"]
-            rrf_scores[did] = rrf_scores.get(did, 0.0) + self._dense_w / (self._rrf_k + rank + 1)
+            rrf_scores[did] = rrf_scores.get(did, 0.0) + self._dense_w / (
+                self._rrf_k + rank + 1
+            )
             doc_map[did] = doc
 
         ranked = sorted(rrf_scores.items(), key=lambda x: x[1], reverse=True)

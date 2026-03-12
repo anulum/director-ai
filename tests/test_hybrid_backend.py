@@ -66,5 +66,6 @@ class TestHybridBackend:
 class TestHybridBackendRegistration:
     def test_registered(self):
         from director_ai.core.vector_store import get_vector_backend
+
         cls = get_vector_backend("hybrid")
         assert cls is HybridBackend
