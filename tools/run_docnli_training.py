@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Fine-tune FactCG-DeBERTa-v3-Large on MedNLI for medical domain guardrails.
+"""Fine-tune FactCG-DeBERTa-v3-Large on DocNLI for document-level entailment.
 
-MedNLI: ~14K premise-hypothesis pairs from clinical notes (MIMIC-III).
-Labels: entailment / contradiction / neutral → binary (entailment vs not).
+DocNLI (Yin et al. 2021): ~900K document-hypothesis pairs from summarization,
+QA, and other NLI sources. The most directly relevant dataset for AggreFact.
 
 Usage:
-    python run_mednli_training.py [--resume]
+    python run_docnli_training.py [--resume]
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from transformers import (
 )
 
 BASE_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
-OUTPUT_DIR = "/home/director-ai/models/factcg-mednli"
+OUTPUT_DIR = "/home/director-ai/models/factcg-docnli"
 TEMPLATE = (
     "{text_a}\n\nChoose your answer: based on the paragraph above "
     'can we conclude that "{text_b}"?\n\nOPTIONS:\n- Yes\n- No\n'
@@ -35,22 +35,41 @@ TEMPLATE = (
 )
 
 
-def load_mednli():
-    """Load MedNLI and convert to binary NLI format."""
-    ds = load_dataset("bigbio/mednli", "mednli_bigbio_te", trust_remote_code=True)
+def load_docnli():
+    """Load DocNLI and convert to binary NLI format."""
+    ds = load_dataset("saattrupdan/doc-nli")
 
     def convert(example):
-        premise = example["premise"]
-        hypothesis = example["hypothesis"]
-        # bigbio_te format: 0=entailment, 1=neutral, 2=contradiction
-        label = 1 if example["label"] == 0 else 0
-        text = TEMPLATE.format(text_a=premise, text_b=hypothesis)
+        premise = example.get("premise", "") or ""
+        hypothesis = example.get("hypothesis", "") or ""
+        # doc-nli: "entailment" / "not_entailment"
+        label_str = example.get("label", "")
+        if isinstance(label_str, int):
+            label = 1 if label_str == 0 else 0
+        else:
+            label = 1 if label_str == "entailment" else 0
+        # Truncate long premises to first 2000 chars for template
+        premise_trunc = premise[:2000]
+        text = TEMPLATE.format(text_a=premise_trunc, text_b=hypothesis)
         return {"text": text, "label": label}
 
     train = ds["train"].map(convert, remove_columns=ds["train"].column_names)
-    val = ds["validation"].map(convert, remove_columns=ds["validation"].column_names)
-    test = ds["test"].map(convert, remove_columns=ds["test"].column_names)
-    print(f"MedNLI loaded: train={len(train)}, val={len(val)}, test={len(test)}")
+
+    if "validation" in ds:
+        val = ds["validation"].map(convert, remove_columns=ds["validation"].column_names)
+    else:
+        split = train.train_test_split(test_size=0.05, seed=42)
+        train = split["train"]
+        val = split["test"]
+
+    if "test" in ds:
+        test = ds["test"].map(convert, remove_columns=ds["test"].column_names)
+    else:
+        val_split = val.train_test_split(test_size=0.5, seed=42)
+        val = val_split["train"]
+        test = val_split["test"]
+
+    print(f"DocNLI loaded: train={len(train)}, val={len(val)}, test={len(test)}")
     return train, val, test
 
 
@@ -59,7 +78,6 @@ def tokenize_fn(tokenizer, max_length=512):
         return tokenizer(
             batch["text"], truncation=True, max_length=max_length, padding=False
         )
-
     return _tok
 
 
@@ -76,17 +94,15 @@ def main():
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
 
-    print("=== MedNLI Fine-Tuning ===")
+    print("=== DocNLI Fine-Tuning ===")
     print(f"Base model: {BASE_MODEL}")
     print(f"Output: {OUTPUT_DIR}")
-    print(
-        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
-    )
+    print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
     model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)
 
-    train_ds, val_ds, test_ds = load_mednli()
+    train_ds, val_ds, test_ds = load_docnli()
     tok_fn = tokenize_fn(tokenizer)
     train_ds = train_ds.map(tok_fn, batched=True, remove_columns=["text"])
     val_ds = val_ds.map(tok_fn, batched=True, remove_columns=["text"])
@@ -94,10 +110,10 @@ def main():
 
     training_args = TrainingArguments(
         output_dir=OUTPUT_DIR,
-        num_train_epochs=5,
+        num_train_epochs=2,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=32,
-        gradient_accumulation_steps=1,
+        gradient_accumulation_steps=2,
         learning_rate=2e-5,
         weight_decay=0.01,
         warmup_ratio=0.1,
@@ -109,7 +125,7 @@ def main():
         greater_is_better=True,
         fp16=True,
         dataloader_num_workers=2,
-        logging_steps=50,
+        logging_steps=200,
         report_to="none",
     )
 
@@ -131,28 +147,25 @@ def main():
 
     print(f"\nTraining time: {elapsed / 60:.1f} min")
 
-    # Evaluate on test set
     test_result = trainer.evaluate(test_ds)
     print(f"Test balanced accuracy: {test_result['eval_balanced_accuracy']:.4f}")
 
-    # Save best model
     trainer.save_model(OUTPUT_DIR)
     tokenizer.save_pretrained(OUTPUT_DIR)
 
     result = {
-        "dataset": "mednli",
+        "dataset": "doc-nli",
         "base_model": BASE_MODEL,
         "test_balanced_accuracy": test_result["eval_balanced_accuracy"],
         "test_accuracy": test_result["eval_accuracy"],
         "training_time_minutes": round(elapsed / 60, 1),
-        "epochs": 5,
+        "epochs": 2,
         "status": "COMPLETE",
     }
     result_path = os.path.join(OUTPUT_DIR, "training_result.json")
     with open(result_path, "w") as f:
         json.dump(result, f, indent=2)
     print(f"\nCOMPLETE — bal_acc={result['test_balanced_accuracy']:.4f}")
-    print(f"Result saved to {result_path}")
 
 
 if __name__ == "__main__":

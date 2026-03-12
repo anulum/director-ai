@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""Fine-tune FactCG-DeBERTa-v3-Large on MedNLI for medical domain guardrails.
+"""Fine-tune FactCG-DeBERTa-v3-Large on HANS for syntactic heuristic robustness.
 
-MedNLI: ~14K premise-hypothesis pairs from clinical notes (MIMIC-III).
-Labels: entailment / contradiction / neutral → binary (entailment vs not).
+HANS (McCoy et al. 2019): ~30K adversarial examples testing lexical overlap,
+subsequence, and constituent heuristics that fool NLI models.
 
 Usage:
-    python run_mednli_training.py [--resume]
+    python run_hans_training.py [--resume]
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ from transformers import (
 )
 
 BASE_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
-OUTPUT_DIR = "/home/director-ai/models/factcg-mednli"
+OUTPUT_DIR = "/home/director-ai/models/factcg-hans"
 TEMPLATE = (
     "{text_a}\n\nChoose your answer: based on the paragraph above "
     'can we conclude that "{text_b}"?\n\nOPTIONS:\n- Yes\n- No\n'
@@ -35,22 +35,22 @@ TEMPLATE = (
 )
 
 
-def load_mednli():
-    """Load MedNLI and convert to binary NLI format."""
-    ds = load_dataset("bigbio/mednli", "mednli_bigbio_te", trust_remote_code=True)
+def load_hans():
+    ds = load_dataset("hans")
 
     def convert(example):
-        premise = example["premise"]
-        hypothesis = example["hypothesis"]
-        # bigbio_te format: 0=entailment, 1=neutral, 2=contradiction
+        # HANS: 0=entailment, 1=non-entailment
         label = 1 if example["label"] == 0 else 0
-        text = TEMPLATE.format(text_a=premise, text_b=hypothesis)
+        text = TEMPLATE.format(text_a=example["premise"], text_b=example["hypothesis"])
         return {"text": text, "label": label}
 
     train = ds["train"].map(convert, remove_columns=ds["train"].column_names)
-    val = ds["validation"].map(convert, remove_columns=ds["validation"].column_names)
-    test = ds["test"].map(convert, remove_columns=ds["test"].column_names)
-    print(f"MedNLI loaded: train={len(train)}, val={len(val)}, test={len(test)}")
+    # HANS only has train + validation
+    val_split = ds["validation"].train_test_split(test_size=0.5, seed=42)
+    val = val_split["train"].map(convert, remove_columns=val_split["train"].column_names)
+    test = val_split["test"].map(convert, remove_columns=val_split["test"].column_names)
+
+    print(f"HANS loaded: train={len(train)}, val={len(val)}, test={len(test)}")
     return train, val, test
 
 
@@ -59,16 +59,16 @@ def tokenize_fn(tokenizer, max_length=512):
         return tokenizer(
             batch["text"], truncation=True, max_length=max_length, padding=False
         )
-
     return _tok
 
 
 def compute_metrics(pred):
     labels = pred.label_ids
     preds = np.argmax(pred.predictions, axis=1)
-    bal_acc = balanced_accuracy_score(labels, preds)
-    acc = (preds == labels).mean()
-    return {"accuracy": float(acc), "balanced_accuracy": float(bal_acc)}
+    return {
+        "accuracy": float((preds == labels).mean()),
+        "balanced_accuracy": float(balanced_accuracy_score(labels, preds)),
+    }
 
 
 def main():
@@ -76,17 +76,13 @@ def main():
     parser.add_argument("--resume", action="store_true")
     args = parser.parse_args()
 
-    print("=== MedNLI Fine-Tuning ===")
-    print(f"Base model: {BASE_MODEL}")
-    print(f"Output: {OUTPUT_DIR}")
-    print(
-        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
-    )
+    print("=== HANS Fine-Tuning ===")
+    print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
     model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)
 
-    train_ds, val_ds, test_ds = load_mednli()
+    train_ds, val_ds, test_ds = load_hans()
     tok_fn = tokenize_fn(tokenizer)
     train_ds = train_ds.map(tok_fn, batched=True, remove_columns=["text"])
     val_ds = val_ds.map(tok_fn, batched=True, remove_columns=["text"])
@@ -97,7 +93,6 @@ def main():
         num_train_epochs=5,
         per_device_train_batch_size=16,
         per_device_eval_batch_size=32,
-        gradient_accumulation_steps=1,
         learning_rate=2e-5,
         weight_decay=0.01,
         warmup_ratio=0.1,
@@ -114,33 +109,20 @@ def main():
     )
 
     trainer = Trainer(
-        model=model,
-        args=training_args,
-        train_dataset=train_ds,
-        eval_dataset=val_ds,
-        tokenizer=tokenizer,
-        compute_metrics=compute_metrics,
+        model=model, args=training_args, train_dataset=train_ds,
+        eval_dataset=val_ds, tokenizer=tokenizer, compute_metrics=compute_metrics,
     )
 
     start = time.time()
-    if args.resume:
-        trainer.train(resume_from_checkpoint=True)
-    else:
-        trainer.train()
+    trainer.train(resume_from_checkpoint=True) if args.resume else trainer.train()
     elapsed = time.time() - start
 
-    print(f"\nTraining time: {elapsed / 60:.1f} min")
-
-    # Evaluate on test set
     test_result = trainer.evaluate(test_ds)
-    print(f"Test balanced accuracy: {test_result['eval_balanced_accuracy']:.4f}")
-
-    # Save best model
     trainer.save_model(OUTPUT_DIR)
     tokenizer.save_pretrained(OUTPUT_DIR)
 
     result = {
-        "dataset": "mednli",
+        "dataset": "hans",
         "base_model": BASE_MODEL,
         "test_balanced_accuracy": test_result["eval_balanced_accuracy"],
         "test_accuracy": test_result["eval_accuracy"],
@@ -148,11 +130,9 @@ def main():
         "epochs": 5,
         "status": "COMPLETE",
     }
-    result_path = os.path.join(OUTPUT_DIR, "training_result.json")
-    with open(result_path, "w") as f:
+    with open(os.path.join(OUTPUT_DIR, "training_result.json"), "w") as f:
         json.dump(result, f, indent=2)
     print(f"\nCOMPLETE — bal_acc={result['test_balanced_accuracy']:.4f}")
-    print(f"Result saved to {result_path}")
 
 
 if __name__ == "__main__":
