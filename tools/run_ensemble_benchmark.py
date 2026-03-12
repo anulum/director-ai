@@ -28,18 +28,18 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from benchmarks._common import save_results
 from benchmarks.aggrefact_ensemble import (
+    _print_ensemble_results,
     run_ensemble_benchmark,
     sweep_ensemble_thresholds,
-    _print_ensemble_results,
 )
-from benchmarks._common import save_results
 
 
 def main():
     import argparse
-
     import logging
+
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser()
@@ -53,7 +53,8 @@ def main():
 
     if args.sweep:
         best_thresh, best_strat, r = sweep_ensemble_thresholds(
-            max_samples=args.max_samples, models_dir=args.models_dir,
+            max_samples=args.max_samples,
+            models_dir=args.models_dir,
         )
         print(f"\nOptimal: threshold={best_thresh:.2f}, strategy={best_strat}")
     else:

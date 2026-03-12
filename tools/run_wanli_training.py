@@ -68,7 +68,9 @@ def load_wanli():
     val_rows = train_rows[split_idx:]
     train_rows = train_rows[:split_idx]
 
-    print(f"WANLI loaded: train={len(train_rows)}, val={len(val_rows)}, test={len(test_rows)}")
+    print(
+        f"WANLI loaded: train={len(train_rows)}, val={len(val_rows)}, test={len(test_rows)}"
+    )
     return (
         Dataset.from_list(train_rows),
         Dataset.from_list(val_rows),

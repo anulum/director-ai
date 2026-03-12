@@ -74,7 +74,9 @@ def load_dialogue_nli():
     rng.shuffle(rows_by_split["train"])
     for s, rows in rows_by_split.items():
         print(f"  {s}: {len(rows)}")
-    return tuple(Dataset.from_list(rows_by_split[s]) for s in ["train", "validation", "test"])
+    return tuple(
+        Dataset.from_list(rows_by_split[s]) for s in ["train", "validation", "test"]
+    )
 
 
 def tokenize_fn(tokenizer, max_length=512):

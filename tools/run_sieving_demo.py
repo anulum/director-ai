@@ -13,22 +13,19 @@ from __future__ import annotations
 
 import argparse
 import json
-import os
 import random
 import time
 
 import numpy as np
 import torch
 from datasets import Dataset, load_dataset
+from sieving import SievingCollator, SievingTrainer
 from sklearn.metrics import balanced_accuracy_score
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
-    Trainer,
     TrainingArguments,
 )
-
-from sieving import SievingCollator, SievingTrainer
 
 BASE_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 TEMPLATE = (
@@ -53,10 +50,12 @@ def load_climatefever():
             ev_text = (ev.get("evidence") or "").strip()
             if not ev_text:
                 continue
-            rows.append({
-                "text": TEMPLATE.format(text_a=ev_text, text_b=claim),
-                "label": label,
-            })
+            rows.append(
+                {
+                    "text": TEMPLATE.format(text_a=ev_text, text_b=claim),
+                    "label": label,
+                }
+            )
     rng.shuffle(rows)
     n = len(rows)
     i1, i2 = int(n * 0.70), int(n * 0.85)
@@ -70,6 +69,7 @@ def load_climatefever():
 def tokenize(ds, tokenizer):
     def _tok(batch):
         return tokenizer(batch["text"], truncation=True, max_length=512, padding=False)
+
     return ds.map(_tok, batched=True, remove_columns=["text"])
 
 
@@ -96,11 +96,25 @@ def make_noisy_test(test_rows, tokenizer, typo_ratio=0.05):
     """Create a noisy copy of the test set with simulated typos."""
     noisy = []
     for ex in test_rows:
-        noisy.append({"text": inject_typos(ex["text"], typo_ratio), "label": ex["label"]})
+        noisy.append(
+            {"text": inject_typos(ex["text"], typo_ratio), "label": ex["label"]}
+        )
     return tokenize(Dataset.from_list(noisy), tokenizer)
 
 
-def run_experiment(name, trainer_cls, collator, model, tokenizer, train_ds, val_ds, test_ds, noisy_test_ds, output_dir, epochs):
+def run_experiment(
+    name,
+    trainer_cls,
+    collator,
+    model,
+    tokenizer,
+    train_ds,
+    val_ds,
+    test_ds,
+    noisy_test_ds,
+    output_dir,
+    epochs,
+):
     args = TrainingArguments(
         output_dir=output_dir,
         num_train_epochs=epochs,
@@ -141,7 +155,8 @@ def run_experiment(name, trainer_cls, collator, model, tokenizer, train_ds, val_
         "name": name,
         "clean_bal_acc": clean_result["eval_balanced_accuracy"],
         "noisy_bal_acc": noisy_result["eval_balanced_accuracy"],
-        "robustness_gap": clean_result["eval_balanced_accuracy"] - noisy_result["eval_balanced_accuracy"],
+        "robustness_gap": clean_result["eval_balanced_accuracy"]
+        - noisy_result["eval_balanced_accuracy"],
         "training_minutes": round(elapsed / 60, 1),
     }
 
@@ -153,13 +168,17 @@ def main():
     args = parser.parse_args()
 
     print(f"=== Sieving A/B Demo (noise_ratio={args.noise_ratio}) ===")
-    print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
+    print(
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
 
     print("Loading ClimateFEVER...")
     train_ds_raw, val_ds_raw, test_ds_raw = load_climatefever()
-    print(f"  train={len(train_ds_raw)}, val={len(val_ds_raw)}, test={len(test_ds_raw)}")
+    print(
+        f"  train={len(train_ds_raw)}, val={len(val_ds_raw)}, test={len(test_ds_raw)}"
+    )
 
     train_ds = tokenize(train_ds_raw, tokenizer)
     val_ds = tokenize(val_ds_raw, tokenizer)
@@ -168,22 +187,42 @@ def main():
 
     # Experiment A: Standard fine-tuning
     print("\n--- Experiment A: Standard (no sieving) ---")
-    model_a = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)
+    model_a = AutoModelForSequenceClassification.from_pretrained(
+        BASE_MODEL, num_labels=2
+    )
     standard_collator = SievingCollator(tokenizer, noise_ratio=0.0)
     result_a = run_experiment(
-        "standard", SievingTrainer, standard_collator,
-        model_a, tokenizer, train_ds, val_ds, test_ds, noisy_test_ds,
-        "/home/director-ai/models/sieving-demo-standard", args.epochs,
+        "standard",
+        SievingTrainer,
+        standard_collator,
+        model_a,
+        tokenizer,
+        train_ds,
+        val_ds,
+        test_ds,
+        noisy_test_ds,
+        "/home/director-ai/models/sieving-demo-standard",
+        args.epochs,
     )
 
     # Experiment B: Sieving fine-tuning
     print(f"\n--- Experiment B: Sieving (noise_ratio={args.noise_ratio}) ---")
-    model_b = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)
+    model_b = AutoModelForSequenceClassification.from_pretrained(
+        BASE_MODEL, num_labels=2
+    )
     sieving_collator = SievingCollator(tokenizer, noise_ratio=args.noise_ratio)
     result_b = run_experiment(
-        f"sieving_{args.noise_ratio}", SievingTrainer, sieving_collator,
-        model_b, tokenizer, train_ds, val_ds, test_ds, noisy_test_ds,
-        "/home/director-ai/models/sieving-demo-sieving", args.epochs,
+        f"sieving_{args.noise_ratio}",
+        SievingTrainer,
+        sieving_collator,
+        model_b,
+        tokenizer,
+        train_ds,
+        val_ds,
+        test_ds,
+        noisy_test_ds,
+        "/home/director-ai/models/sieving-demo-sieving",
+        args.epochs,
     )
 
     # Summary
@@ -200,7 +239,7 @@ def main():
     delta_clean = result_b["clean_bal_acc"] - result_a["clean_bal_acc"]
     delta_noisy = result_b["noisy_bal_acc"] - result_a["noisy_bal_acc"]
     delta_gap = result_a["robustness_gap"] - result_b["robustness_gap"]
-    print(f"\nSieving effect:")
+    print("\nSieving effect:")
     print(f"  Clean accuracy delta:      {delta_clean:+.4f}")
     print(f"  Noisy accuracy delta:      {delta_noisy:+.4f}")
     print(f"  Robustness gap reduction:  {delta_gap:+.4f}")

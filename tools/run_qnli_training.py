@@ -50,7 +50,9 @@ def load_qnli():
     train = ds["train"].map(convert, remove_columns=ds["train"].column_names)
     # QNLI validation has labels; test split doesn't (GLUE leaderboard)
     val_split = ds["validation"].train_test_split(test_size=0.5, seed=42)
-    val = val_split["train"].map(convert, remove_columns=val_split["train"].column_names)
+    val = val_split["train"].map(
+        convert, remove_columns=val_split["train"].column_names
+    )
     test = val_split["test"].map(convert, remove_columns=val_split["test"].column_names)
 
     print(f"QNLI loaded: train={len(train)}, val={len(val)}, test={len(test)}")
@@ -62,6 +64,7 @@ def tokenize_fn(tokenizer, max_length=512):
         return tokenizer(
             batch["text"], truncation=True, max_length=max_length, padding=False
         )
+
     return _tok
 
 
@@ -81,7 +84,9 @@ def main():
     print("=== QNLI Fine-Tuning ===")
     print(f"Base model: {BASE_MODEL}")
     print(f"Output: {OUTPUT_DIR}")
-    print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
+    print(
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
     model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)

@@ -63,6 +63,7 @@ def tokenize_fn(tokenizer, max_length=512):
         return tokenizer(
             batch["text"], truncation=True, max_length=max_length, padding=False
         )
+
     return _tok
 
 
@@ -82,7 +83,9 @@ def main():
     print("=== FEVER Fine-Tuning ===")
     print(f"Base model: {BASE_MODEL}")
     print(f"Output: {OUTPUT_DIR}")
-    print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
+    print(
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
     model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)

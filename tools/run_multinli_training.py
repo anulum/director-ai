@@ -75,7 +75,9 @@ def load_multinli():
         text = TEMPLATE.format(text_a=ex["premise"], text_b=ex["hypothesis"])
         val_rows.append({"text": text, "label": label})
 
-    print(f"MultiNLI loaded: train={len(train_rows)}, val={len(val_rows)}, test={len(test_rows)}")
+    print(
+        f"MultiNLI loaded: train={len(train_rows)}, val={len(val_rows)}, test={len(test_rows)}"
+    )
     return (
         Dataset.from_list(train_rows),
         Dataset.from_list(val_rows),

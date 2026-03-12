@@ -51,10 +51,14 @@ class SievingCollator:
     def __call__(self, features):
         batch = self.base(features)
         if self.training and self.noise_ratio > 0:
-            batch["input_ids"] = self._corrupt(batch["input_ids"], batch["attention_mask"])
+            batch["input_ids"] = self._corrupt(
+                batch["input_ids"], batch["attention_mask"]
+            )
         return batch
 
-    def _corrupt(self, input_ids: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+    def _corrupt(
+        self, input_ids: torch.Tensor, attention_mask: torch.Tensor
+    ) -> torch.Tensor:
         out = input_ids.clone()
         # Corruptible: not padding, not special tokens
         corruptible = attention_mask.bool()
@@ -67,7 +71,9 @@ class SievingCollator:
 
         rand = torch.rand_like(probs)
         mask_pos = selected & (rand < self.mask_prob)
-        random_pos = selected & ~mask_pos & (rand < self.mask_prob + 0.5 * (1 - self.mask_prob))
+        random_pos = (
+            selected & ~mask_pos & (rand < self.mask_prob + 0.5 * (1 - self.mask_prob))
+        )
 
         out[mask_pos] = self.mask_id
         random_tokens = torch.randint(0, self.vocab_size, out.shape, device=out.device)

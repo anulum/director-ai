@@ -56,7 +56,9 @@ def load_docnli():
     train = ds["train"].map(convert, remove_columns=ds["train"].column_names)
 
     if "validation" in ds:
-        val = ds["validation"].map(convert, remove_columns=ds["validation"].column_names)
+        val = ds["validation"].map(
+            convert, remove_columns=ds["validation"].column_names
+        )
     else:
         split = train.train_test_split(test_size=0.05, seed=42)
         train = split["train"]
@@ -78,6 +80,7 @@ def tokenize_fn(tokenizer, max_length=512):
         return tokenizer(
             batch["text"], truncation=True, max_length=max_length, padding=False
         )
+
     return _tok
 
 
@@ -97,7 +100,9 @@ def main():
     print("=== DocNLI Fine-Tuning ===")
     print(f"Base model: {BASE_MODEL}")
     print(f"Output: {OUTPUT_DIR}")
-    print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
+    print(
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
     model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)

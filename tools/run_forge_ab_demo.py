@@ -16,15 +16,14 @@ import time
 import numpy as np
 import torch
 from datasets import load_dataset
+from forge import ForgeConfig, ForgeTrainer
+from sieving import SievingCollator
 from sklearn.metrics import balanced_accuracy_score
 from transformers import (
     AutoModelForSequenceClassification,
     AutoTokenizer,
     TrainingArguments,
 )
-
-from forge import ForgeConfig, ForgeTrainer
-from sieving import SievingCollator
 
 MODEL = "microsoft/deberta-v3-large"
 MAX_LEN = 512
@@ -45,14 +44,19 @@ def load_climatefever(tokenizer, max_len=MAX_LEN):
             evidence_text = " ".join(e.get("evidence", "") for e in evidences[:3])
         elif evidences and isinstance(evidences[0], list):
             evidence_text = " ".join(
-                e.get("evidence", "") for sublist in evidences[:3] for e in (sublist if isinstance(sublist, list) else [sublist])
+                e.get("evidence", "")
+                for sublist in evidences[:3]
+                for e in (sublist if isinstance(sublist, list) else [sublist])
             )
         else:
             evidence_text = ""
 
         tok = tokenizer(
-            claim, evidence_text[:2000],
-            truncation=True, max_length=max_len, padding="max_length",
+            claim,
+            evidence_text[:2000],
+            truncation=True,
+            max_length=max_len,
+            padding="max_length",
         )
         tok["labels"] = label_map.get(example["claim_label"], 0)
         return tok
@@ -88,16 +92,17 @@ def compute_metrics(eval_pred):
 
 
 def run_experiment(name, train_ds, eval_ds, tokenizer, forge_cfg, use_sieving=False):
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  Experiment: {name}")
     print(f"  Forge: {forge_cfg.active_techniques() or ['none']}")
     print(f"  Sieving: {use_sieving}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     output_dir = os.path.join(OUTPUT_BASE, f"forge-demo-{name}")
 
     model = AutoModelForSequenceClassification.from_pretrained(
-        MODEL, num_labels=2,
+        MODEL,
+        num_labels=2,
     )
 
     collator = None
@@ -175,10 +180,14 @@ def main():
 
     # Experiment A: R-Drop + Focal (no FGM — conflicts with fp16 AMP scaler on Turing GPUs)
     forge_cfg = ForgeConfig(rdrop_alpha=4.0, focal_gamma=2.0)
-    result_forge = run_experiment("rdrop-focal", train_ds, eval_ds, tokenizer, forge_cfg, use_sieving=False)
+    result_forge = run_experiment(
+        "rdrop-focal", train_ds, eval_ds, tokenizer, forge_cfg, use_sieving=False
+    )
 
     # Experiment B: R-Drop + Focal + Sieving
-    result_full = run_experiment("rdrop-focal-sieving", train_ds, eval_ds, tokenizer, forge_cfg, use_sieving=True)
+    result_full = run_experiment(
+        "rdrop-focal-sieving", train_ds, eval_ds, tokenizer, forge_cfg, use_sieving=True
+    )
 
     # Load previous sieving-only results for comparison
     prev = {}
@@ -201,22 +210,30 @@ def main():
     # Deltas vs standard baseline
     std_clean = prev.get("standard", {}).get("clean_bal_acc", 0)
     if std_clean:
-        summary["delta_forge_vs_standard"] = round(result_forge["clean_bal_acc"] - std_clean, 4)
-        summary["delta_fullstack_vs_standard"] = round(result_full["clean_bal_acc"] - std_clean, 4)
+        summary["delta_forge_vs_standard"] = round(
+            result_forge["clean_bal_acc"] - std_clean, 4
+        )
+        summary["delta_fullstack_vs_standard"] = round(
+            result_full["clean_bal_acc"] - std_clean, 4
+        )
         summary["delta_fullstack_vs_sieving"] = round(
-            result_full["clean_bal_acc"] - prev.get("sieving", {}).get("clean_bal_acc", 0), 4
+            result_full["clean_bal_acc"]
+            - prev.get("sieving", {}).get("clean_bal_acc", 0),
+            4,
         )
 
     out_path = "/home/director-ai/forge_ab_results.json"
     with open(out_path, "w") as f:
         json.dump(summary, f, indent=2)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print("  SUMMARY")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     if std_clean:
         print(f"  Standard baseline:     {std_clean:.4f}")
-        print(f"  Sieving only:          {prev.get('sieving', {}).get('clean_bal_acc', 'N/A')}")
+        print(
+            f"  Sieving only:          {prev.get('sieving', {}).get('clean_bal_acc', 'N/A')}"
+        )
     print(f"  Forge only:            {result_forge['clean_bal_acc']:.4f}")
     print(f"  Forge + Sieving:       {result_full['clean_bal_acc']:.4f}")
     if std_clean:

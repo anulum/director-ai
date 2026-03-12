@@ -1,0 +1,40 @@
+{
+  "model": "microsoft/deberta-v3-large",
+  "dataset": "climate_fever",
+  "epochs": 10,
+  "forge_config": {
+    "rdrop_alpha": 4.0,
+    "focal_gamma": 2.0
+  },
+  "rdrop_focal": {
+    "name": "rdrop-focal",
+    "clean_bal_acc": 1.0,
+    "noisy_bal_acc": 1.0,
+    "robustness_gap": 0.0,
+    "training_minutes": 27.6
+  },
+  "rdrop_focal_sieving": {
+    "name": "rdrop-focal-sieving",
+    "clean_bal_acc": 1.0,
+    "noisy_bal_acc": 1.0,
+    "robustness_gap": 0.0,
+    "training_minutes": 28.1
+  },
+  "previous_standard": {
+    "name": "standard",
+    "clean_bal_acc": 0.7886977033013884,
+    "noisy_bal_acc": 0.765000834152038,
+    "robustness_gap": 0.02369686914935043,
+    "training_minutes": 30.1
+  },
+  "previous_sieving": {
+    "name": "sieving_0.1",
+    "clean_bal_acc": 0.8089699149164922,
+    "noisy_bal_acc": 0.797634715554155,
+    "robustness_gap": 0.011335199362337178,
+    "training_minutes": 30.0
+  },
+  "delta_forge_vs_standard": 0.2113,
+  "delta_fullstack_vs_standard": 0.2113,
+  "delta_fullstack_vs_sieving": 0.191
+}

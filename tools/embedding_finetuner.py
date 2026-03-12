@@ -31,7 +31,7 @@ from __future__ import annotations
 import logging
 import os
 import random
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 logger = logging.getLogger("DirectorAI.EmbeddingFineTuner")
 
@@ -83,7 +83,9 @@ class EmbeddingFineTuner:
         """Chunk documents and add to the corpus. Returns chunk count."""
         for doc in documents:
             self._chunks.extend(self._chunk_text(doc))
-        logger.info("Chunked %d documents into %d chunks", len(documents), len(self._chunks))
+        logger.info(
+            "Chunked %d documents into %d chunks", len(documents), len(self._chunks)
+        )
         return len(self._chunks)
 
     def _chunk_text(self, text: str) -> list[str]:
@@ -122,13 +124,13 @@ class EmbeddingFineTuner:
             positive = rng.choice(pos_candidates)
 
             # Hard negatives: random chunks far from anchor
-            neg_pool = [
-                j for j in range(n) if abs(j - i) > 3
-            ]
+            neg_pool = [j for j in range(n) if abs(j - i) > 3]
             if not neg_pool:
                 neg_pool = [j for j in range(n) if j != i]
 
-            neg_indices = rng.sample(neg_pool, min(self.tcfg.negatives_per_anchor, len(neg_pool)))
+            neg_indices = rng.sample(
+                neg_pool, min(self.tcfg.negatives_per_anchor, len(neg_pool))
+            )
             for ni in neg_indices:
                 self._triplets.append((anchor, positive, self._chunks[ni]))
 
@@ -149,6 +151,7 @@ class EmbeddingFineTuner:
         nli_scorer : director_ai.core.nli.NLIScorer
         """
         import re
+
         rng = random.Random(42)
         n = len(self._chunks)
         if n < 3:
@@ -171,7 +174,9 @@ class EmbeddingFineTuner:
             for j in range(n):
                 if abs(j - i) <= 2:
                     continue
-                overlap = len(anchor_words & word_sets[j]) / max(len(anchor_words | word_sets[j]), 1)
+                overlap = len(anchor_words & word_sets[j]) / max(
+                    len(anchor_words | word_sets[j]), 1
+                )
                 if overlap > 0.2:
                     candidates.append((j, overlap))
 
@@ -190,13 +195,17 @@ class EmbeddingFineTuner:
                 pool = [j for j in range(n) if abs(j - i) > 3]
                 if not pool:
                     pool = [j for j in range(n) if j != i]
-                hard_negs = rng.sample(pool, min(self.tcfg.negatives_per_anchor, len(pool)))
+                hard_negs = rng.sample(
+                    pool, min(self.tcfg.negatives_per_anchor, len(pool))
+                )
 
             for ni in hard_negs:
                 self._triplets.append((anchor, positive, self._chunks[ni]))
 
         rng.shuffle(self._triplets)
-        logger.info("Generated %d NLI-guided triplets from %d chunks", len(self._triplets), n)
+        logger.info(
+            "Generated %d NLI-guided triplets from %d chunks", len(self._triplets), n
+        )
         return len(self._triplets)
 
     def train(self, output_dir: str | None = None) -> str:
@@ -215,10 +224,7 @@ class EmbeddingFineTuner:
 
         model = SentenceTransformer(self.base_model)
 
-        examples = [
-            InputExample(texts=[a, p, n])
-            for a, p, n in self._triplets
-        ]
+        examples = [InputExample(texts=[a, p, n]) for a, p, n in self._triplets]
         loader = DataLoader(examples, shuffle=True, batch_size=self.cfg.batch_size)
         loss_fn = losses.MultipleNegativesRankingLoss(model)
 
@@ -226,7 +232,9 @@ class EmbeddingFineTuner:
 
         logger.info(
             "Training %s on %d triplets for %d epochs",
-            self.base_model, len(self._triplets), self.cfg.epochs,
+            self.base_model,
+            len(self._triplets),
+            self.cfg.epochs,
         )
         model.fit(
             train_objectives=[(loader, loss_fn)],

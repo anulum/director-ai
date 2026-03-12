@@ -19,9 +19,7 @@ Usage (GPU recommended — 5 models × ~1.7GB each):
 
 from __future__ import annotations
 
-import json
 import logging
-import os
 import time
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -31,13 +29,11 @@ from sklearn.metrics import balanced_accuracy_score
 
 from benchmarks._common import save_results
 from benchmarks.aggrefact_eval import (
-    AGGREFACT_DATASETS,
     REFERENCE_SCORES,
     AggreFactMetrics,
-    _BinaryNLIPredictor,
     _binary_class_metrics,
+    _BinaryNLIPredictor,
     _load_aggrefact,
-    _print_aggrefact_results,
 )
 
 logger = logging.getLogger("DirectorAI.Benchmark.AggreFactEnsemble")
@@ -172,7 +168,9 @@ def run_ensemble_benchmark(
         predictors[name] = _BinaryNLIPredictor(model_name=path)
 
     if len(predictors) < 2:
-        logger.warning("Need at least 2 models for ensemble. Found: %d", len(predictors))
+        logger.warning(
+            "Need at least 2 models for ensemble. Found: %d", len(predictors)
+        )
 
     rows = _load_aggrefact(max_samples)
 
@@ -261,8 +259,12 @@ def _print_ensemble_results(r: EnsembleResult) -> None:
     if r.ensemble_max and r.ensemble_mean:
         print(f"\n  {'Ensemble Strategy':<30} {'Bal Acc':>8}")
         print(f"  {'-' * 42}")
-        print(f"  {'max (any model says yes)':<30} {r.ensemble_max.avg_balanced_acc:>7.1%}")
-        print(f"  {'mean (avg probability)':<30} {r.ensemble_mean.avg_balanced_acc:>7.1%}")
+        print(
+            f"  {'max (any model says yes)':<30} {r.ensemble_max.avg_balanced_acc:>7.1%}"
+        )
+        print(
+            f"  {'mean (avg probability)':<30} {r.ensemble_mean.avg_balanced_acc:>7.1%}"
+        )
 
     # Leaderboard comparison
     best = r.ensemble_mean if r.best_strategy == "mean" else r.ensemble_max
@@ -276,7 +278,9 @@ def _print_ensemble_results(r: EnsembleResult) -> None:
         print(f"\n  {'Leaderboard':<30} {'Score':>8}  {'vs Ours':>8}")
         print(f"  {'-' * 50}")
         inserted = False
-        for ref_name, ref_score in sorted(REFERENCE_SCORES.items(), key=lambda x: -x[1]):
+        for ref_name, ref_score in sorted(
+            REFERENCE_SCORES.items(), key=lambda x: -x[1]
+        ):
             if not inserted and our_pct >= ref_score:
                 print(f"  {'>>> OURS (ensemble) <<<':<30} {our_pct:>7.1f}%")
                 inserted = True
@@ -290,7 +294,9 @@ def _print_ensemble_results(r: EnsembleResult) -> None:
         print(f"  {'-' * 47}")
         for ds_name in sorted(best.per_dataset.keys()):
             ens_acc = best.per_dataset[ds_name]["balanced_acc"]
-            base_acc = r.base_metrics.per_dataset.get(ds_name, {}).get("balanced_acc", 0)
+            base_acc = r.base_metrics.per_dataset.get(ds_name, {}).get(
+                "balanced_acc", 0
+            )
             print(
                 f"  {ds_name:<20} {base_acc:>6.1%} {ens_acc:>8.1%} {ens_acc - base_acc:>+6.1%}"
             )
@@ -307,10 +313,15 @@ if __name__ == "__main__":
         "max_samples", nargs="?", type=int, default=None, help="Limit samples"
     )
     parser.add_argument(
-        "--models-dir", type=str, default=None, help="Directory containing domain models"
+        "--models-dir",
+        type=str,
+        default=None,
+        help="Directory containing domain models",
     )
     parser.add_argument("--threshold", type=float, default=0.5)
-    parser.add_argument("--sweep", action="store_true", help="Sweep threshold × strategy")
+    parser.add_argument(
+        "--sweep", action="store_true", help="Sweep threshold × strategy"
+    )
     parser.add_argument("--no-base", action="store_true", help="Exclude base model")
     args = parser.parse_args()
 

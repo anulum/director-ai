@@ -47,7 +47,9 @@ def load_hans():
     train = ds["train"].map(convert, remove_columns=ds["train"].column_names)
     # HANS only has train + validation
     val_split = ds["validation"].train_test_split(test_size=0.5, seed=42)
-    val = val_split["train"].map(convert, remove_columns=val_split["train"].column_names)
+    val = val_split["train"].map(
+        convert, remove_columns=val_split["train"].column_names
+    )
     test = val_split["test"].map(convert, remove_columns=val_split["test"].column_names)
 
     print(f"HANS loaded: train={len(train)}, val={len(val)}, test={len(test)}")
@@ -59,6 +61,7 @@ def tokenize_fn(tokenizer, max_length=512):
         return tokenizer(
             batch["text"], truncation=True, max_length=max_length, padding=False
         )
+
     return _tok
 
 
@@ -77,7 +80,9 @@ def main():
     args = parser.parse_args()
 
     print("=== HANS Fine-Tuning ===")
-    print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
+    print(
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
     model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)
@@ -109,8 +114,12 @@ def main():
     )
 
     trainer = Trainer(
-        model=model, args=training_args, train_dataset=train_ds,
-        eval_dataset=val_ds, tokenizer=tokenizer, compute_metrics=compute_metrics,
+        model=model,
+        args=training_args,
+        train_dataset=train_ds,
+        eval_dataset=val_ds,
+        tokenizer=tokenizer,
+        compute_metrics=compute_metrics,
     )
 
     start = time.time()
