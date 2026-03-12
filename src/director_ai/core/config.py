@@ -282,8 +282,8 @@ class DirectorConfig:
             if field_name in field_map:
                 fld = field_map[field_name]
                 try:
-                    kwargs[fld.name] = _coerce(  # type: ignore[arg-type]
-                        value, fld.type
+                    kwargs[fld.name] = _coerce(
+                        value, fld.type  # type: ignore[arg-type]
                     )
                 except (ValueError, TypeError) as exc:
                     raise ValueError(
