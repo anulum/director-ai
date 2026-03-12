@@ -140,6 +140,8 @@ logs/
 *.pickle
 benchmarks/results/
 benchmarks/.cache/
+benchmarks/*.jsonl
+benchmarks/forge_ab_results.json
 
 # =====================================================================
 # HuggingFace Model Cache & Training Artifacts
