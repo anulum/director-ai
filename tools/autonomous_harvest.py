@@ -266,7 +266,6 @@ def main():
         log(f"Upload failed: {err}")
         log("Trying individual model uploads instead...")
         for mdir in model_dirs:
-            local_model = os.path.join(MODELS_DIR, mdir)  # noqa: F841
             # Tar individual model
             ind_tar = os.path.join(MODELS_DIR, f"{mdir}.tar.gz")
             run(f'cd "{MODELS_DIR}" && tar czf {mdir}.tar.gz {mdir}', timeout=120)
