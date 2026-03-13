@@ -1,6 +1,6 @@
 # Director-AI -- Competitor Benchmark Comparison
 
-Last updated: 2026-03-13 (v3.8.0) — full competitive landscape, frontier LLM eval, L40S latency
+Last updated: 2026-03-14 (v3.8.0) — full competitive landscape, frontier LLM eval, L40S latency, 23-model NLI survey
 
 ## One-Pager Summary
 
@@ -143,12 +143,13 @@ Full dataset: 29,320 samples, 11 sub-datasets, macro-averaged balanced accuracy.
 Base: `yaxili96/FactCG-DeBERTa-v3-Large` at 75.86% (t=0.45). Each row: fine-tuned
 from base on the named dataset (LR=2e-5, 3–20 epochs), then benchmarked on AggreFact.
 
-**Finding: 20/21 NLI fine-tunes hurt performance. Only CommitmentBank (+0.54pp) helps.**
+**Finding: 22/23 NLI fine-tunes hurt performance. Only CommitmentBank (+0.54pp) helps.**
 
 | Model | BA | Threshold | Delta | Pattern |
 |-------|-----|-----------|-------|---------|
 | **base (FactCG-DeBERTa-v3-Large)** | **75.86%** | 0.45 | — | Production model |
 | factcg-cb (CommitmentBank) | 76.40% | 0.90 | +0.54% | Complex inference, diverse |
+| factcg-cb-lowlr (CB, LR=5e-6) | 72.33% | 0.50 | -3.53% | Even conservative LR hurts |
 | factcg-rte | 73.28% | 0.15 | -2.58% | Entailment pairs, closest to cb |
 | factcg-vitaminc | 70.29% | 0.85 | -5.57% | Contrastive fact-check |
 | factcg-legal | 69.52% | 0.35 | -6.34% | Domain-specific NLI |
@@ -156,6 +157,7 @@ from base on the named dataset (LR=2e-5, 3–20 epochs), then benchmarked on Agg
 | factcg-multinli | 66.30% | 0.95 | -9.56% | General entailment |
 | factcg-multirc | 66.09% | 0.95 | -9.77% | Reading comprehension |
 | factcg-anli | 63.25% | 0.95 | -12.61% | Adversarial NLI |
+| factcg-nca-synthetic (50K, LR=5e-6) | 62.78% | 0.50 | -13.08% | Synthetic NLI, neg acc 30.2% |
 | factcg-snli | 62.16% | 0.95 | -13.70% | Image caption entailment |
 | factcg-boolq | 61.67% | 0.95 | -14.19% | Yes/no QA |
 | factcg-wic | 61.59% | 0.95 | -14.27% | Word-in-context |
@@ -169,14 +171,16 @@ from base on the named dataset (LR=2e-5, 3–20 epochs), then benchmarked on Agg
 | factcg-mrpc | 50.37% | 0.05 | -25.49% | Paraphrase detection |
 | factcg-dialogue-nli | 50.33% | 0.95 | -25.53% | Dialogue implicature |
 
-**Root cause:** Task mismatch + catastrophic forgetting at LR=2e-5 regardless of data relevance.
+**Root cause:** Task mismatch + catastrophic forgetting regardless of learning rate or data source.
 DocNLI is the most directly relevant dataset (900K document-level premise-hypothesis pairs from
 summarization and QA sources) yet produces -14.49pp — confirming the problem is fine-tuning
-dynamics, not data choice. Threshold shifts to 0.85–0.95 indicate models output extreme
-probabilities, losing calibration. CommitmentBank is the lone exception: 250 examples,
-complex multi-sentence inference with subtle linguistic commitment, too small to trigger
-catastrophic forgetting at LR=2e-5. CB-lowLR (LR=5e-6) model was lost during training
-(trainer checkpoint save failure on JarvisLabs instance 383976).
+dynamics, not data choice. CB-lowLR (LR=5e-6, 20 epochs) yields -3.53pp: even 4x lower LR
+still degrades the model, with neg acc dropping from 59.3% to 52.8%. NCA-synthetic (50K
+synthetic doc/claim/label triples at LR=5e-6) yields -13.08pp with neg acc collapsing to
+30.2% — synthetic data overwhelms the base model's calibration entirely. Threshold shifts
+to 0.85–0.95 indicate models output extreme probabilities, losing calibration. CommitmentBank
+is the lone exception: 250 examples, complex multi-sentence inference with subtle linguistic
+commitment, too small to trigger catastrophic forgetting.
 
 **Best ensemble:** max(base, factcg-cb) at 76.37% (+0.51pp) — marginal, not production-worthy.
 

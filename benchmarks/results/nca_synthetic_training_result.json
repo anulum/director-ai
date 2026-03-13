@@ -1,0 +1,11 @@
+{
+  "dataset": "nca_synthetic",
+  "base_model": "yaxili96/FactCG-DeBERTa-v3-Large",
+  "learning_rate": 5e-06,
+  "val_balanced_accuracy": 0.9722322335441171,
+  "training_time_minutes": 238.4,
+  "n_train": 47500,
+  "n_val": 2500,
+  "epochs": 3,
+  "status": "COMPLETE"
+}

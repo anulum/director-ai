@@ -1,0 +1,16 @@
+Loading weights:   0%|          | 0/394 [00:00<?, ?it/s]Loading weights:  27%|██▋       | 106/394 [00:00<00:00, 1020.03it/s]Loading weights:  54%|█████▍    | 214/394 [00:00<00:00, 1048.07it/s]Loading weights:  81%|████████  | 319/394 [00:00<00:00, 1047.51it/s]Loading weights: 100%|██████████| 394/394 [00:00<00:00, 1062.81it/s]
+nca-synthetic: 2000/29320 (54 min remaining)
+nca-synthetic: 4000/29320 (49 min remaining)
+nca-synthetic: 6000/29320 (53 min remaining)
+nca-synthetic: 8000/29320 (40 min remaining)
+nca-synthetic: 10000/29320 (36 min remaining)
+nca-synthetic: 12000/29320 (30 min remaining)
+nca-synthetic: 14000/29320 (27 min remaining)
+nca-synthetic: 16000/29320 (25 min remaining)
+nca-synthetic: 18000/29320 (20 min remaining)
+nca-synthetic: 20000/29320 (17 min remaining)
+nca-synthetic: 22000/29320 (13 min remaining)
+nca-synthetic: 24000/29320 (9 min remaining)
+nca-synthetic: 26000/29320 (6 min remaining)
+nca-synthetic: 28000/29320 (2 min remaining)
+Scoring DONE — /home/user/director-ai/scores/factcg-nca-synthetic.json (48.0 min)
