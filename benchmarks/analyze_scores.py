@@ -137,7 +137,9 @@ def print_ranking(
         diff = ba - base_ba
         sign = "+" if diff >= 0 else ""
         tag = (
-            "  ** BEATS BASE" if diff > 0.005 else ("  -- hurts" if diff < -0.005 else "")
+            "  ** BEATS BASE"
+            if diff > 0.005
+            else ("  -- hurts" if diff < -0.005 else "")
         )
         print(
             f"  {name:<30s}  {ba * 100:.2f}%  {t:.2f}    {sign}{diff * 100:.2f}%{tag}"

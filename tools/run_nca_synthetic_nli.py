@@ -51,12 +51,12 @@ TEMPLATE = (
 
 # NCA rule weights (probability of each perturbation type)
 RULE_WEIGHTS = {
-    "faithful": 0.40,       # identity: extract + minor rephrase → supported
-    "entity_swap": 0.15,    # local: swap named entities → not_supported
-    "quantity_shift": 0.10, # local: change numbers → not_supported
-    "negation": 0.10,       # local: negate predicate → not_supported
+    "faithful": 0.40,  # identity: extract + minor rephrase → supported
+    "entity_swap": 0.15,  # local: swap named entities → not_supported
+    "quantity_shift": 0.10,  # local: change numbers → not_supported
+    "negation": 0.10,  # local: negate predicate → not_supported
     "cross_doc_mix": 0.15,  # propagation: mix claims across docs → not_supported
-    "temporal_shift": 0.10, # local: change time references → not_supported
+    "temporal_shift": 0.10,  # local: change time references → not_supported
 }
 
 
@@ -71,7 +71,9 @@ def _find_entities(text: str) -> list[str]:
 
 
 def _find_numbers(text: str) -> list[str]:
-    return re.findall(r"\b\d+(?:\.\d+)?(?:\s*(?:%|percent|million|billion|thousand))?\b", text)
+    return re.findall(
+        r"\b\d+(?:\.\d+)?(?:\s*(?:%|percent|million|billion|thousand))?\b", text
+    )
 
 
 def _rephrase_minor(sent: str, rng: random.Random) -> str:
@@ -95,7 +97,9 @@ def rule_faithful(doc: str, rng: random.Random) -> tuple[str, int] | None:
     return _rephrase_minor(sent, rng), 1
 
 
-def rule_entity_swap(doc: str, all_entities: list[str], rng: random.Random) -> tuple[str, int] | None:
+def rule_entity_swap(
+    doc: str, all_entities: list[str], rng: random.Random
+) -> tuple[str, int] | None:
     sents = _extract_sentences(doc)
     if not sents:
         return None
@@ -121,11 +125,8 @@ def rule_quantity_shift(doc: str, rng: random.Random) -> tuple[str, int] | None:
         num_val = float(re.match(r"[\d.]+", target).group())
         factor = rng.choice([0.5, 0.7, 1.5, 2.0, 3.0])
         new_val = num_val * factor
-        if num_val == int(num_val):
-            new_str = str(int(new_val))
-        else:
-            new_str = f"{new_val:.1f}"
-        suffix = target[len(re.match(r"[\d.]+", target).group()):]
+        new_str = str(int(new_val)) if num_val == int(num_val) else f"{new_val:.1f}"
+        suffix = target[len(re.match(r"[\d.]+", target).group()) :]
         return sent.replace(target, new_str + suffix, 1), 0
     except (ValueError, AttributeError):
         return None
@@ -152,7 +153,9 @@ def rule_negation(doc: str, rng: random.Random) -> tuple[str, int] | None:
     return None
 
 
-def rule_cross_doc_mix(doc: str, other_docs: list[str], rng: random.Random) -> tuple[str, int] | None:
+def rule_cross_doc_mix(
+    doc: str, other_docs: list[str], rng: random.Random
+) -> tuple[str, int] | None:
     other = rng.choice(other_docs) if other_docs else doc
     other_sents = _extract_sentences(other)
     if not other_sents:
@@ -166,9 +169,13 @@ def rule_temporal_shift(doc: str, rng: random.Random) -> tuple[str, int] | None:
         return None
     sent = rng.choice(sents)
     shifts = [
-        (r"\b2024\b", "2019"), (r"\b2023\b", "2018"), (r"\b2022\b", "2017"),
-        (r"\blast year\b", "five years ago"), (r"\brecently\b", "decades ago"),
-        (r"\bthis month\b", "last year"), (r"\btoday\b", "in 2015"),
+        (r"\b2024\b", "2019"),
+        (r"\b2023\b", "2018"),
+        (r"\b2022\b", "2017"),
+        (r"\blast year\b", "five years ago"),
+        (r"\brecently\b", "decades ago"),
+        (r"\bthis month\b", "last year"),
+        (r"\btoday\b", "in 2015"),
     ]
     rng.shuffle(shifts)
     for pattern, replacement in shifts:
@@ -222,19 +229,25 @@ def generate_synthetic_data(
         if len(claim) < 15 or len(claim) > 500:
             continue
 
-        samples.append({
-            "premise": doc[:2000],
-            "hypothesis": claim,
-            "label": label,
-            "rule": rule,
-        })
+        samples.append(
+            {
+                "premise": doc[:2000],
+                "hypothesis": claim,
+                "label": label,
+                "rule": rule,
+            }
+        )
 
         if len(samples) % 5000 == 0:
             pos = sum(1 for s in samples if s["label"] == 1)
-            print(f"Generated {len(samples)}/{n_samples} (pos={pos}, neg={len(samples) - pos})")
+            print(
+                f"Generated {len(samples)}/{n_samples} (pos={pos}, neg={len(samples) - pos})"
+            )
 
     pos = sum(1 for s in samples if s["label"] == 1)
-    print(f"Final: {len(samples)} samples (pos={pos}, neg={len(samples) - pos}, attempts={attempts})")
+    print(
+        f"Final: {len(samples)} samples (pos={pos}, neg={len(samples) - pos}, attempts={attempts})"
+    )
     return samples
 
 
@@ -259,6 +272,7 @@ def generate_from_aggrefact(n_samples: int = 50000) -> list[dict]:
 
 
 # --- Stage 2: Fine-tuning ---
+
 
 def train_on_synthetic(data_path: Path):
     import torch
@@ -292,14 +306,10 @@ def train_on_synthetic(data_path: Path):
     print(f"Train: {len(train_data)}, Val: {len(val_data)}")
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
-    model = AutoModelForSequenceClassification.from_pretrained(
-        BASE_MODEL, num_labels=2
-    )
+    model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)
 
     def tok_fn(batch):
-        return tokenizer(
-            batch["text"], truncation=True, max_length=512, padding=False
-        )
+        return tokenizer(batch["text"], truncation=True, max_length=512, padding=False)
 
     train_data = train_data.map(tok_fn, batched=True, remove_columns=["text"])
     val_data = val_data.map(tok_fn, batched=True, remove_columns=["text"])
@@ -374,12 +384,13 @@ def train_on_synthetic(data_path: Path):
 
 # --- Stage 3: AggreFact scoring ---
 
+
 def score_on_aggrefact():
     import torch
 
     sys.path.insert(0, str(WORKDIR))
-    from benchmarks._load_aggrefact_patch import _load_aggrefact_local
     import benchmarks.aggrefact_eval as ae
+    from benchmarks._load_aggrefact_patch import _load_aggrefact_local
 
     ae._load_aggrefact = _load_aggrefact_local
     from benchmarks.aggrefact_eval import _BinaryNLIPredictor

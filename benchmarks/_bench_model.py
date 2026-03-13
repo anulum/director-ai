@@ -1,4 +1,5 @@
 """Standalone model benchmarker — called from run_jarvislabs.sh."""
+
 import json
 import logging
 import pathlib
@@ -8,8 +9,8 @@ import time
 import torch
 
 sys.path.insert(0, sys.argv[3])  # WORKDIR
-from benchmarks._load_aggrefact_patch import _load_aggrefact_local
 import benchmarks.aggrefact_eval as ae
+from benchmarks._load_aggrefact_patch import _load_aggrefact_local
 
 ae._load_aggrefact = _load_aggrefact_local
 from benchmarks.aggrefact_eval import _BinaryNLIPredictor  # noqa: E402

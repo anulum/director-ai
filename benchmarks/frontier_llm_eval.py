@@ -42,13 +42,13 @@ log = logging.getLogger("frontier_llm_eval")
 # ── Pricing (USD per million tokens, as of 2026-03) ──────────────────
 
 PRICING = {
-    "gpt-4o":                      {"input": 2.50,  "output": 10.00},
-    "gpt-4o-mini":                 {"input": 0.15,  "output": 0.60},
-    "claude-opus-4-6":             {"input": 15.00, "output": 75.00},
-    "claude-sonnet-4-6":           {"input": 3.00,  "output": 15.00},
-    "claude-haiku-4-5-20251001":   {"input": 0.80,  "output": 4.00},
-    "gemini-1.5-pro":              {"input": 1.25,  "output": 5.00},
-    "gemini-1.5-flash":            {"input": 0.075, "output": 0.30},
+    "gpt-4o": {"input": 2.50, "output": 10.00},
+    "gpt-4o-mini": {"input": 0.15, "output": 0.60},
+    "claude-opus-4-6": {"input": 15.00, "output": 75.00},
+    "claude-sonnet-4-6": {"input": 3.00, "output": 15.00},
+    "claude-haiku-4-5-20251001": {"input": 0.80, "output": 4.00},
+    "gemini-1.5-pro": {"input": 1.25, "output": 5.00},
+    "gemini-1.5-flash": {"input": 0.075, "output": 0.30},
 }
 
 SUPPORTED_MODELS = {
@@ -110,23 +110,26 @@ Now evaluate this case:
 
 """
 
-PROMPT_FEWSHOT = FEWSHOT_EXAMPLES + """\
+PROMPT_FEWSHOT = (
+    FEWSHOT_EXAMPLES
+    + """\
 Document:
 {document}
 
 Claim: {claim}
 
 Confidence (0-100, number only):"""
+)
 
 # ── Token estimation (chars / 4 ≈ tokens) ───────────────────────────
 
-AVG_DOC_CHARS = 1500    # after 3000-char truncation, avg is ~1500
+AVG_DOC_CHARS = 1500  # after 3000-char truncation, avg is ~1500
 AVG_CLAIM_CHARS = 100
 PROMPT_OVERHEAD_BINARY = 200
 PROMPT_OVERHEAD_CONFIDENCE = 250
-PROMPT_OVERHEAD_FEWSHOT = 750     # 3 examples add ~500 chars
-AVG_OUTPUT_BINARY = 5             # "supported" or "not_supported"
-AVG_OUTPUT_CONFIDENCE = 8         # "85" or similar
+PROMPT_OVERHEAD_FEWSHOT = 750  # 3 examples add ~500 chars
+AVG_OUTPUT_BINARY = 5  # "supported" or "not_supported"
+AVG_OUTPUT_CONFIDENCE = 8  # "85" or similar
 
 
 def estimate_cost(model: str, mode: str, n_samples: int) -> float:
@@ -187,6 +190,7 @@ def print_cost_table():
 
 
 # ── API callers ──────────────────────────────────────────────────────
+
 
 def _parse_confidence(text: str) -> float | None:
     """Extract a 0-100 confidence number from LLM output."""
@@ -264,9 +268,17 @@ def _call_google(model: str, prompt: str, mode: str) -> float | None:
 
 
 def _score_pair(
-    provider: str, model: str, doc: str, claim: str, mode: str,
+    provider: str,
+    model: str,
+    doc: str,
+    claim: str,
+    mode: str,
 ) -> float | None:
-    template = {"binary": PROMPT_BINARY, "confidence": PROMPT_CONFIDENCE, "fewshot": PROMPT_FEWSHOT}[mode]
+    template = {
+        "binary": PROMPT_BINARY,
+        "confidence": PROMPT_CONFIDENCE,
+        "fewshot": PROMPT_FEWSHOT,
+    }[mode]
     prompt = template.format(document=doc[:3000], claim=claim)
     call_mode = mode if mode != "fewshot" else "confidence"
     if provider == "openai":
@@ -279,6 +291,7 @@ def _score_pair(
 
 
 # ── Metrics ──────────────────────────────────────────────────────────
+
 
 def _macro_ba(by_ds: dict[str, list[tuple[int, float]]], threshold: float) -> float:
     bas = []
@@ -304,6 +317,7 @@ def _best_threshold(by_ds: dict) -> tuple[float, float]:
 
 # ── Main evaluation ─────────────────────────────────────────────────
 
+
 def run_frontier_eval(
     model: str,
     mode: str = "binary",
@@ -318,8 +332,13 @@ def run_frontier_eval(
         )
 
     est_cost = estimate_cost(model, mode, max_samples or 29320)
-    log.info("Estimated cost: $%.2f (%s, %s, %d samples)",
-             est_cost, model, mode, max_samples or 29320)
+    log.info(
+        "Estimated cost: $%.2f (%s, %s, %d samples)",
+        est_cost,
+        model,
+        mode,
+        max_samples or 29320,
+    )
 
     rows = _load_aggrefact_local()
     log.info("Loaded %d AggreFact rows", len(rows))
@@ -338,7 +357,9 @@ def run_frontier_eval(
         rows = sampled[:max_samples]
         log.info(
             "Sampled %d rows (%d per dataset, %d datasets)",
-            len(rows), per_ds, len(by_ds),
+            len(rows),
+            per_ds,
+            len(by_ds),
         )
 
     results: dict[str, list[tuple[int, float]]] = {}
@@ -365,7 +386,11 @@ def run_frontier_eval(
             eta_min = (len(rows) - i - 1) * (elapsed / (i + 1)) / 60
             log.info(
                 "%s: %d/%d (%.0f min remaining, %d errors)",
-                model, i + 1, len(rows), eta_min, errors,
+                model,
+                i + 1,
+                len(rows),
+                eta_min,
+                errors,
             )
         time.sleep(delay)
 
@@ -401,8 +426,14 @@ def run_frontier_eval(
 
     log.info(
         "%s [%s]: macro BA=%.4f @ t=%.2f (%d samples, %d errors, %.1f min, ~$%.2f)",
-        model, mode, best_ba, best_t,
-        summary["n_evaluated"], errors, elapsed / 60, actual_cost,
+        model,
+        mode,
+        best_ba,
+        best_t,
+        summary["n_evaluated"],
+        errors,
+        elapsed / 60,
+        actual_cost,
     )
     return summary
 
@@ -410,12 +441,16 @@ def run_frontier_eval(
 def main() -> None:
     parser = argparse.ArgumentParser(description="Frontier LLM vs AggreFact")
     parser.add_argument("--model", choices=list(SUPPORTED_MODELS))
-    parser.add_argument("--mode", choices=["binary", "confidence", "fewshot"], default="binary")
+    parser.add_argument(
+        "--mode", choices=["binary", "confidence", "fewshot"], default="binary"
+    )
     parser.add_argument("--max-samples", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--rate-limit", type=float, default=2.0, help="API calls/sec")
     parser.add_argument("--out", type=str, help="Output JSON path")
-    parser.add_argument("--cost-only", action="store_true", help="Print cost table and exit")
+    parser.add_argument(
+        "--cost-only", action="store_true", help="Print cost table and exit"
+    )
     args = parser.parse_args()
 
     if args.cost_only:

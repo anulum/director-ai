@@ -61,20 +61,14 @@ def train_cb_lowlr():
     val = val_split["train"].map(
         convert, remove_columns=val_split["train"].column_names
     )
-    test = val_split["test"].map(
-        convert, remove_columns=val_split["test"].column_names
-    )
+    test = val_split["test"].map(convert, remove_columns=val_split["test"].column_names)
     print(f"CB: train={len(train)}, val={len(val)}, test={len(test)}")
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
-    model = AutoModelForSequenceClassification.from_pretrained(
-        BASE_MODEL, num_labels=2
-    )
+    model = AutoModelForSequenceClassification.from_pretrained(BASE_MODEL, num_labels=2)
 
     def tok_fn(batch):
-        return tokenizer(
-            batch["text"], truncation=True, max_length=512, padding=False
-        )
+        return tokenizer(batch["text"], truncation=True, max_length=512, padding=False)
 
     train = train.map(tok_fn, batched=True, remove_columns=["text"])
     val = val.map(tok_fn, batched=True, remove_columns=["text"])
@@ -155,8 +149,8 @@ def train_cb_lowlr():
 def score_on_aggrefact():
     """Score the CB-lowLR model on AggreFact 29K."""
     sys.path.insert(0, str(WORKDIR))
-    from benchmarks._load_aggrefact_patch import _load_aggrefact_local
     import benchmarks.aggrefact_eval as ae
+    from benchmarks._load_aggrefact_patch import _load_aggrefact_local
 
     ae._load_aggrefact = _load_aggrefact_local
     from benchmarks.aggrefact_eval import _BinaryNLIPredictor
@@ -192,7 +186,9 @@ def score_on_aggrefact():
 def main():
     print("=" * 60)
     print("CB-lowLR Redo: train + AggreFact benchmark")
-    print(f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}")
+    print(
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+    )
     print(f"Output: {OUTPUT_DIR}")
     print("=" * 60)
 
