@@ -1,0 +1,100 @@
+{
+  "gpu": "NVIDIA L40S",
+  "compute_capability": "8.9",
+  "vram_gb": 44.4,
+  "cuda_version": "12.4",
+  "torch_version": "2.6.0+cu124",
+  "onnxruntime_version": "1.24.3",
+  "iterations": 50,
+  "warmup": 10,
+  "results": [
+    {
+      "mean_ms": 8.5,
+      "median_ms": 8.43,
+      "p95_ms": 8.79,
+      "p99_ms": 9.06,
+      "std_ms": 0.15,
+      "per_pair_ms": 8.43,
+      "backend": "pytorch_fp32",
+      "batch_size": 1,
+      "gpu_mem_mb": 1680.6
+    },
+    {
+      "mean_ms": 19.31,
+      "median_ms": 19.27,
+      "p95_ms": 19.62,
+      "p99_ms": 19.78,
+      "std_ms": 0.17,
+      "per_pair_ms": 2.41,
+      "backend": "pytorch_fp32",
+      "batch_size": 8,
+      "gpu_mem_mb": 1766.1
+    },
+    {
+      "mean_ms": 29.74,
+      "median_ms": 29.73,
+      "p95_ms": 29.9,
+      "p99_ms": 29.94,
+      "std_ms": 0.08,
+      "per_pair_ms": 1.86,
+      "backend": "pytorch_fp32",
+      "batch_size": 16,
+      "gpu_mem_mb": 1862.0
+    },
+    {
+      "mean_ms": 54.31,
+      "median_ms": 54.31,
+      "p95_ms": 54.52,
+      "p99_ms": 54.71,
+      "std_ms": 0.14,
+      "per_pair_ms": 1.7,
+      "backend": "pytorch_fp32",
+      "batch_size": 32,
+      "gpu_mem_mb": 2047.6
+    },
+    {
+      "mean_ms": 9.15,
+      "median_ms": 9.11,
+      "p95_ms": 9.29,
+      "p99_ms": 9.33,
+      "std_ms": 0.1,
+      "per_pair_ms": 9.11,
+      "backend": "pytorch_fp16",
+      "batch_size": 1,
+      "gpu_mem_mb": 848.4
+    },
+    {
+      "mean_ms": 9.08,
+      "median_ms": 9.06,
+      "p95_ms": 9.24,
+      "p99_ms": 9.44,
+      "std_ms": 0.13,
+      "per_pair_ms": 1.13,
+      "backend": "pytorch_fp16",
+      "batch_size": 8,
+      "gpu_mem_mb": 907.6
+    },
+    {
+      "mean_ms": 9.06,
+      "median_ms": 9.06,
+      "p95_ms": 9.1,
+      "p99_ms": 9.13,
+      "std_ms": 0.02,
+      "per_pair_ms": 0.57,
+      "backend": "pytorch_fp16",
+      "batch_size": 16,
+      "gpu_mem_mb": 974.8
+    },
+    {
+      "mean_ms": 16.57,
+      "median_ms": 16.56,
+      "p95_ms": 16.63,
+      "p99_ms": 16.64,
+      "std_ms": 0.03,
+      "per_pair_ms": 0.52,
+      "backend": "pytorch_fp16",
+      "batch_size": 32,
+      "gpu_mem_mb": 1106.4
+    }
+  ]
+}
