@@ -16,7 +16,7 @@
 
 # ── Stage 1: Builder ────────────────────────────────────────────────
 
-FROM python:3.11-slim AS builder
+FROM python:3.11-slim@sha256:d6e4d224f70f9e0172a06a3a2eba2f768eb146811a349278b38fff3a36463b47 AS builder
 
 WORKDIR /build
 
@@ -28,7 +28,7 @@ RUN pip install --no-cache-dir --prefix=/install ".[$EXTRAS]"
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
 
-FROM python:3.11-slim
+FROM python:3.11-slim@sha256:d6e4d224f70f9e0172a06a3a2eba2f768eb146811a349278b38fff3a36463b47
 
 LABEL maintainer="Miroslav Sotek <protoscience@anulum.li>"
 LABEL description="Director-AI — Real-time LLM hallucination guardrail"

@@ -42,7 +42,7 @@ _DIALOGUE_TURN_RE = re.compile(
     r"(?:^|\s)(?:"
     r"(?:User|Human|Customer|Student|Interviewer|Speaker"
     r"|Assistant|AI|Bot|Agent|Interviewee|System)"
-    r"(?:\s*\d*)?\s*:"
+    r"[\s\d]*:"
     r"|\[(?:User|Human|Assistant|AI|System)\]"
     r")",
     re.IGNORECASE,

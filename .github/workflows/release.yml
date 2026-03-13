@@ -28,7 +28,7 @@ jobs:
 
       - name: Build sdist
         run: |
-          pip install build cyclonedx-bom
+          pip install build==1.2.2 cyclonedx-bom==4.10.1
           python -m build --sdist
 
       - name: Generate SBOM

@@ -36,7 +36,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install build tools
-        run: pip install build twine "cyclonedx-bom>=4.0,<5"
+        run: pip install build==1.2.2 twine==6.1.0 cyclonedx-bom==4.10.1
 
       - name: Build sdist and wheel
         run: python -m build

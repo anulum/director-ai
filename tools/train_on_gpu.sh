@@ -35,7 +35,7 @@ echo ""
 # 1. Install
 echo ">>> Installing Director-AI with finetune extras..."
 pip install -e ".[finetune,nli]" --quiet
-pip install datasets nltk --quiet
+pip install datasets==3.3.2 nltk==3.9.1 --quiet
 
 # 2. Prepare data
 echo ">>> Preparing training data..."

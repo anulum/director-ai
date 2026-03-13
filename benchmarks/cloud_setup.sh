@@ -15,10 +15,10 @@ python3 -m venv /opt/director-bench
 source /opt/director-bench/bin/activate
 
 echo "=== [3/6] PyTorch + dependencies ==="
-pip install --quiet torch --index-url https://download.pytorch.org/whl/cu124
-pip install --quiet transformers datasets accelerate scikit-learn
-pip install --quiet sentence-transformers chromadb
-pip install --quiet openai anthropic requests numpy
+pip install --quiet torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+pip install --quiet transformers==4.49.0 datasets==3.3.2 accelerate==1.4.0 scikit-learn==1.6.1
+pip install --quiet sentence-transformers==4.0.2 chromadb==0.6.3
+pip install --quiet openai==1.68.2 anthropic==0.49.0 requests==2.32.3 numpy==2.2.3
 
 echo "=== [4/6] Verify GPU ==="
 python3 -c "

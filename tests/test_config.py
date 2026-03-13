@@ -416,7 +416,7 @@ class TestNewV25Fields:
     def test_default_source_fields(self):
         cfg = DirectorConfig()
         assert cfg.source_endpoint_enabled is True
-        assert "github.com" in cfg.source_repository_url
+        assert cfg.source_repository_url.startswith("https://github.com/")
 
     def test_grpc_defaults(self):
         cfg = DirectorConfig()

@@ -127,10 +127,10 @@ apt-get update -qq
 apt-get install -y -qq python3-pip python3-venv git wget > /dev/null 2>&1
 python3 -m venv /opt/director-bench
 source /opt/director-bench/bin/activate
-pip install --quiet torch --index-url https://download.pytorch.org/whl/cu124
-pip install --quiet transformers datasets accelerate scikit-learn
-pip install --quiet sentence-transformers chromadb
-pip install --quiet requests numpy
+pip install --quiet torch==2.6.0 --index-url https://download.pytorch.org/whl/cu124
+pip install --quiet transformers==4.49.0 datasets==3.3.2 accelerate==1.4.0 scikit-learn==1.6.1
+pip install --quiet sentence-transformers==4.0.2 chromadb==0.6.3
+pip install --quiet requests==2.32.3 numpy==2.2.3
 cd /opt/director-bench
 git clone --depth 1 https://github.com/anulum/director-ai.git work/director-ai
 cd work/director-ai
