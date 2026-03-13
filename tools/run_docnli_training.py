@@ -38,6 +38,11 @@ TEMPLATE = (
 def load_docnli():
     """Load DocNLI and convert to binary NLI format."""
     ds = load_dataset("saattrupdan/doc-nli")
+    # 100K subset: full 900K requires ~31h at batch=8; 100K ≈ 5h on RTX 6000 24GB
+    subset_size = 100_000
+    if len(ds["train"]) > subset_size:
+        ds = ds.copy()
+        ds["train"] = ds["train"].shuffle(seed=42).select(range(subset_size))
 
     def convert(example):
         premise = example.get("premise", "") or ""
@@ -115,10 +120,10 @@ def main():
 
     training_args = TrainingArguments(
         output_dir=OUTPUT_DIR,
-        num_train_epochs=2,
-        per_device_train_batch_size=16,
+        num_train_epochs=3,
+        per_device_train_batch_size=8,
         per_device_eval_batch_size=32,
-        gradient_accumulation_steps=2,
+        gradient_accumulation_steps=4,  # effective batch 32; batch=16 OOMs on 24GB
         learning_rate=2e-5,
         weight_decay=0.01,
         warmup_ratio=0.1,
@@ -164,7 +169,8 @@ def main():
         "test_balanced_accuracy": test_result["eval_balanced_accuracy"],
         "test_accuracy": test_result["eval_accuracy"],
         "training_time_minutes": round(elapsed / 60, 1),
-        "epochs": 2,
+        "epochs": 3,
+        "train_subset": 100_000,
         "status": "COMPLETE",
     }
     result_path = os.path.join(OUTPUT_DIR, "training_result.json")

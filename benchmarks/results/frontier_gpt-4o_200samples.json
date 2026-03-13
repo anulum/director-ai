@@ -1,0 +1,55 @@
+{
+  "model": "gpt-4o",
+  "provider": "openai",
+  "n_evaluated": 198,
+  "n_errors": 0,
+  "best_threshold": 0.05,
+  "macro_balanced_accuracy": 0.6738741650506356,
+  "elapsed_s": 530.9,
+  "per_dataset": {
+    "Wice": {
+      "n": 18,
+      "balanced_accuracy": 0.6461538461538461
+    },
+    "ClaimVerify": {
+      "n": 18,
+      "balanced_accuracy": 0.8928571428571428
+    },
+    "ExpertQA": {
+      "n": 18,
+      "balanced_accuracy": 0.45833333333333337
+    },
+    "Lfqa": {
+      "n": 18,
+      "balanced_accuracy": 0.8571428571428572
+    },
+    "AggreFact-CNN": {
+      "n": 18,
+      "balanced_accuracy": 0.5
+    },
+    "AggreFact-XSum": {
+      "n": 18,
+      "balanced_accuracy": 0.7230769230769231
+    },
+    "RAGTruth": {
+      "n": 18,
+      "balanced_accuracy": 0.4117647058823529
+    },
+    "TofuEval-MediaS": {
+      "n": 18,
+      "balanced_accuracy": 0.8823529411764706
+    },
+    "FactCheck-GPT": {
+      "n": 18,
+      "balanced_accuracy": 0.5615384615384615
+    },
+    "Reveal": {
+      "n": 18,
+      "balanced_accuracy": 0.9615384615384616
+    },
+    "TofuEval-MeetB": {
+      "n": 18,
+      "balanced_accuracy": 0.5178571428571428
+    }
+  }
+}

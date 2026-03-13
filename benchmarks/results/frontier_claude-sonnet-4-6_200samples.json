@@ -1,0 +1,55 @@
+{
+  "model": "claude-sonnet-4-6",
+  "provider": "anthropic",
+  "n_evaluated": 198,
+  "n_errors": 0,
+  "best_threshold": 0.05,
+  "macro_balanced_accuracy": 0.7227598382010146,
+  "elapsed_s": 744.4,
+  "per_dataset": {
+    "Wice": {
+      "n": 18,
+      "balanced_accuracy": 0.6615384615384616
+    },
+    "ClaimVerify": {
+      "n": 18,
+      "balanced_accuracy": 0.8571428571428572
+    },
+    "ExpertQA": {
+      "n": 18,
+      "balanced_accuracy": 0.5833333333333333
+    },
+    "Lfqa": {
+      "n": 18,
+      "balanced_accuracy": 0.7857142857142857
+    },
+    "AggreFact-CNN": {
+      "n": 18,
+      "balanced_accuracy": 0.4375
+    },
+    "AggreFact-XSum": {
+      "n": 18,
+      "balanced_accuracy": 0.6461538461538461
+    },
+    "RAGTruth": {
+      "n": 18,
+      "balanced_accuracy": 0.8529411764705883
+    },
+    "TofuEval-MediaS": {
+      "n": 18,
+      "balanced_accuracy": 0.8823529411764706
+    },
+    "FactCheck-GPT": {
+      "n": 18,
+      "balanced_accuracy": 0.8
+    },
+    "Reveal": {
+      "n": 18,
+      "balanced_accuracy": 0.9615384615384616
+    },
+    "TofuEval-MeetB": {
+      "n": 18,
+      "balanced_accuracy": 0.48214285714285715
+    }
+  }
+}

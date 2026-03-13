@@ -1,0 +1,57 @@
+{
+  "model": "gpt-4o",
+  "provider": "openai",
+  "mode": "confidence",
+  "n_evaluated": 990,
+  "n_errors": 0,
+  "best_threshold": 0.7500000000000002,
+  "macro_balanced_accuracy": 0.7345704914791686,
+  "elapsed_s": 2992.0,
+  "estimated_cost_usd": 1.1645,
+  "per_dataset": {
+    "AggreFact-CNN": {
+      "n": 90,
+      "balanced_accuracy": 0.6375
+    },
+    "AggreFact-XSum": {
+      "n": 90,
+      "balanced_accuracy": 0.7088989441930618
+    },
+    "ClaimVerify": {
+      "n": 90,
+      "balanced_accuracy": 0.753143794423182
+    },
+    "ExpertQA": {
+      "n": 90,
+      "balanced_accuracy": 0.5277777777777778
+    },
+    "TofuEval-MeetB": {
+      "n": 90,
+      "balanced_accuracy": 0.6513233601841196
+    },
+    "Wice": {
+      "n": 90,
+      "balanced_accuracy": 0.7927807486631016
+    },
+    "TofuEval-MediaS": {
+      "n": 90,
+      "balanced_accuracy": 0.6571313456889605
+    },
+    "Lfqa": {
+      "n": 90,
+      "balanced_accuracy": 0.8581932773109244
+    },
+    "RAGTruth": {
+      "n": 90,
+      "balanced_accuracy": 0.8571428571428572
+    },
+    "Reveal": {
+      "n": 90,
+      "balanced_accuracy": 0.8768115942028986
+    },
+    "FactCheck-GPT": {
+      "n": 90,
+      "balanced_accuracy": 0.7595717066839714
+    }
+  }
+}

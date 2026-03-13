@@ -1,6 +1,6 @@
 # Director-AI -- Competitor Benchmark Comparison
 
-Last updated: 2026-03-10 (v3.6.0)
+Last updated: 2026-03-13 (v3.8.0) — NLI fine-tuning survey (21 models) added
 
 ## One-Pager Summary
 
@@ -89,6 +89,49 @@ python -m benchmarks.aggrefact_eval --sweep
 The results JSON will include `hallucination_precision`, `hallucination_recall`,
 and `hallucination_f1` per dataset. These are the class-0 (not-supported) metrics —
 the numbers that matter for a guardrail.
+
+### NLI Fine-Tuning Survey: 21 Models on AggreFact (Complete, 2026-03-13)
+
+Full dataset: 29,320 samples, 11 sub-datasets, macro-averaged balanced accuracy.
+Base: `yaxili96/FactCG-DeBERTa-v3-Large` at 75.86% (t=0.45). Each row: fine-tuned
+from base on the named dataset (LR=2e-5, 3–20 epochs), then benchmarked on AggreFact.
+
+**Finding: 20/21 NLI fine-tunes hurt performance. Only CommitmentBank (+0.54pp) helps.**
+
+| Model | BA | Threshold | Delta | Pattern |
+|-------|-----|-----------|-------|---------|
+| **base (FactCG-DeBERTa-v3-Large)** | **75.86%** | 0.45 | — | Production model |
+| factcg-cb (CommitmentBank) | 76.40% | 0.90 | +0.54% | Complex inference, diverse |
+| factcg-rte | 73.28% | 0.15 | -2.58% | Entailment pairs, closest to cb |
+| factcg-vitaminc | 70.29% | 0.85 | -5.57% | Contrastive fact-check |
+| factcg-legal | 69.52% | 0.35 | -6.34% | Domain-specific NLI |
+| factcg-qnli | 67.87% | 0.50 | -7.99% | Question NLI |
+| factcg-multinli | 66.30% | 0.95 | -9.56% | General entailment |
+| factcg-multirc | 66.09% | 0.95 | -9.77% | Reading comprehension |
+| factcg-anli | 63.25% | 0.95 | -12.61% | Adversarial NLI |
+| factcg-snli | 62.16% | 0.95 | -13.70% | Image caption entailment |
+| factcg-boolq | 61.67% | 0.95 | -14.19% | Yes/no QA |
+| factcg-wic | 61.59% | 0.95 | -14.27% | Word-in-context |
+| factcg-docnli (DocNLI 100K, 3ep) | 61.37% | 0.40 | -14.49% | Document-level NLI — worst task match |
+| factcg-wanli | 61.27% | 0.95 | -14.59% | Wiki NLI |
+| factcg-fever | 54.57% | 0.85 | -21.29% | Claim manipulation |
+| factcg-healthver | 54.27% | 0.95 | -21.59% | Health NLI |
+| factcg-record | 52.44% | 0.95 | -23.42% | Reading comprehension QA |
+| factcg-paws | 52.35% | 0.05 | -23.51% | Paraphrase adversaries |
+| factcg-qqp | 51.90% | 0.05 | -23.96% | Duplicate questions |
+| factcg-mrpc | 50.37% | 0.05 | -25.49% | Paraphrase detection |
+| factcg-dialogue-nli | 50.33% | 0.95 | -25.53% | Dialogue implicature |
+
+**Root cause:** Task mismatch + catastrophic forgetting at LR=2e-5 regardless of data relevance.
+DocNLI is the most directly relevant dataset (900K document-level premise-hypothesis pairs from
+summarization and QA sources) yet produces -14.49pp — confirming the problem is fine-tuning
+dynamics, not data choice. Threshold shifts to 0.85–0.95 indicate models output extreme
+probabilities, losing calibration. CommitmentBank is the lone exception: 250 examples,
+complex multi-sentence inference with subtle linguistic commitment, too small to trigger
+catastrophic forgetting at LR=2e-5. CB-lowLR (LR=5e-6) model was lost during training
+(trainer checkpoint save failure on JarvisLabs instance 383976).
+
+**Best ensemble:** max(base, factcg-cb) at 76.37% (+0.51pp) — marginal, not production-worthy.
 
 ### Internal Model Comparison (LLM-AggreFact)
 
