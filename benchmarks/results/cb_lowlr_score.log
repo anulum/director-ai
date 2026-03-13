@@ -1,0 +1,16 @@
+Loading weights:   0%|          | 0/394 [00:00<?, ?it/s]Loading weights: 100%|██████████| 394/394 [00:00<00:00, 5216.80it/s]
+cb-lowlr: 2000/29320 (55 min remaining)
+cb-lowlr: 4000/29320 (50 min remaining)
+cb-lowlr: 6000/29320 (53 min remaining)
+cb-lowlr: 8000/29320 (41 min remaining)
+cb-lowlr: 10000/29320 (36 min remaining)
+cb-lowlr: 12000/29320 (30 min remaining)
+cb-lowlr: 14000/29320 (27 min remaining)
+cb-lowlr: 16000/29320 (25 min remaining)
+cb-lowlr: 18000/29320 (20 min remaining)
+cb-lowlr: 20000/29320 (17 min remaining)
+cb-lowlr: 22000/29320 (13 min remaining)
+cb-lowlr: 24000/29320 (9 min remaining)
+cb-lowlr: 26000/29320 (6 min remaining)
+cb-lowlr: 28000/29320 (2 min remaining)
+Scoring DONE — /home/user/director-ai/scores/factcg-cb-lowlr.json (47.8 min)

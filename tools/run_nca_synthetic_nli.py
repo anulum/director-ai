@@ -348,7 +348,7 @@ def train_on_synthetic(data_path: Path):
         args=args,
         train_dataset=train_data,
         eval_dataset=val_data,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         compute_metrics=compute_metrics,
     )
     trainer.train()

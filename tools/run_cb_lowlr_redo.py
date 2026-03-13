@@ -107,7 +107,7 @@ def train_cb_lowlr():
         args=args,
         train_dataset=train,
         eval_dataset=val,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         compute_metrics=compute_metrics,
     )
     trainer.train()

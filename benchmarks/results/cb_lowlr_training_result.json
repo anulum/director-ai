@@ -1,0 +1,10 @@
+{
+  "dataset": "cb_superglue",
+  "base_model": "yaxili96/FactCG-DeBERTa-v3-Large",
+  "learning_rate": 5e-06,
+  "test_balanced_accuracy": 0.9545454545454546,
+  "test_accuracy": 0.9642857142857143,
+  "training_time_minutes": 4.7,
+  "epochs": 20,
+  "status": "COMPLETE"
+}
