@@ -28,7 +28,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install linters
-        run: pip install "ruff>=0.5,<1"
+        run: pip install ruff==0.9.10
 
       - name: Version consistency
         run: |
@@ -169,7 +169,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]" "cyclonedx-bom>=4.0,<5"
+        run: pip install -e ".[dev]" cyclonedx-bom==4.10.1
 
       - name: Generate SBOM
         run: cyclonedx-py environment -o sbom.json --of json

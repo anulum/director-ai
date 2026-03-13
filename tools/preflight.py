@@ -1,9 +1,20 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: AGPL-3.0-or-later
-"""Pre-push preflight gate — mirrors CI checks locally."""
+"""Pre-push preflight gate — mirrors CI checks locally.
+
+Gates (must match ci.yml):
+  1. ruff-format   — src/ tests/ examples/
+  2. ruff-check    — src/ tests/ examples/
+  3. version-sync  — pyproject.toml == __init__.py == CITATION.cff
+  4. mypy          — src/director_ai/
+  5. bandit        — src/director_ai/
+  6. spdx-guard    — all .py files in src/ tests/
+  7. pytest        — tests/ with coverage gate (90%)
+"""
 
 import argparse
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -12,8 +23,9 @@ SPDX_EXTS = {".py"}
 SPDX_MARKER = "SPDX-License-Identifier"
 
 GATES = [
-    ("ruff-format", ["python", "-m", "ruff", "format", "--check", "src/", "tests/"]),
-    ("ruff-check", ["python", "-m", "ruff", "check", "src/", "tests/"]),
+    ("ruff-format", ["python", "-m", "ruff", "format", "--check", "src/", "tests/", "examples/"]),
+    ("ruff-check", ["python", "-m", "ruff", "check", "src/", "tests/", "examples/"]),
+    ("version-sync", None),
     (
         "bandit",
         [
@@ -29,6 +41,17 @@ GATES = [
     ),
     ("spdx-guard", None),
     (
+        "mypy",
+        [
+            "python",
+            "-m",
+            "mypy",
+            "src/director_ai/",
+            "--ignore-missing-imports",
+            "--check-untyped-defs",
+        ],
+    ),
+    (
         "pytest",
         [
             "python",
@@ -36,12 +59,54 @@ GATES = [
             "pytest",
             "tests/",
             "-v",
+            "--tb=short",
             "--cov=director_ai",
-            "--cov-report=term",
+            "--cov-report=term-missing",
             "--cov-fail-under=90",
         ],
     ),
 ]
+
+SLOW_GATES = {"mypy", "pytest"}
+WARN_ONLY = {"spdx-guard"}
+
+
+def check_version_sync() -> bool:
+    root = pathlib.Path(".")
+    try:
+        import tomllib
+        with open(root / "pyproject.toml", "rb") as f:
+            v_toml = tomllib.load(f)["project"]["version"]
+    except Exception:
+        try:
+            text = (root / "pyproject.toml").read_text()
+            m = re.search(r'^version\s*=\s*"([^"]+)"', text, re.MULTILINE)
+            v_toml = m.group(1) if m else ""
+        except Exception:
+            print("  Cannot read pyproject.toml version")
+            return False
+
+    try:
+        init = (root / "src" / "director_ai" / "__init__.py").read_text()
+        m = re.search(r'__version__\s*=\s*"([^"]+)"', init)
+        v_init = m.group(1) if m else ""
+    except Exception:
+        print("  Cannot read __init__.py version")
+        return False
+
+    try:
+        cff = (root / "CITATION.cff").read_text()
+        m = re.search(r'^version:\s*"?([^"\n]+)"?', cff, re.MULTILINE)
+        v_cff = m.group(1).strip() if m else ""
+    except Exception:
+        print("  Cannot read CITATION.cff version")
+        return False
+
+    print(f"  pyproject.toml={v_toml}  __init__.py={v_init}  CITATION.cff={v_cff}")
+    if v_toml == v_init == v_cff:
+        return True
+    print("  Version mismatch!")
+    return False
 
 
 def check_spdx() -> bool:
@@ -71,7 +136,15 @@ def run_gate(name: str, cmd) -> bool:
     print(f"\n{'=' * 60}")
     print(f"  GATE: {name}")
     print(f"{'=' * 60}")
-    ok = check_spdx() if cmd is None else subprocess.run(cmd).returncode == 0
+    if cmd is None:
+        if name == "version-sync":
+            ok = check_version_sync()
+        elif name == "spdx-guard":
+            ok = check_spdx()
+        else:
+            ok = False
+    else:
+        ok = subprocess.run(cmd).returncode == 0
     print(f"  {'PASS' if ok else 'FAIL'}: {name}")
     return ok
 
@@ -79,7 +152,7 @@ def run_gate(name: str, cmd) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Director-AI preflight checks")
     parser.add_argument(
-        "--no-tests", action="store_true", help="Skip pytest (fast lint-only mode)"
+        "--no-tests", action="store_true", help="Skip pytest and mypy (fast lint-only mode)"
     )
     parser.add_argument(
         "--coverage",
@@ -88,19 +161,23 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    gates = GATES
+    gates = list(GATES)
     if args.no_tests:
-        gates = [(n, c) for n, c in gates if n != "pytest"]
+        gates = [(n, c) for n, c in gates if n not in SLOW_GATES]
 
-    passed, failed = [], []
+    passed, failed, warned = [], [], []
     for name, cmd in gates:
         if run_gate(name, cmd):
             passed.append(name)
+        elif name in WARN_ONLY:
+            warned.append(name)
         else:
             failed.append(name)
 
     print(f"\n{'=' * 60}")
-    print(f"  PREFLIGHT: {len(passed)} passed, {len(failed)} failed")
+    print(f"  PREFLIGHT: {len(passed)} passed, {len(failed)} failed, {len(warned)} warned")
+    if warned:
+        print(f"  WARNED: {', '.join(warned)}")
     if failed:
         print(f"  FAILED: {', '.join(failed)}")
     print(f"{'=' * 60}")

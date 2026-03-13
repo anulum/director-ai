@@ -122,7 +122,7 @@ class TestCORSConfig:
     def test_custom_cors_origins(self):
         cfg = DirectorConfig(cors_origins="https://example.com,https://app.example.com")
         origins = cfg.cors_origins.split(",")
-        assert "https://example.com" in origins
+        assert origins[0] == "https://example.com"
 
     def test_cors_in_to_dict(self):
         cfg = DirectorConfig(cors_origins="https://example.com")

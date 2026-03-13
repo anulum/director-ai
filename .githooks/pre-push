@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Pre-push hook: run lint-only preflight (no tests for speed).
+# Pre-push hook: fast lint gates (ruff, version-sync, bandit).
+# Mypy/pytest run in CI — pre-push catches the quick failures.
+set -e
+echo "Running preflight checks (lint gates)..."
 python tools/preflight.py --no-tests
