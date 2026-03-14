@@ -23,8 +23,24 @@ SPDX_EXTS = {".py"}
 SPDX_MARKER = "SPDX-License-Identifier"
 
 GATES = [
-    ("ruff-format", ["python", "-m", "ruff", "format", "--check", "src/", "tests/", "examples/"]),
-    ("ruff-check", ["python", "-m", "ruff", "check", "src/", "tests/", "examples/"]),
+    (
+        "ruff-format",
+        [
+            "python",
+            "-m",
+            "ruff",
+            "format",
+            "--check",
+            "src/",
+            "tests/",
+            "examples/",
+            "tools/",
+        ],
+    ),
+    (
+        "ruff-check",
+        ["python", "-m", "ruff", "check", "src/", "tests/", "examples/", "tools/"],
+    ),
     ("version-sync", None),
     (
         "bandit",
@@ -75,6 +91,7 @@ def check_version_sync() -> bool:
     root = pathlib.Path(".")
     try:
         import tomllib
+
         with open(root / "pyproject.toml", "rb") as f:
             v_toml = tomllib.load(f)["project"]["version"]
     except Exception:
@@ -152,7 +169,9 @@ def run_gate(name: str, cmd) -> bool:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Director-AI preflight checks")
     parser.add_argument(
-        "--no-tests", action="store_true", help="Skip pytest and mypy (fast lint-only mode)"
+        "--no-tests",
+        action="store_true",
+        help="Skip pytest and mypy (fast lint-only mode)",
     )
     parser.add_argument(
         "--coverage",
@@ -175,7 +194,9 @@ def main() -> int:
             failed.append(name)
 
     print(f"\n{'=' * 60}")
-    print(f"  PREFLIGHT: {len(passed)} passed, {len(failed)} failed, {len(warned)} warned")
+    print(
+        f"  PREFLIGHT: {len(passed)} passed, {len(failed)} failed, {len(warned)} warned"
+    )
     if warned:
         print(f"  WARNED: {', '.join(warned)}")
     if failed:
