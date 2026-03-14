@@ -17,9 +17,9 @@ from director_ai.core.scorer import _DIALOGUE_TURN_RE, CoherenceScorer
 class TestDetectTaskType:
     """_detect_task_type correctly classifies dialogue vs default prompts."""
 
-    def test_single_speaker_is_default(self):
+    def test_single_speaker_is_not_dialogue(self):
         prompt = "User: What is the capital of France?"
-        assert CoherenceScorer._detect_task_type(prompt) == "default"
+        assert CoherenceScorer._detect_task_type(prompt) != "dialogue"
 
     def test_two_speakers_is_dialogue(self):
         prompt = "User: Hi\nAssistant: Hello, how can I help?"
@@ -54,9 +54,9 @@ class TestDetectTaskType:
         prompt = "The capital of France is Paris. It is known for the Eiffel Tower."
         assert CoherenceScorer._detect_task_type(prompt) == "default"
 
-    def test_document_with_colon_is_default(self):
+    def test_document_with_colon_is_not_dialogue(self):
         prompt = "Title: Climate Change\nAbstract: Global temperatures are rising."
-        assert CoherenceScorer._detect_task_type(prompt) == "default"
+        assert CoherenceScorer._detect_task_type(prompt) != "dialogue"
 
     def test_case_insensitive(self):
         prompt = "user: Hello\nassistant: Hi"
@@ -228,7 +228,8 @@ class TestDialogueDetectionInCoherence:
         )
         response = "Yes, the sky is typically blue during clear days."
         h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
-            prompt, response
+            prompt,
+            response,
         )
         # Without NLI, standard heuristic path is used
         assert isinstance(h_logic, float)
@@ -241,7 +242,8 @@ class TestDialogueDetectionInCoherence:
         prompt = "The capital of France is Paris."
         response = "Paris is the capital of France."
         h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
-            prompt, response
+            prompt,
+            response,
         )
         assert isinstance(h_logic, float)
         assert isinstance(h_fact, float)

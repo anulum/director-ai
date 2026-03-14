@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Dataclass-based configuration with env var, YAML, and profile support.
+"""Dataclass-based configuration with env var, YAML, and profile support.
 
 Usage::
 
@@ -55,6 +54,7 @@ class DirectorConfig:
     metrics_enabled : bool — enable Prometheus-style metrics collection.
     log_level : str — logging level.
     log_json : bool — structured JSON logging.
+
     """
 
     # Scoring
@@ -184,6 +184,32 @@ class DirectorConfig:
     nli_claim_support_threshold: float = 0.6
     nli_claim_coverage_alpha: float = 0.4
 
+    # Adaptive task-type thresholding (Phase 1B)
+    # Validated on LLM-AggreFact 29K: per-task-type BA 76.68% vs global 75.82%
+    # Coherence values derived from optimal NLI thresholds:
+    #   coherence = 0.4 + 0.6 * nli_threshold (W_LOGIC=0.6 pure-NLI case)
+    adaptive_threshold_enabled: bool = False
+    threshold_summarization: float = 0.72  # NLI=0.54, AggreFact/TofuEval
+    threshold_qa: float = 0.69  # NLI=0.48, ExpertQA/Lfqa
+    threshold_fact_check: float = (
+        0.56  # NLI=0.27, ClaimVerify/FactCheck-GPT/Reveal/Wice
+    )
+    threshold_rag: float = 0.78  # NLI=0.63, RAGTruth
+    threshold_dialogue: float = 0.68  # NLI=0.46 (global default)
+
+    # Chunking overlap (Phase 2A)
+    nli_chunk_overlap_ratio: float = 0.5
+    nli_qa_premise_ratio: float = 0.7
+
+    # Confidence-weighted aggregation (Phase 2B)
+    nli_confidence_weighted_agg: bool = False
+
+    # LoRA adapter path (Phase 3A)
+    lora_adapter_path: str = ""
+
+    # Meta-classifier model path (Phase 6A)
+    meta_classifier_path: str = ""
+
     # gRPC limits
     grpc_max_message_mb: int = 4
     grpc_deadline_seconds: float = 30.0
@@ -197,7 +223,7 @@ class DirectorConfig:
     def __post_init__(self) -> None:
         if not (0.0 <= self.coherence_threshold <= 1.0):
             raise ValueError(
-                f"coherence_threshold must be in [0, 1], got {self.coherence_threshold}"
+                f"coherence_threshold must be in [0, 1], got {self.coherence_threshold}",
             )
         if not (0.0 <= self.hard_limit <= 1.0):
             raise ValueError(f"hard_limit must be in [0, 1], got {self.hard_limit}")
@@ -206,7 +232,7 @@ class DirectorConfig:
         if self.soft_limit < self.hard_limit:
             raise ValueError(
                 f"soft_limit ({self.soft_limit}) must be "
-                f">= hard_limit ({self.hard_limit})"
+                f">= hard_limit ({self.hard_limit})",
             )
         if self.max_candidates < 1:
             raise ValueError(f"max_candidates must be >= 1, got {self.max_candidates}")
@@ -214,17 +240,17 @@ class DirectorConfig:
             raise ValueError(f"history_window must be >= 1, got {self.history_window}")
         if not (0.0 <= self.llm_temperature <= 2.0):
             raise ValueError(
-                f"llm_temperature must be in [0, 2], got {self.llm_temperature}"
+                f"llm_temperature must be in [0, 2], got {self.llm_temperature}",
             )
         if self.llm_max_tokens < 1:
             raise ValueError(f"llm_max_tokens must be >= 1, got {self.llm_max_tokens}")
         if self.batch_max_concurrency < 1:
             raise ValueError(
-                f"batch_max_concurrency must be >= 1, got {self.batch_max_concurrency}"
+                f"batch_max_concurrency must be >= 1, got {self.batch_max_concurrency}",
             )
         if not (1 <= self.server_port <= 65535):
             raise ValueError(
-                f"server_port must be in [1, 65535], got {self.server_port}"
+                f"server_port must be in [1, 65535], got {self.server_port}",
             )
         if self.server_workers < 1:
             raise ValueError(f"server_workers must be >= 1, got {self.server_workers}")
@@ -233,27 +259,27 @@ class DirectorConfig:
         if self.stats_backend not in ("prometheus", "sqlite"):
             raise ValueError(
                 f"stats_backend must be 'prometheus' or 'sqlite', "
-                f"got {self.stats_backend!r}"
+                f"got {self.stats_backend!r}",
             )
         if self.grpc_max_message_mb < 1:
             raise ValueError(
-                f"grpc_max_message_mb must be >= 1, got {self.grpc_max_message_mb}"
+                f"grpc_max_message_mb must be >= 1, got {self.grpc_max_message_mb}",
             )
         if self.grpc_deadline_seconds <= 0:
             raise ValueError(
-                f"grpc_deadline_seconds must be > 0, got {self.grpc_deadline_seconds}"
+                f"grpc_deadline_seconds must be > 0, got {self.grpc_deadline_seconds}",
             )
         if not (0.0 <= self.sanitizer_block_threshold <= 1.0):
             raise ValueError(
                 "sanitizer_block_threshold must be in [0, 1], "
-                f"got {self.sanitizer_block_threshold}"
+                f"got {self.sanitizer_block_threshold}",
             )
         if (self.w_logic != 0.0 or self.w_fact != 0.0) and abs(
-            self.w_logic + self.w_fact - 1.0
+            self.w_logic + self.w_fact - 1.0,
         ) > 1e-6:
             raise ValueError(
                 f"w_logic + w_fact must equal 1.0 when set, "
-                f"got {self.w_logic} + {self.w_fact}"
+                f"got {self.w_logic} + {self.w_fact}",
             )
         if self.reranker_enabled and not self.reranker_model.strip():
             raise ValueError("reranker_model must be set when reranker_enabled=True")
@@ -262,7 +288,7 @@ class DirectorConfig:
             and not self.embedding_model.strip()
         ):
             raise ValueError(
-                "embedding_model must be set when vector_backend='sentence-transformer'"
+                "embedding_model must be set when vector_backend='sentence-transformer'",
             )
 
     @classmethod
@@ -288,7 +314,7 @@ class DirectorConfig:
                     )
                 except (ValueError, TypeError) as exc:
                     raise ValueError(
-                        f"Invalid value for env var {key}={value!r}: {exc}"
+                        f"Invalid value for env var {key}={value!r}: {exc}",
                     ) from exc
 
         return cls(**kwargs)
@@ -309,7 +335,8 @@ class DirectorConfig:
         except ImportError:
             if path.endswith((".yaml", ".yml")):
                 logger.warning(
-                    "PyYAML not installed — parsing %s as JSON fallback", path
+                    "PyYAML not installed — parsing %s as JSON fallback",
+                    path,
                 )
             data = json.loads(raw)
 
@@ -447,7 +474,7 @@ class DirectorConfig:
         }
         if name not in profiles:
             raise ValueError(
-                f"Unknown profile '{name}'. Choose from: {list(profiles.keys())}"
+                f"Unknown profile '{name}'. Choose from: {list(profiles.keys())}",
             )
         return cls(**profiles[name])
 
@@ -468,12 +495,13 @@ class DirectorConfig:
                 from director_ai.enterprise.redis import RedisGroundTruthStore
 
                 return RedisGroundTruthStore(
-                    redis_url=self.redis_url, prefix=self.redis_prefix + "facts:"
+                    redis_url=self.redis_url,
+                    prefix=self.redis_prefix + "facts:",
                 )
             except ImportError:
                 logger.warning(
                     "director-ai[enterprise] not installed, "
-                    "falling back to local vector store"
+                    "falling back to local vector store",
                 )
 
         from .vector_store import InMemoryBackend, VectorBackend, VectorGroundTruthStore
@@ -499,7 +527,7 @@ class DirectorConfig:
                 )
             except ImportError:
                 logger.warning(
-                    "sentence-transformers not installed, falling back to memory"
+                    "sentence-transformers not installed, falling back to memory",
                 )
                 backend = InMemoryBackend()
         else:
@@ -592,6 +620,21 @@ class DirectorConfig:
         scorer._claim_coverage_enabled = self.nli_claim_coverage_enabled
         scorer._claim_support_threshold = self.nli_claim_support_threshold
         scorer._claim_coverage_alpha = self.nli_claim_coverage_alpha
+        scorer._adaptive_threshold_enabled = self.adaptive_threshold_enabled
+        scorer._task_type_thresholds = {
+            "summarization": self.threshold_summarization,
+            "qa": self.threshold_qa,
+            "fact_check": self.threshold_fact_check,
+            "rag": self.threshold_rag,
+            "dialogue": self.threshold_dialogue,
+        }
+        scorer._chunk_overlap_ratio = self.nli_chunk_overlap_ratio
+        scorer._qa_premise_ratio = self.nli_qa_premise_ratio
+        scorer._confidence_weighted_agg = self.nli_confidence_weighted_agg
+        if self.lora_adapter_path and scorer._nli is not None:
+            scorer._nli._load_lora_adapter(self.lora_adapter_path)
+        if self.meta_classifier_path:
+            scorer._meta_classifier_path = self.meta_classifier_path
         return scorer
 
     _REDACTED_FIELDS: frozenset[str] = frozenset(
@@ -600,7 +643,7 @@ class DirectorConfig:
             "api_keys",
             "audit_postgres_url",
             "redis_url",
-        }
+        },
     )
 
     def to_dict(self) -> dict:
@@ -643,7 +686,7 @@ def _coerce(value: str, type_hint: str) -> object:
         if low in ("false", "0", "no"):
             return False
         raise ValueError(
-            f"invalid bool value: {value!r} (expected true/false/1/0/yes/no)"
+            f"invalid bool value: {value!r} (expected true/false/1/0/yes/no)",
         )
     if type_hint == "int":
         return int(value)

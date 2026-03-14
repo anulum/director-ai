@@ -50,8 +50,7 @@ _DIALOGUE_TURN_RE = re.compile(
 
 
 class CoherenceScorer:
-    """
-    Dual-entropy coherence scorer for AI output verification.
+    """Dual-entropy coherence scorer for AI output verification.
 
     Computes a composite coherence score from two independent signals:
     - **Logical divergence** (H_logical): NLI contradiction probability.
@@ -87,6 +86,7 @@ class CoherenceScorer:
     llm_judge_provider : str — "openai" or "anthropic".
     privacy_mode : bool — redact PII (emails, phones, SSN-like patterns)
         before sending text to external LLM judge.
+
     """
 
     W_LOGIC = 0.6
@@ -131,7 +131,7 @@ class CoherenceScorer:
             raise ValueError(f"soft_limit must be in [0, 1], got {self.soft_limit}")
         if self.soft_limit < threshold:
             raise ValueError(
-                f"soft_limit ({self.soft_limit}) must be >= threshold ({threshold})"
+                f"soft_limit ({self.soft_limit}) must be >= threshold ({threshold})",
             )
 
         self.strict_mode = strict_mode
@@ -152,7 +152,7 @@ class CoherenceScorer:
                 raise ValueError(f"w_fact must be in [0, 1], got {self.W_FACT}")
             if abs(self.W_LOGIC + self.W_FACT - 1.0) > 1e-9:
                 raise ValueError(
-                    f"w_logic + w_fact must equal 1.0, got {self.W_LOGIC + self.W_FACT}"
+                    f"w_logic + w_fact must equal 1.0, got {self.W_LOGIC + self.W_FACT}",
                 )
         self.history = []
         self.window = history_window
@@ -250,6 +250,22 @@ class CoherenceScorer:
         self._claim_coverage_alpha = (
             0.4  # blend: alpha * (1-coverage) + (1-alpha) * layer_a
         )
+        self._adaptive_threshold_enabled = False
+        self._task_type_thresholds: dict[str, float] = {}
+        self._chunk_overlap_ratio = 0.5
+        self._qa_premise_ratio = 0.7
+        self._confidence_weighted_agg = False
+        self._meta_classifier_path = ""
+        self._meta_classifier = None
+        # Phase 6B: per-task-type judge escalation thresholds
+        # Wider borderline zone → more aggressive judge routing
+        self._task_judge_thresholds: dict[str, float] = {
+            "dialogue": 0.35,
+            "summarization": 0.25,
+            "qa": 0.30,
+            "fact_check": 0.20,
+            "default": self._llm_judge_threshold,
+        }
 
         # Local DeBERTa-base judge model (replaces LLM API calls)
         self._local_judge_model = None
@@ -259,7 +275,9 @@ class CoherenceScorer:
             self._init_local_judge(llm_judge_model, nli_device)
 
     def _init_local_judge(
-        self, model_path: str, device: str | None = None
+        self,
+        model_path: str,
+        device: str | None = None,
     ):  # pragma: no cover
         """Load local DeBERTa-base judge model for borderline escalation."""
         try:
@@ -269,7 +287,8 @@ class CoherenceScorer:
             self._local_judge_tokenizer = AutoTokenizer.from_pretrained(model_path)
             self._local_judge_model = (
                 AutoModelForSequenceClassification.from_pretrained(
-                    model_path, low_cpu_mem_usage=False
+                    model_path,
+                    low_cpu_mem_usage=False,
                 )
             )
             self._local_judge_device = device or (
@@ -278,7 +297,9 @@ class CoherenceScorer:
             self._local_judge_model.to(self._local_judge_device)
             self._local_judge_model.eval()
             self.logger.info(
-                "Local judge loaded: %s on %s", model_path, self._local_judge_device
+                "Local judge loaded: %s on %s",
+                model_path,
+                self._local_judge_device,
             )
         except Exception as exc:
             self.logger.warning("Failed to load local judge model: %s", exc)
@@ -296,7 +317,10 @@ class CoherenceScorer:
         return self._local_judge_infer(prompt, response, nli_score)
 
     def _local_judge_infer(  # pragma: no cover — requires torch, tested locally
-        self, prompt: str, response: str, nli_score: float
+        self,
+        prompt: str,
+        response: str,
+        nli_score: float,
     ) -> float:
         """Run local judge forward pass and blend with NLI score."""
         import torch
@@ -320,7 +344,10 @@ class CoherenceScorer:
         model = self._local_judge_model
         assert tokenizer is not None and model is not None
         inputs = tokenizer(
-            judge_input, return_tensors="pt", max_length=384, truncation=True
+            judge_input,
+            return_tensors="pt",
+            max_length=384,
+            truncation=True,
         )
         inputs = {k: v.to(self._local_judge_device) for k, v in inputs.items()}
 
@@ -365,13 +392,36 @@ class CoherenceScorer:
     _JUDGE_RETRY_MAX = 3
     _JUDGE_RETRY_BACKOFF = (0.5, 1.0)
 
-    def _should_escalate(self, nli_score: float) -> bool:
+    def _get_meta_classifier(self):
+        """Lazy-load trained meta-classifier from pickle."""
+        if self._meta_classifier is not None:
+            return self._meta_classifier
+        if not self._meta_classifier_path:
+            return None
+        try:
+            from tools.train_meta_classifier import MetaClassifier
+
+            self._meta_classifier = MetaClassifier(self._meta_classifier_path)
+            return self._meta_classifier
+        except (ImportError, FileNotFoundError, Exception):
+            self.logger.debug(
+                "Meta-classifier unavailable at %s",
+                self._meta_classifier_path,
+            )
+            self._meta_classifier_path = ""
+            return None
+
+    def _should_escalate(self, nli_score: float, task_type: str = "default") -> bool:
         """True when the judge (LLM or local) should be consulted."""
         if not self._llm_judge_enabled or not self._llm_judge_provider:
             return False
         if self._llm_judge_provider == "local" and self._local_judge_model is None:
             return False
-        return bool(abs(nli_score - 0.5) < self._llm_judge_threshold)
+        threshold = self._task_judge_thresholds.get(
+            task_type,
+            self._llm_judge_threshold,
+        )
+        return bool(abs(nli_score - 0.5) < threshold)
 
     def _llm_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
         """Escalate to judge when NLI confidence is low.
@@ -441,7 +491,10 @@ class CoherenceScorer:
             metrics.observe("llm_judge_seconds", time.monotonic() - t0)
 
     def _call_llm_judge(
-        self, model: str, judge_prompt: str, fallback: float
+        self,
+        model: str,
+        judge_prompt: str,
+        fallback: float,
     ) -> str | None:
         """Call LLM provider with retry on transient errors.
 
@@ -461,7 +514,7 @@ class CoherenceScorer:
                         response_format={"type": "json_object"},
                     )
                     return result.choices[0].message.content or ""
-                elif self._llm_judge_provider == "anthropic":
+                if self._llm_judge_provider == "anthropic":
                     import anthropic
 
                     client = anthropic.Anthropic()  # type: ignore[assignment]
@@ -471,8 +524,7 @@ class CoherenceScorer:
                         messages=[{"role": "user", "content": judge_prompt}],
                     )
                     return result.content[0].text if result.content else ""
-                else:
-                    return None
+                return None
             except ImportError as exc:
                 self.logger.warning("LLM judge import failed: %s", exc)
                 return None
@@ -505,13 +557,43 @@ class CoherenceScorer:
     def _detect_task_type(prompt: str) -> str:
         """Detect task type from prompt content.
 
-        Returns ``"dialogue"`` when the prompt contains ≥2 speaker-turn
-        markers (e.g. "User:", "Assistant:").  Returns ``"default"``
-        otherwise.  Summarization is detected separately via
-        ``_use_prompt_as_premise``.
+        Returns one of: ``"dialogue"``, ``"summarization"``, ``"rag"``,
+        ``"fact_check"``, ``"qa"``, or ``"default"``.
         """
         matches = _DIALOGUE_TURN_RE.findall(prompt)
-        return "dialogue" if len(matches) >= 2 else "default"
+        if len(matches) >= 2:
+            return "dialogue"
+
+        lower = prompt.lower()
+        if any(
+            kw in lower
+            for kw in ("summarize", "summary", "summarise", "tldr", "abstract")
+        ):
+            return "summarization"
+        if any(
+            kw in lower
+            for kw in (
+                "based on the context",
+                "based on the following",
+                "given the document",
+                "given the passage",
+                "retrieved",
+                "source document",
+                "reference text",
+            )
+        ):
+            return "rag"
+        if any(
+            kw in lower
+            for kw in ("verify", "fact-check", "is it true", "claim", "support")
+        ):
+            return "fact_check"
+        if "?" in prompt or any(
+            kw in lower
+            for kw in ("answer the question", "based on the", "according to")
+        ):
+            return "qa"
+        return "default"
 
     def _resolve_agg_profile(self, prompt: str) -> tuple[str, str, str, str]:
         """Return (fact_inner, fact_outer, logic_inner, logic_outer) agg settings.
@@ -691,17 +773,33 @@ class CoherenceScorer:
         fact_inner = _inner_agg if _inner_agg is not None else self._fact_inner_agg
         fact_outer = _outer_agg if _outer_agg is not None else self._fact_outer_agg
 
+        # Resolve effective premise_ratio: QA tasks get higher ratio
+        effective_premise_ratio = self._premise_ratio
+        task_type = self._detect_task_type(prompt)
+        if task_type == "qa" and self._qa_premise_ratio > self._premise_ratio:
+            effective_premise_ratio = self._qa_premise_ratio
+
         # Summarization mode: score prompt (source document) directly as premise.
         # Bypasses vector store retrieval which loses context and degrades scores.
         if self._use_prompt_as_premise and self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
-                score, _ = self._nli.score_chunked(
-                    prompt,
-                    text_output,
-                    inner_agg=fact_inner,
-                    outer_agg=fact_outer,
-                    premise_ratio=self._premise_ratio,
-                )
+                if self._confidence_weighted_agg:
+                    score, _ = self._nli.score_chunked_confidence_weighted(
+                        prompt,
+                        text_output,
+                        inner_agg=fact_inner,
+                        premise_ratio=effective_premise_ratio,
+                        overlap_ratio=self._chunk_overlap_ratio,
+                    )
+                else:
+                    score, _ = self._nli.score_chunked(
+                        prompt,
+                        text_output,
+                        inner_agg=fact_inner,
+                        outer_agg=fact_outer,
+                        premise_ratio=effective_premise_ratio,
+                        overlap_ratio=self._chunk_overlap_ratio,
+                    )
             if self._should_escalate(score):
                 score = self._llm_judge_check(prompt, text_output, score)
             return score
@@ -712,25 +810,37 @@ class CoherenceScorer:
         with metrics.timer("factual_retrieval_seconds"):
             try:
                 context = self.ground_truth_store.retrieve_context(
-                    prompt, top_k=self._fact_retrieval_top_k, tenant_id=tenant_id
+                    prompt,
+                    top_k=self._fact_retrieval_top_k,
+                    tenant_id=tenant_id,
                 )
             except TypeError:
-                # Base GroundTruthStore doesn't accept top_k
                 context = self.ground_truth_store.retrieve_context(
-                    prompt, tenant_id=tenant_id
+                    prompt,
+                    tenant_id=tenant_id,
                 )
         if not context:
             return DIVERGENCE_NEUTRAL
 
         if self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
-                score, _ = self._nli.score_chunked(
-                    context,
-                    text_output,
-                    inner_agg=fact_inner,
-                    outer_agg=fact_outer,
-                    premise_ratio=self._premise_ratio,
-                )
+                if self._confidence_weighted_agg:
+                    score, _ = self._nli.score_chunked_confidence_weighted(
+                        context,
+                        text_output,
+                        inner_agg=fact_inner,
+                        premise_ratio=effective_premise_ratio,
+                        overlap_ratio=self._chunk_overlap_ratio,
+                    )
+                else:
+                    score, _ = self._nli.score_chunked(
+                        context,
+                        text_output,
+                        inner_agg=fact_inner,
+                        outer_agg=fact_outer,
+                        premise_ratio=effective_premise_ratio,
+                        overlap_ratio=self._chunk_overlap_ratio,
+                    )
         elif self.strict_mode:
             score = DIVERGENCE_CONTRADICTED
         else:
@@ -753,24 +863,44 @@ class CoherenceScorer:
         fact_inner = _inner_agg if _inner_agg is not None else self._fact_inner_agg
         fact_outer = _outer_agg if _outer_agg is not None else self._fact_outer_agg
 
+        effective_premise_ratio = self._premise_ratio
+        task_type = self._detect_task_type(prompt)
+        if task_type == "qa" and self._qa_premise_ratio > self._premise_ratio:
+            effective_premise_ratio = self._qa_premise_ratio
+
         # Summarization mode: score prompt directly, skip store retrieval.
         if self._use_prompt_as_premise and self._nli and self._nli.model_available:
             self._nli.reset_token_counter()
             with metrics.timer("chunked_nli_seconds"):
-                nli_score, chunk_scores, prem_count, hyp_count = (
-                    self._nli._score_chunked_with_counts(
-                        prompt,
-                        text_output,
-                        inner_agg=fact_inner,
-                        outer_agg=fact_outer,
-                        premise_ratio=self._premise_ratio,
+                if self._confidence_weighted_agg:
+                    nli_score, chunk_scores_list = (
+                        self._nli.score_chunked_confidence_weighted(
+                            prompt,
+                            text_output,
+                            inner_agg=fact_inner,
+                            premise_ratio=effective_premise_ratio,
+                            overlap_ratio=self._chunk_overlap_ratio,
+                        )
                     )
-                )
+                    chunk_scores = chunk_scores_list
+                    prem_count = 1
+                    hyp_count = len(chunk_scores_list)
+                else:
+                    nli_score, chunk_scores, prem_count, hyp_count = (
+                        self._nli._score_chunked_with_counts(
+                            prompt,
+                            text_output,
+                            inner_agg=fact_inner,
+                            outer_agg=fact_outer,
+                            premise_ratio=effective_premise_ratio,
+                            overlap_ratio=self._chunk_overlap_ratio,
+                        )
+                    )
             if self._should_escalate(nli_score):
                 nli_score = self._llm_judge_check(prompt, text_output, nli_score)
             evidence = ScoringEvidence(
                 chunks=[
-                    EvidenceChunk(text=prompt[:500], distance=0.0, source="prompt")
+                    EvidenceChunk(text=prompt[:500], distance=0.0, source="prompt"),
                 ],
                 nli_premise=prompt,
                 nli_hypothesis=text_output,
@@ -808,11 +938,12 @@ class CoherenceScorer:
                     )
                 except TypeError:
                     context = self.ground_truth_store.retrieve_context(
-                        prompt, tenant_id=tenant_id
+                        prompt,
+                        tenant_id=tenant_id,
                     )
                 if context:
                     chunks = [
-                        EvidenceChunk(text=context, distance=0.0, source="keyword")
+                        EvidenceChunk(text=context, distance=0.0, source="keyword"),
                     ]
 
         if not context:
@@ -825,15 +956,29 @@ class CoherenceScorer:
         if self._nli and self._nli.model_available:
             self._nli.reset_token_counter()
             with metrics.timer("chunked_nli_seconds"):
-                nli_score, chunk_scores, prem_count, hyp_count = (
-                    self._nli._score_chunked_with_counts(
-                        context,
-                        text_output,
-                        inner_agg=fact_inner,
-                        outer_agg=fact_outer,
-                        premise_ratio=self._premise_ratio,
+                if self._confidence_weighted_agg:
+                    nli_score, chunk_scores_list = (
+                        self._nli.score_chunked_confidence_weighted(
+                            context,
+                            text_output,
+                            inner_agg=fact_inner,
+                            premise_ratio=effective_premise_ratio,
+                            overlap_ratio=self._chunk_overlap_ratio,
+                        )
                     )
-                )
+                    chunk_scores = chunk_scores_list
+                    hyp_count = len(chunk_scores_list)
+                else:
+                    nli_score, chunk_scores, prem_count, hyp_count = (
+                        self._nli._score_chunked_with_counts(
+                            context,
+                            text_output,
+                            inner_agg=fact_inner,
+                            outer_agg=fact_outer,
+                            premise_ratio=effective_premise_ratio,
+                            overlap_ratio=self._chunk_overlap_ratio,
+                        )
+                    )
             tok_count = self._nli.last_token_count
         elif self.strict_mode:
             nli_score = DIVERGENCE_CONTRADICTED
@@ -899,7 +1044,12 @@ class CoherenceScorer:
     # ── Logical divergence ────────────────────────────────────────────
 
     def calculate_logical_divergence(
-        self, prompt, text_output, *, _inner_agg=None, _outer_agg=None
+        self,
+        prompt,
+        text_output,
+        *,
+        _inner_agg=None,
+        _outer_agg=None,
     ):
         """Compute logical contradiction probability via NLI.
 
@@ -1045,13 +1195,20 @@ class CoherenceScorer:
         return h_logic, h_fact, coherence, evidence
 
     def _finalise_review(
-        self, coherence, h_logic, h_fact, action, evidence=None
+        self,
+        coherence,
+        h_logic,
+        h_fact,
+        action,
+        evidence=None,
+        threshold_override=None,
     ) -> tuple[bool, CoherenceScore]:
         """Build CoherenceScore, gate on threshold, update history.
 
         Returns (approved, CoherenceScore).
         """
-        approved = coherence >= self.threshold
+        t = threshold_override if threshold_override is not None else self.threshold
+        approved = coherence >= t
         warning = False
 
         if not approved:
@@ -1085,8 +1242,7 @@ class CoherenceScorer:
     # ── Composite scoring ─────────────────────────────────────────────
 
     def compute_divergence(self, prompt, action):
-        """
-        Compute composite divergence (lower is better).
+        """Compute composite divergence (lower is better).
 
         Weighted sum: ``W_LOGIC * H_logical + W_FACT * H_factual``.
         """
@@ -1094,7 +1250,7 @@ class CoherenceScorer:
         h_fact = self.calculate_factual_divergence(prompt, action)
         total = (self.W_LOGIC * h_logic) + (self.W_FACT * h_fact)
         self.logger.debug(
-            f"Divergence: Logic={h_logic:.2f}, Fact={h_fact:.2f} -> Total={total:.2f}"
+            f"Divergence: Logic={h_logic:.2f}, Fact={h_fact:.2f} -> Total={total:.2f}",
         )
         return total
 
@@ -1112,6 +1268,7 @@ class CoherenceScorer:
         session : ConversationSession | None — when provided, cross-turn
             divergence is blended into the logical score and the turn is
             recorded after scoring.
+
         """
         with trace_review() as span:
             # Rust fast-path: delegate full review to backfire_kernel
@@ -1131,14 +1288,19 @@ class CoherenceScorer:
                 cached = self.cache.get(prompt, action)
                 if cached is not None:
                     result = self._finalise_review(
-                        cached.score, cached.h_logical, cached.h_factual, action
+                        cached.score,
+                        cached.h_logical,
+                        cached.h_factual,
+                        action,
                     )
                     span.set_attribute("coherence.score", cached.score)
                     span.set_attribute("coherence.approved", result[0])
                     span.set_attribute("coherence.cached", True)
                     return result
             h_logic, h_fact, coherence, evidence = self._heuristic_coherence(
-                prompt, action, tenant_id=tenant_id
+                prompt,
+                action,
+                tenant_id=tenant_id,
             )
 
             cross_turn = None
@@ -1152,7 +1314,42 @@ class CoherenceScorer:
 
             if self.cache:
                 self.cache.put(prompt, action, coherence, h_logic, h_fact)
-            result = self._finalise_review(coherence, h_logic, h_fact, action, evidence)
+
+            # Adaptive threshold: select per-task-type threshold
+            effective_threshold = self.threshold
+            if self._adaptive_threshold_enabled and self._task_type_thresholds:
+                task_type = self._detect_task_type(prompt)
+                effective_threshold = self._task_type_thresholds.get(
+                    task_type,
+                    self.threshold,
+                )
+
+            # Meta-classifier override: when trained model is available,
+            # use it instead of threshold comparison. The classifier
+            # considers NLI score + text features to decide.
+            meta_clf = self._get_meta_classifier()
+            if meta_clf is not None and self._nli is not None:
+                nli_score = evidence.nli_score if evidence else h_fact
+                confidence = abs(nli_score - 0.5) * 2.0
+                is_supported, meta_prob = meta_clf.predict(
+                    prompt,
+                    action,
+                    nli_score,
+                    confidence,
+                )
+                if is_supported:
+                    coherence = max(coherence, effective_threshold + 0.01)
+                else:
+                    coherence = min(coherence, effective_threshold - 0.01)
+
+            result = self._finalise_review(
+                coherence,
+                h_logic,
+                h_fact,
+                action,
+                evidence,
+                threshold_override=effective_threshold,
+            )
             if cross_turn is not None:
                 result[1].cross_turn_divergence = cross_turn
             if session is not None:
@@ -1192,7 +1389,9 @@ class CoherenceScorer:
                 h_l = getattr(score_obj, "h_logical", 0.0)
                 h_f = getattr(score_obj, "h_factual", 0.0)
                 coh = getattr(
-                    score_obj, "score", 1.0 - (self.W_LOGIC * h_l + self.W_FACT * h_f)
+                    score_obj,
+                    "score",
+                    1.0 - (self.W_LOGIC * h_l + self.W_FACT * h_f),
                 )
                 out.append(self._finalise_review(coh, h_l, h_f, r))
             return out
@@ -1205,7 +1404,10 @@ class CoherenceScorer:
                 cached = self.cache.get(prompt, response)
                 if cached is not None:
                     results[i] = self._finalise_review(
-                        cached.score, cached.h_logical, cached.h_factual, response
+                        cached.score,
+                        cached.h_logical,
+                        cached.h_factual,
+                        response,
                     )
                     continue
             misses.append(i)
@@ -1239,12 +1441,14 @@ class CoherenceScorer:
                 prompt = items[idx][0]
                 if is_vector:
                     cks = self.ground_truth_store.retrieve_context_with_chunks(
-                        prompt, tenant_id=tenant_id
+                        prompt,
+                        tenant_id=tenant_id,
                     )
                     ctx = "; ".join(c.text for c in cks) if cks else None
                 else:
                     ctx = self.ground_truth_store.retrieve_context(
-                        prompt, tenant_id=tenant_id
+                        prompt,
+                        tenant_id=tenant_id,
                     )
                     cks = (
                         [EvidenceChunk(text=ctx, distance=0.0, source="keyword")]
@@ -1312,7 +1516,11 @@ class CoherenceScorer:
             if self.cache:
                 self.cache.put(items[i][0], items[i][1], coherence, hl, hf)
             results[i] = self._finalise_review(
-                coherence, hl, hf, items[i][1], evidence_map.get(i)
+                coherence,
+                hl,
+                hf,
+                items[i][1],
+                evidence_map.get(i),
             )
 
         return results  # type: ignore[return-value]
@@ -1333,6 +1541,10 @@ class CoherenceScorer:
         return await loop.run_in_executor(
             None,
             functools.partial(
-                self.review, prompt, action, session=session, tenant_id=tenant_id
+                self.review,
+                prompt,
+                action,
+                session=session,
+                tenant_id=tenant_id,
             ),
         )

@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-NLI-based logical divergence scorer with batched inference and ONNX.
+"""NLI-based logical divergence scorer with batched inference and ONNX.
 
 Default model: FactCG-DeBERTa-v3-Large (75.8% balanced accuracy
 on AggreFact). Alternative: MiniCheck-DeBERTa-L (72.6%),
@@ -28,9 +27,9 @@ from .metrics import metrics
 
 __all__ = [
     "NLIScorer",
-    "nli_available",
     "export_onnx",
     "export_tensorrt",
+    "nli_available",
 ]
 
 # GPU amortization: ~$0.01/1K tokens for local DeBERTa inference
@@ -102,6 +101,23 @@ def _probs_to_divergence(
     return [float(row[ci]) + float(row[ni]) * 0.5 for row in probs]
 
 
+def _probs_to_confidence(probs: np.ndarray) -> list[float]:
+    """Convert softmax rows to confidence scores.
+
+    Confidence = 1 - H(p)/log(K) where H is entropy and K is num classes.
+    Returns values in [0, 1]: 1 = maximally confident (one-hot),
+    0 = maximally uncertain (uniform).
+    """
+    ncols = probs.shape[1]
+    log_k = float(np.log(ncols)) if ncols > 1 else 1.0
+    result: list[float] = []
+    for row in probs:
+        clipped = np.clip(row, 1e-10, 1.0)
+        entropy = -float(np.sum(clipped * np.log(clipped)))
+        result.append(max(0.0, 1.0 - entropy / log_k))
+    return result
+
+
 # ── Model Loaders ───────────────────────────────────────────────
 
 
@@ -137,18 +153,19 @@ def _load_nli_model(
                 from transformers import BitsAndBytesConfig
 
                 load_kwargs["quantization_config"] = BitsAndBytesConfig(
-                    load_in_8bit=True
+                    load_in_8bit=True,
                 )
                 load_kwargs["device_map"] = "auto"
                 logger.info("Loading with 8-bit quantization")
             except ImportError:
                 logger.warning(
-                    "bitsandbytes not installed — loading without quantization"
+                    "bitsandbytes not installed — loading without quantization",
                 )
 
         load_kwargs.setdefault("low_cpu_mem_usage", False)
         model = AutoModelForSequenceClassification.from_pretrained(
-            model_name, **load_kwargs
+            model_name,
+            **load_kwargs,
         )
 
         if device and "device_map" not in load_kwargs:
@@ -255,6 +272,7 @@ def export_onnx(
     For int8: also requires ``onnxruntime`` quantization module.
     Load the result with
     ``NLIScorer(backend="onnx", onnx_path=<returned_dir>)``.
+
     """
     from optimum.onnxruntime import (
         ORTModelForSequenceClassification,
@@ -311,6 +329,7 @@ def export_tensorrt(
     warmup_pairs : number of dummy pairs to run for engine build.
 
     Requires ``pip install onnxruntime-gpu tensorrt``.
+
     """
     import onnxruntime as ort
 
@@ -326,7 +345,7 @@ def export_tensorrt(
     if "TensorrtExecutionProvider" not in available:
         raise RuntimeError(
             "TensorrtExecutionProvider not available. "
-            "Install onnxruntime-gpu and tensorrt."
+            "Install onnxruntime-gpu and tensorrt.",
         )
 
     trt_opts: dict[str, object] = {
@@ -354,7 +373,7 @@ def export_tensorrt(
 
     tokenizer = AutoTokenizer.from_pretrained(onnx_dir)
     dummy_pairs = [
-        ("The sky is blue due to Rayleigh scattering.", "The sky is blue.")
+        ("The sky is blue due to Rayleigh scattering.", "The sky is blue."),
     ] * warmup_pairs
 
     texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in dummy_pairs]
@@ -392,6 +411,7 @@ class OnnxDynamicBatcher:
     max_batch : int — flush after this many pairs.
     flush_timeout_ms : float — flush after this many ms idle.
     session : ort.InferenceSession | None — for IO binding detection.
+
     """
 
     def __init__(
@@ -460,6 +480,7 @@ class NLIScorer:
     device : str | None — torch device ("cpu", "cuda", "cuda:0").
     torch_dtype : str | None — "float16", "bfloat16", or "float32".
     onnx_path : str | None — directory with exported ONNX model.
+
     """
 
     _BACKENDS = ("deberta", "minicheck", "onnx", "lite")
@@ -477,6 +498,7 @@ class NLIScorer:
         onnx_batch_size: int = 16,
         onnx_flush_timeout_ms: float = 10.0,
         cost_per_token: float = _DEFAULT_COST_PER_TOKEN,
+        lora_adapter_path: str | None = None,
     ) -> None:
         # Accept ScorerBackend instance directly
         self._custom_backend = None
@@ -488,12 +510,12 @@ class NLIScorer:
                 backend = "__custom__"
             else:
                 raise TypeError(
-                    f"backend must be str or ScorerBackend, got {type(backend)!r}"
+                    f"backend must be str or ScorerBackend, got {type(backend)!r}",
                 )
 
         if backend != "__custom__" and backend not in self._BACKENDS:
             raise ValueError(
-                f"backend must be one of {self._BACKENDS}, got {backend!r}"
+                f"backend must be one of {self._BACKENDS}, got {backend!r}",
             )
         self.use_model = use_model
         self.max_length = max_length
@@ -518,6 +540,7 @@ class NLIScorer:
         # Label indices resolved from model.config.id2label after loading.
         # None = not yet resolved; tuple = (contradiction_idx, neutral_idx)
         self._label_indices: tuple[int, int] | None = None
+        self._lora_adapter_path = lora_adapter_path
 
     @property
     def _backend_ready(self) -> bool:
@@ -540,12 +563,13 @@ class NLIScorer:
         if self.backend == "onnx":
             if not self._onnx_path:
                 logger.warning(
-                    "onnx backend requires onnx_path — falling back to heuristic"
+                    "onnx backend requires onnx_path — falling back to heuristic",
                 )
                 self._model_loaded = True
                 return False
             self._tokenizer, self._onnx_session = _load_onnx_session(
-                self._onnx_path, device=self._device
+                self._onnx_path,
+                device=self._device,
             )
             self._onnx_batcher = OnnxDynamicBatcher(
                 onnx_scorer_fn=self._onnx_score_batch,
@@ -562,8 +586,25 @@ class NLIScorer:
             )
             if self._model is not None:
                 self._label_indices = _resolve_label_indices(self._model)
+                if self._lora_adapter_path:
+                    self._load_lora_adapter(self._lora_adapter_path)
         self._model_loaded = True
         return self._backend_ready
+
+    def _load_lora_adapter(self, adapter_path: str) -> None:
+        """Merge a PEFT/LoRA adapter into the loaded base model."""
+        try:
+            from peft import PeftModel
+
+            logger.info("Loading LoRA adapter: %s", adapter_path)
+            self._model = PeftModel.from_pretrained(self._model, adapter_path)
+            self._model = self._model.merge_and_unload()
+            self._model.eval()
+            logger.info("LoRA adapter merged successfully")
+        except ImportError:
+            logger.warning("peft not installed — cannot load LoRA adapter")
+        except (OSError, ValueError) as e:
+            logger.warning("Failed to load LoRA adapter: %s", e)
 
     @property
     def model_available(self) -> bool:
@@ -818,7 +859,8 @@ class NLIScorer:
         )
         # Protect abbreviations with placeholder
         protected = abbrev_re.sub(
-            lambda m: m.group().replace(". ", ".<NOSPLIT>"), text.strip()
+            lambda m: m.group().replace(". ", ".<NOSPLIT>"),
+            text.strip(),
         )
         # Protect decimals: digit.digit
         protected = re.sub(r"(\d)\.(\d)", r"\1.<NOSPLIT>\2", protected)
@@ -830,9 +872,22 @@ class NLIScorer:
         """Rough token count (~4 chars/token for English)."""
         return len(text) // 4 + 1
 
-    def _build_chunks(self, sentences: list[str], budget: int) -> list[str]:
-        """Group sentences into chunks within *budget* tokens,
-        1-sentence overlap."""
+    def _build_chunks(
+        self,
+        sentences: list[str],
+        budget: int,
+        overlap_ratio: float = 0.0,
+    ) -> list[str]:
+        """Group sentences into chunks within *budget* tokens.
+
+        When ``overlap_ratio > 0``, uses sliding-window overlap: after
+        filling a chunk, the next chunk starts from the sentence at
+        ``(1 - overlap_ratio) * chunk_length`` position. With the
+        default ``overlap_ratio=0``, uses 1-sentence overlap (legacy).
+        """
+        if overlap_ratio > 0:
+            return self._build_chunks_overlap(sentences, budget, overlap_ratio)
+
         chunks: list[str] = []
         current: list[str] = []
         current_tokens = 0
@@ -850,6 +905,38 @@ class NLIScorer:
             chunks.append(" ".join(current))
         return chunks or [" ".join(sentences)]
 
+    def _build_chunks_overlap(
+        self,
+        sentences: list[str],
+        budget: int,
+        overlap_ratio: float,
+    ) -> list[str]:
+        """Sliding-window chunking with configurable token overlap."""
+        chunks: list[str] = []
+        i = 0
+        while i < len(sentences):
+            current: list[str] = []
+            current_tokens = 0
+            j = i
+            while j < len(sentences):
+                st = self._estimate_tokens(sentences[j])
+                if current and current_tokens + st > budget:
+                    break
+                current.append(sentences[j])
+                current_tokens += st
+                j += 1
+
+            if not current:
+                current.append(sentences[i])
+                j = i + 1
+
+            chunks.append(" ".join(current))
+            # Stride: advance by (1 - overlap_ratio) * num sentences in chunk
+            stride = max(1, int(len(current) * (1.0 - overlap_ratio)))
+            i += stride
+
+        return chunks or [" ".join(sentences)]
+
     def _score_chunked_with_counts(
         self,
         premise: str,
@@ -857,6 +944,7 @@ class NLIScorer:
         outer_agg: str = "max",
         inner_agg: str = "max",
         premise_ratio: float = 0.4,
+        overlap_ratio: float = 0.0,
     ) -> tuple[float, list[float], int, int]:
         """Bidirectional chunked scoring with chunk counts.
 
@@ -889,14 +977,14 @@ class NLIScorer:
 
         hyp_sents = self._split_sentences(hypothesis)
         hyp_chunks = (
-            self._build_chunks(hyp_sents, hyp_budget)
+            self._build_chunks(hyp_sents, hyp_budget, overlap_ratio)
             if not hyp_fits and len(hyp_sents) > 1
             else [hypothesis]
         )
 
         prem_sents = self._split_sentences(premise)
         prem_chunks = (
-            self._build_chunks(prem_sents, prem_budget)
+            self._build_chunks(prem_sents, prem_budget, overlap_ratio)
             if not prem_fits and len(prem_sents) > 1
             else [premise]
         )
@@ -938,6 +1026,7 @@ class NLIScorer:
         outer_agg: str = "max",
         inner_agg: str = "max",
         premise_ratio: float = 0.4,
+        overlap_ratio: float = 0.0,
     ) -> tuple[float, list[float]]:
         """Bidirectional chunked scoring for long premises and hypotheses.
 
@@ -949,7 +1038,192 @@ class NLIScorer:
             outer_agg=outer_agg,
             inner_agg=inner_agg,
             premise_ratio=premise_ratio,
+            overlap_ratio=overlap_ratio,
         )
+        return agg, per_hyp
+
+    def score_batch_with_confidence(
+        self,
+        pairs: list[tuple[str, str]],
+    ) -> list[tuple[float, float]]:
+        """Score pairs and return (divergence, confidence) tuples.
+
+        Confidence is 1 - entropy of the softmax distribution, normalised
+        to [0, 1]. High confidence = model is certain about its prediction.
+        """
+        if not pairs:
+            return []
+        if self._custom_backend is not None or self.backend == "lite":
+            scores = self.score_batch(pairs)
+            return [(s, 1.0) for s in scores]
+        if self.backend == "minicheck":
+            scores = self.score_batch(pairs)
+            return [(s, 1.0) for s in scores]
+        if not self._ensure_model():
+            scores = [self._heuristic_score(p, h) for p, h in pairs]
+            return [(s, 0.5) for s in scores]
+
+        if self.backend == "onnx":
+            return self._onnx_score_batch_with_confidence(pairs)
+        return self._model_score_batch_with_confidence(pairs)
+
+    def _model_score_batch_with_confidence(
+        self,
+        pairs: list[tuple[str, str]],
+    ) -> list[tuple[float, float]]:
+        """Batched PyTorch inference returning (divergence, confidence)."""
+        if self._tokenizer is None or self._model is None:
+            raise RuntimeError("NLI model not loaded")
+
+        import torch
+
+        device = next(self._model.parameters()).device
+
+        with metrics.timer("nli_batch_inference_seconds"):
+            if self._is_factcg:
+                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
+                inputs = self._tokenizer(
+                    texts,
+                    return_tensors="pt",
+                    truncation=True,
+                    padding=True,
+                    max_length=self.max_length,
+                )
+            else:
+                premises = [p for p, _ in pairs]
+                hypotheses = [h for _, h in pairs]
+                inputs = self._tokenizer(
+                    premises,
+                    hypotheses,
+                    return_tensors="pt",
+                    truncation=True,
+                    padding=True,
+                    max_length=self.max_length,
+                )
+
+            self._last_token_count += inputs["input_ids"].numel()
+            inputs = {k: v.to(device) for k, v in inputs.items()}
+            with torch.no_grad():
+                logits = self._model(**inputs).logits
+            probs = torch.softmax(logits, dim=1).cpu().numpy()
+
+        divergences = _probs_to_divergence(probs, self._label_indices)
+        confidences = _probs_to_confidence(probs)
+        return list(zip(divergences, confidences, strict=True))
+
+    def _onnx_score_batch_with_confidence(
+        self,
+        pairs: list[tuple[str, str]],
+    ) -> list[tuple[float, float]]:
+        """Batched ONNX inference returning (divergence, confidence)."""
+        if self._tokenizer is None or self._onnx_session is None:
+            raise RuntimeError("ONNX session not loaded")
+
+        with metrics.timer("nli_onnx_batch_seconds"):
+            if self._is_factcg:
+                texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
+                inputs = self._tokenizer(
+                    texts,
+                    return_tensors="np",
+                    truncation=True,
+                    padding=True,
+                    max_length=self.max_length,
+                )
+            else:
+                premises = [p for p, _ in pairs]
+                hypotheses = [h for _, h in pairs]
+                inputs = self._tokenizer(
+                    premises,
+                    hypotheses,
+                    return_tensors="np",
+                    truncation=True,
+                    padding=True,
+                    max_length=self.max_length,
+                )
+
+            self._last_token_count += inputs["input_ids"].size
+            expected = {i.name for i in self._onnx_session.get_inputs()}
+            feed = {
+                k: v.astype(np.int64) if v.dtype != np.int64 else v
+                for k, v in inputs.items()
+                if k in expected
+            }
+            logits = self._onnx_session.run(None, feed)[0]
+
+        sm = _softmax_np(logits)
+        divergences = _probs_to_divergence(sm, self._label_indices)
+        confidences = _probs_to_confidence(sm)
+        return list(zip(divergences, confidences, strict=True))
+
+    def score_chunked_confidence_weighted(
+        self,
+        premise: str,
+        hypothesis: str,
+        inner_agg: str = "max",
+        premise_ratio: float = 0.4,
+        overlap_ratio: float = 0.0,
+    ) -> tuple[float, list[float]]:
+        """Chunked scoring with confidence-weighted outer aggregation.
+
+        Instead of max/mean over hypothesis chunks, weights each chunk's
+        divergence by the model's confidence (1 - normalised entropy).
+        Uncertain chunks contribute less to the aggregate.
+        """
+        hyp_budget = int(self.max_length * (1 - premise_ratio))
+        prem_budget = int(self.max_length * premise_ratio)
+
+        hyp_fits = self._estimate_tokens(hypothesis) <= hyp_budget
+        prem_fits = self._estimate_tokens(premise) <= prem_budget
+
+        if hyp_fits and prem_fits:
+            result = self.score_batch_with_confidence([(premise, hypothesis)])
+            s, c = result[0]
+            return s, [s]
+
+        hyp_sents = self._split_sentences(hypothesis)
+        hyp_chunks = (
+            self._build_chunks(hyp_sents, hyp_budget, overlap_ratio)
+            if not hyp_fits and len(hyp_sents) > 1
+            else [hypothesis]
+        )
+
+        prem_sents = self._split_sentences(premise)
+        prem_chunks = (
+            self._build_chunks(prem_sents, prem_budget, overlap_ratio)
+            if not prem_fits and len(prem_sents) > 1
+            else [premise]
+        )
+
+        pairs = [(pc, hc) for pc in prem_chunks for hc in hyp_chunks]
+        results_with_conf = self.score_batch_with_confidence(pairs)
+
+        n_prem = len(prem_chunks)
+        n_hyp = len(hyp_chunks)
+        per_hyp: list[float] = []
+        per_hyp_conf: list[float] = []
+
+        for h_idx in range(n_hyp):
+            scores_h = [results_with_conf[p * n_hyp + h_idx] for p in range(n_prem)]
+            divs = [s[0] for s in scores_h]
+            if inner_agg == "min":
+                per_hyp.append(min(divs))
+            elif inner_agg == "mean":
+                per_hyp.append(sum(divs) / len(divs))
+            else:
+                per_hyp.append(max(divs))
+            avg_conf = sum(s[1] for s in scores_h) / len(scores_h)
+            per_hyp_conf.append(avg_conf)
+
+        # Confidence-weighted mean
+        total_weight = sum(per_hyp_conf)
+        if total_weight > 1e-9:
+            agg = (
+                sum(d * c for d, c in zip(per_hyp, per_hyp_conf, strict=True))
+                / total_weight
+            )
+        else:
+            agg = sum(per_hyp) / len(per_hyp)
+
         return agg, per_hyp
 
     # ── Claim decomposition ────────────────────────────────────────
@@ -959,7 +1233,9 @@ class NLIScorer:
         return self._split_sentences(text)
 
     def score_decomposed(
-        self, premise: str, hypothesis: str
+        self,
+        premise: str,
+        hypothesis: str,
     ) -> tuple[float, list[float]]:
         """Score each claim in hypothesis independently against premise.
 
@@ -1041,7 +1317,7 @@ class NLIScorer:
                     source_index=0,
                     divergence=s,
                     supported=s < support_threshold,
-                )
+                ),
             ]
             return float(s < support_threshold), [s], [summary], attr
 
@@ -1054,7 +1330,7 @@ class NLIScorer:
             raise ValueError(
                 f"Attribution would create {n_pairs} pairs "
                 f"({len(claims)} claims × {len(source_sents)} source sentences), "
-                f"exceeding limit of {max_attribution_pairs}"
+                f"exceeding limit of {max_attribution_pairs}",
             )
 
         pairs = [(src_s, claim) for claim in claims for src_s in source_sents]
@@ -1079,7 +1355,7 @@ class NLIScorer:
                     source_index=best_idx,
                     divergence=best_div,
                     supported=best_div < support_threshold,
-                )
+                ),
             )
 
         supported = sum(1 for d in per_claim_divs if d < support_threshold)
@@ -1132,7 +1408,7 @@ class NLIScorer:
             "hadn't",
             "without",
             "false",
-        }
+        },
     )
 
     @classmethod

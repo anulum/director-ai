@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate NLI model on LLM-AggreFact — the standard factual consistency
+"""Evaluate NLI model on LLM-AggreFact — the standard factual consistency
 benchmark aggregating 11 datasets across summarization, RAG, and
 grounding tasks.
 
@@ -163,7 +162,8 @@ class _BinaryNLIPredictor:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.model_name = model_name or os.environ.get(
-            "DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"
+            "DIRECTOR_NLI_MODEL",
+            "yaxili96/FactCG-DeBERTa-v3-Large",
         )
         logger.info("Loading NLI model: %s", self.model_name)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
@@ -174,7 +174,9 @@ class _BinaryNLIPredictor:
         self.max_length = max_length
         self._torch = torch
         self._num_labels = self.model.config.num_labels
-        self._is_factcg = "factcg" in self.model_name.lower()
+        self._is_factcg = "factcg" in self.model_name.lower() or getattr(
+            self.model.config, "factcg", False
+        )
         logger.info(
             "Model loaded on %s (%s, %d labels, factcg=%s)",
             self.device,
@@ -257,7 +259,7 @@ class _BinaryNLIPredictor:
 class _NLIScorerPredictor:
     """Wraps NLIScorer.score_chunked() for bidirectional chunking comparison."""
 
-    def __init__(self, model_name: str | None = None):
+    def __init__(self, model_name: str | None = None, overlap_ratio: float = 0.0):
         from director_ai.core.nli import NLIScorer
 
         self.scorer = NLIScorer(
@@ -265,11 +267,18 @@ class _NLIScorerPredictor:
             model_name=model_name
             or os.environ.get("DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"),
         )
-        logger.info("NLIScorerPredictor (bidirectional) ready")
+        self._overlap_ratio = overlap_ratio
+        logger.info(
+            "NLIScorerPredictor ready (overlap=%.2f)",
+            overlap_ratio,
+        )
 
     def score(self, premise: str, hypothesis: str) -> float:
-        score, _ = self.scorer.score_chunked(premise, hypothesis)
-        # score_chunked returns divergence [0,1]; convert to entailment prob
+        score, _ = self.scorer.score_chunked(
+            premise,
+            hypothesis,
+            overlap_ratio=self._overlap_ratio,
+        )
         return 1.0 - score
 
 
@@ -311,9 +320,13 @@ def run_aggrefact_benchmark(
     max_samples: int | None = None,
     model_name: str | None = None,
     bidirectional: bool = False,
+    overlap_ratio: float = 0.0,
 ) -> AggreFactMetrics:
     if bidirectional:
-        predictor = _NLIScorerPredictor(model_name=model_name)
+        predictor = _NLIScorerPredictor(
+            model_name=model_name,
+            overlap_ratio=overlap_ratio,
+        )
     else:
         predictor = _BinaryNLIPredictor(model_name=model_name)
     rows = _load_aggrefact(max_samples)
@@ -445,13 +458,13 @@ def _print_aggrefact_results(m: AggreFactMetrics, model_label: str = "") -> None
                 f" {d['balanced_acc']:>6.1%}"
                 f" {d.get('hallucination_precision', 0):>6.1%}"
                 f" {d.get('hallucination_recall', 0):>6.1%}"
-                f" {d.get('hallucination_f1', 0):>6.1%}"
+                f" {d.get('hallucination_f1', 0):>6.1%}",
             )
         else:
             print(
                 f"  {ds_name:<20} {d['total']:>5}"
                 f" {d['positive']:>5} {d['negative']:>5}"
-                f" {d['balanced_acc']:>8.1%}"
+                f" {d['balanced_acc']:>8.1%}",
             )
     print()
 
@@ -513,11 +526,18 @@ if __name__ == "__main__":
         action="store_true",
         help="Use NLIScorer.score_chunked() bidirectional path",
     )
+    parser.add_argument(
+        "--overlap",
+        type=float,
+        default=0.0,
+        help="Overlap ratio for sliding-window chunking (0.0-0.5, bidirectional only)",
+    )
     args = parser.parse_args()
 
     if args.sweep:
         best_thresh, m = sweep_thresholds(
-            max_samples=args.max_samples, model_name=args.model
+            max_samples=args.max_samples,
+            model_name=args.model,
         )
         print(f"\nOptimal threshold: {best_thresh:.2f}")
         _print_aggrefact_results(m, args.model or "default")
@@ -534,8 +554,12 @@ if __name__ == "__main__":
             max_samples=args.max_samples,
             model_name=args.model,
             bidirectional=True,
+            overlap_ratio=args.overlap,
         )
-        _print_aggrefact_results(m_bidir, "Bidirectional chunking")
+        _print_aggrefact_results(
+            m_bidir,
+            f"Bidirectional chunking (overlap={args.overlap})",
+        )
         print(f"\n{'=' * 55}")
         print("  Delta: Bidirectional vs SummaC")
         print(f"{'=' * 55}")
@@ -546,7 +570,7 @@ if __name__ == "__main__":
         delta = m_bidir.avg_balanced_acc - m_summac.avg_balanced_acc
         print(
             f"\n  Overall: {m_summac.avg_balanced_acc:.1%} → "
-            f"{m_bidir.avg_balanced_acc:.1%}  ({delta:+.1%})"
+            f"{m_bidir.avg_balanced_acc:.1%}  ({delta:+.1%})",
         )
         print(f"{'=' * 55}")
     else:

@@ -12,6 +12,10 @@
 DEV_LOG.md
 claude-director-ai.md
 
+# GPU training artifacts (local-only)
+*.tar.gz
+gpu_results/
+
 # Documentation prose (quarantined until headers/protocols are reviewed)
 # Remove this line once docs/ prose files have been audited.
 # docs/assets/ is tracked (header image, generator script).

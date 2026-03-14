@@ -1,0 +1,12 @@
+# Director-AI GPU training dependencies
+# Install after PyTorch+CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121
+torch>=2.0
+transformers>=4.30,<5
+datasets>=2.14
+peft>=0.6
+scikit-learn>=1.3
+numpy>=1.24
+nltk>=3.8
+accelerate>=0.24
+sentencepiece
+protobuf
