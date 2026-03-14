@@ -188,7 +188,7 @@ class DirectorConfig:
     # Validated on LLM-AggreFact 29K: per-task-type BA 76.68% vs global 75.82%
     # Coherence values derived from optimal NLI thresholds:
     #   coherence = 0.4 + 0.6 * nli_threshold (W_LOGIC=0.6 pure-NLI case)
-    adaptive_threshold_enabled: bool = False
+    adaptive_threshold_enabled: bool = True
     threshold_summarization: float = 0.72  # NLI=0.54, AggreFact/TofuEval
     threshold_qa: float = 0.69  # NLI=0.48, ExpertQA/Lfqa
     threshold_fact_check: float = (
@@ -202,7 +202,7 @@ class DirectorConfig:
     nli_qa_premise_ratio: float = 0.7
 
     # Confidence-weighted aggregation (Phase 2B)
-    nli_confidence_weighted_agg: bool = False
+    nli_confidence_weighted_agg: bool = True
 
     # LoRA adapter path (Phase 3A)
     lora_adapter_path: str = ""

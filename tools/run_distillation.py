@@ -192,15 +192,19 @@ def train_distilled_student(
     grad_accum: int = 4,
     lora_rank: int = 8,
     lora_alpha_val: int = 16,
+    freeze_encoder: bool = False,
     seed: int = 42,
 ) -> dict:
     """Train student with KL divergence loss from teacher soft labels.
 
     Loss = alpha * KL(teacher || student) + (1-alpha) * CE(hard_label, student).
+
+    When freeze_encoder=True, only the classification head is trained.
+    This avoids encoder representation damage (29/29 LoRA experiments
+    degraded FactCG on AggreFact).
     """
     import torch
     import torch.nn.functional as f_nn
-    from peft import LoraConfig, TaskType, get_peft_model
     from torch.utils.data import DataLoader, Dataset
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -213,15 +217,25 @@ def train_distilled_student(
         low_cpu_mem_usage=False,
     )
 
-    lora_config = LoraConfig(
-        task_type=TaskType.SEQ_CLS,
-        r=lora_rank,
-        lora_alpha=lora_alpha_val,
-        lora_dropout=0.1,
-        target_modules=["query_proj", "value_proj"],
-        bias="none",
-    )
-    model = get_peft_model(model, lora_config)
+    if freeze_encoder:
+        for name, param in model.named_parameters():
+            if "classifier" not in name and "pooler" not in name:
+                param.requires_grad = False
+        trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        logger.info("Freeze-encoder mode: %d trainable params (head only)", trainable)
+    else:
+        from peft import LoraConfig, TaskType, get_peft_model
+
+        lora_config = LoraConfig(
+            task_type=TaskType.SEQ_CLS,
+            r=lora_rank,
+            lora_alpha=lora_alpha_val,
+            lora_dropout=0.1,
+            target_modules=["query_proj", "value_proj"],
+            bias="none",
+        )
+        model = get_peft_model(model, lora_config)
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
 
@@ -321,7 +335,8 @@ def train_distilled_student(
         "epochs": epochs,
         "temperature": temperature,
         "alpha": alpha,
-        "lora_rank": lora_rank,
+        "mode": "head_only" if freeze_encoder else f"lora_r{lora_rank}",
+        "lora_rank": 0 if freeze_encoder else lora_rank,
         "train_samples": len(data),
     }
     with open(os.path.join(output_dir, "distillation_metrics.json"), "w") as f:
@@ -355,6 +370,11 @@ if __name__ == "__main__":
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--lora-rank", type=int, default=8)
+    parser.add_argument(
+        "--freeze-encoder",
+        action="store_true",
+        help="Freeze encoder, train only classification head (safest mode)",
+    )
     args = parser.parse_args()
 
     if args.generate_labels:
@@ -391,4 +411,5 @@ if __name__ == "__main__":
             epochs=args.epochs,
             batch_size=args.batch_size,
             lora_rank=args.lora_rank,
+            freeze_encoder=args.freeze_encoder,
         )

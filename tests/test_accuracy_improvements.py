@@ -69,7 +69,7 @@ class TestAdaptiveThresholds:
 
     def test_config_fields_exist(self):
         cfg = DirectorConfig()
-        assert cfg.adaptive_threshold_enabled is False
+        assert cfg.adaptive_threshold_enabled is True
         assert cfg.threshold_summarization == 0.72
         assert cfg.threshold_qa == 0.69
         assert cfg.threshold_fact_check == 0.56
@@ -108,7 +108,7 @@ class TestChunkingConfig:
         cfg = DirectorConfig()
         assert cfg.nli_chunk_overlap_ratio == 0.5
         assert cfg.nli_qa_premise_ratio == 0.7
-        assert cfg.nli_confidence_weighted_agg is False
+        assert cfg.nli_confidence_weighted_agg is True
 
     def test_scorer_receives_chunking_config(self):
         cfg = DirectorConfig(

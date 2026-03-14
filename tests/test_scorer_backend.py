@@ -342,6 +342,7 @@ class TestAggregationPassthrough:
             inner_agg="min",
             outer_agg="mean",
             premise_ratio=0.4,
+            overlap_ratio=0.5,
         )
 
 
