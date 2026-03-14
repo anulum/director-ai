@@ -232,18 +232,12 @@ def train_meta_classifier(
         json.dump(results, f, indent=2)
 
     logger.info("Meta-classifier saved to %s", output_path)
-    logger.info(
-        "Test BA: %.1f%%, Train BA: %.1f%%",
-        results["test_balanced_acc"] * 100,
-        results["train_balanced_acc"] * 100,
-    )
+    test_ba = float(results["test_balanced_acc"])
+    train_ba = float(results["train_balanced_acc"])
+    logger.info("Test BA: %.1f%%, Train BA: %.1f%%", test_ba * 100, train_ba * 100)
 
-    # Feature importance ranking
-    importance = sorted(
-        results["feature_importances"].items(),
-        key=lambda x: abs(x[1]),
-        reverse=True,
-    )
+    feat_imp: dict[str, float] = results["feature_importances"]  # type: ignore[assignment]
+    importance = sorted(feat_imp.items(), key=lambda x: abs(x[1]), reverse=True)
     logger.info("Feature importance (top 5):")
     for name, coef in importance[:5]:
         logger.info("  %s: %.4f", name, coef)

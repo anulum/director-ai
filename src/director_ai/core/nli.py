@@ -597,9 +597,9 @@ class NLIScorer:
             from peft import PeftModel
 
             logger.info("Loading LoRA adapter: %s", adapter_path)
-            self._model = PeftModel.from_pretrained(self._model, adapter_path)
-            self._model = self._model.merge_and_unload()
-            self._model.eval()
+            peft_model = PeftModel.from_pretrained(self._model, adapter_path)
+            self._model = peft_model.merge_and_unload()
+            self._model.eval()  # type: ignore[union-attr]
             logger.info("LoRA adapter merged successfully")
         except ImportError:
             logger.warning("peft not installed — cannot load LoRA adapter")
