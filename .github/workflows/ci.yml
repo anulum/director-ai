@@ -28,7 +28,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install linters
-        run: pip install ruff==0.9.10
+        run: pip install ruff==0.15.4
 
       - name: Version consistency
         run: |
