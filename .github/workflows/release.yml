@@ -8,7 +8,7 @@ on:
     tags: ["v*"]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -17,6 +17,8 @@ concurrency:
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
@@ -26,10 +28,11 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Install build tools
+        run: pip install --require-hashes -r requirements/ci-build.txt -r requirements/ci-sbom.txt
+
       - name: Build sdist
-        run: |
-          pip install build==1.2.2 cyclonedx-bom==4.10.1
-          python -m build --sdist
+        run: python -m build --sdist
 
       - name: Generate SBOM
         run: cyclonedx-py environment -o sbom.json --output-format json
