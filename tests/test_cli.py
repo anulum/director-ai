@@ -92,7 +92,9 @@ class TestBatchCommand:
 
     def test_batch_with_output(self, capsys):
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False
+            mode="w",
+            suffix=".jsonl",
+            delete=False,
         ) as inp:
             inp.write(json.dumps({"prompt": "Q1"}) + "\n")
             input_path = inp.name

@@ -13,7 +13,8 @@ from director_ai.integrations.haystack import DirectorAIChecker
 class TestDirectorAIChecker:
     def test_run_approved(self):
         checker = DirectorAIChecker(
-            facts={"sky color": "The sky is blue."}, use_nli=False
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
         )
         result = checker.run(
             query="What color is the sky?",
@@ -101,7 +102,8 @@ class TestDirectorAIChecker:
 
     def test_score_structure(self):
         checker = DirectorAIChecker(
-            facts={"sky color": "The sky is blue."}, use_nli=False
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
         )
         result = checker.run(query="sky", replies=["The sky is blue."])
         score = result["scores"][0]
@@ -118,6 +120,7 @@ class TestDirectorAIChecker:
         store.add("capital", "Paris is the capital of France.")
         checker = DirectorAIChecker(store=store, threshold=0.4, use_nli=False)
         result = checker.run(
-            query="capital", replies=["Paris is the capital of France."]
+            query="capital",
+            replies=["Paris is the capital of France."],
         )
         assert result["approved"][0] is True

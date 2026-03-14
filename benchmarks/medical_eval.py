@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate Director-AI on medical domain factual consistency.
+"""Evaluate Director-AI on medical domain factual consistency.
 
 Datasets:
   - MedNLI (physionet): clinical NLI with expert-annotated entailment/
@@ -118,7 +117,10 @@ def _load_pubmedqa(max_samples: int | None = None) -> list[dict]:
     from datasets import load_dataset
 
     ds = load_dataset(
-        PUBMEDQA_HF_ID, "pqa_labeled", split="train", trust_remote_code=True
+        PUBMEDQA_HF_ID,
+        "pqa_labeled",
+        split="train",
+        trust_remote_code=True,
     )
     rows = list(ds)
     if max_samples:
@@ -249,7 +251,7 @@ def _print_domain_results(m: DomainMetrics) -> None:
         print(f"  Latency:    {m.avg_latency_ms:.1f} ms avg")
     print(
         f"  TP={m.true_positives}  FP={m.false_positives}  "
-        f"TN={m.true_negatives}  FN={m.false_negatives}"
+        f"TN={m.true_negatives}  FN={m.false_negatives}",
     )
     print(f"{'=' * 60}")
 
@@ -261,7 +263,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Director-AI medical domain benchmark")
     parser.add_argument(
-        "--dataset", choices=["mednli", "pubmedqa", "all"], default="all"
+        "--dataset",
+        choices=["mednli", "pubmedqa", "all"],
+        default="all",
     )
     parser.add_argument("--max-samples", type=int, default=None)
     parser.add_argument("--threshold", type=float, default=0.75)

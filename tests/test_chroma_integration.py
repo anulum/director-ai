@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Integration tests for ChromaBackend using in-memory ChromaDB.
+"""Integration tests for ChromaBackend using in-memory ChromaDB.
 
 Requires: pip install chromadb
 """

@@ -1,5 +1,6 @@
 """Micro coverage gaps: server halted path, NLI minicheck fallback,
-langchain callback AttributeError."""
+langchain callback AttributeError.
+"""
 
 from __future__ import annotations
 
@@ -25,7 +26,10 @@ class TestServerHaltedProcess:
         from director_ai.server import create_app
 
         cfg = DirectorConfig(
-            use_nli=False, coherence_threshold=1.0, hard_limit=1.0, soft_limit=1.0
+            use_nli=False,
+            coherence_threshold=1.0,
+            hard_limit=1.0,
+            soft_limit=1.0,
         )
         app = create_app(config=cfg)
         with TestClient(app) as c:

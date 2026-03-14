@@ -35,7 +35,8 @@ class TestExportTensorrt:
                 return_value=["CPUExecutionProvider"],
             ),
             pytest.raises(
-                RuntimeError, match="TensorrtExecutionProvider not available"
+                RuntimeError,
+                match="TensorrtExecutionProvider not available",
             ),
         ):
             export_tensorrt(onnx_dir=str(onnx_dir))
@@ -57,10 +58,12 @@ class TestExportTensorrt:
         mock_tokenizer = MagicMock()
         mock_tokenizer.return_value = {
             "input_ids": __import__("numpy").ones(
-                (4, 10), dtype=__import__("numpy").int64
+                (4, 10),
+                dtype=__import__("numpy").int64,
             ),
             "attention_mask": __import__("numpy").ones(
-                (4, 10), dtype=__import__("numpy").int64
+                (4, 10),
+                dtype=__import__("numpy").int64,
             ),
         }
 
@@ -109,7 +112,8 @@ class TestExportTensorrt:
         mock_tokenizer = MagicMock()
         mock_tokenizer.return_value = {
             "input_ids": __import__("numpy").ones(
-                (4, 10), dtype=__import__("numpy").int64
+                (4, 10),
+                dtype=__import__("numpy").int64,
             ),
         }
 

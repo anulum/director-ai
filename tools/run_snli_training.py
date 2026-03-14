@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-SNLI-only fine-tuning on UpCloud L40S.
+"""SNLI-only fine-tuning on UpCloud L40S.
 
 Fixes from JarvisLabs failure:
 - dataloader_num_workers=2 (was 4, caused OOM kill)
@@ -81,7 +80,7 @@ def prepare_snli():
             label = nli_to_binary(label_raw)
             if label is not None:
                 rows.append(
-                    {"premise": premise, "hypothesis": hypothesis, "label": label}
+                    {"premise": premise, "hypothesis": hypothesis, "label": label},
                 )
 
     logger.info("SNLI: %d binary samples", len(rows))
@@ -96,8 +95,7 @@ def prepare_snli():
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     for name, data in [("snli_train.jsonl", train), ("snli_eval.jsonl", eval_)]:
         with open(DATA_DIR / name, "w") as f:
-            for row in data:
-                f.write(json.dumps(row, ensure_ascii=False) + "\n")
+            f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in data)
         logger.info("Wrote %d samples to %s", len(data), DATA_DIR / name)
 
     return len(train), len(eval_)
@@ -124,7 +122,10 @@ def tokenize_dataset(rows, tokenizer, max_length=512):
 
     def _tokenize(batch):
         return tokenizer(
-            batch["text"], truncation=True, padding="max_length", max_length=max_length
+            batch["text"],
+            truncation=True,
+            padding="max_length",
+            max_length=max_length,
         )
 
     ds = ds.map(_tokenize, batched=True, batch_size=256, remove_columns=["text"])
@@ -226,10 +227,10 @@ def train_snli(resume_from_checkpoint=False):
     print("  SNLI TRAINING COMPLETE")
     print("=" * 60)
     print(
-        f"  bal_acc={bal_acc:.1%}, f1={result['f1']:.3f}, time={result['training_time_min']:.1f}min"
+        f"  bal_acc={bal_acc:.1%}, f1={result['f1']:.3f}, time={result['training_time_min']:.1f}min",
     )
     print(
-        f"  GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+        f"  GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}",
     )
     print("=" * 60)
 

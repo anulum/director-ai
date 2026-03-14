@@ -43,7 +43,7 @@ class TestInvoke:
             {
                 "query": "sky",
                 "response": "The sky is blue.",
-            }
+            },
         )
         assert "approved" in result
 
@@ -58,7 +58,7 @@ class TestInvoke:
             {
                 "input": "sky",
                 "output": "The sky is blue.",
-            }
+            },
         )
         assert "approved" in result
 

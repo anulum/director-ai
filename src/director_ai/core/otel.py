@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Optional OpenTelemetry bridge for Director-AI spans and metrics.
+"""Optional OpenTelemetry bridge for Director-AI spans and metrics.
 
 Graceful no-op when ``opentelemetry-api`` is not installed.
 

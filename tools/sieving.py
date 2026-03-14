@@ -52,12 +52,15 @@ class SievingCollator:
         batch = self.base(features)
         if self.training and self.noise_ratio > 0:
             batch["input_ids"] = self._corrupt(
-                batch["input_ids"], batch["attention_mask"]
+                batch["input_ids"],
+                batch["attention_mask"],
             )
         return batch
 
     def _corrupt(
-        self, input_ids: torch.Tensor, attention_mask: torch.Tensor
+        self,
+        input_ids: torch.Tensor,
+        attention_mask: torch.Tensor,
     ) -> torch.Tensor:
         out = input_ids.clone()
         # Corruptible: not padding, not special tokens

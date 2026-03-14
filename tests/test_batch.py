@@ -145,7 +145,10 @@ class TestBatchErrorPaths:
                 from director_ai.core.types import ReviewResult
 
                 return ReviewResult(
-                    output="ok", coherence=None, halted=False, candidates_evaluated=1
+                    output="ok",
+                    coherence=None,
+                    halted=False,
+                    candidates_evaluated=1,
                 )
 
         proc = BatchProcessor(MixedAgent(), max_concurrency=1)

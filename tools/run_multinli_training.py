@@ -76,7 +76,7 @@ def load_multinli():
         val_rows.append({"text": text, "label": label})
 
     print(
-        f"MultiNLI loaded: train={len(train_rows)}, val={len(val_rows)}, test={len(test_rows)}"
+        f"MultiNLI loaded: train={len(train_rows)}, val={len(val_rows)}, test={len(test_rows)}",
     )
     return (
         Dataset.from_list(train_rows),
@@ -88,7 +88,10 @@ def load_multinli():
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
         return tokenizer(
-            batch["text"], truncation=True, max_length=max_length, padding=False
+            batch["text"],
+            truncation=True,
+            max_length=max_length,
+            padding=False,
         )
 
     return _tok
@@ -111,7 +114,7 @@ def main():
     print(f"Base model: {BASE_MODEL}")
     print(f"Output: {OUTPUT_DIR}")
     print(
-        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}",
     )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)

@@ -81,7 +81,8 @@ class TestProcess:
 class TestBatch:
     def test_batch(self, client):
         resp = client.post(
-            "/v1/batch", json={"prompts": ["What is 2+2?", "What color is the sky?"]}
+            "/v1/batch",
+            json={"prompts": ["What is 2+2?", "What color is the sky?"]},
         )
         assert resp.status_code == 200
         data = resp.json()

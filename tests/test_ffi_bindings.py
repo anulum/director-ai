@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Tests for the Rust FFI layer (backfire_kernel PyO3 bindings).
+"""Tests for the Rust FFI layer (backfire_kernel PyO3 bindings).
 
 Skipped when backfire_kernel is not installed (maturin build required).
 """
@@ -33,7 +32,9 @@ class TestBackfireConfig:
 
     def test_custom_params(self):
         cfg = backfire_kernel.BackfireConfig(
-            coherence_threshold=0.8, hard_limit=0.3, deadline_ms=100
+            coherence_threshold=0.8,
+            hard_limit=0.3,
+            deadline_ms=100,
         )
         assert "0.8" in repr(cfg)
 
@@ -62,7 +63,7 @@ class TestBackfireConfig:
                 "history_window": 5,
                 "deadline_ms": 50,
                 "logit_entropy_limit": 1.2,
-            }
+            },
         )
         cfg = backfire_kernel.BackfireConfig.from_json(data)
         assert "0.7" in repr(cfg)
@@ -200,7 +201,7 @@ class TestRustCoherenceScorer:
 
     def test_with_knowledge_callback(self):
         s = backfire_kernel.RustCoherenceScorer(
-            knowledge_callback=lambda q: "known fact"
+            knowledge_callback=lambda q: "known fact",
         )
         _, score = s.review("query", "known fact")
         assert isinstance(score.score, float)

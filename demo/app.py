@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""
-Director-AI — Gradio demo for HuggingFace Spaces.
+"""Director-AI — Gradio demo for HuggingFace Spaces.
 
-    pip install director-ai gradio
-    python demo/app.py
+pip install director-ai gradio
+python demo/app.py
 """
 
 from __future__ import annotations
@@ -146,7 +145,10 @@ def run_comparison(scenario_name: str) -> tuple[str, str, str]:
             halt_idx = i
 
     guarded_html = _render_tokens_html(
-        tokens, fake_scores, halted=not approved, halt_idx=halt_idx
+        tokens,
+        fake_scores,
+        halted=not approved,
+        halt_idx=halt_idx,
     )
 
     verdict_colour = "#22c55e" if approved else "#ef4444"
@@ -196,7 +198,7 @@ def _render_tokens_html(
             f"text-decoration:{decoration};padding:2px 4px;"
             f"border-radius:3px;margin:1px;display:inline-block;"
             f"font-family:monospace' title='score={s:.3f}'>"
-            f"{tok}</span>"
+            f"{tok}</span>",
         )
     html = " ".join(spans)
     if halted and halt_idx is not None:
@@ -394,7 +396,7 @@ def run_streaming_demo(scenario_name: str) -> str:
     lines.append(
         f"\n**Stats:** avg={session.avg_coherence:.3f}, "
         f"min={session.min_coherence:.3f}, "
-        f"tokens={session.token_count}/{len(tokens)}"
+        f"tokens={session.token_count}/{len(tokens)}",
     )
     return "\n".join(lines)
 
@@ -411,7 +413,7 @@ def build_app() -> gr.Blocks:
             f"# Director-AI v{director_ai.__version__}\n"
             "**Real-time LLM hallucination guardrail** — "
             "NLI + RAG fact-checking with token-level streaming halt\n\n"
-            "`pip install director-ai`"
+            "`pip install director-ai`",
         )
 
         with gr.Tab("Score a Response"):
@@ -476,7 +478,7 @@ def build_app() -> gr.Blocks:
         with gr.Tab("Side-by-Side Comparison"):
             gr.Markdown(
                 "**Raw LLM vs Director-AI guarded output.** "
-                "Green = high coherence, yellow = warning zone, red = hallucination detected."
+                "Green = high coherence, yellow = warning zone, red = hallucination detected.",
             )
             cmp_scenario = gr.Dropdown(
                 label="Scenario",
@@ -505,7 +507,7 @@ def build_app() -> gr.Blocks:
                 "generation the moment it degrades. Three halt mechanisms:\n\n"
                 "1. **Hard limit** — single token below threshold\n"
                 "2. **Sliding window** — rolling average drops\n"
-                "3. **Downward trend** — coherence decay over N tokens"
+                "3. **Downward trend** — coherence decay over N tokens",
             )
             scenario = gr.Dropdown(
                 label="Scenario",
@@ -524,7 +526,7 @@ def build_app() -> gr.Blocks:
         with gr.Tab("Domain Presets"):
             gr.Markdown(
                 "Director-AI ships **8 domain profiles** with tuned thresholds. "
-                "Select one to see its configuration."
+                "Select one to see its configuration.",
             )
             profile_dd = gr.Dropdown(
                 label="Profile",
@@ -574,7 +576,7 @@ def build_app() -> gr.Blocks:
             "---\n"
             "[GitHub](https://github.com/anulum/director-ai) | "
             "[PyPI](https://pypi.org/project/director-ai/) | "
-            "AGPL-3.0"
+            "AGPL-3.0",
         )
 
     return app

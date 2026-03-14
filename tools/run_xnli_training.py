@@ -54,7 +54,10 @@ def load_xnli():
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
         return tokenizer(
-            batch["text"], truncation=True, max_length=max_length, padding=False
+            batch["text"],
+            truncation=True,
+            max_length=max_length,
+            padding=False,
         )
 
     return _tok

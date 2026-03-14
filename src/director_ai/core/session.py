@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Track multi-turn conversations for cross-turn coherence scoring.
+"""Track multi-turn conversations for cross-turn coherence scoring.
 
 Usage::
 
@@ -19,7 +18,7 @@ import threading
 import uuid
 from dataclasses import dataclass
 
-__all__ = ["Turn", "ConversationSession"]
+__all__ = ["ConversationSession", "Turn"]
 
 
 @dataclass
@@ -39,6 +38,7 @@ class ConversationSession:
     ----------
     max_turns : int — maximum turns retained (FIFO eviction).
     session_id : str | None — auto-generated UUID if not provided.
+
     """
 
     def __init__(self, max_turns: int = 20, session_id: str | None = None) -> None:

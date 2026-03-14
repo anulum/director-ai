@@ -51,7 +51,10 @@ class TestAuditLoggerLoggingOnly:
     def test_query_hashed(self):
         logger = AuditLogger()
         entry = logger.log_review(
-            query="secret", response="x", approved=True, score=1.0
+            query="secret",
+            response="x",
+            approved=True,
+            score=1.0,
         )
         assert entry.query_hash != "secret"
         assert len(entry.query_hash) == 16
@@ -59,7 +62,10 @@ class TestAuditLoggerLoggingOnly:
     def test_score_rounded(self):
         logger = AuditLogger()
         entry = logger.log_review(
-            query="q", response="r", approved=True, score=0.123456789
+            query="q",
+            response="r",
+            approved=True,
+            score=0.123456789,
         )
         assert entry.score == 0.1235
 
@@ -98,7 +104,11 @@ class TestAuditLoggerFileSink:
         path = tmp_path / "audit.jsonl"
         logger = AuditLogger(path=path)
         entry = logger.log_review(
-            query="q", response="r", approved=True, score=0.9, tenant_id="acme"
+            query="q",
+            response="r",
+            approved=True,
+            score=0.9,
+            tenant_id="acme",
         )
         assert entry.tenant_id == "acme"
 

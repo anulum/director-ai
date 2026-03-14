@@ -73,7 +73,9 @@ class ForgeConfig:
 
 
 def focal_loss(
-    logits: torch.Tensor, labels: torch.Tensor, gamma: float
+    logits: torch.Tensor,
+    labels: torch.Tensor,
+    gamma: float,
 ) -> torch.Tensor:
     """Focal loss: -(1 - p_t)^γ · log(p_t).  Lin et al. 2017, Eq. 5."""
     ce = F.cross_entropy(logits, labels, reduction="none")
@@ -139,7 +141,10 @@ class ForgeTrainer(Trainer):
     def training_step(self, model, inputs, num_items_in_batch=None, **kwargs):
         if self.forge.fgm_epsilon <= 0:
             return super().training_step(
-                model, inputs, num_items_in_batch=num_items_in_batch, **kwargs
+                model,
+                inputs,
+                num_items_in_batch=num_items_in_batch,
+                **kwargs,
             )
 
         model.train()

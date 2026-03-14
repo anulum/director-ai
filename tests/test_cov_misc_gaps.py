@@ -128,7 +128,7 @@ class TestLangchainCallbackEdges:
 
         handler._current_prompt = "What is the sky?"
         response = SimpleNamespace(
-            generations=[[SimpleNamespace(text="The sky is blue.")]]
+            generations=[[SimpleNamespace(text="The sky is blue.")]],
         )
         handler.on_llm_end(response)
         assert handler.last_score is not None

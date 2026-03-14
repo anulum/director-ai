@@ -39,5 +39,5 @@ def _load_aggrefact_local(max_samples: int | None = None) -> list[dict]:
     searched = [str(p) for p in candidates]
     raise FileNotFoundError(
         f"aggrefact_test.jsonl not found. Searched: {searched}\n"
-        "Transfer it first: scp root@<upcloud>:/home/director-ai/benchmarks/aggrefact_test.jsonl <dest>"
+        "Transfer it first: scp root@<upcloud>:/home/director-ai/benchmarks/aggrefact_test.jsonl <dest>",
     )

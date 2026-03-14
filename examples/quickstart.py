@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Director-AI quickstart — guard any LLM in 10 lines.
+"""Director-AI quickstart — guard any LLM in 10 lines.
 
     pip install director-ai
     python examples/quickstart.py
@@ -32,6 +31,6 @@ for prompt, llm_output in tests:
     print(
         f"  coherence={score.score:.3f}"
         f"  h_logical={score.h_logical:.2f}"
-        f"  h_factual={score.h_factual:.2f}"
+        f"  h_factual={score.h_factual:.2f}",
     )
     print()

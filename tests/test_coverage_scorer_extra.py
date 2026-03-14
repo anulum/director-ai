@@ -38,7 +38,8 @@ class TestScorerWithVectorStore:
             ground_truth_store=store,
         )
         div, ev = scorer.calculate_factual_divergence_with_evidence(
-            "sky", "The sky is blue."
+            "sky",
+            "The sky is blue.",
         )
         assert 0.0 <= div <= 1.0
 
@@ -49,7 +50,8 @@ class TestScorerWithVectorStore:
             ground_truth_store=store,
         )
         div, ev = scorer.calculate_factual_divergence_with_evidence(
-            "zzz_nonexistent_xyz", "anything"
+            "zzz_nonexistent_xyz",
+            "anything",
         )
         assert div == 0.5
         assert ev is None

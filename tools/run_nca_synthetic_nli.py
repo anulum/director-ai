@@ -72,7 +72,8 @@ def _find_entities(text: str) -> list[str]:
 
 def _find_numbers(text: str) -> list[str]:
     return re.findall(
-        r"\b\d+(?:\.\d+)?(?:\s*(?:%|percent|million|billion|thousand))?\b", text
+        r"\b\d+(?:\.\d+)?(?:\s*(?:%|percent|million|billion|thousand))?\b",
+        text,
     )
 
 
@@ -98,7 +99,9 @@ def rule_faithful(doc: str, rng: random.Random) -> tuple[str, int] | None:
 
 
 def rule_entity_swap(
-    doc: str, all_entities: list[str], rng: random.Random
+    doc: str,
+    all_entities: list[str],
+    rng: random.Random,
 ) -> tuple[str, int] | None:
     sents = _extract_sentences(doc)
     if not sents:
@@ -154,7 +157,9 @@ def rule_negation(doc: str, rng: random.Random) -> tuple[str, int] | None:
 
 
 def rule_cross_doc_mix(
-    doc: str, other_docs: list[str], rng: random.Random
+    doc: str,
+    other_docs: list[str],
+    rng: random.Random,
 ) -> tuple[str, int] | None:
     other = rng.choice(other_docs) if other_docs else doc
     other_sents = _extract_sentences(other)
@@ -235,18 +240,18 @@ def generate_synthetic_data(
                 "hypothesis": claim,
                 "label": label,
                 "rule": rule,
-            }
+            },
         )
 
         if len(samples) % 5000 == 0:
             pos = sum(1 for s in samples if s["label"] == 1)
             print(
-                f"Generated {len(samples)}/{n_samples} (pos={pos}, neg={len(samples) - pos})"
+                f"Generated {len(samples)}/{n_samples} (pos={pos}, neg={len(samples) - pos})",
             )
 
     pos = sum(1 for s in samples if s["label"] == 1)
     print(
-        f"Final: {len(samples)} samples (pos={pos}, neg={len(samples) - pos}, attempts={attempts})"
+        f"Final: {len(samples)} samples (pos={pos}, neg={len(samples) - pos}, attempts={attempts})",
     )
     return samples
 

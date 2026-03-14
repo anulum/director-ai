@@ -118,7 +118,8 @@ class TestScorerFactualEvidence:
         store.add("sky", "The sky is blue.")
         scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
         div, ev = scorer.calculate_factual_divergence_with_evidence(
-            "sky", "The sky is blue."
+            "sky",
+            "The sky is blue.",
         )
         assert ev is not None
         assert ev.nli_premise is not None
@@ -161,13 +162,15 @@ class TestScorerLogical:
 class TestScorerHeuristicFactual:
     def test_negation_asymmetry(self):
         div = CoherenceScorer._heuristic_factual(
-            "The sky is blue.", "The sky is not blue."
+            "The sky is blue.",
+            "The sky is not blue.",
         )
         assert div > 0.2
 
     def test_novel_entities(self):
         div = CoherenceScorer._heuristic_factual(
-            "The sky is blue.", "Planet Mars is red."
+            "The sky is blue.",
+            "Planet Mars is red.",
         )
         assert div > 0.3
 
@@ -179,12 +182,12 @@ class TestScorerHeuristicFactual:
 class TestScorerParseJudgeReply:
     def test_json_yes(self):
         assert CoherenceScorer._parse_judge_reply(
-            '{"verdict": "YES", "confidence": 90}'
+            '{"verdict": "YES", "confidence": 90}',
         )
 
     def test_json_no(self):
         assert not CoherenceScorer._parse_judge_reply(
-            '{"verdict": "NO", "confidence": 80}'
+            '{"verdict": "NO", "confidence": 80}',
         )
 
     def test_plain_yes(self):

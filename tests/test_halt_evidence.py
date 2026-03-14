@@ -46,7 +46,10 @@ def test_review_result_has_halt_evidence():
 
 def test_review_result_halt_evidence_none_by_default():
     result = ReviewResult(
-        output="ok", coherence=None, halted=False, candidates_evaluated=1
+        output="ok",
+        coherence=None,
+        halted=False,
+        candidates_evaluated=1,
     )
     assert result.halt_evidence is None
 

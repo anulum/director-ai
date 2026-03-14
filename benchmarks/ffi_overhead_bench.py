@@ -87,14 +87,16 @@ def bench_python_scorer(iterations: int) -> dict:
     # Warmup
     for _ in range(5):
         scorer.review(
-            "What is the capital of France?", "Paris is the capital of France."
+            "What is the capital of France?",
+            "Paris is the capital of France.",
         )
 
     timings = []
     for _ in range(iterations):
         t0 = time.perf_counter()
         scorer.review(
-            "What is the capital of France?", "Paris is the capital of France."
+            "What is the capital of France?",
+            "Paris is the capital of France.",
         )
         timings.append((time.perf_counter() - t0) * 1000)
 
@@ -117,14 +119,16 @@ def bench_rust_scorer(iterations: int) -> dict | None:
 
     for _ in range(5):
         scorer.review(
-            "What is the capital of France?", "Paris is the capital of France."
+            "What is the capital of France?",
+            "Paris is the capital of France.",
         )
 
     timings = []
     for _ in range(iterations):
         t0 = time.perf_counter()
         scorer.review(
-            "What is the capital of France?", "Paris is the capital of France."
+            "What is the capital of France?",
+            "Paris is the capital of France.",
         )
         timings.append((time.perf_counter() - t0) * 1000)
 
@@ -234,7 +238,7 @@ def main():
                     else float("inf")
                 )
                 print(
-                    f"  Python: {py['median_ms']:.3f}ms  Rust FFI: {rs['median_ms']:.3f}ms  -> {ratio:.1f}x speedup"
+                    f"  Python: {py['median_ms']:.3f}ms  Rust FFI: {rs['median_ms']:.3f}ms  -> {ratio:.1f}x speedup",
                 )
             else:
                 print(f"  Python: {py}  Rust: {rs}")

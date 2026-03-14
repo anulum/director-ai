@@ -158,7 +158,8 @@ class TestProtoFallback:
 class TestReflection:
     def test_reflection_enabled(self):
         grpc_mock, server, mods = _build_grpc_mocks(
-            with_proto=True, with_reflection=True
+            with_proto=True,
+            with_reflection=True,
         )
 
         with _grpc_context(mods):

@@ -212,7 +212,7 @@ class TestSdkGuardAsyncOpenAI:
         scorer = CoherenceScorer(use_nli=False)
         original = MagicMock()
         response = SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="answer"))]
+            choices=[SimpleNamespace(message=SimpleNamespace(content="answer"))],
         )
         original.create = AsyncMock(return_value=response)
 
@@ -229,7 +229,7 @@ class TestSdkGuardAsyncOpenAI:
         original = MagicMock()
 
         chunk = SimpleNamespace(
-            choices=[SimpleNamespace(delta=SimpleNamespace(content="hi"))]
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="hi"))],
         )
 
         async def _fake_stream(**kw):
@@ -239,7 +239,8 @@ class TestSdkGuardAsyncOpenAI:
 
         proxy = _OpenAICompletionsProxy(original, scorer, "log")
         result = await proxy.create(
-            messages=[{"role": "user", "content": "q"}], stream=True
+            messages=[{"role": "user", "content": "q"}],
+            stream=True,
         )
         chunks = list(result)
         assert len(chunks) == 1
@@ -273,7 +274,8 @@ class TestSdkGuardAsyncAnthropic:
 
         proxy = _AnthropicMessagesProxy(original, scorer, "log")
         result = await proxy.create(
-            messages=[{"role": "user", "content": "q"}], stream=True
+            messages=[{"role": "user", "content": "q"}],
+            stream=True,
         )
         events = list(result)
         assert len(events) == 1
@@ -321,7 +323,7 @@ class TestServerWsStreaming:
                 {
                     "prompt": "What is 2+2?",
                     "streaming_oversight": True,
-                }
+                },
             )
             resp = ws.receive_json()
             assert resp.get("type") in ("token", "result", "halt", "error")
@@ -383,7 +385,8 @@ class TestServerAuditLogging:
         app = create_app(config=cfg)
         with TestClient(app) as c:
             resp = c.post(
-                "/v1/review", json={"prompt": "sky?", "response": "The sky is blue."}
+                "/v1/review",
+                json={"prompt": "sky?", "response": "The sky is blue."},
             )
             assert resp.status_code == 200
 
@@ -457,7 +460,7 @@ class TestLangchainCallbackRaise:
         )
         handler._current_prompt = "What is 2+2?"
         response = SimpleNamespace(
-            generations=[[SimpleNamespace(text="The answer is 4.")]]
+            generations=[[SimpleNamespace(text="The answer is 4.")]],
         )
         with pytest.raises(CoherenceError):
             handler.on_llm_end(response)
@@ -473,7 +476,7 @@ class TestProvidersEdgesDeep:
         with patch("director_ai.integrations.providers.requests.post") as mock_post:
             mock_resp = MagicMock()
             mock_resp.json.return_value = {
-                "choices": [{"message": {"content": "hello"}}]
+                "choices": [{"message": {"content": "hello"}}],
             }
             mock_resp.raise_for_status = MagicMock()
             mock_post.return_value = mock_resp

@@ -127,7 +127,7 @@ class TestWebSocketOversight:
                 {
                     "prompt": "What is 2+2?",
                     "streaming_oversight": True,
-                }
+                },
             )
             msgs = []
             for _ in range(20):

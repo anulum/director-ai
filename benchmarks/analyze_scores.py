@@ -142,22 +142,26 @@ def print_ranking(
             else ("  -- hurts" if diff < -0.005 else "")
         )
         print(
-            f"  {name:<30s}  {ba * 100:.2f}%  {t:.2f}    {sign}{diff * 100:.2f}%{tag}"
+            f"  {name:<30s}  {ba * 100:.2f}%  {t:.2f}    {sign}{diff * 100:.2f}%{tag}",
         )
     return ranked
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Analyze pre-computed AggreFact score JSONs"
+        description="Analyze pre-computed AggreFact score JSONs",
     )
     parser.add_argument("--scores-dir", default="benchmarks/scores", type=Path)
     parser.add_argument("--top", type=int, default=3, help="Top-N for ensemble search")
     parser.add_argument(
-        "--ensemble", action="store_true", help="Try all 2-model combinations"
+        "--ensemble",
+        action="store_true",
+        help="Try all 2-model combinations",
     )
     parser.add_argument(
-        "--per-dataset", action="store_true", help="Print per-dataset breakdown"
+        "--per-dataset",
+        action="store_true",
+        help="Print per-dataset breakdown",
     )
     args = parser.parse_args()
 
@@ -209,7 +213,7 @@ def main() -> None:
                     label = f"{agg_name}({', '.join(combo)})"
                     tag = "  **" if diff > 0.005 else ""
                     print(
-                        f"  {label[:58]:<60s} {ba * 100:.2f}%  {sign}{diff * 100:.2f}%{tag}"
+                        f"  {label[:58]:<60s} {ba * 100:.2f}%  {sign}{diff * 100:.2f}%{tag}",
                     )
                     if ba > best_ens_ba:
                         best_ens_ba = ba
@@ -218,7 +222,7 @@ def main() -> None:
         if best_ens_ba > base_ba + 0.005:
             print(f"\nBest ensemble: {best_ens_desc}")
             print(
-                f"  BA: {best_ens_ba * 100:.2f}%  (+{(best_ens_ba - base_ba) * 100:.2f}pp vs base)"
+                f"  BA: {best_ens_ba * 100:.2f}%  (+{(best_ens_ba - base_ba) * 100:.2f}pp vs base)",
             )
         else:
             print(f"\nNo ensemble beats base by >0.5pp. Base BA: {base_ba * 100:.2f}%")

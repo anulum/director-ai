@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-ABC + registry for scorer backends. Third-party backends register
+"""ABC + registry for scorer backends. Third-party backends register
 via ``director_ai.backends`` entry points.
 
 Usage::
@@ -25,9 +24,9 @@ import logging
 
 __all__ = [
     "ScorerBackend",
-    "register_backend",
     "get_backend",
     "list_backends",
+    "register_backend",
 ]
 
 logger = logging.getLogger("DirectorAI.Backends")
@@ -92,7 +91,9 @@ def _load_entry_points() -> None:
                     register_backend(ep.name, cls)
             except (ImportError, AttributeError, TypeError) as exc:  # pragma: no cover
                 logger.warning(
-                    "Failed to load backend entry point %s: %s", ep.name, exc
+                    "Failed to load backend entry point %s: %s",
+                    ep.name,
+                    exc,
                 )
     except ImportError:
         pass

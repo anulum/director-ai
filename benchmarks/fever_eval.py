@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate NLI model on FEVER dev set (fact verification).
+"""Evaluate NLI model on FEVER dev set (fact verification).
 
 Training included FEVER train (pietrolesci/nli_fever train split).
 The dev split is held-out. FEVER tests whether the model can verify

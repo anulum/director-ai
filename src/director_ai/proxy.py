@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-OpenAI-compatible guardrail proxy.
+"""OpenAI-compatible guardrail proxy.
 
 Set ``OPENAI_BASE_URL=http://localhost:8080/v1`` and get transparent
 hallucination scoring with zero code changes::
@@ -47,6 +46,7 @@ def create_proxy_app(
         the response with warning headers.
     use_nli : bool | None
         Enable NLI model. ``None`` auto-detects.
+
     """
     import httpx
     from fastapi import FastAPI, Request
@@ -63,7 +63,9 @@ def create_proxy_app(
         _load_facts(store, facts_path)
 
     scorer = CoherenceScorer(
-        threshold=threshold, ground_truth_store=store, use_nli=use_nli
+        threshold=threshold,
+        ground_truth_store=store,
+        use_nli=use_nli,
     )
 
     app = FastAPI(title="Director-AI Proxy")
@@ -95,7 +97,13 @@ def create_proxy_app(
 
         if streaming:
             return await _handle_streaming(
-                body, headers, upstream, prompt, scorer, on_fail, _transport
+                body,
+                headers,
+                upstream,
+                prompt,
+                scorer,
+                on_fail,
+                _transport,
             )
 
         async with _client(timeout=120.0) as client:
@@ -131,7 +139,7 @@ def create_proxy_app(
                         "type": "content_filter",
                         "score": cs.score,
                         "threshold": threshold,
-                    }
+                    },
                 },
                 headers=extra_headers,
             )
@@ -142,7 +150,13 @@ def create_proxy_app(
 
 
 async def _handle_streaming(
-    body, headers, upstream, prompt, scorer, on_fail, transport=None
+    body,
+    headers,
+    upstream,
+    prompt,
+    scorer,
+    on_fail,
+    transport=None,
 ):
     import httpx
     from fastapi.responses import StreamingResponse
@@ -177,8 +191,8 @@ async def _handle_streaming(
                                         "delta": {},
                                         "finish_reason": "content_filter",
                                         "index": 0,
-                                    }
-                                ]
+                                    },
+                                ],
                             }
                             yield f"data: {json.dumps(halt)}\n"
                             yield "data: [DONE]\n"
@@ -210,8 +224,8 @@ async def _handle_streaming(
                                         "delta": {},
                                         "finish_reason": "content_filter",
                                         "index": 0,
-                                    }
-                                ]
+                                    },
+                                ],
                             }
                             yield f"data: {json.dumps(halt)}\n"
                             yield "data: [DONE]\n"

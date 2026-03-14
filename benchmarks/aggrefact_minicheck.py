@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate MiniCheck-DeBERTa-v3-Large on LLM-AggreFact.
+"""Evaluate MiniCheck-DeBERTa-v3-Large on LLM-AggreFact.
 
 MiniCheck chunks documents into sentences and scores each claim against
 the most-supporting sentence, so it runs its own internal pipeline —

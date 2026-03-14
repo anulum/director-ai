@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Self-contained fine-tuning script for JarvisLabs (Python 3.10 compatible).
+"""Self-contained fine-tuning script for JarvisLabs (Python 3.10 compatible).
 
 Requires: transformers, datasets, torch, scikit-learn, numpy
 
@@ -56,8 +55,7 @@ MAX_SAMPLES = 100_000  # per dataset, overridable via --max-samples
 def write_jsonl(rows, path):
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as f:
-        for row in rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in rows)
     logger.info("Wrote %d samples to %s", len(rows), path)
 
 
@@ -104,7 +102,7 @@ def prepare_vitaminc(max_samples):
                 label = nli_to_binary(label_raw)
                 if label is not None:
                     rows.append(
-                        {"premise": evidence, "hypothesis": claim, "label": label}
+                        {"premise": evidence, "hypothesis": claim, "label": label},
                     )
         except Exception as e:
             logger.warning("VitaminC split %s failed: %s", split, e)
@@ -137,7 +135,7 @@ def prepare_snli(max_samples):
                 label = nli_to_binary(label_raw)
                 if label is not None:
                     rows.append(
-                        {"premise": premise, "hypothesis": hypothesis, "label": label}
+                        {"premise": premise, "hypothesis": hypothesis, "label": label},
                     )
         except Exception as e:
             logger.warning("SNLI split %s failed: %s", split, e)
@@ -175,7 +173,7 @@ def prepare_legal(max_samples):
                 label = nli_to_binary(label_raw)
                 if label is not None:
                     rows.append(
-                        {"premise": premise, "hypothesis": hypothesis, "label": label}
+                        {"premise": premise, "hypothesis": hypothesis, "label": label},
                     )
         except Exception as e:
             logger.warning("ContractNLI split %s failed: %s", split, e)
@@ -403,7 +401,7 @@ if __name__ == "__main__":
     print("=" * 60)
     for name, r in results.items():
         print(
-            f"  {name}: bal_acc={r['balanced_accuracy']:.1%}, f1={r['f1']:.3f}, time={r['training_time_min']:.1f}min"
+            f"  {name}: bal_acc={r['balanced_accuracy']:.1%}, f1={r['f1']:.3f}, time={r['training_time_min']:.1f}min",
         )
     print(f"  Total time: {total_time:.1f} minutes")
     print(f"  GPU: {gpu_name}")
@@ -432,5 +430,6 @@ if __name__ == "__main__":
     )
     size = os.path.getsize("/home/director-ai/models_trained.tar.gz") / 1e6
     logger.info(
-        "Models tarball: /home/director-ai/models_trained.tar.gz (%.0f MB)", size
+        "Models tarball: /home/director-ai/models_trained.tar.gz (%.0f MB)",
+        size,
     )

@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate NLI model on MNLI validation sets (matched + mismatched).
+"""Evaluate NLI model on MNLI validation sets (matched + mismatched).
 
 MNLI was NOT in our fine-tuning dataset. This is a pure held-out
 regression test: fine-tuning for hallucination detection should not
@@ -103,7 +102,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="MNLI NLI regression benchmark")
     add_common_args(parser)
     parser.add_argument(
-        "--split", choices=["matched", "mismatched", "both"], default="both"
+        "--split",
+        choices=["matched", "mismatched", "both"],
+        default="both",
     )
     args = parser.parse_args()
 
@@ -116,7 +117,9 @@ if __name__ == "__main__":
 
     for split in splits:
         m = run_mnli_benchmark(
-            split, max_samples=args.max_samples, model_name=args.model
+            split,
+            max_samples=args.max_samples,
+            model_name=args.model,
         )
         label = split.replace("validation_", "")
         print_nli_metrics(m, f"MNLI {label}")

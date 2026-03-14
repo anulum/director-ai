@@ -86,7 +86,9 @@ class TestCreateGrpcServer:
                 kf.write(b"key")
                 key_path = kf.name
             create_grpc_server(
-                port=50099, tls_cert_path=cert_path, tls_key_path=key_path
+                port=50099,
+                tls_cert_path=cert_path,
+                tls_key_path=key_path,
             )
             srv.add_secure_port.assert_called_once()
 

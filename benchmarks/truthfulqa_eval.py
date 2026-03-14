@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate CoherenceScorer against TruthfulQA (MC format).
+"""Evaluate CoherenceScorer against TruthfulQA (MC format).
 
 TruthfulQA is a benchmark of ~817 questions designed to test whether
 language models generate truthful answers.  We use the multiple-choice
@@ -48,7 +47,7 @@ class BenchmarkResult:
     total: int = 0
     correct: int = 0
     per_category: dict[str, dict[str, int]] = field(
-        default_factory=lambda: defaultdict(lambda: {"total": 0, "correct": 0})
+        default_factory=lambda: defaultdict(lambda: {"total": 0, "correct": 0}),
     )
 
     @property
@@ -110,6 +109,7 @@ def run_truthfulqa_benchmark(
     use_nli : bool — use DeBERTa NLI model (recommended for real results).
     max_questions : int | None — limit for quick testing.
     model_name : str | None — HuggingFace model ID for NLI scorer.
+
     """
     from director_ai.core import CoherenceScorer, VectorGroundTruthStore
 
@@ -143,15 +143,13 @@ def run_truthfulqa_benchmark(
         best_correct_score = -1.0
         for ans in correct_answers:
             _, score = scorer.review(question, ans)
-            if score.score > best_correct_score:
-                best_correct_score = score.score
+            best_correct_score = max(best_correct_score, score.score)
 
         # Score all incorrect answers — take best (highest = hardest to detect)
         best_incorrect_score = -1.0
         for ans in incorrect_answers:
             _, score = scorer.review(question, ans)
-            if score.score > best_incorrect_score:
-                best_incorrect_score = score.score
+            best_incorrect_score = max(best_incorrect_score, score.score)
 
         result.total += 1
         result.per_category[category]["total"] += 1
@@ -224,7 +222,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     result = run_truthfulqa_benchmark(
-        use_nli=not args.no_nli, max_questions=args.max_questions, model_name=args.model
+        use_nli=not args.no_nli,
+        max_questions=args.max_questions,
+        model_name=args.model,
     )
     _print_results(result)
 

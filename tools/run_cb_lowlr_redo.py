@@ -59,7 +59,8 @@ def train_cb_lowlr():
     train = ds_raw["train"].map(convert, remove_columns=ds_raw["train"].column_names)
     val_split = ds_raw["validation"].train_test_split(test_size=0.5, seed=42)
     val = val_split["train"].map(
-        convert, remove_columns=val_split["train"].column_names
+        convert,
+        remove_columns=val_split["train"].column_names,
     )
     test = val_split["test"].map(convert, remove_columns=val_split["test"].column_names)
     print(f"CB: train={len(train)}, val={len(val)}, test={len(test)}")
@@ -187,7 +188,7 @@ def main():
     print("=" * 60)
     print("CB-lowLR Redo: train + AggreFact benchmark")
     print(
-        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}",
     )
     print(f"Output: {OUTPUT_DIR}")
     print("=" * 60)

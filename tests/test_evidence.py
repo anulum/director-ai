@@ -49,16 +49,27 @@ class TestCoherenceScoreEvidence:
 
     def test_evidence_field_present(self):
         ev = ScoringEvidence(
-            chunks=[], nli_premise="p", nli_hypothesis="h", nli_score=0.1
+            chunks=[],
+            nli_premise="p",
+            nli_hypothesis="h",
+            nli_score=0.1,
         )
         cs = CoherenceScore(
-            score=0.8, approved=True, h_logical=0.1, h_factual=0.1, evidence=ev
+            score=0.8,
+            approved=True,
+            h_logical=0.1,
+            h_factual=0.1,
+            evidence=ev,
         )
         assert cs.evidence is ev
 
     def test_warning_field(self):
         cs = CoherenceScore(
-            score=0.55, approved=True, h_logical=0.2, h_factual=0.2, warning=True
+            score=0.55,
+            approved=True,
+            h_logical=0.2,
+            h_factual=0.2,
+            warning=True,
         )
         assert cs.warning is True
 
@@ -66,7 +77,10 @@ class TestCoherenceScoreEvidence:
 class TestReviewResultFallback:
     def test_fallback_used_default_false(self):
         rr = ReviewResult(
-            output="test", coherence=None, halted=True, candidates_evaluated=1
+            output="test",
+            coherence=None,
+            halted=True,
+            candidates_evaluated=1,
         )
         assert rr.fallback_used is False
 
@@ -118,7 +132,8 @@ class TestScorerEvidence:
         store = GroundTruthStore.with_demo_facts()
         scorer = CoherenceScorer(threshold=0.9, ground_truth_store=store, use_nli=False)
         approved, score = scorer.review(
-            "What color is the sky?", "The sky color is green."
+            "What color is the sky?",
+            "The sky color is green.",
         )
         assert not approved
         assert score.evidence is not None
@@ -136,7 +151,8 @@ class TestSoftZone:
             soft_limit=0.8,
         )
         approved, score = scorer.review(
-            "sky", "The sky color is blue. This is consistent with reality"
+            "sky",
+            "The sky color is blue. This is consistent with reality",
         )
         assert approved
         # Score should be between 0.5 and 0.8 with heuristic scoring
@@ -152,7 +168,8 @@ class TestSoftZone:
             soft_limit=0.4,
         )
         approved, score = scorer.review(
-            "sky", "The sky color is blue. This is consistent with reality"
+            "sky",
+            "The sky color is blue. This is consistent with reality",
         )
         assert approved
         if score.score >= 0.4:

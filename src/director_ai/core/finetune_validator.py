@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Validate customer-provided JSONL before fine-tuning.
+"""Validate customer-provided JSONL before fine-tuning.
 
 Checks format, class balance, duplicates, field lengths, and estimates
 training cost. Run this before ``finetune_nli()`` to catch issues early.
@@ -94,6 +93,7 @@ def validate_finetune_data(
     ----------
     path : path to JSONL with premise/hypothesis/label
     epochs : planned training epochs (for cost estimate)
+
     """
     path = Path(path)
     report = DataQualityReport()
@@ -140,7 +140,7 @@ def validate_finetune_data(
 
             if label not in (0, 1):
                 report.errors.append(
-                    f"Line {line_num}: label must be 0 or 1, got {label}"
+                    f"Line {line_num}: label must be 0 or 1, got {label}",
                 )
                 if len(report.errors) > 10:
                     report.errors.append("(truncated, too many label errors)")
@@ -184,35 +184,35 @@ def validate_finetune_data(
     # Validation rules
     if report.total_samples < MIN_SAMPLES:
         report.errors.append(
-            f"Need at least {MIN_SAMPLES} samples, got {report.total_samples}"
+            f"Need at least {MIN_SAMPLES} samples, got {report.total_samples}",
         )
 
     for label_val, count in label_counts.items():
         if count < MIN_PER_CLASS:
             report.errors.append(
-                f"Label {label_val} has only {count} samples (minimum: {MIN_PER_CLASS})"
+                f"Label {label_val} has only {count} samples (minimum: {MIN_PER_CLASS})",
             )
         elif count < WARN_PER_CLASS:
             report.warnings.append(
-                f"Label {label_val} has only {count} samples (recommended: {WARN_PER_CLASS}+)"
+                f"Label {label_val} has only {count} samples (recommended: {WARN_PER_CLASS}+)",
             )
 
     if report.class_balance_ratio < 1 / MAX_IMBALANCE_RATIO:
         report.warnings.append(
             f"Class imbalance {max_class}:{min_class} ({1 / report.class_balance_ratio:.1f}:1) — "
-            f"consider downsampling the majority class"
+            f"consider downsampling the majority class",
         )
 
     if report.duplicate_count > report.total_samples * 0.1:
         report.warnings.append(
             f"{report.duplicate_count} duplicates ({report.duplicate_count / report.total_samples:.0%}) — "
-            f"consider deduplication"
+            f"consider deduplication",
         )
 
     if report.max_premise_tokens > MAX_TEXT_LENGTH:
         report.warnings.append(
             f"Longest premise is {report.max_premise_tokens} tokens — "
-            f"texts beyond 512 tokens will be truncated"
+            f"texts beyond 512 tokens will be truncated",
         )
 
     if report.parse_error_count > 0:
@@ -220,7 +220,7 @@ def validate_finetune_data(
 
     if report.empty_field_count > 0:
         report.warnings.append(
-            f"{report.empty_field_count} lines had empty/missing fields"
+            f"{report.empty_field_count} lines had empty/missing fields",
         )
 
     logger.info(

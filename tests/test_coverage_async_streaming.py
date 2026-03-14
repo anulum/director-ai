@@ -70,7 +70,9 @@ class TestAsyncStreamingHalt:
 
     def test_window_avg_halt(self):
         kernel = AsyncStreamingKernel(
-            hard_limit=0.1, window_size=3, window_threshold=0.6
+            hard_limit=0.1,
+            window_size=3,
+            window_threshold=0.6,
         )
         scores = iter([0.55, 0.55, 0.55, 0.55, 0.55])
 
@@ -88,7 +90,9 @@ class TestAsyncStreamingHalt:
 
     def test_trend_halt(self):
         kernel = AsyncStreamingKernel(
-            hard_limit=0.1, trend_window=3, trend_threshold=0.1
+            hard_limit=0.1,
+            trend_window=3,
+            trend_threshold=0.1,
         )
         scores = iter([0.9, 0.8, 0.7, 0.6, 0.5])
 
@@ -210,7 +214,10 @@ class TestAsyncStreamingFeatures:
 
     def test_adaptive_cadence(self):
         kernel = AsyncStreamingKernel(
-            adaptive=True, score_every_n=1, max_cadence=4, soft_limit=0.7
+            adaptive=True,
+            score_every_n=1,
+            max_cadence=4,
+            soft_limit=0.7,
         )
 
         async def run():

@@ -4,8 +4,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Run all GPU-dependent benchmarks on UpCloud L40S and collect results.
+"""Run all GPU-dependent benchmarks on UpCloud L40S and collect results.
 
 Benchmarks:
   1. RAGTruth (NLI, full dataset)

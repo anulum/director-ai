@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Declarative policy enforcement for LLM output.
+"""Declarative policy enforcement for LLM output.
 
 Load rules from a YAML file (or dict) and check responses for
 forbidden phrases, required citations, length limits, and regex patterns.
@@ -57,6 +56,7 @@ class Policy:
     max_length : int — max response character count (0 = unlimited).
     required_citations_pattern : str — regex for citation markers.
     required_citations_min : int — minimum citation count (0 = disabled).
+
     """
 
     forbidden: list[str] = field(default_factory=list)
@@ -88,7 +88,7 @@ class Policy:
                     compiled = re.compile(regex, re.IGNORECASE)
                 except re.error as e:
                     raise ValueError(
-                        f"Invalid regex in policy pattern '{name}': {e}"
+                        f"Invalid regex in policy pattern '{name}': {e}",
                     ) from e
                 self._compiled_patterns.append((name, compiled, action))
 
@@ -134,7 +134,7 @@ class Policy:
                     Violation(
                         rule="forbidden",
                         detail=self.forbidden[i],
-                    )
+                    ),
                 )
 
         if self.max_length > 0 and len(text) > self.max_length:
@@ -142,7 +142,7 @@ class Policy:
                 Violation(
                     rule="max_length",
                     detail=f"{len(text)} > {self.max_length}",
-                )
+                ),
             )
 
         if self.required_citations_min > 0 and self.required_citations_pattern:
@@ -154,7 +154,7 @@ class Policy:
                         detail=(
                             f"found {len(matches)}, need {self.required_citations_min}"
                         ),
-                    )
+                    ),
                 )
 
         for name, pat, action in self._compiled_patterns:
@@ -163,7 +163,7 @@ class Policy:
                     Violation(
                         rule=f"pattern:{name}",
                         detail=action,
-                    )
+                    ),
                 )
 
         return violations

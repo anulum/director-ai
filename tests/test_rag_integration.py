@@ -12,9 +12,7 @@ from director_ai.core import CoherenceScorer, GroundTruthStore
 
 
 class TestRAG(unittest.TestCase):
-    """
-    Tests the RAG-enabled Coherence Scorer.
-    """
+    """Tests the RAG-enabled Coherence Scorer."""
 
     def setUp(self):
         self.store = GroundTruthStore.with_demo_facts()

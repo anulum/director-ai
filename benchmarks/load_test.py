@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Measure requests-per-second and latency percentiles under concurrent load.
+"""Measure requests-per-second and latency percentiles under concurrent load.
 
 Tests both the Python scorer directly and the FastAPI server (if running).
 

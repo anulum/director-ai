@@ -162,7 +162,10 @@ class TestStreamingKernelStreamTokens:
 
     def test_adaptive_cadence_increase(self):
         k = StreamingKernel(
-            adaptive=True, score_every_n=1, max_cadence=4, soft_limit=0.7
+            adaptive=True,
+            score_every_n=1,
+            max_cadence=4,
+            soft_limit=0.7,
         )
         session = k.stream_tokens([f"t{i}" for i in range(10)], lambda t: 0.9)
         assert session.token_count == 10

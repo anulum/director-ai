@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Generates the "Coherence Map" header visualisation for Director AI.
+"""Generates the "Coherence Map" header visualisation for Director AI.
 
 Central orchestrator overseeing multiple verification streams,
 rendered as a professional 1280x640 GitHub-ready banner.
@@ -61,7 +60,7 @@ def generate_director_header(output_path: str = "header.png") -> None:
             alpha=0.05,
             ec="#58a6ff",
             lw=1,
-        )
+        ),
     )
     # Inner core
     ax.add_patch(
@@ -71,7 +70,7 @@ def generate_director_header(output_path: str = "header.png") -> None:
             radius=0.4,
             color="#ffffff",
             alpha=0.8,
-        )
+        ),
     )
 
     # 3. Agent Streams (Verification Paths)
@@ -88,7 +87,7 @@ def generate_director_header(output_path: str = "header.png") -> None:
                 color="#30363d",
                 ec="#8b949e",
                 lw=1,
-            )
+            ),
         )
         # Node label
         ax.text(

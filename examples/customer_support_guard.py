@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Customer support guardrail with Director-AI.
+"""Customer support guardrail with Director-AI.
 
 Requires: pip install director-ai
 """

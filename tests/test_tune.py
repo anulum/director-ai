@@ -63,7 +63,10 @@ class TestTuneCLI:
 
         samples = _synthetic_samples()
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".jsonl",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             for s in samples:
                 f.write(json.dumps(s) + "\n")
@@ -76,14 +79,20 @@ class TestTuneCLI:
 
         samples = _synthetic_samples()
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".jsonl",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             for s in samples:
                 f.write(json.dumps(s) + "\n")
             inpath = f.name
 
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".yaml", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".yaml",
+            delete=False,
+            encoding="utf-8",
         ) as out:
             outpath = out.name
 
@@ -96,7 +105,10 @@ class TestTuneCLI:
         from director_ai.cli import main
 
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".jsonl",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             f.write("")
             path = f.name
@@ -108,7 +120,10 @@ class TestTuneCLI:
         from director_ai.cli import main
 
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".jsonl", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".jsonl",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             f.write("not json\n")
             f.write('{"prompt": "a", "response": "b", "label": true}\n')

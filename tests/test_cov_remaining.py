@@ -208,7 +208,8 @@ class TestCliIngestChunkSize:
     def test_ingest_with_chunk_size(self, tmp_path, capsys):
         f = tmp_path / "doc.txt"
         f.write_text(
-            "Some facts about the world.\n\nAnother paragraph.\n", encoding="utf-8"
+            "Some facts about the world.\n\nAnother paragraph.\n",
+            encoding="utf-8",
         )
         from director_ai.cli import main
 
@@ -351,7 +352,7 @@ class TestProvidersStreaming:
         with patch("director_ai.integrations.providers.requests.post") as mock_post:
             mock_resp = MagicMock()
             mock_resp.json.return_value = {
-                "content": [{"type": "text", "text": "hello"}]
+                "content": [{"type": "text", "text": "hello"}],
             }
             mock_resp.raise_for_status = MagicMock()
             mock_post.return_value = mock_resp

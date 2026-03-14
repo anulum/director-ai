@@ -75,7 +75,7 @@ async def on_ready() -> None:
         activity=discord.Activity(
             type=discord.ActivityType.watching,
             name="LLM coherence scores",
-        )
+        ),
     )
 
 
@@ -143,13 +143,14 @@ def register_commands(tree: app_commands.CommandTree) -> None:
             ver = await _pypi_version()
         except httpx.HTTPError:
             await interaction.response.send_message(
-                "Failed to reach PyPI", ephemeral=True
+                "Failed to reach PyPI",
+                ephemeral=True,
             )
             return
         await interaction.response.send_message(
             f"**director-ai** `{ver}` · "
             f"[PyPI](https://pypi.org/project/director-ai/{ver}/)\n"
-            f"```\npip install director-ai=={ver}\n```"
+            f"```\npip install director-ai=={ver}\n```",
         )
 
     @tree.command(name="docs", description="Documentation links")
@@ -162,7 +163,7 @@ def register_commands(tree: app_commands.CommandTree) -> None:
             f"- [Configuration]({DOCS_URL}/reference/config/)\n"
             f"- [Deployment]({DOCS_URL}/deployment/production/)\n"
             f"- [Domain Presets]({DOCS_URL}/guide/presets/)\n"
-            f"- [KB Ingestion]({DOCS_URL}/guide/kb-ingestion/)"
+            f"- [KB Ingestion]({DOCS_URL}/guide/kb-ingestion/)",
         )
 
     @tree.command(name="install", description="Installation options")
@@ -180,7 +181,7 @@ def register_commands(tree: app_commands.CommandTree) -> None:
             "```bash\n"
             "docker pull ghcr.io/anulum/director-ai:latest        # CPU\n"
             "docker pull ghcr.io/anulum/director-ai:latest-gpu    # GPU\n"
-            "```"
+            "```",
         )
 
     @tree.command(name="status", description="Version + CI status")
@@ -212,7 +213,7 @@ def register_commands(tree: app_commands.CommandTree) -> None:
             '    messages=[{"role": "user", "content": "What is the refund policy?"}],\n'
             ")\n"
             "```\n"
-            f"[Full quickstart]({DOCS_URL}/quickstart/)"
+            f"[Full quickstart]({DOCS_URL}/quickstart/)",
         )
 
     @tree.command(name="profiles", description="Available domain presets")
@@ -221,7 +222,7 @@ def register_commands(tree: app_commands.CommandTree) -> None:
         await interaction.response.send_message(
             "**Domain Presets**\n"
             + "\n".join(lines)
-            + "\n\nUsage: `director-ai config --profile <name>`"
+            + "\n\nUsage: `director-ai config --profile <name>`",
         )
 
     @tree.command(name="changelog", description="Latest release notes")
@@ -231,7 +232,8 @@ def register_commands(tree: app_commands.CommandTree) -> None:
             tag, body, url = await _latest_release()
         except httpx.HTTPError:
             await interaction.followup.send(
-                "Failed to fetch release info", ephemeral=True
+                "Failed to fetch release info",
+                ephemeral=True,
             )
             return
         # Truncate body to fit Discord's 4096-char embed limit

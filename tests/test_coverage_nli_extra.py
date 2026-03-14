@@ -102,7 +102,9 @@ class TestNLIChunkedScoring:
         scorer = NLIScorer(use_model=False, max_length=20)
         long_hyp = ". ".join([f"Sentence {i}" for i in range(20)]) + "."
         agg, per_hyp = scorer.score_chunked(
-            "Short premise.", long_hyp, outer_agg="mean"
+            "Short premise.",
+            long_hyp,
+            outer_agg="mean",
         )
         assert 0.0 <= agg <= 1.0
 

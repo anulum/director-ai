@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate Director-AI on RAGTruth (ACL 2024) — per-sentence hallucination
+"""Evaluate Director-AI on RAGTruth (ACL 2024) — per-sentence hallucination
 labels on RAG responses.
 
 Dataset: ``yixuantt/ragtruth`` on HuggingFace.

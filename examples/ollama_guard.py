@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Guard Ollama responses with Director-AI.
+"""Guard Ollama responses with Director-AI.
 
 Requires:
     pip install director-ai requests

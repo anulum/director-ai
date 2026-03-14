@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Diagnostic benchmark: bidirectional NLI baseline sweep for summarization.
+"""Diagnostic benchmark: bidirectional NLI baseline sweep for summarization.
 
 Tests the Phase 3 scorer (w_logic=0, direct NLI, trimmed_mean) with
 bidirectional scoring at multiple baseline calibration values.
@@ -107,7 +106,8 @@ def run_diagnostic(
     correct_pairs: list[tuple[str, str]] = []
     for sample_data in samples:
         for context, response, is_hallucinated in _extract_pairs(
-            "summarization", sample_data
+            "summarization",
+            sample_data,
         ):
             if not is_hallucinated and context and response:
                 correct_pairs.append((context, response))
@@ -133,7 +133,10 @@ def run_diagnostic(
         for i, (document, summary) in enumerate(correct_pairs):
             if (i + 1) % 25 == 0:
                 logger.info(
-                    "[%s] Progress: %d / %d", profile_name, i + 1, len(correct_pairs)
+                    "[%s] Progress: %d / %d",
+                    profile_name,
+                    i + 1,
+                    len(correct_pairs),
                 )
 
             store = VectorGroundTruthStore()
@@ -141,7 +144,8 @@ def run_diagnostic(
             store.ingest([document])
 
             h_logic, h_fact, coherence, _ = scorer._heuristic_coherence(
-                document, summary
+                document,
+                summary,
             )
             approved = coherence >= threshold
 
@@ -154,7 +158,7 @@ def run_diagnostic(
                     "approved": approved,
                     "doc_len": len(document),
                     "sum_len": len(summary),
-                }
+                },
             )
 
         _print_report(profile_name, profile["desc"], records, threshold)
@@ -169,7 +173,7 @@ def run_diagnostic(
     for name, res in all_results.items():
         print(
             f"  {name:<30} {res['fpr']:>7.1%}"
-            f" {res['mean_coherence']:>10.4f} {res['mean_h_fact']:>12.4f}"
+            f" {res['mean_coherence']:>10.4f} {res['mean_h_fact']:>12.4f}",
         )
     print(f"{'=' * 80}")
 
@@ -189,7 +193,7 @@ def _print_report(name: str, desc: str, records: list[dict], threshold: float) -
     print(f"  Samples: {len(records)}  |  Threshold: {threshold}")
     print(
         f"  Approved: {len(tp)}  |  False positives: {len(fp)}"
-        f"  |  FPR: {len(fp) / max(len(records), 1):.1%}"
+        f"  |  FPR: {len(fp) / max(len(records), 1):.1%}",
     )
     print()
 
@@ -201,12 +205,12 @@ def _print_report(name: str, desc: str, records: list[dict], threshold: float) -
     print(
         f"  {'h_fact mean':<30} {_s(all_fact):>8}"
         f" {_s([r['h_fact'] for r in tp]):>8}"
-        f" {_s([r['h_fact'] for r in fp]):>8}"
+        f" {_s([r['h_fact'] for r in fp]):>8}",
     )
     print(
         f"  {'coherence mean':<30} {_s(all_coh):>8}"
         f" {_s([r['coherence'] for r in tp]):>8}"
-        f" {_s([r['coherence'] for r in fp]):>8}"
+        f" {_s([r['coherence'] for r in fp]):>8}",
     )
     print()
 
@@ -216,7 +220,7 @@ def _print_report(name: str, desc: str, records: list[dict], threshold: float) -
         print(
             f"    threshold={t:.2f}:"
             f"  FPR={fp_at_t / len(records) * 100:5.1f}%"
-            f"  ({fp_at_t} FP)"
+            f"  ({fp_at_t} FP)",
         )
     print(f"{'=' * 80}")
 

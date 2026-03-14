@@ -29,7 +29,7 @@ def _make_benchmark_file(tmp_path, name, n=100):
                 "premise": f"Evidence {i} is factual.",
                 "hypothesis": f"Claim {i} derived from evidence.",
                 "label": i % 2,
-            }
+            },
         )
     f = tmp_path / name
     f.write_text(

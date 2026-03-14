@@ -22,7 +22,7 @@ class TestPineconeBackend:
         mock_pinecone = MagicMock()
         mock_index = MagicMock()
         mock_index.describe_index_stats.return_value = {
-            "namespaces": {"": {"vector_count": 0}}
+            "namespaces": {"": {"vector_count": 0}},
         }
         mock_pinecone.Pinecone.return_value.Index.return_value = mock_index
 
@@ -86,9 +86,9 @@ class TestWeaviateBackend:
                             "doc_id": "id1",
                             "_additional": {"distance": 0.1, "id": "id1"},
                         },
-                    ]
-                }
-            }
+                    ],
+                },
+            },
         }
 
         with patch.dict(sys.modules, {"weaviate": mock_weaviate}):
@@ -152,7 +152,7 @@ class TestChromaEmbeddingModel:
         mock_chromadb_utils = MagicMock()
         mock_ef = MagicMock()
         mock_ef.SentenceTransformerEmbeddingFunction = MagicMock(
-            side_effect=ImportError("no st")
+            side_effect=ImportError("no st"),
         )
 
         with patch.dict(

@@ -4,8 +4,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Compare NLI-only vs local judge on HaluEval at scale.
+"""Compare NLI-only vs local judge on HaluEval at scale.
 
 Runs:
   1. NLI-only baseline (no judge)
@@ -60,7 +59,8 @@ def _gpu_info() -> dict:
         return {
             "gpu": torch.cuda.get_device_name(0),
             "vram_gb": round(
-                torch.cuda.get_device_properties(0).total_memory / 1024**3, 1
+                torch.cuda.get_device_properties(0).total_memory / 1024**3,
+                1,
             ),
             "cuda": True,
             "torch": torch.__version__,
@@ -140,7 +140,8 @@ def run_judge_latency(n_iters: int = 200) -> dict:
 
     tokenizer = AutoTokenizer.from_pretrained(str(judge_path))
     model = AutoModelForSequenceClassification.from_pretrained(
-        str(judge_path), low_cpu_mem_usage=False
+        str(judge_path),
+        low_cpu_mem_usage=False,
     )
     device = "cuda" if torch.cuda.is_available() else "cpu"
     model.to(device).eval()
@@ -222,11 +223,11 @@ def print_comparison(nli_only: dict, local_judge: dict) -> None:
 
     print(
         f"\n  {'Latency avg (ms)':<25} {nli_only.get('avg_latency_ms', 0):>11.0f} "
-        f"{local_judge.get('avg_latency_ms', 0):>13.0f}"
+        f"{local_judge.get('avg_latency_ms', 0):>13.0f}",
     )
     print(
         f"  {'Runtime (s)':<25} {nli_only.get('elapsed_s', 0):>11.0f} "
-        f"{local_judge.get('elapsed_s', 0):>13.0f}"
+        f"{local_judge.get('elapsed_s', 0):>13.0f}",
     )
 
     # Per-task breakdown

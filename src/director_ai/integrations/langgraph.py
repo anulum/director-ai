@@ -1,5 +1,4 @@
-"""
-Director-AI LangGraph integration.
+"""Director-AI LangGraph integration.
 
 Requires: pip install director-ai[langgraph]
 
@@ -41,13 +40,16 @@ def director_ai_node(
     on_fail : "raise" (HallucinationError), "flag" (add field), or "rewrite".
     query_key : state key containing the user query.
     response_key : state key containing the LLM response.
+
     """
     gts = store or GroundTruthStore()
     if facts:
         for k, v in facts.items():
             gts.add(k, v)
     scorer = CoherenceScorer(
-        threshold=threshold, ground_truth_store=gts, use_nli=use_nli
+        threshold=threshold,
+        ground_truth_store=gts,
+        use_nli=use_nli,
     )
 
     def _node(state: dict[str, Any]) -> dict[str, Any]:
@@ -63,7 +65,7 @@ def director_ai_node(
         if not approved:
             if on_fail == "raise":
                 raise HallucinationError(str(query), str(response), cs)
-            elif on_fail == "rewrite":
+            if on_fail == "rewrite":
                 ctx = gts.retrieve_context(str(query))
                 if ctx:
                     state[response_key] = f"Based on verified sources: {ctx}"

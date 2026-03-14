@@ -20,7 +20,7 @@ def _make_samples(n_pos: int, n_neg: int) -> list[dict]:
         rows.append({"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1})
     for i in range(n_neg):
         rows.append(
-            {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0}
+            {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0},
         )
     return rows
 

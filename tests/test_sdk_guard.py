@@ -59,7 +59,7 @@ def _make_openai_stream_client(tokens):
     chunks = []
     for t in tokens:
         chunk = SimpleNamespace(
-            choices=[SimpleNamespace(delta=SimpleNamespace(content=t))]
+            choices=[SimpleNamespace(delta=SimpleNamespace(content=t))],
         )
         chunks.append(chunk)
     completions = MagicMock()
@@ -137,7 +137,7 @@ class TestAnthropicGuard:
 
     def test_fail_raises(self):
         client, _ = _make_anthropic_client(
-            "Mars has two moons named Phobos and Deimos."
+            "Mars has two moons named Phobos and Deimos.",
         )
         guarded = guard(
             client,
@@ -155,7 +155,7 @@ class TestAnthropicGuard:
 class TestOnFailModes:
     def test_log_mode(self, caplog):
         client, resp = _make_openai_client(
-            "Mars has two moons named Phobos and Deimos."
+            "Mars has two moons named Phobos and Deimos.",
         )
         guarded = guard(
             client,
@@ -173,7 +173,7 @@ class TestOnFailModes:
 
     def test_metadata_mode(self):
         client, resp = _make_openai_client(
-            "Mars has two moons named Phobos and Deimos."
+            "Mars has two moons named Phobos and Deimos.",
         )
         guarded = guard(
             client,
@@ -214,7 +214,7 @@ class TestPromptExtraction:
                     {"type": "text", "text": "Describe this."},
                     {"type": "image_url", "image_url": {"url": "http://..."}},
                 ],
-            }
+            },
         ]
         assert _extract_prompt(msgs) == "Describe this."
 

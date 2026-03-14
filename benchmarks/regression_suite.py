@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Lightweight benchmark regression suite for CI.
+"""Lightweight benchmark regression suite for CI.
 
 Runs WITHOUT GPU, WITHOUT HF_TOKEN, in < 5 seconds.
 Fails the build if any assertion breaks.
@@ -410,7 +409,7 @@ def test_e2e_heuristic_delta():
     fpr = fp / (fp + tn) if (fp + tn) > 0 else 0.0
     print(
         f"  E2E delta: catch={catch_rate:.1%} FPR={fpr:.1%} "
-        f"(tp={tp} fp={fp} tn={tn} fn={fn})"
+        f"(tp={tp} fp={fp} tn={tn} fn={fn})",
     )
     assert catch_rate > 0.3, f"Catch rate {catch_rate:.1%} <= 30%"
     assert fpr < 0.3, f"FPR {fpr:.1%} >= 30%"

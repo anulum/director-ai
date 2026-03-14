@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Prometheus-style metrics collection for production monitoring.
+"""Prometheus-style metrics collection for production monitoring.
 
 Usage::
 

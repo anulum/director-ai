@@ -1,5 +1,4 @@
-"""
-Native SDK interceptors for OpenAI and Anthropic clients.
+"""Native SDK interceptors for OpenAI and Anthropic clients.
 
 Usage::
 
@@ -22,7 +21,8 @@ from director_ai.core.types import CoherenceScore
 
 _log = logging.getLogger("DirectorAI.guard")
 _score_var: ContextVar[CoherenceScore | None] = ContextVar(
-    "director_ai_score", default=None
+    "director_ai_score",
+    default=None,
 )
 
 STREAM_CHECK_INTERVAL = 8
@@ -62,7 +62,9 @@ def score(
             for k, v in facts.items():
                 gts.add(k, v)
         scorer = CoherenceScorer(
-            threshold=threshold, ground_truth_store=gts, use_nli=use_nli
+            threshold=threshold,
+            ground_truth_store=gts,
+            use_nli=use_nli,
         )
     _approved, cs = scorer.review(prompt, response)
     return cs  # type: ignore[no-any-return]
@@ -92,7 +94,7 @@ def guard(
     """
     if on_fail not in ("raise", "log", "metadata"):
         raise ValueError(
-            f"on_fail must be 'raise', 'log', or 'metadata', got {on_fail!r}"
+            f"on_fail must be 'raise', 'log', or 'metadata', got {on_fail!r}",
         )
 
     gts = store or GroundTruthStore()
@@ -100,12 +102,16 @@ def guard(
         for k, v in facts.items():
             gts.add(k, v)
     scorer = CoherenceScorer(
-        threshold=threshold, ground_truth_store=gts, use_nli=use_nli
+        threshold=threshold,
+        ground_truth_store=gts,
+        use_nli=use_nli,
     )
 
     if _has_openai_shape(client):
         client.chat.completions = _OpenAICompletionsProxy(
-            client.chat.completions, scorer, on_fail
+            client.chat.completions,
+            scorer,
+            on_fail,
         )
     elif _has_anthropic_shape(client):
         client.messages = _AnthropicMessagesProxy(client.messages, scorer, on_fail)
@@ -118,7 +124,7 @@ def guard(
     else:
         raise TypeError(
             f"Unsupported client type: {type(client).__qualname__}. "
-            "Expected OpenAI, Anthropic, Bedrock, Gemini, or Cohere shape."
+            "Expected OpenAI, Anthropic, Bedrock, Gemini, or Cohere shape.",
         )
     return client
 
@@ -162,7 +168,7 @@ def _extract_prompt(messages: list[dict]) -> str:
 def _handle_failure(on_fail, query, response_text, score):
     if on_fail == "raise":
         raise HallucinationError(query, response_text, score)
-    elif on_fail == "log":
+    if on_fail == "log":
         _log.warning(
             "Hallucination detected (coherence=%.3f): %.100s",
             score.score,
@@ -339,7 +345,10 @@ class _AnthropicMessagesProxy:
 
         if streaming:
             return _GuardedAnthropicStream(
-                response, self._scorer, self._on_fail, prompt
+                response,
+                self._scorer,
+                self._on_fail,
+                prompt,
             )
 
         text = _anthropic_response_text(response)
@@ -350,7 +359,10 @@ class _AnthropicMessagesProxy:
         response = await self._original.create(**kwargs)
         if streaming:
             return _GuardedAnthropicStream(
-                response, self._scorer, self._on_fail, prompt
+                response,
+                self._scorer,
+                self._on_fail,
+                prompt,
             )
         text = _anthropic_response_text(response)
         await _ascore_and_gate(self._scorer, self._on_fail, prompt, text)
@@ -440,7 +452,7 @@ class _GuardedAnthropicStream:
 def _has_bedrock_shape(client) -> bool:
     """True if client exposes ``converse()`` and ``invoke_model()`` (boto3 Bedrock)."""
     return callable(getattr(client, "converse", None)) and callable(
-        getattr(client, "invoke_model", None)
+        getattr(client, "invoke_model", None),
     )
 
 
@@ -663,7 +675,7 @@ def _has_cohere_shape(client) -> bool:
     if _has_openai_shape(client):
         return False
     return callable(getattr(client, "chat", None)) and not callable(
-        getattr(getattr(client, "chat", None), "completions", None)
+        getattr(getattr(client, "chat", None), "completions", None),
     )
 
 

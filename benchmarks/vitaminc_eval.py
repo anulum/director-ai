@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate NLI model on VitaminC dev/test sets.
+"""Evaluate NLI model on VitaminC dev/test sets.
 
 Training included VitaminC train split only. Dev and test are held-out.
 VitaminC is Wikipedia-based contrastive fact verification: minimal edits
@@ -111,5 +110,6 @@ if __name__ == "__main__":
     print_nli_metrics(m, f"VitaminC {args.split}")
 
     save_results(
-        {"benchmark": f"VitaminC_{args.split}", **m.to_dict()}, "vitaminc_results.json"
+        {"benchmark": f"VitaminC_{args.split}", **m.to_dict()},
+        "vitaminc_results.json",
     )

@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Integration tests that actually load the DeBERTa-v3-base-mnli model.
+"""Integration tests that actually load the DeBERTa-v3-base-mnli model.
 
 These require a network connection on first run (model is cached by
 HuggingFace). Mark with @slow so they're skipped in fast CI runs:

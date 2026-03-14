@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Tests the consumer-facing API: CoherenceAgent, CoherenceScorer, SafetyKernel,
+"""Tests the consumer-facing API: CoherenceAgent, CoherenceScorer, SafetyKernel,
 MockGenerator, GroundTruthStore, and dataclass types.
 """
 
@@ -86,7 +85,10 @@ class TestReviewResult:
     def test_dataclass_fields(self):
         cs = CoherenceScore(score=0.9, approved=True, h_logical=0.05, h_factual=0.1)
         rr = ReviewResult(
-            output="Hello", coherence=cs, halted=False, candidates_evaluated=3
+            output="Hello",
+            coherence=cs,
+            halted=False,
+            candidates_evaluated=3,
         )
         assert rr.output == "Hello"
         assert rr.coherence.score == 0.9
@@ -95,7 +97,10 @@ class TestReviewResult:
 
     def test_halted_result(self):
         rr = ReviewResult(
-            output="HALT", coherence=None, halted=True, candidates_evaluated=0
+            output="HALT",
+            coherence=None,
+            halted=True,
+            candidates_evaluated=0,
         )
         assert rr.halted is True
         assert rr.coherence is None
@@ -183,19 +188,22 @@ class TestCoherenceScorerNoStore:
 class TestCoherenceScorer:
     def test_factual_divergence_truth(self, scorer):
         h = scorer.calculate_factual_divergence(
-            "What color is the sky?", "The sky color is blue."
+            "What color is the sky?",
+            "The sky color is blue.",
         )
         assert h < 0.5
 
     def test_factual_divergence_lie(self, scorer):
         h = scorer.calculate_factual_divergence(
-            "What color is the sky?", "The sky color is green."
+            "What color is the sky?",
+            "The sky color is green.",
         )
         assert h > 0.5
 
     def test_logical_divergence_consistent(self, scorer):
         h = scorer.calculate_logical_divergence(
-            "test", "This is consistent with reality"
+            "test",
+            "This is consistent with reality",
         )
         assert h == pytest.approx(0.1)
 
@@ -205,7 +213,8 @@ class TestCoherenceScorer:
 
     def test_review_approved(self, scorer):
         approved, score = scorer.review(
-            "sky", "The sky color is blue. This is consistent with reality"
+            "sky",
+            "The sky color is blue. This is consistent with reality",
         )
         assert isinstance(score, CoherenceScore)
         assert score.score >= 0.0
@@ -235,7 +244,8 @@ class TestScorerStrictMode:
             strict_mode=True,
         )
         h = scorer.calculate_factual_divergence(
-            "What color is the sky?", "totally wrong"
+            "What color is the sky?",
+            "totally wrong",
         )
         assert h == 0.9
 

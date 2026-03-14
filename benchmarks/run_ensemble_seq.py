@@ -137,7 +137,7 @@ print(f"  Best: {best_strat} @ threshold={best_thresh:.2f} -> {best_acc:.1%}")
 print(f"  Base: {individual.get('base', 0):.1%}")
 print(f"  Improvement: {best_acc - individual.get('base', 0):+.1%}")
 print("  Individual (top 10):")
-for m, acc in list(sorted(individual.items(), key=lambda x: -x[1]))[:10]:
+for m, acc in sorted(individual.items(), key=lambda x: -x[1])[:10]:
     print(f"    {m:<30} {acc:.1%}")
 print("=" * 60)
 print("DONE")

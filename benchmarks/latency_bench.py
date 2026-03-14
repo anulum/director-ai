@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ---------------------------------------------------------------------
-"""
-Measure wall-clock latency: sequential vs batched, PyTorch vs ONNX.
+"""Measure wall-clock latency: sequential vs batched, PyTorch vs ONNX.
 
 Usage:
     python -m benchmarks.latency_bench                # lightweight only
@@ -109,7 +108,7 @@ LONG_SOURCE = (
             "Permafrost thaw releases stored carbon into the atmosphere",
             "Coral reef bleaching events have tripled in frequency since 1980",
             "Global ice sheet mass loss has accelerated to 150 billion tonnes per year",
-        ]
+        ],
     )
     + "."
 )
@@ -281,7 +280,7 @@ def print_result(r: LatencyResult) -> None:
     print(
         f"  {r.name:28s}  mean={r.mean:8.2f} ms  "
         f"median={r.median:8.2f} ms  p95={r.p95:8.2f} ms  "
-        f"(n={len(r.times_ms)})"
+        f"(n={len(r.times_ms)})",
     )
 
 
@@ -291,13 +290,13 @@ def print_comparison(label: str, a: LatencyResult, b: LatencyResult) -> None:
             ratio = a.median / b.median
             print(
                 f"  >> {label}: {b.name} is {ratio:.1f}x faster "
-                f"({a.median:.1f} ms vs {b.median:.1f} ms)"
+                f"({a.median:.1f} ms vs {b.median:.1f} ms)",
             )
         else:
             ratio = b.median / a.median
             print(
                 f"  >> {label}: {a.name} is {ratio:.1f}x faster "
-                f"({a.median:.1f} ms vs {b.median:.1f} ms)"
+                f"({a.median:.1f} ms vs {b.median:.1f} ms)",
             )
 
 
@@ -359,7 +358,7 @@ def main():
 
         print(
             f"  onnxruntime={ort.__version__}  "
-            f"providers={ort.get_available_providers()}"
+            f"providers={ort.get_available_providers()}",
         )
     except ImportError:
         print("  onnxruntime=N/A")
@@ -520,7 +519,7 @@ def main():
     # ── Summary table ─────────────────────────────────────────
     print(f"\n{'=' * 72}")
     print(
-        f"  {'Benchmark':28s}  {'mean':>8s}  {'median':>8s}  {'p95':>8s}  {'per-pair':>8s}"
+        f"  {'Benchmark':28s}  {'mean':>8s}  {'median':>8s}  {'p95':>8s}  {'per-pair':>8s}",
     )
     print(f"  {'-' * 64}")
     for r in results:
@@ -528,7 +527,7 @@ def main():
         per_pair = r.median / n_pairs
         print(
             f"  {r.name:28s}  {r.mean:7.1f}ms  {r.median:7.1f}ms  "
-            f"{r.p95:7.1f}ms  {per_pair:7.1f}ms"
+            f"{r.p95:7.1f}ms  {per_pair:7.1f}ms",
         )
     print(f"{'=' * 72}\n")
 

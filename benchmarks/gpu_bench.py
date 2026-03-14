@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ---------------------------------------------------------------------
-"""
-Cross-GPU benchmark: PyTorch FP32/FP16, ONNX CUDA, ONNX TensorRT FP32/FP16.
+"""Cross-GPU benchmark: PyTorch FP32/FP16, ONNX CUDA, ONNX TensorRT FP32/FP16.
 Auto-detects available backends and skips unsupported ones.
 
 Usage:
@@ -206,7 +205,7 @@ def _run_onnx(
         and active != "TensorrtExecutionProvider"
     ):
         raise RuntimeError(
-            f"TRT requested but got {active} (libnvinfer not installed?)"
+            f"TRT requested but got {active} (libnvinfer not installed?)",
         )
 
     texts = [_FACTCG_TEMPLATE.format(text_a=p, text_b=h) for p, h in pairs]
@@ -302,7 +301,7 @@ def main():
 
     if not backends:
         print(
-            "No GPU backends available. Need CUDA-capable GPU + torch/onnxruntime-gpu."
+            "No GPU backends available. Need CUDA-capable GPU + torch/onnxruntime-gpu.",
         )
         sys.exit(1)
 
@@ -343,7 +342,10 @@ def main():
             try:
                 if backend == "pytorch_fp32":
                     times = _run_pytorch(
-                        pairs, args.iterations, args.warmup, fp16=False
+                        pairs,
+                        args.iterations,
+                        args.warmup,
+                        fp16=False,
                     )
                 elif backend == "pytorch_fp16":
                     times = _run_pytorch(pairs, args.iterations, args.warmup, fp16=True)
@@ -390,20 +392,20 @@ def main():
                 f"    median={s['median_ms']:.1f} ms  "
                 f"per_pair={s['per_pair_ms']:.1f} ms  "
                 f"p95={s['p95_ms']:.1f} ms  "
-                f"mem={s['gpu_mem_mb']:.0f} MB"
+                f"mem={s['gpu_mem_mb']:.0f} MB",
             )
 
     # ── Summary table ────────────────────────────────────────────
     print(f"\n{'=' * 72}")
     print(
-        f"  {'Backend':20s} {'Batch':>5s} {'Median':>9s} {'Per-pair':>9s} {'P95':>9s} {'Mem':>8s}"
+        f"  {'Backend':20s} {'Batch':>5s} {'Median':>9s} {'Per-pair':>9s} {'P95':>9s} {'Mem':>8s}",
     )
     print(f"  {'-' * 62}")
     for r in all_results:
         print(
             f"  {r['backend']:20s} {r['batch_size']:5d} "
             f"{r['median_ms']:8.1f}ms {r['per_pair_ms']:8.1f}ms "
-            f"{r['p95_ms']:8.1f}ms {r['gpu_mem_mb']:7.0f}MB"
+            f"{r['p95_ms']:8.1f}ms {r['gpu_mem_mb']:7.0f}MB",
         )
     print(f"{'=' * 72}\n")
 

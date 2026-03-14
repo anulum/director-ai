@@ -57,8 +57,8 @@ class TestOpenAIProxy:
         original = MagicMock()
         response = SimpleNamespace(
             choices=[
-                SimpleNamespace(message=SimpleNamespace(content="The sky is blue."))
-            ]
+                SimpleNamespace(message=SimpleNamespace(content="The sky is blue.")),
+            ],
         )
         original.create.return_value = response
 
@@ -71,7 +71,7 @@ class TestOpenAIProxy:
         original = MagicMock()
 
         chunk = SimpleNamespace(
-            choices=[SimpleNamespace(delta=SimpleNamespace(content="hello"))]
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="hello"))],
         )
         original.create.return_value = [chunk]
 
@@ -116,13 +116,13 @@ class TestAnthropicProxy:
 class TestExtractStreamDelta:
     def test_valid_chunk(self):
         chunk = SimpleNamespace(
-            choices=[SimpleNamespace(delta=SimpleNamespace(content="hi"))]
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="hi"))],
         )
         assert _extract_stream_delta(chunk) == "hi"
 
     def test_none_content(self):
         chunk = SimpleNamespace(
-            choices=[SimpleNamespace(delta=SimpleNamespace(content=None))]
+            choices=[SimpleNamespace(delta=SimpleNamespace(content=None))],
         )
         assert _extract_stream_delta(chunk) is None
 

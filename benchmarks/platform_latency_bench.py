@@ -130,7 +130,9 @@ def bench_lite(iterations: int) -> dict:
     store = GroundTruthStore()
     store.add("sky", "The sky is blue")
     scorer = CoherenceScorer(
-        threshold=0.5, scorer_backend="lite", ground_truth_store=store
+        threshold=0.5,
+        scorer_backend="lite",
+        ground_truth_store=store,
     )
 
     for _ in range(5):
@@ -170,7 +172,7 @@ def main():
     gc_info = measure_gc_overhead()
     results["gc_overhead"] = gc_info
     print(
-        f"GC overhead: median={gc_info['gc_median_ms']:.3f}ms  p95={gc_info['gc_p95_ms']:.3f}ms"
+        f"GC overhead: median={gc_info['gc_median_ms']:.3f}ms  p95={gc_info['gc_p95_ms']:.3f}ms",
     )
     print()
 
@@ -178,7 +180,7 @@ def main():
         r = bench_fn(args.iterations)
         results["benchmarks"].append(r)
         print(
-            f"{r['name']:20s}  median={r['median_ms']:.3f}ms  p95={r['p95_ms']:.3f}ms"
+            f"{r['name']:20s}  median={r['median_ms']:.3f}ms  p95={r['p95_ms']:.3f}ms",
         )
 
     rss = get_peak_rss_mb()

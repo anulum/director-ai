@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-A/B benchmark comparing aggregation strategies on correct summaries.
+"""A/B benchmark comparing aggregation strategies on correct summaries.
 
 HaluEval summarization correct (document, right_summary) pairs are long
 documents that split into multiple NLI premise chunks — the exact
@@ -147,6 +146,7 @@ def run_summarization_fpr_benchmark(
     threshold : coherence hard_limit (samples below this are rejected).
     nli_model : HuggingFace NLI model ID.
     scorer_backend : "deberta", "hybrid", "onnx", or "lite".
+
     """
     from director_ai.core.scorer import CoherenceScorer
     from director_ai.core.vector_store import VectorGroundTruthStore
@@ -164,7 +164,8 @@ def run_summarization_fpr_benchmark(
     correct_pairs: list[tuple[str, str]] = []
     for sample_data in samples:
         for context, response, is_hallucinated in _extract_pairs(
-            "summarization", sample_data
+            "summarization",
+            sample_data,
         ):
             if not is_hallucinated and context and response:
                 correct_pairs.append((context, response))
@@ -255,16 +256,16 @@ def _print_results(m: SummarizationFPRMetrics) -> None:
     print(f"  {'-' * 66}")
     print(
         f"  {'False positives':<24} {m.fp_max_max:>10} {m.fp_min_mean:>10}"
-        f" {m.fp_summ_profile:>10} {m.fp_phase3:>10}"
+        f" {m.fp_summ_profile:>10} {m.fp_phase3:>10}",
     )
     print(
         f"  {'FPR':<24} {m.fpr_max_max:>9.1%} {m.fpr_min_mean:>9.1%}"
-        f" {m.fpr_summ_profile:>9.1%} {m.fpr_phase3:>9.1%}"
+        f" {m.fpr_summ_profile:>9.1%} {m.fpr_phase3:>9.1%}",
     )
     print(
         f"  {'Avg coherence score':<24} {m.avg_score_max_max:>10.4f}"
         f" {m.avg_score_min_mean:>10.4f} {m.avg_score_summ_profile:>10.4f}"
-        f" {m.avg_score_phase3:>10.4f}"
+        f" {m.avg_score_phase3:>10.4f}",
     )
     print()
     print(f"  FPR reduction (min-mean):    {m.fpr_reduction_pct:.1f}%")
@@ -296,7 +297,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(
-        description="Summarization FPR: max-max vs min-mean aggregation"
+        description="Summarization FPR: max-max vs min-mean aggregation",
     )
     add_common_args(parser)
     parser.add_argument("--threshold", type=float, default=0.55)

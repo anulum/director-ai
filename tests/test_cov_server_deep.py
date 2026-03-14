@@ -6,7 +6,7 @@ import pytest
 
 pytest.importorskip("fastapi", reason="fastapi not installed")
 
-from starlette.websockets import WebSocketDisconnect  # noqa: E402
+from starlette.websockets import WebSocketDisconnect
 
 from director_ai.core.config import DirectorConfig
 

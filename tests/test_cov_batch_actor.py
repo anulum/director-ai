@@ -17,7 +17,10 @@ class TestBatchTimeoutErrors:
         agent.process.return_value = MagicMock(
             output="ok",
             coherence=MagicMock(
-                score=0.9, h_logical=0.1, h_factual=0.05, warning=False
+                score=0.9,
+                h_logical=0.1,
+                h_factual=0.05,
+                warning=False,
             ),
             halted=False,
             candidates_evaluated=1,

@@ -57,7 +57,8 @@ def load_scifact():
             def convert(example):
                 label = 1 if example["label"] == 0 else 0  # entailment=supported
                 text = TEMPLATE.format(
-                    text_a=example["premise"], text_b=example["hypothesis"]
+                    text_a=example["premise"],
+                    text_b=example["hypothesis"],
                 )
                 return {"text": text, "label": label}
 
@@ -67,7 +68,7 @@ def load_scifact():
             split = mapped.train_test_split(test_size=0.2, seed=42)
             val_split = split["test"].train_test_split(test_size=0.5, seed=42)
             print(
-                f"SciFact (entailment) loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}"
+                f"SciFact (entailment) loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}",
             )
             return split["train"], val_split["train"], val_split["test"]
         except Exception:
@@ -79,7 +80,7 @@ def load_scifact():
     split = full.train_test_split(test_size=0.2, seed=42)
     val_split = split["test"].train_test_split(test_size=0.5, seed=42)
     print(
-        f"SciFact loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}"
+        f"SciFact loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}",
     )
     return split["train"], val_split["train"], val_split["test"]
 
@@ -87,7 +88,10 @@ def load_scifact():
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
         return tokenizer(
-            batch["text"], truncation=True, max_length=max_length, padding=False
+            batch["text"],
+            truncation=True,
+            max_length=max_length,
+            padding=False,
         )
 
     return _tok

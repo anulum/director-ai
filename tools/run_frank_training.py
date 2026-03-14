@@ -61,11 +61,11 @@ def load_frank():
         label_raw = 0
 
         for k in ["article", "document", "text", "source", "premise"]:
-            if k in example and example[k]:
+            if example.get(k):
                 doc = str(example[k])[:2000]
                 break
         for k in ["summary", "claim", "hypothesis", "sentence"]:
-            if k in example and example[k]:
+            if example.get(k):
                 claim = str(example[k])
                 break
         for k in ["label", "Factual", "factual", "is_factual"]:
@@ -108,7 +108,10 @@ def load_frank():
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
         return tokenizer(
-            batch["text"], truncation=True, max_length=max_length, padding=False
+            batch["text"],
+            truncation=True,
+            max_length=max_length,
+            padding=False,
         )
 
     return _tok

@@ -78,12 +78,16 @@ class TestAsyncStreamingKernel:
     async def test_window_halt(self):
         """Sliding window halt works."""
         kernel = AsyncStreamingKernel(
-            hard_limit=0.1, window_size=3, window_threshold=0.5
+            hard_limit=0.1,
+            window_size=3,
+            window_threshold=0.5,
         )
         # All scores below window_threshold but above hard_limit
         scores = iter([0.4, 0.4, 0.4, 0.4])
         events = await self._collect_events(
-            kernel, ["a", "b", "c", "d"], lambda t: next(scores)
+            kernel,
+            ["a", "b", "c", "d"],
+            lambda t: next(scores),
         )
         assert events[-1].halted
 
@@ -97,7 +101,9 @@ class TestAsyncStreamingKernel:
         )
         scores = iter([0.9, 0.7, 0.5, 0.3])
         events = await self._collect_events(
-            kernel, ["a", "b", "c", "d"], lambda t: next(scores)
+            kernel,
+            ["a", "b", "c", "d"],
+            lambda t: next(scores),
         )
         halted = any(e.halted for e in events)
         assert halted
@@ -225,7 +231,9 @@ class TestAsyncStreamingKernel:
         )
         scores = iter([0.8, 0.1])
         events = await self._collect_events(
-            kernel, ["ok", "bad", "more"], lambda t: next(scores)
+            kernel,
+            ["ok", "bad", "more"],
+            lambda t: next(scores),
         )
         assert events[-1].halted
         assert len(events) == 2

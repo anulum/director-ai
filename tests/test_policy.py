@@ -91,12 +91,12 @@ class TestRegexValidation:
     def test_invalid_regex_raises_value_error(self):
         with pytest.raises(ValueError, match="Invalid regex.*broken"):
             Policy(
-                patterns=[{"name": "broken", "regex": "[invalid(", "action": "block"}]
+                patterns=[{"name": "broken", "regex": "[invalid(", "action": "block"}],
             )
 
     def test_valid_regex_compiles(self):
         policy = Policy(
-            patterns=[{"name": "good", "regex": r"\btest\b", "action": "block"}]
+            patterns=[{"name": "good", "regex": r"\btest\b", "action": "block"}],
         )
         assert len(policy._compiled_patterns) == 1
 
@@ -104,7 +104,7 @@ class TestRegexValidation:
 class TestRegexPatterns:
     def test_pattern_block(self):
         policy = Policy(
-            patterns=[{"name": "profanity", "regex": r"\bdamn\b", "action": "block"}]
+            patterns=[{"name": "profanity", "regex": r"\bdamn\b", "action": "block"}],
         )
         violations = policy.check("Well damn it")
         assert len(violations) == 1
@@ -112,7 +112,7 @@ class TestRegexPatterns:
 
     def test_pattern_no_match(self):
         policy = Policy(
-            patterns=[{"name": "profanity", "regex": r"\bdamn\b", "action": "block"}]
+            patterns=[{"name": "profanity", "regex": r"\bdamn\b", "action": "block"}],
         )
         assert policy.check("Hello world") == []
 
@@ -147,7 +147,10 @@ class TestFromYaml:
             "style": {"max_length": 1000},
         }
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".json",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             json.dump(data, f)
             f.flush()
@@ -158,7 +161,10 @@ class TestFromYaml:
 
     def test_invalid_content_returns_default(self):
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".json",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             f.write('"just a string"')
             f.flush()
@@ -178,7 +184,10 @@ class TestFromYaml:
         except ImportError:
             exc_type = json.JSONDecodeError
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".json",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             f.write("{not valid json")
             f.flush()
@@ -189,7 +198,10 @@ class TestFromYaml:
 
     def test_list_content_returns_default(self):
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".json",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             json.dump(["a", "b"], f)
             f.flush()

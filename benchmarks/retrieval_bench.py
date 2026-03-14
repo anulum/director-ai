@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Measures precision@k and recall@k of VectorGroundTruthStore retrieval
+"""Measures precision@k and recall@k of VectorGroundTruthStore retrieval
 against a synthetic QA evaluation set.
 
 Usage::
@@ -308,7 +307,7 @@ def run_benchmark(backend_name: str) -> dict:
                 hit_at_3=hit_3,
                 precision_at_3=prec_3,
                 latency_ms=elapsed_ms,
-            )
+            ),
         )
 
     n = len(results)

@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Production-ready FastAPI server for Director-Class AI.
+"""Production-ready FastAPI server for Director-Class AI.
 
 Usage::
 
@@ -33,7 +32,8 @@ from .core.metrics import metrics
 __all__ = ["create_app"]
 
 REQUEST_ID_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "request_id", default=""
+    "request_id",
+    default="",
 )
 
 logger = logging.getLogger("DirectorAI.Server")
@@ -69,7 +69,7 @@ def _check_fastapi() -> None:
     if not _FASTAPI_AVAILABLE:  # pragma: no cover
         raise ImportError(
             "FastAPI is required for the server. "
-            "Install with: pip install director-ai[server]"
+            "Install with: pip install director-ai[server]",
         )
 
 
@@ -82,7 +82,10 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
 
     class ReviewRequest(BaseModel):
         prompt: str = Field(
-            ..., min_length=1, max_length=_MAX_PROMPT_CHARS, description="Input prompt"
+            ...,
+            min_length=1,
+            max_length=_MAX_PROMPT_CHARS,
+            description="Input prompt",
         )
         response: str = Field(
             ...,
@@ -94,16 +97,23 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
 
     class ProcessRequest(BaseModel):
         prompt: str = Field(
-            ..., min_length=1, max_length=_MAX_PROMPT_CHARS, description="Input prompt"
+            ...,
+            min_length=1,
+            max_length=_MAX_PROMPT_CHARS,
+            description="Input prompt",
         )
 
     class BatchRequest(BaseModel):
         task: str = Field("process", description="Task type: process or review")
         prompts: list[str] = Field(
-            ..., min_length=1, max_length=1000, description="List of prompts"
+            ...,
+            min_length=1,
+            max_length=1000,
+            description="List of prompts",
         )
         responses: list[str] = Field(
-            default_factory=list, description="Optional responses"
+            default_factory=list,
+            description="Optional responses",
         )
 
     class ReviewResponse(BaseModel):
@@ -236,7 +246,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         if cfg.sanitize_inputs:
             app.state._state["sanitizer"] = InputSanitizer(
-                block_threshold=cfg.sanitizer_block_threshold
+                block_threshold=cfg.sanitizer_block_threshold,
             )
 
         from .enterprise.redactor import PIIRedactor
@@ -377,7 +387,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             if cfg.rate_limit_strict:
                 raise ImportError(
                     "rate_limit_strict=True but slowapi not installed. "
-                    "Install with: pip install director-ai[ratelimit]"
+                    "Install with: pip install director-ai[ratelimit]",
                 )
             logger.warning(
                 "rate_limit_rpm=%d but slowapi not installed. "
@@ -500,7 +510,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         # Tenant routing — S-05: log tenant access for audit trail
         tenant_id = getattr(
-            request.state, "tenant_id", request.headers.get("X-Tenant-ID", "")
+            request.state,
+            "tenant_id",
+            request.headers.get("X-Tenant-ID", ""),
         )
         if tenant_id:
             logger.info(
@@ -532,7 +544,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if review_queue and not session:
             with metrics.timer("review_duration_seconds"):
                 approved, score = await review_queue.submit(
-                    req.prompt, req.response, tenant_id=tenant_id
+                    req.prompt,
+                    req.response,
+                    tenant_id=tenant_id,
                 )
         else:
             loop = asyncio.get_running_loop()
@@ -610,7 +624,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         start = time.monotonic()
 
         tenant_id = getattr(
-            request.state, "tenant_id", request.headers.get("X-Tenant-ID", "")
+            request.state,
+            "tenant_id",
+            request.headers.get("X-Tenant-ID", ""),
         )
         if tenant_id:
             logger.info(
@@ -626,7 +642,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         except Exception as e:
             logger.error("Review processing failed: %s", e, exc_info=True)
             raise HTTPException(
-                status_code=500, detail="Internal processing error"
+                status_code=500,
+                detail="Internal processing error",
             ) from e
         latency_ms = (time.monotonic() - start) * 1000
 
@@ -665,7 +682,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             warning=result.coherence.warning if result.coherence else False,
             fallback_used=result.fallback_used,
             evidence=_evidence_to_dict(
-                result.coherence.evidence if result.coherence else None
+                result.coherence.evidence if result.coherence else None,
             ),
             halt_evidence=_halt_evidence_to_dict(result.halt_evidence),
         )
@@ -684,7 +701,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 check = sanitizer.check(p)
                 if check.blocked:
                     raise HTTPException(
-                        400, f"Prompt injection rejected: {check.reason}"
+                        400,
+                        f"Prompt injection rejected: {check.reason}",
                     )
 
         batcher = request.app.state._state.get("batch")
@@ -698,7 +716,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 req.responses = [redactor.redact(r) for r in req.responses]
 
         tenant_id = getattr(
-            request.state, "tenant_id", request.headers.get("X-Tenant-ID", "")
+            request.state,
+            "tenant_id",
+            request.headers.get("X-Tenant-ID", ""),
         )
         if tenant_id:
             logger.info(
@@ -721,7 +741,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 batch_res = await batcher.review_batch_async(pairs, tenant_id=tenant_id)
             else:
                 batch_res = await batcher.process_batch_async(
-                    req.prompts, tenant_id=tenant_id
+                    req.prompts,
+                    tenant_id=tenant_id,
                 )
             duration = time.monotonic() - start_t
 
@@ -735,7 +756,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                             "index": idx,
                             "approved": appr,
                             "score": sc.score,
-                        }
+                        },
                     )
                 elif isinstance(item, ReviewResult):  # process
                     score_val = item.coherence.score if item.coherence else 0.0
@@ -745,7 +766,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                             "output": item.output,
                             "approved": not item.halted,
                             "score": score_val,
-                        }
+                        },
                     )
 
             return BatchResponse(
@@ -759,7 +780,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         except Exception as e:
             logger.error("Batch processing failed: %s", e, exc_info=True)
             raise HTTPException(
-                status_code=500, detail="Internal processing error"
+                status_code=500,
+                detail="Internal processing error",
             ) from e
 
     # ── Tenants ───────────────────────────────────────────────────────
@@ -773,7 +795,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "tenants": [
                 {"id": tid, "fact_count": router.fact_count(tid)}
                 for tid in router.tenant_ids
-            ]
+            ],
         }
 
     @app.post("/v1/tenants/{tenant_id}/facts")
@@ -786,7 +808,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.post("/v1/tenants/{tenant_id}/vector-facts")
     async def add_tenant_vector_fact(
-        request: Request, tenant_id: str, req: TenantVectorFactRequest
+        request: Request,
+        tenant_id: str,
+        req: TenantVectorFactRequest,
     ):
         router = request.app.state._state.get("tenant_router")
         if not router:
@@ -948,7 +972,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         {
                             "session_id": session_id,
                             "error": f"injection rejected: {check.reason}",
-                        }
+                        },
                     )
                     return
 
@@ -988,7 +1012,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     OSError,
                 ) as exc:  # pragma: no cover
                     await _send(
-                        {"session_id": session_id, "error": f"streaming failed: {exc}"}
+                        {"session_id": session_id, "error": f"streaming failed: {exc}"},
                     )
                 return
 
@@ -997,7 +1021,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             except (RuntimeError, ValueError, TypeError, OSError) as exc:
                 logger.error("WebSocket agent.process() failed: %s", exc)
                 await _send(
-                    {"session_id": session_id, "error": f"processing failed: {exc}"}
+                    {"session_id": session_id, "error": f"processing failed: {exc}"},
                 )
                 return
             await _send(
@@ -1012,10 +1036,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     ),
                     "fallback_used": result.fallback_used,
                     "evidence": _evidence_to_dict(
-                        result.coherence.evidence if result.coherence else None
+                        result.coherence.evidence if result.coherence else None,
                     ),
                     "halt_evidence": _halt_evidence_to_dict(result.halt_evidence),
-                }
+                },
             )
 
         async def _run_session(session_id: str, data: dict) -> None:
@@ -1056,7 +1080,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
                 if len(prompt) > _WS_MAX_PROMPT_LENGTH:
                     await _send(
-                        {"error": f"prompt exceeds {_WS_MAX_PROMPT_LENGTH} chars"}
+                        {"error": f"prompt exceeds {_WS_MAX_PROMPT_LENGTH} chars"},
                     )
                     continue
 

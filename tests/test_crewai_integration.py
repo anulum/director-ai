@@ -29,7 +29,7 @@ class TestDirectorAITool:
             use_nli=False,
         )
         result = tool._run(
-            "What color is the sky? | Mars has two moons named Phobos and Deimos."
+            "What color is the sky? | Mars has two moons named Phobos and Deimos.",
         )
         assert "REJECTED" in result
 

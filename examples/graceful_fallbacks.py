@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Graceful fallback patterns — three ways to handle rejected output.
+"""Graceful fallback patterns — three ways to handle rejected output.
 
 Director-AI supports three fallback modes when all candidates fail:
 
@@ -72,7 +71,7 @@ def demo_streaming_on_halt():
     def on_halt(session):
         halted_sessions.append(session)
         print(
-            f"  [on_halt] Halted at token {session.halt_index}: {session.halt_reason}"
+            f"  [on_halt] Halted at token {session.halt_index}: {session.halt_reason}",
         )
         print(f"  [on_halt] Partial output: {session.output[:60]!r}")
 
@@ -131,7 +130,7 @@ def demo_soft_warning():
     print(f"  Warning:  {score.warning}")
     if score.warning:
         print(
-            f"  (Score {score.score:.3f} is between threshold 0.5 and soft_limit 0.7)"
+            f"  (Score {score.score:.3f} is between threshold 0.5 and soft_limit 0.7)",
         )
     print()
 

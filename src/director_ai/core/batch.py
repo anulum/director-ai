@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Batch processing for CoherenceScorer and CoherenceAgent.
+"""Batch processing for CoherenceScorer and CoherenceAgent.
 
 Usage::
 
@@ -49,7 +48,7 @@ class BatchResult:
     """Result of a batch processing operation."""
 
     results: list[ReviewResult | tuple[bool, CoherenceScore]] = field(
-        default_factory=list
+        default_factory=list,
     )
     errors: list[tuple[int, str]] = field(default_factory=list)
     total: int = 0
@@ -75,6 +74,7 @@ class BatchProcessor:
     ----------
     backend : CoherenceAgent or CoherenceScorer instance.
     max_concurrency : int — maximum parallel workers.
+
     """
 
     def __init__(
@@ -130,7 +130,9 @@ class BatchProcessor:
         return result
 
     def review_batch(
-        self, items: list[tuple[str, str]], tenant_id: str = ""
+        self,
+        items: list[tuple[str, str]],
+        tenant_id: str = "",
     ) -> BatchResult:
         """Batch-review (prompt, response) pairs.
 
@@ -144,12 +146,13 @@ class BatchProcessor:
 
         scorer_batch_fn = getattr(self._backend, "review_batch", None)
         if scorer_batch_fn is not None and not isinstance(
-            self._backend, BatchProcessor
+            self._backend,
+            BatchProcessor,
         ):
             try:
                 batch_results = scorer_batch_fn(items, tenant_id=tenant_id)
                 if not isinstance(batch_results, list) or len(batch_results) != len(
-                    items
+                    items,
                 ):
                     raise TypeError("review_batch returned invalid result")
                 for idx, item_result in enumerate(batch_results):
@@ -170,7 +173,8 @@ class BatchProcessor:
                 return result
             except Exception as exc:
                 logger.warning(
-                    "Coalesced review_batch failed, falling back to per-item: %s", exc
+                    "Coalesced review_batch failed, falling back to per-item: %s",
+                    exc,
                 )
 
         ordered: list[tuple[bool, CoherenceScore] | None] = [
@@ -198,7 +202,10 @@ class BatchProcessor:
         return result
 
     def _process_one(
-        self, index: int, prompt: str, tenant_id: str = ""
+        self,
+        index: int,
+        prompt: str,
+        tenant_id: str = "",
     ) -> ReviewResult:
         """Process a single prompt."""
         metrics.gauge_inc("active_requests")
@@ -206,7 +213,8 @@ class BatchProcessor:
             with metrics.timer("review_duration_seconds"):
                 try:
                     result = self._backend.process(  # type: ignore[attr-defined]
-                        prompt, tenant_id=tenant_id
+                        prompt,
+                        tenant_id=tenant_id,
                     )
                 except TypeError:
                     result = self._backend.process(prompt)  # type: ignore[attr-defined]
@@ -222,14 +230,20 @@ class BatchProcessor:
             metrics.gauge_dec("active_requests")
 
     def _review_one(
-        self, index: int, prompt: str, response: str, tenant_id: str = ""
+        self,
+        index: int,
+        prompt: str,
+        response: str,
+        tenant_id: str = "",
     ) -> tuple[bool, CoherenceScore]:
         """Review a single (prompt, response) pair."""
         metrics.gauge_inc("active_requests")
         try:
             with metrics.timer("review_duration_seconds"):
                 approved, score = self._backend.review(
-                    prompt, response, tenant_id=tenant_id
+                    prompt,
+                    response,
+                    tenant_id=tenant_id,
                 )  # type: ignore[attr-defined]
             metrics.inc("reviews_total")
             if approved:  # pragma: no cover — tested via scorer.review
@@ -261,7 +275,11 @@ class BatchProcessor:
                 try:
                     item = await asyncio.wait_for(
                         loop.run_in_executor(
-                            None, self._process_one, idx, prompt, tenant_id
+                            None,
+                            self._process_one,
+                            idx,
+                            prompt,
+                            tenant_id,
                         ),
                         timeout=self.item_timeout,
                     )
@@ -294,16 +312,19 @@ class BatchProcessor:
 
         scorer_batch_fn = getattr(self._backend, "review_batch", None)
         if scorer_batch_fn is not None and not isinstance(
-            self._backend, BatchProcessor
+            self._backend,
+            BatchProcessor,
         ):
             try:
                 result = await loop.run_in_executor(
-                    None, lambda: self.review_batch(items, tenant_id=tenant_id)
+                    None,
+                    lambda: self.review_batch(items, tenant_id=tenant_id),
                 )
                 return result
             except Exception as exc:
                 logger.warning(
-                    "Async coalesced review_batch failed, falling back: %s", exc
+                    "Async coalesced review_batch failed, falling back: %s",
+                    exc,
                 )
 
         sem = asyncio.Semaphore(max_concurrency or self.max_concurrency)
@@ -315,7 +336,12 @@ class BatchProcessor:
                 try:
                     item = await asyncio.wait_for(
                         loop.run_in_executor(
-                            None, self._review_one, idx, prompt, response, tenant_id
+                            None,
+                            self._review_one,
+                            idx,
+                            prompt,
+                            response,
+                            tenant_id,
                         ),
                         timeout=self.item_timeout,
                     )

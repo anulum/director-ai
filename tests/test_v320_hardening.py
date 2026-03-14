@@ -41,7 +41,8 @@ class TestBatchAsync:
     def test_process_batch_async_ordering(self):
         agent = MagicMock()
         agent.process.side_effect = lambda p, **kw: MagicMock(
-            halted=False, coherence=MagicMock(score=0.9)
+            halted=False,
+            coherence=MagicMock(score=0.9),
         )
         bp = BatchProcessor(agent, max_concurrency=2)
         result = asyncio.run(bp.process_batch_async(["p1", "p2", "p3"]))
@@ -111,7 +112,8 @@ class TestLiteScorerReview:
     def test_review_contradiction(self):
         scorer = LiteScorer()
         approved, cs = scorer.review(
-            "The sky is blue", "Elephants never forget anything"
+            "The sky is blue",
+            "Elephants never forget anything",
         )
         assert cs.score < 0.8
 

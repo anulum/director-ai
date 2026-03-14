@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Guard OpenAI chat completions with Director-AI.
+"""Guard OpenAI chat completions with Director-AI.
 
 Requires:
     pip install director-ai openai

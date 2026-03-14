@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-End-to-end benchmark measuring Director-AI as a guardrail on real
+"""End-to-end benchmark measuring Director-AI as a guardrail on real
 hallucination datasets (HaluEval QA/summarization/dialogue, TruthfulQA).
 
 Unlike component-level NLI benchmarks (aggrefact_eval, mnli_eval),
@@ -174,7 +173,8 @@ class E2EMetrics:
                 "precision": round(prec, 4),
                 "f1": round(f1, 4),
                 "avg_latency_ms": round(
-                    float(np.mean([s.latency_ms for s in task_samples])), 2
+                    float(np.mean([s.latency_ms for s in task_samples])),
+                    2,
                 ),
             }
         return result
@@ -229,6 +229,7 @@ def run_e2e_benchmark(
     scorer_backend : "deberta", "hybrid", "onnx", or "lite".
     llm_judge_provider : "openai" or "anthropic" (required for hybrid).
     llm_judge_model : model name for LLM judge.
+
     """
     from director_ai.core.scorer import CoherenceScorer
     from director_ai.core.vector_store import VectorGroundTruthStore
@@ -381,7 +382,7 @@ def sweep_thresholds(
                 "fp": fp,
                 "tn": tn,
                 "fn": fn,
-            }
+            },
         )
 
     return results
@@ -485,7 +486,7 @@ def print_e2e_results(m: E2EMetrics, baseline: E2EMetrics | None = None) -> None
             f"  {task_name:<15} {d['total']:>5} "
             f"{d['catch_rate']:>6.1%} {d['false_positive_rate']:>6.1%} "
             f"{d['precision']:>6.1%} {d['f1']:>6.1%} "
-            f"{d['avg_latency_ms']:>7.1f}ms"
+            f"{d['avg_latency_ms']:>7.1f}ms",
         )
     print(f"{'=' * 72}")
 
@@ -499,7 +500,7 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
     parser = argparse.ArgumentParser(
-        description="Director-AI end-to-end guardrail benchmark"
+        description="Director-AI end-to-end guardrail benchmark",
     )
     parser.add_argument(
         "--max-samples",
@@ -572,7 +573,7 @@ if __name__ == "__main__":
             print(
                 f"{r['threshold']:>10.2f} {r['catch_rate']:>7.1%} "
                 f"{r['false_positive_rate']:>7.1%} {r['precision']:>7.1%} "
-                f"{r['f1']:>7.1%}"
+                f"{r['f1']:>7.1%}",
             )
         save_results(
             {"benchmark": "E2E-Sweep", "results": results},

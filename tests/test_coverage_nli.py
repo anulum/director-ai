@@ -132,7 +132,8 @@ class TestNLIScorerChunked:
     def test_score_decomposed_multi(self):
         scorer = NLIScorer(use_model=False)
         agg, scores = scorer.score_decomposed(
-            "sky is blue", "The sky is blue. Water is wet."
+            "sky is blue",
+            "The sky is blue. Water is wet.",
         )
         assert len(scores) == 2
 

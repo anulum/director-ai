@@ -5,7 +5,7 @@ import pytest
 from director_ai.core.stats import StatsStore
 
 
-@pytest.fixture()
+@pytest.fixture
 def store(tmp_path):
     db = tmp_path / "test_stats.db"
     s = StatsStore(db_path=db)
@@ -23,7 +23,11 @@ class TestStatsStore:
     def test_record_and_summary(self, store):
         store.record_review(approved=True, score=0.85, h_logical=0.1, h_factual=0.15)
         store.record_review(
-            approved=False, score=0.45, h_logical=0.6, h_factual=0.4, halted=True
+            approved=False,
+            score=0.45,
+            h_logical=0.6,
+            h_factual=0.4,
+            halted=True,
         )
         s = store.summary()
         assert s["total"] == 2

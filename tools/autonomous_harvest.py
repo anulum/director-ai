@@ -110,7 +110,8 @@ def download_model(inst, model):
     local_tar_u = local_tar.replace("\\", "/")
     local_dir_u = local_dir.replace("\\", "/")
     code, _, err = run(
-        f'tar --force-local -xzf "{local_tar_u}" -C "{local_dir_u}"', timeout=120
+        f'tar --force-local -xzf "{local_tar_u}" -C "{local_dir_u}"',
+        timeout=120,
     )
     if code != 0:
         log(f"  EXTRACT FAILED: {err}")
@@ -127,9 +128,8 @@ def download_model(inst, model):
         log(f"  VERIFIED: {name} — {size_mb:.0f}MB, bal_acc={bal_acc:.4f}")
         os.remove(local_tar)
         return True
-    else:
-        log(f"  VERIFICATION FAILED: missing files in {local_dir}")
-        return False
+    log(f"  VERIFICATION FAILED: missing files in {local_dir}")
+    return False
 
 
 def destroy_jarvis(instance_id):
@@ -163,7 +163,7 @@ def main():
     log("=" * 60)
     log("AUTONOMOUS HARVEST STARTED")
     log(
-        f"Monitoring {len(INSTANCES)} instances, {sum(len(i['models']) for i in INSTANCES)} models"
+        f"Monitoring {len(INSTANCES)} instances, {sum(len(i['models']) for i in INSTANCES)} models",
     )
     log("=" * 60)
 
@@ -216,7 +216,7 @@ def main():
                 log(f"Instance {inst['name']} fully harvested and destroyed")
             elif all_done:
                 log(
-                    f"Instance {inst['name']}: some downloads failed, retrying next cycle"
+                    f"Instance {inst['name']}: some downloads failed, retrying next cycle",
                 )
 
         remaining = [

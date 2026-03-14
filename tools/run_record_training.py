@@ -71,7 +71,7 @@ def load_record():
     val_split = split["test"].train_test_split(test_size=0.5, seed=42)
 
     print(
-        f"ReCoRD loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}"
+        f"ReCoRD loaded: train={len(split['train'])}, val={len(val_split['train'])}, test={len(val_split['test'])}",
     )
     return split["train"], val_split["train"], val_split["test"]
 
@@ -79,7 +79,10 @@ def load_record():
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
         return tokenizer(
-            batch["text"], truncation=True, max_length=max_length, padding=False
+            batch["text"],
+            truncation=True,
+            max_length=max_length,
+            padding=False,
         )
 
     return _tok

@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate Director-AI on legal domain factual consistency.
+"""Evaluate Director-AI on legal domain factual consistency.
 
 Datasets:
   - ContractNLI: NLI on contract clauses — determines if a hypothesis
@@ -37,7 +36,8 @@ CONTRACTNLI_HF_ID = "kiddothe2b/contract-nli"
 
 
 def _load_contractnli(
-    split: str = "test", max_samples: int | None = None
+    split: str = "test",
+    max_samples: int | None = None,
 ) -> list[dict]:
     """Load ContractNLI dataset."""
     from datasets import load_dataset
@@ -53,7 +53,7 @@ def _load_contractnli(
         except Exception as exc:
             logger.debug("Could not load %s: %s", hf_id, exc)
     raise RuntimeError(
-        "ContractNLI not available. Try: pip install datasets && export HF_TOKEN=..."
+        "ContractNLI not available. Try: pip install datasets && export HF_TOKEN=...",
     )
 
 
@@ -62,7 +62,10 @@ def _load_cuad_ragbench(max_samples: int | None = None) -> list[dict]:
     from datasets import load_dataset
 
     ds = load_dataset(
-        "rungalileo/ragbench", "cuad", split="test", trust_remote_code=True
+        "rungalileo/ragbench",
+        "cuad",
+        split="test",
+        trust_remote_code=True,
     )
     rows = list(ds)
     if max_samples:

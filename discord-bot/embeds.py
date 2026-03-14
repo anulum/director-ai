@@ -121,11 +121,15 @@ def docker_embed(
     )
     if cpu_tags:
         em.add_field(
-            name="CPU", value="\n".join(f"`{t}`" for t in cpu_tags), inline=True
+            name="CPU",
+            value="\n".join(f"`{t}`" for t in cpu_tags),
+            inline=True,
         )
     if gpu_tags:
         em.add_field(
-            name="GPU", value="\n".join(f"`{t}`" for t in gpu_tags), inline=True
+            name="GPU",
+            value="\n".join(f"`{t}`" for t in gpu_tags),
+            inline=True,
         )
     em.add_field(
         name="Pull",

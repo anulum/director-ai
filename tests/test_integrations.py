@@ -63,7 +63,7 @@ class TestLangChainGuard:
             {
                 "query": "What color is the sky?",
                 "response": "The sky is blue.",
-            }
+            },
         )
         assert result["approved"] is True
 
@@ -121,7 +121,8 @@ class TestLlamaIndexPostprocessor:
             use_nli=False,
         )
         approved, score = pp.validate_response(
-            "What color is the sky?", "The sky is blue."
+            "What color is the sky?",
+            "The sky is blue.",
         )
         assert approved is True
         assert score.score > 0.5

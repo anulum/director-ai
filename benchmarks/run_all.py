@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Run the complete held-out benchmark suite and produce a comparison table.
+"""Run the complete held-out benchmark suite and produce a comparison table.
 
 Runs each model against: MNLI, ANLI R1/R2/R3, FEVER dev, VitaminC dev,
 PAWS, and false-positive rate on clean RAG data.
@@ -56,7 +55,10 @@ def _run_suite(model_name: str | None, max_samples: int | None) -> dict:
         label = f"anli_{rnd}"
         logger.info("=== %s ===", label)
         m = run_anli_benchmark(
-            rnd, "test", max_samples=max_samples, model_name=model_name
+            rnd,
+            "test",
+            max_samples=max_samples,
+            model_name=model_name,
         )
         results[label] = m.to_dict()
 
@@ -68,7 +70,9 @@ def _run_suite(model_name: str | None, max_samples: int | None) -> dict:
     # VitaminC dev
     logger.info("=== vitaminc_dev ===")
     m = run_vitaminc_benchmark(
-        "validation", max_samples=max_samples, model_name=model_name
+        "validation",
+        max_samples=max_samples,
+        model_name=model_name,
     )
     results["vitaminc_dev"] = m.to_dict()
 

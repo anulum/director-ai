@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Structured exception hierarchy for Director-Class AI.
+"""Structured exception hierarchy for Director-Class AI.
 
 All library-specific exceptions descend from ``DirectorAIError`` so
 callers can catch the entire family with a single except clause.
@@ -51,5 +50,5 @@ class HallucinationError(DirectorAIError):
         self.response = response
         self.score = score
         super().__init__(
-            f"Hallucination detected (coherence={score.score:.3f}): {response[:100]}"
+            f"Hallucination detected (coherence={score.score:.3f}): {response[:100]}",
         )

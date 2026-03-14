@@ -52,7 +52,7 @@ class NLIMetrics:
         from sklearn.metrics import f1_score
 
         return float(
-            f1_score(self.y_true, self.y_pred, average="macro", labels=[0, 1, 2])
+            f1_score(self.y_true, self.y_pred, average="macro", labels=[0, 1, 2]),
         )
 
     def precision_recall_per_class(self) -> dict[str, dict[str, float]]:
@@ -109,7 +109,8 @@ class NLIPredictor:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         self.model_name = model_name or os.environ.get(
-            "DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"
+            "DIRECTOR_NLI_MODEL",
+            "yaxili96/FactCG-DeBERTa-v3-Large",
         )
         logger.info("Loading NLI model: %s", self.model_name)
         self.tokenizer = AutoTokenizer.from_pretrained(self.model_name)
@@ -137,7 +138,9 @@ class NLIPredictor:
         return int(logits.argmax(dim=1).item())
 
     def predict_with_probs(
-        self, premise: str, hypothesis: str
+        self,
+        premise: str,
+        hypothesis: str,
     ) -> tuple[int, np.ndarray]:
         """Return (predicted_label, probability_array[3])."""
         import torch
@@ -170,7 +173,7 @@ def print_nli_metrics(metrics: NLIMetrics, benchmark_name: str) -> None:
         print(f"    {name:15s}  F1={per_class[name]:.4f}  P={p:.4f}  R={r:.4f}")
     if metrics.inference_times:
         print(
-            f"  Latency:    {metrics.avg_latency_ms:.1f} ms avg, {metrics.p95_latency_ms:.1f} ms p95"
+            f"  Latency:    {metrics.avg_latency_ms:.1f} ms avg, {metrics.p95_latency_ms:.1f} ms p95",
         )
     print(f"{'=' * 65}")
 
@@ -193,5 +196,8 @@ def add_common_args(parser) -> None:
         help="Limit evaluation samples (default: all)",
     )
     parser.add_argument(
-        "--model", type=str, default=None, help="HuggingFace model ID or local path"
+        "--model",
+        type=str,
+        default=None,
+        help="HuggingFace model ID or local path",
     )

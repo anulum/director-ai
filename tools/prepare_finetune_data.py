@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Download HuggingFace datasets and convert to unified JSONL for fine-tuning.
+"""Download HuggingFace datasets and convert to unified JSONL for fine-tuning.
 
 Produces three training sets:
 
@@ -53,13 +52,14 @@ CONTRACTNLI_HF_IDS = ["kiddothe2b/contract-nli", "law-ai/contract-nli"]
 def _write_jsonl(rows: list[dict], path: Path) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as f:
-        for row in rows:
-            f.write(json.dumps(row, ensure_ascii=False) + "\n")
+        f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in rows)
     logger.info("Wrote %d samples to %s", len(rows), path)
 
 
 def _split(
-    rows: list[dict], eval_ratio: float, seed: int
+    rows: list[dict],
+    eval_ratio: float,
+    seed: int,
 ) -> tuple[list[dict], list[dict]]:
     rng = random.Random(seed)
     rng.shuffle(rows)
@@ -89,7 +89,7 @@ def prepare_aggrefact(eval_ratio: float = 0.1, seed: int = 42) -> None:
                         "premise": doc,
                         "hypothesis": claim,
                         "label": int(label),
-                    }
+                    },
                 )
         except Exception as exc:
             logger.warning("AggreFact split '%s' unavailable: %s", split, exc)
@@ -130,11 +130,13 @@ def _load_mednli_binary() -> list[dict]:
                             1 if label_int == 0 else 0
                         )  # 0=entailment→1, 2=contradiction→0
                     rows.append(
-                        {"premise": premise, "hypothesis": hypothesis, "label": label}
+                        {"premise": premise, "hypothesis": hypothesis, "label": label},
                     )
             if rows:
                 logger.info(
-                    "Loaded MedNLI from %s: %d binary samples", hf_id, len(rows)
+                    "Loaded MedNLI from %s: %d binary samples",
+                    hf_id,
+                    len(rows),
                 )
                 return rows
         except Exception as exc:
@@ -213,11 +215,13 @@ def _load_contractnli_binary() -> list[dict]:
                             continue
                         label = 1 if label_int == 0 else 0
                     rows.append(
-                        {"premise": premise, "hypothesis": hypothesis, "label": label}
+                        {"premise": premise, "hypothesis": hypothesis, "label": label},
                     )
             if rows:
                 logger.info(
-                    "Loaded ContractNLI from %s: %d binary samples", hf_id, len(rows)
+                    "Loaded ContractNLI from %s: %d binary samples",
+                    hf_id,
+                    len(rows),
                 )
                 return rows
         except Exception as exc:

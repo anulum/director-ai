@@ -75,8 +75,8 @@ class TestPolicy:
                     "name": "no_placeholder",
                     "regex": r"\bTODO\b",
                     "action": "block",
-                }
-            ]
+                },
+            ],
         )
         vs = p.check("This is a TODO item")
         assert len(vs) == 1
@@ -340,7 +340,7 @@ class TestInputSanitizer:
         san = InputSanitizer(
             extra_patterns=[
                 ("custom_block", r"\bSECRET\b"),
-            ]
+            ],
         )
         r = san.score("The SECRET code is 1234")
         assert r.suspicion_score > 0

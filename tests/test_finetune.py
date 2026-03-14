@@ -95,11 +95,11 @@ class TestLoadJsonl:
                     "premise": "The sky is blue.",
                     "hypothesis": "Sky is blue.",
                     "label": 1,
-                }
+                },
             )
             + "\n"
             + json.dumps(
-                {"premise": "Cats are dogs.", "hypothesis": "Cats bark.", "label": 0}
+                {"premise": "Cats are dogs.", "hypothesis": "Cats bark.", "label": 0},
             )
             + "\n",
             encoding="utf-8",
@@ -184,7 +184,10 @@ class TestMixGeneralData:
         ]
         general_file = self._make_jsonl(tmp_path, "general.jsonl", 50)
         mixed, n_added = _mix_general_data(
-            domain, str(general_file), ratio=0.2, seed=42
+            domain,
+            str(general_file),
+            ratio=0.2,
+            seed=42,
         )
         assert n_added > 0
         assert len(mixed) == len(domain) + n_added
@@ -194,7 +197,10 @@ class TestMixGeneralData:
 
         domain = [{"premise": "D", "hypothesis": "C", "label": 1}]
         mixed, n_added = _mix_general_data(
-            domain, "/nonexistent_path_xyz.jsonl", 0.2, 42
+            domain,
+            "/nonexistent_path_xyz.jsonl",
+            0.2,
+            42,
         )
         assert n_added == 0
         assert mixed is domain
@@ -208,7 +214,10 @@ class TestMixGeneralData:
         ]
         general_file = self._make_jsonl(tmp_path, "general.jsonl", 500)
         mixed, n_added = _mix_general_data(
-            domain, str(general_file), ratio=0.2, seed=42
+            domain,
+            str(general_file),
+            ratio=0.2,
+            seed=42,
         )
         actual_ratio = n_added / len(mixed)
         assert 0.15 < actual_ratio < 0.25

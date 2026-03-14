@@ -142,7 +142,10 @@ class TestBatchProcessorCoalesced:
                 return (
                     True,
                     CoherenceScore(
-                        score=0.9, approved=True, h_logical=0.05, h_factual=0.05
+                        score=0.9,
+                        approved=True,
+                        h_logical=0.05,
+                        h_factual=0.05,
                     ),
                 )
 
@@ -153,9 +156,11 @@ class TestBatchProcessorCoalesced:
 
     def test_coalesced_fallback_on_bad_length(self):
         """If scorer.review_batch returns wrong length, falls back."""
-
         _score = CoherenceScore(
-            score=0.9, approved=True, h_logical=0.05, h_factual=0.05
+            score=0.9,
+            approved=True,
+            h_logical=0.05,
+            h_factual=0.05,
         )
 
         class WrongLenScorer:
@@ -174,7 +179,10 @@ class TestBatchProcessorCoalesced:
     def test_coalesced_none_item_counted_as_failure(self):
         """None in results list counts as failed."""
         _score = CoherenceScore(
-            score=0.9, approved=True, h_logical=0.05, h_factual=0.05
+            score=0.9,
+            approved=True,
+            h_logical=0.05,
+            h_factual=0.05,
         )
 
         class NoneItemScorer:
@@ -220,7 +228,10 @@ class TestBatchProcessorCoalescedAsync:
                 return (
                     True,
                     CoherenceScore(
-                        score=0.9, approved=True, h_logical=0.05, h_factual=0.05
+                        score=0.9,
+                        approved=True,
+                        h_logical=0.05,
+                        h_factual=0.05,
                     ),
                 )
 

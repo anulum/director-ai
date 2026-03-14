@@ -68,7 +68,7 @@ class TestOtelWithMock:
             with trace_review() as span:
                 span.set_attribute("coherence.score", 0.85)
             mock_tracer.start_as_current_span.assert_called_once_with(
-                "director_ai.review"
+                "director_ai.review",
             )
             mock_span.set_attribute.assert_called_once_with("coherence.score", 0.85)
         finally:
@@ -89,7 +89,7 @@ class TestOtelWithMock:
             with trace_streaming() as span:
                 span.set_attribute("stream.token_count", 42)
             mock_tracer.start_as_current_span.assert_called_once_with(
-                "director_ai.stream"
+                "director_ai.stream",
             )
         finally:
             otel_mod._tracer = None

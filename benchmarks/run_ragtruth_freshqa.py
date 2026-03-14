@@ -4,8 +4,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-RAGTruth and FreshQA with corrected dataset sources.
+"""RAGTruth and FreshQA with corrected dataset sources.
 
 - RAGTruth: wandb/RAGTruth-processed (HuggingFace)
   Fields: context, query, output, hallucination_labels_processed

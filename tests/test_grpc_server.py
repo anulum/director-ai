@@ -108,4 +108,3 @@ class TestCliTransportFlag:
         # Calling with --transport grpc --port 0 would start a server;
         # we test the flag is accepted by checking no arg parse error
         # (actual server test is above)
-        pass

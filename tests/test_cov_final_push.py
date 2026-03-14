@@ -1,6 +1,7 @@
 """Final coverage push: server rate-limit with slowapi, WS streaming oversight,
 halt_evidence serialization, provider stream error paths, agent _build_scorer,
-cli evaluate/export edges."""
+cli evaluate/export edges.
+"""
 
 from __future__ import annotations
 
@@ -218,7 +219,7 @@ class TestNliModelScoreSingle:
         mock_torch.no_grad.return_value.__enter__ = MagicMock()
         mock_torch.no_grad.return_value.__exit__ = MagicMock()
         mock_torch.softmax.return_value.cpu.return_value.numpy.return_value = [
-            mock_probs
+            mock_probs,
         ]
         scorer._model.return_value.logits = MagicMock()
 
@@ -328,11 +329,11 @@ class TestCliTuneCommand:
         input_f = tmp_path / "tune.jsonl"
         input_f.write_text(
             json.dumps(
-                {"prompt": "sky?", "response": "The sky is blue.", "label": True}
+                {"prompt": "sky?", "response": "The sky is blue.", "label": True},
             )
             + "\n"
             + json.dumps(
-                {"prompt": "sun?", "response": "The sun is cold.", "label": False}
+                {"prompt": "sun?", "response": "The sun is cold.", "label": False},
             )
             + "\n",
             encoding="utf-8",

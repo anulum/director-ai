@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-gRPC server for Director-Class AI.
+"""gRPC server for Director-Class AI.
 
 Usage::
 
@@ -50,7 +49,7 @@ def create_grpc_server(
     except ImportError as exc:
         raise ImportError(
             "gRPC transport requires grpcio. "
-            "Install with: pip install director-ai[grpc]"
+            "Install with: pip install director-ai[grpc]",
         ) from exc
 
     cfg = config or DirectorConfig.from_env()
@@ -69,7 +68,7 @@ def create_grpc_server(
             "gRPC protobuf stubs not found. "
             "Run: python -m grpc_tools.protoc -Iproto "
             "--python_out=src/director_ai --grpc_python_out=src/director_ai "
-            "proto/director.proto"
+            "proto/director.proto",
         ) from exc
 
     review_resp = director_pb2.ReviewResponse  # type: ignore[attr-defined]
@@ -81,11 +80,13 @@ def create_grpc_server(
     # Shared background event loop for async streaming RPCs
     _bg_loop = asyncio.new_event_loop()
     _bg_thread = threading.Thread(
-        target=_bg_loop.run_forever, daemon=True, name="grpc-async"
+        target=_bg_loop.run_forever,
+        daemon=True,
+        name="grpc-async",
     )
     _bg_thread.start()
 
-    class DirectorServicer:  # noqa: N801
+    class DirectorServicer:
         """Implements the DirectorService RPC methods."""
 
         def Review(self, request, context):  # noqa: N802
@@ -126,7 +127,7 @@ def create_grpc_server(
                         h_logical=score.h_logical,
                         h_factual=score.h_factual,
                         warning=score.warning,
-                    )
+                    ),
                 )
             return batch_resp(responses=responses)
 
@@ -178,7 +179,7 @@ def create_grpc_server(
                 method = handler_call_details.method or ""
                 if "Stream" in method.rsplit("/", 1)[-1]:
                     return grpc.unary_stream_rpc_method_handler(
-                        lambda req, ctx: iter([_abort(req, ctx)])
+                        lambda req, ctx: iter([_abort(req, ctx)]),
                     )
                 return grpc.unary_unary_rpc_method_handler(_abort)
             return continuation(handler_call_details)
@@ -205,7 +206,7 @@ def create_grpc_server(
         service_names = []
         if has_proto:
             service_names.append(
-                director_pb2.DESCRIPTOR.services_by_name["DirectorService"].full_name
+                director_pb2.DESCRIPTOR.services_by_name["DirectorService"].full_name,
             )
         service_names.append(reflection.SERVICE_NAME)
         reflection.enable_server_reflection(service_names, server)
@@ -223,7 +224,7 @@ def create_grpc_server(
     else:
         logger.warning(
             "Proto stubs not found — run scripts/gen_proto.sh. "
-            "Server created but service not registered."
+            "Server created but service not registered.",
         )
 
     if tls_cert_path and tls_key_path:

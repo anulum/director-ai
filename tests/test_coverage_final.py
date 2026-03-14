@@ -123,7 +123,7 @@ class TestServerOtelBranch:
 
         cfg = DirectorConfig(use_nli=False, otel_enabled=True)
         app = __import__("director_ai.server", fromlist=["create_app"]).create_app(
-            config=cfg
+            config=cfg,
         )
         with TestClient(app) as c:
             resp = c.get("/v1/health")
@@ -137,7 +137,7 @@ class TestServerReviewWithTenant:
 
         cfg = DirectorConfig(use_nli=False, tenant_routing=True)
         app = __import__("director_ai.server", fromlist=["create_app"]).create_app(
-            config=cfg
+            config=cfg,
         )
         with TestClient(app) as c:
             resp = c.post(

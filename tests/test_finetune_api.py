@@ -13,7 +13,7 @@ import pytest
 
 pytest.importorskip("fastapi", reason="fastapi required for finetune API tests")
 
-from director_ai.finetune_api import (  # noqa: E402
+from director_ai.finetune_api import (
     _MAX_CONCURRENT_JOBS,
     FinetuneJob,
     _JobStore,
@@ -116,11 +116,11 @@ class TestRouterEndpoints:
         rows = []
         for i in range(n_pos):
             rows.append(
-                {"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1}
+                {"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1},
             )
         for i in range(n_neg):
             rows.append(
-                {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0}
+                {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0},
             )
         return ("\n".join(json.dumps(r) for r in rows) + "\n").encode("utf-8")
 
@@ -495,11 +495,11 @@ class TestRouterStartEndpoint:
         rows = []
         for i in range(n_pos):
             rows.append(
-                {"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1}
+                {"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1},
             )
         for i in range(n_neg):
             rows.append(
-                {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0}
+                {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0},
             )
         return ("\n".join(json.dumps(r) for r in rows) + "\n").encode("utf-8")
 
@@ -612,7 +612,7 @@ def _make_jsonl_file(path, n_pos=60, n_neg=60):
         rows.append({"premise": f"Fact {i}.", "hypothesis": f"Claim {i}.", "label": 1})
     for i in range(n_neg):
         rows.append(
-            {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0}
+            {"premise": f"Source {i}.", "hypothesis": f"Wrong {i}.", "label": 0},
         )
     path.write_text(
         "\n".join(json.dumps(r) for r in rows) + "\n",
@@ -706,7 +706,8 @@ class TestTrainingWorkerDirect:
         assert eval_path.endswith("_eval.jsonl")
 
     @patch(
-        "director_ai.core.finetune.finetune_nli", side_effect=RuntimeError("GPU OOM")
+        "director_ai.core.finetune.finetune_nli",
+        side_effect=RuntimeError("GPU OOM"),
     )
     def test_worker_cleans_up_on_exception(self, mock_ft, tmp_path):
         data_path = tmp_path / "data.jsonl"

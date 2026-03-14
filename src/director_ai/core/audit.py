@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Structured JSON audit trail for every review decision.
+"""Structured JSON audit trail for every review decision.
 
 Every call to ``log_review()`` produces a JSON object with timestamp,
 decision, scores, policy violations, and tenant context.
@@ -61,6 +60,7 @@ class AuditLogger:
     ----------
     path : str | Path | None — JSONL file path. None = logging-only.
     logger_name : str — Python logger name for audit events.
+
     """
 
     def __init__(
@@ -99,7 +99,9 @@ class AuditLogger:
         entry = AuditEntry(
             timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),
             query_hash=_hmac.new(
-                self._hmac_key, query.encode("utf-8"), hashlib.sha256
+                self._hmac_key,
+                query.encode("utf-8"),
+                hashlib.sha256,
             ).hexdigest()[:16],
             response_length=len(response),
             approved=approved,

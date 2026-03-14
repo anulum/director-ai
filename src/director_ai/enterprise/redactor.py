@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Enterprise PII (Personally Identifiable Information) Redaction.
+"""Enterprise PII (Personally Identifiable Information) Redaction.
 
 Detects and masks sensitive information (SSN, emails, phones, credit cards, PHI)
 before processing or logging.

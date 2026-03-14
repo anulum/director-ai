@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate Director-AI on RAGBench (rungalileo/ragbench) — real RAG pipeline
+"""Evaluate Director-AI on RAGBench (rungalileo/ragbench) — real RAG pipeline
 outputs with grounded/hallucinated labels across 5 domains.
 
 Requires ``datasets`` and optionally ``HF_TOKEN`` env var.

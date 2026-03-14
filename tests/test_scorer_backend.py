@@ -15,7 +15,9 @@ class TestScorerBackendForwarding:
 
     def test_backend_param_forwarded(self):
         scorer = CoherenceScorer(
-            threshold=0.5, use_nli=True, scorer_backend="minicheck"
+            threshold=0.5,
+            use_nli=True,
+            scorer_backend="minicheck",
         )
         assert scorer.scorer_backend == "minicheck"
         assert scorer._nli is not None
@@ -38,7 +40,8 @@ class TestHybridBackend:
         import pytest
 
         with pytest.raises(
-            ValueError, match="hybrid backend requires llm_judge_provider"
+            ValueError,
+            match="hybrid backend requires llm_judge_provider",
         ):
             CoherenceScorer(threshold=0.5, use_nli=False, scorer_backend="hybrid")
 
@@ -69,12 +72,12 @@ class TestHybridBackend:
 class TestLLMJudgeParsing:
     def test_parse_json_yes(self):
         assert CoherenceScorer._parse_judge_reply(
-            '{"verdict": "YES", "confidence": 90}'
+            '{"verdict": "YES", "confidence": 90}',
         )
 
     def test_parse_json_no(self):
         assert not CoherenceScorer._parse_judge_reply(
-            '{"verdict": "NO", "confidence": 20}'
+            '{"verdict": "NO", "confidence": 20}',
         )
 
     def test_parse_fallback_string_yes(self):
@@ -130,7 +133,9 @@ class TestRustBackend:
 
         with patch.dict("sys.modules", {"backfire_kernel": None}):
             scorer = CoherenceScorer(
-                threshold=0.5, use_nli=False, scorer_backend="rust"
+                threshold=0.5,
+                use_nli=False,
+                scorer_backend="rust",
             )
             assert scorer._rust_scorer is None
             assert scorer.scorer_backend == "rust"
@@ -157,7 +162,9 @@ class TestRustBackend:
 
         with patch.dict("sys.modules", {"backfire_kernel": None}):
             scorer = CoherenceScorer(
-                threshold=0.7, use_nli=False, scorer_backend="rust"
+                threshold=0.7,
+                use_nli=False,
+                scorer_backend="rust",
             )
             assert scorer.threshold == 0.7
 
@@ -176,7 +183,7 @@ class TestRustBackend:
                 "backfire_kernel": MagicMock(
                     BackfireConfig=mock_config_cls,
                     RustCoherenceScorer=mock_scorer_cls,
-                )
+                ),
             },
         ):
             scorer = CoherenceScorer(
@@ -325,7 +332,9 @@ class TestAggregationPassthrough:
 
         scorer.calculate_factual_divergence("prompt", "output")
         mock_store.retrieve_context.assert_called_once_with(
-            "prompt", top_k=3, tenant_id=""
+            "prompt",
+            top_k=3,
+            tenant_id="",
         )
         mock_nli.score_chunked.assert_called_once_with(
             "some context",
@@ -349,16 +358,17 @@ class TestWLogicZeroShortCircuit:
 
         mock_store = MagicMock()
         mock_store.retrieve_context_with_chunks.return_value = [
-            MagicMock(text="some context", distance=0.0, source="test")
+            MagicMock(text="some context", distance=0.0, source="test"),
         ]
         scorer.ground_truth_store = mock_store
 
         # Patch isinstance check so VectorGroundTruthStore matches
         with patch(
-            "director_ai.core.scorer.CoherenceScorer.calculate_logical_divergence"
+            "director_ai.core.scorer.CoherenceScorer.calculate_logical_divergence",
         ) as mock_logic:
             h_logic, h_fact, coherence, _ = scorer._heuristic_coherence(
-                "prompt", "action"
+                "prompt",
+                "action",
             )
             mock_logic.assert_not_called()
             assert h_logic == 0.0

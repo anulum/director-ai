@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Pluggable vector database backend for embedding-based retrieval.
+"""Pluggable vector database backend for embedding-based retrieval.
 
 Provides ``VectorGroundTruthStore`` which extends ``GroundTruthStore``
 with semantic similarity search via ChromaDB (local) or any backend
@@ -51,7 +50,7 @@ def get_vector_backend(name: str) -> type[VectorBackend]:
     _load_vector_entry_points()
     if name not in _VECTOR_REGISTRY:
         raise KeyError(
-            f"Unknown vector backend {name!r}. Available: {list(_VECTOR_REGISTRY)}"
+            f"Unknown vector backend {name!r}. Available: {list(_VECTOR_REGISTRY)}",
         )
     return _VECTOR_REGISTRY[name]
 
@@ -84,7 +83,9 @@ def _load_vector_entry_points() -> None:
                     register_vector_backend(ep.name, cls)
             except (ImportError, AttributeError, TypeError) as exc:  # pragma: no cover
                 logger.warning(
-                    "Failed to load vector backend entry point %s: %s", ep.name, exc
+                    "Failed to load vector backend entry point %s: %s",
+                    ep.name,
+                    exc,
                 )
     except ImportError:
         pass
@@ -95,19 +96,28 @@ class VectorBackend(ABC):
 
     @abstractmethod
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None: ...  # pragma: no cover
 
     @abstractmethod
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]: ...  # pragma: no cover
 
     @abstractmethod
     def count(self) -> int: ...  # pragma: no cover
 
     async def aadd(
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         """Async add — delegates to sync add via executor by default."""
         import asyncio
@@ -116,7 +126,10 @@ class VectorBackend(ABC):
         await loop.run_in_executor(None, self.add, doc_id, text, metadata)
 
     async def aquery(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         """Async query — delegates to sync query via executor by default."""
         import asyncio
@@ -126,7 +139,10 @@ class VectorBackend(ABC):
         return await loop.run_in_executor(
             None,
             functools.partial(
-                self.query, text, n_results=n_results, tenant_id=tenant_id
+                self.query,
+                text,
+                n_results=n_results,
+                tenant_id=tenant_id,
             ),
         )
 
@@ -143,13 +159,19 @@ class InMemoryBackend(VectorBackend):
         self._lock = threading.Lock()
 
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         with self._lock:
             self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         with self._lock:
             snapshot = list(self._docs)
@@ -202,7 +224,7 @@ class SentenceTransformerBackend(VectorBackend):
         except ImportError as e:
             raise ImportError(
                 "SentenceTransformerBackend requires sentence-transformers. "
-                "Install with: pip install sentence-transformers"
+                "Install with: pip install sentence-transformers",
             ) from e
         self._model = SentenceTransformer(model_name)
         self._docs: list[dict[str, Any]] = []
@@ -210,7 +232,10 @@ class SentenceTransformerBackend(VectorBackend):
         self._lock = threading.Lock()
 
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         import numpy as _np
 
@@ -220,7 +245,10 @@ class SentenceTransformerBackend(VectorBackend):
             self._embeddings.append(_np.asarray(emb, dtype=_np.float32))
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         import numpy as _np
 
@@ -244,7 +272,9 @@ class SentenceTransformerBackend(VectorBackend):
         q_emb = _np.asarray(q_emb, dtype=_np.float32)  # type: ignore[assignment]
         similarities = [float(_np.dot(q_emb, e)) for e in filtered_embs]
         indices = sorted(
-            range(len(similarities)), key=lambda i: similarities[i], reverse=True
+            range(len(similarities)),
+            key=lambda i: similarities[i],
+            reverse=True,
         )
         results = []
         for idx in indices[:n_results]:
@@ -253,7 +283,7 @@ class SentenceTransformerBackend(VectorBackend):
                     {
                         **filtered_docs[idx],
                         "distance": 1.0 - similarities[idx],
-                    }
+                    },
                 )
         return results
 
@@ -279,7 +309,7 @@ class ChromaBackend(VectorBackend):
         except ImportError as e:
             raise ImportError(
                 "ChromaDB backend requires chromadb. "
-                "Install with: pip install director-ai[vector]"
+                "Install with: pip install director-ai[vector]",
             ) from e
 
         if persist_directory:
@@ -299,13 +329,16 @@ class ChromaBackend(VectorBackend):
                 )
             except ImportError:
                 logger.warning(
-                    "sentence-transformers not installed, using Chroma default embedder"
+                    "sentence-transformers not installed, using Chroma default embedder",
                 )
 
         self._collection = self._client.get_or_create_collection(**create_kwargs)
 
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
 
         self._collection.add(
@@ -315,7 +348,10 @@ class ChromaBackend(VectorBackend):
         )
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
 
         where: dict[str, str] | None = {"tenant_id": tenant_id} if tenant_id else None
@@ -340,7 +376,7 @@ class ChromaBackend(VectorBackend):
                         "text": doc_text,
                         "metadata": meta,
                         "distance": dist,
-                    }
+                    },
                 )
         return docs
 
@@ -387,7 +423,10 @@ class HybridBackend(VectorBackend):
         return re.findall(r"\w+", text.lower())
 
     def add(
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         self._base.add(doc_id, text, metadata)
         tokens = self._tokenize(text)
@@ -402,7 +441,10 @@ class HybridBackend(VectorBackend):
                 self._df[term] = self._df.get(term, 0) + 1
 
     def _bm25_query(
-        self, text: str, n_results: int, tenant_id: str
+        self,
+        text: str,
+        n_results: int,
+        tenant_id: str,
     ) -> list[dict[str, Any]]:
         """BM25 scoring: k1=1.2, b=0.75."""
         import math
@@ -445,7 +487,10 @@ class HybridBackend(VectorBackend):
         return results
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         fetch_n = n_results * self._fetch_mul
 
@@ -501,20 +546,28 @@ class RerankedBackend(VectorBackend):
         except ImportError as e:
             raise ImportError(
                 "RerankedBackend requires sentence-transformers. "
-                "Install with: pip install director-ai[reranker]"
+                "Install with: pip install director-ai[reranker]",
             ) from e
         self._reranker = CrossEncoder(reranker_model)
 
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         self._base.add(doc_id, text, metadata)
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         candidates = self._base.query(
-            text, n_results=n_results * self._multiplier, tenant_id=tenant_id
+            text,
+            n_results=n_results * self._multiplier,
+            tenant_id=tenant_id,
         )
         if not candidates:
             return []
@@ -549,7 +602,7 @@ class PineconeBackend(VectorBackend):
         except ImportError as e:
             raise ImportError(
                 "PineconeBackend requires pinecone. "
-                "Install with: pip install director-ai[pinecone]"
+                "Install with: pip install director-ai[pinecone]",
             ) from e
         self._pc = pinecone.Pinecone(api_key=api_key)
         self._index = self._pc.Index(index_name)
@@ -564,7 +617,10 @@ class PineconeBackend(VectorBackend):
         return result
 
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
 
         vector = self._embed(text)
@@ -576,7 +632,10 @@ class PineconeBackend(VectorBackend):
         self._texts[doc_id] = text
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
 
         vector = self._embed(text)
@@ -601,7 +660,7 @@ class PineconeBackend(VectorBackend):
                     "text": meta.get("text", ""),
                     "distance": 1.0 - match.get("score", 0.0),
                     "metadata": meta,
-                }
+                },
             )
         return docs
 
@@ -629,7 +688,7 @@ class WeaviateBackend(VectorBackend):
         except ImportError as e:
             raise ImportError(
                 "WeaviateBackend requires weaviate-client. "
-                "Install with: pip install director-ai[weaviate]"
+                "Install with: pip install director-ai[weaviate]",
             ) from e
         auth = weaviate.auth.AuthApiKey(api_key) if api_key else None
         self._client = weaviate.Client(url=url, auth_client_secret=auth)
@@ -638,7 +697,10 @@ class WeaviateBackend(VectorBackend):
         self._count = 0
 
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
 
         props = {"text": text, "doc_id": doc_id, **(metadata or {})}
@@ -653,7 +715,10 @@ class WeaviateBackend(VectorBackend):
         self._count += 1
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
 
         where_filter = None
@@ -672,7 +737,7 @@ class WeaviateBackend(VectorBackend):
             query_builder = query_builder.with_near_text({"concepts": [text]})
 
         query_builder = query_builder.with_limit(n_results).with_additional(
-            ["distance", "id"]
+            ["distance", "id"],
         )
 
         if where_filter:
@@ -691,7 +756,7 @@ class WeaviateBackend(VectorBackend):
                     "metadata": {
                         k: v for k, v in item.items() if k not in ("_additional",)
                     },
-                }
+                },
             )
         return docs
 
@@ -718,7 +783,7 @@ class QdrantBackend(VectorBackend):
         except ImportError as e:
             raise ImportError(
                 "QdrantBackend requires qdrant-client. "
-                "Install with: pip install director-ai[qdrant]"
+                "Install with: pip install director-ai[qdrant]",
             ) from e
         self._client = QdrantClient(host=url, port=port)
         self._collection = collection_name
@@ -735,12 +800,16 @@ class QdrantBackend(VectorBackend):
             self._client.create_collection(
                 collection_name=self._collection,
                 vectors_config=VectorParams(
-                    size=self._vector_size, distance=Distance.COSINE
+                    size=self._vector_size,
+                    distance=Distance.COSINE,
                 ),
             )
 
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
 
         from qdrant_client.models import PointStruct
@@ -753,7 +822,10 @@ class QdrantBackend(VectorBackend):
         self._client.upsert(collection_name=self._collection, points=[point])
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
 
         from qdrant_client.models import FieldCondition, Filter, MatchValue
@@ -765,8 +837,8 @@ class QdrantBackend(VectorBackend):
                     FieldCondition(
                         key="tenant_id",
                         match=MatchValue(value=tenant_id),
-                    )
-                ]
+                    ),
+                ],
             )
 
         if self._embed_fn is None:
@@ -787,7 +859,7 @@ class QdrantBackend(VectorBackend):
                     "text": payload.get("text", ""),
                     "distance": 1.0 - hit.score,
                     "metadata": payload,
-                }
+                },
             )
         return docs
 
@@ -816,7 +888,7 @@ class FAISSBackend(VectorBackend):
         except ImportError as e:
             raise ImportError(
                 "FAISSBackend requires faiss-cpu or faiss-gpu. "
-                "Install with: pip install director-ai[faiss]"
+                "Install with: pip install director-ai[faiss]",
             ) from e
 
         self._faiss = faiss
@@ -843,7 +915,10 @@ class FAISSBackend(VectorBackend):
         return vec
 
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         vec = self._embed(text)
         with self._lock:
@@ -854,7 +929,10 @@ class FAISSBackend(VectorBackend):
             self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         vec = self._embed(text)
         with self._lock:
@@ -904,7 +982,7 @@ class ElasticsearchBackend(VectorBackend):
         except ImportError as e:
             raise ImportError(
                 "ElasticsearchBackend requires elasticsearch. "
-                "Install with: pip install director-ai[elasticsearch]"
+                "Install with: pip install director-ai[elasticsearch]",
             ) from e
 
         kwargs: dict[str, Any] = {"hosts": [url]}
@@ -926,7 +1004,7 @@ class ElasticsearchBackend(VectorBackend):
                 "text": {"type": "text"},
                 "doc_id": {"type": "keyword"},
                 "tenant_id": {"type": "keyword"},
-            }
+            },
         }
         if self._embed_fn:
             mappings["properties"]["embedding"] = {
@@ -938,7 +1016,10 @@ class ElasticsearchBackend(VectorBackend):
         self._client.indices.create(index=self._index, mappings=mappings)
 
     def add(  # type: ignore[override]
-        self, doc_id: str, text: str, metadata: dict[str, Any] | None = None
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
     ) -> None:
         body: dict[str, Any] = {"text": text, "doc_id": doc_id, **(metadata or {})}
         if self._embed_fn:
@@ -947,7 +1028,10 @@ class ElasticsearchBackend(VectorBackend):
         self._count += 1
 
     def query(
-        self, text: str, n_results: int = 3, tenant_id: str = ""
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
     ) -> list[dict[str, Any]]:
         filters: list[dict[str, Any]] = []
         if tenant_id:
@@ -981,7 +1065,9 @@ class ElasticsearchBackend(VectorBackend):
             if filters:
                 body_query = {"bool": {"must": body_query, "filter": filters}}
             resp = self._client.search(
-                index=self._index, size=n_results, query=body_query
+                index=self._index,
+                size=n_results,
+                query=body_query,
             )
 
         docs: list[dict[str, Any]] = []
@@ -998,7 +1084,7 @@ class ElasticsearchBackend(VectorBackend):
                         for k, v in source.items()
                         if k not in ("text", "embedding")
                     },
-                }
+                },
             )
         return docs
 
@@ -1016,6 +1102,7 @@ class VectorGroundTruthStore(GroundTruthStore):
     Parameters
     ----------
     backend : VectorBackend — vector DB backend (default: InMemoryBackend).
+
     """
 
     def __init__(
@@ -1075,7 +1162,10 @@ class VectorGroundTruthStore(GroundTruthStore):
                 raise ValueError(f"Failed to add to vector store: {e}") from e
 
     def retrieve_context(  # type: ignore[override]
-        self, query: str, top_k: int = 3, tenant_id: str = ""
+        self,
+        query: str,
+        top_k: int = 3,
+        tenant_id: str = "",
     ) -> str | None:
         """Retrieve context as a string (matching parent interface).
 
@@ -1089,7 +1179,9 @@ class VectorGroundTruthStore(GroundTruthStore):
             try:
                 try:
                     results = self.backend.query(
-                        query, n_results=top_k, tenant_id=tenant_id
+                        query,
+                        n_results=top_k,
+                        tenant_id=tenant_id,
                     )
                 except TypeError:
                     # Backend doesn't accept tenant_id
@@ -1115,7 +1207,10 @@ class VectorGroundTruthStore(GroundTruthStore):
                 raise ValueError(f"Failed to query vector store: {e}") from e
 
     def retrieve_context_with_chunks(
-        self, query: str, top_k: int = 3, tenant_id: str = ""
+        self,
+        query: str,
+        top_k: int = 3,
+        tenant_id: str = "",
     ) -> list[EvidenceChunk]:
         """Retrieve context as EvidenceChunk objects."""
         import time
@@ -1125,7 +1220,9 @@ class VectorGroundTruthStore(GroundTruthStore):
             try:
                 try:
                     results = self.backend.query(
-                        query, n_results=top_k, tenant_id=tenant_id
+                        query,
+                        n_results=top_k,
+                        tenant_id=tenant_id,
                     )
                 except TypeError:
                     # Backend doesn't accept tenant_id
@@ -1137,7 +1234,7 @@ class VectorGroundTruthStore(GroundTruthStore):
                             text=r["text"],
                             distance=r.get("distance", 0.0),
                             source=f"vector:{r['id']}",
-                        )
+                        ),
                     )
                 duration = time.monotonic() - start_time
                 metrics.observe("knowledge_query_duration_seconds", duration)

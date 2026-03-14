@@ -77,7 +77,7 @@ def add_noise_to_dataset(dataset, tokenizer, noise_ratio=0.15):
                 torch.rand_like(ex["input_ids"].float()) < noise_ratio,
                 torch.randint(0, vocab_size, ex["input_ids"].shape),
                 ex["input_ids"],
-            )
+            ),
         },
         batched=False,
     )
@@ -181,12 +181,22 @@ def main():
     # Experiment A: R-Drop + Focal (no FGM — conflicts with fp16 AMP scaler on Turing GPUs)
     forge_cfg = ForgeConfig(rdrop_alpha=4.0, focal_gamma=2.0)
     result_forge = run_experiment(
-        "rdrop-focal", train_ds, eval_ds, tokenizer, forge_cfg, use_sieving=False
+        "rdrop-focal",
+        train_ds,
+        eval_ds,
+        tokenizer,
+        forge_cfg,
+        use_sieving=False,
     )
 
     # Experiment B: R-Drop + Focal + Sieving
     result_full = run_experiment(
-        "rdrop-focal-sieving", train_ds, eval_ds, tokenizer, forge_cfg, use_sieving=True
+        "rdrop-focal-sieving",
+        train_ds,
+        eval_ds,
+        tokenizer,
+        forge_cfg,
+        use_sieving=True,
     )
 
     # Load previous sieving-only results for comparison
@@ -211,10 +221,12 @@ def main():
     std_clean = prev.get("standard", {}).get("clean_bal_acc", 0)
     if std_clean:
         summary["delta_forge_vs_standard"] = round(
-            result_forge["clean_bal_acc"] - std_clean, 4
+            result_forge["clean_bal_acc"] - std_clean,
+            4,
         )
         summary["delta_fullstack_vs_standard"] = round(
-            result_full["clean_bal_acc"] - std_clean, 4
+            result_full["clean_bal_acc"] - std_clean,
+            4,
         )
         summary["delta_fullstack_vs_sieving"] = round(
             result_full["clean_bal_acc"]
@@ -232,7 +244,7 @@ def main():
     if std_clean:
         print(f"  Standard baseline:     {std_clean:.4f}")
         print(
-            f"  Sieving only:          {prev.get('sieving', {}).get('clean_bal_acc', 'N/A')}"
+            f"  Sieving only:          {prev.get('sieving', {}).get('clean_bal_acc', 'N/A')}",
         )
     print(f"  Forge only:            {result_forge['clean_bal_acc']:.4f}")
     print(f"  Forge + Sieving:       {result_full['clean_bal_acc']:.4f}")

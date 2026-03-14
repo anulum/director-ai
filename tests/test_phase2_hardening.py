@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Tests for Phase 2 hardening items (H18-H27).
+"""Tests for Phase 2 hardening items (H18-H27).
 
 Covers:
   - H18: ChromaDB empty metadata fix
@@ -281,7 +280,8 @@ class TestSharedScoreBlending:
 
     def test_heuristic_coherence_returns_components(self, scorer):
         h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
-            "What is the sky?", "The sky is blue."
+            "What is the sky?",
+            "The sky is blue.",
         )
         assert isinstance(h_logic, float)
         assert isinstance(h_fact, float)

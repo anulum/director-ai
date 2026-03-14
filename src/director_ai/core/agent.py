@@ -29,8 +29,7 @@ _PROVIDER_ENV_KEYS = {
 
 
 class CoherenceAgent:
-    """
-    Integrated coherence-verification agent.
+    """Integrated coherence-verification agent.
 
     Orchestrates:
     - **Generator**: Candidate response generation (mock or real LLM).
@@ -44,6 +43,7 @@ class CoherenceAgent:
     use_nli : bool | None — enable NLI model scoring.
     provider : str | None — "openai" or "anthropic". Reads API key from env.
         Mutually exclusive with llm_api_url.
+
     """
 
     def __init__(
@@ -109,7 +109,9 @@ class CoherenceAgent:
         ) as exc:
             self.logger.debug("Rust scorer unavailable (%s) — Python fallback", exc)
         return CoherenceScorer(  # pragma: no cover
-            threshold=0.6, ground_truth_store=self.store, use_nli=use_nli
+            threshold=0.6,
+            ground_truth_store=self.store,
+            use_nli=use_nli,
         )
 
     @staticmethod
@@ -131,6 +133,7 @@ class CoherenceAgent:
 
         Raises:
             ValueError: If *prompt* is empty or not a string.
+
         """
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
@@ -152,7 +155,9 @@ class CoherenceAgent:
             text = cand["text"]
             if any(text.strip().startswith(m) for m in error_markers):
                 self.logger.warning(
-                    "Candidate %d is error text, skipping: %s", i, text[:60]
+                    "Candidate %d is error text, skipping: %s",
+                    i,
+                    text[:60],
                 )
                 continue
             try:
@@ -161,7 +166,7 @@ class CoherenceAgent:
                 approved, score = self.scorer.review(prompt, text)
 
             self.logger.info(
-                f"Candidate {i} Coherence={score.score:.4f} | Approved={approved}"
+                f"Candidate {i} Coherence={score.score:.4f} | Approved={approved}",
             )
 
             if approved and score.score > best_coherence:
@@ -249,7 +254,9 @@ class CoherenceAgent:
         return await loop.run_in_executor(None, self.process, prompt, tenant_id)
 
     async def stream(
-        self, prompt: str, tenant_id: str = ""
+        self,
+        prompt: str,
+        tenant_id: str = "",
     ) -> AsyncIterator[tuple[str, float]]:
         """Stream tokens with StreamingKernel oversight.
 

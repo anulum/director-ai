@@ -19,8 +19,7 @@ LLM_DEFAULT_TEMPERATURE = 0.8
 
 
 class MockGenerator:
-    """
-    Mock LLM generator for testing and simulation.
+    """Mock LLM generator for testing and simulation.
 
     Produces a fixed set of candidate responses: one truthful, one
     hallucinated, and one ambiguous.  Used when no real LLM backend
@@ -35,8 +34,7 @@ class MockGenerator:
         }
 
     def generate_candidates(self, prompt, n=3) -> list[dict]:
-        """
-        Generate *n* candidate responses.
+        """Generate *n* candidate responses.
 
         Returns a list of dicts with ``text`` and ``type`` keys.
         When *n* < 3, the first *n* candidates are returned.
@@ -93,7 +91,9 @@ class LLMGenerator:
         for attempt in range(self.max_retries):
             try:
                 response = requests.post(
-                    self.api_url, json=payload, timeout=self.timeout
+                    self.api_url,
+                    json=payload,
+                    timeout=self.timeout,
                 )
                 if response.status_code == 200:
                     self._consecutive_failures = 0
@@ -105,7 +105,9 @@ class LLMGenerator:
                 )
             except requests.exceptions.Timeout:
                 self.logger.warning(
-                    "LLM timeout (attempt %d/%d)", attempt + 1, self.max_retries
+                    "LLM timeout (attempt %d/%d)",
+                    attempt + 1,
+                    self.max_retries,
                 )
             except (requests.exceptions.ConnectionError, ConnectionError):
                 self.logger.warning(
@@ -152,7 +154,7 @@ class LLMGenerator:
                 candidates.append({"text": text, "source": "LLM"})
             else:
                 candidates.append(
-                    {"text": "[Error: LLM unavailable]", "source": "System"}
+                    {"text": "[Error: LLM unavailable]", "source": "System"},
                 )
 
         return candidates

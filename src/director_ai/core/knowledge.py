@@ -12,8 +12,7 @@ __all__ = ["GroundTruthStore"]
 
 
 class GroundTruthStore:
-    """
-    Retrieval-Augmented Generation (RAG) ground truth store.
+    """Retrieval-Augmented Generation (RAG) ground truth store.
 
     In production this connects to a vector database (Pinecone, Milvus,
     etc.) holding verified facts.  The prototype uses an in-memory dict
@@ -51,7 +50,10 @@ class GroundTruthStore:
         self.add(key, value, tenant_id=tenant_id)
 
     def retrieve_context_with_chunks(
-        self, query: str, top_k: int = 3, tenant_id: str = ""
+        self,
+        query: str,
+        top_k: int = 3,
+        tenant_id: str = "",
     ) -> list:
         from .types import EvidenceChunk
 
@@ -61,8 +63,7 @@ class GroundTruthStore:
         return [EvidenceChunk(text=context_str, distance=0.0, source="keyword")]
 
     def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
-        """
-        Retrieve relevant facts matching *query*.
+        """Retrieve relevant facts matching *query*.
 
         Returns a semicolon-separated context string, or ``None`` if
         no relevant facts are found.
@@ -70,7 +71,7 @@ class GroundTruthStore:
         if not self.facts:
             self.logger.info(
                 "GroundTruthStore is empty — add facts via .add() "
-                "or use VectorGroundTruthStore.ingest()"
+                "or use VectorGroundTruthStore.ingest()",
             )
             return None
 
@@ -87,7 +88,7 @@ class GroundTruthStore:
         if context:
             retrieved = "; ".join(context)
             self.logger.info(
-                f"RAG Retrieval: Found context '{retrieved}' for query '{query}'"
+                f"RAG Retrieval: Found context '{retrieved}' for query '{query}'",
             )
             return retrieved
 

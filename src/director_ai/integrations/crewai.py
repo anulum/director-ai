@@ -1,5 +1,4 @@
-"""
-Director-AI CrewAI integration.
+"""Director-AI CrewAI integration.
 
 Requires: pip install director-ai[crewai]
 

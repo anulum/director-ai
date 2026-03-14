@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Detect and score prompt injection attacks targeting the knowledge base.
+"""Detect and score prompt injection attacks targeting the knowledge base.
 
 Catches instruction overrides, role-play injections, encoding tricks,
 and suspiciously structured inputs before they reach the scorer or KB.
@@ -160,6 +159,7 @@ class InputSanitizer:
     extra_patterns : list[tuple[str, str]] — additional (name, regex) pairs.
     block_threshold : float — suspicion score at or above which to block.
     allowlist : list[str] — regex patterns that exempt a match.
+
     """
 
     def __init__(

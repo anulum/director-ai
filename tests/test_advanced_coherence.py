@@ -12,8 +12,7 @@ from director_ai.core import CoherenceAgent
 
 
 class TestAdvancedCoherence(unittest.TestCase):
-    """
-    Advanced test suite for the Director-Class AI.
+    """Advanced test suite for the Director-Class AI.
     Focuses on the stability of the coherence score across multiple turns.
     """
 

@@ -89,7 +89,8 @@ class TestSummarizationRouting:
         prompt = "What is the capital of France?"
         response = "Paris is the capital of France."
         h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
-            prompt, response
+            prompt,
+            response,
         )
         assert isinstance(h_logic, float)
         assert isinstance(h_fact, float)

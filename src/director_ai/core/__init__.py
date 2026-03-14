@@ -5,8 +5,7 @@
 # ORCID: https://orcid.org/0009-0009-3560-0851
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Coherence Engine — consumer-ready AI output verification.
+"""Coherence Engine — consumer-ready AI output verification.
 
 Quick start::
 
@@ -56,53 +55,53 @@ from .vector_store import (
 )
 
 __all__ = [
-    "ClaimAttribution",
-    "CoherenceScore",
-    "EvidenceChunk",
-    "HaltEvidence",
-    "ScoringEvidence",
-    "ReviewResult",
-    "CoherenceScorer",
-    "SafetyKernel",
-    "MockGenerator",
-    "LLMGenerator",
-    "GroundTruthStore",
-    "CoherenceAgent",
-    "NLIScorer",
-    "nli_available",
-    "export_onnx",
-    "VectorGroundTruthStore",
-    "VectorBackend",
-    "InMemoryBackend",
-    "ChromaBackend",
-    "SentenceTransformerBackend",
-    "ScoreCache",
-    "StreamingKernel",
-    "StreamSession",
-    "TokenEvent",
     "AsyncStreamingKernel",
-    "InputSanitizer",
-    "SanitizeResult",
-    "RerankedBackend",
+    "ChromaBackend",
+    "ClaimAttribution",
+    "CoherenceAgent",
+    "CoherenceScore",
+    "CoherenceScorer",
     "ConversationSession",
-    "Turn",
-    "LiteScorer",
-    "ShardedNLIScorer",
-    "ScorerBackend",
-    "register_backend",
-    "get_backend",
-    "list_backends",
-    "register_vector_backend",
-    "get_vector_backend",
-    "list_vector_backends",
-    "finetune_nli",
+    "DataQualityReport",
+    "DirectorConfig",
+    "EvidenceChunk",
     "FinetuneConfig",
     "FinetuneResult",
-    "validate_finetune_data",
-    "DataQualityReport",
-    "benchmark_finetuned_model",
+    "GroundTruthStore",
+    "HaltEvidence",
+    "InMemoryBackend",
+    "InputSanitizer",
+    "LLMGenerator",
+    "LiteScorer",
+    "MockGenerator",
+    "NLIScorer",
     "RegressionReport",
-    "DirectorConfig",
+    "RerankedBackend",
+    "ReviewResult",
+    "SafetyKernel",
+    "SanitizeResult",
+    "ScoreCache",
+    "ScorerBackend",
+    "ScoringEvidence",
+    "SentenceTransformerBackend",
+    "ShardedNLIScorer",
+    "StreamSession",
+    "StreamingKernel",
+    "TokenEvent",
+    "Turn",
+    "VectorBackend",
+    "VectorGroundTruthStore",
+    "benchmark_finetuned_model",
+    "export_onnx",
+    "finetune_nli",
+    "get_backend",
+    "get_vector_backend",
+    "list_backends",
+    "list_vector_backends",
+    "nli_available",
+    "register_backend",
+    "register_vector_backend",
+    "validate_finetune_data",
 ]
 
 _MOVED_TO_ENTERPRISE = {
@@ -118,6 +117,6 @@ def __getattr__(name: str):
     if name in _MOVED_TO_ENTERPRISE:
         raise ImportError(
             f"{name} moved to director_ai.enterprise in v3.0. "
-            f"Use: from director_ai.enterprise import {name}"
+            f"Use: from director_ai.enterprise import {name}",
         )
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Streaming halt demo -- Director-AI kills a hallucinating response mid-stream.
+"""Streaming halt demo -- Director-AI kills a hallucinating response mid-stream.
 
 Run:
     python examples/streaming_halt_demo.py
@@ -74,7 +73,7 @@ def run_scenario(
     print(
         f"  {DIM}avg={session.avg_coherence:.3f}  "
         f"min={session.min_coherence:.3f}  "
-        f"tokens={session.token_count}/{len(tokens)}{RESET}"
+        f"tokens={session.token_count}/{len(tokens)}{RESET}",
     )
 
 

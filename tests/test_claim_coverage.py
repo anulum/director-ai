@@ -65,7 +65,7 @@ class TestScoreClaimCoverage:
                 "The sky is blue.": 0.1,  # supported
                 "Water is wet.": 0.2,  # supported
                 "Mars is flat.": 0.9,  # unsupported
-            }
+            },
         )
         cov, divs, claims = scorer.score_claim_coverage(
             "Source about sky and water.",
@@ -79,7 +79,7 @@ class TestScoreClaimCoverage:
             {
                 "Claim A.": 0.1,
                 "Claim B.": 0.2,
-            }
+            },
         )
         cov, divs, claims = scorer.score_claim_coverage(
             "Source.",
@@ -92,7 +92,7 @@ class TestScoreClaimCoverage:
             {
                 "Bad claim A.": 0.8,
                 "Bad claim B.": 0.9,
-            }
+            },
         )
         cov, divs, claims = scorer.score_claim_coverage(
             "Source.",
@@ -104,7 +104,7 @@ class TestScoreClaimCoverage:
         scorer = self._make_scorer(
             {
                 "Claim X.": 0.35,  # supported at 0.5, not at 0.3
-            }
+            },
         )
         cov_loose, _, _ = scorer.score_claim_coverage(
             "Source.",
@@ -230,7 +230,7 @@ class TestScorerClaimCoverageIntegration:
         return scorer
 
     def test_layer_c_blending(self):
-        """alpha * (1 - coverage) + (1 - alpha) * layer_a."""
+        """Alpha * (1 - coverage) + (1 - alpha) * layer_a."""
         scorer = self._make_scorer_with_mocked_nli(coverage=0.8, layer_a_div=0.3)
         # Layer A after baseline: max(0, (0.3-0.20)/(1-0.20)) = 0.125
         # Layer C: 1 - 0.8 = 0.2

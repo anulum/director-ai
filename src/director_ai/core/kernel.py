@@ -13,8 +13,7 @@ __all__ = ["SafetyKernel"]
 
 
 class SafetyKernel:
-    """
-    Software safety interlock for the output stream.
+    """Software safety interlock for the output stream.
 
     Sits between the model output buffer and the network interface.
     Monitors the coherence score in real-time and has the authority
@@ -27,6 +26,7 @@ class SafetyKernel:
     on_halt : callable | None — invoked with score on halt.
     token_timeout : float — max seconds per token (0 = disabled).
     total_timeout : float — max seconds for entire stream (0 = disabled).
+
     """
 
     def __init__(
@@ -46,8 +46,7 @@ class SafetyKernel:
         self.is_active = True
 
     def stream_output(self, token_generator, coherence_callback):
-        """
-        Emit output tokens while monitoring coherence in real-time.
+        """Emit output tokens while monitoring coherence in real-time.
 
         Returns assembled output string, or an interrupt message if halted.
         Respects token_timeout and total_timeout when > 0.

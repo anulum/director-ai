@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-CLI entry point for Director-Class AI.
+"""CLI entry point for Director-Class AI.
 
 Usage::
 
@@ -85,7 +84,7 @@ def _print_help() -> None:
         "  export [--format F]   Export model to ONNX/TensorRT\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
         "  doctor                Check runtime dependencies and readiness\n"
-        "  config [--profile X]  Show/set configuration\n"
+        "  config [--profile X]  Show/set configuration\n",
     )
 
 
@@ -270,7 +269,7 @@ def _cmd_batch(args: list[str]) -> None:
     if file_size > _BATCH_MAX_FILE_SIZE:
         print(
             f"Error: file too large ({file_size / 1024 / 1024:.1f} MB, "
-            f"limit {_BATCH_MAX_FILE_SIZE // 1024 // 1024} MB)"
+            f"limit {_BATCH_MAX_FILE_SIZE // 1024 // 1024} MB)",
         )
         sys.exit(1)
 
@@ -286,7 +285,7 @@ def _cmd_batch(args: list[str]) -> None:
             if len(line) > _BATCH_MAX_LINE_SIZE:
                 print(
                     f"Warning: skipping line {line_no} "
-                    f"({len(line)} chars > {_BATCH_MAX_LINE_SIZE} limit)"
+                    f"({len(line)} chars > {_BATCH_MAX_LINE_SIZE} limit)",
                 )
                 continue
             if len(prompts) >= _BATCH_MAX_PROMPTS:
@@ -326,9 +325,9 @@ def _cmd_batch(args: list[str]) -> None:
                             "output": r.output,  # type: ignore[union-attr]
                             "halted": r.halted,  # type: ignore[union-attr]
                             "coherence": r.coherence.score if r.coherence else None,  # type: ignore[union-attr]
-                        }
+                        },
                     )
-                    + "\n"
+                    + "\n",
                 )
         print(f"Results written to {output_file}")
 
@@ -345,7 +344,7 @@ def _cmd_ingest(args: list[str]) -> None:
     if not args:
         print(
             "Usage: director-ai ingest <file-or-dir> "
-            "[--persist <dir>] [--chunk-size <tokens>]"
+            "[--persist <dir>] [--chunk-size <tokens>]",
         )
         sys.exit(1)
 
@@ -488,7 +487,7 @@ def _cmd_eval(args: list[str]) -> None:
             quantize_mode = args[i + 1]
             if quantize_mode not in ("int8", "fp16"):
                 print(
-                    f"Error: --quantize must be 'int8' or 'fp16', got '{quantize_mode}'"
+                    f"Error: --quantize must be 'int8' or 'fp16', got '{quantize_mode}'",
                 )
                 sys.exit(1)
             i += 2
@@ -510,7 +509,7 @@ def _cmd_eval(args: list[str]) -> None:
     except ImportError:
         print(
             "Error: benchmarks package not found. "
-            "Run from the director-ai repo root, or install in editable mode."
+            "Run from the director-ai repo root, or install in editable mode.",
         )
         sys.exit(1)
 
@@ -518,10 +517,10 @@ def _cmd_eval(args: list[str]) -> None:
         print("Warning: HF_TOKEN not set — AggreFact benchmark may be skipped")
 
     print(
-        f"Running benchmarks (max_samples={max_samples}, model={model or 'default'})..."
+        f"Running benchmarks (max_samples={max_samples}, model={model or 'default'})...",
     )
     results = _run_suite(model, max_samples)
-    _print_comparison_table({model if model else "default": results})
+    _print_comparison_table({model or "default": results})
 
     if output_file:
         with open(output_file, "w", encoding="utf-8") as f:
@@ -582,7 +581,7 @@ def _cmd_bench(args: list[str]) -> None:
     except ImportError:
         print(
             "Error: benchmarks package not found. "
-            "Run from the director-ai repo root, or install in editable mode."
+            "Run from the director-ai repo root, or install in editable mode.",
         )
         sys.exit(1)
 
@@ -623,7 +622,7 @@ def _cmd_bench(args: list[str]) -> None:
         except AssertionError as e:
             failed += 1
             results.append(
-                {"test": test_fn.__name__, "status": "failed", "error": str(e)}
+                {"test": test_fn.__name__, "status": "failed", "error": str(e)},
             )
             print(f"  FAIL: {test_fn.__name__}: {e}")
 
@@ -708,7 +707,7 @@ def _cmd_tune(args: list[str]) -> None:
             f.write(
                 f"coherence_threshold: {result.threshold}\n"
                 f"w_logic: {result.w_logic}\n"
-                f"w_fact: {result.w_fact}\n"
+                f"w_fact: {result.w_fact}\n",
             )
         print(f"Config written to {output_file}")
 
@@ -735,7 +734,7 @@ def _cmd_finetune(args: list[str]) -> None:
             "  --early-stopping N  Stop after N evals without improvement\n"
             "  --class-weights     Apply inverse-frequency class weights\n"
             "  --auto-benchmark    Run anti-regression check after training\n"
-            "  --auto-onnx         Export to ONNX after training\n"
+            "  --auto-onnx         Export to ONNX after training\n",
         )
         sys.exit(1)
 
@@ -809,7 +808,7 @@ def _cmd_finetune(args: list[str]) -> None:
     if result.regression_report:
         rr = result.regression_report
         print(
-            f"  Regression:      {rr['regression_pp']:+.1f}pp → {rr['recommendation']}"
+            f"  Regression:      {rr['regression_pp']:+.1f}pp → {rr['recommendation']}",
         )
     if result.onnx_path:
         print(f"  ONNX export:     {result.onnx_path}")
@@ -955,7 +954,7 @@ def _cmd_proxy(args: list[str]) -> None:
 
     print(
         f"Director-AI proxy on :{port} → {upstream_url} "
-        f"(threshold={threshold}, on_fail={on_fail})"
+        f"(threshold={threshold}, on_fail={on_fail})",
     )
     uvicorn.run(app, host="0.0.0.0", port=port)
 
@@ -1034,7 +1033,7 @@ def _cmd_serve(args: list[str]) -> None:
 
     print(
         f"Starting Director AI server on {host}:{port} "
-        f"(profile={config.profile}, workers={workers})"
+        f"(profile={config.profile}, workers={workers})",
     )
 
     if workers > 1:

@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Measures per-pair NLI inference latency across backends:
+"""Measures per-pair NLI inference latency across backends:
 
   - PyTorch (FP32 / FP16)
   - ONNX Runtime (CPU / CUDA)
@@ -180,7 +179,7 @@ def main():
                 f"{r['ms_per_pair_mean']:>8.3f} "
                 f"{r['ms_per_pair_median']:>8.3f} "
                 f"{r['ms_per_pair_p95']:>8.3f} "
-                f"{r['ms_per_pair_p99']:>8.3f}"
+                f"{r['ms_per_pair_p99']:>8.3f}",
             )
     print("=" * 72)
 

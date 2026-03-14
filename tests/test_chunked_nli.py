@@ -149,7 +149,7 @@ class TestScoreChunked:
         assert s_mean <= s_max
 
     def test_min_inner_agg(self):
-        """min inner agg picks the lowest divergence across premise chunks."""
+        """Min inner agg picks the lowest divergence across premise chunks."""
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Premise detail {i} info" for i in range(30)) + "."
         agg_max, _, _, _ = scorer._score_chunked_with_counts(
@@ -264,7 +264,9 @@ class TestScoreChunked:
         """trimmed_mean with 1 hypothesis chunk keeps that single score."""
         scorer = NLIScorer(use_model=False, max_length=512)
         agg, per_hyp, _, _ = scorer._score_chunked_with_counts(
-            "A short premise.", "A short hypothesis.", outer_agg="trimmed_mean"
+            "A short premise.",
+            "A short hypothesis.",
+            outer_agg="trimmed_mean",
         )
         assert len(per_hyp) == 1
         assert agg == per_hyp[0]

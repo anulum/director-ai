@@ -62,7 +62,8 @@ class TestShapeDetection:
 
     def test_anthropic_shape_false_has_chat(self):
         obj = SimpleNamespace(
-            chat=MagicMock(), messages=SimpleNamespace(create=lambda: None)
+            chat=MagicMock(),
+            messages=SimpleNamespace(create=lambda: None),
         )
         assert not _has_anthropic_shape(obj)
 
@@ -109,18 +110,19 @@ class TestOpenAIProxy:
         client = _make_openai_client()
         client = guard(client, facts={"sky": "blue"}, on_fail="log")
         resp = client.chat.completions.create(
-            messages=[{"role": "user", "content": "color?"}]
+            messages=[{"role": "user", "content": "color?"}],
         )
         assert resp is not None
 
     def test_sync_create_streaming(self):
         chunk = SimpleNamespace(
-            choices=[SimpleNamespace(delta=SimpleNamespace(content="word "))]
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="word "))],
         )
         client = _make_openai_client(streaming=True, chunks=[chunk] * 10)
         client = guard(client, facts={"sky": "blue"}, on_fail="log")
         stream = client.chat.completions.create(
-            messages=[{"role": "user", "content": "hi"}], stream=True
+            messages=[{"role": "user", "content": "hi"}],
+            stream=True,
         )
         collected = list(stream)
         assert len(collected) == 10
@@ -144,7 +146,8 @@ class TestAnthropicProxy:
         client = _make_anthropic_client(streaming=True, events=[event] * 10)
         client = guard(client, on_fail="log")
         stream = client.messages.create(
-            messages=[{"role": "user", "content": "hi"}], stream=True
+            messages=[{"role": "user", "content": "hi"}],
+            stream=True,
         )
         collected = list(stream)
         assert len(collected) == 10
@@ -159,7 +162,7 @@ class TestAnthropicProxy:
 class TestExtractors:
     def test_openai_response_text(self):
         resp = SimpleNamespace(
-            choices=[SimpleNamespace(message=SimpleNamespace(content="hi"))]
+            choices=[SimpleNamespace(message=SimpleNamespace(content="hi"))],
         )
         assert _openai_response_text(resp) == "hi"
 
@@ -168,13 +171,13 @@ class TestExtractors:
 
     def test_stream_delta_present(self):
         chunk = SimpleNamespace(
-            choices=[SimpleNamespace(delta=SimpleNamespace(content="tok"))]
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="tok"))],
         )
         assert _extract_stream_delta(chunk) == "tok"
 
     def test_stream_delta_none(self):
         chunk = SimpleNamespace(
-            choices=[SimpleNamespace(delta=SimpleNamespace(content=None))]
+            choices=[SimpleNamespace(delta=SimpleNamespace(content=None))],
         )
         assert _extract_stream_delta(chunk) is None
 
@@ -209,16 +212,19 @@ class TestExtractors:
 class TestAsyncOpenAIStream:
     def test_aiter(self):
         chunk = SimpleNamespace(
-            choices=[SimpleNamespace(delta=SimpleNamespace(content="word "))]
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="word "))],
         )
         client = _make_openai_client(
-            streaming=True, chunks=[chunk] * 10, async_mode=True
+            streaming=True,
+            chunks=[chunk] * 10,
+            async_mode=True,
         )
         client = guard(client, on_fail="log")
         stream = asyncio.get_event_loop().run_until_complete(
             client.chat.completions.create(
-                messages=[{"role": "user", "content": "hi"}], stream=True
-            )
+                messages=[{"role": "user", "content": "hi"}],
+                stream=True,
+            ),
         )
 
         async def collect():
@@ -247,7 +253,7 @@ class TestBedrockProvider:
         client = _make_bedrock_client()
         client = guard(client, on_fail="log")
         resp = client.converse(
-            messages=[{"role": "user", "content": [{"text": "Sky color?"}]}]
+            messages=[{"role": "user", "content": [{"text": "Sky color?"}]}],
         )
         assert "output" in resp
 
@@ -256,7 +262,7 @@ class TestBedrockProvider:
         client = _make_bedrock_client(streaming=True, events=events)
         client = guard(client, on_fail="log")
         stream = client.converse_stream(
-            messages=[{"role": "user", "content": [{"text": "hi"}]}]
+            messages=[{"role": "user", "content": [{"text": "hi"}]}],
         )
         collected = list(stream)
         assert len(collected) == 10
@@ -323,13 +329,16 @@ class TestAsyncAnthropicStream:
     def test_aiter(self):
         event = SimpleNamespace(text="token ")
         client = _make_anthropic_client(
-            streaming=True, events=[event] * 10, async_mode=True
+            streaming=True,
+            events=[event] * 10,
+            async_mode=True,
         )
         client = guard(client, on_fail="log")
         stream = asyncio.get_event_loop().run_until_complete(
             client.messages.create(
-                messages=[{"role": "user", "content": "hi"}], stream=True
-            )
+                messages=[{"role": "user", "content": "hi"}],
+                stream=True,
+            ),
         )
 
         async def collect():
@@ -344,7 +353,7 @@ class TestAsyncAnthropicStream:
 
 def _make_openai_client(streaming=False, chunks=None, async_mode=False):
     resp = SimpleNamespace(
-        choices=[SimpleNamespace(message=SimpleNamespace(content="The sky is blue."))]
+        choices=[SimpleNamespace(message=SimpleNamespace(content="The sky is blue."))],
     )
 
     if async_mode:

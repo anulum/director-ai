@@ -25,7 +25,7 @@ def _upstream_transport(content: str):
                         "index": 0,
                         "message": {"role": "assistant", "content": content},
                         "finish_reason": "stop",
-                    }
+                    },
                 ],
             },
         )
@@ -58,7 +58,8 @@ async def test_proxy_forwards_approved():
 
     proxy_transport = ASGITransport(app=app)
     async with httpx.AsyncClient(
-        transport=proxy_transport, base_url="http://test"
+        transport=proxy_transport,
+        base_url="http://test",
     ) as client:
         resp = await client.post(
             "/v1/chat/completions",
@@ -86,7 +87,8 @@ async def test_proxy_rejects_hallucination():
 
     proxy_transport = ASGITransport(app=app)
     async with httpx.AsyncClient(
-        transport=proxy_transport, base_url="http://test"
+        transport=proxy_transport,
+        base_url="http://test",
     ) as client:
         resp = await client.post(
             "/v1/chat/completions",
@@ -115,7 +117,8 @@ async def test_proxy_warn_mode():
 
     proxy_transport = ASGITransport(app=app)
     async with httpx.AsyncClient(
-        transport=proxy_transport, base_url="http://test"
+        transport=proxy_transport,
+        base_url="http://test",
     ) as client:
         resp = await client.post(
             "/v1/chat/completions",

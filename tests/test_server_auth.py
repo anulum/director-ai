@@ -203,7 +203,9 @@ def test_source_exempt_from_auth():
 
 def test_source_disabled_returns_404():
     cfg = DirectorConfig(
-        api_keys=[], llm_provider="mock", source_endpoint_enabled=False
+        api_keys=[],
+        llm_provider="mock",
+        source_endpoint_enabled=False,
     )
     app = create_app(cfg)
     with TestClient(app) as client:
@@ -227,7 +229,9 @@ def test_source_custom_repo_url():
 def test_metrics_auth_required_returns_401():
     """When metrics_require_auth=True, /v1/metrics/prometheus needs API key."""
     cfg = DirectorConfig(
-        api_keys=["secret"], llm_provider="mock", metrics_require_auth=True
+        api_keys=["secret"],
+        llm_provider="mock",
+        metrics_require_auth=True,
     )
     app = create_app(cfg)
     with TestClient(app) as client:
@@ -237,7 +241,9 @@ def test_metrics_auth_required_returns_401():
 
 def test_metrics_auth_required_with_key_returns_200():
     cfg = DirectorConfig(
-        api_keys=["secret"], llm_provider="mock", metrics_require_auth=True
+        api_keys=["secret"],
+        llm_provider="mock",
+        metrics_require_auth=True,
     )
     app = create_app(cfg)
     with TestClient(app) as client:
@@ -268,7 +274,10 @@ def test_server_provider_wiring_openai(monkeypatch):
 def test_sqlite_stats_works(tmp_path):
     db_path = str(tmp_path / "test_stats.db")
     cfg = DirectorConfig(
-        api_keys=[], llm_provider="mock", stats_backend="sqlite", stats_db_path=db_path
+        api_keys=[],
+        llm_provider="mock",
+        stats_backend="sqlite",
+        stats_db_path=db_path,
     )
     app = create_app(cfg)
     with TestClient(app) as client:

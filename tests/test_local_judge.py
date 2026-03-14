@@ -10,7 +10,7 @@ import pytest
 torch = pytest.importorskip("torch")
 
 from director_ai.core import CoherenceScorer  # noqa: E402, I001
-from director_ai.core.config import DirectorConfig  # noqa: E402, I001
+from director_ai.core.config import DirectorConfig  # noqa: E402
 
 
 # ── Fixtures ──────────────────────────────────────────────────────────
@@ -80,7 +80,9 @@ class TestLocalJudgeCheck:
         """Borderline NLI + hallucinated → judge tips to reject."""
         scorer = _make_local_scorer(approve_prob=0.15)
         result = scorer._local_judge_check(
-            "Context about topic", "Hallucinated response", nli_score=0.5
+            "Context about topic",
+            "Hallucinated response",
+            nli_score=0.5,
         )
         assert result >= 0.55
 
@@ -88,7 +90,9 @@ class TestLocalJudgeCheck:
         """Borderline NLI + correct → judge tips to approve."""
         scorer = _make_local_scorer(approve_prob=0.85)
         result = scorer._local_judge_check(
-            "Context about topic", "Correct response", nli_score=0.5
+            "Context about topic",
+            "Correct response",
+            nli_score=0.5,
         )
         assert result <= 0.45
 
@@ -186,11 +190,11 @@ class TestDirectorConfigLocalJudge:
         assert cfg.llm_judge_local_model == "/path/to/model"
 
     def test_thorough_profile_uses_local(self):
-        """thorough profile defaults to local judge provider."""
+        """Thorough profile defaults to local judge provider."""
         cfg = DirectorConfig.from_profile("thorough")
         assert cfg.llm_judge_provider == "local"
 
     def test_research_profile_uses_local(self):
-        """research profile defaults to local judge provider."""
+        """Research profile defaults to local judge provider."""
         cfg = DirectorConfig.from_profile("research")
         assert cfg.llm_judge_provider == "local"

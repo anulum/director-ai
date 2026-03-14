@@ -1,5 +1,4 @@
-"""
-Director-AI LlamaIndex integration.
+"""Director-AI LlamaIndex integration.
 
 Requires: pip install director-ai[llamaindex]
 
@@ -38,6 +37,7 @@ class DirectorAIPostprocessor:
     store : GroundTruthStore | None — pre-built store (overrides facts).
     threshold : float — minimum coherence to keep a node.
     use_nli : bool | None — NLI mode (None=auto-detect).
+
     """
 
     def __init__(
@@ -92,7 +92,9 @@ class DirectorAIPostprocessor:
         return filtered
 
     def validate_response(
-        self, query: str, response: str
+        self,
+        query: str,
+        response: str,
     ) -> tuple[bool, CoherenceScore]:
         """Validate a final response (not node-level)."""
         return self.scorer.review(query, response)

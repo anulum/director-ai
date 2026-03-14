@@ -45,7 +45,7 @@ class TestOpenAIProvider:
             "choices": [
                 {"message": {"content": "Response 1"}},
                 {"message": {"content": "Response 2"}},
-            ]
+            ],
         }
         mock_resp.raise_for_status = MagicMock()
         mock_post.return_value = mock_resp
@@ -172,7 +172,7 @@ class TestLocalProvider:
         mock_resp.json.return_value = {
             "choices": [
                 {"message": {"content": "Local response"}},
-            ]
+            ],
         }
         mock_resp.raise_for_status = MagicMock()
         mock_post.return_value = mock_resp

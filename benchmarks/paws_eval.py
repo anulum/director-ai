@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate NLI model on PAWS (Paraphrase Adversaries from Word Scrambling).
+"""Evaluate NLI model on PAWS (Paraphrase Adversaries from Word Scrambling).
 
 PAWS tests whether the model confuses high lexical overlap with semantic
 equivalence. Pairs with nearly identical words can have completely
@@ -145,7 +144,7 @@ def _print_paws_results(m: PAWSMetrics) -> None:
     print(f"  Precision:            {m.precision:.4f}")
     print(f"  Recall:               {m.recall:.4f}")
     print(
-        f"  Adversarial Acc:      {m.adversarial_accuracy:.1%}  (non-paraphrase detection)"
+        f"  Adversarial Acc:      {m.adversarial_accuracy:.1%}  (non-paraphrase detection)",
     )
     print(f"  (TP={m.tp} FP={m.fp} TN={m.tn} FN={m.fn})")
     if m.inference_times:
@@ -170,7 +169,7 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(
-        description="PAWS adversarial paraphrase benchmark"
+        description="PAWS adversarial paraphrase benchmark",
     )
     add_common_args(parser)
     args = parser.parse_args()

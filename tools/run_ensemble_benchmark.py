@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Run the full ensemble AggreFact benchmark on a GPU instance.
+"""Run the full ensemble AggreFact benchmark on a GPU instance.
 
 Designed for UpCloud L40S or equivalent. Loads base + 4-5 domain models
 and evaluates on the full LLM-AggreFact test set with threshold sweep.

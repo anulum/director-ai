@@ -84,7 +84,9 @@ class EmbeddingFineTuner:
         for doc in documents:
             self._chunks.extend(self._chunk_text(doc))
         logger.info(
-            "Chunked %d documents into %d chunks", len(documents), len(self._chunks)
+            "Chunked %d documents into %d chunks",
+            len(documents),
+            len(self._chunks),
         )
         return len(self._chunks)
 
@@ -129,7 +131,8 @@ class EmbeddingFineTuner:
                 neg_pool = [j for j in range(n) if j != i]
 
             neg_indices = rng.sample(
-                neg_pool, min(self.tcfg.negatives_per_anchor, len(neg_pool))
+                neg_pool,
+                min(self.tcfg.negatives_per_anchor, len(neg_pool)),
             )
             for ni in neg_indices:
                 self._triplets.append((anchor, positive, self._chunks[ni]))
@@ -149,6 +152,7 @@ class EmbeddingFineTuner:
         Parameters
         ----------
         nli_scorer : director_ai.core.nli.NLIScorer
+
         """
         import re
 
@@ -175,7 +179,8 @@ class EmbeddingFineTuner:
                 if abs(j - i) <= 2:
                     continue
                 overlap = len(anchor_words & word_sets[j]) / max(
-                    len(anchor_words | word_sets[j]), 1
+                    len(anchor_words | word_sets[j]),
+                    1,
                 )
                 if overlap > 0.2:
                     candidates.append((j, overlap))
@@ -196,7 +201,8 @@ class EmbeddingFineTuner:
                 if not pool:
                     pool = [j for j in range(n) if j != i]
                 hard_negs = rng.sample(
-                    pool, min(self.tcfg.negatives_per_anchor, len(pool))
+                    pool,
+                    min(self.tcfg.negatives_per_anchor, len(pool)),
                 )
 
             for ni in hard_negs:
@@ -204,7 +210,9 @@ class EmbeddingFineTuner:
 
         rng.shuffle(self._triplets)
         logger.info(
-            "Generated %d NLI-guided triplets from %d chunks", len(self._triplets), n
+            "Generated %d NLI-guided triplets from %d chunks",
+            len(self._triplets),
+            n,
         )
         return len(self._triplets)
 

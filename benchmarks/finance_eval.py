@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate Director-AI on finance domain factual consistency.
+"""Evaluate Director-AI on finance domain factual consistency.
 
 Datasets:
   - FinanceBench: financial question answering with evidence paragraphs

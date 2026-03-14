@@ -68,7 +68,10 @@ class TestScoringEvidence:
 
     def test_default_chunk_scores_none(self):
         ev = ScoringEvidence(
-            chunks=[], nli_premise="", nli_hypothesis="", nli_score=0.5
+            chunks=[],
+            nli_premise="",
+            nli_hypothesis="",
+            nli_score=0.5,
         )
         assert ev.chunk_scores is None
 
@@ -84,7 +87,10 @@ class TestCoherenceScore:
 class TestReviewResult:
     def test_fields(self):
         rr = ReviewResult(
-            output="ok", coherence=None, halted=False, candidates_evaluated=1
+            output="ok",
+            coherence=None,
+            halted=False,
+            candidates_evaluated=1,
         )
         assert rr.output == "ok"
         assert rr.fallback_used is False

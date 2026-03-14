@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Provision a JarvisLabs GPU instance, upload code, run fine-tuning,
+"""Provision a JarvisLabs GPU instance, upload code, run fine-tuning,
 download results, and destroy the instance.
 
 Usage::
@@ -293,7 +292,9 @@ if __name__ == "__main__":
     parser.add_argument("--gpu", default="A5000", help="GPU type (A5000, A6000, A100)")
     parser.add_argument("--storage", type=int, default=50, help="Storage in GB")
     parser.add_argument(
-        "--skip-provision", action="store_true", help="Skip provisioning"
+        "--skip-provision",
+        action="store_true",
+        help="Skip provisioning",
     )
     parser.add_argument("--instance-id", type=int, help="Existing instance ID")
     parser.add_argument("--ssh-str", type=str, help="Existing SSH string")
@@ -329,7 +330,9 @@ if __name__ == "__main__":
         info = {"instance_id": args.instance_id, "ssh_str": args.ssh_str}
     else:
         info = provision_instance(
-            gpu_type=args.gpu, storage=args.storage, token=jl_token
+            gpu_type=args.gpu,
+            storage=args.storage,
+            token=jl_token,
         )
 
     try:

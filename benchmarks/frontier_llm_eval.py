@@ -328,7 +328,7 @@ def run_frontier_eval(
     provider = SUPPORTED_MODELS.get(model)
     if provider is None:
         raise ValueError(
-            f"Unknown model '{model}'. Supported: {list(SUPPORTED_MODELS)}"
+            f"Unknown model '{model}'. Supported: {list(SUPPORTED_MODELS)}",
         )
 
     est_cost = estimate_cost(model, mode, max_samples or 29320)
@@ -442,14 +442,18 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Frontier LLM vs AggreFact")
     parser.add_argument("--model", choices=list(SUPPORTED_MODELS))
     parser.add_argument(
-        "--mode", choices=["binary", "confidence", "fewshot"], default="binary"
+        "--mode",
+        choices=["binary", "confidence", "fewshot"],
+        default="binary",
     )
     parser.add_argument("--max-samples", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--rate-limit", type=float, default=2.0, help="API calls/sec")
     parser.add_argument("--out", type=str, help="Output JSON path")
     parser.add_argument(
-        "--cost-only", action="store_true", help="Print cost table and exit"
+        "--cost-only",
+        action="store_true",
+        help="Print cost table and exit",
     )
     args = parser.parse_args()
 
@@ -481,14 +485,15 @@ def main() -> None:
     print(f"Mode:           {result['mode']}")
     print(f"Samples:        {result['n_evaluated']}")
     print(
-        f"Macro BA:       {result['macro_balanced_accuracy']:.4f}  @ t={result['best_threshold']:.2f}"
+        f"Macro BA:       {result['macro_balanced_accuracy']:.4f}  @ t={result['best_threshold']:.2f}",
     )
     print(f"Errors:         {result['n_errors']}")
     print(f"Time:           {result['elapsed_s'] / 60:.1f} min")
     print(f"Est. cost:      ${result['estimated_cost_usd']:.2f}")
     print("\nPer-dataset breakdown:")
     for ds, m in sorted(
-        result["per_dataset"].items(), key=lambda x: x[1]["balanced_accuracy"]
+        result["per_dataset"].items(),
+        key=lambda x: x[1]["balanced_accuracy"],
     ):
         print(f"  {ds:<30s} {m['balanced_accuracy']:.3f}  (n={m['n']})")
     print(f"\nResult saved to: {out_path}")
@@ -497,7 +502,7 @@ def main() -> None:
     diff = result["macro_balanced_accuracy"] - 0.7586
     sign = "+" if diff >= 0 else ""
     print(
-        f"{result['model']:30s} {result['macro_balanced_accuracy']:.4f}  ({sign}{diff * 100:.2f}pp vs Director-AI)"
+        f"{result['model']:30s} {result['macro_balanced_accuracy']:.4f}  ({sign}{diff * 100:.2f}pp vs Director-AI)",
     )
 
 

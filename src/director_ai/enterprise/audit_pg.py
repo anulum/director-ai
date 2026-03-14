@@ -56,7 +56,8 @@ class PostgresAuditSink:
 
                 path = self.db_url.replace("sqlite:///", "").replace("sqlite://", "")
                 self._conn = sqlite3.connect(
-                    path or ":memory:", check_same_thread=False
+                    path or ":memory:",
+                    check_same_thread=False,
                 )
             else:
                 import psycopg2
@@ -102,7 +103,7 @@ class PostgresAuditSink:
         )
         cur.execute(
             f"CREATE TABLE IF NOT EXISTS _schema_version ("
-            f"id {pk}, version INT NOT NULL, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+            f"id {pk}, version INT NOT NULL, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)",
         )
 
     def _current_version(self, cur: Any) -> int:
@@ -134,18 +135,18 @@ class PostgresAuditSink:
             f"tenant_id VARCHAR(128) NOT NULL,"
             f"halt_reason TEXT NOT NULL,"
             f"latency_ms FLOAT NOT NULL,"
-            f"created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)"
+            f"created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)",
         )
         self._set_version(cur, 1)
 
     def _apply_v2(self, cur: Any) -> None:
         cur.execute(
             f"CREATE INDEX IF NOT EXISTS idx_{self.table_name}_tenant "
-            f"ON {self.table_name} (tenant_id)"
+            f"ON {self.table_name} (tenant_id)",
         )
         cur.execute(
             f"CREATE INDEX IF NOT EXISTS idx_{self.table_name}_ts "
-            f"ON {self.table_name} (created_at)"
+            f"ON {self.table_name} (created_at)",
         )
         self._set_version(cur, 2)
 

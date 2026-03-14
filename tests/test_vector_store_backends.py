@@ -24,7 +24,9 @@ class TestPineconeBackend:
         mock_index = MagicMock()
         mock_pinecone.Pinecone.return_value.Index.return_value = mock_index
         mock_index.query.return_value = {
-            "matches": [{"id": "d1", "score": 0.9, "metadata": {"text": "hello world"}}]
+            "matches": [
+                {"id": "d1", "score": 0.9, "metadata": {"text": "hello world"}}
+            ],
         }
 
         with patch.dict("sys.modules", {"pinecone": mock_pinecone}):
@@ -48,7 +50,8 @@ class TestWeaviateBackend:
         with (
             patch.dict("sys.modules", {"weaviate": None}),
             pytest.raises(
-                ImportError, match="WeaviateBackend requires weaviate-client"
+                ImportError,
+                match="WeaviateBackend requires weaviate-client",
             ),
         ):
             from director_ai.core.vector_store import WeaviateBackend
@@ -157,7 +160,8 @@ class TestElasticsearchBackend:
         with (
             patch.dict("sys.modules", {"elasticsearch": None}),
             pytest.raises(
-                ImportError, match="ElasticsearchBackend requires elasticsearch"
+                ImportError,
+                match="ElasticsearchBackend requires elasticsearch",
             ),
         ):
             from director_ai.core.vector_store import ElasticsearchBackend
@@ -176,9 +180,9 @@ class TestElasticsearchBackend:
                         "_id": "d1",
                         "_score": 5.0,
                         "_source": {"text": "hello world", "doc_id": "d1"},
-                    }
-                ]
-            }
+                    },
+                ],
+            },
         }
 
         with patch.dict("sys.modules", {"elasticsearch": mock_es_mod}):
@@ -209,9 +213,9 @@ class TestElasticsearchBackend:
                         "_id": "d1",
                         "_score": 3.0,
                         "_source": {"text": "dense match", "doc_id": "d1"},
-                    }
-                ]
-            }
+                    },
+                ],
+            },
         }
 
         with patch.dict("sys.modules", {"elasticsearch": mock_es_mod}):
@@ -245,9 +249,9 @@ class TestElasticsearchBackend:
                             "doc_id": "d1",
                             "tenant_id": "t1",
                         },
-                    }
-                ]
-            }
+                    },
+                ],
+            },
         }
 
         with patch.dict("sys.modules", {"elasticsearch": mock_es_mod}):

@@ -37,7 +37,7 @@ logger = logging.getLogger("DirectorAI.ReviewQueue")
 
 
 class _PendingReview:
-    __slots__ = ("prompt", "response", "session", "tenant_id", "future")
+    __slots__ = ("future", "prompt", "response", "session", "tenant_id")
 
     def __init__(
         self,
@@ -63,6 +63,7 @@ class ReviewQueue:
     max_batch : int — flush when this many requests accumulate.
     flush_timeout_ms : float — flush after this many ms since first
         pending request arrived (even if batch isn't full).
+
     """
 
     def __init__(
@@ -110,7 +111,7 @@ class ReviewQueue:
         future: asyncio.Future[_ReviewResult] = loop.create_future()
         async with self._lock:
             self._pending.append(
-                _PendingReview(prompt, response, session, tenant_id, future)
+                _PendingReview(prompt, response, session, tenant_id, future),
             )
             if len(self._pending) >= self.max_batch:
                 await self._flush()
@@ -148,7 +149,9 @@ class ReviewQueue:
                 results = await loop.run_in_executor(
                     None,
                     functools.partial(
-                        self._scorer.review_batch, items, tenant_id=tenant_id
+                        self._scorer.review_batch,
+                        items,
+                        tenant_id=tenant_id,
                     ),
                 )
                 for pending, result in zip(group, results, strict=True):

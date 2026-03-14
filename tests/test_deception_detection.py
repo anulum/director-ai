@@ -12,9 +12,7 @@ from director_ai.core import CoherenceAgent
 
 
 class TestDeceptionDetection(unittest.TestCase):
-    """
-    Can the agent be forced to output incoherent / deceptive content?
-    """
+    """Can the agent be forced to output incoherent / deceptive content?"""
 
     def setUp(self):
         self.agent = CoherenceAgent()

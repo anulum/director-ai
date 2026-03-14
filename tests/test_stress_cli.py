@@ -37,7 +37,7 @@ class TestStressTestCommand:
                 "--concurrency",
                 "2",
                 "--json",
-            ]
+            ],
         )
         data = json.loads(capsys.readouterr().out)
         assert data["concurrency"] == 2

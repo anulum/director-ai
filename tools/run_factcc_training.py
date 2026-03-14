@@ -56,7 +56,8 @@ def load_factcc():
 
     if "validation" in splits:
         val = ds["validation"].map(
-            convert, remove_columns=ds["validation"].column_names
+            convert,
+            remove_columns=ds["validation"].column_names,
         )
     else:
         split = train.train_test_split(test_size=0.1, seed=42)
@@ -77,7 +78,10 @@ def load_factcc():
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
         return tokenizer(
-            batch["text"], truncation=True, max_length=max_length, padding=False
+            batch["text"],
+            truncation=True,
+            max_length=max_length,
+            padding=False,
         )
 
     return _tok

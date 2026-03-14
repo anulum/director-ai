@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-SDK guard demo — three modes: raise, log, metadata + streaming.
+"""SDK guard demo — three modes: raise, log, metadata + streaming.
 
 Before (15+ lines of boilerplate):
 

@@ -26,7 +26,9 @@ class TestHaltWithScorer:
             return 0.3
 
         session = kernel.stream_tokens(
-            iter(["bad", "output"]), always_low, scorer=scorer
+            iter(["bad", "output"]),
+            always_low,
+            scorer=scorer,
         )
         assert session.halted
         assert session.halt_evidence_structured is not None

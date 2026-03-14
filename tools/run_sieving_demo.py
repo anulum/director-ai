@@ -54,7 +54,7 @@ def load_climatefever():
                 {
                     "text": TEMPLATE.format(text_a=ev_text, text_b=claim),
                     "label": label,
-                }
+                },
             )
     rng.shuffle(rows)
     n = len(rows)
@@ -97,7 +97,7 @@ def make_noisy_test(test_rows, tokenizer, typo_ratio=0.05):
     noisy = []
     for ex in test_rows:
         noisy.append(
-            {"text": inject_typos(ex["text"], typo_ratio), "label": ex["label"]}
+            {"text": inject_typos(ex["text"], typo_ratio), "label": ex["label"]},
         )
     return tokenize(Dataset.from_list(noisy), tokenizer)
 
@@ -169,7 +169,7 @@ def main():
 
     print(f"=== Sieving A/B Demo (noise_ratio={args.noise_ratio}) ===")
     print(
-        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}",
     )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)
@@ -177,7 +177,7 @@ def main():
     print("Loading ClimateFEVER...")
     train_ds_raw, val_ds_raw, test_ds_raw = load_climatefever()
     print(
-        f"  train={len(train_ds_raw)}, val={len(val_ds_raw)}, test={len(test_ds_raw)}"
+        f"  train={len(train_ds_raw)}, val={len(val_ds_raw)}, test={len(test_ds_raw)}",
     )
 
     train_ds = tokenize(train_ds_raw, tokenizer)
@@ -188,7 +188,8 @@ def main():
     # Experiment A: Standard fine-tuning
     print("\n--- Experiment A: Standard (no sieving) ---")
     model_a = AutoModelForSequenceClassification.from_pretrained(
-        BASE_MODEL, num_labels=2
+        BASE_MODEL,
+        num_labels=2,
     )
     standard_collator = SievingCollator(tokenizer, noise_ratio=0.0)
     result_a = run_experiment(
@@ -208,7 +209,8 @@ def main():
     # Experiment B: Sieving fine-tuning
     print(f"\n--- Experiment B: Sieving (noise_ratio={args.noise_ratio}) ---")
     model_b = AutoModelForSequenceClassification.from_pretrained(
-        BASE_MODEL, num_labels=2
+        BASE_MODEL,
+        num_labels=2,
     )
     sieving_collator = SievingCollator(tokenizer, noise_ratio=args.noise_ratio)
     result_b = run_experiment(

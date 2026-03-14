@@ -189,7 +189,7 @@ class TestQuantize8bit:
         mock_torch.float32 = "fp32"
         mock_transformers = MagicMock()
         mock_transformers.BitsAndBytesConfig = MagicMock(
-            side_effect=ImportError("no bnb")
+            side_effect=ImportError("no bnb"),
         )
         tok = MagicMock()
         model = MagicMock()

@@ -34,7 +34,7 @@ CONFIG_JSON = json.dumps(
         "history_window": 5,
         "deadline_ms": 50,
         "logit_entropy_limit": 1.2,
-    }
+    },
 )
 
 
@@ -88,7 +88,7 @@ def report(name: str, timings: list[float]) -> dict:
         "us_per_token": round(med * 1000 / TOKENS, 2),
     }
     print(
-        f"  {name}: median={med:.3f}ms  p95={p95:.3f}ms  ({result['us_per_token']} µs/tok)"
+        f"  {name}: median={med:.3f}ms  p95={p95:.3f}ms  ({result['us_per_token']} µs/tok)",
     )
     return result
 

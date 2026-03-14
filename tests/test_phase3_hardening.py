@@ -1,18 +1,17 @@
 # ─────────────────────────────────────────────────────────────────────
 # Phase 3 Hardening Tests (H28-H44, core only)
 # ─────────────────────────────────────────────────────────────────────
-"""
-Tests for Phase 3 hardening fixes (consumer core):
-  H28  ROB-5: NLI assert → RuntimeError
-  H29  CON-1: batch asyncio.get_running_loop()
-  H30  ROB-1: batch coherence None guard
-  H34  SEC-3: actor response.text truncation
-  H35  SEC-5: config _coerce error message
-  H36  API-2: config server_port/workers validation
-  H37  RES-3: config from_yaml UTF-8
-  H39  API-1: cli --port safety
-  H42  CON-2: scorer history thread lock
-  H44  ROB-8: scorer setLevel removed
+"""Tests for Phase 3 hardening fixes (consumer core):
+H28  ROB-5: NLI assert → RuntimeError
+H29  CON-1: batch asyncio.get_running_loop()
+H30  ROB-1: batch coherence None guard
+H34  SEC-3: actor response.text truncation
+H35  SEC-5: config _coerce error message
+H36  API-2: config server_port/workers validation
+H37  RES-3: config from_yaml UTF-8
+H39  API-1: cli --port safety
+H42  CON-2: scorer history thread lock
+H44  ROB-8: scorer setLevel removed
 """
 
 import json
@@ -51,7 +50,7 @@ class TestH28NLIAssert:
             [
                 ("a", "consistent with reality"),
                 ("b", "opposite is true"),
-            ]
+            ],
         )
         assert len(results) == 2
         assert results[0] < results[1]
@@ -75,7 +74,10 @@ class TestH29AsyncLoop:
             halted=False,
             candidates_evaluated=1,
             coherence=CoherenceScore(
-                score=0.9, approved=True, h_logical=0.05, h_factual=0.05
+                score=0.9,
+                approved=True,
+                h_logical=0.05,
+                h_factual=0.05,
             ),
         )
         proc = BatchProcessor(mock_backend)
@@ -97,7 +99,10 @@ class TestH30CoherenceNoneGuard:
 
         mock_backend = MagicMock()
         mock_backend.process.return_value = ReviewResult(
-            output="test", halted=True, candidates_evaluated=1, coherence=None
+            output="test",
+            halted=True,
+            candidates_evaluated=1,
+            coherence=None,
         )
         proc = BatchProcessor(mock_backend)
         result = proc._process_one(0, "test")
@@ -193,7 +198,10 @@ class TestH37YamlUtf8:
         from director_ai.core.config import DirectorConfig
 
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".json",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             json.dump({"profile": "default", "log_level": "DEBUG"}, f)
             f.flush()
@@ -209,7 +217,10 @@ class TestH37YamlUtf8:
         from director_ai.core.config import DirectorConfig
 
         with tempfile.NamedTemporaryFile(
-            mode="w", suffix=".json", delete=False, encoding="utf-8"
+            mode="w",
+            suffix=".json",
+            delete=False,
+            encoding="utf-8",
         ) as f:
             json.dump({"profile": "default", "log_level": "INFO"}, f)
             f.flush()

@@ -234,8 +234,8 @@ class TestCliTune:
                         "prompt": f"q{i}",
                         "response": f"a{i}",
                         "label": i % 2 == 0,
-                    }
-                )
+                    },
+                ),
             )
         f.write_text("\n".join(lines) + "\n")
 
@@ -259,7 +259,7 @@ class TestCliTune:
             json.dumps({"prompt": "q"})
             + "\n"
             + json.dumps({"prompt": "q", "response": "a", "label": True})
-            + "\n"
+            + "\n",
         )
         main(["tune", str(f)])
         out = capsys.readouterr().out
@@ -307,7 +307,7 @@ class TestCliStressTest:
                 "--concurrency",
                 "2",
                 "--json",
-            ]
+            ],
         )
         out = capsys.readouterr().out
         data = json.loads(out)

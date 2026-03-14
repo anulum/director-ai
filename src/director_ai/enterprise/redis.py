@@ -1,5 +1,4 @@
-"""
-Director-AI Enterprise — Redis High-Availability State.
+"""Director-AI Enterprise — Redis High-Availability State.
 
 Requires: pip install director-ai[enterprise]
 """
@@ -28,11 +27,13 @@ class RedisGroundTruthStore(GroundTruthStore):
     """
 
     def __init__(
-        self, redis_url: str = "redis://localhost:6379/0", prefix: str = "dai:facts:"
+        self,
+        redis_url: str = "redis://localhost:6379/0",
+        prefix: str = "dai:facts:",
     ):
         if redis is None:
             raise ImportError(
-                "redis package required. Run: pip install director-ai[enterprise]"
+                "redis package required. Run: pip install director-ai[enterprise]",
             )
         super().__init__()
         self.redis_url = redis_url
@@ -90,7 +91,7 @@ class RedisScoreCache(ScoreCache):
         if redis is None:
             raise ImportError(
                 "redis wrapper requires the 'redis' package. "
-                "Run: pip install director-ai[enterprise]"
+                "Run: pip install director-ai[enterprise]",
             )
         # We call super to keep local state properties if needed, but override behavior
         super().__init__(ttl_seconds=ttl_seconds)
@@ -133,7 +134,12 @@ class RedisScoreCache(ScoreCache):
             return None
 
     def put(
-        self, query: str, prefix: str, score: float, h_logical: float, h_factual: float
+        self,
+        query: str,
+        prefix: str,
+        score: float,
+        h_logical: float,
+        h_factual: float,
     ) -> None:
         k = self._key(query, prefix)
         redis_key = f"{self.prefix}{k}"
@@ -145,7 +151,7 @@ class RedisScoreCache(ScoreCache):
                 "h_factual": h_factual,
                 "created_at": time.monotonic(),
                 "generation": self._generation,
-            }
+            },
         )
 
         # Set with TTL

@@ -80,7 +80,8 @@ class TestProfileLoading:
             DirectorConfig.from_profile("nonexistent")
 
     @pytest.mark.parametrize(
-        "name", ["medical", "finance", "legal", "summarization", "research"]
+        "name",
+        ["medical", "finance", "legal", "summarization", "research"],
     )
     def test_high_stakes_profiles_use_hybrid(self, name):
         cfg = DirectorConfig.from_profile(name)
@@ -259,7 +260,9 @@ class TestBuildStore:
         mock_module = MagicMock()
         mock_module.CrossEncoder = MagicMock(return_value=mock_ce)
         monkeypatch.setitem(
-            __import__("sys").modules, "sentence_transformers", mock_module
+            __import__("sys").modules,
+            "sentence_transformers",
+            mock_module,
         )
 
         from director_ai.core.vector_store import RerankedBackend

@@ -64,7 +64,7 @@ class TestSdkGuardPeriodicCheck:
         chunks = []
         for i in range(STREAM_CHECK_INTERVAL + 1):
             c = SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content=f"t{i}"))]
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=f"t{i}"))],
             )
             chunks.append(c)
 
@@ -113,7 +113,8 @@ class TestLocalProviderStreamParsing:
         mock_resp.raise_for_status.return_value = None
 
         with patch(
-            "director_ai.integrations.providers.requests.post", return_value=mock_resp
+            "director_ai.integrations.providers.requests.post",
+            return_value=mock_resp,
         ):
             tokens = list(p.stream_generate("test"))
         assert tokens == ["hi"]
@@ -132,7 +133,8 @@ class TestLocalProviderStreamParsing:
         mock_resp.raise_for_status.return_value = None
 
         with patch(
-            "director_ai.integrations.providers.requests.post", return_value=mock_resp
+            "director_ai.integrations.providers.requests.post",
+            return_value=mock_resp,
         ):
             tokens = list(p.stream_generate("test"))
         assert tokens == ["ok"]
@@ -172,7 +174,7 @@ class TestNli2ClassAndMinicheck:
     def test_minicheck_init_runtime_error(self):
         """MiniCheck() raising RuntimeError falls through to heuristic."""
         scorer = object.__new__(
-            __import__("director_ai.core.nli", fromlist=["NLIScorer"]).NLIScorer
+            __import__("director_ai.core.nli", fromlist=["NLIScorer"]).NLIScorer,
         )
         scorer._model_name = "DeBERTa-v3-base"
         scorer._minicheck = None
@@ -236,7 +238,7 @@ class TestCliEdgeBranches:
             big.write_text("x" * 100, encoding="utf-8")
 
             with patch(
-                "director_ai.core.config.DirectorConfig.from_env"
+                "director_ai.core.config.DirectorConfig.from_env",
             ) as mock_from_env:
                 mock_cfg = MagicMock()
                 mock_store = MagicMock()
@@ -461,10 +463,10 @@ class TestSdkGuardEmptyStreams:
 
         chunks = [
             SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content=""))]
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=""))],
             ),
             SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content=None))]
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=None))],
             ),
         ]
         scorer = self._make_scorer()
@@ -511,13 +513,13 @@ class TestSdkGuardAsyncIteration:
 
         async def _async_chunks():
             yield SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content=""))]
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=""))],
             )
             yield SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content="hello"))]
+                choices=[SimpleNamespace(delta=SimpleNamespace(content="hello"))],
             )
             yield SimpleNamespace(
-                choices=[SimpleNamespace(delta=SimpleNamespace(content=""))]
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=""))],
             )
 
         scorer = self._make_scorer()
@@ -607,7 +609,8 @@ class TestProviderAnthropicNonTextBlock:
             ],
         }
         with patch(
-            "director_ai.integrations.providers.requests.post", return_value=mock_resp
+            "director_ai.integrations.providers.requests.post",
+            return_value=mock_resp,
         ):
             candidates = p.generate_candidates("test", n=1)
         assert candidates[0]["text"] == "actual answer"
@@ -630,7 +633,8 @@ class TestProviderOpenAIEmptyContent:
             "data: [DONE]",
         ]
         with patch(
-            "director_ai.integrations.providers.requests.post", return_value=mock_resp
+            "director_ai.integrations.providers.requests.post",
+            return_value=mock_resp,
         ):
             tokens = list(p.stream_generate("test"))
         assert tokens == ["word"]
@@ -649,7 +653,7 @@ class TestPolicyNonMatchingPattern:
                 "forbidden": ["badword", "anotherbad"],
                 "required": [],
                 "max_length": 1000,
-            }
+            },
         )
         violations = policy.check("this contains badword but not the other")
         assert len(violations) == 1
@@ -661,7 +665,7 @@ class TestPolicyNonMatchingPattern:
 
 class TestVectorStoreZeroSimilarity:
     def test_query_with_zero_similarity_items_filtered(self):
-        """similarity <= 0 → 128->127 (item not appended)."""
+        """Similarity <= 0 → 128->127 (item not appended)."""
         import threading
 
         import numpy as np

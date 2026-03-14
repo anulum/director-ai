@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate Director-AI on FreshQA — question/answer pairs with validity
+"""Evaluate Director-AI on FreshQA — question/answer pairs with validity
 labels (valid, false_premise, outdated).
 
 Dataset: ``freshllms/freshqa`` on HuggingFace (or manual CSV).

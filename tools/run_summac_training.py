@@ -53,7 +53,8 @@ def load_summac():
 
     if "validation" in splits:
         val = ds["validation"].map(
-            convert, remove_columns=ds["validation"].column_names
+            convert,
+            remove_columns=ds["validation"].column_names,
         )
         test_key = "test" if "test" in splits else "validation"
         test = ds[test_key].map(convert, remove_columns=ds[test_key].column_names)
@@ -71,7 +72,10 @@ def load_summac():
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
         return tokenizer(
-            batch["text"], truncation=True, max_length=max_length, padding=False
+            batch["text"],
+            truncation=True,
+            max_length=max_length,
+            padding=False,
         )
 
     return _tok

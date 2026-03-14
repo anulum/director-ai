@@ -34,7 +34,7 @@ NEGATION_WORDS = frozenset(
         "hasn't",
         "haven't",
         "hadn't",
-    }
+    },
 )
 
 WORD_RE = re.compile(r"\b\w+\b")
@@ -217,5 +217,5 @@ STOP_WORDS = frozenset(
         "yours",
         "yourself",
         "yourselves",
-    }
+    },
 )

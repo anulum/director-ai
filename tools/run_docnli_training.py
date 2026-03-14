@@ -62,7 +62,8 @@ def load_docnli():
 
     if "validation" in ds:
         val = ds["validation"].map(
-            convert, remove_columns=ds["validation"].column_names
+            convert,
+            remove_columns=ds["validation"].column_names,
         )
     else:
         split = train.train_test_split(test_size=0.05, seed=42)
@@ -83,7 +84,10 @@ def load_docnli():
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
         return tokenizer(
-            batch["text"], truncation=True, max_length=max_length, padding=False
+            batch["text"],
+            truncation=True,
+            max_length=max_length,
+            padding=False,
         )
 
     return _tok
@@ -106,7 +110,7 @@ def main():
     print(f"Base model: {BASE_MODEL}")
     print(f"Output: {OUTPUT_DIR}")
     print(
-        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}"
+        f"GPU: {torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU'}",
     )
 
     tokenizer = AutoTokenizer.from_pretrained(BASE_MODEL)

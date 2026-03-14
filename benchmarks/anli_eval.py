@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate NLI model on ANLI Round 1, 2, and 3 test sets.
+"""Evaluate NLI model on ANLI Round 1, 2, and 3 test sets.
 
 Training data included ANLI R3 train only. R1 and R2 are fully held-out.
 R3 test is held-out from R3 train. This tests adversarial robustness:
@@ -108,7 +107,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="ANLI adversarial NLI benchmark")
     add_common_args(parser)
     parser.add_argument(
-        "--rounds", nargs="+", default=["r1", "r2", "r3"], choices=["r1", "r2", "r3"]
+        "--rounds",
+        nargs="+",
+        default=["r1", "r2", "r3"],
+        choices=["r1", "r2", "r3"],
     )
     parser.add_argument("--split", default="test", choices=["dev", "test"])
     args = parser.parse_args()

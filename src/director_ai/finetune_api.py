@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Server-side fine-tuning API (Phase C).
+"""Server-side fine-tuning API (Phase C).
 
 Endpoints::
 
@@ -89,7 +88,7 @@ class _JobStore:
             )
             if active >= _MAX_CONCURRENT_JOBS:
                 raise ValueError(
-                    f"Too many concurrent jobs ({active}/{_MAX_CONCURRENT_JOBS})"
+                    f"Too many concurrent jobs ({active}/{_MAX_CONCURRENT_JOBS})",
                 )
         job = FinetuneJob(
             job_id=uuid.uuid4().hex,
@@ -191,8 +190,7 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
         eval_path = data_path.parent / f"{job.job_id}_eval.jsonl"
         for p, r in [(train_path, train_rows), (eval_path, eval_rows)]:
             with open(p, "w", encoding="utf-8") as f:
-                for row in r:
-                    f.write(json.dumps(row, ensure_ascii=False) + "\n")
+                f.writelines(json.dumps(row, ensure_ascii=False) + "\n" for row in r)
 
         job.total_steps = len(train_rows) // config.batch_size * config.epochs
 
@@ -230,7 +228,8 @@ def _read_upload_with_limit(content: bytes) -> bytes:
     """Reject uploads exceeding _MAX_UPLOAD_BYTES."""
     if len(content) > _MAX_UPLOAD_BYTES:
         raise HTTPException(
-            413, f"Upload too large ({len(content)} bytes, max {_MAX_UPLOAD_BYTES})"
+            413,
+            f"Upload too large ({len(content)} bytes, max {_MAX_UPLOAD_BYTES})",
         )
     return content
 
@@ -241,6 +240,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     Parameters
     ----------
     models_dir : directory for storing fine-tuned models
+
     """
     if not _FASTAPI_AVAILABLE:
         raise ImportError("pip install director-ai[server]")
@@ -381,7 +381,8 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
             raise HTTPException(404, f"Job {job_id} not found")
         if job.state != "completed":
             raise HTTPException(
-                409, f"Job {job_id} is not completed (state={job.state})"
+                409,
+                f"Job {job_id} is not completed (state={job.state})",
             )
         job.activated = True
         logger.info("Model %s activated: %s", job_id, job.model_path)
@@ -423,7 +424,8 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
             raise HTTPException(404, f"Job {job_id} not found")
         if job.activated:
             raise HTTPException(
-                409, "Cannot delete an activated model — rollback first"
+                409,
+                "Cannot delete an activated model — rollback first",
             )
 
         if job.model_path:

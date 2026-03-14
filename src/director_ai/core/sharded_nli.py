@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Distribute NLI inference across multiple CUDA devices via round-robin.
+"""Distribute NLI inference across multiple CUDA devices via round-robin.
 
 Usage::
 
@@ -29,6 +28,7 @@ class ShardedNLIScorer:
     ----------
     devices : list[str] — e.g. ["cuda:0", "cuda:1"].
     **kwargs — forwarded to each NLIScorer (model_name, backend, etc.).
+
     """
 
     def __init__(self, devices: list[str], **kwargs) -> None:

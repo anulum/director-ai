@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Use Director-AI as a LangChain output checker.
+"""Use Director-AI as a LangChain output checker.
 
 Requires:
     pip install director-ai langchain langchain-openai
@@ -26,7 +25,8 @@ class DirectorGuard:
             for k, v in facts.items():
                 self.store.add(k, v)
         self.scorer = CoherenceScorer(
-            threshold=threshold, ground_truth_store=self.store
+            threshold=threshold,
+            ground_truth_store=self.store,
         )
 
     def check(self, query: str, response: str) -> dict:
@@ -76,7 +76,7 @@ def standalone_demo():
         facts={
             "capital of France": "The capital of France is Paris.",
             "boiling point": "Water boils at 100 degrees Celsius.",
-        }
+        },
     )
 
     tests = [

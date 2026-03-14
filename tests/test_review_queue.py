@@ -96,7 +96,10 @@ class TestReviewQueueFallback:
                 return (
                     True,
                     CoherenceScore(
-                        score=0.9, approved=True, h_logical=0.05, h_factual=0.05
+                        score=0.9,
+                        approved=True,
+                        h_logical=0.05,
+                        h_factual=0.05,
                     ),
                 )
 

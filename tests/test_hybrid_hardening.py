@@ -44,7 +44,9 @@ class TestShouldEscalate:
 
     def test_no_provider_never_escalates(self):
         scorer = CoherenceScorer(
-            use_nli=False, llm_judge_enabled=True, llm_judge_provider=""
+            use_nli=False,
+            llm_judge_enabled=True,
+            llm_judge_provider="",
         )
         assert scorer._should_escalate(0.5) is False
 
@@ -74,7 +76,8 @@ class TestNonEvidenceEscalation:
         mock_openai, client = _mock_openai_yes()
         with patch.dict(sys.modules, {"openai": mock_openai}):
             result = scorer.calculate_factual_divergence(
-                "weather?", "The weather will be sunny and warm tomorrow."
+                "weather?",
+                "The weather will be sunny and warm tomorrow.",
             )
         assert 0.0 <= result <= 1.0
         client.chat.completions.create.assert_called_once()
@@ -103,10 +106,12 @@ class TestJudgeCache:
         mock_openai, client = _mock_openai_yes()
         with patch.dict(sys.modules, {"openai": mock_openai}):
             r1 = scorer.calculate_factual_divergence(
-                "weather?", "The weather will be sunny and warm tomorrow."
+                "weather?",
+                "The weather will be sunny and warm tomorrow.",
             )
             r2 = scorer.calculate_factual_divergence(
-                "weather?", "The weather will be sunny and warm tomorrow."
+                "weather?",
+                "The weather will be sunny and warm tomorrow.",
             )
 
         assert r1 == r2

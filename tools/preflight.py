@@ -88,7 +88,7 @@ WARN_ONLY = {"spdx-guard"}
 
 
 def check_version_sync() -> bool:
-    root = pathlib.Path(".")
+    root = pathlib.Path()
     try:
         import tomllib
 
@@ -195,7 +195,7 @@ def main() -> int:
 
     print(f"\n{'=' * 60}")
     print(
-        f"  PREFLIGHT: {len(passed)} passed, {len(failed)} failed, {len(warned)} warned"
+        f"  PREFLIGHT: {len(passed)} passed, {len(failed)} failed, {len(warned)} warned",
     )
     if warned:
         print(f"  WARNED: {', '.join(warned)}")

@@ -38,7 +38,7 @@ def _make_nli_data(n_pos=50, n_neg=50):
                 "premise": f"The capital of country {i} is city {i}.",
                 "hypothesis": f"City {i} is a capital.",
                 "label": 1,
-            }
+            },
         )
     for i in range(n_neg):
         rows.append(
@@ -46,7 +46,7 @@ def _make_nli_data(n_pos=50, n_neg=50):
                 "premise": f"Country {i} has no coastline.",
                 "hypothesis": f"Country {i} is an island.",
                 "label": 0,
-            }
+            },
         )
     return rows
 

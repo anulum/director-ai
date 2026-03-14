@@ -29,7 +29,7 @@ class TestSentenceTransformerBackend:
         from director_ai.core import vector_store
 
         be = vector_store.SentenceTransformerBackend.__new__(
-            vector_store.SentenceTransformerBackend
+            vector_store.SentenceTransformerBackend,
         )
         be._model = mock_model
         be._docs = []
@@ -46,7 +46,7 @@ class TestSentenceTransformerBackend:
         from director_ai.core import vector_store
 
         be = vector_store.SentenceTransformerBackend.__new__(
-            vector_store.SentenceTransformerBackend
+            vector_store.SentenceTransformerBackend,
         )
         be._model = MagicMock()
         be._docs = []
@@ -125,13 +125,13 @@ class TestPineconeBackend:
         be._index.upsert.assert_called_once()
 
         be._index.query.return_value = {
-            "matches": [{"id": "d1", "score": 0.9, "metadata": {"text": "hello"}}]
+            "matches": [{"id": "d1", "score": 0.9, "metadata": {"text": "hello"}}],
         }
         results = be.query("hello")
         assert len(results) == 1
 
         be._index.describe_index_stats.return_value = {
-            "namespaces": {"": {"vector_count": 5}}
+            "namespaces": {"": {"vector_count": 5}},
         }
         assert be.count() == 5
 
@@ -170,10 +170,10 @@ class TestWeaviateBackend:
                             "text": "hello",
                             "doc_id": "d1",
                             "_additional": {"id": "x", "distance": 0.1},
-                        }
-                    ]
-                }
-            }
+                        },
+                    ],
+                },
+            },
         }
 
         results = be.query("hello")

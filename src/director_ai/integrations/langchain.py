@@ -1,5 +1,4 @@
-"""
-Director-AI LangChain integration.
+"""Director-AI LangChain integration.
 
 Requires: pip install director-ai[langchain]
 
@@ -17,7 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
-from director_ai.core.exceptions import HallucinationError  # noqa: F401 — re-export
+from director_ai.core.exceptions import HallucinationError
 
 
 class DirectorAIGuard:
@@ -34,6 +33,7 @@ class DirectorAIGuard:
     use_nli : bool | None — NLI mode (None=auto-detect).
     raise_on_fail : bool — if True, raise on failure; if False, return
         the result dict with ``approved=False``.
+
     """
 
     def __init__(

@@ -111,14 +111,16 @@ class TestDirectorAINode:
 class TestConditionalEdge:
     def test_approved_routes_to_output(self):
         edge = director_ai_conditional_edge(
-            approved_node="output", rejected_node="retry"
+            approved_node="output",
+            rejected_node="retry",
         )
         state = {"director_ai_approved": True}
         assert edge(state) == "output"
 
     def test_rejected_routes_to_retry(self):
         edge = director_ai_conditional_edge(
-            approved_node="output", rejected_node="retry"
+            approved_node="output",
+            rejected_node="retry",
         )
         state = {"director_ai_approved": False}
         assert edge(state) == "retry"
@@ -130,7 +132,8 @@ class TestConditionalEdge:
 
     def test_custom_node_names(self):
         edge = director_ai_conditional_edge(
-            approved_node="done", rejected_node="regenerate"
+            approved_node="done",
+            rejected_node="regenerate",
         )
         assert edge({"director_ai_approved": True}) == "done"
         assert edge({"director_ai_approved": False}) == "regenerate"

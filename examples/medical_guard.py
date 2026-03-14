@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Medical domain guardrail with Director-AI.
+"""Medical domain guardrail with Director-AI.
 
 Requires: pip install director-ai
 """

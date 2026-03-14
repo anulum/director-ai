@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Demonstrates how to populate the VectorGroundTruthStore with a real
+"""Demonstrates how to populate the VectorGroundTruthStore with a real
 corpus and use it for factual divergence scoring.
 
 This example uses the InMemoryBackend (zero dependencies).  For
@@ -87,7 +86,7 @@ def main():
         print(f"          A: {response}")
         print(
             f"          Coherence: {score.score:.4f} "
-            f"(H_logic={score.h_logical:.2f}, H_fact={score.h_factual:.2f})\n"
+            f"(H_logic={score.h_logical:.2f}, H_fact={score.h_factual:.2f})\n",
         )
 
     # 5. Demonstrate retrieval

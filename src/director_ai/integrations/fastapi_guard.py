@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-ASGI middleware that scores JSON responses for hallucination.
+"""ASGI middleware that scores JSON responses for hallucination.
 
 Usage::
 
@@ -43,6 +42,7 @@ class DirectorGuard:
         URL paths to score. ``None`` scores all POST responses.
     on_fail : str
         ``"warn"`` adds headers only. ``"reject"`` returns 422.
+
     """
 
     def __init__(
@@ -68,7 +68,9 @@ class DirectorGuard:
             for k, v in facts.items():
                 gts.add(k, v)
         self.scorer = CoherenceScorer(
-            threshold=threshold, ground_truth_store=gts, use_nli=use_nli
+            threshold=threshold,
+            ground_truth_store=gts,
+            use_nli=use_nli,
         )
 
     async def __call__(self, scope, receive, send):
@@ -145,8 +147,8 @@ class DirectorGuard:
                             "type": "content_filter",
                             "score": cs.score,
                             "threshold": self.threshold,
-                        }
-                    }
+                        },
+                    },
                 ).encode()
 
         if reject:
@@ -158,13 +160,13 @@ class DirectorGuard:
                         (b"content-type", b"application/json"),
                         *extra_headers,
                     ],
-                }
+                },
             )
             await send(
                 {
                     "type": "http.response.body",
                     "body": reject_body,
-                }
+                },
             )
         else:
             merged_headers = response_headers_raw + extra_headers
@@ -173,13 +175,13 @@ class DirectorGuard:
                     "type": "http.response.start",
                     "status": response_status,
                     "headers": merged_headers,
-                }
+                },
             )
             await send(
                 {
                     "type": "http.response.body",
                     "body": bytes(response_body),
-                }
+                },
             )
 
 

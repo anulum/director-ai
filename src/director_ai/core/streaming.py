@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Streaming oversight for token-by-token coherence monitoring.
+"""Streaming oversight for token-by-token coherence monitoring.
 
 Provides ``StreamingKernel`` which extends ``SafetyKernel`` with:
 - Async token processing via generator protocol
@@ -25,7 +24,7 @@ from .kernel import SafetyKernel
 from .otel import trace_streaming
 from .types import HaltEvidence
 
-__all__ = ["StreamingKernel", "StreamSession", "TokenEvent"]
+__all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
 
 if TYPE_CHECKING:  # pragma: no cover
     from .scorer import CoherenceScorer
@@ -108,6 +107,7 @@ class StreamingKernel(SafetyKernel):
     window_threshold : float — halt if sliding window average drops below this.
     trend_window : int — tokens to check for downward trend.
     trend_threshold : float — halt if coherence drops this much over trend window.
+
     """
 
     _SENTENCE_ENDS = frozenset(".!?")
@@ -220,6 +220,7 @@ class StreamingKernel(SafetyKernel):
         Returns
         -------
         StreamSession with full oversight trace.
+
         """
         session = StreamSession(start_time=time.monotonic())
         window: deque[float] = deque(maxlen=self.window_size)

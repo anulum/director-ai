@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Tenant-isolated knowledge base routing + per-tenant model versioning.
+"""Tenant-isolated knowledge base routing + per-tenant model versioning.
 
 Each tenant gets its own GroundTruthStore and optional fine-tuned model.
 No data leaks between tenants.
@@ -103,7 +102,9 @@ class TenantRouter:
             if key in self._vector_stores:
                 return self._vector_stores[key]
             backend: VectorBackend = self._build_vector_backend(
-                tenant_id, backend_type, **kwargs
+                tenant_id,
+                backend_type,
+                **kwargs,
             )
             store = VectorGroundTruthStore(backend=backend, tenant_id=tenant_id)
             self._vector_stores[key] = store
@@ -111,7 +112,9 @@ class TenantRouter:
 
     @staticmethod
     def _build_vector_backend(
-        tenant_id: str, backend_type: str, **kwargs
+        tenant_id: str,
+        backend_type: str,
+        **kwargs,
     ) -> VectorBackend:
         if backend_type == "memory":
             return InMemoryBackend()
@@ -120,7 +123,8 @@ class TenantRouter:
 
             return ChromaBackend(
                 collection_name=kwargs.get(
-                    "collection_name", f"director_ai_{tenant_id}"
+                    "collection_name",
+                    f"director_ai_{tenant_id}",
                 ),
                 **{k: v for k, v in kwargs.items() if k != "collection_name"},
             )
@@ -136,7 +140,8 @@ class TenantRouter:
 
             return QdrantBackend(
                 collection_name=kwargs.get(
-                    "collection_name", f"director_facts_{tenant_id}"
+                    "collection_name",
+                    f"director_facts_{tenant_id}",
                 ),
                 **{k: v for k, v in kwargs.items() if k != "collection_name"},
             )

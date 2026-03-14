@@ -5,8 +5,7 @@
 # ORCID: https://orcid.org/0009-0009-3560-0851
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Director-AI: Real-time LLM hallucination guardrail.
+"""Director-AI: Real-time LLM hallucination guardrail.
 
 ::
 
@@ -65,28 +64,28 @@ from .core.exceptions import (
 from .integrations.sdk_guard import get_score, guard, score
 
 __all__ = [
-    "guard",
-    "get_score",
-    "score",
     "ClaimAttribution",
     "CoherenceAgent",
-    "CoherenceScorer",
-    "SafetyKernel",
-    "GroundTruthStore",
-    "StreamingKernel",
-    "CoherenceScore",
-    "ReviewResult",
-    "MockGenerator",
-    "LLMGenerator",
-    "HallucinationError",
-    "DirectorAIError",
     "CoherenceError",
-    "KernelHaltError",
-    "GeneratorError",
-    "ValidationError",
+    "CoherenceScore",
+    "CoherenceScorer",
     "DependencyError",
-    "PhysicsError",
+    "DirectorAIError",
+    "GeneratorError",
+    "GroundTruthStore",
+    "HallucinationError",
+    "KernelHaltError",
+    "LLMGenerator",
+    "MockGenerator",
     "NumericalError",
+    "PhysicsError",
+    "ReviewResult",
+    "SafetyKernel",
+    "StreamingKernel",
+    "ValidationError",
+    "get_score",
+    "guard",
+    "score",
 ]
 
 _MOVED_TO_ENTERPRISE = {
@@ -102,6 +101,6 @@ def __getattr__(name: str):
     if name in _MOVED_TO_ENTERPRISE:
         raise ImportError(
             f"{name} moved to director_ai.enterprise in v3.0. "
-            f"Use: from director_ai.enterprise import {name}"
+            f"Use: from director_ai.enterprise import {name}",
         )
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

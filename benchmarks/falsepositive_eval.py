@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Measure false-positive rate on correct (evidence, answer) pairs.
+"""Measure false-positive rate on correct (evidence, answer) pairs.
 
 This is the single most important production metric: in real RAG
 pipelines, >95% of model outputs are correct. If we flag even 5%
@@ -174,6 +173,7 @@ def run_falsepositive_benchmark(
     sources : which QA datasets to use (default: all three).
     max_samples : total sample cap across all sources.
     model_name : HuggingFace model ID or local path.
+
     """
     predictor = NLIPredictor(model_name=model_name)
 
@@ -231,21 +231,21 @@ def _print_fp_results(m: FPMetrics) -> None:
     print(f"  Entailment:       {m.correct} ({m.entailment_rate:.1%})")
     print(f"  Neutral:          {m.uncertain} ({m.uncertain_rate:.1%})")
     print(
-        f"  Contradiction:    {m.false_positives} ({m.fp_rate:.1%})  ← FALSE POSITIVES"
+        f"  Contradiction:    {m.false_positives} ({m.fp_rate:.1%})  ← FALSE POSITIVES",
     )
     print()
     print(f"  FP Rate:          {m.fp_rate:.2%}")
     print(f"  FP+Uncertain:     {(m.fp_rate + m.uncertain_rate):.2%}")
     if m.per_source:
         print(
-            f"\n  {'Source':<12} {'Total':>6} {'FP':>6} {'Unc':>6} {'OK':>6} {'FP%':>8}"
+            f"\n  {'Source':<12} {'Total':>6} {'FP':>6} {'Unc':>6} {'OK':>6} {'FP%':>8}",
         )
         print(f"  {'-' * 50}")
         for src, counts in sorted(m.per_source.items()):
             fp_pct = counts["fp"] / max(counts["total"], 1)
             print(
                 f"  {src:<12} {counts['total']:>6} {counts['fp']:>6} "
-                f"{counts['uncertain']:>6} {counts['correct']:>6} {fp_pct:>7.1%}"
+                f"{counts['uncertain']:>6} {counts['correct']:>6} {fp_pct:>7.1%}",
             )
     if m.inference_times:
         print(f"\n  Latency:          {m.avg_latency_ms:.1f} ms avg")
@@ -276,16 +276,21 @@ if __name__ == "__main__":
 
     logging.basicConfig(level=logging.INFO)
     parser = argparse.ArgumentParser(
-        description="False-positive rate on clean RAG data"
+        description="False-positive rate on clean RAG data",
     )
     add_common_args(parser)
     parser.add_argument(
-        "--sources", nargs="+", default=None, choices=list(_SOURCE_LOADERS.keys())
+        "--sources",
+        nargs="+",
+        default=None,
+        choices=list(_SOURCE_LOADERS.keys()),
     )
     args = parser.parse_args()
 
     m = run_falsepositive_benchmark(
-        sources=args.sources, max_samples=args.max_samples, model_name=args.model
+        sources=args.sources,
+        max_samples=args.max_samples,
+        model_name=args.model,
     )
     _print_fp_results(m)
 

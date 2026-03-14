@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Measure tokens/sec with vs without guard at cadences 1, 4, 8, adaptive.
+"""Measure tokens/sec with vs without guard at cadences 1, 4, 8, adaptive.
 
 Usage::
 
@@ -126,7 +125,12 @@ def main():
     cadence_4 = _run_guard("4", N_TOKENS, ITERATIONS, score_every_n=4)
     cadence_8 = _run_guard("8", N_TOKENS, ITERATIONS, score_every_n=8)
     cadence_a = _run_guard(
-        "adaptive", N_TOKENS, ITERATIONS, score_every_n=1, adaptive=True, max_cadence=8
+        "adaptive",
+        N_TOKENS,
+        ITERATIONS,
+        score_every_n=1,
+        adaptive=True,
+        max_cadence=8,
     )
 
     rows = [baseline, cadence_1, cadence_4, cadence_8, cadence_a]
@@ -150,13 +154,13 @@ def main():
     for row in rows:
         print(
             f"{row['cadence']:<10} {row['tokens_per_sec']:>10,} {row['wall_ms']:>10} "
-            f"{row['overhead']:>10} {row['callbacks']:>10}"
+            f"{row['overhead']:>10} {row['callbacks']:>10}",
         )
 
     delta = _run_delta()
     print(
         f"\nHallucination delta: catch_rate={delta['catch_rate']:.1%} "
-        f"(tp={delta['tp']} fn={delta['fn']})"
+        f"(tp={delta['tp']} fn={delta['fn']})",
     )
 
     results = {"throughput": rows, "delta": delta}

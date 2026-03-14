@@ -98,7 +98,7 @@ def run_benchmark(
                 elapsed = time.monotonic() - t0
                 print(
                     f"  [{name}] {i + 1}/{n_samples} "
-                    f"FP={fp_count} elapsed={elapsed:.1f}s"
+                    f"FP={fp_count} elapsed={elapsed:.1f}s",
                 )
 
         elapsed = time.monotonic() - t0
@@ -125,7 +125,7 @@ def run_benchmark(
             f"[{name}] FPR={fpr:.1f}% "
             f"coh={np.mean(coherences):.4f} "
             f"h_fact={np.mean(h_facts):.4f} "
-            f"time={elapsed:.1f}s"
+            f"time={elapsed:.1f}s",
         )
         if coverages:
             print(f"  mean_coverage={np.mean(coverages):.4f}")
@@ -138,11 +138,12 @@ def run_benchmark(
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Layer C claim coverage FPR diagnostic"
+        description="Layer C claim coverage FPR diagnostic",
     )
     parser.add_argument("--samples", type=int, default=200)
     parser.add_argument(
-        "--out", default="benchmarks/results/claim_coverage_fpr_diag.json"
+        "--out",
+        default="benchmarks/results/claim_coverage_fpr_diag.json",
     )
     parser.add_argument("--model", default=None)
     args = parser.parse_args()

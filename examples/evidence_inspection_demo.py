@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Evidence inspection demo — see exactly why Director-AI rejected a response.
+"""Evidence inspection demo — see exactly why Director-AI rejected a response.
 
 Every CoherenceScore carries an `evidence` field containing:
 - Top-K ground truth chunks with relevance distances

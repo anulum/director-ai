@@ -1,5 +1,4 @@
-"""
-Director-AI Haystack integration.
+"""Director-AI Haystack integration.
 
 Requires: pip install director-ai[haystack]
 
@@ -63,6 +62,7 @@ class DirectorAIChecker:
         Returns
         -------
         dict with "replies" (filtered if configured), "scores", "approved" lists.
+
         """
         if not replies:
             return {"replies": [], "scores": [], "approved": []}
@@ -80,7 +80,7 @@ class DirectorAIChecker:
                     "h_factual": cs.h_factual,
                     "approved": approved,
                     "warning": cs.warning,
-                }
+                },
             )
             approved_list.append(approved)
             if not self.filter_rejected or approved:

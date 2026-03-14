@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Fine-tune the NLI model on domain-specific labeled data.
+"""Fine-tune the NLI model on domain-specific labeled data.
 
 Supports FactCG-DeBERTa-v3-Large and any HuggingFace NLI model.
 Input: JSONL file with ``premise``, ``hypothesis``, ``label`` fields.
@@ -109,7 +108,8 @@ def _load_jsonl(path: str | Path) -> list[dict]:
             label = row.get("label")
             if not premise or not hypothesis or label is None:
                 logger.warning(
-                    "Skipping line %d: missing premise/hypothesis/label", line_num
+                    "Skipping line %d: missing premise/hypothesis/label",
+                    line_num,
                 )
                 continue
             rows.append(
@@ -117,7 +117,7 @@ def _load_jsonl(path: str | Path) -> list[dict]:
                     "premise": premise,
                     "hypothesis": hypothesis,
                     "label": int(label),
-                }
+                },
             )
     logger.info("Loaded %d samples from %s", len(rows), path)
     return rows
@@ -203,7 +203,7 @@ def _prepare_dataset(rows: list[dict], tokenizer, max_length: int, is_factcg: bo
                 "premise": premises,
                 "hypothesis": hypotheses,
                 "labels": [r["label"] for r in rows],
-            }
+            },
         )
 
         def _tok_pair(batch):
@@ -273,6 +273,7 @@ def finetune_nli(
     Returns
     -------
     FinetuneResult with output_dir and best metrics.
+
     """
     from transformers import (
         AutoModelForSequenceClassification,
@@ -317,7 +318,10 @@ def finetune_nli(
     is_factcg = "factcg" in config.base_model.lower()
 
     train_dataset = _prepare_dataset(
-        train_rows, tokenizer, config.max_length, is_factcg
+        train_rows,
+        tokenizer,
+        config.max_length,
+        is_factcg,
     )
     eval_dataset = (
         _prepare_dataset(eval_rows, tokenizer, config.max_length, is_factcg)
@@ -358,7 +362,7 @@ def finetune_nli(
         callbacks.append(
             EarlyStoppingCallback(
                 early_stopping_patience=config.early_stopping_patience,
-            )
+            ),
         )
 
     # Phase E: class-weighted loss via custom Trainer
@@ -401,7 +405,8 @@ def finetune_nli(
         result.eval_metrics = eval_metrics
         result.best_balanced_accuracy = eval_metrics.get("eval_balanced_accuracy", 0.0)
         logger.info(
-            "Best balanced accuracy: %.1f%%", result.best_balanced_accuracy * 100
+            "Best balanced accuracy: %.1f%%",
+            result.best_balanced_accuracy * 100,
         )
 
     # Phase E: auto-benchmark against baseline

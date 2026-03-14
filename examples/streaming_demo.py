@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Self-contained streaming halt demo with colored terminal output.
+"""Self-contained streaming halt demo with colored terminal output.
 
 Run:
     python examples/streaming_demo.py
@@ -86,7 +85,7 @@ def _run(
     if session.halted:
         print(
             f"\n  {RED}{BOLD}HALTED{RESET} at token {session.halt_index}/{len(tokens)}"
-            f"  {DIM}reason: {session.halt_reason}{RESET}"
+            f"  {DIM}reason: {session.halt_reason}{RESET}",
         )
     else:
         n = session.token_count
@@ -94,7 +93,7 @@ def _run(
 
     print(
         f"  {DIM}avg={session.avg_coherence:.3f}  "
-        f"min={session.min_coherence:.3f}{RESET}"
+        f"min={session.min_coherence:.3f}{RESET}",
     )
 
 

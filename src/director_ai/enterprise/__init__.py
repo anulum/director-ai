@@ -5,8 +5,7 @@
 # ORCID: https://orcid.org/0009-0009-3560-0851
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Enterprise extensions: multi-tenant isolation, policy engine, audit logging.
+"""Enterprise extensions: multi-tenant isolation, policy engine, audit logging.
 
 ::
 
@@ -14,11 +13,11 @@ Enterprise extensions: multi-tenant isolation, policy engine, audit logging.
 """
 
 __all__ = [
-    "TenantRouter",
-    "Policy",
-    "Violation",
-    "AuditLogger",
     "AuditEntry",
+    "AuditLogger",
+    "Policy",
+    "TenantRouter",
+    "Violation",
 ]
 
 _ENTERPRISE_IMPORTS = {

@@ -104,7 +104,9 @@ class TestStreamingKernel:
     def test_on_halt_window_avg(self):
         halted_sessions = []
         kernel = StreamingKernel(
-            window_size=3, window_threshold=0.6, on_halt=halted_sessions.append
+            window_size=3,
+            window_threshold=0.6,
+            on_halt=halted_sessions.append,
         )
         scores = iter([0.7, 0.55, 0.5, 0.45])
         kernel.stream_tokens([f"t{i} " for i in range(4)], lambda t: next(scores))
@@ -233,7 +235,10 @@ class TestScoringCadence:
             return next(score_iter)
 
         kernel = StreamingKernel(
-            hard_limit=0.2, soft_limit=0.6, adaptive=True, max_cadence=8
+            hard_limit=0.2,
+            soft_limit=0.6,
+            adaptive=True,
+            max_cadence=8,
         )
         tokens = [f"t{i} " for i in range(40)]
         kernel.stream_tokens(tokens, counting_cb)
@@ -348,7 +353,8 @@ class TestAsyncStreamingKernel:
 
         async def run():
             return await kernel.stream_to_session(
-                ["Good ", "Bad "], lambda t: next(scores)
+                ["Good ", "Bad "],
+                lambda t: next(scores),
             )
 
         session = asyncio.run(run())

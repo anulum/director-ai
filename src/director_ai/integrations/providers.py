@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Unified LLM provider protocol with OpenAI, Anthropic, HuggingFace,
+"""Unified LLM provider protocol with OpenAI, Anthropic, HuggingFace,
 and local server adapters.
 
 Each provider implements ``generate_candidates(prompt, n)`` returning
@@ -47,6 +46,7 @@ class LLMProvider(ABC):
         Yields
         ------
         str — individual tokens from the LLM response.
+
         """
         candidates = self.generate_candidates(prompt, n=1)
         if candidates:
@@ -64,6 +64,7 @@ class OpenAIProvider(LLMProvider):
     temperature : float — sampling temperature.
     max_tokens : int — max tokens per completion.
     timeout : int — request timeout seconds.
+
     """
 
     def __init__(
@@ -103,7 +104,10 @@ class OpenAIProvider(LLMProvider):
 
         try:
             resp = requests.post(
-                url, json=payload, headers=headers, timeout=self.timeout
+                url,
+                json=payload,
+                headers=headers,
+                timeout=self.timeout,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -179,6 +183,7 @@ class AnthropicProvider(LLMProvider):
     model : str — model ID (default: claude-sonnet-4-5-20250929).
     max_tokens : int — max tokens per message.
     timeout : int — request timeout seconds.
+
     """
 
     def __init__(
@@ -211,7 +216,10 @@ class AnthropicProvider(LLMProvider):
         }
         try:
             resp = requests.post(
-                url, json=payload, headers=headers, timeout=self.timeout
+                url,
+                json=payload,
+                headers=headers,
+                timeout=self.timeout,
             )
             resp.raise_for_status()
             data = resp.json()
@@ -252,6 +260,7 @@ class HuggingFaceProvider(LLMProvider):
     api_key : str — HuggingFace API token.
     model : str — model ID on HuggingFace Hub.
     timeout : int — request timeout seconds.
+
     """
 
     def __init__(
@@ -317,6 +326,7 @@ class LocalProvider(LLMProvider):
     api_url : str — server endpoint URL.
     model : str — model name (for servers that require it).
     timeout : int — request timeout seconds.
+
     """
 
     def __init__(
@@ -385,7 +395,10 @@ class LocalProvider(LLMProvider):
 
         try:
             resp = requests.post(
-                self.api_url, json=payload, timeout=self.timeout, stream=True
+                self.api_url,
+                json=payload,
+                timeout=self.timeout,
+                stream=True,
             )
             resp.raise_for_status()
             for line in resp.iter_lines(decode_unicode=True):  # pragma: no branch

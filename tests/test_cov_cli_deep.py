@@ -122,10 +122,10 @@ class TestTune:
         f = tmp_path / "labeled.jsonl"
         lines = [
             json.dumps(
-                {"prompt": "sky?", "response": "The sky is blue.", "label": True}
+                {"prompt": "sky?", "response": "The sky is blue.", "label": True},
             ),
             json.dumps(
-                {"prompt": "sky?", "response": "The sky is green.", "label": False}
+                {"prompt": "sky?", "response": "The sky is green.", "label": False},
             ),
         ]
         f.write_text("\n".join(lines), encoding="utf-8")

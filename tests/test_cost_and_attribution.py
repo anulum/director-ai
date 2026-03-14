@@ -81,7 +81,7 @@ class TestScoringEvidenceNewFields:
                     source_index=0,
                     divergence=0.2,
                     supported=True,
-                )
+                ),
             ],
         )
         assert ev.token_count == 1024

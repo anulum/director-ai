@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-LLM provider adapters for Director-Class AI.
+"""LLM provider adapters for Director-Class AI.
 
 Usage::
 
@@ -23,11 +22,11 @@ from .providers import (
 )
 
 __all__ = [
-    "LLMProvider",
-    "OpenAIProvider",
     "AnthropicProvider",
     "HuggingFaceProvider",
+    "LLMProvider",
     "LocalProvider",
+    "OpenAIProvider",
 ]
 
 # Ecosystem integrations — import directly from submodules:

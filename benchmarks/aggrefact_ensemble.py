@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate domain-model ensemble on LLM-AggreFact.
+"""Evaluate domain-model ensemble on LLM-AggreFact.
 
 Loads base FactCG + N domain-specialised models, scores each sample
 with every model, and aggregates via max/mean/weighted-mean.
@@ -97,7 +96,8 @@ def _collect_scores(
 
 
 def _scores_to_metrics(
-    by_dataset: dict[str, list[tuple[int, float]]], threshold: float
+    by_dataset: dict[str, list[tuple[int, float]]],
+    threshold: float,
 ) -> AggreFactMetrics:
     metrics = AggreFactMetrics(threshold=threshold)
     for ds_name in sorted(by_dataset.keys()):
@@ -169,7 +169,8 @@ def run_ensemble_benchmark(
 
     if len(predictors) < 2:
         logger.warning(
-            "Need at least 2 models for ensemble. Found: %d", len(predictors)
+            "Need at least 2 models for ensemble. Found: %d",
+            len(predictors),
         )
 
     rows = _load_aggrefact(max_samples)
@@ -260,10 +261,10 @@ def _print_ensemble_results(r: EnsembleResult) -> None:
         print(f"\n  {'Ensemble Strategy':<30} {'Bal Acc':>8}")
         print(f"  {'-' * 42}")
         print(
-            f"  {'max (any model says yes)':<30} {r.ensemble_max.avg_balanced_acc:>7.1%}"
+            f"  {'max (any model says yes)':<30} {r.ensemble_max.avg_balanced_acc:>7.1%}",
         )
         print(
-            f"  {'mean (avg probability)':<30} {r.ensemble_mean.avg_balanced_acc:>7.1%}"
+            f"  {'mean (avg probability)':<30} {r.ensemble_mean.avg_balanced_acc:>7.1%}",
         )
 
     # Leaderboard comparison
@@ -279,7 +280,8 @@ def _print_ensemble_results(r: EnsembleResult) -> None:
         print(f"  {'-' * 50}")
         inserted = False
         for ref_name, ref_score in sorted(
-            REFERENCE_SCORES.items(), key=lambda x: -x[1]
+            REFERENCE_SCORES.items(),
+            key=lambda x: -x[1],
         ):
             if not inserted and our_pct >= ref_score:
                 print(f"  {'>>> OURS (ensemble) <<<':<30} {our_pct:>7.1f}%")
@@ -295,10 +297,11 @@ def _print_ensemble_results(r: EnsembleResult) -> None:
         for ds_name in sorted(best.per_dataset.keys()):
             ens_acc = best.per_dataset[ds_name]["balanced_acc"]
             base_acc = r.base_metrics.per_dataset.get(ds_name, {}).get(
-                "balanced_acc", 0
+                "balanced_acc",
+                0,
             )
             print(
-                f"  {ds_name:<20} {base_acc:>6.1%} {ens_acc:>8.1%} {ens_acc - base_acc:>+6.1%}"
+                f"  {ds_name:<20} {base_acc:>6.1%} {ens_acc:>8.1%} {ens_acc - base_acc:>+6.1%}",
             )
 
     print(f"\n{'=' * 72}")
@@ -310,7 +313,11 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     parser = argparse.ArgumentParser(description="Ensemble AggreFact benchmark")
     parser.add_argument(
-        "max_samples", nargs="?", type=int, default=None, help="Limit samples"
+        "max_samples",
+        nargs="?",
+        type=int,
+        default=None,
+        help="Limit samples",
     )
     parser.add_argument(
         "--models-dir",
@@ -320,14 +327,17 @@ if __name__ == "__main__":
     )
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument(
-        "--sweep", action="store_true", help="Sweep threshold × strategy"
+        "--sweep",
+        action="store_true",
+        help="Sweep threshold × strategy",
     )
     parser.add_argument("--no-base", action="store_true", help="Exclude base model")
     args = parser.parse_args()
 
     if args.sweep:
         best_thresh, best_strat, r = sweep_ensemble_thresholds(
-            max_samples=args.max_samples, models_dir=args.models_dir
+            max_samples=args.max_samples,
+            models_dir=args.models_dir,
         )
         print(f"\nOptimal: threshold={best_thresh:.2f}, strategy={best_strat}")
         _print_ensemble_results(r)

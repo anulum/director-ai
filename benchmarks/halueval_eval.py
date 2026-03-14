@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Evaluate CoherenceScorer against HaluEval hallucination detection dataset.
+"""Evaluate CoherenceScorer against HaluEval hallucination detection dataset.
 
 HaluEval provides (context, response) pairs labelled as hallucinated or
 not, across QA, summarization, and dialogue tasks.  We score each pair
@@ -177,6 +176,7 @@ def run_halueval_benchmark(
     max_samples_per_task : int | None — limit for quick testing.
     coherence_threshold : float — below this = flagged as hallucination.
     model_name : str | None — HuggingFace model ID for NLI scorer.
+
     """
     from director_ai.core import CoherenceScorer
 

@@ -131,7 +131,8 @@ class TestWebSocketAuthContract:
         # Auth succeeds: connection accepted, we get a JSON response
         # (may be "server not ready" since lifespan isn't fully up)
         with client.websocket_connect(
-            "/v1/stream", headers={"X-API-Key": "test-key-123"}
+            "/v1/stream",
+            headers={"X-API-Key": "test-key-123"},
         ) as ws:
             ws.send_json({"prompt": "hello"})
             data = ws.receive_json()

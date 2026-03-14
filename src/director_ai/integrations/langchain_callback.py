@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-LangChain callback handler for coherence scoring.
+"""LangChain callback handler for coherence scoring.
 
 Scores every LLM response through ``CoherenceScorer`` and optionally
 raises on low coherence.  Add it to any LangChain chain with one line::
@@ -54,6 +53,7 @@ class CoherenceCallbackHandler(BaseCallbackHandler):
     ----------
     last_score : the most recent ``CoherenceScore`` (or None).
     scores : list of all scores from the session.
+
     """
 
     def __init__(
@@ -119,7 +119,7 @@ class CoherenceCallbackHandler(BaseCallbackHandler):
 
             raise CoherenceError(
                 f"LLM output below coherence threshold: "
-                f"{score.score:.4f} < {self.scorer.threshold}"
+                f"{score.score:.4f} < {self.scorer.threshold}",
             )
 
     def on_chain_start(

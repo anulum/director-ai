@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Async streaming oversight for WebSocket production use.
+"""Async streaming oversight for WebSocket production use.
 
 Provides ``AsyncStreamingKernel`` — an async/await version of
 ``StreamingKernel`` that yields ``TokenEvent`` objects as they arrive.
@@ -50,6 +49,7 @@ class AsyncStreamingKernel(SafetyKernel):
     window_threshold : float — halt if sliding window average drops below.
     trend_window : int — tokens to check for downward trend.
     trend_threshold : float — halt if coherence drops this much.
+
     """
 
     _SENTENCE_ENDS = frozenset(".!?")
@@ -77,7 +77,7 @@ class AsyncStreamingKernel(SafetyKernel):
             raise ValueError(f"window_size must be >= 1, got {window_size}")
         if not (0.0 <= window_threshold <= 1.0):
             raise ValueError(
-                f"window_threshold must be in [0, 1], got {window_threshold}"
+                f"window_threshold must be in [0, 1], got {window_threshold}",
             )
         if trend_window < 2:
             raise ValueError(f"trend_window must be >= 2, got {trend_window}")
@@ -122,6 +122,7 @@ class AsyncStreamingKernel(SafetyKernel):
         Yields
         ------
         TokenEvent for each token, with ``halted=True`` on the final if halted.
+
         """
         window: deque[float] = deque(maxlen=self.window_size)
         coherence_history: list[float] = []
@@ -167,7 +168,8 @@ class AsyncStreamingKernel(SafetyKernel):
                     score = await self._call_callback(coherence_callback, accumulated)
                 except (TypeError, ValueError, RuntimeError) as exc:
                     logger.warning(
-                        "Coherence callback error — using last score: %s", exc
+                        "Coherence callback error — using last score: %s",
+                        exc,
                     )
                     score = last_score
                 last_score = score

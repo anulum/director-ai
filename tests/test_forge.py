@@ -11,7 +11,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))
 
 torch = pytest.importorskip("torch")
 nn = torch.nn
-F = torch.nn.functional  # noqa: N812
+F = torch.nn.functional
 from forge import ForgeConfig, ForgeTrainer, focal_loss, model_soup, symmetric_kl  # noqa: E402, I001
 
 
@@ -100,7 +100,9 @@ class SimpleModel(nn.Module):
         self.word_embeddings = nn.Embedding(100, 16)
         self.classifier = nn.Linear(16, 2)
         self.config = type(
-            "Config", (), {"id2label": {0: "not_supported", 1: "supported"}}
+            "Config",
+            (),
+            {"id2label": {0: "not_supported", 1: "supported"}},
         )()
 
     def forward(self, input_ids, attention_mask=None, **kwargs):

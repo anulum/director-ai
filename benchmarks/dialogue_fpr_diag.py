@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Diagnostic benchmark: per-sample h_logic, h_fact, coherence breakdown
+"""Diagnostic benchmark: per-sample h_logic, h_fact, coherence breakdown
 for dialogue FPR reduction.
 
 Tests multiple scoring profiles on HaluEval dialogue correct responses
@@ -91,7 +90,8 @@ def run_diagnostic(
     correct_pairs: list[tuple[str, str]] = []
     for sample_data in samples:
         for context, response, is_hallucinated in _extract_pairs(
-            "dialogue", sample_data
+            "dialogue",
+            sample_data,
         ):
             if not is_hallucinated and context and response:
                 correct_pairs.append((context, response))
@@ -116,7 +116,10 @@ def run_diagnostic(
         for i, (context, response) in enumerate(correct_pairs):
             if (i + 1) % 25 == 0:
                 logger.info(
-                    "[%s] Progress: %d / %d", profile_name, i + 1, len(correct_pairs)
+                    "[%s] Progress: %d / %d",
+                    profile_name,
+                    i + 1,
+                    len(correct_pairs),
                 )
 
             store = VectorGroundTruthStore()
@@ -124,7 +127,8 @@ def run_diagnostic(
             store.ingest([context])
 
             h_logic, h_fact, coherence, _ = scorer._heuristic_coherence(
-                context, response
+                context,
+                response,
             )
             approved = coherence >= threshold
 
@@ -137,7 +141,7 @@ def run_diagnostic(
                     "approved": approved,
                     "ctx_len": len(context),
                     "resp_len": len(response),
-                }
+                },
             )
 
         _print_report(profile_name, profile["desc"], records, threshold)
@@ -151,7 +155,7 @@ def run_diagnostic(
     print(f"  {'-' * 62}")
     for name, res in all_results.items():
         print(
-            f"  {name:<30} {res['fpr']:>7.1%} {res['mean_coherence']:>10.4f} {res['mean_h_fact']:>12.4f}"
+            f"  {name:<30} {res['fpr']:>7.1%} {res['mean_coherence']:>10.4f} {res['mean_h_fact']:>12.4f}",
         )
     print(f"{'=' * 75}")
 
@@ -172,7 +176,7 @@ def _print_report(name: str, desc: str, records: list[dict], threshold: float) -
     print(f"  Samples: {len(records)}  |  Threshold: {threshold}")
     print(
         f"  Approved: {len(tp)}  |  False positives: {len(fp)}"
-        f"  |  FPR: {len(fp) / max(len(records), 1):.1%}"
+        f"  |  FPR: {len(fp) / max(len(records), 1):.1%}",
     )
     print()
 
@@ -184,17 +188,17 @@ def _print_report(name: str, desc: str, records: list[dict], threshold: float) -
     print(
         f"  {'h_logic mean':<30} {_s(all_logic):>8}"
         f" {_s([r['h_logic'] for r in tp]):>8}"
-        f" {_s([r['h_logic'] for r in fp]):>8}"
+        f" {_s([r['h_logic'] for r in fp]):>8}",
     )
     print(
         f"  {'h_fact mean':<30} {_s(all_fact):>8}"
         f" {_s([r['h_fact'] for r in tp]):>8}"
-        f" {_s([r['h_fact'] for r in fp]):>8}"
+        f" {_s([r['h_fact'] for r in fp]):>8}",
     )
     print(
         f"  {'coherence mean':<30} {_s(all_coh):>8}"
         f" {_s([r['coherence'] for r in tp]):>8}"
-        f" {_s([r['coherence'] for r in fp]):>8}"
+        f" {_s([r['coherence'] for r in fp]):>8}",
     )
     print()
 
@@ -204,7 +208,7 @@ def _print_report(name: str, desc: str, records: list[dict], threshold: float) -
         print(
             f"    threshold={t:.2f}:"
             f"  FPR={fp_at_t / len(records) * 100:5.1f}%"
-            f"  ({fp_at_t} FP)"
+            f"  ({fp_at_t} FP)",
         )
     print(f"{'=' * 75}")
 

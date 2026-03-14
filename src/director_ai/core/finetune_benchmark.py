@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Benchmark a fine-tuned NLI model against a held-out general dataset.
+"""Benchmark a fine-tuned NLI model against a held-out general dataset.
 
 Detects catastrophic forgetting by comparing the fine-tuned model's
 general accuracy against the baseline. Three outcomes:
@@ -79,13 +78,15 @@ def _load_benchmark_jsonl(path: str | Path) -> list[dict]:
             label = row.get("label")
             if premise and hypothesis and label is not None:
                 rows.append(
-                    {"premise": premise, "hypothesis": hypothesis, "label": int(label)}
+                    {"premise": premise, "hypothesis": hypothesis, "label": int(label)},
                 )
     return rows
 
 
 def _evaluate_model(
-    model_path: str | Path, samples: list[dict], batch_size: int = 48
+    model_path: str | Path,
+    samples: list[dict],
+    batch_size: int = 48,
 ) -> dict:
     """Run a model on samples and return balanced_accuracy + f1."""
     from sklearn.metrics import balanced_accuracy_score, f1_score
@@ -156,6 +157,7 @@ def benchmark_finetuned_model(
     eval_path : optional JSONL with domain-specific eval samples
     baseline_accuracy : baseline balanced accuracy to compare against
     batch_size : inference batch size
+
     """
     report = RegressionReport(baseline_accuracy=baseline_accuracy)
 
@@ -180,7 +182,8 @@ def benchmark_finetuned_model(
         general_samples = _load_benchmark_jsonl(general_path)
         if general_samples:
             logger.info(
-                "Evaluating general benchmark: %d samples", len(general_samples)
+                "Evaluating general benchmark: %d samples",
+                len(general_samples),
             )
             general_metrics = _evaluate_model(model_path, general_samples, batch_size)
             report.general_accuracy = general_metrics["balanced_accuracy"]

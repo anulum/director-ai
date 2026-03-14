@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-Lightweight divergence scorer using word overlap, length ratio,
+"""Lightweight divergence scorer using word overlap, length ratio,
 named entity heuristics, and negation asymmetry. ~0.5ms/pair,
 ~65% accuracy on AggreFact subset.
 
@@ -45,7 +44,8 @@ class LiteScorer:
 
         # Length ratio penalty
         len_ratio = min(len(premise), len(hypothesis)) / max(
-            len(premise), len(hypothesis)
+            len(premise),
+            len(hypothesis),
         )
 
         # Named entity overlap
@@ -77,7 +77,10 @@ class LiteScorer:
         return [self.score(p, h) for p, h in pairs]
 
     def review(
-        self, prompt: str, action: str, threshold: float = 0.5
+        self,
+        prompt: str,
+        action: str,
+        threshold: float = 0.5,
     ) -> tuple[bool, CoherenceScore]:
         """Review a prompt/response pair, matching CoherenceScorer.review() interface."""
         div = self.score(prompt, action)

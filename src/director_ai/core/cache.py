@@ -3,8 +3,7 @@
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
-"""
-LRU score cache keyed on (query_hash, prefix_hash) to avoid redundant
+"""LRU score cache keyed on (query_hash, prefix_hash) to avoid redundant
 NLI and embedding computations during streaming.
 """
 
@@ -35,6 +34,7 @@ class ScoreCache:
     ----------
     max_size : int — maximum entries (default 1024).
     ttl_seconds : float — time-to-live per entry (default 300s).
+
     """
 
     def __init__(self, max_size: int = 1024, ttl_seconds: float = 300.0) -> None:
@@ -74,7 +74,12 @@ class ScoreCache:
             return entry
 
     def put(
-        self, query: str, prefix: str, score: float, h_logical: float, h_factual: float
+        self,
+        query: str,
+        prefix: str,
+        score: float,
+        h_logical: float,
+        h_factual: float,
     ) -> None:
         k = self._key(query, prefix)
         entry = _CacheEntry(

@@ -75,7 +75,9 @@ class TestCLIChunkSizeValidation:
         from director_ai.cli import _cmd_ingest
 
         monkeypatch.setattr(
-            sys, "exit", lambda code: (_ for _ in ()).throw(SystemExit(code))
+            sys,
+            "exit",
+            lambda code: (_ for _ in ()).throw(SystemExit(code)),
         )
         try:
             _cmd_ingest(["somefile.txt", "--chunk-size", "0"])
@@ -88,7 +90,9 @@ class TestCLIChunkSizeValidation:
         from director_ai.cli import _cmd_ingest
 
         monkeypatch.setattr(
-            sys, "exit", lambda code: (_ for _ in ()).throw(SystemExit(code))
+            sys,
+            "exit",
+            lambda code: (_ for _ in ()).throw(SystemExit(code)),
         )
         try:
             _cmd_ingest(["somefile.txt", "--chunk-size", "-5"])

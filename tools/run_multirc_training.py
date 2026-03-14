@@ -49,7 +49,8 @@ def load_multirc():
     train = ds["train"].map(convert, remove_columns=ds["train"].column_names)
     val_split = ds["validation"].train_test_split(test_size=0.5, seed=42)
     val = val_split["train"].map(
-        convert, remove_columns=val_split["train"].column_names
+        convert,
+        remove_columns=val_split["train"].column_names,
     )
     test = val_split["test"].map(convert, remove_columns=val_split["test"].column_names)
 
@@ -60,7 +61,10 @@ def load_multirc():
 def tokenize_fn(tokenizer, max_length=512):
     def _tok(batch):
         return tokenizer(
-            batch["text"], truncation=True, max_length=max_length, padding=False
+            batch["text"],
+            truncation=True,
+            max_length=max_length,
+            padding=False,
         )
 
     return _tok
