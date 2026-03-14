@@ -1,40 +1,74 @@
 # Tutorials
 
-Interactive Jupyter notebooks covering Director-AI from first principles to production deployment.
+Interactive Jupyter notebooks covering Director-AI from first principles to production deployment. Every notebook runs in Google Colab with zero local setup.
+
+## Learning Path
+
+```mermaid
+graph LR
+    A[00 Quickstart] --> B[01 Coherence Engine]
+    B --> C[09 Production Guardrails]
+    B --> D[02 Streaming Oversight]
+    C --> E[10 Vector RAG]
+    C --> F[12 Domain Presets]
+    D --> G[11 Streaming Deep Dive]
+    E --> H[06 Medical RAG]
+    F --> I[13 Batch Processing]
+    I --> J[14 Enterprise]
+    J --> K[15 Fine-Tuning]
+```
+
+---
 
 ## Getting Started
 
-| # | Notebook | Topics | Colab |
-|---|----------|--------|-------|
-| 00 | [Quickstart](https://github.com/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | Install, score, guard, stream, presets | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) |
-| 01 | [Coherence Engine](https://github.com/anulum/director-ai/blob/main/notebooks/01_coherence_engine.ipynb) | CoherenceScorer, SafetyKernel, CoherenceAgent | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/01_coherence_engine.ipynb) |
+Start here. These two notebooks teach the core concepts in under 30 minutes.
+
+| # | Notebook | What You Learn | Time | Colab |
+|---|----------|----------------|------|-------|
+| 00 | [Quickstart](https://github.com/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | Install, score, guard, stream, presets | 5 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) |
+| 01 | [Coherence Engine](https://github.com/anulum/director-ai/blob/main/notebooks/01_coherence_engine.ipynb) | CoherenceScorer, SafetyKernel, CoherenceAgent, dual-entropy formula | 15 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/01_coherence_engine.ipynb) |
+
+---
 
 ## Core Features
 
-| # | Notebook | Topics | Colab |
-|---|----------|--------|-------|
-| 09 | [Production Guardrails](https://github.com/anulum/director-ai/blob/main/notebooks/09_production_guardrails.ipynb) | `guard()` for OpenAI/Anthropic/Bedrock/Gemini/Cohere, failure modes, streaming | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/09_production_guardrails.ipynb) |
-| 10 | [Vector RAG Pipeline](https://github.com/anulum/director-ai/blob/main/notebooks/10_vector_rag_pipeline.ipynb) | Semantic retrieval, ChromaDB, pluggable backends, reranking, multi-tenant | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/10_vector_rag_pipeline.ipynb) |
-| 11 | [Streaming Halt Deep Dive](https://github.com/anulum/director-ai/blob/main/notebooks/11_streaming_halt_deep_dive.ipynb) | Hard limit, sliding window, trend detection, async, visualisation | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/11_streaming_halt_deep_dive.ipynb) |
-| 12 | [Domain Presets & Config](https://github.com/anulum/director-ai/blob/main/notebooks/12_domain_presets_and_config.ipynb) | 8 profiles, env vars, YAML, backends, strict mode, multi-GPU, LLM-as-judge | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/12_domain_presets_and_config.ipynb) |
+Deep dives into the four pillars of Director-AI.
 
-## Advanced
+| # | Notebook | What You Learn | Time | Colab |
+|---|----------|----------------|------|-------|
+| 09 | [Production Guardrails](https://github.com/anulum/director-ai/blob/main/notebooks/09_production_guardrails.ipynb) | `guard()` for OpenAI / Anthropic / Bedrock / Gemini / Cohere, failure modes, streaming guards | 20 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/09_production_guardrails.ipynb) |
+| 10 | [Vector RAG Pipeline](https://github.com/anulum/director-ai/blob/main/notebooks/10_vector_rag_pipeline.ipynb) | Semantic retrieval, ChromaDB, pluggable backends, reranking, multi-tenant KB | 25 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/10_vector_rag_pipeline.ipynb) |
+| 11 | [Streaming Halt Deep Dive](https://github.com/anulum/director-ai/blob/main/notebooks/11_streaming_halt_deep_dive.ipynb) | Hard limit, sliding window, trend detection, async, per-token visualization | 20 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/11_streaming_halt_deep_dive.ipynb) |
+| 12 | [Domain Presets & Config](https://github.com/anulum/director-ai/blob/main/notebooks/12_domain_presets_and_config.ipynb) | 8 profiles, env vars, YAML, backends, strict mode, multi-GPU, LLM-as-judge | 15 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/12_domain_presets_and_config.ipynb) |
 
-| # | Notebook | Topics | Colab |
-|---|----------|--------|-------|
-| 02 | [Streaming Oversight](https://github.com/anulum/director-ai/blob/main/notebooks/02_streaming_oversight.ipynb) | StreamingKernel basics | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/02_streaming_oversight.ipynb) |
-| 06 | [Medical RAG Chatbot](https://github.com/anulum/director-ai/blob/main/notebooks/06_medical_rag_chatbot.ipynb) | Healthcare-specific guardrails | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/06_medical_rag_chatbot.ipynb) |
-| 07 | [LangChain Integration](https://github.com/anulum/director-ai/blob/main/notebooks/07_langchain_integration.ipynb) | CoherenceCallbackHandler for LangChain | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/07_langchain_integration.ipynb) |
-| 08 | [Provider Adapters](https://github.com/anulum/director-ai/blob/main/notebooks/08_provider_adapters.ipynb) | OpenAI, Anthropic, HuggingFace adapters | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/08_provider_adapters.ipynb) |
-| 13 | [Batch Processing & Evaluation](https://github.com/anulum/director-ai/blob/main/notebooks/13_batch_processing_and_evaluation.ipynb) | BatchProcessor, evaluation pipelines, claim attribution, regression gates | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/13_batch_processing_and_evaluation.ipynb) |
+---
+
+## Domain Applications
+
+Real-world integrations and domain-specific patterns.
+
+| # | Notebook | What You Learn | Time | Colab |
+|---|----------|----------------|------|-------|
+| 02 | [Streaming Oversight](https://github.com/anulum/director-ai/blob/main/notebooks/02_streaming_oversight.ipynb) | StreamingKernel basics, token-by-token monitoring | 10 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/02_streaming_oversight.ipynb) |
+| 06 | [Medical RAG Chatbot](https://github.com/anulum/director-ai/blob/main/notebooks/06_medical_rag_chatbot.ipynb) | Healthcare-specific guardrails, high thresholds, evidence citations | 20 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/06_medical_rag_chatbot.ipynb) |
+| 07 | [LangChain Integration](https://github.com/anulum/director-ai/blob/main/notebooks/07_langchain_integration.ipynb) | CoherenceCallbackHandler, chain integration, output parsing | 15 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/07_langchain_integration.ipynb) |
+| 08 | [Provider Adapters](https://github.com/anulum/director-ai/blob/main/notebooks/08_provider_adapters.ipynb) | OpenAI, Anthropic, HuggingFace adapter patterns | 10 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/08_provider_adapters.ipynb) |
+
+---
 
 ## Enterprise & Production
 
-| # | Notebook | Topics | Colab |
-|---|----------|--------|-------|
-| 04 | [End-to-End Benchmark](https://github.com/anulum/director-ai/blob/main/notebooks/04_end_to_end_benchmark.ipynb) | Full benchmark suite | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/04_end_to_end_benchmark.ipynb) |
-| 14 | [Enterprise Multi-Tenant](https://github.com/anulum/director-ai/blob/main/notebooks/14_enterprise_multi_tenant.ipynb) | Tenant isolation, REST/gRPC servers, Docker, Kubernetes, monitoring | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/14_enterprise_multi_tenant.ipynb) |
-| 15 | [Custom Fine-Tuning](https://github.com/anulum/director-ai/blob/main/notebooks/15_custom_fine_tuning.ipynb) | JSONL data prep, validation, training, anti-forgetting, ONNX export, REST API | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/15_custom_fine_tuning.ipynb) |
+Scale, evaluate, fine-tune, and deploy.
+
+| # | Notebook | What You Learn | Time | Colab |
+|---|----------|----------------|------|-------|
+| 04 | [End-to-End Benchmark](https://github.com/anulum/director-ai/blob/main/notebooks/04_end_to_end_benchmark.ipynb) | Full benchmark suite, latency profiling, accuracy metrics | 15 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/04_end_to_end_benchmark.ipynb) |
+| 13 | [Batch Processing & Evaluation](https://github.com/anulum/director-ai/blob/main/notebooks/13_batch_processing_and_evaluation.ipynb) | BatchProcessor, evaluation pipelines, claim attribution, regression gates | 20 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/13_batch_processing_and_evaluation.ipynb) |
+| 14 | [Enterprise Multi-Tenant](https://github.com/anulum/director-ai/blob/main/notebooks/14_enterprise_multi_tenant.ipynb) | Tenant isolation, REST/gRPC servers, Docker, Kubernetes, monitoring | 25 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/14_enterprise_multi_tenant.ipynb) |
+| 15 | [Custom Fine-Tuning](https://github.com/anulum/director-ai/blob/main/notebooks/15_custom_fine_tuning.ipynb) | JSONL data prep, validation, training, anti-forgetting, ONNX export, REST API | 30 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/15_custom_fine_tuning.ipynb) |
+
+---
 
 ## Prerequisites
 
@@ -42,8 +76,19 @@ All notebooks run on **Python 3.11+** with `pip install director-ai`.
 
 Notebooks requiring optional extras note this in their first cell:
 
-- NLI scoring: `pip install director-ai[nli]`
-- Vector store: `pip install director-ai[vector]`
-- Fine-tuning: `pip install director-ai[finetune]`
-- Server: `pip install director-ai[server]`
-- gRPC: `pip install director-ai[grpc]`
+| Extra | Install | Notebooks |
+|-------|---------|-----------|
+| NLI scoring | `pip install director-ai[nli]` | 01, 04, 06, 09–15 |
+| Vector store | `pip install director-ai[vector]` | 10, 14 |
+| Fine-tuning | `pip install director-ai[finetune]` | 15 |
+| Server | `pip install director-ai[server]` | 14 |
+| gRPC | `pip install director-ai[grpc]` | 14 |
+
+## Running Locally
+
+```bash
+git clone https://github.com/anulum/director-ai.git
+cd director-ai
+pip install -e ".[dev,nli]"
+jupyter lab notebooks/
+```

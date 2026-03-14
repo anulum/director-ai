@@ -1,55 +1,120 @@
 # Configuration
 
-## DirectorConfig
+`DirectorConfig` is a dataclass with environment variable, YAML file, and named profile loaders. All fields have sensible defaults.
 
-Dataclass-based configuration with env var, YAML, and profile support.
+## Loading
 
-```python
-from director_ai.core.config import DirectorConfig
+=== "Environment Variables"
 
-# From environment variables (DIRECTOR_COHERENCE_THRESHOLD=0.7)
-config = DirectorConfig.from_env()
+    ```bash
+    export DIRECTOR_COHERENCE_THRESHOLD=0.6
+    export DIRECTOR_USE_NLI=true
+    export DIRECTOR_VECTOR_BACKEND=chroma
+    export DIRECTOR_METRICS_ENABLED=true
+    ```
 
-# From YAML file
-config = DirectorConfig.from_yaml("config.yaml")
+    ```python
+    from director_ai.core.config import DirectorConfig
+    config = DirectorConfig.from_env()
+    ```
 
-# From named profile
-config = DirectorConfig.from_profile("thorough")
-```
+=== "YAML File"
+
+    ```yaml
+    # config.yaml
+    coherence_threshold: 0.6
+    hard_limit: 0.5
+    use_nli: true
+    nli_model: "lytang/MiniCheck-DeBERTa-L"
+    vector_backend: chroma
+    chroma_persist_dir: "./data/chroma"
+    metrics_enabled: true
+    ```
+
+    ```python
+    config = DirectorConfig.from_yaml("config.yaml")
+    ```
+
+=== "Named Profile"
+
+    ```python
+    config = DirectorConfig.from_profile("thorough")
+    ```
+
+=== "Direct Construction"
+
+    ```python
+    config = DirectorConfig(
+        coherence_threshold=0.7,
+        use_nli=True,
+        scorer_backend="onnx",
+    )
+    ```
 
 ## Profiles
 
-| Profile | NLI | Threshold | Candidates | Metrics |
-|---------|-----|-----------|------------|---------|
-| `fast` | Off | 0.5 | 1 | Off |
-| `thorough` | On | 0.6 | 3 | On |
-| `research` | On | 0.7 | 5 | On |
+| Profile | NLI | Threshold | Candidates | Metrics | Use Case |
+|---------|-----|-----------|------------|---------|----------|
+| `fast` | Off | 0.5 | 1 | Off | Development, low latency |
+| `thorough` | On | 0.6 | 3 | On | Production default |
+| `research` | On | 0.7 | 5 | On | Evaluation, benchmarking |
+| `medical` | On | 0.75 | 3 | On | Healthcare (high safety) |
+| `finance` | On | 0.65 | 3 | On | Financial services |
+| `legal` | On | 0.7 | 3 | On | Legal document review |
+| `creative` | Off | 0.4 | 1 | Off | Creative writing (low halt rate) |
+| `summarization` | On | 0.15 | 1 | On | Document summarization |
 
-## Environment Variables
+## Building Components
 
-All fields can be set via `DIRECTOR_<FIELD>` env vars:
+```python
+config = DirectorConfig.from_profile("thorough")
 
-```bash
-DIRECTOR_COHERENCE_THRESHOLD=0.6
-DIRECTOR_HARD_LIMIT=0.5
-DIRECTOR_SOFT_LIMIT=0.65
-DIRECTOR_USE_NLI=true
-DIRECTOR_NLI_MODEL=lytang/MiniCheck-DeBERTa-L
-DIRECTOR_LLM_PROVIDER=openai
-DIRECTOR_VECTOR_BACKEND=chroma
-DIRECTOR_METRICS_ENABLED=true
+# Build scorer with all config applied
+scorer = config.build_scorer(store=my_store)
+
+# Build complete agent
+agent = config.build_agent(store=my_store)
 ```
 
-## YAML Configuration
+## Combining Profile + Overrides
 
-```yaml
-coherence_threshold: 0.6
-hard_limit: 0.5
-soft_limit: 0.65
-use_nli: true
-nli_model: "lytang/MiniCheck-DeBERTa-L"
-vector_backend: chroma
-chroma_persist_dir: "./data/chroma"
-metrics_enabled: true
-log_level: INFO
+```python
+config = DirectorConfig.from_profile("medical")
+config.nli_model = "lytang/MiniCheck-DeBERTa-L"
+config.cache_size = 4096
 ```
+
+Or combine YAML + env vars (env vars take precedence):
+
+```python
+config = DirectorConfig.from_yaml("config.yaml")
+# DIRECTOR_USE_NLI=true overrides use_nli in YAML
+```
+
+## Key Field Groups
+
+### Scoring
+
+`coherence_threshold`, `hard_limit`, `soft_limit`, `use_nli`, `nli_model`, `scorer_backend`, `max_candidates`, `history_window`
+
+### LLM Provider
+
+`llm_provider` (`mock` | `openai` | `anthropic` | `huggingface` | `local`), `llm_api_key`, `llm_model`, `llm_temperature`, `llm_max_tokens`
+
+### Vector Store
+
+`vector_backend` (`memory` | `chroma`), `embedding_model`, `chroma_collection`, `chroma_persist_dir`, `reranker_enabled`
+
+### Server
+
+`server_host`, `server_port`, `server_workers`, `cors_origins`, `rate_limit_rpm`, `api_keys`
+
+### Caching
+
+`cache_size`, `cache_ttl`, `redis_url`
+
+### Observability
+
+`metrics_enabled`, `log_level`, `log_json`, `otel_enabled`
+
+See [DirectorConfig API Reference](../api/config.md) for the complete field table.

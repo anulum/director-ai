@@ -1,12 +1,20 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 docs_dir: docs-site
 site_name: Director-AI
-site_description: Real-time LLM hallucination guardrail
+site_description: Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt
 site_url: https://anulum.github.io/director-ai
+site_author: Miroslav Šotek
 repo_url: https://github.com/anulum/director-ai
 repo_name: anulum/director-ai
 
+copyright: "&copy; 1998–2026 Miroslav Šotek &middot; <a href='https://www.anulum.li'>anulum.li</a>"
+
 theme:
   name: material
+  icon:
+    logo: material/shield-check
+    repo: fontawesome/brands/github
   palette:
     - scheme: default
       primary: deep purple
@@ -20,14 +28,40 @@ theme:
       toggle:
         icon: material/brightness-4
         name: Switch to light mode
+  font:
+    text: Inter
+    code: JetBrains Mono
   features:
+    - announce.dismiss
+    - content.code.annotate
     - content.code.copy
     - content.tabs.link
+    - navigation.footer
+    - navigation.indexes
+    - navigation.instant
+    - navigation.instant.progress
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
-    - navigation.expand
-    - search.suggest
+    - navigation.top
+    - navigation.tracking
     - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/anulum/director-ai
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/director-ai/
+  generator: false
+  version:
+    provider: mike
+
+extra_css:
+  - stylesheets/extra.css
 
 plugins:
   - search
@@ -37,12 +71,22 @@ plugins:
           options:
             show_source: false
             show_root_heading: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
             heading_level: 3
             members_order: source
             docstring_style: numpy
+            show_signature_annotations: true
+            separate_signature: true
+            merge_init_into_class: true
 
 markdown_extensions:
+  - abbr
   - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
   - pymdownx.details
   - pymdownx.superfences:
       custom_fences:
@@ -51,69 +95,82 @@ markdown_extensions:
           format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.highlight:
       anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.snippets
   - pymdownx.tabbed:
       alternate_style: true
-  - attr_list
-  - def_list
+      slugify: !!python/object/apply:pymdownx.slugs.slugify
+        kwds:
+          case: lower
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - tables
   - toc:
       permalink: true
 
 nav:
   - Home: index.md
   - Getting Started:
-    - Quickstart: quickstart.md
-    - Installation: installation.md
+      - Quickstart: quickstart.md
+      - Installation: installation.md
   - User Guide:
-    - Scoring: guide/scoring.md
-    - Streaming Halt: guide/streaming.md
-    - Threshold Tuning: guide/threshold-tuning.md
-    - KB Ingestion: guide/kb-ingestion.md
-    - Evidence & Fallback: guide/evidence.md
-    - Domain Presets: guide/presets.md
-    - Configuration: guide/config.md
-    - ONNX Export: guide/onnx-export.md
-    - Quantization: guide/quantization.md
-    - Rust FFI: guide/rust-ffi.md
-    - Streaming Overhead: guide/streaming-overhead.md
-    - Architecture: guide/architecture.md
-    - Enterprise: guide/enterprise.md
-    - AGPL Compliance: guide/agpl-compliance.md
-    - Troubleshooting: guide/troubleshooting.md
+      - Scoring: guide/scoring.md
+      - Streaming Halt: guide/streaming.md
+      - Threshold Tuning: guide/threshold-tuning.md
+      - KB Ingestion: guide/kb-ingestion.md
+      - Evidence & Fallback: guide/evidence.md
+      - Domain Presets: guide/presets.md
+      - Configuration: guide/config.md
+      - Error Handling: guide/error-handling.md
+      - ONNX Export: guide/onnx-export.md
+      - Quantization: guide/quantization.md
+      - Rust FFI: guide/rust-ffi.md
+      - Streaming Overhead: guide/streaming-overhead.md
+      - Architecture: guide/architecture.md
+      - Enterprise: guide/enterprise.md
+      - AGPL Compliance: guide/agpl-compliance.md
+      - Troubleshooting: guide/troubleshooting.md
   - Integrations:
-    - OpenAI / Anthropic SDK: integrations/sdk-guard.md
-    - LangChain: integrations/langchain.md
-    - LlamaIndex: integrations/llamaindex.md
-    - LangGraph: integrations/langgraph.md
-    - Haystack: integrations/haystack.md
-    - CrewAI: integrations/crewai.md
+      - OpenAI / Anthropic SDK: integrations/sdk-guard.md
+      - LangChain: integrations/langchain.md
+      - LlamaIndex: integrations/llamaindex.md
+      - LangGraph: integrations/langgraph.md
+      - Haystack: integrations/haystack.md
+      - CrewAI: integrations/crewai.md
   - API Reference:
-    - Core: api/core.md
-    - Scorer: api/scorer.md
-    - Streaming: api/streaming.md
-    - Vector Store: api/vector-store.md
-    - NLI: api/nli.md
-    - Cache: api/cache.md
-    - Types: api/types.md
-    - Config: api/config.md
-    - Enterprise: api/enterprise.md
-    - Input Sanitizer: api/sanitizer.md
+      - Overview: api/index.md
+      - guard / score / get_score: api/guard.md
+      - CoherenceScorer: api/scorer.md
+      - StreamingKernel: api/streaming.md
+      - CoherenceAgent: api/agent.md
+      - VectorGroundTruthStore: api/vector-store.md
+      - BatchProcessor: api/batch.md
+      - DirectorConfig: api/config.md
+      - Types & Dataclasses: api/types.md
+      - NLI Backends: api/nli.md
+      - Score Cache: api/cache.md
+      - Input Sanitizer: api/sanitizer.md
+      - Enterprise: api/enterprise.md
+      - REST Server: api/server.md
+      - gRPC Server: api/grpc.md
+      - CLI: api/cli.md
+      - Exceptions: api/exceptions.md
   - Deployment:
-    - Production Guide: deployment/production.md
-    - Docker: deployment/docker.md
-    - Metrics: deployment/metrics.md
-    - Monitoring: deployment/monitoring.md
-    - Production Checklist: deployment/checklist.md
+      - Production Guide: deployment/production.md
+      - Docker: deployment/docker.md
+      - Metrics: deployment/metrics.md
+      - Monitoring: deployment/monitoring.md
+      - Production Checklist: deployment/checklist.md
   - Cookbook:
-    - Legal: cookbook/legal.md
-    - Medical: cookbook/medical.md
-    - Finance: cookbook/finance.md
-    - Customer Support: cookbook/customer-support.md
-    - Case Studies: cookbook/case-studies.md
-  - Reference:
-    - Scorer: reference/scorer.md
-    - Streaming: reference/streaming.md
-    - Config: reference/config.md
-    - Server: reference/server.md
+      - Legal: cookbook/legal.md
+      - Medical: cookbook/medical.md
+      - Finance: cookbook/finance.md
+      - Customer Support: cookbook/customer-support.md
+      - Case Studies: cookbook/case-studies.md
   - Tutorials: tutorials.md
   - Changelog: changelog.md
   - Licensing: licensing.md

@@ -2,37 +2,16 @@
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
+| | |
+|---|---|
+| **2-Line Integration** — Wrap any LLM SDK client with `guard()`. Works with OpenAI, Anthropic, Bedrock, Gemini, Cohere. [Quickstart &rarr;](quickstart.md) | **Token-Level Halt** — Catches hallucinations as they form, mid-stream, before the user sees incorrect information. [Streaming &rarr;](guide/streaming.md) |
+| **Custom KB Grounding** — Bring your own facts via RAG. ChromaDB, FAISS, Qdrant, or in-memory backends. [KB Ingestion &rarr;](guide/kb-ingestion.md) | **75.8% Balanced Accuracy** — FactCG-DeBERTa-v3-Large NLI model. 14.6 ms/pair ONNX GPU. SBOM on every release. [Scoring &rarr;](guide/scoring.md) |
+
+## Install
+
 ```bash
 pip install director-ai
 ```
-
-## Architecture
-
-```mermaid
-graph LR
-    LLM["LLM<br/>(any provider)"] --> D["Director-AI"]
-    D --> S["Scorer<br/>NLI + RAG"]
-    D --> K["StreamingKernel<br/>token-level halt"]
-    S --> V{Approved?}
-    K --> V
-    V -->|Yes| U["User"]
-    V -->|No| H["HALT + evidence"]
-```
-
-## What It Does
-
-Director-AI intercepts LLM outputs and scores them for factual coherence against your knowledge base in real-time. When hallucinations are detected, it halts generation mid-stream — before the user sees incorrect information.
-
-## Key Features
-
-- **Token-level streaming halt** — catches hallucinations as they form, not after
-- **Custom knowledge grounding** — bring your own facts via RAG
-- **NLI scoring** — DeBERTa/MiniCheck contradiction detection
-- **Evidence on rejection** — every halt explains *why* with retrieved context
-- **Graceful fallback** — retrieval or disclaimer modes instead of hard stops
-- **SDK interceptors** — 2-line integration with OpenAI/Anthropic SDKs
-- **Framework integrations** — LangChain, LlamaIndex, LangGraph, Haystack, CrewAI
-- **10 domain presets** — medical, finance, legal, creative, customer support, and more
 
 ## Quick Example
 
@@ -52,62 +31,72 @@ response = client.chat.completions.create(
 )
 ```
 
-## Unique Positioning
+If the LLM hallucinates, `guard()` raises `HallucinationError` with the coherence score and contradicting evidence.
+
+## How It Works
+
+```mermaid
+graph LR
+    LLM["LLM Response"] --> SC["CoherenceScorer"]
+    SC --> NLI["NLI Model<br/>(H_logical)"]
+    SC --> RAG["RAG Retrieval<br/>(H_factual)"]
+    NLI --> SCORE["coherence = 1 - (0.6·H_L + 0.4·H_F)"]
+    RAG --> SCORE
+    SCORE --> GATE{score ≥ threshold?}
+    GATE -->|Yes| APPROVE["✓ Approved"]
+    GATE -->|No| HALT["✗ Halt + Evidence"]
+```
+
+## Competitive Positioning
 
 | Feature | Director-AI | NeMo Guardrails | Guardrails-AI | LLM-Guard |
 |---------|:-----------:|:---------------:|:-------------:|:---------:|
-| Mid-stream halt | Yes | No | No | No |
-| Custom KB RAG | Yes | Partial | No | No |
-| Token-level | Yes | No | No | No |
-| NLI scoring | Yes | No | No | Partial |
-| Evidence return | Yes | No | No | No |
+| Mid-stream halt | **Yes** | No | No | No |
+| Custom KB RAG | **Yes** | Partial | No | No |
+| Token-level scoring | **Yes** | No | No | No |
+| NLI contradiction detection | **Yes** | No | No | Partial |
+| Evidence on rejection | **Yes** | No | No | No |
+| 5 SDK integrations | **Yes** | 1 | 1 | 0 |
+| 6 framework integrations | **Yes** | 1 | 1 | 0 |
+
+## Paths Forward
+
+| Path | Time | What You Get |
+|------|------|-------------|
+| [Quickstart](quickstart.md) | 2 min | Score a response, guard an SDK client |
+| [Tutorials](tutorials.md) | 30 min | 16 Jupyter notebooks from basics to production |
+| [API Reference](api/index.md) | — | Every public class and function |
+| [Production Guide](deployment/production.md) | 15 min | Scaling, caching, monitoring, Docker |
+| [Domain Cookbooks](cookbook/legal.md) | 10 min | Legal, medical, finance, support recipes |
 
 ## Obtain
 
 ```bash
-pip install director-ai
+pip install director-ai            # base
+pip install director-ai[nli]       # + NLI model (recommended)
+pip install director-ai[server]    # + REST API server
+pip install director-ai[all]       # everything
 ```
 
 PyPI: [pypi.org/project/director-ai](https://pypi.org/project/director-ai/)
 | Source: [github.com/anulum/director-ai](https://github.com/anulum/director-ai)
+| Docs: [anulum.github.io/director-ai](https://anulum.github.io/director-ai/)
 
-See [Installation](installation.md) for extras and GPU setup.
-
-## Feedback & Bug Reports
+## Feedback & Bugs
 
 - **Bug reports**: [GitHub Issues](https://github.com/anulum/director-ai/issues/new?labels=bug)
 - **Feature requests**: [GitHub Issues](https://github.com/anulum/director-ai/issues/new?labels=enhancement)
-- **Security vulnerabilities**: see [SECURITY.md](https://github.com/anulum/director-ai/blob/main/SECURITY.md)
-- **Discussion**: [GitHub Discussions](https://github.com/anulum/director-ai/discussions)
+- **Security**: [SECURITY.md](https://github.com/anulum/director-ai/blob/main/SECURITY.md)
 - **Commercial inquiries**: [anulum.li](https://www.anulum.li)
-
-All feedback is accepted in English.
 
 ## Contributing
 
-See [CONTRIBUTING.md](https://github.com/anulum/director-ai/blob/main/CONTRIBUTING.md) for:
-
-- Code style (ruff, type hints on public API)
-- Test requirements (pytest, 90% coverage gate)
-- PR workflow (squash merge, CI must pass)
-- Preflight checks (`make preflight`)
-- Licensing (AGPL-3.0, CLA)
-
-## API Reference
-
-Full reference documentation for the external interface:
-
-- [Core API](api/core.md) — `CoherenceScorer`, `guard()`, `review()`
-- [Scorer](api/scorer.md) — scoring backends (NLI, lite, hybrid, rust)
-- [Streaming](api/streaming.md) — `StreamingKernel`, token-level halt
-- [Vector Store](api/vector-store.md) — knowledge base backends
-- [Config](api/config.md) — `DirectorConfig` options
-- [Input Sanitizer](api/sanitizer.md) — prompt injection defense
-
-## Maintenance
-
-Director-AI is actively maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.7.0 (March 2026). See [CHANGELOG](changelog.md) and [ROADMAP](https://github.com/anulum/director-ai/blob/main/ROADMAP.md).
+See [CONTRIBUTING.md](https://github.com/anulum/director-ai/blob/main/CONTRIBUTING.md) for code style, test requirements, and PR workflow.
 
 ## License
 
-AGPL-3.0 for open source / research. Commercial licensing available at [anulum.li](https://www.anulum.li).
+AGPL-3.0 for open source / research. [Commercial licensing](licensing.md) available at [anulum.li](https://www.anulum.li).
+
+---
+
+*Maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.8.0.*

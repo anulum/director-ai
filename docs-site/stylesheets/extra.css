@@ -1,0 +1,27 @@
+/* Director-AI docs — custom styles */
+
+/* Code block font sizing */
+.md-typeset code {
+  font-size: 0.82em;
+}
+
+/* Admonition title weight */
+.md-typeset .admonition-title {
+  font-weight: 600;
+}
+
+/* API reference — tighter heading spacing */
+.doc-heading {
+  margin-top: 1.5em !important;
+}
+
+/* Table cell vertical alignment */
+.md-typeset table td,
+.md-typeset table th {
+  vertical-align: top;
+}
+
+/* Signature line — prevent overflow on narrow screens */
+.doc-signature {
+  overflow-x: auto;
+}
