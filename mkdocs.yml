@@ -171,6 +171,7 @@ nav:
       - Finance: cookbook/finance.md
       - Customer Support: cookbook/customer-support.md
       - Case Studies: cookbook/case-studies.md
+  - Benchmarks: benchmarks.md
   - Tutorials: tutorials.md
   - Changelog: changelog.md
   - Licensing: licensing.md
