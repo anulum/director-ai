@@ -205,17 +205,19 @@ def train_meta_classifier(
     y_pred_train = clf.predict(x_train_s)
     y_pred_test = clf.predict(x_test_s)
 
-    results = {
-        "train_balanced_acc": float(balanced_accuracy_score(y_train, y_pred_train)),
-        "test_balanced_acc": float(balanced_accuracy_score(y_test, y_pred_test)),
+    test_ba = float(balanced_accuracy_score(y_test, y_pred_test))
+    train_ba = float(balanced_accuracy_score(y_train, y_pred_train))
+    feat_imp = {
+        col: float(coef) for col, coef in zip(feature_cols, clf.coef_[0], strict=True)
+    }
+    results: dict[str, object] = {
+        "train_balanced_acc": train_ba,
+        "test_balanced_acc": test_ba,
         "train_f1": float(f1_score(y_train, y_pred_train, average="macro")),
         "test_f1": float(f1_score(y_test, y_pred_test, average="macro")),
         "train_size": len(y_train),
         "test_size": len(y_test),
-        "feature_importances": {
-            col: float(coef)
-            for col, coef in zip(feature_cols, clf.coef_[0], strict=True)
-        },
+        "feature_importances": feat_imp,
     }
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -232,11 +234,8 @@ def train_meta_classifier(
         json.dump(results, f, indent=2)
 
     logger.info("Meta-classifier saved to %s", output_path)
-    test_ba = float(results["test_balanced_acc"])
-    train_ba = float(results["train_balanced_acc"])
     logger.info("Test BA: %.1f%%, Train BA: %.1f%%", test_ba * 100, train_ba * 100)
 
-    feat_imp: dict[str, float] = results["feature_importances"]  # type: ignore[assignment]
     importance = sorted(feat_imp.items(), key=lambda x: abs(x[1]), reverse=True)
     logger.info("Feature importance (top 5):")
     for name, coef in importance[:5]:
