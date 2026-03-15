@@ -69,7 +69,7 @@ class ShardedNLIScorer:
             }
             for fut in concurrent.futures.as_completed(futures):
                 s = futures[fut]
-                for idx, score in zip(indices[s], fut.result()):
+                for idx, score in zip(indices[s], fut.result(), strict=True):
                     results[idx] = score
         return results
 

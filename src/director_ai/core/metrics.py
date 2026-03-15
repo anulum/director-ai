@@ -259,11 +259,13 @@ class MetricsCollector:
                     "mean": h.mean,
                 }
                 p50, p90, p99 = h.quantiles((0.5, 0.9, 0.99))
-                result["histograms"][name].update({
-                    "p50": p50,
-                    "p90": p90,
-                    "p99": p99,
-                })
+                result["histograms"][name].update(
+                    {
+                        "p50": p50,
+                        "p90": p90,
+                        "p99": p99,
+                    }
+                )
             for name, g in self._gauges.items():
                 result["gauges"][name] = g.value
             return result

@@ -105,7 +105,7 @@ class AuditLogger:
     ) -> AuditEntry:
         """Record a review decision."""
         entry = AuditEntry(
-            timestamp=datetime.datetime.now(datetime.timezone.utc).strftime(
+            timestamp=datetime.datetime.now(datetime.UTC).strftime(
                 "%Y-%m-%dT%H:%M:%SZ"
             ),
             query_hash=_hmac.new(
@@ -126,14 +126,15 @@ class AuditLogger:
         line = entry.to_json()
         self._logger.info(line)
         if self._path:
-            with self._file_lock:
-                with open(self._path, "a", encoding="utf-8") as f:
-                    f.write(line + "\n")
+            with self._file_lock, open(self._path, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
 
         for sink in self._sinks:
             try:
                 sink.write(entry)
             except Exception:
-                self._logger.exception("Audit sink %s.write() failed", type(sink).__name__)
+                self._logger.exception(
+                    "Audit sink %s.write() failed", type(sink).__name__
+                )
 
         return entry

@@ -711,7 +711,9 @@ class CoherenceScorer:
         - Layer A + C (alpha=0.4, st=0.6): FPR=2.0%
         """
         if self._nli is None or not self._nli.model_available:
-            raise RuntimeError("NLI model required for summarization factual divergence")
+            raise RuntimeError(
+                "NLI model required for summarization factual divergence"
+            )
 
         # Layer A: bidirectional NLI
         h_fact_fwd, evidence = self.calculate_factual_divergence_with_evidence(
@@ -1306,7 +1308,14 @@ class CoherenceScorer:
             )
 
             cross_turn = None
-            if session is not None and len(session) > 0 and not _is_dialogue:
+            _skip_cross_turn = (
+                self._auto_dialogue_profile
+                and not self._use_prompt_as_premise
+                and self._nli is not None
+                and self._nli.model_available
+                and self._detect_task_type(prompt) == "dialogue"
+            )
+            if session is not None and len(session) > 0 and not _skip_cross_turn:
                 ctx = session.context_text
                 if ctx.strip() and self._nli:
                     cross_turn = self._nli.score(ctx, action)

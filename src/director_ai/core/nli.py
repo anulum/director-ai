@@ -359,7 +359,7 @@ def export_tensorrt(
         )
 
     # ORT TensorRT profile shapes: batch x seq_len
-    min_shape = f"1x1"
+    min_shape = "1x1"
     opt_shape = f"{max(1, max_batch // 2)}x{max_seq_len}"
     max_shape = f"{max_batch}x{max_seq_len}"
     trt_opts: dict[str, object] = {

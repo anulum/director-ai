@@ -63,7 +63,9 @@ class GroundTruthStore:
             return []
         return [EvidenceChunk(text=context_str, distance=0.0, source="keyword")]
 
-    def retrieve_context(self, query: str, tenant_id: str = "", top_k: int = 0) -> str | None:
+    def retrieve_context(
+        self, query: str, tenant_id: str = "", top_k: int = 0
+    ) -> str | None:
         """Retrieve relevant facts matching *query*.
 
         Returns a semicolon-separated context string, or ``None`` if

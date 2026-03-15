@@ -573,7 +573,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 else:
                     owner = owners.get(req.session_id, "")
                     if owner and owner != caller_hash:
-                        raise HTTPException(403, "Session belongs to a different API key")
+                        raise HTTPException(
+                            403, "Session belongs to a different API key"
+                        )
                 session = sessions[req.session_id]
 
         metrics.inc("reviews_total")
@@ -780,7 +782,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
                 pairs = [
                     (p, r) if r else (p, "")
-                    for p, r in zip(req.prompts, req.responses)
+                    for p, r in zip(req.prompts, req.responses, strict=True)
                 ]
                 batch_res = await batcher.review_batch_async(pairs, tenant_id=tenant_id)
             else:
