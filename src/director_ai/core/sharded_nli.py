@@ -47,7 +47,31 @@ class ShardedNLIScorer:
         return self._next_scorer().score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        return self._next_scorer().score_batch(pairs)
+        n = len(self._scorers)
+        if len(pairs) <= n:
+            return self._next_scorer().score_batch(pairs)
+        # Partition across all shards and dispatch concurrently
+        chunks: list[list[tuple[str, str]]] = [[] for _ in range(n)]
+        indices: list[list[int]] = [[] for _ in range(n)]
+        for i, pair in enumerate(pairs):
+            shard = i % n
+            chunks[shard].append(pair)
+            indices[shard].append(i)
+
+        import concurrent.futures
+
+        results = [0.0] * len(pairs)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=n) as pool:
+            futures = {
+                pool.submit(self._scorers[s].score_batch, chunks[s]): s
+                for s in range(n)
+                if chunks[s]
+            }
+            for fut in concurrent.futures.as_completed(futures):
+                s = futures[fut]
+                for idx, score in zip(indices[s], fut.result()):
+                    results[idx] = score
+        return results
 
     def score_chunked(
         self,
