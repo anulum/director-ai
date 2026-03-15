@@ -19,7 +19,9 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
+import hashlib
 import hmac
+import json as _json_mod
 import logging
 import time
 import uuid
@@ -287,6 +289,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         app.state._state["config"] = cfg
         app.state._state["stats"] = stats
         app.state._state["sessions"] = {}
+        app.state._state["session_owners"] = {}
         app.state._state["sessions_lock"] = asyncio.Lock()
         app.state._state["max_sessions"] = getattr(cfg, "max_sessions", 10000)
 
@@ -419,13 +422,17 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         else _AUTH_EXEMPT_PATHS_BASE | {"/v1/metrics/prometheus"}
     )
 
+    _api_key_tenant_map: dict[str, str] = {}
+    if cfg.api_key_tenant_map:
+        _api_key_tenant_map = _json_mod.loads(cfg.api_key_tenant_map)
+
     @app.middleware("http")
     async def _http_middleware(request: Request, call_next):
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         request.state.request_id = request_id
         REQUEST_ID_CTX.set(request_id)
 
-        # API key auth (constant-time comparison)
+        api_key_hash = ""
         if cfg.api_keys and request.url.path not in _auth_exempt:
             provided = request.headers.get("X-API-Key", "")
             if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
@@ -439,6 +446,25 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     content={"detail": "Invalid or missing API key"},
                     headers={"X-Request-ID": request_id},
                 )
+            api_key_hash = hashlib.sha256(provided.encode()).hexdigest()[:16]
+
+            # Tenant binding: enforce API key → tenant mapping if configured
+            if _api_key_tenant_map:
+                bound_tenant = _api_key_tenant_map.get(provided, "")
+                claimed_tenant = request.headers.get("X-Tenant-ID", "")
+                if claimed_tenant and claimed_tenant != bound_tenant:
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "API key not authorized for this tenant"},
+                        headers={"X-Request-ID": request_id},
+                    )
+                request.state.tenant_id = bound_tenant
+            else:
+                request.state.tenant_id = request.headers.get("X-Tenant-ID", "")
+        else:
+            request.state.tenant_id = request.headers.get("X-Tenant-ID", "")
+
+        request.state.api_key_hash = api_key_hash
 
         # Metrics
         start = time.monotonic()
@@ -526,16 +552,22 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if req.session_id:
             from .core.session import ConversationSession
 
+            caller_hash = getattr(request.state, "api_key_hash", "")
             async with request.app.state._state["sessions_lock"]:
                 sessions = request.app.state._state["sessions"]
+                owners = request.app.state._state["session_owners"]
                 if req.session_id not in sessions:
                     max_s = request.app.state._state.get("max_sessions", 10000)
                     if len(sessions) >= max_s:
                         oldest = next(iter(sessions))
                         del sessions[oldest]
+                        owners.pop(oldest, None)
                     sessions[req.session_id] = ConversationSession(
                         session_id=req.session_id,
                     )
+                    owners[req.session_id] = caller_hash
+                elif caller_hash and owners.get(req.session_id, "") != caller_hash:
+                    raise HTTPException(403, "Session belongs to a different API key")
                 session = sessions[req.session_id]
 
         metrics.inc("reviews_total")
@@ -829,9 +861,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/sessions/{session_id}")
     async def get_session(request: Request, session_id: str):
+        caller_hash = getattr(request.state, "api_key_hash", "")
         async with request.app.state._state["sessions_lock"]:
             sessions = request.app.state._state["sessions"]
+            owners = request.app.state._state["session_owners"]
             if session_id not in sessions:
+                raise HTTPException(404, "Session not found")
+            if caller_hash and owners.get(session_id, "") != caller_hash:
                 raise HTTPException(404, "Session not found")
             s = sessions[session_id]
         return {
@@ -850,11 +886,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.delete("/v1/sessions/{session_id}")
     async def delete_session(request: Request, session_id: str):
+        caller_hash = getattr(request.state, "api_key_hash", "")
         async with request.app.state._state["sessions_lock"]:
             sessions = request.app.state._state["sessions"]
+            owners = request.app.state._state["session_owners"]
             if session_id not in sessions:
                 raise HTTPException(404, "Session not found")
+            if caller_hash and owners.get(session_id, "") != caller_hash:
+                raise HTTPException(404, "Session not found")
             del sessions[session_id]
+            owners.pop(session_id, None)
         return {"status": "deleted", "session_id": session_id}
 
     # ── Metrics ───────────────────────────────────────────────────────
@@ -1011,8 +1052,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     TypeError,
                     OSError,
                 ) as exc:  # pragma: no cover
+                    logger.error("WebSocket streaming failed: %s", exc)
                     await _send(
-                        {"session_id": session_id, "error": f"streaming failed: {exc}"},
+                        {"session_id": session_id, "error": "streaming failed"},
                     )
                 return
 
@@ -1021,7 +1063,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             except (RuntimeError, ValueError, TypeError, OSError) as exc:
                 logger.error("WebSocket agent.process() failed: %s", exc)
                 await _send(
-                    {"session_id": session_id, "error": f"processing failed: {exc}"},
+                    {"session_id": session_id, "error": "processing failed"},
                 )
                 return
             await _send(

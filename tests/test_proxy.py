@@ -53,6 +53,7 @@ async def test_proxy_forwards_approved():
         upstream_url="http://fake-upstream",
         on_fail="reject",
         use_nli=False,
+        allow_http_upstream=True,
         _transport=mock_transport,
     )
 
@@ -82,6 +83,7 @@ async def test_proxy_rejects_hallucination():
         upstream_url="http://fake-upstream",
         on_fail="reject",
         use_nli=False,
+        allow_http_upstream=True,
         _transport=mock_transport,
     )
 
@@ -112,6 +114,7 @@ async def test_proxy_warn_mode():
         upstream_url="http://fake-upstream",
         on_fail="warn",
         use_nli=False,
+        allow_http_upstream=True,
         _transport=mock_transport,
     )
 

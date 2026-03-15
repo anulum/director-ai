@@ -913,6 +913,8 @@ def _cmd_proxy(args: list[str]) -> None:
     facts_path = None
     upstream_url = "https://api.openai.com"
     on_fail = "reject"
+    api_keys: list[str] = []
+    allow_http = False
 
     i = 0
     while i < len(args):
@@ -934,6 +936,12 @@ def _cmd_proxy(args: list[str]) -> None:
                 print(f"Error: --on-fail must be 'reject' or 'warn', got '{on_fail}'")
                 sys.exit(1)
             i += 2
+        elif args[i] == "--api-keys" and i + 1 < len(args):
+            api_keys = [k.strip() for k in args[i + 1].split(",") if k.strip()]
+            i += 2
+        elif args[i] == "--allow-http-upstream":
+            allow_http = True
+            i += 1
         else:
             i += 1
 
@@ -950,6 +958,8 @@ def _cmd_proxy(args: list[str]) -> None:
         facts_path=facts_path,
         upstream_url=upstream_url,
         on_fail=on_fail,
+        api_keys=api_keys or None,
+        allow_http_upstream=allow_http,
     )
 
     print(

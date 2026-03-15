@@ -12,6 +12,10 @@
 DEV_LOG.md
 claude-director-ai.md
 
+# Internal audit/review documents (never public-facing)
+SECURITY_AUDIT_PREP.md
+AUDIT_*.md
+
 # GPU training artifacts (local-only)
 *.tar.gz
 gpu_results/

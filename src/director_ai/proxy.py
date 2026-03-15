@@ -12,6 +12,7 @@ hallucination scoring with zero code changes::
 """
 
 import contextlib
+import hmac
 import json
 import logging
 import pathlib
@@ -29,6 +30,8 @@ def create_proxy_app(
     upstream_url: str = "https://api.openai.com",
     on_fail: str = "reject",
     use_nli: bool | None = None,
+    api_keys: list[str] | None = None,
+    allow_http_upstream: bool = False,
     _transport=None,
 ):
     """Build a FastAPI app that proxies OpenAI requests with scoring.
@@ -46,6 +49,11 @@ def create_proxy_app(
         the response with warning headers.
     use_nli : bool | None
         Enable NLI model. ``None`` auto-detects.
+    api_keys : list[str] | None
+        Required API keys. Clients must send ``X-API-Key`` header.
+        ``None`` or empty = no auth (not recommended for production).
+    allow_http_upstream : bool
+        Allow non-HTTPS upstream URLs. Default ``False`` rejects them.
 
     """
     import httpx
@@ -56,7 +64,12 @@ def create_proxy_app(
         raise ValueError(f"on_fail must be 'reject' or 'warn', got {on_fail!r}")
 
     if upstream_url and not upstream_url.startswith("https://"):
-        _log.warning("Upstream URL uses non-HTTPS scheme: %s", upstream_url)
+        if not allow_http_upstream:
+            raise ValueError(
+                f"Non-HTTPS upstream URL: {upstream_url!r}. "
+                "Pass allow_http_upstream=True to override.",
+            )
+        _log.warning("Non-HTTPS upstream: %s", upstream_url)
 
     store = GroundTruthStore()
     if facts_path:
@@ -70,6 +83,25 @@ def create_proxy_app(
 
     app = FastAPI(title="Director-AI Proxy")
     upstream = upstream_url.rstrip("/")
+
+    if api_keys:
+
+        @app.middleware("http")
+        async def _auth_middleware(request: Request, call_next):
+            if request.url.path == "/health":
+                return await call_next(request)
+            provided = request.headers.get("X-API-Key", "")
+            if not any(hmac.compare_digest(provided, k) for k in api_keys):
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "error": {
+                            "message": "Invalid or missing API key",
+                            "type": "auth_error",
+                        },
+                    },
+                )
+            return await call_next(request)
 
     @app.get("/health")
     async def health():

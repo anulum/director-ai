@@ -163,6 +163,10 @@ class DirectorConfig:
     # API key auth (empty list = no auth required)
     api_keys: list[str] = field(default_factory=list)
 
+    # Bind API keys to tenants: JSON {"api_key": "tenant_id"}
+    # When set, X-Tenant-ID header is validated against this map.
+    api_key_tenant_map: str = ""
+
     # Stats backend: "prometheus" (default, in-memory) or "sqlite" (persistent)
     stats_backend: str = "prometheus"
     stats_db_path: str = "~/.director-ai/stats.db"
@@ -641,6 +645,7 @@ class DirectorConfig:
         {
             "llm_api_key",
             "api_keys",
+            "api_key_tenant_map",
             "audit_postgres_url",
             "redis_url",
         },
