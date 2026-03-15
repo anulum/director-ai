@@ -12,10 +12,7 @@ on:
       - "src/director_ai/**"
       - ".github/workflows/docs.yml"
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
+permissions: read-all
 
 concurrency:
   group: pages
@@ -25,6 +22,8 @@ jobs:
   build:
     name: Build MkDocs
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
@@ -33,7 +32,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -e ".[docs]"
+        run: |
+          pip install --require-hashes -r requirements/ci-docs.txt
+          pip install --no-deps -e .
 
       - name: Build site
         run: mkdocs build --strict
@@ -47,6 +48,9 @@ jobs:
     name: Deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

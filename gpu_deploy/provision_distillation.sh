@@ -81,9 +81,9 @@ ssh -i ~/.ssh/id_ed25519_upcloud -o StrictHostKeyChecking=no root@"$IP" bash -s 
 set -e
 python3 -m venv /opt/director-venv
 source /opt/director-venv/bin/activate
-pip install --upgrade pip
-pip install torch transformers datasets scikit-learn peft bitsandbytes accelerate
-pip install -e /root/director-ai
+pip install --upgrade pip==24.3.1
+pip install torch==2.5.1 transformers==4.48.1 datasets==3.2.0 scikit-learn==1.6.1 peft==0.14.0 bitsandbytes==0.45.1 accelerate==1.3.0
+pip install --no-deps -e /root/director-ai
 SETUP
 
 echo "Uploading codebase..."

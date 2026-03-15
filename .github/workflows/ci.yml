@@ -55,7 +55,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: |
+          pip install --require-hashes -r requirements/ci-dev.txt
+          pip install --no-deps -e .
 
       - name: Install type stubs
         run: pip install --require-hashes -r requirements/ci-types.txt
@@ -78,7 +80,9 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: |
+          pip install --require-hashes -r requirements/ci-dev.txt
+          pip install --no-deps -e .
 
       - name: Run tests with coverage
         run: pytest tests/ -v --tb=short --cov=director_ai --cov-report=term-missing --cov-report=xml --cov-fail-under=90
@@ -121,7 +125,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install with extras
-        run: pip install -e ".[${{ matrix.extras }}]"
+        run: |
+          pip install --require-hashes -r requirements/ci-dev.txt
+          pip install --no-deps -e .
 
       - name: Import smoke test
         run: python -c "import director_ai; assert director_ai.__version__"
@@ -170,7 +176,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -e ".[dev]"
+          pip install --require-hashes -r requirements/ci-dev.txt
+          pip install --no-deps -e .
           pip install --require-hashes -r requirements/ci-sbom.txt
 
       - name: Generate SBOM
@@ -195,7 +202,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -e ".[dev]"
+          pip install --require-hashes -r requirements/ci-dev.txt
+          pip install --no-deps -e .
           pip install --require-hashes -r requirements/ci-fuzz.txt
 
       - name: Run property-based fuzz tests
@@ -237,7 +245,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install dependencies
-        run: pip install -e ".[dev]"
+        run: |
+          pip install --require-hashes -r requirements/ci-dev.txt
+          pip install --no-deps -e .
 
       - name: Run regression benchmarks
         run: python -m benchmarks.regression_suite

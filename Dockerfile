@@ -22,9 +22,12 @@ WORKDIR /build
 
 COPY pyproject.toml README.md LICENSE NOTICE.md ./
 COPY src/ src/
+COPY requirements/ requirements/
 
 ARG EXTRAS="server"
-RUN pip install --no-cache-dir --prefix=/install ".[$EXTRAS]"
+ARG REQUIREMENTS="requirements/docker-server.txt"
+RUN pip install --no-cache-dir --prefix=/install -r "$REQUIREMENTS" \
+    && pip install --no-cache-dir --no-deps --prefix=/install .
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
 

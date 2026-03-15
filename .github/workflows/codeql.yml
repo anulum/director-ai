@@ -12,9 +12,7 @@ on:
   schedule:
     - cron: "0 6 * * 1"
 
-permissions:
-  contents: read
-  security-events: write
+permissions: read-all
 
 concurrency:
   group: codeql-${{ github.ref }}
@@ -23,6 +21,9 @@ concurrency:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 

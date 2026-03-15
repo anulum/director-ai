@@ -425,8 +425,8 @@ def evaluate_classifiers(
         macro_ba = float(np.mean(list(per_ds_ba.values())))
         loo_results[clf_name] = {"macro_ba": macro_ba, "per_dataset": per_ds_ba}
 
-        worst = min(per_ds_ba, key=per_ds_ba.get)
-        best = max(per_ds_ba, key=per_ds_ba.get)
+        worst = min(per_ds_ba, key=lambda k: per_ds_ba[k])
+        best = max(per_ds_ba, key=lambda k: per_ds_ba[k])
         print(
             f"  {clf_name:20s} {macro_ba:10.2%}  "
             f"worst={worst}({per_ds_ba[worst]:.1%}) "

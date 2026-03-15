@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import asyncio
 import contextvars
-import hashlib
 import hmac
 import json as _json_mod
 import logging
@@ -446,7 +445,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     content={"detail": "Invalid or missing API key"},
                     headers={"X-Request-ID": request_id},
                 )
-            api_key_hash = hashlib.sha256(provided.encode()).hexdigest()[:16]
+            api_key_hash = hmac.new(
+                b"director-ai", provided.encode(), "sha256"
+            ).hexdigest()[:16]
 
             # Tenant binding: enforce API key → tenant mapping if configured
             if _api_key_tenant_map:

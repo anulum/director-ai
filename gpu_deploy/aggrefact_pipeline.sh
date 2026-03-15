@@ -14,7 +14,7 @@ log "=== GPU ==="
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | tee -a "$R/run.log"
 
 log "=== DEPS ==="
-pip install -q torch transformers datasets scikit-learn nltk accelerate 2>&1 | tail -3
+pip install -q torch==2.5.1 transformers==4.48.1 datasets==3.2.0 scikit-learn==1.6.1 nltk==3.9.1 accelerate==1.3.0 2>&1 | tail -3
 
 log "=== UNPACK CODE ==="
 cd /root/director-ai

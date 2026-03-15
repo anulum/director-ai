@@ -22,13 +22,11 @@ WORKDIR /build
 
 COPY pyproject.toml README.md LICENSE NOTICE.md ./
 COPY src/ src/
+COPY requirements/ requirements/
 
 RUN pip install --no-cache-dir --prefix=/install \
-        ".[server,nli]" \
-        onnxruntime-gpu \
-        "optimum[onnxruntime]" \
-    && pip install --no-cache-dir --prefix=/install \
-        torch --index-url https://download.pytorch.org/whl/cu126
+        -r requirements/docker-gpu.txt \
+    && pip install --no-cache-dir --no-deps --prefix=/install .
 
 # ── Stage 2: Export ONNX model ────────────────────────────────────────
 

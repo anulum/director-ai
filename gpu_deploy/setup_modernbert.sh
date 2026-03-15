@@ -36,19 +36,19 @@ apt-get install -y -qq screen htop python3-pip python3-venv 2>/dev/null || true
 python3 -m venv /opt/director-venv
 source /opt/director-venv/bin/activate
 
-pip install --upgrade pip setuptools wheel -q
+pip install --upgrade pip==24.3.1 setuptools==75.8.0 wheel==0.45.1 -q
 
 # PyTorch with CUDA
-pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121 -q
+pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121 -q
 
 # Project dependencies
 pip install -r gpu_deploy/requirements_modernbert.txt -q
-pip install -e ".[nli]" -q
+pip install --no-deps -e . -q
 
 # Flash Attention 2 (optional — sdpa fallback is fine)
 echo ""
 echo "=== Flash Attention Install (may take 5-10 min) ==="
-if pip install flash-attn --no-build-isolation -q 2>/dev/null; then
+if pip install flash-attn==2.7.4 --no-build-isolation -q 2>/dev/null; then
     echo "flash-attn installed"
 else
     echo "flash-attn build failed — using sdpa (no performance impact on L40S)"

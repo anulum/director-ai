@@ -50,7 +50,7 @@ echo "=== Distillation Pipeline ===" > "$STATUS"
 log_status "Pipeline started"
 
 # ── Step 0: Install extra deps ────────────────────────────────────────
-pip install peft bitsandbytes accelerate > "$LOGDIR/pip_install.log" 2>&1
+pip install peft==0.14.0 bitsandbytes==0.45.1 accelerate==1.3.0 > "$LOGDIR/pip_install.log" 2>&1
 
 # ── Step 1: Generate teacher soft labels from Bespoke-MiniCheck-7B ────
 # 7B model at FP16 needs ~14GB VRAM. L40S can handle it.
