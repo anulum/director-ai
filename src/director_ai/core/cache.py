@@ -82,14 +82,14 @@ class ScoreCache:
         h_factual: float,
     ) -> None:
         k = self._key(query, prefix)
-        entry = _CacheEntry(
-            score=score,
-            h_logical=h_logical,
-            h_factual=h_factual,
-            created_at=time.monotonic(),
-            generation=self._generation,
-        )
         with self._lock:
+            entry = _CacheEntry(
+                score=score,
+                h_logical=h_logical,
+                h_factual=h_factual,
+                created_at=time.monotonic(),
+                generation=self._generation,
+            )
             self._store[k] = entry
             self._store.move_to_end(k)
             while len(self._store) > self._max_size:
@@ -97,7 +97,8 @@ class ScoreCache:
 
     @property
     def size(self) -> int:
-        return len(self._store)
+        with self._lock:
+            return len(self._store)
 
     @property
     def hit_rate(self) -> float:
