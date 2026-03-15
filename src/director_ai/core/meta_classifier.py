@@ -130,11 +130,13 @@ def extract_text_features(premise: str, hypothesis: str) -> dict:
     return extract_features(premise, hypothesis, nli_score=0.0, confidence=0.0)
 
 
-class MetaClassifier:
-    """Lightweight meta-classifier for production use.
+class DatasetTypeClassifier:
+    """Logistic regression that predicts dataset type for threshold selection.
 
-    Loads a trained logistic regression model and predicts whether
-    a given NLI score + features should be classified as supported.
+    Loads a trained sklearn model bundle and either:
+    - (binary mode) predicts support/hallucination directly, or
+    - (dataset_type mode) predicts which dataset distribution the input
+      resembles, then selects a per-dataset NLI threshold.
     """
 
     def __init__(self, model_path: str):
@@ -195,3 +197,6 @@ class MetaClassifier:
         ds_name = self._label_names[pred_idx]
         threshold = self._dataset_thresholds.get(ds_name)
         return threshold, conf
+
+
+MetaClassifier = DatasetTypeClassifier

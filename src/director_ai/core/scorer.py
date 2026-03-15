@@ -413,9 +413,9 @@ class CoherenceScorer:
         if not path:
             return None
         try:
-            from .meta_classifier import MetaClassifier
+            from .meta_classifier import DatasetTypeClassifier
 
-            self._meta_classifier = MetaClassifier(path)
+            self._meta_classifier = DatasetTypeClassifier(path)
             return self._meta_classifier
         except (ImportError, FileNotFoundError, Exception):
             self.logger.debug("Meta-classifier unavailable at %s", path)
