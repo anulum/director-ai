@@ -655,7 +655,8 @@ class CoherenceScorer:
         - Bidir + bl=0.80 t=0.50: FPR=4.5%
         - Bidir + bl=0.85 t=0.50: FPR=4.5%
         """
-        assert self._nli is not None and self._nli.model_available
+        if self._nli is None or not self._nli.model_available:
+            raise RuntimeError("NLI model required for dialogue factual divergence")
 
         # Forward pass: full evidence path
         h_fact_fwd, evidence = self.calculate_factual_divergence_with_evidence(
@@ -707,7 +708,8 @@ class CoherenceScorer:
         - Bidir + bl=0.20 (Layer A): FPR=10.5%
         - Layer A + C (alpha=0.4, st=0.6): FPR=2.0%
         """
-        assert self._nli is not None and self._nli.model_available
+        if self._nli is None or not self._nli.model_available:
+            raise RuntimeError("NLI model required for summarization factual divergence")
 
         # Layer A: bidirectional NLI
         h_fact_fwd, evidence = self.calculate_factual_divergence_with_evidence(
