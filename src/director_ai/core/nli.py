@@ -358,11 +358,18 @@ def export_tensorrt(
             "Install onnxruntime-gpu and tensorrt.",
         )
 
+    # ORT TensorRT profile shapes: batch x seq_len
+    min_shape = f"1x1"
+    opt_shape = f"{max(1, max_batch // 2)}x{max_seq_len}"
+    max_shape = f"{max_batch}x{max_seq_len}"
     trt_opts: dict[str, object] = {
         "trt_engine_cache_enable": True,
         "trt_engine_cache_path": output_dir,
         "trt_fp16_enable": fp16,
         "trt_max_workspace_size": 1 << 30,  # 1 GB
+        "trt_profile_min_shapes": f"input_ids={min_shape},attention_mask={min_shape}",
+        "trt_profile_opt_shapes": f"input_ids={opt_shape},attention_mask={opt_shape}",
+        "trt_profile_max_shapes": f"input_ids={max_shape},attention_mask={max_shape}",
     }
     providers: list[str | tuple[str, dict[str, object]]] = [
         ("TensorrtExecutionProvider", trt_opts),
