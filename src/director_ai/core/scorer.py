@@ -1249,7 +1249,10 @@ class CoherenceScorer:
         h_fact = self.calculate_factual_divergence(prompt, action)
         total = (self.W_LOGIC * h_logic) + (self.W_FACT * h_fact)
         self.logger.debug(
-            f"Divergence: Logic={h_logic:.2f}, Fact={h_fact:.2f} -> Total={total:.2f}",
+            "Divergence: Logic=%.2f, Fact=%.2f -> Total=%.2f",
+            h_logic,
+            h_fact,
+            total,
         )
         return total
 
