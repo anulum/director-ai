@@ -5,7 +5,7 @@
 # ─────────────────────────────────────────────────────────────────────
 """Streaming oversight for token-by-token coherence monitoring.
 
-Provides ``StreamingKernel`` which extends ``SafetyKernel`` with:
+Provides ``StreamingKernel`` which extends ``HaltMonitor`` with:
 - Async token processing via generator protocol
 - Sliding window coherence checks
 - Real-time halt with partial output recovery
@@ -20,7 +20,7 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .kernel import SafetyKernel
+from .kernel import HaltMonitor
 from .otel import trace_streaming
 from .types import HaltEvidence
 
@@ -111,10 +111,10 @@ class StreamSession:
         return (self.end_time - self.start_time) * 1000
 
 
-class StreamingKernel(SafetyKernel):
+class StreamingKernel(HaltMonitor):
     """Streaming token-by-token safety kernel with sliding window oversight.
 
-    Extends ``SafetyKernel`` with token-level monitoring and a sliding
+    Extends ``HaltMonitor`` with token-level monitoring and a sliding
     window coherence check that can catch gradual degradation.
 
     Parameters

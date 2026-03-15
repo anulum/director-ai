@@ -13,11 +13,13 @@ __all__ = ["GroundTruthStore"]
 
 
 class GroundTruthStore:
-    """Retrieval-Augmented Generation (RAG) ground truth store.
+    """In-memory fact store with keyword matching retrieval.
 
-    In production this connects to a vector database (Pinecone, Milvus,
-    etc.) holding verified facts.  The prototype uses an in-memory dict
-    for deterministic testing.
+    Stores key→value fact pairs and retrieves by word overlap between
+    the query and fact keys. No embeddings or semantic similarity.
+
+    For vector-based retrieval, use ``VectorGroundTruthStore`` with a
+    ``VectorBackend`` (Chroma, Pinecone, Qdrant, FAISS, etc.).
     """
 
     _DEMO_FACTS = {

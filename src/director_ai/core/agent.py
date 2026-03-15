@@ -14,7 +14,7 @@ import os
 from collections.abc import AsyncIterator
 
 from .actor import LLMGenerator, MockGenerator
-from .kernel import SafetyKernel
+from .kernel import HaltMonitor
 from .knowledge import GroundTruthStore
 from .scorer import CoherenceScorer
 from .streaming import StreamingKernel
@@ -78,7 +78,7 @@ class CoherenceAgent:
 
         self.store = _store if _store is not None else GroundTruthStore()
         self.scorer = _scorer if _scorer is not None else self._build_scorer(use_nli)
-        self.kernel = SafetyKernel()
+        self.kernel = HaltMonitor()
         self.streaming_kernel = StreamingKernel(
             hard_limit=self.kernel.hard_limit,
             adaptive=True,

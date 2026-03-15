@@ -28,7 +28,7 @@ import time
 from collections import deque
 from collections.abc import AsyncIterator, Awaitable, Callable
 
-from .kernel import SafetyKernel
+from .kernel import HaltMonitor
 from .streaming import StreamSession, TokenEvent, _trend_drop
 
 logger = logging.getLogger("DirectorAI.AsyncStreaming")
@@ -37,7 +37,7 @@ logger = logging.getLogger("DirectorAI.AsyncStreaming")
 CoherenceCallback = Callable[[str], float] | Callable[[str], Awaitable[float]]
 
 
-class AsyncStreamingKernel(SafetyKernel):
+class AsyncStreamingKernel(HaltMonitor):
     """Async streaming token-by-token safety kernel for WebSocket use.
 
     Mirrors ``StreamingKernel`` but uses ``async for`` / ``await``.

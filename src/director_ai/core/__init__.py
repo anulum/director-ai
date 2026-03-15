@@ -25,7 +25,7 @@ from .config import DirectorConfig
 from .finetune import FinetuneConfig, FinetuneResult, finetune_nli
 from .finetune_benchmark import RegressionReport, benchmark_finetuned_model
 from .finetune_validator import DataQualityReport, validate_finetune_data
-from .kernel import SafetyKernel
+from .kernel import HaltMonitor, SafetyKernel
 from .knowledge import GroundTruthStore
 from .lite_scorer import LiteScorer
 from .nli import NLIScorer, export_onnx, nli_available
@@ -78,6 +78,7 @@ __all__ = [
     "RegressionReport",
     "RerankedBackend",
     "ReviewResult",
+    "HaltMonitor",
     "SafetyKernel",
     "SanitizeResult",
     "ScoreCache",

@@ -9,7 +9,7 @@
 
 ::
 
-    from director_ai.core import CoherenceAgent, CoherenceScorer, SafetyKernel
+    from director_ai.core import CoherenceAgent, CoherenceScorer, HaltMonitor
 """
 
 __version__ = "3.9.0"
@@ -24,6 +24,7 @@ from .core import (
     EvidenceChunk,
     GroundTruthStore,
     HaltEvidence,
+    HaltMonitor,
     InMemoryBackend,
     InputSanitizer,
     LiteScorer,
@@ -80,6 +81,7 @@ __all__ = [
     "NumericalError",
     "PhysicsError",
     "ReviewResult",
+    "HaltMonitor",
     "SafetyKernel",
     "StreamingKernel",
     "ValidationError",

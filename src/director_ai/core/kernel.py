@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — Safety Kernel
+# Director-Class AI — Halt Monitor
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # Contact: www.anulum.li | protoscience@anulum.li
 # ORCID: https://orcid.org/0009-0009-3560-0851
@@ -10,16 +10,14 @@ import logging
 import threading
 import time
 
-__all__ = ["SafetyKernel"]
+__all__ = ["HaltMonitor", "SafetyKernel"]
 
 
-class SafetyKernel:
-    """Software safety interlock for the output stream.
+class HaltMonitor:
+    """Threshold-based halt gate for the token output stream.
 
-    Sits between the model output buffer and the network interface.
-    Monitors the coherence score in real-time and has the authority
-    to sever the token stream if coherence drops below the hard
-    safety limit.
+    Checks each token's coherence score against ``hard_limit``.
+    Halts the stream if the score drops below the floor.
 
     Parameters
     ----------
@@ -61,7 +59,7 @@ class SafetyKernel:
                 elapsed = time.monotonic() - stream_start
                 if elapsed > self.total_timeout:
                     self.emergency_stop()
-                    return "[KERNEL INTERRUPT: TOTAL TIMEOUT EXCEEDED]"
+                    return "[HALT: TOTAL TIMEOUT EXCEEDED]"
 
             token_start = time.monotonic()
             accumulated = "".join(output_buffer) + token
@@ -70,21 +68,21 @@ class SafetyKernel:
 
             if self.token_timeout > 0 and token_elapsed > self.token_timeout:
                 self.emergency_stop()
-                return "[KERNEL INTERRUPT: TOKEN TIMEOUT EXCEEDED]"
+                return "[HALT: TOKEN TIMEOUT EXCEEDED]"
 
             if current_score < self.hard_limit:
                 self.emergency_stop()
                 if self.on_halt:
                     self.on_halt(current_score)
-                return "[KERNEL INTERRUPT: COHERENCE LIMIT EXCEEDED]"
+                return "[HALT: COHERENCE BELOW THRESHOLD]"
 
             output_buffer.append(token)
 
         return "".join(output_buffer)
 
     def emergency_stop(self):
-        """Halt the inference engine."""
-        self.logger.critical(">>> SAFETY KERNEL ACTIVATED: INFERENCE HALTED <<<")
+        """Halt the output stream."""
+        self.logger.critical(">>> HALT MONITOR: INFERENCE HALTED <<<")
         self._active.clear()
 
     @property
@@ -92,6 +90,9 @@ class SafetyKernel:
         return self._active.is_set()
 
     def reactivate(self):
-        """Re-arm the kernel after an emergency stop."""
+        """Re-arm the monitor after an emergency stop."""
         self._active.set()
-        self.logger.info("Safety kernel reactivated")
+        self.logger.info("Halt monitor reactivated")
+
+
+SafetyKernel = HaltMonitor
