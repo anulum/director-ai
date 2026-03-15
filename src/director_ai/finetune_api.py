@@ -224,14 +224,19 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
 # ── Router factory ───────────────────────────────────────────────────
 
 
-def _read_upload_with_limit(content: bytes) -> bytes:
-    """Reject uploads exceeding _MAX_UPLOAD_BYTES."""
-    if len(content) > _MAX_UPLOAD_BYTES:
-        raise HTTPException(
-            413,
-            f"Upload too large ({len(content)} bytes, max {_MAX_UPLOAD_BYTES})",
-        )
-    return content
+async def _read_upload_with_limit(file: UploadFile) -> bytes:
+    """Stream-read upload, rejecting before exceeding _MAX_UPLOAD_BYTES."""
+    chunks: list[bytes] = []
+    total = 0
+    while chunk := await file.read(64 * 1024):
+        total += len(chunk)
+        if total > _MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                413,
+                f"Upload too large (>{_MAX_UPLOAD_BYTES} bytes)",
+            )
+        chunks.append(chunk)
+    return b"".join(chunks)
 
 
 def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
@@ -266,7 +271,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         if req is None:
             req = ValidateRequest()  # type: ignore[call-arg]
 
-        content = _read_upload_with_limit(await file.read())
+        content = await _read_upload_with_limit(file)
         data_path = upload_dir / f"validate_{uuid.uuid4().hex[:8]}.jsonl"
         try:
             data_path.write_bytes(content)
@@ -294,7 +299,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         if req is None:
             req = StartRequest()  # type: ignore[call-arg]
 
-        content = _read_upload_with_limit(await file.read())
+        content = await _read_upload_with_limit(file)
         job_id_prefix = uuid.uuid4().hex[:8]
         data_path = upload_dir / f"data_{job_id_prefix}.jsonl"
         data_path.write_bytes(content)

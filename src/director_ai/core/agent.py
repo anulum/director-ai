@@ -149,7 +149,12 @@ class CoherenceAgent:
         best_rejected_score = None
         best_rejected_coherence = -1.0
 
-        error_markers = ("[Timeout]", "[Error]", "[ConnectionError]")
+        error_markers = (
+            "[Timeout]",
+            "[Error]",
+            "[ConnectionError]",
+            "[Connection Error]",
+        )
 
         for i, cand in enumerate(candidates):
             text = cand["text"]

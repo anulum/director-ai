@@ -26,6 +26,7 @@ import time
 import uuid
 from contextlib import asynccontextmanager
 from typing import Any
+from typing import Literal as _Literal
 
 from .core.config import DirectorConfig
 from .core.metrics import metrics
@@ -105,7 +106,9 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         )
 
     class BatchRequest(BaseModel):
-        task: str = Field("process", description="Task type: process or review")
+        task: _Literal["process", "review"] = Field(
+            "process", description="Task type: process or review"
+        )
         prompts: list[str] = Field(
             ...,
             min_length=1,
@@ -810,6 +813,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 duration_seconds=duration,
                 errors=[{"index": e[0], "error": e[1]} for e in batch_res.errors],
             )
+        except ValueError as e:
+            raise HTTPException(status_code=422, detail=str(e)) from e
         except Exception as e:
             logger.error("Batch processing failed: %s", e, exc_info=True)
             raise HTTPException(
