@@ -636,7 +636,13 @@ class DirectorConfig:
         scorer._qa_premise_ratio = self.nli_qa_premise_ratio
         scorer._confidence_weighted_agg = self.nli_confidence_weighted_agg
         if self.lora_adapter_path and scorer._nli is not None:
-            scorer._nli._load_lora_adapter(self.lora_adapter_path)
+            if hasattr(scorer._nli, "_load_lora_adapter"):
+                scorer._nli._load_lora_adapter(self.lora_adapter_path)
+            else:
+                logger.warning(
+                    "LoRA adapter not supported on %s",
+                    type(scorer._nli).__name__,
+                )
         if self.meta_classifier_path:
             scorer._meta_classifier_path = self.meta_classifier_path
         return scorer
