@@ -1,5 +1,5 @@
 # ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — Coherence Scorer (Dual-Entropy Oversight)
+# Director-Class AI — Coherence Scorer (Weighted NLI Divergence)
 # (C) 1998-2026 Miroslav Sotek. All rights reserved.
 # Contact: www.anulum.li | protoscience@anulum.li
 # ORCID: https://orcid.org/0009-0009-3560-0851
@@ -51,14 +51,16 @@ _DIALOGUE_TURN_RE = re.compile(
 
 
 class CoherenceScorer:
-    """Dual-entropy coherence scorer for AI output verification.
+    """Weighted NLI divergence scorer for AI output verification.
 
-    Computes a composite coherence score from two independent signals:
-    - **Logical divergence** (H_logical): NLI contradiction probability.
-    - **Factual divergence** (H_factual): Ground-truth deviation via RAG.
+    Computes a composite coherence score from two NLI-based signals:
+    - **Logical divergence** (H_logical): NLI contradiction probability
+      between prompt and response.
+    - **Factual divergence** (H_factual): NLI contradiction probability
+      between retrieved context and response.
 
-    The coherence score is ``1 - (W_LOGIC * H_logical + W_FACT * H_factual)``.
-    When the score falls below ``threshold``, the output is rejected.
+    Final score: ``coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)``.
+    When coherence falls below ``threshold``, the output is rejected.
 
     Parameters
     ----------

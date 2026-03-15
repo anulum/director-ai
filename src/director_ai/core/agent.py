@@ -33,7 +33,7 @@ class CoherenceAgent:
 
     Orchestrates:
     - **Generator**: Candidate response generation (mock or real LLM).
-    - **Scorer**: Dual-entropy coherence oversight.
+    - **Scorer**: Weighted NLI divergence scoring.
     - **Ground Truth Store**: RAG-based fact retrieval.
     - **Safety Kernel**: Output interlock.
 
