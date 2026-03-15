@@ -1167,8 +1167,8 @@ def _cmd_doctor(args: list[str]) -> None:
 
     # Python version
     py_ver = platform.python_version()
-    py_ok = tuple(int(x) for x in py_ver.split(".")[:2]) >= (3, 10)
-    checks.append(("Python >= 3.10", py_ok, py_ver))
+    py_ok = tuple(int(x) for x in py_ver.split(".")[:2]) >= (3, 11)
+    checks.append(("Python >= 3.11", py_ok, py_ver))
 
     # torch
     try:
