@@ -52,6 +52,8 @@ def create_grpc_server(
             "Install with: pip install director-ai[grpc]",
         ) from exc
 
+    import json as _json_mod
+
     cfg = config or DirectorConfig.from_env()
 
     from .core.agent import CoherenceAgent
@@ -59,6 +61,10 @@ def create_grpc_server(
     store = cfg.build_store()
     scorer = cfg.build_scorer(store=store)
     agent = CoherenceAgent(_scorer=scorer, _store=store)
+
+    _api_key_tenant_map: dict[str, str] = {}
+    if cfg.api_key_tenant_map:
+        _api_key_tenant_map = _json_mod.loads(cfg.api_key_tenant_map)
 
     # Resolve proto message factories
     try:
@@ -86,11 +92,23 @@ def create_grpc_server(
     )
     _bg_thread.start()
 
+    def _tenant_from_context(context) -> str:
+        metadata = dict(context.invocation_metadata())
+        api_key = metadata.get("x-api-key", "")
+        if _api_key_tenant_map and api_key:
+            return _api_key_tenant_map.get(api_key, "")
+        return metadata.get("x-tenant-id", "")
+
     class DirectorServicer:
         """Implements the DirectorService RPC methods."""
 
         def Review(self, request, context):  # noqa: N802
-            approved, score = scorer.review(request.prompt, request.response)
+            tid = _tenant_from_context(context)
+            approved, score = scorer.review(
+                request.prompt,
+                request.response,
+                tenant_id=tid,
+            )
             return review_resp(
                 approved=approved,
                 coherence=score.score,
@@ -100,7 +118,8 @@ def create_grpc_server(
             )
 
         def Process(self, request, context):  # noqa: N802
-            result = agent.process(request.prompt)
+            tid = _tenant_from_context(context)
+            result = agent.process(request.prompt, tenant_id=tid)
             return process_resp(
                 output=result.output,
                 coherence=result.coherence.score if result.coherence else 0.0,
@@ -117,9 +136,14 @@ def create_grpc_server(
                     f"batch too large: {len(request.requests)} > 1000",
                 )
                 return batch_resp(responses=[])
+            tid = _tenant_from_context(context)
             responses = []
             for req in request.requests:
-                approved, score = scorer.review(req.prompt, req.response)
+                approved, score = scorer.review(
+                    req.prompt,
+                    req.response,
+                    tenant_id=tid,
+                )
                 responses.append(
                     review_resp(
                         approved=approved,
@@ -134,11 +158,12 @@ def create_grpc_server(
         def StreamTokens(self, request, context):  # noqa: N802
             import queue
 
+            tid = _tenant_from_context(context)
             q: queue.Queue[tuple[str, float] | None] = queue.Queue()
 
             async def _produce():
                 try:
-                    async for tok, coh in agent.stream(request.prompt):
+                    async for tok, coh in agent.stream(request.prompt, tenant_id=tid):
                         q.put((tok, coh))
                 finally:
                     q.put(None)

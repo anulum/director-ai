@@ -836,11 +836,17 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             ],
         }
 
+    def _enforce_tenant_binding(request: Request, tenant_id: str) -> None:
+        bound = getattr(request.state, "tenant_id", "")
+        if bound and bound != tenant_id:
+            raise HTTPException(403, "API key not authorized for this tenant")
+
     @app.post("/v1/tenants/{tenant_id}/facts")
     async def add_tenant_fact(request: Request, tenant_id: str, req: TenantFactRequest):
         router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
+        _enforce_tenant_binding(request, tenant_id)
         router.add_fact(tenant_id, req.key, req.value)
         return {"status": "ok", "tenant_id": tenant_id, "key": req.key}
 
@@ -853,6 +859,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
+        _enforce_tenant_binding(request, tenant_id)
         store = router.get_vector_store(tenant_id, backend_type=req.backend_type)
         store.add_fact(req.key, req.value)
         return {
@@ -993,11 +1000,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):
+        ws_tenant_id = ""
         if cfg.api_keys:
             provided = ws.headers.get("X-API-Key", "")
             if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
                 await ws.close(code=1008, reason="unauthorized")
                 return
+            if _api_key_tenant_map:
+                ws_tenant_id = _api_key_tenant_map.get(provided, "")
+        if not ws_tenant_id:
+            ws_tenant_id = ws.headers.get("X-Tenant-ID", "")
         await ws.accept()
 
         send_lock = asyncio.Lock()
@@ -1037,7 +1049,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         window_size=getattr(cfg, "window_size", 5),
                         window_threshold=getattr(cfg, "window_threshold", 0.5),
                     )
-                    result = await agent.aprocess(prompt)
+                    result = await agent.aprocess(prompt, tenant_id=ws_tenant_id)
                     coherence = result.coherence.score if result.coherence else 0.0
                     ev = kernel.ingest_token(result.output, coherence)  # type: ignore[attr-defined]
                     halted = ev.halted if ev else False
@@ -1065,7 +1077,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 return
 
             try:
-                result = await agent.aprocess(prompt)
+                result = await agent.aprocess(prompt, tenant_id=ws_tenant_id)
             except (RuntimeError, ValueError, TypeError, OSError) as exc:
                 logger.error("WebSocket agent.process() failed: %s", exc)
                 await _send(

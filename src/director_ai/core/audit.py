@@ -71,9 +71,15 @@ class AuditLogger:
     ) -> None:
         self._path = Path(path) if path else None
         self._logger = logging.getLogger(logger_name)
-        self._hmac_key = (
-            hmac_secret or os.environ.get("DIRECTOR_AUDIT_HMAC_SECRET") or ""
-        ).encode("utf-8") or os.urandom(32)
+        explicit = hmac_secret or os.environ.get("DIRECTOR_AUDIT_HMAC_SECRET") or ""
+        if explicit:
+            self._hmac_key = explicit.encode("utf-8")
+        else:
+            self._hmac_key = os.urandom(32)
+            self._logger.warning(
+                "DIRECTOR_AUDIT_HMAC_SECRET not set — query hashes "
+                "will not be stable across restarts"
+            )
         self._sinks: list[Any] = []
         if self._path:
             self._path.parent.mkdir(parents=True, exist_ok=True)

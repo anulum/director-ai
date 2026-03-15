@@ -409,7 +409,7 @@ class CoherenceScorer:
         if not path:
             return None
         try:
-            from tools.train_meta_classifier import MetaClassifier
+            from .meta_classifier import MetaClassifier
 
             self._meta_classifier = MetaClassifier(path)
             return self._meta_classifier

@@ -6,6 +6,7 @@
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 
+import hashlib
 import logging
 
 __all__ = ["GroundTruthStore"]
@@ -87,8 +88,12 @@ class GroundTruthStore:
 
         if context:
             retrieved = "; ".join(context)
+            qhash = hashlib.sha256(query.encode()).hexdigest()[:12]
             self.logger.info(
-                f"RAG Retrieval: Found context '{retrieved}' for query '{query}'",
+                "RAG Retrieval: %d facts matched (query=%s, len=%d)",
+                len(context),
+                qhash,
+                len(query),
             )
             return retrieved
 
