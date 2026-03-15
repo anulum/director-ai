@@ -1313,7 +1313,7 @@ class CoherenceScorer:
             )
 
             cross_turn = None
-            if session is not None and len(session) > 0:
+            if session is not None and len(session) > 0 and not _is_dialogue:
                 ctx = session.context_text
                 if ctx.strip() and self._nli:
                     cross_turn = self._nli.score(ctx, action)
