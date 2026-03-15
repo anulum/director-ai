@@ -25,3 +25,73 @@
 .doc-signature {
   overflow-x: auto;
 }
+
+/* Version badge */
+.version-badge {
+  display: inline-block;
+  padding: 0.2em 0.6em;
+  font-size: 0.75em;
+  font-weight: 600;
+  color: #fff;
+  background: var(--md-primary-fg-color);
+  border-radius: 1em;
+  vertical-align: middle;
+}
+
+/* CTA button styles for licensing page */
+.cta-button {
+  display: inline-block;
+  padding: 0.6em 1.5em;
+  font-weight: 600;
+  color: #fff !important;
+  background: var(--md-primary-fg-color);
+  border-radius: 0.3em;
+  text-decoration: none !important;
+  transition: opacity 0.2s;
+}
+.cta-button:hover {
+  opacity: 0.85;
+}
+.cta-button--secondary {
+  background: var(--md-accent-fg-color);
+}
+
+/* Pricing tier highlight */
+.tier-highlight {
+  border: 2px solid var(--md-accent-fg-color) !important;
+  border-radius: 0.5em;
+  padding: 1em;
+  margin: 0.5em 0;
+}
+
+/* Benchmark callout box */
+.benchmark-callout {
+  padding: 1em 1.2em;
+  border-left: 4px solid var(--md-accent-fg-color);
+  background: var(--md-code-bg-color);
+  border-radius: 0 0.3em 0.3em 0;
+  margin: 1em 0;
+}
+
+/* First-50 promo badge */
+.promo-badge {
+  display: inline-block;
+  padding: 0.3em 0.8em;
+  font-size: 0.85em;
+  font-weight: 600;
+  color: #fff;
+  background: #e65100;
+  border-radius: 0.3em;
+}
+
+/* "Used by" logo placeholder row */
+.logo-row {
+  display: flex;
+  gap: 2em;
+  align-items: center;
+  flex-wrap: wrap;
+  opacity: 0.5;
+}
+.logo-row img {
+  max-height: 36px;
+}

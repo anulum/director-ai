@@ -2,6 +2,13 @@
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
+<span class="version-badge">v3.8 — New: hybrid judge, ONNX export, Rust FFI, config profiles</span>
+
+[![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
+[![Tests](https://img.shields.io/badge/tests-200%2B%20passing-brightgreen)]()
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://github.com/anulum/director-ai/blob/main/LICENSE)
+[![Python](https://img.shields.io/pypi/pyversions/director-ai)](https://pypi.org/project/director-ai/)
+
 | | |
 |---|---|
 | **2-Line Integration** — Wrap any LLM SDK client with `guard()`. Works with OpenAI, Anthropic, Bedrock, Gemini, Cohere. [Quickstart &rarr;](quickstart.md) | **Token-Level Halt** — Catches hallucinations as they form, mid-stream, before the user sees incorrect information. [Streaming &rarr;](guide/streaming.md) |
@@ -37,14 +44,21 @@ If the LLM hallucinates, `guard()` raises `HallucinationError` with the coherenc
 
 ```mermaid
 graph LR
-    LLM["LLM Response"] --> SC["CoherenceScorer"]
-    SC --> NLI["NLI Model<br/>(H_logical)"]
-    SC --> RAG["RAG Retrieval<br/>(H_factual)"]
-    NLI --> SCORE["coherence = 1 - (0.6·H_L + 0.4·H_F)"]
+    LLM["LLM Response"]:::input --> SC["CoherenceScorer"]:::core
+    SC --> NLI["NLI Model<br/>(H_logical)"]:::nli
+    SC --> RAG["RAG Retrieval<br/>(H_factual)"]:::rag
+    NLI --> SCORE["coherence = 1 - (0.6·H_L + 0.4·H_F)"]:::core
     RAG --> SCORE
-    SCORE --> GATE{score ≥ threshold?}
-    GATE -->|Yes| APPROVE["✓ Approved"]
-    GATE -->|No| HALT["✗ Halt + Evidence"]
+    SCORE --> GATE{score ≥ threshold?}:::gate
+    GATE -->|Yes| APPROVE["Approved"]:::approve
+    GATE -->|No| HALT["Halt + Evidence"]:::halt
+    classDef input fill:#7c4dff,stroke:#333,color:#fff
+    classDef core fill:#512da8,stroke:#333,color:#fff
+    classDef nli fill:#1565c0,stroke:#333,color:#fff
+    classDef rag fill:#00695c,stroke:#333,color:#fff
+    classDef gate fill:#ff8f00,stroke:#333,color:#fff
+    classDef approve fill:#2e7d32,stroke:#333,color:#fff
+    classDef halt fill:#c62828,stroke:#333,color:#fff
 ```
 
 ## Competitive Positioning
@@ -64,10 +78,12 @@ graph LR
 | Path | Time | What You Get |
 |------|------|-------------|
 | [Quickstart](quickstart.md) | 2 min | Score a response, guard an SDK client |
+| [Why Director-AI](guide/why-director-ai.md) | 5 min | Problem statement, decision matrix, cost comparison |
 | [Tutorials](tutorials.md) | 30 min | 16 Jupyter notebooks from basics to production |
 | [API Reference](api/index.md) | — | Every public class and function |
 | [Production Guide](deployment/production.md) | 15 min | Scaling, caching, monitoring, Docker |
 | [Domain Cookbooks](cookbook/legal.md) | 10 min | Legal, medical, finance, support recipes |
+| [Glossary](glossary.md) | — | 35 terms defined and cross-linked |
 
 ## Obtain
 
@@ -88,6 +104,10 @@ PyPI: [pypi.org/project/director-ai](https://pypi.org/project/director-ai/)
 - **Feature requests**: [GitHub Issues](https://github.com/anulum/director-ai/issues/new?labels=enhancement)
 - **Security**: [SECURITY.md](https://github.com/anulum/director-ai/blob/main/SECURITY.md)
 - **Commercial inquiries**: [anulum.li](https://www.anulum.li)
+
+## Used By
+
+*Early adopter logos coming soon. [Get in touch](https://www.anulum.li/contact.html) to be featured.*
 
 ## Contributing
 

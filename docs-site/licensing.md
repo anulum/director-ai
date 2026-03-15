@@ -30,6 +30,9 @@ license if:
 
 ### Pricing
 
+!!! tip inline end ""
+    <span class="promo-badge">First 50 licensees: 50% off year 1</span>
+
 | Tier | Monthly | Yearly | Includes |
 |------|---------|--------|----------|
 | **Hobbyist** | $9 | $90 | 1 local deployment, community support, delayed updates |
@@ -39,7 +42,40 @@ license if:
 
 **Perpetual license:** $1,299 one-time (Indie equivalent).
 
-**First 50 commercial licensees:** 50% off first year.
+### Feature Matrix
+
+| Feature | Hobbyist | Indie | Pro | Enterprise |
+|---------|:--------:|:-----:|:---:|:----------:|
+| Core scorer + streaming kernel | Yes | Yes | Yes | Yes |
+| NLI + RAG backends | Yes | Yes | Yes | Yes |
+| ONNX export | — | Yes | Yes | Yes |
+| Rust FFI kernel | — | Yes | Yes | Yes |
+| Hybrid LLM judge | — | Yes | Yes | Yes |
+| Multi-tenant (`TenantRouter`) | — | — | Yes | Yes |
+| Policy engine + audit logging | — | — | Yes | Yes |
+| REST / gRPC server | — | Yes | Yes | Yes |
+| Framework integrations (6) | Yes | Yes | Yes | Yes |
+| Deployments | 1 local | 1 prod | Unlimited | Unlimited |
+| Support | Community | Email (48h) | Slack (4h) | Dedicated engineer |
+| Updates | Delayed (90d) | 12 months | 12 months | Continuous |
+| SLA | — | — | — | 99.9% uptime |
+| On-prem / air-gapped | — | — | — | Yes |
+| SOC2 / HIPAA readiness | — | — | — | Yes |
+
+### Get Started
+
+<a href="mailto:sales@anulum.li?subject=Director-AI%20License%20Inquiry" class="cta-button">Buy Now</a>&nbsp;&nbsp;
+<a href="https://www.anulum.li/contact.html" class="cta-button cta-button--secondary">Contact Sales</a>
+
+### Enterprise Includes
+
+- Dedicated support engineer with private Slack channel
+- Custom SLA (99.9%+ uptime guarantee)
+- On-prem and air-gapped deployment support
+- SOC2 / HIPAA compliance documentation
+- Priority bug fixes and feature requests
+- Quarterly architecture review calls
+- Custom NLI model fine-tuning guidance
 
 ### Contact
 

@@ -117,6 +117,7 @@ nav:
   - Getting Started:
       - Quickstart: quickstart.md
       - Installation: installation.md
+      - Why Director-AI: guide/why-director-ai.md
   - User Guide:
       - Scoring: guide/scoring.md
       - Streaming Halt: guide/streaming.md
@@ -134,6 +135,7 @@ nav:
       - Enterprise: guide/enterprise.md
       - AGPL Compliance: guide/agpl-compliance.md
       - Troubleshooting: guide/troubleshooting.md
+      - Migration (v2→v3): guide/migration-v2-v3.md
   - Integrations:
       - OpenAI / Anthropic SDK: integrations/sdk-guard.md
       - LangChain: integrations/langchain.md
@@ -165,6 +167,7 @@ nav:
       - Metrics: deployment/metrics.md
       - Monitoring: deployment/monitoring.md
       - Production Checklist: deployment/checklist.md
+      - Operational Runbooks: deployment/runbooks.md
   - Cookbook:
       - Legal: cookbook/legal.md
       - Medical: cookbook/medical.md
@@ -173,5 +176,6 @@ nav:
       - Case Studies: cookbook/case-studies.md
   - Benchmarks: benchmarks.md
   - Tutorials: tutorials.md
+  - Glossary: glossary.md
   - Changelog: changelog.md
   - Licensing: licensing.md
