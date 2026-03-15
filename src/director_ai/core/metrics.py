@@ -158,6 +158,9 @@ class MetricsCollector:
             "nli_premise_chunks": _Histogram(buckets=NLI_CHUNK_COUNT_BUCKETS),
             "nli_hypothesis_chunks": _Histogram(buckets=NLI_CHUNK_COUNT_BUCKETS),
             "http_request_duration_seconds": _Histogram(buckets=HTTP_DURATION_BUCKETS),
+            "nli_batch_inference_seconds": _Histogram(buckets=NLI_INFERENCE_BUCKETS),
+            "nli_onnx_batch_seconds": _Histogram(buckets=NLI_INFERENCE_BUCKETS),
+            "llm_judge_seconds": _Histogram(buckets=REVIEW_DURATION_BUCKETS),
         }
         self._gauges: dict[str, _Gauge] = {
             "active_requests": _Gauge(),
