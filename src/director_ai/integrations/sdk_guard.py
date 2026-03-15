@@ -224,14 +224,12 @@ class _OpenAICompletionsProxy:
         self._original = original
         self._scorer = scorer
         self._on_fail = on_fail
+        if inspect.iscoroutinefunction(original.create):
+            self.create = self._acreate_entry  # type: ignore[assignment]
 
     def create(self, **kwargs):
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
-
-        if inspect.iscoroutinefunction(self._original.create):
-            return self._acreate(prompt, streaming, kwargs)
-
         response = self._original.create(**kwargs)
 
         if streaming:
@@ -240,6 +238,11 @@ class _OpenAICompletionsProxy:
         text = _openai_response_text(response)
         _score_and_gate(self._scorer, self._on_fail, prompt, text)
         return response
+
+    async def _acreate_entry(self, **kwargs):
+        prompt = _extract_prompt(kwargs.get("messages", []))
+        streaming = kwargs.get("stream", False)
+        return await self._acreate(prompt, streaming, kwargs)
 
     async def _acreate(self, prompt, streaming, kwargs):
         response = await self._original.create(**kwargs)
@@ -333,14 +336,12 @@ class _AnthropicMessagesProxy:
         self._original = original
         self._scorer = scorer
         self._on_fail = on_fail
+        if inspect.iscoroutinefunction(original.create):
+            self.create = self._acreate_entry  # type: ignore[assignment]
 
     def create(self, **kwargs):
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
-
-        if inspect.iscoroutinefunction(self._original.create):
-            return self._acreate(prompt, streaming, kwargs)
-
         response = self._original.create(**kwargs)
 
         if streaming:
@@ -354,6 +355,11 @@ class _AnthropicMessagesProxy:
         text = _anthropic_response_text(response)
         _score_and_gate(self._scorer, self._on_fail, prompt, text)
         return response
+
+    async def _acreate_entry(self, **kwargs):
+        prompt = _extract_prompt(kwargs.get("messages", []))
+        streaming = kwargs.get("stream", False)
+        return await self._acreate(prompt, streaming, kwargs)
 
     async def _acreate(self, prompt, streaming, kwargs):
         response = await self._original.create(**kwargs)
