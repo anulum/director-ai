@@ -193,5 +193,7 @@ try:
 
     register_backend("rust", RustBackend)
     register_backend("backfire", RustBackend)
-except (ImportError, AttributeError):  # pragma: no cover
+except ImportError:  # pragma: no cover
     pass
+except AttributeError as _attr_err:  # pragma: no cover
+    logger.warning("backfire_kernel found but broken: %s", _attr_err)
