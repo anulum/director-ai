@@ -48,11 +48,13 @@ class ConversationSession:
         self.max_turns = max_turns
         self._turns: list[Turn] = []
         self._lock = threading.Lock()
+        self._turn_counter = 0
 
     def add_turn(self, prompt: str, response: str, score: float) -> Turn:
         """Append a turn, evicting oldest if at capacity."""
         with self._lock:
-            idx = len(self._turns)
+            idx = self._turn_counter
+            self._turn_counter += 1
             turn = Turn(prompt=prompt, response=response, score=score, turn_index=idx)
             self._turns.append(turn)
             if len(self._turns) > self.max_turns:
