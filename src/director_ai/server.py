@@ -772,9 +772,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
             start_t = time.monotonic()
             if req.task == "review":
+                if len(req.prompts) != len(req.responses):
+                    raise HTTPException(
+                        422,
+                        f"review requires equal prompts ({len(req.prompts)}) "
+                        f"and responses ({len(req.responses)})",
+                    )
                 pairs = [
                     (p, r) if r else (p, "")
-                    for p, r in zip(req.prompts, req.responses, strict=True)
+                    for p, r in zip(req.prompts, req.responses)
                 ]
                 batch_res = await batcher.review_batch_async(pairs, tenant_id=tenant_id)
             else:
