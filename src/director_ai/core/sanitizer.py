@@ -100,12 +100,6 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         ),
     ),
     (
-        "excessive_unicode_escapes",
-        re.compile(
-            r"(\\u[0-9a-fA-F]{4}){8,}",
-        ),
-    ),
-    (
         "yaml_json_injection",
         re.compile(
             r"(!!python/|!!binary|!!map|__import__|yaml\.unsafe_load)",
@@ -125,7 +119,6 @@ _PATTERN_WEIGHTS: dict[str, float] = {
     "control_char_injection": 0.6,
     "bidi_override": 0.7,
     "path_traversal": 0.8,
-    "excessive_unicode_escapes": 0.5,
     "yaml_json_injection": 0.8,
 }
 
