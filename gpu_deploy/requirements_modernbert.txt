@@ -1,0 +1,12 @@
+# Director-AI ModernBERT training dependencies
+# Install after PyTorch+CUDA: pip install torch --index-url https://download.pytorch.org/whl/cu121
+# flash-attn installed separately (requires --no-build-isolation)
+torch>=2.1
+transformers>=4.48,<5
+datasets>=2.14
+scikit-learn>=1.3
+numpy>=1.24
+nltk>=3.8
+accelerate>=0.24
+sentencepiece
+protobuf
