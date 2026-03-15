@@ -7,6 +7,7 @@
 # ─────────────────────────────────────────────────────────────────────
 
 import logging
+import threading
 import time
 
 __all__ = ["SafetyKernel"]
@@ -43,7 +44,8 @@ class SafetyKernel:
         self.token_timeout = token_timeout
         self.total_timeout = total_timeout
         self.logger = logging.getLogger("DirectorAI.Kernel")
-        self.is_active = True
+        self._active = threading.Event()
+        self._active.set()
 
     def stream_output(self, token_generator, coherence_callback):
         """Emit output tokens while monitoring coherence in real-time.
@@ -83,9 +85,13 @@ class SafetyKernel:
     def emergency_stop(self):
         """Halt the inference engine."""
         self.logger.critical(">>> SAFETY KERNEL ACTIVATED: INFERENCE HALTED <<<")
-        self.is_active = False
+        self._active.clear()
+
+    @property
+    def is_active(self) -> bool:
+        return self._active.is_set()
 
     def reactivate(self):
         """Re-arm the kernel after an emergency stop."""
-        self.is_active = True
+        self._active.set()
         self.logger.info("Safety kernel reactivated")
