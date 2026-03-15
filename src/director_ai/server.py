@@ -570,8 +570,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         session_id=req.session_id,
                     )
                     owners[req.session_id] = caller_hash
-                elif caller_hash and owners.get(req.session_id, "") != caller_hash:
-                    raise HTTPException(403, "Session belongs to a different API key")
+                else:
+                    owner = owners.get(req.session_id, "")
+                    if owner and owner != caller_hash:
+                        raise HTTPException(403, "Session belongs to a different API key")
                 session = sessions[req.session_id]
 
         metrics.inc("reviews_total")
@@ -880,7 +882,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             owners = request.app.state._state["session_owners"]
             if session_id not in sessions:
                 raise HTTPException(404, "Session not found")
-            if caller_hash and owners.get(session_id, "") != caller_hash:
+            owner = owners.get(session_id, "")
+            if owner and owner != caller_hash:
                 raise HTTPException(404, "Session not found")
             s = sessions[session_id]
         return {
@@ -905,7 +908,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             owners = request.app.state._state["session_owners"]
             if session_id not in sessions:
                 raise HTTPException(404, "Session not found")
-            if caller_hash and owners.get(session_id, "") != caller_hash:
+            owner = owners.get(session_id, "")
+            if owner and owner != caller_hash:
                 raise HTTPException(404, "Session not found")
             del sessions[session_id]
             owners.pop(session_id, None)
