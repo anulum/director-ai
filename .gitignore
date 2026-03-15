@@ -145,6 +145,7 @@ logs/
 # =====================================================================
 *.npz
 *.pkl
+!src/director_ai/models/*.pkl
 *.pickle
 benchmarks/results/
 benchmarks/.cache/
@@ -158,6 +159,7 @@ ckpts/
 training/
 data/
 models/
+!src/director_ai/models/
 features/
 *.tmp
 

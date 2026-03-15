@@ -14,6 +14,7 @@ import re
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 
 from ..enterprise.redactor import PIIRedactor
 from .cache import ScoreCache
@@ -392,22 +393,28 @@ class CoherenceScorer:
     _JUDGE_RETRY_MAX = 3
     _JUDGE_RETRY_BACKOFF = (0.5, 1.0)
 
+    _BUNDLED_CLASSIFIER = "models/dataset_type_classifier.pkl"
+
     def _get_meta_classifier(self):
         """Lazy-load trained meta-classifier from pickle."""
         if self._meta_classifier is not None:
             return self._meta_classifier
-        if not self._meta_classifier_path:
+
+        path = self._meta_classifier_path
+        if not path and self._adaptive_threshold_enabled:
+            bundled = Path(__file__).parent.parent / self._BUNDLED_CLASSIFIER
+            if bundled.exists():
+                path = str(bundled)
+
+        if not path:
             return None
         try:
             from tools.train_meta_classifier import MetaClassifier
 
-            self._meta_classifier = MetaClassifier(self._meta_classifier_path)
+            self._meta_classifier = MetaClassifier(path)
             return self._meta_classifier
         except (ImportError, FileNotFoundError, Exception):
-            self.logger.debug(
-                "Meta-classifier unavailable at %s",
-                self._meta_classifier_path,
-            )
+            self.logger.debug("Meta-classifier unavailable at %s", path)
             self._meta_classifier_path = ""
             return None
 
@@ -1324,23 +1331,17 @@ class CoherenceScorer:
                     self.threshold,
                 )
 
-            # Meta-classifier override: when trained model is available,
-            # use it instead of threshold comparison. The classifier
-            # considers NLI score + text features to decide.
+            # Meta-classifier: dataset-type mode predicts which sub-dataset
+            # the input resembles, then applies the optimal NLI threshold
+            # for that dataset. Falls back to per-task-type if uncertain.
             meta_clf = self._get_meta_classifier()
-            if meta_clf is not None and self._nli is not None:
-                nli_score = evidence.nli_score if evidence else h_fact
-                confidence = abs(nli_score - 0.5) * 2.0
-                is_supported, meta_prob = meta_clf.predict(
-                    prompt,
-                    action,
-                    nli_score,
-                    confidence,
+            if meta_clf is not None:
+                nli_threshold, meta_conf = meta_clf.predict_threshold(
+                    prompt, action,
                 )
-                if is_supported:
-                    coherence = max(coherence, effective_threshold + 0.01)
-                else:
-                    coherence = min(coherence, effective_threshold - 0.01)
+                if nli_threshold is not None:
+                    # NLI-scale → coherence-scale: c = 0.4 + 0.6 * nli_t
+                    effective_threshold = 0.4 + 0.6 * nli_threshold
 
             result = self._finalise_review(
                 coherence,

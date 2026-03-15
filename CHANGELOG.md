@@ -7,6 +7,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.0] — 2026-03-15
+
+### Added
+- **Dataset-type classifier**: bundled RF-20-d6 model (370 KB) auto-selects
+  per-dataset NLI thresholds based on text features alone. 77.1% balanced
+  accuracy on LLM-AggreFact (29,320 samples), up from 76.7% per-task-type
+  and 75.9% global threshold. Confidence-gated: falls back to per-task-type
+  when uncertain (confidence < 0.5).
+- `MetaClassifier.predict_threshold()` — dataset-type prediction returning
+  optimal NLI threshold or None (low confidence fallback).
+- `train_dataset_type_classifier()` training function + `--train-dataset-type`
+  CLI flag in `tools/train_meta_classifier.py`.
+- Bundled model auto-discovery: scorer loads
+  `src/director_ai/models/dataset_type_classifier.pkl` when
+  `adaptive_threshold_enabled=True` (default) without explicit path config.
+- Docs: "Why Director-AI" narrative page, v2→v3 migration guide, glossary
+  (35 terms), operational runbooks (6 decision trees).
+- Benchmark admonition callouts, cookbook ROI quantification, SEO keywords.
+- AggreFact pipeline experiment tooling (`evaluate_classifiers()`,
+  `train_production_model()`, `generate_features_from_cache()`).
+
+### Security
+- Proxy API key authentication (`--api-keys key1,key2`) with HMAC
+  constant-time comparison. Health endpoint exempt.
+- HTTPS enforcement: proxy rejects non-HTTPS upstream URLs by default.
+  Override with `--allow-http-upstream`.
+- Tenant-to-API-key binding: `api_key_tenant_map` config field validates
+  `X-Tenant-ID` header against bound tenant. 403 on mismatch.
+- Session ownership: sessions track `api_key_hash` (SHA256[:16]).
+  GET/DELETE return 404 (not 403) for mismatched callers.
+- WebSocket info leak: exception details logged server-side only,
+  generic messages sent to clients.
+- Bandit B608/B615 re-enabled (0 findings).
+- server.py and proxy.py removed from coverage omit.
+
+### Changed
+- `_get_meta_classifier()` now auto-discovers bundled model when
+  `adaptive_threshold_enabled=True` and no explicit path is set.
+- Scorer meta-classifier integration uses `predict_threshold()` (dataset-type
+  mode) instead of binary `predict()`. NLI threshold converted to coherence
+  scale via `coherence = 0.4 + 0.6 * nli_threshold`.
+
 ## [3.8.0] — 2026-03-11
 
 ### Added

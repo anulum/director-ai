@@ -567,6 +567,10 @@ class MetaClassifier:
         self._clf = bundle["classifier"]
         self._scaler = bundle["scaler"]
         self._feature_cols = bundle["feature_cols"]
+        self._mode = bundle.get("mode", "binary")
+        self._label_names = bundle.get("label_names")
+        self._dataset_thresholds = bundle.get("dataset_thresholds")
+        self._confidence_gate = bundle.get("confidence_gate", 0.5)
 
     def predict(
         self,
@@ -593,6 +597,160 @@ class MetaClassifier:
         pred = int(self._clf.predict(x_scaled)[0])
         return bool(pred == 1), float(prob[1])
 
+    def predict_threshold(
+        self,
+        premise: str,
+        hypothesis: str,
+    ) -> tuple[float | None, float]:
+        """Predict per-dataset NLI threshold via dataset-type classification.
+
+        Returns (threshold_or_None, confidence). If confidence is below
+        the gate, threshold is None and the caller should fall back to
+        per-task-type thresholds.
+        """
+        if self._mode != "dataset_type" or not self._dataset_thresholds:
+            return None, 0.0
+
+        feat = extract_text_features(premise, hypothesis)
+        x = np.array([[feat[c] for c in self._feature_cols]])
+        x_scaled = self._scaler.transform(x)
+        probs = self._clf.predict_proba(x_scaled)[0]
+        pred_idx = int(np.argmax(probs))
+        conf = float(probs[pred_idx])
+
+        if conf < self._confidence_gate:
+            return None, conf
+
+        ds_name = self._label_names[pred_idx]
+        threshold = self._dataset_thresholds.get(ds_name)
+        return threshold, conf
+
+
+# Text-only feature extraction (no NLI score dependency)
+TEXT_FEATURE_COLS = [
+    c for c in FEATURE_COLS
+    if c not in ("nli_score", "confidence", "score_distance_from_half")
+]
+
+
+def extract_text_features(premise: str, hypothesis: str) -> dict:
+    """Extract text-only features (no NLI score needed)."""
+    return extract_features(premise, hypothesis, nli_score=0.0, confidence=0.0)
+
+
+# Per-dataset optimal NLI thresholds from L40S cached score sweep (29,320 samples)
+DATASET_NLI_THRESHOLDS = {
+    "AggreFact-CNN": 0.70,
+    "AggreFact-XSum": 0.30,
+    "ClaimVerify": 0.72,
+    "ExpertQA": 0.17,
+    "FactCheck-GPT": 0.22,
+    "Lfqa": 0.58,
+    "RAGTruth": 0.63,
+    "Reveal": 0.34,
+    "TofuEval-MediaS": 0.66,
+    "TofuEval-MeetB": 0.54,
+    "Wice": 0.21,
+}
+
+
+def train_dataset_type_classifier(
+    features_path: str,
+    output_path: str = "models/dataset_type_classifier.pkl",
+    n_estimators: int = 20,
+    max_depth: int = 6,
+    confidence_gate: float = 0.5,
+    seed: int = 42,
+) -> dict:
+    """Train RF classifier that predicts dataset type from text features.
+
+    The model predicts which AggreFact sub-dataset a (premise, hypothesis)
+    pair belongs to, enabling per-dataset optimal NLI thresholds.
+    """
+    import pickle
+
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.model_selection import StratifiedKFold, cross_val_predict
+    from sklearn.preprocessing import LabelEncoder, StandardScaler
+
+    with open(features_path) as f:
+        data = json.load(f)
+
+    X = np.array([[d[c] for c in TEXT_FEATURE_COLS] for d in data])
+    ds_labels = np.array([d["dataset"] for d in data])
+    nli_scores = np.array([d["nli_score"] for d in data])
+    y_true = np.array([d["label"] for d in data])
+
+    le = LabelEncoder()
+    y_ds = le.fit_transform(ds_labels)
+
+    scaler = StandardScaler()
+    X_s = scaler.fit_transform(X)
+
+    clf = RandomForestClassifier(
+        n_estimators=n_estimators,
+        max_depth=max_depth,
+        class_weight="balanced",
+        random_state=seed,
+        n_jobs=-1,
+    )
+
+    # 5-fold CV to estimate confidence-gated BA
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+    cv_probs = cross_val_predict(clf, X_s, y_ds, cv=skf, method="predict_proba")
+
+    # Simulate confidence-gated threshold selection
+    from sklearn.metrics import balanced_accuracy_score
+
+    gated_preds = []
+    gated_true = []
+    gated_ds = []
+    global_t = 0.46  # global NLI threshold fallback
+
+    for i in range(len(data)):
+        pred_idx = int(np.argmax(cv_probs[i]))
+        conf = cv_probs[i][pred_idx]
+        score = nli_scores[i]
+
+        if conf >= confidence_gate:
+            ds_name = le.inverse_transform([pred_idx])[0]
+            t = DATASET_NLI_THRESHOLDS.get(ds_name, global_t)
+        else:
+            t = global_t
+
+        gated_preds.append(int(score >= t))
+        gated_true.append(y_true[i])
+        gated_ds.append(ds_labels[i])
+
+    gated_ba = _macro_ba_from_datasets(
+        np.array(gated_true),
+        np.array(gated_preds),
+        np.array(gated_ds),
+    )
+
+    # Train final model on all data
+    clf.fit(X_s, y_ds)
+
+    bundle = {
+        "classifier": clf,
+        "scaler": scaler,
+        "feature_cols": TEXT_FEATURE_COLS,
+        "label_names": list(le.classes_),
+        "dataset_thresholds": DATASET_NLI_THRESHOLDS,
+        "confidence_gate": confidence_gate,
+        "mode": "dataset_type",
+    }
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "wb") as f:
+        pickle.dump(bundle, f)
+
+    size_kb = os.path.getsize(output_path) / 1024
+    logger.info(
+        "Dataset-type classifier: %.2f%% BA (5-fold gated), %.0f KB, saved to %s",
+        gated_ba * 100, size_kb, output_path,
+    )
+    return {"gated_ba": gated_ba, "size_kb": size_kb, "path": output_path}
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -607,7 +765,9 @@ if __name__ == "__main__":
     parser.add_argument("--evaluate", action="store_true",
                         help="Run full evaluation: LOO-CV + 5-fold + comparison")
     parser.add_argument("--train", action="store_true",
-                        help="Train production model")
+                        help="Train production model (binary)")
+    parser.add_argument("--train-dataset-type", action="store_true",
+                        help="Train dataset-type classifier (RF-20-d6)")
     parser.add_argument("--classifier", type=str, default="rf",
                         choices=["lr", "rf", "gbt"],
                         help="Classifier type for --train (default: rf)")
@@ -645,4 +805,13 @@ if __name__ == "__main__":
             features_path=args.features,
             output_path=args.output,
             classifier=args.classifier,
+        )
+
+    if args.train_dataset_type:
+        if not os.path.exists(args.features):
+            logger.error("Features file not found: %s", args.features)
+            raise SystemExit(1)
+        train_dataset_type_classifier(
+            features_path=args.features,
+            output_path=args.output,
         )
