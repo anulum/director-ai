@@ -81,19 +81,31 @@ class _Histogram:
     def mean(self) -> float:
         return self.total / self.count if self.count else 0.0
 
+    def _sorted_snapshot(self) -> list[float]:
+        """Sort once, reuse for quantile/bucket calls."""
+        return sorted(self._values) if self._values else []
+
     def quantile(self, q: float) -> float:
         """Compute quantile (0.0-1.0). Returns 0 if empty."""
         if not self._values:
             return 0.0
-        s = sorted(self._values)
+        s = self._sorted_snapshot()
         idx = int(q * (len(s) - 1))
         return s[idx]
+
+    def quantiles(self, qs: tuple[float, ...]) -> list[float]:
+        """Compute multiple quantiles in a single sort pass."""
+        if not self._values:
+            return [0.0] * len(qs)
+        s = self._sorted_snapshot()
+        n = len(s) - 1
+        return [s[int(q * n)] for q in qs]
 
     def bucket_counts(self) -> dict[str, int]:
         """Return cumulative bucket counts. O(n log n + b log n)."""
         import bisect
 
-        s = sorted(self._values)
+        s = self._sorted_snapshot()
         result = {}
         for b in self.buckets:
             result[f"le_{b}"] = bisect.bisect_right(s, b)
@@ -245,10 +257,13 @@ class MetricsCollector:
                     "count": h.count,
                     "total": h.total,
                     "mean": h.mean,
-                    "p50": h.quantile(0.5),
-                    "p90": h.quantile(0.9),
-                    "p99": h.quantile(0.99),
                 }
+                p50, p90, p99 = h.quantiles((0.5, 0.9, 0.99))
+                result["histograms"][name].update({
+                    "p50": p50,
+                    "p90": p90,
+                    "p99": p99,
+                })
             for name, g in self._gauges.items():
                 result["gauges"][name] = g.value
             return result
