@@ -35,9 +35,9 @@ from sklearn.metrics import balanced_accuracy_score
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
 TEMPLATE = (
-    '{text_a}\n\nChoose your answer: based on the paragraph above '
+    "{text_a}\n\nChoose your answer: based on the paragraph above "
     'can we conclude that "{text_b}"?\n\nOPTIONS:\n- Yes\n- No\n'
-    'I think the answer is '
+    "I think the answer is "
 )
 
 DATA_SEARCH_PATHS = [
@@ -50,9 +50,7 @@ def _find_data_file() -> str:
     for p in DATA_SEARCH_PATHS:
         if os.path.exists(p):
             return p
-    raise FileNotFoundError(
-        f"aggrefact_test.jsonl not found in: {DATA_SEARCH_PATHS}"
-    )
+    raise FileNotFoundError(f"aggrefact_test.jsonl not found in: {DATA_SEARCH_PATHS}")
 
 
 def evaluate(
@@ -77,7 +75,9 @@ def evaluate(
             )
             model = PeftModel.from_pretrained(base, model_path)
             model = model.merge_and_unload()
-            tokenizer = AutoTokenizer.from_pretrained("yaxili96/FactCG-DeBERTa-v3-Large")
+            tokenizer = AutoTokenizer.from_pretrained(
+                "yaxili96/FactCG-DeBERTa-v3-Large"
+            )
         else:
             model = AutoModelForSequenceClassification.from_pretrained(model_path)
             tokenizer = AutoTokenizer.from_pretrained(model_path)
@@ -108,7 +108,7 @@ def evaluate(
     t0 = time.perf_counter()
     all_scores: list[float] = []
     for i in range(0, len(texts), batch_size):
-        batch_texts = texts[i:i + batch_size]
+        batch_texts = texts[i : i + batch_size]
         enc = tokenizer(
             batch_texts,
             return_tensors="pt",
@@ -128,7 +128,7 @@ def evaluate(
             print(f"  {done}/{len(texts)} ({rate:.0f}/s, ETA {eta:.0f}m)", flush=True)
 
     by_dataset: dict[str, list[tuple[int, float]]] = {}
-    for score, label, ds_name in zip(all_scores, labels, ds_names):
+    for score, label, ds_name in zip(all_scores, labels, ds_names, strict=True):
         by_dataset.setdefault(ds_name, []).append((label, score))
 
     elapsed = time.perf_counter() - t0
@@ -166,7 +166,9 @@ def evaluate(
     out_path = f"results/eval_{tag}.json"
     with open(out_path, "w") as f:
         json.dump(result, f, indent=2)
-    print(f"{tag}: {best_avg*100:.2f}% BA (t={best_thresh}) in {elapsed/60:.1f}m -> {out_path}")
+    print(
+        f"{tag}: {best_avg * 100:.2f}% BA (t={best_thresh}) in {elapsed / 60:.1f}m -> {out_path}"
+    )
     return result
 
 

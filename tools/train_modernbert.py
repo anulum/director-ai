@@ -58,7 +58,14 @@ STAGE1_DATASETS = [
     ("anli", "train_r2", "premise", "hypothesis", "label", {0: 1, 1: 0, 2: 0}),
     ("anli", "train_r3", "premise", "hypothesis", "label", {0: 1, 1: 0, 2: 0}),
     ("tals/vitaminc", "train", "evidence", "claim", "label", {0: 1, 1: 0, 2: 0}),
-    ("pietrolesci/nli_fever", "train", "premise", "hypothesis", "label", {0: 1, 1: 0, 2: 0}),
+    (
+        "pietrolesci/nli_fever",
+        "train",
+        "premise",
+        "hypothesis",
+        "label",
+        {0: 1, 1: 0, 2: 0},
+    ),
 ]
 
 
@@ -173,10 +180,14 @@ def train_stage1(
     eval_data = formatted[split_idx:]
 
     train_ds = Dataset.from_list(train_data).map(
-        tokenize_fn, batched=True, remove_columns=["text"],
+        tokenize_fn,
+        batched=True,
+        remove_columns=["text"],
     )
     eval_ds = Dataset.from_list(eval_data).map(
-        tokenize_fn, batched=True, remove_columns=["text"],
+        tokenize_fn,
+        batched=True,
+        remove_columns=["text"],
     )
 
     collator = DataCollatorWithPadding(tokenizer)
@@ -315,10 +326,14 @@ def train_stage2(
     eval_data = formatted[split_idx:]
 
     train_ds = Dataset.from_list(train_data).map(
-        tokenize_fn, batched=True, remove_columns=["text"],
+        tokenize_fn,
+        batched=True,
+        remove_columns=["text"],
     )
     eval_ds = Dataset.from_list(eval_data).map(
-        tokenize_fn, batched=True, remove_columns=["text"],
+        tokenize_fn,
+        batched=True,
+        remove_columns=["text"],
     )
 
     collator = DataCollatorWithPadding(tokenizer)
@@ -384,10 +399,14 @@ def run_stage3(model_path: str) -> None:
         logger.info("Evaluating at max_length=%d", max_len)
         subprocess.run(
             [
-                sys.executable, eval_script,
-                tag, model_path,
-                "--max-length", str(max_len),
-                "--batch-size", "16",
+                sys.executable,
+                eval_script,
+                tag,
+                model_path,
+                "--max-length",
+                str(max_len),
+                "--batch-size",
+                "16",
             ],
             check=True,
         )
