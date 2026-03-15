@@ -128,7 +128,10 @@ def _load_nli_model(
     device: str | None = None,
     torch_dtype: str | None = None,
 ):
-    """Lazily load an NLI model + tokenizer (cached by model_name)."""
+    """Lazily load an NLI model + tokenizer (cached by model_name).
+
+    Call ``clear_model_cache()`` to release GPU memory held by cached models.
+    """
     try:
         import torch
         from transformers import (
@@ -244,6 +247,13 @@ def _load_onnx_session(
     ) as e:
         logger.warning("ONNX session unavailable: %s", e)
         return None, None
+
+
+def clear_model_cache() -> None:
+    """Evict all cached NLI models to free GPU memory."""
+    _load_nli_model.cache_clear()
+    _load_onnx_session.cache_clear()
+    logger.info("NLI model cache cleared")
 
 
 def nli_available() -> bool:
