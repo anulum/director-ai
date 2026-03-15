@@ -704,5 +704,10 @@ def _coerce(value: str, type_hint: str) -> object:
     if type_hint == "float":
         return float(value)
     if "list" in type_hint:
-        return [s.strip() for s in value.split(",") if s.strip()]
+        items = [s.strip() for s in value.split(",") if s.strip()]
+        if "int" in type_hint:
+            return [int(x) for x in items]
+        if "float" in type_hint:
+            return [float(x) for x in items]
+        return items
     return value
