@@ -385,11 +385,6 @@ class CoherenceScorer:
         metrics.observe("llm_judge_seconds", time.monotonic() - t0)
         return adjusted
 
-    @staticmethod
-    def _redact_pii(text: str) -> str:
-        """Redact PII from text (static convenience method)."""
-        return PIIRedactor(enabled=True)(text)
-
     # ── LLM-as-judge escalation ───────────────────────────────────────
 
     _DEFAULT_MODELS = {
