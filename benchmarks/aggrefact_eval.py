@@ -128,7 +128,11 @@ class AggreFactMetrics:
                 for k, v in self.per_dataset.items()
             },
             "latency_ms_avg": round(self.avg_latency_ms, 2),
-            **({"per_dataset_thresholds": self.per_dataset_thresholds} if self.per_dataset_thresholds else {}),
+            **(
+                {"per_dataset_thresholds": self.per_dataset_thresholds}
+                if self.per_dataset_thresholds
+                else {}
+            ),
         }
 
 
@@ -278,6 +282,7 @@ class _NLIScorerPredictor:
 
     def __init__(self, model_name: str | None = None, overlap_ratio: float = 0.0):
         import torch
+
         from director_ai.core.nli import NLIScorer
 
         self.scorer = NLIScorer(
@@ -357,22 +362,29 @@ def score_and_save(
         t0 = time.perf_counter()
         ent_prob = predictor.score(doc, claim)
         elapsed = time.perf_counter() - t0
-        scored.append({
-            "dataset": ds_name,
-            "label": int(label),
-            "score": round(float(ent_prob), 6),
-            "latency_ms": round(elapsed * 1000, 2),
-        })
+        scored.append(
+            {
+                "dataset": ds_name,
+                "label": int(label),
+                "score": round(float(ent_prob), 6),
+                "latency_ms": round(elapsed * 1000, 2),
+            }
+        )
         if (i + 1) % 1000 == 0:
             logger.info("Scored %d / %d", i + 1, len(rows))
 
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps({
-        "model": model_name or "yaxili96/FactCG-DeBERTa-v3-Large",
-        "total": len(scored),
-        "scores": scored,
-    }, indent=2))
+    out.write_text(
+        json.dumps(
+            {
+                "model": model_name or "yaxili96/FactCG-DeBERTa-v3-Large",
+                "total": len(scored),
+                "scores": scored,
+            },
+            indent=2,
+        )
+    )
     logger.info("Saved %d raw scores to %s", len(scored), out)
     return out
 
@@ -686,7 +698,10 @@ def sweep_aggregation(
             t0 = time.perf_counter()
             # NLIScorer returns divergence (0=entailed, 1=contradicted)
             div_score, _ = scorer.score_chunked(
-                doc, claim, outer_agg=strategy, inner_agg="max",
+                doc,
+                claim,
+                outer_agg=strategy,
+                inner_agg="max",
             )
             # Convert divergence ->entailment probability
             ent_prob = 1.0 - div_score
@@ -725,7 +740,9 @@ def sweep_aggregation(
                 **_binary_class_metrics(y_true, y_pred),
             }
         results[strategy] = (best_thresh, m)
-        logger.info("Aggregation %s: %.1f%% BA @ t=%.2f", strategy, best_avg * 100, best_thresh)
+        logger.info(
+            "Aggregation %s: %.1f%% BA @ t=%.2f", strategy, best_avg * 100, best_thresh
+        )
 
     return results
 
@@ -894,7 +911,7 @@ if __name__ == "__main__":
         by_dataset = load_cached_scores(args.load_scores)
         if args.per_dataset:
             per_ds_t, m = sweep_on_cached(by_dataset, per_dataset=True)
-            print(f"\nPer-dataset optimal thresholds:")
+            print("\nPer-dataset optimal thresholds:")
             for ds, t in sorted(per_ds_t.items()):
                 print(f"  {ds:<20} {t:.2f}")
             _print_aggrefact_results(m, "per-dataset thresholds")
@@ -903,7 +920,9 @@ if __name__ == "__main__":
             print(f"\n{'=' * 60}")
             print("  Comparison: Per-Dataset vs Global Threshold")
             print(f"{'=' * 60}")
-            print(f"  Global (t={best_global:.2f}):      {m_global.avg_balanced_acc:.2%}")
+            print(
+                f"  Global (t={best_global:.2f}):      {m_global.avg_balanced_acc:.2%}"
+            )
             print(f"  Per-dataset:             {m.avg_balanced_acc:.2%}")
             delta = m.avg_balanced_acc - m_global.avg_balanced_acc
             print(f"  Delta:                   {delta:+.2%}")
@@ -912,7 +931,9 @@ if __name__ == "__main__":
                 g_ba = m_global.per_dataset.get(ds, {}).get("balanced_acc", 0)
                 p_ba = m.per_dataset.get(ds, {}).get("balanced_acc", 0)
                 t = per_ds_t.get(ds, best_global)
-                print(f"  {ds:<20} {g_ba:.1%} ->{p_ba:.1%}  ({p_ba - g_ba:+.1%})  t={t:.2f}")
+                print(
+                    f"  {ds:<20} {g_ba:.1%} ->{p_ba:.1%}  ({p_ba - g_ba:+.1%})  t={t:.2f}"
+                )
             print(f"{'=' * 60}")
         else:
             best_thresh, m = sweep_on_cached(by_dataset, per_dataset=False)
@@ -923,7 +944,7 @@ if __name__ == "__main__":
             max_samples=args.max_samples,
             model_name=args.model,
         )
-        print(f"\nPer-dataset optimal thresholds:")
+        print("\nPer-dataset optimal thresholds:")
         for ds, t in sorted(per_ds_t.items()):
             print(f"  {ds:<20} {t:.2f}")
         _print_aggrefact_results(m, "per-dataset thresholds")
@@ -945,7 +966,9 @@ if __name__ == "__main__":
             g_ba = m_global.per_dataset.get(ds, {}).get("balanced_acc", 0)
             p_ba = m.per_dataset.get(ds, {}).get("balanced_acc", 0)
             t = per_ds_t.get(ds, best_global)
-            print(f"  {ds:<20} {g_ba:.1%} ->{p_ba:.1%}  ({p_ba - g_ba:+.1%})  t={t:.2f}")
+            print(
+                f"  {ds:<20} {g_ba:.1%} ->{p_ba:.1%}  ({p_ba - g_ba:+.1%})  t={t:.2f}"
+            )
         print(f"{'=' * 60}")
     elif args.agg_sweep:
         results = sweep_aggregation(
@@ -955,7 +978,9 @@ if __name__ == "__main__":
         print(f"\n{'=' * 60}")
         print("  Aggregation Strategy Comparison")
         print(f"{'=' * 60}")
-        for strategy, (thresh, m_agg) in sorted(results.items(), key=lambda x: -x[1][1].avg_balanced_acc):
+        for strategy, (thresh, m_agg) in sorted(
+            results.items(), key=lambda x: -x[1][1].avg_balanced_acc
+        ):
             print(f"  {strategy:<15} {m_agg.avg_balanced_acc:.2%}  (t={thresh:.2f})")
         print(f"{'=' * 60}")
         # Print detailed results for the best strategy

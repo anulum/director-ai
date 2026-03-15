@@ -221,3 +221,30 @@
 ### Planned
 - Distill smaller NLI model (DeBERTa-base from FactCG-Large teacher + hybrid labels)
 - ReviewQueue adaptive flushing (dynamic max_batch based on request rate)
+
+## v3.8.0
+
+### Done
+- Per-task-type adaptive thresholds (+0.86pp balanced accuracy over global baseline)
+- AggreFact evaluation pipeline with cached scoring + per-dataset sweep
+- GPU benchmarking infrastructure (UpCloud L40S)
+- 32 fine-tuning experiments (LoRA, distillation) — all negative, documented
+
+## v3.9.0
+
+### Done
+- Dataset-type classifier (RF-20-d6, 77.08% BA, +1.22pp over global)
+- Classifier auto-discovery from bundled model when `adaptive_threshold_enabled=True`
+- Threshold hierarchy: global → per-task-type → per-dataset (most specific wins)
+- Security: proxy HMAC auth, HTTPS enforcement, tenant-to-API-key binding, session ownership, WebSocket info leak fix
+- Documentation: why-director-ai, migration-v2-v3, glossary, runbooks
+- Secret removal from git history (expired HF token)
+
+## v3.10.0
+
+### Planned
+- **B615 HF revision pinning**: pin `revision="<sha>"` on all 11 `from_pretrained()` calls to prevent supply-chain risk
+- SPDX `AGPL-3.0-or-later` headers on all source files
+- ModernBERT-large (8192 tokens) as alternate NLI backend — only path to >78% BA
+- Stripe Checkout page + HMAC-SHA256 license key generation
+- B608 ChromaDB parameterised filters (low priority, no user input reaches these)
