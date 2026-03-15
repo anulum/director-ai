@@ -94,10 +94,10 @@ def create_grpc_server(
 
     def _tenant_from_context(context) -> str:
         metadata = dict(context.invocation_metadata())
-        api_key = metadata.get("x-api-key", "")
+        api_key: str = metadata.get("x-api-key", "")
         if _api_key_tenant_map and api_key:
             return _api_key_tenant_map.get(api_key, "")
-        return metadata.get("x-tenant-id", "")
+        return str(metadata.get("x-tenant-id", ""))
 
     class DirectorServicer:
         """Implements the DirectorService RPC methods."""
