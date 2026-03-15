@@ -275,6 +275,13 @@ class CoherenceScorer:
         if llm_judge_provider == "local" and llm_judge_model:
             self._init_local_judge(llm_judge_model, nli_device)
 
+    def close(self) -> None:
+        """Shut down internal thread pool."""
+        self._parallel_pool.shutdown(wait=False)
+
+    def __del__(self) -> None:
+        self._parallel_pool.shutdown(wait=False)
+
     def _init_local_judge(
         self,
         model_path: str,
