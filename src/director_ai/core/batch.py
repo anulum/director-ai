@@ -121,7 +121,7 @@ class BatchProcessor:
                         idx,
                         self.item_timeout,
                     )
-                except Exception as e:
+                except (RuntimeError, ValueError, OSError) as e:
                     result.record_failure(idx, str(e))
                     logger.warning("Batch item %d failed: %s", idx, e)
 
@@ -194,7 +194,7 @@ class BatchProcessor:
                     result.record_success()
                 except FutureTimeout:
                     result.record_failure(idx, "item timeout")
-                except Exception as e:
+                except (RuntimeError, ValueError, OSError) as e:
                     result.record_failure(idx, str(e))
 
         result.results = [r for r in ordered if r is not None]
@@ -287,7 +287,7 @@ class BatchProcessor:
                     result.record_success()
                 except TimeoutError:
                     result.record_failure(idx, "item timeout")
-                except Exception as e:
+                except (RuntimeError, ValueError, OSError) as e:
                     result.record_failure(idx, str(e))
 
         await asyncio.gather(*[_run(i, p) for i, p in enumerate(prompts)])
@@ -349,7 +349,7 @@ class BatchProcessor:
                     result.record_success()
                 except TimeoutError:
                     result.record_failure(idx, "item timeout")
-                except Exception as e:
+                except (RuntimeError, ValueError, OSError) as e:
                     result.record_failure(idx, str(e))
 
         await asyncio.gather(*[_run(i, p, r) for i, (p, r) in enumerate(items)])
