@@ -1188,7 +1188,7 @@ class NLIScorer:
 
         if hyp_fits and prem_fits:
             result = self.score_batch_with_confidence([(premise, hypothesis)])
-            s, c = result[0]
+            s, _ = result[0]
             return s, [s]
 
         hyp_sents = self._split_sentences(hypothesis)
