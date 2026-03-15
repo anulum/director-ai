@@ -26,7 +26,7 @@ COPY requirements/ requirements/
 
 ARG EXTRAS="server"
 ARG REQUIREMENTS="requirements/docker-server.txt"
-RUN pip install --no-cache-dir --prefix=/install -r "$REQUIREMENTS" \
+RUN pip install --no-cache-dir --require-hashes --prefix=/install -r "$REQUIREMENTS" \
     && pip install --no-cache-dir --no-deps --prefix=/install .
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────

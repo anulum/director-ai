@@ -33,7 +33,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install -r requirements/ci-docs.txt
+          pip install --require-hashes -r requirements/ci-docs.txt
           pip install --no-deps -e .
 
       - name: Build site
