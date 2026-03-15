@@ -122,10 +122,16 @@ def extract_features(
         "num_entities_premise": len(re.findall(r"[A-Z][a-z]+", premise)),
         "num_entities_hypothesis": len(re.findall(r"[A-Z][a-z]+", hypothesis)),
         "len_ratio": len(premise) / max(len(hypothesis), 1),
-        "premise_sent_count": premise.count(".") + premise.count("!") + premise.count("?"),
-        "hypothesis_sent_count": hypothesis.count(".") + hypothesis.count("!") + hypothesis.count("?"),
+        "premise_sent_count": premise.count(".")
+        + premise.count("!")
+        + premise.count("?"),
+        "hypothesis_sent_count": hypothesis.count(".")
+        + hypothesis.count("!")
+        + hypothesis.count("?"),
         "avg_word_len_premise": np.mean([len(w) for w in p_words]) if p_words else 0.0,
-        "avg_word_len_hypothesis": np.mean([len(w) for w in h_words]) if h_words else 0.0,
+        "avg_word_len_hypothesis": np.mean([len(w) for w in h_words])
+        if h_words
+        else 0.0,
     }
 
 
@@ -184,7 +190,7 @@ def train_meta_classifier(
     import pickle
 
     from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import balanced_accuracy_score, f1_score
+    from sklearn.metrics import balanced_accuracy_score
     from sklearn.model_selection import train_test_split
     from sklearn.preprocessing import StandardScaler
 
@@ -199,7 +205,11 @@ def train_meta_classifier(
     y = np.array([d["label"] for d in data])
 
     x_train, x_test, y_train, y_test = train_test_split(
-        x_data, y, test_size=test_size, random_state=seed, stratify=y,
+        x_data,
+        y,
+        test_size=test_size,
+        random_state=seed,
+        stratify=y,
     )
 
     scaler = StandardScaler()
@@ -207,7 +217,10 @@ def train_meta_classifier(
     x_test_s = scaler.transform(x_test)
 
     clf = LogisticRegression(
-        max_iter=1000, class_weight="balanced", random_state=seed, C=1.0,
+        max_iter=1000,
+        class_weight="balanced",
+        random_state=seed,
+        C=1.0,
     )
     clf.fit(x_train_s, y_train)
 
@@ -216,7 +229,9 @@ def train_meta_classifier(
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "wb") as f:
-        pickle.dump({"classifier": clf, "scaler": scaler, "feature_cols": feature_cols}, f)
+        pickle.dump(
+            {"classifier": clf, "scaler": scaler, "feature_cols": feature_cols}, f
+        )
 
     logger.info("Meta-classifier saved to %s", output_path)
     logger.info("Test BA: %.1f%%, Train BA: %.1f%%", test_ba * 100, train_ba * 100)
@@ -239,7 +254,8 @@ def generate_features_from_cache(
 
     rows = _load_aggrefact()
     valid_rows = [
-        r for r in rows
+        r
+        for r in rows
         if r.get("label") is not None and r.get("doc") and r.get("claim")
     ]
 
@@ -249,7 +265,7 @@ def generate_features_from_cache(
         )
 
     features_list: list[dict] = []
-    for row, entry in zip(valid_rows, cached):
+    for row, entry in zip(valid_rows, cached, strict=True):
         nli_score = entry["score"]
         feat = extract_features(
             premise=row["doc"],
@@ -343,7 +359,7 @@ def evaluate_classifiers(
     with open(features_path) as f:
         data = json.load(f)
 
-    X = np.array([[d[c] for c in FEATURE_COLS] for d in data])
+    x_mat = np.array([[d[c] for c in FEATURE_COLS] for d in data])
     y = np.array([d["label"] for d in data])
     datasets = np.array([d["dataset"] for d in data])
     scores = np.array([d["nli_score"] for d in data])
@@ -355,21 +371,29 @@ def evaluate_classifiers(
     print(f"\n{'=' * 70}")
     print("  Meta-Classifier Evaluation — LLM-AggreFact 29,320 samples")
     print(f"{'=' * 70}")
-    print(f"\n  Baselines:")
+    print("\n  Baselines:")
     print(f"    Global threshold (t={global_t:.2f}):     {global_ba:.2%}")
     print(f"    Per-dataset oracle:              {oracle_ba:.2%}")
     print(f"    Gap to close:                    {oracle_ba - global_ba:+.2%}")
 
     classifiers = {
         "LogReg": lambda: LogisticRegression(
-            max_iter=1000, class_weight="balanced", random_state=seed, C=1.0,
+            max_iter=1000,
+            class_weight="balanced",
+            random_state=seed,
+            C=1.0,
         ),
         "RF-100": lambda: RandomForestClassifier(
-            n_estimators=100, max_depth=8, class_weight="balanced",
-            random_state=seed, n_jobs=-1,
+            n_estimators=100,
+            max_depth=8,
+            class_weight="balanced",
+            random_state=seed,
+            n_jobs=-1,
         ),
         "GBT-100": lambda: GradientBoostingClassifier(
-            n_estimators=100, max_depth=4, learning_rate=0.1,
+            n_estimators=100,
+            max_depth=4,
+            learning_rate=0.1,
             random_state=seed,
         ),
     }
@@ -386,16 +410,16 @@ def evaluate_classifiers(
         for held_out in unique_ds:
             train_mask = datasets != held_out
             test_mask = datasets == held_out
-            X_train, X_test = X[train_mask], X[test_mask]
+            x_train, x_test = x_mat[train_mask], x_mat[test_mask]
             y_train, y_test = y[train_mask], y[test_mask]
 
             scaler = StandardScaler()
-            X_train_s = scaler.fit_transform(X_train)
-            X_test_s = scaler.transform(X_test)
+            x_train_s = scaler.fit_transform(x_train)
+            x_test_s = scaler.transform(x_test)
 
             clf = clf_factory()
-            clf.fit(X_train_s, y_train)
-            y_pred = clf.predict(X_test_s)
+            clf.fit(x_train_s, y_train)
+            y_pred = clf.predict(x_test_s)
             per_ds_ba[held_out] = float(balanced_accuracy_score(y_test, y_pred))
 
         macro_ba = float(np.mean(list(per_ds_ba.values())))
@@ -419,7 +443,7 @@ def evaluate_classifiers(
     print(f"  {'Global(t=' + f'{global_t:.2f})':20s} {loo_global_ba:10.2%}")
 
     # ── Stratified 5-fold CV ──
-    print(f"\n  Stratified 5-Fold CV:")
+    print("\n  Stratified 5-Fold CV:")
     print(f"  {'':20s} {'5-Fold BA':>10s}")
     print(f"  {'-' * 40}")
 
@@ -427,13 +451,13 @@ def evaluate_classifiers(
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
     for clf_name, clf_factory in classifiers.items():
         fold_bas: list[float] = []
-        for train_idx, test_idx in skf.split(X, y):
+        for train_idx, test_idx in skf.split(x_mat, y):
             scaler = StandardScaler()
-            X_train_s = scaler.fit_transform(X[train_idx])
-            X_test_s = scaler.transform(X[test_idx])
+            x_train_s = scaler.fit_transform(x_mat[train_idx])
+            x_test_s = scaler.transform(x_mat[test_idx])
             clf = clf_factory()
-            clf.fit(X_train_s, y[train_idx])
-            y_pred = clf.predict(X_test_s)
+            clf.fit(x_train_s, y[train_idx])
+            y_pred = clf.predict(x_test_s)
             ba = _macro_ba_from_datasets(y[test_idx], y_pred, datasets[test_idx])
             fold_bas.append(ba)
         mean_ba = float(np.mean(fold_bas))
@@ -441,16 +465,19 @@ def evaluate_classifiers(
         print(f"  {clf_name:20s} {mean_ba:10.2%} (+/- {np.std(fold_bas):.2%})")
 
     # ── Full-data training (feature importance) ──
-    print(f"\n  Feature Importance (RF-100, full data):")
+    print("\n  Feature Importance (RF-100, full data):")
     scaler = StandardScaler()
-    X_s = scaler.fit_transform(X)
+    x_scaled = scaler.fit_transform(x_mat)
     rf = RandomForestClassifier(
-        n_estimators=100, max_depth=8, class_weight="balanced",
-        random_state=seed, n_jobs=-1,
+        n_estimators=100,
+        max_depth=8,
+        class_weight="balanced",
+        random_state=seed,
+        n_jobs=-1,
     )
-    rf.fit(X_s, y)
+    rf.fit(x_scaled, y)
     importances = sorted(
-        zip(FEATURE_COLS, rf.feature_importances_),
+        zip(FEATURE_COLS, rf.feature_importances_, strict=True),
         key=lambda x: x[1],
         reverse=True,
     )
@@ -461,7 +488,9 @@ def evaluate_classifiers(
     best_clf_name = max(loo_results, key=lambda k: loo_results[k]["macro_ba"])
     best_loo = loo_results[best_clf_name]
     print(f"\n  Per-Dataset Detail (LOO, {best_clf_name}):")
-    print(f"  {'Dataset':20s} {'Global':>8s} {'Clf':>8s} {'Oracle':>8s} {'Clf-Global':>10s}")
+    print(
+        f"  {'Dataset':20s} {'Global':>8s} {'Clf':>8s} {'Oracle':>8s} {'Clf-Global':>10s}"
+    )
     print(f"  {'-' * 60}")
     for ds in unique_ds:
         g = loo_global_per_ds[ds]
@@ -475,7 +504,7 @@ def evaluate_classifiers(
     # ── Summary ──
     best_loo_ba = best_loo["macro_ba"]
     print(f"\n  {'=' * 70}")
-    print(f"  Summary:")
+    print("  Summary:")
     print(f"    Global threshold:    {global_ba:.2%}")
     print(f"    Best classifier:     {best_loo_ba:.2%} ({best_clf_name}, LOO)")
     print(f"    Per-dataset oracle:  {oracle_ba:.2%}")
@@ -507,36 +536,43 @@ def train_production_model(
 
     from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
     from sklearn.linear_model import LogisticRegression
-    from sklearn.metrics import balanced_accuracy_score
     from sklearn.preprocessing import StandardScaler
 
     with open(features_path) as f:
         data = json.load(f)
 
-    X = np.array([[d[c] for c in FEATURE_COLS] for d in data])
+    x_mat = np.array([[d[c] for c in FEATURE_COLS] for d in data])
     y = np.array([d["label"] for d in data])
     datasets = np.array([d["dataset"] for d in data])
 
     scaler = StandardScaler()
-    X_s = scaler.fit_transform(X)
+    x_scaled = scaler.fit_transform(x_mat)
 
     clf_map = {
         "lr": lambda: LogisticRegression(
-            max_iter=1000, class_weight="balanced", random_state=seed, C=1.0,
+            max_iter=1000,
+            class_weight="balanced",
+            random_state=seed,
+            C=1.0,
         ),
         "rf": lambda: RandomForestClassifier(
-            n_estimators=100, max_depth=8, class_weight="balanced",
-            random_state=seed, n_jobs=-1,
+            n_estimators=100,
+            max_depth=8,
+            class_weight="balanced",
+            random_state=seed,
+            n_jobs=-1,
         ),
         "gbt": lambda: GradientBoostingClassifier(
-            n_estimators=100, max_depth=4, learning_rate=0.1,
+            n_estimators=100,
+            max_depth=4,
+            learning_rate=0.1,
             random_state=seed,
         ),
     }
 
     clf = clf_map[classifier]()
-    clf.fit(X_s, y)
-    y_pred = clf.predict(X_s)
+    clf.fit(x_scaled, y)
+    y_pred = clf.predict(x_scaled)
     train_ba = _macro_ba_from_datasets(y, y_pred, datasets)
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
@@ -548,7 +584,9 @@ def train_production_model(
     with open(output_path, "wb") as f:
         pickle.dump(bundle, f)
 
-    logger.info("Production model saved to %s (train BA: %.2f%%)", output_path, train_ba * 100)
+    logger.info(
+        "Production model saved to %s (train BA: %.2f%%)", output_path, train_ba * 100
+    )
     return {"train_ba": train_ba, "classifier": classifier, "path": output_path}
 
 
@@ -628,7 +666,8 @@ class MetaClassifier:
 
 # Text-only feature extraction (no NLI score dependency)
 TEXT_FEATURE_COLS = [
-    c for c in FEATURE_COLS
+    c
+    for c in FEATURE_COLS
     if c not in ("nli_score", "confidence", "score_distance_from_half")
 ]
 
@@ -676,7 +715,7 @@ def train_dataset_type_classifier(
     with open(features_path) as f:
         data = json.load(f)
 
-    X = np.array([[d[c] for c in TEXT_FEATURE_COLS] for d in data])
+    x_mat = np.array([[d[c] for c in TEXT_FEATURE_COLS] for d in data])
     ds_labels = np.array([d["dataset"] for d in data])
     nli_scores = np.array([d["nli_score"] for d in data])
     y_true = np.array([d["label"] for d in data])
@@ -685,7 +724,7 @@ def train_dataset_type_classifier(
     y_ds = le.fit_transform(ds_labels)
 
     scaler = StandardScaler()
-    X_s = scaler.fit_transform(X)
+    x_scaled = scaler.fit_transform(x_mat)
 
     clf = RandomForestClassifier(
         n_estimators=n_estimators,
@@ -697,10 +736,9 @@ def train_dataset_type_classifier(
 
     # 5-fold CV to estimate confidence-gated BA
     skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
-    cv_probs = cross_val_predict(clf, X_s, y_ds, cv=skf, method="predict_proba")
+    cv_probs = cross_val_predict(clf, x_scaled, y_ds, cv=skf, method="predict_proba")
 
     # Simulate confidence-gated threshold selection
-    from sklearn.metrics import balanced_accuracy_score
 
     gated_preds = []
     gated_true = []
@@ -729,7 +767,7 @@ def train_dataset_type_classifier(
     )
 
     # Train final model on all data
-    clf.fit(X_s, y_ds)
+    clf.fit(x_scaled, y_ds)
 
     bundle = {
         "classifier": clf,
@@ -747,7 +785,9 @@ def train_dataset_type_classifier(
     size_kb = os.path.getsize(output_path) / 1024
     logger.info(
         "Dataset-type classifier: %.2f%% BA (5-fold gated), %.0f KB, saved to %s",
-        gated_ba * 100, size_kb, output_path,
+        gated_ba * 100,
+        size_kb,
+        output_path,
     )
     return {"gated_ba": gated_ba, "size_kb": size_kb, "path": output_path}
 
@@ -758,23 +798,43 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Meta-classifier: train from cached NLI scores, evaluate, deploy"
     )
-    parser.add_argument("--generate-features", action="store_true",
-                        help="Generate features via GPU inference (slow)")
-    parser.add_argument("--from-cache", type=str, default=None, metavar="PATH",
-                        help="Generate features from cached scores JSON (no GPU)")
-    parser.add_argument("--evaluate", action="store_true",
-                        help="Run full evaluation: LOO-CV + 5-fold + comparison")
-    parser.add_argument("--train", action="store_true",
-                        help="Train production model (binary)")
-    parser.add_argument("--train-dataset-type", action="store_true",
-                        help="Train dataset-type classifier (RF-20-d6)")
-    parser.add_argument("--classifier", type=str, default="rf",
-                        choices=["lr", "rf", "gbt"],
-                        help="Classifier type for --train (default: rf)")
+    parser.add_argument(
+        "--generate-features",
+        action="store_true",
+        help="Generate features via GPU inference (slow)",
+    )
+    parser.add_argument(
+        "--from-cache",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Generate features from cached scores JSON (no GPU)",
+    )
+    parser.add_argument(
+        "--evaluate",
+        action="store_true",
+        help="Run full evaluation: LOO-CV + 5-fold + comparison",
+    )
+    parser.add_argument(
+        "--train", action="store_true", help="Train production model (binary)"
+    )
+    parser.add_argument(
+        "--train-dataset-type",
+        action="store_true",
+        help="Train dataset-type classifier (RF-20-d6)",
+    )
+    parser.add_argument(
+        "--classifier",
+        type=str,
+        default="rf",
+        choices=["lr", "rf", "gbt"],
+        help="Classifier type for --train (default: rf)",
+    )
     parser.add_argument("--model", type=str, default=None)
     parser.add_argument("--max-samples", type=int, default=None)
-    parser.add_argument("--features", type=str,
-                        default="features/aggrefact_meta_features.json")
+    parser.add_argument(
+        "--features", type=str, default="features/aggrefact_meta_features.json"
+    )
     parser.add_argument("--output", type=str, default="models/meta_classifier.pkl")
     args = parser.parse_args()
 

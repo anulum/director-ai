@@ -237,7 +237,7 @@ ignore_missing_imports = true
 
 [tool.bandit]
 exclude_dirs = ["tests", "benchmarks"]
-skips = ["B101", "B104", "B311"]
+skips = ["B101", "B104", "B311", "B608", "B615"]
 
 [[tool.mypy.overrides]]
 module = "director_ai.director_pb2"

@@ -1337,7 +1337,8 @@ class CoherenceScorer:
             meta_clf = self._get_meta_classifier()
             if meta_clf is not None:
                 nli_threshold, meta_conf = meta_clf.predict_threshold(
-                    prompt, action,
+                    prompt,
+                    action,
                 )
                 if nli_threshold is not None:
                     # NLI-scale → coherence-scale: c = 0.4 + 0.6 * nli_t
