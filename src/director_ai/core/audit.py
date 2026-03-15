@@ -22,12 +22,13 @@ Usage::
 
 from __future__ import annotations
 
+import datetime
 import hashlib
 import hmac as _hmac
 import json
 import logging
 import os
-import time
+import threading
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
@@ -81,6 +82,7 @@ class AuditLogger:
                 "will not be stable across restarts"
             )
         self._sinks: list[Any] = []
+        self._file_lock = threading.Lock()
         if self._path:
             self._path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -103,7 +105,9 @@ class AuditLogger:
     ) -> AuditEntry:
         """Record a review decision."""
         entry = AuditEntry(
-            timestamp=time.strftime("%Y-%m-%dT%H:%M:%S"),
+            timestamp=datetime.datetime.now(datetime.timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ"
+            ),
             query_hash=_hmac.new(
                 self._hmac_key,
                 query.encode("utf-8"),
@@ -122,10 +126,14 @@ class AuditLogger:
         line = entry.to_json()
         self._logger.info(line)
         if self._path:
-            with open(self._path, "a", encoding="utf-8") as f:
-                f.write(line + "\n")
+            with self._file_lock:
+                with open(self._path, "a", encoding="utf-8") as f:
+                    f.write(line + "\n")
 
         for sink in self._sinks:
-            sink.write(entry)
+            try:
+                sink.write(entry)
+            except Exception:
+                self._logger.exception("Audit sink %s.write() failed", type(sink).__name__)
 
         return entry
