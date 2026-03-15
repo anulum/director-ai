@@ -817,17 +817,11 @@ class CoherenceScorer:
             return DIVERGENCE_NEUTRAL
 
         with metrics.timer("factual_retrieval_seconds"):
-            try:
-                context = self.ground_truth_store.retrieve_context(
-                    prompt,
-                    top_k=self._fact_retrieval_top_k,
-                    tenant_id=tenant_id,
-                )
-            except TypeError:
-                context = self.ground_truth_store.retrieve_context(
-                    prompt,
-                    tenant_id=tenant_id,
-                )
+            context = self.ground_truth_store.retrieve_context(
+                prompt,
+                top_k=self._fact_retrieval_top_k,
+                tenant_id=tenant_id,
+            )
         if not context:
             return DIVERGENCE_NEUTRAL
 
@@ -939,17 +933,11 @@ class CoherenceScorer:
                 if chunks:
                     context = "; ".join(c.text for c in chunks)
             else:
-                try:
-                    context = self.ground_truth_store.retrieve_context(
-                        prompt,
-                        top_k=self._fact_retrieval_top_k,
-                        tenant_id=tenant_id,
-                    )
-                except TypeError:
-                    context = self.ground_truth_store.retrieve_context(
-                        prompt,
-                        tenant_id=tenant_id,
-                    )
+                context = self.ground_truth_store.retrieve_context(
+                    prompt,
+                    top_k=self._fact_retrieval_top_k,
+                    tenant_id=tenant_id,
+                )
                 if context:
                     chunks = [
                         EvidenceChunk(text=context, distance=0.0, source="keyword"),

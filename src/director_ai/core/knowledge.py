@@ -63,7 +63,7 @@ class GroundTruthStore:
             return []
         return [EvidenceChunk(text=context_str, distance=0.0, source="keyword")]
 
-    def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
+    def retrieve_context(self, query: str, tenant_id: str = "", top_k: int = 0) -> str | None:
         """Retrieve relevant facts matching *query*.
 
         Returns a semicolon-separated context string, or ``None`` if
@@ -87,6 +87,8 @@ class GroundTruthStore:
                 context.append(value)
 
         if context:
+            if top_k > 0:
+                context = context[:top_k]
             retrieved = "; ".join(context)
             qhash = hashlib.sha256(query.encode()).hexdigest()[:12]
             self.logger.info(
