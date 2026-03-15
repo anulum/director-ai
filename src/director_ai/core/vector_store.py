@@ -355,9 +355,12 @@ class ChromaBackend(VectorBackend):
     ) -> list[dict[str, Any]]:
 
         where: dict[str, str] | None = {"tenant_id": tenant_id} if tenant_id else None
+        count = self._collection.count()
+        if count == 0:
+            return []
         results = self._collection.query(
             query_texts=[text],
-            n_results=n_results,
+            n_results=min(n_results, count),
             where=where,  # type: ignore[arg-type]
         )
         docs: list[dict[str, Any]] = []
