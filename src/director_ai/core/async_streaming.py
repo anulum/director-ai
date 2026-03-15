@@ -29,7 +29,7 @@ from collections import deque
 from collections.abc import AsyncIterator, Awaitable, Callable
 
 from .kernel import SafetyKernel
-from .streaming import StreamSession, TokenEvent
+from .streaming import StreamSession, TokenEvent, _trend_drop
 
 logger = logging.getLogger("DirectorAI.AsyncStreaming")
 
@@ -309,13 +309,7 @@ class AsyncStreamingKernel(SafetyKernel):
                 return f"window_avg ({avg:.4f} < {self.window_threshold})"
         if len(session.coherence_history) >= self.trend_window:
             recent = session.coherence_history[-self.trend_window :]
-            n = len(recent)
-            x_mean = (n - 1) / 2.0
-            y_mean = sum(recent) / n
-            num = sum((j - x_mean) * (y - y_mean) for j, y in enumerate(recent))
-            den = sum((j - x_mean) ** 2 for j in range(n))
-            slope = num / den if den > 1e-12 else 0.0
-            drop = -slope * (n - 1)
+            drop = _trend_drop(recent)
             if drop > self.trend_threshold:
                 return f"downward_trend ({drop:.4f} > {self.trend_threshold})"
         if not self.is_active:  # pragma: no cover

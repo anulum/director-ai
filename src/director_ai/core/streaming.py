@@ -32,6 +32,23 @@ if TYPE_CHECKING:  # pragma: no cover
 logger = logging.getLogger("DirectorAI.Streaming")
 
 
+def _trend_drop(values: list[float] | deque) -> float:
+    """Linear regression slope drop over a window of coherence scores.
+
+    Returns the projected drop magnitude: -slope * (n - 1).
+    Positive values indicate downward trend.
+    """
+    n = len(values)
+    if n < 2:
+        return 0.0
+    x_mean = (n - 1) / 2.0
+    y_mean = sum(values) / n
+    num = sum((i - x_mean) * (y - y_mean) for i, y in enumerate(values))
+    den = sum((i - x_mean) ** 2 for i in range(n))
+    slope = num / den if den > 1e-12 else 0.0
+    return -slope * (n - 1)
+
+
 @dataclass
 class TokenEvent:
     """A single token event in the stream."""
@@ -163,14 +180,8 @@ class StreamingKernel(SafetyKernel):
             if avg < self.window_threshold:
                 return True
         if len(self._history) >= self.trend_window:
-            recent = self._history[-self.trend_window :]
-            n = len(recent)
-            x_mean = (n - 1) / 2.0
-            y_mean = sum(recent) / n
-            num = sum((i - x_mean) * (y - y_mean) for i, y in enumerate(recent))
-            den = sum((i - x_mean) ** 2 for i in range(n))
-            slope = num / den if den > 1e-12 else 0.0
-            if -slope * (n - 1) > self.trend_threshold:
+            recent = list(self._history)[-self.trend_window :]
+            if _trend_drop(recent) > self.trend_threshold:
                 return True
         return False
 
@@ -300,16 +311,7 @@ class StreamingKernel(SafetyKernel):
             if self.streaming_debug:
                 w_avg = sum(window) / len(window) if window else 0.0
                 recent = session.coherence_history[-self.trend_window :]
-                if len(recent) >= 2:
-                    _n = len(recent)
-                    _xm = (_n - 1) / 2.0
-                    _ym = sum(recent) / _n
-                    _num = sum((j - _xm) * (y - _ym) for j, y in enumerate(recent))
-                    _den = sum((j - _xm) ** 2 for j in range(_n))
-                    _sl = _num / _den if _den > 1e-12 else 0.0
-                    t_drop = -_sl * (_n - 1)
-                else:
-                    t_drop = 0.0
+                t_drop = _trend_drop(recent)
                 snap = {
                     "index": i,
                     "coherence": score,
@@ -340,13 +342,7 @@ class StreamingKernel(SafetyKernel):
                     halt_reason = f"window_avg ({avg:.4f} < {self.window_threshold})"
             if not halt_reason and len(session.coherence_history) >= self.trend_window:
                 recent = session.coherence_history[-self.trend_window :]
-                n = len(recent)
-                x_mean = (n - 1) / 2.0
-                y_mean = sum(recent) / n
-                num = sum((i - x_mean) * (y - y_mean) for i, y in enumerate(recent))
-                den = sum((i - x_mean) ** 2 for i in range(n))
-                slope = num / den if den > 1e-12 else 0.0
-                drop = -slope * (n - 1)
+                drop = _trend_drop(recent)
                 if drop > self.trend_threshold:
                     halt_reason = (
                         f"downward_trend ({drop:.4f} > {self.trend_threshold})"
