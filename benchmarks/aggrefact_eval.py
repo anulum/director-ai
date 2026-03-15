@@ -27,17 +27,29 @@ Usage::
     python -m benchmarks.aggrefact_eval --model yaxili96/FactCG-DeBERTa-v3-Large
     python -m benchmarks.aggrefact_eval --threshold 0.6
     python -m benchmarks.aggrefact_eval --sweep
+    python -m benchmarks.aggrefact_eval --per-dataset
+    python -m benchmarks.aggrefact_eval --agg-sweep
 
-NLI entailment prob > threshold → supported (1), else → not supported (0).
+NLI entailment prob > threshold ->supported (1), else ->not supported (0).
 Balanced accuracy per dataset, macro-averaged (same as leaderboard).
+
+Modes:
+    --sweep         Global threshold sweep (0.10-0.90, step 0.01)
+    --per-dataset   Per-dataset threshold sweep (oracle upper bound)
+    --agg-sweep     Compare aggregation strategies (max, mean, trimmed_mean)
+    --bidirectional Compare SummaC vs bidirectional chunking
+    --save-scores   Score all samples, dump raw (dataset,label,score) to JSON
+    --load-scores   Load cached scores — skip inference, run threshold analysis locally
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 
 import numpy as np
 import pytest
@@ -84,6 +96,7 @@ class AggreFactMetrics:
 
     per_dataset: dict[str, dict] = field(default_factory=dict)
     threshold: float = 0.5
+    per_dataset_thresholds: dict[str, float] = field(default_factory=dict)
     inference_times: list[float] = field(default_factory=list, repr=False)
 
     @property
@@ -115,6 +128,7 @@ class AggreFactMetrics:
                 for k, v in self.per_dataset.items()
             },
             "latency_ms_avg": round(self.avg_latency_ms, 2),
+            **({"per_dataset_thresholds": self.per_dataset_thresholds} if self.per_dataset_thresholds else {}),
         }
 
 
@@ -253,19 +267,24 @@ class _BinaryNLIPredictor:
         chunks = _chunk_source(premise)
         if len(chunks) == 1:
             return self._score_single(chunks[0], hypothesis)
-        return max(self._score_batch([(c, hypothesis) for c in chunks]))
+        try:
+            return max(self._score_batch([(c, hypothesis) for c in chunks]))
+        except RuntimeError:
+            return max(self._score_single(c, hypothesis) for c in chunks)
 
 
 class _NLIScorerPredictor:
     """Wraps NLIScorer.score_chunked() for bidirectional chunking comparison."""
 
     def __init__(self, model_name: str | None = None, overlap_ratio: float = 0.0):
+        import torch
         from director_ai.core.nli import NLIScorer
 
         self.scorer = NLIScorer(
             use_model=True,
             model_name=model_name
             or os.environ.get("DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"),
+            device="cuda" if torch.cuda.is_available() else "cpu",
         )
         self._overlap_ratio = overlap_ratio
         logger.info(
@@ -313,6 +332,141 @@ def _load_aggrefact(max_samples: int | None = None) -> list[dict]:
     n_ds = len(set(r["dataset"] for r in rows))
     logger.info("Loaded %d samples across %d datasets", len(rows), n_ds)
     return rows
+
+
+def score_and_save(
+    out_path: str | Path,
+    max_samples: int | None = None,
+    model_name: str | None = None,
+) -> Path:
+    """Score all samples once, save raw (dataset, label, entailment_prob) to JSON.
+
+    GPU runs this once. Local runs load the result with ``load_cached_scores()``.
+    """
+    predictor = _BinaryNLIPredictor(model_name=model_name)
+    rows = _load_aggrefact(max_samples)
+
+    scored: list[dict] = []
+    for i, row in enumerate(rows):
+        doc = row.get("doc", "")
+        claim = row.get("claim", "")
+        label = row.get("label")
+        ds_name = row.get("dataset", "unknown")
+        if label is None or not doc or not claim:
+            continue
+        t0 = time.perf_counter()
+        ent_prob = predictor.score(doc, claim)
+        elapsed = time.perf_counter() - t0
+        scored.append({
+            "dataset": ds_name,
+            "label": int(label),
+            "score": round(float(ent_prob), 6),
+            "latency_ms": round(elapsed * 1000, 2),
+        })
+        if (i + 1) % 1000 == 0:
+            logger.info("Scored %d / %d", i + 1, len(rows))
+
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps({
+        "model": model_name or "yaxili96/FactCG-DeBERTa-v3-Large",
+        "total": len(scored),
+        "scores": scored,
+    }, indent=2))
+    logger.info("Saved %d raw scores to %s", len(scored), out)
+    return out
+
+
+def load_cached_scores(path: str | Path) -> dict[str, list[tuple[int, float]]]:
+    """Load cached scores from ``score_and_save()`` output.
+
+    Returns {dataset_name: [(label, entailment_prob), ...]}.
+    """
+    data = json.loads(Path(path).read_text())
+    by_dataset: dict[str, list[tuple[int, float]]] = {}
+    for entry in data["scores"]:
+        ds = entry["dataset"]
+        if ds not in by_dataset:
+            by_dataset[ds] = []
+        by_dataset[ds].append((entry["label"], entry["score"]))
+    logger.info(
+        "Loaded %d cached scores across %d datasets from %s",
+        sum(len(v) for v in by_dataset.values()),
+        len(by_dataset),
+        path,
+    )
+    return by_dataset
+
+
+def sweep_on_cached(
+    by_dataset: dict[str, list[tuple[int, float]]],
+    per_dataset: bool = False,
+) -> tuple[float | dict[str, float], AggreFactMetrics]:
+    """Run threshold sweep on pre-computed scores (no inference needed).
+
+    Args:
+        by_dataset: {dataset: [(label, score), ...]} from load_cached_scores()
+        per_dataset: if True, sweep independently per dataset (oracle bound)
+
+    Returns (threshold_or_dict, metrics).
+    """
+    if per_dataset:
+        per_ds_t: dict[str, float] = {}
+        metrics = AggreFactMetrics(threshold=0.0)
+        for ds_name in sorted(by_dataset):
+            pairs = by_dataset[ds_name]
+            y_true = [p[0] for p in pairs]
+            y_scores = [p[1] for p in pairs]
+            best_t, best_ba = 0.5, 0.0
+            for thresh_int in range(10, 91):
+                thresh = thresh_int / 100.0
+                y_pred = [1 if s >= thresh else 0 for s in y_scores]
+                ba = balanced_accuracy_score(y_true, y_pred)
+                if ba > best_ba:
+                    best_ba = ba
+                    best_t = thresh
+            per_ds_t[ds_name] = best_t
+            y_pred = [1 if s >= best_t else 0 for s in y_scores]
+            metrics.per_dataset[ds_name] = {
+                "total": len(pairs),
+                "positive": sum(y_true),
+                "negative": len(y_true) - sum(y_true),
+                "balanced_acc": float(best_ba),
+                "threshold": best_t,
+                **_binary_class_metrics(y_true, y_pred),
+            }
+        metrics.per_dataset_thresholds = per_ds_t
+        metrics.threshold = float(np.mean(list(per_ds_t.values())))
+        return per_ds_t, metrics
+
+    # Global sweep
+    best_thresh, best_avg = 0.5, 0.0
+    for thresh_int in range(10, 91):
+        thresh = thresh_int / 100.0
+        accs = []
+        for pairs in by_dataset.values():
+            y_true = [p[0] for p in pairs]
+            y_pred = [1 if p[1] >= thresh else 0 for p in pairs]
+            accs.append(balanced_accuracy_score(y_true, y_pred))
+        avg = float(np.mean(accs))
+        if avg > best_avg:
+            best_avg = avg
+            best_thresh = thresh
+
+    metrics = AggreFactMetrics(threshold=best_thresh)
+    for ds_name in sorted(by_dataset):
+        pairs = by_dataset[ds_name]
+        y_true = [p[0] for p in pairs]
+        y_pred = [1 if p[1] >= best_thresh else 0 for p in pairs]
+        ba = balanced_accuracy_score(y_true, y_pred)
+        metrics.per_dataset[ds_name] = {
+            "total": len(pairs),
+            "positive": sum(y_true),
+            "negative": len(y_true) - sum(y_true),
+            "balanced_acc": float(ba),
+            **_binary_class_metrics(y_true, y_pred),
+        }
+    return best_thresh, metrics
 
 
 def run_aggrefact_benchmark(
@@ -427,6 +581,155 @@ def sweep_thresholds(
     return best_thresh, metrics
 
 
+def sweep_thresholds_per_dataset(
+    max_samples: int | None = None,
+    model_name: str | None = None,
+) -> tuple[dict[str, float], AggreFactMetrics]:
+    """Sweep thresholds independently per dataset (oracle upper bound).
+
+    Each dataset gets its own optimal threshold. The macro BA reported
+    is the mean of per-dataset BAs at their respective optimal thresholds.
+    This measures the ceiling achievable with per-dataset calibration.
+    """
+    predictor = _BinaryNLIPredictor(model_name=model_name)
+    rows = _load_aggrefact(max_samples)
+
+    by_dataset: dict[str, list[tuple[int, float]]] = {}
+    inference_times: list[float] = []
+
+    for row in rows:
+        doc = row.get("doc", "")
+        claim = row.get("claim", "")
+        label = row.get("label")
+        ds_name = row.get("dataset", "unknown")
+        if label is None or not doc or not claim:
+            continue
+        t0 = time.perf_counter()
+        ent_prob = predictor.score(doc, claim)
+        inference_times.append(time.perf_counter() - t0)
+        if ds_name not in by_dataset:
+            by_dataset[ds_name] = []
+        by_dataset[ds_name].append((int(label), ent_prob))
+
+    per_ds_thresholds: dict[str, float] = {}
+    metrics = AggreFactMetrics(threshold=0.0)
+    metrics.inference_times = inference_times
+
+    for ds_name in sorted(by_dataset.keys()):
+        pairs = by_dataset[ds_name]
+        y_true = [p[0] for p in pairs]
+        y_scores = [p[1] for p in pairs]
+
+        best_t, best_ba = 0.5, 0.0
+        for thresh_int in range(10, 91):
+            thresh = thresh_int / 100.0
+            y_pred = [1 if s >= thresh else 0 for s in y_scores]
+            ba = balanced_accuracy_score(y_true, y_pred)
+            if ba > best_ba:
+                best_ba = ba
+                best_t = thresh
+
+        per_ds_thresholds[ds_name] = best_t
+        y_pred = [1 if s >= best_t else 0 for s in y_scores]
+        metrics.per_dataset[ds_name] = {
+            "total": len(pairs),
+            "positive": sum(y_true),
+            "negative": len(y_true) - sum(y_true),
+            "balanced_acc": float(best_ba),
+            "threshold": best_t,
+            **_binary_class_metrics(y_true, y_pred),
+        }
+
+    metrics.per_dataset_thresholds = per_ds_thresholds
+    metrics.threshold = float(np.mean(list(per_ds_thresholds.values())))
+    return per_ds_thresholds, metrics
+
+
+def sweep_aggregation(
+    max_samples: int | None = None,
+    model_name: str | None = None,
+) -> dict[str, tuple[float, AggreFactMetrics]]:
+    """Compare inner aggregation strategies: max, mean, trimmed_mean.
+
+    Uses the production NLIScorer with bidirectional chunking to test
+    different outer aggregation methods, each with its own threshold sweep.
+    """
+    from director_ai.core.nli import NLIScorer
+
+    rows = _load_aggrefact(max_samples)
+    import torch
+
+    _device = "cuda" if torch.cuda.is_available() else "cpu"
+    scorer = NLIScorer(
+        use_model=True,
+        model_name=model_name
+        or os.environ.get("DIRECTOR_NLI_MODEL", "yaxili96/FactCG-DeBERTa-v3-Large"),
+        device=_device,
+    )
+
+    agg_strategies = ["max", "mean", "trimmed_mean"]
+    # Score once per strategy (each produces different raw scores)
+    results: dict[str, tuple[float, AggreFactMetrics]] = {}
+
+    for strategy in agg_strategies:
+        by_dataset: dict[str, list[tuple[int, float]]] = {}
+        inference_times: list[float] = []
+
+        for row in rows:
+            doc = row.get("doc", "")
+            claim = row.get("claim", "")
+            label = row.get("label")
+            ds_name = row.get("dataset", "unknown")
+            if label is None or not doc or not claim:
+                continue
+
+            t0 = time.perf_counter()
+            # NLIScorer returns divergence (0=entailed, 1=contradicted)
+            div_score, _ = scorer.score_chunked(
+                doc, claim, outer_agg=strategy, inner_agg="max",
+            )
+            # Convert divergence ->entailment probability
+            ent_prob = 1.0 - div_score
+            inference_times.append(time.perf_counter() - t0)
+
+            if ds_name not in by_dataset:
+                by_dataset[ds_name] = []
+            by_dataset[ds_name].append((int(label), ent_prob))
+
+        # Sweep global threshold
+        best_thresh, best_avg = 0.5, 0.0
+        for thresh_int in range(10, 91):
+            thresh = thresh_int / 100.0
+            accs = []
+            for pairs in by_dataset.values():
+                y_true = [p[0] for p in pairs]
+                y_pred = [1 if p[1] >= thresh else 0 for p in pairs]
+                accs.append(balanced_accuracy_score(y_true, y_pred))
+            avg = float(np.mean(accs))
+            if avg > best_avg:
+                best_avg = avg
+                best_thresh = thresh
+
+        m = AggreFactMetrics(threshold=best_thresh)
+        m.inference_times = inference_times
+        for ds_name in sorted(by_dataset.keys()):
+            pairs = by_dataset[ds_name]
+            y_true = [p[0] for p in pairs]
+            y_pred = [1 if p[1] >= best_thresh else 0 for p in pairs]
+            ba = balanced_accuracy_score(y_true, y_pred)
+            m.per_dataset[ds_name] = {
+                "total": len(pairs),
+                "positive": sum(y_true),
+                "negative": len(y_true) - sum(y_true),
+                "balanced_acc": float(ba),
+                **_binary_class_metrics(y_true, y_pred),
+            }
+        results[strategy] = (best_thresh, m)
+        logger.info("Aggregation %s: %.1f%% BA @ t=%.2f", strategy, best_avg * 100, best_thresh)
+
+    return results
+
+
 def _print_aggrefact_results(m: AggreFactMetrics, model_label: str = "") -> None:
     title = "LLM-AggreFact — Factual Consistency Benchmark"
     if model_label:
@@ -434,7 +737,10 @@ def _print_aggrefact_results(m: AggreFactMetrics, model_label: str = "") -> None
     print(f"\n{'=' * 72}")
     print(f"  {title}")
     print(f"{'=' * 72}")
-    print(f"  Threshold:  {m.threshold:.2f}")
+    if m.per_dataset_thresholds:
+        print(f"  Threshold:  per-dataset (avg {m.threshold:.2f})")
+    else:
+        print(f"  Threshold:  {m.threshold:.2f}")
     print(f"  Samples:    {m.total_samples}")
     print(f"  Avg Bal Acc: {m.avg_balanced_acc:.1%}")
     if m.inference_times:
@@ -442,11 +748,14 @@ def _print_aggrefact_results(m: AggreFactMetrics, model_label: str = "") -> None
     print()
 
     has_pr = any("hallucination_recall" in d for d in m.per_dataset.values())
+    has_per_ds_t = bool(m.per_dataset_thresholds)
     if has_pr:
         hdr = (
             f"  {'Dataset':<20} {'N':>5} {'BalAcc':>7}"
             f" {'H-Prec':>7} {'H-Rec':>7} {'H-F1':>7}"
         )
+    elif has_per_ds_t:
+        hdr = f"  {'Dataset':<20} {'N':>5} {'Pos':>5} {'Neg':>5} {'Thr':>5} {'Bal Acc':>9}"
     else:
         hdr = f"  {'Dataset':<20} {'N':>5} {'Pos':>5} {'Neg':>5} {'Bal Acc':>9}"
     print(hdr)
@@ -459,6 +768,14 @@ def _print_aggrefact_results(m: AggreFactMetrics, model_label: str = "") -> None
                 f" {d.get('hallucination_precision', 0):>6.1%}"
                 f" {d.get('hallucination_recall', 0):>6.1%}"
                 f" {d.get('hallucination_f1', 0):>6.1%}",
+            )
+        elif has_per_ds_t:
+            t = m.per_dataset_thresholds.get(ds_name, m.threshold)
+            print(
+                f"  {ds_name:<20} {d['total']:>5}"
+                f" {d['positive']:>5} {d['negative']:>5}"
+                f" {t:>5.2f}"
+                f" {d['balanced_acc']:>8.1%}",
             )
         else:
             print(
@@ -532,9 +849,120 @@ if __name__ == "__main__":
         default=0.0,
         help="Overlap ratio for sliding-window chunking (0.0-0.5, bidirectional only)",
     )
+    parser.add_argument(
+        "--per-dataset",
+        action="store_true",
+        help="Sweep thresholds independently per dataset (oracle upper bound)",
+    )
+    parser.add_argument(
+        "--agg-sweep",
+        action="store_true",
+        help="Compare aggregation strategies (max, mean, trimmed_mean) via NLIScorer",
+    )
+    parser.add_argument(
+        "--save-scores",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Score all samples, save raw (dataset,label,score) JSON to PATH",
+    )
+    parser.add_argument(
+        "--load-scores",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Load cached scores from PATH — skip inference, run threshold analysis",
+    )
     args = parser.parse_args()
 
-    if args.sweep:
+    if args.save_scores:
+        out = score_and_save(
+            args.save_scores,
+            max_samples=args.max_samples,
+            model_name=args.model,
+        )
+        print(f"\nScores saved to {out}")
+        # Also run global + per-dataset sweep on the just-scored data
+        by_dataset = load_cached_scores(out)
+        best_global, m_global = sweep_on_cached(by_dataset, per_dataset=False)
+        _print_aggrefact_results(m_global, "global threshold")
+        _, m = sweep_on_cached(by_dataset, per_dataset=True)
+        _print_aggrefact_results(m, "per-dataset thresholds")
+        delta = m.avg_balanced_acc - m_global.avg_balanced_acc
+        print(f"  Per-dataset uplift: {delta:+.2%}")
+    elif args.load_scores:
+        by_dataset = load_cached_scores(args.load_scores)
+        if args.per_dataset:
+            per_ds_t, m = sweep_on_cached(by_dataset, per_dataset=True)
+            print(f"\nPer-dataset optimal thresholds:")
+            for ds, t in sorted(per_ds_t.items()):
+                print(f"  {ds:<20} {t:.2f}")
+            _print_aggrefact_results(m, "per-dataset thresholds")
+            # Compare vs global
+            best_global, m_global = sweep_on_cached(by_dataset, per_dataset=False)
+            print(f"\n{'=' * 60}")
+            print("  Comparison: Per-Dataset vs Global Threshold")
+            print(f"{'=' * 60}")
+            print(f"  Global (t={best_global:.2f}):      {m_global.avg_balanced_acc:.2%}")
+            print(f"  Per-dataset:             {m.avg_balanced_acc:.2%}")
+            delta = m.avg_balanced_acc - m_global.avg_balanced_acc
+            print(f"  Delta:                   {delta:+.2%}")
+            print()
+            for ds in sorted(set(m.per_dataset) | set(m_global.per_dataset)):
+                g_ba = m_global.per_dataset.get(ds, {}).get("balanced_acc", 0)
+                p_ba = m.per_dataset.get(ds, {}).get("balanced_acc", 0)
+                t = per_ds_t.get(ds, best_global)
+                print(f"  {ds:<20} {g_ba:.1%} ->{p_ba:.1%}  ({p_ba - g_ba:+.1%})  t={t:.2f}")
+            print(f"{'=' * 60}")
+        else:
+            best_thresh, m = sweep_on_cached(by_dataset, per_dataset=False)
+            print(f"\nOptimal threshold: {best_thresh:.2f}")
+            _print_aggrefact_results(m, "cached scores")
+    elif args.per_dataset:
+        per_ds_t, m = sweep_thresholds_per_dataset(
+            max_samples=args.max_samples,
+            model_name=args.model,
+        )
+        print(f"\nPer-dataset optimal thresholds:")
+        for ds, t in sorted(per_ds_t.items()):
+            print(f"  {ds:<20} {t:.2f}")
+        _print_aggrefact_results(m, "per-dataset thresholds")
+
+        # Compare vs global sweep
+        best_global, m_global = sweep_thresholds(
+            max_samples=args.max_samples,
+            model_name=args.model,
+        )
+        print(f"\n{'=' * 60}")
+        print("  Comparison: Per-Dataset vs Global Threshold")
+        print(f"{'=' * 60}")
+        print(f"  Global (t={best_global:.2f}):      {m_global.avg_balanced_acc:.2%}")
+        print(f"  Per-dataset:             {m.avg_balanced_acc:.2%}")
+        delta = m.avg_balanced_acc - m_global.avg_balanced_acc
+        print(f"  Delta:                   {delta:+.2%}")
+        print()
+        for ds in sorted(set(m.per_dataset) | set(m_global.per_dataset)):
+            g_ba = m_global.per_dataset.get(ds, {}).get("balanced_acc", 0)
+            p_ba = m.per_dataset.get(ds, {}).get("balanced_acc", 0)
+            t = per_ds_t.get(ds, best_global)
+            print(f"  {ds:<20} {g_ba:.1%} ->{p_ba:.1%}  ({p_ba - g_ba:+.1%})  t={t:.2f}")
+        print(f"{'=' * 60}")
+    elif args.agg_sweep:
+        results = sweep_aggregation(
+            max_samples=args.max_samples,
+            model_name=args.model,
+        )
+        print(f"\n{'=' * 60}")
+        print("  Aggregation Strategy Comparison")
+        print(f"{'=' * 60}")
+        for strategy, (thresh, m_agg) in sorted(results.items(), key=lambda x: -x[1][1].avg_balanced_acc):
+            print(f"  {strategy:<15} {m_agg.avg_balanced_acc:.2%}  (t={thresh:.2f})")
+        print(f"{'=' * 60}")
+        # Print detailed results for the best strategy
+        best_strat = max(results, key=lambda k: results[k][1].avg_balanced_acc)
+        _, m = results[best_strat]
+        _print_aggrefact_results(m, f"best: {best_strat}")
+    elif args.sweep:
         best_thresh, m = sweep_thresholds(
             max_samples=args.max_samples,
             model_name=args.model,
@@ -566,10 +994,10 @@ if __name__ == "__main__":
         for ds in sorted(set(m_summac.per_dataset) | set(m_bidir.per_dataset)):
             s = m_summac.per_dataset.get(ds, {}).get("balanced_acc", 0)
             b = m_bidir.per_dataset.get(ds, {}).get("balanced_acc", 0)
-            print(f"  {ds:<20} {s:.1%} → {b:.1%}  ({b - s:+.1%})")
+            print(f"  {ds:<20} {s:.1%} ->{b:.1%}  ({b - s:+.1%})")
         delta = m_bidir.avg_balanced_acc - m_summac.avg_balanced_acc
         print(
-            f"\n  Overall: {m_summac.avg_balanced_acc:.1%} → "
+            f"\n  Overall: {m_summac.avg_balanced_acc:.1%} ->"
             f"{m_bidir.avg_balanced_acc:.1%}  ({delta:+.1%})",
         )
         print(f"{'=' * 55}")

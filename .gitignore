@@ -154,4 +154,8 @@ ckpts/
 training/
 data/
 models/
+features/
 *.tmp
+
+# MkDocs build output
+site/

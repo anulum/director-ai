@@ -66,6 +66,29 @@ NEGATION_WORDS = frozenset(
     }
 )
 
+FEATURE_COLS = [
+    "nli_score",
+    "confidence",
+    "premise_len",
+    "hypothesis_len",
+    "premise_word_count",
+    "hypothesis_word_count",
+    "word_overlap",
+    "has_negation_premise",
+    "has_negation_hypothesis",
+    "negation_asymmetry",
+    "chunk_count",
+    "score_distance_from_half",
+    "has_question_mark",
+    "num_entities_premise",
+    "num_entities_hypothesis",
+    "len_ratio",
+    "premise_sent_count",
+    "hypothesis_sent_count",
+    "avg_word_len_premise",
+    "avg_word_len_hypothesis",
+]
+
 
 def extract_features(
     premise: str,
@@ -75,27 +98,34 @@ def extract_features(
     chunk_count: int = 1,
 ) -> dict:
     """Extract meta-classifier features from a scored pair."""
-    h_words = set(hypothesis.lower().split())
-    p_words = set(premise.lower().split())
+    h_words = hypothesis.lower().split()
+    p_words = premise.lower().split()
+    h_set = set(h_words)
+    p_set = set(p_words)
 
     return {
         "nli_score": nli_score,
         "confidence": confidence,
         "premise_len": len(premise),
         "hypothesis_len": len(hypothesis),
-        "premise_word_count": len(p_words),
-        "hypothesis_word_count": len(h_words),
-        "word_overlap": (len(p_words & h_words) / max(len(p_words | h_words), 1)),
-        "has_negation_premise": int(bool(p_words & NEGATION_WORDS)),
-        "has_negation_hypothesis": int(bool(h_words & NEGATION_WORDS)),
+        "premise_word_count": len(p_set),
+        "hypothesis_word_count": len(h_set),
+        "word_overlap": len(p_set & h_set) / max(len(p_set | h_set), 1),
+        "has_negation_premise": int(bool(p_set & NEGATION_WORDS)),
+        "has_negation_hypothesis": int(bool(h_set & NEGATION_WORDS)),
         "negation_asymmetry": int(
-            bool(p_words & NEGATION_WORDS) != bool(h_words & NEGATION_WORDS),
+            bool(p_set & NEGATION_WORDS) != bool(h_set & NEGATION_WORDS),
         ),
         "chunk_count": chunk_count,
         "score_distance_from_half": abs(nli_score - 0.5),
         "has_question_mark": int("?" in hypothesis),
         "num_entities_premise": len(re.findall(r"[A-Z][a-z]+", premise)),
         "num_entities_hypothesis": len(re.findall(r"[A-Z][a-z]+", hypothesis)),
+        "len_ratio": len(premise) / max(len(hypothesis), 1),
+        "premise_sent_count": premise.count(".") + premise.count("!") + premise.count("?"),
+        "hypothesis_sent_count": hypothesis.count(".") + hypothesis.count("!") + hypothesis.count("?"),
+        "avg_word_len_premise": np.mean([len(w) for w in p_words]) if p_words else 0.0,
+        "avg_word_len_hypothesis": np.mean([len(w) for w in h_words]) if h_words else 0.0,
     }
 
 
@@ -150,7 +180,7 @@ def train_meta_classifier(
     test_size: float = 0.2,
     seed: int = 42,
 ) -> dict:
-    """Train logistic regression on extracted features."""
+    """Train logistic regression on extracted features (legacy path)."""
     import pickle
 
     from sklearn.linear_model import LogisticRegression
@@ -161,33 +191,15 @@ def train_meta_classifier(
     with open(features_path) as f:
         data = json.load(f)
 
-    feature_cols = [
-        "nli_score",
-        "confidence",
-        "premise_len",
-        "hypothesis_len",
-        "premise_word_count",
-        "hypothesis_word_count",
-        "word_overlap",
-        "has_negation_premise",
-        "has_negation_hypothesis",
-        "negation_asymmetry",
-        "chunk_count",
-        "score_distance_from_half",
-        "has_question_mark",
-        "num_entities_premise",
-        "num_entities_hypothesis",
-    ]
+    # Handle both old (15-feature) and new (20-feature) formats
+    available = set(data[0].keys()) if data else set()
+    feature_cols = [c for c in FEATURE_COLS if c in available]
 
     x_data = np.array([[d[c] for c in feature_cols] for d in data])
     y = np.array([d["label"] for d in data])
 
     x_train, x_test, y_train, y_test = train_test_split(
-        x_data,
-        y,
-        test_size=test_size,
-        random_state=seed,
-        stratify=y,
+        x_data, y, test_size=test_size, random_state=seed, stratify=y,
     )
 
     scaler = StandardScaler()
@@ -195,53 +207,349 @@ def train_meta_classifier(
     x_test_s = scaler.transform(x_test)
 
     clf = LogisticRegression(
-        max_iter=1000,
-        class_weight="balanced",
-        random_state=seed,
-        C=1.0,
+        max_iter=1000, class_weight="balanced", random_state=seed, C=1.0,
     )
     clf.fit(x_train_s, y_train)
 
-    y_pred_train = clf.predict(x_train_s)
-    y_pred_test = clf.predict(x_test_s)
-
-    test_ba = float(balanced_accuracy_score(y_test, y_pred_test))
-    train_ba = float(balanced_accuracy_score(y_train, y_pred_train))
-    feat_imp = {
-        col: float(coef) for col, coef in zip(feature_cols, clf.coef_[0], strict=True)
-    }
-    results: dict[str, object] = {
-        "train_balanced_acc": train_ba,
-        "test_balanced_acc": test_ba,
-        "train_f1": float(f1_score(y_train, y_pred_train, average="macro")),
-        "test_f1": float(f1_score(y_test, y_pred_test, average="macro")),
-        "train_size": len(y_train),
-        "test_size": len(y_test),
-        "feature_importances": feat_imp,
-    }
+    test_ba = float(balanced_accuracy_score(y_test, clf.predict(x_test_s)))
+    train_ba = float(balanced_accuracy_score(y_train, clf.predict(x_train_s)))
 
     Path(output_path).parent.mkdir(parents=True, exist_ok=True)
-    model_bundle = {
-        "classifier": clf,
-        "scaler": scaler,
-        "feature_cols": feature_cols,
-    }
     with open(output_path, "wb") as f:
-        pickle.dump(model_bundle, f)
-
-    metrics_path = output_path.replace(".pkl", "_metrics.json")
-    with open(metrics_path, "w") as f:
-        json.dump(results, f, indent=2)
+        pickle.dump({"classifier": clf, "scaler": scaler, "feature_cols": feature_cols}, f)
 
     logger.info("Meta-classifier saved to %s", output_path)
     logger.info("Test BA: %.1f%%, Train BA: %.1f%%", test_ba * 100, train_ba * 100)
+    return {"train_balanced_acc": train_ba, "test_balanced_acc": test_ba}
 
-    importance = sorted(feat_imp.items(), key=lambda x: abs(x[1]), reverse=True)
-    logger.info("Feature importance (top 5):")
-    for name, coef in importance[:5]:
-        logger.info("  %s: %.4f", name, coef)
 
-    return results
+def generate_features_from_cache(
+    cache_path: str,
+    output_path: str = "features/aggrefact_meta_features.json",
+) -> list[dict]:
+    """Extract features using cached NLI scores (no GPU needed).
+
+    Pairs cached scores with original HF dataset text to compute
+    text features without re-running inference.
+    """
+    from benchmarks.aggrefact_eval import _load_aggrefact
+
+    data = json.loads(Path(cache_path).read_text())
+    cached = data["scores"]
+
+    rows = _load_aggrefact()
+    valid_rows = [
+        r for r in rows
+        if r.get("label") is not None and r.get("doc") and r.get("claim")
+    ]
+
+    if len(valid_rows) != len(cached):
+        raise ValueError(
+            f"Cache/dataset mismatch: {len(cached)} scores vs {len(valid_rows)} valid rows"
+        )
+
+    features_list: list[dict] = []
+    for row, entry in zip(valid_rows, cached):
+        nli_score = entry["score"]
+        feat = extract_features(
+            premise=row["doc"],
+            hypothesis=row["claim"],
+            nli_score=nli_score,
+            confidence=abs(nli_score - 0.5) * 2.0,
+        )
+        feat["label"] = entry["label"]
+        feat["dataset"] = entry["dataset"]
+        features_list.append(feat)
+
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w") as f:
+        json.dump(features_list, f)
+    logger.info("Saved %d feature vectors to %s", len(features_list), output_path)
+    return features_list
+
+
+def _macro_ba_from_datasets(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    datasets: np.ndarray,
+) -> float:
+    """Macro-averaged balanced accuracy across datasets (leaderboard metric)."""
+    from sklearn.metrics import balanced_accuracy_score
+
+    accs = []
+    for ds in sorted(set(datasets)):
+        mask = datasets == ds
+        if mask.sum() == 0:
+            continue
+        accs.append(balanced_accuracy_score(y_true[mask], y_pred[mask]))
+    return float(np.mean(accs))
+
+
+def _global_threshold_ba(
+    scores: np.ndarray,
+    y_true: np.ndarray,
+    datasets: np.ndarray,
+) -> tuple[float, float]:
+    """Sweep global threshold, return (best_threshold, macro_BA)."""
+    best_t, best_ba = 0.5, 0.0
+    for t_int in range(10, 91):
+        t = t_int / 100.0
+        y_pred = (scores >= t).astype(int)
+        ba = _macro_ba_from_datasets(y_true, y_pred, datasets)
+        if ba > best_ba:
+            best_ba, best_t = ba, t
+    return best_t, best_ba
+
+
+def _per_dataset_oracle_ba(
+    scores: np.ndarray,
+    y_true: np.ndarray,
+    datasets: np.ndarray,
+) -> float:
+    """Per-dataset threshold oracle (upper bound)."""
+    from sklearn.metrics import balanced_accuracy_score
+
+    accs = []
+    for ds in sorted(set(datasets)):
+        mask = datasets == ds
+        s, yt = scores[mask], y_true[mask]
+        best_ba = 0.0
+        for t_int in range(10, 91):
+            t = t_int / 100.0
+            ba = balanced_accuracy_score(yt, (s >= t).astype(int))
+            if ba > best_ba:
+                best_ba = ba
+        accs.append(best_ba)
+    return float(np.mean(accs))
+
+
+def evaluate_classifiers(
+    features_path: str,
+    seed: int = 42,
+) -> dict:
+    """Compare global threshold, meta-classifiers, and per-dataset oracle.
+
+    Evaluation modes:
+    1. Leave-one-dataset-out CV (generalization to unseen dataset types)
+    2. Stratified 5-fold CV (overall performance)
+    3. Full-data training (production model metrics)
+    """
+    from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import balanced_accuracy_score
+    from sklearn.model_selection import StratifiedKFold
+    from sklearn.preprocessing import StandardScaler
+
+    with open(features_path) as f:
+        data = json.load(f)
+
+    X = np.array([[d[c] for c in FEATURE_COLS] for d in data])
+    y = np.array([d["label"] for d in data])
+    datasets = np.array([d["dataset"] for d in data])
+    scores = np.array([d["nli_score"] for d in data])
+
+    # ── Baselines ──
+    global_t, global_ba = _global_threshold_ba(scores, y, datasets)
+    oracle_ba = _per_dataset_oracle_ba(scores, y, datasets)
+
+    print(f"\n{'=' * 70}")
+    print("  Meta-Classifier Evaluation — LLM-AggreFact 29,320 samples")
+    print(f"{'=' * 70}")
+    print(f"\n  Baselines:")
+    print(f"    Global threshold (t={global_t:.2f}):     {global_ba:.2%}")
+    print(f"    Per-dataset oracle:              {oracle_ba:.2%}")
+    print(f"    Gap to close:                    {oracle_ba - global_ba:+.2%}")
+
+    classifiers = {
+        "LogReg": lambda: LogisticRegression(
+            max_iter=1000, class_weight="balanced", random_state=seed, C=1.0,
+        ),
+        "RF-100": lambda: RandomForestClassifier(
+            n_estimators=100, max_depth=8, class_weight="balanced",
+            random_state=seed, n_jobs=-1,
+        ),
+        "GBT-100": lambda: GradientBoostingClassifier(
+            n_estimators=100, max_depth=4, learning_rate=0.1,
+            random_state=seed,
+        ),
+    }
+
+    # ── Leave-one-dataset-out CV ──
+    unique_ds = sorted(set(datasets))
+    print(f"\n  Leave-One-Dataset-Out CV ({len(unique_ds)} folds):")
+    print(f"  {'':20s} {'LOO BA':>10s}  {'per-dataset detail'}")
+    print(f"  {'-' * 60}")
+
+    loo_results: dict[str, dict] = {}
+    for clf_name, clf_factory in classifiers.items():
+        per_ds_ba: dict[str, float] = {}
+        for held_out in unique_ds:
+            train_mask = datasets != held_out
+            test_mask = datasets == held_out
+            X_train, X_test = X[train_mask], X[test_mask]
+            y_train, y_test = y[train_mask], y[test_mask]
+
+            scaler = StandardScaler()
+            X_train_s = scaler.fit_transform(X_train)
+            X_test_s = scaler.transform(X_test)
+
+            clf = clf_factory()
+            clf.fit(X_train_s, y_train)
+            y_pred = clf.predict(X_test_s)
+            per_ds_ba[held_out] = float(balanced_accuracy_score(y_test, y_pred))
+
+        macro_ba = float(np.mean(list(per_ds_ba.values())))
+        loo_results[clf_name] = {"macro_ba": macro_ba, "per_dataset": per_ds_ba}
+
+        worst = min(per_ds_ba, key=per_ds_ba.get)
+        best = max(per_ds_ba, key=per_ds_ba.get)
+        print(
+            f"  {clf_name:20s} {macro_ba:10.2%}  "
+            f"worst={worst}({per_ds_ba[worst]:.1%}) "
+            f"best={best}({per_ds_ba[best]:.1%})"
+        )
+
+    # Global threshold LOO comparison
+    loo_global_per_ds = {}
+    for held_out in unique_ds:
+        mask = datasets == held_out
+        y_pred = (scores[mask] >= global_t).astype(int)
+        loo_global_per_ds[held_out] = float(balanced_accuracy_score(y[mask], y_pred))
+    loo_global_ba = float(np.mean(list(loo_global_per_ds.values())))
+    print(f"  {'Global(t=' + f'{global_t:.2f})':20s} {loo_global_ba:10.2%}")
+
+    # ── Stratified 5-fold CV ──
+    print(f"\n  Stratified 5-Fold CV:")
+    print(f"  {'':20s} {'5-Fold BA':>10s}")
+    print(f"  {'-' * 40}")
+
+    kfold_results: dict[str, float] = {}
+    skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=seed)
+    for clf_name, clf_factory in classifiers.items():
+        fold_bas: list[float] = []
+        for train_idx, test_idx in skf.split(X, y):
+            scaler = StandardScaler()
+            X_train_s = scaler.fit_transform(X[train_idx])
+            X_test_s = scaler.transform(X[test_idx])
+            clf = clf_factory()
+            clf.fit(X_train_s, y[train_idx])
+            y_pred = clf.predict(X_test_s)
+            ba = _macro_ba_from_datasets(y[test_idx], y_pred, datasets[test_idx])
+            fold_bas.append(ba)
+        mean_ba = float(np.mean(fold_bas))
+        kfold_results[clf_name] = mean_ba
+        print(f"  {clf_name:20s} {mean_ba:10.2%} (+/- {np.std(fold_bas):.2%})")
+
+    # ── Full-data training (feature importance) ──
+    print(f"\n  Feature Importance (RF-100, full data):")
+    scaler = StandardScaler()
+    X_s = scaler.fit_transform(X)
+    rf = RandomForestClassifier(
+        n_estimators=100, max_depth=8, class_weight="balanced",
+        random_state=seed, n_jobs=-1,
+    )
+    rf.fit(X_s, y)
+    importances = sorted(
+        zip(FEATURE_COLS, rf.feature_importances_),
+        key=lambda x: x[1],
+        reverse=True,
+    )
+    for name, imp in importances[:10]:
+        print(f"    {name:30s} {imp:.4f}")
+
+    # ── Per-dataset detail for best classifier ──
+    best_clf_name = max(loo_results, key=lambda k: loo_results[k]["macro_ba"])
+    best_loo = loo_results[best_clf_name]
+    print(f"\n  Per-Dataset Detail (LOO, {best_clf_name}):")
+    print(f"  {'Dataset':20s} {'Global':>8s} {'Clf':>8s} {'Oracle':>8s} {'Clf-Global':>10s}")
+    print(f"  {'-' * 60}")
+    for ds in unique_ds:
+        g = loo_global_per_ds[ds]
+        c = best_loo["per_dataset"][ds]
+        # Oracle for this dataset
+        mask = datasets == ds
+        o = _per_dataset_oracle_ba(scores[mask], y[mask], datasets[mask])
+        delta = c - g
+        print(f"  {ds:20s} {g:8.1%} {c:8.1%} {o:8.1%} {delta:+10.1%}")
+
+    # ── Summary ──
+    best_loo_ba = best_loo["macro_ba"]
+    print(f"\n  {'=' * 70}")
+    print(f"  Summary:")
+    print(f"    Global threshold:    {global_ba:.2%}")
+    print(f"    Best classifier:     {best_loo_ba:.2%} ({best_clf_name}, LOO)")
+    print(f"    Per-dataset oracle:  {oracle_ba:.2%}")
+    delta_global = best_loo_ba - global_ba
+    delta_oracle = oracle_ba - best_loo_ba
+    print(f"    Gain over global:    {delta_global:+.2%}")
+    print(f"    Remaining to oracle: {delta_oracle:+.2%}")
+    print(f"  {'=' * 70}\n")
+
+    return {
+        "global_threshold": global_t,
+        "global_ba": global_ba,
+        "oracle_ba": oracle_ba,
+        "loo_results": {k: v["macro_ba"] for k, v in loo_results.items()},
+        "kfold_results": kfold_results,
+        "best_classifier": best_clf_name,
+        "best_loo_ba": best_loo_ba,
+    }
+
+
+def train_production_model(
+    features_path: str,
+    output_path: str = "models/meta_classifier.pkl",
+    classifier: str = "rf",
+    seed: int = 42,
+) -> dict:
+    """Train final production model on all data."""
+    import pickle
+
+    from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.metrics import balanced_accuracy_score
+    from sklearn.preprocessing import StandardScaler
+
+    with open(features_path) as f:
+        data = json.load(f)
+
+    X = np.array([[d[c] for c in FEATURE_COLS] for d in data])
+    y = np.array([d["label"] for d in data])
+    datasets = np.array([d["dataset"] for d in data])
+
+    scaler = StandardScaler()
+    X_s = scaler.fit_transform(X)
+
+    clf_map = {
+        "lr": lambda: LogisticRegression(
+            max_iter=1000, class_weight="balanced", random_state=seed, C=1.0,
+        ),
+        "rf": lambda: RandomForestClassifier(
+            n_estimators=100, max_depth=8, class_weight="balanced",
+            random_state=seed, n_jobs=-1,
+        ),
+        "gbt": lambda: GradientBoostingClassifier(
+            n_estimators=100, max_depth=4, learning_rate=0.1,
+            random_state=seed,
+        ),
+    }
+
+    clf = clf_map[classifier]()
+    clf.fit(X_s, y)
+    y_pred = clf.predict(X_s)
+    train_ba = _macro_ba_from_datasets(y, y_pred, datasets)
+
+    Path(output_path).parent.mkdir(parents=True, exist_ok=True)
+    bundle = {
+        "classifier": clf,
+        "scaler": scaler,
+        "feature_cols": FEATURE_COLS,
+    }
+    with open(output_path, "wb") as f:
+        pickle.dump(bundle, f)
+
+    logger.info("Production model saved to %s (train BA: %.2f%%)", output_path, train_ba * 100)
+    return {"train_ba": train_ba, "classifier": classifier, "path": output_path}
 
 
 class MetaClassifier:
@@ -289,30 +597,52 @@ class MetaClassifier:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-    parser = argparse.ArgumentParser(description="Meta-classifier training")
-    parser.add_argument("--generate-features", action="store_true")
-    parser.add_argument("--train", action="store_true")
+    parser = argparse.ArgumentParser(
+        description="Meta-classifier: train from cached NLI scores, evaluate, deploy"
+    )
+    parser.add_argument("--generate-features", action="store_true",
+                        help="Generate features via GPU inference (slow)")
+    parser.add_argument("--from-cache", type=str, default=None, metavar="PATH",
+                        help="Generate features from cached scores JSON (no GPU)")
+    parser.add_argument("--evaluate", action="store_true",
+                        help="Run full evaluation: LOO-CV + 5-fold + comparison")
+    parser.add_argument("--train", action="store_true",
+                        help="Train production model")
+    parser.add_argument("--classifier", type=str, default="rf",
+                        choices=["lr", "rf", "gbt"],
+                        help="Classifier type for --train (default: rf)")
     parser.add_argument("--model", type=str, default=None)
     parser.add_argument("--max-samples", type=int, default=None)
-    parser.add_argument(
-        "--features", type=str, default="features/aggrefact_meta_features.json"
-    )
+    parser.add_argument("--features", type=str,
+                        default="features/aggrefact_meta_features.json")
     parser.add_argument("--output", type=str, default="models/meta_classifier.pkl")
     args = parser.parse_args()
 
-    if args.generate_features:
+    if args.from_cache:
+        generate_features_from_cache(
+            cache_path=args.from_cache,
+            output_path=args.features,
+        )
+    elif args.generate_features:
         generate_features_aggrefact(
             model_name=args.model,
             max_samples=args.max_samples,
             output_path=args.features,
         )
 
+    if args.evaluate:
+        if not os.path.exists(args.features):
+            logger.error("Features file not found: %s", args.features)
+            logger.error("Run with --from-cache or --generate-features first")
+            raise SystemExit(1)
+        evaluate_classifiers(features_path=args.features)
+
     if args.train:
         if not os.path.exists(args.features):
             logger.error("Features file not found: %s", args.features)
-            logger.error("Run with --generate-features first")
             raise SystemExit(1)
-        train_meta_classifier(
+        train_production_model(
             features_path=args.features,
             output_path=args.output,
+            classifier=args.classifier,
         )
