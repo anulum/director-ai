@@ -312,9 +312,11 @@ class AsyncStreamingKernel(SafetyKernel):
             drop = _trend_drop(recent)
             if drop > self.trend_threshold:
                 return f"downward_trend ({drop:.4f} > {self.trend_threshold})"
-        if not self.is_active:  # pragma: no cover
+        if not self.is_active:
             return "kernel_inactive"
-        return "unknown"
+        if session.soft_halted:
+            return "soft_halt"
+        return "halt_condition_not_identified"
 
     @staticmethod
     async def _iter_tokens(source):
