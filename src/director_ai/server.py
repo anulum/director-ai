@@ -679,6 +679,59 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             evidence=_evidence_to_dict(score.evidence),
         )
 
+    # ── Verified Review (sentence-level multi-signal) ───────────────
+
+    @app.post("/v1/verify")
+    async def verify_response(req: ReviewRequest, request: Request):
+        """Sentence-level multi-signal fact verification.
+
+        Decomposes the response into claims, matches each to the best
+        source sentence from the KB, checks NLI + entity + number +
+        negation signals. Returns per-claim verdicts with confidence.
+        """
+        import asyncio
+
+        from .core.verified_scorer import VerifiedScorer
+
+        scorer = request.app.state._state.get("scorer")
+        if scorer is None:
+            raise HTTPException(503, "Scorer not initialised")
+
+        tenant_id = getattr(request.state, "tenant_id", "")
+        store = getattr(scorer, "ground_truth_store", None)
+
+        # Retrieve source context
+        context = ""
+        if store:
+            ctx = store.retrieve_context(
+                req.prompt,
+                top_k=5,
+                tenant_id=tenant_id,
+            )
+            if ctx:
+                context = ctx
+
+        if not context:
+            return {
+                "approved": False,
+                "overall_score": 0.0,
+                "confidence": "low",
+                "reason": "No relevant context found in knowledge base",
+                "claims": [],
+            }
+
+        nli = getattr(scorer, "_nli", None)
+        vs = VerifiedScorer(nli_scorer=nli)
+
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None,
+            vs.verify,
+            req.response,
+            context,
+        )
+        return result.to_dict()
+
     # ── Process ───────────────────────────────────────────────────────
 
     @app.post("/v1/process", response_model=ProcessResponse)
