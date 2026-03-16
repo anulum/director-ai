@@ -97,9 +97,11 @@ class DirectorConfig:
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     chroma_collection: str = "director_ai"
     chroma_persist_dir: str = ""
-    reranker_enabled: bool = False
+    hybrid_retrieval: bool = True  # BM25 + dense with Reciprocal Rank Fusion
+    reranker_enabled: bool = True  # cross-encoder reranking on top of retrieval
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     reranker_top_k_multiplier: int = 3
+    retrieval_abstention_threshold: float = 0.3  # 0 = disabled; min similarity to score
 
     # Enterprise & Caching
     redis_url: str = ""
@@ -548,6 +550,15 @@ class DirectorConfig:
                 )
                 backend = InMemoryBackend()
 
+        if self.hybrid_retrieval:
+            try:
+                from .vector_store import HybridBackend
+
+                backend = HybridBackend(base=backend)
+                logger.info("Hybrid retrieval enabled (BM25 + dense + RRF)")
+            except ImportError:
+                logger.warning("HybridBackend unavailable, using dense-only retrieval")
+
         if self.reranker_enabled:
             try:
                 from .vector_store import RerankedBackend
@@ -557,6 +568,7 @@ class DirectorConfig:
                     reranker_model=self.reranker_model,
                     top_k_multiplier=self.reranker_top_k_multiplier,
                 )
+                logger.info("Cross-encoder reranker enabled: %s", self.reranker_model)
             except ImportError:
                 logger.warning("sentence-transformers not installed, skipping reranker")
 
@@ -636,6 +648,7 @@ class DirectorConfig:
         scorer._chunk_overlap_ratio = self.nli_chunk_overlap_ratio
         scorer._qa_premise_ratio = self.nli_qa_premise_ratio
         scorer._confidence_weighted_agg = self.nli_confidence_weighted_agg
+        scorer._retrieval_abstention_threshold = self.retrieval_abstention_threshold
         if self.lora_adapter_path and scorer._nli is not None:
             if hasattr(scorer._nli, "_load_lora_adapter"):
                 scorer._nli._load_lora_adapter(self.lora_adapter_path)

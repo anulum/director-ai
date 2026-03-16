@@ -252,6 +252,10 @@ class CoherenceScorer:
         self._summarization_nli_baseline = 0.20  # HaluEval 200: 25.5%→10.5% FPR
         self._claim_coverage_enabled = True
         self._claim_support_threshold = 0.6  # HaluEval 200: 10.5%→2.0% FPR
+        self._rag_claim_decomposition = True  # per-sentence scoring for RAG path
+        self._retrieval_abstention_threshold = (
+            0.0  # 0 = disabled; >0 = min retrieval score
+        )
         self._claim_coverage_alpha = (
             0.4  # blend: alpha * (1-coverage) + (1-alpha) * layer_a
         )
@@ -835,6 +839,22 @@ class CoherenceScorer:
         if not context:
             return DIVERGENCE_NEUTRAL
 
+        # Calibrated abstention: if retrieval returns low-quality results,
+        # report insufficient context rather than a misleading score.
+        if self._retrieval_abstention_threshold > 0:
+            from .vector_store import VectorGroundTruthStore
+
+            if isinstance(self.ground_truth_store, VectorGroundTruthStore):
+                chunks = self.ground_truth_store.retrieve_context_with_chunks(
+                    prompt,
+                    top_k=self._fact_retrieval_top_k,
+                    tenant_id=tenant_id,
+                )
+                if chunks:
+                    best_dist = min(c.distance for c in chunks)
+                    if best_dist > (1.0 - self._retrieval_abstention_threshold):
+                        return DIVERGENCE_NEUTRAL
+
         if self._nli and self._nli.model_available:
             with metrics.timer("chunked_nli_seconds"):
                 if self._confidence_weighted_agg:
@@ -854,6 +874,30 @@ class CoherenceScorer:
                         premise_ratio=effective_premise_ratio,
                         overlap_ratio=self._chunk_overlap_ratio,
                     )
+
+            # RAG claim decomposition: score each response sentence
+            # against the context independently, compute coverage.
+            if (
+                self._rag_claim_decomposition
+                and self._nli.model_available
+                and len(text_output) > 100
+            ):
+                claims = self._nli._split_sentences(text_output)
+                if len(claims) > 1:
+                    supported = 0
+                    for claim in claims:
+                        claim_div, _ = self._nli.score_chunked(
+                            context,
+                            claim,
+                            inner_agg="min",
+                            outer_agg="max",
+                            premise_ratio=effective_premise_ratio,
+                        )
+                        if claim_div < self._claim_support_threshold:
+                            supported += 1
+                    coverage = supported / len(claims)
+                    alpha = self._claim_coverage_alpha
+                    score = alpha * (1.0 - coverage) + (1.0 - alpha) * score
         elif self.strict_mode:
             score = DIVERGENCE_CONTRADICTED
         else:
