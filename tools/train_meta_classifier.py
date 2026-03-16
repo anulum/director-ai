@@ -716,7 +716,12 @@ def train_dataset_type_classifier(
         data = json.load(f)
 
     available_cols = [c for c in TEXT_FEATURE_COLS if c in data[0]]
-    logger.info("Using %d/%d text features: %s", len(available_cols), len(TEXT_FEATURE_COLS), available_cols)
+    logger.info(
+        "Using %d/%d text features: %s",
+        len(available_cols),
+        len(TEXT_FEATURE_COLS),
+        available_cols,
+    )
     x_mat = np.array([[d[c] for c in available_cols] for d in data])
     ds_labels = np.array([d["dataset"] for d in data])
     nli_scores = np.array([d["nli_score"] for d in data])
