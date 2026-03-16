@@ -679,10 +679,10 @@ def extract_text_features(premise: str, hypothesis: str) -> dict:
 
 # Per-dataset optimal NLI thresholds from L40S cached score sweep (29,320 samples)
 DATASET_NLI_THRESHOLDS = {
-    "AggreFact-CNN": 0.70,
+    "AggreFact-CNN": 0.68,
     "AggreFact-XSum": 0.30,
     "ClaimVerify": 0.72,
-    "ExpertQA": 0.17,
+    "ExpertQA": 0.14,
     "FactCheck-GPT": 0.22,
     "Lfqa": 0.58,
     "RAGTruth": 0.63,
@@ -715,7 +715,9 @@ def train_dataset_type_classifier(
     with open(features_path) as f:
         data = json.load(f)
 
-    x_mat = np.array([[d[c] for c in TEXT_FEATURE_COLS] for d in data])
+    available_cols = [c for c in TEXT_FEATURE_COLS if c in data[0]]
+    logger.info("Using %d/%d text features: %s", len(available_cols), len(TEXT_FEATURE_COLS), available_cols)
+    x_mat = np.array([[d[c] for c in available_cols] for d in data])
     ds_labels = np.array([d["dataset"] for d in data])
     nli_scores = np.array([d["nli_score"] for d in data])
     y_true = np.array([d["label"] for d in data])
@@ -772,7 +774,7 @@ def train_dataset_type_classifier(
     bundle = {
         "classifier": clf,
         "scaler": scaler,
-        "feature_cols": TEXT_FEATURE_COLS,
+        "feature_cols": available_cols,
         "label_names": list(le.classes_),
         "dataset_thresholds": DATASET_NLI_THRESHOLDS,
         "confidence_gate": confidence_gate,
