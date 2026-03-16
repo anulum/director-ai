@@ -2,6 +2,47 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
+## v3.9.0 (2026-03-16)
+
+### Added
+- **VerifiedScorer**: sentence-level multi-signal fact verification. 5 independent signals: NLI, entity consistency, numerical consistency, negation detection, traceability (fabrication). `POST /v1/verify` endpoint.
+- **Document ingestion API**: `POST /v1/knowledge/upload` (PDF/DOCX/HTML), `/ingest`, `/search`, CRUD by doc ID. Chunker, parser, registry modules.
+- **Mode selector**: `--mode general|grounded|auto`. Single field replaces 8+ manual config settings.
+- **Dataset-type classifier**: `DatasetTypeClassifier` predicts per-input NLI threshold from text features.
+- **ColBERT backend**: late-interaction retrieval via RAGatouille for higher retrieval recall.
+- **Domain embedding tuner**: `POST /v1/knowledge/tune-embeddings` fine-tunes embeddings on ingested documents.
+- **Calibrated abstention**: returns neutral when retrieval confidence is below threshold.
+- **Readiness probe**: `GET /v1/ready` returns 503 when scorer/NLI not loaded.
+- `HaltMonitor` class (renamed from `SafetyKernel`, alias kept).
+- LLM judge confidence now scales blend weight.
+- `clear_model_cache()` for explicit GPU memory release.
+
+### Defaults Changed
+- Hybrid retrieval (BM25 + dense + RRF) enabled by default.
+- Cross-encoder reranker enabled by default.
+- RAG claim decomposition enabled by default for all grounded scoring.
+
+### Infrastructure
+- 180 files updated to canonical SPDX 5-line headers.
+- Connection pooling on PostgreSQL audit sink.
+- Redis-backed rate limiting when redis_url configured.
+- Latency gate tightened to 5ms avg / 15ms p95.
+- NLI pipeline consistency gate in regression suite.
+
+## v3.8.0 (2026-03-14)
+
+### Added
+- `score()` one-call convenience function.
+- `DirectorGuard` FastAPI middleware.
+- `create_proxy_app()` OpenAI-compatible guardrail proxy.
+- Config profiles: medical, finance, legal, creative, customer_support, summarization, lite.
+- `from_env()` environment variable configuration.
+
+### Security
+- Input sanitizer: prompt injection, unicode escape, YAML injection detection.
+- PII redactor for privacy mode.
+- Constant-time API key comparison via HMAC.
+
 ## v3.7.0 (2026-03-10)
 
 ### Added
