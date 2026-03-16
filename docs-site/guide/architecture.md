@@ -16,17 +16,25 @@ graph TD
         Halt["Halt Decision<br/>(hard / soft mode)"]
     end
 
+    subgraph "VerifiedScorer"
+        SentMatch["Sentence Matching<br/>(NLI pair-wise)"]
+        Signals["5 Signals<br/>(NLI, Entity, Number, Negation, Traceability)"]
+        Verdicts["Per-Claim Verdicts<br/>(supported / contradicted / fabricated)"]
+    end
+
     subgraph "VectorBackend"
         IMB["InMemoryBackend"]
         Chroma["ChromaBackend"]
         ST["SentenceTransformerBackend"]
+        Hybrid["HybridBackend<br/>(BM25 + Dense + RRF)"]
+        ColBERT["ColBERTBackend<br/>(late interaction)"]
         Pinecone["PineconeBackend"]
-        Weaviate["WeaviateBackend"]
-        Qdrant["QdrantBackend"]
         Reranker["RerankedBackend<br/>(cross-encoder wrapper)"]
     end
 
     Prompt["Prompt + Response"] --> CoherenceScorer
+    Prompt --> |"/v1/verify"| VerifiedScorer
+    VerifiedScorer --> SentMatch --> Signals --> Verdicts
     CoherenceScorer --> NLI
     CoherenceScorer --> GTS
     CoherenceScorer --> LLM
