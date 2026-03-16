@@ -157,6 +157,8 @@ nav:
       - Score Cache: api/cache.md
       - Input Sanitizer: api/sanitizer.md
       - Enterprise: api/enterprise.md
+      - VerifiedScorer: api/verified-scorer.md
+      - Knowledge API: api/knowledge.md
       - REST Server: api/server.md
       - gRPC Server: api/grpc.md
       - CLI: api/cli.md
