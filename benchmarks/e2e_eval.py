@@ -1,8 +1,10 @@
-# ─────────────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — End-to-End Guardrail Benchmark
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
+
 """End-to-end benchmark measuring Director-AI as a guardrail on real
 hallucination datasets (HaluEval QA/summarization/dialogue, TruthfulQA).
 
