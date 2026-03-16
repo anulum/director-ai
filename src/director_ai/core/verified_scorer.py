@@ -70,7 +70,8 @@ class ClaimVerdict:
     entity_match: float
     numerical_match: bool
     negation_flip: bool
-    verdict: str  # "supported", "contradicted", "unverifiable"
+    traceability: float  # 0.0-1.0: how much of the claim is in the source
+    verdict: str  # "supported", "contradicted", "unverifiable", "fabricated"
     confidence: float  # 0.0-1.0
 
 
@@ -82,6 +83,7 @@ class VerificationResult:
     claims: list[ClaimVerdict] = field(default_factory=list)
     supported_count: int = 0
     contradicted_count: int = 0
+    fabricated_count: int = 0
     unverifiable_count: int = 0
     coverage: float = 0.0
 
@@ -92,6 +94,7 @@ class VerificationResult:
             "confidence": self.confidence,
             "supported": self.supported_count,
             "contradicted": self.contradicted_count,
+            "fabricated": self.fabricated_count,
             "unverifiable": self.unverifiable_count,
             "coverage": round(self.coverage, 4),
             "claims": [
@@ -102,6 +105,7 @@ class VerificationResult:
                     "entity_match": round(c.entity_match, 2),
                     "numerical_match": c.numerical_match,
                     "negation_flip": c.negation_flip,
+                    "traceability": round(c.traceability, 2),
                     "verdict": c.verdict,
                     "confidence": round(c.confidence, 2),
                 }
@@ -172,12 +176,14 @@ class VerifiedScorer:
             entity_score = _entity_overlap(r_sent, best_src)
             num_match = _numerical_consistency(r_sent, best_src)
             neg_flip = _negation_flip(r_sent, best_src)
+            trace = _traceability(r_sent, best_src)
 
             verdict, conf = self._multi_signal_verdict(
                 nli_div,
                 entity_score,
                 num_match,
                 neg_flip,
+                trace,
             )
 
             claims.append(
@@ -190,6 +196,7 @@ class VerifiedScorer:
                     entity_match=entity_score,
                     numerical_match=num_match,
                     negation_flip=neg_flip,
+                    traceability=trace,
                     verdict=verdict,
                     confidence=conf,
                 )
@@ -204,21 +211,24 @@ class VerifiedScorer:
 
         supported = sum(1 for c in claims if c.verdict == "supported")
         contradicted = sum(1 for c in claims if c.verdict == "contradicted")
+        fabricated = sum(1 for c in claims if c.verdict == "fabricated")
         unverifiable = sum(1 for c in claims if c.verdict == "unverifiable")
         coverage = supported / len(claims)
 
-        # Overall: fail if ANY claim is contradicted with high confidence
-        high_conf_contradictions = sum(
-            1 for c in claims if c.verdict == "contradicted" and c.confidence >= 0.6
+        # Fail if ANY claim is contradicted/fabricated with high confidence
+        high_conf_failures = sum(
+            1
+            for c in claims
+            if c.verdict in ("contradicted", "fabricated") and c.confidence >= 0.6
         )
-        approved = high_conf_contradictions == 0
+        approved = high_conf_failures == 0
 
         # Overall score: weighted by confidence
         scores = []
         for c in claims:
             if c.verdict == "supported":
                 scores.append(1.0 * c.confidence)
-            elif c.verdict == "contradicted":
+            elif c.verdict in ("contradicted", "fabricated"):
                 scores.append(0.0)
             else:
                 scores.append(0.5)
@@ -240,6 +250,7 @@ class VerifiedScorer:
             claims=claims,
             supported_count=supported,
             contradicted_count=contradicted,
+            fabricated_count=fabricated,
             unverifiable_count=unverifiable,
             coverage=coverage,
         )
@@ -274,10 +285,12 @@ class VerifiedScorer:
         entity_score: float,
         num_match: bool,
         neg_flip: bool,
+        traceability: float,
     ) -> tuple[str, float]:
         """Combine signals into verdict + confidence."""
         signals_support = 0
         signals_contradict = 0
+        signals_fabricate = 0
         total_signals = 0
 
         # Signal 1: NLI
@@ -308,18 +321,31 @@ class VerifiedScorer:
             total_signals += 1
             signals_contradict += 1
 
+        # Signal 5: Traceability (fabrication detection)
+        # Low traceability = claim content not found in source = likely fabricated
+        total_signals += 1
+        if traceability >= 0.5:
+            signals_support += 1
+        elif traceability < 0.2:
+            signals_fabricate += 1
+
         if total_signals == 0:
             return "unverifiable", 0.0
 
         support_ratio = signals_support / total_signals
         contradict_ratio = signals_contradict / total_signals
+        fabricate_ratio = signals_fabricate / total_signals
+
+        # Fabrication: very low traceability overrides other signals
+        if traceability < 0.15:
+            return "fabricated", 0.7 + (1.0 - traceability) * 0.3
+        if fabricate_ratio > 0 and contradict_ratio == 0 and support_ratio < 0.5:
+            return "fabricated", 0.5 + (1.0 - traceability) * 0.5
 
         if contradict_ratio >= 0.5:
-            confidence = contradict_ratio
-            return "contradicted", confidence
+            return "contradicted", contradict_ratio
         if support_ratio >= 0.5:
-            confidence = support_ratio
-            return "supported", confidence
+            return "supported", support_ratio
 
         return "unverifiable", max(support_ratio, contradict_ratio)
 
@@ -361,3 +387,76 @@ def _negation_flip(claim: str, source: str) -> bool:
     # Shared content words (excluding negation and stop words)
     content_overlap = len((claim_words - _NEG_WORDS) & (source_words - _NEG_WORDS))
     return content_overlap >= 3 and claim_has_neg != source_has_neg
+
+
+_STOP_WORDS = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "shall",
+        "can",
+        "to",
+        "of",
+        "in",
+        "for",
+        "on",
+        "with",
+        "at",
+        "by",
+        "from",
+        "as",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "between",
+        "and",
+        "but",
+        "or",
+        "if",
+        "then",
+        "than",
+        "that",
+        "this",
+        "these",
+        "those",
+        "it",
+        "its",
+    }
+)
+
+
+def _traceability(claim: str, source: str) -> float:
+    """Measure how much of the claim's content words appear in the source.
+
+    Returns 0.0-1.0. Low traceability means the claim contains
+    information not present in the source (potential fabrication).
+    """
+    claim_words = set(claim.lower().split()) - _STOP_WORDS - _NEG_WORDS
+    source_words = set(source.lower().split()) - _STOP_WORDS - _NEG_WORDS
+    if not claim_words:
+        return 1.0
+    return len(claim_words & source_words) / len(claim_words)
