@@ -1,8 +1,10 @@
-# ─────────────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Run All Benchmarks & Generate Comparison Table
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
+
 """Run the complete held-out benchmark suite and produce a comparison table.
 
 Runs each model against: MNLI, ANLI R1/R2/R3, FEVER dev, VitaminC dev,
