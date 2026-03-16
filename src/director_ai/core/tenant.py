@@ -1,8 +1,10 @@
-# ─────────────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Multi-Tenant KB Isolation
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
+
 """Tenant-isolated knowledge base routing + per-tenant model versioning.
 
 Each tenant gets its own GroundTruthStore and optional fine-tuned model.
