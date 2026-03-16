@@ -196,6 +196,140 @@ TEST_CASES = [
 ]
 
 
+def _generate_number_cases():
+    """Generate number substitution cases from templates."""
+    templates = [
+        ("storage", "Maximum file size is {n} MB.", "{n}", "{w}"),
+        ("users", "Supports up to {n} concurrent users.", "{n}", "{w}"),
+        ("uptime", "SLA guarantees {n}% uptime.", "{n}", "{w}"),
+        ("price", "The plan costs ${n} per month.", "{n}", "{w}"),
+        ("retention", "Data is retained for {n} days.", "{n}", "{w}"),
+        ("rate", "API rate limit is {n} requests per minute.", "{n}", "{w}"),
+        ("memory", "Each instance gets {n} GB of RAM.", "{n}", "{w}"),
+        ("timeout", "Request timeout is {n} seconds.", "{n}", "{w}"),
+        ("backup", "Backups run every {n} hours.", "{n}", "{w}"),
+        ("history", "Audit logs are kept for {n} months.", "{n}", "{w}"),
+    ]
+    import random
+
+    rng = random.Random(42)
+    cases = []
+    for cat, tmpl, _, _ in templates:
+        correct_n = rng.choice([5, 10, 15, 30, 50, 100, 500, 1000, 99.9, 99.95])
+        wrong_n = (
+            correct_n * rng.choice([2, 3, 5, 10])
+            if correct_n < 100
+            else correct_n / rng.choice([2, 5])
+        )
+        src = tmpl.replace("{n}", str(correct_n))
+        cases.append(
+            TestCase(
+                cat, src, src, tmpl.replace("{n}", str(wrong_n)), "number_substitution"
+            )
+        )
+    return cases
+
+
+def _generate_negation_cases():
+    templates = [
+        ("The system {v} multi-factor authentication.", "supports", "does not support"),
+        ("File uploads {v} encrypted.", "are", "are not"),
+        ("The free tier {v} API access.", "includes", "does not include"),
+        ("Customers {v} export their data.", "can", "cannot"),
+        ("The platform {v} offline.", "works", "does not work"),
+        ("Admin accounts {v} deletable by users.", "are", "are not"),
+        ("Logs {v} automatically rotated.", "are", "are not"),
+        ("Passwords {v} stored in plaintext.", "are never", "are"),
+        ("Sessions {v} after 30 minutes of inactivity.", "expire", "do not expire"),
+        ("Two-factor auth {v} for admin accounts.", "is required", "is not required"),
+    ]
+    cases = []
+    for tmpl, pos, neg in templates:
+        src = tmpl.replace("{v}", pos)
+        correct = src
+        halluc = tmpl.replace("{v}", neg)
+        cases.append(TestCase("security", src, correct, halluc, "negation_flip"))
+    return cases
+
+
+def _generate_fabrication_cases():
+    pairs = [
+        (
+            "Our platform integrates with GitHub and GitLab for CI/CD.",
+            "Our platform integrates with GitHub, GitLab, Bitbucket, and Azure DevOps for CI/CD.",
+        ),
+        (
+            "Supported databases: PostgreSQL and MySQL.",
+            "Supported databases: PostgreSQL, MySQL, MongoDB, Redis, and Cassandra.",
+        ),
+        (
+            "The SDK is available for Python and JavaScript.",
+            "The SDK is available for Python, JavaScript, Go, Rust, and Java.",
+        ),
+        (
+            "Authentication supports OAuth 2.0 and SAML.",
+            "Authentication supports OAuth 2.0, SAML, LDAP, Kerberos, and WebAuthn.",
+        ),
+        (
+            "Monitoring includes CPU and memory metrics.",
+            "Monitoring includes CPU, memory, GPU, network I/O, and disk latency metrics.",
+        ),
+        (
+            "We support English and Spanish languages.",
+            "We support English, Spanish, French, German, Japanese, and Mandarin.",
+        ),
+        (
+            "Export formats: PDF and CSV.",
+            "Export formats: PDF, CSV, Excel, JSON, XML, and Parquet.",
+        ),
+        (
+            "Deployment options: cloud and on-premise.",
+            "Deployment options: cloud, on-premise, hybrid, edge, and air-gapped.",
+        ),
+        (
+            "The API returns JSON responses.",
+            "The API returns JSON and GraphQL responses with real-time WebSocket streaming.",
+        ),
+        (
+            "Data centers in US East and EU West.",
+            "Data centers in US East, US West, EU West, EU Central, Asia Pacific, and South America.",
+        ),
+    ]
+    cases = []
+    for src, halluc in pairs:
+        cases.append(TestCase("feature", src, src, halluc, "fabrication"))
+    return cases
+
+
+def _generate_entity_cases():
+    pairs = [
+        ("Powered by PostgreSQL database.", "Powered by MongoDB database."),
+        ("Built on AWS infrastructure.", "Built on Azure infrastructure."),
+        ("Uses TLS 1.3 encryption.", "Uses TLS 1.2 encryption."),
+        ("Certified by SOC 2 Type II.", "Certified by SOC 1 Type I."),
+        ("Contact sales@acme.com for pricing.", "Contact info@acme.com for pricing."),
+        ("Available in the US East region.", "Available in the EU West region."),
+        ("Founded by John Smith in 2020.", "Founded by Jane Doe in 2018."),
+        ("Headquarters in San Francisco.", "Headquarters in New York."),
+        ("Running on Kubernetes 1.28.", "Running on Kubernetes 1.24."),
+        ("Compatible with Python 3.11+.", "Compatible with Python 3.8+."),
+    ]
+    cases = []
+    for src, halluc in pairs:
+        cases.append(TestCase("tech", src, src, halluc, "entity_substitution"))
+    return cases
+
+
+GENERATED_CASES = (
+    _generate_number_cases()
+    + _generate_negation_cases()
+    + _generate_fabrication_cases()
+    + _generate_entity_cases()
+)
+
+ALL_CASES = TEST_CASES + GENERATED_CASES
+
+
 def run_benchmark(use_nli: bool = False):
     from director_ai.core.verified_scorer import VerifiedScorer
 
@@ -211,7 +345,7 @@ def run_benchmark(use_nli: bool = False):
     tp = fp = tn = fn = 0
     results = []
 
-    for tc in TEST_CASES:
+    for tc in ALL_CASES:
         # Test correct response — should be APPROVED
         t0 = time.monotonic()
         r_correct = vs.verify(tc.correct, tc.source)
@@ -248,7 +382,7 @@ def run_benchmark(use_nli: bool = False):
             }
         )
 
-    total = len(TEST_CASES)
+    total = len(ALL_CASES)
     catch_rate = tp / (tp + fn) if (tp + fn) else 0
     fpr = fp / (fp + tn) if (fp + tn) else 0
     accuracy = (tp + tn) / (total * 2)
