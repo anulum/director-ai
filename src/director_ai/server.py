@@ -42,7 +42,7 @@ logger = logging.getLogger("DirectorAI.Server")
 
 _WS_MAX_PROMPT_LENGTH = 100_000
 _WS_MAX_CONCURRENT = 8
-_AUTH_EXEMPT_PATHS_BASE = frozenset({"/v1/health", "/v1/source"})
+_AUTH_EXEMPT_PATHS_BASE = frozenset({"/v1/health", "/v1/ready", "/v1/source"})
 
 try:
     from fastapi import FastAPI, HTTPException, Request, WebSocket, WebSocketDisconnect
@@ -498,6 +498,22 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             nli_loaded=cfg.use_nli,
             uptime_seconds=time.monotonic() - _start_time,
         )
+
+    @app.get("/v1/ready")
+    async def readiness(request: Request):
+        """Readiness probe: returns 200 only when scorer is operational."""
+        scorer = request.app.state._state.get("scorer")
+        if scorer is None:
+            return JSONResponse(
+                status_code=503,
+                content={"ready": False, "reason": "scorer not initialised"},
+            )
+        if cfg.use_nli and (scorer._nli is None or not scorer._nli.model_available):
+            return JSONResponse(
+                status_code=503,
+                content={"ready": False, "reason": "NLI model not loaded"},
+            )
+        return {"ready": True}
 
     # ── AGPL §13 source endpoint ────────────────────────────────────
 
