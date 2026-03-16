@@ -325,6 +325,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             app.state._state["tenant_router"] = TenantRouter()
             logger.info("Tenant routing enabled")
 
+        from .core.doc_registry import DocRegistry
+
+        app.state._state["doc_registry"] = DocRegistry()
+
         cfg.configure_logging()
 
         if cfg.otel_enabled:
@@ -363,6 +367,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         from .finetune_api import create_finetune_router
 
         app.include_router(create_finetune_router(), prefix="/v1/finetune")
+    except ImportError:
+        pass
+
+    # Knowledge ingestion API
+    try:
+        from .knowledge_api import create_knowledge_router
+
+        app.include_router(create_knowledge_router(), prefix="/v1/knowledge")
     except ImportError:
         pass
 
