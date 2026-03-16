@@ -57,6 +57,12 @@ class DirectorConfig:
 
     """
 
+    # Mode: "general" | "grounded" | "auto"
+    #   general  — NLI only, no KB, no embeddings. Fast, lightweight.
+    #   grounded — requires KB. Hybrid + reranker + claim decomposition.
+    #   auto     — KB if available + relevant, falls back to general NLI.
+    mode: str = "auto"
+
     # Scoring
     coherence_threshold: float = 0.6
     hard_limit: float = 0.5
@@ -227,6 +233,24 @@ class DirectorConfig:
     extra: dict[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        if self.mode not in ("general", "grounded", "auto"):
+            raise ValueError(
+                f"mode must be 'general', 'grounded', or 'auto', got {self.mode!r}"
+            )
+        # Apply mode defaults before other validation
+        if self.mode == "general":
+            if not self.use_nli:
+                object.__setattr__(self, "use_nli", True)
+            object.__setattr__(self, "hybrid_retrieval", False)
+            object.__setattr__(self, "reranker_enabled", False)
+            object.__setattr__(self, "retrieval_abstention_threshold", 0.0)
+        elif self.mode in ("grounded", "auto"):
+            object.__setattr__(self, "use_nli", True)
+            object.__setattr__(self, "hybrid_retrieval", True)
+            object.__setattr__(self, "reranker_enabled", True)
+            if self.retrieval_abstention_threshold <= 0:
+                object.__setattr__(self, "retrieval_abstention_threshold", 0.3)
+
         if not (0.0 <= self.coherence_threshold <= 1.0):
             raise ValueError(
                 f"coherence_threshold must be in [0, 1], got {self.coherence_threshold}",
@@ -495,7 +519,16 @@ class DirectorConfig:
             root.handlers = [handler]
 
     def build_store(self):
-        """Construct a VectorGroundTruthStore from config fields."""
+        """Construct a VectorGroundTruthStore from config fields.
+
+        In ``general`` mode, returns a bare GroundTruthStore (no vector backend).
+        In ``grounded`` and ``auto`` modes, builds the full vector pipeline.
+        """
+        if self.mode == "general":
+            from .knowledge import GroundTruthStore
+
+            logger.info("Mode 'general': no vector store (NLI-only scoring)")
+            return GroundTruthStore()
         if self.redis_url:
             try:
                 from director_ai.enterprise.redis import RedisGroundTruthStore

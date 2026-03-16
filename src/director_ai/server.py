@@ -149,6 +149,7 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
     class HealthResponse(BaseModel):
         status: str = "ok"
         version: str
+        mode: str
         profile: str
         nli_loaded: bool
         uptime_seconds: float
@@ -516,6 +517,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         return HealthResponse(
             version=director_ai.__version__,
+            mode=cfg.mode,
             profile=cfg.profile,
             nli_loaded=cfg.use_nli,
             uptime_seconds=time.monotonic() - _start_time,

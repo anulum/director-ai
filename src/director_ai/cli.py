@@ -973,13 +973,22 @@ def _cmd_serve(args: list[str]) -> None:
     port = 8080
     host = "0.0.0.0"
     profile = "default"
+    mode = ""
     workers = 1
     transport = "http"
     cors_origins = ""
 
     i = 0
     while i < len(args):
-        if args[i] == "--port" and i + 1 < len(args):
+        if args[i] == "--mode" and i + 1 < len(args):
+            mode = args[i + 1]
+            if mode not in ("general", "grounded", "auto"):
+                print(
+                    f"Error: --mode must be 'general', 'grounded', or 'auto', got '{mode}'"
+                )
+                sys.exit(1)
+            i += 2
+        elif args[i] == "--port" and i + 1 < len(args):
             try:
                 port = int(args[i + 1])
             except ValueError:
@@ -1019,6 +1028,8 @@ def _cmd_serve(args: list[str]) -> None:
         config = DirectorConfig.from_profile(profile)
     else:
         config = DirectorConfig.from_env()
+    if mode:
+        config = DirectorConfig(**{**config.__dict__, "mode": mode})
     config.server_host = host
     config.server_port = port
     if cors_origins:
