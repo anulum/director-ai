@@ -10,22 +10,24 @@ from director_ai.core import CoherenceScorer
 
 class TestParseJudgeReply:
     def test_json_verdict_yes(self):
-        assert CoherenceScorer._parse_judge_reply('{"verdict": "YES"}') is True
+        assert CoherenceScorer._parse_judge_reply('{"verdict": "YES"}')[0] is True
 
     def test_json_verdict_no(self):
-        assert CoherenceScorer._parse_judge_reply('{"verdict": "NO"}') is False
+        assert CoherenceScorer._parse_judge_reply('{"verdict": "NO"}')[0] is False
 
     def test_json_invalid_fallback_yes(self):
-        assert CoherenceScorer._parse_judge_reply("YES the answer is correct") is True
+        assert (
+            CoherenceScorer._parse_judge_reply("YES the answer is correct")[0] is True
+        )
 
     def test_json_invalid_fallback_no(self):
-        assert CoherenceScorer._parse_judge_reply("NO it does not match") is False
+        assert CoherenceScorer._parse_judge_reply("NO it does not match")[0] is False
 
     def test_json_empty(self):
-        assert CoherenceScorer._parse_judge_reply("") is False
+        assert CoherenceScorer._parse_judge_reply("")[0] is False
 
     def test_json_verdict_case_insensitive(self):
-        assert CoherenceScorer._parse_judge_reply('{"verdict": "yes"}') is True
+        assert CoherenceScorer._parse_judge_reply('{"verdict": "yes"}')[0] is True
 
 
 class TestLLMJudgeOpenAI:

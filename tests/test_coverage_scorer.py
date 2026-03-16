@@ -183,21 +183,21 @@ class TestScorerParseJudgeReply:
     def test_json_yes(self):
         assert CoherenceScorer._parse_judge_reply(
             '{"verdict": "YES", "confidence": 90}',
-        )
+        )[0]
 
     def test_json_no(self):
         assert not CoherenceScorer._parse_judge_reply(
             '{"verdict": "NO", "confidence": 80}',
-        )
+        )[0]
 
     def test_plain_yes(self):
-        assert CoherenceScorer._parse_judge_reply("I think YES this is correct")
+        assert CoherenceScorer._parse_judge_reply("I think YES this is correct")[0]
 
     def test_plain_no(self):
-        assert not CoherenceScorer._parse_judge_reply("I think this is incorrect")
+        assert not CoherenceScorer._parse_judge_reply("I think this is incorrect")[0]
 
     def test_bad_json(self):
-        assert CoherenceScorer._parse_judge_reply("YES definitely") is True
+        assert CoherenceScorer._parse_judge_reply("YES definitely")[0] is True
 
 
 class TestScorerAsync:

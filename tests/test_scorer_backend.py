@@ -73,21 +73,21 @@ class TestLLMJudgeParsing:
     def test_parse_json_yes(self):
         assert CoherenceScorer._parse_judge_reply(
             '{"verdict": "YES", "confidence": 90}',
-        )
+        )[0]
 
     def test_parse_json_no(self):
         assert not CoherenceScorer._parse_judge_reply(
             '{"verdict": "NO", "confidence": 20}',
-        )
+        )[0]
 
     def test_parse_fallback_string_yes(self):
-        assert CoherenceScorer._parse_judge_reply("YES, I believe so")
+        assert CoherenceScorer._parse_judge_reply("YES, I believe so")[0]
 
     def test_parse_fallback_string_no(self):
-        assert not CoherenceScorer._parse_judge_reply("NO, it is incorrect")
+        assert not CoherenceScorer._parse_judge_reply("NO, it is incorrect")[0]
 
     def test_parse_malformed_json_fallback(self):
-        assert CoherenceScorer._parse_judge_reply("{invalid json YES}")
+        assert CoherenceScorer._parse_judge_reply("{invalid json YES}")[0]
 
     def test_custom_model_stored(self):
         scorer = CoherenceScorer(

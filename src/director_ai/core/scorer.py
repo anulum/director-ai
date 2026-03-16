@@ -366,19 +366,15 @@ class CoherenceScorer:
         probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
 
         judge_agrees = probs[0] > 0.5  # class 0 = approve
+        judge_conf = float(max(probs))  # confidence = max class probability
         llm_divergence = (
             LLM_JUDGE_AGREE_DIVERGENCE
             if judge_agrees
             else LLM_JUDGE_DISAGREE_DIVERGENCE
         )
-        adjusted = max(
-            0.0,
-            min(
-                1.0,
-                LLM_JUDGE_NLI_WEIGHT * nli_score
-                + LLM_JUDGE_LLM_WEIGHT * llm_divergence,
-            ),
-        )
+        llm_w = LLM_JUDGE_LLM_WEIGHT * judge_conf
+        nli_w = 1.0 - llm_w
+        adjusted = max(0.0, min(1.0, nli_w * nli_score + llm_w * llm_divergence))
 
         if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
             self._judge_cache.pop(next(iter(self._judge_cache)))
@@ -479,21 +475,20 @@ class CoherenceScorer:
             if reply is None:
                 return nli_score
 
-            llm_agrees = self._parse_judge_reply(reply)
+            llm_agrees, judge_conf = self._parse_judge_reply(reply)
             llm_divergence = (
                 LLM_JUDGE_AGREE_DIVERGENCE
                 if llm_agrees
                 else LLM_JUDGE_DISAGREE_DIVERGENCE
             )
+            # Scale LLM influence by judge confidence: at conf=1.0 full
+            # weight (0.3), at conf=0.5 half weight (0.15).
+            llm_w = LLM_JUDGE_LLM_WEIGHT * judge_conf
+            nli_w = 1.0 - llm_w
             adjusted = max(
                 0.0,
-                min(
-                    1.0,
-                    LLM_JUDGE_NLI_WEIGHT * nli_score
-                    + LLM_JUDGE_LLM_WEIGHT * llm_divergence,
-                ),
+                min(1.0, nli_w * nli_score + llm_w * llm_divergence),
             )
-            # Cache the result; evict oldest if full.
             if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
                 self._judge_cache.pop(next(iter(self._judge_cache)))
             self._judge_cache[cache_key] = adjusted
@@ -552,15 +547,22 @@ class CoherenceScorer:
         return None
 
     @staticmethod
-    def _parse_judge_reply(reply: str) -> bool:
-        """Parse structured JSON from LLM judge, fall back to string matching."""
+    def _parse_judge_reply(reply: str) -> tuple[bool, float]:
+        """Parse verdict and confidence from LLM judge JSON.
+
+        Returns (agrees: bool, confidence: 0.0-1.0).
+        Falls back to string matching with 0.5 confidence.
+        """
         import json as _json
 
         try:
             data = _json.loads(reply)
-            return str(data.get("verdict", "")).upper() == "YES"
+            agrees = str(data.get("verdict", "")).upper() == "YES"
+            raw_conf = float(data.get("confidence", 50))
+            conf = max(0.0, min(1.0, raw_conf / 100.0))
+            return agrees, conf
         except (ValueError, TypeError, AttributeError):
-            return "YES" in reply.upper()
+            return "YES" in reply.upper(), 0.5
 
     # ── Task-aware scoring profiles ────────────────────────────────────
 
