@@ -63,6 +63,7 @@ class DirectorConfig:
     soft_limit: float = 0.6
     use_nli: bool = False
     nli_model: str = "yaxili96/FactCG-DeBERTa-v3-Large"
+    nli_max_length: int = 512  # >512 for long-context models (Longformer, BigBird)
     max_candidates: int = 3
     history_window: int = 5
 
@@ -578,6 +579,7 @@ class DirectorConfig:
             "scorer_backend": self.scorer_backend,
             "soft_limit": self.soft_limit,
             "nli_model": self.nli_model,
+            "nli_max_length": self.nli_max_length,
             "llm_judge_enabled": self.llm_judge_enabled,
             "llm_judge_confidence_threshold": self.llm_judge_confidence_threshold,
             "llm_judge_provider": self.llm_judge_provider,
