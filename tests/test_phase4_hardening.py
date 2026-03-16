@@ -1,6 +1,10 @@
-# ─────────────────────────────────────────────────────────────────────
-# Phase 4 Hardening Tests (H46-H64)
-# ─────────────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — test_phase4_hardening.py
+
 """Tests for Phase 4 hardening fixes:
 H48  DOS-1: batch per-line JSON size limit
 H49  ERR-2: WebSocket receive_json exception handling
