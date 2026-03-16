@@ -439,7 +439,9 @@ def test_scoring_pipeline_consistency():
             correct += 1
 
     ba_at_global = correct / len(samples) if samples else 0
-    print(f"  Pipeline consistency: {correct}/{len(samples)} match at t={global_threshold}")
+    print(
+        f"  Pipeline consistency: {correct}/{len(samples)} match at t={global_threshold}"
+    )
 
     # The key gate: the threshold convention (score >= t → supported)
     # must not be inverted. If it were, accuracy would drop below 40%.
