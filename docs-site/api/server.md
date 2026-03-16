@@ -30,12 +30,23 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/v1/review` | Score a prompt/response pair |
+| `POST` | `/v1/verify` | Sentence-level multi-signal fact verification |
+| `POST` | `/v1/process` | Full agent pipeline (generate + score) |
 | `POST` | `/v1/batch` | Batch score multiple pairs |
-| `GET` | `/v1/health` | Health check (NLI status, cache stats) |
+| `GET` | `/v1/health` | Liveness probe (version, mode, NLI status) |
+| `GET` | `/v1/ready` | Readiness probe — 503 if scorer/NLI not loaded |
+| `GET` | `/v1/config` | Config introspection |
 | `GET` | `/v1/metrics` | Metrics as JSON |
 | `GET` | `/v1/metrics/prometheus` | Prometheus-compatible metrics |
 | `GET` | `/v1/source` | Source code URL (AGPL compliance) |
 | `WS` | `/v1/stream` | WebSocket streaming oversight |
+| `POST` | `/v1/knowledge/upload` | Upload file → parse → chunk → embed |
+| `POST` | `/v1/knowledge/ingest` | Ingest raw text → chunk → embed |
+| `GET` | `/v1/knowledge/documents` | List documents per tenant |
+| `DELETE` | `/v1/knowledge/documents/{id}` | Delete document and chunks |
+| `PUT` | `/v1/knowledge/documents/{id}` | Re-ingest updated content |
+| `GET` | `/v1/knowledge/search` | Test retrieval quality |
+| `POST` | `/v1/knowledge/tune-embeddings` | Fine-tune embeddings on ingested docs |
 
 ## Review Request
 
@@ -55,7 +66,7 @@ curl -X POST http://localhost:8080/v1/review \
 ```json
 {
   "approved": true,
-  "score": 0.85,
+  "coherence": 0.85,
   "h_logical": 0.10,
   "h_factual": 0.15,
   "warning": false,
