@@ -400,9 +400,19 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 cfg.rate_limit_rpm,
             )
         else:
+            storage_uri = None
+            if cfg.redis_url:
+                storage_uri = cfg.redis_url
+                logger.info(
+                    "Rate limiting backed by Redis: %s",
+                    cfg.redis_url.split("@")[-1]
+                    if "@" in cfg.redis_url
+                    else cfg.redis_url,
+                )
             limiter = Limiter(
                 key_func=get_remote_address,
                 default_limits=[_rate_str],
+                storage_uri=storage_uri,
             )
             app.state.limiter = limiter
             from slowapi.errors import RateLimitExceeded
