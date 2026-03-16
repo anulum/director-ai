@@ -157,7 +157,7 @@ def test_streaming_stability():
 
 
 def test_latency_ceiling():
-    """Heuristic review must complete in < 10 ms."""
+    """Heuristic review must complete in < 5 ms avg."""
     from director_ai.core import CoherenceScorer, GroundTruthStore
 
     store = GroundTruthStore()
@@ -168,7 +168,6 @@ def test_latency_ceiling():
         use_nli=False,
     )
 
-    # Warmup
     scorer.review("sky color", "The sky is blue.")
 
     times = []
@@ -178,8 +177,10 @@ def test_latency_ceiling():
         times.append(time.perf_counter() - t0)
 
     avg_ms = sum(times) / len(times) * 1000
-    print(f"  Latency: {avg_ms:.2f} ms avg (20 calls)")
-    assert avg_ms < 10.0, f"Heuristic latency {avg_ms:.2f} ms > 10 ms ceiling"
+    p95_ms = sorted(times)[int(0.95 * len(times))] * 1000
+    print(f"  Latency: {avg_ms:.2f} ms avg, {p95_ms:.2f} ms p95 (20 calls)")
+    assert avg_ms < 5.0, f"Heuristic latency {avg_ms:.2f} ms > 5 ms ceiling"
+    assert p95_ms < 15.0, f"Heuristic p95 latency {p95_ms:.2f} ms > 15 ms ceiling"
 
 
 def test_metrics_integrity():

@@ -1,0 +1,26 @@
+{
+  "baseline": {
+    "review_no_nli": {
+      "name": "review (no NLI)",
+      "n": 50,
+      "mean_ms": 0.23,
+      "median_ms": 0.17,
+      "p95_ms": 0.69,
+      "p99_ms": 0.77,
+      "std_ms": 0.16
+    },
+    "streaming_session": {
+      "name": "streaming session",
+      "n": 50,
+      "mean_ms": 0.04,
+      "median_ms": 0.04,
+      "p95_ms": 0.05,
+      "p99_ms": 0.06,
+      "std_ms": 0.01
+    }
+  },
+  "gates": {
+    "review_no_nli_p95_ms": 15.0,
+    "streaming_session_p95_ms": 5.0
+  }
+}
