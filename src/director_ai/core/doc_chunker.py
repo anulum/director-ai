@@ -100,12 +100,11 @@ def _force_split(text: str, chunk_size: int, overlap: int) -> list[str]:
     """Character-level split when no separator works."""
     chunks = []
     start = 0
+    step = max(1, chunk_size - overlap)
     while start < len(text):
         end = min(start + chunk_size, len(text))
         chunks.append(text[start:end])
-        start = end - overlap if overlap > 0 else end
-        if start >= end:
-            break
+        start += step
     return chunks
 
 
