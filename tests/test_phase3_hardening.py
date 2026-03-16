@@ -1,6 +1,10 @@
-# ─────────────────────────────────────────────────────────────────────
-# Phase 3 Hardening Tests (H28-H44, core only)
-# ─────────────────────────────────────────────────────────────────────
+# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-AI — test_phase3_hardening.py
+
 """Tests for Phase 3 hardening fixes (consumer core):
 H28  ROB-5: NLI assert → RuntimeError
 H29  CON-1: batch asyncio.get_running_loop()
