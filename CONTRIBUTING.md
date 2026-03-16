@@ -106,4 +106,4 @@ The package lives in `src/director_ai/` with two profiles:
 ## License
 
 By contributing, you agree that your contributions will be licensed under
-GNU AGPL v3.0. See [NOTICE.md](NOTICE.md) for dual-licensing details.
+AGPL-3.0-or-later. Commercial licensing also available — see [licensing](docs-site/licensing.md) for details.
