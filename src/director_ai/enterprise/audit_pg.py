@@ -41,12 +41,21 @@ class PostgresAuditSink:
     table.  Use ``query()`` to retrieve audit records for dashboarding.
     """
 
-    def __init__(self, db_url: str, table_name: str = "director_audit_logs"):
+    def __init__(
+        self,
+        db_url: str,
+        table_name: str = "director_audit_logs",
+        pool_min: int = 1,
+        pool_max: int = 5,
+    ):
         self.db_url = db_url
         self.table_name = table_name
         self._lock = threading.Lock()
         self._conn: Any = None
+        self._pool: Any = None
         self._is_sqlite = db_url.startswith("sqlite")
+        self._pool_min = pool_min
+        self._pool_max = pool_max
         self._connect()
 
     def _connect(self) -> None:
@@ -60,10 +69,18 @@ class PostgresAuditSink:
                     check_same_thread=False,
                 )
             else:
-                import psycopg2
+                import psycopg2.pool
 
-                self._conn = psycopg2.connect(self.db_url)
+                self._pool = psycopg2.pool.ThreadedConnectionPool(
+                    self._pool_min,
+                    self._pool_max,
+                    self.db_url,
+                )
+                self._conn = self._pool.getconn()
             self._migrate()
+            if self._pool:
+                self._pool.putconn(self._conn)
+                self._conn = None
             logger.info(
                 "Audit sink ready: %s (table: %s, schema v%d)",
                 "SQLite" if self._is_sqlite else "Postgres",
@@ -73,6 +90,17 @@ class PostgresAuditSink:
         except Exception as e:
             logger.error("Failed to connect to PostgresAuditSink: %s", e)
             self._conn = None
+
+    def _get_conn(self) -> Any:
+        """Borrow a connection from pool (Postgres) or return the single conn (SQLite)."""
+        if self._pool:
+            return self._pool.getconn()
+        return self._conn
+
+    def _put_conn(self, conn: Any) -> None:
+        """Return a connection to the pool (no-op for SQLite)."""
+        if self._pool and conn is not None:
+            self._pool.putconn(conn)
 
     # ── Schema migration ──────────────────────────────────────────────
 
@@ -154,7 +182,8 @@ class PostgresAuditSink:
 
     def write(self, entry: AuditEntry) -> None:
         """Write a single AuditEntry immutably."""
-        if not self._conn:
+        conn = self._get_conn()
+        if conn is None:
             return
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
@@ -172,16 +201,16 @@ class PostgresAuditSink:
             entry.halt_reason,
             entry.latency_ms,
         )
-        with self._lock:
-            try:
-                cur = self._conn.cursor()
-                cur.execute(sql, values)
-                self._conn.commit()
-            except Exception as e:
-                self._conn.rollback()
-                logger.error("Failed to persist audit log: %s", e)
-            finally:
-                cur.close()
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, values)
+            conn.commit()
+        except Exception as e:
+            conn.rollback()
+            logger.error("Failed to persist audit log: %s", e)
+        finally:
+            cur.close()
+            self._put_conn(conn)
 
     async def async_write(self, entry: AuditEntry) -> None:
         """Non-blocking write for async callers (FastAPI handlers)."""
@@ -195,7 +224,10 @@ class PostgresAuditSink:
 
     def write_batch(self, entries: list[AuditEntry]) -> int:
         """Write multiple entries in a single transaction. Returns count written."""
-        if not self._conn or not entries:
+        if not entries:
+            return 0
+        conn = self._get_conn()
+        if conn is None:
             return 0
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
@@ -216,18 +248,18 @@ class PostgresAuditSink:
             )
             for e in entries
         ]
-        with self._lock:
-            try:
-                cur = self._conn.cursor()
-                cur.executemany(sql, rows)
-                self._conn.commit()
-                return len(rows)
-            except Exception as e:
-                self._conn.rollback()
-                logger.error("Batch write failed: %s", e)
-                return 0
-            finally:
-                cur.close()
+        try:
+            cur = conn.cursor()
+            cur.executemany(sql, rows)
+            conn.commit()
+            return len(rows)
+        except Exception as e:
+            conn.rollback()
+            logger.error("Batch write failed: %s", e)
+            return 0
+        finally:
+            cur.close()
+            self._put_conn(conn)
 
     # ── Query ─────────────────────────────────────────────────────────
 
@@ -238,7 +270,8 @@ class PostgresAuditSink:
         limit: int = 100,
     ) -> list[dict[str, Any]]:
         """Retrieve audit records with optional filters."""
-        if not self._conn:
+        conn = self._get_conn()
+        if conn is None:
             return []
         ph = "?" if self._is_sqlite else "%s"
         clauses: list[str] = []
@@ -256,21 +289,22 @@ class PostgresAuditSink:
             f"{where} ORDER BY created_at DESC LIMIT {ph}"
         )
         params.append(limit)
-        with self._lock:
-            try:
-                cur = self._conn.cursor()
-                cur.execute(sql, params)
-                cols = list(_COLUMNS) + ["created_at"]
-                return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
-            except Exception as e:
-                logger.error("Audit query failed: %s", e)
-                return []
-            finally:
-                cur.close()
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, params)
+            cols = list(_COLUMNS) + ["created_at"]
+            return [dict(zip(cols, row, strict=True)) for row in cur.fetchall()]
+        except Exception as e:
+            logger.error("Audit query failed: %s", e)
+            return []
+        finally:
+            cur.close()
+            self._put_conn(conn)
 
     def count(self, tenant_id: str | None = None) -> int:
         """Count audit records, optionally filtered by tenant."""
-        if not self._conn:
+        conn = self._get_conn()
+        if conn is None:
             return 0
         ph = "?" if self._is_sqlite else "%s"
         if tenant_id is not None:
@@ -279,13 +313,13 @@ class PostgresAuditSink:
         else:
             sql = f"SELECT COUNT(*) FROM {self.table_name}"
             params = ()
-        with self._lock:
-            try:
-                cur = self._conn.cursor()
-                cur.execute(sql, params)
-                return int(cur.fetchone()[0])
-            except Exception as e:
-                logger.error("Audit count failed: %s", e)
-                return 0
-            finally:
-                cur.close()
+        try:
+            cur = conn.cursor()
+            cur.execute(sql, params)
+            return int(cur.fetchone()[0])
+        except Exception as e:
+            logger.error("Audit count failed: %s", e)
+            return 0
+        finally:
+            cur.close()
+            self._put_conn(conn)
