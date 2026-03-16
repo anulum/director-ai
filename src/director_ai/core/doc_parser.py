@@ -16,6 +16,7 @@ from __future__ import annotations
 import csv
 import io
 import logging
+from collections.abc import Callable as _Callable
 
 logger = logging.getLogger("DirectorAI.DocParser")
 
@@ -83,7 +84,7 @@ def _parse_text(content: bytes) -> str:
     return content.decode("utf-8", errors="replace")
 
 
-_PARSERS: dict[str, callable] = {
+_PARSERS: dict[str, _Callable[[bytes], str]] = {
     "pdf": _parse_pdf,
     "docx": _parse_docx,
     "html": _parse_html,

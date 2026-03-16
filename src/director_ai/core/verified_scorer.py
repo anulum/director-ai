@@ -68,7 +68,7 @@ class ClaimVerdict:
     source_index: int
     nli_divergence: float
     entity_match: float
-    numerical_match: bool
+    numerical_match: bool | None
     negation_flip: bool
     traceability: float  # 0.0-1.0: how much of the claim is in the source
     verdict: str  # "supported", "contradicted", "unverifiable", "fabricated"
@@ -283,7 +283,7 @@ class VerifiedScorer:
         self,
         nli_div: float,
         entity_score: float,
-        num_match: bool,
+        num_match: bool | None,
         neg_flip: bool,
         traceability: float,
     ) -> tuple[str, float]:
