@@ -20,7 +20,6 @@ Usage::
 
 from __future__ import annotations
 
-
 # Sample product documentation (simulates a real customer's KB)
 PRODUCT_DOCS = {
     "pricing": (
@@ -179,7 +178,6 @@ def main():
             print(f"    Expected error: {qa.get('error', 'unknown')}")
         print()
 
-    total = len(CHATBOT_ANSWERS)
     catch_rate = tp / (tp + fn) if (tp + fn) else 0
     fpr_rate = fp / (fp + tn) if (fp + tn) else 0
     ba = (catch_rate + (1 - fpr_rate)) / 2

@@ -7,8 +7,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from director_ai.core.verified_scorer import (
     VerifiedScorer,
     _entity_overlap,

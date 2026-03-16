@@ -65,21 +65,20 @@ class TestParser:
         assert result == "some content"
 
     def test_utf8_decode(self):
-        result = parse("Héllo".encode("utf-8"), "test.txt")
+        result = parse("Héllo".encode(), "test.txt")
         assert "Héllo" in result
 
     def test_pdf_missing_dep(self):
-        # pypdf may or may not be installed
-        try:
+        import contextlib
+
+        with contextlib.suppress(ImportError, Exception):
             parse(b"not a pdf", "test.pdf")
-        except (ImportError, Exception):
-            pass  # expected if pypdf not installed or invalid PDF
 
     def test_docx_missing_dep(self):
-        try:
+        import contextlib
+
+        with contextlib.suppress(ImportError, Exception):
             parse(b"not a docx", "test.docx")
-        except (ImportError, Exception):
-            pass
 
 
 class TestRegistry:
