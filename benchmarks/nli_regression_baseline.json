@@ -1,0 +1,277 @@
+[
+  {
+    "dataset": "AggreFact-CNN",
+    "label": 1,
+    "nli_score": 0.95764
+  },
+  {
+    "dataset": "AggreFact-CNN",
+    "label": 1,
+    "nli_score": 0.9558
+  },
+  {
+    "dataset": "AggreFact-CNN",
+    "label": 1,
+    "nli_score": 0.953601
+  },
+  {
+    "dataset": "AggreFact-CNN",
+    "label": 1,
+    "nli_score": 0.917929
+  },
+  {
+    "dataset": "AggreFact-CNN",
+    "label": 1,
+    "nli_score": 0.854574
+  },
+  {
+    "dataset": "AggreFact-XSum",
+    "label": 1,
+    "nli_score": 0.439757
+  },
+  {
+    "dataset": "AggreFact-XSum",
+    "label": 1,
+    "nli_score": 0.967661
+  },
+  {
+    "dataset": "AggreFact-XSum",
+    "label": 1,
+    "nli_score": 0.309314
+  },
+  {
+    "dataset": "AggreFact-XSum",
+    "label": 0,
+    "nli_score": 0.021269
+  },
+  {
+    "dataset": "AggreFact-XSum",
+    "label": 1,
+    "nli_score": 0.613408
+  },
+  {
+    "dataset": "ClaimVerify",
+    "label": 1,
+    "nli_score": 0.924856
+  },
+  {
+    "dataset": "ClaimVerify",
+    "label": 1,
+    "nli_score": 0.965828
+  },
+  {
+    "dataset": "ClaimVerify",
+    "label": 1,
+    "nli_score": 0.963523
+  },
+  {
+    "dataset": "ClaimVerify",
+    "label": 1,
+    "nli_score": 0.838268
+  },
+  {
+    "dataset": "ClaimVerify",
+    "label": 1,
+    "nli_score": 0.854572
+  },
+  {
+    "dataset": "ExpertQA",
+    "label": 1,
+    "nli_score": 0.693227
+  },
+  {
+    "dataset": "ExpertQA",
+    "label": 0,
+    "nli_score": 0.078314
+  },
+  {
+    "dataset": "ExpertQA",
+    "label": 1,
+    "nli_score": 0.973118
+  },
+  {
+    "dataset": "ExpertQA",
+    "label": 1,
+    "nli_score": 0.766042
+  },
+  {
+    "dataset": "ExpertQA",
+    "label": 1,
+    "nli_score": 0.445906
+  },
+  {
+    "dataset": "FactCheck-GPT",
+    "label": 0,
+    "nli_score": 0.02376
+  },
+  {
+    "dataset": "FactCheck-GPT",
+    "label": 0,
+    "nli_score": 0.079859
+  },
+  {
+    "dataset": "FactCheck-GPT",
+    "label": 0,
+    "nli_score": 0.016719
+  },
+  {
+    "dataset": "FactCheck-GPT",
+    "label": 0,
+    "nli_score": 0.029712
+  },
+  {
+    "dataset": "FactCheck-GPT",
+    "label": 0,
+    "nli_score": 0.071311
+  },
+  {
+    "dataset": "Lfqa",
+    "label": 0,
+    "nli_score": 0.789163
+  },
+  {
+    "dataset": "Lfqa",
+    "label": 1,
+    "nli_score": 0.924936
+  },
+  {
+    "dataset": "Lfqa",
+    "label": 0,
+    "nli_score": 0.559792
+  },
+  {
+    "dataset": "Lfqa",
+    "label": 1,
+    "nli_score": 0.769154
+  },
+  {
+    "dataset": "Lfqa",
+    "label": 1,
+    "nli_score": 0.899546
+  },
+  {
+    "dataset": "RAGTruth",
+    "label": 1,
+    "nli_score": 0.80443
+  },
+  {
+    "dataset": "RAGTruth",
+    "label": 1,
+    "nli_score": 0.92209
+  },
+  {
+    "dataset": "RAGTruth",
+    "label": 1,
+    "nli_score": 0.814146
+  },
+  {
+    "dataset": "RAGTruth",
+    "label": 1,
+    "nli_score": 0.9813
+  },
+  {
+    "dataset": "RAGTruth",
+    "label": 1,
+    "nli_score": 0.897077
+  },
+  {
+    "dataset": "Reveal",
+    "label": 0,
+    "nli_score": 0.012641
+  },
+  {
+    "dataset": "Reveal",
+    "label": 0,
+    "nli_score": 0.444699
+  },
+  {
+    "dataset": "Reveal",
+    "label": 1,
+    "nli_score": 0.966625
+  },
+  {
+    "dataset": "Reveal",
+    "label": 0,
+    "nli_score": 0.108211
+  },
+  {
+    "dataset": "Reveal",
+    "label": 0,
+    "nli_score": 0.006278
+  },
+  {
+    "dataset": "TofuEval-MediaS",
+    "label": 1,
+    "nli_score": 0.882279
+  },
+  {
+    "dataset": "TofuEval-MediaS",
+    "label": 1,
+    "nli_score": 0.677997
+  },
+  {
+    "dataset": "TofuEval-MediaS",
+    "label": 0,
+    "nli_score": 0.073889
+  },
+  {
+    "dataset": "TofuEval-MediaS",
+    "label": 1,
+    "nli_score": 0.38652
+  },
+  {
+    "dataset": "TofuEval-MediaS",
+    "label": 1,
+    "nli_score": 0.720668
+  },
+  {
+    "dataset": "TofuEval-MeetB",
+    "label": 1,
+    "nli_score": 0.182842
+  },
+  {
+    "dataset": "TofuEval-MeetB",
+    "label": 1,
+    "nli_score": 0.827829
+  },
+  {
+    "dataset": "TofuEval-MeetB",
+    "label": 1,
+    "nli_score": 0.540488
+  },
+  {
+    "dataset": "TofuEval-MeetB",
+    "label": 1,
+    "nli_score": 0.867268
+  },
+  {
+    "dataset": "TofuEval-MeetB",
+    "label": 1,
+    "nli_score": 0.869785
+  },
+  {
+    "dataset": "Wice",
+    "label": 0,
+    "nli_score": 0.01749
+  },
+  {
+    "dataset": "Wice",
+    "label": 0,
+    "nli_score": 0.904582
+  },
+  {
+    "dataset": "Wice",
+    "label": 0,
+    "nli_score": 0.027374
+  },
+  {
+    "dataset": "Wice",
+    "label": 1,
+    "nli_score": 0.681081
+  },
+  {
+    "dataset": "Wice",
+    "label": 0,
+    "nli_score": 0.013795
+  }
+]

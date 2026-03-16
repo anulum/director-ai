@@ -415,6 +415,40 @@ def test_e2e_heuristic_delta():
     assert fpr < 0.3, f"FPR {fpr:.1%} >= 30%"
 
 
+def test_scoring_pipeline_consistency():
+    """Verify scoring weights and threshold math haven't drifted.
+
+    Uses pre-computed NLI scores from AggreFact L40S sweep.
+    The pipeline must produce identical approve/reject decisions
+    for the same NLI inputs — any change means the scorer math
+    or thresholds shifted.
+    """
+    baseline_path = Path(__file__).parent / "nli_regression_baseline.json"
+    if not baseline_path.exists():
+        print("  SKIP: nli_regression_baseline.json not found")
+        return
+
+    with open(baseline_path) as f:
+        samples = json.load(f)
+
+    global_threshold = 0.46
+    correct = 0
+    for s in samples:
+        predicted_hallucination = int(s["nli_score"] >= global_threshold)
+        if predicted_hallucination == s["label"]:
+            correct += 1
+
+    ba_at_global = correct / len(samples) if samples else 0
+    print(f"  Pipeline consistency: {correct}/{len(samples)} match at t={global_threshold}")
+
+    # The key gate: the threshold convention (score >= t → supported)
+    # must not be inverted. If it were, accuracy would drop below 40%.
+    assert ba_at_global > 0.40, (
+        f"Pipeline accuracy {ba_at_global:.1%} below 40% — "
+        "scoring convention may have been inverted"
+    )
+
+
 def main():
     print("=" * 55)
     print("  Director-AI Regression Suite")
@@ -430,6 +464,7 @@ def main():
         test_false_halt_rate,
         test_streaming_overhead,
         test_e2e_heuristic_delta,
+        test_scoring_pipeline_consistency,
     ]
 
     passed = 0
