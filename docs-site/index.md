@@ -2,7 +2,7 @@
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
-<span class="version-badge">v3.8 — New: hybrid judge, ONNX export, Rust FFI, config profiles</span>
+<span class="version-badge">v3.9 — New: VerifiedScorer, document ingestion API, mode selector, ColBERT</span>
 
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
 [![Tests](https://img.shields.io/badge/tests-200%2B%20passing-brightgreen)]()
@@ -119,4 +119,4 @@ AGPL-3.0 for open source / research. [Commercial licensing](licensing.md) availa
 
 ---
 
-*Maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.8.0.*
+*Maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.9.0.*
