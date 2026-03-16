@@ -1,4 +1,4 @@
-# Public API — Director-AI v3.7.0
+# Public API — Director-AI v3.9.0
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -6,20 +6,31 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 
 | Class | Module | Description |
 |-------|--------|-------------|
-| `CoherenceScorer` | `core.scorer` | Dual-entropy coherence scorer |
+| `CoherenceScorer` | `core.scorer` | Weighted NLI divergence scorer |
 | `CoherenceAgent` | `core.agent` | End-to-end orchestrator (generator → scorer → kernel) |
-| `SafetyKernel` | `core.kernel` | Output interlock with hard limit |
+| `HaltMonitor` | `core.kernel` | Threshold-based halt gate for output stream |
+| `SafetyKernel` | `core.kernel` | Alias for `HaltMonitor` (backward compat) |
 | `StreamingKernel` | `core.streaming` | Token-by-token oversight with halt |
 | `AsyncStreamingKernel` | `core.async_streaming` | Async version of StreamingKernel |
 | `NLIScorer` | `core.nli` | NLI-based divergence scorer |
 | `ShardedNLIScorer` | `core.sharded_nli` | Multi-GPU round-robin NLI |
 | `LiteScorer` | `core.lite_scorer` | Lightweight heuristic scorer |
-| `GroundTruthStore` | `core.knowledge` | In-memory RAG store |
+| `GroundTruthStore` | `core.knowledge` | In-memory keyword fact store |
 | `VectorGroundTruthStore` | `core.vector_store` | Vector DB RAG store |
 | `ScoreCache` | `core.cache` | LRU score cache |
 | `InputSanitizer` | `core.sanitizer` | Prompt injection detection |
 | `ConversationSession` | `core.session` | Multi-turn conversation tracker |
 | `DirectorConfig` | `core.config` | Configuration dataclass |
+| `VerifiedScorer` | `core.verified_scorer` | Sentence-level multi-signal fact verifier |
+| `DatasetTypeClassifier` | `core.meta_classifier` | Adaptive threshold via dataset-type prediction |
+| `MetaClassifier` | `core.meta_classifier` | Alias for `DatasetTypeClassifier` (backward compat) |
+
+## Verified Scoring Types
+
+| Type | Module | Description |
+|------|--------|-------------|
+| `ClaimVerdict` | `core.verified_scorer` | Per-claim verdict with source citation |
+| `VerificationResult` | `core.verified_scorer` | Overall verification with per-claim breakdown |
 
 ## Data Types
 
@@ -62,6 +73,8 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `QdrantBackend` | `core.vector_store` | Qdrant backend |
 | `FAISSBackend` | `core.vector_store` | FAISS backend |
 | `ElasticsearchBackend` | `core.vector_store` | Elasticsearch backend |
+| `HybridBackend` | `core.vector_store` | BM25 + dense with Reciprocal Rank Fusion |
+| `ColBERTBackend` | `core.vector_store` | ColBERT v2 late-interaction retrieval |
 
 ## Vector Backend Plugin API
 
@@ -144,6 +157,32 @@ bypass the queue.
 | `get_score()` | `integrations.sdk_guard` | Retrieve last score from context |
 | `create_app()` | `server` | Create FastAPI app |
 | `create_grpc_server()` | `grpc_server` | Create gRPC server (optional TLS) |
+| `score()` | `integrations.sdk_guard` | One-call scoring convenience function |
+| `clear_model_cache()` | `core.nli` | Evict cached NLI models to free GPU memory |
+| `create_knowledge_router()` | `knowledge_api` | Knowledge ingestion API router |
+
+## REST Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| `POST` | `/v1/review` | Score a prompt/response pair |
+| `POST` | `/v1/verify` | Sentence-level multi-signal verification |
+| `POST` | `/v1/process` | Full agent pipeline (generate + score) |
+| `POST` | `/v1/batch` | Batch review/process |
+| `GET` | `/v1/health` | Liveness probe (version, mode, uptime) |
+| `GET` | `/v1/ready` | Readiness probe (503 if NLI not loaded) |
+| `GET` | `/v1/source` | AGPL §13 source access |
+| `GET` | `/v1/config` | Config introspection |
+| `GET` | `/v1/metrics` | JSON metrics |
+| `GET` | `/v1/metrics/prometheus` | Prometheus text format |
+| `POST` | `/v1/knowledge/upload` | Upload file → parse → chunk → embed |
+| `POST` | `/v1/knowledge/ingest` | Ingest raw text → chunk → embed |
+| `GET` | `/v1/knowledge/documents` | List documents per tenant |
+| `GET` | `/v1/knowledge/documents/{id}` | Document metadata |
+| `DELETE` | `/v1/knowledge/documents/{id}` | Delete document and chunks |
+| `PUT` | `/v1/knowledge/documents/{id}` | Re-ingest updated content |
+| `GET` | `/v1/knowledge/search` | Test retrieval quality |
+| `POST` | `/v1/knowledge/tune-embeddings` | Fine-tune embeddings on ingested docs |
 
 ## Exceptions
 
@@ -156,6 +195,8 @@ bypass the queue.
 | `ValidationError` | `core.exceptions` |
 | `DependencyError` | `core.exceptions` |
 | `HallucinationError` | `core.exceptions` |
+| `NumericalError` | `core.exceptions` |
+| `PhysicsError` | `core.exceptions` |
 
 ## Removed Aliases (v3.0.0)
 
