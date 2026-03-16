@@ -1095,6 +1095,103 @@ class ElasticsearchBackend(VectorBackend):
         return self._count
 
 
+class ColBERTBackend(VectorBackend):
+    """ColBERT v2 late-interaction retrieval via RAGatouille.
+
+    Each token gets its own embedding vector. Matching uses MaxSim
+    across all token pairs — much more accurate than single-vector
+    bi-encoders for partial and domain-specific matches.
+
+    Requires ``pip install ragatouille``.
+    """
+
+    def __init__(
+        self,
+        model_name: str = "colbert-ir/colbertv2.0",
+        index_name: str = "director_colbert",
+        persist_dir: str = "",
+    ) -> None:
+        try:
+            from ragatouille import RAGPretrainedModel
+        except ImportError as e:
+            raise ImportError(
+                "ColBERTBackend requires ragatouille. "
+                "Install with: pip install ragatouille",
+            ) from e
+        self._model = RAGPretrainedModel.from_pretrained(model_name)
+        self._index_name = index_name
+        self._persist_dir = persist_dir
+        self._docs: list[dict[str, Any]] = []
+        self._indexed = False
+        self._lock = threading.Lock()
+
+    def add(
+        self,
+        doc_id: str,
+        text: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
+        with self._lock:
+            self._docs.append(
+                {
+                    "id": doc_id,
+                    "text": text,
+                    "metadata": metadata or {},
+                }
+            )
+            self._indexed = False
+
+    def _ensure_index(self) -> None:
+        if self._indexed or not self._docs:
+            return
+        texts = [d["text"] for d in self._docs]
+        doc_ids = [d["id"] for d in self._docs]
+        kwargs: dict[str, Any] = {
+            "collection": texts,
+            "document_ids": doc_ids,
+            "index_name": self._index_name,
+            "split_documents": False,
+        }
+        if self._persist_dir:
+            kwargs["use_faiss"] = True
+        self._model.index(**kwargs)
+        self._indexed = True
+
+    def query(
+        self,
+        text: str,
+        n_results: int = 3,
+        tenant_id: str = "",
+    ) -> list[dict[str, Any]]:
+        with self._lock:
+            self._ensure_index()
+            if not self._indexed:
+                return []
+        results = self._model.search(text, k=n_results)
+        docs: list[dict[str, Any]] = []
+        for r in results:
+            doc_meta = {}
+            for d in self._docs:
+                if d["id"] == r.get("document_id"):
+                    doc_meta = d["metadata"]
+                    break
+            docs.append(
+                {
+                    "text": r.get("content", ""),
+                    "distance": 1.0 - r.get("score", 0.0),
+                    "metadata": {**doc_meta, "doc_id": r.get("document_id", "")},
+                }
+            )
+        return docs
+
+    def count(self) -> int:
+        with self._lock:
+            return len(self._docs)
+
+
+register_vector_backend("colbert", ColBERTBackend)
+
+
 class VectorGroundTruthStore(GroundTruthStore):
     """Ground truth store with vector-based semantic retrieval.
 

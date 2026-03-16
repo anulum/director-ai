@@ -1039,6 +1039,30 @@ class CoherenceScorer:
         if self._should_escalate(nli_score):
             nli_score = self._llm_judge_check(prompt, text_output, nli_score)
 
+        # Sentence-level attribution: map each response sentence to its
+        # best-matching source sentence with divergence score.
+        attributions = None
+        claim_coverage = None
+        per_claim_divs = None
+        claims_list = None
+        if (
+            self._rag_claim_decomposition
+            and self._nli
+            and self._nli.model_available
+            and context
+            and len(text_output) > 100
+        ):
+            import contextlib
+
+            with contextlib.suppress(ValueError, RuntimeError):
+                claim_coverage, per_claim_divs, claims_list, attributions = (
+                    self._nli.score_claim_coverage_with_attribution(
+                        context,
+                        text_output,
+                        support_threshold=self._claim_support_threshold,
+                    )
+                )
+
         evidence = ScoringEvidence(
             chunks=chunks,
             nli_premise=context,
@@ -1047,6 +1071,10 @@ class CoherenceScorer:
             chunk_scores=chunk_scores,
             premise_chunk_count=prem_count,
             hypothesis_chunk_count=hyp_count,
+            claim_coverage=claim_coverage,
+            per_claim_divergences=per_claim_divs,
+            claims=claims_list,
+            attributions=attributions,
             token_count=tok_count or None,
             estimated_cost_usd=(
                 tok_count * self._nli._cost_per_token

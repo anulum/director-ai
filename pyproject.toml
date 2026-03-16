@@ -119,6 +119,9 @@ ingestion = [
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
 ]
+colbert = [
+    "ragatouille>=0.0.8",
+]
 rust = ["backfire-kernel>=0.1.0"]
 enterprise = [
     "redis>=4.5",

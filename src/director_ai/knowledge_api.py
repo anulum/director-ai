@@ -296,4 +296,55 @@ def create_knowledge_router() -> APIRouter:
             ],
         }
 
+    @router.post("/tune-embeddings")
+    async def tune_embeddings_endpoint(request: Request):
+        """Fine-tune embedding model on ingested documents.
+
+        Builds contrastive pairs from adjacent chunks within documents,
+        trains for a few epochs, and saves the tuned model. After tuning,
+        re-ingest documents to use the improved embeddings.
+        """
+        tenant_id = _get_tenant(request)
+        registry = _get_registry(request)
+        docs = registry.list_for_tenant(tenant_id)
+
+        if len(docs) < 2:
+            raise HTTPException(
+                422,
+                f"Need at least 2 documents for tuning, got {len(docs)}",
+            )
+
+        store = _get_store(request)
+        documents: list[list[str]] = []
+        for doc in docs:
+            chunks = []
+            for cid in doc.chunk_ids:
+                text = store.facts.get(cid, "")
+                if text:
+                    chunks.append(text)
+            if len(chunks) >= 2:
+                documents.append(chunks)
+
+        if len(documents) < 2:
+            raise HTTPException(
+                422,
+                "Need at least 2 documents with 2+ chunks each",
+            )
+
+        from .core.embedding_tuner import tune_embeddings
+
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None,
+            tune_embeddings,
+            documents,
+        )
+
+        return {
+            "model_path": result.model_path,
+            "train_samples": result.train_samples,
+            "epochs": result.epochs,
+            "message": "Re-ingest documents to use tuned embeddings",
+        }
+
     return router
