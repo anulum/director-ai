@@ -281,7 +281,7 @@ def _cmd_batch(args: list[str]) -> None:
         sys.exit(1)
 
     from director_ai.core.agent import CoherenceAgent
-    from director_ai.core.batch import BatchProcessor
+    from director_ai.core.runtime.batch import BatchProcessor
 
     prompts: list[str] = []
     with open(input_file, encoding="utf-8") as f:
@@ -502,7 +502,7 @@ def _cmd_eval(args: list[str]) -> None:
             i += 1
 
     if quantize_mode:
-        from director_ai.core.nli import export_onnx
+        from director_ai.core.scoring.nli import export_onnx
 
         print(f"Exporting ONNX with {quantize_mode} quantization...")
         export_onnx(quantize=quantize_mode)
@@ -697,7 +697,7 @@ def _cmd_tune(args: list[str]) -> None:
         print("Error: no valid samples found")
         sys.exit(1)
 
-    from director_ai.core.tuner import tune
+    from director_ai.core.training.tuner import tune
 
     result = tune(samples)
 
@@ -752,7 +752,7 @@ def _cmd_finetune(args: list[str]) -> None:
         print(f"Error: file not found: {train_file}")
         sys.exit(1)
 
-    from director_ai.core.finetune import FinetuneConfig, finetune_nli
+    from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
 
     config = FinetuneConfig()
     eval_file = None
@@ -836,7 +836,7 @@ def _cmd_validate_data(args: list[str]) -> None:
         print(f"Error: file not found: {data_file}")
         sys.exit(1)
 
-    from director_ai.core.finetune_validator import validate_finetune_data
+    from director_ai.core.training.finetune_validator import validate_finetune_data
 
     report = validate_finetune_data(data_file)
     print(report.summary())
@@ -893,7 +893,7 @@ def _cmd_export(args: list[str]) -> None:
             i += 1
 
     if fmt == "onnx":
-        from director_ai.core.nli import export_onnx
+        from director_ai.core.scoring.nli import export_onnx
 
         print(f"Exporting ONNX model to {output_dir}...")
         export_onnx(
@@ -903,7 +903,7 @@ def _cmd_export(args: list[str]) -> None:
         )
         print(f"Done. Load with: NLIScorer(backend='onnx', onnx_path='{output_dir}')")
     elif fmt == "tensorrt":
-        from director_ai.core.nli import export_tensorrt
+        from director_ai.core.scoring.nli import export_tensorrt
 
         print(f"Building TensorRT engine cache from {onnx_dir}...")
         cache_dir = export_tensorrt(onnx_dir=onnx_dir, output_dir=output_dir, fp16=fp16)
@@ -1110,7 +1110,7 @@ def _cmd_stress_test(args: list[str]) -> None:
         else:
             i += 1
 
-    from director_ai.core.streaming import StreamingKernel
+    from director_ai.core.runtime.streaming import StreamingKernel
 
     def _coherence_cb(token):
         h = hash(token) & 0xFFFFFFFF
@@ -1207,7 +1207,7 @@ def _cmd_doctor(args: list[str]) -> None:
 
     # NLI model availability
     try:
-        from director_ai.core.nli import nli_available
+        from director_ai.core.scoring.nli import nli_available
 
         avail = nli_available()
         detail = "torch+transformers" if avail else "missing deps"

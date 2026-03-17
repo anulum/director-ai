@@ -15,12 +15,12 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from ..enterprise.redactor import PIIRedactor
-from .cache import ScoreCache
-from .metrics import metrics
+from ...enterprise.redactor import PIIRedactor
+from ..cache import ScoreCache
+from ..metrics import metrics
 from .nli import NLIScorer, nli_available
-from .otel import trace_review
-from .types import CoherenceScore, EvidenceChunk, ScoringEvidence
+from ..otel import trace_review
+from ..types import CoherenceScore, EvidenceChunk, ScoringEvidence
 
 __all__ = ["CoherenceScorer"]
 
@@ -841,7 +841,7 @@ class CoherenceScorer:
         # Calibrated abstention: if retrieval returns low-quality results,
         # report insufficient context rather than a misleading score.
         if self._retrieval_abstention_threshold > 0:
-            from .vector_store import VectorGroundTruthStore
+            from ..retrieval.vector_store import VectorGroundTruthStore
 
             if isinstance(self.ground_truth_store, VectorGroundTruthStore):
                 chunks = self.ground_truth_store.retrieve_context_with_chunks(
@@ -975,7 +975,7 @@ class CoherenceScorer:
         with metrics.timer("factual_retrieval_seconds"):
             chunks: list[EvidenceChunk] = []
             context: str | None = None
-            from .vector_store import VectorGroundTruthStore
+            from ..retrieval.vector_store import VectorGroundTruthStore
 
             if isinstance(self.ground_truth_store, VectorGroundTruthStore):
                 chunks = self.ground_truth_store.retrieve_context_with_chunks(
@@ -1516,7 +1516,7 @@ class CoherenceScorer:
         contexts: dict[int, str | None] = {}
         chunks_map: dict[int, list[EvidenceChunk]] = {}
         if self.ground_truth_store:
-            from .vector_store import VectorGroundTruthStore
+            from ..retrieval.vector_store import VectorGroundTruthStore
 
             is_vector = isinstance(self.ground_truth_store, VectorGroundTruthStore)
 

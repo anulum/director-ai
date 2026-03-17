@@ -527,7 +527,7 @@ class DirectorConfig:
         In ``grounded`` and ``auto`` modes, builds the full vector pipeline.
         """
         if self.mode == "general":
-            from .knowledge import GroundTruthStore
+            from .retrieval.knowledge import GroundTruthStore
 
             logger.info("Mode 'general': no vector store (NLI-only scoring)")
             return GroundTruthStore()
@@ -545,12 +545,12 @@ class DirectorConfig:
                     "falling back to local vector store",
                 )
 
-        from .vector_store import InMemoryBackend, VectorBackend, VectorGroundTruthStore
+        from .retrieval.vector_store import InMemoryBackend, VectorBackend, VectorGroundTruthStore
 
         backend: VectorBackend
         if self.vector_backend == "chroma":
             try:
-                from .vector_store import ChromaBackend
+                from .retrieval.vector_store import ChromaBackend
 
                 backend = ChromaBackend(
                     collection_name=self.chroma_collection,
@@ -561,7 +561,7 @@ class DirectorConfig:
                 backend = InMemoryBackend()
         elif self.vector_backend == "sentence-transformer":
             try:
-                from .vector_store import SentenceTransformerBackend
+                from .retrieval.vector_store import SentenceTransformerBackend
 
                 backend = SentenceTransformerBackend(
                     model_name=self.embedding_model,
@@ -574,7 +574,7 @@ class DirectorConfig:
         else:
             # Try vector backend registry for third-party / unrecognized names
             try:
-                from .vector_store import get_vector_backend
+                from .retrieval.vector_store import get_vector_backend
 
                 backend_cls = get_vector_backend(self.vector_backend)
                 backend = backend_cls()
@@ -587,7 +587,7 @@ class DirectorConfig:
 
         if self.hybrid_retrieval:
             try:
-                from .vector_store import HybridBackend
+                from .retrieval.vector_store import HybridBackend
 
                 backend = HybridBackend(base=backend)
                 logger.info("Hybrid retrieval enabled (BM25 + dense + RRF)")
@@ -596,7 +596,7 @@ class DirectorConfig:
 
         if self.reranker_enabled:
             try:
-                from .vector_store import RerankedBackend
+                from .retrieval.vector_store import RerankedBackend
 
                 backend = RerankedBackend(
                     base=backend,
@@ -611,7 +611,7 @@ class DirectorConfig:
 
     def build_scorer(self, store=None):
         """Construct a CoherenceScorer wired to all relevant config fields."""
-        from .scorer import CoherenceScorer
+        from .scoring.scorer import CoherenceScorer
 
         if store is None:
             store = self.build_store()

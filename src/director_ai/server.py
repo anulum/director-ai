@@ -246,9 +246,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         app.state._state = {}  # Initialize _state on app.state
 
         from .core.agent import CoherenceAgent
-        from .core.audit import AuditLogger
-        from .core.batch import BatchProcessor
-        from .core.sanitizer import InputSanitizer
+        from .core.safety.audit import AuditLogger
+        from .core.runtime.batch import BatchProcessor
+        from .core.safety.sanitizer import InputSanitizer
         from .core.tenant import TenantRouter
 
         if cfg.sanitize_inputs:
@@ -300,7 +300,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         review_queue = None
         if cfg.review_queue_enabled:
-            from .core.review_queue import ReviewQueue
+            from .core.runtime.review_queue import ReviewQueue
 
             review_queue = ReviewQueue(
                 scorer,
@@ -328,7 +328,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             app.state._state["tenant_router"] = TenantRouter()
             logger.info("Tenant routing enabled")
 
-        from .core.doc_registry import DocRegistry
+        from .core.retrieval.doc_registry import DocRegistry
 
         app.state._state["doc_registry"] = DocRegistry()
 
@@ -596,7 +596,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         session = None
         if req.session_id:
-            from .core.session import ConversationSession
+            from .core.runtime.session import ConversationSession
 
             caller_hash = getattr(request.state, "api_key_hash", "")
             async with request.app.state._state["sessions_lock"]:
@@ -693,7 +693,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         """
         import asyncio
 
-        from .core.verified_scorer import VerifiedScorer
+        from .core.scoring.verified_scorer import VerifiedScorer
 
         scorer = request.app.state._state.get("scorer")
         if scorer is None:

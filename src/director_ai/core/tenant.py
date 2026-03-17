@@ -29,9 +29,9 @@ import time
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from .knowledge import GroundTruthStore
-from .scorer import CoherenceScorer
-from .vector_store import (
+from .retrieval.knowledge import GroundTruthStore
+from .scoring.scorer import CoherenceScorer
+from .retrieval.vector_store import (
     InMemoryBackend,
     VectorBackend,
     VectorGroundTruthStore,
@@ -121,7 +121,7 @@ class TenantRouter:
         if backend_type == "memory":
             return InMemoryBackend()
         if backend_type == "chroma":
-            from .vector_store import ChromaBackend
+            from .retrieval.vector_store import ChromaBackend
 
             return ChromaBackend(
                 collection_name=kwargs.get(
@@ -131,14 +131,14 @@ class TenantRouter:
                 **{k: v for k, v in kwargs.items() if k != "collection_name"},
             )
         if backend_type == "pinecone":
-            from .vector_store import PineconeBackend
+            from .retrieval.vector_store import PineconeBackend
 
             return PineconeBackend(
                 namespace=kwargs.pop("namespace", tenant_id),
                 **kwargs,
             )
         if backend_type == "qdrant":
-            from .vector_store import QdrantBackend
+            from .retrieval.vector_store import QdrantBackend
 
             return QdrantBackend(
                 collection_name=kwargs.get(

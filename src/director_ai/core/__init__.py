@@ -7,42 +7,29 @@
 
 """Coherence Engine — consumer-ready AI output verification.
 
-Quick start::
+Subpackages::
 
-    from director_ai.core import CoherenceAgent
+    core.scoring    — NLI, heuristic, and verified scorers
+    core.retrieval  — knowledge stores, vector backends, chunking
+    core.runtime    — streaming kernels, sessions, batching
+    core.safety     — sanitizer, policy, audit
+    core.training   — fine-tuning, threshold tuning, benchmarking
 
-    agent = CoherenceAgent()
-    result = agent.process("What color is the sky?")
-    print(result.output, result.coherence)
+All public symbols are re-exported here for backward compatibility::
+
+    from director_ai.core import CoherenceScorer, HaltMonitor, ...
 """
 
-from .actor import LLMGenerator, MockGenerator
-from .agent import CoherenceAgent
-from .async_streaming import AsyncStreamingKernel
-from .backends import ScorerBackend, get_backend, list_backends, register_backend
-from .cache import ScoreCache
-from .config import DirectorConfig
-from .finetune import FinetuneConfig, FinetuneResult, finetune_nli
-from .finetune_benchmark import RegressionReport, benchmark_finetuned_model
-from .finetune_validator import DataQualityReport, validate_finetune_data
-from .kernel import HaltMonitor, SafetyKernel
-from .knowledge import GroundTruthStore
-from .lite_scorer import LiteScorer
-from .nli import NLIScorer, export_onnx, nli_available
-from .sanitizer import InputSanitizer, SanitizeResult
-from .scorer import CoherenceScorer
-from .session import ConversationSession, Turn
-from .sharded_nli import ShardedNLIScorer
-from .streaming import StreamingKernel, StreamSession, TokenEvent
-from .types import (
-    ClaimAttribution,
-    CoherenceScore,
-    EvidenceChunk,
-    HaltEvidence,
-    ReviewResult,
-    ScoringEvidence,
-)
-from .vector_store import (
+# --- Scoring ---
+from .scoring.backends import ScorerBackend, get_backend, list_backends, register_backend
+from .scoring.lite_scorer import LiteScorer
+from .scoring.nli import NLIScorer, export_onnx, nli_available
+from .scoring.scorer import CoherenceScorer
+from .scoring.sharded_nli import ShardedNLIScorer
+
+# --- Retrieval ---
+from .retrieval.knowledge import GroundTruthStore
+from .retrieval.vector_store import (
     ChromaBackend,
     InMemoryBackend,
     RerankedBackend,
@@ -54,44 +41,85 @@ from .vector_store import (
     register_vector_backend,
 )
 
+# --- Runtime ---
+from .runtime.async_streaming import AsyncStreamingKernel
+from .runtime.batch import BatchProcessor, BatchResult
+from .runtime.kernel import HaltMonitor, SafetyKernel
+from .runtime.review_queue import ReviewQueue
+from .runtime.session import ConversationSession, Turn
+from .runtime.streaming import StreamingKernel, StreamSession, TokenEvent
+
+# --- Safety ---
+from .safety.sanitizer import InputSanitizer, SanitizeResult
+
+# --- Training ---
+from .training.finetune import FinetuneConfig, FinetuneResult, finetune_nli
+from .training.finetune_benchmark import RegressionReport, benchmark_finetuned_model
+from .training.finetune_validator import DataQualityReport, validate_finetune_data
+
+# --- Core-level modules (not moved) ---
+from .actor import LLMGenerator, MockGenerator
+from .agent import CoherenceAgent
+from .cache import ScoreCache
+from .config import DirectorConfig
+from .types import (
+    ClaimAttribution,
+    CoherenceScore,
+    EvidenceChunk,
+    HaltEvidence,
+    ReviewResult,
+    ScoringEvidence,
+)
+
 __all__ = [
-    "AsyncStreamingKernel",
-    "ChromaBackend",
-    "ClaimAttribution",
-    "CoherenceAgent",
-    "CoherenceScore",
+    # Scoring
     "CoherenceScorer",
-    "ConversationSession",
-    "DataQualityReport",
-    "DirectorConfig",
-    "EvidenceChunk",
-    "FinetuneConfig",
-    "FinetuneResult",
-    "GroundTruthStore",
-    "HaltEvidence",
-    "InMemoryBackend",
-    "InputSanitizer",
-    "LLMGenerator",
     "LiteScorer",
-    "MockGenerator",
     "NLIScorer",
-    "RegressionReport",
-    "RerankedBackend",
-    "ReviewResult",
-    "HaltMonitor",
-    "SafetyKernel",
-    "SanitizeResult",
-    "ScoreCache",
     "ScorerBackend",
-    "ScoringEvidence",
-    "SentenceTransformerBackend",
     "ShardedNLIScorer",
+    # Retrieval
+    "ChromaBackend",
+    "GroundTruthStore",
+    "InMemoryBackend",
+    "RerankedBackend",
+    "SentenceTransformerBackend",
+    "VectorBackend",
+    "VectorGroundTruthStore",
+    # Runtime
+    "AsyncStreamingKernel",
+    "BatchProcessor",
+    "BatchResult",
+    "HaltMonitor",
+    "ReviewQueue",
+    "SafetyKernel",
     "StreamSession",
     "StreamingKernel",
     "TokenEvent",
+    # Safety
+    "InputSanitizer",
+    "SanitizeResult",
+    # Training
+    "DataQualityReport",
+    "FinetuneConfig",
+    "FinetuneResult",
+    "RegressionReport",
+    # Types
+    "ClaimAttribution",
+    "CoherenceScore",
+    "ConversationSession",
+    "EvidenceChunk",
+    "HaltEvidence",
+    "ReviewResult",
+    "ScoringEvidence",
     "Turn",
-    "VectorBackend",
-    "VectorGroundTruthStore",
+    # Orchestration
+    "CoherenceAgent",
+    "DirectorConfig",
+    "LLMGenerator",
+    "MockGenerator",
+    "ScoreCache",
+    # Functions
     "benchmark_finetuned_model",
     "export_onnx",
     "finetune_nli",
@@ -107,10 +135,10 @@ __all__ = [
 
 _MOVED_TO_ENTERPRISE = {
     "TenantRouter": ".tenant",
-    "Policy": ".policy",
-    "Violation": ".policy",
-    "AuditLogger": ".audit",
-    "AuditEntry": ".audit",
+    "Policy": ".safety.policy",
+    "Violation": ".safety.policy",
+    "AuditLogger": ".safety.audit",
+    "AuditEntry": ".safety.audit",
 }
 
 

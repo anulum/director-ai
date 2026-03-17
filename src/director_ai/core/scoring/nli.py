@@ -25,7 +25,7 @@ from functools import lru_cache
 
 import numpy as np
 
-from .metrics import metrics
+from ..metrics import metrics
 
 __all__ = [
     "NLIScorer",
@@ -1322,7 +1322,7 @@ class NLIScorer:
         For each claim, finds the source sentence with lowest divergence
         (best evidence match). Returns list of ClaimAttribution objects.
         """
-        from .types import ClaimAttribution
+        from ..types import ClaimAttribution
 
         claims = self.decompose_claims(summary)
         source_sents = self._split_sentences(source)

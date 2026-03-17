@@ -71,7 +71,7 @@ def _get_registry(request: Request):
 
 
 def _get_store(request: Request):
-    from .core.vector_store import VectorGroundTruthStore
+    from .core.retrieval.vector_store import VectorGroundTruthStore
 
     scorer = request.app.state._state.get("scorer")
     if scorer is None:
@@ -88,7 +88,7 @@ def _get_store(request: Request):
 def _chunk_and_store(
     text: str, doc_id: str, tenant_id: str, store, chunk_size: int, overlap: int
 ) -> list[str]:
-    from .core.doc_chunker import ChunkConfig, split
+    from .core.retrieval.doc_chunker import ChunkConfig, split
 
     chunks = split(text, ChunkConfig(chunk_size=chunk_size, overlap=overlap))
     chunk_ids = [f"{doc_id}:chunk:{i}" for i in range(len(chunks))]
@@ -143,7 +143,7 @@ def create_knowledge_router() -> APIRouter:
                 413, f"File exceeds {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit"
             )
 
-        from .core.doc_parser import parse
+        from .core.retrieval.doc_parser import parse
 
         try:
             text = parse(content, filename)
@@ -355,7 +355,7 @@ def create_knowledge_router() -> APIRouter:
                 "Need at least 2 documents with 2+ chunks each",
             )
 
-        from .core.embedding_tuner import tune_embeddings
+        from .core.retrieval.embedding_tuner import tune_embeddings
 
         loop = asyncio.get_running_loop()
         result = await loop.run_in_executor(

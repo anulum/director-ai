@@ -30,8 +30,8 @@ import contextlib
 import functools
 import logging
 
-from .metrics import metrics
-from .types import CoherenceScore
+from ..metrics import metrics
+from ..types import CoherenceScore
 
 _ReviewResult = tuple[bool, CoherenceScore]
 

@@ -158,7 +158,7 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
     train_path: Path | None = None
     eval_path: Path | None = None
     try:
-        from director_ai.core.finetune import FinetuneConfig, finetune_nli
+        from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
 
         job.state = "training"
         cfg = job.config
@@ -179,7 +179,7 @@ def _run_training_worker(job: FinetuneJob, data_path: Path, models_dir: Path):
 
         import random
 
-        from director_ai.core.finetune import _load_jsonl
+        from director_ai.core.training.finetune import _load_jsonl
 
         rows = _load_jsonl(data_path)
         rng = random.Random(42)
@@ -278,7 +278,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         try:
             data_path.write_bytes(content)
 
-            from director_ai.core.finetune_validator import validate_finetune_data
+            from director_ai.core.training.finetune_validator import validate_finetune_data
 
             report = validate_finetune_data(str(data_path), epochs=req.epochs)
             return {
@@ -306,7 +306,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         data_path = upload_dir / f"data_{job_id_prefix}.jsonl"
         data_path.write_bytes(content)
 
-        from director_ai.core.finetune_validator import validate_finetune_data
+        from director_ai.core.training.finetune_validator import validate_finetune_data
 
         report = validate_finetune_data(str(data_path))
         if not report.is_valid:

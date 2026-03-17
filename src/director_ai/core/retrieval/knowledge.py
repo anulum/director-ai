@@ -57,7 +57,7 @@ class GroundTruthStore:
         top_k: int = 3,
         tenant_id: str = "",
     ) -> list:
-        from .types import EvidenceChunk
+        from ..types import EvidenceChunk
 
         context_str = self.retrieve_context(query, tenant_id=tenant_id)
         if not context_str:

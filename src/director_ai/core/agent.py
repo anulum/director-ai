@@ -13,10 +13,10 @@ import os
 from collections.abc import AsyncIterator
 
 from .actor import LLMGenerator, MockGenerator
-from .kernel import HaltMonitor
-from .knowledge import GroundTruthStore
-from .scorer import CoherenceScorer
-from .streaming import StreamingKernel
+from .runtime.kernel import HaltMonitor
+from .retrieval.knowledge import GroundTruthStore
+from .scoring.scorer import CoherenceScorer
+from .runtime.streaming import StreamingKernel
 from .types import HaltEvidence, ReviewResult
 
 __all__ = ["CoherenceAgent"]
@@ -85,7 +85,7 @@ class CoherenceAgent:
 
     def _build_scorer(self, use_nli):
         """Construct scorer, preferring Rust backend when installed."""
-        from .backends import get_backend
+        from .scoring.backends import get_backend
 
         try:
             get_backend("rust")
@@ -232,7 +232,7 @@ class CoherenceAgent:
 
     def _retrieval_fallback(self, prompt, tenant_id, rej_score, n_candidates):
         """Try RAG retrieval as fallback when all candidates rejected."""
-        from .vector_store import VectorGroundTruthStore
+        from .retrieval.vector_store import VectorGroundTruthStore
 
         if isinstance(self.store, VectorGroundTruthStore):
             context = self.store.retrieve_context(prompt, tenant_id=tenant_id)

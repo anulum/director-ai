@@ -20,7 +20,7 @@ from __future__ import annotations
 from ._heuristics import ENTITY_RE as _ENTITY_RE
 from ._heuristics import NEGATION_WORDS as _NEGATION_WORDS
 from ._heuristics import WORD_RE as _WORD_RE
-from .types import CoherenceScore
+from ..types import CoherenceScore
 
 __all__ = ["LiteScorer"]
 
