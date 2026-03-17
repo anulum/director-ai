@@ -127,13 +127,17 @@ headers. Set `paths=["/api/chat"]` to limit which endpoints are scored.
 ## Installation
 
 ```bash
-pip install director-ai                      # heuristic scoring
-pip install director-ai[nli]                 # NLI model (DeBERTa)
-pip install director-ai[vector]              # ChromaDB knowledge base
-pip install director-ai[finetune]            # domain adaptation
-pip install "director-ai[nli,vector,server]" # production stack
+pip install "director-ai[nli]"              # recommended — NLI model scoring
+pip install "director-ai[nli,vector,server]" # production stack with RAG + REST API
+pip install director-ai                      # heuristic-only (limited accuracy)
 ```
 
+> **Privacy note:** The optional LLM judge mode (`llm_judge_enabled=True`) sends
+> truncated prompt+response fragments (500 chars) to an external provider (OpenAI
+> or Anthropic). Do not enable in privacy-sensitive deployments without user consent.
+> The default NLI-only mode runs entirely locally with no external calls.
+
+Extras: `[vector]` (ChromaDB), `[finetune]` (domain adaptation), `[ingestion]` (PDF/DOCX parsing), `[colbert]` (late-interaction retrieval).
 Framework integrations: `[langchain]`, `[llamaindex]`, `[langgraph]`, `[haystack]`, `[crewai]`.
 
 Full installation guide: [docs](https://anulum.github.io/director-ai/installation/).
