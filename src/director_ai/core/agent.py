@@ -127,41 +127,32 @@ class CoherenceAgent:
             return OpenAIProvider(api_key=api_key)
         return AnthropicProvider(api_key=api_key)
 
+    _ERROR_MARKERS = ("[Timeout]", "[Error]", "[ConnectionError]", "[Connection Error]")
+
     def process(self, prompt: str, tenant_id: str = "") -> ReviewResult:
-        """Process a prompt end-to-end and return the verified output.
-
-        Raises:
-            ValueError: If *prompt* is empty or not a string.
-
-        """
+        """Process a prompt end-to-end and return the verified output."""
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
 
         self.logger.debug("Processing prompt (%d chars)", len(prompt))
-
         candidates = self.generator.generate_candidates(prompt)
 
-        best_response = None
-        best_score = None
-        best_coherence = -1.0
-        best_rejected_text = None
-        best_rejected_score = None
-        best_rejected_coherence = -1.0
+        best, rejected, n = self._score_candidates(candidates, prompt, tenant_id)
 
-        error_markers = (
-            "[Timeout]",
-            "[Error]",
-            "[ConnectionError]",
-            "[Connection Error]",
-        )
+        if best[0] is not None:
+            return self._emit_approved(best, n)
+        return self._handle_rejection(prompt, tenant_id, rejected, n)
+
+    def _score_candidates(self, candidates, prompt, tenant_id):
+        """Score all candidates, return (best_approved, best_rejected, count)."""
+        best = (None, None, -1.0)  # (text, score, coherence)
+        rejected = (None, None, -1.0)
 
         for i, cand in enumerate(candidates):
             text = cand["text"]
-            if any(text.strip().startswith(m) for m in error_markers):
+            if any(text.strip().startswith(m) for m in self._ERROR_MARKERS):
                 self.logger.warning(
-                    "Candidate %d is error text, skipping: %s",
-                    i,
-                    text[:60],
+                    "Candidate %d is error text, skipping: %s", i, text[:60]
                 )
                 continue
             try:
@@ -170,87 +161,94 @@ class CoherenceAgent:
                 approved, score = self.scorer.review(prompt, text)
 
             self.logger.info(
-                f"Candidate {i} Coherence={score.score:.4f} | Approved={approved}",
+                "Candidate %d Coherence=%.4f Approved=%s",
+                i,
+                score.score,
+                approved,
             )
 
-            if approved and score.score > best_coherence:
-                best_coherence = score.score
-                best_response = text
-                best_score = score
-            elif not approved and score.score > best_rejected_coherence:
-                best_rejected_coherence = score.score
-                best_rejected_text = text
-                best_rejected_score = score
+            if approved and score.score > best[2]:
+                best = (text, score, score.score)
+            elif not approved and score.score > rejected[2]:
+                rejected = (text, score, score.score)
 
-        if best_response:
+        return best, rejected, len(candidates)
 
-            def coherence_monitor(token):
-                return best_coherence
+    def _emit_approved(self, best, n_candidates):
+        """Build ReviewResult for the best approved candidate."""
+        text, score, coherence = best
 
-            final_output = self.kernel.stream_output([best_response], coherence_monitor)
-            prefix = ""
-            if best_score and best_score.warning:
-                prefix = self.disclaimer_prefix
-            return ReviewResult(
-                output=f"{prefix}{final_output}",
-                coherence=best_score,
-                halted=False,
-                candidates_evaluated=len(candidates),
+        def coherence_monitor(_token):
+            return coherence
+
+        final_output = self.kernel.stream_output([text], coherence_monitor)
+        prefix = self.disclaimer_prefix if score and score.warning else ""
+        return ReviewResult(
+            output=f"{prefix}{final_output}",
+            coherence=score,
+            halted=False,
+            candidates_evaluated=n_candidates,
+        )
+
+    def _handle_rejection(self, prompt, tenant_id, rejected, n_candidates):
+        """Handle all-candidates-rejected: try fallback or halt."""
+        rej_text, rej_score, rej_coherence = rejected
+
+        if self.fallback == "retrieval":
+            result = self._retrieval_fallback(
+                prompt, tenant_id, rej_score, n_candidates
             )
+            if result:
+                return result
 
-        # All candidates rejected — try fallback
-        if self.fallback and self.fallback == "retrieval":
-            from .vector_store import VectorGroundTruthStore
-
-            if isinstance(self.store, VectorGroundTruthStore):
-                context = self.store.retrieve_context(prompt, tenant_id=tenant_id)
-                if context and isinstance(context, list):
-                    context = "; ".join(c.text for c in context)
-            else:
-                context = self.store.retrieve_context(prompt, tenant_id=tenant_id)
-            if context:
-                return ReviewResult(
-                    output=f"Based on verified sources: {context}",
-                    coherence=best_rejected_score,
-                    halted=False,
-                    candidates_evaluated=len(candidates),
-                    fallback_used=True,
-                )
-
-        if self.fallback and self.fallback == "disclaimer" and best_rejected_text:
+        if self.fallback == "disclaimer" and rej_text:
             return ReviewResult(
-                output=(
-                    "Note: This response could not be fully verified. "
-                    + best_rejected_text
-                ),
-                coherence=best_rejected_score,
+                output="Note: This response could not be fully verified. " + rej_text,
+                coherence=rej_score,
                 halted=False,
-                candidates_evaluated=len(candidates),
+                candidates_evaluated=n_candidates,
                 fallback_used=True,
             )
 
         ev_chunks = []
         nli_scores = None
-        if best_rejected_score and best_rejected_score.evidence:
-            ev_chunks = best_rejected_score.evidence.chunks
-            if best_rejected_score.evidence.chunk_scores:  # pragma: no cover
-                nli_scores = best_rejected_score.evidence.chunk_scores
-        halt_ev = HaltEvidence(
-            reason="all_candidates_rejected",
-            last_score=best_rejected_coherence,
-            evidence_chunks=ev_chunks,
-            nli_scores=nli_scores,
-            suggested_action=(
-                "Rephrase the prompt or add relevant facts to the knowledge base."
-            ),
-        )
+        if rej_score and rej_score.evidence:
+            ev_chunks = rej_score.evidence.chunks
+            if rej_score.evidence.chunk_scores:
+                nli_scores = rej_score.evidence.chunk_scores
         return ReviewResult(
             output="[HALT]: All candidates rejected.",
-            coherence=best_rejected_score,
+            coherence=rej_score,
             halted=True,
-            candidates_evaluated=len(candidates),
-            halt_evidence=halt_ev,
+            candidates_evaluated=n_candidates,
+            halt_evidence=HaltEvidence(
+                reason="all_candidates_rejected",
+                last_score=rej_coherence,
+                evidence_chunks=ev_chunks,
+                nli_scores=nli_scores,
+                suggested_action="Rephrase the prompt or add relevant facts to the knowledge base.",
+            ),
         )
+
+    def _retrieval_fallback(self, prompt, tenant_id, rej_score, n_candidates):
+        """Try RAG retrieval as fallback when all candidates rejected."""
+        from .vector_store import VectorGroundTruthStore
+
+        if isinstance(self.store, VectorGroundTruthStore):
+            context = self.store.retrieve_context(prompt, tenant_id=tenant_id)
+            if context and isinstance(context, list):
+                context = "; ".join(c.text for c in context)
+        else:
+            context = self.store.retrieve_context(prompt, tenant_id=tenant_id)
+        if context:
+            return ReviewResult(
+                output=f"Based on verified sources: {context}",
+                coherence=rej_score,
+                halted=False,
+                candidates_evaluated=n_candidates,
+                fallback_used=True,
+            )
+        return None
 
     async def aprocess(self, prompt: str, tenant_id: str = "") -> ReviewResult:
         """Async version of :meth:`process` via ``run_in_executor``."""
