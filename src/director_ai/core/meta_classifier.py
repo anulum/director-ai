@@ -142,12 +142,21 @@ class DatasetTypeClassifier:
     """
 
     def __init__(self, model_path: str):
+        import hashlib
+
         logger.warning(
             "Loading pickle model from %s — ensure this file is trusted",
             model_path,
         )
         with open(model_path, "rb") as f:
-            bundle = pickle.load(f)  # nosec B301 — warned above; model trusted at deploy time
+            raw = f.read()
+        sha = hashlib.sha256(raw).hexdigest()[:16]
+        logger.info("Model SHA256 prefix: %s (%d bytes)", sha, len(raw))
+        bundle = pickle.loads(raw)  # nosec B301 — warned above; hash logged for auditability
+        if not isinstance(bundle, dict) or "classifier" not in bundle:
+            raise ValueError(
+                f"Invalid model bundle at {model_path}: missing 'classifier' key"
+            )
         self._clf = bundle["classifier"]
         self._scaler = bundle["scaler"]
         self._feature_cols = bundle["feature_cols"]
