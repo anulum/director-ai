@@ -86,7 +86,11 @@ def create_proxy_app(
     app = FastAPI(title="Director-AI Proxy")
     upstream = upstream_url.rstrip("/")
 
-    if api_keys:
+    if not api_keys:
+        _log.warning(
+            "Proxy running WITHOUT authentication. Set api_keys for production use."
+        )
+    else:
 
         @app.middleware("http")
         async def _auth_middleware(request: Request, call_next):
