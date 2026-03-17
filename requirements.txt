@@ -1,6 +1,12 @@
-# Director-Class AI — Core dependencies (for pip-audit in CI)
+# Director-AI — Minimal core dependencies
+#
+# This file is NOT used for CI vulnerability scanning.
+# CI uses hashed lock files in requirements/ (ci-dev.txt, ci-lint.txt, etc.)
+# generated via pip-compile --generate-hashes.
+#
+# This file exists for quick local dev setup only:
+#   pip install -r requirements.txt
+#
+# For production: pip install "director-ai[nli,vector,server]"
 numpy>=1.24
-torch>=2.0
-transformers>=4.30
 requests>=2.28
-scipy>=1.10
