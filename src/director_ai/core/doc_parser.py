@@ -68,7 +68,7 @@ def _parse_html(content: bytes) -> str:
     soup = BeautifulSoup(content, "html.parser")
     for tag in soup(["script", "style", "nav", "footer", "header"]):
         tag.decompose()
-    return soup.get_text(separator="\n", strip=True)
+    return str(soup.get_text(separator="\n", strip=True))
 
 
 def _parse_csv(content: bytes) -> str:
