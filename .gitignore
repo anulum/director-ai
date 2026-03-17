@@ -156,9 +156,9 @@ benchmarks/forge_ab_results.json
 # HuggingFace Model Cache & Training Artifacts
 # =====================================================================
 ckpts/
-training/
+/training/
 data/
-models/
+/models/
 !src/director_ai/models/
 features/
 *.tmp
