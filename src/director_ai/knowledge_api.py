@@ -19,6 +19,20 @@ import uuid
 logger = logging.getLogger("DirectorAI.KnowledgeAPI")
 
 _MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+_ALLOWED_EXTENSIONS = frozenset(
+    {
+        "pdf",
+        "docx",
+        "html",
+        "htm",
+        "csv",
+        "txt",
+        "md",
+        "markdown",
+        "json",
+        "xml",
+    }
+)
 
 try:
     from fastapi import APIRouter, HTTPException, Request, UploadFile
@@ -115,6 +129,14 @@ def create_knowledge_router() -> APIRouter:
         registry = _get_registry(request)
         store = _get_store(request)
 
+        filename = file.filename or "unknown.txt"
+        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if ext not in _ALLOWED_EXTENSIONS:
+            raise HTTPException(
+                415,
+                f"File type '.{ext}' not supported. Allowed: {sorted(_ALLOWED_EXTENSIONS)}",
+            )
+
         content = await file.read()
         if len(content) > _MAX_UPLOAD_BYTES:
             raise HTTPException(
@@ -124,7 +146,7 @@ def create_knowledge_router() -> APIRouter:
         from .core.doc_parser import parse
 
         try:
-            text = parse(content, file.filename or "unknown.txt")
+            text = parse(content, filename)
         except (ImportError, ValueError) as e:
             raise HTTPException(422, str(e)) from e
 
