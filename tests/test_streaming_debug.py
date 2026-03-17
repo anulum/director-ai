@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import pytest
-
 from director_ai.core.streaming import StreamingKernel
 
 

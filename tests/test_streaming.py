@@ -8,7 +8,6 @@
 import asyncio
 
 import pytest
-
 from director_ai.core.async_streaming import AsyncStreamingKernel
 from director_ai.core.streaming import StreamingKernel
 

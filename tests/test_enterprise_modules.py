@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from director_ai.core.audit import AuditEntry
+
 from director_ai.enterprise.audit_pg import SCHEMA_VERSION, PostgresAuditSink
 
 

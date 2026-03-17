@@ -676,7 +676,6 @@ class TestVectorStoreZeroSimilarity:
         import threading
 
         import numpy as np
-
         from director_ai.core.vector_store import SentenceTransformerBackend
 
         backend = object.__new__(SentenceTransformerBackend)

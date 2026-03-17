@@ -33,7 +33,6 @@ def run_benchmark(
     output_path: str = "benchmarks/results/claim_coverage_fpr_diag.json",
 ):
     from datasets import load_dataset  # type: ignore[import-untyped]
-
     from director_ai.core.scorer import CoherenceScorer
     from director_ai.core.vector_store import VectorGroundTruthStore
 

@@ -6,8 +6,8 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
-
 from director_ai.core.scorer import CoherenceScorer
+
 from director_ai.integrations.sdk_guard import (
     _AnthropicMessagesProxy,
     _extract_anthropic_event_text,

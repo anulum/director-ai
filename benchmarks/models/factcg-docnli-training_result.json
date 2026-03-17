@@ -1,0 +1,9 @@
+{
+  "dataset": "doc-nli",
+  "base_model": "yaxili96/FactCG-DeBERTa-v3-Large",
+  "test_balanced_accuracy": 0.8827871486887167,
+  "test_accuracy": 0.8704162704147728,
+  "training_time_minutes": 295.0,
+  "epochs": 2,
+  "status": "COMPLETE"
+}

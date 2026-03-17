@@ -6,7 +6,6 @@
 # Director-Class AI — NLI Scorer Tests
 
 import pytest
-
 from director_ai.core.nli import NLIScorer
 
 

@@ -112,7 +112,6 @@ class TestServerStatsClose:
 class TestNliScoreBatchPaths:
     def test_score_batch_onnx(self):
         import numpy as np
-
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -142,7 +141,6 @@ class TestNliScoreBatchPaths:
 
     def test_score_batch_model(self):
         import numpy as np
-
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -199,7 +197,6 @@ class TestNliScoreBatchPaths:
 class TestNliModelScoreSingle:
     def test_model_score_2class(self):
         import numpy as np
-
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)

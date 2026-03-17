@@ -4,8 +4,9 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
-from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.vector_store import VectorGroundTruthStore
+
+from director_ai.core import CoherenceScorer, GroundTruthStore
 
 
 class TestLLMJudge:

@@ -9,9 +9,10 @@ from __future__ import annotations
 
 import time
 
-from director_ai.core.cache import ScoreCache
 from director_ai.core.kernel import SafetyKernel
 from director_ai.core.sanitizer import InputSanitizer
+
+from director_ai.core.cache import ScoreCache
 
 # ── Sanitizer: new injection patterns ─────────────────────────────────
 

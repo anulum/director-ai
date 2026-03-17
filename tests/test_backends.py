@@ -6,7 +6,6 @@
 # Director-Class AI — Backend Registry Tests
 
 import pytest
-
 from director_ai.core.backends import (
     LiteBackend,
     ScorerBackend,

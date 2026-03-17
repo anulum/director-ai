@@ -10,10 +10,10 @@
 from __future__ import annotations
 
 import pytest
-
 from director_ai.core.batch import BatchProcessor, BatchResult
 from director_ai.core.knowledge import GroundTruthStore
 from director_ai.core.scorer import CoherenceScorer
+
 from director_ai.core.types import CoherenceScore
 
 # ── CoherenceScorer.review_batch ─────────────────────────────────────

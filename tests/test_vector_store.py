@@ -6,7 +6,6 @@
 # Director-Class AI — Vector Store Tests
 
 import pytest
-
 from director_ai.core.vector_store import (
     _VECTOR_REGISTRY,
     InMemoryBackend,

@@ -10,9 +10,9 @@ from __future__ import annotations
 import hmac
 
 import pytest
+from director_ai.core.scorer import CoherenceScorer
 
 from director_ai.core.config import DirectorConfig
-from director_ai.core.scorer import CoherenceScorer
 
 
 def _has_fastapi() -> bool:

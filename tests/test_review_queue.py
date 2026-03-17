@@ -10,9 +10,9 @@ from __future__ import annotations
 import asyncio
 
 import pytest
-
 from director_ai.core.review_queue import ReviewQueue
 from director_ai.core.scorer import CoherenceScorer
+
 from director_ai.core.types import CoherenceScore
 
 

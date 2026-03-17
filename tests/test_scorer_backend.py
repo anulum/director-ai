@@ -5,8 +5,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Scorer Backend Tests
 
-from director_ai.core import CoherenceScorer
 from director_ai.core.nli import NLIScorer
+
+from director_ai.core import CoherenceScorer
 
 
 class TestScorerBackendForwarding:

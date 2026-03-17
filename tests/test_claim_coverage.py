@@ -16,10 +16,10 @@ from __future__ import annotations
 from unittest.mock import MagicMock, patch
 
 import pytest
-
-from director_ai.core.config import DirectorConfig
 from director_ai.core.nli import NLIScorer
 from director_ai.core.scorer import CoherenceScorer
+
+from director_ai.core.config import DirectorConfig
 from director_ai.core.types import ScoringEvidence
 
 # ── NLIScorer.score_claim_coverage ──────────────────────────────────

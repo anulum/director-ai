@@ -6,11 +6,11 @@
 # Director-Class AI — Batch Processing Tests
 
 import pytest
-
-from director_ai.core.agent import CoherenceAgent
 from director_ai.core.batch import BatchProcessor, BatchResult
 from director_ai.core.knowledge import GroundTruthStore
 from director_ai.core.scorer import CoherenceScorer
+
+from director_ai.core.agent import CoherenceAgent
 
 
 @pytest.fixture

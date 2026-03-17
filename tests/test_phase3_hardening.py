@@ -70,6 +70,7 @@ class TestH29AsyncLoop:
         from unittest.mock import MagicMock
 
         from director_ai.core.batch import BatchProcessor
+
         from director_ai.core.types import CoherenceScore, ReviewResult
 
         mock_backend = MagicMock()
@@ -99,6 +100,7 @@ class TestH30CoherenceNoneGuard:
         from unittest.mock import MagicMock
 
         from director_ai.core.batch import BatchProcessor
+
         from director_ai.core.types import ReviewResult
 
         mock_backend = MagicMock()

@@ -126,9 +126,8 @@ def _run_pytorch(
 ) -> list[float]:
     """Batched PyTorch inference, returns list of total-batch times (ms)."""
     import torch
-    from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
     from director_ai.core.nli import _DEFAULT_MODEL, _FACTCG_TEMPLATE
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(_DEFAULT_MODEL)
     model = AutoModelForSequenceClassification.from_pretrained(_DEFAULT_MODEL)
@@ -176,9 +175,8 @@ def _run_onnx(
 ) -> list[float]:
     """Batched ONNX Runtime inference, returns list of total-batch times (ms)."""
     import onnxruntime as ort
-    from transformers import AutoTokenizer
-
     from director_ai.core.nli import _FACTCG_TEMPLATE
+    from transformers import AutoTokenizer
 
     tokenizer = AutoTokenizer.from_pretrained(onnx_path)
 

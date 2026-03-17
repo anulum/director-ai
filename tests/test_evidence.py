@@ -5,6 +5,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Evidence, Fallback, and Soft Zone Tests
 
+from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
+
 from director_ai.core import (
     CoherenceAgent,
     CoherenceScore,
@@ -14,7 +16,6 @@ from director_ai.core import (
     ReviewResult,
     ScoringEvidence,
 )
-from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
 
 
 class TestEvidenceChunk:

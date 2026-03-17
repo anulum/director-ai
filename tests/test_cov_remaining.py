@@ -275,7 +275,6 @@ class TestNliScoreDecomposed:
 class TestNliScoreDispatch:
     def test_score_onnx_path(self):
         import numpy as np
-
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)

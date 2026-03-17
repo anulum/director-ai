@@ -8,7 +8,6 @@
 from __future__ import annotations
 
 import pytest
-
 from director_ai.core.doc_chunker import ChunkConfig, split
 from director_ai.core.doc_parser import parse
 from director_ai.core.doc_registry import DocRegistry

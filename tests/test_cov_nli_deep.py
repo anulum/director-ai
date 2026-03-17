@@ -7,7 +7,6 @@ import sys
 from unittest.mock import MagicMock, patch
 
 import numpy as np
-
 from director_ai.core.nli import NLIScorer
 
 
