@@ -174,7 +174,7 @@ class CoherenceAgent:
 
         return best, rejected, len(candidates)
 
-    def _emit_approved(self, best, n_candidates):
+    def _emit_approved(self, best, n_candidates) -> ReviewResult:
         """Build ReviewResult for the best approved candidate."""
         text, score, coherence = best
 
@@ -190,7 +190,7 @@ class CoherenceAgent:
             candidates_evaluated=n_candidates,
         )
 
-    def _handle_rejection(self, prompt, tenant_id, rejected, n_candidates):
+    def _handle_rejection(self, prompt, tenant_id, rejected, n_candidates) -> ReviewResult:
         """Handle all-candidates-rejected: try fallback or halt."""
         rej_text, rej_score, rej_coherence = rejected
 
