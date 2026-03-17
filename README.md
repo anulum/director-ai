@@ -52,7 +52,7 @@ graph LR
 
 ### Scope
 
-100% Python — no compiled extensions required. Works on any platform with Python 3.11+.
+Pure Python core — no compiled extensions required. Optional Rust kernel (`pip install director-ai[rust]`) for SIMD-accelerated scoring. Works on any platform with Python 3.11+.
 
 | Layer | Packages | Install |
 |-------|----------|---------|
