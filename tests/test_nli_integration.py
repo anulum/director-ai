@@ -15,6 +15,7 @@ HuggingFace). Mark with @slow so they're skipped in fast CI runs:
 """
 
 import pytest
+
 from director_ai.core.nli import NLIScorer
 
 # Skip if model can't load (no torch, no network, etc.)

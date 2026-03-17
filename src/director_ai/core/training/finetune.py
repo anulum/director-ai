@@ -414,7 +414,9 @@ def finetune_nli(
     # Phase E: auto-benchmark against baseline
     if config.auto_benchmark:
         try:
-            from director_ai.core.finetune_benchmark import benchmark_finetuned_model
+            from director_ai.core.training.finetune_benchmark import (
+                benchmark_finetuned_model,
+            )
 
             report = benchmark_finetuned_model(
                 config.output_dir,
@@ -437,7 +439,7 @@ def finetune_nli(
     # Phase E: auto ONNX export
     if config.auto_onnx_export:
         try:
-            from director_ai.core.nli import export_onnx
+            from director_ai.core.scoring.nli import export_onnx
 
             onnx_dir = str(Path(config.output_dir) / "onnx")
             export_onnx(config.output_dir, onnx_dir)

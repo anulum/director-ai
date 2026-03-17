@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import pytest
+
 from director_ai.core.scorer import _DIALOGUE_TURN_RE, CoherenceScorer
 
 # ── Task detection ─────────────────────────────────────────────────

@@ -6,6 +6,7 @@
 # Director-Class AI — Scorer Parameter Validation Tests
 
 import pytest
+
 from director_ai.core.scorer import CoherenceScorer
 
 

@@ -110,4 +110,4 @@ Sentence-level NLI scoring with max-aggregation. Catches localized hallucination
 
 ## Full API
 
-::: director_ai.core.scorer.CoherenceScorer
+::: director_ai.core.scoring.scorer.CoherenceScorer

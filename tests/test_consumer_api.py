@@ -56,9 +56,8 @@ class TestAgentInjection:
         assert mock_scorer.review.called
 
     def test_injected_store_is_used(self):
-        from director_ai.core.knowledge import GroundTruthStore
-
         from director_ai.core.agent import CoherenceAgent
+        from director_ai.core.knowledge import GroundTruthStore
 
         custom_store = GroundTruthStore()
         custom_store.add("sky", "The sky is blue.")

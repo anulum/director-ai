@@ -284,6 +284,7 @@ class _NLIScorerPredictor:
 
     def __init__(self, model_name: str | None = None, overlap_ratio: float = 0.0):
         import torch
+
         from director_ai.core.nli import NLIScorer
 
         self.scorer = NLIScorer(

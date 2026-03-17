@@ -109,7 +109,7 @@ def _evaluate_model(
 
     is_factcg = "factcg" in str(model_path).lower()
     if is_factcg:
-        from director_ai.core.finetune import _FACTCG_TEMPLATE
+        from director_ai.core.training.finetune import _FACTCG_TEMPLATE
 
         texts = [
             _FACTCG_TEMPLATE.format(premise=s["premise"], hypothesis=s["hypothesis"])

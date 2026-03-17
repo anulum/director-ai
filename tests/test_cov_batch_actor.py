@@ -7,6 +7,7 @@ from concurrent.futures import TimeoutError as FuturesTimeoutError
 from unittest.mock import MagicMock, patch
 
 import pytest
+
 from director_ai.core.batch import BatchProcessor
 
 

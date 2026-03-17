@@ -23,8 +23,6 @@ Covers:
 import tempfile
 
 import pytest
-from director_ai.core.scorer import CoherenceScorer
-from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
 
 from director_ai.core.config import DirectorConfig
 from director_ai.core.exceptions import (
@@ -38,6 +36,8 @@ from director_ai.core.exceptions import (
     ValidationError,
 )
 from director_ai.core.metrics import MetricsCollector
+from director_ai.core.scorer import CoherenceScorer
+from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
 
 # ── Exception Hierarchy ────────────────────────────────────────────
 
@@ -252,9 +252,8 @@ class TestBatchTimeout:
     """Verify batch respects item_timeout."""
 
     def test_batch_has_timeout_handling(self):
-        from director_ai.core.batch import BatchProcessor
-
         from director_ai.core.agent import CoherenceAgent
+        from director_ai.core.batch import BatchProcessor
 
         agent = CoherenceAgent()
         processor = BatchProcessor(agent, max_concurrency=2, item_timeout=60.0)
@@ -263,9 +262,8 @@ class TestBatchTimeout:
         assert result.succeeded == 2
 
     def test_sync_batch_timeout_field(self):
-        from director_ai.core.batch import BatchProcessor
-
         from director_ai.core.agent import CoherenceAgent
+        from director_ai.core.batch import BatchProcessor
 
         agent = CoherenceAgent()
         processor = BatchProcessor(agent, item_timeout=30.0)

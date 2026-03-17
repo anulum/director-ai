@@ -128,10 +128,10 @@ A single token event in the stream.
 
 ## Full API
 
-::: director_ai.core.streaming.StreamingKernel
+::: director_ai.core.runtime.streaming.StreamingKernel
 
-::: director_ai.core.streaming.StreamSession
+::: director_ai.core.runtime.streaming.StreamSession
 
-::: director_ai.core.streaming.TokenEvent
+::: director_ai.core.runtime.streaming.TokenEvent
 
-::: director_ai.core.async_streaming.AsyncStreamingKernel
+::: director_ai.core.runtime.async_streaming.AsyncStreamingKernel

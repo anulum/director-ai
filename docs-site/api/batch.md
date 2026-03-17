@@ -77,4 +77,4 @@ This runs 2 GPU kernel calls total instead of 2×N.
 
 ## Full API
 
-::: director_ai.core.batch.BatchProcessor
+::: director_ai.core.runtime.batch.BatchProcessor

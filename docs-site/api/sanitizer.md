@@ -60,4 +60,4 @@ scorer = config.build_scorer()
 
 ## Full API
 
-::: director_ai.core.sanitizer.InputSanitizer
+::: director_ai.core.safety.sanitizer.InputSanitizer

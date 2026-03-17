@@ -232,7 +232,9 @@ class CoherenceAgent:
             ),
         )
 
-    def _retrieval_fallback(self, prompt, tenant_id, rej_score, n_candidates):
+    def _retrieval_fallback(
+        self, prompt, tenant_id, rej_score, n_candidates
+    ) -> ReviewResult | None:
         """Try RAG retrieval as fallback when all candidates rejected."""
         from .retrieval.vector_store import VectorGroundTruthStore
 

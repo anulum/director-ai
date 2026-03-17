@@ -22,6 +22,7 @@ class TestNliModelScoreBatch:
     def test_model_score_batch_standard(self):
         """Cover _model_score_batch for standard (non-FactCG) model."""
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -53,6 +54,7 @@ class TestNliModelScoreBatch:
     def test_model_score_batch_factcg(self):
         """Cover _model_score_batch for FactCG model."""
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -83,6 +85,7 @@ class TestNliOnnxScoreBatch:
     def test_onnx_score_batch_standard(self):
         """Cover _onnx_score_batch for standard path."""
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -114,6 +117,7 @@ class TestNliOnnxScoreBatch:
     def test_onnx_score_batch_factcg(self):
         """Cover _onnx_score_batch for FactCG path."""
         import numpy as np
+
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -203,7 +207,6 @@ class TestSdkGuardAsyncOpenAI:
     @pytest.mark.asyncio
     async def test_async_openai_proxy(self):
         from director_ai.core.scorer import CoherenceScorer
-
         from director_ai.integrations.sdk_guard import _OpenAICompletionsProxy
 
         scorer = CoherenceScorer(use_nli=False)
@@ -220,7 +223,6 @@ class TestSdkGuardAsyncOpenAI:
     @pytest.mark.asyncio
     async def test_async_openai_streaming(self):
         from director_ai.core.scorer import CoherenceScorer
-
         from director_ai.integrations.sdk_guard import _OpenAICompletionsProxy
 
         scorer = CoherenceScorer(use_nli=False)
@@ -248,7 +250,6 @@ class TestSdkGuardAsyncAnthropic:
     @pytest.mark.asyncio
     async def test_async_anthropic_proxy(self):
         from director_ai.core.scorer import CoherenceScorer
-
         from director_ai.integrations.sdk_guard import _AnthropicMessagesProxy
 
         scorer = CoherenceScorer(use_nli=False)
@@ -263,7 +264,6 @@ class TestSdkGuardAsyncAnthropic:
     @pytest.mark.asyncio
     async def test_async_anthropic_streaming(self):
         from director_ai.core.scorer import CoherenceScorer
-
         from director_ai.integrations.sdk_guard import _AnthropicMessagesProxy
 
         scorer = CoherenceScorer(use_nli=False)

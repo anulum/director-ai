@@ -12,13 +12,13 @@ import logging
 from unittest.mock import MagicMock
 
 import pytest
+
 from director_ai.core.batch import BatchProcessor
+from director_ai.core.config import DirectorConfig
 from director_ai.core.knowledge import GroundTruthStore
 from director_ai.core.lite_scorer import LiteScorer
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.vector_store import InMemoryBackend
-
-from director_ai.core.config import DirectorConfig
 
 # ── Item 1: quickstart scaffolding ────────────────────────────────
 

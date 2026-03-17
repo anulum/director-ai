@@ -67,4 +67,4 @@ See [Licensing](../licensing.md) for pricing and terms.
 
 ::: director_ai.core.tenant.TenantRouter
 
-::: director_ai.core.audit.AuditLogger
+::: director_ai.core.safety.audit.AuditLogger

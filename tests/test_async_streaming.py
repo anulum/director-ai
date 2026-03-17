@@ -6,6 +6,7 @@
 # Director-Class AI — Tests for AsyncStreamingKernel
 
 import pytest
+
 from director_ai.core.async_streaming import AsyncStreamingKernel
 
 

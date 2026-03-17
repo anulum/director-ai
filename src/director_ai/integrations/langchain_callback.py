@@ -67,7 +67,7 @@ class CoherenceCallbackHandler(BaseCallbackHandler):
         **kwargs: Any,
     ) -> None:
         super().__init__(**kwargs)
-        from director_ai.core.scorer import CoherenceScorer
+        from director_ai.core.scoring.scorer import CoherenceScorer
 
         self.scorer = CoherenceScorer(
             threshold=threshold,

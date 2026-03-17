@@ -53,6 +53,6 @@ Returns `True` if `torch` and `transformers` are importable.
 
 ## Full API
 
-::: director_ai.core.nli.NLIScorer
+::: director_ai.core.scoring.nli.NLIScorer
 
-::: director_ai.core.nli.nli_available
+::: director_ai.core.scoring.nli.nli_available

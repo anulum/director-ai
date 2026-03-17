@@ -15,7 +15,7 @@ import logging
 import threading
 from typing import Any
 
-from ..core.audit import AuditEntry
+from ..core.safety.audit import AuditEntry
 
 logger = logging.getLogger("DirectorAI.Audit.PG")
 

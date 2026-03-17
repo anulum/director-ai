@@ -63,10 +63,10 @@ def _save(data: dict, name: str) -> None:
 def bench_ragtruth_nli() -> None:
     """RAGTruth via wandb/RAGTruth-processed."""
     from datasets import load_dataset
-    from director_ai.core.scorer import CoherenceScorer
-    from director_ai.core.vector_store import VectorGroundTruthStore
 
     from benchmarks.e2e_eval import E2EMetrics, E2ESample, print_e2e_results
+    from director_ai.core.scorer import CoherenceScorer
+    from director_ai.core.vector_store import VectorGroundTruthStore
 
     logger.info("=== RAGTruth (NLI, wandb/RAGTruth-processed) ===")
     ds = load_dataset("wandb/RAGTruth-processed", split="test")
@@ -128,9 +128,8 @@ def bench_ragtruth_nli() -> None:
 
 def bench_freshqa_nli() -> None:
     """FreshQA via Google Sheets CSV export."""
-    from director_ai.core.scorer import CoherenceScorer
-
     from benchmarks.e2e_eval import E2EMetrics, E2ESample, print_e2e_results
+    from director_ai.core.scorer import CoherenceScorer
 
     logger.info("=== FreshQA (NLI, Google Sheets CSV) ===")
     url = f"https://docs.google.com/spreadsheets/d/{FRESHQA_SHEET_ID}/export?format=csv"

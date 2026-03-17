@@ -11,6 +11,7 @@ import pickle
 
 import numpy as np
 import pytest
+
 from director_ai.core.meta_classifier import (
     DatasetTypeClassifier,
     MetaClassifier,
