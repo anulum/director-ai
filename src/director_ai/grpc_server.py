@@ -265,8 +265,9 @@ def create_grpc_server(
         )
     else:
         server.add_insecure_port(f"[::]:{port}")
-        logger.info(
-            "gRPC server configured on port %d (insecure, workers=%d)",
+        logger.warning(
+            "gRPC server on port %d WITHOUT TLS (insecure, workers=%d). "
+            "Set tls_cert_path and tls_key_path for production.",
             port,
             max_workers,
         )
