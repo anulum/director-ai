@@ -243,6 +243,11 @@ ignore_missing_imports = true
 
 [tool.bandit]
 exclude_dirs = ["tests", "benchmarks"]
+# B101: assert used in tests only (excluded above)
+# B104: 0.0.0.0 binding — intentional for Docker/container deployment
+# B311: random — used for non-security purposes (sampling, not crypto)
+# B608: SQL formatting — parameterized queries used in audit_pg.py
+# B615: pyrsa — not used; false positive from dep chain
 skips = ["B101", "B104", "B311", "B608", "B615"]
 
 [[tool.mypy.overrides]]
