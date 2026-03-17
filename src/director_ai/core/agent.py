@@ -190,7 +190,9 @@ class CoherenceAgent:
             candidates_evaluated=n_candidates,
         )
 
-    def _handle_rejection(self, prompt, tenant_id, rejected, n_candidates) -> ReviewResult:
+    def _handle_rejection(
+        self, prompt, tenant_id, rejected, n_candidates
+    ) -> ReviewResult:
         """Handle all-candidates-rejected: try fallback or halt."""
         rej_text, rej_score, rej_coherence = rejected
 
