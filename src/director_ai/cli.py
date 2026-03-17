@@ -32,7 +32,12 @@ def main(argv: list[str] | None = None) -> None:
         _print_help()
         return
 
+    import re
+
     cmd = args[0]
+    if not re.match(r"^[a-z][a-z0-9-]*$", cmd):
+        print(f"Invalid command name: {cmd!r}")
+        sys.exit(1)
     rest = args[1:]
 
     commands = {
