@@ -13,10 +13,10 @@ import os
 from collections.abc import AsyncIterator
 
 from .actor import LLMGenerator, MockGenerator
-from .runtime.kernel import HaltMonitor
 from .retrieval.knowledge import GroundTruthStore
-from .scoring.scorer import CoherenceScorer
+from .runtime.kernel import HaltMonitor
 from .runtime.streaming import StreamingKernel
+from .scoring.scorer import CoherenceScorer
 from .types import HaltEvidence, ReviewResult
 
 __all__ = ["CoherenceAgent"]

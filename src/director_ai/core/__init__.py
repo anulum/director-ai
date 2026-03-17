@@ -21,11 +21,11 @@ All public symbols are re-exported here for backward compatibility::
 """
 
 # --- Scoring ---
-from .scoring.backends import ScorerBackend, get_backend, list_backends, register_backend
-from .scoring.lite_scorer import LiteScorer
-from .scoring.nli import NLIScorer, export_onnx, nli_available
-from .scoring.scorer import CoherenceScorer
-from .scoring.sharded_nli import ShardedNLIScorer
+# --- Core-level modules (not moved) ---
+from .actor import LLMGenerator, MockGenerator
+from .agent import CoherenceAgent
+from .cache import ScoreCache
+from .config import DirectorConfig
 
 # --- Retrieval ---
 from .retrieval.knowledge import GroundTruthStore
@@ -51,17 +51,21 @@ from .runtime.streaming import StreamingKernel, StreamSession, TokenEvent
 
 # --- Safety ---
 from .safety.sanitizer import InputSanitizer, SanitizeResult
+from .scoring.backends import (
+    ScorerBackend,
+    get_backend,
+    list_backends,
+    register_backend,
+)
+from .scoring.lite_scorer import LiteScorer
+from .scoring.nli import NLIScorer, export_onnx, nli_available
+from .scoring.scorer import CoherenceScorer
+from .scoring.sharded_nli import ShardedNLIScorer
 
 # --- Training ---
 from .training.finetune import FinetuneConfig, FinetuneResult, finetune_nli
 from .training.finetune_benchmark import RegressionReport, benchmark_finetuned_model
 from .training.finetune_validator import DataQualityReport, validate_finetune_data
-
-# --- Core-level modules (not moved) ---
-from .actor import LLMGenerator, MockGenerator
-from .agent import CoherenceAgent
-from .cache import ScoreCache
-from .config import DirectorConfig
 from .types import (
     ClaimAttribution,
     CoherenceScore,

@@ -22,9 +22,9 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .kernel import HaltMonitor
 from ..otel import trace_streaming
 from ..types import HaltEvidence
+from .kernel import HaltMonitor
 
 __all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
 

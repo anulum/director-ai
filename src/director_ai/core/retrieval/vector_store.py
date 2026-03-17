@@ -23,10 +23,10 @@ import threading
 from abc import ABC, abstractmethod
 from typing import Any
 
-from .knowledge import GroundTruthStore
 from ..metrics import metrics
 from ..otel import trace_vector_add, trace_vector_query
 from ..types import EvidenceChunk
+from .knowledge import GroundTruthStore
 
 # Re-export recommended model name for documentation
 RECOMMENDED_EMBEDDING_MODEL = "BAAI/bge-large-en-v1.5"

@@ -30,12 +30,12 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 
 from .retrieval.knowledge import GroundTruthStore
-from .scoring.scorer import CoherenceScorer
 from .retrieval.vector_store import (
     InMemoryBackend,
     VectorBackend,
     VectorGroundTruthStore,
 )
+from .scoring.scorer import CoherenceScorer
 
 
 @dataclass

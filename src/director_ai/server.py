@@ -246,8 +246,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         app.state._state = {}  # Initialize _state on app.state
 
         from .core.agent import CoherenceAgent
-        from .core.safety.audit import AuditLogger
         from .core.runtime.batch import BatchProcessor
+        from .core.safety.audit import AuditLogger
         from .core.safety.sanitizer import InputSanitizer
         from .core.tenant import TenantRouter
 

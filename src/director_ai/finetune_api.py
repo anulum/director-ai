@@ -278,7 +278,9 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         try:
             data_path.write_bytes(content)
 
-            from director_ai.core.training.finetune_validator import validate_finetune_data
+            from director_ai.core.training.finetune_validator import (
+                validate_finetune_data,
+            )
 
             report = validate_finetune_data(str(data_path), epochs=req.epochs)
             return {

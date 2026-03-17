@@ -18,9 +18,9 @@ from pathlib import Path
 from ...enterprise.redactor import PIIRedactor
 from ..cache import ScoreCache
 from ..metrics import metrics
-from .nli import NLIScorer, nli_available
 from ..otel import trace_review
 from ..types import CoherenceScore, EvidenceChunk, ScoringEvidence
+from .nli import NLIScorer, nli_available
 
 __all__ = ["CoherenceScorer"]
 

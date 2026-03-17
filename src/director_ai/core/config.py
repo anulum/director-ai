@@ -545,7 +545,11 @@ class DirectorConfig:
                     "falling back to local vector store",
                 )
 
-        from .retrieval.vector_store import InMemoryBackend, VectorBackend, VectorGroundTruthStore
+        from .retrieval.vector_store import (
+            InMemoryBackend,
+            VectorBackend,
+            VectorGroundTruthStore,
+        )
 
         backend: VectorBackend
         if self.vector_backend == "chroma":
