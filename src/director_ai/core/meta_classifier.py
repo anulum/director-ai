@@ -205,6 +205,8 @@ class DatasetTypeClassifier:
         if conf < self._confidence_gate:
             return None, conf
 
+        if not self._label_names:
+            return None, conf
         ds_name = self._label_names[pred_idx]
         threshold = self._dataset_thresholds.get(ds_name)
         return threshold, conf
