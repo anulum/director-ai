@@ -39,6 +39,11 @@ class RedisGroundTruthStore(GroundTruthStore):
         self.redis_url = redis_url
         self.prefix = prefix
         self.client = redis.from_url(redis_url, decode_responses=True)
+        try:
+            self.client.ping()
+        except Exception as exc:
+            logger.error("Redis connection failed: %s", exc)
+            raise
 
     def _hash_key(self, tenant_id: str = "") -> str:
         return f"{self.prefix}{tenant_id or '_default'}:hash"
@@ -98,7 +103,14 @@ class RedisScoreCache(ScoreCache):
         self.redis_url = redis_url
         self.prefix = prefix
         self.client = redis.from_url(redis_url, decode_responses=True)
-        logger.info(f"Initialized RedisScoreCache at {redis_url} (ttl={ttl_seconds}s)")
+        try:
+            self.client.ping()
+        except Exception as exc:
+            logger.error("Redis connection failed: %s", exc)
+            raise
+        logger.info(
+            "Initialized RedisScoreCache at %s (ttl=%ss)", redis_url, ttl_seconds
+        )
 
     def get(self, query: str, prefix: str):
         # Local import to construct the expected _CacheEntry format transparently
