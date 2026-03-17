@@ -1,3 +1,6 @@
+> **SUPERSEDED** — This document describes the v1.x/v2.x architecture.
+> For current architecture, see `docs-site/guide/architecture.md` and `PUBLIC_API.md`.
+
 # Director-Class AI: Technical Specification V2
 ## RAG Integration and Hardware Interlock
 
