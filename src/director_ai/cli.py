@@ -58,6 +58,7 @@ def main(argv: list[str] | None = None) -> None:
         "config": _cmd_config,
         "stress-test": _cmd_stress_test,
         "doctor": _cmd_doctor,
+        "license": _cmd_license,
     }
 
     if cmd not in commands:
@@ -1282,6 +1283,70 @@ def _cmd_config(args: list[str]) -> None:
 
     for key, value in cfg.to_dict().items():
         print(f"  {key}: {value}")
+
+
+def _cmd_license(args: list[str]) -> None:
+    """License management: status, generate, validate."""
+    from .core.license import generate_license, load_license, validate_file
+
+    if not args or args[0] == "status":
+        info = load_license()
+        print(f"Tier:     {info.tier}")
+        print(f"Valid:    {info.valid}")
+        print(f"Licensee: {info.licensee or '(community)'}")
+        if info.expires:
+            print(f"Expires:  {info.expires}")
+        if info.key:
+            print(f"Key:      {info.key[:20]}...")
+        print(f"Message:  {info.message}")
+        return
+
+    if args[0] == "generate":
+        import argparse
+
+        p = argparse.ArgumentParser(prog="director-ai license generate")
+        p.add_argument(
+            "--tier", required=True, choices=["indie", "pro", "enterprise", "trial"]
+        )
+        p.add_argument("--licensee", required=True)
+        p.add_argument("--email", required=True)
+        p.add_argument("--days", type=int, default=365)
+        p.add_argument("--deployments", type=int, default=1)
+        p.add_argument("--output", default="license.json")
+        parsed = p.parse_args(args[1:])
+
+        import json
+        from pathlib import Path
+
+        data = generate_license(
+            tier=parsed.tier,
+            licensee=parsed.licensee,
+            email=parsed.email,
+            days=parsed.days,
+            deployments=parsed.deployments,
+        )
+        Path(parsed.output).write_text(json.dumps(data, indent=2) + "\n")
+        print(f"License generated: {parsed.output}")
+        print(f"Key: {data['key']}")
+        print(f"Tier: {data['tier']}")
+        print(f"Licensee: {data['licensee']}")
+        print(f"Expires: {data['expires']}")
+        return
+
+    if args[0] == "validate":
+        if len(args) < 2:
+            print("Usage: director-ai license validate <path>")
+            sys.exit(1)
+        info = validate_file(args[1])
+        print(f"Valid:    {info.valid}")
+        print(f"Tier:     {info.tier}")
+        print(f"Licensee: {info.licensee}")
+        print(f"Message:  {info.message}")
+        sys.exit(0 if info.valid else 1)
+
+    print(f"Unknown license subcommand: {args[0]}")
+    print("Usage: director-ai license [status|generate|validate]")
+    sys.exit(1)
 
 
 if __name__ == "__main__":

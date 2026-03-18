@@ -241,6 +241,23 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     async def lifespan(app: FastAPI):
         """Lifecycle events for the FastAPI server."""
         cfg = app.state.config
+
+        from .core.license import load_license
+
+        lic = load_license()
+        app.state._license = lic
+        if lic.is_commercial:
+            logger.info(
+                "Director-AI v%s — Licensed to %s (%s tier)",
+                __import__("director_ai").__version__,
+                lic.licensee or lic.key[:20],
+                lic.tier,
+            )
+        elif lic.is_trial:
+            logger.info("Director-AI — Trial license (expires %s)", lic.expires)
+        else:
+            logger.info("Director-AI — AGPL-3.0-or-later (community)")
+
         logger.info("Starting Director-AI server")
 
         app.state._state = {}  # Initialize _state on app.state
@@ -514,16 +531,30 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── Health ────────────────────────────────────────────────────────
 
     @app.get("/v1/health", response_model=HealthResponse)
-    async def health():
+    async def health(request: Request):
         import director_ai
 
-        return HealthResponse(
+        lic = getattr(request.app.state, "_license", None)
+        extra = {}
+        if lic and lic.is_commercial:
+            extra = {
+                "license": "commercial",
+                "tier": lic.tier,
+                "licensee": lic.licensee,
+            }
+        elif lic and lic.is_trial:
+            extra = {"license": "trial", "expires": lic.expires}
+        else:
+            extra = {"license": "agpl"}
+
+        resp = HealthResponse(
             version=director_ai.__version__,
             mode=cfg.mode,
             profile=cfg.profile,
             nli_loaded=cfg.use_nli,
             uptime_seconds=time.monotonic() - _start_time,
         )
+        return {**resp.model_dump(), **extra}
 
     @app.get("/v1/ready")
     async def readiness(request: Request):
@@ -544,10 +575,25 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     # ── AGPL §13 source endpoint ────────────────────────────────────
 
     @app.get("/v1/source")
-    async def source():
+    async def source(request: Request):
+        import director_ai
+
+        lic = getattr(request.app.state, "_license", None)
+        if lic and lic.is_commercial:
+            if not cfg.source_endpoint_enabled:
+                raise HTTPException(
+                    404, "Source endpoint disabled (commercial license)"
+                )
+            return {
+                "license": "commercial",
+                "licensee": lic.licensee,
+                "tier": lic.tier,
+                "version": director_ai.__version__,
+                "agpl_obligation": "waived",
+            }
+
         if not cfg.source_endpoint_enabled:
             raise HTTPException(404, "Source endpoint disabled")
-        import director_ai
 
         return {
             "license": "AGPL-3.0-or-later",

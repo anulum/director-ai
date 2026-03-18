@@ -185,6 +185,10 @@ class DirectorConfig:
     source_endpoint_enabled: bool = True
     source_repository_url: str = "https://github.com/anulum/director-ai"
 
+    # Commercial license (set via DIRECTOR_LICENSE_KEY or DIRECTOR_LICENSE_FILE)
+    license_key: str = ""
+    license_file: str = ""
+
     # Chunked NLI aggregation: "max"|"min"|"mean"
     nli_fact_inner_agg: str = "max"
     nli_fact_outer_agg: str = "max"
