@@ -1366,7 +1366,7 @@ class CoherenceScorer:
                 return result
 
             if self.cache:
-                cached = self.cache.get(prompt, action)
+                cached = self.cache.get(prompt, action, tenant_id=tenant_id)
                 if cached is not None:
                     result = self._finalise_review(
                         cached.score,
@@ -1401,7 +1401,7 @@ class CoherenceScorer:
                     coherence = 1.0 - total_divergence
 
             if self.cache:
-                self.cache.put(prompt, action, coherence, h_logic, h_fact)
+                self.cache.put(prompt, action, coherence, h_logic, h_fact, tenant_id=tenant_id)
 
             # Adaptive threshold: select per-task-type threshold
             effective_threshold = self.threshold
@@ -1459,154 +1459,12 @@ class CoherenceScorer:
         into a second score_batch() call. 2 GPU kernel calls total
         regardless of batch size, vs 2*N for per-item review().
         """
-        n = len(items)
-        if n == 0:
+        if not items:
             return []
-        if n == 1:
-            return [self.review(items[0][0], items[0][1], tenant_id=tenant_id)]
-
-        if self._rust_scorer is not None:
-            out: list[tuple[bool, CoherenceScore]] = []
-            for p, r in items:
-                approved_r, score_obj = self._rust_scorer.review(p, r)
-                h_l = getattr(score_obj, "h_logical", 0.0)
-                h_f = getattr(score_obj, "h_factual", 0.0)
-                coh = getattr(
-                    score_obj,
-                    "score",
-                    1.0 - (self.W_LOGIC * h_l + self.W_FACT * h_f),
-                )
-                out.append(self._finalise_review(coh, h_l, h_f, r))
-            return out
-
-        results: list[tuple[bool, CoherenceScore] | None] = [None] * n
-        misses: list[int] = []
-
-        for i, (prompt, response) in enumerate(items):
-            if self.cache:
-                cached = self.cache.get(prompt, response)
-                if cached is not None:
-                    results[i] = self._finalise_review(
-                        cached.score,
-                        cached.h_logical,
-                        cached.h_factual,
-                        response,
-                    )
-                    continue
-            misses.append(i)
-
-        if not misses:
-            return results  # type: ignore[return-value]
-
-        # Phase 1: Coalesced H_logical
-        h_logical: dict[int, float] = {}
-        if self._nli and self._nli.model_available:
-            pairs = [(items[i][0], items[i][1]) for i in misses]
-            scores = self._nli.score_batch(pairs)
-            for idx, score in zip(misses, scores, strict=True):
-                h_logical[idx] = score
-        elif self.strict_mode:
-            for i in misses:
-                h_logical[i] = DIVERGENCE_CONTRADICTED
-        else:
-            for i in misses:
-                h_logical[i] = self._heuristic_logical(items[i][1], items[i][0])
-
-        # Phase 2: Parallel vector retrieval
-        contexts: dict[int, str | None] = {}
-        chunks_map: dict[int, list[EvidenceChunk]] = {}
-        if self.ground_truth_store:
-            from ..retrieval.vector_store import VectorGroundTruthStore
-
-            is_vector = isinstance(self.ground_truth_store, VectorGroundTruthStore)
-
-            def _retrieve(idx: int):
-                prompt = items[idx][0]
-                if is_vector:
-                    cks = self.ground_truth_store.retrieve_context_with_chunks(
-                        prompt,
-                        tenant_id=tenant_id,
-                    )
-                    ctx = "; ".join(c.text for c in cks) if cks else None
-                else:
-                    ctx = self.ground_truth_store.retrieve_context(
-                        prompt,
-                        tenant_id=tenant_id,
-                    )
-                    cks = (
-                        [EvidenceChunk(text=ctx, distance=0.0, source="keyword")]
-                        if ctx
-                        else []
-                    )
-                return idx, ctx, cks
-
-            with ThreadPoolExecutor(max_workers=min(len(misses), 8)) as pool:
-                for idx, ctx, cks in pool.map(_retrieve, misses):
-                    contexts[idx] = ctx
-                    chunks_map[idx] = cks
-
-        # Phase 3: Coalesced H_factual
-        h_factual: dict[int, float] = {}
-        evidence_map: dict[int, ScoringEvidence | None] = {}
-
-        nli_fact_indices: list[int] = []
-        nli_fact_pairs: list[tuple[str, str]] = []
-        for i in misses:
-            ctx = contexts.get(i)
-            if not ctx:
-                h_factual[i] = DIVERGENCE_NEUTRAL
-                evidence_map[i] = None
-                continue
-            if self._nli and self._nli.model_available:
-                nli_fact_pairs.append((ctx, items[i][1]))
-                nli_fact_indices.append(i)
-            elif self.strict_mode:
-                h_factual[i] = DIVERGENCE_CONTRADICTED
-                evidence_map[i] = ScoringEvidence(
-                    chunks=chunks_map.get(i, []),
-                    nli_premise=ctx,
-                    nli_hypothesis=items[i][1],
-                    nli_score=DIVERGENCE_CONTRADICTED,
-                )
-            else:
-                score = self._heuristic_factual(ctx, items[i][1])
-                h_factual[i] = score
-                evidence_map[i] = ScoringEvidence(
-                    chunks=chunks_map.get(i, []),
-                    nli_premise=ctx,
-                    nli_hypothesis=items[i][1],
-                    nli_score=score,
-                )
-
-        if nli_fact_pairs and self._nli:
-            fact_scores = self._nli.score_batch(nli_fact_pairs)
-            for idx, score in zip(nli_fact_indices, fact_scores, strict=True):
-                h_factual[idx] = score
-                evidence_map[idx] = ScoringEvidence(
-                    chunks=chunks_map.get(idx, []),
-                    nli_premise=contexts[idx] or "",
-                    nli_hypothesis=items[idx][1],
-                    nli_score=score,
-                )
-
-        # Phase 4: LLM judge escalation + finalize
-        for i in misses:
-            hl = h_logical[i]
-            hf = h_factual.get(i, DIVERGENCE_NEUTRAL)
-            if self._should_escalate(hl):
-                hl = self._llm_judge_check(items[i][0], items[i][1], hl)
-            coherence = 1.0 - (self.W_LOGIC * hl + self.W_FACT * hf)
-            if self.cache:
-                self.cache.put(items[i][0], items[i][1], coherence, hl, hf)
-            results[i] = self._finalise_review(
-                coherence,
-                hl,
-                hf,
-                items[i][1],
-                evidence_map.get(i),
-            )
-
-        return results  # type: ignore[return-value]
+        return [
+            self.review(prompt, response, tenant_id=tenant_id)
+            for prompt, response in items
+        ]
 
     # â”€â”€ Async API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

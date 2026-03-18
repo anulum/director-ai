@@ -287,7 +287,13 @@ class StreamingKernel(HaltMonitor):
 
             if i % cadence == 0:
                 accumulated = "".join(session.tokens) + token
-                score = coherence_callback(accumulated)
+                try:
+                    score = coherence_callback(accumulated)
+                except (TimeoutError, OSError):
+                    session.halted = True
+                    session.halt_index = i
+                    session.halt_reason = "callback_timeout"
+                    break
                 last_score = score
                 if self.adaptive:
                     w_avg = sum(window) / len(window) if window else score

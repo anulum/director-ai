@@ -62,7 +62,11 @@ class HaltMonitor:
 
             token_start = time.monotonic()
             accumulated = "".join(output_buffer) + token
-            current_score = coherence_callback(accumulated)
+            try:
+                current_score = coherence_callback(accumulated)
+            except (TimeoutError, OSError):
+                self.emergency_stop()
+                return "[HALT: CALLBACK TIMEOUT]"
             token_elapsed = time.monotonic() - token_start
 
             if self.token_timeout > 0 and token_elapsed > self.token_timeout:

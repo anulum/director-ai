@@ -1218,7 +1218,8 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     def add_fact(self, key: str, value: str, tenant_id: str = "") -> None:
         """Alias for add() â€” also populates parent keyword store."""
-        self.facts[key] = value
+        fact_key = f"{tenant_id}::{key}" if tenant_id else key
+        self.facts[fact_key] = value
         self.add(key, value, tenant_id=tenant_id)
 
     def ingest(self, texts: list[str], tenant_id: str = "") -> int:

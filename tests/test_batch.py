@@ -128,7 +128,7 @@ class TestBatchErrorPaths:
         """review_batch exception handling."""
 
         class FailingScorer:
-            def review(self, prompt, response):
+            def review(self, prompt, response, **kwargs):
                 raise ValueError("bad input")
 
         proc = BatchProcessor(FailingScorer(), max_concurrency=1)
