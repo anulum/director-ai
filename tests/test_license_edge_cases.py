@@ -1,0 +1,51 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+
+from director_ai.core.license import load_license, validate_file, validate_key
+
+
+def test_key_with_special_chars():
+    info = validate_key("DAI-PRO-abc!@#$%^&*()")
+    assert info.valid  # format matches, content doesn't matter
+
+
+def test_key_very_long():
+    info = validate_key("DAI-PRO-" + "a" * 10000)
+    assert info.valid
+
+
+def test_key_unicode():
+    info = validate_key("DAI-PRO-ĂĽnĂŻcĂ¶dĂ©-key")
+    assert info.valid
+
+
+def test_file_empty(tmp_path):
+    p = tmp_path / "empty.json"
+    p.write_text("")
+    info = validate_file(p)
+    assert not info.valid
+
+
+def test_file_binary(tmp_path):
+    p = tmp_path / "binary.json"
+    p.write_bytes(b"\x00\x01\x02\x03")
+    info = validate_file(p)
+    assert not info.valid
+
+
+def test_file_huge(tmp_path):
+    p = tmp_path / "huge.json"
+    p.write_text('{"key": "' + "a" * 1_000_000 + '"}')
+    info = validate_file(p)
+    assert not info.valid  # invalid signature
+
+
+def test_load_with_no_env(monkeypatch):
+    monkeypatch.delenv("DIRECTOR_LICENSE_KEY", raising=False)
+    monkeypatch.delenv("DIRECTOR_LICENSE_FILE", raising=False)
+    info = load_license()
+    assert info.tier == "community"
+    assert info.valid
