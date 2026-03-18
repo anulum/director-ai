@@ -404,7 +404,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=_origins,
-        allow_methods=["GET", "POST", "DELETE", "OPTIONS"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=[
             "Authorization",
             "Content-Type",
@@ -882,6 +882,20 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         request: Request,
     ) -> BatchResponse:
         """Process a batch of prompts through the active pipeline."""
+        # Per-item size limits (same as single-item endpoints)
+        for i, p in enumerate(req.prompts):
+            if len(p) > _MAX_PROMPT_CHARS:
+                raise HTTPException(
+                    422,
+                    f"prompts[{i}] exceeds {_MAX_PROMPT_CHARS} char limit",
+                )
+        for i, r in enumerate(req.responses):
+            if len(r) > _MAX_RESPONSE_CHARS:
+                raise HTTPException(
+                    422,
+                    f"responses[{i}] exceeds {_MAX_RESPONSE_CHARS} char limit",
+                )
+
         sanitizer = request.app.state._state.get("sanitizer")
         if sanitizer:
             for p in req.prompts:
@@ -953,10 +967,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
                 elif isinstance(item, ReviewResult):  # process
                     score_val = item.coherence.score if item.coherence else 0.0
+                    output = item.output
+                    if redactor and hasattr(redactor, "enabled") and redactor.enabled:
+                        output = redactor.redact(output)
                     results.append(
                         {
                             "index": idx,
-                            "output": item.output,
+                            "output": output,
                             "approved": not item.halted,
                             "score": score_val,
                         },
@@ -986,10 +1003,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
+        bound = getattr(request.state, "tenant_id", "")
+        visible = [bound] if bound else router.tenant_ids
         return {
             "tenants": [
                 {"id": tid, "fact_count": router.fact_count(tid)}
-                for tid in router.tenant_ids
+                for tid in visible
+                if tid in router.tenant_ids
             ],
         }
 

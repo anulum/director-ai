@@ -1,4 +1,4 @@
-﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
 # Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
 # Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
@@ -50,10 +50,6 @@ if _FASTAPI_AVAILABLE:
         doc_id: str | None = None
         chunk_size: int = Field(512, ge=64, le=4096)
         overlap: int = Field(64, ge=0, le=512)
-
-    class SearchRequest(BaseModel):
-        query: str = Field(..., min_length=1, max_length=10_000)
-        top_k: int = Field(5, ge=1, le=50)
 
 
 def _get_tenant(request: Request) -> str:
@@ -124,7 +120,14 @@ def create_knowledge_router() -> APIRouter:
 
     @router.post("/upload", status_code=201)
     async def upload_document(request: Request, file: UploadFile):
-        """Upload a file â†’ parse â†’ chunk â†’ embed â†’ store."""
+        """Upload a file, parse, chunk, embed, store."""
+        # Early size check before reading body into memory
+        content_length = request.headers.get("content-length")
+        if content_length and int(content_length) > _MAX_UPLOAD_BYTES:
+            raise HTTPException(
+                413, f"File exceeds {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit"
+            )
+
         tenant_id = _get_tenant(request)
         registry = _get_registry(request)
         store = _get_store(request)
@@ -134,7 +137,7 @@ def create_knowledge_router() -> APIRouter:
         if ext not in _ALLOWED_EXTENSIONS:
             raise HTTPException(
                 415,
-                f"File type '.{ext}' not supported. Allowed: {sorted(_ALLOWED_EXTENSIONS)}",
+                f"File type ‘.{ext}’ not supported. Allowed: {sorted(_ALLOWED_EXTENSIONS)}",
             )
 
         content = await file.read()
