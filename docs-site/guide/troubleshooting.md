@@ -23,7 +23,7 @@ pip install director-ai[onnx]
 Vector store with ChromaDB:
 
 ```bash
-pip install director-ai[chroma]
+pip install director-ai[vector]
 ```
 
 ## Validation Errors (v2.2.0+)

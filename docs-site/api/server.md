@@ -47,6 +47,16 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | `PUT` | `/v1/knowledge/documents/{id}` | Re-ingest updated content |
 | `GET` | `/v1/knowledge/search` | Test retrieval quality |
 | `POST` | `/v1/knowledge/tune-embeddings` | Fine-tune embeddings on ingested docs |
+| `GET` | `/v1/knowledge/documents/{id}` | Get single document metadata |
+| `GET` | `/v1/tenants` | List tenants (scoped to caller's binding) |
+| `POST` | `/v1/tenants/{id}/facts` | Add keyword fact for tenant |
+| `POST` | `/v1/tenants/{id}/vector-facts` | Add vector fact for tenant |
+| `GET/DELETE` | `/v1/sessions/{id}` | Get or delete a scoring session |
+| `GET` | `/v1/stats` | Aggregate scoring statistics |
+| `GET` | `/v1/stats/hourly` | Hourly scoring breakdown |
+| `GET` | `/v1/dashboard` | Dashboard summary (stats + top tenants) |
+| `POST` | `/v1/finetune/start` | Start domain fine-tuning job |
+| `GET` | `/v1/finetune/status` | Check fine-tuning job status |
 
 ## Review Request
 
@@ -94,7 +104,7 @@ Clients send `X-API-Key: key1` header. Unauthenticated requests receive 401.
 DIRECTOR_RATE_LIMIT_RPM=60 director-ai serve
 ```
 
-Returns 429 when exceeded. Install `pip install director-ai[ratelimit]` for Redis-backed distributed rate limiting.
+Returns 429 when exceeded. Install `pip install director-ai[server]` for Redis-backed distributed rate limiting.
 
 ## CORS
 

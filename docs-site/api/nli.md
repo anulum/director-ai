@@ -28,8 +28,8 @@ if nli_available():
 
 - `score(premise, hypothesis) -> float` — NLI divergence in [0, 1]
 - `score_batch(pairs) -> list[float]` — batch inference (2 GPU kernels)
-- `score_chunked(premise, hypothesis) -> float` — sentence-level with max-aggregation
-- `score_claim_coverage(source, summary) -> float` — per-claim coverage scoring
+- `score_chunked(premise, hypothesis) -> tuple[float, list[float]]` — sentence-level with max-aggregation; returns (aggregate_score, per_chunk_scores)
+- `score_claim_coverage(source, summary) -> tuple[float, list[dict]]` — per-claim coverage; returns (coverage_score, per_claim_details)
 
 ## nli_available()
 

@@ -424,11 +424,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             if cfg.rate_limit_strict:
                 raise ImportError(
                     "rate_limit_strict=True but slowapi not installed. "
-                    "Install with: pip install director-ai[ratelimit]",
+                    "Install with: pip install director-ai[server]",
                 )
             logger.warning(
                 "rate_limit_rpm=%d but slowapi not installed. "
-                "Install with: pip install director-ai[ratelimit]",
+                "Install with: pip install director-ai[server]",
                 cfg.rate_limit_rpm,
             )
         else:
@@ -747,6 +747,17 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         from .core.scoring.verified_scorer import VerifiedScorer
 
+        sanitizer = request.app.state._state.get("sanitizer")
+        if sanitizer:
+            check = sanitizer.check(req.prompt)
+            if check.blocked:
+                raise HTTPException(400, f"Prompt rejected: {check.reason}")
+
+        redactor = request.app.state._state.get("redactor")
+        if redactor and hasattr(redactor, "enabled") and redactor.enabled:
+            req.prompt = redactor.redact(req.prompt)
+            req.response = redactor.redact(req.response)
+
         scorer = request.app.state._state.get("scorer")
         if scorer is None:
             raise HTTPException(503, "Scorer not initialised")
@@ -854,6 +865,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 halt_reason=(
                     result.halt_evidence.reason if result.halt_evidence else ""
                 ),
+                tenant_id=tenant_id,
                 latency_ms=latency_ms,
             )
 

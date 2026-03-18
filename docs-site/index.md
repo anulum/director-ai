@@ -91,7 +91,7 @@ graph LR
 pip install director-ai            # base
 pip install director-ai[nli]       # + NLI model (recommended)
 pip install director-ai[server]    # + REST API server
-pip install director-ai[all]       # everything
+pip install director-ai[nli,vector,server]       # everything
 ```
 
 PyPI: [pypi.org/project/director-ai](https://pypi.org/project/director-ai/)
