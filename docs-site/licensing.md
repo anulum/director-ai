@@ -46,7 +46,7 @@ Test Director-AI on your actual data before committing. No credit card, no lock-
 - Weekly 30-min call with the maintainer to review results
 - Honest assessment: if Director-AI doesn't fit your use case, we tell you
 
-<a href="mailto:protoscience@anulum.li?subject=Director-AI%20Free%20Pilot%20Request&body=Company:%0AUse%20case:%0AApprox.%20LLM%20call%20volume/day:%0A" class="cta-button">Request Free Pilot</a>
+<a href="mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot%20Request&body=Company:%0AUse%20case:%0AApprox.%20LLM%20call%20volume/day:%0A" class="cta-button">Request Free Pilot</a>
 
 ### Commercial License Tiers
 
@@ -115,8 +115,8 @@ We don't gate features behind the commercial license. We gate the *obligation to
 
 ### Get Started
 
-<a href="mailto:protoscience@anulum.li?subject=Director-AI%20Free%20Pilot%20Request" class="cta-button">Start Free Pilot</a>&nbsp;&nbsp;
-<a href="mailto:protoscience@anulum.li?subject=Director-AI%20License%20Inquiry" class="cta-button cta-button--secondary">Buy License</a>
+<a href="mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot%20Request" class="cta-button">Start Free Pilot</a>&nbsp;&nbsp;
+<a href="mailto:director.class.ai@anulum.li?subject=Director-AI%20License%20Inquiry" class="cta-button cta-button--secondary">Buy License</a>
 
 ### Enterprise Includes
 
@@ -131,7 +131,7 @@ We don't gate features behind the commercial license. We gate the *obligation to
 
 ### Contact
 
-- Email: [protoscience@anulum.li](mailto:protoscience@anulum.li)
+- Email: [director.class.ai@anulum.li](mailto:director.class.ai@anulum.li)
 - Web: [anulum.li](https://www.anulum.li)
 
 ## FAQ

@@ -216,7 +216,7 @@ Dual-licensed:
 
 See [Licensing](docs-site/licensing.md) for pricing tiers and FAQ.
 
-Contact: [anulum.li](https://www.anulum.li) | [protoscience@anulum.li](mailto:protoscience@anulum.li)
+Contact: [anulum.li](https://www.anulum.li) | [director.class.ai@anulum.li](mailto:director.class.ai@anulum.li)
 
 ## Community
 

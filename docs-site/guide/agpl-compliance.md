@@ -50,5 +50,5 @@ export DIRECTOR_SOURCE_ENDPOINT_ENABLED=false
    GitHub repository satisfies §13.
 2. **Modified deployments**: you must publish your modified source and update
    `DIRECTOR_SOURCE_REPOSITORY_URL` to point to it.
-3. **Commercial license**: contact `protoscience@anulum.li` for a proprietary
+3. **Commercial license**: contact `director.class.ai@anulum.li` for a proprietary
    license that removes the §13 obligation.
