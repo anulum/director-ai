@@ -52,19 +52,19 @@ Test Director-AI on your actual data before committing. No credit card, no lock-
 
 | Tier | Monthly | Yearly | Target |
 |------|---------|--------|--------|
-| **Indie** | $49 | $490 | Solo developers, internal tools, side projects |
-| **Pro** | $199 | $1,990 | Teams shipping LLM features to production |
+| **Indie** | CHF 49 | CHF 490 | Solo developers, internal tools, side projects |
+| **Pro** | CHF 199 | CHF 1,990 | Teams shipping LLM features to production |
 | **Enterprise** | Custom | Custom | Regulated industries, multi-tenant SaaS, high volume |
 
 **Founding Member pricing (first 10 customers):**
 
 | Tier | Founding Monthly | Founding Yearly | Savings |
 |------|-----------------|-----------------|---------|
-| **Indie** | $29 | $290 | 40% off, locked permanently |
-| **Pro** | $99 | $990 | 50% off, locked permanently |
+| **Indie** | CHF 29 | CHF 290 | 40% off, locked permanently |
+| **Pro** | CHF 99 | CHF 990 | 50% off, locked permanently |
 | **Enterprise** | Custom | Custom | Priority roadmap input |
 
-**Perpetual license:** $999 one-time (Indie equivalent, 12 months updates included).
+**Perpetual license:** CHF 999 one-time (Indie equivalent, 12 months updates included).
 
 ### Feature Matrix
 
@@ -96,8 +96,8 @@ For teams that prefer pay-per-use over fixed licensing:
 | Volume | Price per 1,000 checks | Notes |
 |--------|----------------------|-------|
 | First 5,000/month | Free | No credit card needed |
-| 5,001 — 50,000/month | $2.50 per 1K | ~$0.0025 per check |
-| 50,001 — 500,000/month | $1.50 per 1K | Volume discount |
+| 5,001 — 50,000/month | CHF 2.50 per 1K | ~CHF 0.0025 per check |
+| 50,001 — 500,000/month | CHF 1.50 per 1K | Volume discount |
 | 500,000+/month | Custom | Contact us |
 
 Usage-based pricing requires the hosted API (coming Q2 2026).
@@ -115,8 +115,11 @@ We don't gate features behind the commercial license. We gate the *obligation to
 
 ### Get Started
 
-<a href="mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot%20Request" class="cta-button">Start Free Pilot</a>&nbsp;&nbsp;
-<a href="mailto:director.class.ai@anulum.li?subject=Director-AI%20License%20Inquiry" class="cta-button cta-button--secondary">Buy License</a>
+<a href="https://polar.sh/checkout/polar_c_gmuEUUV0VUIsmnm8ZzPJnmrYISFg5oXzualxI11Lgxn" class="cta-button">Buy Indie (CHF 49/mo)</a>&nbsp;&nbsp;
+<a href="https://polar.sh/checkout/polar_c_kLbfbCFJhyubFxzax8JNLw8WZU8T4IveHPlMo0kpxOZ" class="cta-button">Buy Pro (CHF 199/mo)</a>&nbsp;&nbsp;
+<a href="https://polar.sh/checkout/polar_c_VW7ClxyB6axih6mu9NqWlh6OgeAVJl4GVDgFW0QePtZ" class="cta-button cta-button--secondary">Perpetual (CHF 999)</a>
+
+<a href="mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot%20Request&body=Company:%0AUse%20case:%0AApprox.%20LLM%20call%20volume/day:%0A" class="cta-button cta-button--secondary">Request Free Enterprise Pilot</a>
 
 ### Enterprise Includes
 
