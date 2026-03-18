@@ -12,7 +12,7 @@
     from director_ai.core import CoherenceAgent, CoherenceScorer, HaltMonitor
 """
 
-__version__ = "3.9.0"
+__version__ = "3.9.1"
 
 from .core import (
     AsyncStreamingKernel,

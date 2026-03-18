@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.1] — 2026-03-19
+
+### Fixed
+- **Cross-tenant cache replay**: score cache key now includes `tenant_id`,
+  preventing cached results from one tenant being served to another.
+- **Batch/single scoring divergence**: `review_batch()` routes through
+  `review()`, eliminating 7-feature divergence (dialogue calibration,
+  adaptive thresholds, cross-turn handling, etc.).
+- **Vector fallback cross-tenant leak**: `add_fact()` prefixes `tenant_id`
+  in the keyword store, preventing fallback retrieval from leaking facts.
+- **streaming_oversight crash**: replaced non-existent `ingest_token()` call
+  with `check_halt()`, fixing `AttributeError` on WebSocket sessions.
+- **Timeout kills stream**: all three streaming paths (`HaltMonitor`,
+  `StreamingKernel`, `AsyncStreamingKernel`) now catch `TimeoutError`
+  gracefully instead of aborting with unhandled exceptions.
+
 ## [3.9.0] — 2026-03-15
 
 ### Added
