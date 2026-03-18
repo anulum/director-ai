@@ -30,8 +30,9 @@ jobs:
 
       - name: Install build tools
         run: |
-          pip install -r requirements/ci-build.txt
-          pip install -r requirements/ci-sbom.txt
+          sed 's/ *--hash=sha256:[a-f0-9]*//g; s/ *\\$//g' requirements/ci-build.txt | grep -v '^\s*$' > /tmp/build-nohash.txt
+          sed 's/ *--hash=sha256:[a-f0-9]*//g; s/ *\\$//g' requirements/ci-sbom.txt | grep -v '^\s*$' > /tmp/sbom-nohash.txt
+          pip install -r /tmp/build-nohash.txt -r /tmp/sbom-nohash.txt
 
       - name: Build sdist
         run: python -m build --sdist
