@@ -29,7 +29,9 @@ jobs:
           python-version: "3.12"
 
       - name: Install build tools
-        run: pip install --require-hashes -r requirements/ci-build.txt -r requirements/ci-sbom.txt
+        run: |
+          pip install --require-hashes -r requirements/ci-build.txt
+          pip install --require-hashes -r requirements/ci-sbom.txt
 
       - name: Build sdist
         run: python -m build --sdist
