@@ -5,7 +5,7 @@
 <span class="version-badge">v3.9 — New: VerifiedScorer, document ingestion API, mode selector, ColBERT</span>
 
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
-[![Tests](https://img.shields.io/badge/tests-200%2B%20passing-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-2320%20passed-brightgreen)]()
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://github.com/anulum/director-ai/blob/main/LICENSE)
 [![Python](https://img.shields.io/pypi/pyversions/director-ai)](https://pypi.org/project/director-ai/)
 

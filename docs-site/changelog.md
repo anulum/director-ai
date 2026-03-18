@@ -2,7 +2,7 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
-## v3.9.0 (2026-03-16)
+## v3.9.0 (2026-03-15)
 
 ### Added
 - **VerifiedScorer**: sentence-level multi-signal fact verification. 5 independent signals: NLI, entity consistency, numerical consistency, negation detection, traceability (fabrication). `POST /v1/verify` endpoint.

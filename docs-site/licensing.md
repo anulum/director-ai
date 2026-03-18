@@ -131,8 +131,8 @@ We don't gate features behind the commercial license. We gate the *obligation to
 
 ### Contact
 
-- Email: [sales@anulum.li](mailto:sales@anulum.li)
-- Web: [anulum.li/contact](https://www.anulum.li/contact.html)
+- Email: [protoscience@anulum.li](mailto:protoscience@anulum.li)
+- Web: [anulum.li](https://www.anulum.li)
 
 ## FAQ
 
