@@ -46,7 +46,7 @@ Test Director-AI on your actual data before committing. No credit card, no lock-
 - Weekly 30-min call with the maintainer to review results
 - Honest assessment: if Director-AI doesn't fit your use case, we tell you
 
-<a href="mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot%20Request&body=Company:%0AUse%20case:%0AApprox.%20LLM%20call%20volume/day:%0A" class="cta-button">Request Free Pilot</a>
+[Request Free Pilot :material-flask:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot%20Request&body=Company:%0AUse%20case:%0AApprox.%20LLM%20call%20volume/day:%0A){ .md-button .md-button--primary }
 
 ### Commercial License Tiers
 
@@ -115,11 +115,10 @@ We don't gate features behind the commercial license. We gate the *obligation to
 
 ### Get Started
 
-<a href="https://polar.sh/checkout/polar_c_gmuEUUV0VUIsmnm8ZzPJnmrYISFg5oXzualxI11Lgxn" class="cta-button">Buy Indie (CHF 49/mo)</a>&nbsp;&nbsp;
-<a href="https://polar.sh/checkout/polar_c_kLbfbCFJhyubFxzax8JNLw8WZU8T4IveHPlMo0kpxOZ" class="cta-button">Buy Pro (CHF 199/mo)</a>&nbsp;&nbsp;
-<a href="https://polar.sh/checkout/polar_c_VW7ClxyB6axih6mu9NqWlh6OgeAVJl4GVDgFW0QePtZ" class="cta-button cta-button--secondary">Perpetual (CHF 999)</a>
-
-<a href="mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot%20Request&body=Company:%0AUse%20case:%0AApprox.%20LLM%20call%20volume/day:%0A" class="cta-button cta-button--secondary">Request Free Enterprise Pilot</a>
+[Buy Indie (CHF 49/mo) :material-cart:](https://polar.sh/checkout/polar_c_gmuEUUV0VUIsmnm8ZzPJnmrYISFg5oXzualxI11Lgxn){ .md-button .md-button--primary }
+[Buy Pro (CHF 199/mo) :material-cart:](https://polar.sh/checkout/polar_c_kLbfbCFJhyubFxzax8JNLw8WZU8T4IveHPlMo0kpxOZ){ .md-button .md-button--primary }
+[Perpetual (CHF 999) :material-license:](https://polar.sh/checkout/polar_c_VW7ClxyB6axih6mu9NqWlh6OgeAVJl4GVDgFW0QePtZ){ .md-button }
+[Request Free Enterprise Pilot :material-email:](mailto:director.class.ai@anulum.li?subject=Director-AI%20Free%20Pilot%20Request&body=Company:%0AUse%20case:%0AApprox.%20LLM%20call%20volume/day:%0A){ .md-button }
 
 ### Enterprise Includes
 
