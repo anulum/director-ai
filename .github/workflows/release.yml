@@ -30,8 +30,8 @@ jobs:
 
       - name: Install build tools
         run: |
-          pip install --require-hashes -r requirements/ci-build.txt
-          pip install --require-hashes -r requirements/ci-sbom.txt
+          pip install -r requirements/ci-build.txt
+          pip install -r requirements/ci-sbom.txt
 
       - name: Build sdist
         run: python -m build --sdist
