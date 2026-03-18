@@ -1401,7 +1401,9 @@ class CoherenceScorer:
                     coherence = 1.0 - total_divergence
 
             if self.cache:
-                self.cache.put(prompt, action, coherence, h_logic, h_fact, tenant_id=tenant_id)
+                self.cache.put(
+                    prompt, action, coherence, h_logic, h_fact, tenant_id=tenant_id
+                )
 
             # Adaptive threshold: select per-task-type threshold
             effective_threshold = self.threshold

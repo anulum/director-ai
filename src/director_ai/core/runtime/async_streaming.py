@@ -168,7 +168,13 @@ class AsyncStreamingKernel(HaltMonitor):
                 accumulated = "".join(accumulated_tokens) + token
                 try:
                     score = await self._call_callback(coherence_callback, accumulated)
-                except (TypeError, ValueError, RuntimeError, TimeoutError, OSError) as exc:
+                except (
+                    TypeError,
+                    ValueError,
+                    RuntimeError,
+                    TimeoutError,
+                    OSError,
+                ) as exc:
                     logger.warning(
                         "Coherence callback error â€” using last score: %s",
                         exc,
