@@ -29,10 +29,7 @@ jobs:
           python-version: "3.12"
 
       - name: Install build tools
-        run: |
-          sed 's/ *--hash=sha256:[a-f0-9]*//g; s/ *\\$//g' requirements/ci-build.txt | grep -v '^\s*$' > /tmp/build-nohash.txt
-          sed 's/ *--hash=sha256:[a-f0-9]*//g; s/ *\\$//g' requirements/ci-sbom.txt | grep -v '^\s*$' > /tmp/sbom-nohash.txt
-          pip install -r /tmp/build-nohash.txt -r /tmp/sbom-nohash.txt
+        run: pip install --require-hashes -r requirements/ci-build.txt -r requirements/ci-sbom.txt
 
       - name: Build sdist
         run: python -m build --sdist
