@@ -1,11 +1,11 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_cov_100.py
+# Director-AI â€” test_cov_100.py
 
-"""Final coverage push — targets every remaining testable gap."""
+"""Final coverage push â€” targets every remaining testable gap."""
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-# ── metrics: histogram overflow + gauge_inc/gauge_dec new gauge ──────
+# â”€â”€ metrics: histogram overflow + gauge_inc/gauge_dec new gauge â”€â”€â”€â”€â”€â”€
 
 
 class TestMetricsHistogramOverflow:
@@ -46,7 +46,7 @@ class TestMetricsHistogramOverflow:
         assert data["gauges"]["new_gauge_dec_test"] == -2.0
 
 
-# ── sdk_guard: periodic check fires _handle_failure ─────────────────
+# â”€â”€ sdk_guard: periodic check fires _handle_failure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSdkGuardPeriodicCheck:
@@ -100,7 +100,7 @@ class TestSdkGuardPeriodicCheck:
         assert scorer.review.call_count >= 2
 
 
-# ── providers: local stream SSE parse errors ────────────────────────
+# â”€â”€ providers: local stream SSE parse errors â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLocalProviderStreamParsing:
@@ -109,8 +109,8 @@ class TestLocalProviderStreamParsing:
 
         p = LocalProvider(api_url="http://fake:8080/v1/chat/completions")
         lines = [
-            b"",  # empty line — hits continue on line 382
-            b"event: ping",  # non-data line — hits continue
+            b"",  # empty line â€” hits continue on line 382
+            b"event: ping",  # non-data line â€” hits continue
             b"data: not-json",
             b'data: {"choices":[{"delta":{"content":"hi"}}]}',
             b"data: [DONE]",
@@ -147,7 +147,7 @@ class TestLocalProviderStreamParsing:
         assert tokens == ["ok"]
 
 
-# ── config: rate_limit_rpm < 0, nli_devices, list coerce ────────────
+# â”€â”€ config: rate_limit_rpm < 0, nli_devices, list coerce â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestConfigEdgeCases:
@@ -174,7 +174,7 @@ class TestConfigEdgeCases:
         assert result == ["a", "b", "c"]
 
 
-# ── nli: _model_score 2-class branch + minicheck MiniCheck raises ───
+# â”€â”€ nli: _model_score 2-class branch + minicheck MiniCheck raises â”€â”€â”€
 
 
 class TestNli2ClassAndMinicheck:
@@ -194,7 +194,7 @@ class TestNli2ClassAndMinicheck:
         assert result is False
 
 
-# ── cli: quickstart unknown arg, ingest empty line, bench --model ────
+# â”€â”€ cli: quickstart unknown arg, ingest empty line, bench --model â”€â”€â”€â”€
 
 
 class TestCliEdgeBranches:
@@ -350,7 +350,7 @@ class TestCliEdgeBranches:
         mock_uv.run.assert_called_once()
 
 
-# ── server: NLI gauge, rate_limit no slowapi, halted-all stats ───────
+# â”€â”€ server: NLI gauge, rate_limit no slowapi, halted-all stats â”€â”€â”€â”€â”€â”€â”€
 
 
 _HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
@@ -386,7 +386,7 @@ class TestServerNliGaugeAndRateLimit:
             srv._SLOWAPI_AVAILABLE = orig
 
 
-# ── vector_store: qdrant _ensure_collection create branch ────────────
+# â”€â”€ vector_store: qdrant _ensure_collection create branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestVectorStoreQdrantEnsureCollection:
@@ -419,12 +419,12 @@ class TestVectorStoreQdrantEnsureCollection:
         mock_qdrant.create_collection.assert_called_once()
 
 
-# ── Branch partial: sdk_guard _extract_prompt non-text content ────────
+# â”€â”€ Branch partial: sdk_guard _extract_prompt non-text content â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestExtractPromptBranches:
     def test_content_list_with_non_text_blocks(self):
-        """Content list with non-text dict — falls through."""
+        """Content list with non-text dict â€” falls through."""
         from director_ai.integrations.sdk_guard import _extract_prompt
 
         messages = [
@@ -440,7 +440,7 @@ class TestExtractPromptBranches:
         assert isinstance(result, str)
 
     def test_content_list_empty(self):
-        """Empty content list → for-loop body never entered → return str(content)."""
+        """Empty content list â†’ for-loop body never entered â†’ return str(content)."""
         from director_ai.integrations.sdk_guard import _extract_prompt
 
         messages = [{"role": "user", "content": []}]
@@ -448,7 +448,7 @@ class TestExtractPromptBranches:
         assert result == "[]"
 
 
-# ── Branch partial: sdk_guard empty streams (final_check with no buffer) ──
+# â”€â”€ Branch partial: sdk_guard empty streams (final_check with no buffer) â”€â”€
 
 
 class TestSdkGuardEmptyStreams:
@@ -465,7 +465,7 @@ class TestSdkGuardEmptyStreams:
         return scorer
 
     def test_openai_empty_stream_final_check_empty_buffer(self):
-        """No deltas in stream → buffer empty → final_check exits (238->exit)."""
+        """No deltas in stream â†’ buffer empty â†’ final_check exits (238->exit)."""
         from director_ai.integrations.sdk_guard import _GuardedOpenAIStream
 
         chunks = [
@@ -483,7 +483,7 @@ class TestSdkGuardEmptyStreams:
         assert scorer.review.call_count == 0
 
     def test_anthropic_empty_stream_final_check_empty_buffer(self):
-        """No text in events → buffer empty → final_check exits (346->exit)."""
+        """No text in events â†’ buffer empty â†’ final_check exits (346->exit)."""
         from director_ai.integrations.sdk_guard import _GuardedAnthropicStream
 
         events = [
@@ -497,7 +497,7 @@ class TestSdkGuardEmptyStreams:
         assert scorer.review.call_count == 0
 
 
-# ── Branch partial: sdk_guard async iteration with empty deltas ───────
+# â”€â”€ Branch partial: sdk_guard async iteration with empty deltas â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSdkGuardAsyncIteration:
@@ -554,12 +554,12 @@ class TestSdkGuardAsyncIteration:
         assert len(collected) == 3
 
 
-# ── Branch partial: streaming check_halt window above threshold ───────
+# â”€â”€ Branch partial: streaming check_halt window above threshold â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestStreamingWindowAboveThreshold:
     def test_window_full_but_average_above_threshold(self):
-        """Window fills up but avg >= threshold — falls through."""
+        """Window fills up but avg >= threshold â€” falls through."""
         from director_ai.core.streaming import StreamingKernel
 
         k = StreamingKernel(
@@ -574,12 +574,12 @@ class TestStreamingWindowAboveThreshold:
         assert halted is False
 
 
-# ── Branch partial: langgraph rewrite with empty context ──────────────
+# â”€â”€ Branch partial: langgraph rewrite with empty context â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLanggraphEmptyContextRewrite:
     def test_rewrite_mode_with_no_context(self):
-        """on_fail='rewrite' + empty context → 68->71 (no rewrite done)."""
+        """on_fail='rewrite' + empty context â†’ 68->71 (no rewrite done)."""
         from director_ai.integrations.langgraph import director_ai_node
 
         node = director_ai_node(
@@ -598,12 +598,12 @@ class TestLanggraphEmptyContextRewrite:
         )
 
 
-# ── Branch partial: providers Anthropic non-text block ────────────────
+# â”€â”€ Branch partial: providers Anthropic non-text block â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProviderAnthropicNonTextBlock:
     def test_anthropic_response_with_non_text_blocks(self):
-        """Content blocks without type='text' → 222->221 (loop continues)."""
+        """Content blocks without type='text' â†’ 222->221 (loop continues)."""
         from director_ai.integrations.providers import AnthropicProvider
 
         p = AnthropicProvider(api_key="fake-key")
@@ -623,12 +623,12 @@ class TestProviderAnthropicNonTextBlock:
         assert candidates[0]["text"] == "actual answer"
 
 
-# ── Branch partial: providers OpenAI SSE empty content delta ──────────
+# â”€â”€ Branch partial: providers OpenAI SSE empty content delta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProviderOpenAIEmptyContent:
     def test_openai_sse_empty_content_skipped(self):
-        """SSE delta with empty content → 163->153 (yield skipped, next line)."""
+        """SSE delta with empty content â†’ 163->153 (yield skipped, next line)."""
         from director_ai.integrations.providers import OpenAIProvider
 
         p = OpenAIProvider(api_key="fake-key")
@@ -647,12 +647,12 @@ class TestProviderOpenAIEmptyContent:
         assert tokens == ["word"]
 
 
-# ── Branch partial: policy non-matching pattern ───────────────────────
+# â”€â”€ Branch partial: policy non-matching pattern â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestPolicyNonMatchingPattern:
     def test_some_patterns_match_some_dont(self):
-        """Multiple forbidden patterns, only some match → 132->131 (loop continues)."""
+        """Multiple forbidden patterns, only some match â†’ 132->131 (loop continues)."""
         from director_ai.core.policy import Policy
 
         policy = Policy.from_dict(
@@ -667,12 +667,12 @@ class TestPolicyNonMatchingPattern:
         assert "badword" in violations[0].detail
 
 
-# ── Branch partial: vector_store SentenceTransformer zero similarity ──
+# â”€â”€ Branch partial: vector_store SentenceTransformer zero similarity â”€â”€
 
 
 class TestVectorStoreZeroSimilarity:
     def test_query_with_zero_similarity_items_filtered(self):
-        """Similarity <= 0 → 128->127 (item not appended)."""
+        """Similarity <= 0 â†’ 128->127 (item not appended)."""
         import threading
 
         import numpy as np

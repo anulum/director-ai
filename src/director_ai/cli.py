@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Command Line Interface
+# Director-Class AI â€” Command Line Interface
 
 """CLI entry point for Director-Class AI.
 
@@ -25,7 +25,7 @@ import sys
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI entry point — dispatches to subcommands."""
+    """CLI entry point â€” dispatches to subcommands."""
     args = argv if argv is not None else sys.argv[1:]
 
     if not args or args[0] in ("-h", "--help", "help"):
@@ -145,7 +145,7 @@ def _cmd_quickstart(args: list[str]) -> None:
 
     # config.yaml
     (out_dir / "config.yaml").write_text(
-        f"# Director-AI configuration — profile: {profile}\n"
+        f"# Director-AI configuration â€” profile: {profile}\n"
         f"coherence_threshold: {cfg.coherence_threshold}\n"
         f"hard_limit: {cfg.hard_limit}\n"
         f"use_nli: {str(cfg.use_nli).lower()}\n"
@@ -163,7 +163,7 @@ def _cmd_quickstart(args: list[str]) -> None:
 
     # guard.py
     (out_dir / "guard.py").write_text(
-        '"""Minimal Director-AI guard — run: python guard.py"""\n'
+        '"""Minimal Director-AI guard â€” run: python guard.py"""\n'
         "from pathlib import Path\n"
         "\n"
         "from director_ai.core import CoherenceScorer, GroundTruthStore\n"
@@ -205,7 +205,7 @@ def _cmd_quickstart(args: list[str]) -> None:
         encoding="utf-8",
     )
 
-    print(f"Created {out_dir}/ — run: python {out_dir}/guard.py")
+    print(f"Created {out_dir}/ â€” run: python {out_dir}/guard.py")
 
 
 def _cmd_review(args: list[str]) -> None:
@@ -404,7 +404,7 @@ def _cmd_ingest(args: list[str]) -> None:
         current_len = 0
         for para in paragraphs:
             para = para.strip()
-            if not para:  # pragma: no cover — empty paragraphs from text.split
+            if not para:  # pragma: no cover â€” empty paragraphs from text.split
                 continue
             word_count = len(para.split())
             if current_len + word_count > max_tokens and current:
@@ -454,7 +454,7 @@ def _cmd_ingest(args: list[str]) -> None:
     if persist_dir:
         print(f"Persisted to: {persist_dir}")
     else:
-        print("(in-memory only — use --persist <dir> to save)")
+        print("(in-memory only â€” use --persist <dir> to save)")
 
 
 def _cmd_eval(args: list[str]) -> None:
@@ -522,7 +522,7 @@ def _cmd_eval(args: list[str]) -> None:
         sys.exit(1)
 
     if dataset and dataset == "aggrefact" and not os.environ.get("HF_TOKEN"):
-        print("Warning: HF_TOKEN not set — AggreFact benchmark may be skipped")
+        print("Warning: HF_TOKEN not set â€” AggreFact benchmark may be skipped")
 
     print(
         f"Running benchmarks (max_samples={max_samples}, model={model or 'default'})...",
@@ -816,7 +816,7 @@ def _cmd_finetune(args: list[str]) -> None:
     if result.regression_report:
         rr = result.regression_report
         print(
-            f"  Regression:      {rr['regression_pp']:+.1f}pp → {rr['recommendation']}",
+            f"  Regression:      {rr['regression_pp']:+.1f}pp â†’ {rr['recommendation']}",
         )
     if result.onnx_path:
         print(f"  ONNX export:     {result.onnx_path}")
@@ -971,7 +971,7 @@ def _cmd_proxy(args: list[str]) -> None:
     )
 
     print(
-        f"Director-AI proxy on :{port} → {upstream_url} "
+        f"Director-AI proxy on :{port} â†’ {upstream_url} "
         f"(threshold={threshold}, on_fail={on_fail})",
     )
     uvicorn.run(app, host="0.0.0.0", port=port)
@@ -1261,7 +1261,7 @@ def _cmd_doctor(args: list[str]) -> None:
     passed = sum(1 for _, ok, _ in checks if ok)
     total = len(checks)
 
-    print(f"director-ai {director_ai.__version__} — dependency check\n")
+    print(f"director-ai {director_ai.__version__} â€” dependency check\n")
     for name, ok, detail in checks:
         mark = "+" if ok else "-"
         print(f"  [{mark}] {name}: {detail}")
@@ -1302,6 +1302,16 @@ def _cmd_license(args: list[str]) -> None:
         return
 
     if args[0] == "generate":
+        import os
+
+        admin_key = os.environ.get("DIRECTOR_ADMIN_KEY", "")
+        if not admin_key:
+            print(
+                "Error: DIRECTOR_ADMIN_KEY environment variable required for license generation."
+            )
+            print("This command is for license administrators only.")
+            sys.exit(1)
+
         import argparse
 
         p = argparse.ArgumentParser(prog="director-ai license generate")

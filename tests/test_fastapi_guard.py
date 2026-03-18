@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — FastAPI Middleware Tests
+# Director-Class AI â€” FastAPI Middleware Tests
 
 from __future__ import annotations
 
@@ -102,7 +102,7 @@ async def test_guard_path_filter():
             json={"prompt": "What color is the sky?"},
         )
 
-    # Path not in configured paths → pass through unscored
+    # Path not in configured paths â†’ pass through unscored
     assert resp.status_code == 200
     assert "x-director-score" not in resp.headers
 

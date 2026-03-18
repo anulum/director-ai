@@ -1,15 +1,15 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — LLM Provider Adapters
+# Director-Class AI â€” LLM Provider Adapters
 
 """Unified LLM provider protocol with OpenAI, Anthropic, HuggingFace,
 and local server adapters.
 
 Each provider implements ``generate_candidates(prompt, n)`` returning
-a list of ``{"text": str, "source": str}`` dicts — the same interface
+a list of ``{"text": str, "source": str}`` dicts â€” the same interface
 as ``MockGenerator`` and ``LLMGenerator``.
 """
 
@@ -47,7 +47,7 @@ class LLMProvider(ABC):
 
         Yields
         ------
-        str — individual tokens from the LLM response.
+        str â€” individual tokens from the LLM response.
 
         """
         candidates = self.generate_candidates(prompt, n=1)
@@ -60,12 +60,12 @@ class OpenAIProvider(LLMProvider):
 
     Parameters
     ----------
-    api_key : str — OpenAI API key.
-    model : str — model name (default: gpt-4o-mini).
-    base_url : str — API base URL (for Azure/compatible endpoints).
-    temperature : float — sampling temperature.
-    max_tokens : int — max tokens per completion.
-    timeout : int — request timeout seconds.
+    api_key : str â€” OpenAI API key.
+    model : str â€” model name (default: gpt-4o-mini).
+    base_url : str â€” API base URL (for Azure/compatible endpoints).
+    temperature : float â€” sampling temperature.
+    max_tokens : int â€” max tokens per completion.
+    timeout : int â€” request timeout seconds.
 
     """
 
@@ -181,10 +181,10 @@ class AnthropicProvider(LLMProvider):
 
     Parameters
     ----------
-    api_key : str — Anthropic API key.
-    model : str — model ID (default: claude-sonnet-4-5-20250929).
-    max_tokens : int — max tokens per message.
-    timeout : int — request timeout seconds.
+    api_key : str â€” Anthropic API key.
+    model : str â€” model ID (default: claude-sonnet-4-5-20250929).
+    max_tokens : int â€” max tokens per message.
+    timeout : int â€” request timeout seconds.
 
     """
 
@@ -259,9 +259,9 @@ class HuggingFaceProvider(LLMProvider):
 
     Parameters
     ----------
-    api_key : str — HuggingFace API token.
-    model : str — model ID on HuggingFace Hub.
-    timeout : int — request timeout seconds.
+    api_key : str â€” HuggingFace API token.
+    model : str â€” model ID on HuggingFace Hub.
+    timeout : int â€” request timeout seconds.
 
     """
 
@@ -325,9 +325,9 @@ class LocalProvider(LLMProvider):
 
     Parameters
     ----------
-    api_url : str — server endpoint URL.
-    model : str — model name (for servers that require it).
-    timeout : int — request timeout seconds.
+    api_url : str â€” server endpoint URL.
+    model : str â€” model name (for servers that require it).
+    timeout : int â€” request timeout seconds.
 
     """
 

@@ -1,3 +1,8 @@
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 """Native SDK interceptors for OpenAI and Anthropic clients.
 
 Usage::
@@ -214,7 +219,7 @@ async def _ascore_and_gate(scorer, on_fail, query, response_text):
     return cs
 
 
-# ── OpenAI proxy ────────────────────────────────────────────────────
+# â”€â”€ OpenAI proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class _OpenAICompletionsProxy:
@@ -326,7 +331,7 @@ class _GuardedOpenAIStream:
             _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
 
-# ── Anthropic proxy ─────────────────────────────────────────────────
+# â”€â”€ Anthropic proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class _AnthropicMessagesProxy:
@@ -452,7 +457,7 @@ class _GuardedAnthropicStream:
             _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
 
-# ── Bedrock proxy ──────────────────────────────────────────────────
+# â”€â”€ Bedrock proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _has_bedrock_shape(client) -> bool:
@@ -570,7 +575,7 @@ class _GuardedBedrockStream:
             _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
 
-# ── Gemini proxy ───────────────────────────────────────────────────
+# â”€â”€ Gemini proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _has_gemini_shape(client) -> bool:
@@ -673,7 +678,7 @@ class _GuardedGeminiStream:
             _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
 
-# ── Cohere proxy ───────────────────────────────────────────────────
+# â”€â”€ Cohere proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _has_cohere_shape(client) -> bool:

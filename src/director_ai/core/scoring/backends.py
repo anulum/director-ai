@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Pluggable Scorer Backend Registry
+# Director-Class AI â€” Pluggable Scorer Backend Registry
 
 """ABC + registry for scorer backends. Third-party backends register
 via ``director_ai.backends`` entry points.
@@ -101,7 +101,7 @@ def _load_entry_points() -> None:
         pass
 
 
-# ── Built-in backend wrappers ────────────────────────────────────
+# â”€â”€ Built-in backend wrappers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class DeBERTaBackend(ScorerBackend):

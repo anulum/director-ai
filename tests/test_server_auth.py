@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Server Auth, Rate Limit, Correlation ID Tests
+# Director-Class AI â€” Server Auth, Rate Limit, Correlation ID Tests
 
 from __future__ import annotations
 
@@ -148,7 +148,7 @@ def test_valid_body_sizes_accepted():
     assert r.status_code == 200
 
 
-# ── Stats backend tests ──────────────────────────────────────────────
+# â”€â”€ Stats backend tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def test_prometheus_stats_returns_summary():
@@ -184,7 +184,7 @@ def test_dashboard_renders_with_prometheus():
     assert "Dashboard" in r.text
 
 
-# ── AGPL §13 source endpoint tests ───────────────────────────────
+# â”€â”€ AGPL Â§13 source endpoint tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def test_source_returns_200():

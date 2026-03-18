@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Coherence Agent (Main Orchestrator)
+# Director-Class AI â€” Coherence Agent (Main Orchestrator)
 
 from __future__ import annotations
 
@@ -38,9 +38,9 @@ class CoherenceAgent:
 
     Parameters
     ----------
-    llm_api_url : str | None — direct URL to OpenAI-compatible endpoint.
-    use_nli : bool | None — enable NLI model scoring.
-    provider : str | None — "openai" or "anthropic". Reads API key from env.
+    llm_api_url : str | None â€” direct URL to OpenAI-compatible endpoint.
+    use_nli : bool | None â€” enable NLI model scoring.
+    provider : str | None â€” "openai" or "anthropic". Reads API key from env.
         Mutually exclusive with llm_api_url.
 
     """
@@ -98,7 +98,7 @@ class CoherenceAgent:
             )
             self.logger.info("Rust CoherenceScorer active (via registry)")
             return scorer
-        except (  # pragma: no cover — only when backfire_kernel absent
+        except (  # pragma: no cover â€” only when backfire_kernel absent
             KeyError,
             ImportError,
             TypeError,
@@ -106,7 +106,7 @@ class CoherenceAgent:
             RuntimeError,
             OSError,
         ) as exc:
-            self.logger.debug("Rust scorer unavailable (%s) — Python fallback", exc)
+            self.logger.debug("Rust scorer unavailable (%s) â€” Python fallback", exc)
         return CoherenceScorer(  # pragma: no cover
             threshold=0.6,
             ground_truth_store=self.store,

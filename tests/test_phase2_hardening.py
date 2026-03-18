@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Phase 2 Hardening Tests
+# Director-Class AI â€” Phase 2 Hardening Tests
 
 """Tests for Phase 2 hardening items (H18-H27).
 
@@ -39,7 +39,7 @@ from director_ai.core.metrics import MetricsCollector
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
 
-# ── Exception Hierarchy ────────────────────────────────────────────
+# â”€â”€ Exception Hierarchy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestExceptionHierarchy:
@@ -82,7 +82,7 @@ class TestExceptionHierarchy:
             raise NumericalError("NaN detected")
 
 
-# ── H18: ChromaDB Metadata Fix ────────────────────────────────────
+# â”€â”€ H18: ChromaDB Metadata Fix â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestVectorStoreMetadata:
@@ -110,7 +110,7 @@ class TestVectorStoreMetadata:
         assert store.backend.count() == 0
 
 
-# ── H19: CORS Origins Configurable ────────────────────────────────
+# â”€â”€ H19: CORS Origins Configurable â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCORSConfig:
@@ -131,7 +131,7 @@ class TestCORSConfig:
         assert d["cors_origins"] == "https://example.com"
 
 
-# ── H21: WebSocket Validation ──────────────────────────────────────
+# â”€â”€ H21: WebSocket Validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 try:
     from fastapi.testclient import TestClient
@@ -202,7 +202,7 @@ class TestWebSocketValidation:
             assert "exceeds" in resp["error"]
 
 
-# ── H22: CLI Batch Safety ──────────────────────────────────────────
+# â”€â”€ H22: CLI Batch Safety â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCLIBatchSafety:
@@ -245,7 +245,7 @@ class TestCLIBatchSafety:
         assert "Total:    2" in captured.out
 
 
-# ── H25: Async Batch Timeout ──────────────────────────────────────
+# â”€â”€ H25: Async Batch Timeout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestBatchTimeout:
@@ -270,7 +270,7 @@ class TestBatchTimeout:
         assert processor.item_timeout == 30.0
 
 
-# ── H27: Shared Score Blending ─────────────────────────────────────
+# â”€â”€ H27: Shared Score Blending â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSharedScoreBlending:
@@ -321,7 +321,7 @@ class TestSharedScoreBlending:
         assert abs(CoherenceScorer.W_LOGIC + CoherenceScorer.W_FACT - 1.0) < 1e-10
 
 
-# ── Config Validation (from Phase 1 H12) ──────────────────────────
+# â”€â”€ Config Validation (from Phase 1 H12) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestConfigValidation:
@@ -360,7 +360,7 @@ class TestConfigValidation:
             DirectorConfig(batch_max_concurrency=0)
 
 
-# ── Metrics Memory Cap (from Phase 1 H7) ──────────────────────────
+# â”€â”€ Metrics Memory Cap (from Phase 1 H7) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestMetricsMemoryCap:

@@ -1,12 +1,12 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_phase3_hardening.py
+# Director-AI â€” test_phase3_hardening.py
 
 """Tests for Phase 3 hardening fixes (consumer core):
-H28  ROB-5: NLI assert → RuntimeError
+H28  ROB-5: NLI assert â†’ RuntimeError
 H29  CON-1: batch asyncio.get_running_loop()
 H30  ROB-1: batch coherence None guard
 H34  SEC-3: actor response.text truncation
@@ -26,7 +26,7 @@ import threading
 
 import pytest
 
-# ── H28: NLI assert → RuntimeError ──────────────────────────────────
+# â”€â”€ H28: NLI assert â†’ RuntimeError â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH28NLIAssert:
@@ -60,7 +60,7 @@ class TestH28NLIAssert:
         assert results[0] < results[1]
 
 
-# ── H29: batch asyncio.get_running_loop ──────────────────────────────
+# â”€â”€ H29: batch asyncio.get_running_loop â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH29AsyncLoop:
@@ -89,7 +89,7 @@ class TestH29AsyncLoop:
         assert len(batch_result.results) == 1
 
 
-# ── H30: batch coherence None guard ──────────────────────────────────
+# â”€â”€ H30: batch coherence None guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH30CoherenceNoneGuard:
@@ -114,7 +114,7 @@ class TestH30CoherenceNoneGuard:
         assert result.coherence is None
 
 
-# ── H34: actor response.text truncation ─────────────────────────────
+# â”€â”€ H34: actor response.text truncation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH34ResponseTruncation:
@@ -135,7 +135,7 @@ class TestH34ResponseTruncation:
         assert "Error" in candidates[0]["text"]
 
 
-# ── H35: config _coerce error message ───────────────────────────────
+# â”€â”€ H35: config _coerce error message â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH35CoerceError:
@@ -155,7 +155,7 @@ class TestH35CoerceError:
             os.environ.update(original)
 
 
-# ── H36: config server_port / server_workers validation ──────────────
+# â”€â”€ H36: config server_port / server_workers validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH36ServerValidation:
@@ -192,7 +192,7 @@ class TestH36ServerValidation:
         assert cfg.server_workers == 4
 
 
-# ── H37: config from_yaml UTF-8 ─────────────────────────────────────
+# â”€â”€ H37: config from_yaml UTF-8 â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH37YamlUtf8:
@@ -237,7 +237,7 @@ class TestH37YamlUtf8:
             os.unlink(path)
 
 
-# ── H39: CLI --port safety ──────────────────────────────────────────
+# â”€â”€ H39: CLI --port safety â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH39CLIPort:
@@ -256,7 +256,7 @@ class TestH39CLIPort:
             _cmd_batch(["nonexistent_file.jsonl"])
 
 
-# ── H42: scorer history thread lock ─────────────────────────────────
+# â”€â”€ H42: scorer history thread lock â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH42ScorerThreadLock:
@@ -292,7 +292,7 @@ class TestH42ScorerThreadLock:
         assert len(scorer.history) <= scorer.window
 
 
-# ── H44: scorer setLevel removed ────────────────────────────────────
+# â”€â”€ H44: scorer setLevel removed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH44ScorerSetLevel:

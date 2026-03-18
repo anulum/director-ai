@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — YAML Policy Engine
+# Director-Class AI â€” YAML Policy Engine
 
 """Declarative policy enforcement for LLM output.
 
@@ -53,11 +53,11 @@ class Policy:
 
     Parameters
     ----------
-    forbidden : list[str] — phrases that trigger immediate block.
-    patterns : list[dict] — regex rules with name/regex/action keys.
-    max_length : int — max response character count (0 = unlimited).
-    required_citations_pattern : str — regex for citation markers.
-    required_citations_min : int — minimum citation count (0 = disabled).
+    forbidden : list[str] â€” phrases that trigger immediate block.
+    patterns : list[dict] â€” regex rules with name/regex/action keys.
+    max_length : int â€” max response character count (0 = unlimited).
+    required_citations_pattern : str â€” regex for citation markers.
+    required_citations_min : int â€” minimum citation count (0 = disabled).
 
     """
 

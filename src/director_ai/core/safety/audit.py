@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Structured Audit Logger
+# Director-Class AI â€” Structured Audit Logger
 
 """Structured JSON audit trail for every review decision.
 
@@ -61,8 +61,8 @@ class AuditLogger:
 
     Parameters
     ----------
-    path : str | Path | None — JSONL file path. None = logging-only.
-    logger_name : str — Python logger name for audit events.
+    path : str | Path | None â€” JSONL file path. None = logging-only.
+    logger_name : str â€” Python logger name for audit events.
 
     """
 
@@ -80,7 +80,7 @@ class AuditLogger:
         else:
             self._hmac_key = os.urandom(32)
             self._logger.warning(
-                "DIRECTOR_AUDIT_HMAC_SECRET not set — query hashes "
+                "DIRECTOR_AUDIT_HMAC_SECRET not set â€” query hashes "
                 "will not be stable across restarts"
             )
         self._sinks: list[Any] = []

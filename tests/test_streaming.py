@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Streaming Kernel Tests
+# Director-Class AI â€” Streaming Kernel Tests
 
 import asyncio
 
@@ -163,7 +163,7 @@ class TestStreamingKernel:
         session = kernel.stream_tokens(tokens, lambda t: next(score_iter))
         assert session.halted
         assert session.soft_halted
-        # Should not process all 63 tokens — cap at halt_index + 50
+        # Should not process all 63 tokens â€” cap at halt_index + 50
         assert session.token_count <= 53 + 1
 
     def test_soft_halt_mode_default_is_hard(self):
@@ -218,7 +218,7 @@ class TestScoringCadence:
         def counting_cb(token):
             nonlocal call_count
             call_count += 1
-            return 0.9  # always high → cadence ramps up
+            return 0.9  # always high â†’ cadence ramps up
 
         kernel = StreamingKernel(soft_limit=0.6, adaptive=True, max_cadence=8)
         tokens = [f"t{i} " for i in range(40)]

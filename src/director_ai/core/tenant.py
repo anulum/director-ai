@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Multi-Tenant KB Isolation
+# Director-Class AI â€” Multi-Tenant KB Isolation
 
 """Tenant-isolated knowledge base routing + per-tenant model versioning.
 
@@ -149,7 +149,7 @@ class TenantRouter:
             )
         raise ValueError(f"Unknown vector backend_type: {backend_type!r}")
 
-    # ── Per-tenant model versioning (Phase D) ──────────────────────
+    # â”€â”€ Per-tenant model versioning (Phase D) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def set_model(
         self,

@@ -1,3 +1,8 @@
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 """Close remaining coverage gaps: grpc, server, cli, nli, providers, streaming."""
 
 from __future__ import annotations
@@ -34,7 +39,7 @@ def _grpc_context(mods):
             setattr(_director_pkg, attr, old)
 
 
-# ── gRPC StreamTokens ──────────────────────────────────────────────
+# â”€â”€ gRPC StreamTokens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestGrpcStreamTokens:
@@ -75,7 +80,7 @@ class TestGrpcStreamTokens:
             assert len(tokens) >= 0
 
 
-# ── Server: rate limit 429 handler, WS non-streaming, lifespan ────
+# â”€â”€ Server: rate limit 429 handler, WS non-streaming, lifespan â”€â”€â”€â”€
 
 
 @_skip_no_server
@@ -170,7 +175,7 @@ class TestServerNliMetric:
         assert app is not None
 
 
-# ── CLI: remaining uncovered lines ─────────────────────────────────
+# â”€â”€ CLI: remaining uncovered lines â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCliUnknownProfile:
@@ -245,7 +250,7 @@ class TestCliServeGrpc:
             main(["serve", "--transport", "grpc", "--port", "50333"])
 
 
-# ── NLI: line 751 (score_detailed empty claims) + score path ──────
+# â”€â”€ NLI: line 751 (score_detailed empty claims) + score path â”€â”€â”€â”€â”€â”€
 
 
 class TestNliScoreDecomposed:
@@ -325,7 +330,7 @@ class TestNliEnsureModel:
         assert isinstance(result, float)
 
 
-# ── Providers: streaming + Anthropic + Local ──────────────────────
+# â”€â”€ Providers: streaming + Anthropic + Local â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProvidersStreaming:
@@ -363,7 +368,7 @@ class TestProvidersStreaming:
             assert result[0]["text"] == "hello"
 
 
-# ── LangChain callback: extraction failure + no text ──────────────
+# â”€â”€ LangChain callback: extraction failure + no text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLangchainCallbackEdges:
@@ -384,7 +389,7 @@ class TestLangchainCallbackEdges:
         handler.on_llm_end(response)
 
 
-# ── Streaming: halt_evidence with chunks ──────────────────────────
+# â”€â”€ Streaming: halt_evidence with chunks â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestStreamingHaltEvidence:
@@ -420,7 +425,7 @@ class TestStreamingHaltEvidence:
         assert session.halted
 
 
-# ── Agent: Rust scorer path ──────────────────────────────────────
+# â”€â”€ Agent: Rust scorer path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAgentRustScorerFallback:
@@ -431,7 +436,7 @@ class TestAgentRustScorerFallback:
         assert agent.scorer is not None
 
 
-# ── Async streaming: halt return path ────────────────────────────
+# â”€â”€ Async streaming: halt return path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAsyncStreamingHalt:

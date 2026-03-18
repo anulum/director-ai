@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — TensorRT Export Tests
+# Director-Class AI â€” TensorRT Export Tests
 
 from __future__ import annotations
 
@@ -14,7 +14,7 @@ import pytest
 
 pytest.importorskip("onnxruntime", reason="onnxruntime required for TensorRT tests")
 
-# ── export_tensorrt unit tests ──────────────────────────────────────
+# â”€â”€ export_tensorrt unit tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestExportTensorrt:
@@ -138,7 +138,7 @@ class TestExportTensorrt:
         assert captured_opts.get("trt_fp16_enable") is True
 
 
-# ── _load_onnx_session TRT auto-detection ───────────────────────────
+# â”€â”€ _load_onnx_session TRT auto-detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestTrtAutoDetection:
@@ -233,7 +233,7 @@ class TestTrtAutoDetection:
         assert not trt_in_providers
 
 
-# ── CLI export subcommand ───────────────────────────────────────────
+# â”€â”€ CLI export subcommand â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCLIExport:
@@ -291,7 +291,7 @@ class TestCLIExport:
             main(["export", "--format", "badformat"])
 
 
-# ── __all__ exports ─────────────────────────────────────────────────
+# â”€â”€ __all__ exports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestExportsUpdated:

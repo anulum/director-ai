@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — FastAPI Server
+# Director-Class AI â€” FastAPI Server
 
 """Production-ready FastAPI server for Director-Class AI.
 
@@ -77,7 +77,7 @@ def _check_fastapi() -> None:
         )
 
 
-# ── Pydantic request/response models ─────────────────────────────────
+# â”€â”€ Pydantic request/response models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 _MAX_PROMPT_CHARS = 100_000
 _MAX_RESPONSE_CHARS = 500_000
@@ -248,15 +248,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         app.state._license = lic
         if lic.is_commercial:
             logger.info(
-                "Director-AI v%s — Licensed to %s (%s tier)",
+                "Director-AI v%s â€” Licensed to %s (%s tier)",
                 __import__("director_ai").__version__,
                 lic.licensee or lic.key[:20],
                 lic.tier,
             )
         elif lic.is_trial:
-            logger.info("Director-AI — Trial license (expires %s)", lic.expires)
+            logger.info("Director-AI â€” Trial license (expires %s)", lic.expires)
         else:
-            logger.info("Director-AI — AGPL-3.0-or-later (community)")
+            logger.info("Director-AI â€” AGPL-3.0-or-later (community)")
 
         logger.info("Starting Director-AI server")
 
@@ -356,7 +356,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
             setup_otel()
 
-        if cfg.use_nli:  # pragma: no cover — lifespan only runs under ASGI
+        if cfg.use_nli:  # pragma: no cover â€” lifespan only runs under ASGI
             metrics.gauge_set("nli_model_loaded", 1.0)
 
         logger.info(
@@ -371,12 +371,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if stats:
             try:
                 stats.close()
-            except Exception:  # pragma: no cover — defensive
+            except Exception:  # pragma: no cover â€” defensive
                 logger.warning("Failed to close stats database")
 
     app = FastAPI(
         title="Director-Class AI",
-        version="3.8.0",
+        version="3.9.0",
         description="Real-time multi-agent orchestration and coherence scoring.",
         lifespan=lifespan,
     )
@@ -414,7 +414,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         ],
     )
 
-    # ── Rate limiting ─────────────────────────────────────────────────
+    # â”€â”€ Rate limiting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     _rate_str = f"{cfg.rate_limit_rpm}/minute" if cfg.rate_limit_rpm > 0 else ""
 
@@ -453,12 +453,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
             @app.exception_handler(RateLimitExceeded)
             async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
-                return JSONResponse(  # pragma: no cover — ASGI runtime handler
+                return JSONResponse(  # pragma: no cover â€” ASGI runtime handler
                     status_code=429,
                     content={"detail": "Rate limit exceeded"},
                 )
 
-    # ── Middleware: correlation IDs + API key auth + metrics ───────────
+    # â”€â”€ Middleware: correlation IDs + API key auth + metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     _auth_exempt = (
         _AUTH_EXEMPT_PATHS_BASE
@@ -494,9 +494,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 b"director-ai", provided.encode(), "sha256"
             ).hexdigest()[:16]
 
-            # Tenant binding: enforce API key → tenant mapping if configured
+            # Tenant binding: enforce API key â†’ tenant mapping if configured
             if _api_key_tenant_map:
-                bound_tenant = _api_key_tenant_map.get(provided, "")
+                if provided not in _api_key_tenant_map:
+                    return JSONResponse(
+                        status_code=403,
+                        content={"detail": "API key not bound to any tenant"},
+                        headers={"X-Request-ID": request_id},
+                    )
+                bound_tenant = _api_key_tenant_map[provided]
                 claimed_tenant = request.headers.get("X-Tenant-ID", "")
                 if claimed_tenant and claimed_tenant != bound_tenant:
                     return JSONResponse(
@@ -528,7 +534,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         response.headers["X-Request-ID"] = request_id
         return response
 
-    # ── Health ────────────────────────────────────────────────────────
+    # â”€â”€ Health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.get("/v1/health", response_model=HealthResponse)
     async def health(request: Request):
@@ -572,7 +578,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             )
         return {"ready": True}
 
-    # ── AGPL §13 source endpoint ────────────────────────────────────
+    # â”€â”€ AGPL Â§13 source endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.get("/v1/source")
     async def source(request: Request):
@@ -603,7 +609,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "agpl_section": "13",
         }
 
-    # ── Review ────────────────────────────────────────────────────────
+    # â”€â”€ Review â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.post("/v1/review", response_model=ReviewResponse)
     async def review(
@@ -623,10 +629,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             req.response = redactor.redact(req.response)
 
         scorer = request.app.state._state.get("scorer")
-        if not scorer:  # pragma: no cover — lifespan always sets scorer
+        if not scorer:  # pragma: no cover â€” lifespan always sets scorer
             raise HTTPException(503, "Server not ready")
 
-        # Tenant routing — S-05: log tenant access for audit trail
+        # Tenant routing â€” S-05: log tenant access for audit trail
         tenant_id = getattr(
             request.state,
             "tenant_id",
@@ -727,7 +733,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             evidence=_evidence_to_dict(score.evidence),
         )
 
-    # ── Verified Review (sentence-level multi-signal) ───────────────
+    # â”€â”€ Verified Review (sentence-level multi-signal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.post("/v1/verify")
     async def verify_response(req: ReviewRequest, request: Request):
@@ -780,7 +786,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
         return result.to_dict()
 
-    # ── Process ───────────────────────────────────────────────────────
+    # â”€â”€ Process â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.post("/v1/process", response_model=ProcessResponse)
     async def process(
@@ -799,7 +805,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             req.prompt = redactor(req.prompt)
 
         agent = request.app.state._state.get("agent")
-        if not agent:  # pragma: no cover — lifespan always sets agent
+        if not agent:  # pragma: no cover â€” lifespan always sets agent
             raise HTTPException(503, "Server not ready")
         metrics.inc("reviews_total")
         start = time.monotonic()
@@ -868,7 +874,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             halt_evidence=_halt_evidence_to_dict(result.halt_evidence),
         )
 
-    # ── Batch ─────────────────────────────────────────────────────────
+    # â”€â”€ Batch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.post("/v1/batch", response_model=BatchResponse)
     async def batch(
@@ -887,7 +893,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
 
         batcher = request.app.state._state.get("batch")
-        if not batcher:  # pragma: no cover — lifespan always sets batch
+        if not batcher:  # pragma: no cover â€” lifespan always sets batch
             raise HTTPException(503, "Server not ready")
 
         redactor = request.app.state._state.get("redactor")
@@ -973,7 +979,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 detail="Internal processing error",
             ) from e
 
-    # ── Tenants ───────────────────────────────────────────────────────
+    # â”€â”€ Tenants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.get("/v1/tenants")
     async def list_tenants(request: Request):
@@ -1011,7 +1017,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
         _enforce_tenant_binding(request, tenant_id)
-        store = router.get_vector_store(tenant_id, backend_type=req.backend_type)
+        try:
+            store = router.get_vector_store(tenant_id, backend_type=req.backend_type)
+        except (ValueError, KeyError) as exc:
+            raise HTTPException(400, f"Invalid backend_type: {exc}") from exc
         store.add_fact(req.key, req.value)
         return {
             "status": "ok",
@@ -1021,7 +1030,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "count": store.backend.count(),
         }
 
-    # ── Sessions ──────────────────────────────────────────────────────
+    # â”€â”€ Sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.get("/v1/sessions/{session_id}")
     async def get_session(request: Request, session_id: str):
@@ -1064,7 +1073,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             owners.pop(session_id, None)
         return {"status": "deleted", "session_id": session_id}
 
-    # ── Metrics ───────────────────────────────────────────────────────
+    # â”€â”€ Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.get("/v1/metrics")
     async def get_metrics(request: Request):
@@ -1074,13 +1083,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     async def get_prometheus(request: Request):
         return metrics.prometheus_format()
 
-    # ── Config ────────────────────────────────────────────────────────
+    # â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.get("/v1/config", response_model=ConfigResponse)
     async def get_config():
         return ConfigResponse(config=cfg.to_dict())
 
-    # ── Stats / Dashboard ────────────────────────────────────────────
+    # â”€â”€ Stats / Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _prometheus_summary() -> dict:
         """Derive summary from MetricsCollector when stats_backend=prometheus."""
@@ -1149,7 +1158,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "</table></body></html>"
         )
 
-    # ── WebSocket streaming (multiplexed) ──────────────────────────────
+    # â”€â”€ WebSocket streaming (multiplexed) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):

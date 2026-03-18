@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — v3.3.0 Hardening Tests
+# Director-Class AI â€” v3.3.0 Hardening Tests
 
 from __future__ import annotations
 
@@ -17,7 +17,7 @@ from director_ai.core.config import DirectorConfig
 
 _HAS_GRPC = __import__("importlib").util.find_spec("grpc") is not None
 
-# ── Item 1: version sync ────────────────────────────────────────────
+# â”€â”€ Item 1: version sync â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestVersionSync:
@@ -27,7 +27,7 @@ class TestVersionSync:
         assert __version__ == "3.9.0"
 
 
-# ── Item 3: gRPC proto stubs ────────────────────────────────────────
+# â”€â”€ Item 3: gRPC proto stubs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @pytest.mark.skipif(not _HAS_GRPC, reason="grpc not installed")
@@ -47,7 +47,7 @@ class TestGRPCProtoStubs:
         assert hasattr(director_pb2_grpc, "DirectorServiceServicer")
 
 
-# ── Item 4: async agent ─────────────────────────────────────────────
+# â”€â”€ Item 4: async agent â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAsyncAgent:
@@ -67,7 +67,7 @@ class TestAsyncAgent:
         assert result.coherence.score == 0.9
 
 
-# ── Item 5: CLI chunk-size validation ────────────────────────────────
+# â”€â”€ Item 5: CLI chunk-size validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCLIChunkSizeValidation:
@@ -102,7 +102,7 @@ class TestCLIChunkSizeValidation:
             assert e.code == 1
 
 
-# ── Item 6: CORS default ────────────────────────────────────────────
+# â”€â”€ Item 6: CORS default â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCORSDefault:

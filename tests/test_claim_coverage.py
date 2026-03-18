@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Layer C: Claim Coverage Tests
+# Director-Class AI â€” Layer C: Claim Coverage Tests
 
 """Tests for claim decomposition + coverage scoring (Layer C).
 
@@ -22,7 +22,7 @@ from director_ai.core.nli import NLIScorer
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.types import ScoringEvidence
 
-# ── NLIScorer.score_claim_coverage ──────────────────────────────────
+# â”€â”€ NLIScorer.score_claim_coverage â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestScoreClaimCoverage:
@@ -128,7 +128,7 @@ class TestScoreClaimCoverage:
         assert len(divs) == 1
 
 
-# ── Config wiring ──────────────────────────────────────────────────
+# â”€â”€ Config wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestClaimCoverageConfig:
@@ -170,7 +170,7 @@ class TestClaimCoverageConfig:
             assert cfg.nli_claim_coverage_alpha == 0.6
 
 
-# ── Scorer integration ─────────────────────────────────────────────
+# â”€â”€ Scorer integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestScorerClaimCoverageIntegration:
@@ -274,7 +274,7 @@ class TestScorerClaimCoverageIntegration:
         assert div == pytest.approx(0.4, abs=0.01)
 
 
-# ── ScoringEvidence fields ──────────────────────────────────────────
+# â”€â”€ ScoringEvidence fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestScoringEvidenceClaimFields:
@@ -306,7 +306,7 @@ class TestScoringEvidenceClaimFields:
         assert len(ev.claims) == 3
 
 
-# ── Server evidence serialization ──────────────────────────────────
+# â”€â”€ Server evidence serialization â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestServerEvidenceSerialization:
@@ -342,7 +342,7 @@ class TestServerEvidenceSerialization:
         assert d["claims"] == ["Good.", "Bad."]
 
 
-# ── CoherenceScorer defaults ────────────────────────────────────────
+# â”€â”€ CoherenceScorer defaults â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestScorerClaimDefaults:

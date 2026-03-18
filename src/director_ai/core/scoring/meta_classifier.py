@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Meta-Classifier Runtime (Packaged)
+# Director-Class AI â€” Meta-Classifier Runtime (Packaged)
 
 """Lightweight meta-classifier for production NLI threshold adaptation.
 
@@ -14,7 +14,7 @@ bundle and predicts per-input thresholds based on text features.
 from __future__ import annotations
 
 import logging
-import pickle  # nosec B403 — intentional; runtime warns on untrusted paths
+import pickle  # nosec B403 â€” intentional; runtime warns on untrusted paths
 import re
 
 import numpy as np
@@ -145,14 +145,14 @@ class DatasetTypeClassifier:
         import hashlib
 
         logger.warning(
-            "Loading pickle model from %s — ensure this file is trusted",
+            "Loading pickle model from %s â€” ensure this file is trusted",
             model_path,
         )
         with open(model_path, "rb") as f:
             raw = f.read()
         sha = hashlib.sha256(raw).hexdigest()[:16]
         logger.info("Model SHA256 prefix: %s (%d bytes)", sha, len(raw))
-        bundle = pickle.loads(raw)  # nosec B301 — warned above; hash logged for auditability
+        bundle = pickle.loads(raw)  # nosec B301 â€” warned above; hash logged for auditability
         if not isinstance(bundle, dict) or "classifier" not in bundle:
             raise ValueError(
                 f"Invalid model bundle at {model_path}: missing 'classifier' key"

@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Halt Monitor
+# Director-Class AI â€” Halt Monitor
 
 import logging
 import threading
@@ -20,10 +20,10 @@ class HaltMonitor:
 
     Parameters
     ----------
-    hard_limit : float — coherence floor (default 0.5).
-    on_halt : callable | None — invoked with score on halt.
-    token_timeout : float — max seconds per token (0 = disabled).
-    total_timeout : float — max seconds for entire stream (0 = disabled).
+    hard_limit : float â€” coherence floor (default 0.5).
+    on_halt : callable | None â€” invoked with score on halt.
+    token_timeout : float â€” max seconds per token (0 = disabled).
+    total_timeout : float â€” max seconds for entire stream (0 = disabled).
 
     """
 

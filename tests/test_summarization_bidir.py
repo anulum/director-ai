@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Summarization Bidirectional NLI Tests
+# Director-Class AI â€” Summarization Bidirectional NLI Tests
 
 """Tests for bidirectional NLI scoring on summarization task type."""
 
@@ -13,7 +13,7 @@ import pytest
 
 from director_ai.core.scorer import CoherenceScorer
 
-# ── Attribute defaults ────────────────────────────────────────────
+# â”€â”€ Attribute defaults â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSummarizationBaseline:
@@ -39,35 +39,35 @@ class TestSummarizationBaseline:
         assert adjusted == pytest.approx(0.45)
 
     def test_calibration_at_baseline(self):
-        """Score at baseline → adjusted = 0."""
+        """Score at baseline â†’ adjusted = 0."""
         baseline = 0.20
         raw = 0.20
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(0.0)
 
     def test_calibration_above_baseline(self):
-        """Score above baseline → proportional adjusted value."""
+        """Score above baseline â†’ proportional adjusted value."""
         baseline = 0.20
         raw = 0.60
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(0.50)
 
     def test_calibration_below_baseline(self):
-        """Score below baseline → clamped to 0."""
+        """Score below baseline â†’ clamped to 0."""
         baseline = 0.20
         raw = 0.10
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(0.0)
 
     def test_calibration_at_max(self):
-        """Score at 1.0 → adjusted = 1.0."""
+        """Score at 1.0 â†’ adjusted = 1.0."""
         baseline = 0.20
         raw = 1.0
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(1.0)
 
 
-# ── Routing logic ─────────────────────────────────────────────────
+# â”€â”€ Routing logic â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSummarizationRouting:
@@ -102,13 +102,13 @@ class TestSummarizationRouting:
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         scorer._use_prompt_as_premise = True
         scorer._auto_dialogue_profile = True
-        # Dialogue prompt — should be detected as dialogue, not summarization
+        # Dialogue prompt â€” should be detected as dialogue, not summarization
         prompt = "User: Hi\nAssistant: Hello\nUser: How are you?"
         task = CoherenceScorer._detect_task_type(prompt)
         assert task == "dialogue"
 
 
-# ── Config wiring ─────────────────────────────────────────────────
+# â”€â”€ Config wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSummarizationConfig:

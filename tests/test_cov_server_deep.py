@@ -1,4 +1,9 @@
-"""Deep coverage for server.py — rate limiting, stats, audit, WS error, halt paths."""
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+"""Deep coverage for server.py â€” rate limiting, stats, audit, WS error, halt paths."""
 
 from __future__ import annotations
 
@@ -136,7 +141,7 @@ class TestApiKeyAuth:
 
         app = create_app(config=cfg)
         with TestClient(app) as c:
-            # No key → 401
+            # No key â†’ 401
             resp = c.post(
                 "/v1/review",
                 json={"prompt": "q", "response": "a"},
@@ -147,7 +152,7 @@ class TestApiKeyAuth:
             resp = c.get("/v1/health")
             assert resp.status_code == 200
 
-            # With key → 200
+            # With key â†’ 200
             resp = c.post(
                 "/v1/review",
                 json={"prompt": "q", "response": "a"},

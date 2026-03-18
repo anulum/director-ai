@@ -1,3 +1,8 @@
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 """Final coverage gaps: nli scoring, server, backends, cli."""
 
 from __future__ import annotations
@@ -15,7 +20,7 @@ _HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
 _skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
 
 
-# ── NLI model_score_batch / onnx_score_batch ────────────────────────
+# â”€â”€ NLI model_score_batch / onnx_score_batch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestNliModelScoreBatch:
@@ -165,7 +170,7 @@ class TestNliMinicheck:
 
 class TestNliDecomposeClaims:
     def test_decompose_claims_empty(self):
-        """Cover line 751 — empty hypothesis."""
+        """Cover line 751 â€” empty hypothesis."""
         from director_ai.core.nli import NLIScorer
 
         scorer = NLIScorer.__new__(NLIScorer)
@@ -174,7 +179,7 @@ class TestNliDecomposeClaims:
         assert claims == []
 
 
-# ── Backends: RustBackend ───────────────────────────────────────────
+# â”€â”€ Backends: RustBackend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestRustBackend:
@@ -200,7 +205,7 @@ class TestRustBackend:
             assert len(results) == 2
 
 
-# ── SDK Guard: async proxy paths ───────────────────────────────────
+# â”€â”€ SDK Guard: async proxy paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSdkGuardAsyncOpenAI:
@@ -281,7 +286,7 @@ class TestSdkGuardAsyncAnthropic:
         assert len(events) == 1
 
 
-# ── Server: rate limit path, WS streaming, delete session ──────────
+# â”€â”€ Server: rate limit path, WS streaming, delete session â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @_skip_no_server
@@ -391,7 +396,7 @@ class TestServerAuditLogging:
             assert resp.status_code == 200
 
 
-# ── CLI: remaining edge cases ───────────────────────────────────────
+# â”€â”€ CLI: remaining edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @_skip_no_server
@@ -445,7 +450,7 @@ class TestCliIngestJsonDecodeDetail:
         main(["ingest", str(f)])
 
 
-# ── LangChain callback: raise_on_failure path ─────────────────────
+# â”€â”€ LangChain callback: raise_on_failure path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLangchainCallbackRaise:
@@ -466,7 +471,7 @@ class TestLangchainCallbackRaise:
             handler.on_llm_end(response)
 
 
-# ── Providers: remaining edges ──────────────────────────────────────
+# â”€â”€ Providers: remaining edges â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProvidersEdgesDeep:

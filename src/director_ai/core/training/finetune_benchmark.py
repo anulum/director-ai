@@ -1,18 +1,18 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Anti-Regression Benchmark Gate
+# Director-Class AI â€” Anti-Regression Benchmark Gate
 
 """Benchmark a fine-tuned NLI model against a held-out general dataset.
 
 Detects catastrophic forgetting by comparing the fine-tuned model's
 general accuracy against the baseline. Three outcomes:
 
-- ``deploy``          — regression < 3pp, safe as default scorer
-- ``deploy_domain_only`` — regression 3-8pp, use only via domain backend
-- ``reject``          — regression > 8pp, catastrophic forgetting
+- ``deploy``          â€” regression < 3pp, safe as default scorer
+- ``deploy_domain_only`` â€” regression 3-8pp, use only via domain backend
+- ``reject``          â€” regression > 8pp, catastrophic forgetting
 
 Usage::
 
@@ -192,7 +192,7 @@ def benchmark_finetuned_model(
             report.general_f1 = general_metrics["f1"]
             report.details["general_samples"] = len(general_samples)
     else:
-        logger.warning("No general benchmark data — skipping regression check")
+        logger.warning("No general benchmark data â€” skipping regression check")
         report.details["general_skipped"] = True
 
     # Regression decision

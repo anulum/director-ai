@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Dialogue FPR Profile Tests
+# Director-Class AI â€” Dialogue FPR Profile Tests
 
 """Tests for automatic dialogue detection and bidirectional NLI scoring."""
 
@@ -13,7 +13,7 @@ import pytest
 
 from director_ai.core.scorer import _DIALOGUE_TURN_RE, CoherenceScorer
 
-# ── Task detection ─────────────────────────────────────────────────
+# â”€â”€ Task detection â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDetectTaskType:
@@ -78,7 +78,7 @@ class TestDetectTaskType:
         assert CoherenceScorer._detect_task_type(prompt) == "dialogue"
 
 
-# ── Dialogue regex ─────────────────────────────────────────────────
+# â”€â”€ Dialogue regex â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDialogueRegex:
@@ -119,7 +119,7 @@ class TestDialogueRegex:
         assert _DIALOGUE_TURN_RE.search(text) is None
 
 
-# ── Profile resolution ─────────────────────────────────────────────
+# â”€â”€ Profile resolution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestResolveAggProfile:
@@ -157,7 +157,7 @@ class TestResolveAggProfile:
         scorer._fact_outer_agg = "trimmed_mean"
         prompt = "User: Hi\nAssistant: Hello"
         fi, fo, li, lo = scorer._resolve_agg_profile(prompt)
-        # User's custom settings preserved — auto-profile only applies to defaults
+        # User's custom settings preserved â€” auto-profile only applies to defaults
         assert fi == "min"
         assert fo == "trimmed_mean"
 
@@ -170,7 +170,7 @@ class TestResolveAggProfile:
         assert fo == "max"
 
 
-# ── Dialogue baseline calibration ─────────────────────────────────
+# â”€â”€ Dialogue baseline calibration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDialogueBaseline:
@@ -186,7 +186,7 @@ class TestDialogueBaseline:
         assert scorer._dialogue_nli_baseline == 0.85
 
     def test_calibration_formula_zero(self):
-        """Score at baseline → adjusted divergence = 0."""
+        """Score at baseline â†’ adjusted divergence = 0."""
         baseline = 0.80
         raw = 0.80
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
@@ -200,21 +200,21 @@ class TestDialogueBaseline:
         assert adjusted == pytest.approx(0.5)
 
     def test_calibration_formula_max(self):
-        """Score at 1.0 → adjusted divergence = 1.0."""
+        """Score at 1.0 â†’ adjusted divergence = 1.0."""
         baseline = 0.80
         raw = 1.0
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(1.0)
 
     def test_calibration_below_baseline(self):
-        """Score below baseline → clamped to 0."""
+        """Score below baseline â†’ clamped to 0."""
         baseline = 0.80
         raw = 0.60
         adjusted = max(0.0, (raw - baseline) / (1.0 - baseline))
         assert adjusted == pytest.approx(0.0)
 
 
-# ── Dialogue detection in heuristic_coherence ─────────────────────
+# â”€â”€ Dialogue detection in heuristic_coherence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDialogueDetectionInCoherence:
@@ -251,7 +251,7 @@ class TestDialogueDetectionInCoherence:
         assert isinstance(h_fact, float)
 
 
-# ── Integration: review() with dialogue ────────────────────────────
+# â”€â”€ Integration: review() with dialogue â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDialogueReview:

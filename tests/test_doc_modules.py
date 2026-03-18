@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — Document Module Tests (chunker, parser, registry)
+# Director-AI â€” Document Module Tests (chunker, parser, registry)
 
 from __future__ import annotations
 
@@ -38,7 +38,7 @@ class TestChunker:
             assert len(chunk) <= 60  # some slack for separator
 
     def test_unicode(self):
-        text = "Héllo wörld. Ünïcödé text here. More sentences follow."
+        text = "HĂ©llo wĂ¶rld. ĂśnĂŻcĂ¶dĂ© text here. More sentences follow."
         chunks = split(text, ChunkConfig(chunk_size=30, overlap=0))
         assert len(chunks) >= 1
 
@@ -65,8 +65,8 @@ class TestParser:
         assert result == "some content"
 
     def test_utf8_decode(self):
-        result = parse("Héllo".encode(), "test.txt")
-        assert "Héllo" in result
+        result = parse("HĂ©llo".encode(), "test.txt")
+        assert "HĂ©llo" in result
 
     def test_pdf_missing_dep(self):
         import contextlib

@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Fine-tuning Data Validator
+# Director-Class AI â€” Fine-tuning Data Validator
 
 """Validate customer-provided JSONL before fine-tuning.
 
@@ -36,7 +36,7 @@ MAX_IMBALANCE_RATIO = 5.0
 MAX_TEXT_LENGTH = 4096
 
 # Calibrated on RTX 6000 Ada, bs=24, DeBERTa-Large, 3 epochs
-_SECONDS_PER_SAMPLE_PER_EPOCH = 0.053  # ~1.26 it/s at bs=24 → 24/1.26 ≈ 19s per batch of 24 ≈ 0.79s per sample... no: 1 step = 24 samples, 1.26 steps/s → 30.2 samples/s → 0.033s/sample/epoch... 3 epochs → 0.1s total. Use 0.053 with overhead.
+_SECONDS_PER_SAMPLE_PER_EPOCH = 0.053  # ~1.26 it/s at bs=24 â†’ 24/1.26 â‰ 19s per batch of 24 â‰ 0.79s per sample... no: 1 step = 24 samples, 1.26 steps/s â†’ 30.2 samples/s â†’ 0.033s/sample/epoch... 3 epochs â†’ 0.1s total. Use 0.053 with overhead.
 _GPU_COST_PER_HOUR = 1.0  # USD, RTX 6000 Ada tier
 
 
@@ -178,7 +178,7 @@ def validate_finetune_data(
     report.max_premise_tokens = max(premise_lengths)
     report.max_hypothesis_tokens = max(hypothesis_lengths)
 
-    # Cost estimate (based on total rows including duplicates — that's what training sees)
+    # Cost estimate (based on total rows including duplicates â€” that's what training sees)
     total_seconds = report.total_samples * epochs * _SECONDS_PER_SAMPLE_PER_EPOCH
     report.estimated_train_time_min = total_seconds / 60
     report.estimated_cost_usd = (total_seconds / 3600) * _GPU_COST_PER_HOUR
@@ -201,19 +201,19 @@ def validate_finetune_data(
 
     if report.class_balance_ratio < 1 / MAX_IMBALANCE_RATIO:
         report.warnings.append(
-            f"Class imbalance {max_class}:{min_class} ({1 / report.class_balance_ratio:.1f}:1) — "
+            f"Class imbalance {max_class}:{min_class} ({1 / report.class_balance_ratio:.1f}:1) â€” "
             f"consider downsampling the majority class",
         )
 
     if report.duplicate_count > report.total_samples * 0.1:
         report.warnings.append(
-            f"{report.duplicate_count} duplicates ({report.duplicate_count / report.total_samples:.0%}) — "
+            f"{report.duplicate_count} duplicates ({report.duplicate_count / report.total_samples:.0%}) â€” "
             f"consider deduplication",
         )
 
     if report.max_premise_tokens > MAX_TEXT_LENGTH:
         report.warnings.append(
-            f"Longest premise is {report.max_premise_tokens} tokens — "
+            f"Longest premise is {report.max_premise_tokens} tokens â€” "
             f"texts beyond 512 tokens will be truncated",
         )
 

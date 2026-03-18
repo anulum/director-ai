@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_cov_micro_gaps.py
+# Director-AI â€” test_cov_micro_gaps.py
 
 """Micro coverage gaps: server halted path, NLI minicheck fallback,
 langchain callback AttributeError.
@@ -22,7 +22,7 @@ _HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
 _skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
 
 
-# ── Server: halted process response + tenant not enabled ──────────
+# â”€â”€ Server: halted process response + tenant not enabled â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @_skip_no_server
@@ -74,7 +74,7 @@ class TestServerBatchNotReady:
             assert resp.status_code in (200, 503)
 
 
-# ── NLI: minicheck import failure ─────────────────────────────────
+# â”€â”€ NLI: minicheck import failure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestNliMinicheckImportFailure:
@@ -100,7 +100,7 @@ class TestNliMinicheckImportFailure:
             assert result is False
 
 
-# ── LangChain callback: AttributeError extraction path ───────────
+# â”€â”€ LangChain callback: AttributeError extraction path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLangchainAttributeError:

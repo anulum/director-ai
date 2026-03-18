@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_phase4_hardening.py
+# Director-AI â€” test_phase4_hardening.py
 
 """Tests for Phase 4 hardening fixes:
 H48  DOS-1: batch per-line JSON size limit
@@ -32,7 +32,7 @@ def _fastapi_available() -> bool:
         return False
 
 
-# ── H48: Batch per-line size limit ───────────────────────────────────
+# â”€â”€ H48: Batch per-line size limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH48LineSize:
@@ -44,7 +44,7 @@ class TestH48LineSize:
         assert _BATCH_MAX_LINE_SIZE == 1 * 1024 * 1024
 
 
-# ── H50: NaN/Inf clamp logging ──────────────────────────────────────
+# â”€â”€ H50: NaN/Inf clamp logging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH50ClampLogging:
@@ -82,7 +82,7 @@ class TestH50ClampLogging:
         assert result == 0.0
 
 
-# ── H54: Batch timeout validation ────────────────────────────────────
+# â”€â”€ H54: Batch timeout validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH54TimeoutValidation:
@@ -121,7 +121,7 @@ class TestH54TimeoutValidation:
             BatchProcessor(MagicMock(), max_concurrency=0)
 
 
-# ── H55: LLM error type distinction ─────────────────────────────────
+# â”€â”€ H55: LLM error type distinction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH55ErrorTypes:
@@ -158,7 +158,7 @@ class TestH55ErrorTypes:
         assert "Error" in candidates[0]["text"]
 
 
-# ── H57: CORS origins count limit ────────────────────────────────────
+# â”€â”€ H57: CORS origins count limit â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH57CORSLimit:
@@ -179,7 +179,7 @@ class TestH57CORSLimit:
             create_app(cfg)
 
 
-# ── H58: Return type annotations ─────────────────────────────────────
+# â”€â”€ H58: Return type annotations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH58TypeAnnotations:
@@ -198,7 +198,7 @@ class TestH58TypeAnnotations:
         assert "return" in hints
 
 
-# ── H59: Batch limits in help text ───────────────────────────────────
+# â”€â”€ H59: Batch limits in help text â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH59HelpText:
@@ -214,7 +214,7 @@ class TestH59HelpText:
         )
 
 
-# ── H64: Bool coercion edge cases ────────────────────────────────────
+# â”€â”€ H64: Bool coercion edge cases â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestH64BoolCoercion:

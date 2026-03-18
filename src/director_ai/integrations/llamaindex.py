@@ -1,3 +1,8 @@
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 """Director-AI LlamaIndex integration.
 
 Requires: pip install director-ai[llamaindex]
@@ -33,10 +38,10 @@ class DirectorAIPostprocessor:
 
     Parameters
     ----------
-    facts : dict[str, str] | None — key-value facts for the knowledge base.
-    store : GroundTruthStore | None — pre-built store (overrides facts).
-    threshold : float — minimum coherence to keep a node.
-    use_nli : bool | None — NLI mode (None=auto-detect).
+    facts : dict[str, str] | None â€” key-value facts for the knowledge base.
+    store : GroundTruthStore | None â€” pre-built store (overrides facts).
+    threshold : float â€” minimum coherence to keep a node.
+    use_nli : bool | None â€” NLI mode (None=auto-detect).
 
     """
 

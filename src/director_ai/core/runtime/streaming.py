@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Streaming Token-by-Token Kernel Oversight
+# Director-Class AI â€” Streaming Token-by-Token Kernel Oversight
 
 """Streaming oversight for token-by-token coherence monitoring.
 
@@ -121,11 +121,11 @@ class StreamingKernel(HaltMonitor):
 
     Parameters
     ----------
-    hard_limit : float — absolute coherence floor (halt if below).
-    window_size : int — number of tokens in sliding coherence window.
-    window_threshold : float — halt if sliding window average drops below this.
-    trend_window : int — tokens to check for downward trend.
-    trend_threshold : float — halt if coherence drops this much over trend window.
+    hard_limit : float â€” absolute coherence floor (halt if below).
+    window_size : int â€” number of tokens in sliding coherence window.
+    window_threshold : float â€” halt if sliding window average drops below this.
+    trend_window : int â€” tokens to check for downward trend.
+    trend_threshold : float â€” halt if coherence drops this much over trend window.
 
     """
 
@@ -216,18 +216,18 @@ class StreamingKernel(HaltMonitor):
 
         Parameters
         ----------
-        token_generator : iterable of str — token source.
-        coherence_callback : callable(str) -> float — receives the
+        token_generator : iterable of str â€” token source.
+        coherence_callback : callable(str) -> float â€” receives the
             accumulated output so far (not the individual token) and
             returns a coherence score in [0, 1]. Called every
             ``score_every_n`` tokens; cadence adapts when ``adaptive=True``.
-        evidence_callback : callable(str) -> str | None — optional, returns
+        evidence_callback : callable(str) -> str | None â€” optional, returns
             human-readable evidence snippet explaining the coherence score.
             Called only on halt events to avoid overhead on every token.
-        scorer : CoherenceScorer | None — when provided, halt events
+        scorer : CoherenceScorer | None â€” when provided, halt events
             include structured HaltEvidence with top-K contradicting chunks.
-        top_k : int — number of evidence chunks to include (default 3).
-        prompt : str — original user prompt, passed to scorer.review() for
+        top_k : int â€” number of evidence chunks to include (default 3).
+        prompt : str â€” original user prompt, passed to scorer.review() for
             KB/RAG context in halt evidence.
 
         Returns

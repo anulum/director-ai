@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Configuration Manager
+# Director-Class AI â€” Configuration Manager
 
 """Dataclass-based configuration with env var, YAML, and profile support.
 
@@ -32,37 +32,37 @@ class DirectorConfig:
 
     Parameters
     ----------
-    coherence_threshold : float — minimum coherence to approve (0.0-1.0).
-    hard_limit : float — safety kernel emergency stop threshold.
-    use_nli : bool — enable DeBERTa NLI model for logical divergence.
-    nli_model : str — HuggingFace model ID for NLI.
-    max_candidates : int — number of LLM candidates to generate.
-    history_window : int — scorer rolling history size.
-    llm_provider : str — LLM backend: mock, openai, anthropic,
+    coherence_threshold : float â€” minimum coherence to approve (0.0-1.0).
+    hard_limit : float â€” safety kernel emergency stop threshold.
+    use_nli : bool â€” enable DeBERTa NLI model for logical divergence.
+    nli_model : str â€” HuggingFace model ID for NLI.
+    max_candidates : int â€” number of LLM candidates to generate.
+    history_window : int â€” scorer rolling history size.
+    llm_provider : str â€” LLM backend: mock, openai, anthropic,
         huggingface, or local.
-    llm_api_url : str — API endpoint URL (for "local" provider).
-    llm_api_key : str — API key (for cloud providers).
-    llm_model : str — model name for cloud providers.
-    llm_temperature : float — sampling temperature.
-    llm_max_tokens : int — maximum tokens per response.
-    vector_backend : str — "memory" or "chroma".
-    chroma_collection : str — ChromaDB collection name.
-    chroma_persist_dir : str — ChromaDB persistence directory (None=in-memory).
-    onnx_path : str — directory with exported ONNX model (for scorer_backend="onnx").
-    server_host : str — FastAPI server bind address.
-    server_port : int — FastAPI server port.
-    server_workers : int — Uvicorn worker count.
-    batch_max_concurrency : int — max concurrent batch requests.
-    metrics_enabled : bool — enable Prometheus-style metrics collection.
-    log_level : str — logging level.
-    log_json : bool — structured JSON logging.
+    llm_api_url : str â€” API endpoint URL (for "local" provider).
+    llm_api_key : str â€” API key (for cloud providers).
+    llm_model : str â€” model name for cloud providers.
+    llm_temperature : float â€” sampling temperature.
+    llm_max_tokens : int â€” maximum tokens per response.
+    vector_backend : str â€” "memory" or "chroma".
+    chroma_collection : str â€” ChromaDB collection name.
+    chroma_persist_dir : str â€” ChromaDB persistence directory (None=in-memory).
+    onnx_path : str â€” directory with exported ONNX model (for scorer_backend="onnx").
+    server_host : str â€” FastAPI server bind address.
+    server_port : int â€” FastAPI server port.
+    server_workers : int â€” Uvicorn worker count.
+    batch_max_concurrency : int â€” max concurrent batch requests.
+    metrics_enabled : bool â€” enable Prometheus-style metrics collection.
+    log_level : str â€” logging level.
+    log_json : bool â€” structured JSON logging.
 
     """
 
     # Mode: "general" | "grounded" | "auto"
-    #   general  — NLI only, no KB, no embeddings. Fast, lightweight.
-    #   grounded — requires KB. Hybrid + reranker + claim decomposition.
-    #   auto     — KB if available + relevant, falls back to general NLI.
+    #   general  â€” NLI only, no KB, no embeddings. Fast, lightweight.
+    #   grounded â€” requires KB. Hybrid + reranker + claim decomposition.
+    #   auto     â€” KB if available + relevant, falls back to general NLI.
     mode: str = "auto"
 
     # Scoring
@@ -181,7 +181,7 @@ class DirectorConfig:
     stats_backend: str = "prometheus"
     stats_db_path: str = "~/.director-ai/stats.db"
 
-    # AGPL §13 source code endpoint
+    # AGPL Â§13 source code endpoint
     source_endpoint_enabled: bool = True
     source_repository_url: str = "https://github.com/anulum/director-ai"
 
@@ -371,7 +371,7 @@ class DirectorConfig:
         except ImportError:
             if path.endswith((".yaml", ".yml")):
                 logger.warning(
-                    "PyYAML not installed — parsing %s as JSON fallback",
+                    "PyYAML not installed â€” parsing %s as JSON fallback",
                     path,
                 )
             data = json.loads(raw)
@@ -389,9 +389,9 @@ class DirectorConfig:
 
         Profiles
         --------
-        - ``"fast"`` — heuristic scoring only, no NLI model, low latency.
-        - ``"thorough"`` — NLI + RAG scoring, higher accuracy.
-        - ``"research"`` — NLI + RAG + reranker, all scoring modules enabled.
+        - ``"fast"`` â€” heuristic scoring only, no NLI model, low latency.
+        - ``"thorough"`` â€” NLI + RAG scoring, higher accuracy.
+        - ``"research"`` â€” NLI + RAG + reranker, all scoring modules enabled.
         """
         profiles: dict[str, dict] = {
             "fast": {

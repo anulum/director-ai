@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_agent.py
+# Director-AI â€” test_agent.py
 
 from __future__ import annotations
 
@@ -15,7 +15,7 @@ import pytest
 from director_ai.core.agent import CoherenceAgent
 from director_ai.core.types import ReviewResult
 
-# ── Construction ─────────────────────────────────────────────────────
+# â”€â”€ Construction â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestConstruction:
@@ -55,7 +55,7 @@ class TestConstruction:
         assert agent.kernel.is_active is True
 
 
-# ── process() happy path ─────────────────────────────────────────────
+# â”€â”€ process() happy path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProcessHappyPath:
@@ -82,7 +82,7 @@ class TestProcessHappyPath:
         assert 0.0 <= result.coherence.score <= 1.0
 
 
-# ── process() rejection path ─────────────────────────────────────────
+# â”€â”€ process() rejection path â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestProcessRejection:
@@ -102,7 +102,7 @@ class TestProcessRejection:
             agent.process("   ")
 
 
-# ── Fallback modes ───────────────────────────────────────────────────
+# â”€â”€ Fallback modes â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFallbacks:

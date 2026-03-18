@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — LLM Provider Integrations
+# Director-Class AI â€” LLM Provider Integrations
 
 """LLM provider adapters for Director-Class AI.
 
@@ -31,6 +31,6 @@ __all__ = [
     "OpenAIProvider",
 ]
 
-# Ecosystem integrations — import directly from submodules:
+# Ecosystem integrations â€” import directly from submodules:
 #   from director_ai.integrations.langchain import DirectorAIGuard
 #   from director_ai.integrations.llamaindex import DirectorAIPostprocessor

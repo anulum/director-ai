@@ -1,3 +1,8 @@
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 from __future__ import annotations
 
 import pytest
@@ -205,7 +210,7 @@ class TestScoreChunked:
         assert 0.0 <= agg <= 1.0
 
     def test_premise_ratio_reduces_premise_chunks(self):
-        """Higher premise_ratio gives more premise budget → fewer premise chunks."""
+        """Higher premise_ratio gives more premise budget â†’ fewer premise chunks."""
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Source paragraph {i} detail" for i in range(30)) + "."
         _, _, np_default, _ = scorer._score_chunked_with_counts(

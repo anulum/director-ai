@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Scorer Backend Tests
+# Director-Class AI â€” Scorer Backend Tests
 
 from director_ai.core import CoherenceScorer
 from director_ai.core.nli import NLIScorer
@@ -124,7 +124,7 @@ class TestLLMJudgeParsing:
 
         call_kwargs = mock_client.chat.completions.create.call_args
         assert call_kwargs[1]["model"] == "gpt-4o"
-        assert result < 0.5  # agrees → lower divergence
+        assert result < 0.5  # agrees â†’ lower divergence
 
 
 class TestRustBackend:

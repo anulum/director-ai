@@ -1,19 +1,19 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Core Package (Coherence Engine)
+# Director-Class AI â€” Core Package (Coherence Engine)
 
-"""Coherence Engine — consumer-ready AI output verification.
+"""Coherence Engine â€” consumer-ready AI output verification.
 
 Subpackages::
 
-    core.scoring    — NLI, heuristic, and verified scorers
-    core.retrieval  — knowledge stores, vector backends, chunking
-    core.runtime    — streaming kernels, sessions, batching
-    core.safety     — sanitizer, policy, audit
-    core.training   — fine-tuning, threshold tuning, benchmarking
+    core.scoring    â€” NLI, heuristic, and verified scorers
+    core.retrieval  â€” knowledge stores, vector backends, chunking
+    core.runtime    â€” streaming kernels, sessions, batching
+    core.safety     â€” sanitizer, policy, audit
+    core.training   â€” fine-tuning, threshold tuning, benchmarking
 
 All public symbols are re-exported here for backward compatibility::
 

@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Multi-GPU Sharded NLI Scorer
+# Director-Class AI â€” Multi-GPU Sharded NLI Scorer
 
 """Distribute NLI inference across multiple CUDA devices via round-robin.
 
@@ -28,8 +28,8 @@ class ShardedNLIScorer:
 
     Parameters
     ----------
-    devices : list[str] — e.g. ["cuda:0", "cuda:1"].
-    **kwargs — forwarded to each NLIScorer (model_name, backend, etc.).
+    devices : list[str] â€” e.g. ["cuda:0", "cuda:1"].
+    **kwargs â€” forwarded to each NLIScorer (model_name, backend, etc.).
 
     """
 

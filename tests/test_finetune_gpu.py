@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — GPU-backed Fine-tuning Integration Tests
+# Director-Class AI â€” GPU-backed Fine-tuning Integration Tests
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ def _make_nli_data(n_pos=50, n_neg=50):
     return rows
 
 
-# ── _evaluate_model (real inference) ─────────────────────────────────
+# â”€â”€ _evaluate_model (real inference) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestEvaluateModelReal:
@@ -160,7 +160,7 @@ class TestEvaluateModelReal:
         assert report.regression_pp != 0.0
 
 
-# ── _prepare_dataset ─────────────────────────────────────────────────
+# â”€â”€ _prepare_dataset â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestPrepareDataset:
@@ -184,7 +184,7 @@ class TestPrepareDataset:
         assert "input_ids" in ds.column_names
 
 
-# ── finetune_nli (micro-training on GPU) ─────────────────────────────
+# â”€â”€ finetune_nli (micro-training on GPU) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFinetuneNliGPU:
@@ -340,7 +340,7 @@ class TestFinetuneNliGPU:
         assert result.output_dir == str(tmp_path / "onnx_out")
 
 
-# ── _evaluate_model non-FactCG branch ────────────────────────────────
+# â”€â”€ _evaluate_model non-FactCG branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestEvaluateNonFactCG:

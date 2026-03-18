@@ -1,3 +1,8 @@
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 """Final coverage push: server rate-limit with slowapi, WS streaming oversight,
 halt_evidence serialization, provider stream error paths, agent _build_scorer,
 cli evaluate/export edges.
@@ -17,7 +22,7 @@ _HAS_FASTAPI = __import__("importlib").util.find_spec("fastapi") is not None
 _skip_no_server = pytest.mark.skipif(not _HAS_FASTAPI, reason="fastapi not installed")
 
 
-# ── Server: rate limit with slowapi installed ──────────────────────
+# â”€â”€ Server: rate limit with slowapi installed â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @_skip_no_server
@@ -56,7 +61,7 @@ class TestServerRateLimitSlowapi:
             assert resp2.status_code in (200, 429)
 
 
-# ── Server: _halt_evidence_to_dict with non-None ──────────────────
+# â”€â”€ Server: _halt_evidence_to_dict with non-None â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @_skip_no_server
@@ -77,7 +82,7 @@ class TestHaltEvidenceToDict:
         assert len(result["evidence_chunks"]) == 1
 
 
-# ── Server: CORS allow origins ────────────────────────────────────
+# â”€â”€ Server: CORS allow origins â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @_skip_no_server
@@ -90,7 +95,7 @@ class TestServerCorsOrigins:
         assert app is not None
 
 
-# ── Server: stats close on shutdown ───────────────────────────────
+# â”€â”€ Server: stats close on shutdown â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @_skip_no_server
@@ -106,7 +111,7 @@ class TestServerStatsClose:
             pass
 
 
-# ── NLI: score_batch onnx + model paths ──────────────────────────
+# â”€â”€ NLI: score_batch onnx + model paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestNliScoreBatchPaths:
@@ -193,7 +198,7 @@ class TestNliScoreBatchPaths:
         assert len(result) == 1
 
 
-# ── NLI: _model_score (single pair) ─────────────────────────────
+# â”€â”€ NLI: _model_score (single pair) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestNliModelScoreSingle:
@@ -228,7 +233,7 @@ class TestNliModelScoreSingle:
             assert isinstance(result, float)
 
 
-# ── Agent: _build_scorer with Rust available ──────────────────────
+# â”€â”€ Agent: _build_scorer with Rust available â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAgentBuildScorerRust:
@@ -244,7 +249,7 @@ class TestAgentBuildScorerRust:
             assert agent.scorer is not None
 
 
-# ── Backends: entry point load failure ────────────────────────────
+# â”€â”€ Backends: entry point load failure â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestBackendsRegistry:
@@ -256,7 +261,7 @@ class TestBackendsRegistry:
         assert "backfire" in backends._REGISTRY
 
 
-# ── Providers: OpenAI timeout, Anthropic, Local stream error ─────
+# â”€â”€ Providers: OpenAI timeout, Anthropic, Local stream error â”€â”€â”€â”€â”€
 
 
 class TestProvidersTimeout:
@@ -298,7 +303,7 @@ class TestProvidersLocalStream:
             assert any("Error" in t for t in tokens)
 
 
-# ── LangChain callback: TYPE_CHECKING import branch ──────────────
+# â”€â”€ LangChain callback: TYPE_CHECKING import branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLangchainCallbackNoText:
@@ -319,7 +324,7 @@ class TestLangchainCallbackNoText:
         handler.on_llm_end(response)
 
 
-# ── CLI: evaluate with output flag ────────────────────────────────
+# â”€â”€ CLI: evaluate with output flag â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCliTuneCommand:

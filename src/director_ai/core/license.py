@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 """License validation for commercial Director-AI deployments.
@@ -9,7 +9,7 @@ License keys follow the format: DAI-{TIER}-{UUID}
 Example: DAI-PRO-a8f3e2b1-9c4d-4e5f-b6a7-1234567890ab
 
 License files are signed JSON containing key, tier, licensee, and dates.
-Validation is offline-only — no phone-home, no DRM.
+Validation is offline-only â€” no phone-home, no DRM.
 """
 
 from __future__ import annotations
@@ -56,8 +56,8 @@ class LicenseInfo:
         try:
             exp = datetime.fromisoformat(self.expires)
             return datetime.now(UTC) > exp
-        except ValueError:
-            return False
+        except (ValueError, TypeError):
+            return True  # malformed expiry = expired (fail closed)
 
 
 def validate_key(key: str) -> LicenseInfo:

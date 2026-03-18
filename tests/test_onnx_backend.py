@@ -1,3 +1,8 @@
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
 from __future__ import annotations
 
 import pytest
@@ -41,7 +46,7 @@ class TestExportOnnxImport:
             export_onnx(output_dir="/tmp/test_onnx_export")
             # If optimum IS installed, this would try to download
             # the model. Skip in that case.
-            pytest.skip("optimum is installed — skip import test")
+            pytest.skip("optimum is installed â€” skip import test")
         except (ImportError, OSError):
             pass
 

@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Shared Types (Coherence Engine)
+# Director-Class AI â€” Shared Types (Coherence Engine)
 
 from __future__ import annotations
 
@@ -26,11 +26,11 @@ _clamp_logger = logging.getLogger("DirectorAI.Types")
 def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
     """Clamp *value* to [lo, hi], replacing NaN/Inf with boundary values."""
     if math.isnan(value):
-        _clamp_logger.warning("NaN detected in _clamp — replacing with %s", lo)
+        _clamp_logger.warning("NaN detected in _clamp â€” replacing with %s", lo)
         return lo
     if math.isinf(value):
         replacement = hi if value > 0 else lo
-        _clamp_logger.warning("Inf detected in _clamp — replacing with %s", replacement)
+        _clamp_logger.warning("Inf detected in _clamp â€” replacing with %s", replacement)
         return replacement
     return max(lo, min(hi, value))
 

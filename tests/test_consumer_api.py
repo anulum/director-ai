@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Consumer API Coverage Tests
+# Director-Class AI â€” Consumer API Coverage Tests
 
 """Tests the consumer-facing API: CoherenceAgent, CoherenceScorer, SafetyKernel,
 MockGenerator, GroundTruthStore, and dataclass types.
@@ -286,7 +286,7 @@ class TestSafetyKernel:
         from director_ai.core import SafetyKernel
 
         kernel = SafetyKernel(hard_limit=0.7)
-        # Score 0.6 is above default 0.5 but below custom 0.7 → should halt
+        # Score 0.6 is above default 0.5 but below custom 0.7 â†’ should halt
         output = kernel.stream_output(["test"], lambda t: 0.6)
         assert "KERNEL INTERRUPT" in output
 

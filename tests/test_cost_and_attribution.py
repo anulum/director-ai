@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Cost Transparency & Sentence Attribution Tests
+# Director-Class AI â€” Cost Transparency & Sentence Attribution Tests
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
-# ── ClaimAttribution dataclass ────────────────────────────────────
+# â”€â”€ ClaimAttribution dataclass â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestClaimAttribution:
@@ -44,7 +44,7 @@ class TestClaimAttribution:
         assert a.supported is False
 
 
-# ── ScoringEvidence new fields ────────────────────────────────────
+# â”€â”€ ScoringEvidence new fields â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestScoringEvidenceNewFields:
@@ -91,7 +91,7 @@ class TestScoringEvidenceNewFields:
         assert len(ev.attributions) == 1
 
 
-# ── NLIScorer token counting ─────────────────────────────────────
+# â”€â”€ NLIScorer token counting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestNLITokenCounting:
@@ -117,7 +117,7 @@ class TestNLITokenCounting:
         assert scorer.last_estimated_cost == pytest.approx(0.1)
 
 
-# ── score_claim_coverage_with_attribution ─────────────────────────
+# â”€â”€ score_claim_coverage_with_attribution â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestClaimCoverageAttribution:
@@ -144,9 +144,9 @@ class TestClaimCoverageAttribution:
         assert attrs[0].divergence == 0.2
 
     def test_multi_claim_picks_best_source(self):
-        # 2 claims × 3 source sentences = 6 scores
-        # claim0: [0.8, 0.3, 0.5] → best at idx 1 (0.3, supported)
-        # claim1: [0.7, 0.9, 0.1] → best at idx 2 (0.1, supported)
+        # 2 claims Ă— 3 source sentences = 6 scores
+        # claim0: [0.8, 0.3, 0.5] â†’ best at idx 1 (0.3, supported)
+        # claim1: [0.7, 0.9, 0.1] â†’ best at idx 2 (0.1, supported)
         scorer = self._mock_scorer([0.8, 0.3, 0.5, 0.7, 0.9, 0.1])
 
         coverage, divs, claims, attrs = scorer.score_claim_coverage_with_attribution(
@@ -164,9 +164,9 @@ class TestClaimCoverageAttribution:
         assert coverage == 1.0
 
     def test_unsupported_claim(self):
-        # 2 claims × 2 source sentences = 4 scores
-        # claim0: [0.2, 0.3] → best=0.2 (supported)
-        # claim1: [0.8, 0.7] → best=0.7 (unsupported, threshold=0.6)
+        # 2 claims Ă— 2 source sentences = 4 scores
+        # claim0: [0.2, 0.3] â†’ best=0.2 (supported)
+        # claim1: [0.8, 0.7] â†’ best=0.7 (unsupported, threshold=0.6)
         scorer = self._mock_scorer([0.2, 0.3, 0.8, 0.7])
 
         coverage, divs, claims, attrs = scorer.score_claim_coverage_with_attribution(
@@ -191,7 +191,7 @@ class TestClaimCoverageAttribution:
         assert attrs[0].claim == ""
 
 
-# ── server _evidence_to_dict ─────────────────────────────────────
+# â”€â”€ server _evidence_to_dict â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestEvidenceToDictExtensions:
@@ -255,7 +255,7 @@ class TestEvidenceToDictExtensions:
         assert "attributions" not in d
 
 
-# ── Public API exports ───────────────────────────────────────────
+# â”€â”€ Public API exports â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestExports:

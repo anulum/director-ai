@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Enterprise Postgres Audit Sink
+# Director-Class AI â€” Enterprise Postgres Audit Sink
 
 """Immutable audit logging to PostgreSQL (or SQLite for testing)."""
 
@@ -104,7 +104,7 @@ class PostgresAuditSink:
         if self._pool and conn is not None:
             self._pool.putconn(conn)
 
-    # ── Schema migration ──────────────────────────────────────────────
+    # â”€â”€ Schema migration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _migrate(self) -> None:
         if not self._conn:
@@ -180,7 +180,7 @@ class PostgresAuditSink:
         )
         self._set_version(cur, 2)
 
-    # ── Write ─────────────────────────────────────────────────────────
+    # â”€â”€ Write â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def write(self, entry: AuditEntry) -> None:
         """Write a single AuditEntry immutably."""
@@ -263,7 +263,7 @@ class PostgresAuditSink:
             cur.close()
             self._put_conn(conn)
 
-    # ── Query ─────────────────────────────────────────────────────────
+    # â”€â”€ Query â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def query(
         self,

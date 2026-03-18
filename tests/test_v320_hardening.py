@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — v3.2.0 Hardening Tests
+# Director-Class AI â€” v3.2.0 Hardening Tests
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ from director_ai.core.lite_scorer import LiteScorer
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.vector_store import InMemoryBackend
 
-# ── Item 1: quickstart scaffolding ────────────────────────────────
+# â”€â”€ Item 1: quickstart scaffolding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestQuickstartScaffolding:
@@ -36,7 +36,7 @@ class TestQuickstartScaffolding:
         compile(source, str(guard_py), "exec")
 
 
-# ── Item 2: process_batch_async ────────────────────────────────────
+# â”€â”€ Item 2: process_batch_async â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestBatchAsync:
@@ -84,7 +84,7 @@ class TestBatchAsync:
         assert len(result.errors) == 1
 
 
-# ── Item 4: async VectorBackend ────────────────────────────────────
+# â”€â”€ Item 4: async VectorBackend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestAsyncVectorBackend:
@@ -100,7 +100,7 @@ class TestAsyncVectorBackend:
         asyncio.run(_test())
 
 
-# ── Item 6: LiteScorer.review() ───────────────────────────────────
+# â”€â”€ Item 6: LiteScorer.review() â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLiteScorerReview:
@@ -127,7 +127,7 @@ class TestLiteScorerReview:
         assert cs_high.approved is False
 
 
-# ── Item 7: config validation ─────────────────────────────────────
+# â”€â”€ Item 7: config validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestConfigValidation:
@@ -151,7 +151,7 @@ class TestConfigValidation:
         assert "typo_key" in caplog.text
 
 
-# ── Item 8a: cross-turn divergence e2e ─────────────────────────────
+# â”€â”€ Item 8a: cross-turn divergence e2e â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCrossTurnDivergence:
@@ -170,7 +170,7 @@ class TestCrossTurnDivergence:
         assert len(session) == 2
 
 
-# ── Item 8c: build_store sentence-transformer branch ──────────────
+# â”€â”€ Item 8c: build_store sentence-transformer branch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestBuildStoreSentenceTransformer:

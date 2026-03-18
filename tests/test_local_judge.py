@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_local_judge.py
+# Director-AI â€” test_local_judge.py
 
 """Tests for local DeBERTa-base binary judge (Item 5)."""
 
@@ -20,7 +20,7 @@ from director_ai.core import CoherenceScorer  # noqa: E402, I001
 from director_ai.core.config import DirectorConfig  # noqa: E402
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────
+# â”€â”€ Fixtures â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _mock_judge_model(approve_prob=0.8):
@@ -59,12 +59,12 @@ def _make_local_scorer(approve_prob=0.8, **kw):
     return scorer
 
 
-# ── Tests ─────────────────────────────────────────────────────────────
+# â”€â”€ Tests â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLocalJudgeCheck:
     def test_known_hallucinated_rejects(self):
-        """High reject probability → divergence shifts toward rejection."""
+        """High reject probability â†’ divergence shifts toward rejection."""
         scorer = _make_local_scorer(approve_prob=0.2)
         result = scorer._local_judge_check(
             "What is the capital of France?",
@@ -74,7 +74,7 @@ class TestLocalJudgeCheck:
         assert result > 0.5
 
     def test_known_correct_approves(self):
-        """High approve probability → divergence shifts toward approval."""
+        """High approve probability â†’ divergence shifts toward approval."""
         scorer = _make_local_scorer(approve_prob=0.9)
         result = scorer._local_judge_check(
             "What is the capital of France?",
@@ -84,7 +84,7 @@ class TestLocalJudgeCheck:
         assert result < 0.4
 
     def test_borderline_nli_hallucinated_rejects(self):
-        """Borderline NLI + hallucinated → judge tips to reject."""
+        """Borderline NLI + hallucinated â†’ judge tips to reject."""
         scorer = _make_local_scorer(approve_prob=0.15)
         result = scorer._local_judge_check(
             "Context about topic",
@@ -94,7 +94,7 @@ class TestLocalJudgeCheck:
         assert result >= 0.55
 
     def test_borderline_nli_correct_approves(self):
-        """Borderline NLI + correct → judge tips to approve."""
+        """Borderline NLI + correct â†’ judge tips to approve."""
         scorer = _make_local_scorer(approve_prob=0.85)
         result = scorer._local_judge_check(
             "Context about topic",
@@ -132,11 +132,11 @@ class TestLocalJudgeConfig:
         scorer = _make_local_scorer()
         assert scorer._should_escalate(0.5) is True
         assert scorer._should_escalate(0.45) is True
-        # High confidence → no escalation needed
+        # High confidence â†’ no escalation needed
         assert scorer._should_escalate(0.1) is False
 
     def test_should_not_escalate_without_model(self):
-        """No model loaded → no escalation."""
+        """No model loaded â†’ no escalation."""
         scorer = CoherenceScorer(
             use_nli=False,
             llm_judge_enabled=True,
@@ -156,7 +156,7 @@ class TestLocalJudgeConfig:
 
 class TestLocalJudgeFallback:
     def test_missing_model_falls_back_to_nli(self):
-        """No checkpoint → graceful fallback to raw NLI score."""
+        """No checkpoint â†’ graceful fallback to raw NLI score."""
         scorer = CoherenceScorer(
             use_nli=False,
             llm_judge_enabled=True,

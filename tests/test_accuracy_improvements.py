@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Accuracy Improvement Plan Tests
+# Director-Class AI â€” Accuracy Improvement Plan Tests
 
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ import pytest
 
 from director_ai.core.config import DirectorConfig
 
-# ── Phase 1: Task-type detection & adaptive thresholds ──────────────
+# â”€â”€ Phase 1: Task-type detection & adaptive thresholds â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestTaskTypeDetection:
@@ -93,13 +93,13 @@ class TestAdaptiveThresholds:
             "qa": 0.3,
             "summarization": 0.7,
         }
-        # QA prompt should use 0.3 threshold → more lenient
+        # QA prompt should use 0.3 threshold â†’ more lenient
         approved, score = scorer.review("What is 2+2?", "2+2 is 4")
         # The heuristic score should be above the QA threshold of 0.3
         assert score.score is not None
 
 
-# ── Phase 2: Chunking & Aggregation ─────────────────────────────────
+# â”€â”€ Phase 2: Chunking & Aggregation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestChunkingConfig:
@@ -150,7 +150,7 @@ class TestNLIConfidence:
         assert confs[2] > confs[1]  # peaked > uniform
 
 
-# ── Phase 3: LoRA adapter loading ────────────────────────────────────
+# â”€â”€ Phase 3: LoRA adapter loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLoRAConfig:
@@ -165,7 +165,7 @@ class TestLoRAConfig:
         assert cfg.lora_adapter_path == "/path/to/adapter"
 
 
-# ── Phase 4: Distillation ────────────────────────────────────────────
+# â”€â”€ Phase 4: Distillation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestDistillationPipeline:
@@ -186,7 +186,7 @@ class TestDistillationPipeline:
         )
 
 
-# ── Phase 6A: Meta-classifier ───────────────────────────────────────
+# â”€â”€ Phase 6A: Meta-classifier â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestMetaClassifierFeatures:
@@ -323,7 +323,7 @@ class TestMetaClassifierIntegration:
             sys.path.pop(0)
 
 
-# ── Phase 1A: Threshold analysis tool ───────────────────────────────
+# â”€â”€ Phase 1A: Threshold analysis tool â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestThresholdAnalysis:
@@ -358,7 +358,7 @@ class TestThresholdAnalysis:
             sys.path.pop(0)
 
 
-# ── LoRA training tool ──────────────────────────────────────────────
+# â”€â”€ LoRA training tool â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestLoRATrainingTool:
@@ -425,7 +425,7 @@ class TestLoRATrainingTool:
             sys.path.pop(0)
 
 
-# ── Cross-phase integration ─────────────────────────────────────────
+# â”€â”€ Cross-phase integration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestQAPremiseRatio:

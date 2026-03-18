@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Real NLI Backend (DeBERTa)
+# Director-Class AI â€” Real NLI Backend (DeBERTa)
 
 """NLI-based logical divergence scorer with batched inference and ONNX.
 
@@ -55,7 +55,7 @@ _DIVERGENCE_ALIGNED = 0.1
 _DIVERGENCE_CONTRADICTED = 0.9
 
 
-# ── Helpers ──────────────────────────────────────────────────────
+# â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _softmax_np(x: np.ndarray) -> np.ndarray:
@@ -120,7 +120,7 @@ def _probs_to_confidence(probs: np.ndarray) -> list[float]:
     return result
 
 
-# ── Model Loaders ───────────────────────────────────────────────
+# â”€â”€ Model Loaders â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @lru_cache(maxsize=4)
@@ -164,7 +164,7 @@ def _load_nli_model(
                 logger.info("Loading with 8-bit quantization")
             except ImportError:
                 logger.warning(
-                    "bitsandbytes not installed — loading without quantization",
+                    "bitsandbytes not installed â€” loading without quantization",
                 )
 
         load_kwargs.setdefault("low_cpu_mem_usage", False)
@@ -180,7 +180,7 @@ def _load_nli_model(
         logger.info("NLI model loaded successfully.")
         return tokenizer, model
     except (ImportError, RuntimeError, OSError, ValueError) as e:
-        logger.warning("NLI model unavailable: %s — using heuristic fallback", e)
+        logger.warning("NLI model unavailable: %s â€” using heuristic fallback", e)
         return None, None
 
 
@@ -414,7 +414,7 @@ def export_tensorrt(
     return output_dir
 
 
-# ── ONNX Dynamic Batcher ─────────────────────────────────────────
+# â”€â”€ ONNX Dynamic Batcher â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class OnnxDynamicBatcher:
@@ -426,10 +426,10 @@ class OnnxDynamicBatcher:
 
     Parameters
     ----------
-    onnx_scorer_fn : callable — function(pairs) -> list[float].
-    max_batch : int — flush after this many pairs.
-    flush_timeout_ms : float — flush after this many ms idle.
-    session : ort.InferenceSession | None — for IO binding detection.
+    onnx_scorer_fn : callable â€” function(pairs) -> list[float].
+    max_batch : int â€” flush after this many pairs.
+    flush_timeout_ms : float â€” flush after this many ms idle.
+    session : ort.InferenceSession | None â€” for IO binding detection.
 
     """
 
@@ -482,7 +482,7 @@ class OnnxDynamicBatcher:
         return self._has_cuda
 
 
-# ── Scorer ───────────────────────────────────────────────────────
+# â”€â”€ Scorer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class NLIScorer:
@@ -490,15 +490,15 @@ class NLIScorer:
 
     Parameters
     ----------
-    use_model : bool — attempt to load model on first score().
-    max_length : int — max token length for NLI input.
-    model_name : str | None — HuggingFace model ID or local path.
-    backend : str | ScorerBackend — "deberta", "onnx", "minicheck",
+    use_model : bool â€” attempt to load model on first score().
+    max_length : int â€” max token length for NLI input.
+    model_name : str | None â€” HuggingFace model ID or local path.
+    backend : str | ScorerBackend â€” "deberta", "onnx", "minicheck",
         "lite", or a ScorerBackend instance.
-    quantize_8bit : bool — 8-bit quantization (requires bitsandbytes).
-    device : str | None — torch device ("cpu", "cuda", "cuda:0").
-    torch_dtype : str | None — "float16", "bfloat16", or "float32".
-    onnx_path : str | None — directory with exported ONNX model.
+    quantize_8bit : bool â€” 8-bit quantization (requires bitsandbytes).
+    device : str | None â€” torch device ("cpu", "cuda", "cuda:0").
+    torch_dtype : str | None â€” "float16", "bfloat16", or "float32".
+    onnx_path : str | None â€” directory with exported ONNX model.
 
     """
 
@@ -582,7 +582,7 @@ class NLIScorer:
         if self.backend == "onnx":
             if not self._onnx_path:
                 logger.warning(
-                    "onnx backend requires onnx_path — falling back to heuristic",
+                    "onnx backend requires onnx_path â€” falling back to heuristic",
                 )
                 self._model_loaded = True
                 return False
@@ -622,7 +622,7 @@ class NLIScorer:
             self._model = merged
             logger.info("LoRA adapter merged successfully")
         except ImportError:
-            logger.warning("peft not installed — cannot load LoRA adapter")
+            logger.warning("peft not installed â€” cannot load LoRA adapter")
         except (OSError, ValueError) as e:
             logger.warning("Failed to load LoRA adapter: %s", e)
 
@@ -659,7 +659,7 @@ class NLIScorer:
         return self._model_score(premise, hypothesis)
 
     async def ascore(self, premise: str, hypothesis: str) -> float:
-        """Async score() — runs inference in a thread pool."""
+        """Async score() â€” runs inference in a thread pool."""
         import asyncio
 
         loop = asyncio.get_running_loop()
@@ -686,26 +686,26 @@ class NLIScorer:
         return self._model_score_batch(pairs)
 
     async def ascore_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Async batch scoring — runs in a thread pool."""
+        """Async batch scoring â€” runs in a thread pool."""
         import asyncio
 
         loop = asyncio.get_running_loop()
         return await loop.run_in_executor(None, self.score_batch, pairs)
 
-    # ── MiniCheck backend ────────────────────────────────────────
+    # â”€â”€ MiniCheck backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _ensure_minicheck(self) -> bool:
         if self._minicheck_loaded:
             return self._minicheck is not None
         self._minicheck_loaded = True
-        try:  # pragma: no cover — requires minicheck package with model
+        try:  # pragma: no cover â€” requires minicheck package with model
             from minicheck import MiniCheck
 
             self._minicheck = MiniCheck(model_name="MiniCheck-DeBERTa-L")
             logger.info("MiniCheck backend loaded.")
             return True
         except ImportError:
-            logger.warning("minicheck package not installed — pip install minicheck")
+            logger.warning("minicheck package not installed â€” pip install minicheck")
             return False
         except (
             RuntimeError,
@@ -714,7 +714,7 @@ class NLIScorer:
             AttributeError,
         ) as e:
             logger.warning(
-                "MiniCheck init failed: %s — using heuristic fallback",
+                "MiniCheck init failed: %s â€” using heuristic fallback",
                 e,
             )
             return False
@@ -733,7 +733,7 @@ class NLIScorer:
         preds = self._minicheck.score(docs=docs, claims=claims)
         return [float(1.0 - s) for s in preds]
 
-    # ── PyTorch backend ──────────────────────────────────────────
+    # â”€â”€ PyTorch backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @property
     def _is_factcg(self) -> bool:
@@ -784,7 +784,7 @@ class NLIScorer:
         return float(probs[ci]) + float(probs[ni]) * 0.5
 
     def _model_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        """Batched PyTorch inference — single forward pass."""
+        """Batched PyTorch inference â€” single forward pass."""
         if self._tokenizer is None or self._model is None:
             raise RuntimeError("NLI model not loaded")
 
@@ -823,7 +823,7 @@ class NLIScorer:
 
         return _probs_to_divergence(probs, self._label_indices)
 
-    # ── ONNX backend ─────────────────────────────────────────────
+    # â”€â”€ ONNX backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _onnx_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Batched ONNX Runtime inference."""
@@ -864,7 +864,7 @@ class NLIScorer:
 
         return _probs_to_divergence(_softmax_np(logits), self._label_indices)
 
-    # ── Chunked scoring ──────────────────────────────────────────
+    # â”€â”€ Chunked scoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     @staticmethod
     def _split_sentences(text: str) -> list[str]:
@@ -971,8 +971,8 @@ class NLIScorer:
         Returns (agg_score, per_hyp_scores, prem_count, hyp_count).
 
         inner_agg controls how premise-chunk scores are combined per
-        hypothesis chunk: "max" (default, conservative — worst evidence
-        wins), "min" (best evidence wins — use for summarization), or
+        hypothesis chunk: "max" (default, conservative â€” worst evidence
+        wins), "min" (best evidence wins â€” use for summarization), or
         "mean".
 
         outer_agg controls how hypothesis-chunk scores are combined:
@@ -1246,7 +1246,7 @@ class NLIScorer:
 
         return agg, per_hyp
 
-    # ── Claim decomposition ────────────────────────────────────────
+    # â”€â”€ Claim decomposition â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def decompose_claims(self, text: str) -> list[str]:
         """Split text into individual claim sentences."""
@@ -1349,7 +1349,7 @@ class NLIScorer:
         if n_pairs > max_attribution_pairs:
             raise ValueError(
                 f"Attribution would create {n_pairs} pairs "
-                f"({len(claims)} claims × {len(source_sents)} source sentences), "
+                f"({len(claims)} claims Ă— {len(source_sents)} source sentences), "
                 f"exceeding limit of {max_attribution_pairs}",
             )
 
@@ -1382,7 +1382,7 @@ class NLIScorer:
         coverage = supported / len(claims)
         return coverage, per_claim_divs, claims, attributions
 
-    # ── Lite backend ─────────────────────────────────────────────
+    # â”€â”€ Lite backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def _ensure_lite(self):
         if self._lite_scorer is None:
@@ -1398,7 +1398,7 @@ class NLIScorer:
         self._ensure_lite()
         return self._lite_scorer.score_batch(pairs)  # type: ignore[attr-defined, no-any-return]
 
-    # ── Heuristic fallback ───────────────────────────────────────
+    # â”€â”€ Heuristic fallback â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     _NEGATION_WORDS = frozenset(
         {

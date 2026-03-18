@@ -1,11 +1,11 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_forge.py
+# Director-AI â€” test_forge.py
 
-"""Tests for tools/forge.py — ForgeTrainer techniques."""
+"""Tests for tools/forge.py â€” ForgeTrainer techniques."""
 
 from __future__ import annotations
 
@@ -22,7 +22,7 @@ F = torch.nn.functional
 from forge import ForgeConfig, ForgeTrainer, focal_loss, model_soup, symmetric_kl  # noqa: E402, I001
 
 
-# ── Focal loss ──────────────────────────────────────────────────
+# â”€â”€ Focal loss â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFocalLoss:
@@ -53,7 +53,7 @@ class TestFocalLoss:
         assert logits.grad is not None
 
 
-# ── Symmetric KL ────────────────────────────────────────────────
+# â”€â”€ Symmetric KL â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSymmetricKL:
@@ -76,7 +76,7 @@ class TestSymmetricKL:
         assert abs(kl_ab.item() - kl_ba.item()) < 1e-5
 
 
-# ── ForgeConfig ─────────────────────────────────────────────────
+# â”€â”€ ForgeConfig â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestForgeConfig:
@@ -96,7 +96,7 @@ class TestForgeConfig:
         assert len(cfg.active_techniques()) == 1
 
 
-# ── ForgeTrainer ────────────────────────────────────────────────
+# â”€â”€ ForgeTrainer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class SimpleModel(nn.Module):
@@ -171,7 +171,7 @@ class TestForgeTrainerComputeLoss:
         assert loss.requires_grad
 
 
-# ── FGM ─────────────────────────────────────────────────────────
+# â”€â”€ FGM â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestFGM:
@@ -204,12 +204,12 @@ class TestFGM:
 
         original = model.word_embeddings.weight.data.clone()
         trainer._fgm_attack(model)
-        # No gradients → no perturbation → no backup
+        # No gradients â†’ no perturbation â†’ no backup
         assert len(trainer._fgm_backup) == 0
         assert torch.equal(model.word_embeddings.weight.data, original)
 
 
-# ── Model Soup ──────────────────────────────────────────────────
+# â”€â”€ Model Soup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestModelSoup:

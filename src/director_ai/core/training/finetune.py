@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Domain Adaptation / Fine-tuning Pipeline
+# Director-Class AI â€” Domain Adaptation / Fine-tuning Pipeline
 
 """Fine-tune the NLI model on domain-specific labeled data.
 
@@ -42,7 +42,7 @@ logger = logging.getLogger("DirectorAI.FineTune")
 
 _DEFAULT_BASE_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 
-# FactCG instruction template — must match inference-time template
+# FactCG instruction template â€” must match inference-time template
 _FACTCG_TEMPLATE = (
     "{premise}\n\nChoose your answer: based on the paragraph above "
     'can we conclude that "{hypothesis}"?\n\nOPTIONS:\n- Yes\n- No\n'

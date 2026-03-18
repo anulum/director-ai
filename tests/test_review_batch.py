@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Coalesced review_batch Tests
+# Director-Class AI â€” Coalesced review_batch Tests
 
 """Tests for CoherenceScorer.review_batch() and BatchProcessor coalesced path."""
 
@@ -16,7 +16,7 @@ from director_ai.core.knowledge import GroundTruthStore
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.types import CoherenceScore
 
-# ── CoherenceScorer.review_batch ─────────────────────────────────────
+# â”€â”€ CoherenceScorer.review_batch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestScorerReviewBatchEmpty:
@@ -109,7 +109,7 @@ class TestScorerReviewBatchLLMJudge:
         assert len(results) == 2
 
 
-# ── BatchProcessor coalesced delegation ──────────────────────────────
+# â”€â”€ BatchProcessor coalesced delegation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestBatchProcessorCoalesced:
@@ -173,7 +173,7 @@ class TestBatchProcessorCoalesced:
 
         proc = BatchProcessor(WrongLenScorer(), max_concurrency=1)
         result = proc.review_batch([("Q1", "A1"), ("Q2", "A2")])
-        # Wrong length triggers TypeError → fallback to per-item
+        # Wrong length triggers TypeError â†’ fallback to per-item
         assert result.total == 2
         assert result.succeeded == 2
 

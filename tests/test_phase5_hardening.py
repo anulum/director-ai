@@ -1,9 +1,9 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
-# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_phase5_hardening.py
+# Director-AI â€” test_phase5_hardening.py
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ from director_ai.core.cache import ScoreCache
 from director_ai.core.kernel import SafetyKernel
 from director_ai.core.sanitizer import InputSanitizer
 
-# ── Sanitizer: new injection patterns ─────────────────────────────────
+# â”€â”€ Sanitizer: new injection patterns â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestSanitizerNewPatterns:
@@ -69,7 +69,7 @@ class TestSanitizerNewPatterns:
         assert r.blocked is False
 
 
-# ── Kernel: timeout enforcement ───────────────────────────────────────
+# â”€â”€ Kernel: timeout enforcement â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestKernelTimeout:
@@ -110,7 +110,7 @@ class TestKernelTimeout:
         assert k.is_active is False
 
 
-# ── Cache: generation versioning ──────────────────────────────────────
+# â”€â”€ Cache: generation versioning â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestCacheGeneration:
@@ -148,7 +148,7 @@ class TestCacheGeneration:
         assert c.get("q", "p") is not None
 
 
-# ── Rust scorer opt-in ────────────────────────────────────────────────
+# â”€â”€ Rust scorer opt-in â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class TestRustScorerIntegration:
