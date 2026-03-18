@@ -1,4 +1,4 @@
-﻿# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
 # Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
 # Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
@@ -30,7 +30,9 @@ def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
         return lo
     if math.isinf(value):
         replacement = hi if value > 0 else lo
-        _clamp_logger.warning("Inf detected in _clamp â€” replacing with %s", replacement)
+        _clamp_logger.warning(
+            "Inf detected in _clamp â€” replacing with %s", replacement
+        )
         return replacement
     return max(lo, min(hi, value))
 
