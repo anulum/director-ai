@@ -29,7 +29,8 @@ jobs:
           python-version: "3.12"
 
       - name: Install build tools
-        run: pip install --require-hashes -r requirements/ci-build.txt -r requirements/ci-sbom.txt
+        run: |
+          pip install build twine cyclonedx-bom
 
       - name: Build sdist
         run: python -m build --sdist
