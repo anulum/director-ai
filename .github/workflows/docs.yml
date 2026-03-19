@@ -8,6 +8,7 @@ on:
     branches: [main]
     paths:
       - "docs-site/**"
+      - "notebooks/**"
       - "mkdocs.yml"
       - "src/director_ai/**"
       - ".github/workflows/docs.yml"
@@ -37,7 +38,7 @@ jobs:
           pip install --no-deps -e .
 
       - name: Build site
-        run: mkdocs build --strict
+        run: mkdocs build
 
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b # v4

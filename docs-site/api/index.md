@@ -26,7 +26,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 
 | Class | Module | Purpose |
 |-------|--------|---------|
-| [`GroundTruthStore`](guard.md#groundtruthstore) | `director_ai.core.knowledge` | Key-value fact store (prototype) |
+| [`GroundTruthStore`](guard.md) | `director_ai.core.knowledge` | Key-value fact store (prototype) |
 | [`VectorGroundTruthStore`](vector-store.md) | `director_ai.core.vector_store` | Semantic vector store with pluggable backends |
 | [`VectorBackend`](vector-store.md#vectorbackend) | `director_ai.core.vector_store` | Abstract backend protocol |
 

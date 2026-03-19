@@ -108,6 +108,7 @@ docs = [
     "mkdocs>=1.5",
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.24",
+    "mkdocs-jupyter>=0.25",
 ]
 otel = [
     "opentelemetry-api>=1.20",

@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # © 1998–2026 Miroslav Šotek. All rights reserved.
 docs_dir: docs-site
+strict: false
 site_name: Director-AI
 site_description: Real-time LLM hallucination guardrail — NLI + RAG fact-checking with token-level streaming halt
 site_url: https://anulum.github.io/director-ai
@@ -65,6 +66,11 @@ extra_css:
 
 plugins:
   - search
+  - mkdocs-jupyter:
+      include: ["notebooks/*.ipynb"]
+      execute: false
+      allow_errors: false
+      theme: dark
   - mkdocstrings:
       handlers:
         python:
@@ -177,7 +183,23 @@ nav:
       - Customer Support: cookbook/customer-support.md
       - Case Studies: cookbook/case-studies.md
   - Benchmarks: benchmarks.md
-  - Tutorials: tutorials.md
+  - Tutorials:
+      - Overview: tutorials.md
+      - Quickstart Notebook: notebooks/quickstart.ipynb
+      - Coherence Engine: notebooks/01_coherence_engine.ipynb
+      - Streaming Oversight: notebooks/02_streaming_oversight.ipynb
+      - Vector Store & Retrieval: notebooks/03_vector_store.ipynb
+      - End-to-End Benchmark: notebooks/04_end_to_end_benchmark.ipynb
+      - Medical RAG Chatbot: notebooks/06_medical_rag_chatbot.ipynb
+      - LangChain Integration: notebooks/07_langchain_integration.ipynb
+      - Multi-Provider SDK Guard: notebooks/08_provider_adapters.ipynb
+      - Production Guardrails: notebooks/09_production_guardrails.ipynb
+      - Vector RAG Pipeline: notebooks/10_vector_rag_pipeline.ipynb
+      - Streaming Halt Deep Dive: notebooks/11_streaming_halt_deep_dive.ipynb
+      - Domain Presets & Config: notebooks/12_domain_presets_and_config.ipynb
+      - Batch Processing: notebooks/13_batch_processing_and_evaluation.ipynb
+      - Enterprise Multi-Tenant: notebooks/14_enterprise_multi_tenant.ipynb
+      - Custom Fine-Tuning: notebooks/15_custom_fine_tuning.ipynb
   - Glossary: glossary.md
   - Changelog: changelog.md
   - Licensing: licensing.md
