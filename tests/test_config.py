@@ -237,7 +237,9 @@ class TestBuildStore:
     def test_build_store_memory_backend_default(self):
         from director_ai.core.vector_store import InMemoryBackend
 
-        cfg = DirectorConfig(vector_backend="memory", hybrid_retrieval=False, reranker_enabled=False)
+        cfg = DirectorConfig(
+            vector_backend="memory", hybrid_retrieval=False, reranker_enabled=False
+        )
         store = cfg.build_store()
         assert isinstance(store.backend, InMemoryBackend)
 
@@ -281,14 +283,22 @@ class TestBuildStore:
 
         from director_ai.core.vector_store import SentenceTransformerBackend
 
-        cfg = DirectorConfig(vector_backend="sentence-transformer", hybrid_retrieval=False, reranker_enabled=False)
+        cfg = DirectorConfig(
+            vector_backend="sentence-transformer",
+            hybrid_retrieval=False,
+            reranker_enabled=False,
+        )
         store = cfg.build_store()
         assert isinstance(store.backend, SentenceTransformerBackend)
 
     def test_build_store_registry_fallback(self):
         from director_ai.core.vector_store import InMemoryBackend
 
-        cfg = DirectorConfig(vector_backend="__nonexistent_backend__", hybrid_retrieval=False, reranker_enabled=False)
+        cfg = DirectorConfig(
+            vector_backend="__nonexistent_backend__",
+            hybrid_retrieval=False,
+            reranker_enabled=False,
+        )
         store = cfg.build_store()
         assert isinstance(store.backend, InMemoryBackend)
 

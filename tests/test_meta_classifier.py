@@ -82,7 +82,7 @@ class TestExtractFeatures:
 
 
 def _make_binary_bundle(tmp_path):
-    sklearn = pytest.importorskip("sklearn")
+    pytest.importorskip("sklearn")
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.preprocessing import StandardScaler
 
@@ -115,7 +115,7 @@ def _make_binary_bundle(tmp_path):
 
 
 def _make_dataset_type_bundle(tmp_path):
-    sklearn = pytest.importorskip("sklearn")
+    pytest.importorskip("sklearn")
     from sklearn.ensemble import RandomForestClassifier
     from sklearn.preprocessing import StandardScaler
 
