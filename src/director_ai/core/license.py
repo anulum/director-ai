@@ -22,6 +22,7 @@ import os
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import UUID
 
 logger = logging.getLogger("director_ai.license")
 
@@ -66,12 +67,24 @@ def validate_key(key: str) -> LicenseInfo:
         return LicenseInfo(message="No license key provided")
 
     parts = key.split("-", 2)
-    if len(parts) < 3:
+    if len(parts) != 3:
         return LicenseInfo(message="Invalid key format")
 
     tier = parts[1].lower()
     if tier not in TIERS:
         return LicenseInfo(message=f"Unknown tier: {tier}")
+
+    key_id = parts[2].strip()
+    if not key_id:
+        return LicenseInfo(message="Invalid key format")
+
+    try:
+        parsed = UUID(key_id)
+    except ValueError:
+        return LicenseInfo(message="Invalid key UUID")
+
+    if str(parsed) != key_id.lower():
+        return LicenseInfo(message="Invalid key UUID")
 
     return LicenseInfo(
         tier=tier,
@@ -105,6 +118,12 @@ def validate_file(path: str | Path) -> LicenseInfo:
     if tier not in TIERS:
         return LicenseInfo(message=f"Unknown tier in license: {tier}")
 
+    key_info = validate_key(str(data.get("key", "")).strip())
+    if not key_info.valid:
+        return LicenseInfo(message=f"Invalid license key in file: {key_info.message}")
+    if key_info.tier != tier:
+        return LicenseInfo(message="License tier does not match key tier")
+
     info = LicenseInfo(
         tier=tier,
         licensee=data.get("licensee", ""),
@@ -135,7 +154,7 @@ def load_license() -> LicenseInfo:
     """Load license from environment or file.
 
     Checks in order:
-    1. DIRECTOR_LICENSE_KEY env var (key string)
+    1. DIRECTOR_LICENSE_KEY env var (syntax check only; does not activate)
     2. DIRECTOR_LICENSE_FILE env var (path to signed JSON)
     3. ~/.director-ai/license.json (default file location)
     4. Falls back to community (AGPL) tier
@@ -144,9 +163,12 @@ def load_license() -> LicenseInfo:
     if key:
         info = validate_key(key)
         if info.valid:
-            logger.info("License: %s (key)", info.message)
-            return info
-        logger.warning("License key invalid: %s", info.message)
+            logger.warning(
+                "Bare DIRECTOR_LICENSE_KEY is not sufficient; "
+                "provide DIRECTOR_LICENSE_FILE with a signed license.",
+            )
+        else:
+            logger.warning("License key invalid: %s", info.message)
 
     file_path = os.environ.get("DIRECTOR_LICENSE_FILE", "").strip()
     if file_path:

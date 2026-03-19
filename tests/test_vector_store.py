@@ -81,6 +81,23 @@ class TestVectorGroundTruthStore:
         context = store.retrieve_context("sky color")
         assert context is not None
 
+    def test_keyword_fallback_uses_store_tenant(self):
+        class EmptyBackend(InMemoryBackend):
+            def query(self, text, n_results=3, tenant_id=""):
+                return []
+
+        store = VectorGroundTruthStore(backend=EmptyBackend(), tenant_id="acme")
+        store.add_fact("secret", "Tenant-scoped fallback fact")
+
+        context = store.retrieve_context("secret")
+        chunks = store.retrieve_context_with_chunks("secret")
+
+        assert context is not None
+        assert "Tenant-scoped fallback fact" in context
+        assert len(chunks) == 1
+        assert chunks[0].source == "keyword"
+        assert "Tenant-scoped fallback fact" in chunks[0].text
+
     def test_tenant_id_stored(self):
         store = VectorGroundTruthStore(tenant_id="acme")
         assert store.tenant_id == "acme"

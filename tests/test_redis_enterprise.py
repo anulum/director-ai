@@ -184,3 +184,25 @@ class TestRedisScoreCache:
             cache.get("missing", "p")
             assert cache.hits == 1
             assert cache.misses == 1
+
+    def test_tenant_id_changes_cache_key(self):
+        fake = _make_fake_redis()
+        with patch("director_ai.enterprise.redis.redis") as mock_redis:
+            mock_redis.from_url.return_value = fake
+            from director_ai.enterprise.redis import RedisScoreCache
+
+            cache = RedisScoreCache(redis_url="redis://fake")
+            cache.put("q", "p", 0.9, 0.0, 0.0, tenant_id="tenant-a")
+            assert cache.get("q", "p", tenant_id="tenant-a") is not None
+            assert cache.get("q", "p", tenant_id="tenant-b") is None
+
+    def test_scope_changes_cache_key(self):
+        fake = _make_fake_redis()
+        with patch("director_ai.enterprise.redis.redis") as mock_redis:
+            mock_redis.from_url.return_value = fake
+            from director_ai.enterprise.redis import RedisScoreCache
+
+            cache = RedisScoreCache(redis_url="redis://fake")
+            cache.put("q", "p", 0.9, 0.0, 0.0, scope="session-a")
+            assert cache.get("q", "p", scope="session-a") is not None
+            assert cache.get("q", "p", scope="session-b") is None

@@ -79,3 +79,10 @@ class TestGroundTruthStore:
         result = store.retrieve_context("important fact")
         assert result is not None
         assert "42" in result
+
+    def test_tenant_prefixed_single_word_key(self):
+        store = GroundTruthStore()
+        store.add("secret", "tenant-only fact", tenant_id="acme")
+        result = store.retrieve_context("secret", tenant_id="acme")
+        assert result is not None
+        assert "tenant-only fact" in result

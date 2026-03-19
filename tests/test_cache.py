@@ -93,3 +93,43 @@ class TestScoreCache:
     def test_empty_hit_rate(self):
         cache = ScoreCache(max_size=100)
         assert cache.hit_rate == 0.0
+
+    def test_tenant_id_changes_cache_key(self):
+        cache = ScoreCache(max_size=100)
+        cache.put("q1", "p1", 0.8, 0.1, 0.2, tenant_id="tenant-a")
+        assert cache.get("q1", "p1", tenant_id="tenant-a") is not None
+        assert cache.get("q1", "p1", tenant_id="tenant-b") is None
+
+    def test_scope_changes_cache_key(self):
+        cache = ScoreCache(max_size=100)
+        cache.put("q1", "p1", 0.8, 0.1, 0.2, scope="session-a")
+        assert cache.get("q1", "p1", scope="session-a") is not None
+        assert cache.get("q1", "p1", scope="session-b") is None
+
+    def test_scorer_cache_uses_session_context_scope(self, monkeypatch):
+        from director_ai.core.runtime.session import ConversationSession
+        from director_ai.core.scorer import CoherenceScorer
+
+        scorer = CoherenceScorer(threshold=0.0, use_nli=False, cache_size=100)
+        values = iter(
+            [
+                (0.1, 0.1, 0.9, None),
+                (0.2, 0.2, 0.7, None),
+            ]
+        )
+
+        def fake_heuristic(prompt, action, tenant_id=""):
+            return next(values)
+
+        monkeypatch.setattr(scorer, "_heuristic_coherence", fake_heuristic)
+
+        session_a = ConversationSession()
+        session_a.add_turn("prev", "context A", 0.9)
+        session_b = ConversationSession()
+        session_b.add_turn("prev", "context B", 0.9)
+
+        _, score_a = scorer.review("prompt", "answer", session=session_a)
+        _, score_b = scorer.review("prompt", "answer", session=session_b)
+
+        assert score_a.score == 0.9
+        assert score_b.score == 0.7

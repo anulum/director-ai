@@ -49,17 +49,30 @@ class ScoreCache:
         self._generation = 0
 
     @staticmethod
-    def _key(query: str, prefix: str, tenant_id: str = "") -> str:
+    def _key(
+        query: str,
+        prefix: str,
+        tenant_id: str = "",
+        scope: str = "",
+    ) -> str:
         h = hashlib.blake2b(digest_size=16)
         h.update(query.encode("utf-8", errors="replace"))
         h.update(b"\x00")
         h.update(prefix.encode("utf-8", errors="replace"))
         h.update(b"\x00")
         h.update(tenant_id.encode("utf-8", errors="replace"))
+        h.update(b"\x00")
+        h.update(scope.encode("utf-8", errors="replace"))
         return h.hexdigest()
 
-    def get(self, query: str, prefix: str, tenant_id: str = "") -> _CacheEntry | None:
-        k = self._key(query, prefix, tenant_id)
+    def get(
+        self,
+        query: str,
+        prefix: str,
+        tenant_id: str = "",
+        scope: str = "",
+    ) -> _CacheEntry | None:
+        k = self._key(query, prefix, tenant_id, scope)
         with self._lock:
             entry = self._store.get(k)
             if entry is None:
@@ -85,8 +98,9 @@ class ScoreCache:
         h_logical: float,
         h_factual: float,
         tenant_id: str = "",
+        scope: str = "",
     ) -> None:
-        k = self._key(query, prefix, tenant_id)
+        k = self._key(query, prefix, tenant_id, scope)
         with self._lock:
             entry = _CacheEntry(
                 score=score,

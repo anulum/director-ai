@@ -1216,19 +1216,27 @@ class VectorGroundTruthStore(GroundTruthStore):
         self.backend = backend if backend is not None else InMemoryBackend()
         self.tenant_id = tenant_id
 
+    def _resolved_tenant_id(self, tenant_id: str = "") -> str:
+        return tenant_id or self.tenant_id
+
     def add_fact(self, key: str, value: str, tenant_id: str = "") -> None:
         """Alias for add() â€” also populates parent keyword store."""
-        fact_key = f"{tenant_id}::{key}" if tenant_id else key
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        fact_key = f"{tenant_id}:{key}" if tenant_id else key
         self.facts[fact_key] = value
         self.add(key, value, tenant_id=tenant_id)
 
     def ingest(self, texts: list[str], tenant_id: str = "") -> int:
         """Bulk-add plain text documents into the vector backend."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
         for i, text in enumerate(texts):
+            metadata = {"source": "ingest"}
+            if tenant_id:
+                metadata["tenant_id"] = tenant_id
             self.backend.add(
                 doc_id=f"ingest_{i}_{tenant_id}",
                 text=text,
-                metadata={"source": "ingest", "tenant_id": tenant_id},
+                metadata=metadata,
             )
         logger.info("Ingested %d documents into vector backend.", len(texts))
         return len(texts)
@@ -1242,6 +1250,7 @@ class VectorGroundTruthStore(GroundTruthStore):
     ) -> None:
         import time
 
+        tenant_id = self._resolved_tenant_id(tenant_id)
         doc_id = f"{tenant_id}::{key}" if tenant_id else key
         combined_text = f"{key}: {value}"
         meta = {**(metadata or {}), "key": key, "value": value}
@@ -1276,6 +1285,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         """
         import time
 
+        tenant_id = self._resolved_tenant_id(tenant_id)
         with trace_vector_query() as span:
             start_time = time.monotonic()
             metrics.inc("knowledge_queries_total")
@@ -1301,7 +1311,11 @@ class VectorGroundTruthStore(GroundTruthStore):
                 duration = time.monotonic() - start_time
                 metrics.observe("knowledge_query_duration_seconds", duration)
                 # Fall back to keyword-based parent
-                return super().retrieve_context(query, tenant_id=tenant_id)
+                return super().retrieve_context(
+                    query,
+                    tenant_id=tenant_id,
+                    top_k=top_k,
+                )
             except Exception as e:
                 metrics.inc("knowledge_query_errors")
                 span.set_attribute("error", True)
@@ -1318,6 +1332,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         """Retrieve context as EvidenceChunk objects."""
         import time
 
+        tenant_id = self._resolved_tenant_id(tenant_id)
         with trace_vector_query() as span:
             start_time = time.monotonic()
             try:
@@ -1341,6 +1356,12 @@ class VectorGroundTruthStore(GroundTruthStore):
                     )
                 duration = time.monotonic() - start_time
                 metrics.observe("knowledge_query_duration_seconds", duration)
+                if not chunks:
+                    return super().retrieve_context_with_chunks(
+                        query,
+                        top_k=top_k,
+                        tenant_id=tenant_id,
+                    )
                 return chunks
             except Exception as e:
                 span.set_attribute("error", True)

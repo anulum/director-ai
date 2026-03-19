@@ -16,6 +16,8 @@ from director_ai.core.license import (
 
 
 class TestValidateKey:
+    _UUID = "550e8400-e29b-41d4-a716-446655440000"
+
     def test_empty_key(self):
         info = validate_key("")
         assert not info.valid
@@ -26,26 +28,26 @@ class TestValidateKey:
         assert not info.valid
 
     def test_valid_indie(self):
-        info = validate_key("DAI-INDIE-abc-123-456")
+        info = validate_key(f"DAI-INDIE-{self._UUID}")
         assert info.valid
         assert info.tier == "indie"
         assert info.is_commercial
 
     def test_valid_pro(self):
-        info = validate_key("DAI-PRO-test")
+        info = validate_key(f"DAI-PRO-{self._UUID}")
         assert info.valid
         assert info.tier == "pro"
         assert info.is_commercial
 
     def test_valid_trial(self):
-        info = validate_key("DAI-TRIAL-test")
+        info = validate_key(f"DAI-TRIAL-{self._UUID}")
         assert info.valid
         assert info.tier == "trial"
         assert info.is_trial
         assert not info.is_commercial
 
     def test_valid_enterprise(self):
-        info = validate_key("DAI-ENTERPRISE-test")
+        info = validate_key(f"DAI-ENTERPRISE-{self._UUID}")
         assert info.valid
         assert info.tier == "enterprise"
 
@@ -57,6 +59,11 @@ class TestValidateKey:
     def test_too_few_parts(self):
         info = validate_key("DAI-PRO")
         assert not info.valid
+
+    def test_invalid_uuid(self):
+        info = validate_key("DAI-PRO-not-a-uuid")
+        assert not info.valid
+        assert "UUID" in info.message
 
 
 class TestValidateFile:

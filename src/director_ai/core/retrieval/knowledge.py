@@ -83,9 +83,13 @@ class GroundTruthStore:
         context = []
 
         for key, value in self.facts.items():
-            if tenant_id and not key.startswith(f"{tenant_id}:"):
-                continue
-            key_words = key.lower().split()
+            search_key = key
+            if tenant_id:
+                prefix = f"{tenant_id}:"
+                if not key.startswith(prefix):
+                    continue
+                search_key = key[len(prefix) :]
+            key_words = search_key.lower().split()
             if any(word in query_lower for word in key_words):
                 context.append(value)
 

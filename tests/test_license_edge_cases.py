@@ -9,17 +9,17 @@ from director_ai.core.license import load_license, validate_file, validate_key
 
 def test_key_with_special_chars():
     info = validate_key("DAI-PRO-abc!@#$%^&*()")
-    assert info.valid  # format matches, content doesn't matter
+    assert not info.valid
 
 
 def test_key_very_long():
     info = validate_key("DAI-PRO-" + "a" * 10000)
-    assert info.valid
+    assert not info.valid
 
 
 def test_key_unicode():
     info = validate_key("DAI-PRO-ĂĽnĂŻcĂ¶dĂ©-key")
-    assert info.valid
+    assert not info.valid
 
 
 def test_file_empty(tmp_path):
@@ -45,6 +45,17 @@ def test_file_huge(tmp_path):
 
 def test_load_with_no_env(monkeypatch):
     monkeypatch.delenv("DIRECTOR_LICENSE_KEY", raising=False)
+    monkeypatch.delenv("DIRECTOR_LICENSE_FILE", raising=False)
+    info = load_license()
+    assert info.tier == "community"
+    assert info.valid
+
+
+def test_load_with_key_only_falls_back_to_community(monkeypatch):
+    monkeypatch.setenv(
+        "DIRECTOR_LICENSE_KEY",
+        "DAI-PRO-550e8400-e29b-41d4-a716-446655440000",
+    )
     monkeypatch.delenv("DIRECTOR_LICENSE_FILE", raising=False)
     info = load_license()
     assert info.tier == "community"

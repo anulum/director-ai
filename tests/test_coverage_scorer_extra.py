@@ -10,7 +10,7 @@ from __future__ import annotations
 from unittest.mock import patch
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
-from director_ai.core.vector_store import VectorGroundTruthStore
+from director_ai.core.vector_store import InMemoryBackend, VectorGroundTruthStore
 
 
 class TestLLMJudge:
@@ -60,6 +60,28 @@ class TestScorerWithVectorStore:
         )
         assert div == 0.5
         assert ev is None
+
+    def test_evidence_falls_back_to_keyword_chunks_when_vector_misses(self):
+        class EmptyBackend(InMemoryBackend):
+            def query(self, text, n_results=3, tenant_id=""):
+                return []
+
+        store = VectorGroundTruthStore(backend=EmptyBackend())
+        store.add_fact("sky", "The sky is blue.")
+        scorer = CoherenceScorer(
+            use_nli=False,
+            ground_truth_store=store,
+        )
+
+        div, ev = scorer.calculate_factual_divergence_with_evidence(
+            "sky",
+            "The sky is blue.",
+        )
+
+        assert 0.0 <= div <= 1.0
+        assert ev is not None
+        assert ev.chunks
+        assert ev.chunks[0].source == "keyword"
 
 
 class TestScorerComputeDivergence:

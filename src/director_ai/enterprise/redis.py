@@ -117,11 +117,17 @@ class RedisScoreCache(ScoreCache):
             "Initialized RedisScoreCache at %s (ttl=%ss)", redis_url, ttl_seconds
         )
 
-    def get(self, query: str, prefix: str):
+    def get(
+        self,
+        query: str,
+        prefix: str,
+        tenant_id: str = "",
+        scope: str = "",
+    ):
         # Local import to construct the expected _CacheEntry format transparently
         from director_ai.core.cache import _CacheEntry
 
-        k = self._key(query, prefix)
+        k = self._key(query, prefix, tenant_id, scope)
         redis_key = f"{self.prefix}{k}"
 
         data = self.client.get(redis_key)
@@ -157,8 +163,10 @@ class RedisScoreCache(ScoreCache):
         score: float,
         h_logical: float,
         h_factual: float,
+        tenant_id: str = "",
+        scope: str = "",
     ) -> None:
-        k = self._key(query, prefix)
+        k = self._key(query, prefix, tenant_id, scope)
         redis_key = f"{self.prefix}{k}"
 
         payload = json.dumps(

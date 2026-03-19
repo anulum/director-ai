@@ -1365,8 +1365,17 @@ class CoherenceScorer:
                 span.set_attribute("coherence.backend", "rust")
                 return result
 
+            cache_scope = ""
+            if session is not None and len(session) > 0:
+                cache_scope = session.context_text
+
             if self.cache:
-                cached = self.cache.get(prompt, action, tenant_id=tenant_id)
+                cached = self.cache.get(
+                    prompt,
+                    action,
+                    tenant_id=tenant_id,
+                    scope=cache_scope,
+                )
                 if cached is not None:
                     result = self._finalise_review(
                         cached.score,
@@ -1402,7 +1411,13 @@ class CoherenceScorer:
 
             if self.cache:
                 self.cache.put(
-                    prompt, action, coherence, h_logic, h_fact, tenant_id=tenant_id
+                    prompt,
+                    action,
+                    coherence,
+                    h_logic,
+                    h_fact,
+                    tenant_id=tenant_id,
+                    scope=cache_scope,
                 )
 
             # Adaptive threshold: select per-task-type threshold
