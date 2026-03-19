@@ -4,7 +4,7 @@
 
 | Suite | Count | Scope |
 |-------|------:|-------|
-| Python unit/integration | 2114+ | `pytest tests/` across 125+ files |
+| Python unit/integration | 2700+ | `pytest tests/` across 135+ files |
 | Rust unit/integration | — | `cargo test --workspace` in backfire-kernel |
 | Property-based fuzz | 200 | Hypothesis-driven InputSanitizer + CoherenceScorer |
 | Docker smoke | 3 | Health, source, metrics endpoints |

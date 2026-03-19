@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.2] — 2026-03-19
+
+### Fixed
+- **License validation hardened**: UUID format check, HMAC signature
+  verification, and expiry enforcement on `DIRECTOR_LICENSE_KEY`.
+- **Cache scope isolation**: cache key now includes `scope` parameter,
+  preventing cross-session and cross-context replay.
+- **Tenant-aware retrieval**: `VectorGroundTruthStore` resolves tenant_id
+  consistently via `_resolved_tenant_id()` across all methods.
+- **Batch processor robustness**: `BatchProcessor._review_one` catches
+  scorer exceptions, preventing single-item failures from aborting batch.
+- **Config profile override**: `from_profile()` re-applies profile values
+  after `__post_init__`, preventing mode-based overrides from clobbering
+  explicit profile settings (e.g. `use_nli=False` for fast/creative).
+- **Redis enterprise store**: tenant-prefixed keys, TTL support, connection
+  error handling.
+- **Fine-tuning stability**: lazy imports for torch/transformers, safe
+  fallbacks when optional dependencies are absent.
+
+### Added
+- 353 new tests covering knowledge_api, proxy, finetune, fastapi_guard,
+  nli, sdk_guard, grpc_server, scorer, and server modules.
+- Test coverage pushed from 81% to 90%+.
+
 ## [3.9.1] — 2026-03-19
 
 ### Fixed

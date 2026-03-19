@@ -1,6 +1,8 @@
 # Director-AI API Reference
 
-> **Version**: 1.3.0 | **License**: GNU AGPL v3 | Commercial licensing available
+> **Version**: 3.9.2 | **License**: GNU AGPL v3 | Commercial licensing available
+>
+> **Note**: The canonical API docs are at [anulum.github.io/director-ai](https://anulum.github.io/director-ai/api/). This file is a legacy reference.
 
 ## Quick Start
 

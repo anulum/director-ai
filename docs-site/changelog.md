@@ -2,6 +2,29 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
+## v3.9.2 (2026-03-19)
+
+### Fixed
+- License validation hardened (UUID, HMAC, expiry).
+- Cache scope isolation prevents cross-session replay.
+- Tenant-aware retrieval consistency across all vector store methods.
+- Batch processor catches per-item exceptions gracefully.
+- Config `from_profile()` re-applies values after `__post_init__` override.
+- Redis enterprise store: tenant-prefixed keys, TTL, connection handling.
+- Fine-tuning lazy imports for torch/transformers.
+
+### Added
+- 353 new tests — coverage from 81% to 90%+.
+
+## v3.9.1 (2026-03-19)
+
+### Fixed
+- Cross-tenant cache replay: cache key includes `tenant_id`.
+- Batch/single scoring parity: `review_batch()` routes through `review()`.
+- Vector fallback cross-tenant leak: `add_fact()` prefixes tenant_id.
+- streaming_oversight crash: `ingest_token()` → `check_halt()`.
+- Timeout kills stream: all streaming paths catch `TimeoutError`.
+
 ## v3.9.0 (2026-03-15)
 
 ### Added

@@ -1,4 +1,4 @@
-# Public API — Director-AI v3.9.0
+# Public API — Director-AI v3.9.2
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -113,7 +113,7 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 |--------|-------------|
 | `review(prompt, response)` | Single review → `(bool, CoherenceScore)` |
 | `areview(prompt, response)` | Async single review (thread pool offload) |
-| `review_batch(items)` | Coalesced batch NLI (2 GPU kernels instead of 2*N) → `list[(bool, CoherenceScore)]` |
+| `review_batch(items)` | Batch review — routes each item through `review()` for full scoring parity → `list[(bool, CoherenceScore)]` |
 
 ### ReviewQueue (Continuous Batching)
 
@@ -216,5 +216,5 @@ All 1.x deprecated aliases were removed in v3.0.0. See CHANGELOG for migration.
 | `legal` | 0.68 | on | hybrid | Legal documents |
 | `creative` | 0.4 | off | deberta | Creative writing |
 | `customer_support` | 0.55 | off | deberta | Support agents |
-| `summarization` | 0.55 | on | hybrid | Document summarization |
+| `summarization` | 0.15 | on | hybrid | Document summarization |
 | `lite` | 0.5 | off | lite | Zero-dependency fast path |
