@@ -32,8 +32,8 @@ jobs:
         run: |
           pip install build twine cyclonedx-bom
 
-      - name: Build sdist
-        run: python -m build --sdist
+      - name: Build sdist and wheel
+        run: python -m build
 
       - name: Generate SBOM
         run: cyclonedx-py environment -o sbom.json --output-format json
@@ -54,4 +54,27 @@ jobs:
           generate_release_notes: false
           files: |
             dist/*.tar.gz
+            dist/*.whl
             sbom.json
+
+  publish:
+    name: Publish to PyPI
+    needs: release
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Build sdist and wheel
+        run: |
+          pip install build
+          python -m build
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b54a0f1e3596a64e0c4e0c77 # v1.12.4
