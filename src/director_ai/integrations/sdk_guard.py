@@ -44,7 +44,7 @@ def score(
     *,
     facts: dict[str, str] | None = None,
     store: GroundTruthStore | None = None,
-    threshold: float = 0.5,
+    threshold: float = 0.3,
     use_nli: bool | None = None,
     profile: str | None = None,
 ) -> CoherenceScore:
@@ -80,7 +80,7 @@ def guard(
     *,
     facts: dict[str, str] | None = None,
     store: GroundTruthStore | None = None,
-    threshold: float = 0.6,
+    threshold: float = 0.3,
     use_nli: bool | None = None,
     on_fail: str = "raise",
 ):

@@ -43,15 +43,23 @@ from director_ai import CoherenceScorer, GroundTruthStore
 store = GroundTruthStore()
 store.add("capital", "Paris is the capital of France.")
 
-scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
-approved, score = scorer.review(
+scorer = CoherenceScorer(threshold=0.3, ground_truth_store=store)
+
+# Correct answer — approved
+approved, cs = scorer.review(
+    "What is the capital of France?",
+    "The capital of France is Paris.",
+)
+print(f"Approved: {approved}")        # True
+print(f"Score: {cs.score:.3f}")       # ~0.44
+
+# Hallucinated answer — rejected
+approved, cs = scorer.review(
     "What is the capital of France?",
     "The capital of France is Berlin.",
 )
-
 print(f"Approved: {approved}")        # False
-print(f"Score: {score.score:.3f}")    # ~0.35
-print(f"Evidence: {score.evidence}")  # Retrieved context + NLI details
+print(f"Score: {cs.score:.3f}")       # ~0.02
 ```
 
 ## Guard an SDK Client

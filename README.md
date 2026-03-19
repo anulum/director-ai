@@ -76,7 +76,6 @@ from openai import OpenAI
 client = guard(
     OpenAI(),
     facts={"refund_policy": "Refunds within 30 days only"},
-    threshold=0.6,
 )
 response = client.chat.completions.create(
     model="gpt-4o-mini",
@@ -92,8 +91,9 @@ Score a single prompt/response pair without an SDK client:
 from director_ai import score
 
 cs = score("What is the refund policy?", response_text,
-           facts={"refund": "Refunds within 30 days only"})
-print(f"Coherence: {cs.score:.3f}")
+           facts={"refund": "Refunds within 30 days only"},
+           threshold=0.3)
+print(f"Coherence: {cs.score:.3f}  Approved: {cs.approved}")
 ```
 
 ### C: Zero code changes (2 lines)
@@ -102,7 +102,7 @@ Point any OpenAI-compatible client at the proxy:
 
 ```bash
 pip install director-ai[server]
-director-ai proxy --port 8080 --facts kb.txt --threshold 0.6
+director-ai proxy --port 8080 --facts kb.txt --threshold 0.3
 ```
 
 Then set `OPENAI_BASE_URL=http://localhost:8080/v1` in your app. Every response
