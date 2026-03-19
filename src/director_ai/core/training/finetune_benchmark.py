@@ -94,8 +94,8 @@ def _evaluate_model(
     from .finetune import _balanced_accuracy, _binary_f1_score
 
     try:
-        from transformers import AutoModelForSequenceClassification, AutoTokenizer
         import torch
+        from transformers import AutoModelForSequenceClassification, AutoTokenizer
     except ImportError as exc:
         raise ImportError("pip install director-ai[finetune]") from exc
 

@@ -141,9 +141,13 @@ class BatchProcessor:
         has_native_review_batch = callable(
             getattr(type(self._backend), "review_batch", None),
         )
-        if callable(scorer_batch_fn) and has_native_review_batch and not isinstance(
-            self._backend,
-            BatchProcessor,
+        if (
+            callable(scorer_batch_fn)
+            and has_native_review_batch
+            and not isinstance(
+                self._backend,
+                BatchProcessor,
+            )
         ):
             try:
                 batch_results = scorer_batch_fn(items, tenant_id=tenant_id)
@@ -318,9 +322,13 @@ class BatchProcessor:
         has_native_review_batch = callable(
             getattr(type(self._backend), "review_batch", None),
         )
-        if callable(scorer_batch_fn) and has_native_review_batch and not isinstance(
-            self._backend,
-            BatchProcessor,
+        if (
+            callable(scorer_batch_fn)
+            and has_native_review_batch
+            and not isinstance(
+                self._backend,
+                BatchProcessor,
+            )
         ):
             try:
                 result = await loop.run_in_executor(
