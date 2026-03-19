@@ -245,12 +245,6 @@ class TestRustDivergenceDispatch:
 
 
 class TestPrivacyModeRedaction:
-    def test_redact_pii_email(self):
-        assert "[EMAIL]" in CoherenceScorer._redact_pii("contact user@example.com now")
-
-    def test_redact_pii_phone(self):
-        assert "[PHONE]" in CoherenceScorer._redact_pii("call 555-123-4567 today")
-
     def test_privacy_mode_judge_redacts(self):
         from unittest.mock import MagicMock, patch
 

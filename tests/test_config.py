@@ -21,7 +21,7 @@ class TestDirectorConfig:
         cfg = DirectorConfig()
         assert cfg.coherence_threshold == 0.6
         assert cfg.hard_limit == 0.5
-        assert cfg.use_nli is False
+        assert cfg.use_nli is True
         assert cfg.max_candidates == 3
         assert cfg.llm_provider == "mock"
         assert cfg.server_port == 8080
@@ -237,7 +237,7 @@ class TestBuildStore:
     def test_build_store_memory_backend_default(self):
         from director_ai.core.vector_store import InMemoryBackend
 
-        cfg = DirectorConfig(vector_backend="memory")
+        cfg = DirectorConfig(vector_backend="memory", hybrid_retrieval=False, reranker_enabled=False)
         store = cfg.build_store()
         assert isinstance(store.backend, InMemoryBackend)
 
@@ -281,14 +281,14 @@ class TestBuildStore:
 
         from director_ai.core.vector_store import SentenceTransformerBackend
 
-        cfg = DirectorConfig(vector_backend="sentence-transformer")
+        cfg = DirectorConfig(vector_backend="sentence-transformer", hybrid_retrieval=False, reranker_enabled=False)
         store = cfg.build_store()
         assert isinstance(store.backend, SentenceTransformerBackend)
 
     def test_build_store_registry_fallback(self):
         from director_ai.core.vector_store import InMemoryBackend
 
-        cfg = DirectorConfig(vector_backend="__nonexistent_backend__")
+        cfg = DirectorConfig(vector_backend="__nonexistent_backend__", hybrid_retrieval=False, reranker_enabled=False)
         store = cfg.build_store()
         assert isinstance(store.backend, InMemoryBackend)
 

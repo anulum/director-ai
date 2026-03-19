@@ -225,7 +225,7 @@ class TestAsyncOpenAIStream:
             async_mode=True,
         )
         client = guard(client, on_fail="log")
-        stream = asyncio.get_event_loop().run_until_complete(
+        stream = asyncio.run(
             client.chat.completions.create(
                 messages=[{"role": "user", "content": "hi"}],
                 stream=True,
@@ -235,7 +235,7 @@ class TestAsyncOpenAIStream:
         async def collect():
             return [c async for c in stream]
 
-        collected = asyncio.get_event_loop().run_until_complete(collect())
+        collected = asyncio.run(collect())
         assert len(collected) == 10
 
 
@@ -339,7 +339,7 @@ class TestAsyncAnthropicStream:
             async_mode=True,
         )
         client = guard(client, on_fail="log")
-        stream = asyncio.get_event_loop().run_until_complete(
+        stream = asyncio.run(
             client.messages.create(
                 messages=[{"role": "user", "content": "hi"}],
                 stream=True,
@@ -349,7 +349,7 @@ class TestAsyncAnthropicStream:
         async def collect():
             return [e async for e in stream]
 
-        collected = asyncio.get_event_loop().run_until_complete(collect())
+        collected = asyncio.run(collect())
         assert len(collected) == 10
 
 

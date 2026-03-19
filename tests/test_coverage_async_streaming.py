@@ -20,7 +20,7 @@ async def _async_tokens(tokens):
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 class TestAsyncStreamingValidation:
@@ -165,7 +165,7 @@ class TestAsyncStreamingFeatures:
             return events
 
         events = _run(run())
-        assert events[0].coherence == 0.0
+        assert events[0].coherence == 0.5
 
     def test_async_callback(self):
         kernel = AsyncStreamingKernel()

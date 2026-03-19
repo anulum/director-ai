@@ -210,7 +210,7 @@ class TestNLIScorerAsync:
         async def run():
             return await scorer.ascore("a", "b")
 
-        result = asyncio.get_event_loop().run_until_complete(run())
+        result = asyncio.run(run())
         assert 0.0 <= result <= 1.0
 
     def test_ascore_batch(self):
@@ -221,5 +221,5 @@ class TestNLIScorerAsync:
         async def run():
             return await scorer.ascore_batch([("a", "b")])
 
-        result = asyncio.get_event_loop().run_until_complete(run())
+        result = asyncio.run(run())
         assert len(result) == 1

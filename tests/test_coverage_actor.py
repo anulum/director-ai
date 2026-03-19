@@ -42,7 +42,7 @@ class TestMockGenerator:
                 tokens.append(t)
             return tokens
 
-        tokens = asyncio.get_event_loop().run_until_complete(run())
+        tokens = asyncio.run(run())
         assert len(tokens) > 0
 
 
@@ -135,5 +135,5 @@ class TestLLMGenerator:
             mock_resp.json.return_value = {"content": "hello world"}
             mock_post.return_value = mock_resp
 
-            tokens = asyncio.get_event_loop().run_until_complete(run())
+            tokens = asyncio.run(run())
             assert len(tokens) >= 2

@@ -164,7 +164,7 @@ class TestAsyncStreamingKernelInactive:
         from director_ai.core.async_streaming import AsyncStreamingKernel
 
         kernel = AsyncStreamingKernel()
-        kernel.is_active = False
+        kernel.emergency_stop()
         tokens = ["a", "b", "c"]
 
         def _score(tok):

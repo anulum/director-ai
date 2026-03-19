@@ -29,6 +29,6 @@ class TestLLMGeneratorStreamFallback:
                     tokens.append(tok)
             return tokens
 
-        tokens = asyncio.get_event_loop().run_until_complete(run())
+        tokens = asyncio.run(run())
         assert len(tokens) == 3
         assert tokens[0] == "hello"

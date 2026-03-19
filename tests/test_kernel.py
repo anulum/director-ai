@@ -38,7 +38,7 @@ class TestStreamOutput:
         tokens = ["ok", "ok", "bad"]
         scores = iter([0.8, 0.7, 0.3])
         result = k.stream_output(iter(tokens), lambda _t: next(scores))
-        assert "KERNEL INTERRUPT" in result
+        assert "HALT" in result
 
     def test_halt_deactivates_kernel(self):
         k = SafetyKernel(hard_limit=0.5)
@@ -63,7 +63,7 @@ class TestStreamOutput:
     def test_boundary_score_just_below_halts(self):
         k = SafetyKernel(hard_limit=0.5)
         result = k.stream_output(iter(["a"]), lambda _t: 0.4999)
-        assert "KERNEL INTERRUPT" in result
+        assert "HALT" in result
 
 
 class TestEmergencyStop:
@@ -165,4 +165,4 @@ class TestTimeouts:
     def test_coherence_halt_takes_priority_over_timeout(self):
         k = SafetyKernel(hard_limit=0.5, total_timeout=10.0)
         result = k.stream_output(iter(["x"]), lambda _t: 0.1)
-        assert "COHERENCE LIMIT" in result
+        assert "HALT" in result

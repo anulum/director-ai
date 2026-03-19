@@ -212,7 +212,7 @@ class TestScorerAsync:
         async def run():
             return await scorer.areview("sky?", "The sky is blue.")
 
-        approved, cs = asyncio.get_event_loop().run_until_complete(run())
+        approved, cs = asyncio.run(run())
         assert isinstance(approved, bool)
 
 

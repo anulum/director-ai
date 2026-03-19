@@ -252,8 +252,6 @@ class DirectorConfig:
             object.__setattr__(self, "retrieval_abstention_threshold", 0.0)
         elif self.mode in ("grounded", "auto"):
             object.__setattr__(self, "use_nli", True)
-            object.__setattr__(self, "hybrid_retrieval", True)
-            object.__setattr__(self, "reranker_enabled", True)
             if self.retrieval_abstention_threshold <= 0:
                 object.__setattr__(self, "retrieval_abstention_threshold", 0.3)
 
@@ -482,6 +480,7 @@ class DirectorConfig:
                 "hard_limit": 0.08,
                 "soft_limit": 0.25,
                 "use_nli": True,
+                "reranker_enabled": False,
                 "scorer_backend": "hybrid",
                 "llm_judge_enabled": True,
                 "w_logic": 0.0,
@@ -512,7 +511,10 @@ class DirectorConfig:
             raise ValueError(
                 f"Unknown profile '{name}'. Choose from: {list(profiles.keys())}",
             )
-        return cls(**profiles[name])
+        cfg = cls(**profiles[name])
+        for key, value in profiles[name].items():
+            object.__setattr__(cfg, key, value)
+        return cfg
 
     def configure_logging(self) -> None:
         """Apply log_level and log_json settings to the DirectorAI logger hierarchy."""

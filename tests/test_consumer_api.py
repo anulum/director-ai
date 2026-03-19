@@ -275,7 +275,7 @@ class TestSafetyKernel:
 
     def test_stream_output_halt(self, kernel):
         output = kernel.stream_output(["Bad ", "output"], lambda t: 0.3)
-        assert "KERNEL INTERRUPT" in output
+        assert "HALT" in output
 
     def test_emergency_stop_deactivates(self, kernel):
         assert kernel.is_active is True
@@ -288,7 +288,7 @@ class TestSafetyKernel:
         kernel = SafetyKernel(hard_limit=0.7)
         # Score 0.6 is above default 0.5 but below custom 0.7 â†’ should halt
         output = kernel.stream_output(["test"], lambda t: 0.6)
-        assert "KERNEL INTERRUPT" in output
+        assert "HALT" in output
 
 
 class TestCoherenceAgent:

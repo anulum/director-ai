@@ -26,6 +26,8 @@ class TestSentenceTransformerBackend:
             SentenceTransformerBackend()
 
     def test_add_and_query(self):
+        import threading
+
         import numpy as np
 
         mock_model = MagicMock()
@@ -39,6 +41,7 @@ class TestSentenceTransformerBackend:
         be._model = mock_model
         be._docs = []
         be._embeddings = []
+        be._lock = threading.Lock()
 
         be.add("d1", "hello world")
         be.add("d2", "goodbye world")
@@ -48,6 +51,8 @@ class TestSentenceTransformerBackend:
         assert len(results) <= 2
 
     def test_query_empty(self):
+        import threading
+
         from director_ai.core import vector_store
 
         be = vector_store.SentenceTransformerBackend.__new__(
@@ -56,6 +61,7 @@ class TestSentenceTransformerBackend:
         be._model = MagicMock()
         be._docs = []
         be._embeddings = []
+        be._lock = threading.Lock()
         assert be.query("test") == []
 
 

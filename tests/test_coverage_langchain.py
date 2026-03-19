@@ -75,7 +75,7 @@ class TestAsync:
         async def run():
             return await guard.acheck("sky", "The sky is blue.")
 
-        result = asyncio.get_event_loop().run_until_complete(run())
+        result = asyncio.run(run())
         assert "approved" in result
 
     def test_ainvoke(self):
@@ -84,7 +84,7 @@ class TestAsync:
         async def run():
             return await guard.ainvoke({"query": "sky", "response": "blue."})
 
-        result = asyncio.get_event_loop().run_until_complete(run())
+        result = asyncio.run(run())
         assert "approved" in result
 
     def test_ainvoke_str(self):
@@ -93,7 +93,7 @@ class TestAsync:
         async def run():
             return await guard.ainvoke("blue.", query="sky")
 
-        result = asyncio.get_event_loop().run_until_complete(run())
+        result = asyncio.run(run())
         assert "approved" in result
 
     def test_acheck_raise(self):
@@ -107,4 +107,4 @@ class TestAsync:
             return await guard.acheck("xyz", "totally different abc")
 
         with pytest.raises(HallucinationError):
-            asyncio.get_event_loop().run_until_complete(run())
+            asyncio.run(run())

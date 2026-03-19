@@ -255,7 +255,7 @@ class TestWebSocketAgentError:
             ws.send_json({"prompt": "trigger failure"})
             data = ws.receive_json()
             assert "error" in data
-            assert "GPU OOM" in data["error"]
+            assert "processing failed" in data["error"]
 
     def test_ws_agent_error_does_not_kill_connection(self, client):
         from unittest.mock import patch

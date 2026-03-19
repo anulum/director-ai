@@ -18,7 +18,7 @@ async def _async_tokens(tokens):
 
 
 def _run(coro):
-    return asyncio.get_event_loop().run_until_complete(coro)
+    return asyncio.run(coro)
 
 
 class TestHaltReasonBranches:
@@ -78,7 +78,8 @@ class TestHaltReasonBranches:
                 (),
                 {
                     "coherence_history": [],
+                    "soft_halted": False,
                 },
             )(),
         )
-        assert reason == "unknown"
+        assert reason == "halt_condition_not_identified"
