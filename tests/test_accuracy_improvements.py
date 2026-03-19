@@ -172,10 +172,6 @@ class TestDistillationPipeline:
     """Phase 4A: verify distillation module structure."""
 
     def test_module_importable(self):
-        import importlib
-
-        importlib.util.find_spec("tools.run_distillation")
-
         assert os.path.isfile(
             os.path.join(
                 os.path.dirname(__file__),
