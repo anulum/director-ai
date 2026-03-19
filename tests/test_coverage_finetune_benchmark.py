@@ -19,6 +19,13 @@ from director_ai.core.training.finetune_benchmark import (
     benchmark_finetuned_model,
 )
 
+try:
+    import torch  # noqa: F401
+
+    _HAS_TORCH = True
+except ImportError:
+    _HAS_TORCH = False
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -175,6 +182,7 @@ def _make_transformers_mocks(n: int, all_label_0: bool = True):
     return tokenizer, model
 
 
+@pytest.mark.skipif(not _HAS_TORCH, reason="torch not installed")
 def test_evaluate_model_non_factcg():
     import sys
 
@@ -196,6 +204,7 @@ def test_evaluate_model_non_factcg():
     assert "f1" in result
 
 
+@pytest.mark.skipif(not _HAS_TORCH, reason="torch not installed")
 def test_evaluate_model_factcg_path():
     import sys
 

@@ -138,7 +138,10 @@ class BatchProcessor:
         result = BatchResult(total=len(items))
 
         scorer_batch_fn = getattr(self._backend, "review_batch", None)
-        if scorer_batch_fn is not None and not isinstance(
+        has_native_review_batch = callable(
+            getattr(type(self._backend), "review_batch", None),
+        )
+        if callable(scorer_batch_fn) and has_native_review_batch and not isinstance(
             self._backend,
             BatchProcessor,
         ):
@@ -231,13 +234,21 @@ class BatchProcessor:
     ) -> tuple[bool, CoherenceScore]:
         """Review a single (prompt, response) pair."""
         metrics.gauge_inc("active_requests")
+        reviewer = self._backend
+        if not callable(getattr(reviewer, "review", None)):
+            reviewer = getattr(self._backend, "scorer", None)
+        if reviewer is None or not callable(getattr(reviewer, "review", None)):
+            raise AttributeError("backend has no review() or scorer.review()")
         try:
             with metrics.timer("review_duration_seconds"):
-                approved, score = self._backend.review(
-                    prompt,
-                    response,
-                    tenant_id=tenant_id,
-                )  # type: ignore[attr-defined]
+                try:
+                    approved, score = reviewer.review(
+                        prompt,
+                        response,
+                        tenant_id=tenant_id,
+                    )
+                except TypeError:
+                    approved, score = reviewer.review(prompt, response)
             metrics.inc("reviews_total")
             if approved:  # pragma: no cover â€” tested via scorer.review
                 metrics.inc("reviews_approved")
@@ -304,7 +315,10 @@ class BatchProcessor:
         loop = asyncio.get_running_loop()
 
         scorer_batch_fn = getattr(self._backend, "review_batch", None)
-        if scorer_batch_fn is not None and not isinstance(
+        has_native_review_batch = callable(
+            getattr(type(self._backend), "review_batch", None),
+        )
+        if callable(scorer_batch_fn) and has_native_review_batch and not isinstance(
             self._backend,
             BatchProcessor,
         ):

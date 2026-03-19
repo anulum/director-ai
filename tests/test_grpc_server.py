@@ -19,10 +19,10 @@ class TestGrpcImport:
     def test_missing_grpcio_raises(self):
         with patch.dict("sys.modules", {"grpc": None}):
             import importlib
+            import sys
 
-            import director_ai.grpc_server as mod
-
-            importlib.reload(mod)
+            sys.modules.pop("director_ai.grpc_server", None)
+            mod = importlib.import_module("director_ai.grpc_server")
             with pytest.raises(ImportError, match="grpcio"):
                 mod.create_grpc_server()
 

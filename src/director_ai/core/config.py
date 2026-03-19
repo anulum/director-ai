@@ -251,7 +251,8 @@ class DirectorConfig:
             object.__setattr__(self, "reranker_enabled", False)
             object.__setattr__(self, "retrieval_abstention_threshold", 0.0)
         elif self.mode in ("grounded", "auto"):
-            object.__setattr__(self, "use_nli", True)
+            if self.use_nli or self.hybrid_retrieval or self.reranker_enabled:
+                object.__setattr__(self, "use_nli", True)
             if self.retrieval_abstention_threshold <= 0:
                 object.__setattr__(self, "retrieval_abstention_threshold", 0.3)
 

@@ -571,7 +571,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 status_code=503,
                 content={"ready": False, "reason": "scorer not initialised"},
             )
-        if cfg.use_nli and (scorer._nli is None or not scorer._nli.model_available):
+        nli = getattr(scorer, "_nli", None)
+        if cfg.use_nli and nli is not None and not nli.model_available:
             return JSONResponse(
                 status_code=503,
                 content={"ready": False, "reason": "NLI model not loaded"},
@@ -999,6 +1000,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 duration_seconds=duration,
                 errors=[{"index": e[0], "error": e[1]} for e in batch_res.errors],
             )
+        except HTTPException:
+            raise
         except ValueError as e:
             raise HTTPException(status_code=422, detail=str(e)) from e
         except Exception as e:

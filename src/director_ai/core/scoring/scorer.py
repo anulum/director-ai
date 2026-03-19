@@ -287,7 +287,9 @@ class CoherenceScorer:
         self._parallel_pool.shutdown(wait=False)
 
     def __del__(self) -> None:
-        self._parallel_pool.shutdown(wait=False)
+        pool = getattr(self, "_parallel_pool", None)
+        if pool is not None:
+            pool.shutdown(wait=False)
 
     def _init_local_judge(
         self,

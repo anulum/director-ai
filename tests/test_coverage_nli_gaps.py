@@ -14,6 +14,13 @@ from unittest.mock import MagicMock, patch
 import numpy as np
 import pytest
 
+try:
+    import torch  # noqa: F401
+
+    _HAS_TORCH = True
+except ImportError:
+    _HAS_TORCH = False
+
 from director_ai.core.scoring.nli import (
     NLIScorer,
     _probs_to_confidence,
@@ -418,6 +425,7 @@ class TestLoraAdapterLoading:
 # ── _model_score 2-class and 3-class label-index branches ────────────────────
 
 
+@pytest.mark.skipif(not _HAS_TORCH, reason="torch not installed")
 class TestModelScoreBranches:
     def _make_scorer(self, logits_shape=(1, 3)):
         import torch
@@ -576,6 +584,7 @@ class TestScoreBatchWithConfidence:
 # ── _model_score_batch_with_confidence ───────────────────────────────────────
 
 
+@pytest.mark.skipif(not _HAS_TORCH, reason="torch not installed")
 class TestModelScoreBatchWithConfidence:
     def _make_scorer(self):
         import torch
@@ -900,6 +909,7 @@ class TestScoreRouting:
         result = scorer.score("premise", "hypothesis")
         assert 0.0 <= result <= 1.0
 
+    @pytest.mark.skipif(not _HAS_TORCH, reason="torch not installed")
     def test_score_deberta_when_ready(self):
         import torch
 
@@ -938,6 +948,7 @@ class TestScoreRouting:
         results = scorer.score_batch([("a", "b"), ("c", "d")])
         assert len(results) == 2
 
+    @pytest.mark.skipif(not _HAS_TORCH, reason="torch not installed")
     def test_score_batch_deberta_when_ready(self):
         import torch
 
@@ -989,6 +1000,7 @@ class TestMinicheckLoaded:
 # ── _model_score_batch (PyTorch) ──────────────────────────────────────────────
 
 
+@pytest.mark.skipif(not _HAS_TORCH, reason="torch not installed")
 class TestModelScoreBatch:
     def _make_scorer(self, factcg=False):
         import torch
@@ -1097,6 +1109,7 @@ class TestChunkedWithCountsAggs:
 # ── score_batch_with_confidence deberta path ─────────────────────────────────
 
 
+@pytest.mark.skipif(not _HAS_TORCH, reason="torch not installed")
 class TestScoreBatchWithConfidenceDeberta:
     def test_deberta_model_routes_to_model_method(self):
         import torch

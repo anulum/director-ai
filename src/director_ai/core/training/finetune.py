@@ -231,13 +231,51 @@ def _prepare_dataset(rows: list[dict], tokenizer, max_length: int, is_factcg: bo
 def _compute_metrics(eval_pred):
     """Compute balanced accuracy + per-class metrics during training."""
     import numpy as np
-    from sklearn.metrics import balanced_accuracy_score, f1_score
 
     logits, labels = eval_pred
     preds = np.argmax(logits, axis=-1)
-    bal_acc = balanced_accuracy_score(labels, preds)
-    f1 = f1_score(labels, preds, average="binary", zero_division=0)
+    bal_acc = _balanced_accuracy(labels, preds)
+    f1 = _binary_f1_score(labels, preds)
     return {"balanced_accuracy": bal_acc, "f1": f1}
+
+
+def _balanced_accuracy(labels, preds) -> float:
+    import numpy as np
+
+    labels_arr = np.asarray(labels)
+    preds_arr = np.asarray(preds)
+    classes = np.unique(labels_arr)
+    if len(classes) == 0:
+        return 0.0
+
+    recalls = []
+    for cls in classes:
+        mask = labels_arr == cls
+        denom = int(mask.sum())
+        if denom == 0:
+            recalls.append(0.0)
+            continue
+        recalls.append(float((preds_arr[mask] == cls).sum()) / denom)
+    return float(sum(recalls) / len(recalls))
+
+
+def _binary_f1_score(labels, preds) -> float:
+    import numpy as np
+
+    labels_arr = np.asarray(labels)
+    preds_arr = np.asarray(preds)
+    tp = int(((preds_arr == 1) & (labels_arr == 1)).sum())
+    fp = int(((preds_arr == 1) & (labels_arr != 1)).sum())
+    fn = int(((preds_arr != 1) & (labels_arr == 1)).sum())
+
+    if tp == 0:
+        return 0.0
+
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    if precision + recall == 0:
+        return 0.0
+    return float(2 * precision * recall / (precision + recall))
 
 
 def _make_weighted_trainer_class(class_weights: list[float]):
@@ -277,14 +315,6 @@ def finetune_nli(
     FinetuneResult with output_dir and best metrics.
 
     """
-    from transformers import (
-        AutoModelForSequenceClassification,
-        AutoTokenizer,
-        EarlyStoppingCallback,
-        Trainer,
-        TrainingArguments,
-    )
-
     if config is None:
         config = FinetuneConfig()
 
@@ -293,6 +323,17 @@ def finetune_nli(
         raise ValueError(f"No valid samples in {train_path}")
 
     eval_rows = _load_jsonl(eval_path) if eval_path else None
+
+    try:
+        from transformers import (
+            AutoModelForSequenceClassification,
+            AutoTokenizer,
+            EarlyStoppingCallback,
+            Trainer,
+            TrainingArguments,
+        )
+    except ImportError as exc:
+        raise ImportError("pip install director-ai[finetune]") from exc
 
     # Phase E: mix general data to prevent catastrophic forgetting
     n_general_mixed = 0

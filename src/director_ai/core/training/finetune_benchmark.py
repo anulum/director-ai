@@ -91,18 +91,17 @@ def _evaluate_model(
     batch_size: int = 48,
 ) -> dict:
     """Run a model on samples and return balanced_accuracy + f1."""
-    from sklearn.metrics import balanced_accuracy_score, f1_score
+    from .finetune import _balanced_accuracy, _binary_f1_score
 
     try:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
+        import torch
     except ImportError as exc:
         raise ImportError("pip install director-ai[finetune]") from exc
 
     tokenizer = AutoTokenizer.from_pretrained(str(model_path))
     model = AutoModelForSequenceClassification.from_pretrained(str(model_path))
     model.eval()
-
-    import torch
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
@@ -137,8 +136,8 @@ def _evaluate_model(
         preds = torch.argmax(logits, dim=-1).cpu().numpy()
         all_preds.extend(preds.tolist())
 
-    bal_acc = balanced_accuracy_score(labels, all_preds)
-    f1 = f1_score(labels, all_preds, average="binary", zero_division=0)
+    bal_acc = _balanced_accuracy(labels, all_preds)
+    f1 = _binary_f1_score(labels, all_preds)
     return {"balanced_accuracy": bal_acc, "f1": f1}
 
 
