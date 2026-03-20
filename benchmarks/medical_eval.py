@@ -195,9 +195,9 @@ def run_pubmedqa_guardrail(
     nli_model: str | None = None,
 ) -> DomainMetrics:
     """Evaluate Director-AI guardrail on PubMedQA with the medical profile."""
-    from director_ai.core.scorer import CoherenceScorer
-
     import torch
+
+    from director_ai.core.scorer import CoherenceScorer
 
     scorer = CoherenceScorer(
         threshold=threshold,
