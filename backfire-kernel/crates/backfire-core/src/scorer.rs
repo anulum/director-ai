@@ -57,18 +57,10 @@ impl CoherenceScorer {
         };
 
         // Word-overlap heuristic (mirrors Python scorer._heuristic_factual)
-        let ctx_words: std::collections::HashSet<&str> = context
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .into_iter()
-            .collect();
-        let out_words: std::collections::HashSet<&str> = text_output
-            .to_lowercase()
-            .split_whitespace()
-            .collect::<Vec<_>>()
-            .into_iter()
-            .collect();
+        let ctx_lower = context.to_lowercase();
+        let out_lower = text_output.to_lowercase();
+        let ctx_words: std::collections::HashSet<&str> = ctx_lower.split_whitespace().collect();
+        let out_words: std::collections::HashSet<&str> = out_lower.split_whitespace().collect();
 
         if ctx_words.is_empty() || out_words.is_empty() {
             return 0.5;
