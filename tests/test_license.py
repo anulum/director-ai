@@ -121,7 +121,7 @@ class TestValidateFile:
 
         payload = {k: v for k, v in data.items() if k != "signature"}
         data["signature"] = hmac.new(
-            b"director-ai-license-v1",
+            b"test-license-key-for-ci",
             json.dumps(payload, sort_keys=True).encode(),
             hashlib.sha256,
         ).hexdigest()
@@ -140,7 +140,7 @@ class TestValidateFile:
 
         payload = {k: v for k, v in data.items() if k != "signature"}
         data["signature"] = hmac.new(
-            b"director-ai-license-v1",
+            b"test-license-key-for-ci",
             json.dumps(payload, sort_keys=True).encode(),
             hashlib.sha256,
         ).hexdigest()
