@@ -56,21 +56,28 @@ impl CoherenceScorer {
             None => return 0.5, // Neutral when no store / no match
         };
 
-        // Prototype heuristic checks (NLI replaces these in production)
-        if context.contains("16") && !text_output.contains("16") && text_output.contains("layers") {
-            return 0.9;
+        // Word-overlap heuristic (mirrors Python scorer._heuristic_factual)
+        let ctx_words: std::collections::HashSet<&str> = context
+            .to_lowercase()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .into_iter()
+            .collect();
+        let out_words: std::collections::HashSet<&str> = text_output
+            .to_lowercase()
+            .split_whitespace()
+            .collect::<Vec<_>>()
+            .into_iter()
+            .collect();
+
+        if ctx_words.is_empty() || out_words.is_empty() {
+            return 0.5;
         }
 
-        if context.contains("sky color") {
-            if text_output.contains("blue") {
-                return 0.1;
-            }
-            if text_output.contains("green") {
-                return 1.0;
-            }
-        }
-
-        0.1 // Default: consistent if no contradiction detected
+        let intersection = ctx_words.intersection(&out_words).count() as f64;
+        let union = ctx_words.union(&out_words).count() as f64;
+        let similarity = intersection / union;
+        (1.0 - similarity).clamp(0.0, 1.0)
     }
 
     /// Calculate logical divergence via NLI.

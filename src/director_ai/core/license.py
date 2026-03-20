@@ -27,7 +27,16 @@ from uuid import UUID
 logger = logging.getLogger("director_ai.license")
 
 TIERS = {"community", "indie", "pro", "enterprise", "trial"}
-_SIGNING_SECRET = b"director-ai-license-v1"
+
+
+def _signing_secret() -> bytes:
+    secret = os.environ.get("DIRECTOR_LICENSE_SIGNING_KEY", "").strip()
+    if not secret:
+        raise RuntimeError(
+            "DIRECTOR_LICENSE_SIGNING_KEY not set. "
+            "License generation/validation requires the signing key in the environment."
+        )
+    return secret.encode("utf-8")
 
 
 @dataclass(frozen=True)
@@ -105,10 +114,17 @@ def validate_file(path: str | Path) -> LicenseInfo:
     except (json.JSONDecodeError, OSError) as exc:
         return LicenseInfo(message=f"Cannot read license file: {exc}")
 
+    try:
+        secret = _signing_secret()
+    except RuntimeError:
+        return LicenseInfo(
+            message="Signing key not configured; cannot validate license file"
+        )
+
     sig = data.get("signature", "")
     payload = {k: v for k, v in data.items() if k != "signature"}
     expected_sig = hmac.new(
-        _SIGNING_SECRET, json.dumps(payload, sort_keys=True).encode(), hashlib.sha256
+        secret, json.dumps(payload, sort_keys=True).encode(), hashlib.sha256
     ).hexdigest()
 
     if not hmac.compare_digest(sig, expected_sig):
@@ -220,6 +236,6 @@ def generate_license(
         "version": "1",
     }
     payload["signature"] = hmac.new(
-        _SIGNING_SECRET, json.dumps(payload, sort_keys=True).encode(), hashlib.sha256
+        _signing_secret(), json.dumps(payload, sort_keys=True).encode(), hashlib.sha256
     ).hexdigest()
     return payload
