@@ -7,12 +7,19 @@
 
 import json
 
+import pytest
+
 from director_ai.core.license import (
     LicenseInfo,
     generate_license,
     validate_file,
     validate_key,
 )
+
+
+@pytest.fixture(autouse=True)
+def _set_signing_key(monkeypatch):
+    monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "test-license-key-for-ci")
 
 
 class TestValidateKey:

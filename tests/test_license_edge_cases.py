@@ -4,7 +4,14 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 
+import pytest
+
 from director_ai.core.license import load_license, validate_file, validate_key
+
+
+@pytest.fixture(autouse=True)
+def _set_signing_key(monkeypatch):
+    monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "test-license-key-for-ci")
 
 
 def test_key_with_special_chars():
