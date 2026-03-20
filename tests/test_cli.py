@@ -137,7 +137,7 @@ class TestQuickstartCommand:
         monkeypatch.chdir(tmp_path)
         main(["quickstart", "--profile", "medical"])
         cfg_text = (tmp_path / "director_guard" / "config.yaml").read_text()
-        assert "threshold: 0.75" in cfg_text
+        assert "threshold: 0.3" in cfg_text
         assert "profile: medical" in cfg_text
 
     def test_quickstart_existing_dir_skips(self, tmp_path, monkeypatch):

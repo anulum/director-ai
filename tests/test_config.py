@@ -92,9 +92,9 @@ class TestProfileLoading:
     @pytest.mark.parametrize(
         "name,threshold,hard,soft,nli,reranker,wl,wf",
         [
-            ("medical", 0.75, 0.55, 0.75, True, True, 0.5, 0.5),
-            ("finance", 0.70, 0.50, 0.70, True, True, 0.4, 0.6),
-            ("legal", 0.68, 0.45, 0.68, True, False, 0.6, 0.4),
+            ("medical", 0.30, 0.20, 0.35, True, True, 0.5, 0.5),
+            ("finance", 0.30, 0.20, 0.35, True, True, 0.4, 0.6),
+            ("legal", 0.30, 0.20, 0.35, True, False, 0.6, 0.4),
             ("creative", 0.40, 0.30, 0.45, False, False, 0.7, 0.3),
             ("customer_support", 0.55, 0.40, 0.60, False, False, 0.5, 0.5),
             ("summarization", 0.15, 0.08, 0.25, True, False, 0.0, 1.0),

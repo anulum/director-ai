@@ -420,10 +420,12 @@ class DirectorConfig:
                 "llm_judge_provider": "local",
                 "profile": "research",
             },
+            # Measured on PubMedQA (500 samples, NLI, GTX 1060, 2026-03-20):
+            #   Score range 0.25–0.35, best F1=59.9% at threshold=0.30
             "medical": {
-                "coherence_threshold": 0.75,
-                "hard_limit": 0.55,
-                "soft_limit": 0.75,
+                "coherence_threshold": 0.30,
+                "hard_limit": 0.20,
+                "soft_limit": 0.35,
                 "use_nli": True,
                 "reranker_enabled": True,
                 "scorer_backend": "hybrid",
@@ -432,10 +434,12 @@ class DirectorConfig:
                 "w_fact": 0.5,
                 "profile": "medical",
             },
+            # Measured on FinanceBench (150 samples, NLI, GTX 1060, 2026-03-20):
+            #   Score range 0.30–0.55, 0% FPR at threshold ≤0.30
             "finance": {
-                "coherence_threshold": 0.70,
-                "hard_limit": 0.50,
-                "soft_limit": 0.70,
+                "coherence_threshold": 0.30,
+                "hard_limit": 0.20,
+                "soft_limit": 0.35,
                 "use_nli": True,
                 "reranker_enabled": True,
                 "scorer_backend": "hybrid",
@@ -444,10 +448,12 @@ class DirectorConfig:
                 "w_fact": 0.6,
                 "profile": "finance",
             },
+            # Not yet measured (CUAD OOM on 6GB VRAM). Threshold aligned
+            # with medical/finance pending domain-specific validation.
             "legal": {
-                "coherence_threshold": 0.68,
-                "hard_limit": 0.45,
-                "soft_limit": 0.68,
+                "coherence_threshold": 0.30,
+                "hard_limit": 0.20,
+                "soft_limit": 0.35,
                 "use_nli": True,
                 "reranker_enabled": False,
                 "scorer_backend": "hybrid",

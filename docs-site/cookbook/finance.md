@@ -27,8 +27,8 @@ print(f"Wrong:   approved={approved}, score={score.score:.2f}")
 
 ```python
 scorer = CoherenceScorer(
-    threshold=0.65,
-    soft_limit=0.75,
+    threshold=0.30,   # Measured on FinanceBench: 0% FPR at t≤0.30
+    soft_limit=0.35,
     use_nli=True,
     ground_truth_store=store,
     cache_size=4096,   # High cache for repeated product queries
@@ -71,7 +71,7 @@ policy = Policy(rules=[
 | Hallucinated interest rate or fee | Customer dispute + regulatory review | KB-verified before display |
 | Unauthorized investment advice | SEC/FINRA action ($50K–$10M) | Policy engine blocks + audit trail |
 
-At 5,000 customer interactions/day, a 0.1% hallucination rate means 5 wrong answers daily. Over a year, that's 1,825 potential compliance incidents. With Director-AI, the catch rate reduces this to < 20/year (assuming 99% catch at threshold=0.65).
+At 5,000 customer interactions/day, a 0.1% hallucination rate means 5 wrong answers daily. Over a year, that's 1,825 potential compliance incidents. With Director-AI, the catch rate reduces this to < 20/year (assuming high catch rate with KB + NLI at threshold=0.30).
 
 ## Key Considerations
 

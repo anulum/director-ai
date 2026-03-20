@@ -22,7 +22,7 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 === "Docker"
 
     ```bash
-    docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest
+    docker build -t director-ai . && docker run -p 8080:8080 director-ai
     ```
 
 ## Endpoints

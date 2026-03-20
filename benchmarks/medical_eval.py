@@ -103,7 +103,7 @@ def _load_mednli(split: str = "test", max_samples: int | None = None) -> list[di
 
     for hf_id in [MEDNLI_HF_ID, "bigbio/mednli"]:
         try:
-            ds = load_dataset(hf_id, split=split, trust_remote_code=True)
+            ds = load_dataset(hf_id, split=split, trust_remote_code=False)
             rows = list(ds)
             if max_samples:
                 rows = rows[:max_samples]
@@ -122,7 +122,7 @@ def _load_pubmedqa(max_samples: int | None = None) -> list[dict]:
         PUBMEDQA_HF_ID,
         "pqa_labeled",
         split="train",
-        trust_remote_code=True,
+        trust_remote_code=False,
     )
     rows = list(ds)
     if max_samples:
@@ -197,10 +197,13 @@ def run_pubmedqa_guardrail(
     """Evaluate Director-AI guardrail on PubMedQA with the medical profile."""
     from director_ai.core.scorer import CoherenceScorer
 
+    import torch
+
     scorer = CoherenceScorer(
         threshold=threshold,
         use_nli=use_nli,
         nli_model=nli_model,
+        nli_device="cuda" if torch.cuda.is_available() else "cpu",
         w_logic=0.5,
         w_fact=0.5,
     )

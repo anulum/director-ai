@@ -27,7 +27,7 @@ from director_ai.core import Policy
 
 policy = Policy(
     name="medical",
-    min_threshold=0.75,
+    min_threshold=0.30,
     blocked_patterns=[r"(?i)prescri(be|ption)"],
     require_nli=True,
 )

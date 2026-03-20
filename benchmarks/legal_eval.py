@@ -46,7 +46,7 @@ def _load_contractnli(
 
     for hf_id in [CONTRACTNLI_HF_ID, "law-ai/contract-nli"]:
         try:
-            ds = load_dataset(hf_id, split=split, trust_remote_code=True)
+            ds = load_dataset(hf_id, split=split, trust_remote_code=False)
             rows = list(ds)
             if max_samples:
                 rows = rows[:max_samples]
@@ -67,7 +67,7 @@ def _load_cuad_ragbench(max_samples: int | None = None) -> list[dict]:
         "rungalileo/ragbench",
         "cuad",
         split="test",
-        trust_remote_code=True,
+        trust_remote_code=False,
     )
     rows = list(ds)
     if max_samples:
@@ -139,12 +139,15 @@ def run_cuad_guardrail(
     nli_model: str | None = None,
 ) -> DomainMetrics:
     """Evaluate Director-AI guardrail on CUAD via RAGBench."""
+    import torch
+
     from director_ai.core.scorer import CoherenceScorer
 
     scorer = CoherenceScorer(
         threshold=threshold,
         use_nli=use_nli,
         nli_model=nli_model,
+        nli_device="cuda" if torch.cuda.is_available() else "cpu",
         w_logic=0.6,
         w_fact=0.4,
     )
@@ -152,9 +155,11 @@ def run_cuad_guardrail(
     metrics = DomainMetrics(domain="legal", dataset="CUAD-RAGBench")
 
     for row in rows:
-        context = row.get("context", "") or ""
+        docs = row.get("documents", [])
+        context = " ".join(docs) if isinstance(docs, list) else str(docs or "")
         response = row.get("response", "") or ""
-        is_hallucinated = bool(row.get("label", 0))
+        unsupported = row.get("unsupported_response_sentence_keys")
+        is_hallucinated = bool(unsupported)
 
         if not context or not response:
             continue

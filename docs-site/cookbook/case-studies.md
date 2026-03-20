@@ -54,7 +54,7 @@ from director_ai.integrations.crewai import DirectorAITool
 
 guardrail = DirectorAITool(
     facts={"SEC filing date": "2025-12-15", "quarterly revenue": "$4.2B"},
-    threshold=0.65,
+    threshold=0.30,
 )
 
 researcher = Agent(

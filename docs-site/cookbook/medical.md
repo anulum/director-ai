@@ -30,8 +30,8 @@ if score.evidence:
 
 ```python
 scorer = CoherenceScorer(
-    threshold=0.75,    # High threshold for medical safety
-    soft_limit=0.85,   # Conservative warning zone
+    threshold=0.30,    # Measured on PubMedQA (F1=59.9% at this threshold)
+    soft_limit=0.35,   # Conservative warning zone
     use_nli=True,
     nli_model="lytang/MiniCheck-DeBERTa-L",
     ground_truth_store=store,
@@ -65,7 +65,7 @@ agent.disclaimer_prefix = "[Medical information — verify with a healthcare pro
 
 ## Risk Reduction
 
-| Metric | Without Director-AI | With Director-AI (threshold=0.75) |
+| Metric | Without Director-AI | With Director-AI (threshold=0.30) |
 |--------|--------------------|---------------------------------|
 | Hallucinated dosage/contraindication rate | 8–15% (model-dependent) | < 1% with verified KB |
 | Clinician review time per AI response | 45 sec (read + verify manually) | 10 sec (review evidence chunk) |
@@ -77,5 +77,5 @@ A single prevented wrong-dosage event avoids potential malpractice exposure ($25
 
 - **Never use `fallback=None`** for medical — always provide verified sources
 - **Log all rejections** with full evidence for clinical review
-- **Threshold 0.75+** — false negatives in medical context are dangerous
+- **Tune threshold on your data** — CoherenceScorer scores cluster 0.25–0.35; start at 0.30 and adjust based on your domain's FPR
 - **Regular KB updates** — medical guidelines change frequently

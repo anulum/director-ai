@@ -1,17 +1,18 @@
 # Docker Deployment
 
-## Pre-built images (GHCR)
+## Build locally
+
+Pre-built images are not yet published to a registry. Build from the included Dockerfiles:
 
 ```bash
 # CPU-only (heuristic scoring, ~200 MB)
-docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest
+docker build -t director-ai .
+docker run -p 8080:8080 director-ai
 
 # GPU-enabled (ONNX CUDA, FactCG model baked in, ~5 GB)
-docker run --gpus all -p 8080:8080 ghcr.io/anulum/director-ai:gpu
+docker build -f Dockerfile.gpu -t director-ai:gpu .
+docker run --gpus all -p 8080:8080 director-ai:gpu
 ```
-
-Images are published automatically on every GitHub release via
-`.github/workflows/docker.yml`.
 
 ## Docker Compose
 

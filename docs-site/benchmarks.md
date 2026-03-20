@@ -176,6 +176,44 @@ Measures how often correct (non-hallucinated) summaries are falsely rejected.
 
 ---
 
+## Domain Profile Validation (2026-03-20, GTX 1060 6GB)
+
+Measured with `CoherenceScorer(use_nli=True)` on CUDA. Threshold sweep across each dataset.
+
+### PubMedQA — Medical (500 samples)
+
+| Threshold | Catch Rate | FPR | Precision | F1 |
+|-----------|-----------|-----|-----------|-----|
+| 0.25 | 0.0% | 0.0% | — | — |
+| **0.30** | **77.3%** | **66.2%** | **48.9%** | **59.9%** |
+| 0.35 | 89.8% | 85.8% | 46.1% | 60.9% |
+| 0.40 | 96.0% | 94.5% | 45.4% | 61.6% |
+| 0.75 (old preset) | 100% | 100% | 44.8% | 62.1% |
+
+Scores cluster 0.25–0.35. The old medical preset (threshold=0.75) rejected all 1000 samples including correct answers. Threshold adjusted to 0.30 based on measurement.
+
+### FinanceBench — Finance (150 known-good samples)
+
+All 150 samples are expert-verified correct answers to SEC filing questions. FPR is the only metric (0% = no false rejections).
+
+| Threshold | FP | TN | FPR |
+|-----------|----|----|-----|
+| ≤0.30 | 0 | 150 | **0.0%** |
+| 0.35 | 130 | 20 | 86.7% |
+| 0.70 (old preset) | 150 | 0 | 100% |
+
+Score range: min=0.303, median=0.316, max=0.550. The old finance preset (threshold=0.70) rejected every correct answer. Threshold adjusted to 0.30.
+
+### CUAD — Legal (510 samples, not measured)
+
+CUAD-RAGBench documents (full legal contracts) exceeded 6GB VRAM during chunked NLI inference. Requires ≥16GB GPU. Legal preset threshold aligned with medical/finance pending validation.
+
+### Key Finding
+
+The CoherenceScorer produces scores in a narrow band (0.25–0.55) regardless of domain. Domain profiles add value through weight and mode configuration, but thresholds must be calibrated on the target domain's score distribution. Any threshold above ~0.35 will reject most inputs.
+
+---
+
 ## Additional Datasets
 
 ### RAGTruth (2,700 samples, NLI-only, L40S)
@@ -232,18 +270,21 @@ These systems publish results on benchmarks other than LLM-AggreFact. Scores are
 ## Where Director-AI Wins
 
 1. **Only streaming guardrail** — token-level halt, zero competitors offer this
-2. **Sub-millisecond latency** — 0.5 ms/pair on L40S FP16
-3. **Beats all frontier LLMs** — 75.86% BA > Claude Haiku (75.10%), Sonnet (74.25%), GPT-4o (73.46%)
+2. **Sub-millisecond latency** — 0.5 ms/pair on L40S FP16 (measured, batch=32)
+3. **Beats all frontier LLMs on AggreFact** — 75.86% BA > Claude Haiku (75.10%), Sonnet (74.25%), GPT-4o (73.46%) — using the FactCG-DeBERTa-v3-Large model (MIT)
 4. **$0 per-call cost** — vs $0.07–$1.40/1K for API-based competitors
 5. **0.4B params** — runs on consumer hardware (GTX 1060: 14.6 ms/pair)
-6. **90.7% E2E catch rate (hybrid)** — NLI + LLM judge catches 9/10 hallucinations
-7. **95–96% QA precision at 3–4% FPR** — production-grade on QA tasks
+6. **90.7% E2E catch rate (hybrid)** — NLI + LLM judge catches 9/10 hallucinations (HaluEval, 600 traces)
+7. **95–96% QA precision at 3–4% FPR** — production-grade on QA tasks (HaluEval hybrid mode)
+8. **Tested SDK integrations** — guard() verified with OpenAI and Anthropic SDKs (2026-03-20)
 
 !!! warning "Honest Limitations"
     1. **Summarization accuracy weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1%. FPR at 10.5% (v3.5, bidirectional NLI)
     2. **ONNX CPU not competitive** — 383 ms/pair without CUDAExecutionProvider
     3. **Fine-tuned NLI models regress** — 22/23 fine-tunes hurt; only CommitmentBank (+0.54pp) helps. See [NLI fine-tuning survey](#nli-fine-tuning-survey-21-models)
     4. **Hybrid mode requires LLM API** — NLI-only mode is fully local, but hybrid needs OpenAI/Anthropic
+    5. **Domain profiles are starting points** — CoherenceScorer produces scores in [0.25, 0.55] range. PubMedQA F1=59.9% at threshold=0.30; FinanceBench 0% FPR only at threshold≤0.30. Tune on your own data.
+    6. **Long documents OOM on consumer GPUs** — legal contracts (CUAD) exceed 6GB VRAM during chunked NLI. Needs ≥16GB.
 
 ---
 
@@ -294,9 +335,9 @@ All scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 | `truthfulqa_eval` | TruthfulQA (817 Qs) | Accuracy | Requires GPU |
 | `vitaminc_eval` | VitaminC | Accuracy / F1 | Requires GPU |
 | `falsepositive_eval` | SQuAD/NQ/TriviaQA | FP rate | Requires GPU |
-| `medical_eval` | MedNLI + PubMedQA | Catch / FPR / F1 | Requires GPU |
-| `legal_eval` | ContractNLI + CUAD | Catch / FPR / F1 | Requires GPU |
-| `finance_eval` | FinanceBench + PhraseBank | Catch / FPR / F1 | Requires GPU |
+| `medical_eval --nli` | PubMedQA (500) | Catch / FPR / F1 | **77.3% / 66.2% / 59.9%** (t=0.30, GTX 1060, 2026-03-20) |
+| `legal_eval --nli` | CUAD-RAGBench (510) | Catch / FPR / F1 | OOM on 6GB VRAM (needs ≥16GB) |
+| `finance_eval --nli` | FinanceBench (150) | FPR (known-good) | **0% FPR at t≤0.30** (GTX 1060, 2026-03-20) |
 
 ### Reproduction
 

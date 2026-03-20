@@ -1,6 +1,7 @@
 # Domain Presets
 
-`DirectorConfig.from_profile(name)` loads a tuned parameter set for common use cases.
+`DirectorConfig.from_profile(name)` loads a preset parameter set for common use cases.
+These are starting points based on domain heuristics, not validated against domain-specific benchmarks.
 
 ## Profile Reference
 
@@ -9,9 +10,9 @@
 | `fast` | 0.50 | default | default | no | no | default | default |
 | `thorough` | 0.60 | default | default | yes | no | default | default |
 | `research` | 0.70 | default | default | yes | no | default | default |
-| `medical` | 0.75 | 0.55 | 0.75 | yes | yes | 0.5 | 0.5 |
-| `finance` | 0.70 | 0.50 | 0.70 | yes | yes | 0.4 | 0.6 |
-| `legal` | 0.68 | 0.45 | 0.68 | yes | no | 0.6 | 0.4 |
+| `medical` | 0.30 | 0.20 | 0.35 | yes | yes | 0.5 | 0.5 |
+| `finance` | 0.30 | 0.20 | 0.35 | yes | yes | 0.4 | 0.6 |
+| `legal` | 0.30 | 0.20 | 0.35 | yes | no | 0.6 | 0.4 |
 | `creative` | 0.40 | 0.30 | 0.45 | no | no | 0.7 | 0.3 |
 | `customer_support` | 0.55 | 0.40 | 0.60 | no | no | 0.5 | 0.5 |
 
@@ -25,11 +26,11 @@
 
 **research** — Higher threshold (0.70) for academic and analytical workloads where factual precision matters more than recall.
 
-**medical** — Tight hard limit (0.55) prevents any medical misinformation from reaching users. Reranker enabled for precise KB retrieval. Equal logic/fact weighting reflects the need for both clinical reasoning and factual accuracy.
+**medical** — Equal logic/fact weighting reflects the need for both clinical reasoning and factual accuracy. Reranker enabled for precise KB retrieval. Measured on PubMedQA (500 samples, 2026-03-20): CoherenceScorer scores cluster 0.25–0.35; threshold=0.30 yields best F1 (59.9%) with 77.3% catch rate and 66.2% FPR.
 
-**finance** — Fact-weighted (0.6) because numerical claims and regulatory data dominate. Reranker sharpens retrieval against financial KB documents.
+**finance** — Fact-weighted (0.6) because numerical claims and regulatory data dominate. Reranker sharpens retrieval against financial KB documents. Measured on FinanceBench (150 known-good SEC filing answers, 2026-03-20): scores cluster 0.30–0.55; threshold ≤0.30 achieves 0% FPR on correct answers.
 
-**legal** — Logic-weighted (0.6) because legal reasoning chains (statute + precedent + application) matter more than isolated facts. No reranker; legal KBs tend to be smaller and well-structured.
+**legal** — Logic-weighted (0.6) because legal reasoning chains (statute + precedent + application) matter more than isolated facts. No reranker; legal KBs tend to be smaller and well-structured. Not yet validated on domain data (CUAD OOM on 6GB VRAM).
 
 **creative** — Permissive thresholds (0.40/0.30/0.45) allow divergent generation. NLI disabled to avoid penalising metaphor and fiction. Logic-weighted (0.7) because internal narrative consistency matters more than factual grounding.
 

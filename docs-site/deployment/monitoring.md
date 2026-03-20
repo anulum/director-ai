@@ -7,7 +7,7 @@ Director-AI exposes Prometheus metrics at `/v1/metrics/prometheus`. This guide w
 ```yaml
 services:
   director-ai:
-    image: ghcr.io/anulum/director-ai:latest
+    build: .  # or use ghcr.io/anulum/director-ai:latest when published
     ports:
       - "8080:8080"
     environment:

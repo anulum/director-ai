@@ -35,8 +35,8 @@ store.ingest([
 ])
 
 scorer = CoherenceScorer(
-    threshold=0.7,     # Higher threshold for legal accuracy
-    soft_limit=0.8,    # Wider warning zone
+    threshold=0.30,    # CoherenceScorer scores cluster 0.25–0.55; tune on your data
+    soft_limit=0.35,
     use_nli=True,
     ground_truth_store=store,
 )
@@ -44,7 +44,7 @@ scorer = CoherenceScorer(
 
 ## Cost Savings
 
-| Metric | Without Director-AI | With Director-AI (threshold=0.7) |
+| Metric | Without Director-AI | With Director-AI (threshold=0.30) |
 |--------|--------------------|---------------------------------|
 | Hallucinated citation rate | 12–19% (model-dependent) | < 1% with contract KB |
 | Lawyer review hours per 100 AI drafts | 50 hrs | 12 hrs (review flagged only) |
@@ -54,8 +54,8 @@ At $300/hr associate rate and 1,000 AI-assisted queries/day, reducing review bur
 
 ## Key Considerations
 
-- **Higher thresholds**: legal claims require greater confidence (0.7+)
-- **Wide soft zone**: flag anything below 0.8 for human review
+- **Tune thresholds on your data**: CoherenceScorer outputs 0.25–0.55; start at 0.30 and adjust
+- **Flag borderline scores**: soft_limit=0.35 flags near-threshold responses for human review
 - **Retrieval fallback**: always cite sources rather than hallucinate
 - **Audit trail**: enable `AuditLogger` for compliance
 

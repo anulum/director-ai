@@ -5,13 +5,13 @@
 <span class="version-badge">v3.9 — New: VerifiedScorer, document ingestion API, mode selector, ColBERT</span>
 
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
-[![Tests](https://img.shields.io/badge/tests-2320%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-2800%2B%20passed-brightgreen)]()
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://github.com/anulum/director-ai/blob/main/LICENSE)
 [![Python](https://img.shields.io/pypi/pyversions/director-ai)](https://pypi.org/project/director-ai/)
 
 | | |
 |---|---|
-| **2-Line Integration** — Wrap any LLM SDK client with `guard()`. Works with OpenAI, Anthropic, Bedrock, Gemini, Cohere. [Quickstart &rarr;](quickstart.md) | **Token-Level Halt** — Catches hallucinations as they form, mid-stream, before the user sees incorrect information. [Streaming &rarr;](guide/streaming.md) |
+| **2-Line Integration** — Wrap any LLM SDK client with `guard()`. Duck-type detection for OpenAI-compatible, Anthropic, Bedrock, Gemini, Cohere. [Quickstart &rarr;](quickstart.md) | **Token-Level Halt** — Catches hallucinations as they form, mid-stream, before the user sees incorrect information. [Streaming &rarr;](guide/streaming.md) |
 | **Custom KB Grounding** — Bring your own facts via RAG. ChromaDB, FAISS, Qdrant, or in-memory backends. [KB Ingestion &rarr;](guide/kb-ingestion.md) | **75.8% Balanced Accuracy** — FactCG-DeBERTa-v3-Large NLI model. 14.6 ms/pair ONNX GPU. SBOM on every release. [Scoring &rarr;](guide/scoring.md) |
 
 ## Install
@@ -29,7 +29,7 @@ from openai import OpenAI
 client = guard(
     OpenAI(),
     facts={"refund_policy": "Refunds within 30 days only"},
-    threshold=0.6,
+    threshold=0.3,
 )
 
 response = client.chat.completions.create(
@@ -119,4 +119,4 @@ AGPL-3.0 for open source / research. [Commercial licensing](licensing.md) availa
 
 ---
 
-*Maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.9.0.*
+*Maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.9.4.*

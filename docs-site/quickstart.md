@@ -7,8 +7,8 @@
 | **pip install** | `pip install director-ai` | 30 seconds |
 | **CLI scaffold** | `director-ai quickstart --profile medical` | 1 minute |
 | **Colab notebook** | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | 5 minutes |
-| **Docker** | `docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest` | 2 minutes |
-| **HF Spaces** | [Try it live](https://huggingface.co/spaces/anulum/director-ai-guardrail) | 0 minutes |
+| **Docker** | `docker build -t director-ai . && docker run -p 8080:8080 director-ai` | 5 minutes |
+| **HF Spaces** | [Try demo](https://huggingface.co/spaces/anulum/director-ai-guardrail) (may be sleeping) | 0 minutes |
 
 ## Installation
 

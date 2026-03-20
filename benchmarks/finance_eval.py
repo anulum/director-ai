@@ -43,7 +43,7 @@ def _load_financebench(max_samples: int | None = None) -> list[dict]:
 
     for hf_id in [FINANCEBENCH_HF_ID, "financebench/financebench"]:
         try:
-            ds = load_dataset(hf_id, split="train", trust_remote_code=True)
+            ds = load_dataset(hf_id, split="train", trust_remote_code=False)
             rows = list(ds)
             if max_samples:
                 rows = rows[:max_samples]
@@ -62,7 +62,7 @@ def _load_phrasebank(max_samples: int | None = None) -> list[dict]:
         PHRASEBANK_HF_ID,
         "sentences_allagree",
         split="train",
-        trust_remote_code=True,
+        trust_remote_code=False,
     )
     rows = list(ds)
     if max_samples:
@@ -82,12 +82,15 @@ def run_financebench_guardrail(
     Each sample has a question, an answer, and evidence paragraphs from
     SEC filings. We score answer against evidence for factual consistency.
     """
+    import torch
+
     from director_ai.core.scorer import CoherenceScorer
 
     scorer = CoherenceScorer(
         threshold=threshold,
         use_nli=use_nli,
         nli_model=nli_model,
+        nli_device="cuda" if torch.cuda.is_available() else "cpu",
         w_logic=0.4,
         w_fact=0.6,
     )

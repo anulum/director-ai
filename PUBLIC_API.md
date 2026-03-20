@@ -1,4 +1,4 @@
-# Public API — Director-AI v3.9.2
+# Public API — Director-AI v3.9.4
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -211,9 +211,9 @@ All 1.x deprecated aliases were removed in v3.0.0. See CHANGELOG for migration.
 | `fast` | 0.5 | off | deberta | Low-latency, non-critical |
 | `thorough` | 0.6 | on | hybrid | NLI + LLM judge |
 | `research` | 0.7 | on | hybrid | Full scoring |
-| `medical` | 0.75 | on | hybrid | Healthcare |
-| `finance` | 0.7 | on | hybrid | Financial services |
-| `legal` | 0.68 | on | hybrid | Legal documents |
+| `medical` | 0.30 | on | hybrid | Healthcare (measured on PubMedQA) |
+| `finance` | 0.30 | on | hybrid | Financial services (measured on FinanceBench) |
+| `legal` | 0.30 | on | hybrid | Legal documents (not yet measured) |
 | `creative` | 0.4 | off | deberta | Creative writing |
 | `customer_support` | 0.55 | off | deberta | Support agents |
 | `summarization` | 0.15 | on | hybrid | Document summarization |

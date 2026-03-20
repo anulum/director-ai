@@ -31,9 +31,10 @@ All gates must pass before merge.
 
 ## Coverage Policy
 
-- **Minimum**: 90% line + branch coverage on `src/director_ai/`
+- **Minimum gate**: 90% line + branch coverage on `src/director_ai/`
 - **Exclusions**: `server.py` (requires FastAPI), `grpc_server.py` (requires grpcio)
 - **Enforcement**: `--cov-fail-under=90` in CI
+- **Actual measured**: see Codecov badge or `pytest --cov` output — the gate passes on CI but the exact percentage is not hardcoded here to avoid stale claims
 
 ## Benchmark Suite (24 evaluators)
 

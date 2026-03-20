@@ -14,9 +14,9 @@
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
-  <a href="https://hub.docker.com/r/anulum/director-ai"><img src="https://img.shields.io/badge/docker-ready-blue.svg" alt="Docker"></a>
+  <img src="https://img.shields.io/badge/docker-Dockerfile-blue.svg" alt="Docker">
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
-  <a href="https://huggingface.co/spaces/anulum/director-ai-guardrail"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Live%20Demo-orange.svg" alt="HF Spaces"></a>
+  <a href="https://huggingface.co/spaces/anulum/director-ai-guardrail"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-orange.svg" alt="HF Spaces"></a>
   <a href="https://doi.org/10.5281/zenodo.18822167"><img src="https://zenodo.org/badge/doi/10.5281/zenodo.18822167.svg" alt="DOI"></a>
   <a href="https://anulum.github.io/director-ai"><img src="https://img.shields.io/badge/docs-mkdocs-blue.svg" alt="Docs"></a>
   <a href="https://www.bestpractices.dev/projects/12102"><img src="https://www.bestpractices.dev/projects/12102/badge" alt="OpenSSF Best Practices"></a>
@@ -67,7 +67,8 @@ Pure Python core — no compiled extensions required. Optional Rust kernel (`pip
 
 ### A: Wrap your SDK (6 lines)
 
-Works with OpenAI, Anthropic, Bedrock, Gemini, Cohere, vLLM, Groq, LiteLLM, Ollama.
+Duck-type detection for five SDK shapes: OpenAI-compatible (OpenAI, vLLM, Groq,
+LiteLLM, Ollama), Anthropic, AWS Bedrock, Google Gemini, and Cohere.
 
 ```python
 from director_ai import guard
@@ -144,14 +145,20 @@ Full installation guide: [docs](https://anulum.github.io/director-ai/installatio
 
 ## Docker
 
+Dockerfile included for self-hosted builds. Pre-built images not yet published to a registry.
+
 ```bash
-docker run -p 8080:8080 ghcr.io/anulum/director-ai:latest        # CPU
-docker run --gpus all -p 8080:8080 ghcr.io/anulum/director-ai:gpu # GPU
+docker build -t director-ai .                                      # build locally
+docker run -p 8080:8080 director-ai                                # CPU
+docker build -f Dockerfile.gpu -t director-ai:gpu .                # GPU build
+docker run --gpus all -p 8080:8080 director-ai:gpu                 # GPU
 ```
 
 ## Benchmarks
 
 ### Accuracy — LLM-AggreFact (29,320 samples)
+
+Scoring model: [`yaxili96/FactCG-DeBERTa-v3-Large`](https://huggingface.co/yaxili96/FactCG-DeBERTa-v3-Large) (0.4B params, MIT license).
 
 | Model | Balanced Acc | Params | Latency | Streaming |
 |-------|-------------|--------|---------|-----------|
@@ -160,8 +167,10 @@ docker run --gpus all -p 8080:8080 ghcr.io/anulum/director-ai:gpu # GPU
 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
 | MiniCheck-DeBERTa-L | 72.6% | 0.4B | ~120 ms | No |
 
-75.8% balanced accuracy at 17x fewer params than the leader. 14.6 ms/pair with
-ONNX GPU batching — faster than every competitor at this accuracy tier.
+75.8% balanced accuracy comes from the FactCG-DeBERTa-v3-Large model (77.2% in
+the [NAACL 2025 paper](https://arxiv.org/abs/2501.17144); our eval yields 75.86%
+due to threshold tuning and data split version). Latency: 14.6 ms/pair measured
+on GTX 1060 6GB with ONNX GPU batching (16-pair batch, 30 iterations, 5 warmup).
 Director-AI's unique value is the *system*: NLI + KB + streaming halt.
 
 Full results: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
@@ -169,16 +178,17 @@ Performance trade-offs and E2E pipeline metrics: [docs](https://anulum.github.io
 
 ## Domain Presets
 
-10 built-in profiles with tuned thresholds:
+10 built-in profiles with preset thresholds (starting points — adjust for your data):
 
 ```bash
-director-ai config --profile medical   # threshold=0.75, NLI on, reranker on
-director-ai config --profile finance   # threshold=0.70, w_fact=0.6
-director-ai config --profile legal     # threshold=0.68, w_logic=0.6
+director-ai config --profile medical   # threshold=0.30, NLI on, reranker on
+director-ai config --profile finance   # threshold=0.30, w_fact=0.6
+director-ai config --profile legal     # threshold=0.30, w_logic=0.6
 director-ai config --profile creative  # threshold=0.40, permissive
 ```
 
-Domain-specific benchmarks validate each profile against real datasets:
+Domain-specific benchmark scripts exist but have not yet been validated with measured results.
+Run them yourself (requires GPU + HuggingFace datasets):
 
 ```bash
 python -m benchmarks.medical_eval   # MedNLI + PubMedQA
@@ -189,10 +199,13 @@ python -m benchmarks.finance_eval   # FinanceBench + Financial PhraseBank
 ## Known Limitations
 
 1. **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to reject (0.9) instead of guessing.
-2. **Summarisation FPR at 2.0%**: Reduced from 95% via bidirectional NLI + Layer C claim decomposition. AggreFact-CNN: 68.8%, ExpertQA: 59.1% (structurally expected at 0.4B params).
+2. **Summarisation FPR at 10.5%**: Reduced from 95% via bidirectional NLI + baseline calibration (v3.5). AggreFact-CNN: 68.8%, ExpertQA: 59.1% (structurally expected at 0.4B params).
 3. **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
 4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain or use a built-in profile.
 5. **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider. Do not enable in privacy-sensitive deployments without user consent.
+6. **Threshold defaults differ by API surface**: `guard()`/`score()` default to `threshold=0.3` (permissive). `DirectorConfig` defaults to `coherence_threshold=0.6` (conservative). Always set the threshold explicitly.
+7. **Domain profiles are starting points**: CoherenceScorer produces scores in [0.25, 0.55]. Measured on PubMedQA (F1=59.9% at t=0.30) and FinanceBench (0% FPR at t≤0.30). Tune thresholds on your own data.
+8. **Long documents need ≥16GB VRAM**: Legal contracts and SEC filings exceed 6GB during chunked NLI inference.
 
 ## Citation
 
@@ -202,7 +215,7 @@ python -m benchmarks.finance_eval   # FinanceBench + Financial PhraseBank
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.9.2},
+  version   = {3.9.4},
   license   = {AGPL-3.0-or-later}
 }
 ```
