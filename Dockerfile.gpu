@@ -39,6 +39,9 @@ WORKDIR /app
 
 ENV PYTHONPATH=/app/src
 
+# optimum is needed only at build time for ONNX export
+RUN pip install --no-cache-dir "optimum[onnxruntime]"
+
 RUN python -c "\
 from director_ai.core.nli import export_onnx; \
 export_onnx(output_dir='/models/onnx')"
