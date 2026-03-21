@@ -204,7 +204,7 @@ python -m benchmarks.finance_eval   # FinanceBench + Financial PhraseBank
 4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain or use a built-in profile.
 5. **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider. Do not enable in privacy-sensitive deployments without user consent.
 6. **Threshold defaults differ by API surface**: `guard()`/`score()` default to `threshold=0.3` (permissive). `DirectorConfig` defaults to `coherence_threshold=0.6` (conservative). Always set the threshold explicitly.
-7. **Domain profiles are starting points**: CoherenceScorer produces scores in [0.25, 0.55]. Measured on PubMedQA (F1=59.9% at t=0.30) and FinanceBench (0% FPR at t≤0.30). Tune thresholds on your own data.
+7. **NLI-only scoring needs KB grounding**: Without a knowledge base, PubMedQA F1=62.1%, FinanceBench 80%+ FPR. Load your domain facts into the vector store — that's where Director-AI's scoring discriminates well.
 8. **Long documents need ≥16GB VRAM**: Legal contracts and SEC filings exceed 6GB during chunked NLI inference.
 
 ## Citation

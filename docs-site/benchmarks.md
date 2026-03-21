@@ -176,41 +176,51 @@ Measures how often correct (non-hallucinated) summaries are falsely rejected.
 
 ---
 
-## Domain Profile Validation (2026-03-20, GTX 1060 6GB)
+## Domain Profile Validation (2026-03-21, GTX 1060 6GB, v3.9.4+calibration)
 
-Measured with `CoherenceScorer(use_nli=True)` on CUDA. Threshold sweep across each dataset.
+Measured with `CoherenceScorer(use_nli=True)` on CUDA. **No KB loaded** — these results show NLI-only scoring without knowledge base grounding. With a populated KB, the factual component carries real signal and scores separate better.
 
-### PubMedQA — Medical (500 samples)
+Since v3.9.4, scores are calibrated to [0, 1] when no KB is loaded (previously compressed to [0.25, 0.55]).
+
+### PubMedQA — Medical (500 samples, w_logic=0.5, w_fact=0.5)
+
+Score range: min=0.010, median=0.058, max=0.772.
 
 | Threshold | Catch Rate | FPR | Precision | F1 |
 |-----------|-----------|-----|-----------|-----|
-| 0.25 | 0.0% | 0.0% | — | — |
-| **0.30** | **77.3%** | **66.2%** | **48.9%** | **59.9%** |
-| 0.35 | 89.8% | 85.8% | 46.1% | 60.9% |
-| 0.40 | 96.0% | 94.5% | 45.4% | 61.6% |
-| 0.75 (old preset) | 100% | 100% | 44.8% | 62.1% |
+| **0.05** | **52.0%** | **38.9%** | **52.2%** | **52.1%** |
+| 0.10 | 77.3% | 66.2% | 48.9% | 59.9% |
+| 0.15 | 87.6% | 81.8% | 46.7% | 60.9% |
+| 0.30 | 96.0% | 94.5% | 45.4% | 61.6% |
+| 0.50 | 99.6% | 98.9% | 45.2% | 62.1% |
 
-Scores cluster 0.25–0.35. The old medical preset (threshold=0.75) rejected all 1000 samples including correct answers. Threshold adjusted to 0.30 based on measurement.
+Without KB grounding, NLI treats the scientific context as premise and the answer as hypothesis. Entailment detection works (catches contradictions) but precision is limited — the model can't verify claims it hasn't seen in a KB.
 
-### FinanceBench — Finance (150 known-good samples)
+### FinanceBench — Finance (150 known-good samples, w_logic=0.4, w_fact=0.6)
 
-All 150 samples are expert-verified correct answers to SEC filing questions. FPR is the only metric (0% = no false rejections).
+All 150 samples are expert-verified correct answers to SEC filing questions. FPR is the only metric.
+
+Score range: min=0.007, median=0.039, max=0.626.
 
 | Threshold | FP | TN | FPR |
 |-----------|----|----|-----|
-| ≤0.30 | 0 | 150 | **0.0%** |
-| 0.35 | 130 | 20 | 86.7% |
-| 0.70 (old preset) | 150 | 0 | 100% |
+| 0.10 | 121 | 29 | 80.7% |
+| 0.30 | 145 | 5 | 96.7% |
+| 0.70 | 150 | 0 | 100% |
 
-Score range: min=0.303, median=0.316, max=0.550. The old finance preset (threshold=0.70) rejected every correct answer. Threshold adjusted to 0.30.
+FinanceBench evidence passages are multi-page SEC filings (10-K, 10-Q). The NLI model chunks them and most chunks don't entail the short answer, producing low scores. **This is the expected failure mode without KB grounding** — the evidence should be loaded into the vector store for proper RAG scoring, not passed as raw prompt text.
 
 ### CUAD — Legal (510 samples, not measured)
 
-CUAD-RAGBench documents (full legal contracts) exceeded 6GB VRAM during chunked NLI inference. Requires ≥16GB GPU. Legal preset threshold aligned with medical/finance pending validation.
+CUAD-RAGBench documents (full legal contracts) exceeded 6GB VRAM during chunked NLI inference. Requires ≥16GB GPU.
 
 ### Key Finding
 
-The CoherenceScorer produces scores in a narrow band (0.25–0.55) regardless of domain. Domain profiles add value through weight and mode configuration, but thresholds must be calibrated on the target domain's score distribution. Any threshold above ~0.35 will reject most inputs.
+**Without KB**: NLI-only scoring has limited discrimination on domain QA tasks. PubMedQA best F1=62.1% (t=0.50), FinanceBench 80%+ FPR at any useful threshold.
+
+**With KB** (the intended use case): the factual component uses retrieval to score response claims against stored facts. Calibration does not apply — the full [0, 1] range is naturally available. This is where domain profiles add value: weight configuration (w_logic/w_fact) and scoring mode (hybrid, reranker) optimize retrieval-based scoring for each domain.
+
+**Recommendation**: always load domain knowledge into the vector store. NLI-only mode is a fallback for domains without structured KB, not the primary product path.
 
 ---
 
@@ -279,12 +289,13 @@ These systems publish results on benchmarks other than LLM-AggreFact. Scores are
 8. **Tested SDK integrations** — guard() verified with OpenAI and Anthropic SDKs (2026-03-20)
 
 !!! warning "Honest Limitations"
-    1. **Summarization accuracy weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1%. FPR at 10.5% (v3.5, bidirectional NLI)
-    2. **ONNX CPU not competitive** — 383 ms/pair without CUDAExecutionProvider
-    3. **Fine-tuned NLI models regress** — 22/23 fine-tunes hurt; only CommitmentBank (+0.54pp) helps. See [NLI fine-tuning survey](#nli-fine-tuning-survey-21-models)
-    4. **Hybrid mode requires LLM API** — NLI-only mode is fully local, but hybrid needs OpenAI/Anthropic
-    5. **Domain profiles are starting points** — CoherenceScorer produces scores in [0.25, 0.55] range. PubMedQA F1=59.9% at threshold=0.30; FinanceBench 0% FPR only at threshold≤0.30. Tune on your own data.
+    1. **NLI-only domain scoring is weak without KB** — PubMedQA F1=62.1%, FinanceBench 80%+ FPR. Load your domain knowledge into the vector store for meaningful scoring.
+    2. **Summarization accuracy weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1%. FPR at 10.5% (v3.5, bidirectional NLI)
+    3. **ONNX CPU not competitive** — 383 ms/pair without CUDAExecutionProvider
+    4. **Fine-tuned NLI models regress** — 22/23 fine-tunes hurt; only CommitmentBank (+0.54pp) helps. See [NLI fine-tuning survey](#nli-fine-tuning-survey-21-models)
+    5. **Hybrid mode requires LLM API** — NLI-only mode is fully local, but hybrid needs OpenAI/Anthropic
     6. **Long documents OOM on consumer GPUs** — legal contracts (CUAD) exceed 6GB VRAM during chunked NLI. Needs ≥16GB.
+    7. **SDK integrations tested** — OpenAI and Anthropic guard() verified (2026-03-20). Bedrock, Gemini, Cohere use duck-type detection but not end-to-end tested.
 
 ---
 
