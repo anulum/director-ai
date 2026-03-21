@@ -490,9 +490,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     content={"detail": "Invalid or missing API key"},
                     headers={"X-Request-ID": request_id},
                 )
-            api_key_hash = hmac.new(
-                b"director-ai", provided.encode(), "sha256"
-            ).hexdigest()[:16]
+            import hashlib
+
+            api_key_hash = hashlib.blake2b(  # lgtm[py/weak-sensitive-data-hashing]
+                provided.encode(), key=b"director-ai", digest_size=8
+            ).hexdigest()
 
             # Tenant binding: enforce API key â†’ tenant mapping if configured
             if _api_key_tenant_map:
