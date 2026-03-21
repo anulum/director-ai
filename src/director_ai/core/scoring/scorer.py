@@ -1272,6 +1272,22 @@ class CoherenceScorer:
             h_fact, evidence = future_fact.result()
         total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
         coherence = 1.0 - total_divergence
+
+        # Without KB context, h_fact is DIVERGENCE_NEUTRAL (0.5) and scores
+        # compress to [0.25, 0.55].  Rescale to [0, 1] so thresholds are
+        # meaningful.  With KB context the factual component carries real
+        # signal and no rescaling is needed.
+        nli_available = self._nli is not None and self._nli.model_available
+        fact_is_neutral = abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9
+        if nli_available and fact_is_neutral and evidence is None:
+            # Theoretical range without KB: score ∈ [1-W_L-W_F*0.5, 1-W_F*0.5]
+            # Default W_L=0.6, W_F=0.4 → [0.2, 0.8].  Map to [0, 1].
+            lo = 1.0 - self.W_LOGIC - self.W_FACT * DIVERGENCE_NEUTRAL
+            hi = 1.0 - self.W_FACT * DIVERGENCE_NEUTRAL
+            span = hi - lo
+            if span > 1e-9:
+                coherence = max(0.0, min(1.0, (coherence - lo) / span))
+
         return h_logic, h_fact, coherence, evidence
 
     def _finalise_review(
