@@ -103,10 +103,10 @@
 - `RedisGroundTruthStore.retrieve_context()` implementation with Redis Vector Search (RediSearch)
 - Redis connection pooling, TTL management, batch `add_many()`/`retrieve_batch()`
 
-### WASM Edge Runtime (Done)
+### WASM Edge Runtime (Deferred)
 - CI pipeline: `wasm-pack build` in wheels.yml, publish `.wasm` + JS glue to npm
 - Browser integration tutorial (vanilla JS + webpack example)
-- Benchmark: WASM vs native Rust `StreamingKernel` overhead on 1000-token streams
+- Benchmark script exists (`benchmarks/wasm_overhead_bench.py`) but no production WASM code ships
 
 ### Rust Backend (Done)
 - PyO3 0.23 → 0.24 upgrade (unblocks Python 3.14 wheels)

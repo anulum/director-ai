@@ -44,10 +44,10 @@ print(f"Size: {scorer.cache.size}")
 
 ### Methods
 
-- `get(key) -> CoherenceScore | None` — retrieve cached score
-- `put(key, score)` — store a score
-- `invalidate(key)` — remove a specific entry
-- `clear()` — flush all entries
+- `get(query, prefix, tenant_id="", scope="") -> _CacheEntry | None` — retrieve cached entry (score, h_logical, h_factual)
+- `put(query, prefix, score, h_logical, h_factual, tenant_id="", scope="")` — store a score
+- `invalidate()` — bump generation counter, lazily expiring all current entries
+- `clear()` — flush all entries and reset hit/miss counters
 
 ## Cache Key
 

@@ -48,12 +48,12 @@ print(result.risk)     # 0.95
 
 ## Integration with Scorer
 
-`InputSanitizer` runs automatically when `DirectorConfig.sanitize_input=True`:
+`InputSanitizer` runs automatically when `DirectorConfig.sanitize_inputs=True`:
 
 ```python
 from director_ai.core.config import DirectorConfig
 
-config = DirectorConfig(sanitize_input=True)
+config = DirectorConfig(sanitize_inputs=True)
 scorer = config.build_scorer()
 # Inputs are sanitized before scoring
 ```

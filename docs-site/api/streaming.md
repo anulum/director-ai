@@ -48,10 +48,10 @@ graph LR
 |-----------|------|---------|-------------|
 | `hard_limit` | `float` | `0.5` | Absolute coherence floor |
 | `window_size` | `int` | `10` | Sliding window width |
-| `window_threshold` | `float` | `0.5` | Window average threshold |
+| `window_threshold` | `float` | `0.55` | Window average threshold |
 | `trend_window` | `int` | `5` | Trend detection window |
 | `trend_threshold` | `float` | `0.15` | Max allowed coherence drop |
-| `soft_limit` | `float \| None` | `None` | Warning zone (warn but don't halt) |
+| `soft_limit` | `float` | `0.6` | Warning zone upper bound (scores between threshold and soft_limit emit warnings) |
 | `on_halt` | `callable \| None` | `None` | Callback invoked on halt |
 | `halt_mode` | `str` | `"hard"` | `"hard"` = stop, `"soft"` = warn + continue |
 | `score_every_n` | `int` | `1` | Score every N-th token (latency tradeoff) |

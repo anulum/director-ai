@@ -66,25 +66,26 @@ The package lives in `src/director_ai/` with two profiles:
 
 ### Consumer — `core/` (always installed)
 
-| Module | Class | Purpose |
-|--------|-------|---------|
-| `agent.py` | `CoherenceAgent` | Main orchestrator pipeline |
-| `scorer.py` | `CoherenceScorer` | Dual-entropy (NLI + RAG) scoring |
-| `kernel.py` | `SafetyKernel` | Output interlock |
-| `streaming.py` | `StreamingKernel` | Token-level streaming halt |
-| `async_streaming.py` | `AsyncStreamingKernel` | Non-blocking async streaming |
-| `nli.py` | `NLIScorer` | DeBERTa NLI backend |
-| `knowledge.py` | `GroundTruthStore` | In-memory fact store |
-| `vector_store.py` | `VectorGroundTruthStore` | ChromaDB vector store |
-| `actor.py` | `LLMGenerator`, `MockGenerator` | LLM backend interface |
-| `policy.py` | `Policy`, `Violation` | YAML declarative policy engine |
-| `audit.py` | `AuditLogger`, `AuditEntry` | Structured JSON audit trail |
-| `tenant.py` | `TenantRouter` | Multi-tenant KB isolation |
-| `sanitizer.py` | `InputSanitizer`, `SanitizeResult` | Prompt injection hardening |
-| `config.py` | `DirectorConfig` | YAML/JSON configuration manager |
-| `batch.py` | `BatchProcessor` | Parallel candidate evaluation |
-| `metrics.py` | `MetricsCollector` | Prometheus-style metrics |
-| `types.py` | `CoherenceScore`, `ReviewResult` | Data types |
+| Subpackage | Module | Class | Purpose |
+|------------|--------|-------|---------|
+| `core/` | `agent.py` | `CoherenceAgent` | Main orchestrator pipeline |
+| `core/` | `actor.py` | `LLMGenerator`, `MockGenerator` | LLM backend interface |
+| `core/` | `config.py` | `DirectorConfig` | YAML/JSON configuration manager |
+| `core/` | `metrics.py` | `MetricsCollector` | Prometheus-style metrics |
+| `core/` | `types.py` | `CoherenceScore`, `ReviewResult` | Data types |
+| `core/` | `tenant.py` | `TenantRouter` | Multi-tenant KB isolation |
+| `core/scoring/` | `scorer.py` | `CoherenceScorer` | Dual-entropy (NLI + RAG) scoring |
+| `core/scoring/` | `nli.py` | `NLIScorer` | DeBERTa NLI backend |
+| `core/scoring/` | `lite_scorer.py` | `LiteScorer` | Heuristic-only scorer |
+| `core/runtime/` | `kernel.py` | `HaltMonitor` | Output interlock |
+| `core/runtime/` | `streaming.py` | `StreamingKernel` | Token-level streaming halt |
+| `core/runtime/` | `async_streaming.py` | `AsyncStreamingKernel` | Non-blocking async streaming |
+| `core/runtime/` | `batch.py` | `BatchProcessor` | Parallel candidate evaluation |
+| `core/retrieval/` | `knowledge.py` | `GroundTruthStore` | In-memory fact store |
+| `core/retrieval/` | `vector_store.py` | `VectorGroundTruthStore` | Vector store with pluggable backends |
+| `core/safety/` | `policy.py` | `Policy`, `Violation` | YAML declarative policy engine |
+| `core/safety/` | `audit.py` | `AuditLogger`, `AuditEntry` | Structured JSON audit trail |
+| `core/safety/` | `sanitizer.py` | `InputSanitizer`, `SanitizeResult` | Prompt injection hardening |
 
 ### Integrations — `integrations/`
 

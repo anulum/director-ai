@@ -142,8 +142,8 @@ from director_ai import StreamingKernel
 
 kernel = StreamingKernel(hard_limit=0.4, window_size=8)
 
-def score_fn(token):
-    return 0.85  # your coherence scoring logic
+def score_fn(accumulated_text):
+    return 0.85  # your coherence scoring logic on text so far
 
 session = kernel.stream_tokens(token_generator, score_fn)
 if session.halted:
@@ -178,7 +178,7 @@ for approved, score in results:
     print(f"approved={approved}  score={score.score:.3f}")
 ```
 
-`review_batch()` runs 2 GPU kernel calls total instead of 2×N.
+`review_batch()` currently routes each item through `review()` sequentially. For parallel execution, wrap the scorer in `BatchProcessor`.
 
 ## Async Usage
 

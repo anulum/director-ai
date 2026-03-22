@@ -5,7 +5,7 @@ Semantic vector store for RAG-based factual grounding. Ingest documents, then pa
 ## Usage
 
 ```python
-from director_ai.core.vector_store import VectorGroundTruthStore
+from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
 store = VectorGroundTruthStore()
 store.ingest([
@@ -29,7 +29,7 @@ scorer = CoherenceScorer(
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `backend` | `VectorBackend \| None` | `None` | Backend instance (default: `InMemoryBackend`) |
-| `top_k` | `int` | `3` | Number of chunks to retrieve |
+| `tenant_id` | `str` | `""` | Default tenant ID for multi-tenant stores |
 
 ## Methods
 
@@ -44,10 +44,10 @@ Add documents to the store. Each document is embedded and indexed.
 ### retrieve_context()
 
 ```python
-chunks = store.retrieve_context(query: str, top_k: int = 3) -> list[EvidenceChunk]
+context = store.retrieve_context(query: str, top_k: int = 3, tenant_id: str = "") -> str | None
 ```
 
-Retrieve the top-K most relevant chunks for a query.
+Retrieve concatenated context string for a query (matching parent `GroundTruthStore` interface). Use `retrieve_context_with_chunks()` for structured `EvidenceChunk` results.
 
 ---
 
@@ -56,7 +56,7 @@ Retrieve the top-K most relevant chunks for a query.
 Abstract protocol for vector storage backends. Implement `add()` and `query()` to create a custom backend.
 
 ```python
-from director_ai.core.vector_store import VectorBackend
+from director_ai.core.retrieval.vector_store import VectorBackend
 
 class MyBackend(VectorBackend):
     def add(self, texts: list[str], ids: list[str] | None = None) -> None:
@@ -78,7 +78,7 @@ class MyBackend(VectorBackend):
 ### ChromaBackend
 
 ```python
-from director_ai.core.vector_store import ChromaBackend
+from director_ai.core.retrieval.vector_store import ChromaBackend
 
 backend = ChromaBackend(
     collection_name="legal_contracts",
@@ -91,7 +91,7 @@ store = VectorGroundTruthStore(backend=backend)
 ### SentenceTransformerBackend
 
 ```python
-from director_ai.core.vector_store import SentenceTransformerBackend
+from director_ai.core.retrieval.vector_store import SentenceTransformerBackend
 
 backend = SentenceTransformerBackend(
     model_name="BAAI/bge-large-en-v1.5",
@@ -104,16 +104,17 @@ store = VectorGroundTruthStore(backend=backend)
 Register custom backends for use with `DirectorConfig.vector_backend`:
 
 ```python
-from director_ai.core.vector_store import register_vector_backend, get_vector_backend
+from director_ai.core.retrieval.vector_store import register_vector_backend, get_vector_backend
 
 register_vector_backend("qdrant", MyQdrantBackend)
-backend = get_vector_backend("qdrant", **kwargs)
+BackendClass = get_vector_backend("qdrant")  # returns the class, not an instance
+backend = BackendClass(**kwargs)
 ```
 
 | Function | Purpose |
 |----------|---------|
 | `register_vector_backend(name, cls)` | Register a backend class |
-| `get_vector_backend(name, **kwargs)` | Instantiate a registered backend |
+| `get_vector_backend(name)` | Look up a registered backend class |
 | `list_vector_backends()` | List registered backend names |
 
 ## Reranking

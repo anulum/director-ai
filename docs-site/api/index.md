@@ -16,19 +16,19 @@ Complete reference for every public class, function, and dataclass in Director-A
 
 | Class | Module | Purpose |
 |-------|--------|---------|
-| [`CoherenceScorer`](scorer.md) | `director_ai.core.scorer` | Dual-entropy coherence scoring engine |
-| [`StreamingKernel`](streaming.md) | `director_ai.core.streaming` | Token-level streaming halt |
-| [`AsyncStreamingKernel`](streaming.md#async) | `director_ai.core.async_streaming` | Async variant of StreamingKernel |
+| [`CoherenceScorer`](scorer.md) | `director_ai.core.scoring.scorer` | Dual-entropy coherence scoring engine |
+| [`StreamingKernel`](streaming.md) | `director_ai.core.runtime.streaming` | Token-level streaming halt |
+| [`AsyncStreamingKernel`](streaming.md#async) | `director_ai.core.runtime.async_streaming` | Async variant of StreamingKernel |
 | [`CoherenceAgent`](agent.md) | `director_ai.core.agent` | Orchestrator: generator + scorer + kernel |
-| [`BatchProcessor`](batch.md) | `director_ai.core.batch` | Concurrent batch scoring |
+| [`BatchProcessor`](batch.md) | `director_ai.core.runtime.batch` | Concurrent batch scoring |
 
 ### Knowledge & Retrieval
 
 | Class | Module | Purpose |
 |-------|--------|---------|
-| [`GroundTruthStore`](guard.md) | `director_ai.core.knowledge` | Key-value fact store (prototype) |
-| [`VectorGroundTruthStore`](vector-store.md) | `director_ai.core.vector_store` | Semantic vector store with pluggable backends |
-| [`VectorBackend`](vector-store.md#vectorbackend) | `director_ai.core.vector_store` | Abstract backend protocol |
+| [`GroundTruthStore`](guard.md) | `director_ai.core.retrieval.knowledge` | Key-value fact store (prototype) |
+| [`VectorGroundTruthStore`](vector-store.md) | `director_ai.core.retrieval.vector_store` | Semantic vector store with pluggable backends |
+| [`VectorBackend`](vector-store.md#vectorbackend) | `director_ai.core.retrieval.vector_store` | Abstract backend protocol |
 
 ### Configuration
 
@@ -44,8 +44,8 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`ReviewResult`](types.md#reviewresult) | `director_ai.core.types` | Agent review output |
 | [`ScoringEvidence`](types.md#scoringevidence) | `director_ai.core.types` | Retrieved chunks + NLI details |
 | [`HaltEvidence`](types.md#haltevidence) | `director_ai.core.types` | Structured halt reason with evidence |
-| [`TokenEvent`](streaming.md#tokenevent) | `director_ai.core.streaming` | Per-token stream event |
-| [`StreamSession`](streaming.md#streamsession) | `director_ai.core.streaming` | Complete stream session state |
+| [`TokenEvent`](streaming.md#tokenevent) | `director_ai.core.runtime.streaming` | Per-token stream event |
+| [`StreamSession`](streaming.md#streamsession) | `director_ai.core.runtime.streaming` | Complete stream session state |
 
 ### Interfaces
 
@@ -74,8 +74,8 @@ from director_ai import CoherenceScorer, StreamingKernel, CoherenceAgent
 # Direct module imports (for type hints and advanced use)
 from director_ai.core.config import DirectorConfig
 from director_ai.core.types import CoherenceScore, ReviewResult
-from director_ai.core.vector_store import VectorGroundTruthStore, ChromaBackend
-from director_ai.core.batch import BatchProcessor
+from director_ai.core.retrieval.vector_store import VectorGroundTruthStore, ChromaBackend
+from director_ai.core.runtime.batch import BatchProcessor
 
 # Enterprise (lazy-loaded)
 from director_ai.enterprise import TenantRouter, Policy, AuditLogger

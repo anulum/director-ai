@@ -63,7 +63,7 @@ print(f"Evidence: {score.evidence}")  # Retrieved context + NLI details
 ### review()
 
 ```python
-approved, score = scorer.review(query: str, response: str) -> tuple[bool, CoherenceScore]
+approved, score = scorer.review(prompt: str, action: str, session=None, tenant_id: str = "") -> tuple[bool, CoherenceScore]
 ```
 
 Score a single prompt/response pair. Returns `(approved, CoherenceScore)`.
@@ -74,7 +74,7 @@ Score a single prompt/response pair. Returns `(approved, CoherenceScore)`.
 results = scorer.review_batch(items: list[tuple[str, str]]) -> list[tuple[bool, CoherenceScore]]
 ```
 
-Score multiple pairs in a single batch. Uses 2 GPU kernel calls total instead of 2×N — use for bulk evaluation or API batch endpoints.
+Score multiple pairs. Currently routes each item through `review()` sequentially. For parallel execution, wrap the scorer in `BatchProcessor`.
 
 ```python
 items = [

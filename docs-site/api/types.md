@@ -61,8 +61,8 @@ Evidence collected during scoring — retrieved KB chunks, NLI details, and attr
 | `premise_chunk_count` | `int` | Number of premise chunks |
 | `hypothesis_chunk_count` | `int` | Number of hypothesis chunks |
 | `attributions` | `list[ClaimAttribution] \| None` | Per-claim source attribution |
-| `token_count` | `int` | NLI token consumption |
-| `estimated_cost_usd` | `float` | Estimated NLI inference cost |
+| `token_count` | `int \| None` | NLI token consumption |
+| `estimated_cost_usd` | `float \| None` | Estimated NLI inference cost |
 | `claim_coverage` | `float \| None` | Fraction of claims supported by source |
 | `per_claim_divergences` | `list[float] \| None` | Per-claim divergence scores |
 | `claims` | `list[str] \| None` | Decomposed atomic claims |
@@ -77,7 +77,7 @@ A single chunk of retrieved evidence.
 |-------|------|-------------|
 | `text` | `str` | Chunk text content |
 | `distance` | `float` | Similarity distance (lower = more relevant) |
-| `source` | `str \| None` | Source identifier |
+| `source` | `str` | Source identifier (default `""`) |
 
 ---
 
@@ -105,6 +105,7 @@ Structured halt reason with evidence chunks.
 | `reason` | `str` | Halt mechanism that triggered |
 | `last_score` | `float` | Coherence score at halt point |
 | `evidence_chunks` | `list[EvidenceChunk]` | Contradicting chunks |
+| `nli_scores` | `list[float] \| None` | NLI scores at halt point |
 | `suggested_action` | `str` | Recommended action (e.g., "retry with KB context") |
 
 ```python
