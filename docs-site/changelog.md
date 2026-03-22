@@ -2,6 +2,24 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
+## v3.9.4 (2026-03-20)
+
+### Fixed
+- Domain profile thresholds: medical 0.75→0.30, finance 0.70→0.30, legal 0.68→0.30 (measured on PubMedQA and FinanceBench).
+- Score calibration: rescales [0.25, 0.55] → [0, 1] when NLI available but no KB loaded.
+- README claims verified: model attribution, hardware context, FPR 2.0%→10.5%.
+- Docker: removed dead registry links, GPU Dockerfile fixed (`optimum` dep).
+- Code scanning: blake2b for API key hash, pip deps pinned with hashes.
+- All notebooks fixed: correct API signatures, field access patterns, thresholds.
+- `__init__.py`: all PUBLIC_API.md symbols now importable from top-level.
+
+## v3.9.3 (2026-03-19)
+
+### Fixed
+- Rust scorer word-overlap heuristic tests.
+- Rust FFI borrow lifetime fix.
+- License tests use env-var signing key consistently.
+
 ## v3.9.2 (2026-03-19)
 
 ### Fixed
