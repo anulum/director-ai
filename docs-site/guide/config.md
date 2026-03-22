@@ -58,11 +58,13 @@
 | `fast` | Off | 0.5 | 1 | Off | Development, low latency |
 | `thorough` | On | 0.6 | 3 | On | Production default |
 | `research` | On | 0.7 | 5 | On | Evaluation, benchmarking |
-| `medical` | On | 0.75 | 3 | On | Healthcare (high safety) |
-| `finance` | On | 0.65 | 3 | On | Financial services |
-| `legal` | On | 0.7 | 3 | On | Legal document review |
+| `medical` | On | 0.30 | 3 | On | Healthcare (measured on PubMedQA) |
+| `finance` | On | 0.30 | 3 | On | Financial services (measured on FinanceBench) |
+| `legal` | On | 0.30 | 3 | On | Legal document review (not yet measured) |
 | `creative` | Off | 0.4 | 1 | Off | Creative writing (low halt rate) |
+| `customer_support` | Off | 0.55 | 1 | Off | Support agents |
 | `summarization` | On | 0.15 | 1 | On | Document summarization |
+| `lite` | Off | 0.5 | 1 | Off | Zero-dependency fast path |
 
 ## Building Components
 
@@ -72,8 +74,8 @@ config = DirectorConfig.from_profile("thorough")
 # Build scorer with all config applied
 scorer = config.build_scorer(store=my_store)
 
-# Build complete agent
-agent = config.build_agent(store=my_store)
+# Build vector store from config
+store = config.build_store()
 ```
 
 ## Combining Profile + Overrides
