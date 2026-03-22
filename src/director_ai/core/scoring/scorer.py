@@ -1278,7 +1278,7 @@ class CoherenceScorer:
         # the factual component carries real signal and no rescaling is needed.
         nli_available = self._nli is not None and self._nli.model_available
         fact_is_neutral = abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9
-        if nli_available and fact_is_neutral and evidence is None:
+        if nli_available and fact_is_neutral and evidence is None and not _is_dialogue:
             # Theoretical range without KB: score ∈ [1-W_L-W_F*0.5, 1-W_F*0.5]
             # Default W_L=0.6, W_F=0.4 → [0.2, 0.8].  Map to [0, 1].
             lo = 1.0 - self.W_LOGIC - self.W_FACT * DIVERGENCE_NEUTRAL
