@@ -16,7 +16,6 @@ The primary return type from `CoherenceScorer.review()` and `score()`.
 | `evidence` | `ScoringEvidence \| None` | Retrieved evidence and scoring details |
 | `strict_mode_rejected` | `bool` | `True` if rejected because NLI was unavailable in strict mode |
 | `cross_turn_divergence` | `float \| None` | Cross-turn NLI score (set when session context exists) |
-| `claim_attributions` | `list[ClaimAttribution] \| None` | Per-claim source mapping (alias for evidence.attributions) |
 
 ```python
 approved, score = scorer.review(query, response)

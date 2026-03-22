@@ -13,8 +13,8 @@ agent = CoherenceAgent(
 )
 
 result = agent.process("What is the refund policy?")
-print(result.response)
-print(result.score)
+print(result.output)
+print(result.coherence.score if result.coherence else None)
 ```
 
 ## Constructor Parameters
@@ -22,13 +22,10 @@ print(result.score)
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `llm_api_url` | `str \| None` | `None` | Direct URL to OpenAI-compatible endpoint |
-| `provider` | `str \| None` | `None` | `"openai"` or `"anthropic"` (reads API key from env) |
 | `use_nli` | `bool \| None` | `None` | Enable NLI model scoring |
-| `threshold` | `float` | `0.6` | Minimum coherence to approve |
-| `max_candidates` | `int` | `3` | Number of LLM candidates to generate |
+| `provider` | `str \| None` | `None` | `"openai"` or `"anthropic"` (reads API key from env) |
 | `fallback` | `str \| None` | `None` | Fallback mode: `"retrieval"`, `"disclaimer"`, `None` |
-| `ground_truth_store` | `GroundTruthStore \| None` | `None` | Fact store for RAG |
-| `config` | `DirectorConfig \| None` | `None` | Full config object (overrides individual params) |
+| `disclaimer_prefix` | `str` | `"[Unverified] "` | Prefix for disclaimer fallback text |
 
 !!! note "Mutual exclusivity"
     `llm_api_url` and `provider` are mutually exclusive. Use one or the other.
@@ -51,14 +48,14 @@ result = await agent.aprocess(query: str) -> ReviewResult
 
 Async variant of `process()`.
 
-### astream()
+### stream()
 
 ```python
-async for event in agent.astream(query: str):
-    print(event.token, end="")
+async for token, score in agent.stream(prompt: str, tenant_id: str = ""):
+    print(token, end="")
 ```
 
-Async streaming with real-time coherence monitoring.
+Async streaming with real-time coherence monitoring. Yields `(token, coherence_score)` tuples.
 
 ## Fallback Modes
 

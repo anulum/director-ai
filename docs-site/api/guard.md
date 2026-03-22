@@ -13,7 +13,7 @@ from openai import OpenAI
 client = guard(
     OpenAI(),
     facts={"refund": "within 30 days", "hours": "9am-5pm EST"},
-    threshold=0.6,
+    threshold=0.3,
     on_fail="raise",
 )
 
@@ -40,7 +40,7 @@ response = client.chat.completions.create(
 | `client` | any | required | SDK client instance |
 | `facts` | `dict[str, str]` | `None` | Key-value fact pairs for grounding |
 | `store` | `GroundTruthStore` | `None` | Pre-built fact store (overrides `facts`) |
-| `threshold` | `float` | `0.6` | Minimum coherence score to approve |
+| `threshold` | `float` | `0.3` | Minimum coherence score to approve |
 | `use_nli` | `bool \| None` | `None` | Force NLI on/off; `None` = auto-detect |
 | `on_fail` | `str` | `"raise"` | Failure mode (see below) |
 
@@ -97,7 +97,7 @@ print(f"H_factual: {result.h_factual:.3f}")
 | `response` | `str` | required | LLM response to verify |
 | `facts` | `dict[str, str]` | `None` | Fact pairs for grounding |
 | `store` | `GroundTruthStore` | `None` | Pre-built store |
-| `threshold` | `float` | `0.5` | Approval threshold |
+| `threshold` | `float` | `0.3` | Approval threshold |
 | `use_nli` | `bool \| None` | `None` | Force NLI on/off |
 | `profile` | `str \| None` | `None` | Named config profile (e.g. `"medical"`, `"fast"`) |
 

@@ -11,69 +11,77 @@ from director_ai.core.batch import BatchProcessor
 agent = CoherenceAgent(use_nli=True)
 processor = BatchProcessor(agent, max_concurrency=8)
 
-results = processor.process_batch([
+result = processor.process_batch([
     "What is the capital of France?",
     "What is the speed of light?",
     "When was Python released?",
 ])
 
-for result in results:
-    print(f"{result.query}: approved={result.approved}, score={result.score:.3f}")
+print(f"Succeeded: {result.succeeded}/{result.total}")
+print(f"Duration: {result.duration_seconds:.1f}s")
+for r in result.results:
+    print(f"  output={r.output}, halted={r.halted}")
 ```
 
 ## Constructor Parameters
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `agent` | `CoherenceAgent` | required | Agent instance for processing |
-| `max_concurrency` | `int` | `4` | Maximum parallel requests |
+| `backend` | `CoherenceAgent \| CoherenceScorer` | required | Backend instance for processing |
+| `max_concurrency` | `int` | `4` | Maximum parallel workers |
+| `item_timeout` | `float` | `60.0` | Per-item timeout in seconds |
 
 ## Methods
 
 ### process_batch()
 
 ```python
-results = processor.process_batch(
+result = processor.process_batch(
     prompts: list[str],
-) -> list[BatchResult]
+    tenant_id: str = "",
+) -> BatchResult
 ```
 
 ### process_batch_async()
 
 ```python
-results = await processor.process_batch_async(
+result = await processor.process_batch_async(
     prompts: list[str],
-    max_concurrency: int = 8,
-) -> list[BatchResult]
+    tenant_id: str = "",
+    max_concurrency: int | None = None,
+) -> BatchResult
 ```
 
 ## BatchResult
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `query` | `str` | Original prompt |
-| `response` | `str` | Best response (or fallback) |
-| `approved` | `bool` | Whether response passed coherence |
-| `score` | `float` | Coherence score |
-| `evidence` | `ScoringEvidence \| None` | Retrieved evidence |
+| `results` | `list[ReviewResult \| tuple[bool, CoherenceScore]]` | Per-item results |
+| `errors` | `list[tuple[int, str]]` | Failed items: `(index, reason)` |
+| `total` | `int` | Total items submitted |
+| `succeeded` | `int` | Items that completed |
+| `failed` | `int` | Items that errored |
+| `duration_seconds` | `float` | Wall-clock time for the batch |
 
 ## Scorer-Level Batching
 
-For bulk NLI inference without the agent orchestration layer, use `CoherenceScorer.review_batch()` directly:
+For scoring prompt/response pairs without the agent orchestration layer, use `CoherenceScorer.review_batch()`:
 
 ```python
 from director_ai import CoherenceScorer
 
-scorer = CoherenceScorer(threshold=0.6, use_nli=True)
+scorer = CoherenceScorer(threshold=0.3, use_nli=True)
 
 items = [
     ("What is 2+2?", "The answer is 4."),
     ("Capital of France?", "Paris is in Germany."),
 ]
 results = scorer.review_batch(items)
+for approved, cs in results:
+    print(f"approved={approved}, score={cs.score:.3f}")
 ```
 
-This runs 2 GPU kernel calls total instead of 2×N.
+`review_batch()` currently routes each item through `review()` sequentially. For parallel execution, wrap the scorer in `BatchProcessor`.
 
 ## Full API
 
