@@ -10,7 +10,7 @@ store.add("aspirin children", "Aspirin should not be given to children under 16 
 store.add("blood pressure", "Normal blood pressure is below 120/80 mmHg.")
 store.add("diabetes diagnosis", "Type 2 diabetes is diagnosed when fasting glucose exceeds 126 mg/dL.")
 
-scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
+scorer = CoherenceScorer(threshold=0.30, ground_truth_store=store)
 
 # Correct claim → approved
 approved, score = scorer.review("Is aspirin safe for children?",

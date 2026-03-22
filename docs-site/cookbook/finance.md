@@ -10,7 +10,7 @@ store.add("savings APY", "Our savings account APY is 4.25% as of February 2026."
 store.add("FDIC", "FDIC insurance covers up to $250,000 per depositor per bank.")
 store.add("wire transfer", "Wire transfers take 1-3 business days.")
 
-scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
+scorer = CoherenceScorer(threshold=0.30, ground_truth_store=store)
 
 # Correct → approved
 approved, score = scorer.review("What is the savings APY?",
@@ -55,12 +55,13 @@ from director_ai.core.audit import AuditLogger
 from director_ai.core.policy import Policy
 
 # Audit all interactions for compliance
-audit = AuditLogger(log_dir="/var/log/director-ai/finance")
+audit = AuditLogger(path="/var/log/director-ai/finance")
 
 # Policy: block responses mentioning specific stock recommendations
-policy = Policy(rules=[
-    {"pattern": r"(buy|sell|short)\s+(stock|shares)", "action": "reject"},
-])
+policy = Policy(
+    patterns=[r"(buy|sell|short)\s+(stock|shares)"],
+    forbidden=["stock recommendation", "investment advice"],
+)
 ```
 
 ## Compliance Cost Avoidance

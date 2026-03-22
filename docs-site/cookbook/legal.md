@@ -9,7 +9,7 @@ store = GroundTruthStore()  # empty — populate with your KB
 store.add("statute of limitations", "The statute of limitations for personal injury in California is 2 years.")
 store.add("contract elements", "A contract requires offer, acceptance, consideration, and mutual assent.")
 
-scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store)
+scorer = CoherenceScorer(threshold=0.30, ground_truth_store=store)
 
 # Correct → approved
 approved, score = scorer.review("California injury statute of limitations?",
