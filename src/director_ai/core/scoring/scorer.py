@@ -1274,9 +1274,9 @@ class CoherenceScorer:
         coherence = 1.0 - total_divergence
 
         # Without KB context, h_fact is DIVERGENCE_NEUTRAL (0.5) and scores
-        # compress to [0.25, 0.55].  Rescale to [0, 1] so thresholds are
-        # meaningful.  With KB context the factual component carries real
-        # signal and no rescaling is needed.
+        # compress to [lo, hi] (e.g. [0.2, 0.8] for default weights).
+        # Rescale to [0, 1] so thresholds are meaningful.  With KB context
+        # the factual component carries real signal and no rescaling is needed.
         nli_available = self._nli is not None and self._nli.model_available
         fact_is_neutral = abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9
         if nli_available and fact_is_neutral and evidence is None:
@@ -1426,6 +1426,14 @@ class CoherenceScorer:
                     h_logic = 0.7 * h_logic + 0.3 * cross_turn
                     total_divergence = self.W_LOGIC * h_logic + self.W_FACT * h_fact
                     coherence = 1.0 - total_divergence
+                    # Re-apply no-KB calibration after cross-turn blend
+                    nli_ok = self._nli is not None and self._nli.model_available
+                    if nli_ok and abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9 and evidence is None:
+                        lo = 1.0 - self.W_LOGIC - self.W_FACT * DIVERGENCE_NEUTRAL
+                        hi = 1.0 - self.W_FACT * DIVERGENCE_NEUTRAL
+                        span = hi - lo
+                        if span > 1e-9:
+                            coherence = max(0.0, min(1.0, (coherence - lo) / span))
 
             if self.cache:
                 self.cache.put(
@@ -1487,12 +1495,10 @@ class CoherenceScorer:
         items: list[tuple[str, str]],
         tenant_id: str = "",
     ) -> list[tuple[bool, CoherenceScore]]:
-        """Batch-review with coalesced NLI inference.
+        """Batch-review a list of (prompt, response) pairs.
 
-        Collects all H_logical pairs into one score_batch() call, runs
-        vector retrieval in parallel, then coalesces all H_factual pairs
-        into a second score_batch() call. 2 GPU kernel calls total
-        regardless of batch size, vs 2*N for per-item review().
+        Currently routes each item through review() sequentially (2*N NLI
+        calls). For GPU-coalesced batching, use BatchProcessor.
         """
         if not items:
             return []
