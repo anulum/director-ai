@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.4] — 2026-03-20
+
+### Fixed
+- **Domain profile thresholds**: medical 0.75→0.30, finance 0.70→0.30,
+  legal 0.68→0.30. Measured on PubMedQA (500 samples, F1=59.9% at t=0.30)
+  and FinanceBench (150 samples, 0% FPR at t≤0.30). Old thresholds
+  rejected all inputs — CoherenceScorer scores cluster [0.25, 0.55].
+- **Score calibration**: CoherenceScorer now rescales output to [0, 1] when
+  NLI is available but no KB context was retrieved (previously compressed
+  to [0.25, 0.55]).
+- **README claims verified**: model attribution (FactCG-DeBERTa-v3-Large),
+  hardware context for latency (GTX 1060, ONNX GPU, 16-pair batch),
+  FPR corrected 2.0%→10.5%, citation version updated.
+- **Docker Hub badge**: removed dead link. Pre-built images not yet
+  published; Dockerfile verified locally (CPU build + health endpoint).
+- **HF Spaces badge**: "Live Demo"→"Demo" (space sleeps due to inactivity).
+- **GPU Dockerfile**: added `optimum` dependency for ONNX export stage.
+- **Benchmark scripts**: `nli_device='cuda'` when available (was defaulting
+  to CPU), `trust_remote_code` flag updated for current HF datasets lib,
+  CUAD data loader field names fixed.
+- **Import ordering**: medical_eval.py stdlib before third-party.
+- **Code scanning**: server.py hmac+sha256→blake2b for API key audit hash,
+  release.yml and Dockerfile.gpu pip deps pinned with hashes.
+
+### Changed
+- Domain presets: "tuned"→"preset" in all docs (starting points, not
+  validated against domain datasets).
+- Provider list: "Works with 9 providers"→"Duck-type detection for 5 SDK
+  shapes" with tested/untested distinction.
+- All docs, cookbooks, notebooks, guides updated to measured thresholds.
+
+### Added
+- Domain benchmark results in docs-site/benchmarks.md (PubMedQA,
+  FinanceBench, threshold sweep tables with measurement dates).
+- Threshold inconsistency documented: guard()=0.3 vs DirectorConfig=0.6.
+- `__init__.py` exports for all PUBLIC_API.md symbols: VerifiedScorer,
+  ClaimVerdict, VerificationResult, DatasetTypeClassifier, MetaClassifier,
+  TuneResult, tune(), export_tensorrt(), clear_model_cache(), 7 vector
+  backends.
+
+## [3.9.3] — 2026-03-19
+
+### Fixed
+- **Rust scorer**: word-overlap heuristic tests updated for new scoring path.
+- **Rust FFI**: borrow lifetime fix in word-overlap heuristic.
+- **License tests**: use env-var signing key consistently.
+
 ## [3.9.2] — 2026-03-19
 
 ### Fixed
