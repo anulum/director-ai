@@ -14,11 +14,9 @@ The cross-turn blending merges session context with per-turn h_logic.
 
 from __future__ import annotations
 
-from unittest.mock import MagicMock, patch
-
 import pytest
 
-from director_ai.core.scoring.scorer import CoherenceScorer, DIVERGENCE_NEUTRAL
+from director_ai.core.scoring.scorer import DIVERGENCE_NEUTRAL
 
 
 class TestNoKBCalibration:
