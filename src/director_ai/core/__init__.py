@@ -31,11 +31,18 @@ from .config import DirectorConfig
 from .retrieval.knowledge import GroundTruthStore
 from .retrieval.vector_store import (
     ChromaBackend,
+    ColBERTBackend,
+    ElasticsearchBackend,
+    FAISSBackend,
+    HybridBackend,
     InMemoryBackend,
+    PineconeBackend,
+    QdrantBackend,
     RerankedBackend,
     SentenceTransformerBackend,
     VectorBackend,
     VectorGroundTruthStore,
+    WeaviateBackend,
     get_vector_backend,
     list_vector_backends,
     register_vector_backend,
@@ -58,12 +65,15 @@ from .scoring.backends import (
     register_backend,
 )
 from .scoring.lite_scorer import LiteScorer
-from .scoring.nli import NLIScorer, export_onnx, nli_available
+from .scoring.meta_classifier import DatasetTypeClassifier, MetaClassifier
+from .scoring.nli import NLIScorer, clear_model_cache, export_onnx, export_tensorrt, nli_available
 from .scoring.scorer import CoherenceScorer
 from .scoring.sharded_nli import ShardedNLIScorer
+from .scoring.verified_scorer import ClaimVerdict, VerificationResult, VerifiedScorer
 
 # --- Training ---
 from .training.finetune import FinetuneConfig, FinetuneResult, finetune_nli
+from .training.tuner import TuneResult, tune
 from .training.finetune_benchmark import RegressionReport, benchmark_finetuned_model
 from .training.finetune_validator import DataQualityReport, validate_finetune_data
 from .types import (
@@ -77,19 +87,31 @@ from .types import (
 
 __all__ = [
     # Scoring
+    "ClaimVerdict",
     "CoherenceScorer",
+    "DatasetTypeClassifier",
     "LiteScorer",
+    "MetaClassifier",
     "NLIScorer",
     "ScorerBackend",
     "ShardedNLIScorer",
+    "VerificationResult",
+    "VerifiedScorer",
     # Retrieval
     "ChromaBackend",
+    "ColBERTBackend",
+    "ElasticsearchBackend",
+    "FAISSBackend",
     "GroundTruthStore",
+    "HybridBackend",
     "InMemoryBackend",
+    "PineconeBackend",
+    "QdrantBackend",
     "RerankedBackend",
     "SentenceTransformerBackend",
     "VectorBackend",
     "VectorGroundTruthStore",
+    "WeaviateBackend",
     # Runtime
     "AsyncStreamingKernel",
     "BatchProcessor",
@@ -108,6 +130,7 @@ __all__ = [
     "FinetuneConfig",
     "FinetuneResult",
     "RegressionReport",
+    "TuneResult",
     # Types
     "ClaimAttribution",
     "CoherenceScore",
@@ -125,8 +148,11 @@ __all__ = [
     "ScoreCache",
     # Functions
     "benchmark_finetuned_model",
+    "clear_model_cache",
     "export_onnx",
+    "export_tensorrt",
     "finetune_nli",
+    "tune",
     "get_backend",
     "get_vector_backend",
     "list_backends",
