@@ -218,9 +218,9 @@
 - TensorRT export: `export_tensorrt()`, CLI `director-ai export --format tensorrt`
 - ONNX CUDA: 4.5ms/pair median (2.4x faster than PyTorch)
 
-### Planned
-- Distill smaller NLI model (DeBERTa-base from FactCG-Large teacher + hybrid labels)
-- ReviewQueue adaptive flushing (dynamic max_batch based on request rate)
+### Deferred
+- Distill smaller NLI model (DeBERTa-base from FactCG-Large teacher + hybrid labels) — deferred, 22/23 fine-tunes hurt (catastrophic forgetting)
+- ReviewQueue adaptive flushing (dynamic max_batch based on request rate) — deferred to v3.10+
 
 ## v3.8.0
 
