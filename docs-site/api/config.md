@@ -53,11 +53,13 @@ Dataclass-based configuration with environment variable, YAML file, and named pr
 | `fast` | Off | 0.5 | 1 | Off | Development, prototyping |
 | `thorough` | On | 0.6 | 3 | On | Production default |
 | `research` | On | 0.7 | 5 | On | Evaluation, benchmarking |
-| `medical` | On | 0.75 | 3 | On | Healthcare applications |
-| `finance` | On | 0.65 | 3 | On | Financial services |
-| `legal` | On | 0.7 | 3 | On | Legal document review |
-| `creative` | Off | 0.4 | 1 | Off | Creative writing (low halt rate) |
+| `medical` | On | 0.30 | 3 | On | Healthcare (measured on PubMedQA) |
+| `finance` | On | 0.30 | 3 | On | Financial services (measured on FinanceBench) |
+| `legal` | On | 0.30 | 3 | On | Legal document review |
+| `creative` | Off | 0.40 | 1 | Off | Creative writing (low halt rate) |
+| `customer_support` | Off | 0.55 | 1 | Off | Support agents |
 | `summarization` | On | 0.15 | 1 | On | Document summarization |
+| `lite` | Off | 0.50 | 1 | Off | Zero-dependency fast path |
 
 ## Building Components from Config
 
@@ -67,8 +69,8 @@ config = DirectorConfig.from_profile("thorough")
 # Build a scorer with all config settings applied
 scorer = config.build_scorer(store=my_store)
 
-# Build a complete agent
-agent = config.build_agent(store=my_store)
+# Build a vector store from config
+store = config.build_store()
 ```
 
 ## Field Reference
@@ -119,7 +121,7 @@ agent = config.build_agent(store=my_store)
 | `embedding_model` | `str` | `"BAAI/bge-large-en-v1.5"` | Embedding model ID |
 | `chroma_collection` | `str` | `"director_ai"` | ChromaDB collection name |
 | `chroma_persist_dir` | `str` | `""` | Persistence directory (empty = in-memory) |
-| `reranker_enabled` | `bool` | `False` | Enable cross-encoder reranking |
+| `reranker_enabled` | `bool` | `True` | Enable cross-encoder reranking |
 | `reranker_model` | `str` | `"cross-encoder/ms-marco-MiniLM-L-6-v2"` | Reranker model |
 
 ### Server
@@ -130,7 +132,7 @@ agent = config.build_agent(store=my_store)
 | `server_port` | `int` | `8080` | Port |
 | `server_workers` | `int` | `1` | Uvicorn worker count |
 | `cors_origins` | `str` | `""` | CORS allowed origins |
-| `metrics_enabled` | `bool` | `False` | Enable Prometheus metrics |
+| `metrics_enabled` | `bool` | `True` | Enable Prometheus metrics |
 | `log_level` | `str` | `"INFO"` | Logging level |
 | `log_json` | `bool` | `False` | Structured JSON logging |
 
