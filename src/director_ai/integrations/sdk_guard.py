@@ -95,7 +95,9 @@ def guard(
     - **Google Gemini** (``client.generate_content``).
     - **Cohere** (``client.chat`` without ``client.completions``).
 
-    Returns the same *client* object with patched sub-objects.
+    Returns the guarded client. For OpenAI/Anthropic the original object
+    is mutated in place. For Bedrock, Gemini, and Cohere a new proxy is
+    returned — **always use the return value**: ``client = guard(client, ...)``.
     """
     if on_fail not in ("raise", "log", "metadata"):
         raise ValueError(
