@@ -608,7 +608,31 @@ class TestShouldEscalate:
             llm_judge_enabled=True,
             llm_judge_provider="openai",
         )
-        assert isinstance(scorer._should_escalate(0.5, task_type="dialogue"), bool)
+        # dialogue threshold = 0.35, so abs(0.5 - 0.5) = 0.0 < 0.35 → True
+        assert scorer._should_escalate(0.5, task_type="dialogue") is True
+
+    def test_task_type_threshold_fact_check(self):
+        scorer = CoherenceScorer(
+            use_nli=False,
+            llm_judge_enabled=True,
+            llm_judge_provider="openai",
+        )
+        # fact_check threshold = 0.20, abs(0.5 - 0.5) = 0.0 < 0.20 → True
+        assert scorer._should_escalate(0.5, task_type="fact_check") is True
+        # abs(0.1 - 0.5) = 0.4 > 0.20 → False (confident score, no escalation)
+        assert scorer._should_escalate(0.1, task_type="fact_check") is False
+
+    def test_task_type_threshold_differentiates(self):
+        scorer = CoherenceScorer(
+            use_nli=False,
+            llm_judge_enabled=True,
+            llm_judge_provider="openai",
+        )
+        # Score 0.25: abs(0.25 - 0.5) = 0.25
+        # dialogue threshold 0.35 → 0.25 < 0.35 → escalate
+        # fact_check threshold 0.20 → 0.25 > 0.20 → do NOT escalate
+        assert scorer._should_escalate(0.25, task_type="dialogue") is True
+        assert scorer._should_escalate(0.25, task_type="fact_check") is False
 
 
 # ── _detect_task_type branches ────────────────────────────────────────────────

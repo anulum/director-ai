@@ -823,7 +823,7 @@ class CoherenceScorer:
                         premise_ratio=effective_premise_ratio,
                         overlap_ratio=self._chunk_overlap_ratio,
                     )
-            if self._should_escalate(score):
+            if self._should_escalate(score, task_type=task_type):
                 score = self._llm_judge_check(prompt, text_output, score)
             return score
 
@@ -903,7 +903,7 @@ class CoherenceScorer:
         else:
             score = self._heuristic_factual(context, text_output)
 
-        if self._should_escalate(score):
+        if self._should_escalate(score, task_type=task_type):
             score = self._llm_judge_check(prompt, text_output, score)
         return score
 
@@ -953,7 +953,7 @@ class CoherenceScorer:
                             overlap_ratio=self._chunk_overlap_ratio,
                         )
                     )
-            if self._should_escalate(nli_score):
+            if self._should_escalate(nli_score, task_type=task_type):
                 nli_score = self._llm_judge_check(prompt, text_output, nli_score)
             evidence = ScoringEvidence(
                 chunks=[
@@ -1036,7 +1036,7 @@ class CoherenceScorer:
         else:
             nli_score = self._heuristic_factual(context, text_output)
 
-        if self._should_escalate(nli_score):
+        if self._should_escalate(nli_score, task_type=task_type):
             nli_score = self._llm_judge_check(prompt, text_output, nli_score)
 
         # Sentence-level attribution: map each response sentence to its
