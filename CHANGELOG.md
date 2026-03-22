@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.9.5] — 2026-03-23
+
+### Added
+- **Coalesced `review_batch()`**: batches logical and factual NLI pairs
+  through `NLIScorer.score_batch()` — 2 GPU forward passes total instead
+  of 2*N. Dialogue items fall back to sequential `review()`.
+- **Per-task-type judge escalation**: `_should_escalate()` now receives
+  the detected task type at all 4 call sites. Per-task thresholds:
+  dialogue=0.35, summarization=0.25, qa=0.30, fact_check=0.20.
+- 14 tests for no-KB calibration rescaling and cross-turn blending math.
+- 3 tests for per-task-type judge threshold differentiation.
+
+### Fixed
+- **Scorer**: `_finalise_review()` log message uses effective threshold
+  override instead of base `self.threshold`.
+- **Scorer**: meta-classifier NLI-to-coherence threshold conversion uses
+  `self.W_FACT`/`self.W_LOGIC` instead of hardcoded 0.4/0.6.
+- **43 documentation fixes** across docs-site (13 CRITICAL, 17 HIGH,
+  12 MEDIUM, 3 LOW): fabricated API signatures, wrong defaults, stale
+  claims, non-existent fields. Verified by independent Gemini audit.
+- **Notebook fixes** (01, 03, 11, 12): NameError, nonexistent methods,
+  wrong parameter defaults, stale profile tables.
+- ROADMAP: WASM Edge Runtime Done→Deferred, v2.8.0 ordering,
+  `nli_claim_support_threshold` default 0.5→0.6.
+- CONTRIBUTING: architecture table rewritten for subpackage structure.
+- CITATION.cff: leaderboard position corrected to #8/19.
+- PUBLIC_API.md: added missing `ClaimAttribution`.
+
 ## [3.9.4] — 2026-03-20
 
 ### Fixed
