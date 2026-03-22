@@ -23,7 +23,7 @@ url: "https://www.anulum.li"
 abstract: >-
   Real-time LLM hallucination guardrail. Dual-entropy scoring (NLI contradiction
   via FactCG-DeBERTa-v3-Large + RAG fact-checking) with token-level streaming halt.
-  75.8% balanced accuracy on LLM-AggreFact (29K samples, 4th on leaderboard).
+  75.86% balanced accuracy on LLM-AggreFact (29K samples, #8 among 19 ranked systems).
   Integrates with LangChain, LlamaIndex, LangGraph, Haystack, and CrewAI.
 keywords:
   - artificial general intelligence

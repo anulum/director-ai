@@ -41,6 +41,7 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `HaltEvidence` | `core.types` | Halt reason with evidence chunks |
 | `EvidenceChunk` | `core.types` | Single retrieval chunk |
 | `ScoringEvidence` | `core.types` | NLI scoring evidence |
+| `ClaimAttribution` | `core.types` | Per-claim source attribution |
 | `TokenEvent` | `core.streaming` | Single token event from streaming |
 | `StreamSession` | `core.streaming` | Streaming session metrics |
 | `SanitizeResult` | `core.sanitizer` | Sanitizer check result |

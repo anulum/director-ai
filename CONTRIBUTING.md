@@ -19,7 +19,7 @@ pytest tests/ -v
 
 | Target | Command | Description |
 |--------|---------|-------------|
-| `make test` | `pytest tests/ -v --cov` | Run tests with coverage |
+| `make test` | `pytest tests/ -v --cov=director_ai --cov-fail-under=90` | Run tests with coverage (90% gate) |
 | `make test-rust` | `cargo test` in backfire-kernel | Run Rust tests |
 | `make test-all` | test + test-rust | Both suites |
 | `make lint` | `ruff format --check` + `ruff check` | Check style |
