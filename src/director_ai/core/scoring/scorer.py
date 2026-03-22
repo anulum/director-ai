@@ -1432,11 +1432,13 @@ class CoherenceScorer:
                         and abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9
                         and evidence is None
                     ):
-                        lo = 1.0 - self.W_LOGIC - self.W_FACT * DIVERGENCE_NEUTRAL
-                        hi = 1.0 - self.W_FACT * DIVERGENCE_NEUTRAL
-                        span = hi - lo
-                        if span > 1e-9:
-                            coherence = max(0.0, min(1.0, (coherence - lo) / span))
+                        cal_lo = 1.0 - self.W_LOGIC - self.W_FACT * DIVERGENCE_NEUTRAL
+                        cal_hi = 1.0 - self.W_FACT * DIVERGENCE_NEUTRAL
+                        cal_span = cal_hi - cal_lo
+                        if cal_span > 1e-9:
+                            coherence = max(
+                                0.0, min(1.0, (coherence - cal_lo) / cal_span)
+                            )
 
             if self.cache:
                 self.cache.put(
