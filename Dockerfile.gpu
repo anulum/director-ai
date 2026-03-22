@@ -40,8 +40,9 @@ WORKDIR /app
 ENV PYTHONPATH=/app/src
 
 # optimum: build-time only for ONNX export (not in runtime image)
-RUN pip install --no-cache-dir --no-deps \
-        "optimum==2.1.0 --hash=sha256:bc3af32e1236a9b2c2ca1d27ed9d3ab1b6591e24c6bcd47f9671a8198a30ea88"
+RUN printf 'optimum==2.1.0 --hash=sha256:bc3af32e1236a9b2c2ca1d27ed9d3ab1b6591e24c6bcd47f9671a8198a30ea88\n' \
+        > /tmp/optimum-req.txt \
+    && pip install --no-cache-dir --no-deps --require-hashes -r /tmp/optimum-req.txt
 
 RUN python -c "\
 from director_ai.core.nli import export_onnx; \
