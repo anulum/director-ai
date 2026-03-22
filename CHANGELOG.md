@@ -270,7 +270,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated gRPC protobuf stubs (`director_pb2.py`, `director_pb2_grpc.py`) from `proto/director.proto`.
 - `CoherenceAgent.aprocess()` and `CoherenceAgent.astream()` async methods.
 - `--cors-origins` flag on `director-ai serve`.
-- `CoherenceScorer.review_batch()` — batch API (currently sequential per-item).
+- `CoherenceScorer.review_batch()` — coalesced batch NLI (2 GPU calls when NLI available).
 - `ReviewQueue` — server-level continuous batching for `/v1/review` with configurable flush window.
 - Config fields: `review_queue_enabled`, `review_queue_max_batch`, `review_queue_flush_timeout_ms`.
 

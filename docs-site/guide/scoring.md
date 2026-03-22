@@ -112,7 +112,7 @@ print(f"Size: {scorer.cache.size}")
 
 ## Batch Scoring
 
-Score multiple pairs (currently sequential; for parallel execution, use `BatchProcessor`):
+Score multiple pairs in 2 GPU forward passes (when NLI is available):
 
 ```python
 items = [

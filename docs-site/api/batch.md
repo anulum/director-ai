@@ -81,7 +81,7 @@ for approved, cs in results:
     print(f"approved={approved}, score={cs.score:.3f}")
 ```
 
-`review_batch()` currently routes each item through `review()` sequentially. For parallel execution, wrap the scorer in `BatchProcessor`.
+`review_batch()` batches logical and factual NLI through `score_batch()` (2 GPU forward passes total) when NLI is available. Dialogue items fall back to sequential `review()`. Without NLI, all items are scored sequentially via heuristics.
 
 ## Full API
 
