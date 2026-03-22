@@ -15,7 +15,8 @@ The primary return type from `CoherenceScorer.review()` and `score()`.
 | `warning` | `bool` | `True` if score is between `threshold` and `soft_limit` |
 | `evidence` | `ScoringEvidence \| None` | Retrieved evidence and scoring details |
 | `strict_mode_rejected` | `bool` | `True` if rejected because NLI was unavailable in strict mode |
-| `nli_confidence` | `float` | NLI softmax confidence margin |
+| `cross_turn_divergence` | `float \| None` | Cross-turn NLI score (set when session context exists) |
+| `claim_attributions` | `list[ClaimAttribution] \| None` | Per-claim source mapping (alias for evidence.attributions) |
 
 ```python
 approved, score = scorer.review(query, response)
@@ -38,13 +39,12 @@ Return type from `CoherenceAgent.process()`.
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `response` | `str` | Best approved response (or fallback) |
-| `score` | `float` | Coherence score of the response |
-| `approved` | `bool` | Whether response passed coherence |
+| `output` | `str` | Best approved response (or fallback) |
+| `coherence` | `CoherenceScore \| None` | Coherence score of the response |
 | `halted` | `bool` | Whether safety kernel halted |
-| `candidates` | `int` | Number of candidates generated |
-| `evidence` | `ScoringEvidence \| None` | Evidence for the selected response |
-| `fallback_used` | `str \| None` | Which fallback was activated |
+| `candidates_evaluated` | `int` | Number of candidates generated |
+| `fallback_used` | `bool` | Whether a fallback was activated |
+| `halt_evidence` | `HaltEvidence \| None` | Structured halt reason |
 
 ---
 
@@ -55,7 +55,12 @@ Evidence collected during scoring — retrieved KB chunks, NLI details, and attr
 | Field | Type | Description |
 |-------|------|-------------|
 | `chunks` | `list[EvidenceChunk]` | Top-K retrieved chunks |
-| `nli_details` | `dict \| None` | Raw NLI model outputs |
+| `nli_premise` | `str` | NLI premise text used |
+| `nli_hypothesis` | `str` | NLI hypothesis text used |
+| `nli_score` | `float` | Raw NLI divergence score |
+| `chunk_scores` | `list[float] \| None` | Per-chunk NLI scores |
+| `premise_chunk_count` | `int` | Number of premise chunks |
+| `hypothesis_chunk_count` | `int` | Number of hypothesis chunks |
 | `attributions` | `list[ClaimAttribution] \| None` | Per-claim source attribution |
 | `token_count` | `int` | NLI token consumption |
 | `estimated_cost_usd` | `float` | Estimated NLI inference cost |
@@ -84,7 +89,9 @@ Maps a summary claim to its source sentence.
 | Field | Type | Description |
 |-------|------|-------------|
 | `claim` | `str` | The atomic claim |
+| `claim_index` | `int` | Index of the claim in the decomposed list |
 | `source_sentence` | `str` | Best-matching source sentence |
+| `source_index` | `int` | Index of the source sentence |
 | `divergence` | `float` | NLI divergence score (lower = better support) |
 | `supported` | `bool` | Whether the claim is supported |
 
