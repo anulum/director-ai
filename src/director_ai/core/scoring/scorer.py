@@ -1310,7 +1310,7 @@ class CoherenceScorer:
             self.logger.critical(
                 "COHERENCE FAILURE. Score: %.4f < Threshold: %s",
                 coherence,
-                self.threshold,
+                t,
             )
         else:
             if coherence < self.soft_limit:
@@ -1470,8 +1470,8 @@ class CoherenceScorer:
                     action,
                 )
                 if nli_threshold is not None:
-                    # NLI-scale â†’ coherence-scale: c = 0.4 + 0.6 * nli_t
-                    effective_threshold = 0.4 + 0.6 * nli_threshold
+                    # NLI-scale to coherence-scale
+                    effective_threshold = self.W_FACT + self.W_LOGIC * nli_threshold
 
             result = self._finalise_review(
                 coherence,

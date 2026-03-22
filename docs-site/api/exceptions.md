@@ -10,8 +10,8 @@ DirectorAIError
 ├── GeneratorError         # LLM generation failure
 ├── ValidationError        # Invalid configuration or input
 ├── DependencyError        # Missing optional package
-├── PhysicsError           # Numerical instability
-└── NumericalError         # NaN/Inf in computation
+└── PhysicsError           # Numerical instability
+    └── NumericalError     # NaN/Inf in computation
 ```
 
 ## HallucinationError
@@ -63,7 +63,7 @@ from director_ai import CoherenceScorer
 
 try:
     scorer = CoherenceScorer(threshold=1.5)  # Invalid
-except ValidationError as e:
+except ValueError as e:
     print(e)  # "threshold must be in [0, 1], got 1.5"
 ```
 
@@ -71,13 +71,10 @@ except ValidationError as e:
 
 ## DependencyError {: #dependencyerror }
 
-Raised when a required optional package is missing.
+Available for optional-dependency checks. Note: `CoherenceScorer(use_nli=True)` falls back silently to heuristic scoring when NLI packages are missing. Use `strict_mode=True` if you need hard failures on missing dependencies.
 
 ```python
-try:
-    scorer = CoherenceScorer(use_nli=True)
-except DependencyError as e:
-    print(e)  # "NLI requires torch and transformers: pip install director-ai[nli]"
+from director_ai.core.exceptions import DependencyError
 ```
 
 ---

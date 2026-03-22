@@ -1,6 +1,6 @@
 # Knowledge Base Ingestion
 
-Director-AI scores responses against a knowledge base (KB). The KB provides the "ground truth" that the scorer compares responses to. Without a KB, the scorer falls back to heuristic word-overlap only.
+Director-AI scores responses against a knowledge base (KB). The KB provides the "ground truth" that the scorer compares responses to. Without a KB, NLI still works (using the prompt as premise), but factual divergence (H_factual) degrades to a neutral 0.5. Loading domain facts substantially improves scoring discrimination.
 
 ## Option 1: Simple Key-Value Store
 

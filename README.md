@@ -56,7 +56,7 @@ Pure Python core — no compiled extensions required. Optional Rust kernel (`pip
 
 | Layer | Packages | Install |
 |-------|----------|---------|
-| **Core** (zero heavy deps) | `CoherenceScorer`, `StreamingKernel`, `GroundTruthStore`, `SafetyKernel` | `pip install director-ai` |
+| **Core** (zero heavy deps) | `CoherenceScorer`, `StreamingKernel`, `GroundTruthStore`, `HaltMonitor` | `pip install director-ai` |
 | **NLI models** | DeBERTa, FactCG, MiniCheck, ONNX Runtime | `pip install director-ai[nli]` |
 | **Vector DBs** | ChromaDB (`[vector]`), Pinecone (`[pinecone]`), Weaviate (`[weaviate]`), Qdrant (`[qdrant]`) | `pip install director-ai[vector]` |
 | **LLM judge** | OpenAI, Anthropic escalation | `pip install director-ai[openai]` |

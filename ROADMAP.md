@@ -1,5 +1,15 @@
 # Roadmap
 
+## v2.8.0
+
+### Done
+- Rust-accelerated scorer backend wired into `CoherenceScorer(scorer_backend="rust")`
+- WebSocket multiplexed streaming (concurrent sessions per connection, cancel, backpressure)
+- VectorBackend entry-point registry (`register_vector_backend`, `get_vector_backend`, `list_vector_backends`)
+- Tenant-isolated VectorStores via `TenantRouter.get_vector_store()`
+- `/v1/tenants/{tenant_id}/vector-facts` REST endpoint
+- ONNX INT8/FP16 quantization shipped in v2.3.0 (retired from planned)
+
 ## v2.6.0
 
 ### Done
@@ -69,16 +79,6 @@
 - SafetyKernel hard_limit validation
 - Thread-safe OTel setup
 - Histogram bucket_counts O(n log n) optimization
-
-## v2.8.0
-
-### Done
-- Rust-accelerated scorer backend wired into `CoherenceScorer(scorer_backend="rust")`
-- WebSocket multiplexed streaming (concurrent sessions per connection, cancel, backpressure)
-- VectorBackend entry-point registry (`register_vector_backend`, `get_vector_backend`, `list_vector_backends`)
-- Tenant-isolated VectorStores via `TenantRouter.get_vector_store()`
-- `/v1/tenants/{tenant_id}/vector-facts` REST endpoint
-- ONNX INT8/FP16 quantization shipped in v2.3.0 (retired from planned)
 
 ## v3.0.0
 
@@ -204,7 +204,7 @@
 ### Done
 - Summarization FPR: 10.5% → 2.0% via Layer C (claim decomposition + coverage scoring)
   - `NLIScorer.score_claim_coverage()` decomposes summaries into atomic claims
-  - Config: `nli_claim_coverage_enabled`, `nli_claim_support_threshold` (0.5), `nli_claim_coverage_alpha` (0.4)
+  - Config: `nli_claim_coverage_enabled`, `nli_claim_support_threshold` (0.6), `nli_claim_coverage_alpha` (0.4)
   - `ScoringEvidence` includes `claim_coverage`, `per_claim_divergences`, `claims`
   - 21 new tests, 2084 total
 

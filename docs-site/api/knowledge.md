@@ -75,4 +75,4 @@ Upload → Parse → Chunk → Embed → Store
 Query → Hybrid Retrieval (BM25 + Dense + RRF) → Rerank → NLI Score
 ```
 
-Default pipeline uses `all-MiniLM-L6-v2` embeddings with hybrid BM25+dense retrieval and `ms-marco-MiniLM-L-6-v2` cross-encoder reranking.
+Default pipeline uses `BAAI/bge-large-en-v1.5` embeddings with hybrid BM25+dense retrieval and `cross-encoder/ms-marco-MiniLM-L-6-v2` cross-encoder reranking.
