@@ -1427,7 +1427,11 @@ class CoherenceScorer:
                     coherence = 1.0 - total_divergence
                     # Re-apply no-KB calibration after cross-turn blend
                     nli_ok = self._nli is not None and self._nli.model_available
-                    if nli_ok and abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9 and evidence is None:
+                    if (
+                        nli_ok
+                        and abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9
+                        and evidence is None
+                    ):
                         lo = 1.0 - self.W_LOGIC - self.W_FACT * DIVERGENCE_NEUTRAL
                         hi = 1.0 - self.W_FACT * DIVERGENCE_NEUTRAL
                         span = hi - lo
