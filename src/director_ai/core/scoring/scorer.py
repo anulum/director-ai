@@ -1517,9 +1517,7 @@ class CoherenceScorer:
             and not self._use_prompt_as_premise
         )
         if not nli_ok or len(items) < 2:
-            return [
-                self.review(p, a, tenant_id=tenant_id) for p, a in items
-            ]
+            return [self.review(p, a, tenant_id=tenant_id) for p, a in items]
 
         # Partition: batchable (standard path) vs fallback (dialogue etc.)
         batch_idx: list[int] = []
@@ -1555,7 +1553,8 @@ class CoherenceScorer:
             prompt = items[i][0]
             if self.ground_truth_store:
                 ctx = self.ground_truth_store.retrieve_context(
-                    prompt, tenant_id=tenant_id,
+                    prompt,
+                    tenant_id=tenant_id,
                 )
             else:
                 ctx = None
@@ -1591,7 +1590,11 @@ class CoherenceScorer:
                     coherence = max(0.0, min(1.0, (coherence - lo) / span))
 
             results[i] = self._finalise_review(
-                coherence, h_logic, h_fact, items[i][1], evidence,
+                coherence,
+                h_logic,
+                h_fact,
+                items[i][1],
+                evidence,
             )
 
         return [r for r in results if r is not None]
