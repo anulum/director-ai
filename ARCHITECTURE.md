@@ -9,45 +9,68 @@ detection + RAG fact-checking with token-level streaming halt.
 director-ai/
 ├── src/director_ai/
 │   ├── core/
-│   │   ├── scorer.py          CoherenceScorer — dual-entropy scoring
-│   │   ├── kernel.py          SafetyKernel — output interlock
-│   │   ├── streaming.py       StreamingKernel — token-level halt
-│   │   ├── async_streaming.py AsyncStreamingKernel
-│   │   ├── nli.py             NLIScorer — DeBERTa/FactCG/ONNX backends
-│   │   ├── knowledge.py       GroundTruthStore — in-memory facts
-│   │   ├── vector_store.py    VectorGroundTruthStore — ChromaDB/Pinecone/Qdrant
-│   │   ├── agent.py           CoherenceAgent — orchestrator pipeline
-│   │   ├── actor.py           LLMGenerator, MockGenerator
-│   │   ├── batch.py           BatchProcessor — parallel evaluation
-│   │   ├── review_queue.py    ReviewQueue — continuous batching accumulator
-│   │   ├── config.py          DirectorConfig — YAML/JSON config
-│   │   ├── audit.py           AuditLogger — JSONL audit trail
-│   │   ├── tenant.py          TenantRouter — multi-tenant KB isolation
-│   │   ├── sanitizer.py       InputSanitizer — prompt injection hardening
-│   │   ├── backends.py        DeBERTa, ONNX, MiniCheck, Lite, Rust backends
-│   │   ├── otel.py            OpenTelemetry spans
-│   │   └── _heuristics.py     Word-overlap fallback scorer
+│   │   ├── scoring/
+│   │   │   ├── scorer.py          CoherenceScorer — dual-entropy scoring
+│   │   │   ├── nli.py             NLIScorer — DeBERTa/FactCG/ONNX backends
+│   │   │   ├── verified_scorer.py VerifiedScorer — sentence-level multi-signal
+│   │   │   ├── meta_classifier.py DatasetTypeClassifier — adaptive thresholds
+│   │   │   ├── lite_scorer.py     LiteScorer — zero-dep heuristic
+│   │   │   ├── sharded_nli.py     ShardedNLIScorer — multi-GPU
+│   │   │   ├── backends.py        DeBERTa, ONNX, MiniCheck, Lite, Rust
+│   │   │   └── _heuristics.py     Word-overlap fallback
+│   │   ├── retrieval/
+│   │   │   ├── knowledge.py       GroundTruthStore — in-memory facts
+│   │   │   ├── vector_store.py    VectorGroundTruthStore + 11 backends
+│   │   │   ├── doc_chunker.py     Document chunking
+│   │   │   ├── doc_parser.py      PDF/DOCX parsing
+│   │   │   ├── doc_registry.py    Document metadata registry
+│   │   │   └── embedding_tuner.py Domain embedding fine-tuner
+│   │   ├── runtime/
+│   │   │   ├── kernel.py          HaltMonitor — output interlock
+│   │   │   ├── streaming.py       StreamingKernel — token-level halt
+│   │   │   ├── async_streaming.py AsyncStreamingKernel
+│   │   │   ├── batch.py           BatchProcessor — parallel evaluation
+│   │   │   ├── review_queue.py    ReviewQueue — continuous batching
+│   │   │   └── session.py         ConversationSession — multi-turn
+│   │   ├── safety/
+│   │   │   ├── sanitizer.py       InputSanitizer — prompt injection
+│   │   │   ├── policy.py          Policy — rule engine
+│   │   │   └── audit.py           AuditLogger — JSONL audit trail
+│   │   ├── training/
+│   │   │   ├── finetune.py        NLI fine-tuning
+│   │   │   ├── finetune_benchmark.py  Pre/post benchmark
+│   │   │   ├── finetune_validator.py  Data validation
+│   │   │   └── tuner.py           Threshold grid search
+│   │   ├── agent.py               CoherenceAgent — orchestrator
+│   │   ├── actor.py               LLMGenerator, MockGenerator
+│   │   ├── config.py              DirectorConfig — YAML/env/profile
+│   │   ├── cache.py               ScoreCache — LRU
+│   │   ├── types.py               CoherenceScore, ReviewResult, etc.
+│   │   ├── tenant.py              TenantRouter — multi-tenant
+│   │   └── otel.py                OpenTelemetry spans
 │   │
 │   ├── integrations/
-│   │   ├── sdk_guard.py       guard() — OpenAI/Anthropic interceptor
-│   │   ├── langchain_callback.py  LangChain Runnable
-│   │   └── providers.py       LLM provider adapters
+│   │   ├── sdk_guard.py           guard() — 5 SDK shapes
+│   │   ├── langchain.py           LangChain Runnable
+│   │   ├── llamaindex.py          LlamaIndex NodePostprocessor
+│   │   ├── langgraph.py           LangGraph node/edge
+│   │   ├── haystack.py            Haystack 2.x component
+│   │   ├── crewai.py              CrewAI tool
+│   │   └── fastapi_guard.py       FastAPI middleware
 │   │
-│   ├── enterprise/            Lazy-loaded enterprise modules
-│   ├── cli.py                 CLI entry point
-│   ├── server.py              FastAPI REST server
-│   └── grpc_server.py         gRPC server
+│   ├── cli.py                     CLI (18 commands)
+│   ├── server.py                  FastAPI REST server
+│   ├── grpc_server.py             gRPC server
+│   ├── knowledge_api.py           Document ingestion API router
+│   └── proxy.py                   OpenAI-compatible guardrail proxy
 │
-├── backfire-kernel/           Rust scorer backend (PyO3/maturin)
-│   ├── Cargo.toml
-│   └── crates/
-│       └── backfire-ffi/      Python ↔ Rust bridge
+├── backfire-kernel/               Rust scorer backend (PyO3/maturin)
 │
-├── tests/                     2114 tests, ≥90% coverage
-├── benchmarks/                27 evaluators (AggreFact, FEVER, MNLI, Medical, Legal, Finance, ...)
-├── notebooks/                 Jupyter quickstart + domain notebooks
-├── docs-site/                 MkDocs documentation source
-└── demo/                      HF Spaces Gradio demo
+├── tests/                         2800+ tests, ≥90% coverage
+├── benchmarks/                    27 evaluators
+├── notebooks/                     16 Jupyter notebooks
+├── docs-site/                     MkDocs documentation
+└── demo/                          HF Spaces Gradio demo
 ```
 
 ## Data Flow
