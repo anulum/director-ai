@@ -62,5 +62,5 @@ At $300/hr associate rate and 1,000 AI-assisted queries/day, reducing review bur
 ```python
 from director_ai.core.audit import AuditLogger
 
-logger = AuditLogger(log_dir="/var/log/director-ai/legal")
+logger = AuditLogger(path="/var/log/director-ai/legal")
 ```

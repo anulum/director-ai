@@ -59,7 +59,7 @@ audit = AuditLogger(path="/var/log/director-ai/finance")
 
 # Policy: block responses mentioning specific stock recommendations
 policy = Policy(
-    patterns=[r"(buy|sell|short)\s+(stock|shares)"],
+    patterns=[{"name": "no_stock_advice", "regex": r"(buy|sell|short)\s+(stock|shares)", "action": "block"}],
     forbidden=["stock recommendation", "investment advice"],
 )
 ```
