@@ -364,7 +364,7 @@ for chunk in stream:  # periodic + final coherence checks
 |-----------|------|---------|-------------|
 | `facts` | dict | None | Key-value facts for the knowledge base |
 | `store` | GroundTruthStore | None | Pre-built store (overrides facts) |
-| `threshold` | float | 0.6 | Minimum coherence to pass |
+| `threshold` | float | 0.3 | Minimum coherence to pass |
 | `use_nli` | bool \| None | None | NLI mode (None=auto-detect) |
 | `on_fail` | str | `"raise"` | `"raise"`, `"log"`, or `"metadata"` |
 
@@ -375,7 +375,7 @@ Requires `pip install director-ai[openai]` or `director-ai[anthropic]`.
 ```python
 from director_ai.integrations.langchain import DirectorAIGuard
 
-guard = DirectorAIGuard(threshold=0.6)
+guard = DirectorAIGuard(threshold=0.3)
 guard.check(prompt, response)         # raises HallucinationError if blocked
 result = guard.invoke({"query": ...}) # Runnable interface
 ```
