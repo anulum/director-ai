@@ -2,10 +2,10 @@
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
-<span class="version-badge">v3.9 — New: VerifiedScorer, document ingestion API, mode selector, ColBERT</span>
+<span class="version-badge">v3.9.4 — Verified claims, calibrated scoring, measured domain benchmarks</span>
 
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
-[![Tests](https://img.shields.io/badge/tests-2800%2B%20passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-2800%2B_passed-brightgreen)]()
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://github.com/anulum/director-ai/blob/main/LICENSE)
 [![Python](https://img.shields.io/pypi/pyversions/director-ai)](https://pypi.org/project/director-ai/)
 
