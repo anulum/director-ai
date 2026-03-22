@@ -1502,15 +1502,99 @@ class CoherenceScorer:
     ) -> list[tuple[bool, CoherenceScore]]:
         """Batch-review a list of (prompt, response) pairs.
 
-        Currently routes each item through review() sequentially (2*N NLI
-        calls). For GPU-coalesced batching, use BatchProcessor.
+        When NLI is available, batches logical and factual divergence
+        through ``NLIScorer.score_batch()`` (2 GPU forward passes total
+        instead of 2*N).  Falls back to sequential ``review()`` for
+        items that need special handling (dialogue, summarization, rust
+        backend, or when NLI is unavailable).
         """
         if not items:
             return []
-        return [
-            self.review(prompt, response, tenant_id=tenant_id)
-            for prompt, response in items
-        ]
+        nli_ok = (
+            self._nli is not None
+            and self._nli.model_available
+            and self._rust_scorer is None
+            and not self._use_prompt_as_premise
+        )
+        if not nli_ok or len(items) < 2:
+            return [
+                self.review(p, a, tenant_id=tenant_id) for p, a in items
+            ]
+
+        # Partition: batchable (standard path) vs fallback (dialogue etc.)
+        batch_idx: list[int] = []
+        fallback_idx: list[int] = []
+        for i, (prompt, _action) in enumerate(items):
+            if (
+                self._auto_dialogue_profile
+                and self._detect_task_type(prompt) == "dialogue"
+            ):
+                fallback_idx.append(i)
+            else:
+                batch_idx.append(i)
+
+        results: list[tuple[bool, CoherenceScore] | None] = [None] * len(items)
+
+        # Sequential fallback for dialogue/special items
+        for i in fallback_idx:
+            results[i] = self.review(items[i][0], items[i][1], tenant_id=tenant_id)
+
+        if not batch_idx:
+            return [r for r in results if r is not None]
+
+        # Coalesced NLI: batch logical pairs
+        logic_pairs = [(items[i][0], items[i][1]) for i in batch_idx]
+        h_logics = self._nli.score_batch(logic_pairs)
+
+        # Factual: retrieve KB context per item, batch NLI where possible
+        h_facts: list[float] = []
+        evidences: list[ScoringEvidence | None] = []
+        fact_pairs: list[tuple[str, str]] = []
+        fact_pair_map: list[int] = []  # maps fact_pairs index → batch position
+        for pos, i in enumerate(batch_idx):
+            prompt = items[i][0]
+            if self.ground_truth_store:
+                ctx = self.ground_truth_store.retrieve_context(
+                    prompt, tenant_id=tenant_id,
+                )
+            else:
+                ctx = None
+            if ctx and self._nli:
+                fact_pairs.append((ctx, items[i][1]))
+                fact_pair_map.append(pos)
+                h_facts.append(0.0)  # placeholder
+                evidences.append(None)
+            else:
+                h_facts.append(DIVERGENCE_NEUTRAL)
+                evidences.append(None)
+
+        if fact_pairs:
+            fact_scores = self._nli.score_batch(fact_pairs)
+            for j, fs in enumerate(fact_scores):
+                h_facts[fact_pair_map[j]] = fs
+
+        # Assemble coherence scores
+        nli_available = True
+        for pos, i in enumerate(batch_idx):
+            h_logic = h_logics[pos]
+            h_fact = h_facts[pos]
+            evidence = evidences[pos]
+            coherence = 1.0 - (self.W_LOGIC * h_logic + self.W_FACT * h_fact)
+
+            # No-KB calibration
+            fact_is_neutral = abs(h_fact - DIVERGENCE_NEUTRAL) < 1e-9
+            if nli_available and fact_is_neutral and evidence is None:
+                lo = 1.0 - self.W_LOGIC - self.W_FACT * DIVERGENCE_NEUTRAL
+                hi = 1.0 - self.W_FACT * DIVERGENCE_NEUTRAL
+                span = hi - lo
+                if span > 1e-9:
+                    coherence = max(0.0, min(1.0, (coherence - lo) / span))
+
+            results[i] = self._finalise_review(
+                coherence, h_logic, h_fact, items[i][1], evidence,
+            )
+
+        return [r for r in results if r is not None]
 
     # â”€â”€ Async API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
