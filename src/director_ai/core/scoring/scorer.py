@@ -32,8 +32,7 @@ DIVERGENCE_CONTRADICTED = 0.9  # keyword heuristic: "opposite is true"
 # LLM-as-judge blending constants
 LLM_JUDGE_AGREE_DIVERGENCE = 0.2
 LLM_JUDGE_DISAGREE_DIVERGENCE = 0.8
-LLM_JUDGE_NLI_WEIGHT = 0.7
-LLM_JUDGE_LLM_WEIGHT = 0.3  # = 1 - NLI_WEIGHT
+LLM_JUDGE_LLM_WEIGHT = 0.3  # nli_w = 1.0 - llm_w * judge_conf
 
 # Dialogue detection: â‰Ą2 speaker-turn markers â†’ dialogue task.
 # Uses (?:^|\s) to match speakers at line start OR after whitespace
