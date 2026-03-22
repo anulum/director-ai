@@ -270,7 +270,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Generated gRPC protobuf stubs (`director_pb2.py`, `director_pb2_grpc.py`) from `proto/director.proto`.
 - `CoherenceAgent.aprocess()` and `CoherenceAgent.astream()` async methods.
 - `--cors-origins` flag on `director-ai serve`.
-- `CoherenceScorer.review_batch()` — coalesced batch NLI inference (2 GPU kernels instead of 2*N per batch).
+- `CoherenceScorer.review_batch()` — batch API (currently sequential per-item).
 - `ReviewQueue` — server-level continuous batching for `/v1/review` with configurable flush window.
 - Config fields: `review_queue_enabled`, `review_queue_max_batch`, `review_queue_flush_timeout_ms`.
 
@@ -279,7 +279,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - gRPC server fails fast when protobuf stubs missing instead of falling back to `SimpleNamespace`.
 - CLI `ingest --chunk-size` rejects values <= 0.
 - H_logical and H_factual computed in parallel via `ThreadPoolExecutor` (~40% latency reduction).
-- `BatchProcessor.review_batch()` delegates to `CoherenceScorer.review_batch()` for coalesced NLI.
+- `BatchProcessor.review_batch()` delegates to `CoherenceScorer.review_batch()` with serial fallback.
 - Server endpoints use async calls: `aprocess()`, `run_in_executor(scorer.review)`, `review_batch_async()`.
 - Sessions dict protected by `asyncio.Lock` for concurrent access safety.
 - OTel `_get_tracer()` lazy init for library users without server lifespan.

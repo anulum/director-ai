@@ -125,7 +125,7 @@ DIRECTOR_REVIEW_QUEUE_FLUSH_TIMEOUT_MS=10 \
 director-ai serve
 ```
 
-The queue collects concurrent `/v1/review` requests and flushes them as a single `review_batch()` call, reducing GPU kernel launches from 2×N to 2 per flush window.
+The queue collects concurrent `/v1/review` requests and flushes them as a single `review_batch()` call. Currently `review_batch()` routes items sequentially; the queue reduces per-request overhead, not NLI kernel launches.
 
 ## Full API
 

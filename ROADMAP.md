@@ -160,8 +160,8 @@
 
 ### Performance Sprint (Done)
 - H_logical and H_factual parallelised via `ThreadPoolExecutor` (~40% latency reduction)
-- `CoherenceScorer.review_batch()` — coalesced batch NLI (2 GPU kernels instead of 2*N)
-- `BatchProcessor.review_batch()` delegates to scorer coalesced path
+- `CoherenceScorer.review_batch()` — batch API (currently sequential per-item)
+- `BatchProcessor.review_batch()` delegates to scorer with serial fallback
 - `ReviewQueue` — server-level continuous batching for `/v1/review` with flush window
 - Config fields: `review_queue_enabled`, `review_queue_max_batch`, `review_queue_flush_timeout_ms`
 - TensorRT path verified deployment-ready (no code changes needed)

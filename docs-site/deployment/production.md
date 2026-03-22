@@ -143,7 +143,7 @@ def health():
 
 For API servers under concurrent load, enable server-level request accumulation.
 The queue collects incoming `/v1/review` requests and flushes them as a single
-`review_batch()` call, reducing GPU kernel launches from 2*N to 2 per flush window.
+`review_batch()` call. Currently `review_batch()` routes items sequentially; the queue reduces per-request overhead.
 
 ```python
 from director_ai.core.config import DirectorConfig
@@ -172,9 +172,9 @@ Session-bound requests (with `session_id`) bypass the queue automatically.
 
 | Mode | GPU Kernels | Per-Pair Latency | Use Case |
 |------|-------------|------------------|----------|
-| `review()` serial | 2*N | 14.6 ms (ONNX GPU) | Single requests |
-| `review_batch()` | 2 | ~14.6 ms amortised | Batch API (`/v1/batch`) |
-| ReviewQueue (10ms flush) | ~2 per window | 10-20 ms p95 | High-concurrency API |
+| `review()` serial | 2 per pair | 14.6 ms (ONNX GPU) | Single requests |
+| `review_batch()` | 2 per pair (sequential) | 14.6 ms per pair | Batch API (`/v1/batch`) |
+| ReviewQueue (10ms flush) | 2 per pair (queued) | 10-20 ms p95 | High-concurrency API |
 
 ## Security
 

@@ -82,7 +82,7 @@ LLM Provider ──► guard() / CoherenceAgent
                       │       ├── H_logical + H_factual (parallel)
                       │       ├── NLIScorer (DeBERTa/FactCG/ONNX/Rust)
                       │       ├── GroundTruthStore / VectorGroundTruthStore
-                      │       ├── review_batch() — coalesced NLI (2 kernels)
+                      │       ├── review_batch() — sequential per-item scoring
                       │       └── _heuristics (fallback)
                       │
                       ├──► ReviewQueue (continuous batching)

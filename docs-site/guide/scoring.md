@@ -112,7 +112,7 @@ print(f"Size: {scorer.cache.size}")
 
 ## Batch Scoring
 
-Score multiple pairs in 2 GPU kernel calls instead of 2×N:
+Score multiple pairs (currently sequential; for parallel execution, use `BatchProcessor`):
 
 ```python
 items = [

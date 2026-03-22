@@ -145,7 +145,7 @@ See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/dir
 ### Added
 - Generated gRPC protobuf stubs from `proto/director.proto`
 - `CoherenceAgent.aprocess()` and `CoherenceAgent.astream()` async methods
-- `CoherenceScorer.review_batch()` — coalesced batch NLI (2 GPU kernels instead of 2*N)
+- `CoherenceScorer.review_batch()` — batch API (currently sequential; coalesced via BatchProcessor)
 - `ReviewQueue` — server-level continuous batching with configurable flush window
 - `--cors-origins` flag on `director-ai serve`
 
