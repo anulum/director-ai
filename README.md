@@ -140,6 +140,7 @@ pip install director-ai                      # heuristic-only (limited accuracy)
 
 Extras: `[vector]` (ChromaDB), `[finetune]` (domain adaptation), `[ingestion]` (PDF/DOCX parsing), `[colbert]` (late-interaction retrieval).
 Framework integrations: `[langchain]`, `[llamaindex]`, `[langgraph]`, `[haystack]`, `[crewai]`.
+Voice AI: `VoiceGuard` — real-time token filter for TTS pipelines ([guide](https://anulum.github.io/director-ai/guide/voice-ai/)).
 
 Full installation guide: [docs](https://anulum.github.io/director-ai/installation/).
 

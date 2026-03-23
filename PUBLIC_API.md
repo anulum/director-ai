@@ -24,6 +24,8 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `VerifiedScorer` | `core.verified_scorer` | Sentence-level multi-signal fact verifier |
 | `DatasetTypeClassifier` | `core.meta_classifier` | Adaptive threshold via dataset-type prediction |
 | `MetaClassifier` | `core.meta_classifier` | Alias for `DatasetTypeClassifier` (backward compat) |
+| `VoiceGuard` | `integrations.voice` | Real-time token filter for voice AI / TTS pipelines |
+| `VoiceToken` | `integrations.voice` | Per-token result from VoiceGuard.feed() |
 
 ## Verified Scoring Types
 

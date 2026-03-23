@@ -11,6 +11,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`guard()`](guard.md) | `director_ai` | Wrap an LLM SDK client with coherence scoring |
 | [`score()`](guard.md#score) | `director_ai` | Score a single prompt/response pair |
 | [`get_score()`](guard.md#get_score) | `director_ai` | Retrieve last score from `on_fail="metadata"` |
+| [`VoiceGuard`](../guide/voice-ai.md) | `director_ai.integrations.voice` | Real-time token filter for voice AI / TTS pipelines |
 
 ### Core Classes
 
