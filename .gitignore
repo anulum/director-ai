@@ -149,6 +149,7 @@ logs/
 *.npz
 *.pkl
 !src/director_ai/models/*.pkl
+!src/director_ai/core/models/*.pkl
 *.pickle
 benchmarks/results/
 benchmarks/.cache/
