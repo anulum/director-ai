@@ -81,7 +81,7 @@ class TestNonEvidenceEscalation:
         mock_openai, client = _mock_openai_yes()
         with patch.dict(sys.modules, {"openai": mock_openai}):
             result = scorer.calculate_factual_divergence(
-                "weather?",
+                "weather",
                 "The weather will be sunny and warm tomorrow.",
             )
         assert 0.0 <= result <= 1.0
@@ -111,11 +111,11 @@ class TestJudgeCache:
         mock_openai, client = _mock_openai_yes()
         with patch.dict(sys.modules, {"openai": mock_openai}):
             r1 = scorer.calculate_factual_divergence(
-                "weather?",
+                "weather",
                 "The weather will be sunny and warm tomorrow.",
             )
             r2 = scorer.calculate_factual_divergence(
-                "weather?",
+                "weather",
                 "The weather will be sunny and warm tomorrow.",
             )
 
