@@ -1,185 +1,114 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Package Initialisation
+# Director-Class AI — Package Initialisation (Lazy Imports)
 
 """Director-AI: Real-time LLM hallucination guardrail.
 
+All public symbols are available via ``from director_ai import X``.
+Imports are deferred until first access to keep ``import director_ai``
+under 0.1 seconds.
+
 ::
 
-    from director_ai.core import CoherenceAgent, CoherenceScorer, HaltMonitor
+    from director_ai import guard, score, CoherenceScorer
 """
 
 __version__ = "3.9.5"
 
-from .core import (
-    AsyncStreamingKernel,
-    BatchProcessor,
-    BatchResult,
-    ChromaBackend,
-    ClaimAttribution,
-    ClaimVerdict,
-    CoherenceAgent,
-    CoherenceScore,
-    CoherenceScorer,
-    ColBERTBackend,
-    ConversationSession,
-    DataQualityReport,
-    DatasetTypeClassifier,
-    DirectorConfig,
-    ElasticsearchBackend,
-    EvidenceChunk,
-    FAISSBackend,
-    FinetuneConfig,
-    FinetuneResult,
-    GroundTruthStore,
-    HaltEvidence,
-    HaltMonitor,
-    HybridBackend,
-    InMemoryBackend,
-    InputSanitizer,
-    LiteScorer,
-    LLMGenerator,
-    MetaClassifier,
-    MockGenerator,
-    NLIScorer,
-    PineconeBackend,
-    QdrantBackend,
-    RegressionReport,
-    RerankedBackend,
-    ReviewQueue,
-    ReviewResult,
-    SafetyKernel,
-    SanitizeResult,
-    ScoreCache,
-    ScorerBackend,
-    ScoringEvidence,
-    SentenceTransformerBackend,
-    ShardedNLIScorer,
-    StreamingKernel,
-    StreamSession,
-    TokenEvent,
-    TuneResult,
-    Turn,
-    VectorBackend,
-    VectorGroundTruthStore,
-    VerificationResult,
-    VerifiedScorer,
-    WeaviateBackend,
-    benchmark_finetuned_model,
-    clear_model_cache,
-    export_onnx,
-    export_tensorrt,
-    finetune_nli,
-    get_backend,
-    get_vector_backend,
-    list_backends,
-    list_vector_backends,
-    nli_available,
-    register_backend,
-    register_vector_backend,
-    tune,
-    validate_finetune_data,
-)
-from .core.exceptions import (
-    CoherenceError,
-    DependencyError,
-    DirectorAIError,
-    GeneratorError,
-    HallucinationError,
-    KernelHaltError,
-    NumericalError,
-    PhysicsError,
-    ValidationError,
-)
-from .integrations.sdk_guard import get_score, guard, score
-from .integrations.voice import VoiceGuard, VoiceToken
+# Symbol → (module_path, attribute_name)
+# Module paths are relative to director_ai package.
+_LAZY_IMPORTS: dict[str, tuple[str, str]] = {
+    # Core classes
+    "AsyncStreamingKernel": (".core", "AsyncStreamingKernel"),
+    "BatchProcessor": (".core", "BatchProcessor"),
+    "BatchResult": (".core", "BatchResult"),
+    "ChromaBackend": (".core", "ChromaBackend"),
+    "ClaimAttribution": (".core", "ClaimAttribution"),
+    "ClaimVerdict": (".core", "ClaimVerdict"),
+    "CoherenceAgent": (".core", "CoherenceAgent"),
+    "CoherenceScore": (".core", "CoherenceScore"),
+    "CoherenceScorer": (".core", "CoherenceScorer"),
+    "ColBERTBackend": (".core", "ColBERTBackend"),
+    "ConversationSession": (".core", "ConversationSession"),
+    "DataQualityReport": (".core", "DataQualityReport"),
+    "DatasetTypeClassifier": (".core", "DatasetTypeClassifier"),
+    "DirectorConfig": (".core", "DirectorConfig"),
+    "ElasticsearchBackend": (".core", "ElasticsearchBackend"),
+    "EvidenceChunk": (".core", "EvidenceChunk"),
+    "FAISSBackend": (".core", "FAISSBackend"),
+    "FinetuneConfig": (".core", "FinetuneConfig"),
+    "FinetuneResult": (".core", "FinetuneResult"),
+    "GroundTruthStore": (".core", "GroundTruthStore"),
+    "HaltEvidence": (".core", "HaltEvidence"),
+    "HaltMonitor": (".core", "HaltMonitor"),
+    "HybridBackend": (".core", "HybridBackend"),
+    "InMemoryBackend": (".core", "InMemoryBackend"),
+    "InputSanitizer": (".core", "InputSanitizer"),
+    "LiteScorer": (".core", "LiteScorer"),
+    "LLMGenerator": (".core", "LLMGenerator"),
+    "MetaClassifier": (".core", "MetaClassifier"),
+    "MockGenerator": (".core", "MockGenerator"),
+    "NLIScorer": (".core", "NLIScorer"),
+    "PineconeBackend": (".core", "PineconeBackend"),
+    "QdrantBackend": (".core", "QdrantBackend"),
+    "RegressionReport": (".core", "RegressionReport"),
+    "RerankedBackend": (".core", "RerankedBackend"),
+    "ReviewQueue": (".core", "ReviewQueue"),
+    "ReviewResult": (".core", "ReviewResult"),
+    "SafetyKernel": (".core", "SafetyKernel"),
+    "SanitizeResult": (".core", "SanitizeResult"),
+    "ScoreCache": (".core", "ScoreCache"),
+    "ScorerBackend": (".core", "ScorerBackend"),
+    "ScoringEvidence": (".core", "ScoringEvidence"),
+    "SentenceTransformerBackend": (".core", "SentenceTransformerBackend"),
+    "ShardedNLIScorer": (".core", "ShardedNLIScorer"),
+    "StreamingKernel": (".core", "StreamingKernel"),
+    "StreamSession": (".core", "StreamSession"),
+    "TokenEvent": (".core", "TokenEvent"),
+    "TuneResult": (".core", "TuneResult"),
+    "Turn": (".core", "Turn"),
+    "VectorBackend": (".core", "VectorBackend"),
+    "VectorGroundTruthStore": (".core", "VectorGroundTruthStore"),
+    "VerificationResult": (".core", "VerificationResult"),
+    "VerifiedScorer": (".core", "VerifiedScorer"),
+    "WeaviateBackend": (".core", "WeaviateBackend"),
+    # Core functions
+    "benchmark_finetuned_model": (".core", "benchmark_finetuned_model"),
+    "clear_model_cache": (".core", "clear_model_cache"),
+    "export_onnx": (".core", "export_onnx"),
+    "export_tensorrt": (".core", "export_tensorrt"),
+    "finetune_nli": (".core", "finetune_nli"),
+    "get_backend": (".core", "get_backend"),
+    "get_vector_backend": (".core", "get_vector_backend"),
+    "list_backends": (".core", "list_backends"),
+    "list_vector_backends": (".core", "list_vector_backends"),
+    "nli_available": (".core", "nli_available"),
+    "register_backend": (".core", "register_backend"),
+    "register_vector_backend": (".core", "register_vector_backend"),
+    "tune": (".core", "tune"),
+    "validate_finetune_data": (".core", "validate_finetune_data"),
+    # Exceptions
+    "CoherenceError": (".core.exceptions", "CoherenceError"),
+    "DependencyError": (".core.exceptions", "DependencyError"),
+    "DirectorAIError": (".core.exceptions", "DirectorAIError"),
+    "GeneratorError": (".core.exceptions", "GeneratorError"),
+    "HallucinationError": (".core.exceptions", "HallucinationError"),
+    "KernelHaltError": (".core.exceptions", "KernelHaltError"),
+    "NumericalError": (".core.exceptions", "NumericalError"),
+    "PhysicsError": (".core.exceptions", "PhysicsError"),
+    "ValidationError": (".core.exceptions", "ValidationError"),
+    # Integrations
+    "get_score": (".integrations.sdk_guard", "get_score"),
+    "guard": (".integrations.sdk_guard", "guard"),
+    "score": (".integrations.sdk_guard", "score"),
+    "VoiceGuard": (".integrations.voice", "VoiceGuard"),
+    "VoiceToken": (".integrations.voice", "VoiceToken"),
+}
 
-__all__ = [
-    "AsyncStreamingKernel",
-    "BatchProcessor",
-    "BatchResult",
-    "ChromaBackend",
-    "ClaimAttribution",
-    "ClaimVerdict",
-    "CoherenceAgent",
-    "CoherenceError",
-    "CoherenceScore",
-    "CoherenceScorer",
-    "ColBERTBackend",
-    "ConversationSession",
-    "DataQualityReport",
-    "DatasetTypeClassifier",
-    "DependencyError",
-    "DirectorAIError",
-    "DirectorConfig",
-    "ElasticsearchBackend",
-    "EvidenceChunk",
-    "FAISSBackend",
-    "FinetuneConfig",
-    "FinetuneResult",
-    "GeneratorError",
-    "GroundTruthStore",
-    "HallucinationError",
-    "HaltEvidence",
-    "HaltMonitor",
-    "HybridBackend",
-    "InMemoryBackend",
-    "InputSanitizer",
-    "KernelHaltError",
-    "LLMGenerator",
-    "LiteScorer",
-    "MetaClassifier",
-    "MockGenerator",
-    "NLIScorer",
-    "NumericalError",
-    "PhysicsError",
-    "PineconeBackend",
-    "QdrantBackend",
-    "RegressionReport",
-    "RerankedBackend",
-    "ReviewQueue",
-    "ReviewResult",
-    "SafetyKernel",
-    "SanitizeResult",
-    "ScoreCache",
-    "ScorerBackend",
-    "ScoringEvidence",
-    "SentenceTransformerBackend",
-    "ShardedNLIScorer",
-    "StreamSession",
-    "StreamingKernel",
-    "TokenEvent",
-    "TuneResult",
-    "Turn",
-    "ValidationError",
-    "VectorBackend",
-    "VectorGroundTruthStore",
-    "VoiceGuard",
-    "VoiceToken",
-    "VerificationResult",
-    "VerifiedScorer",
-    "WeaviateBackend",
-    "benchmark_finetuned_model",
-    "clear_model_cache",
-    "export_onnx",
-    "export_tensorrt",
-    "finetune_nli",
-    "get_backend",
-    "get_score",
-    "get_vector_backend",
-    "guard",
-    "list_backends",
-    "list_vector_backends",
-    "nli_available",
-    "register_backend",
-    "register_vector_backend",
-    "score",
-    "tune",
-    "validate_finetune_data",
-]
+__all__ = sorted(_LAZY_IMPORTS)
 
 _MOVED_TO_ENTERPRISE = {
     "TenantRouter",
@@ -191,6 +120,15 @@ _MOVED_TO_ENTERPRISE = {
 
 
 def __getattr__(name: str):
+    if name in _LAZY_IMPORTS:
+        module_path, attr = _LAZY_IMPORTS[name]
+        import importlib
+
+        mod = importlib.import_module(module_path, __name__)
+        val = getattr(mod, attr)
+        # Cache in module globals for subsequent access without __getattr__
+        globals()[name] = val
+        return val
     if name in _MOVED_TO_ENTERPRISE:
         raise ImportError(
             f"{name} moved to director_ai.enterprise in v3.0. "

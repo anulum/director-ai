@@ -1,0 +1,6 @@
+{
+  "enabledMcpjsonServers": [
+    "remanentia"
+  ],
+  "enableAllProjectMcpServers": true
+}
