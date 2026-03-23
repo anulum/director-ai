@@ -95,6 +95,7 @@ from .core.exceptions import (
     ValidationError,
 )
 from .integrations.sdk_guard import get_score, guard, score
+from .integrations.voice import VoiceGuard, VoiceToken
 
 __all__ = [
     "AsyncStreamingKernel",
@@ -156,6 +157,8 @@ __all__ = [
     "ValidationError",
     "VectorBackend",
     "VectorGroundTruthStore",
+    "VoiceGuard",
+    "VoiceToken",
     "VerificationResult",
     "VerifiedScorer",
     "WeaviateBackend",
