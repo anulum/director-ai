@@ -1541,6 +1541,7 @@ class CoherenceScorer:
             return [r for r in results if r is not None]
 
         # Coalesced NLI: batch logical pairs
+        assert self._nli is not None  # guarded by nli_ok check above
         logic_pairs = [(items[i][0], items[i][1]) for i in batch_idx]
         h_logics = self._nli.score_batch(logic_pairs)
 
