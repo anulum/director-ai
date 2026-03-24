@@ -97,6 +97,17 @@ See [Structured Verification Guide](../guide/structured-verification.md).
 
 See [Online Calibration Guide](../guide/online-calibration.md).
 
+### EU AI Act Compliance (v3.10.0+)
+
+| Class | Module | Purpose |
+|-------|--------|---------|
+| `AuditLog` | `compliance.audit_log` | SQLite audit trail for every scored interaction |
+| `AuditEntry` | `compliance.audit_log` | Single interaction record |
+| `ComplianceReporter` | `compliance.reporter` | Article 15 report generator |
+| `Article15Report` | `compliance.reporter` | Structured report with metrics, drift, incidents |
+
+See [Compliance Reporting Guide](../guide/compliance-reporting.md).
+
 ## Import Patterns
 
 ```python
@@ -109,6 +120,9 @@ from director_ai import verify_json, verify_tool_call, verify_code
 
 # v3.10.0: Online calibration
 from director_ai import FeedbackStore, OnlineCalibrator, CalibrationReport
+
+# v3.10.0: EU AI Act compliance
+from director_ai import AuditLog, AuditEntry, ComplianceReporter, Article15Report
 
 # v3.10.0: Meta-confidence
 from director_ai import compute_meta_confidence, ContradictionTracker

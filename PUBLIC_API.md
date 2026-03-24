@@ -234,6 +234,15 @@ Result types: `StructuredVerificationResult`, `ToolCallResult`, `CodeCheckResult
 | `OnlineCalibrator` | `core.calibration.online_calibrator` | Threshold sweep + FPR/FNR with Wilson CIs |
 | `CalibrationReport` | `core.calibration.online_calibrator` | Calibration metrics dataclass |
 
+## EU AI Act Compliance (v3.10.0+)
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `AuditLog` | `compliance.audit_log` | SQLite audit trail for every scored LLM interaction |
+| `AuditEntry` | `compliance.audit_log` | Single interaction record dataclass |
+| `ComplianceReporter` | `compliance.reporter` | Article 15 report generator (metrics, drift, incidents) |
+| `Article15Report` | `compliance.reporter` | Structured report with `to_markdown()` export |
+
 ## Exceptions
 
 | Exception | Module |

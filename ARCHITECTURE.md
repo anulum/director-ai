@@ -44,6 +44,10 @@ director-ai/
 │   │   ├── calibration/            (v3.10.0)
 │   │   │   ├── feedback_store.py  SQLite human correction store
 │   │   │   └── online_calibrator.py  Threshold sweep + CIs
+│   │
+│   ├── compliance/                 (v3.10.0 — EU AI Act Article 15)
+│   │   ├── audit_log.py           Scored interaction audit trail
+│   │   └── reporter.py            Article15Report + drift detection
 │   │   ├── training/
 │   │   │   ├── finetune.py        NLI fine-tuning
 │   │   │   ├── finetune_benchmark.py  Pre/post benchmark

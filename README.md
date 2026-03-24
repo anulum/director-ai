@@ -43,7 +43,7 @@ graph LR
     V -->|No| H["HALT + evidence"]
 ```
 
-**Six things make it different:**
+**Seven things make it different:**
 
 1. **Token-level streaming halt** — not post-hoc review. Severs output the moment coherence degrades.
 2. **Dual-entropy scoring** — NLI contradiction detection (DeBERTa) + RAG fact-checking against your knowledge base.
@@ -51,6 +51,7 @@ graph LR
 4. **Structured output verification** — JSON schema validation, tool call fabrication detection, code hallucinated API detection. Zero dependencies (stdlib only).
 5. **Online calibration** — collects human feedback, automatically adjusts thresholds for your deployment. The longer you use it, the better it gets.
 6. **Contradiction tracking** — detects when an AI contradicts itself across conversation turns.
+7. **EU AI Act compliance** — automated Article 15 documentation. Accuracy metrics, drift detection, audit trails, per-model breakdown with confidence intervals. Ready for August 2026 enforcement.
 
 ### Scope
 

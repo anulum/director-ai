@@ -141,6 +141,7 @@ nav:
       - Meta-Confidence: guide/meta-confidence.md
       - Structured Verification: guide/structured-verification.md
       - Online Calibration: guide/online-calibration.md
+      - Compliance Reporting: guide/compliance-reporting.md
       - Architecture: guide/architecture.md
       - Enterprise: guide/enterprise.md
       - AGPL Compliance: guide/agpl-compliance.md
