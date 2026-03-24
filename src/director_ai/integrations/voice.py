@@ -26,6 +26,7 @@ Usage::
 
 from __future__ import annotations
 
+import threading
 from collections import deque
 from dataclasses import dataclass
 
@@ -104,6 +105,7 @@ class VoiceGuard:
         self._soft_halt = soft_halt
         self._recovery = recovery
 
+        self._lock = threading.Lock()
         self._tokens: list[str] = []
         self._scores: deque[float] = deque(maxlen=window_size)
         self._index = 0
@@ -125,12 +127,13 @@ class VoiceGuard:
 
     def reset(self) -> None:
         """Reset state for a new utterance (new turn in conversation)."""
-        self._tokens.clear()
-        self._scores.clear()
-        self._index = 0
-        self._halted = False
-        self._pending_halt = False
-        self._last_score = 1.0
+        with self._lock:
+            self._tokens.clear()
+            self._scores.clear()
+            self._index = 0
+            self._halted = False
+            self._pending_halt = False
+            self._last_score = 1.0
 
     def feed(self, token: str) -> VoiceToken:
         """Feed one token from the LLM stream. Returns scoring result.
@@ -138,6 +141,10 @@ class VoiceGuard:
         Call this for every token the LLM generates. Pass the returned
         token to TTS only if ``result.halted`` is False.
         """
+        with self._lock:
+            return self._feed_locked(token)
+
+    def _feed_locked(self, token: str) -> VoiceToken:
         if self._halted:
             return VoiceToken(
                 token=token,
