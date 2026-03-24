@@ -26,9 +26,8 @@ Usage::
 
 from __future__ import annotations
 
-import time
 from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from director_ai.core.retrieval.knowledge import GroundTruthStore
 from director_ai.core.scoring.scorer import CoherenceScorer

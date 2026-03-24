@@ -101,8 +101,12 @@ class TestGetMetaClassifier:
         scorer = CoherenceScorer(use_nli=False)
         scorer._adaptive_threshold_enabled = True
         scorer._meta_classifier_path = ""
-        result = scorer._get_meta_classifier()
-        assert result is None
+        with patch(
+            "director_ai.core.scoring.scorer.Path.exists",
+            return_value=False,
+        ):
+            result = scorer._get_meta_classifier()
+            assert result is None
 
     def test_meta_classifier_path_import_error(self):
         scorer = CoherenceScorer(use_nli=False)

@@ -9,8 +9,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from director_ai.integrations.voice import VoiceGuard, VoiceToken
 
 
