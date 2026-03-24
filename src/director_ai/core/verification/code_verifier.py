@@ -94,7 +94,7 @@ def _extract_function_calls(tree: ast.Module) -> list[str]:
         if isinstance(node, ast.Call):
             if isinstance(node.func, ast.Attribute):
                 parts = []
-                obj = node.func
+                obj: ast.expr = node.func
                 while isinstance(obj, ast.Attribute):
                     parts.append(obj.attr)
                     obj = obj.value

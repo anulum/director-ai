@@ -69,7 +69,7 @@ def _check_type(value, expected_type: str) -> bool:
         return True
     if expected_type == "integer" and isinstance(value, bool):
         return False
-    return isinstance(value, expected)
+    return isinstance(value, expected)  # type: ignore[arg-type]
 
 
 def _validate_schema(
