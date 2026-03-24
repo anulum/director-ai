@@ -122,6 +122,10 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "create_app": (".server", "create_app"),
     "create_grpc_server": (".grpc_server", "create_grpc_server"),
     "create_knowledge_router": (".knowledge_api", "create_knowledge_router"),
+    # Structured output verification (stdlib only, no torch)
+    "verify_json": (".core.verification.json_verifier", "verify_json"),
+    "verify_tool_call": (".core.verification.tool_call_verifier", "verify_tool_call"),
+    "verify_code": (".core.verification.code_verifier", "verify_code"),
 }
 
 __all__ = sorted(_LAZY_IMPORTS)
