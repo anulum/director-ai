@@ -56,24 +56,5 @@ jobs:
             dist/*.whl
             sbom.json
 
-  publish:
-    name: Publish to PyPI
-    needs: release
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write
-    steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
-
-      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
-        with:
-          python-version: "3.12"
-
-      - name: Build sdist and wheel
-        run: |
-          pip install 'build==1.4.0'
-          python -m build
-
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@76f52bc884231f62b9a034ebfe128415bbaabdfc # v1.12.4
+  # PyPI publishing handled by publish.yml (triggered by release: [published]).
+  # Do NOT add a publish job here — the trusted publisher is configured for publish.yml.
