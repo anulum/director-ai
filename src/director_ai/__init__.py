@@ -28,6 +28,18 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "ChromaBackend": (".core", "ChromaBackend"),
     "ClaimAttribution": (".core", "ClaimAttribution"),
     "ClaimVerdict": (".core", "ClaimVerdict"),
+    "compute_meta_confidence": (
+        ".core.scoring.meta_confidence",
+        "compute_meta_confidence",
+    ),
+    "ContradictionReport": (
+        ".core.runtime.contradiction_tracker",
+        "ContradictionReport",
+    ),
+    "ContradictionTracker": (
+        ".core.runtime.contradiction_tracker",
+        "ContradictionTracker",
+    ),
     "CoherenceAgent": (".core", "CoherenceAgent"),
     "CoherenceScore": (".core", "CoherenceScore"),
     "CoherenceScorer": (".core", "CoherenceScorer"),

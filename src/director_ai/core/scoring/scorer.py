@@ -1323,6 +1323,16 @@ class CoherenceScorer:
         strict_rejected = self.strict_mode and not (
             self._nli and self._nli.model_available
         )
+
+        from .meta_confidence import compute_meta_confidence
+
+        vc, _mc, sa = compute_meta_confidence(
+            score=coherence,
+            threshold=t,
+            h_logical=h_logic,
+            h_factual=h_fact,
+        )
+
         score = CoherenceScore(
             score=coherence,
             approved=approved,
@@ -1331,6 +1341,8 @@ class CoherenceScorer:
             evidence=evidence,
             warning=warning,
             strict_mode_rejected=strict_rejected,
+            verdict_confidence=vc,
+            signal_agreement=sa,
         )
         return approved, score
 
@@ -1485,6 +1497,11 @@ class CoherenceScorer:
                 result[1].cross_turn_divergence = cross_turn
             if session is not None:
                 session.add_turn(prompt, action, result[1].score)
+                if self._nli and self._nli.model_available:
+                    report = session.update_contradictions(
+                        action, lambda p, h: self._nli.score(p, h)
+                    )
+                    result[1].contradiction_index = report.contradiction_index
             span.set_attribute("coherence.score", result[1].score)
             span.set_attribute("coherence.approved", result[0])
             span.set_attribute("coherence.cached", False)

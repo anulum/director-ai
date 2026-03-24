@@ -20,6 +20,8 @@ import threading
 import uuid
 from dataclasses import dataclass
 
+from .contradiction_tracker import ContradictionReport, ContradictionTracker
+
 __all__ = ["ConversationSession", "Turn"]
 
 
@@ -51,6 +53,7 @@ class ConversationSession:
         self._turns: list[Turn] = []
         self._lock = threading.Lock()
         self._turn_counter = 0
+        self._contradiction_tracker = ContradictionTracker(max_turns=max_turns)
 
     def add_turn(self, prompt: str, response: str, score: float) -> Turn:
         """Append a turn, evicting oldest if at capacity."""
@@ -73,6 +76,22 @@ class ConversationSession:
         """Concatenated prior responses for NLI premise construction."""
         with self._lock:
             return " ".join(t.response for t in self._turns)
+
+    def update_contradictions(self, response: str, score_fn) -> ContradictionReport:
+        """Score the new response against all prior responses for contradictions.
+
+        Parameters
+        ----------
+        response : str
+            The new response text.
+        score_fn : callable
+            ``score_fn(premise, hypothesis) -> float`` returning divergence.
+        """
+        return self._contradiction_tracker.update(response, score_fn)
+
+    def get_contradiction_report(self) -> ContradictionReport:
+        """Get the current contradiction report without adding a turn."""
+        return self._contradiction_tracker.get_report()
 
     def __len__(self) -> int:
         with self._lock:
