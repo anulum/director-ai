@@ -5,7 +5,7 @@
 <span class="version-badge">v3.10.0 — Meta-confidence, contradiction tracking, structured verification, online calibration</span>
 
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
-[![Tests](https://img.shields.io/badge/tests-2800%2B_passed-brightgreen)]()
+[![Tests](https://img.shields.io/badge/tests-3050%2B_passed-brightgreen)]()
 [![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://github.com/anulum/director-ai/blob/main/LICENSE)
 [![Python](https://img.shields.io/pypi/pyversions/director-ai)](https://pypi.org/project/director-ai/)
 

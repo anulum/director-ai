@@ -31,7 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `OnlineCalibrator` — threshold sweep on accumulated labeled data,
     deployment-specific FPR/FNR with Wilson confidence intervals
   - `CalibrationReport` — accuracy, error rates, optimal threshold, CIs
-- 106 new tests across 7 test files.
+- 100 new tests across 7 test files.
 - New top-level exports: `compute_meta_confidence`, `ContradictionTracker`,
   `ContradictionReport`, `verify_json`, `verify_tool_call`, `verify_code`,
   `FeedbackStore`, `OnlineCalibrator`, `CalibrationReport`.

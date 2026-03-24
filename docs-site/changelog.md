@@ -9,7 +9,7 @@ See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/dir
 - **Cross-turn contradiction tracking**: pairwise NLI across conversation turns, `contradiction_index`
 - **Structured output verification**: `verify_json()`, `verify_tool_call()`, `verify_code()` — stdlib only
 - **Online calibration**: `FeedbackStore` + `OnlineCalibrator` for deployment-specific threshold tuning with confidence intervals
-- 106 new tests, 17 new source files, zero new dependencies
+- 100 new tests, 17 new source files, zero new dependencies
 
 ## v3.9.4 (2026-03-20)
 
