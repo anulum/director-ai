@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-from director_ai.core.scoring.meta_classifier import (
+from director_ai.core.scoring.meta_classifier import (  # noqa: E402
     TEXT_FEATURE_COLS,
     extract_text_features,
 )
@@ -66,18 +66,22 @@ def load_cached_scores(path: str) -> dict[int, dict]:
     return by_idx
 
 
+def _ba_from_preds(preds: list[int], labels: list[int]) -> float:
+    tp = sum(1 for p, lab in zip(preds, labels, strict=True) if p == 1 and lab == 1)
+    tn = sum(1 for p, lab in zip(preds, labels, strict=True) if p == 0 and lab == 0)
+    pos = sum(1 for lab in labels if lab == 1)
+    neg = sum(1 for lab in labels if lab == 0)
+    tpr = tp / pos if pos > 0 else 0
+    tnr = tn / neg if neg > 0 else 0
+    return (tpr + tnr) / 2
+
+
 def sweep_threshold(labels: list[int], scores: list[float]) -> tuple[float, float]:
     """Find threshold maximizing balanced accuracy. Returns (threshold, ba)."""
     best_t, best_ba = 0.5, 0.0
     for t in np.arange(0.05, 0.96, 0.01):
         preds = [1 if s >= t else 0 for s in scores]
-        tp = sum(1 for p, l in zip(preds, labels) if p == 1 and l == 1)
-        tn = sum(1 for p, l in zip(preds, labels) if p == 0 and l == 0)
-        pos = sum(1 for l in labels if l == 1)
-        neg = sum(1 for l in labels if l == 0)
-        tpr = tp / pos if pos > 0 else 0
-        tnr = tn / neg if neg > 0 else 0
-        ba = (tpr + tnr) / 2
+        ba = _ba_from_preds(preds, labels)
         if ba > best_ba:
             best_ba = ba
             best_t = round(float(t), 2)
@@ -135,19 +139,17 @@ def main():
         features.append([feat[c] for c in TEXT_FEATURE_COLS])
         dataset_labels.append(ds_to_idx[score_entry["dataset"]])
 
-    X = np.array(features)
+    x_mat = np.array(features)
     y = np.array(dataset_labels)
-    logger.info("Feature matrix: %s, %d classes", X.shape, len(all_datasets))
+    logger.info("Feature matrix: %s, %d classes", x_mat.shape, len(all_datasets))
 
-    # Train with leave-one-dataset-out cross-validation
+    # Train with stratified 5-fold cross-validation
     from sklearn.linear_model import LogisticRegression
+    from sklearn.model_selection import cross_val_score
     from sklearn.preprocessing import StandardScaler
 
-    logger.info("Training with stratified 5-fold CV...")
-    from sklearn.model_selection import cross_val_score
-
     scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    x_scaled = scaler.fit_transform(x_mat)
 
     clf = LogisticRegression(
         max_iter=1000,
@@ -156,7 +158,7 @@ def main():
         C=1.0,
     )
 
-    cv_scores = cross_val_score(clf, X_scaled, y, cv=5, scoring="balanced_accuracy")
+    cv_scores = cross_val_score(clf, x_scaled, y, cv=5, scoring="balanced_accuracy")
     logger.info(
         "5-fold CV balanced accuracy: %.1f%% ± %.1f%%",
         cv_scores.mean() * 100,
@@ -164,8 +166,8 @@ def main():
     )
 
     # Train final model on all data
-    clf.fit(X_scaled, y)
-    train_acc = clf.score(X_scaled, y)
+    clf.fit(x_scaled, y)
+    train_acc = clf.score(x_scaled, y)
     logger.info("Train accuracy: %.1f%%", train_acc * 100)
 
     # Per-dataset optimal thresholds from cached NLI scores
@@ -187,7 +189,13 @@ def main():
         scores = [pair[1] for pair in by_dataset[ds_name]]
         best_t, best_ba = sweep_threshold(labels, scores)
         dataset_thresholds[ds_name] = best_t
-        logger.info("  %s: t=%.2f, BA=%.1f%% (%d samples)", ds_name, best_t, best_ba * 100, len(labels))
+        logger.info(
+            "  %s: t=%.2f, BA=%.1f%% (%d samples)",
+            ds_name,
+            best_t,
+            best_ba * 100,
+            len(labels),
+        )
         global_labels.extend(labels)
         global_scores.extend(scores)
 
@@ -195,22 +203,13 @@ def main():
     logger.info("Global threshold: t=%.2f, BA=%.1f%%", global_t, global_ba * 100)
 
     # Compute oracle BA (per-dataset thresholds)
-    oracle_correct = 0
-    oracle_total = 0
     per_ds_ba = {}
     for ds_name in sorted(by_dataset):
         t = dataset_thresholds[ds_name]
         labels = [pair[0] for pair in by_dataset[ds_name]]
         scores = [pair[1] for pair in by_dataset[ds_name]]
         preds = [1 if s >= t else 0 for s in scores]
-        tp = sum(1 for p, l in zip(preds, labels) if p == 1 and l == 1)
-        tn = sum(1 for p, l in zip(preds, labels) if p == 0 and l == 0)
-        pos = sum(1 for l in labels if l == 1)
-        neg = sum(1 for l in labels if l == 0)
-        tpr = tp / pos if pos > 0 else 0
-        tnr = tn / neg if neg > 0 else 0
-        ba = (tpr + tnr) / 2
-        per_ds_ba[ds_name] = ba
+        per_ds_ba[ds_name] = _ba_from_preds(preds, labels)
 
     oracle_ba = np.mean(list(per_ds_ba.values()))
     logger.info("Oracle BA (per-dataset thresholds): %.2f%%", oracle_ba * 100)
@@ -226,7 +225,7 @@ def main():
         "dataset_thresholds": dataset_thresholds,
         "confidence_gate": args.confidence_gate,
         "metadata": {
-            "train_samples": len(X),
+            "train_samples": len(x_mat),
             "n_classes": len(all_datasets),
             "cv_ba_mean": float(cv_scores.mean()),
             "cv_ba_std": float(cv_scores.std()),

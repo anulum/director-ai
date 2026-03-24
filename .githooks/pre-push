@@ -4,4 +4,4 @@
 # Mypy/pytest run in CI — pre-push catches the quick failures.
 set -e
 echo "Running preflight checks (lint gates)..."
-python tools/preflight.py --no-tests
+py -3.12 tools/preflight.py --no-tests

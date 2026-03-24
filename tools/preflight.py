@@ -26,7 +26,7 @@ GATES = [
     (
         "ruff-format",
         [
-            "python",
+            sys.executable,
             "-m",
             "ruff",
             "format",
@@ -39,13 +39,22 @@ GATES = [
     ),
     (
         "ruff-check",
-        ["python", "-m", "ruff", "check", "src/", "tests/", "examples/", "tools/"],
+        [
+            sys.executable,
+            "-m",
+            "ruff",
+            "check",
+            "src/",
+            "tests/",
+            "examples/",
+            "tools/",
+        ],
     ),
     ("version-sync", None),
     (
         "bandit",
         [
-            "python",
+            sys.executable,
             "-m",
             "bandit",
             "-r",
@@ -59,7 +68,7 @@ GATES = [
     (
         "mypy",
         [
-            "python",
+            sys.executable,
             "-m",
             "mypy",
             "src/director_ai/",
@@ -70,7 +79,7 @@ GATES = [
     (
         "pytest",
         [
-            "python",
+            sys.executable,
             "-m",
             "pytest",
             "tests/",
