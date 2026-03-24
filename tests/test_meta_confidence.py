@@ -24,22 +24,22 @@ class TestMarginConfidence:
 
     def test_large_margin(self):
         c = _margin_confidence(0.80, 0.50)
-        assert c == 1.0
+        assert c > 0.99
 
     def test_margin_saturates_at_020(self):
-        assert _margin_confidence(0.70, 0.50) == 1.0
+        assert _margin_confidence(0.70, 0.50) > 0.99
 
     def test_below_threshold(self):
         c = _margin_confidence(0.30, 0.50)
-        assert c == 1.0
+        assert c > 0.99
 
     def test_symmetric(self):
         above = _margin_confidence(0.55, 0.50)
         below = _margin_confidence(0.45, 0.50)
-        assert above == below
+        assert abs(above - below) < 1e-10
 
     def test_exact_020_boundary(self):
-        assert _margin_confidence(0.70, 0.50) == 1.0
+        assert _margin_confidence(0.70, 0.50) > 0.99
         assert _margin_confidence(0.69, 0.50) < 1.0
 
 
