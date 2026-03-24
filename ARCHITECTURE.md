@@ -36,6 +36,14 @@ director-ai/
 │   │   │   ├── sanitizer.py       InputSanitizer — prompt injection
 │   │   │   ├── policy.py          Policy — rule engine
 │   │   │   └── audit.py           AuditLogger — JSONL audit trail
+│   │   ├── verification/           (v3.10.0 — stdlib only)
+│   │   │   ├── json_verifier.py   JSON Schema + value grounding
+│   │   │   ├── tool_call_verifier.py  Tool existence + fabrication
+│   │   │   ├── code_verifier.py   Python AST + import + API check
+│   │   │   └── types.py           Result dataclasses
+│   │   ├── calibration/            (v3.10.0)
+│   │   │   ├── feedback_store.py  SQLite human correction store
+│   │   │   └── online_calibrator.py  Threshold sweep + CIs
 │   │   ├── training/
 │   │   │   ├── finetune.py        NLI fine-tuning
 │   │   │   ├── finetune_benchmark.py  Pre/post benchmark

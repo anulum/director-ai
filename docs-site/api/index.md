@@ -65,12 +65,53 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`ValidationError`](exceptions.md#validationerror) | Invalid configuration or input |
 | [`DependencyError`](exceptions.md#dependencyerror) | Required optional package missing |
 
+### Meta-Confidence & Contradiction (v3.10.0)
+
+| Symbol | Module | Purpose |
+|--------|--------|---------|
+| `compute_meta_confidence()` | `core.scoring.meta_confidence` | Verdict confidence from margin + signal agreement |
+| `ContradictionTracker` | `core.runtime.contradiction_tracker` | Pairwise cross-turn contradiction matrix |
+| `ContradictionReport` | `core.runtime.contradiction_tracker` | Contradiction summary (worst pair, trend) |
+
+See [Meta-Confidence Guide](../guide/meta-confidence.md).
+
+### Structured Output Verification (v3.10.0)
+
+| Function | Module | Purpose |
+|----------|--------|---------|
+| `verify_json()` | `core.verification.json_verifier` | JSON Schema validation + value grounding |
+| `verify_tool_call()` | `core.verification.tool_call_verifier` | Tool existence, arg validation, fabrication detection |
+| `verify_code()` | `core.verification.code_verifier` | Python syntax, import existence, hallucinated API detection |
+
+Result types: `StructuredVerificationResult`, `ToolCallResult`, `CodeCheckResult`, `FieldVerdict`.
+
+See [Structured Verification Guide](../guide/structured-verification.md).
+
+### Online Calibration (v3.10.0)
+
+| Class | Module | Purpose |
+|-------|--------|---------|
+| `FeedbackStore` | `core.calibration.feedback_store` | SQLite-backed human correction store |
+| `OnlineCalibrator` | `core.calibration.online_calibrator` | Threshold sweep + FPR/FNR with Wilson CIs |
+| `CalibrationReport` | `core.calibration.online_calibrator` | Calibration metrics dataclass |
+
+See [Online Calibration Guide](../guide/online-calibration.md).
+
 ## Import Patterns
 
 ```python
 # Top-level convenience imports
 from director_ai import guard, score, get_score
 from director_ai import CoherenceScorer, StreamingKernel, CoherenceAgent
+
+# v3.10.0: Structured verification (stdlib only, no torch)
+from director_ai import verify_json, verify_tool_call, verify_code
+
+# v3.10.0: Online calibration
+from director_ai import FeedbackStore, OnlineCalibrator, CalibrationReport
+
+# v3.10.0: Meta-confidence
+from director_ai import compute_meta_confidence, ContradictionTracker
 
 # Direct module imports (for type hints and advanced use)
 from director_ai.core.config import DirectorConfig

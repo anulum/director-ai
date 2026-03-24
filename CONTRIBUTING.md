@@ -86,6 +86,13 @@ The package lives in `src/director_ai/` with two profiles:
 | `core/safety/` | `policy.py` | `Policy`, `Violation` | YAML declarative policy engine |
 | `core/safety/` | `audit.py` | `AuditLogger`, `AuditEntry` | Structured JSON audit trail |
 | `core/safety/` | `sanitizer.py` | `InputSanitizer`, `SanitizeResult` | Prompt injection hardening |
+| `core/scoring/` | `meta_confidence.py` | `compute_meta_confidence` | Verdict confidence estimation (v3.10.0) |
+| `core/runtime/` | `contradiction_tracker.py` | `ContradictionTracker` | Cross-turn contradiction detection (v3.10.0) |
+| `core/verification/` | `json_verifier.py` | `verify_json()` | JSON Schema + value grounding (v3.10.0) |
+| `core/verification/` | `tool_call_verifier.py` | `verify_tool_call()` | Tool existence + fabrication detection (v3.10.0) |
+| `core/verification/` | `code_verifier.py` | `verify_code()` | Python syntax + hallucinated API detection (v3.10.0) |
+| `core/calibration/` | `feedback_store.py` | `FeedbackStore` | SQLite human correction store (v3.10.0) |
+| `core/calibration/` | `online_calibrator.py` | `OnlineCalibrator` | Threshold calibration from feedback (v3.10.0) |
 
 ### Integrations — `integrations/`
 

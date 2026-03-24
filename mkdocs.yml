@@ -138,6 +138,9 @@ nav:
       - Rust FFI: guide/rust-ffi.md
       - Streaming Overhead: guide/streaming-overhead.md
       - Voice AI: guide/voice-ai.md
+      - Meta-Confidence: guide/meta-confidence.md
+      - Structured Verification: guide/structured-verification.md
+      - Online Calibration: guide/online-calibration.md
       - Architecture: guide/architecture.md
       - Enterprise: guide/enterprise.md
       - AGPL Compliance: guide/agpl-compliance.md

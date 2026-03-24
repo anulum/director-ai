@@ -43,12 +43,14 @@ graph LR
     V -->|No| H["HALT + evidence"]
 ```
 
-**Four things make it different:**
+**Six things make it different:**
 
 1. **Token-level streaming halt** — not post-hoc review. Severs output the moment coherence degrades.
 2. **Dual-entropy scoring** — NLI contradiction detection (DeBERTa) + RAG fact-checking against your knowledge base.
-3. **Server-level batching** — FastAPI server with request queue, WebSocket streaming, and multi-tenant isolation.
-4. **Your data, your rules** — ingest your own documents. The scorer checks against *your* ground truth.
+3. **Meta-confidence** — the guardrail tells you how confident it is in its own verdict. Route low-confidence results to human review.
+4. **Structured output verification** — JSON schema validation, tool call fabrication detection, code hallucinated API detection. Zero dependencies (stdlib only).
+5. **Online calibration** — collects human feedback, automatically adjusts thresholds for your deployment. The longer you use it, the better it gets.
+6. **Contradiction tracking** — detects when an AI contradicts itself across conversation turns.
 
 ### Scope
 
