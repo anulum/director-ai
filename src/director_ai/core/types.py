@@ -89,10 +89,18 @@ class CoherenceScore:
     warning: bool = False
     cross_turn_divergence: float | None = None
     strict_mode_rejected: bool = False
-    verdict_confidence: float | None = None  # 0-1, guardrail confidence in its own verdict
-    nli_model_confidence: float | None = None  # 0-1, NLI softmax entropy-based confidence
-    signal_agreement: float | None = None  # 0-1, agreement between h_logical and h_factual
-    contradiction_index: float | None = None  # 0-1, cross-turn self-contradiction severity
+    verdict_confidence: float | None = (
+        None  # 0-1, guardrail confidence in its own verdict
+    )
+    nli_model_confidence: float | None = (
+        None  # 0-1, NLI softmax entropy-based confidence
+    )
+    signal_agreement: float | None = (
+        None  # 0-1, agreement between h_logical and h_factual
+    )
+    contradiction_index: float | None = (
+        None  # 0-1, cross-turn self-contradiction severity
+    )
 
 
 @dataclass
