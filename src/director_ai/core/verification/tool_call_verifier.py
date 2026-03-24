@@ -116,7 +116,10 @@ def verify_tool_call(
                     expected_type = param_def.get("type")
                     if expected_type:
                         py_type = _JSON_SCHEMA_TYPE_MAP.get(expected_type)
-                        if py_type and not isinstance(val, py_type):  # type: ignore[arg-type]
+                        is_wrong = py_type and not isinstance(val, py_type)  # type: ignore[arg-type]
+                        if expected_type == "integer" and isinstance(val, bool):
+                            is_wrong = True
+                        if is_wrong:
                             arguments_valid = False
                             verdicts.append(
                                 FieldVerdict(

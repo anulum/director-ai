@@ -78,23 +78,26 @@ class ContradictionTracker:
         ContradictionReport
         """
         n = len(self._responses)
+        evict = n >= self._max_turns
 
-        if n >= self._max_turns:
+        # Compute scores BEFORE any mutation so exception leaves state intact
+        score_against = self._responses[1:] if evict else self._responses
+        new_row: list[float] = []
+        for i in range(len(score_against)):
+            div = score_fn(score_against[i], response)
+            new_row.append(div)
+
+        # Now mutate (no external calls from here)
+        if evict:
             self._responses.pop(0)
             self._matrix.pop(0)
             for row in self._matrix:
                 row.pop(0)
-            n -= 1
-
-        new_row: list[float] = []
-        for i in range(n):
-            div = score_fn(self._responses[i], response)
-            new_row.append(div)
 
         self._responses.append(response)
 
         for i, row in enumerate(self._matrix):
-            row.append(new_row[i] if i < len(new_row) else 0.0)
+            row.append(new_row[i])
         self._matrix.append(new_row + [0.0])
 
         return self._build_report()

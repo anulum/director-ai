@@ -36,7 +36,7 @@ def _wilson_ci(successes: int, total: int, z: float = 1.96) -> float:
     denom = 1 + z * z / total
     center = (p + z * z / (2 * total)) / denom
     spread = z * math.sqrt((p * (1 - p) + z * z / (4 * total)) / total) / denom
-    return min(spread, max(center, 1 - center))
+    return min(spread, center, 1 - center)
 
 
 @dataclass
@@ -137,18 +137,25 @@ class OnlineCalibrator:
     @staticmethod
     def _sweep_threshold(
         scored: list[tuple[float, bool]],
-    ) -> float:
-        """Find threshold maximizing balanced accuracy on labeled data."""
+    ) -> float | None:
+        """Find threshold maximizing balanced accuracy on labeled data.
+
+        Returns None if the data has only one class (no calibration signal).
+        Sweeps thresholds from 0.05 to 0.95 in 1% steps.
+        """
+        pos = sum(1 for _, h in scored if h)
+        neg = len(scored) - pos
+        if pos == 0 or neg == 0:
+            return None
+
         best_t = 0.5
         best_ba = 0.0
         for t_int in range(5, 96):
             t = t_int / 100.0
             tp = sum(1 for s, h in scored if s >= t and h)
             tn = sum(1 for s, h in scored if s < t and not h)
-            pos = sum(1 for _, h in scored if h)
-            neg = sum(1 for _, h in scored if not h)
-            tpr = tp / pos if pos > 0 else 0
-            tnr = tn / neg if neg > 0 else 0
+            tpr = tp / pos
+            tnr = tn / neg
             ba = (tpr + tnr) / 2
             if ba > best_ba:
                 best_ba = ba

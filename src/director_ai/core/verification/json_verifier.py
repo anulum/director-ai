@@ -30,7 +30,7 @@ from .types import FieldVerdict, StructuredVerificationResult
 
 __all__ = ["verify_json"]
 
-_NUMERIC_RE = re.compile(r"^-?\d+(\.\d+)?$")
+_NUMERIC_RE = re.compile(r"^-?\d+(\.\d+)?([eE][+-]?\d+)?$")
 
 
 def _extract_fields(data, prefix: str = "") -> list[tuple[str, object]]:
@@ -173,9 +173,22 @@ def verify_json(
     verdicts: list[FieldVerdict] = []
     schema_valid = None
 
-    if schema is not None and isinstance(data, dict):
-        verdicts = _validate_schema(data, schema)
-        schema_valid = all(v.verdict == "valid" for v in verdicts)
+    if schema is not None:
+        if not isinstance(data, dict):
+            schema_valid = False
+            verdicts.append(
+                FieldVerdict(
+                    path="$",
+                    value=type(data).__name__,
+                    verdict="invalid_type",
+                    reason=f"Schema expects object, got {type(data).__name__}",
+                )
+            )
+        else:
+            verdicts = _validate_schema(data, schema)
+            schema_valid = bool(verdicts) and all(
+                v.verdict == "valid" for v in verdicts
+            )
 
     if score_fn is not None:
         fields = _extract_fields(data)
@@ -185,7 +198,10 @@ def verify_json(
             if _NUMERIC_RE.match(value):
                 continue
             claim = f"{path} is {value}"
-            div = score_fn(claim)
+            try:
+                div = score_fn(claim)
+            except Exception:  # nosec B112
+                continue
             verdict = "valid" if div < 0.5 else "invalid_value"
             existing = [v for v in verdicts if v.path == path]
             if existing:

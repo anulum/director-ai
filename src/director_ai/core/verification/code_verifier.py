@@ -82,7 +82,7 @@ def _extract_imports(tree: ast.Module) -> list[str]:
         if isinstance(node, ast.Import):
             for alias in node.names:
                 modules.append(alias.name.split(".")[0])
-        elif isinstance(node, ast.ImportFrom) and node.module:
+        elif isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
             modules.append(node.module.split(".")[0])
     return modules
 
@@ -184,7 +184,8 @@ def verify_code(
         for call in calls:
             parts = call.split(".", 1)
             if len(parts) == 2:
-                module_alias, func_name = parts
+                module_alias, remainder = parts
+                func_name = remainder.split(".")[0]
                 if (
                     module_alias in api_manifest
                     and func_name not in api_manifest[module_alias]

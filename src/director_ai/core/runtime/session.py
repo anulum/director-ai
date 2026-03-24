@@ -87,11 +87,13 @@ class ConversationSession:
         score_fn : callable
             ``score_fn(premise, hypothesis) -> float`` returning divergence.
         """
-        return self._contradiction_tracker.update(response, score_fn)
+        with self._lock:
+            return self._contradiction_tracker.update(response, score_fn)
 
     def get_contradiction_report(self) -> ContradictionReport:
         """Get the current contradiction report without adding a turn."""
-        return self._contradiction_tracker.get_report()
+        with self._lock:
+            return self._contradiction_tracker.get_report()
 
     def __len__(self) -> int:
         with self._lock:

@@ -180,6 +180,8 @@ class FeedbackStore:
         ]
 
     def close(self) -> None:
-        """Close the database connection."""
+        """Close the database connection. Safe to call multiple times."""
         with self._lock:
-            self._conn.close()
+            if self._conn is not None:
+                self._conn.close()
+                self._conn = None

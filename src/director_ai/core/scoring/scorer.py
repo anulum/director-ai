@@ -1496,12 +1496,17 @@ class CoherenceScorer:
             if cross_turn is not None:
                 result[1].cross_turn_divergence = cross_turn
             if session is not None:
-                session.add_turn(prompt, action, result[1].score)
                 if self._nli and self._nli.model_available:
-                    report = session.update_contradictions(
-                        action, lambda p, h: self._nli.score(p, h)
-                    )
-                    result[1].contradiction_index = report.contradiction_index
+                    try:
+                        report = session.update_contradictions(
+                            action, lambda p, h: self._nli.score(p, h)
+                        )
+                        result[1].contradiction_index = report.contradiction_index
+                    except Exception:
+                        self.logger.warning(
+                            "Contradiction tracking failed", exc_info=True
+                        )
+                session.add_turn(prompt, action, result[1].score)
             span.set_attribute("coherence.score", result[1].score)
             span.set_attribute("coherence.approved", result[0])
             span.set_attribute("coherence.cached", False)
