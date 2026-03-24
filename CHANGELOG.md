@@ -7,6 +7,53 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.10.0] — 2026-03-24
+
+### Added
+- **Meta-confidence scoring**: `CoherenceScore` gains `verdict_confidence`,
+  `nli_model_confidence`, `signal_agreement` fields. Combines NLI softmax
+  entropy, score-threshold margin, and h_logical/h_factual agreement into
+  a single confidence signal. No other guardrail answers "how confident
+  are you in this verdict?"
+- **Cross-turn contradiction tracking**: `ConversationSession` gains
+  `update_contradictions()` and `get_contradiction_report()`. Pairwise
+  NLI scoring of each response against all prior turns. Reports
+  `contradiction_index` on `CoherenceScore`.
+- **Structured output verification** (new `core/verification/` subpackage):
+  - `verify_json()` — JSON Schema validation + value grounding against KB
+  - `verify_tool_call()` — function existence, argument validation,
+    fabrication detection against execution logs
+  - `verify_code()` — Python syntax (ast.parse), import existence,
+    hallucinated API detection against library manifests
+  - All stdlib only — zero new dependencies, works on lite install
+- **Online calibration** (new `core/calibration/` subpackage):
+  - `FeedbackStore` — SQLite-backed thread-safe store for human corrections
+  - `OnlineCalibrator` — threshold sweep on accumulated labeled data,
+    deployment-specific FPR/FNR with Wilson confidence intervals
+  - `CalibrationReport` — accuracy, error rates, optimal threshold, CIs
+- 106 new tests across 7 test files.
+- New top-level exports: `compute_meta_confidence`, `ContradictionTracker`,
+  `ContradictionReport`, `verify_json`, `verify_tool_call`, `verify_code`,
+  `FeedbackStore`, `OnlineCalibrator`, `CalibrationReport`.
+
+### Changed
+- `_finalise_review()` now computes and attaches `verdict_confidence` and
+  `signal_agreement` to every `CoherenceScore`.
+- `review()` runs contradiction tracker when a session is provided and NLI
+  model is available.
+- `VoiceGuard` now uses `threading.Lock` for thread safety.
+
+### Fixed
+- `.zenodo.json` version was 5 releases stale (3.9.0 → 3.10.0).
+- `Dockerfile.gpu` model-builder stage: `optimum[onnxruntime]` replaces
+  bare `optimum` with `--no-deps` (fixed `ModuleNotFoundError`).
+- Stale 3.9.4 version references in `server.py`, `README.md`, `docs-site/`.
+- Missing lazy imports: `create_app`, `create_grpc_server`,
+  `create_knowledge_router` now importable from root package.
+- `release.yml` uses `--require-hashes` for pip deps (OpenSSF compliance).
+- Floating point tolerance in meta-confidence tests.
+- Mypy `arg-type` errors in verification modules.
+
 ## [3.9.5] — 2026-03-23
 
 ### Added

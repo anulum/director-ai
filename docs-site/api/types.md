@@ -16,6 +16,10 @@ The primary return type from `CoherenceScorer.review()` and `score()`.
 | `evidence` | `ScoringEvidence \| None` | Retrieved evidence and scoring details |
 | `strict_mode_rejected` | `bool` | `True` if rejected because NLI was unavailable in strict mode |
 | `cross_turn_divergence` | `float \| None` | Cross-turn NLI score (set when session context exists) |
+| `verdict_confidence` | `float \| None` | Guardrail confidence in its own verdict [0, 1] (v3.10.0) |
+| `nli_model_confidence` | `float \| None` | NLI softmax entropy-based confidence (v3.10.0) |
+| `signal_agreement` | `float \| None` | Agreement between h_logical and h_factual [0, 1] (v3.10.0) |
+| `contradiction_index` | `float \| None` | Cross-turn self-contradiction severity [0, 1] (v3.10.0) |
 
 ```python
 approved, score = scorer.review(query, response)

@@ -2,7 +2,7 @@
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
-<span class="version-badge">v3.9.5 — Verified claims, calibrated scoring, coalesced batch, per-task escalation</span>
+<span class="version-badge">v3.10.0 — Meta-confidence, contradiction tracking, structured verification, online calibration</span>
 
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
 [![Tests](https://img.shields.io/badge/tests-2800%2B_passed-brightgreen)]()
@@ -119,4 +119,4 @@ AGPL-3.0 for open source / research. [Commercial licensing](licensing.md) availa
 
 ---
 
-*Maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.9.5.*
+*Maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.10.0.*

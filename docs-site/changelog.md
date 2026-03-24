@@ -2,6 +2,15 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
+## v3.10.0 (2026-03-24)
+
+### Added
+- **Meta-confidence scoring**: `verdict_confidence`, `signal_agreement` on every `CoherenceScore`
+- **Cross-turn contradiction tracking**: pairwise NLI across conversation turns, `contradiction_index`
+- **Structured output verification**: `verify_json()`, `verify_tool_call()`, `verify_code()` — stdlib only
+- **Online calibration**: `FeedbackStore` + `OnlineCalibrator` for deployment-specific threshold tuning with confidence intervals
+- 106 new tests, 17 new source files, zero new dependencies
+
 ## v3.9.4 (2026-03-20)
 
 ### Fixed

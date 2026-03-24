@@ -1,4 +1,4 @@
-# Public API — Director-AI v3.9.5
+# Public API — Director-AI v3.10.0
 
 Frozen API surface. Breaking changes to items listed here require a major version bump.
 
@@ -186,6 +186,53 @@ bypass the queue.
 | `PUT` | `/v1/knowledge/documents/{id}` | Re-ingest updated content |
 | `GET` | `/v1/knowledge/search` | Test retrieval quality |
 | `POST` | `/v1/knowledge/tune-embeddings` | Fine-tune embeddings on ingested docs |
+
+## Meta-Confidence Scoring (v3.10.0)
+
+| Function | Module | Description |
+|----------|--------|-------------|
+| `compute_meta_confidence()` | `core.scoring.meta_confidence` | Verdict confidence from margin + signal agreement + NLI entropy |
+
+`CoherenceScore` new fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `verdict_confidence` | `float \| None` | Guardrail confidence in its own verdict [0, 1] |
+| `nli_model_confidence` | `float \| None` | NLI softmax entropy-based confidence |
+| `signal_agreement` | `float \| None` | Agreement between h_logical and h_factual |
+| `contradiction_index` | `float \| None` | Cross-turn self-contradiction severity |
+
+## Contradiction Tracking (v3.10.0)
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `ContradictionTracker` | `core.runtime.contradiction_tracker` | Pairwise cross-turn contradiction matrix |
+| `ContradictionReport` | `core.runtime.contradiction_tracker` | Contradiction summary (worst pair, trend) |
+
+`ConversationSession` new methods:
+
+| Method | Description |
+|--------|-------------|
+| `update_contradictions(response, score_fn)` | Score response against all prior turns |
+| `get_contradiction_report()` | Current contradiction report |
+
+## Structured Output Verification (v3.10.0)
+
+| Function | Module | Description |
+|----------|--------|-------------|
+| `verify_json()` | `core.verification.json_verifier` | JSON Schema validation + value grounding |
+| `verify_tool_call()` | `core.verification.tool_call_verifier` | Tool existence, arg validation, fabrication detection |
+| `verify_code()` | `core.verification.code_verifier` | Python syntax, import existence, hallucinated API detection |
+
+Result types: `StructuredVerificationResult`, `ToolCallResult`, `CodeCheckResult`, `FieldVerdict` (in `core.verification.types`).
+
+## Online Calibration (v3.10.0)
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `FeedbackStore` | `core.calibration.feedback_store` | SQLite-backed human correction store |
+| `OnlineCalibrator` | `core.calibration.online_calibrator` | Threshold sweep + FPR/FNR with Wilson CIs |
+| `CalibrationReport` | `core.calibration.online_calibrator` | Calibration metrics dataclass |
 
 ## Exceptions
 

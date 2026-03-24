@@ -16,7 +16,7 @@ under 0.1 seconds.
     from director_ai import guard, score, CoherenceScorer
 """
 
-__version__ = "3.9.5"
+__version__ = "3.10.0"
 
 # Symbol → (module_path, attribute_name)
 # Module paths are relative to director_ai package.
