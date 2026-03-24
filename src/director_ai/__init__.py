@@ -137,6 +137,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "FeedbackStore": (".core.calibration.feedback_store", "FeedbackStore"),
     "OnlineCalibrator": (".core.calibration.online_calibrator", "OnlineCalibrator"),
     "CalibrationReport": (".core.calibration.online_calibrator", "CalibrationReport"),
+    # EU AI Act compliance reporting
+    "AuditLog": (".compliance.audit_log", "AuditLog"),
+    "AuditEntry": (".compliance.audit_log", "AuditEntry"),
+    "ComplianceReporter": (".compliance.reporter", "ComplianceReporter"),
+    "Article15Report": (".compliance.reporter", "Article15Report"),
 }
 
 __all__ = sorted(_LAZY_IMPORTS)
