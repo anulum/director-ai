@@ -106,6 +106,10 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "score": (".integrations.sdk_guard", "score"),
     "VoiceGuard": (".integrations.voice", "VoiceGuard"),
     "VoiceToken": (".integrations.voice", "VoiceToken"),
+    # Server factories
+    "create_app": (".server", "create_app"),
+    "create_grpc_server": (".grpc_server", "create_grpc_server"),
+    "create_knowledge_router": (".knowledge_api", "create_knowledge_router"),
 }
 
 __all__ = sorted(_LAZY_IMPORTS)
