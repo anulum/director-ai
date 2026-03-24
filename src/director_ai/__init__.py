@@ -126,6 +126,10 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "verify_json": (".core.verification.json_verifier", "verify_json"),
     "verify_tool_call": (".core.verification.tool_call_verifier", "verify_tool_call"),
     "verify_code": (".core.verification.code_verifier", "verify_code"),
+    # Online calibration from production feedback
+    "FeedbackStore": (".core.calibration.feedback_store", "FeedbackStore"),
+    "OnlineCalibrator": (".core.calibration.online_calibrator", "OnlineCalibrator"),
+    "CalibrationReport": (".core.calibration.online_calibrator", "CalibrationReport"),
 }
 
 __all__ = sorted(_LAZY_IMPORTS)
