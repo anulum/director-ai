@@ -1297,6 +1297,8 @@ class CoherenceScorer:
         action,
         evidence=None,
         threshold_override=None,
+        detected_task_type=None,
+        escalated_to_judge=None,
     ) -> tuple[bool, CoherenceScore]:
         """Build CoherenceScore, gate on threshold, update history.
 
@@ -1333,6 +1335,12 @@ class CoherenceScorer:
             h_factual=h_fact,
         )
 
+        # Retrieval confidence from evidence chunks
+        retrieval_conf = None
+        if evidence is not None and evidence.chunks:
+            best = min((c.distance for c in evidence.chunks), default=1.0)
+            retrieval_conf = max(0.0, 1.0 - best)
+
         score = CoherenceScore(
             score=coherence,
             approved=approved,
@@ -1343,6 +1351,9 @@ class CoherenceScorer:
             strict_mode_rejected=strict_rejected,
             verdict_confidence=vc,
             signal_agreement=sa,
+            detected_task_type=detected_task_type,
+            escalated_to_judge=escalated_to_judge,
+            retrieval_confidence=retrieval_conf,
         )
         return approved, score
 
@@ -1463,10 +1474,12 @@ class CoherenceScorer:
                     scope=cache_scope,
                 )
 
+            # Always detect task type for explainability
+            task_type = self._detect_task_type(prompt)
+
             # Adaptive threshold: select per-task-type threshold
             effective_threshold = self.threshold
             if self._adaptive_threshold_enabled and self._task_type_thresholds:
-                task_type = self._detect_task_type(prompt)
                 effective_threshold = self._task_type_thresholds.get(
                     task_type,
                     self.threshold,
@@ -1492,6 +1505,7 @@ class CoherenceScorer:
                 action,
                 evidence,
                 threshold_override=effective_threshold,
+                detected_task_type=task_type,
             )
             if cross_turn is not None:
                 result[1].cross_turn_divergence = cross_turn

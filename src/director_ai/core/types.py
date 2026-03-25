@@ -101,6 +101,13 @@ class CoherenceScore:
     contradiction_index: float | None = (
         None  # 0-1, cross-turn self-contradiction severity
     )
+    # Phase 5 — Multi-Signal Explainability
+    detected_task_type: str | None = None  # dialogue/summarization/qa/rag/default
+    escalated_to_judge: bool | None = None  # whether LLM judge was consulted
+    nli_probs: dict[str, float] | None = None  # {entailment, neutral, contradiction}
+    retrieval_confidence: float | None = (
+        None  # best retrieval distance (0=no match, 1=exact)
+    )
 
 
 @dataclass

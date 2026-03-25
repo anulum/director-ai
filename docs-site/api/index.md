@@ -41,7 +41,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 
 | Class | Module | Purpose |
 |-------|--------|---------|
-| [`CoherenceScore`](types.md) | `director_ai.core.types` | Score result with H_logical, H_factual, evidence |
+| [`CoherenceScore`](types.md) | `director_ai.core.types` | Score result with H_logical, H_factual, evidence, task type, confidence |
 | [`ReviewResult`](types.md#reviewresult) | `director_ai.core.types` | Agent review output |
 | [`ScoringEvidence`](types.md#scoringevidence) | `director_ai.core.types` | Retrieved chunks + NLI details |
 | [`HaltEvidence`](types.md#haltevidence) | `director_ai.core.types` | Structured halt reason with evidence |

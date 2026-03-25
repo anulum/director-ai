@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Multi-signal explainability**: `CoherenceScore` gains `detected_task_type`,
+  `escalated_to_judge`, `nli_probs`, `retrieval_confidence` fields. Existing
+  `verdict_confidence` and `signal_agreement` now always populated. Makes
+  Director-AI the most transparent guardrail on the market.
 - **Statistical drift detection**: `DriftDetector` uses two-proportion z-test
   to determine if hallucination rates are increasing over time. Severity levels:
   none/mild/moderate/severe. No scipy dependency (Abramowitz & Stegun CDF).
