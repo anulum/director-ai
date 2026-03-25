@@ -386,14 +386,14 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         rejected: int = 0
 
     class HourlyResponse(BaseModel):
-        data: list[HourlyDataPoint | dict] = []
+        data: list[dict] = []
         note: str = ""
 
     class ModelMetricsResponse(BaseModel):
         model: str
         total_requests: int
         hallucination_rate: float
-        hallucination_rate_ci: list[float] = []
+        hallucination_rate_ci: float | list[float] = 0.0
         avg_score: float
         avg_confidence: float
         avg_latency_ms: float
@@ -404,7 +404,7 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         period_end: float
         total_interactions: int
         overall_hallucination_rate: float
-        overall_hallucination_rate_ci: list[float] = []
+        overall_hallucination_rate_ci: float | list[float] = 0.0
         avg_score: float
         avg_verdict_confidence: float
         avg_latency_ms: float
@@ -412,7 +412,7 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         human_override_rate: float
         model_metrics: list[ModelMetricsResponse] = []
         drift_detected: bool
-        drift_severity: str = ""
+        drift_severity: float | str = 0.0
         incident_count: int = 0
 
     class WindowStats(BaseModel):
@@ -1476,11 +1476,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             return stats_store.summary()
         return _prometheus_summary()
 
-    @app.get("/v1/stats/hourly", response_model=HourlyResponse)
+    @app.get("/v1/stats/hourly")
     async def get_stats_hourly(request: Request, days: int = 7):
         stats_store = request.app.state._state.get("stats")
         if stats_store:
-            return stats_store.hourly_breakdown(days=days)
+            result = stats_store.hourly_breakdown(days=days)
+            if isinstance(result, list):
+                return {"data": result}
+            return result
         return {
             "data": [],
             "note": "hourly breakdown requires stats_backend=sqlite",
@@ -1588,7 +1591,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             ],
         }
 
-    @app.get("/v1/compliance/dashboard", response_model=ComplianceDashboardResponse)
+    @app.get("/v1/compliance/dashboard")
     async def compliance_dashboard(request: Request):
         reporter = request.app.state._state.get("compliance_reporter")
         if reporter is None:
@@ -1600,23 +1603,23 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         r_24h = reporter.generate_report(since=now - 86400, until=now)
         r_7d = reporter.generate_report(since=now - 7 * 86400, until=now)
         r_30d = reporter.generate_report(since=now - 30 * 86400, until=now)
-        return ComplianceDashboardResponse(
-            period_24h=PeriodMetrics(
-                total=r_24h.total_interactions,
-                hallucination_rate=r_24h.overall_hallucination_rate,
-                avg_score=r_24h.avg_score,
-            ),
-            period_7d=PeriodMetrics(
-                total=r_7d.total_interactions,
-                hallucination_rate=r_7d.overall_hallucination_rate,
-                avg_score=r_7d.avg_score,
-            ),
-            period_30d=PeriodMetrics(
-                total=r_30d.total_interactions,
-                hallucination_rate=r_30d.overall_hallucination_rate,
-                avg_score=r_30d.avg_score,
-            ),
-        )
+        return {
+            "24h": {
+                "total": r_24h.total_interactions,
+                "hallucination_rate": r_24h.overall_hallucination_rate,
+                "avg_score": r_24h.avg_score,
+            },
+            "7d": {
+                "total": r_7d.total_interactions,
+                "hallucination_rate": r_7d.overall_hallucination_rate,
+                "avg_score": r_7d.avg_score,
+            },
+            "30d": {
+                "total": r_30d.total_interactions,
+                "hallucination_rate": r_30d.overall_hallucination_rate,
+                "avg_score": r_30d.avg_score,
+            },
+        }
 
     # -- Gem endpoints (Phase 5 verification & analysis) -----------------
 
