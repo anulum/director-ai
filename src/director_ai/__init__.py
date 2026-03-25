@@ -151,6 +151,8 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # Conformal prediction (Phase 5)
     "ConformalPredictor": (".core.calibration.conformal", "ConformalPredictor"),
     "PredictionInterval": (".core.calibration.conformal", "PredictionInterval"),
+    # Adversarial robustness testing (Phase 5)
+    "AdversarialTester": (".testing.adversarial_suite", "AdversarialTester"),
     # Temporal freshness (Phase 5)
     "score_temporal_freshness": (
         ".core.scoring.temporal_freshness",

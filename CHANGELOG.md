@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Adversarial robustness testing**: `AdversarialTester` self-tests the guardrail
+  against known attack patterns: zero-width chars, Unicode homoglyphs, base64/rot13
+  encoding, role-play injection. Returns RobustnessReport with per-pattern results.
+  EU AI Act Art 15(5) requires resilience against adversarial manipulation.
 - **Temporal freshness scoring**: `score_temporal_freshness()` flags claims that
   may rely on stale knowledge. Detects positions (CEO, president), statistics,
   "currently/as of" references, records/superlatives. Cross-references against
