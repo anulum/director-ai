@@ -262,7 +262,9 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
     # -- Conformal models --
 
     class ConformalRequest(BaseModel):
-        score: float = Field(..., ge=0.0, le=1.0, description="Guardrail coherence score")
+        score: float = Field(
+            ..., ge=0.0, le=1.0, description="Guardrail coherence score"
+        )
         calibration_scores: list[float] = Field(
             default_factory=list, description="Historical scores for calibration"
         )
@@ -435,9 +437,16 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
 
     class ComplianceDashboardResponse(BaseModel):
         """24h / 7d / 30d compliance metrics."""
-        period_24h: PeriodMetrics = PeriodMetrics(total=0, hallucination_rate=0, avg_score=0)
-        period_7d: PeriodMetrics = PeriodMetrics(total=0, hallucination_rate=0, avg_score=0)
-        period_30d: PeriodMetrics = PeriodMetrics(total=0, hallucination_rate=0, avg_score=0)
+
+        period_24h: PeriodMetrics = PeriodMetrics(
+            total=0, hallucination_rate=0, avg_score=0
+        )
+        period_7d: PeriodMetrics = PeriodMetrics(
+            total=0, hallucination_rate=0, avg_score=0
+        )
+        period_30d: PeriodMetrics = PeriodMetrics(
+            total=0, hallucination_rate=0, avg_score=0
+        )
 
 
 def _halt_evidence_to_dict(halt_ev) -> dict | None:
@@ -1704,8 +1713,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             generate_fn=None,
         )
         model_responses = [
-            ModelResponse(model=r.model, response=r.response)
-            for r in req.responses
+            ModelResponse(model=r.model, response=r.response) for r in req.responses
         ]
         result = scorer.score_responses(model_responses)
         return ConsensusResponse(
@@ -1729,7 +1737,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
 
     @app.post("/v1/adversarial/test", response_model=AdversarialResponse)
-    async def adversarial_test_endpoint(req: ReviewRequest):
+    async def adversarial_test_endpoint(req: ReviewRequest, request: Request):
         """Run adversarial robustness tests against the guardrail.
 
         Uses the prompt+response as a baseline, then tests adversarial
@@ -1737,9 +1745,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         """
         from .testing.adversarial_suite import AdversarialTester
 
+        app_scorer = request.app.state._state.get("scorer")
+        if app_scorer is None:
+            raise HTTPException(503, "Scorer not initialised")
+
         def review_fn(prompt: str, response: str):
-            result = scorer.review(prompt, response)
-            return result.approved, result.score
+            approved, score = app_scorer.review(prompt, response)
+            return approved, score.score
 
         tester = AdversarialTester(
             review_fn=review_fn,

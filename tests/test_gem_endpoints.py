@@ -101,8 +101,7 @@ class TestVerifyReasoning:
         data = resp.json()
         if data["steps_found"] >= 2:
             assert any(
-                v["verdict"] in ("circular", "non_sequitur")
-                for v in data["verdicts"]
+                v["verdict"] in ("circular", "non_sequitur") for v in data["verdicts"]
             )
 
     def test_single_step_returns_empty(self, client):
@@ -168,12 +167,15 @@ class TestTemporalFreshness:
 
 class TestConsensus:
     def test_high_agreement(self, client):
-        resp = client.post("/v1/consensus", json={
-            "responses": [
-                {"model": "gpt-4o", "response": "Paris is the capital of France"},
-                {"model": "claude", "response": "Paris is the capital of France"},
-            ]
-        })
+        resp = client.post(
+            "/v1/consensus",
+            json={
+                "responses": [
+                    {"model": "gpt-4o", "response": "Paris is the capital of France"},
+                    {"model": "claude", "response": "Paris is the capital of France"},
+                ]
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["has_consensus"] is True
@@ -182,33 +184,43 @@ class TestConsensus:
         assert len(data["pairs"]) == 1
 
     def test_disagreement(self, client):
-        resp = client.post("/v1/consensus", json={
-            "responses": [
-                {"model": "a", "response": "The answer is forty two"},
-                {"model": "b", "response": "Bananas grow on trees in tropical regions"},
-            ]
-        })
+        resp = client.post(
+            "/v1/consensus",
+            json={
+                "responses": [
+                    {"model": "a", "response": "The answer is forty two"},
+                    {
+                        "model": "b",
+                        "response": "Bananas grow on trees in tropical regions",
+                    },
+                ]
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["agreement_score"] < 0.5
 
     def test_three_models(self, client):
-        resp = client.post("/v1/consensus", json={
-            "responses": [
-                {"model": "a", "response": "Water boils at 100 degrees Celsius"},
-                {"model": "b", "response": "Water boils at 100 degrees Celsius"},
-                {"model": "c", "response": "Water boils at 100 degrees Celsius"},
-            ]
-        })
+        resp = client.post(
+            "/v1/consensus",
+            json={
+                "responses": [
+                    {"model": "a", "response": "Water boils at 100 degrees Celsius"},
+                    {"model": "b", "response": "Water boils at 100 degrees Celsius"},
+                    {"model": "c", "response": "Water boils at 100 degrees Celsius"},
+                ]
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["num_models"] == 3
         assert len(data["pairs"]) == 3
 
     def test_too_few_responses_rejected(self, client):
-        resp = client.post("/v1/consensus", json={
-            "responses": [{"model": "a", "response": "only one"}]
-        })
+        resp = client.post(
+            "/v1/consensus",
+            json={"responses": [{"model": "a", "response": "only one"}]},
+        )
         assert resp.status_code == 422
 
 
@@ -228,12 +240,15 @@ class TestConformal:
     def test_calibrated(self, client):
         scores = [0.9, 0.85, 0.1, 0.15, 0.88, 0.12] * 6  # 36 samples
         labels = [False, False, True, True, False, True] * 6
-        resp = client.post("/v1/conformal/predict", json={
-            "score": 0.7,
-            "calibration_scores": scores,
-            "calibration_labels": labels,
-            "coverage": 0.9,
-        })
+        resp = client.post(
+            "/v1/conformal/predict",
+            json={
+                "score": 0.7,
+                "calibration_scores": scores,
+                "calibration_labels": labels,
+                "coverage": 0.9,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["calibration_size"] == 36
@@ -241,11 +256,14 @@ class TestConformal:
         assert 0.0 <= data["lower"] <= data["upper"] <= 1.0
 
     def test_mismatched_lengths_rejected(self, client):
-        resp = client.post("/v1/conformal/predict", json={
-            "score": 0.5,
-            "calibration_scores": [0.9, 0.1],
-            "calibration_labels": [False],
-        })
+        resp = client.post(
+            "/v1/conformal/predict",
+            json={
+                "score": 0.5,
+                "calibration_scores": [0.9, 0.1],
+                "calibration_labels": [False],
+            },
+        )
         assert resp.status_code == 422
 
     def test_score_out_of_range_rejected(self, client):
@@ -258,20 +276,26 @@ class TestConformal:
 
 class TestFeedbackLoops:
     def test_no_loop(self, client):
-        resp = client.post("/v1/compliance/feedback-loops", json={
-            "input_text": "What is machine learning?",
-            "previous_outputs": ["The weather is sunny today."],
-        })
+        resp = client.post(
+            "/v1/compliance/feedback-loops",
+            json={
+                "input_text": "What is machine learning?",
+                "previous_outputs": ["The weather is sunny today."],
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["loop_detected"] is False
 
     def test_loop_detected(self, client):
         output = "Machine learning is a subset of artificial intelligence that enables systems to learn from data."
-        resp = client.post("/v1/compliance/feedback-loops", json={
-            "input_text": output,
-            "previous_outputs": [output],
-        })
+        resp = client.post(
+            "/v1/compliance/feedback-loops",
+            json={
+                "input_text": output,
+                "previous_outputs": [output],
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["loop_detected"] is True
@@ -279,19 +303,25 @@ class TestFeedbackLoops:
         assert data["similarity"] > 0.5
 
     def test_no_previous_outputs(self, client):
-        resp = client.post("/v1/compliance/feedback-loops", json={
-            "input_text": "Some question to the AI system.",
-            "previous_outputs": [],
-        })
+        resp = client.post(
+            "/v1/compliance/feedback-loops",
+            json={
+                "input_text": "Some question to the AI system.",
+                "previous_outputs": [],
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["loop_detected"] is False
 
     def test_short_input_no_match(self, client):
-        resp = client.post("/v1/compliance/feedback-loops", json={
-            "input_text": "Hi",
-            "previous_outputs": ["Hi"],
-        })
+        resp = client.post(
+            "/v1/compliance/feedback-loops",
+            json={
+                "input_text": "Hi",
+                "previous_outputs": ["Hi"],
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["loop_detected"] is False
@@ -302,11 +332,14 @@ class TestFeedbackLoops:
 
 class TestAgenticCheckStep:
     def test_normal_step(self, client):
-        resp = client.post("/v1/agentic/check-step", json={
-            "goal": "Find quarterly revenue for Q3 2025",
-            "action": "search_documents",
-            "args": "revenue Q3 2025",
-        })
+        resp = client.post(
+            "/v1/agentic/check-step",
+            json={
+                "goal": "Find quarterly revenue for Q3 2025",
+                "action": "search_documents",
+                "args": "revenue Q3 2025",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["step_number"] == 1
@@ -314,12 +347,15 @@ class TestAgenticCheckStep:
 
     def test_circular_detection(self, client):
         history = [{"action": "search", "args": "test"}] * 6
-        resp = client.post("/v1/agentic/check-step", json={
-            "goal": "Find data",
-            "action": "search",
-            "args": "test",
-            "step_history": history,
-        })
+        resp = client.post(
+            "/v1/agentic/check-step",
+            json={
+                "goal": "Find data",
+                "action": "search",
+                "args": "test",
+                "step_history": history,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["should_halt"] is True or data["should_warn"] is True
@@ -327,24 +363,36 @@ class TestAgenticCheckStep:
 
     def test_step_limit(self, client):
         history = [{"action": f"tool_{i}", "args": str(i)} for i in range(50)]
-        resp = client.post("/v1/agentic/check-step", json={
-            "goal": "Find data",
-            "action": "tool_50",
-            "args": "50",
-            "step_history": history,
-            "max_steps": 50,
-        })
+        resp = client.post(
+            "/v1/agentic/check-step",
+            json={
+                "goal": "Find data",
+                "action": "tool_50",
+                "args": "50",
+                "step_history": history,
+                "max_steps": 50,
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
         assert data["should_halt"] is True
 
     def test_response_fields(self, client):
-        resp = client.post("/v1/agentic/check-step", json={
-            "goal": "Test goal",
-            "action": "test_action",
-        })
+        resp = client.post(
+            "/v1/agentic/check-step",
+            json={
+                "goal": "Test goal",
+                "action": "test_action",
+            },
+        )
         assert resp.status_code == 200
         data = resp.json()
-        for field in ("step_number", "should_halt", "should_warn",
-                      "reasons", "goal_drift_score", "budget_remaining_pct"):
+        for field in (
+            "step_number",
+            "should_halt",
+            "should_warn",
+            "reasons",
+            "goal_drift_score",
+            "budget_remaining_pct",
+        ):
             assert field in data
