@@ -68,6 +68,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   to avoid DLL hang on Windows with faiss-cpu 1.13.1.
 - **Server encoding fix**: Repaired triple-encoded UTF-8 in `server.py`.
 
+## [3.10.1] — 2026-03-25
+
+### Fixed
+- **Missing exports**: `ModelResponse` and `CoherenceCallbackHandler` now
+  exported from top-level `director_ai` package. Notebooks 07 (LangChain)
+  and 16 (Verification Gems) were failing on import.
+- **CLI docs**: `director-ai grpc` corrected to `director-ai serve --transport grpc`.
+  Removed nonexistent `health` CLI command. Version example updated from 3.8.0.
+- **Coverage gate mismatch**: `VALIDATION.md` corrected from 90% to 95% to
+  match `pyproject.toml` `fail_under = 95`.
+- **ROADMAP.md**: v3.10.0 section marked as Done (was incorrectly "Planned").
+- **Cookbook caveats**: medical, legal, finance, customer-support, and case-study
+  ROI/metric claims now explicitly marked as illustrative estimates.
+
+### Added
+- **12 Mermaid diagrams** across architecture, scoring, streaming, threshold
+  tuning, tutorials, benchmarks, SDK guard, LangChain, production deployment,
+  and Docker pages.
+- **Anulum branding**: logos (anulum_logo_company.jpg, anulum_logo.png,
+  fortis_studio_logo.jpg) in docs/assets/ and docs-site/assets/. README
+  footer, MkDocs nav logo + favicon, docs-site/index.md footer with contact.
+- **verified-scorer.md**: expanded from 56-line skeleton to 247-line complete
+  API reference with pipeline diagram, verdict flowchart, all 5 signals,
+  data class tables, and CoherenceScorer comparison.
+
+### Changed
+- Archived 5 obsolete files to `docs/archive/`: DEV_LOG.md (v2.3.0),
+  SECURITY_AUDIT_PREP.md (abandoned), legacy Sphinx config (conf.py,
+  index.rst, core.rst).
+- MkDocs nav logo changed from `material/shield-check` to Anulum logo.
+
 ## [3.10.0] — 2026-03-24
 
 ### Added

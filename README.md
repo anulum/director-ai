@@ -222,7 +222,7 @@ python -m benchmarks.finance_eval   # FinanceBench + Financial PhraseBank
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.10.0},
+  version   = {3.10.1},
   license   = {AGPL-3.0-or-later}
 }
 ```
