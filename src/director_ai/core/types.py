@@ -109,6 +109,61 @@ class CoherenceScore:
         None  # best retrieval distance (0=no match, 1=exact)
     )
 
+    # -- Claim-Level Provenance (Gem 2) ------------------------------------
+
+    @property
+    def claims(self) -> list[str]:
+        """Atomic claims extracted from the scored response."""
+        if self.evidence is not None and self.evidence.claims:
+            return self.evidence.claims
+        return []
+
+    @property
+    def attributions(self) -> list[ClaimAttribution]:
+        """Per-claim source attribution with support/divergence."""
+        if self.evidence is not None and self.evidence.attributions:
+            return self.evidence.attributions
+        return []
+
+    @property
+    def claim_coverage(self) -> float | None:
+        """Fraction of claims supported by source material (0-1)."""
+        if self.evidence is not None:
+            return self.evidence.claim_coverage
+        return None
+
+    @property
+    def unsupported_claims(self) -> list[ClaimAttribution]:
+        """Claims not supported by any source — the hallucinated ones."""
+        return [a for a in self.attributions if not a.supported]
+
+    def claim_provenance(self) -> list[dict]:
+        """Structured provenance for each claim.
+
+        Returns a list of dicts, one per claim::
+
+            [
+                {
+                    "claim": "Paris is the capital of France.",
+                    "supported": True,
+                    "source": "France is a country whose capital is Paris.",
+                    "divergence": 0.12,
+                    "source_index": 3,
+                },
+                ...
+            ]
+        """
+        return [
+            {
+                "claim": a.claim,
+                "supported": a.supported,
+                "source": a.source_sentence,
+                "divergence": a.divergence,
+                "source_index": a.source_index,
+            }
+            for a in self.attributions
+        ]
+
 
 @dataclass
 class HaltEvidence:

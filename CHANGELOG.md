@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Claim-level provenance**: `CoherenceScore` gains `.claims`, `.attributions`,
+  `.unsupported_claims`, `.claim_coverage`, `.claim_provenance()` — per-claim
+  source attribution with divergence scores. Every claim mapped to its
+  supporting source sentence. Hallucinated claims identified individually.
 - **Multi-signal explainability**: `CoherenceScore` gains `detected_task_type`,
   `escalated_to_judge`, `nli_probs`, `retrieval_confidence` fields. Existing
   `verdict_confidence` and `signal_agreement` now always populated. Makes
