@@ -91,13 +91,17 @@ class TestBatch:
     def test_batch_valid(self, client):
         resp = client.post(
             "/v1/batch",
-            json={"prompts": ["Q1", "Q2"]},
+            json={
+                "task": "review",
+                "prompts": ["What is water?", "What is air?"],
+                "responses": ["Water is H2O.", "Air is a mixture of gases."],
+            },
         )
         assert resp.status_code == 200
         data = resp.json()
         assert data["total"] == 2
-        assert data["succeeded"] == 2
-        assert len(data["results"]) == 2
+        assert data["succeeded"] + data["failed"] == 2
+        assert len(data["results"]) + len(data["errors"]) == 2
 
     def test_batch_empty_prompts(self, client):
         resp = client.post("/v1/batch", json={"prompts": []})

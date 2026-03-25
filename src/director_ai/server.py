@@ -377,6 +377,68 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         reason: str = ""
         claims: list[dict] = []
 
+    class HourlyDataPoint(BaseModel):
+        hour: str = ""
+        total: int = 0
+        approved: int = 0
+        rejected: int = 0
+
+    class HourlyResponse(BaseModel):
+        data: list[HourlyDataPoint | dict] = []
+        note: str = ""
+
+    class ModelMetricsResponse(BaseModel):
+        model: str
+        total_requests: int
+        hallucination_rate: float
+        hallucination_rate_ci: list[float] = []
+        avg_score: float
+        avg_confidence: float
+        avg_latency_ms: float
+
+    class ComplianceReportResponse(BaseModel):
+        report_timestamp: float
+        period_start: float
+        period_end: float
+        total_interactions: int
+        overall_hallucination_rate: float
+        overall_hallucination_rate_ci: list[float] = []
+        avg_score: float
+        avg_verdict_confidence: float
+        avg_latency_ms: float
+        human_override_count: int
+        human_override_rate: float
+        model_metrics: list[ModelMetricsResponse] = []
+        drift_detected: bool
+        drift_severity: str = ""
+        incident_count: int = 0
+
+    class WindowStats(BaseModel):
+        start: float
+        end: float
+        total: int
+        rejected: int
+        hallucination_rate: float
+
+    class DriftResponse(BaseModel):
+        detected: bool
+        severity: str
+        z_score: float
+        p_value: float
+        rate_change: float
+        windows: list[WindowStats] = []
+
+    class PeriodMetrics(BaseModel):
+        total: int
+        hallucination_rate: float
+        avg_score: float
+
+    class ComplianceDashboardResponse(BaseModel):
+        """24h / 7d / 30d compliance metrics."""
+        period_24h: PeriodMetrics = PeriodMetrics(total=0, hallucination_rate=0, avg_score=0)
+        period_7d: PeriodMetrics = PeriodMetrics(total=0, hallucination_rate=0, avg_score=0)
+        period_30d: PeriodMetrics = PeriodMetrics(total=0, hallucination_rate=0, avg_score=0)
+
 
 def _halt_evidence_to_dict(halt_ev) -> dict | None:
     if halt_ev is None:
@@ -1405,7 +1467,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             return stats_store.summary()
         return _prometheus_summary()
 
-    @app.get("/v1/stats/hourly")
+    @app.get("/v1/stats/hourly", response_model=HourlyResponse)
     async def get_stats_hourly(request: Request, days: int = 7):
         stats_store = request.app.state._state.get("stats")
         if stats_store:
@@ -1441,7 +1503,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # -- Compliance endpoints (EU AI Act Article 15) --------------------
 
-    @app.get("/v1/compliance/report")
+    @app.get("/v1/compliance/report", response_model=ComplianceReportResponse)
     async def compliance_report(
         request: Request,
         since: float | None = None,
@@ -1490,7 +1552,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "incident_count": report.incident_count,
         }
 
-    @app.get("/v1/compliance/drift")
+    @app.get("/v1/compliance/drift", response_model=DriftResponse)
     async def compliance_drift(request: Request):
         detector = request.app.state._state.get("compliance_drift")
         if detector is None:
@@ -1517,7 +1579,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             ],
         }
 
-    @app.get("/v1/compliance/dashboard")
+    @app.get("/v1/compliance/dashboard", response_model=ComplianceDashboardResponse)
     async def compliance_dashboard(request: Request):
         reporter = request.app.state._state.get("compliance_reporter")
         if reporter is None:
@@ -1529,23 +1591,23 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         r_24h = reporter.generate_report(since=now - 86400, until=now)
         r_7d = reporter.generate_report(since=now - 7 * 86400, until=now)
         r_30d = reporter.generate_report(since=now - 30 * 86400, until=now)
-        return {
-            "24h": {
-                "total": r_24h.total_interactions,
-                "hallucination_rate": r_24h.overall_hallucination_rate,
-                "avg_score": r_24h.avg_score,
-            },
-            "7d": {
-                "total": r_7d.total_interactions,
-                "hallucination_rate": r_7d.overall_hallucination_rate,
-                "avg_score": r_7d.avg_score,
-            },
-            "30d": {
-                "total": r_30d.total_interactions,
-                "hallucination_rate": r_30d.overall_hallucination_rate,
-                "avg_score": r_30d.avg_score,
-            },
-        }
+        return ComplianceDashboardResponse(
+            period_24h=PeriodMetrics(
+                total=r_24h.total_interactions,
+                hallucination_rate=r_24h.overall_hallucination_rate,
+                avg_score=r_24h.avg_score,
+            ),
+            period_7d=PeriodMetrics(
+                total=r_7d.total_interactions,
+                hallucination_rate=r_7d.overall_hallucination_rate,
+                avg_score=r_7d.avg_score,
+            ),
+            period_30d=PeriodMetrics(
+                total=r_30d.total_interactions,
+                hallucination_rate=r_30d.overall_hallucination_rate,
+                avg_score=r_30d.avg_score,
+            ),
+        )
 
     # -- Gem endpoints (Phase 5 verification & analysis) -----------------
 

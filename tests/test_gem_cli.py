@@ -103,3 +103,73 @@ class TestCheckStepCli:
         from director_ai.cli import main as cli_main
         with pytest.raises(SystemExit, match="1"):
             cli_main()
+
+
+class TestConsensusCli:
+    def test_agreement(self, capsys, monkeypatch):
+        monkeypatch.setattr(
+            sys, "argv",
+            ["director-ai", "consensus",
+             "gpt:Paris is the capital",
+             "claude:Paris is the capital"],
+        )
+        from director_ai.cli import main as cli_main
+        cli_main()
+        out = capsys.readouterr().out
+        assert "Agreement:" in out
+        assert "Consensus:" in out
+        assert "True" in out
+
+    def test_disagreement(self, capsys, monkeypatch):
+        monkeypatch.setattr(
+            sys, "argv",
+            ["director-ai", "consensus",
+             "a:Apples grow on trees",
+             "b:The speed of light is fast"],
+        )
+        from director_ai.cli import main as cli_main
+        cli_main()
+        out = capsys.readouterr().out
+        assert "DISAGREE" in out
+
+    def test_no_args_exits(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["director-ai", "consensus"])
+        from director_ai.cli import main as cli_main
+        with pytest.raises(SystemExit, match="1"):
+            cli_main()
+
+    def test_one_arg_exits(self, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["director-ai", "consensus", "gpt:only one"])
+        from director_ai.cli import main as cli_main
+        with pytest.raises(SystemExit, match="1"):
+            cli_main()
+
+    def test_bad_format_exits(self, monkeypatch):
+        monkeypatch.setattr(
+            sys, "argv",
+            ["director-ai", "consensus", "no_colon", "also_no_colon"],
+        )
+        from director_ai.cli import main as cli_main
+        with pytest.raises(SystemExit, match="1"):
+            cli_main()
+
+
+class TestAdversarialTestCli:
+    def test_runs(self, capsys, monkeypatch):
+        monkeypatch.setattr(
+            sys, "argv",
+            ["director-ai", "adversarial-test", "Tell me about this topic"],
+        )
+        from director_ai.cli import main as cli_main
+        cli_main()
+        out = capsys.readouterr().out
+        assert "Patterns:" in out
+        assert "Detected:" in out
+        assert "Rate:" in out
+
+    def test_default_prompt(self, capsys, monkeypatch):
+        monkeypatch.setattr(sys, "argv", ["director-ai", "adversarial-test"])
+        from director_ai.cli import main as cli_main
+        cli_main()
+        out = capsys.readouterr().out
+        assert "Patterns:" in out
