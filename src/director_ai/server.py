@@ -384,9 +384,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 stats.close()
             except Exception:  # pragma: no cover Ă˘â‚¬â€ť defensive
                 logger.warning("Failed to close stats database")
-        c_log = app.state._state.get("compliance_log")
-        if c_log:
-            c_log.close()
+        c_log_shutdown = app.state._state.get("compliance_log")
+        if c_log_shutdown is not None:
+            c_log_shutdown.close()
 
     app = FastAPI(
         title="Director-Class AI",

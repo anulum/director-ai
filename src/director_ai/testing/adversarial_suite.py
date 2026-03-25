@@ -116,7 +116,7 @@ _HALLUCINATION_SAMPLES = [
 
 def _build_patterns() -> list[AdversarialPattern]:
     """Generate the standard adversarial pattern suite."""
-    patterns = []
+    patterns: list[AdversarialPattern] = []
     for sample in _HALLUCINATION_SAMPLES:
         patterns.append(
             AdversarialPattern(
@@ -238,10 +238,8 @@ class AdversarialTester:
         result = self._review_fn(self._prompt, text)
         if isinstance(result, tuple) and len(result) == 2:
             approved, score_obj = result
-            score = (
-                getattr(score_obj, "score", score_obj)
-                if not isinstance(score_obj, (int, float))
-                else score_obj
-            )
-            return bool(approved), float(score)
+            if isinstance(score_obj, (int, float)):
+                return bool(approved), float(score_obj)
+            raw = getattr(score_obj, "score", 0.5)
+            return bool(approved), float(raw) if raw is not None else 0.5
         return True, 1.0

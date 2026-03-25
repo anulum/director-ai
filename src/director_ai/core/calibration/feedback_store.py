@@ -184,4 +184,4 @@ class FeedbackStore:
         with self._lock:
             if self._conn is not None:
                 self._conn.close()
-                self._conn = None
+                self._conn = None  # type: ignore[assignment]
