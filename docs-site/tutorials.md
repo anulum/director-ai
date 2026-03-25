@@ -59,6 +59,34 @@ Real-world integrations and domain-specific patterns.
 
 ---
 
+## Verification & Analysis
+
+Standalone analysis modules — no NLI model required. All stdlib-only.
+
+| # | Resource | What You Learn | Time |
+|---|----------|----------------|------|
+| — | [Verification Gems Guide](guide/verification-gems.md) | All 8 gems: numeric, reasoning, temporal, consensus, conformal, feedback loops, adversarial, agentic | 15 min |
+| — | [Example: verification_gems_demo.py](https://github.com/anulum/director-ai/blob/main/examples/verification_gems_demo.py) | Runnable demo of all 7 standalone verification modules | 5 min |
+
+**CLI quick start:**
+
+```bash
+director-ai verify-numeric "Revenue grew 50% from \$100 to \$120"
+director-ai verify-reasoning "Step 1: A is true. Step 2: Therefore B."
+director-ai temporal-freshness "The CEO of Apple is Tim Cook"
+director-ai check-step "Find revenue data" "search" "revenue Q3"
+```
+
+**REST quick start** (with server running):
+
+```bash
+curl -X POST http://localhost:8080/v1/verify/numeric \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Revenue grew 50% from $100 to $120."}'
+```
+
+---
+
 ## Enterprise & Production
 
 Scale, evaluate, fine-tune, and deploy.

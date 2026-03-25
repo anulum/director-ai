@@ -2,7 +2,7 @@
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
-<span class="version-badge">v3.10.0 — Meta-confidence, contradiction tracking, structured verification, online calibration</span>
+<span class="version-badge">v3.10.0 — Verification gems, agentic loop safety, EU AI Act compliance, conformal prediction</span>
 
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
 [![Tests](https://img.shields.io/badge/tests-3050%2B_passed-brightgreen)]()
@@ -70,6 +70,11 @@ graph LR
 | Token-level scoring | **Yes** | No | No | No |
 | NLI contradiction detection | **Yes** | No | No | Partial |
 | Evidence on rejection | **Yes** | No | No | No |
+| Numeric verification | **Yes** | No | No | No |
+| Agentic loop safety | **Yes** | No | No | No |
+| Conformal prediction | **Yes** | No | No | No |
+| EU AI Act Article 15 | **Yes** | No | No | No |
+| Adversarial self-test | **Yes** | No | No | No |
 | 5 SDK integrations | **Yes** | 1 | 1 | 0 |
 | 6 framework integrations | **Yes** | 1 | 1 | 0 |
 

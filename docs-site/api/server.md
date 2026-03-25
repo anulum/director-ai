@@ -57,6 +57,17 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | `GET` | `/v1/dashboard` | Dashboard summary (stats + top tenants) |
 | `POST` | `/v1/finetune/start` | Start domain fine-tuning job |
 | `GET` | `/v1/finetune/status` | Check fine-tuning job status |
+| `POST` | `/v1/verify/numeric` | Numeric consistency verification |
+| `POST` | `/v1/verify/reasoning` | Reasoning chain logic verification |
+| `POST` | `/v1/temporal-freshness` | Temporal freshness / staleness scoring |
+| `POST` | `/v1/consensus` | Cross-model factual agreement |
+| `POST` | `/v1/adversarial/test` | Adversarial robustness self-test |
+| `POST` | `/v1/conformal/predict` | Conformal prediction interval |
+| `POST` | `/v1/compliance/feedback-loops` | Feedback loop detection (Art 15(4)) |
+| `POST` | `/v1/agentic/check-step` | Agentic loop step safety check |
+| `GET` | `/v1/compliance/report` | EU AI Act Article 15 report |
+| `GET` | `/v1/compliance/drift` | Statistical drift detection |
+| `GET` | `/v1/compliance/dashboard` | Compliance metrics (24h/7d/30d) |
 
 ## Review Request
 
