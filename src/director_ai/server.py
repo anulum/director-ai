@@ -215,6 +215,108 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         has_temporal_claims: bool
         stale_claim_count: int
 
+    # -- Consensus models --
+
+    class ConsensusResponseItem(BaseModel):
+        model: str
+        response: str
+
+    class PairwiseAgreementResponse(BaseModel):
+        model_a: str
+        model_b: str
+        divergence: float
+        agreed: bool
+
+    class ConsensusResponse(BaseModel):
+        responses: list[ConsensusResponseItem]
+        pairs: list[PairwiseAgreementResponse]
+        agreement_score: float
+        lowest_pair_agreement: float
+        has_consensus: bool
+        num_models: int
+
+    class ConsensusRequest(BaseModel):
+        responses: list[ConsensusResponseItem] = Field(
+            ..., min_length=2, description="Responses from different models"
+        )
+
+    # -- Adversarial models --
+
+    class AdversarialPatternResponse(BaseModel):
+        name: str
+        category: str
+        transform: str
+        detected: bool
+        score: float
+        original_score: float
+
+    class AdversarialResponse(BaseModel):
+        total_patterns: int
+        detected: int
+        bypassed: int
+        detection_rate: float
+        is_robust: bool
+        vulnerable_categories: list[str]
+        results: list[AdversarialPatternResponse]
+
+    # -- Conformal models --
+
+    class ConformalRequest(BaseModel):
+        score: float = Field(..., ge=0.0, le=1.0, description="Guardrail coherence score")
+        calibration_scores: list[float] = Field(
+            default_factory=list, description="Historical scores for calibration"
+        )
+        calibration_labels: list[bool] = Field(
+            default_factory=list,
+            description="True if the response was actually a hallucination",
+        )
+        coverage: float = Field(0.95, gt=0.0, lt=1.0)
+
+    class ConformalResponse(BaseModel):
+        point_estimate: float
+        lower: float
+        upper: float
+        coverage: float
+        calibration_size: int
+        is_reliable: bool
+
+    # -- Feedback loop models --
+
+    class FeedbackLoopCheckRequest(BaseModel):
+        input_text: str = Field(..., min_length=1, description="Current input to check")
+        previous_outputs: list[str] = Field(
+            default_factory=list, description="Previous AI outputs to match against"
+        )
+        similarity_threshold: float = Field(0.5, ge=0.0, le=1.0)
+
+    class FeedbackLoopResponse(BaseModel):
+        loop_detected: bool
+        similarity: float
+        severity: str = ""
+        matched_output: str = ""
+
+    # -- Agentic loop monitor models --
+
+    class AgenticStepRequest(BaseModel):
+        goal: str = Field(..., min_length=1, description="Agent's original objective")
+        action: str = Field(..., min_length=1, description="Current tool/function name")
+        args: str = Field("", description="Serialized arguments")
+        result: str = Field("", description="Tool output")
+        tokens: int = Field(0, ge=0, description="Tokens consumed")
+        step_history: list[dict] = Field(
+            default_factory=list,
+            description="Previous steps [{action, args}] for circular detection",
+        )
+        max_steps: int = Field(50, ge=1)
+
+    class AgenticStepResponse(BaseModel):
+        step_number: int
+        should_halt: bool
+        should_warn: bool
+        reasons: list[str]
+        goal_drift_score: float
+        budget_remaining_pct: float
+
 
 def _halt_evidence_to_dict(halt_ev) -> dict | None:
     if halt_ev is None:
@@ -1464,6 +1566,169 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             overall_staleness_risk=result.overall_staleness_risk,
             has_temporal_claims=result.has_temporal_claims,
             stale_claim_count=len(result.stale_claims),
+        )
+
+    @app.post("/v1/consensus", response_model=ConsensusResponse)
+    async def consensus_endpoint(req: ConsensusRequest):
+        """Score factual agreement across pre-generated model responses.
+
+        Accepts responses from multiple models and computes pairwise
+        agreement using Jaccard word overlap.
+        """
+        from .core.scoring.consensus import ConsensusScorer, ModelResponse
+
+        scorer = ConsensusScorer(
+            models=[r.model for r in req.responses],
+            generate_fn=None,
+        )
+        model_responses = [
+            ModelResponse(model=r.model, response=r.response)
+            for r in req.responses
+        ]
+        result = scorer.score_responses(model_responses)
+        return ConsensusResponse(
+            responses=[
+                ConsensusResponseItem(model=r.model, response=r.response)
+                for r in result.responses
+            ],
+            pairs=[
+                PairwiseAgreementResponse(
+                    model_a=p.model_a,
+                    model_b=p.model_b,
+                    divergence=p.divergence,
+                    agreed=p.agreed,
+                )
+                for p in result.pairs
+            ],
+            agreement_score=result.agreement_score,
+            lowest_pair_agreement=result.lowest_pair_agreement,
+            has_consensus=result.has_consensus,
+            num_models=result.num_models,
+        )
+
+    @app.post("/v1/adversarial/test", response_model=AdversarialResponse)
+    async def adversarial_test_endpoint(req: ReviewRequest):
+        """Run adversarial robustness tests against the guardrail.
+
+        Uses the prompt+response as a baseline, then tests adversarial
+        transformations of the response against the scorer.
+        """
+        from .testing.adversarial_suite import AdversarialTester
+
+        def review_fn(prompt: str, response: str):
+            result = scorer.review(prompt, response)
+            return result.approved, result.score
+
+        tester = AdversarialTester(
+            review_fn=review_fn,
+            prompt=req.prompt,
+        )
+        report = tester.run()
+        return AdversarialResponse(
+            total_patterns=report.total_patterns,
+            detected=report.detected,
+            bypassed=report.bypassed,
+            detection_rate=report.detection_rate,
+            is_robust=report.is_robust,
+            vulnerable_categories=report.vulnerable_categories,
+            results=[
+                AdversarialPatternResponse(
+                    name=r.pattern.name,
+                    category=r.pattern.category,
+                    transform=r.pattern.transform,
+                    detected=r.detected,
+                    score=r.score,
+                    original_score=r.original_score,
+                )
+                for r in report.results
+            ],
+        )
+
+    @app.post("/v1/conformal/predict", response_model=ConformalResponse)
+    async def conformal_predict_endpoint(req: ConformalRequest):
+        """Compute conformal prediction interval for hallucination probability.
+
+        Optionally calibrate from provided historical data first.
+        """
+        from .core.calibration.conformal import ConformalPredictor
+
+        predictor = ConformalPredictor(coverage=req.coverage)
+        if req.calibration_scores and req.calibration_labels:
+            if len(req.calibration_scores) != len(req.calibration_labels):
+                raise HTTPException(
+                    status_code=422,
+                    detail="calibration_scores and calibration_labels must have same length",
+                )
+            predictor.calibrate(req.calibration_scores, req.calibration_labels)
+        interval = predictor.predict(req.score)
+        return ConformalResponse(
+            point_estimate=interval.point_estimate,
+            lower=interval.lower,
+            upper=interval.upper,
+            coverage=interval.coverage,
+            calibration_size=interval.calibration_size,
+            is_reliable=interval.is_reliable,
+        )
+
+    @app.post("/v1/compliance/feedback-loops", response_model=FeedbackLoopResponse)
+    async def feedback_loop_endpoint(req: FeedbackLoopCheckRequest):
+        """Check if input text matches any previous AI output (feedback loop).
+
+        Pass previous_outputs to seed the detector buffer, then checks
+        the input_text against them.
+        """
+        from .compliance.feedback_loop_detector import FeedbackLoopDetector
+
+        detector = FeedbackLoopDetector(
+            similarity_threshold=req.similarity_threshold,
+        )
+        for i, output in enumerate(req.previous_outputs):
+            detector.record_output(output, float(i))
+
+        alert = detector.check_input(req.input_text)
+        if alert is None:
+            return FeedbackLoopResponse(
+                loop_detected=False,
+                similarity=0.0,
+            )
+        return FeedbackLoopResponse(
+            loop_detected=True,
+            similarity=alert.similarity,
+            severity=alert.severity,
+            matched_output=alert.matched_output,
+        )
+
+    @app.post("/v1/agentic/check-step", response_model=AgenticStepResponse)
+    async def agentic_check_step_endpoint(req: AgenticStepRequest):
+        """Evaluate a single agentic step for safety issues.
+
+        Replays step_history to build monitor state, then evaluates
+        the current step.
+        """
+        from .agentic.loop_monitor import LoopMonitor
+
+        monitor = LoopMonitor(
+            goal=req.goal,
+            max_steps=req.max_steps,
+        )
+        for prev in req.step_history:
+            monitor.check_step(
+                action=prev.get("action", ""),
+                args=prev.get("args", ""),
+            )
+        verdict = monitor.check_step(
+            action=req.action,
+            args=req.args,
+            result=req.result,
+            tokens=req.tokens,
+        )
+        return AgenticStepResponse(
+            step_number=verdict.step_number,
+            should_halt=verdict.should_halt,
+            should_warn=verdict.should_warn,
+            reasons=verdict.reasons,
+            goal_drift_score=verdict.goal_drift_score,
+            budget_remaining_pct=verdict.budget_remaining_pct,
         )
 
     # -- WebSocket streaming (multiplexed) ------------------------------
