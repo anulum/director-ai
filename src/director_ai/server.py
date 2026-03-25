@@ -317,6 +317,66 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         goal_drift_score: float
         budget_remaining_pct: float
 
+    # -- Operational response models --
+
+    class ReadyResponse(BaseModel):
+        ready: bool
+        reason: str = ""
+
+    class SourceResponse(BaseModel):
+        license: str
+        version: str
+        licensee: str = ""
+        tier: str = ""
+        repository_url: str = ""
+        instructions: str = ""
+        agpl_obligation: str = ""
+        agpl_section: str = ""
+
+    class TenantInfo(BaseModel):
+        id: str
+        fact_count: int
+
+    class TenantListResponse(BaseModel):
+        tenants: list[TenantInfo]
+
+    class StatusResponse(BaseModel):
+        status: str
+        tenant_id: str = ""
+        key: str = ""
+        backend_type: str = ""
+        count: int = 0
+
+    class TurnInfo(BaseModel):
+        prompt: str
+        response: str
+        score: float
+        turn_index: int
+
+    class SessionResponse(BaseModel):
+        session_id: str
+        turn_count: int
+        turns: list[TurnInfo]
+
+    class DeletedResponse(BaseModel):
+        status: str
+        session_id: str
+
+    class StatsResponse(BaseModel):
+        total: int = 0
+        approved: int = 0
+        rejected: int = 0
+        halted: int = 0
+        avg_score: float | None = None
+        avg_latency_ms: float | None = None
+
+    class VerifyResponse(BaseModel):
+        approved: bool
+        overall_score: float
+        confidence: str = ""
+        reason: str = ""
+        claims: list[dict] = []
+
 
 def _halt_evidence_to_dict(halt_ev) -> dict | None:
     if halt_ev is None:
@@ -727,7 +787,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
         return {**resp.model_dump(), **extra}
 
-    @app.get("/v1/ready")
+    @app.get("/v1/ready", response_model=ReadyResponse)
     async def readiness(request: Request):
         """Readiness probe: returns 200 only when scorer is operational."""
         scorer = request.app.state._state.get("scorer")
@@ -746,7 +806,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ AGPL Ă‚Â§13 source endpoint Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
-    @app.get("/v1/source")
+    @app.get("/v1/source", response_model=SourceResponse)
     async def source(request: Request):
         import director_ai
 
@@ -922,7 +982,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Verified Review (sentence-level multi-signal) Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
-    @app.post("/v1/verify")
+    @app.post("/v1/verify", response_model=VerifyResponse)
     async def verify_response(req: ReviewRequest, request: Request):
         """Sentence-level multi-signal fact verification.
 
@@ -1199,7 +1259,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Tenants Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
-    @app.get("/v1/tenants")
+    @app.get("/v1/tenants", response_model=TenantListResponse)
     async def list_tenants(request: Request):
         router = request.app.state._state.get("tenant_router")
         if not router:
@@ -1219,7 +1279,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if bound and bound != tenant_id:
             raise HTTPException(403, "API key not authorized for this tenant")
 
-    @app.post("/v1/tenants/{tenant_id}/facts")
+    @app.post("/v1/tenants/{tenant_id}/facts", response_model=StatusResponse)
     async def add_tenant_fact(request: Request, tenant_id: str, req: TenantFactRequest):
         router = request.app.state._state.get("tenant_router")
         if not router:
@@ -1228,7 +1288,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         router.add_fact(tenant_id, req.key, req.value)
         return {"status": "ok", "tenant_id": tenant_id, "key": req.key}
 
-    @app.post("/v1/tenants/{tenant_id}/vector-facts")
+    @app.post("/v1/tenants/{tenant_id}/vector-facts", response_model=StatusResponse)
     async def add_tenant_vector_fact(
         request: Request,
         tenant_id: str,
@@ -1253,7 +1313,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Sessions Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
-    @app.get("/v1/sessions/{session_id}")
+    @app.get("/v1/sessions/{session_id}", response_model=SessionResponse)
     async def get_session(request: Request, session_id: str):
         caller_hash = getattr(request.state, "api_key_hash", "")
         async with request.app.state._state["sessions_lock"]:
@@ -1279,7 +1339,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             ],
         }
 
-    @app.delete("/v1/sessions/{session_id}")
+    @app.delete("/v1/sessions/{session_id}", response_model=DeletedResponse)
     async def delete_session(request: Request, session_id: str):
         caller_hash = getattr(request.state, "api_key_hash", "")
         async with request.app.state._state["sessions_lock"]:
@@ -1338,7 +1398,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "avg_latency_ms": avg_latency,
         }
 
-    @app.get("/v1/stats")
+    @app.get("/v1/stats", response_model=StatsResponse)
     async def get_stats(request: Request):
         stats_store = request.app.state._state.get("stats")
         if stats_store:
