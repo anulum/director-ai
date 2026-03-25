@@ -48,13 +48,26 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`TokenEvent`](streaming.md#tokenevent) | `director_ai.core.runtime.streaming` | Per-token stream event |
 | [`StreamSession`](streaming.md#streamsession) | `director_ai.core.runtime.streaming` | Complete stream session state |
 
+### Verification Gems (v3.10.0)
+
+| Symbol | Module | Purpose |
+|--------|--------|---------|
+| `verify_numeric()` | `director_ai.core.verification.numeric_verifier` | Numeric consistency checks (arithmetic, dates, probabilities) |
+| `verify_reasoning_chain()` | `director_ai.core.verification.reasoning_verifier` | Reasoning chain logic (non-sequiturs, circularity) |
+| `score_temporal_freshness()` | `director_ai.core.scoring.temporal_freshness` | Staleness risk for date-sensitive claims |
+| `ConsensusScorer` | `director_ai.core.scoring.consensus` | Cross-model factual agreement |
+| `ConformalPredictor` | `director_ai.core.calibration.conformal` | Calibrated P(hallucination) intervals |
+| `FeedbackLoopDetector` | `director_ai.compliance.feedback_loop_detector` | EU AI Act Art 15(4) feedback loop detection |
+| `LoopMonitor` | `director_ai.agentic.loop_monitor` | Agent loop safety (circular, drift, budget) |
+| `AdversarialTester` | `director_ai.testing.adversarial_suite` | 25-pattern adversarial robustness test |
+
 ### Interfaces
 
 | Interface | Purpose |
 |-----------|---------|
-| [REST Server](server.md) | FastAPI endpoints (`/v1/review`, `/v1/health`, `/v1/metrics`) |
+| [REST Server](server.md) | FastAPI endpoints (`/v1/review`, `/v1/health`, `/v1/metrics`, 8 gem endpoints) |
 | [gRPC Server](grpc.md) | Protocol Buffers service (4 RPC methods) |
-| [CLI](cli.md) | 15 command-line subcommands |
+| [CLI](cli.md) | 22 command-line subcommands |
 
 ### Exceptions
 

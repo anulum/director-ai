@@ -43,12 +43,23 @@ director-ai/
 │   │   │   └── types.py           Result dataclasses
 │   │   ├── calibration/            (v3.10.0)
 │   │   │   ├── feedback_store.py  SQLite human correction store
-│   │   │   └── online_calibrator.py  Threshold sweep + CIs
+│   │   │   ├── online_calibrator.py  Threshold sweep + CIs
+│   │   │   └── conformal.py       Conformal prediction intervals
+│   │   ├── scoring/
+│   │   │   ├── consensus.py       Cross-model factual agreement
+│   │   │   └── temporal_freshness.py  Staleness risk scoring
 │   │
 │   ├── compliance/                 (v3.10.0 — EU AI Act Article 15)
 │   │   ├── audit_log.py           Scored interaction audit trail
 │   │   ├── reporter.py            Article15Report + metrics + markdown
-│   │   └── drift_detector.py      Statistical drift (z-test, severity)
+│   │   ├── drift_detector.py      Statistical drift (z-test, severity)
+│   │   └── feedback_loop_detector.py  Art 15(4) feedback loop detection
+│   │
+│   ├── agentic/                    (v3.10.0 — agent loop safety)
+│   │   └── loop_monitor.py        Circular call, goal drift, budget monitor
+│   │
+│   ├── testing/                    (v3.10.0 — self-test)
+│   │   └── adversarial_suite.py   25-pattern adversarial robustness test
 │   │   ├── training/
 │   │   │   ├── finetune.py        NLI fine-tuning
 │   │   │   ├── finetune_benchmark.py  Pre/post benchmark

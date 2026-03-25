@@ -43,7 +43,7 @@ graph LR
     V -->|No| H["HALT + evidence"]
 ```
 
-**Seven things make it different:**
+**Ten things make it different:**
 
 1. **Token-level streaming halt** — not post-hoc review. Severs output the moment coherence degrades.
 2. **Dual-entropy scoring** — NLI contradiction detection (DeBERTa) + RAG fact-checking against your knowledge base.
@@ -51,7 +51,10 @@ graph LR
 4. **Structured output verification** — JSON schema validation, tool call fabrication detection, code hallucinated API detection. Zero dependencies (stdlib only).
 5. **Online calibration** — collects human feedback, automatically adjusts thresholds for your deployment. The longer you use it, the better it gets.
 6. **Contradiction tracking** — detects when an AI contradicts itself across conversation turns.
-7. **EU AI Act compliance** — automated Article 15 documentation. Accuracy metrics, drift detection, audit trails, per-model breakdown with confidence intervals. Ready for August 2026 enforcement.
+7. **EU AI Act compliance** — automated Article 15 documentation. Accuracy metrics, drift detection, feedback loop detection, audit trails, per-model breakdown with confidence intervals. Ready for August 2026 enforcement.
+8. **Verification gems** — numeric consistency checks, reasoning chain verification, temporal freshness scoring, cross-model consensus, conformal prediction intervals. All stdlib-only, zero dependencies.
+9. **Agentic loop monitor** — detects circular tool calls, goal drift, and budget exhaustion in AI agent loops. The first guardrail that monitors agent execution, not just individual calls.
+10. **Adversarial self-test** — 25-pattern robustness suite tests your guardrail against zero-width chars, homoglyphs, encoding tricks, and prompt injection.
 
 ### Scope
 
