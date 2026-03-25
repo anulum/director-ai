@@ -31,8 +31,8 @@ __all__ = [
 _PERCENT_PATTERN = re.compile(
     r"(?:grew|increased|decreased|dropped|rose|fell|declined|changed|gained|lost)"
     r"\s+(?:by\s+)?(\d+(?:\.\d+)?)\s*%"
-    r".*?(?:from|of)\s+\$?([\d,]+(?:\.\d+)?)\s*(?:million|billion|thousand|[MBKmk])?"
-    r".*?(?:to)\s+\$?([\d,]+(?:\.\d+)?)\s*(?:million|billion|thousand|[MBKmk])?",
+    r"[^.]{0,80}(?:from|of)\s+\$?([\d,]+(?:\.\d+)?)\s*(?:million|billion|thousand|[MBKmk])?"
+    r"[^.]{0,80}(?:to)\s+\$?([\d,]+(?:\.\d+)?)\s*(?:million|billion|thousand|[MBKmk])?",
     re.IGNORECASE,
 )
 
@@ -48,7 +48,7 @@ _DATE_PATTERN = re.compile(
 )
 
 _PROB_PATTERN = re.compile(
-    r"(\d+(?:\.\d+)?)\s*(?:%|percent)\s*(?:probability|chance|likelihood|confidence)",
+    r"(\d+(?:\.\d+)?)\s*(?:%|percent)\s+(?:probability|chance|likelihood|confidence)",
     re.IGNORECASE,
 )
 

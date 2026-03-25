@@ -786,7 +786,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 )
             import hashlib
 
-            api_key_hash = hashlib.blake2b(  # lgtm[py/weak-sensitive-data-hashing]
+            # Audit fingerprint only — NOT used for authentication or password storage.
+            # The API key is compared via constant-time HMAC above; this truncated
+            # hash is logged for traceability. BLAKE2B is appropriate here.
+            api_key_hash = hashlib.blake2b(  # CodeQL: py/weak-sensitive-data-hashing — false positive (audit fingerprint, not auth)
                 provided.encode(), key=b"director-ai", digest_size=8
             ).hexdigest()
 

@@ -20,7 +20,7 @@ __all__ = ["FreshnessClaim", "FreshnessResult", "score_temporal_freshness"]
 _POSITION_PATTERN = re.compile(
     r"(?:the\s+)?(?:CEO|CTO|CFO|COO|president|prime\s+minister|chairman|"
     r"director|head|leader|secretary|minister|governor|mayor)\s+"
-    r"(?:of\s+)?(.+?)(?:\s+is|\s+was|\s*,)",
+    r"(?:of\s+)?([^,\n]{1,120})(?:\s+is|\s+was|\s*,)",
     re.IGNORECASE,
 )
 

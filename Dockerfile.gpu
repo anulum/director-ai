@@ -39,8 +39,12 @@ WORKDIR /app
 
 ENV PYTHONPATH=/app/src
 
-# optimum + onnxruntime: build-time only for ONNX export (not in runtime image)
-RUN pip install --no-cache-dir 'optimum[onnxruntime]==2.1.0'
+# optimum: build-time only for ONNX export (not in runtime image).
+# Hash-pinned for OpenSSF supply-chain compliance.
+COPY requirements/docker-gpu-export.txt /tmp/docker-gpu-export.txt
+RUN pip install --no-cache-dir --no-deps --require-hashes \
+        -r /tmp/docker-gpu-export.txt \
+    && pip install --no-cache-dir 'onnxruntime==1.22.0'
 
 RUN python -c "\
 from director_ai.core.nli import export_onnx; \

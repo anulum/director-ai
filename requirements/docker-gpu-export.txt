@@ -1,0 +1,2 @@
+optimum==2.1.0 \
+    --hash=sha256:bc3af32e1236a9b2c2ca1d27ed9d3ab1b6591e24c6bcd47f9671a8198a30ea88
