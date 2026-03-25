@@ -146,6 +146,9 @@ class DirectorConfig:
     audit_log_path: str = ""
     audit_postgres_url: str = ""
 
+    # EU AI Act compliance
+    compliance_db_path: str = ""
+
     # Tenant routing
     tenant_routing: bool = False
 

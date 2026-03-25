@@ -59,6 +59,7 @@ def main(argv: list[str] | None = None) -> None:
         "stress-test": _cmd_stress_test,
         "doctor": _cmd_doctor,
         "license": _cmd_license,
+        "compliance": _cmd_compliance,
     }
 
     if cmd not in commands:
@@ -92,7 +93,8 @@ def _print_help() -> None:
         "  export [--format F]   Export model to ONNX/TensorRT\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
         "  doctor                Check runtime dependencies and readiness\n"
-        "  config [--profile X]  Show/set configuration\n",
+        "  config [--profile X]  Show/set configuration\n"
+        "  compliance <sub>      EU AI Act compliance (report, status, drift)\n",
     )
 
 
@@ -937,6 +939,7 @@ def _cmd_proxy(args: list[str]) -> None:
     on_fail = "reject"
     api_keys: list[str] = []
     allow_http = False
+    audit_db: str | None = None
 
     i = 0
     while i < len(args):
@@ -964,6 +967,9 @@ def _cmd_proxy(args: list[str]) -> None:
         elif args[i] == "--allow-http-upstream":
             allow_http = True
             i += 1
+        elif args[i] == "--audit-db" and i + 1 < len(args):
+            audit_db = args[i + 1]
+            i += 2
         else:
             i += 1
 
@@ -982,6 +988,7 @@ def _cmd_proxy(args: list[str]) -> None:
         on_fail=on_fail,
         api_keys=api_keys or None,
         allow_http_upstream=allow_http,
+        audit_db=audit_db,
     )
 
     print(
@@ -1371,6 +1378,109 @@ def _cmd_license(args: list[str]) -> None:
     print(f"Unknown license subcommand: {args[0]}")
     print("Usage: director-ai license [status|generate|validate]")
     sys.exit(1)
+
+
+def _cmd_compliance(args: list[str]) -> None:
+    """EU AI Act Article 15 compliance tools."""
+    if not args or args[0] in ("-h", "--help"):
+        print(
+            "Usage: director-ai compliance <subcommand> [options]\n"
+            "\n"
+            "Subcommands:\n"
+            "  report  [--db PATH] [--since TS] [--until TS] [--format md|json]\n"
+            "  status  [--db PATH]   Quick summary\n"
+            "  drift   [--db PATH]   Drift detection analysis\n",
+        )
+        return
+
+    sub = args[0]
+    rest = args[1:]
+    db_path = "director_audit.db"
+    fmt = "md"
+    since = None
+    until = None
+
+    i = 0
+    while i < len(rest):
+        if rest[i] == "--db" and i + 1 < len(rest):
+            db_path = rest[i + 1]
+            i += 2
+        elif rest[i] == "--since" and i + 1 < len(rest):
+            since = float(rest[i + 1])
+            i += 2
+        elif rest[i] == "--until" and i + 1 < len(rest):
+            until = float(rest[i + 1])
+            i += 2
+        elif rest[i] == "--format" and i + 1 < len(rest):
+            fmt = rest[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    from pathlib import Path
+
+    if not Path(db_path).exists():
+        print(f"Audit database not found: {db_path}")
+        print(
+            "Run the proxy or server with --audit-db / DIRECTOR_COMPLIANCE_DB_PATH first."
+        )
+        sys.exit(1)
+
+    from director_ai.compliance.audit_log import AuditLog
+    from director_ai.compliance.drift_detector import DriftDetector
+    from director_ai.compliance.reporter import ComplianceReporter
+
+    log = AuditLog(db_path)
+
+    if sub == "report":
+        reporter = ComplianceReporter(log)
+        report = reporter.generate_report(since=since, until=until)
+        if fmt == "json":
+            print(
+                json.dumps(
+                    {
+                        "total_interactions": report.total_interactions,
+                        "hallucination_rate": report.overall_hallucination_rate,
+                        "hallucination_rate_ci": report.overall_hallucination_rate_ci,
+                        "avg_score": report.avg_score,
+                        "drift_detected": report.drift_detected,
+                        "incident_count": report.incident_count,
+                    },
+                    indent=2,
+                )
+            )
+        else:
+            print(report.to_markdown())
+
+    elif sub == "status":
+        reporter = ComplianceReporter(log)
+        report = reporter.generate_report(since=since, until=until)
+        n = report.total_interactions
+        hr = report.overall_hallucination_rate
+        drift = "YES" if report.drift_detected else "no"
+        print(
+            f"Interactions: {n:,} | "
+            f"Hallucination rate: {hr:.2%} | "
+            f"Incidents: {report.incident_count:,} | "
+            f"Drift: {drift}"
+        )
+
+    elif sub == "drift":
+        detector = DriftDetector(log)
+        result = detector.analyze(since=since, until=until)
+        status = f"DETECTED ({result.severity})" if result.detected else "none"
+        print(
+            f"Drift: {status} | "
+            f"z={result.z_score:.2f} p={result.p_value:.4f} | "
+            f"Rate change: {result.rate_change:+.2%} | "
+            f"Windows: {len(result.windows)}"
+        )
+
+    else:
+        print(f"Unknown compliance subcommand: {sub}")
+        sys.exit(1)
+
+    log.close()
 
 
 if __name__ == "__main__":

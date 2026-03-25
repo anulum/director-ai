@@ -18,6 +18,7 @@ import hmac
 import json
 import logging
 import pathlib
+import time as _time
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 
@@ -34,6 +35,7 @@ def create_proxy_app(
     use_nli: bool | None = None,
     api_keys: list[str] | None = None,
     allow_http_upstream: bool = False,
+    audit_db: str | None = None,
     _transport=None,
 ):
     """Build a FastAPI app that proxies OpenAI requests with scoring.
@@ -56,8 +58,12 @@ def create_proxy_app(
         ``None`` or empty = no auth (not recommended for production).
     allow_http_upstream : bool
         Allow non-HTTPS upstream URLs. Default ``False`` rejects them.
+    audit_db : str | None
+        Path to SQLite compliance audit database. None disables audit logging.
 
     """
+    from contextlib import asynccontextmanager
+
     import httpx
     from fastapi import FastAPI, Request
     from fastapi.responses import JSONResponse
@@ -83,7 +89,20 @@ def create_proxy_app(
         use_nli=use_nli,
     )
 
-    app = FastAPI(title="Director-AI Proxy")
+    audit_log = None
+    if audit_db:
+        from director_ai.compliance.audit_log import AuditLog
+
+        audit_log = AuditLog(audit_db)
+        _log.info("Compliance audit log: %s", audit_db)
+
+    @asynccontextmanager
+    async def _lifespan(app):
+        yield
+        if audit_log is not None:
+            audit_log.close()
+
+    app = FastAPI(title="Director-AI Proxy", lifespan=_lifespan)
     upstream = upstream_url.rstrip("/")
 
     if not api_keys:
@@ -142,6 +161,7 @@ def create_proxy_app(
                 scorer,
                 on_fail,
                 _transport,
+                audit_log=audit_log,
             )
 
         async with _client(timeout=120.0) as client:
@@ -162,11 +182,24 @@ def create_proxy_app(
         if not content:
             return JSONResponse(content=data)
 
+        t0 = _time.monotonic()
         approved, cs = scorer.review(prompt, content)
+        latency_ms = (_time.monotonic() - t0) * 1000
         extra_headers = {
             "X-Director-Score": f"{cs.score:.4f}",
             "X-Director-Approved": str(approved).lower(),
         }
+
+        _audit_log_entry(
+            audit_log,
+            prompt,
+            content,
+            model=body.get("model", "unknown"),
+            score=cs.score,
+            approved=approved,
+            confidence=getattr(cs, "verdict_confidence", 0.0),
+            latency_ms=latency_ms,
+        )
 
         if not approved and on_fail == "reject":
             return JSONResponse(
@@ -195,6 +228,7 @@ async def _handle_streaming(
     scorer,
     on_fail,
     transport=None,
+    audit_log=None,
 ):
     import httpx
     from fastapi.responses import StreamingResponse
@@ -202,6 +236,8 @@ async def _handle_streaming(
     async def _stream():
         buffer: list[str] = []
         chunk_count = 0
+        model_name = body.get("model", "unknown")
+        t0 = _time.monotonic()
 
         async with (
             httpx.AsyncClient(timeout=120.0, transport=transport) as client,
@@ -222,6 +258,17 @@ async def _handle_streaming(
                     text = "".join(buffer)
                     if text:
                         approved, _cs = scorer.review(prompt, text)
+                        latency_ms = (_time.monotonic() - t0) * 1000
+                        _audit_log_entry(
+                            audit_log,
+                            prompt,
+                            text,
+                            model=model_name,
+                            score=_cs.score,
+                            approved=approved,
+                            confidence=getattr(_cs, "verdict_confidence", 0.0),
+                            latency_ms=latency_ms,
+                        )
                         if not approved and on_fail == "reject":
                             halt = {
                                 "choices": [
@@ -272,6 +319,39 @@ async def _handle_streaming(
                 yield line + "\n"
 
     return StreamingResponse(_stream(), media_type="text/event-stream")
+
+
+def _audit_log_entry(
+    audit_log,
+    prompt: str,
+    response: str,
+    *,
+    model: str,
+    score: float,
+    approved: bool,
+    confidence: float,
+    latency_ms: float,
+) -> None:
+    """Log a scored interaction to the compliance audit log (if enabled)."""
+    if audit_log is None:
+        return
+    from director_ai.compliance.audit_log import AuditEntry
+
+    audit_log.log(
+        AuditEntry(
+            prompt=prompt,
+            response=response,
+            model=model,
+            provider="proxy",
+            score=score,
+            approved=approved,
+            verdict_confidence=confidence,
+            task_type="chat",
+            domain="",
+            latency_ms=latency_ms,
+            timestamp=_time.time(),
+        )
+    )
 
 
 def _extract_prompt(messages: list[dict]) -> str:

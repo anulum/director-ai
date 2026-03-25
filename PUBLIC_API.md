@@ -242,6 +242,8 @@ Result types: `StructuredVerificationResult`, `ToolCallResult`, `CodeCheckResult
 | `AuditEntry` | `compliance.audit_log` | Single interaction record dataclass |
 | `ComplianceReporter` | `compliance.reporter` | Article 15 report generator (metrics, drift, incidents) |
 | `Article15Report` | `compliance.reporter` | Structured report with `to_markdown()` export |
+| `DriftDetector` | `compliance.drift_detector` | Statistical drift detection (two-proportion z-test) |
+| `DriftResult` | `compliance.drift_detector` | Drift analysis result with z-score, p-value, severity |
 
 ## Exceptions
 

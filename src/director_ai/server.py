@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Ă‚Â© Concepts 1996Ă˘â‚¬â€ś2026 Miroslav ÄąÂ otek. All rights reserved.
+# Ă‚Â© Code 2020Ă˘â‚¬â€ś2026 Miroslav ÄąÂ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” FastAPI Server
+# Director-Class AI Ă˘â‚¬â€ť FastAPI Server
 
 """Production-ready FastAPI server for Director-Class AI.
 
@@ -77,7 +77,7 @@ def _check_fastapi() -> None:
         )
 
 
-# â”€â”€ Pydantic request/response models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Pydantic request/response models Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
 _MAX_PROMPT_CHARS = 100_000
 _MAX_RESPONSE_CHARS = 500_000
@@ -248,15 +248,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         app.state._license = lic
         if lic.is_commercial:
             logger.info(
-                "Director-AI v%s â€” Licensed to %s (%s tier)",
+                "Director-AI v%s Ă˘â‚¬â€ť Licensed to %s (%s tier)",
                 __import__("director_ai").__version__,
                 lic.licensee or lic.key[:20],
                 lic.tier,
             )
         elif lic.is_trial:
-            logger.info("Director-AI â€” Trial license (expires %s)", lic.expires)
+            logger.info("Director-AI Ă˘â‚¬â€ť Trial license (expires %s)", lic.expires)
         else:
-            logger.info("Director-AI â€” AGPL-3.0-or-later (community)")
+            logger.info("Director-AI Ă˘â‚¬â€ť AGPL-3.0-or-later (community)")
 
         logger.info("Starting Director-AI server")
 
@@ -341,6 +341,17 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 bool(cfg.audit_postgres_url),
             )
 
+        if cfg.compliance_db_path:
+            from .compliance.audit_log import AuditLog as ComplianceAuditLog
+            from .compliance.drift_detector import DriftDetector
+            from .compliance.reporter import ComplianceReporter
+
+            c_log = ComplianceAuditLog(cfg.compliance_db_path)
+            app.state._state["compliance_log"] = c_log
+            app.state._state["compliance_reporter"] = ComplianceReporter(c_log)
+            app.state._state["compliance_drift"] = DriftDetector(c_log)
+            logger.info("Compliance audit log: %s", cfg.compliance_db_path)
+
         if cfg.tenant_routing:
             app.state._state["tenant_router"] = TenantRouter()
             logger.info("Tenant routing enabled")
@@ -356,7 +367,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
             setup_otel()
 
-        if cfg.use_nli:  # pragma: no cover â€” lifespan only runs under ASGI
+        if cfg.use_nli:  # pragma: no cover Ă˘â‚¬â€ť lifespan only runs under ASGI
             metrics.gauge_set("nli_model_loaded", 1.0)
 
         logger.info(
@@ -371,8 +382,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if stats:
             try:
                 stats.close()
-            except Exception:  # pragma: no cover â€” defensive
+            except Exception:  # pragma: no cover Ă˘â‚¬â€ť defensive
                 logger.warning("Failed to close stats database")
+        c_log = app.state._state.get("compliance_log")
+        if c_log:
+            c_log.close()
 
     app = FastAPI(
         title="Director-Class AI",
@@ -414,7 +428,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         ],
     )
 
-    # â”€â”€ Rate limiting â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Rate limiting Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     _rate_str = f"{cfg.rate_limit_rpm}/minute" if cfg.rate_limit_rpm > 0 else ""
 
@@ -453,12 +467,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
             @app.exception_handler(RateLimitExceeded)
             async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
-                return JSONResponse(  # pragma: no cover â€” ASGI runtime handler
+                return JSONResponse(  # pragma: no cover Ă˘â‚¬â€ť ASGI runtime handler
                     status_code=429,
                     content={"detail": "Rate limit exceeded"},
                 )
 
-    # â”€â”€ Middleware: correlation IDs + API key auth + metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Middleware: correlation IDs + API key auth + metrics Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     _auth_exempt = (
         _AUTH_EXEMPT_PATHS_BASE
@@ -496,7 +510,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 provided.encode(), key=b"director-ai", digest_size=8
             ).hexdigest()
 
-            # Tenant binding: enforce API key â†’ tenant mapping if configured
+            # Tenant binding: enforce API key Ă˘â€ â€™ tenant mapping if configured
             if _api_key_tenant_map:
                 if provided not in _api_key_tenant_map:
                     return JSONResponse(
@@ -536,7 +550,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         response.headers["X-Request-ID"] = request_id
         return response
 
-    # â”€â”€ Health â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Health Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/health", response_model=HealthResponse)
     async def health(request: Request):
@@ -581,7 +595,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             )
         return {"ready": True}
 
-    # â”€â”€ AGPL Â§13 source endpoint â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ AGPL Ă‚Â§13 source endpoint Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/source")
     async def source(request: Request):
@@ -612,7 +626,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "agpl_section": "13",
         }
 
-    # â”€â”€ Review â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Review Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.post("/v1/review", response_model=ReviewResponse)
     async def review(
@@ -632,10 +646,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             req.response = redactor.redact(req.response)
 
         scorer = request.app.state._state.get("scorer")
-        if not scorer:  # pragma: no cover â€” lifespan always sets scorer
+        if not scorer:  # pragma: no cover Ă˘â‚¬â€ť lifespan always sets scorer
             raise HTTPException(503, "Server not ready")
 
-        # Tenant routing â€” S-05: log tenant access for audit trail
+        # Tenant routing Ă˘â‚¬â€ť S-05: log tenant access for audit trail
         tenant_id = getattr(
             request.state,
             "tenant_id",
@@ -727,6 +741,27 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 latency_ms=latency_ms,
             )
 
+        c_log = request.app.state._state.get("compliance_log")
+        if c_log:
+            from .compliance.audit_log import AuditEntry as CAuditEntry
+
+            c_log.log(
+                CAuditEntry(
+                    prompt=req.prompt,
+                    response=req.response,
+                    model=getattr(cfg, "llm_model", "server"),
+                    provider="server",
+                    score=score.score,
+                    approved=approved,
+                    verdict_confidence=getattr(score, "verdict_confidence", 0.0),
+                    task_type="review",
+                    domain="",
+                    latency_ms=latency_ms,
+                    timestamp=time.time(),
+                    tenant_id=tenant_id,
+                )
+            )
+
         return ReviewResponse(
             approved=approved,
             coherence=score.score,
@@ -736,7 +771,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             evidence=_evidence_to_dict(score.evidence),
         )
 
-    # â”€â”€ Verified Review (sentence-level multi-signal) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Verified Review (sentence-level multi-signal) Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.post("/v1/verify")
     async def verify_response(req: ReviewRequest, request: Request):
@@ -800,7 +835,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
         return result.to_dict()
 
-    # â”€â”€ Process â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Process Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.post("/v1/process", response_model=ProcessResponse)
     async def process(
@@ -819,7 +854,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             req.prompt = redactor(req.prompt)
 
         agent = request.app.state._state.get("agent")
-        if not agent:  # pragma: no cover â€” lifespan always sets agent
+        if not agent:  # pragma: no cover Ă˘â‚¬â€ť lifespan always sets agent
             raise HTTPException(503, "Server not ready")
         metrics.inc("reviews_total")
         start = time.monotonic()
@@ -889,7 +924,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             halt_evidence=_halt_evidence_to_dict(result.halt_evidence),
         )
 
-    # â”€â”€ Batch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Batch Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.post("/v1/batch", response_model=BatchResponse)
     async def batch(
@@ -922,7 +957,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
 
         batcher = request.app.state._state.get("batch")
-        if not batcher:  # pragma: no cover â€” lifespan always sets batch
+        if not batcher:  # pragma: no cover Ă˘â‚¬â€ť lifespan always sets batch
             raise HTTPException(503, "Server not ready")
 
         redactor = request.app.state._state.get("redactor")
@@ -1013,7 +1048,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 detail="Internal processing error",
             ) from e
 
-    # â”€â”€ Tenants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Tenants Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/tenants")
     async def list_tenants(request: Request):
@@ -1067,7 +1102,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "count": store.backend.count(),
         }
 
-    # â”€â”€ Sessions â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Sessions Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/sessions/{session_id}")
     async def get_session(request: Request, session_id: str):
@@ -1110,7 +1145,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             owners.pop(session_id, None)
         return {"status": "deleted", "session_id": session_id}
 
-    # â”€â”€ Metrics â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Metrics Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/metrics")
     async def get_metrics(request: Request):
@@ -1120,13 +1155,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     async def get_prometheus(request: Request):
         return metrics.prometheus_format()
 
-    # â”€â”€ Config â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Config Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/config", response_model=ConfigResponse)
     async def get_config():
         return ConfigResponse(config=cfg.to_dict())
 
-    # â”€â”€ Stats / Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Stats / Dashboard Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     def _prometheus_summary() -> dict:
         """Derive summary from MetricsCollector when stats_backend=prometheus."""
@@ -1195,7 +1230,115 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "</table></body></html>"
         )
 
-    # â”€â”€ WebSocket streaming (multiplexed) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # -- Compliance endpoints (EU AI Act Article 15) --------------------
+
+    @app.get("/v1/compliance/report")
+    async def compliance_report(
+        request: Request,
+        since: float | None = None,
+        until: float | None = None,
+        model: str | None = None,
+        domain: str | None = None,
+        fmt: str = "json",
+    ):
+        reporter = request.app.state._state.get("compliance_reporter")
+        if reporter is None:
+            raise HTTPException(
+                503,
+                "Compliance reporting not configured. Set DIRECTOR_COMPLIANCE_DB_PATH.",
+            )
+        report = reporter.generate_report(
+            since=since, until=until, model=model, domain=domain
+        )
+        if fmt == "md":
+            return PlainTextResponse(report.to_markdown(), media_type="text/markdown")
+        return {
+            "report_timestamp": report.report_timestamp,
+            "period_start": report.period_start,
+            "period_end": report.period_end,
+            "total_interactions": report.total_interactions,
+            "overall_hallucination_rate": report.overall_hallucination_rate,
+            "overall_hallucination_rate_ci": report.overall_hallucination_rate_ci,
+            "avg_score": report.avg_score,
+            "avg_verdict_confidence": report.avg_verdict_confidence,
+            "avg_latency_ms": report.avg_latency_ms,
+            "human_override_count": report.human_override_count,
+            "human_override_rate": report.human_override_rate,
+            "model_metrics": [
+                {
+                    "model": m.model,
+                    "total_requests": m.total_requests,
+                    "hallucination_rate": m.hallucination_rate,
+                    "hallucination_rate_ci": m.hallucination_rate_ci,
+                    "avg_score": m.avg_score,
+                    "avg_confidence": m.avg_confidence,
+                    "avg_latency_ms": m.avg_latency_ms,
+                }
+                for m in report.model_metrics
+            ],
+            "drift_detected": report.drift_detected,
+            "drift_severity": report.drift_severity,
+            "incident_count": report.incident_count,
+        }
+
+    @app.get("/v1/compliance/drift")
+    async def compliance_drift(request: Request):
+        detector = request.app.state._state.get("compliance_drift")
+        if detector is None:
+            raise HTTPException(
+                503,
+                "Compliance reporting not configured. Set DIRECTOR_COMPLIANCE_DB_PATH.",
+            )
+        result = detector.analyze()
+        return {
+            "detected": result.detected,
+            "severity": result.severity,
+            "z_score": result.z_score,
+            "p_value": result.p_value,
+            "rate_change": result.rate_change,
+            "windows": [
+                {
+                    "start": w.start,
+                    "end": w.end,
+                    "total": w.total,
+                    "rejected": w.rejected,
+                    "hallucination_rate": w.hallucination_rate,
+                }
+                for w in result.windows
+            ],
+        }
+
+    @app.get("/v1/compliance/dashboard")
+    async def compliance_dashboard(request: Request):
+        reporter = request.app.state._state.get("compliance_reporter")
+        if reporter is None:
+            raise HTTPException(
+                503,
+                "Compliance reporting not configured. Set DIRECTOR_COMPLIANCE_DB_PATH.",
+            )
+        now = time.time()
+        r_24h = reporter.generate_report(since=now - 86400, until=now)
+        r_7d = reporter.generate_report(since=now - 7 * 86400, until=now)
+        r_30d = reporter.generate_report(since=now - 30 * 86400, until=now)
+        return {
+            "24h": {
+                "total": r_24h.total_interactions,
+                "hallucination_rate": r_24h.overall_hallucination_rate,
+                "avg_score": r_24h.avg_score,
+            },
+            "7d": {
+                "total": r_7d.total_interactions,
+                "hallucination_rate": r_7d.overall_hallucination_rate,
+                "avg_score": r_7d.avg_score,
+            },
+            "30d": {
+                "total": r_30d.total_interactions,
+                "hallucination_rate": r_30d.overall_hallucination_rate,
+                "avg_score": r_30d.avg_score,
+            },
+        }
+
+    # -- WebSocket streaming (multiplexed) ------------------------------
 
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):

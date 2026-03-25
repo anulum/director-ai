@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Statistical drift detection**: `DriftDetector` uses two-proportion z-test
+  to determine if hallucination rates are increasing over time. Severity levels:
+  none/mild/moderate/severe. No scipy dependency (Abramowitz & Stegun CDF).
+- **Proxy audit logging**: `--audit-db PATH` flag logs every scored proxy
+  request to the compliance SQLite database for Article 15 documentation.
+- **Server compliance endpoints**: `GET /v1/compliance/report` (JSON or Markdown),
+  `GET /v1/compliance/drift`, `GET /v1/compliance/dashboard` (24h/7d/30d metrics).
+  Enabled via `DIRECTOR_COMPLIANCE_DB_PATH` env var.
+- **CLI compliance subcommand**: `director-ai compliance report|status|drift`
+  generates Article 15 reports from the command line.
+- **Server encoding fix**: Repaired triple-encoded UTF-8 in `server.py`.
+
 ## [3.10.0] — 2026-03-24
 
 ### Added

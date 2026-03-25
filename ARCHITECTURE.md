@@ -47,7 +47,8 @@ director-ai/
 │   │
 │   ├── compliance/                 (v3.10.0 — EU AI Act Article 15)
 │   │   ├── audit_log.py           Scored interaction audit trail
-│   │   └── reporter.py            Article15Report + drift detection
+│   │   ├── reporter.py            Article15Report + metrics + markdown
+│   │   └── drift_detector.py      Statistical drift (z-test, severity)
 │   │   ├── training/
 │   │   │   ├── finetune.py        NLI fine-tuning
 │   │   │   ├── finetune_benchmark.py  Pre/post benchmark

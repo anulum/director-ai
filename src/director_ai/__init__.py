@@ -142,6 +142,8 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "AuditEntry": (".compliance.audit_log", "AuditEntry"),
     "ComplianceReporter": (".compliance.reporter", "ComplianceReporter"),
     "Article15Report": (".compliance.reporter", "Article15Report"),
+    "DriftDetector": (".compliance.drift_detector", "DriftDetector"),
+    "DriftResult": (".compliance.drift_detector", "DriftResult"),
 }
 
 __all__ = sorted(_LAZY_IMPORTS)

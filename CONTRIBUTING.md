@@ -95,6 +95,7 @@ The package lives in `src/director_ai/` with two profiles:
 | `core/calibration/` | `online_calibrator.py` | `OnlineCalibrator` | Threshold calibration from feedback (v3.10.0) |
 | `compliance/` | `audit_log.py` | `AuditLog` | Scored interaction audit trail (v3.10.0) |
 | `compliance/` | `reporter.py` | `ComplianceReporter` | EU AI Act Article 15 reporting (v3.10.0) |
+| `compliance/` | `drift_detector.py` | `DriftDetector` | Statistical drift detection (v3.10.0) |
 
 ### Integrations — `integrations/`
 

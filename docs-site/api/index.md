@@ -105,6 +105,8 @@ See [Online Calibration Guide](../guide/online-calibration.md).
 | `AuditEntry` | `compliance.audit_log` | Single interaction record |
 | `ComplianceReporter` | `compliance.reporter` | Article 15 report generator |
 | `Article15Report` | `compliance.reporter` | Structured report with metrics, drift, incidents |
+| `DriftDetector` | `compliance.drift_detector` | Statistical drift detection (two-proportion z-test) |
+| `DriftResult` | `compliance.drift_detector` | Drift analysis result with z-score, p-value, severity |
 
 See [Compliance Reporting Guide](../guide/compliance-reporting.md).
 
