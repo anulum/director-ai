@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Feedback loop detection**: `FeedbackLoopDetector` detects when AI outputs
+  feed back into inputs, creating self-reinforcement cycles. EU AI Act
+  Article 15(4) specifically requires this. Trigram-based fuzzy matching
+  with severity levels. Zero competitors address this regulatory requirement.
 - **Conformal prediction intervals**: `ConformalPredictor` provides calibrated,
   distribution-free uncertainty estimates on hallucination probability. Instead
   of binary approved/rejected, returns P(hallucination) intervals with coverage
