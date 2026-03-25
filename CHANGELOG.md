@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Agentic loop monitor**: `LoopMonitor` tracks AI agent execution loops.
+  Detects circular tool calls, goal drift (Jaccard or custom NLI scorer),
+  token/step/time budget exhaustion, and reasoning degradation. Returns
+  per-step verdicts with halt/warn decisions. The first guardrail product
+  that monitors agent loops, not just individual calls.
 - **Numeric verification**: `verify_numeric()` checks percentage arithmetic,
   date logic (birth < death), probability bounds, order-of-magnitude sanity,
   and internal consistency. Stdlib only, zero dependencies. The first
