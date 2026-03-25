@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Reasoning chain verification**: `verify_reasoning_chain()` extracts steps
+  from chain-of-thought responses and verifies each step follows from its
+  premises. Detects non-sequiturs, circular reasoning, and unsupported leaps.
+  Pluggable NLI scorer, falls back to Jaccard heuristic.
 - **Feedback loop detection**: `FeedbackLoopDetector` detects when AI outputs
   feed back into inputs, creating self-reinforcement cycles. EU AI Act
   Article 15(4) specifically requires this. Trigram-based fuzzy matching

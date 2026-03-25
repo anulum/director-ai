@@ -151,6 +151,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     # Conformal prediction (Phase 5)
     "ConformalPredictor": (".core.calibration.conformal", "ConformalPredictor"),
     "PredictionInterval": (".core.calibration.conformal", "PredictionInterval"),
+    # Reasoning chain verification (Phase 5)
+    "verify_reasoning_chain": (
+        ".core.verification.reasoning_verifier",
+        "verify_reasoning_chain",
+    ),
     # Feedback loop detection (Phase 5 — EU AI Act Art 15(4))
     "FeedbackLoopDetector": (
         ".compliance.feedback_loop_detector",
