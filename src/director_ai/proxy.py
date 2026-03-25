@@ -13,8 +13,6 @@ hallucination scoring with zero code changes::
     director-ai proxy --port 8080 --facts kb.txt --threshold 0.6
 """
 
-from __future__ import annotations
-
 import contextlib
 import hmac
 import json
