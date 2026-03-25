@@ -168,6 +168,53 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         value: str = Field(..., min_length=1)
         backend_type: str = Field("memory", description="Vector backend type")
 
+    class TextRequest(BaseModel):
+        text: str = Field(
+            ...,
+            min_length=1,
+            max_length=_MAX_RESPONSE_CHARS,
+            description="Text to analyze",
+        )
+
+    class NumericIssueResponse(BaseModel):
+        issue_type: str
+        description: str
+        severity: str
+        context: str
+
+    class NumericVerifyResponse(BaseModel):
+        claims_found: int
+        issues: list[NumericIssueResponse]
+        valid: bool
+        error_count: int
+        warning_count: int
+
+    class ReasoningVerdictResponse(BaseModel):
+        step_index: int
+        step_text: str
+        verdict: str
+        confidence: float
+        reason: str = ""
+        premise_text: str = ""
+
+    class ReasoningVerifyResponse(BaseModel):
+        steps_found: int
+        verdicts: list[ReasoningVerdictResponse]
+        chain_valid: bool
+        issues_found: int
+
+    class FreshnessClaimResponse(BaseModel):
+        text: str
+        claim_type: str
+        staleness_risk: float
+        reason: str
+
+    class FreshnessResponse(BaseModel):
+        claims: list[FreshnessClaimResponse]
+        overall_staleness_risk: float
+        has_temporal_claims: bool
+        stale_claim_count: int
+
 
 def _halt_evidence_to_dict(halt_ev) -> dict | None:
     if halt_ev is None:
@@ -1337,6 +1384,87 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 "avg_score": r_30d.avg_score,
             },
         }
+
+    # -- Gem endpoints (Phase 5 verification & analysis) -----------------
+
+    @app.post("/v1/verify/numeric", response_model=NumericVerifyResponse)
+    async def verify_numeric_endpoint(req: TextRequest):
+        """Verify numeric consistency in text.
+
+        Checks percentage arithmetic, date logic, probability bounds,
+        order-of-magnitude sanity, and internal number consistency.
+        """
+        from .core.verification.numeric_verifier import verify_numeric
+
+        result = verify_numeric(req.text)
+        return NumericVerifyResponse(
+            claims_found=result.claims_found,
+            issues=[
+                NumericIssueResponse(
+                    issue_type=i.issue_type,
+                    description=i.description,
+                    severity=i.severity,
+                    context=i.context,
+                )
+                for i in result.issues
+            ],
+            valid=result.valid,
+            error_count=result.error_count,
+            warning_count=result.warning_count,
+        )
+
+    @app.post("/v1/verify/reasoning", response_model=ReasoningVerifyResponse)
+    async def verify_reasoning_endpoint(req: TextRequest):
+        """Verify logical structure of a reasoning chain.
+
+        Extracts reasoning steps and checks each follows from its
+        premises. Detects non-sequiturs, circular reasoning, and
+        unsupported leaps.
+        """
+        from .core.verification.reasoning_verifier import verify_reasoning_chain
+
+        result = verify_reasoning_chain(req.text)
+        return ReasoningVerifyResponse(
+            steps_found=result.steps_found,
+            verdicts=[
+                ReasoningVerdictResponse(
+                    step_index=v.step_index,
+                    step_text=v.step_text,
+                    verdict=v.verdict,
+                    confidence=v.confidence,
+                    reason=v.reason,
+                    premise_text=v.premise_text,
+                )
+                for v in result.verdicts
+            ],
+            chain_valid=result.chain_valid,
+            issues_found=result.issues_found,
+        )
+
+    @app.post("/v1/temporal-freshness", response_model=FreshnessResponse)
+    async def temporal_freshness_endpoint(req: TextRequest):
+        """Score temporal freshness of claims in text.
+
+        Detects date-sensitive entities (positions, prices, statistics)
+        and assesses staleness risk based on entity type.
+        """
+        from .core.scoring.temporal_freshness import score_temporal_freshness
+
+        result = score_temporal_freshness(req.text)
+        return FreshnessResponse(
+            claims=[
+                FreshnessClaimResponse(
+                    text=c.text,
+                    claim_type=c.claim_type,
+                    staleness_risk=c.staleness_risk,
+                    reason=c.reason,
+                )
+                for c in result.claims
+            ],
+            overall_staleness_risk=result.overall_staleness_risk,
+            has_temporal_claims=result.has_temporal_claims,
+            stale_claim_count=len(result.stale_claims),
+        )
 
     # -- WebSocket streaming (multiplexed) ------------------------------
 

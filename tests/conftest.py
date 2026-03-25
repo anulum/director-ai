@@ -5,6 +5,12 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI â€” Shared Test Fixtures
 
+import os
+
+# faiss-cpu 1.13.1 AVX2 .pyd hangs on DLL init (Windows);
+# generic backend loads in ~2s and CI uses Linux where this is not needed.
+os.environ.setdefault("FAISS_OPT_LEVEL", "generic")
+
 import pytest
 
 from director_ai.core import (
