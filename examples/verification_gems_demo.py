@@ -10,13 +10,13 @@ Run:
     python examples/verification_gems_demo.py
 """
 
+from director_ai.agentic.loop_monitor import LoopMonitor
+from director_ai.compliance.feedback_loop_detector import FeedbackLoopDetector
+from director_ai.core.calibration.conformal import ConformalPredictor
+from director_ai.core.scoring.consensus import ConsensusScorer, ModelResponse
+from director_ai.core.scoring.temporal_freshness import score_temporal_freshness
 from director_ai.core.verification.numeric_verifier import verify_numeric
 from director_ai.core.verification.reasoning_verifier import verify_reasoning_chain
-from director_ai.core.scoring.temporal_freshness import score_temporal_freshness
-from director_ai.core.scoring.consensus import ConsensusScorer, ModelResponse
-from director_ai.core.calibration.conformal import ConformalPredictor
-from director_ai.compliance.feedback_loop_detector import FeedbackLoopDetector
-from director_ai.agentic.loop_monitor import LoopMonitor
 
 
 def demo_numeric():
@@ -61,16 +61,20 @@ def demo_temporal():
 def demo_consensus():
     print("=== Cross-Model Consensus ===")
     scorer = ConsensusScorer(models=["gpt-4o", "claude", "gemini"])
-    result = scorer.score_responses([
-        ModelResponse(model="gpt-4o", response="Paris is the capital of France"),
-        ModelResponse(model="claude", response="Paris is the capital of France"),
-        ModelResponse(model="gemini", response="Berlin is the capital of Germany"),
-    ])
+    result = scorer.score_responses(
+        [
+            ModelResponse(model="gpt-4o", response="Paris is the capital of France"),
+            ModelResponse(model="claude", response="Paris is the capital of France"),
+            ModelResponse(model="gemini", response="Berlin is the capital of Germany"),
+        ]
+    )
     print(f"  Agreement score: {result.agreement_score:.2f}")
     print(f"  Has consensus: {result.has_consensus}")
-    print(f"  Pairs:")
+    print("  Pairs:")
     for p in result.pairs:
-        print(f"    {p.model_a} vs {p.model_b}: divergence={p.divergence:.2f}, agreed={p.agreed}")
+        print(
+            f"    {p.model_a} vs {p.model_b}: divergence={p.divergence:.2f}, agreed={p.agreed}"
+        )
     print()
 
 
@@ -97,7 +101,9 @@ def demo_feedback_loop():
 
     alert = detector.check_input(output)
     if alert:
-        print(f"  Loop detected: similarity={alert.similarity:.2f}, severity={alert.severity}")
+        print(
+            f"  Loop detected: similarity={alert.similarity:.2f}, severity={alert.severity}"
+        )
     else:
         print("  No feedback loop detected")
 
@@ -110,14 +116,16 @@ def demo_agentic():
     print("=== Agentic Loop Monitor ===")
     monitor = LoopMonitor(goal="Find quarterly revenue data", max_steps=10)
 
-    for i in range(4):
+    for _i in range(4):
         verdict = monitor.check_step(
             action="search_database",
             args="revenue Q3 2025",
             tokens=500,
         )
-        print(f"  Step {verdict.step_number}: halt={verdict.should_halt}, "
-              f"warn={verdict.should_warn}, drift={verdict.goal_drift_score:.2f}")
+        print(
+            f"  Step {verdict.step_number}: halt={verdict.should_halt}, "
+            f"warn={verdict.should_warn}, drift={verdict.goal_drift_score:.2f}"
+        )
         if verdict.reasons:
             for r in verdict.reasons:
                 print(f"    -> {r}")
