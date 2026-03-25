@@ -43,8 +43,7 @@ ENV PYTHONPATH=/app/src
 # Hash-pinned for OpenSSF supply-chain compliance.
 COPY requirements/docker-gpu-export.txt /tmp/docker-gpu-export.txt
 RUN pip install --no-cache-dir --no-deps --require-hashes \
-        -r /tmp/docker-gpu-export.txt \
-    && pip install --no-cache-dir 'onnxruntime==1.22.0'
+        -r /tmp/docker-gpu-export.txt
 
 RUN python -c "\
 from director_ai.core.nli import export_onnx; \

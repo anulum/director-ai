@@ -786,12 +786,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 )
             import hashlib
 
-            # Audit fingerprint only — NOT used for authentication or password storage.
-            # The API key is compared via constant-time HMAC above; this truncated
-            # hash is logged for traceability. BLAKE2B is appropriate here.
-            api_key_hash = hashlib.blake2b(  # CodeQL: py/weak-sensitive-data-hashing — false positive (audit fingerprint, not auth)
-                provided.encode(), key=b"director-ai", digest_size=8
-            ).hexdigest()
+            # Truncated SHA-256 fingerprint for audit logs only — NOT used for
+            # authentication or password storage. The API key is verified via
+            # constant-time HMAC comparison above.
+            api_key_hash = hashlib.sha256(provided.encode()).hexdigest()[:16]
 
             # Tenant binding: enforce API key Ă˘â€ â€™ tenant mapping if configured
             if _api_key_tenant_map:
