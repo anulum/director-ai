@@ -58,6 +58,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Enabled via `DIRECTOR_COMPLIANCE_DB_PATH` env var.
 - **CLI compliance subcommand**: `director-ai compliance report|status|drift`
   generates Article 15 reports from the command line.
+- **Gem REST endpoints**: 8 new endpoints exposing verification gems via the API:
+  `POST /v1/verify/numeric`, `POST /v1/verify/reasoning`,
+  `POST /v1/temporal-freshness`, `POST /v1/consensus`,
+  `POST /v1/adversarial/test`, `POST /v1/conformal/predict`,
+  `POST /v1/compliance/feedback-loops`, `POST /v1/agentic/check-step`.
+  All with typed Pydantic response models and 30 endpoint tests.
+- **FAISS AVX2 workaround**: `conftest.py` sets `FAISS_OPT_LEVEL=generic`
+  to avoid DLL hang on Windows with faiss-cpu 1.13.1.
 - **Server encoding fix**: Repaired triple-encoded UTF-8 in `server.py`.
 
 ## [3.10.0] — 2026-03-24
