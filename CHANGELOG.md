@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Temporal freshness scoring**: `score_temporal_freshness()` flags claims that
+  may rely on stale knowledge. Detects positions (CEO, president), statistics,
+  "currently/as of" references, records/superlatives. Cross-references against
+  source timestamps for age-calibrated risk scores.
 - **Reasoning chain verification**: `verify_reasoning_chain()` extracts steps
   from chain-of-thought responses and verifies each step follows from its
   premises. Detects non-sequiturs, circular reasoning, and unsupported leaps.
