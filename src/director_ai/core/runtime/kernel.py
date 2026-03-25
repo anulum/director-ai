@@ -5,6 +5,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI â€” Halt Monitor
 
+from __future__ import annotations
+
 import logging
 import threading
 import time

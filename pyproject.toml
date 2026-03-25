@@ -159,8 +159,8 @@ dev = [
 director-ai = "director_ai.cli:main"
 
 [project.entry-points."director_ai.backends"]
-deberta = "director_ai.core.backends:DeBERTaBackend"
-onnx = "director_ai.core.backends:OnnxBackend"
+deberta = "director_ai.core.scoring.backends:DeBERTaBackend"
+onnx = "director_ai.core.scoring.backends:OnnxBackend"
 minicheck = "director_ai.core.backends:MiniCheckBackend"
 lite = "director_ai.core.backends:LiteBackend"
 rust = "director_ai.core.backends:RustBackend"
@@ -181,7 +181,7 @@ Discussions = "https://discord.gg/JvMdKv49"
 where = ["src"]
 
 [tool.setuptools.package-data]
-director_ai = ["models/*.pkl"]
+director_ai = ["core/models/*.pkl"]
 
 [tool.ruff]
 line-length = 88

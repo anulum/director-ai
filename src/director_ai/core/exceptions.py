@@ -11,6 +11,8 @@ All library-specific exceptions descend from ``DirectorAIError`` so
 callers can catch the entire family with a single except clause.
 """
 
+from __future__ import annotations
+
 
 class DirectorAIError(Exception):
     """Base exception for all Director-Class AI errors."""

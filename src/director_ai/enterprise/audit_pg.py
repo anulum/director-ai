@@ -12,6 +12,7 @@ from __future__ import annotations
 import asyncio
 import json
 import logging
+import re
 import threading
 from typing import Any
 
@@ -51,6 +52,8 @@ class PostgresAuditSink:
         pool_max: int = 5,
     ):
         self.db_url = db_url
+        if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", table_name):
+            raise ValueError(f"Invalid table name: {table_name!r}")
         self.table_name = table_name
         self._lock = threading.Lock()
         self._conn: Any = None

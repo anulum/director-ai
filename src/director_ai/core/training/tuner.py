@@ -99,5 +99,6 @@ def tune(
             if best is None or ba > best.balanced_accuracy:
                 best = result
 
-    assert best is not None
+    if best is None:
+        raise ValueError("No valid tuning result — check that samples is non-empty")
     return best

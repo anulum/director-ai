@@ -25,6 +25,11 @@ All public symbols are re-exported here for backward compatibility::
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
 from .cache import ScoreCache
+
+# --- Calibration ---
+from .calibration.conformal import ConformalPredictor, PredictionInterval
+from .calibration.feedback_store import FeedbackStore
+from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
 from .config import DirectorConfig
 
 # --- Retrieval ---
@@ -51,6 +56,9 @@ from .retrieval.vector_store import (
 # --- Runtime ---
 from .runtime.async_streaming import AsyncStreamingKernel
 from .runtime.batch import BatchProcessor, BatchResult
+
+# --- Runtime (Phase 5) ---
+from .runtime.contradiction_tracker import ContradictionReport, ContradictionTracker
 from .runtime.kernel import HaltMonitor, SafetyKernel
 from .runtime.review_queue import ReviewQueue
 from .runtime.session import ConversationSession, Turn
@@ -64,8 +72,12 @@ from .scoring.backends import (
     list_backends,
     register_backend,
 )
+
+# --- Scoring (Phase 5) ---
+from .scoring.consensus import ConsensusScorer
 from .scoring.lite_scorer import LiteScorer
 from .scoring.meta_classifier import DatasetTypeClassifier, MetaClassifier
+from .scoring.meta_confidence import compute_meta_confidence
 from .scoring.nli import (
     NLIScorer,
     clear_model_cache,
@@ -75,6 +87,7 @@ from .scoring.nli import (
 )
 from .scoring.scorer import CoherenceScorer
 from .scoring.sharded_nli import ShardedNLIScorer
+from .scoring.temporal_freshness import score_temporal_freshness
 from .scoring.verified_scorer import ClaimVerdict, VerificationResult, VerifiedScorer
 
 # --- Training ---
@@ -90,6 +103,10 @@ from .types import (
     ReviewResult,
     ScoringEvidence,
 )
+
+# --- Verification ---
+from .verification.numeric_verifier import NumericVerificationResult, verify_numeric
+from .verification.reasoning_verifier import verify_reasoning_chain
 
 __all__ = [
     # Scoring
@@ -167,6 +184,23 @@ __all__ = [
     "register_backend",
     "register_vector_backend",
     "validate_finetune_data",
+    # Calibration
+    "CalibrationReport",
+    "ConformalPredictor",
+    "FeedbackStore",
+    "OnlineCalibrator",
+    "PredictionInterval",
+    # Verification (Phase 5)
+    "NumericVerificationResult",
+    "verify_numeric",
+    "verify_reasoning_chain",
+    # Scoring (Phase 5)
+    "ConsensusScorer",
+    "compute_meta_confidence",
+    "score_temporal_freshness",
+    # Runtime (Phase 5)
+    "ContradictionReport",
+    "ContradictionTracker",
 ]
 
 _MOVED_TO_ENTERPRISE = {

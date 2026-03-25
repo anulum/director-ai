@@ -5,6 +5,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI â€” Ground Truth Store (RAG Interface)
 
+from __future__ import annotations
+
 import hashlib
 import logging
 
@@ -36,7 +38,7 @@ class GroundTruthStore:
         self.facts = {}
 
     @classmethod
-    def with_demo_facts(cls) -> "GroundTruthStore":
+    def with_demo_facts(cls) -> GroundTruthStore:
         """Return a store pre-loaded with demo facts (for tests and --demo)."""
         store = cls()
         store.facts.update(cls._DEMO_FACTS)

@@ -19,6 +19,7 @@ import contextlib
 import inspect
 import logging
 from contextvars import ContextVar
+from typing import Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.exceptions import HallucinationError
@@ -76,14 +77,14 @@ def score(
 
 
 def guard(
-    client,
+    client: Any,
     *,
     facts: dict[str, str] | None = None,
     store: GroundTruthStore | None = None,
     threshold: float = 0.3,
     use_nli: bool | None = None,
     on_fail: str = "raise",
-):
+) -> Any:
     """Wrap an LLM SDK client with coherence scoring.
 
     Supports five SDK shapes:
