@@ -206,6 +206,7 @@ nav:
       - Batch Processing: notebooks/13_batch_processing_and_evaluation.ipynb
       - Enterprise Multi-Tenant: notebooks/14_enterprise_multi_tenant.ipynb
       - Custom Fine-Tuning: notebooks/15_custom_fine_tuning.ipynb
+      - Verification Gems: notebooks/16_verification_gems.ipynb
   - Glossary: glossary.md
   - Changelog: changelog.md
   - Licensing: licensing.md

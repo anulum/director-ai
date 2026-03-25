@@ -63,10 +63,11 @@ Real-world integrations and domain-specific patterns.
 
 Standalone analysis modules — no NLI model required. All stdlib-only.
 
-| # | Resource | What You Learn | Time |
-|---|----------|----------------|------|
-| — | [Verification Gems Guide](guide/verification-gems.md) | All 8 gems: numeric, reasoning, temporal, consensus, conformal, feedback loops, adversarial, agentic | 15 min |
-| — | [Example: verification_gems_demo.py](https://github.com/anulum/director-ai/blob/main/examples/verification_gems_demo.py) | Runnable demo of all 7 standalone verification modules | 5 min |
+| # | Resource | What You Learn | Time | Colab |
+|---|----------|----------------|------|-------|
+| 16 | [Verification Gems](https://github.com/anulum/director-ai/blob/main/notebooks/16_verification_gems.ipynb) | All 8 gems: numeric, reasoning, temporal, consensus, conformal, feedback loops, agentic, REST API | 15 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/16_verification_gems.ipynb) |
+| — | [Guide: Verification Gems](guide/verification-gems.md) | Full parameter reference for all 8 gems | 15 min | — |
+| — | [Example: verification_gems_demo.py](https://github.com/anulum/director-ai/blob/main/examples/verification_gems_demo.py) | Runnable demo of all 7 standalone verification modules | 5 min | — |
 
 **CLI quick start:**
 
