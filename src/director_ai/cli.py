@@ -60,6 +60,10 @@ def main(argv: list[str] | None = None) -> None:
         "doctor": _cmd_doctor,
         "license": _cmd_license,
         "compliance": _cmd_compliance,
+        "verify-numeric": _cmd_verify_numeric,
+        "verify-reasoning": _cmd_verify_reasoning,
+        "temporal-freshness": _cmd_temporal_freshness,
+        "check-step": _cmd_check_step,
     }
 
     if cmd not in commands:
@@ -1481,6 +1485,79 @@ def _cmd_compliance(args: list[str]) -> None:
         sys.exit(1)
 
     log.close()
+
+
+def _cmd_verify_numeric(args: list[str]) -> None:
+    """Check numeric consistency in text."""
+    if not args:
+        print("Usage: director-ai verify-numeric <text>")
+        sys.exit(1)
+
+    from director_ai.core.verification.numeric_verifier import verify_numeric
+
+    result = verify_numeric(" ".join(args))
+    print(f"Valid:    {result.valid}")
+    print(f"Claims:  {result.claims_found}")
+    print(f"Errors:  {result.error_count}")
+    print(f"Warnings:{result.warning_count}")
+    for issue in result.issues:
+        print(f"  [{issue.severity}] {issue.issue_type}: {issue.description}")
+
+
+def _cmd_verify_reasoning(args: list[str]) -> None:
+    """Verify logical structure of a reasoning chain."""
+    if not args:
+        print("Usage: director-ai verify-reasoning <text>")
+        sys.exit(1)
+
+    from director_ai.core.verification.reasoning_verifier import verify_reasoning_chain
+
+    result = verify_reasoning_chain(" ".join(args))
+    print(f"Chain valid: {result.chain_valid}")
+    print(f"Steps:       {result.steps_found}")
+    print(f"Issues:      {result.issues_found}")
+    for v in result.verdicts:
+        print(f"  Step {v.step_index}: {v.verdict} ({v.confidence:.2f}) {v.reason}")
+
+
+def _cmd_temporal_freshness(args: list[str]) -> None:
+    """Score temporal freshness of claims."""
+    if not args:
+        print("Usage: director-ai temporal-freshness <text>")
+        sys.exit(1)
+
+    from director_ai.core.scoring.temporal_freshness import score_temporal_freshness
+
+    result = score_temporal_freshness(" ".join(args))
+    print(f"Has temporal claims: {result.has_temporal_claims}")
+    print(f"Staleness risk:      {result.overall_staleness_risk:.2f}")
+    print(f"Stale claims:        {len(result.stale_claims)}")
+    for c in result.claims:
+        print(f"  [{c.claim_type}] {c.text} (risk: {c.staleness_risk:.2f})")
+
+
+def _cmd_check_step(args: list[str]) -> None:
+    """Check an agentic step for safety issues."""
+    if len(args) < 2:
+        print("Usage: director-ai check-step <goal> <action> [args]")
+        sys.exit(1)
+
+    from director_ai.agentic.loop_monitor import LoopMonitor
+
+    goal = args[0]
+    action = args[1]
+    action_args = args[2] if len(args) > 2 else ""
+
+    monitor = LoopMonitor(goal=goal)
+    verdict = monitor.check_step(action=action, args=action_args)
+    print(f"Step:    {verdict.step_number}")
+    print(f"Halt:    {verdict.should_halt}")
+    print(f"Warn:    {verdict.should_warn}")
+    print(f"Drift:   {verdict.goal_drift_score:.2f}")
+    print(f"Budget:  {verdict.budget_remaining_pct:.0%}")
+    if verdict.reasons:
+        for r in verdict.reasons:
+            print(f"  -> {r}")
 
 
 if __name__ == "__main__":
