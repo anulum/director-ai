@@ -124,4 +124,20 @@ AGPL-3.0 for open source / research. [Commercial licensing](licensing.md) availa
 
 ---
 
-*Maintained by [Miroslav Sotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.10.0.*
+**Contact:** [protoscience@anulum.li](mailto:protoscience@anulum.li) |
+[GitHub Discussions](https://github.com/anulum/director-ai/discussions) |
+[www.anulum.li](https://www.anulum.li)
+
+*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.10.0.*
+
+<p align="center">
+  <a href="https://www.anulum.li">
+    <img src="assets/anulum_logo_company.jpg" width="180" alt="ANULUM">
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.anulum.li">
+    <img src="assets/fortis_studio_logo.jpg" width="180" alt="Fortis Studio">
+  </a>
+  <br>
+  <em>Developed by <a href="https://www.anulum.li">ANULUM</a> / Fortis Studio</em>
+</p>

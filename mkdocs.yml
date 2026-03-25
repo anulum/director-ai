@@ -13,8 +13,9 @@ copyright: "&copy; 1998–2026 Miroslav Šotek &middot; <a href='https://www.anu
 
 theme:
   name: material
+  logo: assets/anulum_logo.png
+  favicon: assets/anulum_logo_company.jpg
   icon:
-    logo: material/shield-check
     repo: fontawesome/brands/github
   palette:
     - scheme: default

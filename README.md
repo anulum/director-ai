@@ -245,3 +245,17 @@ Join the [Director-AI Discord](https://discord.gg/JvMdKv49) for CI notifications
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). By contributing, you agree to AGPL v3 terms.
+
+---
+
+<p align="center">
+  <a href="https://www.anulum.li">
+    <img src="docs/assets/anulum_logo_company.jpg" width="180" alt="ANULUM">
+  </a>
+  &nbsp;&nbsp;&nbsp;&nbsp;
+  <a href="https://www.anulum.li">
+    <img src="docs/assets/fortis_studio_logo.jpg" width="180" alt="Fortis Studio">
+  </a>
+  <br>
+  <em>Developed by <a href="https://www.anulum.li">ANULUM</a> / Fortis Studio</em>
+</p>
