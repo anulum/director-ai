@@ -11,7 +11,7 @@ pip install director-ai[grpc]
 === "CLI"
 
     ```bash
-    director-ai grpc --port 50051 --workers 4
+    director-ai serve --transport grpc --port 50051 --workers 4
     ```
 
 === "Python"

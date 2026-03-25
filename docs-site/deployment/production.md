@@ -2,19 +2,53 @@
 
 ## Architecture
 
-```
-┌──────────────┐    ┌──────────────┐    ┌──────────────┐
-│   LLM API    │───▶│  Director-AI │───▶│  Your App    │
-│  (OpenAI/    │    │  Guardrail   │    │  (FastAPI/   │
-│   Anthropic) │    │              │    │   Flask/etc) │
-└──────────────┘    └──────┬───────┘    └──────────────┘
-                           │
-                    ┌──────┴───────┐
-                    │  Knowledge   │
-                    │  Base (RAG)  │
-                    │  ChromaDB/   │
-                    │  Qdrant/etc  │
-                    └──────────────┘
+```mermaid
+graph TD
+    subgraph "Your Application"
+        APP["FastAPI / Flask / Django"]
+    end
+
+    subgraph "Director-AI Guardrail"
+        GUARD["guard() / CoherenceScorer"]
+        NLI["NLI Model<br/>(ONNX / PyTorch / CPU)"]
+        CACHE["ScoreCache<br/>(LRU + TTL)"]
+        STREAM["StreamingKernel<br/>(token-level halt)"]
+    end
+
+    subgraph "Knowledge Base"
+        KB["VectorGroundTruthStore"]
+        CHROMA["ChromaDB / Qdrant /<br/>FAISS / Pinecone"]
+    end
+
+    subgraph "LLM Providers"
+        OAI["OpenAI"]
+        ANT["Anthropic"]
+        LOCAL["Ollama / vLLM"]
+    end
+
+    subgraph "Observability"
+        OTEL["OpenTelemetry"]
+        PROM["Prometheus /v1/metrics"]
+        AUDIT["AuditLog (SQLite / Postgres)"]
+    end
+
+    APP --> GUARD
+    GUARD --> NLI
+    GUARD --> CACHE
+    GUARD --> STREAM
+    GUARD --> KB
+    KB --> CHROMA
+    OAI --> APP
+    ANT --> APP
+    LOCAL --> APP
+    GUARD --> OTEL
+    GUARD --> PROM
+    GUARD --> AUDIT
+
+    style GUARD fill:#512da8,color:#fff
+    style NLI fill:#1565c0,color:#fff
+    style KB fill:#00695c,color:#fff
+    style CACHE fill:#ff8f00,color:#fff
 ```
 
 ## Recommended Setup

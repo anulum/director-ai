@@ -14,20 +14,35 @@ halted. Three independent halt mechanisms:
 
 ## Architecture
 
-```
-LLM token stream ──► StreamingKernel
-                       │
-                       ├─ coherence_callback(token) → float
-                       │    ├─ accumulate tokens into partial response
-                       │    ├─ scorer.review(prompt, partial_response)
-                       │    └─ return score.score
-                       │
-                       ├─ 3 halt mechanisms:
-                       │    ├─ hard_limit:   score < threshold → emergency stop
-                       │    ├─ window_avg:   sliding window mean < threshold
-                       │    └─ trend_drop:   coherence[0] - coherence[-1] > delta
-                       │
-                       └─ StreamSession with full trace
+```mermaid
+flowchart TD
+    LLM["LLM Token Stream"] --> SK["StreamingKernel"]
+    SK --> ACC["Accumulate token into partial response"]
+    ACC --> CB["coherence_callback(partial_text) → score"]
+    CB --> CHECK{"Check 3 halt conditions"}
+
+    CHECK --> H1{"score < hard_limit?"}
+    H1 -->|Yes| HALT["HALT<br/>(emergency stop)"]
+    H1 -->|No| H2{"window avg < window_threshold?"}
+    H2 -->|Yes| HALT
+    H2 -->|No| H3{"trend drop > trend_threshold?"}
+    H3 -->|Yes| HALT
+    H3 -->|No| NEXT["Accept token → next"]
+    NEXT --> LLM
+
+    HALT --> SOFT{"halt_mode?"}
+    SOFT -->|"hard"| STOP["Immediate stop"]
+    SOFT -->|"soft"| FINISH["Finish sentence<br/>(50-token cap)"]
+
+    STOP --> SESSION["StreamSession<br/>(halted=True, halt_index, scores[])"]
+    FINISH --> SESSION
+    NEXT -->|"all tokens consumed"| DONE["StreamSession<br/>(halted=False, scores[])"]
+
+    style HALT fill:#c62828,color:#fff
+    style NEXT fill:#2e7d32,color:#fff
+    style STOP fill:#c62828,color:#fff
+    style FINISH fill:#ff8f00,color:#fff
+    style DONE fill:#2e7d32,color:#fff
 ```
 
 The caller supplies the `coherence_callback` — typically a closure that accumulates tokens, calls `scorer.review()`, and returns the score. The kernel only decides *when to halt*; the caller decides *how to score*.

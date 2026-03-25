@@ -242,9 +242,17 @@
 
 ## v3.10.0
 
-### Planned
-- **B615 HF revision pinning**: pin `revision="<sha>"` on all 11 `from_pretrained()` calls to prevent supply-chain risk
-- SPDX `AGPL-3.0-or-later` headers on all source files
+### Done
+- Meta-confidence scoring: `CoherenceScore` gains `verdict_confidence`, `nli_model_confidence`, `signal_agreement`
+- Cross-turn contradiction tracking: `ConversationSession` pairwise NLI, `contradiction_index`
+- Structured output verification: `verify_json()`, `verify_tool_call()`, `verify_code()` (stdlib only)
+- Online calibration: `FeedbackStore`, `OnlineCalibrator`, `CalibrationReport` (Wilson CIs)
+- EU AI Act compliance reporting: `AuditLog`, `ComplianceReporter`, `Article15Report`, `DriftDetector`
+- Verification gems: `verify_numeric()`, `verify_reasoning_chain()`, `score_temporal_freshness()`, `ConsensusScorer`, `ConformalPredictor`, `FeedbackLoopDetector`, `AdversarialTester`, `LoopMonitor`
+- 100+ new tests, 3200+ total across 187 files
+- Coverage gate raised from 90% to 95%
+
+### Deferred to v3.11+
 - ModernBERT-large (8192 tokens) as alternate NLI backend — only path to >78% BA
 - Stripe Checkout page + HMAC-SHA256 license key generation
 - B608 ChromaDB parameterised filters (low priority, no user input reaches these)

@@ -5,17 +5,36 @@ Interactive Jupyter notebooks covering Director-AI from first principles to prod
 ## Learning Path
 
 ```mermaid
-graph LR
-    A[00 Quickstart] --> B[01 Coherence Engine]
-    B --> C[09 Production Guardrails]
-    B --> D[02 Streaming Oversight]
-    C --> E[10 Vector RAG]
-    C --> F[12 Domain Presets]
-    D --> G[11 Streaming Deep Dive]
-    E --> H[06 Medical RAG]
-    F --> I[13 Batch Processing]
-    I --> J[14 Enterprise]
-    J --> K[15 Fine-Tuning]
+graph TD
+    subgraph "Foundations (30 min)"
+        A["00 Quickstart<br/>5 min"] --> B["01 Coherence Engine<br/>15 min"]
+    end
+
+    subgraph "Core Tracks"
+        B --> C["09 Production Guardrails<br/>guard() + SDK wrapping"]
+        B --> D["02 Streaming Oversight<br/>token-level halt"]
+        B --> V["16 Verification Gems<br/>8 standalone modules"]
+    end
+
+    subgraph "Deep Dives"
+        C --> E["10 Vector RAG Pipeline<br/>ChromaDB + reranking"]
+        C --> F["12 Domain Presets & Config<br/>8 profiles"]
+        D --> G["11 Streaming Halt Deep Dive<br/>hard/soft/trend"]
+        E --> H["06 Medical RAG Chatbot<br/>domain-specific"]
+    end
+
+    subgraph "Production (enterprise)"
+        F --> I["13 Batch Processing<br/>evaluation pipelines"]
+        I --> J["14 Enterprise Multi-Tenant<br/>Docker + K8s"]
+        J --> K["15 Custom Fine-Tuning<br/>domain NLI + ONNX export"]
+    end
+
+    style A fill:#7c4dff,color:#fff
+    style B fill:#7c4dff,color:#fff
+    style C fill:#2e7d32,color:#fff
+    style D fill:#1565c0,color:#fff
+    style V fill:#ff8f00,color:#fff
+    style K fill:#c62828,color:#fff
 ```
 
 ---

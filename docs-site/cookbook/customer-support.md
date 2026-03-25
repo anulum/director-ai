@@ -55,16 +55,18 @@ store.ingest([
 ])
 ```
 
-## CSAT Improvement
+## CSAT Improvement (Illustrative Estimates)
 
-| Metric | Without Director-AI | With Director-AI (threshold=0.55) |
+!!! warning "These are illustrative estimates based on industry benchmarks (Zendesk, Intercom), not measured Director-AI deployment data. Validate on your own ticketing system."
+
+| Metric | Without guardrail (industry baseline) | With Director-AI (threshold=0.55) |
 |--------|--------------------|---------------------------------|
-| Wrong policy quoted to customer | 8–12% of responses | < 1% with product KB |
-| CSAT score | 3.2/5 (industry avg for AI chat) | 4.5–4.7/5 (verified answers + evidence) |
-| Escalation rate | 25% (customer doesn't trust AI) | 8% (evidence builds confidence) |
-| Agent handle time (hybrid AI + human) | 6 min | 3.5 min (AI handles routine, flags edge cases) |
+| Wrong policy quoted to customer | 8–12% of responses (industry average) | < 1% estimated with product KB |
+| CSAT score | 3.2/5 (industry avg for AI chat) | 4.5–4.7/5 estimated (verified answers + evidence) |
+| Escalation rate | 25% (customer doesn't trust AI) | 8% estimated (evidence builds confidence) |
+| Agent handle time (hybrid AI + human) | 6 min | 3.5 min estimated |
 
-At 10,000 tickets/month, reducing escalations from 25% to 8% saves 1,700 agent-handled tickets/month. At $12/ticket agent cost, that's ~$245K/year. CSAT improvement from 3.2 to 4.6 correlates with 15–20% higher retention (Zendesk benchmark).
+**Cost model (illustrative):** At 10,000 tickets/month, reducing escalations from 25% to 8% saves 1,700 agent-handled tickets/month. At $12/ticket agent cost, that's ~$245K/year. These are planning estimates. The CSAT correlation (15–20% higher retention) is from Zendesk industry benchmarks, not Director-AI data.
 
 ## Key Considerations
 

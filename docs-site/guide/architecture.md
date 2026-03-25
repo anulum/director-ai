@@ -47,6 +47,46 @@ graph TD
     Halt --> |approved / halted| Output["Output"]
 ```
 
+## Request Lifecycle
+
+```mermaid
+sequenceDiagram
+    participant App as Your Application
+    participant Guard as guard() / SDK Interceptor
+    participant Scorer as CoherenceScorer
+    participant Cache as ScoreCache
+    participant NLI as NLI Model
+    participant KB as GroundTruthStore
+    participant LLM as LLM Judge (optional)
+
+    App->>Guard: client.chat.completions.create(...)
+    Guard->>Guard: Intercept response
+    Guard->>Scorer: review(prompt, response)
+    Scorer->>Cache: lookup(prompt, response)
+    alt Cache hit
+        Cache-->>Scorer: cached CoherenceScore
+    else Cache miss
+        par Logical + Factual in parallel
+            Scorer->>NLI: score(prompt, response) → H_logical
+            Scorer->>KB: retrieve_context(prompt)
+            KB-->>Scorer: facts
+            Scorer->>NLI: score(facts, response) → H_factual
+        end
+        Scorer->>Scorer: coherence = 1 - (0.6·H_L + 0.4·H_F)
+        opt Hybrid mode + low NLI confidence
+            Scorer->>LLM: "Does response follow from context?"
+            LLM-->>Scorer: YES/NO → blend
+        end
+        Scorer->>Cache: store result
+    end
+    Scorer-->>Guard: (approved, CoherenceScore)
+    alt approved
+        Guard-->>App: original response
+    else rejected
+        Guard-->>App: HallucinationError / log / metadata
+    end
+```
+
 ## Data Flow
 
 1. **Prompt arrives** at `CoherenceScorer.review(prompt, response)`

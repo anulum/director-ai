@@ -2,6 +2,32 @@
 
 2-line integration that wraps your existing SDK client with coherence scoring.
 
+```mermaid
+sequenceDiagram
+    participant App as Your Code
+    participant Guard as guard(client)
+    participant SDK as OpenAI / Anthropic SDK
+    participant LLM as LLM API
+    participant Scorer as CoherenceScorer
+
+    App->>Guard: client.chat.completions.create(...)
+    Guard->>SDK: Forward request
+    SDK->>LLM: API call
+    LLM-->>SDK: Response
+    SDK-->>Guard: Response object
+    Guard->>Scorer: review(prompt, response.text)
+    Scorer-->>Guard: (approved, CoherenceScore)
+    alt approved
+        Guard-->>App: Original response
+    else rejected (on_fail="raise")
+        Guard-->>App: HallucinationError
+    else rejected (on_fail="log")
+        Guard-->>App: Response + warning log
+    else rejected (on_fail="metadata")
+        Guard-->>App: Response + score in context var
+    end
+```
+
 ## OpenAI
 
 ```python

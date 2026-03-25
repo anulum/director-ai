@@ -63,15 +63,17 @@ agent = CoherenceAgent(
 agent.disclaimer_prefix = "[Medical information — verify with a healthcare provider] "
 ```
 
-## Risk Reduction
+## Risk Reduction (Illustrative Estimates)
 
-| Metric | Without Director-AI | With Director-AI (threshold=0.30) |
+!!! warning "These are illustrative industry estimates, not measured results from Director-AI deployments."
+
+| Metric | Without guardrail (industry baseline) | With Director-AI (threshold=0.30) |
 |--------|--------------------|---------------------------------|
-| Hallucinated dosage/contraindication rate | 8–15% (model-dependent) | < 1% with verified KB |
-| Clinician review time per AI response | 45 sec (read + verify manually) | 10 sec (review evidence chunk) |
-| Unsafe recommendation reach (before catch) | 100% of users | 0% (mid-stream halt) |
+| Hallucinated dosage/contraindication rate | 8–15% (model-dependent, per published LLM medical benchmarks) | < 1% estimated with verified KB (not yet validated on clinical data) |
+| Clinician review time per AI response | 45 sec (read + verify manually) | 10 sec (review evidence chunk) — estimated |
+| Unsafe recommendation reach (before catch) | 100% of users | 0% (mid-stream halt) — estimated |
 
-A single prevented wrong-dosage event avoids potential malpractice exposure ($250K–$1M+) and patient harm. At 500 medical queries/day, reducing manual review from 45s to 10s saves ~4.8 clinician-hours/day → ~$175K/year at $150/hr.
+**Cost model (illustrative, not measured):** At 500 medical queries/day, reducing manual review from 45s to 10s would save ~4.8 clinician-hours/day (~$175K/year at $150/hr). These figures are planning estimates based on industry rates, not measured deployment data. Validate on your own workload before budgeting.
 
 ## Key Considerations
 

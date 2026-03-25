@@ -1,5 +1,23 @@
 # Docker Deployment
 
+```mermaid
+graph LR
+    subgraph "Docker Compose"
+        API["director-api<br/>:8080"]
+        GPU["director-api-gpu<br/>:8080 (NVIDIA)"]
+        CHROMA["chromadb<br/>:8000"]
+    end
+
+    API --> CHROMA
+    GPU --> CHROMA
+    CLIENT["Your App"] --> API
+    CLIENT --> GPU
+
+    style API fill:#1565c0,color:#fff
+    style GPU fill:#2e7d32,color:#fff
+    style CHROMA fill:#00695c,color:#fff
+```
+
 ## Build locally
 
 Pre-built images are not yet published to a registry. Build from the included Dockerfiles:

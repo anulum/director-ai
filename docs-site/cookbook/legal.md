@@ -42,15 +42,17 @@ scorer = CoherenceScorer(
 )
 ```
 
-## Cost Savings
+## Cost Savings (Illustrative Estimates)
 
-| Metric | Without Director-AI | With Director-AI (threshold=0.30) |
+!!! warning "These are illustrative planning estimates based on industry rates, not measured Director-AI deployment data. The legal domain has not yet been validated on CUAD or other legal NLI benchmarks (OOM on 6GB VRAM during evaluation). Validate on your own corpus."
+
+| Metric | Without guardrail (industry baseline) | With Director-AI (threshold=0.30) |
 |--------|--------------------|---------------------------------|
-| Hallucinated citation rate | 12–19% (model-dependent) | < 1% with contract KB |
-| Lawyer review hours per 100 AI drafts | 50 hrs | 12 hrs (review flagged only) |
-| Annual review cost (1,000 queries/day) | ~$5.5M | ~$1.3M |
+| Hallucinated citation rate | 12–19% (model-dependent, per published LLM legal benchmarks) | < 1% estimated with contract KB |
+| Lawyer review hours per 100 AI drafts | 50 hrs | 12 hrs (review flagged only) — estimated |
+| Annual review cost (1,000 queries/day) | ~$5.5M | ~$1.3M — estimated |
 
-At $300/hr associate rate and 1,000 AI-assisted queries/day, reducing review burden by 76% saves ~$4.2M/year. A single prevented fabricated citation avoids potential sanctions, malpractice claims, and bar complaints.
+**Cost model (illustrative):** At $300/hr associate rate and 1,000 AI-assisted queries/day, reducing review burden by 76% would save ~$4.2M/year. These are planning estimates. Measure on your own workload.
 
 ## Key Considerations
 

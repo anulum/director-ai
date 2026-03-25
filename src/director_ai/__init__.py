@@ -118,6 +118,10 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "score": (".integrations.sdk_guard", "score"),
     "VoiceGuard": (".integrations.voice", "VoiceGuard"),
     "VoiceToken": (".integrations.voice", "VoiceToken"),
+    "CoherenceCallbackHandler": (
+        ".integrations.langchain_callback",
+        "CoherenceCallbackHandler",
+    ),
     # Server factories
     "create_app": (".server", "create_app"),
     "create_grpc_server": (".grpc_server", "create_grpc_server"),
@@ -153,6 +157,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "PredictionInterval": (".core.calibration.conformal", "PredictionInterval"),
     # Cross-model consensus (Phase 5)
     "ConsensusScorer": (".core.scoring.consensus", "ConsensusScorer"),
+    "ModelResponse": (".core.scoring.consensus", "ModelResponse"),
     # Adversarial robustness testing (Phase 5)
     "AdversarialTester": (".testing.adversarial_suite", "AdversarialTester"),
     # Temporal freshness (Phase 5)

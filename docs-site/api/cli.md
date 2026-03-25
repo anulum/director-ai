@@ -25,14 +25,14 @@ director-ai batch input.jsonl --output results.jsonl
 ### Server
 
 ```bash
-# Start REST server
+# Start REST server (default transport: http)
 director-ai serve --port 8080 --workers 4
 
 # Start gRPC server
-director-ai grpc --port 50051
+director-ai serve --transport grpc --port 50051 --workers 4
 
-# Health check
-director-ai health --url http://localhost:8080
+# Health check (via curl, no dedicated CLI command)
+curl http://localhost:8080/v1/health
 ```
 
 ### Configuration
@@ -98,7 +98,7 @@ director-ai tune eval_data.jsonl
 
 ```bash
 director-ai version
-# director-ai 3.8.0
+# director-ai 3.10.0
 ```
 
 ## Global Options

@@ -2,6 +2,41 @@
 
 ## How Coherence Scoring Works
 
+```mermaid
+graph LR
+    subgraph "Input"
+        P["Prompt"]
+        R["Response"]
+    end
+    subgraph "Logical Signal (W=0.6)"
+        NLI["NLI Model<br/>DeBERTa / ONNX"]
+        HL["H_logical<br/>(contradiction prob)"]
+    end
+    subgraph "Factual Signal (W=0.4)"
+        KB["KB Retrieval<br/>Vector / Keyword"]
+        HF["H_factual<br/>(fact deviation)"]
+    end
+    subgraph "Decision"
+        SCORE["coherence =<br/>1 - (0.6·H_L + 0.4·H_F)"]
+        GATE{≥ threshold?}
+    end
+
+    P --> NLI
+    R --> NLI
+    NLI --> HL --> SCORE
+    P --> KB
+    KB --> |"facts"| NLI2["NLI(facts, response)"]
+    R --> NLI2
+    NLI2 --> HF --> SCORE
+    SCORE --> GATE
+    GATE -->|Yes| OK["Approved"]
+    GATE -->|No| FAIL["Rejected + Evidence"]
+
+    style OK fill:#2e7d32,color:#fff
+    style FAIL fill:#c62828,color:#fff
+    style SCORE fill:#ff8f00,color:#fff
+```
+
 Director-AI computes a composite coherence score from two independent signals:
 
 ```

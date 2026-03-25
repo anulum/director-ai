@@ -4,6 +4,23 @@
 pip install director-ai[langchain]
 ```
 
+```mermaid
+graph LR
+    Q["Query"] --> LLM["LLM Chain"]
+    LLM --> GUARD["DirectorAIGuard"]
+    GUARD --> NLI["NLI scoring"]
+    GUARD --> KB["KB retrieval"]
+    NLI --> CHK{approved?}
+    KB --> CHK
+    CHK -->|Yes| OUT["Output"]
+    CHK -->|No| FALLBACK["Reject / Retrieval fallback"]
+
+    style GUARD fill:#512da8,color:#fff
+    style CHK fill:#ff8f00,color:#fff
+    style OUT fill:#2e7d32,color:#fff
+    style FALLBACK fill:#c62828,color:#fff
+```
+
 ## Usage
 
 ```python

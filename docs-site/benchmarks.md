@@ -25,6 +25,16 @@ Metric: macro-averaged balanced accuracy (standard for [LLM-AggreFact](https://l
 
 Director-AI wraps the same FactCG-DeBERTa-L model that scores 77.2% in the NAACL 2025 paper. Our eval yields 75.86% — a 1.4pp gap from threshold tuning methodology and data split version.
 
+### Visual Comparison
+
+```mermaid
+xychart-beta
+    title "AggreFact Balanced Accuracy (29,320 samples)"
+    x-axis ["Bespoke-7B", "Claude-3.5", "FactCG paper", "Granite-8B", "GPT-4o", "Director-AI", "MiniCheck-T5", "MiniCheck-D", "Paladin", "AlignScore"]
+    y-axis "Balanced Accuracy (%)" 70 --> 78
+    bar [77.4, 77.2, 77.2, 76.5, 75.9, 75.86, 75.0, 74.1, 73.1, 72.5]
+```
+
 !!! success "Director-AI beats all frontier LLMs at $0/call"
     75.86% BA with a 0.4B parameter model — outperforming Claude Haiku 4.5 (75.10%), Claude Sonnet 4.6 (74.25%), GPT-4o (73.46%), and GPT-4o-mini (71.66%) on the same AggreFact test set. Zero API cost, sub-millisecond latency.
 
@@ -86,6 +96,16 @@ Director-AI beats all tested frontier LLMs on AggreFact at $0 per call and 0.5 m
 | GTX 1060 6GB | 6 GB | 6.1 | 13.9 ms | N/A | 17.4 ms |
 
 L40S FP16 batch=32 achieves **sub-millisecond latency** (0.5 ms/pair).
+
+### Latency Overview
+
+```mermaid
+xychart-beta
+    title "NLI Latency by Backend (ms/pair, GTX 1060)"
+    x-axis ["Heuristic", "Streaming", "ONNX GPU", "PyTorch GPU", "ONNX GPU seq", "PyTorch seq", "ONNX CPU"]
+    y-axis "ms/pair (log-ish scale)" 0 --> 400
+    bar [0.15, 0.02, 14.6, 19.0, 65.1, 196.6, 383]
+```
 
 !!! info "Sub-millisecond: 0.5 ms/pair on L40S FP16"
     Faster than a single OpenAI API round-trip by 3 orders of magnitude. Even a consumer GTX 1060 achieves 14.6 ms/pair with ONNX GPU batching.
