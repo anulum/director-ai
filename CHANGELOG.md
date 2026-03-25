@@ -8,6 +8,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Cross-model consensus**: `ConsensusScorer` queries the same prompt to multiple
+  models and scores pairwise factual agreement. High disagreement → low confidence.
+  Pluggable NLI scorer, supports pre-generated responses.
 - **Adversarial robustness testing**: `AdversarialTester` self-tests the guardrail
   against known attack patterns: zero-width chars, Unicode homoglyphs, base64/rot13
   encoding, role-play injection. Returns RobustnessReport with per-pattern results.
