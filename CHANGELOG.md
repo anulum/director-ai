@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Conformal prediction intervals**: `ConformalPredictor` provides calibrated,
+  distribution-free uncertainty estimates on hallucination probability. Instead
+  of binary approved/rejected, returns P(hallucination) intervals with coverage
+  guarantees. Based on Mohri & Hashimoto (ICML 2024). Zero competitors.
 - **Agentic loop monitor**: `LoopMonitor` tracks AI agent execution loops.
   Detects circular tool calls, goal drift (Jaccard or custom NLI scorer),
   token/step/time budget exhaustion, and reasoning degradation. Returns

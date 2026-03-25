@@ -148,6 +148,9 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "verify_numeric": (".core.verification.numeric_verifier", "verify_numeric"),
     # Agentic loop monitoring (Phase 5)
     "LoopMonitor": (".agentic.loop_monitor", "LoopMonitor"),
+    # Conformal prediction (Phase 5)
+    "ConformalPredictor": (".core.calibration.conformal", "ConformalPredictor"),
+    "PredictionInterval": (".core.calibration.conformal", "PredictionInterval"),
     "NumericVerificationResult": (
         ".core.verification.numeric_verifier",
         "NumericVerificationResult",
