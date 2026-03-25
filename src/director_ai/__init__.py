@@ -144,6 +144,12 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "Article15Report": (".compliance.reporter", "Article15Report"),
     "DriftDetector": (".compliance.drift_detector", "DriftDetector"),
     "DriftResult": (".compliance.drift_detector", "DriftResult"),
+    # Numeric verification (Phase 5)
+    "verify_numeric": (".core.verification.numeric_verifier", "verify_numeric"),
+    "NumericVerificationResult": (
+        ".core.verification.numeric_verifier",
+        "NumericVerificationResult",
+    ),
 }
 
 __all__ = sorted(_LAZY_IMPORTS)

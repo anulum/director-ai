@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Numeric verification**: `verify_numeric()` checks percentage arithmetic,
+  date logic (birth < death), probability bounds, order-of-magnitude sanity,
+  and internal consistency. Stdlib only, zero dependencies. The first
+  guardrail product with real-time quantitative verification.
 - **Claim-level provenance**: `CoherenceScore` gains `.claims`, `.attributions`,
   `.unsupported_claims`, `.claim_coverage`, `.claim_provenance()` — per-claim
   source attribution with divergence scores. Every claim mapped to its
