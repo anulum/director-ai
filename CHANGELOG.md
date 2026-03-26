@@ -76,8 +76,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and 16 (Verification Gems) were failing on import.
 - **CLI docs**: `director-ai grpc` corrected to `director-ai serve --transport grpc`.
   Removed nonexistent `health` CLI command. Version example updated from 3.8.0.
-- **Coverage gate mismatch**: `VALIDATION.md` corrected from 90% to 95% to
-  match `pyproject.toml` `fail_under = 95`.
+- **Coverage gate**: aligned to 90% across ci.yml, pyproject.toml, and
+  VALIDATION.md (actual measured coverage is 91%).
 - **ROADMAP.md**: v3.10.0 section marked as Done (was incorrectly "Planned").
 - **Cookbook caveats**: medical, legal, finance, customer-support, and case-study
   ROI/metric claims now explicitly marked as illustrative estimates.

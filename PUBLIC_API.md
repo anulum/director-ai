@@ -116,7 +116,7 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 |--------|-------------|
 | `review(prompt, response)` | Single review → `(bool, CoherenceScore)` |
 | `areview(prompt, response)` | Async single review (thread pool offload) |
-| `review_batch(items)` | Batch review — routes each item through `review()` for full scoring parity → `list[(bool, CoherenceScore)]` |
+| `review_batch(items)` | Batch review with coalesced NLI — same threshold/task-type/meta-classifier logic as `review()`, but does not support session/cross-turn/contradiction tracking → `list[(bool, CoherenceScore)]` |
 
 ### ReviewQueue (Continuous Batching)
 

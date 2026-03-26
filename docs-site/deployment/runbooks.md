@@ -210,9 +210,9 @@ Step 1 — Check model + data fit in VRAM
 │
 └─ GPU has sufficient free VRAM
    └─ Step 3 — Check batch size
-      ├─ review_batch() with batch_size > 32
-      │  └─ Fix: reduce batch_size
-      │     results = scorer.review_batch(pairs, batch_size=16)
+      ├─ Sending large batches (> 32 items)
+      │  └─ Fix: split into smaller batches
+      │     results = scorer.review_batch(pairs[:16])
       │
       └─ Batch size OK → check for memory leaks
          ├─ Long-running server accumulating tensors
