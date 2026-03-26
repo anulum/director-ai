@@ -107,6 +107,20 @@ class TestIngestParsedFormats:
         assert "Ingested" in out
         assert "2 file(s)" in out
 
+    def test_ingest_directory_finds_uppercase_supported_ext(self, capsys, tmp_path):
+        pdf_file = tmp_path / "FAQ.PDF"
+        pdf_file.write_bytes(b"%PDF-1.4 fake content")
+
+        with patch(
+            "director_ai.core.retrieval.doc_parser.parse",
+            return_value="Refunds are available for 30 days.",
+        ):
+            main(["ingest", str(tmp_path)])
+
+        out = capsys.readouterr().out
+        assert "Ingested" in out
+        assert "1 file(s)" in out
+
     def test_ingest_xml_file(self, capsys, tmp_path):
         xml_file = tmp_path / "data.xml"
         xml_file.write_text("<root><item>Content here</item></root>")

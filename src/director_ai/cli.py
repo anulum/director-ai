@@ -404,10 +404,11 @@ def _cmd_ingest(args: list[str]) -> None:
         p = Path(path)
         if p.is_file():
             return [p]
-        files: list[Path] = []
-        for ext in supported_exts:
-            files.extend(p.rglob(f"*{ext}"))
-        return sorted(files)
+        return sorted(
+            f
+            for f in p.rglob("*")
+            if f.is_file() and f.suffix.lower() in supported_exts
+        )
 
     def _chunk_paragraphs(text: str, max_tokens: int) -> list[str]:
         paragraphs = text.split("\n\n")
