@@ -7,9 +7,8 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
-import sys
-import types
 from unittest.mock import patch
 
 import pytest
@@ -64,10 +63,8 @@ class TestIngestParsedFormats:
             "director_ai.core.retrieval.doc_parser.parse",
             side_effect=ImportError("pypdf required"),
         ):
-            try:
+            with contextlib.suppress(SystemExit):
                 main(["ingest", str(pdf_file)])
-            except SystemExit:
-                pass
             out = capsys.readouterr().out
             # Should warn about skipping, not crash
             assert "Warning" in out or "No supported" in out
@@ -81,10 +78,8 @@ class TestIngestParsedFormats:
             "director_ai.core.retrieval.doc_parser.parse",
             side_effect=ImportError("python-docx required"),
         ):
-            try:
+            with contextlib.suppress(SystemExit):
                 main(["ingest", str(docx_file)])
-            except SystemExit:
-                pass
             out = capsys.readouterr().out
             assert "Warning" in out or "No supported" in out
 
@@ -93,14 +88,14 @@ class TestIngestParsedFormats:
         csv_file = tmp_path / "empty.csv"
         csv_file.write_text("")
 
-        with patch(
-            "director_ai.core.retrieval.doc_parser.parse",
-            return_value="",
+        with (
+            patch(
+                "director_ai.core.retrieval.doc_parser.parse",
+                return_value="",
+            ),
+            contextlib.suppress(SystemExit),
         ):
-            try:
-                main(["ingest", str(csv_file)])
-            except SystemExit:
-                pass
+            main(["ingest", str(csv_file)])
 
     def test_ingest_directory_with_mixed_formats(self, capsys, tmp_path):
         """Directory with .txt and .csv files ingests both."""
@@ -143,8 +138,10 @@ class TestIngestEdgeCases:
     def test_ingest_jsonl_with_content_key(self, capsys, tmp_path):
         jf = tmp_path / "docs.jsonl"
         jf.write_text(
-            json.dumps({"content": "Fact one about physics."}) + "\n"
-            + json.dumps({"content": "Fact two about chemistry."}) + "\n"
+            json.dumps({"content": "Fact one about physics."})
+            + "\n"
+            + json.dumps({"content": "Fact two about chemistry."})
+            + "\n"
         )
         main(["ingest", str(jf)])
         out = capsys.readouterr().out
@@ -154,10 +151,12 @@ class TestIngestEdgeCases:
     def test_ingest_jsonl_with_bad_lines(self, capsys, tmp_path):
         jf = tmp_path / "mixed.jsonl"
         jf.write_text(
-            json.dumps({"text": "Valid line."}) + "\n"
+            json.dumps({"text": "Valid line."})
+            + "\n"
             + "not valid json\n"
             + "\n"
-            + json.dumps({"text": "Another valid."}) + "\n"
+            + json.dumps({"text": "Another valid."})
+            + "\n"
         )
         main(["ingest", str(jf)])
         out = capsys.readouterr().out
@@ -179,10 +178,8 @@ class TestIngestEdgeCases:
                 self.st_mtime = real.st_mtime
 
         with patch.object(type(big_file), "stat", return_value=FakeStat()):
-            try:
+            with contextlib.suppress(SystemExit):
                 main(["ingest", str(big_file)])
-            except SystemExit:
-                pass
             out = capsys.readouterr().out
             assert "Warning" in out or "No supported" in out
 
@@ -200,8 +197,10 @@ class TestIngestEdgeCases:
         """JSON file with array structure (not JSONL) — each line parsed."""
         jf = tmp_path / "data.json"
         jf.write_text(
-            json.dumps({"text": "Fact about gravity."}) + "\n"
-            + json.dumps({"text": "Fact about light."}) + "\n"
+            json.dumps({"text": "Fact about gravity."})
+            + "\n"
+            + json.dumps({"text": "Fact about light."})
+            + "\n"
         )
         main(["ingest", str(jf)])
         out = capsys.readouterr().out
@@ -283,9 +282,7 @@ class TestDocParserDirect:
 
         # If bs4 is installed, this works; if not, ImportError
         try:
-            result = parse(
-                b"<html><body><p>Test</p></body></html>", "page.html"
-            )
+            result = parse(b"<html><body><p>Test</p></body></html>", "page.html")
             assert "Test" in result
         except ImportError:
             pass
@@ -293,18 +290,14 @@ class TestDocParserDirect:
     def test_parse_pdf_missing_pypdf(self):
         from director_ai.core.retrieval.doc_parser import parse
 
-        try:
+        with contextlib.suppress(ImportError, Exception):
             parse(b"not a real PDF", "doc.pdf")
-        except (ImportError, Exception):
-            pass  # expected when pypdf not installed or invalid PDF
 
     def test_parse_docx_missing_dep(self):
         from director_ai.core.retrieval.doc_parser import parse
 
-        try:
+        with contextlib.suppress(ImportError, Exception):
             parse(b"not a real DOCX", "doc.docx")
-        except (ImportError, Exception):
-            pass
 
 
 class TestDocParserShim:

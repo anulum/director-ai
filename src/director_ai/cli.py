@@ -396,9 +396,9 @@ def _cmd_ingest(args: list[str]) -> None:
         cfg.chroma_persist_dir = persist_dir
     store = cfg.build_store()
 
-    _TEXT_EXTS = {".txt", ".md", ".json", ".jsonl", ".xml", ".markdown"}
-    _PARSED_EXTS = {".pdf", ".docx", ".html", ".htm", ".csv"}
-    supported_exts = _TEXT_EXTS | _PARSED_EXTS
+    text_exts = {".txt", ".md", ".json", ".jsonl", ".xml", ".markdown"}
+    parsed_exts = {".pdf", ".docx", ".html", ".htm", ".csv"}
+    supported_exts = text_exts | parsed_exts
 
     def _collect_files(path: str) -> list[Path]:
         p = Path(path)
@@ -438,7 +438,7 @@ def _cmd_ingest(args: list[str]) -> None:
         ext = path.suffix.lower()
 
         # PDF, DOCX, HTML, CSV — delegate to doc_parser (binary read)
-        if ext in _PARSED_EXTS:
+        if ext in parsed_exts:
             from director_ai.core.retrieval.doc_parser import parse
 
             try:

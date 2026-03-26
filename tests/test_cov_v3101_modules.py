@@ -9,9 +9,6 @@
 
 from __future__ import annotations
 
-import pytest
-
-
 # ── OTel (no-op path) ──────────────────────────────────────────────
 
 
@@ -67,12 +64,21 @@ class TestDriftDetector:
 
         log = AuditLog(str(tmp_path / "drift.db"))
         for i in range(10):
-            log.log(AuditEntry(
-                prompt=f"q{i}", response=f"a{i}", model="m", provider="p",
-                score=0.8, approved=True, verdict_confidence=0.9,
-                task_type="qa", domain="test", latency_ms=1.0,
-                timestamp=time.time(),
-            ))
+            log.log(
+                AuditEntry(
+                    prompt=f"q{i}",
+                    response=f"a{i}",
+                    model="m",
+                    provider="p",
+                    score=0.8,
+                    approved=True,
+                    verdict_confidence=0.9,
+                    task_type="qa",
+                    domain="test",
+                    latency_ms=1.0,
+                    timestamp=time.time(),
+                )
+            )
         detector = DriftDetector(log)
         report = detector.analyze()
         assert report is not None
@@ -160,12 +166,21 @@ class TestAuditLog:
 
         log = AuditLog(str(tmp_path / "count.db"))
         assert log.count() == 0
-        log.log(AuditEntry(
-            prompt="q", response="a", model="m", provider="p",
-            score=0.8, approved=True, verdict_confidence=0.9,
-            task_type="qa", domain="d", latency_ms=1.0,
-            timestamp=time.time(),
-        ))
+        log.log(
+            AuditEntry(
+                prompt="q",
+                response="a",
+                model="m",
+                provider="p",
+                score=0.8,
+                approved=True,
+                verdict_confidence=0.9,
+                task_type="qa",
+                domain="d",
+                latency_ms=1.0,
+                timestamp=time.time(),
+            )
+        )
         assert log.count() == 1
 
 

@@ -110,8 +110,7 @@ CHATBOT_QA = [
     {
         "question": "What compliance certifications do you have?",
         "answer": (
-            "Acme CloudSync is SOC 2 Type II, ISO 27001, HIPAA, "
-            "and FedRAMP certified."
+            "Acme CloudSync is SOC 2 Type II, ISO 27001, HIPAA, and FedRAMP certified."
         ),
         "label": "hallucinated",
         "note": "HIPAA and FedRAMP are fabricated",

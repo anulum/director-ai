@@ -90,7 +90,9 @@ def main():
         if result.halted:
             approved_text.append(f" {result.recovery_text}")
             halted = True
-            print(f"\n[HALT] reason={result.halt_reason} coherence={result.coherence:.3f}")
+            print(
+                f"\n[HALT] reason={result.halt_reason} coherence={result.coherence:.3f}"
+            )
             break
         approved_text.append(token)
 

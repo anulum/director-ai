@@ -10,12 +10,9 @@ doc_registry edge cases, CLI ingest paths, config profiles."""
 
 from __future__ import annotations
 
-import math
 import time
-from unittest.mock import patch
 
 import pytest
-
 
 # ── Types module (_clamp, CoherenceScore properties) ────────────────
 
@@ -237,7 +234,9 @@ class TestStatsStore:
         db = tmp_path / "test_stats.db"
         store = StatsStore(db_path=db)
 
-        store.record_review(approved=True, score=0.9, h_logical=0.1, h_factual=0.2, latency_ms=5.0)
+        store.record_review(
+            approved=True, score=0.9, h_logical=0.1, h_factual=0.2, latency_ms=5.0
+        )
         store.record_review(approved=False, score=0.2, latency_ms=3.0, halted=True)
         store.record_review(approved=True, score=0.85, latency_ms=4.0)
 
@@ -300,7 +299,7 @@ class TestStatsStore:
 
 class TestDocChunkerEdgeCases:
     def test_force_split_long_word(self):
-        from director_ai.core.retrieval.doc_chunker import split, ChunkConfig
+        from director_ai.core.retrieval.doc_chunker import ChunkConfig, split
 
         text = "A" * 500
         chunks = split(text, ChunkConfig(chunk_size=100, overlap=10))
@@ -309,14 +308,14 @@ class TestDocChunkerEdgeCases:
             assert len(chunk) <= 110  # chunk_size + some overlap
 
     def test_no_overlap(self):
-        from director_ai.core.retrieval.doc_chunker import split, ChunkConfig
+        from director_ai.core.retrieval.doc_chunker import ChunkConfig, split
 
         text = "First paragraph.\n\nSecond paragraph.\n\nThird paragraph."
         chunks = split(text, ChunkConfig(chunk_size=25, overlap=0))
         assert len(chunks) >= 2
 
     def test_single_sentence(self):
-        from director_ai.core.retrieval.doc_chunker import split, ChunkConfig
+        from director_ai.core.retrieval.doc_chunker import ChunkConfig, split
 
         result = split("Short.", ChunkConfig(chunk_size=100))
         assert result == ["Short."]
@@ -327,7 +326,7 @@ class TestDocChunkerEdgeCases:
         assert split("") == []
 
     def test_within_chunk_size(self):
-        from director_ai.core.retrieval.doc_chunker import split, ChunkConfig
+        from director_ai.core.retrieval.doc_chunker import ChunkConfig, split
 
         text = "Fits in one chunk."
         assert split(text, ChunkConfig(chunk_size=1000)) == [text]
@@ -335,7 +334,7 @@ class TestDocChunkerEdgeCases:
 
 class TestDocChunkerShim:
     def test_shim_resolves(self):
-        from director_ai.core.doc_chunker import split, ChunkConfig
+        from director_ai.core.doc_chunker import ChunkConfig, split
 
         assert callable(split)
         result = split("Test.", ChunkConfig(chunk_size=100))
@@ -394,8 +393,16 @@ class TestConfigProfiles:
         from director_ai.core.config import DirectorConfig
 
         profiles = [
-            "medical", "finance", "legal", "creative", "customer_support",
-            "summarization", "fast", "thorough", "research", "lite",
+            "medical",
+            "finance",
+            "legal",
+            "creative",
+            "customer_support",
+            "summarization",
+            "fast",
+            "thorough",
+            "research",
+            "lite",
         ]
         for profile in profiles:
             cfg = DirectorConfig.from_profile(profile)
@@ -471,7 +478,9 @@ class TestVerifiedScorerBasic:
         from director_ai.core.verified_scorer import VerifiedScorer
 
         vs = VerifiedScorer()
-        result = vs.verify("Water boils at 100 degrees.", "Water boils at 100 degrees Celsius.")
+        result = vs.verify(
+            "Water boils at 100 degrees.", "Water boils at 100 degrees Celsius."
+        )
         assert result.overall_score >= 0
         assert isinstance(result.claims, list)
 
