@@ -47,11 +47,11 @@ Scores too LOW (mass rejection)
 │  │     store.ingest(documents)
 │  │
 │  └─ Yes → Step 2 — Check threshold
-│     ├─ threshold > 0.7 on general content
-│     │  └─ Fix: lower threshold
-│     │     Medical/legal: 0.65–0.75
-│     │     General: 0.5–0.6
-│     │     Creative: 0.35–0.45
+│     ├─ threshold too high for content type
+│     │  └─ Fix: use measured profiles
+│     │     Medical/legal/finance: 0.30
+│     │     General: 0.50
+│     │     Creative: 0.40
 │     │
 │     └─ Threshold reasonable → Step 3 — Check KB freshness
 │        ├─ KB docs are outdated (facts changed)
@@ -84,7 +84,7 @@ Scores too HIGH (nothing flagged)
 
 ```
 Step 1 — Check cache hit rate
-├─ Metrics endpoint: GET /metrics → director_cache_hit_ratio
+├─ Metrics endpoint: GET /v1/metrics/prometheus → director_cache_hit_ratio
 │  ├─ Hit rate < 50%
 │  │  └─ Fix: increase cache_size or cache_ttl
 │  │     scorer = CoherenceScorer(cache_size=8192, cache_ttl=7200)

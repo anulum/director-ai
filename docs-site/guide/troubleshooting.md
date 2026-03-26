@@ -149,4 +149,4 @@ Metrics collection is disabled. Enable it in config:
 metrics_enabled: true
 ```
 
-Then access `/metrics` for Prometheus-format output.
+Then access `/v1/metrics/prometheus` for Prometheus-format output, or `/v1/metrics` for JSON.

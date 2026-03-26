@@ -203,7 +203,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   validated against domain datasets).
 - Provider list: "Works with 9 providers"→"Duck-type detection for 5 SDK
   shapes" with tested/untested distinction.
-- All docs, cookbooks, notebooks, guides updated to measured thresholds.
+- Docs threshold guidance updated toward measured profiles (ongoing — some pages still reference pre-calibration values).
 
 ### Added
 - Domain benchmark results in docs-site/benchmarks.md (PubMedQA,

@@ -2,7 +2,7 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
-## v3.10.0 (2026-03-24)
+## v3.10.1 (2026-03-25)
 
 ### Added
 - **Meta-confidence scoring**: `verdict_confidence`, `signal_agreement` on every `CoherenceScore`

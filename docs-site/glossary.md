@@ -107,7 +107,7 @@ Key terms used throughout Director-AI documentation.
 :   The `StreamingKernel` class that wraps a token stream and injects coherence checks every N tokens. See [API — StreamingKernel](api/streaming.md).
 
 **Threshold**
-:   The coherence score cutoff (0–1). Responses below this are rejected. Domain-dependent: 0.55 for support, 0.6 default, 0.7+ for medical/legal. See [Threshold Tuning](guide/threshold-tuning.md).
+:   The coherence score cutoff (0–1). Responses below this are rejected. Domain-dependent: 0.55 for support, 0.5 default, 0.30 for medical/finance/legal (measured profiles). See [Threshold Tuning](guide/threshold-tuning.md).
 
 **Token-Level Scoring**
 :   Evaluating coherence incrementally as each token (or batch of tokens) arrives, rather than waiting for the complete response.

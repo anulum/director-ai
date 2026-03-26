@@ -56,8 +56,8 @@ Dataclass-based configuration with environment variable, YAML file, and named pr
 | `medical` | On | 0.30 | 3 | On | Healthcare (measured on PubMedQA) |
 | `finance` | On | 0.30 | 3 | On | Financial services (measured on FinanceBench) |
 | `legal` | On | 0.30 | 3 | On | Legal document review |
-| `creative` | Off | 0.40 | 3 | Off | Creative writing (low halt rate) |
-| `customer_support` | Off | 0.55 | 3 | Off | Support agents |
+| `creative` | Off | 0.40 | 3 | On | Creative writing (low halt rate) |
+| `customer_support` | Off | 0.55 | 3 | On | Support agents |
 | `summarization` | On | 0.15 | 3 | On | Document summarization |
 | `lite` | Off | 0.50 | 1 | Off | Zero-dependency fast path |
 

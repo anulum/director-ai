@@ -61,8 +61,8 @@
 | `medical` | On | 0.30 | 3 | On | Healthcare (measured on PubMedQA) |
 | `finance` | On | 0.30 | 3 | On | Financial services (measured on FinanceBench) |
 | `legal` | On | 0.30 | 3 | On | Legal document review (not yet measured) |
-| `creative` | Off | 0.4 | 1 | Off | Creative writing (low halt rate) |
-| `customer_support` | Off | 0.55 | 1 | Off | Support agents |
+| `creative` | Off | 0.4 | 3 | On | Creative writing (low halt rate) |
+| `customer_support` | Off | 0.55 | 3 | On | Support agents |
 | `summarization` | On | 0.15 | 1 | On | Document summarization |
 | `lite` | Off | 0.5 | 1 | Off | Zero-dependency fast path |
 

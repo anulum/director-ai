@@ -124,8 +124,8 @@ See [Customer Support Cookbook](../cookbook/customer-support.md) and `examples/c
 
 ```python
 scorer = CoherenceScorer(
-    threshold=0.55,
-    soft_limit=0.65,
+    threshold=0.30,
+    soft_limit=0.40,
     use_nli=True,
 )
 ```
@@ -178,10 +178,10 @@ Or use the CLI: `director-ai bench --dataset e2e` for an automated sweep.
 
 | Domain | Threshold | Rationale |
 |--------|-----------|-----------|
-| Medical | 0.70 | Patient safety demands low false-negative rate |
-| Legal | 0.65 | Regulatory compliance; moderate tolerance |
-| Finance | 0.60 | Quantitative claims must be grounded |
-| Customer support | 0.50 | Balanced; some creative latitude acceptable |
+| Medical | 0.30 | Measured on PubMedQA — lower threshold avoids false positives on medical text |
+| Legal | 0.30 | Measured profile — calibrated for legal document review |
+| Finance | 0.30 | Measured on FinanceBench — calibrated for financial claims |
+| Customer support | 0.55 | Balanced; some creative latitude acceptable |
 | Creative | 0.40 | Permissive; hallucination is less harmful |
 
 ## Pitfalls

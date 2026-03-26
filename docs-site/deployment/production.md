@@ -144,7 +144,7 @@ print(f"Hit rate: {scorer.cache.hit_rate:.1%}")
 ```python
 from director_ai.core.metrics import metrics
 
-# Built-in metrics exposed at /metrics
+# Built-in metrics exposed at /v1/metrics and /v1/metrics/prometheus
 print(metrics.prometheus_format())
 ```
 
