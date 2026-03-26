@@ -134,9 +134,9 @@ CHATBOT_QA = [
 ]
 
 
-def parse_args(argv: list[str]) -> dict:
+def parse_args(argv: list[str]) -> dict[str, str | bool | None]:
     profile = "fast"
-    use_nli = False
+    use_nli = None
     i = 0
     while i < len(argv):
         if argv[i] == "--profile" and i + 1 < len(argv):
@@ -156,6 +156,12 @@ def build_demo_store():
     store = VectorGroundTruthStore()
     store.ingest(ACME_DOCS)
     return store
+
+
+def resolve_use_nli(profile_default: bool, use_nli_override: bool | None) -> bool:
+    if use_nli_override is None:
+        return profile_default
+    return use_nli_override
 
 
 def main(argv: list[str] | None = None):
@@ -185,14 +191,15 @@ def main(argv: list[str] | None = None):
     print("Step 2: Configuring scorer...")
 
     cfg = DirectorConfig.from_profile(args["profile"])
+    use_nli = resolve_use_nli(cfg.use_nli, args["use_nli"])
     scorer = CoherenceScorer(
         threshold=cfg.coherence_threshold,
         hard_limit=cfg.hard_limit,
         ground_truth_store=store,
-        use_nli=args["use_nli"],
+        use_nli=use_nli,
     )
 
-    mode = "NLI + heuristic" if args["use_nli"] else "heuristic-only"
+    mode = "NLI + heuristic" if use_nli else "heuristic-only"
     print(f"  Profile: {args['profile']}")
     print(f"  Mode: {mode}")
     print(f"  Threshold: {cfg.coherence_threshold}")

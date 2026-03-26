@@ -28,3 +28,25 @@ def test_demo_store_retrieves_relevant_context():
 
     assert context is not None
     assert "$19/user/month" in context
+
+
+def test_parse_args_profile_only_keeps_nli_unset():
+    module = _load_example_module()
+
+    args = module.parse_args(["--profile", "medical"])
+
+    assert args["profile"] == "medical"
+    assert args["use_nli"] is None
+
+
+def test_resolve_use_nli_falls_back_to_profile_default():
+    module = _load_example_module()
+
+    assert module.resolve_use_nli(True, None) is True
+    assert module.resolve_use_nli(False, None) is False
+
+
+def test_resolve_use_nli_honors_explicit_override():
+    module = _load_example_module()
+
+    assert module.resolve_use_nli(False, True) is True
