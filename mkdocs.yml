@@ -125,6 +125,7 @@ nav:
       - Quickstart: quickstart.md
       - Installation: installation.md
       - Why Director-AI: guide/why-director-ai.md
+      - vs Prompt Engineering: guide/vs-prompt-engineering.md
   - User Guide:
       - Scoring: guide/scoring.md
       - Streaming Halt: guide/streaming.md
