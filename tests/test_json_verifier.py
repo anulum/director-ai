@@ -120,6 +120,35 @@ class TestSchemaValidation:
         assert r.valid_json is True
         assert r.schema_valid is True
 
+    def test_permissive_empty_schema(self):
+        r = verify_json('{"a": 1}', schema={})
+        assert r.schema_valid is True
+
+    def test_properties_only_schema(self):
+        schema = {"properties": {"a": {"type": "number"}}}
+        r = verify_json('{"a": 1}', schema=schema)
+        assert r.schema_valid is True
+
+    def test_enum_schema_valid(self):
+        schema = {"enum": [42, "hello"]}
+        r = verify_json("42", schema=schema)
+        assert r.schema_valid is True
+
+    def test_enum_schema_invalid(self):
+        schema = {"enum": [42]}
+        r = verify_json("43", schema=schema)
+        assert r.schema_valid is False
+
+    def test_const_schema_valid(self):
+        schema = {"const": "ok"}
+        r = verify_json('"ok"', schema=schema)
+        assert r.schema_valid is True
+
+    def test_const_schema_invalid(self):
+        schema = {"const": "ok"}
+        r = verify_json('"nope"', schema=schema)
+        assert r.schema_valid is False
+
 
 class TestValueGrounding:
     def test_grounded_value(self):

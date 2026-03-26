@@ -187,12 +187,32 @@ def verify_json(
             )
         elif isinstance(data, dict):
             verdicts = _validate_schema(data, schema)
-            schema_valid = bool(verdicts) and all(
-                v.verdict == "valid" for v in verdicts
-            )
+            schema_valid = all(v.verdict == "valid" for v in verdicts)
         else:
-            # Non-object root that matches schema type (array, scalar)
             schema_valid = True
+
+        # Enforce enum/const regardless of root type
+        if schema_valid is not False:
+            if "enum" in schema and data not in schema["enum"]:
+                schema_valid = False
+                verdicts.append(
+                    FieldVerdict(
+                        path="$",
+                        value=str(data),
+                        verdict="invalid_value",
+                        reason=f"Value not in enum {schema['enum']}",
+                    )
+                )
+            if "const" in schema and data != schema["const"]:
+                schema_valid = False
+                verdicts.append(
+                    FieldVerdict(
+                        path="$",
+                        value=str(data),
+                        verdict="invalid_value",
+                        reason=f"Value does not match const {schema['const']!r}",
+                    )
+                )
 
     if score_fn is not None:
         fields = _extract_fields(data)
