@@ -31,8 +31,8 @@ Training data quality requirements apply to the AI system's training data, not t
 
 **What Director-AI provides:**
 
-- **Knowledge base validation.** `DatasetTypeClassifier` and `validate_data()` check ingested training/tuning data for quality issues (duplicates, class imbalance, missing fields).
-- **Fine-tuning data governance.** `director-ai validate-data <file.jsonl>` reports data quality metrics before fine-tuning the NLI model on domain data.
+- **Fine-tuning data validation.** `validate_finetune_data()` and `director-ai validate-data <file.jsonl>` check domain-tuning JSONL for duplicates, class imbalance, parse errors, and missing fields before fine-tuning.
+- **Threshold-selection support.** `DatasetTypeClassifier` helps choose dataset-specific thresholds for scoring, but it is not a data-governance validator.
 
 ### Article 11 — Technical Documentation
 
@@ -41,7 +41,7 @@ Systems must be accompanied by technical documentation including performance met
 **What Director-AI provides:**
 
 - **Automated performance reports.** `ComplianceReporter.generate_report()` produces structured reports with accuracy metrics, confidence intervals, per-model breakdowns, and drift analysis.
-- **Per-claim evidence.** `VerifiedScorer` produces per-claim verdicts (supported/contradicted/fabricated/unverifiable) with matched source chunks and traceability scores.
+- **Per-claim evidence.** `VerifiedScorer` produces per-claim verdicts (supported/contradicted/fabricated/unverifiable) with matched source sentences and traceability scores.
 - **Markdown and structured export.** Reports export to Markdown via `report.to_markdown()` for inclusion in technical documentation.
 
 ### Article 12 — Record-Keeping
@@ -50,9 +50,9 @@ High-risk systems must automatically log events during operation.
 
 **What Director-AI provides:**
 
-- **Audit log.** `AuditLog` records every scored interaction: prompt, response, model, provider, score, verdict, confidence, latency, timestamp, and domain. Stored in SQLite (local) or PostgreSQL (enterprise).
+- **Audit log.** `AuditLog` records every scored interaction: prompt, response, model, provider, score, verdict confidence, latency, timestamp, task type, domain, and tenant.
 - **Immutable records.** Audit entries are append-only. No deletion API.
-- **Query and export.** `AuditLog.query()` supports time-range, model, domain, and score-range filters.
+- **Query and export.** `AuditLog.query()` supports time-range, model, domain, tenant, and limit filters.
 
 ```python
 from director_ai import AuditLog, ComplianceReporter
@@ -60,8 +60,8 @@ from director_ai import AuditLog, ComplianceReporter
 log = AuditLog("production_audit.db")
 reporter = ComplianceReporter(log)
 
-# Generate report for the last 30 days
-report = reporter.generate_report(days=30)
+# Generate report for the last 30 days (default window)
+report = reporter.generate_report()
 print(report.to_markdown())
 ```
 
@@ -81,9 +81,10 @@ High-risk systems must allow human oversight and intervention.
 
 **What Director-AI provides:**
 
-- **Human-in-the-loop pattern.** `ReviewQueue` collects low-confidence responses for human review before they reach end users.
-- **Override tracking.** The audit log records human overrides (approved despite guardrail rejection, or rejected despite guardrail approval).
+- **Review artifacts for operators.** Scores, evidence, and compliance reports give humans concrete material to inspect before adjusting thresholds or approving exceptions.
+- **Override tracking hook.** `AuditLog` can store a `human_override` value when your application records a reviewer decision.
 - **Configurable thresholds.** Operators control the coherence threshold, trading off between false positives and missed hallucinations. This is a human decision, not an automated one.
+- **What Director-AI does not provide here.** The package does not ship a reviewer inbox or approval queue; `ReviewQueue` is a continuous batching helper, not a human-review workflow.
 
 ### Article 15 — Accuracy, Robustness, Cybersecurity
 
@@ -94,7 +95,7 @@ The article that names accuracy explicitly. Systems must achieve and maintain de
 - **Declared accuracy with confidence intervals.** `ComplianceReporter` computes hallucination rate with Wilson score 95% CI. You declare "hallucination rate < X%" and the system monitors it continuously.
 - **Drift detection.** `DriftDetector` compares current-period metrics against historical baselines. If accuracy degrades beyond a configured threshold, alerts fire.
 - **Feedback loop detection.** `FeedbackLoopDetector` catches self-reinforcing error patterns where the system's own outputs contaminate future scoring.
-- **Regression benchmarks.** `director-ai bench` runs the regression suite against your KB to verify accuracy after updates.
+- **Regression benchmarks.** `director-ai bench` runs benchmark and regression suites so you can compare accuracy across releases and configuration changes.
 
 ```python
 from director_ai.compliance import DriftDetector
@@ -125,11 +126,11 @@ Director-AI solves one problem well: factual accuracy of LLM outputs. It generat
 
 For teams deploying Director-AI as part of EU AI Act compliance:
 
-1. **Deploy `AuditLog`** in production — log every scored interaction to SQLite or PostgreSQL.
+1. **Deploy `AuditLog`** in production — log every scored interaction to the compliance database.
 2. **Set domain-appropriate thresholds** — use `DirectorConfig.from_profile()` or tune with `director-ai tune <labeled.jsonl>`.
-3. **Schedule compliance reports** — run `ComplianceReporter.generate_report(days=30)` monthly. Include in Article 11 technical documentation.
+3. **Schedule compliance reports** — run `ComplianceReporter.generate_report()` monthly, or pass explicit `since` / `until` timestamps. Include the output in Article 11 technical documentation.
 4. **Enable drift detection** — configure `DriftDetector` with your baseline accuracy. Wire alerts to your incident management system.
-5. **Implement human review** — route low-confidence responses through `ReviewQueue` before they reach users.
+5. **Implement human review** — build an application-side reviewer workflow for low-confidence responses; do not treat `ReviewQueue` as a human-review system.
 6. **Run regression benchmarks** — after every KB update or model change, run `director-ai bench` to verify accuracy hasn't degraded.
 7. **Document limitations** — state clearly that Director-AI covers factual coherence only. Combine with other tools for toxicity, bias, PII.
 
