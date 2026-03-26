@@ -4,7 +4,7 @@ emoji: "\U0001F6E1"
 colorFrom: blue
 colorTo: green
 sdk: gradio
-sdk_version: "5.12.0"
+sdk_version: "6.7.0"
 app_file: app.py
 pinned: false
 license: agpl-3.0

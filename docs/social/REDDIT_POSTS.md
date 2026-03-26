@@ -1,4 +1,4 @@
-# Reddit Posts — Director-AI v1.2.1
+# Reddit Posts — Director-AI v3.10.1
 
 ## Why Previous Posts Got Removed (Common Reasons)
 
@@ -68,7 +68,7 @@ Per-dataset highlights:
   prefix gets scored repeatedly as new tokens arrive. LRU cache with blake2b
   keys cut effective latency by ~60%.
 
-The code is AGPL v3 with commercial licensing. 378 tests, Python 3.10+.
+The code is AGPL v3 with commercial licensing. 3200+ tests, Python 3.11+.
 There's also a Rust kernel for the streaming interlock (zero unsafe code,
 pre-allocated hot path).
 
@@ -111,7 +111,7 @@ off the rails.
 
 The fact-checking runs against your own knowledge base — just a Python dict,
 ChromaDB, or any text you feed it. The contradiction detection uses FactCG-DeBERTa-v3-Large
-(0.4B params, 75.8% on AggreFact, ~575ms CPU / ~50ms GPU). Everything
+(0.4B params, 75.8% on AggreFact, 14.6ms/pair GPU (ONNX), 0.5ms on L40S FP16). Everything
 local, no external calls.
 
 Quick example with Ollama:
@@ -136,12 +136,12 @@ You can also wrap any OpenAI-compatible endpoint (which Ollama exposes):
 I'll be real about limitations:
 - 75.8% balanced accuracy on AggreFact puts us 4th on the leaderboard.
   Combined with your own KB facts, it catches significantly more.
-- It adds latency. ~575ms per check on CPU (source chunking). ~50-80ms
-  on GPU. The caching helps for streaming but it's not zero-cost.
+- It adds latency. 14.6ms/pair on GPU (ONNX batch, GTX 1060), 0.5ms on L40S.
+  383ms on CPU. The caching helps for streaming but it's not zero-cost.
 - Summarisation tasks are a weak spot (68.8% on AggreFact-CNN).
   Works much better for factual QA (87.3% on Lfqa).
 
-378 tests, works on Python 3.10+, AGPL v3. No telemetry, no cloud dependency.
+3200+ tests, works on Python 3.11+, AGPL v3. No telemetry, no cloud dependency.
 
 https://github.com/anulum/director-ai
 
@@ -205,7 +205,7 @@ Also supports LlamaIndex, Haystack, and CrewAI if you use those.
 
 pip install director-ai[langchain,nli]
 
-AGPL v3, 378+ tests. 75.8% balanced accuracy on AggreFact (4th on leaderboard).
+AGPL v3, 3200+ tests. 75.8% balanced accuracy on AggreFact (4th on leaderboard).
 The real value is combining NLI with your own facts + streaming halt.
 
 https://github.com/anulum/director-ai
@@ -264,7 +264,7 @@ score.
 
 **Speed is non-negotiable.** You need sub-second checks for streaming.
 That rules out using GPT-4/Claude as a judge (1-3s per call). A 0.4B param
-DeBERTa model at 220ms is about the upper bound for usable latency.
+DeBERTa model at 14.6ms (ONNX GPU) is fast enough for streaming.
 
 The tool is open source: https://github.com/anulum/director-ai
 

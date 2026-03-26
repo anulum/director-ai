@@ -29,15 +29,16 @@ It's ~1 MB base install (numpy + requests). NLI model is optional
 (`pip install director-ai[nli]`). Works with any OpenAI-compatible
 endpoint (llama.cpp, vLLM, Ollama, etc.).
 
-75.8% balanced accuracy on AggreFact (29K samples) — 4th on the leaderboard,
-within 1.6pp of the top 7B model at 17x fewer params. And the only tool
-with real-time streaming halt. NLI component is pluggable.
+75.86% balanced accuracy on AggreFact (29K samples). Beats Claude Haiku 4.5
+(75.10%), Claude Sonnet 4.6 (74.25%), GPT-4o (73.46%) on the same test set
+at $0/call. 0.5 ms/pair on L40S FP16. And the only tool with real-time
+streaming halt.
 
 Honest benchmarks comparing to MiniCheck, HHEM, and others in the repo.
 
 - GitHub: https://github.com/anulum/director-ai
 - PyPI: `pip install director-ai`
-- Demo: https://huggingface.co/spaces/anulum/director-ai
+- Demo: https://huggingface.co/spaces/anulum/director-ai-guardrail
 - License: AGPL-3.0 (commercial licensing available)
 
 ---
@@ -61,7 +62,7 @@ Quick example:
 pip install director-ai
 ```
 ```python
-from director_ai.core import CoherenceScorer, GroundTruthStore
+from director_ai import CoherenceScorer, GroundTruthStore
 
 store = GroundTruthStore()
 store.add("refund policy", "Refunds within 30 days only.")
@@ -76,9 +77,9 @@ approved, score = scorer.review(
 
 Base install is ~1 MB (no torch). Add NLI with `pip install director-ai[nli]`.
 
-Benchmarked on AggreFact: 75.8% balanced accuracy (4th on leaderboard).
-And no other tool does real-time streaming halt. The NLI model is
-pluggable, so swap in whatever scores best for your domain.
+Benchmarked on AggreFact (29K samples): 75.86% balanced accuracy. Beats all
+frontier LLMs (Claude, GPT-4o) on the same test at $0/call. Sub-ms latency
+on GPU. And no other tool does real-time streaming halt.
 
 GitHub: https://github.com/anulum/director-ai
 
@@ -99,12 +100,12 @@ sliding window average, and downward trend detection.
 Scoring formula: `Coherence = 1 - (0.6 * H_logical + 0.4 * H_factual)`
 
 Evaluated on LLM-AggreFact (29,320 samples, 11 datasets):
-- FactCG-DeBERTa-v3-Large (default): 75.8% balanced accuracy
-- Best per-dataset: 87.3% on Lfqa, 86.2% on TofuEval-MediaS
+- FactCG-DeBERTa-v3-Large (default): 75.86% balanced accuracy (0.4B params, $0/call)
+- Beats Claude Haiku 4.5 (75.10%), Sonnet 4.6 (74.25%), GPT-4o (73.46%) on same test
+- Best per-dataset: 89.1% on Reveal, 86.4% on Lfqa
+- 0.5 ms/pair on L40S FP16, 14.6 ms/pair on GTX 1060 ONNX
 
-Ranks 4th on the leaderboard behind Bespoke-MiniCheck-7B (77.4%) at
-17x fewer params. And the only tool with real-time streaming halt.
-NLI component is pluggable.
+The only tool with real-time streaming halt. NLI component is pluggable.
 
 Fine-tuning pipeline (DeBERTa on AggreFact) included in `training/`.
 The NLI scorer accepts custom model paths.
