@@ -115,14 +115,20 @@ class TestFeedbackLoopDetector:
         detector.record_output("Some output here for testing", 0.9)
         assert detector.buffer_size == 1
 
-    def test_check_input_returns(self):
+    def test_check_input_returns_alert_for_matching_output(self):
         from director_ai.compliance.feedback_loop_detector import FeedbackLoopDetector
 
         detector = FeedbackLoopDetector()
-        detector.record_output("Previously seen output text", 0.8)
-        result = detector.check_input("Previously seen output text")
-        # Returns None or match — just check it doesn't crash
-        assert result is None or result is not None
+        prior_output = "Previously seen output text"
+        detector.record_output(prior_output, 0.8)
+
+        result = detector.check_input(prior_output)
+
+        assert result is not None
+        assert result.matched_output == prior_output
+        assert result.output_timestamp == 0.8
+        assert result.similarity >= detector.similarity_threshold
+        assert result.severity == "high"
 
 
 # ── Compliance: AuditLog ────────────────────────────────────────────

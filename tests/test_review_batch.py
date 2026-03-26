@@ -145,6 +145,98 @@ class TestBatchSingleParity:
             assert b_ok == s_ok
             assert abs(b_score.score - s_score.score) < 1e-9
 
+    def test_coalesced_nli_applies_task_type_and_meta_thresholds(self, monkeypatch):
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        items = [
+            ("Prompt A", "Response A"),
+            ("Prompt B", "Response B"),
+        ]
+
+        class FakeNLI:
+            model_available = True
+
+            def __init__(self):
+                self.calls = []
+
+            def score_batch(self, pairs):
+                self.calls.append(list(pairs))
+                if len(self.calls) == 1:
+                    return [0.2, 0.4]
+                return [0.1, 0.5]
+
+        class FakeStore:
+            def retrieve_context(self, prompt, tenant_id=""):
+                return f"context for {prompt}"
+
+        class FakeMetaClassifier:
+            def predict_threshold(self, prompt, response):
+                if prompt == "Prompt A":
+                    return (0.5, 0.9)
+                return (None, 0.2)
+
+        fake_nli = FakeNLI()
+        captured = []
+
+        scorer._nli = fake_nli
+        scorer.ground_truth_store = FakeStore()
+        scorer._adaptive_threshold_enabled = True
+        scorer._task_type_thresholds = {"qa": 0.25, "summarization": 0.1}
+
+        task_types = {"Prompt A": "qa", "Prompt B": "summarization"}
+        monkeypatch.setattr(scorer, "_detect_task_type", lambda prompt: task_types[prompt])
+        monkeypatch.setattr(scorer, "_get_meta_classifier", lambda: FakeMetaClassifier())
+
+        def fake_finalise(
+            coherence,
+            h_logic,
+            h_fact,
+            action,
+            evidence,
+            threshold_override=None,
+            detected_task_type=None,
+        ):
+            approved = coherence >= threshold_override
+            captured.append(
+                {
+                    "action": action,
+                    "h_logic": h_logic,
+                    "h_fact": h_fact,
+                    "threshold_override": threshold_override,
+                    "detected_task_type": detected_task_type,
+                }
+            )
+            return (
+                approved,
+                CoherenceScore(
+                    score=coherence,
+                    approved=approved,
+                    h_logical=h_logic,
+                    h_factual=h_fact,
+                    detected_task_type=detected_task_type,
+                ),
+            )
+
+        monkeypatch.setattr(scorer, "_finalise_review", fake_finalise)
+
+        results = scorer.review_batch(items)
+
+        assert len(fake_nli.calls) == 2
+        assert fake_nli.calls[0] == items
+        assert fake_nli.calls[1] == [
+            ("context for Prompt A", "Response A"),
+            ("context for Prompt B", "Response B"),
+        ]
+        assert [call["detected_task_type"] for call in captured] == [
+            "qa",
+            "summarization",
+        ]
+        assert captured[0]["threshold_override"] == pytest.approx(
+            scorer.W_FACT + scorer.W_LOGIC * 0.5
+        )
+        assert captured[1]["threshold_override"] == pytest.approx(0.1)
+        assert results[0][1].detected_task_type == "qa"
+        assert results[1][1].detected_task_type == "summarization"
+
 
 # — BatchProcessor coalesced delegation —
 

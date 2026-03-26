@@ -302,16 +302,39 @@ class TestDocParserDirect:
             pass
 
     def test_parse_pdf_missing_pypdf(self):
+        import builtins
+
         from director_ai.core.retrieval.doc_parser import parse
 
-        with contextlib.suppress(ImportError, Exception):
-            parse(b"not a real PDF", "doc.pdf")
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "pypdf":
+                raise ImportError("No module named 'pypdf'")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=fake_import):
+            with pytest.raises(ImportError, match="pypdf required for PDF parsing"):
+                parse(b"not a real PDF", "doc.pdf")
 
     def test_parse_docx_missing_dep(self):
+        import builtins
+
         from director_ai.core.retrieval.doc_parser import parse
 
-        with contextlib.suppress(ImportError, Exception):
-            parse(b"not a real DOCX", "doc.docx")
+        real_import = builtins.__import__
+
+        def fake_import(name, *args, **kwargs):
+            if name == "docx":
+                raise ImportError("No module named 'docx'")
+            return real_import(name, *args, **kwargs)
+
+        with patch("builtins.__import__", side_effect=fake_import):
+            with pytest.raises(
+                ImportError,
+                match="python-docx required for DOCX parsing",
+            ):
+                parse(b"not a real DOCX", "doc.docx")
 
 
 class TestDocParserShim:

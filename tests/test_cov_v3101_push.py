@@ -534,55 +534,125 @@ class TestCLIEdgeCases:
 
 
 class TestLazyImports:
-    def test_coherence_scorer_importable(self):
-        from director_ai import CoherenceScorer
+    def test_coherence_scorer_reviews_response(self):
+        from director_ai import CoherenceScore, CoherenceScorer
 
-        assert CoherenceScorer is not None
+        approved, score = CoherenceScorer(threshold=0.3, use_nli=False).review(
+            "What is 2+2?",
+            "4",
+        )
 
-    def test_ground_truth_store_importable(self):
+        assert isinstance(approved, bool)
+        assert isinstance(score, CoherenceScore)
+        assert 0.0 <= score.score <= 1.0
+
+    def test_ground_truth_store_retrieves_added_fact(self):
         from director_ai import GroundTruthStore
 
-        assert GroundTruthStore is not None
+        store = GroundTruthStore()
+        store.add("refund policy", "Refunds are available for 30 days.")
 
-    def test_vector_store_importable(self):
+        assert store.retrieve_context("What is the refund policy?") == (
+            "Refunds are available for 30 days."
+        )
+
+    def test_vector_store_ingests_documents(self):
         from director_ai import VectorGroundTruthStore
 
-        assert VectorGroundTruthStore is not None
+        store = VectorGroundTruthStore()
 
-    def test_voice_guard_importable(self):
+        assert store.ingest(["refund policy is 30 days."]) == 1
+        context = store.retrieve_context("refund policy")
+
+        assert context is not None
+        assert "30 days" in context
+
+    def test_voice_guard_scores_tokens(self):
         from director_ai import VoiceGuard
 
-        assert VoiceGuard is not None
+        guard = VoiceGuard(
+            facts={"refund policy": "refund policy is 30 days."},
+            prompt="What is the refund policy?",
+            score_every=1,
+            use_nli=False,
+        )
+        result = guard.feed("The refund policy is 30 days.")
 
-    def test_director_config_importable(self):
-        from director_ai import DirectorConfig
+        assert result.token == "The refund policy is 30 days."
+        assert result.index == 0
+        assert 0.0 <= result.coherence <= 1.0
+        assert guard.accumulated_text == "The refund policy is 30 days."
 
-        assert DirectorConfig is not None
+    def test_director_config_profile_builds_fast_scorer(self):
+        from director_ai import CoherenceScorer, DirectorConfig
 
-    def test_coherence_score_importable(self):
+        cfg = DirectorConfig.from_profile("fast")
+        scorer = cfg.build_scorer()
+
+        assert cfg.use_nli is False
+        assert isinstance(scorer, CoherenceScorer)
+        assert scorer.use_nli is False
+
+    def test_coherence_score_export_exposes_properties(self):
         from director_ai import CoherenceScore
 
-        assert CoherenceScore is not None
+        score = CoherenceScore(
+            score=0.8,
+            approved=True,
+            h_logical=0.1,
+            h_factual=0.2,
+        )
 
-    def test_streaming_kernel_importable(self):
+        assert score.claims == []
+        assert score.unsupported_claims == []
+
+    def test_streaming_kernel_halts_below_hard_limit(self):
         from director_ai import StreamingKernel
 
-        assert StreamingKernel is not None
+        kernel = StreamingKernel(hard_limit=0.5, window_size=2, trend_window=2)
 
-    def test_batch_processor_importable(self):
+        assert kernel.check_halt(0.4) is True
+
+    def test_batch_processor_reviews_items(self):
         from director_ai import BatchProcessor
+        from director_ai import CoherenceScorer
 
-        assert BatchProcessor is not None
+        processor = BatchProcessor(
+            CoherenceScorer(threshold=0.3, use_nli=False),
+            max_concurrency=1,
+        )
+        result = processor.review_batch([("What is 2+2?", "4")])
 
-    def test_review_result_importable(self):
-        from director_ai import ReviewResult
+        assert result.total == 1
+        assert result.succeeded == 1
 
-        assert ReviewResult is not None
+    def test_review_result_and_halt_evidence_exports_construct(self):
+        from director_ai import CoherenceScore, EvidenceChunk, HaltEvidence, ReviewResult
 
-    def test_halt_evidence_importable(self):
-        from director_ai import HaltEvidence
+        evidence = HaltEvidence(
+            reason="hard_limit",
+            last_score=0.2,
+            evidence_chunks=[
+                EvidenceChunk(text="Source fact", distance=0.0, source="kb")
+            ],
+            suggested_action="Retry with grounded facts.",
+        )
+        result = ReviewResult(
+            output="Fallback response",
+            coherence=CoherenceScore(
+                score=0.2,
+                approved=False,
+                h_logical=0.8,
+                h_factual=0.9,
+            ),
+            halted=True,
+            candidates_evaluated=1,
+            halt_evidence=evidence,
+        )
 
-        assert HaltEvidence is not None
+        assert result.halted is True
+        assert result.halt_evidence is evidence
+        assert result.halt_evidence.evidence_chunks[0].source == "kb"
 
     def test_version(self):
         import director_ai
