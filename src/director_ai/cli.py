@@ -88,7 +88,7 @@ def _print_help() -> None:
         "  review <prompt> <resp> Review a prompt/response pair\n"
         "  process <prompt>      Process a prompt through the full pipeline\n"
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
-        "  ingest <file>         Ingest documents into vector store\n"
+        "  ingest <file>         Ingest documents (txt/md/pdf/docx/html/csv)\n"
         "  eval [--dataset D]    Run NLI benchmark suite\n"
         "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
         "  tune <file.jsonl> [--output config.yaml]  Find optimal threshold\n"
@@ -354,7 +354,9 @@ _INGEST_MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB
 def _cmd_ingest(args: list[str]) -> None:
     """Ingest files or directories into a VectorGroundTruthStore.
 
-    Supported formats: ``.txt``, ``.md`` (paragraph-chunked), ``.jsonl``/``.json``.
+    Supported formats: ``.txt``, ``.md``, ``.json``/``.jsonl``,
+    ``.pdf``, ``.docx``, ``.html``, ``.csv``.
+    PDF/DOCX/HTML require ``pip install director-ai[ingestion]``.
     Directories are walked recursively for supported file types.
     """
     if not args:
@@ -394,7 +396,9 @@ def _cmd_ingest(args: list[str]) -> None:
         cfg.chroma_persist_dir = persist_dir
     store = cfg.build_store()
 
-    supported_exts = {".txt", ".md", ".json", ".jsonl"}
+    _TEXT_EXTS = {".txt", ".md", ".json", ".jsonl", ".xml", ".markdown"}
+    _PARSED_EXTS = {".pdf", ".docx", ".html", ".htm", ".csv"}
+    supported_exts = _TEXT_EXTS | _PARSED_EXTS
 
     def _collect_files(path: str) -> list[Path]:
         p = Path(path)
@@ -430,8 +434,25 @@ def _cmd_ingest(args: list[str]) -> None:
         if size > _INGEST_MAX_FILE_SIZE:
             print(f"Warning: skipping {path} ({size / 1024 / 1024:.1f} MB > limit)")
             return []
-        text = path.read_text(encoding="utf-8", errors="replace")
+
         ext = path.suffix.lower()
+
+        # PDF, DOCX, HTML, CSV — delegate to doc_parser (binary read)
+        if ext in _PARSED_EXTS:
+            from director_ai.core.retrieval.doc_parser import parse
+
+            try:
+                raw = path.read_bytes()
+                text = parse(raw, path.name)
+            except ImportError as exc:
+                print(f"Warning: skipping {path} ({exc})")
+                return []
+            if not text.strip():
+                return []
+            return _chunk_paragraphs(text, chunk_size)
+
+        text = path.read_text(encoding="utf-8", errors="replace")
+
         if ext in (".json", ".jsonl"):
             docs = []
             for line in text.splitlines():
