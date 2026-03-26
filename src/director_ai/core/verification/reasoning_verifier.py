@@ -10,7 +10,6 @@ that each step follows from its premises. Detects:
 - Non-sequiturs (conclusion doesn't follow from premise)
 - Circular reasoning (step references itself)
 - Unsupported leaps (conclusion introduced without any premise)
-- Contradictory steps (step contradicts an earlier step)
 
 Uses NLI scoring when available, falls back to heuristic overlap.
 """
