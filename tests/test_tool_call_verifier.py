@@ -66,6 +66,26 @@ class TestArgumentValidation:
         )
         assert any(v.verdict == "extra" for v in r.verdicts)
 
+    def test_boolean_not_number(self):
+        manifest = {
+            "charge": {
+                "parameters": {"amount": {"type": "number", "required": True}},
+            }
+        }
+        r = verify_tool_call("charge", {"amount": True}, manifest=manifest)
+        assert r.arguments_valid is False
+        assert any(v.verdict == "invalid_type" for v in r.verdicts)
+
+    def test_boolean_not_integer(self):
+        manifest = {
+            "count": {
+                "parameters": {"n": {"type": "integer", "required": True}},
+            }
+        }
+        r = verify_tool_call("count", {"n": False}, manifest=manifest)
+        assert r.arguments_valid is False
+        assert any(v.verdict == "invalid_type" for v in r.verdicts)
+
 
 class TestFabricationDetection:
     def test_matching_log_entry(self):
