@@ -614,8 +614,7 @@ class TestLazyImports:
         assert kernel.check_halt(0.4) is True
 
     def test_batch_processor_reviews_items(self):
-        from director_ai import BatchProcessor
-        from director_ai import CoherenceScorer
+        from director_ai import BatchProcessor, CoherenceScorer
 
         processor = BatchProcessor(
             CoherenceScorer(threshold=0.3, use_nli=False),
@@ -627,7 +626,12 @@ class TestLazyImports:
         assert result.succeeded == 1
 
     def test_review_result_and_halt_evidence_exports_construct(self):
-        from director_ai import CoherenceScore, EvidenceChunk, HaltEvidence, ReviewResult
+        from director_ai import (
+            CoherenceScore,
+            EvidenceChunk,
+            HaltEvidence,
+            ReviewResult,
+        )
 
         evidence = HaltEvidence(
             reason="hard_limit",

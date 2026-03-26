@@ -179,7 +179,7 @@ def main(argv: list[str] | None = None):
     print("Step 1: Loading product documentation into knowledge base...")
 
     store = build_demo_store()
-    for i, doc in enumerate(ACME_DOCS):
+    for doc in ACME_DOCS:
         title = doc.split("\n")[0]
         print(f"  Loaded: {title}")
 

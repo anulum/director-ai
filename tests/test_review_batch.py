@@ -183,8 +183,12 @@ class TestBatchSingleParity:
         scorer._task_type_thresholds = {"qa": 0.25, "summarization": 0.1}
 
         task_types = {"Prompt A": "qa", "Prompt B": "summarization"}
-        monkeypatch.setattr(scorer, "_detect_task_type", lambda prompt: task_types[prompt])
-        monkeypatch.setattr(scorer, "_get_meta_classifier", lambda: FakeMetaClassifier())
+        monkeypatch.setattr(
+            scorer, "_detect_task_type", lambda prompt: task_types[prompt]
+        )
+        monkeypatch.setattr(
+            scorer, "_get_meta_classifier", lambda: FakeMetaClassifier()
+        )
 
         def fake_finalise(
             coherence,
