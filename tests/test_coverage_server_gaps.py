@@ -192,6 +192,10 @@ class TestAuditPostgres:
 
 class TestSlowApiRedis:
     def test_rate_limit_with_redis_url(self):
+        try:
+            import redis  # noqa: F401
+        except ImportError:
+            pytest.skip("redis package not installed")
         _cfg(rate_limit_rpm=100)
         cfg_with_redis = _cfg(rate_limit_rpm=100)
         mock_store = MagicMock()
