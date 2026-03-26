@@ -10,7 +10,7 @@ Prompt engineering tells the LLM "please don't hallucinate." Director-AI measure
 | **Guarantee** | Probabilistic — the LLM may ignore instructions | Deterministic — scores are computed, thresholds enforced |
 | **Measurable** | No — you can't measure compliance rate without a separate eval | Yes — every response gets a coherence score with evidence |
 | **Streaming** | No halt mechanism — hallucinated tokens reach the user | Token-level halt — generation stops mid-stream before the user sees it |
-| **Auditable** | No artefact — the prompt is an instruction, not a measurement | Per-claim verdicts with source citations in every response |
+| **Auditable** | No artefact — the prompt is an instruction, not a measurement | Per-response scores by default, with per-claim verdicts available via `VerifiedScorer` |
 
 ## What Prompt Engineering Cannot Do
 
@@ -24,24 +24,33 @@ Director-AI scores every response against your knowledge base. If the score fall
 
 Prompt engineering has no mechanism to stop token generation once it starts drifting. If GPT-4 begins a response with accurate information and then fabricates a statistic in sentence three, all tokens reach the user.
 
-Director-AI's `StreamingKernel` scores tokens as they arrive. If coherence drops mid-stream, generation halts immediately. The user never sees the fabricated content.
+Director-AI's streaming runtime can score tokens as they arrive. If coherence drops mid-stream, generation halts before the response is fully delivered.
 
 ```python
-from director_ai import StreamingKernel
+from director_ai import VoiceGuard
 
-kernel = StreamingKernel(threshold=0.3, store=my_kb)
+guard = VoiceGuard(
+    facts={"refund": "30-day refund policy, no questions asked."},
+    prompt="What is the refund policy?",
+    threshold=0.3,
+    hard_limit=0.25,
+    use_nli=True,
+)
+
+approved_tokens = []
 for token in llm.stream("What is the refund policy?"):
-    result = kernel.feed(token)
+    result = guard.feed(token)
     if result.halted:
-        print(f"Halted: {result.halt_reason}")
+        approved_tokens.append(f" {result.recovery_text}")
         break
+    approved_tokens.append(token)
 ```
 
 ### 3. Produce auditable evidence
 
 "I told the model to only use provided sources" is not an audit trail. When a regulator asks "how do you verify that your AI system's outputs are factually correct?", a system prompt is not an answer.
 
-Director-AI produces per-response evidence: coherence score, per-claim verdicts (supported/contradicted/fabricated/unverifiable), matched source chunks, and traceability scores. This evidence can be logged, queried, and presented in compliance reports.
+Director-AI produces per-response evidence on the standard review path: coherence score plus supporting evidence. For claim-level audits, `VerifiedScorer` adds per-claim verdicts (supported/contradicted/fabricated/unverifiable), matched source sentences, and traceability scores. This evidence can be logged, queried, and presented in compliance reports.
 
 ### 4. Catch subtle factual errors
 
@@ -80,8 +89,8 @@ User query
            ▼
 ┌──────────────────────────┐
 │  Director-AI scoring      │  ← Factual verification: NLI + RAG
-│  StreamingKernel / review │
-│  Per-claim verdicts       │
+│  VoiceGuard / review      │
+│  VerifiedScorer (optional)│
 │  Halt if below threshold  │
 └──────────┬───────────────┘
            │
@@ -102,7 +111,7 @@ Director-AI with a 0.30 threshold catches the majority of these. The ones it cat
 |-------|--------------------------------------|-------------|
 | Prompt engineering only | 2–5% of responses | None |
 | Prompt engineering + Director-AI (heuristic) | <1% | Full — per-response scores |
-| Prompt engineering + Director-AI (NLI) | <0.5% | Full — per-claim verdicts |
+| Prompt engineering + Director-AI (NLI) | <0.5% | Full — per-response scores, with per-claim verdicts via `VerifiedScorer` |
 
 These numbers are estimates based on published RAG hallucination rates and Director-AI's measured catch rate on internal benchmarks. Your domain will vary — run `director-ai bench` on your own data.
 
