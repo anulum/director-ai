@@ -773,7 +773,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         api_key_hash = ""
         if cfg.api_keys and request.url.path not in _auth_exempt:
             provided = request.headers.get("X-API-Key", "")
-            if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
+            # Constant-time: always compare against ALL keys to prevent
+            # timing side-channels that leak key position.
+            key_valid = False
+            for k in cfg.api_keys:
+                if hmac.compare_digest(provided, k):
+                    key_valid = True
+            if not key_valid:
                 logger.warning(
                     "Auth failed from %s on %s",
                     request.client.host if request.client else "unknown",
@@ -809,8 +815,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
                 request.state.tenant_id = bound_tenant
             else:
-                request.state.tenant_id = request.headers.get("X-Tenant-ID", "")
+                # No key→tenant map: accept header but log for audit.
+                # Tenant isolation without key binding is advisory only.
+                claimed = request.headers.get("X-Tenant-ID", "")
+                if claimed:
+                    logger.debug(
+                        "Unbound tenant claim: %s (api_key=%s)", claimed, api_key_hash
+                    )
+                request.state.tenant_id = claimed
         else:
+            # No API keys configured — tenant from header is untrusted
             request.state.tenant_id = request.headers.get("X-Tenant-ID", "")
 
         request.state.api_key_hash = api_key_hash
@@ -1876,11 +1890,19 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         ws_tenant_id = ""
         if cfg.api_keys:
             provided = ws.headers.get("X-API-Key", "")
-            if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
+            ws_key_valid = False
+            for k in cfg.api_keys:
+                if hmac.compare_digest(provided, k):
+                    ws_key_valid = True
+            if not ws_key_valid:
                 await ws.close(code=1008, reason="unauthorized")
                 return
             if _api_key_tenant_map:
                 ws_tenant_id = _api_key_tenant_map.get(provided, "")
+                claimed = ws.headers.get("X-Tenant-ID", "")
+                if claimed and ws_tenant_id and claimed != ws_tenant_id:
+                    await ws.close(code=1008, reason="tenant mismatch")
+                    return
         if not ws_tenant_id:
             ws_tenant_id = ws.headers.get("X-Tenant-ID", "")
         await ws.accept()

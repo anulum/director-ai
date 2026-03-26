@@ -202,9 +202,9 @@ class InputSanitizer:
         total = 0.0
         for name, pat in self._patterns:
             if pat.search(text):
-                if allowlisted:
-                    continue
                 weight = self._weights.get(name, 0.5)
+                if allowlisted:
+                    weight *= 0.1  # reduce but don't skip — prevents full bypass
                 total += weight
                 matched.append(name)
 
