@@ -150,12 +150,20 @@ def parse_args(argv: list[str]) -> dict:
     return {"profile": profile, "use_nli": use_nli}
 
 
+def build_demo_store():
+    from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
+
+    store = VectorGroundTruthStore()
+    store.ingest(ACME_DOCS)
+    return store
+
+
 def main(argv: list[str] | None = None):
     args = parse_args(argv or sys.argv[1:])
 
-    from director_ai.core import CoherenceScorer, GroundTruthStore
     from director_ai.core.config import DirectorConfig
-    from director_ai.core.verified_scorer import VerifiedScorer
+    from director_ai.core.scoring.scorer import CoherenceScorer
+    from director_ai.core.scoring.verified_scorer import VerifiedScorer
 
     # ── Step 1: Build knowledge base ────────────────────────────────
     print("=" * 72)
@@ -164,10 +172,9 @@ def main(argv: list[str] | None = None):
     print()
     print("Step 1: Loading product documentation into knowledge base...")
 
-    store = GroundTruthStore()
+    store = build_demo_store()
     for i, doc in enumerate(ACME_DOCS):
         title = doc.split("\n")[0]
-        store.add(f"doc_{i}", doc)
         print(f"  Loaded: {title}")
 
     total_chars = sum(len(d) for d in ACME_DOCS)
