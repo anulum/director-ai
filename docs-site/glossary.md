@@ -35,7 +35,7 @@ Key terms used throughout Director-AI documentation.
 :   The fine-tuned DeBERTa-v3-Large model from Li et al. (NAACL 2025) that Director-AI uses as its default NLI backend. 77.2% BA (paper) / 75.86% BA (our eval). See [Benchmarks](benchmarks.md).
 
 **False-Halt Rate**
-:   Percentage of *correct* responses incorrectly halted by the streaming kernel. 0.0% on Wikipedia passages in heuristic mode. See [Benchmarks — Streaming False-Halt](benchmarks.md#streaming-false-halt).
+:   Percentage of *correct* responses incorrectly halted by the streaming kernel. See [Benchmarks — Streaming False-Halt](benchmarks.md#streaming-false-halt) for current measured values.
 
 **False-Positive Rate (FPR)**
 :   Percentage of *correct* premise-hypothesis pairs incorrectly flagged as incoherent. See [Benchmarks — False-Positive Rate](benchmarks.md#false-positive-rate).

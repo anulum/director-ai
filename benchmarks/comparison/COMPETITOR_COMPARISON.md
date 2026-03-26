@@ -13,7 +13,7 @@ Last updated: 2026-03-14 (v3.8.0) — full competitive landscape, frontier LLM e
 | **E2E catch rate** | 90.7% (hybrid), 46.7% (NLI) | N/A | N/A | N/A | N/A |
 | **Streaming halt** | Yes (token-level) | No | No | No | No |
 | **Offline/local** | Yes (NLI mode) | No (needs LLM) | Yes (GPU) | No (needs LLM) | No (needs LLM) |
-| **False-halt rate** | 0.0% (20 passages) | N/A | N/A | N/A | N/A |
+| **False-halt rate** | 4.4% (135 passages, heuristic) | N/A | N/A | N/A | N/A |
 | **AggreFact bal. acc** | 75.8% (0.4B) | N/A | N/A | N/A | N/A |
 | **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
 | **License** | AGPL v3 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
@@ -409,7 +409,7 @@ Scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 | `truthfulqa_eval` | TruthfulQA (817 Qs) | Multiple-choice truthfulness | Accuracy per category | Requires GPU + HF_TOKEN |
 | `vitaminc_eval` | VitaminC | Contrastive fact verification | Accuracy, F1 per class | Requires GPU + HF_TOKEN |
 | `falsepositive_eval` | SQuAD/NQ/TriviaQA | False-positive rate on correct QA | FP rate (target <5%) | Requires GPU + HF_TOKEN |
-| `streaming_false_halt_bench` | Synthetic good text | False-halt rate of StreamingKernel | False-halt % | **0.0% (20 passages, heuristic)** |
+| `streaming_false_halt_bench` | Synthetic good text | False-halt rate of StreamingKernel | False-halt % | **4.4% (135 passages, heuristic)** |
 | `medical_eval` | MedNLI + PubMedQA | Medical domain guardrail | Catch, FPR, F1 | Requires GPU + HF_TOKEN |
 | `legal_eval` | ContractNLI + CUAD | Legal domain guardrail | Catch, FPR, F1 | Requires GPU + HF_TOKEN |
 | `finance_eval` | FinanceBench + PhraseBank | Finance domain guardrail | Catch, FPR, F1 | Requires GPU + HF_TOKEN |

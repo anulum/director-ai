@@ -192,7 +192,10 @@ Measures how often correct (non-hallucinated) summaries are falsely rejected.
 
 ### Streaming False-Halt
 
-0.0% false-halt rate across 20 known-good Wikipedia passages streamed through `StreamingKernel` (heuristic mode).
+4.4% false-halt rate (6/135 passages, heuristic mode, no NLI).
+All 6 false halts are trend-triggered on borderline score trajectories.
+
+Reproduce: `python -m benchmarks.streaming_false_halt_bench`
 
 ---
 
@@ -358,7 +361,7 @@ All scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 | `latency_bench` | N/A | Per-pair ms | **0.9 ms (Ada)** |
 | `gpu_bench` | N/A | Cross-GPU ms | **6 GPUs** |
 | `retrieval_bench` | Synthetic (50 facts) | Hit@1 / Hit@3 | **40% / 63%** |
-| `streaming_false_halt_bench` | Wikipedia (20 passages) | False-halt % | **0.0%** |
+| `streaming_false_halt_bench` | Wikipedia (135 passages) | False-halt % | **4.4%** |
 | `anli_eval` | ANLI R1/R2/R3 | Accuracy / F1 | Requires GPU |
 | `fever_eval` | FEVER dev | Accuracy / F1 | Requires GPU |
 | `mnli_eval` | MNLI matched+mismatched | Accuracy / F1 | Requires GPU |

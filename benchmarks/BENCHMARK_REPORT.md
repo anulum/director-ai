@@ -204,8 +204,9 @@ python -m benchmarks.summarization_fpr_diag 200 --threshold 0.15
 ```
 
 ### Streaming False-Halt
-0.0% false-halt rate across 20 known-good Wikipedia passages streamed
-through `StreamingKernel` (heuristic mode).
+
+4.4% false-halt rate (6/135 passages, heuristic mode, no NLI).
+All 6 false halts are trend-triggered on borderline score trajectories.
 
 Reproduce: `python -m benchmarks.streaming_false_halt_bench`
 

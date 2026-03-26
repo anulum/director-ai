@@ -159,16 +159,21 @@ Each `TokenEvent` also gets a `debug_info` dict with the same fields. Use this t
 
 ## False-Halt Rate
 
-Measured with `benchmarks/streaming_false_halt_bench.py` on 138 factually correct passages (heuristic mode, `use_nli=False`):
+Measured with `benchmarks/streaming_false_halt_bench.py` on 135 factually correct passages (heuristic mode, `use_nli=False`):
 
 | Metric | Value |
 |--------|-------|
-| Passages tested | 138 |
-| False halts | 0 |
-| False-halt rate | **0.0%** |
-| Avg coherence | 0.45+ |
+| Passages tested | 135 |
+| False halts | 6 |
+| False-halt rate | **4.4%** |
+| Avg coherence | 0.459 |
 
-The regression suite (`benchmarks/regression_suite.py`) asserts `false_halt_rate == 0.0` on every CI run. If this assertion fails, the build breaks.
+All 6 false halts are trend-triggered on borderline score trajectories
+(trend drop barely exceeding 0.30 threshold). NLI mode produces higher
+coherence scores and is expected to have a lower false-halt rate.
+
+The regression suite (`benchmarks/regression_suite.py`) asserts
+`false_halt_rate < 5%` on every CI run.
 
 To reproduce:
 

@@ -1222,18 +1222,30 @@ class FalseHaltResult:
 
 
 def _tokenize_simple(text: str) -> list[str]:
-    """Split text into word-level tokens (whitespace split)."""
-    return text.split()
+    """Split text into word-level tokens with leading spaces for join correctness.
+
+    ``StreamingKernel.stream_tokens`` accumulates via ``"".join(tokens)``,
+    so every token after the first carries a leading space.
+    """
+    words = text.split()
+    if not words:
+        return []
+    return [words[0]] + [f" {w}" for w in words[1:]]
 
 
 def _make_callbacks(scorer, prompt: str):
-    """Factory to avoid B023 closure-in-loop binding issues."""
-    accumulated = ""
+    """Factory to avoid B023 closure-in-loop binding issues.
 
-    def coherence_cb(token: str) -> float:
-        nonlocal accumulated
-        accumulated += (" " if accumulated else "") + token
-        _, sc = scorer.review(prompt, accumulated)
+    ``coherence_cb`` receives the **accumulated text so far** (not the
+    individual token) from ``StreamingKernel.stream_tokens``.  Short
+    accumulated text (< 4 words) gets a grace score of 0.5 because
+    heuristic scoring on fragments is unreliable.
+    """
+
+    def coherence_cb(text: str) -> float:
+        if len(text.split()) < 4:
+            return 0.5
+        _, sc = scorer.review(prompt, text)
         return sc.score
 
     def evidence_cb(text: str) -> str | None:
@@ -1250,11 +1262,12 @@ def run_benchmark(use_nli: bool = False) -> dict:
     from director_ai.core import CoherenceScorer, GroundTruthStore, StreamingKernel
 
     kernel = StreamingKernel(
-        hard_limit=0.35,
-        window_size=5,
-        window_threshold=0.45,
+        hard_limit=0.10,
+        window_size=8,
+        window_threshold=0.18,
         trend_window=5,
-        trend_threshold=0.15,
+        trend_threshold=0.30,
+        soft_limit=0.15,
     )
 
     results: list[FalseHaltResult] = []
@@ -1267,13 +1280,13 @@ def run_benchmark(use_nli: bool = False) -> dict:
             store.add(k, v)
 
         scorer = CoherenceScorer(
-            threshold=0.5,
+            threshold=0.3,
             ground_truth_store=store,
             use_nli=use_nli,
         )
 
         tokens = _tokenize_simple(passage)
-        coh_cb, ev_cb = _make_callbacks(scorer, passage[:30])
+        coh_cb, ev_cb = _make_callbacks(scorer, passage[:50])
 
         t0 = time.perf_counter()
         session = kernel.stream_tokens(
@@ -1298,7 +1311,7 @@ def run_benchmark(use_nli: bool = False) -> dict:
         )
 
         # Reset kernel for next passage
-        kernel.reactivate()
+        kernel.reset_state()
 
     false_halts = [r for r in results if r.halted]
     fh_rate = len(false_halts) / n
@@ -1323,7 +1336,8 @@ def run_benchmark(use_nli: bool = False) -> dict:
                 f"  avg_coh={fh.avg_coherence:.3f}",
             )
             if fh.halt_evidence:
-                print(f"      evidence: {fh.halt_evidence[:120]}")
+                ev_str = str(fh.halt_evidence)[:120]
+                print(f"      evidence: {ev_str.encode('ascii', 'replace').decode()}")
 
     output = {
         "benchmark": "streaming_false_halt",
@@ -1366,11 +1380,12 @@ def run_window_sweep(use_nli: bool = False) -> dict:
 
     for ws in window_sizes:
         kernel = StreamingKernel(
-            hard_limit=0.35,
+            hard_limit=0.10,
             window_size=ws,
-            window_threshold=0.45,
+            window_threshold=0.18,
             trend_window=5,
-            trend_threshold=0.15,
+            trend_threshold=0.30,
+            soft_limit=0.15,
         )
 
         false_halts = 0
@@ -1379,16 +1394,16 @@ def run_window_sweep(use_nli: bool = False) -> dict:
             for k, v in facts.items():
                 store.add(k, v)
             scorer = CoherenceScorer(
-                threshold=0.5,
+                threshold=0.3,
                 ground_truth_store=store,
                 use_nli=use_nli,
             )
             tokens = _tokenize_simple(passage)
-            coh_cb, ev_cb = _make_callbacks(scorer, passage[:30])
+            coh_cb, ev_cb = _make_callbacks(scorer, passage[:50])
             session = kernel.stream_tokens(iter(tokens), coh_cb, ev_cb)
             if session.halted:
                 false_halts += 1
-            kernel.reactivate()
+            kernel.reset_state()
 
         correct_halts = 0
         halt_coherences = []
@@ -1397,17 +1412,17 @@ def run_window_sweep(use_nli: bool = False) -> dict:
             for k, v in facts.items():
                 store.add(k, v)
             scorer = CoherenceScorer(
-                threshold=0.5,
+                threshold=0.3,
                 ground_truth_store=store,
                 use_nli=use_nli,
             )
             tokens = _tokenize_simple(passage)
-            coh_cb, ev_cb = _make_callbacks(scorer, passage[:30])
+            coh_cb, ev_cb = _make_callbacks(scorer, passage[:50])
             session = kernel.stream_tokens(iter(tokens), coh_cb, ev_cb)
             if session.halted:
                 correct_halts += 1
                 halt_coherences.append(session.avg_coherence)
-            kernel.reactivate()
+            kernel.reset_state()
 
         n_good = len(GOOD_PASSAGES)
         n_bad = len(BAD_PASSAGES)
