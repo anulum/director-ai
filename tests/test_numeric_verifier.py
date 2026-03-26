@@ -78,6 +78,11 @@ class TestProbabilityBounds:
         prob_issues = [i for i in result.issues if i.issue_type == "probability"]
         assert len(prob_issues) == 0
 
+    def test_negative_probability(self):
+        text = "There is a -5% probability of success."
+        result = verify_numeric(text)
+        assert any(i.issue_type == "probability" for i in result.issues)
+
 
 class TestMagnitude:
     def test_earth_population_wrong(self):

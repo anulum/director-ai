@@ -48,7 +48,7 @@ _DATE_PATTERN = re.compile(
 )
 
 _PROB_PATTERN = re.compile(
-    r"(\d{1,10}(?:\.\d{1,10})?)\s*(?:%|percent)\s+(?:probability|chance|likelihood|confidence)",
+    r"(-?\d{1,10}(?:\.\d{1,10})?)\s*(?:%|percent)\s+(?:probability|chance|likelihood|confidence)",
     re.IGNORECASE,
 )
 
