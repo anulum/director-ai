@@ -128,9 +128,19 @@ jobs:
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
           pip install --no-deps -e .
+          pip install -e ".[${{ matrix.extras }}]"
 
       - name: Import smoke test
         run: python -c "import director_ai; assert director_ai.__version__"
+
+      - name: Extras-specific import check
+        run: |
+          if echo "${{ matrix.extras }}" | grep -q "server"; then
+            python -c "from director_ai.server import create_app; print('server OK')"
+          fi
+          if echo "${{ matrix.extras }}" | grep -q "grpc"; then
+            python -c "from director_ai.grpc_server import create_grpc_server; print('grpc OK')"
+          fi
 
       - name: Run tests with coverage
         run: |
