@@ -1626,12 +1626,31 @@ class CoherenceScorer:
                 if span > 1e-9:
                     coherence = max(0.0, min(1.0, (coherence - lo) / span))
 
+            # Match review() finalisation: task-type, adaptive threshold,
+            # meta-classifier — ensures batch/single parity.
+            prompt = items[i][0]
+            task_type = self._detect_task_type(prompt)
+            effective_threshold = self.threshold
+            if self._adaptive_threshold_enabled and self._task_type_thresholds:
+                effective_threshold = self._task_type_thresholds.get(
+                    task_type, self.threshold
+                )
+            meta_clf = self._get_meta_classifier()
+            if meta_clf is not None:
+                nli_threshold, _meta_conf = meta_clf.predict_threshold(
+                    prompt, items[i][1]
+                )
+                if nli_threshold is not None:
+                    effective_threshold = self.W_FACT + self.W_LOGIC * nli_threshold
+
             results[i] = self._finalise_review(
                 coherence,
                 h_logic,
                 h_fact,
                 items[i][1],
                 evidence,
+                threshold_override=effective_threshold,
+                detected_task_type=task_type,
             )
 
         return [r for r in results if r is not None]

@@ -112,6 +112,43 @@ class TestScorerReviewBatchLLMJudge:
 # â”€â”€ BatchProcessor coalesced delegation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
+class TestBatchSingleParity:
+    """Verify review_batch() produces identical results to sequential review()."""
+
+    def test_task_type_and_threshold_parity(self):
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        items = [
+            ("What is 2+2?", "4"),
+            ("Capital of France?", "Paris is the capital of France"),
+            ("Summarize this article", "The article discusses climate change"),
+        ]
+        batch_results = scorer.review_batch(items)
+        single_results = [scorer.review(p, a) for p, a in items]
+        assert len(batch_results) == len(single_results)
+        for (b_ok, b_score), (s_ok, s_score) in zip(
+            batch_results, single_results, strict=True
+        ):
+            assert b_ok == s_ok
+            assert abs(b_score.score - s_score.score) < 1e-9
+            assert b_score.detected_task_type == s_score.detected_task_type
+
+    def test_adaptive_threshold_parity(self):
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        scorer._adaptive_threshold_enabled = True
+        scorer._task_type_thresholds = {"qa": 0.25, "default": 0.3}
+        items = [("Medical question", "The patient needs treatment")]
+        batch_results = scorer.review_batch(items)
+        single_results = [scorer.review(p, a) for p, a in items]
+        for (b_ok, b_score), (s_ok, s_score) in zip(
+            batch_results, single_results, strict=True
+        ):
+            assert b_ok == s_ok
+            assert abs(b_score.score - s_score.score) < 1e-9
+
+
+# — BatchProcessor coalesced delegation —
+
+
 class TestBatchProcessorCoalesced:
     def test_coalesced_path_with_real_scorer(self):
         store = GroundTruthStore()
