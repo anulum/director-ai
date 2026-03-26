@@ -140,11 +140,12 @@ class TestScoringMode:
 
 
 class TestAllowlist:
-    def test_allowlist_exempts_match(self):
+    def test_allowlist_reduces_score(self):
         san = InputSanitizer(allowlist=[r"output:\s*the"])
         result = san.score("output: the sales report")
         assert not result.blocked
-        assert result.suspicion_score == 0.0
+        # Allowlist reduces weight by 90%, not to zero — prevents full bypass
+        assert result.suspicion_score < 0.1
 
     def test_allowlist_does_not_exempt_other_patterns(self):
         san = InputSanitizer(allowlist=[r"output:\s*the"])
