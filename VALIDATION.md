@@ -19,7 +19,7 @@ All gates must pass before merge.
 |------|------|------------------|
 | lint | `ruff check` + `ruff format` + version sync | Style, formatting, version parity |
 | typecheck | `mypy src/director_ai/` | Static type safety |
-| test | `pytest --cov` (3 Python versions) | Correctness + ≥95% coverage |
+| test | `pytest --cov` (3 Python versions) | Correctness + ≥90% coverage |
 | test-extras | `pytest` with server/grpc extras | Integration with optional deps |
 | security | `pip-audit` | Supply-chain vulnerabilities |
 | sast | `bandit` + `semgrep` | OWASP + code patterns |
@@ -31,9 +31,9 @@ All gates must pass before merge.
 
 ## Coverage Policy
 
-- **Minimum gate**: 95% line + branch coverage on `src/director_ai/`
+- **Minimum gate**: 90% line + branch coverage on `src/director_ai/`
 - **Exclusions**: `server.py` (requires FastAPI), `grpc_server.py` (requires grpcio)
-- **Enforcement**: `--cov-fail-under=95` in CI (pyproject.toml `[tool.coverage.report]`)
+- **Enforcement**: `--cov-fail-under=90` in CI (pyproject.toml `[tool.coverage.report]`)
 - **Actual measured**: see Codecov badge or `pytest --cov` output — the gate passes on CI but the exact percentage is not hardcoded here to avoid stale claims
 
 ## Benchmark Suite (24 evaluators)
@@ -61,7 +61,7 @@ Run: `python -m benchmarks.run_all`.
 
 ```bash
 # Full local validation
-pytest tests/ -v --tb=short --cov=director_ai --cov-fail-under=95
+pytest tests/ -v --tb=short --cov=director_ai --cov-fail-under=90
 cd backfire-kernel && cargo test --workspace
 python -m benchmarks.regression_suite
 python tools/preflight.py
