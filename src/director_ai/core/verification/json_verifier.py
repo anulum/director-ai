@@ -67,7 +67,7 @@ def _check_type(value, expected_type: str) -> bool:
     expected = type_map.get(expected_type)
     if expected is None:
         return True
-    if expected_type == "integer" and isinstance(value, bool):
+    if expected_type in ("integer", "number") and isinstance(value, bool):
         return False
     return isinstance(value, expected)  # type: ignore[arg-type]
 
@@ -174,21 +174,25 @@ def verify_json(
     schema_valid = None
 
     if schema is not None:
-        if not isinstance(data, dict):
+        root_type = schema.get("type")
+        if root_type and not _check_type(data, root_type):
             schema_valid = False
             verdicts.append(
                 FieldVerdict(
                     path="$",
                     value=type(data).__name__,
                     verdict="invalid_type",
-                    reason=f"Schema expects object, got {type(data).__name__}",
+                    reason=f"Schema expects {root_type}, got {type(data).__name__}",
                 )
             )
-        else:
+        elif isinstance(data, dict):
             verdicts = _validate_schema(data, schema)
             schema_valid = bool(verdicts) and all(
                 v.verdict == "valid" for v in verdicts
             )
+        else:
+            # Non-object root that matches schema type (array, scalar)
+            schema_valid = True
 
     if score_fn is not None:
         fields = _extract_fields(data)

@@ -91,6 +91,35 @@ class TestSchemaValidation:
         r = verify_json('{"count": true}', schema=schema)
         assert any(v.verdict == "invalid_type" for v in r.field_verdicts)
 
+    def test_boolean_not_number(self):
+        schema = {"type": "object", "properties": {"score": {"type": "number"}}}
+        r = verify_json('{"score": true}', schema=schema)
+        assert any(v.verdict == "invalid_type" for v in r.field_verdicts)
+
+    def test_array_root_with_schema(self):
+        schema = {"type": "array"}
+        r = verify_json("[1, 2, 3]", schema=schema)
+        assert r.valid_json is True
+        assert r.schema_valid is True
+
+    def test_array_root_wrong_type(self):
+        schema = {"type": "object"}
+        r = verify_json("[1, 2, 3]", schema=schema)
+        assert r.schema_valid is False
+        assert any(v.verdict == "invalid_type" for v in r.field_verdicts)
+
+    def test_string_root_with_schema(self):
+        schema = {"type": "string"}
+        r = verify_json('"hello world"', schema=schema)
+        assert r.valid_json is True
+        assert r.schema_valid is True
+
+    def test_number_root_with_schema(self):
+        schema = {"type": "number"}
+        r = verify_json("42.5", schema=schema)
+        assert r.valid_json is True
+        assert r.schema_valid is True
+
 
 class TestValueGrounding:
     def test_grounded_value(self):
