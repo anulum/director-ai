@@ -1034,16 +1034,13 @@ impl PySSGFEngine {
 
 // ─── Module Registration ────────────────────────────────────────────
 
-/// Backfire Kernel — Rust-accelerated safety gate for Director-Class AI.
-///
-/// This module exposes the entire hot-path safety gate to Python:
-/// - `BackfireConfig` — configuration
-/// - `RustSafetyKernel` — basic per-token hard limit
-/// - `RustStreamingKernel` — sliding window + trend detection
-/// - `RustCoherenceScorer` — dual-entropy coherence scoring
-/// - `CoherenceScore` — score result
-/// - `StreamSession` — streaming session trace
-// ─── Verification Signals (Rust-accelerated) ─────────────────────────
+// Backfire Kernel — Rust-accelerated safety gate for Director-Class AI.
+//
+// This module exposes the entire hot-path safety gate to Python:
+// - BackfireConfig, RustSafetyKernel, RustStreamingKernel
+// - RustCoherenceScorer, CoherenceScore, StreamSession
+// - Verification signal functions (Rust-accelerated)
+// - RustBM25 — BM25 sparse retrieval engine
 
 /// Entity overlap between two texts (Jaccard of proper nouns).
 #[pyfunction]

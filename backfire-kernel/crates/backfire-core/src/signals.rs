@@ -71,10 +71,8 @@ fn extract_entities(text: &str) -> HashSet<String> {
                 current.push(' ');
             }
             current.push_str(word);
-        } else {
-            if !current.is_empty() {
-                entities.insert(std::mem::take(&mut current));
-            }
+        } else if !current.is_empty() {
+            entities.insert(std::mem::take(&mut current));
         }
     }
     if !current.is_empty() {
