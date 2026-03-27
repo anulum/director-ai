@@ -2,6 +2,23 @@
 
 See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/director-ai/blob/main/CHANGELOG.md).
 
+## v3.11.0 (2026-03-27)
+
+### Added
+- **ProductionGuard**: batteries-included API (calibration + feedback loop + conformal CIs + agent tool verification)
+- **Atomic claim verification**: `VerifiedScorer.verify(atomic=True)` with multi-span evidence attribution
+- **VectorGroundTruthStore.grounded()**: hybrid BM25 + dense retrieval factory
+- **Semantic Kernel + DSPy/Instructor integrations**
+- **Helm chart**: `deploy/helm/director-ai/` with GPU toggle, HPA, Sigstore signing
+- **Observability pack**: Grafana dashboard (9 panels) + Prometheus alerts (6 rules)
+- Latency matrix benchmark, superiority demo
+
+### Fixed
+- Streaming false-halt benchmark: 3 bugs fixed, measured 4.4% (was broken 0.0%)
+- Domain profile claims: medical/finance FPR=100% without KB grounding now documented
+- Summarization auto-routing to bidirectional NLI
+- Sigstore signing + SLSA provenance on publish workflow
+
 ## v3.10.1 (2026-03-25)
 
 ### Added

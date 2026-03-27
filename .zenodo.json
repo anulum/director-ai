@@ -1,6 +1,6 @@
 {
   "title": "Director-Class AI: Coherence Engine — AI Output Verification & Safety Oversight",
-  "version": "3.10.1",
+  "version": "3.11.0",
   "description": "Real-time LLM hallucination guardrail. Dual-entropy scoring (NLI + RAG) with token-level streaming halt. 75.86% BA on AggreFact. Meta-confidence scoring, cross-turn contradiction tracking, structured output verification (JSON, tool calls, code), and online calibration from production feedback. Zero new dependencies for verification (stdlib only).",
   "creators": [
     {

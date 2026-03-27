@@ -145,6 +145,7 @@ nav:
       - Online Calibration: guide/online-calibration.md
       - Compliance Reporting: guide/compliance-reporting.md
       - EU AI Act Whitepaper: guide/eu-ai-act-whitepaper.md
+      - ProductionGuard: guide/production-guard.md
       - Verification Gems: guide/verification-gems.md
       - Architecture: guide/architecture.md
       - Enterprise: guide/enterprise.md
@@ -158,6 +159,8 @@ nav:
       - LangGraph: integrations/langgraph.md
       - Haystack: integrations/haystack.md
       - CrewAI: integrations/crewai.md
+      - Semantic Kernel: integrations/semantic-kernel.md
+      - DSPy / Instructor: integrations/dspy.md
   - API Reference:
       - Overview: api/index.md
       - guard / score / get_score: api/guard.md
@@ -185,6 +188,8 @@ nav:
       - Monitoring: deployment/monitoring.md
       - Production Checklist: deployment/checklist.md
       - Operational Runbooks: deployment/runbooks.md
+      - Helm Chart: deployment/helm.md
+      - Observability Pack: deployment/observability.md
   - Cookbook:
       - Legal: cookbook/legal.md
       - Medical: cookbook/medical.md

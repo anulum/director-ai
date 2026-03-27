@@ -175,7 +175,7 @@ class Article15Report:
                 "",
                 "---",
                 "",
-                "*This report is generated automatically by Director-Class AI v3.10.1.*",
+                "*This report is generated automatically by Director-Class AI v3.11.0.*",
                 "*It documents accuracy, robustness, and human oversight per EU AI Act Article 15.*",
             ]
         )

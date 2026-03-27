@@ -1,4 +1,4 @@
-# Show HN Post — Director-AI v3.10.1
+# Show HN Post — Director-AI v3.11.0
 
 ## Title
 
@@ -47,7 +47,7 @@ Honest benchmarks (LLM-AggreFact, 29K samples):
 
 A 0.4B model beating all frontier LLMs on the same benchmark at $0/call. Sub-millisecond latency on GPU (0.5 ms/pair on L40S FP16). 14.6 ms/pair on a GTX 1060 with ONNX.
 
-What's in v3.10.1:
+What's in v3.11.0:
 - Sentence-level claim verification (VerifiedScorer) with 5 independent signals
 - Meta-confidence scoring (how confident is the verdict itself?)
 - Cross-turn contradiction tracking in conversations
