@@ -145,7 +145,8 @@ pip install director-ai                      # heuristic-only (limited accuracy)
 > The default NLI-only mode runs entirely locally with no external calls.
 
 Extras: `[vector]` (ChromaDB), `[finetune]` (domain adaptation), `[ingestion]` (PDF/DOCX parsing), `[colbert]` (late-interaction retrieval).
-Framework integrations: `[langchain]`, `[llamaindex]`, `[langgraph]`, `[haystack]`, `[crewai]`.
+Framework integrations: `[langchain]`, `[llamaindex]`, `[langgraph]`, `[haystack]`, `[crewai]`, Semantic Kernel, DSPy/Instructor.
+Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstore-signed releases.
 Voice AI: `VoiceGuard` — real-time token filter for TTS pipelines ([guide](https://anulum.github.io/director-ai/guide/voice-ai/)).
 
 Full installation guide: [docs](https://anulum.github.io/director-ai/installation/).

@@ -9,7 +9,7 @@ name: director-ai
 description: Hallucination guardrail for LLM applications
 type: application
 version: 0.1.0
-appVersion: "3.10.1"
+appVersion: "3.11.0"
 home: https://github.com/anulum/director-ai
 sources:
   - https://github.com/anulum/director-ai
