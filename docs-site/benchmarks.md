@@ -72,6 +72,22 @@ Director-AI beats all tested frontier LLMs on AggreFact at $0 per call and 0.5 m
 
 ## Latency
 
+### NLI Single-Pair (v3.11.1 — CUDA auto-detection)
+
+v3.11.1 fixed `_load_nli_model()` to auto-select CUDA when available.
+No `nli_device` parameter required — the model moves to GPU automatically.
+
+| Hardware | Median | p95 | Throughput | VRAM |
+|----------|--------|-----|-----------|------|
+| **L40S 46 GB (GPU)** | **24.9 ms** | **26.3 ms** | **40.2 RPS** | 1,757 MB |
+| L40S (CPU, v3.11.0 bug) | 169.5 ms | 176.5 ms | 5.2 RPS | 3 MB |
+| GTX 1060 6 GB (GPU) | 431.5 ms | 643.1 ms | ~2.3 RPS | 1,757 MB |
+| Heuristic (no NLI) | 0.088 ms | 0.095 ms | 10,630 RPS | 0 MB |
+
+The v3.11.0 L40S benchmark ran NLI on CPU (169.5 ms) due to missing CUDA
+auto-detection. With the fix, NLI on L40S GPU drops to **24.9 ms** — a
+**6.8x improvement**.
+
 ### Per-Backend (GTX 1060, 16-pair batch)
 
 | Backend | Median | P95 | Per-pair |
@@ -126,6 +142,25 @@ xychart-beta
 | StreamingKernel (500 tok) | 1.970 ms | 0.139 ms | 14.2x |
 | CoherenceScorer.review() | 0.022 ms | 0.002 ms | 11.0x |
 | Kuramoto UPDE 100 steps | 2.626 ms | 0.272 ms | 9.7x |
+
+### Rust vs Python Signal Functions (v3.11.1, 5000 iterations)
+
+Verification signal functions ported to Rust via `backfire-kernel` (PyO3 FFI).
+Auto-dispatch: uses Rust when `backfire-kernel` installed, falls back silently.
+
+| Function | Python (us) | Rust (us) | Speedup |
+|----------|------------|----------|---------|
+| trend_drop | 6.2 | 0.3 | **20.7x** |
+| BM25 query (100 docs) | 110.2 | 10.8 | **10.2x** |
+| numerical_consistency | 14.8 | 2.3 | **6.4x** |
+| entity_overlap | 14.7 | 3.7 | **4.0x** |
+| negation_flip | 11.8 | 14.4 | 0.8x |
+| traceability | 12.2 | 22.2 | 0.5x |
+
+Pure numeric (`trend_drop`) and index-heavy (`BM25`) workloads show 10–21x
+speedup. String-heavy functions (`negation_flip`, `traceability`) are slower in
+Rust due to PyO3 FFI string marshalling overhead at microsecond scale — the
+crossing cost exceeds the computation time.
 
 ---
 
