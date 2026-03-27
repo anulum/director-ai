@@ -15,25 +15,41 @@ use std::collections::HashSet;
 
 /// Words to exclude from content-based comparisons.
 const STOP_WORDS: &[&str] = &[
-    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "shall", "can", "to", "of", "in", "for",
-    "on", "with", "at", "by", "from", "as", "into", "through", "during",
-    "before", "after", "above", "below", "between", "and", "but", "or",
-    "if", "then", "than", "that", "this", "these", "those", "it", "its",
+    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had",
+    "do", "does", "did", "will", "would", "could", "should", "may", "might", "shall", "can", "to",
+    "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "through", "during",
+    "before", "after", "above", "below", "between", "and", "but", "or", "if", "then", "than",
+    "that", "this", "these", "those", "it", "its",
 ];
 
 const NEG_WORDS: &[&str] = &[
-    "not", "no", "never", "neither", "nor", "cannot", "can't", "isn't",
-    "aren't", "wasn't", "weren't", "won't", "wouldn't", "shouldn't",
-    "couldn't", "doesn't", "didn't", "hasn't", "haven't", "hadn't",
-    "without", "none", "nobody",
+    "not",
+    "no",
+    "never",
+    "neither",
+    "nor",
+    "cannot",
+    "can't",
+    "isn't",
+    "aren't",
+    "wasn't",
+    "weren't",
+    "won't",
+    "wouldn't",
+    "shouldn't",
+    "couldn't",
+    "doesn't",
+    "didn't",
+    "hasn't",
+    "haven't",
+    "hadn't",
+    "without",
+    "none",
+    "nobody",
 ];
 
 fn to_lower_words(text: &str) -> Vec<String> {
-    text.split_whitespace()
-        .map(|w| w.to_lowercase())
-        .collect()
+    text.split_whitespace().map(|w| w.to_lowercase()).collect()
 }
 
 fn is_capitalized_word(w: &str) -> bool {

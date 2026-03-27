@@ -162,10 +162,16 @@ mod tests {
 
     fn build_test_engine() -> BM25Engine {
         let engine = BM25Engine::default();
-        engine.add_document("d1", "Water boils at 100 degrees Celsius at standard pressure");
+        engine.add_document(
+            "d1",
+            "Water boils at 100 degrees Celsius at standard pressure",
+        );
         engine.add_document("d2", "The speed of light is 299792 kilometers per second");
         engine.add_document("d3", "DNA has four bases adenine thymine guanine cytosine");
-        engine.add_document("d4", "Mitochondria produce ATP through oxidative phosphorylation");
+        engine.add_document(
+            "d4",
+            "Mitochondria produce ATP through oxidative phosphorylation",
+        );
         engine.add_document("d5", "Iron rusts when it reacts with oxygen and moisture");
         engine
     }
