@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Prometheus Alert Rules
+
+groups:
+  - name: director-ai
+    rules:
+      - alert: HighHallucinationRate
+        expr: |
+          rate(director_hallucinations_total[5m])
+          / rate(director_reviews_total[5m]) > 0.15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Hallucination rate > 15% for 5 minutes"
+          description: "Instance {{ $labels.instance }} is flagging {{ $value | humanizePercentage }} of responses as hallucinated."
+
+      - alert: ReviewLatencyHigh
+        expr: |
+          histogram_quantile(0.95, rate(director_review_duration_seconds_bucket[5m])) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Review p95 latency > 500ms"
+          description: "Instance {{ $labels.instance }} p95 latency is {{ $value | humanizeDuration }}."
+
+      - alert: StreamingHaltSpike
+        expr: rate(director_streaming_halts_total[5m]) * 60 > 10
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Streaming halt rate > 10/min"
+          description: "Instance {{ $labels.instance }} is halting {{ $value | humanize }} streams per minute."
+
+      - alert: DriftDetected
+        expr: director_drift_score > 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Coherence drift detected"
+          description: "Drift score {{ $value | humanize }} exceeds threshold on {{ $labels.instance }}."
+
+      - alert: ErrorRateHigh
+        expr: rate(director_errors_total[5m]) * 60 > 5
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Error rate > 5/min"
+          description: "Instance {{ $labels.instance }} error rate is {{ $value | humanize }}/min."
+
+      - alert: KBQueryFailures
+        expr: |
+          rate(director_knowledge_query_errors[5m])
+          / rate(director_knowledge_queries_total[5m]) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "KB query failure rate > 5%"
+          description: "Instance {{ $labels.instance }} KB query failure rate is {{ $value | humanizePercentage }}."
