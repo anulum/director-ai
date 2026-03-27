@@ -28,6 +28,10 @@ from dataclasses import dataclass, field
 logger = logging.getLogger("DirectorAI.VerifiedScorer")
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
+_CLAUSE_SPLIT = re.compile(
+    r",?\s+(?:and|but|while|whereas|although|however|moreover|furthermore)\s+",
+    re.IGNORECASE,
+)
 _NUM_RE = re.compile(r"\b\d[\d,.]*\b")
 _ENTITY_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b")
 _NEG_WORDS = frozenset(
@@ -61,6 +65,17 @@ _NEG_WORDS = frozenset(
 
 
 @dataclass
+class SourceSpan:
+    """A source text span that supports or contradicts a claim."""
+
+    text: str
+    index: int
+    nli_divergence: float
+    entity_match: float = 1.0
+    numerical_match: bool | None = None
+
+
+@dataclass
 class ClaimVerdict:
     claim: str
     claim_index: int
@@ -70,9 +85,11 @@ class ClaimVerdict:
     entity_match: float
     numerical_match: bool | None
     negation_flip: bool
-    traceability: float  # 0.0-1.0: how much of the claim is in the source
+    traceability: float
     verdict: str  # "supported", "contradicted", "unverifiable", "fabricated"
-    confidence: float  # 0.0-1.0
+    confidence: float
+    evidence_spans: list[SourceSpan] = field(default_factory=list)
+    is_atomic: bool = False
 
 
 @dataclass
@@ -107,6 +124,14 @@ class VerificationResult:
                     "negation_flip": c.negation_flip,
                     "traceability": round(c.traceability, 2),
                     "verdict": c.verdict,
+                    "is_atomic": c.is_atomic,
+                    "evidence_spans": [
+                        {
+                            "text": s.text,
+                            "nli_divergence": round(s.nli_divergence, 4),
+                        }
+                        for s in c.evidence_spans
+                    ],
                     "confidence": round(c.confidence, 2),
                 }
                 for c in self.claims
@@ -141,13 +166,24 @@ class VerifiedScorer:
         self,
         response: str,
         source: str,
+        atomic: bool = False,
+        evidence_top_k: int = 3,
     ) -> VerificationResult:
-        """Verify response against source at sentence level.
+        """Verify response against source.
 
-        Decomposes both into sentences, matches each response sentence
-        to its best source sentence, runs multi-signal checks.
+        Parameters
+        ----------
+        atomic : bool
+            When True, decomposes compound sentences into atomic claims
+            before matching. Catches errors in compound sentences where
+            one half is correct and the other is fabricated.
+        evidence_top_k : int
+            Number of source spans to attach as evidence per claim.
         """
-        response_sents = _split_sentences(response)
+        if atomic:
+            response_sents = _decompose_atomic(response)
+        else:
+            response_sents = _split_sentences(response)
         source_sents = _split_sentences(source)
 
         if not response_sents:
@@ -170,8 +206,13 @@ class VerifiedScorer:
             if len(r_sent.split()) < 3:
                 continue
 
-            best_src_idx, nli_div = self._find_best_match(r_sent, source_sents)
-            best_src = source_sents[best_src_idx]
+            spans = self._find_top_k_matches(
+                r_sent, source_sents, k=evidence_top_k
+            )
+            best_span = spans[0] if spans else SourceSpan("", 0, 1.0)
+            best_src_idx = best_span.index
+            best_src = best_span.text
+            nli_div = best_span.nli_divergence
 
             entity_score = _entity_overlap(r_sent, best_src)
             num_match = _numerical_consistency(r_sent, best_src)
@@ -199,6 +240,8 @@ class VerifiedScorer:
                     traceability=trace,
                     verdict=verdict,
                     confidence=conf,
+                    evidence_spans=spans,
+                    is_atomic=atomic,
                 )
             )
 
@@ -279,6 +322,48 @@ class VerifiedScorer:
                 best_idx = i
         return best_idx, 1.0 - best_overlap
 
+    def _find_top_k_matches(
+        self,
+        claim: str,
+        source_sents: list[str],
+        k: int = 3,
+    ) -> list[SourceSpan]:
+        """Find top-K source spans ranked by relevance to the claim."""
+        if self._nli and self._nli.model_available:
+            pairs = [(src, claim) for src in source_sents]
+            divs = self._nli.score_batch(pairs)
+            ranked = sorted(range(len(divs)), key=lambda i: divs[i])
+            return [
+                SourceSpan(
+                    text=source_sents[i],
+                    index=i,
+                    nli_divergence=divs[i],
+                    entity_match=_entity_overlap(claim, source_sents[i]),
+                    numerical_match=_numerical_consistency(claim, source_sents[i]),
+                )
+                for i in ranked[:k]
+            ]
+
+        # Fallback: word overlap
+        claim_words = set(claim.lower().split())
+        scored = []
+        for i, src in enumerate(source_sents):
+            src_words = set(src.lower().split())
+            union = claim_words | src_words
+            overlap = len(claim_words & src_words) / len(union) if union else 0
+            scored.append((i, 1.0 - overlap))
+        scored.sort(key=lambda x: x[1])
+        return [
+            SourceSpan(
+                text=source_sents[i],
+                index=i,
+                nli_divergence=div,
+                entity_match=_entity_overlap(claim, source_sents[i]),
+                numerical_match=_numerical_consistency(claim, source_sents[i]),
+            )
+            for i, div in scored[:k]
+        ]
+
     def _multi_signal_verdict(
         self,
         nli_div: float,
@@ -354,6 +439,26 @@ def _split_sentences(text: str) -> list[str]:
     return [
         s.strip() for s in _SENT_SPLIT.split(text) if s.strip() and len(s.split()) >= 3
     ]
+
+
+def _decompose_atomic(text: str) -> list[str]:
+    """Decompose text into atomic claims.
+
+    Splits sentences on coordinating/adversative conjunctions when both
+    halves have enough content to stand alone (>= 4 words).  Compound
+    claims like "X is A and Y is B" become two atomic claims.
+    """
+    sentences = _split_sentences(text)
+    claims: list[str] = []
+    for sent in sentences:
+        parts = _CLAUSE_SPLIT.split(sent)
+        for part in parts:
+            part = part.strip()
+            if len(part.split()) >= 4:
+                claims.append(part)
+            elif claims:
+                claims[-1] = claims[-1] + " " + part
+    return claims if claims else sentences
 
 
 def _entity_overlap(text_a: str, text_b: str) -> float:
