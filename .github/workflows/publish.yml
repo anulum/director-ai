@@ -58,9 +58,53 @@ jobs:
           name: sbom
           path: sbom.json
 
+  sign:
+    name: Sigstore Sign
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Sign with Sigstore
+        uses: sigstore/gh-action-sigstore-python@f514d46b907ebcd5bedc05145c03b69c1edd8b46 # v3.0.0
+        with:
+          inputs: dist/*
+
+      - name: Upload signatures
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
+        with:
+          name: sigstore
+          path: |
+            dist/*.sigstore.json
+
+  provenance:
+    name: SLSA Provenance
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      attestations: write
+    steps:
+      - name: Download dist
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: dist
+          path: dist/
+
+      - name: Generate provenance attestation
+        uses: actions/attest-build-provenance@c074443f1aee8d4aeeae555aebba3282517141b2 # v2.2.3
+        with:
+          subject-path: dist/*
+
   publish:
     name: Publish
-    needs: build
+    needs: [build, sign]
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -75,9 +119,9 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
 
-  attach-sbom:
-    name: Attach SBOM to Release
-    needs: build
+  attach-artifacts:
+    name: Attach SBOM + Signatures to Release
+    needs: [build, sign]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -89,15 +133,25 @@ jobs:
         with:
           name: sbom
 
+      - name: Download Sigstore signatures
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: sigstore
+          path: sigstore/
+
       - name: Attach to release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release upload "$RELEASE_TAG" sbom.json --clobber
+        run: |
+          gh release upload "$RELEASE_TAG" sbom.json --clobber
+          for sig in sigstore/*.sigstore.json; do
+            [ -f "$sig" ] && gh release upload "$RELEASE_TAG" "$sig" --clobber
+          done
 
   discord-announce:
     name: Discord Release Announcement
     runs-on: ubuntu-latest
-    needs: [publish, attach-sbom]
+    needs: [publish, attach-artifacts]
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
