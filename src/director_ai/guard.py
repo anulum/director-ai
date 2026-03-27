@@ -111,8 +111,9 @@ class ProductionGuard:
         from director_ai.core.calibration.feedback_store import FeedbackStore
         from director_ai.core.calibration.online_calibrator import OnlineCalibrator
 
-        self._feedback = FeedbackStore()  # type: ignore[assignment]
-        self._calibrator = OnlineCalibrator(store=self._feedback)  # type: ignore[assignment]
+        fb = FeedbackStore()
+        self._feedback = fb  # type: ignore[assignment]
+        self._calibrator = OnlineCalibrator(store=fb)  # type: ignore[assignment]
         self._conformal = ConformalPredictor(coverage=1.0 - alpha)  # type: ignore[assignment]
         logger.info("Calibration enabled (alpha=%.2f)", alpha)
 
