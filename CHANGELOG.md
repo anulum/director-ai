@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.11.1] — 2026-03-27
+
+### Fixed
+- **NLI CUDA auto-detection**: `_load_nli_model()` now auto-selects CUDA when
+  `torch.cuda.is_available()` and device is `None`. Previously the model stayed
+  on CPU unless `nli_device="cuda"` was passed explicitly — the ONNX loader
+  already auto-detected CUDA, so this aligns behaviour.
+- **`director_assert()` crash**: passed a float to `HallucinationError` which
+  expected a `CoherenceScore` object (`AttributeError: 'float' has no attribute
+  'score'`). Fixed by calling `scorer.review()` directly.
+
+### Added
+- 16 tests for `integrations/dspy.py` (coherence_check + director_assert).
+- 15 tests for `integrations/semantic_kernel.py` (DirectorAIFilter init + async call).
+- `verified-scorer.md`: documented `atomic=True`, `evidence_top_k`, `SourceSpan`
+  dataclass, `verify()` parameters, `is_atomic` field, multi-span evidence usage.
+- `CONTRIBUTING.md`: added DSPy and Semantic Kernel to integrations table.
+- `BENCHMARK_REPORT.md`: v3.11.0 L40S 14-scenario results with documented
+  CPU-only NLI bug (scenarios 2–7, 12 ran on CPU, not GPU).
+
 ## [3.11.0] — 2026-03-27
 
 ### Added
