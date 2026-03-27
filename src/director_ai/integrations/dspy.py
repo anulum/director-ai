@@ -102,13 +102,16 @@ def director_assert(
     ------
     HallucinationError if coherence is below threshold.
     """
-    result = coherence_check(
-        response=response,
-        prompt=prompt,
-        facts=facts,
-        store=store,
+    gt = store or GroundTruthStore()
+    if facts and store is None:
+        for k, v in facts.items():
+            gt.add(k, v)
+
+    scorer = CoherenceScorer(
         threshold=threshold,
+        ground_truth_store=gt,
         use_nli=use_nli,
     )
-    if not result["approved"]:
-        raise HallucinationError(prompt, response, result["score"])
+    approved, cs = scorer.review(prompt, response)
+    if not approved:
+        raise HallucinationError(prompt, response, cs)
