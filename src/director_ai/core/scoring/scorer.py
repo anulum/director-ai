@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Concepts 1996â€"2026 Miroslav Ĺ otek. All rights reserved.
+# Â© Code 2020â€"2026 Miroslav Ĺ otek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Coherence Scorer (Weighted NLI Divergence)
+# Director-Class AI â€" Coherence Scorer (Weighted NLI Divergence)
 
 from __future__ import annotations
 
@@ -62,30 +62,30 @@ class CoherenceScorer:
 
     Parameters
     ----------
-    threshold : float â€” minimum coherence to approve (default 0.5).
-    soft_limit : float | None â€” scores between threshold and soft_limit
+    threshold : float â€" minimum coherence to approve (default 0.5).
+    soft_limit : float | None â€" scores between threshold and soft_limit
         trigger a warning. Default: threshold + 0.1.
-    w_logic : float â€” weight for logical divergence (default 0.6).
-    w_fact : float â€” weight for factual divergence (default 0.4).
+    w_logic : float â€" weight for logical divergence (default 0.6).
+    w_fact : float â€" weight for factual divergence (default 0.4).
         Must satisfy w_logic + w_fact = 1.0.
-    strict_mode : bool â€” when True, disables heuristic fallbacks entirely.
+    strict_mode : bool â€" when True, disables heuristic fallbacks entirely.
         If NLI model is unavailable and strict_mode is True, divergence
         returns 0.9 (reject) and sets ``strict_mode_rejected=True``.
-    history_window : int â€” rolling history size.
-    use_nli : bool | None â€” True forces NLI, False disables it,
+    history_window : int â€" rolling history size.
+    use_nli : bool | None â€" True forces NLI, False disables it,
         None (default) auto-detects based on installed packages.
-    ground_truth_store : GroundTruthStore | None â€” fact store for RAG.
-    nli_model : str | None â€” HuggingFace model ID or local path for NLI.
-    cache_size : int â€” LRU score cache max entries (0 to disable).
-    cache_ttl : float â€” cache entry TTL in seconds.
-    nli_quantize_8bit : bool â€” load NLI model with 8-bit quantization.
-    nli_device : str | None â€” torch device for NLI model.
-    nli_torch_dtype : str | None â€” torch dtype ("float16", "bfloat16").
-    llm_judge_enabled : bool â€” escalate to LLM when NLI margin is low.
-    llm_judge_confidence_threshold : float â€” softmax margin below which
+    ground_truth_store : GroundTruthStore | None â€" fact store for RAG.
+    nli_model : str | None â€" HuggingFace model ID or local path for NLI.
+    cache_size : int â€" LRU score cache max entries (0 to disable).
+    cache_ttl : float â€" cache entry TTL in seconds.
+    nli_quantize_8bit : bool â€" load NLI model with 8-bit quantization.
+    nli_device : str | None â€" torch device for NLI model.
+    nli_torch_dtype : str | None â€" torch dtype ("float16", "bfloat16").
+    llm_judge_enabled : bool â€" escalate to LLM when NLI margin is low.
+    llm_judge_confidence_threshold : float â€" softmax margin below which
         to escalate (default 0.3).
-    llm_judge_provider : str â€” "openai" or "anthropic".
-    privacy_mode : bool â€” redact PII (emails, phones, SSN-like patterns)
+    llm_judge_provider : str â€" "openai" or "anthropic".
+    privacy_mode : bool â€" redact PII (emails, phones, SSN-like patterns)
         before sending text to external LLM judge.
 
     """
@@ -332,7 +332,7 @@ class CoherenceScorer:
             return nli_score
         return self._local_judge_infer(prompt, response, nli_score)
 
-    def _local_judge_infer(  # pragma: no cover â€” requires torch, tested locally
+    def _local_judge_infer(  # pragma: no cover â€" requires torch, tested locally
         self,
         prompt: str,
         response: str,
@@ -389,7 +389,7 @@ class CoherenceScorer:
         metrics.observe("llm_judge_seconds", time.monotonic() - t0)
         return adjusted
 
-    # â”€â”€ LLM-as-judge escalation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ LLM-as-judge escalation â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     _DEFAULT_MODELS = {
         "openai": "gpt-4o-mini",
@@ -570,7 +570,7 @@ class CoherenceScorer:
         except (ValueError, TypeError, AttributeError):
             return "YES" in reply.upper(), 0.5
 
-    # â”€â”€ Task-aware scoring profiles â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Task-aware scoring profiles â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @staticmethod
     def _detect_task_type(prompt: str) -> str:
@@ -639,7 +639,7 @@ class CoherenceScorer:
 
         return fi, fo, li, lo
 
-    # â”€â”€ Dialogue-specific scoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Dialogue-specific scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _dialogue_factual_divergence(
         self,
@@ -699,7 +699,7 @@ class CoherenceScorer:
 
         return adjusted, evidence
 
-    # â”€â”€ Summarization-specific scoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Summarization-specific scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _summarization_factual_divergence(
         self,
@@ -772,7 +772,7 @@ class CoherenceScorer:
 
         return adjusted, evidence
 
-    # â”€â”€ Factual divergence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Factual divergence â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def calculate_factual_divergence(
         self,
@@ -1120,7 +1120,7 @@ class CoherenceScorer:
 
         return max(0.0, min(1.0, divergence))
 
-    # â”€â”€ Logical divergence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Logical divergence â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def calculate_logical_divergence(
         self,
@@ -1184,13 +1184,13 @@ class CoherenceScorer:
         similarity = len(p_words & o_words) / len(p_words | o_words)
         return max(0.0, min(1.0, 1.0 - similarity))
 
-    # â”€â”€ Shared helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Shared helpers â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _heuristic_coherence(self, prompt, action, tenant_id: str = ""):
         """Compute coherence components.
 
         Returns (h_logical, h_factual, coherence, evidence).
-        H_logical and H_factual run in parallel â€” vector retrieval overlaps
+        H_logical and H_factual run in parallel â€" vector retrieval overlaps
         with the logical NLI forward pass.
 
         For dialogue prompts (auto-detected), uses bidirectional NLI with
@@ -1206,17 +1206,29 @@ class CoherenceScorer:
         # Task-aware aggregation profile
         fact_ia, fact_oa, logic_ia, logic_oa = self._resolve_agg_profile(prompt)
 
-        # â”€â”€ Dialogue path: bidirectional NLI + baseline calibration â”€â”€â”€â”€
+        _nli_available = self._nli is not None and self._nli.model_available
+        _task_type = self._detect_task_type(prompt) if _nli_available else "default"
+
+        # -- Dialogue path: bidirectional NLI + baseline calibration ----
         # Logical entailment is meaningless for dialogue (a question
-        # doesn't entail its answer).  Standard NLI gives ~0.92 divergence
+        # doesn’t entail its answer).  Standard NLI gives ~0.92 divergence
         # for correct responses.  The dialogue path uses min(fwd, rev) with
-        # baseline calibration to bring FPR from 97.5% â†’ 4.5% at t=0.50.
+        # baseline calibration to bring FPR from 97.5% -> 4.5% at t=0.50.
         _is_dialogue = (
             self._auto_dialogue_profile
             and not self._use_prompt_as_premise
-            and self._nli is not None
-            and self._nli.model_available
-            and self._detect_task_type(prompt) == "dialogue"
+            and _nli_available
+            and _task_type == "dialogue"
+        )
+
+        # -- Summarization path: bidirectional NLI + claim coverage -----
+        # Abstractive rephrasing causes forward NLI to over-reject.  The
+        # reverse direction (summary->document) catches paraphrases.
+        # Auto-routes when task is detected as summarization, OR when
+        # explicitly configured via _use_prompt_as_premise + W_LOGIC=0.
+        _is_summarization = _nli_available and (
+            (self._use_prompt_as_premise and self.W_LOGIC < 1e-9)
+            or (_task_type == "summarization" and self._auto_dialogue_profile)
         )
 
         if _is_dialogue:
@@ -1226,15 +1238,7 @@ class CoherenceScorer:
                 action,
                 tenant_id,
             )
-        # â”€â”€ Summarization path: bidirectional NLI when prompt-as-premise â”€â”€
-        # Abstractive rephrasing causes forward NLI to over-reject.  The
-        # reverse direction (summaryâ†’document) catches paraphrases.
-        elif (
-            self._use_prompt_as_premise
-            and self._nli is not None
-            and self._nli.model_available
-            and self.W_LOGIC < 1e-9
-        ):
+        elif _is_summarization:
             h_logic = 0.0
             h_fact, evidence = self._summarization_factual_divergence(
                 prompt,
@@ -1357,7 +1361,7 @@ class CoherenceScorer:
         )
         return approved, score
 
-    # â”€â”€ Composite scoring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Composite scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def compute_divergence(self, prompt, action):
         """Compute composite divergence (lower is better).
@@ -1386,7 +1390,7 @@ class CoherenceScorer:
 
         Parameters
         ----------
-        session : ConversationSession | None â€” when provided, cross-turn
+        session : ConversationSession | None â€" when provided, cross-turn
             divergence is blended into the logical score and the turn is
             recorded after scoring.
 
@@ -1529,7 +1533,7 @@ class CoherenceScorer:
             span.set_attribute("coherence.warning", result[1].warning)
             return result
 
-    # â”€â”€ Batch API (coalesced NLI) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Batch API (coalesced NLI) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def review_batch(
         self,
@@ -1655,7 +1659,7 @@ class CoherenceScorer:
 
         return [r for r in results if r is not None]
 
-    # â”€â”€ Async API â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    # â"€â"€ Async API â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     async def areview(
         self,
@@ -1664,7 +1668,7 @@ class CoherenceScorer:
         session=None,
         tenant_id: str = "",
     ) -> tuple[bool, CoherenceScore]:
-        """Async version of review() â€” offloads NLI inference to a thread pool."""
+        """Async version of review() â€" offloads NLI inference to a thread pool."""
         import functools
 
         loop = asyncio.get_running_loop()
