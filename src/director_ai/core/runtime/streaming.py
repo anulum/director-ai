@@ -48,7 +48,7 @@ def _trend_drop(values: list[float] | deque) -> float:
     Positive values indicate downward trend.
     """
     if _RUST_TREND:
-        return _rust_trend_drop(list(values))
+        return _rust_trend_drop(list(values))  # type: ignore[no-any-return]
     n = len(values)
     if n < 2:
         return 0.0
