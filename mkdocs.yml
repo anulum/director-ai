@@ -138,6 +138,7 @@ nav:
       - ONNX Export: guide/onnx-export.md
       - Quantization: guide/quantization.md
       - Rust FFI: guide/rust-ffi.md
+      - Rust Acceleration: guide/rust-acceleration.md
       - Streaming Overhead: guide/streaming-overhead.md
       - Voice AI: guide/voice-ai.md
       - Meta-Confidence: guide/meta-confidence.md
