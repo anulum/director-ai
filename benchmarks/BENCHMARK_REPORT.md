@@ -59,21 +59,26 @@ throughout the entire benchmark run.
 when device is `None` and auto-selects CUDA. This matches the ONNX loader which
 already auto-detected `CUDAExecutionProvider`.
 
-### v3.11.1 Fix Verified — GTX 1060 6GB (2026-03-27)
+### v3.11.1 Fix Verified — L40S GPU (2026-03-27)
 
-CUDA auto-detection confirmed working. No `nli_device` param passed —
-model auto-placed on GPU, 1,757 MB VRAM allocated.
+CUDA auto-detection confirmed working on L40S. No `nli_device` param passed —
+model auto-placed on GPU, 1,757 MB VRAM allocated. **6.8x faster than v3.11.0
+CPU-only bug.**
 
-| Metric | GTX 1060 GPU | L40S CPU (v3.11.0 bug) |
-|--------|-------------|----------------------|
-| Median | 431.5 ms | 169.5 ms |
-| p95 | 643.1 ms | 176.5 ms |
-| VRAM | 1,757 MB | 3 MB |
-| Model on GPU | Yes | No |
+| Metric | L40S GPU (v3.11.1) | L40S CPU (v3.11.0 bug) | GTX 1060 GPU |
+|--------|-------------------|----------------------|-------------|
+| Median | **24.9 ms** | 169.5 ms | 431.5 ms |
+| p95 | **26.3 ms** | 176.5 ms | 643.1 ms |
+| VRAM | 1,757 MB | 3 MB | 1,757 MB |
+| Model on GPU | Yes | No | Yes |
+| NLI throughput | **40.2 RPS** | 5.2 RPS (CPU) | ~2.3 RPS |
+| Heuristic | 0.088 ms | 0.081 ms | — |
 
-GTX 1060 is slower than L40S CPU because DeBERTa-v3-Large (0.4B params) is
-memory-bandwidth-limited on Pascal architecture (192 GB/s vs Xeon cache).
-True comparison requires L40S GPU re-benchmark with v3.11.1.
+The v3.11.0 L40S benchmark ran NLI on CPU (169.5 ms) due to missing CUDA
+auto-detection. With the fix, NLI on L40S GPU drops to **24.9 ms** — a 6.8x
+improvement. Model load: 33.4s (includes HuggingFace cache check).
+
+Raw data: `benchmarks/results/gtx1060_nli_auto_detect_v3.11.1.json` (local).
 
 Raw data: `benchmarks/results/gtx1060_nli_auto_detect_v3.11.1.json`
 
