@@ -423,8 +423,9 @@ class DirectorConfig:
                 "llm_judge_provider": "local",
                 "profile": "research",
             },
-            # Measured on PubMedQA (500 samples, NLI, GTX 1060, 2026-03-20):
-            #   Score range 0.25–0.35, best F1=59.9% at threshold=0.30
+            # PubMedQA (1000 samples, NLI, GTX 1060, 2026-03-20):
+            #   F1=61.9% at t=0.30, BUT FPR=100% (all responses flagged).
+            #   Precision=44.8%. Needs KB grounding or calibration to be usable.
             "medical": {
                 "coherence_threshold": 0.30,
                 "hard_limit": 0.20,
@@ -437,8 +438,9 @@ class DirectorConfig:
                 "w_fact": 0.5,
                 "profile": "medical",
             },
-            # Measured on FinanceBench (150 samples, NLI, GTX 1060, 2026-03-20):
-            #   Score range 0.30–0.55, 0% FPR at threshold ≤0.30
+            # FinanceBench (150 samples, NLI, GTX 1060, 2026-03-20):
+            #   All 150 clean samples flagged (FPR=100%, precision=0%).
+            #   Threshold not validated — needs KB grounding or recalibration.
             "finance": {
                 "coherence_threshold": 0.30,
                 "hard_limit": 0.20,

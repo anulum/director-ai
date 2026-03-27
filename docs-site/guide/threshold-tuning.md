@@ -36,7 +36,7 @@ flowchart TD
 | Chunked NLI (`score_chunked`) | 30-400 ms | Highest — catches localized hallucinations | Long responses where a single hallucinated sentence hides in correct text |
 | Hybrid (`scorer_backend="hybrid"`) | 200-500 ms | ~78% est. | High-stakes pipelines, dialogue tasks where extra precision is needed |
 
-**Rule of thumb**: start with heuristic for development. Switch to NLI for production if your domain has high factual stakes. Summarisation FPR at 10.5% (v3.5, bidirectional NLI + baseline calibration). CoherenceScorer produces scores in [0.25, 0.55] — domain profiles use threshold=0.30 based on measured PubMedQA and FinanceBench results (2026-03-20). Tune on your own data.
+**Rule of thumb**: start with heuristic for development. Switch to NLI for production if your domain has high factual stakes. Summarisation FPR at 10.5% (v3.5, bidirectional NLI + baseline calibration). NLI-only scoring (without KB) produces scores in [0.25, 0.55] and has high FPR on domain tasks (100% on PubMedQA and FinanceBench). **Domain profiles require KB grounding or customer-specific calibration** — the threshold alone is not sufficient. Tune on your own data.
 
 For per-backend latency numbers and cadence combinations, see
 [Streaming Overhead](streaming-overhead.md#backend-selection).
@@ -178,9 +178,9 @@ Or use the CLI: `director-ai bench --dataset e2e` for an automated sweep.
 
 | Domain | Threshold | Rationale |
 |--------|-----------|-----------|
-| Medical | 0.30 | Measured on PubMedQA — lower threshold avoids false positives on medical text |
-| Legal | 0.30 | Measured profile — calibrated for legal document review |
-| Finance | 0.30 | Measured on FinanceBench — calibrated for financial claims |
+| Medical | 0.30 | NLI-only FPR=100% at this threshold. **KB grounding required.** |
+| Legal | 0.30 | Not yet validated (no benchmark artifact). Aligned with medical/finance. |
+| Finance | 0.30 | NLI-only FPR=100% at this threshold. **KB grounding required.** |
 | Customer support | 0.55 | Balanced; some creative latitude acceptable |
 | Creative | 0.40 | Permissive; hallucination is less harmful |
 

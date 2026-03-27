@@ -26,11 +26,11 @@ These are starting points based on domain heuristics, not validated against doma
 
 **research** — Higher threshold (0.70) for academic and analytical workloads where factual precision matters more than recall.
 
-**medical** — Equal logic/fact weighting reflects the need for both clinical reasoning and factual accuracy. Reranker enabled for precise KB retrieval. Measured on PubMedQA (500 samples, 2026-03-20): CoherenceScorer scores cluster 0.25–0.35; threshold=0.30 yields best F1 (59.9%) with 77.3% catch rate and 66.2% FPR.
+**medical** — Equal logic/fact weighting reflects the need for both clinical reasoning and factual accuracy. Reranker enabled for precise KB retrieval. NLI-only eval on PubMedQA (1000 samples, 2026-03-20): F1=61.9% at t=0.30, but FPR=100% (all responses flagged). **KB grounding or customer-specific calibration required for usable precision.** Scores without KB cluster 0.25-0.35.
 
-**finance** — Fact-weighted (0.6) because numerical claims and regulatory data dominate. Reranker sharpens retrieval against financial KB documents. Measured on FinanceBench (150 known-good SEC filing answers, 2026-03-20): scores cluster 0.30–0.55; threshold ≤0.30 achieves 0% FPR on correct answers.
+**finance** — Fact-weighted (0.6) because numerical claims and regulatory data dominate. Reranker sharpens retrieval against financial KB documents. NLI-only eval on FinanceBench (150 clean samples, 2026-03-20): FPR=100%, precision=0% — all clean responses were flagged. **These thresholds need KB grounding or recalibration before production use.**
 
-**legal** — Logic-weighted (0.6) because legal reasoning chains (statute + precedent + application) matter more than isolated facts. No reranker; legal KBs tend to be smaller and well-structured. Not yet validated on domain data (CUAD OOM on 6GB VRAM).
+**legal** — Logic-weighted (0.6) because legal reasoning chains (statute + precedent + application) matter more than isolated facts. No reranker; legal KBs tend to be smaller and well-structured. **Not validated** — CUAD benchmark OOM on 6GB VRAM. No domain-specific artifact exists.
 
 **creative** — Permissive thresholds (0.40/0.30/0.45) allow divergent generation. NLI disabled to avoid penalising metaphor and fiction. Logic-weighted (0.7) because internal narrative consistency matters more than factual grounding.
 
