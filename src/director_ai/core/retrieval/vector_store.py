@@ -1323,6 +1323,52 @@ class VectorGroundTruthStore(GroundTruthStore):
 
                 raise ValueError(f"Failed to query vector store: {e}") from e
 
+    @classmethod
+    def grounded(
+        cls,
+        embedding_model: str = RECOMMENDED_EMBEDDING_MODEL,
+        use_hybrid: bool = True,
+        rrf_k: int = 60,
+        tenant_id: str = "",
+    ) -> VectorGroundTruthStore:
+        """Factory for the recommended grounded retrieval recipe.
+
+        Sets up hybrid retrieval (BM25 + dense) with a sentence-transformer
+        embedding model. This is the intended production path for domain
+        profiles (medical, finance, legal) where NLI-only scoring has
+        100% FPR without KB grounding.
+
+        Usage::
+
+            store = VectorGroundTruthStore.grounded()
+            store.ingest(["Your product documentation...", ...])
+            scorer = CoherenceScorer(ground_truth_store=store, use_nli=True)
+
+        Parameters
+        ----------
+        embedding_model : str
+            HuggingFace model ID for dense embeddings.
+            Default: ``BAAI/bge-large-en-v1.5``.
+        use_hybrid : bool
+            Wrap dense backend with BM25 + RRF fusion (default True).
+        rrf_k : int
+            Reciprocal Rank Fusion parameter (default 60).
+        tenant_id : str
+            Default tenant scope for multi-tenant deployments.
+        """
+        try:
+            dense = SentenceTransformerBackend(model_name=embedding_model)
+        except Exception:
+            logger.warning(
+                "sentence-transformers not available, falling back to InMemoryBackend. "
+                "Install with: pip install director-ai[vector]"
+            )
+            dense = InMemoryBackend()
+
+        backend = HybridBackend(base=dense, rrf_k=rrf_k) if use_hybrid else dense
+
+        return cls(backend=backend, tenant_id=tenant_id)
+
     def retrieve_context_with_chunks(
         self,
         query: str,
