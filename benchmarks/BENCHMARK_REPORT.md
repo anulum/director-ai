@@ -1,7 +1,7 @@
 # Director-AI Benchmark Report
 
-Version: 3.4.0
-Date: 2026-03-09
+Version: 3.11.0
+Date: 2026-03-27
 
 ## Hardware
 
@@ -11,6 +11,63 @@ All latency numbers measured on:
 - **Cloud GPU**: NVIDIA L40S 45 GB (UpCloud fi-hel2), Python 3.12, torch 2.6.0+cu124
 - **Cross-GPU**: RTX 6000 Ada (48 GB), RTX A5000 (24 GB), RTX A6000 (48 GB), Quadro RTX 5000 (16 GB)
 - Iterations: 30 (latency), 5 warmup. GPU clocks not locked.
+
+## v3.11.0 Full Benchmark Suite (L40S, 2026-03-27)
+
+14-scenario benchmark on PyPI package (v3.11.0), NVIDIA L40S 46GB, 8 vCPU.
+Rust FFI wheel not included in PyPI — signal functions run Python path.
+
+**BUG: NLI scenarios 2-7, 12 ran on CPU, not GPU.** The benchmark script did
+not pass `nli_device="cuda"` and v3.11.0 lacked CUDA auto-detection. Fixed in
+v3.11.1: `_load_nli_model()` now auto-selects CUDA when `torch.cuda.is_available()`.
+NLI numbers below are **CPU-only** — GPU re-benchmark pending.
+
+### Latency Summary
+
+| # | Scenario | Median | p95 | Notes |
+|---|----------|--------|-----|-------|
+| 1 | Heuristic (no NLI) | 0.081 ms | 0.090 ms | 2000 iter |
+| 2 | NLI single-pair (DeBERTa, **CPU**) | 169.5 ms | 176.5 ms | 300 iter — CPU, not GPU |
+| 3 | NLI batch-8 (**CPU**) | 292.9 ms/call | — | 100 iter — CPU fallback |
+| 4 | Full KB+NLI (**CPU**) | 354.4 ms/call | — | CPU NLI + vector KB |
+| 5 | ONNX (**CPU**) | 169.4 ms | 175.4 ms | 200 iter — CPU, not GPU |
+| 6 | Hybrid NLI+GPT-4o-mini | 416 ms | — | NLI on CPU + API call |
+| 7 | Hybrid NLI+Claude Haiku | 424 ms | — | NLI on CPU + API call |
+| 8 | VerifiedScorer (sentence) | 0.029 ms/resp | — | 200 iter (CPU-only, correct) |
+| 9 | VerifiedScorer (atomic) | 0.031 ms/resp | — | 200 iter (CPU-only, correct) |
+| 10 | Streaming false-halt | 0/10 (0%) | — | 10 science passages |
+| 11 | Throughput heuristic (4T) | 10,630 RPS | 0.535 ms | 10s window |
+| 12 | Throughput NLI (**CPU**, 2T) | 5.2 RPS | 399 ms | CPU, not GPU |
+| 13 | Signal functions (Python) | 1.5-2.2 us | — | 5000 iter each |
+| 14 | BM25 hybrid (100 docs) | 150 us | — | 3000 iter |
+
+### Hybrid Judge Cold Start
+
+| Provider | Cold start | Steady state | Model |
+|----------|-----------|--------------|-------|
+| OpenAI | 2,401 ms | 416 ms | gpt-4o-mini |
+| Anthropic | 1,511 ms | 424 ms | claude-haiku-4-5 |
+
+### Bug Root Cause
+
+`CoherenceScorer(use_nli=True)` without `nli_device="cuda"` left the device as
+`None`. `_load_nli_model()` only called `model.to(device)` when device was
+truthy — so the model stayed on CPU. nvidia-smi confirmed: 0% GPU, 3 MiB VRAM
+throughout the entire benchmark run.
+
+**Fix (v3.11.1):** `_load_nli_model()` now checks `torch.cuda.is_available()`
+when device is `None` and auto-selects CUDA. This matches the ONNX loader which
+already auto-detected `CUDAExecutionProvider`.
+
+### Valid (non-NLI) Results
+
+Scenarios 1, 8-11, 13-14 are CPU-only by design and are valid:
+- Heuristic: 0.081ms, 10,630 RPS
+- VerifiedScorer: 0.029-0.031 ms/resp
+- Signal functions: 1.5-2.2 us
+- BM25: 150 us/query
+
+Raw data: `benchmarks/results/l40s_v3.11.0_2026-03-27.json`
 
 ## 1. NLI Accuracy — LLM-AggreFact (29,320 samples)
 

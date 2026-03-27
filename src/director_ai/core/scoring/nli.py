@@ -141,7 +141,11 @@ def _load_nli_model(
             AutoTokenizer,
         )
 
-        logger.info("Loading NLI model: %s", model_name)
+        if device is None and torch.cuda.is_available():
+            device = "cuda"
+            logger.info("CUDA available, auto-selecting GPU device")
+
+        logger.info("Loading NLI model: %s (device=%s)", model_name, device)
         tokenizer = AutoTokenizer.from_pretrained(model_name)
 
         load_kwargs: dict = {}
