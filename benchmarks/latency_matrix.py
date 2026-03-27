@@ -115,7 +115,9 @@ def _detect_hardware() -> dict:
 
         if torch.cuda.is_available():
             info["gpu"] = torch.cuda.get_device_name(0)
-            info["gpu_memory_mb"] = torch.cuda.get_device_properties(0).total_mem // (1024 * 1024)
+            info["gpu_memory_mb"] = torch.cuda.get_device_properties(0).total_mem // (
+                1024 * 1024
+            )
     except ImportError:
         pass
     return info
@@ -129,7 +131,9 @@ def _bench_heuristic(batch_size: int, iterations: int, warmup: int) -> float:
     store.add("facts", "; ".join(SAMPLE_PREMISES[:5]))
     scorer = CoherenceScorer(threshold=0.5, ground_truth_store=store, use_nli=False)
 
-    pairs = list(zip(SAMPLE_PREMISES[:batch_size], SAMPLE_HYPOTHESES[:batch_size], strict=True))
+    pairs = list(
+        zip(SAMPLE_PREMISES[:batch_size], SAMPLE_HYPOTHESES[:batch_size], strict=True)
+    )
 
     for _ in range(warmup):
         for p, h in pairs:
@@ -157,7 +161,9 @@ def _bench_nli(batch_size: int, iterations: int, warmup: int) -> float | None:
     except Exception:
         return None
 
-    pairs = list(zip(SAMPLE_PREMISES[:batch_size], SAMPLE_HYPOTHESES[:batch_size], strict=True))
+    pairs = list(
+        zip(SAMPLE_PREMISES[:batch_size], SAMPLE_HYPOTHESES[:batch_size], strict=True)
+    )
 
     for _ in range(warmup):
         nli.score_batch(pairs)
@@ -210,7 +216,9 @@ def run_matrix(iterations: int = 30, warmup: int = 5) -> dict:
     print("|-------|----------------|------------------|")
     for row in results["matrix"]:
         nli_str = f"{row['nli_pytorch_ms']:.3f}" if row["nli_pytorch_ms"] else "N/A"
-        print(f"| {row['batch_size']:>5} | {row['heuristic_ms']:>14.3f} | {nli_str:>16} |")
+        print(
+            f"| {row['batch_size']:>5} | {row['heuristic_ms']:>14.3f} | {nli_str:>16} |"
+        )
 
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     path = RESULTS_DIR / "latency_matrix.json"

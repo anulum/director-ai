@@ -12,6 +12,7 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
         args: [--unsafe]
+        exclude: ^deploy/helm/.*/templates/
       - id: check-toml
       - id: check-merge-conflict
       - id: check-added-large-files
