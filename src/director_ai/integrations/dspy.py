@@ -111,7 +111,4 @@ def director_assert(
         use_nli=use_nli,
     )
     if not result["approved"]:
-        msg = message or (
-            f"Coherence {result['score']:.3f} below threshold {threshold}"
-        )
-        raise HallucinationError(msg)
+        raise HallucinationError(prompt, response, result["score"])

@@ -1356,6 +1356,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         tenant_id : str
             Default tenant scope for multi-tenant deployments.
         """
+        dense: VectorBackend
         try:
             dense = SentenceTransformerBackend(model_name=embedding_model)
         except Exception:

@@ -77,10 +77,7 @@ class DirectorAIFilter:
 
         if not approved:
             if self._raise:
-                raise HallucinationError(
-                    f"Coherence {score.score:.3f} below threshold "
-                    f"{self._scorer.threshold}"
-                )
+                raise HallucinationError(prompt, result, score)
             context.result = {
                 "approved": False,
                 "score": score.score,
