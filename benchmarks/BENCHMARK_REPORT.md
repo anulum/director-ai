@@ -380,6 +380,25 @@ python -m benchmarks.e2e_eval --nli --scorer-backend hybrid \
 python benchmarks/run_judge_benchmark.py --samples 500
 ```
 
+## Throughput (QPS)
+
+Run with `python -m benchmarks.load_test` to generate a QPS artifact:
+
+```bash
+# Single-node heuristic (CPU only)
+python -m benchmarks.load_test --concurrency 4 --duration 30
+
+# Single-node NLI (GPU)
+python -m benchmarks.load_test --concurrency 4 --duration 30 --nli
+
+# API server
+python -m benchmarks.load_test --server http://localhost:8080 --concurrency 16 --duration 30
+```
+
+Results saved to `benchmarks/results/load_test.json`.
+
+Latency matrix (backend x batch size): `python -m benchmarks.latency_matrix`
+
 ## Sources
 
 - [LLM-AggreFact Leaderboard](https://llm-aggrefact.github.io/)
