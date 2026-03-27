@@ -1043,6 +1043,81 @@ impl PySSGFEngine {
 /// - `RustCoherenceScorer` — dual-entropy coherence scoring
 /// - `CoherenceScore` — score result
 /// - `StreamSession` — streaming session trace
+// ─── Verification Signals (Rust-accelerated) ─────────────────────────
+
+/// Entity overlap between two texts (Jaccard of proper nouns).
+#[pyfunction]
+fn rust_entity_overlap(text_a: &str, text_b: &str) -> f64 {
+    backfire_core::signals::entity_overlap(text_a, text_b)
+}
+
+/// Numerical consistency check between two texts.
+#[pyfunction]
+fn rust_numerical_consistency(text_a: &str, text_b: &str) -> Option<bool> {
+    backfire_core::signals::numerical_consistency(text_a, text_b)
+}
+
+/// Detect negation flip between claim and source.
+#[pyfunction]
+fn rust_negation_flip(claim: &str, source: &str) -> bool {
+    backfire_core::signals::negation_flip(claim, source)
+}
+
+/// Content word traceability (fraction of claim words in source).
+#[pyfunction]
+fn rust_traceability(claim: &str, source: &str) -> f64 {
+    backfire_core::signals::traceability(claim, source)
+}
+
+/// Linear regression trend drop over coherence window.
+#[pyfunction]
+fn rust_trend_drop(values: Vec<f64>) -> f64 {
+    backfire_core::signals::trend_drop(&values)
+}
+
+// ─── BM25 Retrieval Engine ──────────────────────────────────────────
+
+/// Rust-accelerated BM25 sparse retrieval engine.
+#[pyclass(name = "RustBM25")]
+struct PyBM25 {
+    inner: backfire_core::BM25Engine,
+}
+
+#[pymethods]
+impl PyBM25 {
+    #[new]
+    #[pyo3(signature = (k1 = 1.2, b = 0.75))]
+    fn new(k1: f64, b: f64) -> Self {
+        Self {
+            inner: backfire_core::BM25Engine::new(k1, b),
+        }
+    }
+
+    /// Add a document to the BM25 index.
+    fn add_document(&self, doc_id: &str, text: &str) {
+        self.inner.add_document(doc_id, text);
+    }
+
+    /// Query the index, returning list of (doc_id, score) tuples.
+    fn query(&self, query_text: &str, n_results: usize) -> Vec<(String, f64)> {
+        self.inner
+            .query(query_text, n_results)
+            .into_iter()
+            .map(|r| (r.doc_id, r.score))
+            .collect()
+    }
+
+    /// Number of indexed documents.
+    fn count(&self) -> usize {
+        self.inner.count()
+    }
+
+    /// Clear all documents.
+    fn clear(&self) {
+        self.inner.clear();
+    }
+}
+
 #[pymodule]
 fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core safety gate
@@ -1062,5 +1137,13 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_class::<PyPGBOEngine>()?;
     // SSGF geometry engine
     m.add_class::<PySSGFEngine>()?;
+    // Verification signals (Rust-accelerated)
+    m.add_function(wrap_pyfunction!(rust_entity_overlap, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_numerical_consistency, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_negation_flip, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_traceability, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_trend_drop, m)?)?;
+    // BM25 retrieval engine
+    m.add_class::<PyBM25>()?;
     Ok(())
 }

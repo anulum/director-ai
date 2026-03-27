@@ -26,6 +26,13 @@ from ..otel import trace_streaming
 from ..types import HaltEvidence
 from .kernel import HaltMonitor
 
+try:
+    from backfire_kernel import rust_trend_drop as _rust_trend_drop
+
+    _RUST_TREND = True
+except ImportError:
+    _RUST_TREND = False
+
 __all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -40,6 +47,8 @@ def _trend_drop(values: list[float] | deque) -> float:
     Returns the projected drop magnitude: -slope * (n - 1).
     Positive values indicate downward trend.
     """
+    if _RUST_TREND:
+        return _rust_trend_drop(list(values))
     n = len(values)
     if n < 2:
         return 0.0

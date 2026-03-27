@@ -29,11 +29,14 @@
 //!    pre-allocated before the token loop. The scoring loop itself
 //!    performs only arithmetic, comparisons, and atomic loads/stores.
 
+pub mod bm25;
 pub mod kernel;
 pub mod knowledge;
 pub mod nli;
 pub mod scorer;
+pub mod signals;
 
+pub use bm25::BM25Engine;
 pub use kernel::{SafetyKernel, StreamingKernel};
 pub use knowledge::{GroundTruthStore, InMemoryKnowledge};
 pub use nli::{HeuristicNli, NliBackend};
