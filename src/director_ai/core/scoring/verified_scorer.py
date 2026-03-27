@@ -206,9 +206,7 @@ class VerifiedScorer:
             if len(r_sent.split()) < 3:
                 continue
 
-            spans = self._find_top_k_matches(
-                r_sent, source_sents, k=evidence_top_k
-            )
+            spans = self._find_top_k_matches(r_sent, source_sents, k=evidence_top_k)
             best_span = spans[0] if spans else SourceSpan("", 0, 1.0)
             best_src_idx = best_span.index
             best_src = best_span.text
