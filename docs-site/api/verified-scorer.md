@@ -67,6 +67,48 @@ for claim in result.claims:
     print(f"    Confidence: {claim.confidence:.2f}")
 ```
 
+### Atomic Claim Decomposition
+
+Compound sentences can hide errors — one clause is correct while the other is fabricated. `atomic=True` splits compound sentences at conjunctions (`and`, `but`, `while`, `whereas`, `although`, `however`, `moreover`, `furthermore`) before matching, so each atomic claim gets its own verdict.
+
+```python
+from director_ai import VerifiedScorer
+
+vs = VerifiedScorer()
+result = vs.verify(
+    response="The contract lasts 12 months and includes a 90-day refund window.",
+    source="The contract lasts 12 months with a 30-day refund window.",
+    atomic=True,
+)
+
+for claim in result.claims:
+    print(f"  [{claim.verdict}] {claim.claim}")
+    print(f"    atomic: {claim.is_atomic}")
+# [supported] The contract lasts 12 months   (atomic: True)
+# [contradicted] includes a 90-day refund window   (atomic: True)
+```
+
+Without `atomic=True`, the compound sentence would be matched as a single claim, potentially masking the 90-day vs 30-day contradiction.
+
+### Multi-Span Evidence
+
+`evidence_top_k` controls how many source spans are attached as evidence per claim (default: 3). Each `SourceSpan` contains the matched source text, its index, and NLI divergence score.
+
+```python
+from director_ai import VerifiedScorer
+
+vs = VerifiedScorer()
+result = vs.verify(
+    response="The API supports batch processing.",
+    source="The API handles single requests. Batch mode is available for enterprise. Rate limits apply.",
+    evidence_top_k=3,
+)
+
+for claim in result.claims:
+    for span in claim.evidence_spans:
+        print(f"  [{span.nli_divergence:.2f}] {span.text}")
+```
+
 ### With NLI Model
 
 When an NLI scorer is provided, claim-to-source matching uses NLI divergence instead of word overlap, producing more accurate verdicts.
@@ -187,7 +229,28 @@ Response:
 | `support_threshold` | `float` | `0.35` | NLI divergence below this counts as support signal |
 | `min_confidence` | `float` | `0.4` | Below this threshold, verdict falls to `unverifiable` |
 
+## `verify()` Method Parameters
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `response` | `str` | *(required)* | LLM output to verify |
+| `source` | `str` | *(required)* | Ground truth text to verify against |
+| `atomic` | `bool` | `False` | Decompose compound sentences into atomic claims before matching. Catches errors hidden in compound clauses. |
+| `evidence_top_k` | `int` | `3` | Number of source spans to attach as evidence per claim |
+
 ## Data Classes
+
+### SourceSpan
+
+A source text span that supports or contradicts a claim. Attached to `ClaimVerdict.evidence_spans`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `text` | `str` | Source sentence text |
+| `index` | `int` | Position in the source text |
+| `nli_divergence` | `float` | NLI divergence against the claim (0 = entailed, 1 = contradicted) |
+| `entity_match` | `float` | Entity overlap with the claim (default 1.0) |
+| `numerical_match` | `bool \| None` | Number consistency with the claim (default `None`) |
 
 ### ClaimVerdict
 
@@ -206,6 +269,8 @@ Per-claim result from multi-signal analysis.
 | `traceability` | `float` | Fraction of claim content words found in source (0.0–1.0) |
 | `verdict` | `str` | `"supported"`, `"contradicted"`, `"fabricated"`, or `"unverifiable"` |
 | `confidence` | `float` | Verdict confidence (0.0–1.0) |
+| `evidence_spans` | `list[SourceSpan]` | Top-k source spans matched to this claim (controlled by `evidence_top_k`) |
+| `is_atomic` | `bool` | `True` if this claim was produced by atomic decomposition |
 
 ### VerificationResult
 

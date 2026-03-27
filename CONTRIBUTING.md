@@ -107,6 +107,8 @@ The package lives in `src/director_ai/` with two profiles:
 | `langgraph.py` | `director_ai_node()` | LangGraph state node + conditional edge |
 | `haystack.py` | `DirectorAIChecker` | Haystack 2.x component |
 | `crewai.py` | `DirectorAITool` | CrewAI tool |
+| `dspy.py` | `coherence_check()`, `director_assert()` | DSPy assertion + Instructor validation (v3.11.0) |
+| `semantic_kernel.py` | `DirectorAIFilter` | Microsoft Semantic Kernel function invocation filter (v3.11.0) |
 
 ## Reporting Issues
 
