@@ -59,6 +59,41 @@ throughout the entire benchmark run.
 when device is `None` and auto-selects CUDA. This matches the ONNX loader which
 already auto-detected `CUDAExecutionProvider`.
 
+### v3.11.1 Fix Verified — GTX 1060 6GB (2026-03-27)
+
+CUDA auto-detection confirmed working. No `nli_device` param passed —
+model auto-placed on GPU, 1,757 MB VRAM allocated.
+
+| Metric | GTX 1060 GPU | L40S CPU (v3.11.0 bug) |
+|--------|-------------|----------------------|
+| Median | 431.5 ms | 169.5 ms |
+| p95 | 643.1 ms | 176.5 ms |
+| VRAM | 1,757 MB | 3 MB |
+| Model on GPU | Yes | No |
+
+GTX 1060 is slower than L40S CPU because DeBERTa-v3-Large (0.4B params) is
+memory-bandwidth-limited on Pascal architecture (192 GB/s vs Xeon cache).
+True comparison requires L40S GPU re-benchmark with v3.11.1.
+
+Raw data: `benchmarks/results/gtx1060_nli_auto_detect_v3.11.1.json`
+
+### Rust vs Python Signal Benchmark (v3.11.1, 5000 iterations)
+
+| Function | Python (us) | Rust (us) | Speedup |
+|----------|------------|----------|---------|
+| entity_overlap | 14.70 | 3.70 | 4.0x |
+| numerical_consistency | 14.80 | 2.30 | 6.4x |
+| negation_flip | 11.80 | 14.40 | 0.8x |
+| traceability | 12.20 | 22.20 | 0.5x |
+| trend_drop | 6.20 | 0.30 | 20.7x |
+| BM25 (100 docs) | 110.20 | 10.80 | 10.2x |
+
+`negation_flip` and `traceability` are slower in Rust due to PyO3 FFI string
+marshalling overhead at microsecond scale. Pure numeric (`trend_drop`) and
+index-heavy (`BM25`) workloads show 10–21x speedup.
+
+Raw data: `benchmarks/results/rust_signals_bench.json`
+
 ### Valid (non-NLI) Results
 
 Scenarios 1, 8-11, 13-14 are CPU-only by design and are valid:
