@@ -10,7 +10,7 @@
 
 <p align="center">
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
-  <img src="https://img.shields.io/badge/tests-3050%2B_passed-brightgreen.svg" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-3500%2B_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11+-blue.svg" alt="Python 3.11+"></a>
@@ -134,17 +134,13 @@ headers. Set `paths=["/api/chat"]` to limit which endpoints are scored.
 ## Installation
 
 ```bash
-pip install "director-ai[nli]"              # recommended — NLI model scoring
-pip install "director-ai[nli,vector,server]" # production stack with RAG + REST API
-pip install director-ai                      # heuristic-only (limited accuracy)
+pip install "director-ai[nli]"                    # recommended — NLI model scoring
+pip install "director-ai[nli,vector,server]"       # production stack with RAG + REST API
+pip install "director-ai[nli,voice]"               # voice AI with TTS adapters
+pip install director-ai                            # heuristic-only (limited accuracy)
 ```
 
-> **Privacy note:** The optional LLM judge mode (`llm_judge_enabled=True`) sends
-> truncated prompt+response fragments (500 chars) to an external provider (OpenAI
-> or Anthropic). Do not enable in privacy-sensitive deployments without user consent.
-> The default NLI-only mode runs entirely locally with no external calls.
-
-Extras: `[vector]` (ChromaDB), `[finetune]` (domain adaptation), `[ingestion]` (PDF/DOCX parsing), `[colbert]` (late-interaction retrieval).
+Extras: `[vector]` (ChromaDB), `[voice]` (ElevenLabs, OpenAI TTS, Deepgram), `[finetune]` (domain adaptation), `[ingestion]` (PDF/DOCX parsing), `[colbert]` (late-interaction retrieval).
 Framework integrations: `[langchain]`, `[llamaindex]`, `[langgraph]`, `[haystack]`, `[crewai]`, Semantic Kernel, DSPy/Instructor.
 Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstore-signed releases.
 Voice AI: `VoiceGuard` (sync) and `AsyncVoiceGuard` + `voice_pipeline()` (async) — real-time token filter for TTS pipelines with ElevenLabs, OpenAI TTS, and Deepgram adapters ([guide](https://anulum.github.io/director-ai/guide/voice-ai/)).
@@ -204,16 +200,30 @@ python -m benchmarks.legal_eval     # ContractNLI + CUAD (RAGBench)
 python -m benchmarks.finance_eval   # FinanceBench + Financial PhraseBank
 ```
 
-## Known Limitations
+<details>
+<summary><strong>Known Limitations & When Not to Use</strong></summary>
 
-1. **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to reject (0.9) instead of guessing.
-2. **Summarisation FPR at 10.5%**: Reduced from 95% via bidirectional NLI + baseline calibration (v3.5). AggreFact-CNN: 68.8%, ExpertQA: 59.1% (structurally expected at 0.4B params).
-3. **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
-4. **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain or use a built-in profile.
-5. **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider. Do not enable in privacy-sensitive deployments without user consent.
-6. **Threshold defaults differ by API surface**: `guard()`/`score()` default to `threshold=0.3` (permissive). `DirectorConfig` defaults to `coherence_threshold=0.6` (conservative). Always set the threshold explicitly.
-7. **NLI-only scoring needs KB grounding**: Without a knowledge base, PubMedQA F1=62.1%, FinanceBench 80%+ FPR. Load your domain facts into the vector store — that's where Director-AI's scoring discriminates well.
-8. **Long documents need ≥16GB VRAM**: Legal contracts and SEC filings exceed 6GB during chunked NLI inference.
+#### Accuracy
+
+- **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to reject (0.9) instead of guessing.
+- **Summarisation FPR at 10.5%**: Reduced from 95% via bidirectional NLI + baseline calibration (v3.5). AggreFact-CNN: 68.8%, ExpertQA: 59.1% (structurally expected at 0.4B params).
+- **NLI-only scoring needs KB grounding**: Without a knowledge base, PubMedQA F1=62.1%, FinanceBench 80%+ FPR. Load your domain facts into the vector store.
+
+#### Performance
+
+- **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
+- **Long documents need ≥16GB VRAM**: Legal contracts and SEC filings exceed 6GB during chunked NLI inference.
+
+#### Configuration
+
+- **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain or use a built-in profile.
+- **Threshold defaults differ by API surface**: `guard()`/`score()` default to `threshold=0.3` (permissive). `DirectorConfig` defaults to `coherence_threshold=0.6` (conservative). Always set the threshold explicitly.
+
+#### Privacy
+
+- **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider. Do not enable in privacy-sensitive deployments without user consent. The default NLI-only mode runs entirely locally with no external calls.
+
+</details>
 
 ## Citation
 
@@ -223,7 +233,7 @@ python -m benchmarks.finance_eval   # FinanceBench + Financial PhraseBank
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.11.0},
+  version   = {3.11.1},
   license   = {AGPL-3.0-or-later}
 }
 ```

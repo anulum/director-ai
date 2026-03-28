@@ -105,9 +105,15 @@ def _print_help() -> None:
 
 
 def _cmd_version(args: list[str]) -> None:
+    import platform
+
     import director_ai
 
-    print(f"director-ai {director_ai.__version__}")
+    version_line = f"director-ai {director_ai.__version__}"
+    print(version_line)
+    print(
+        f"Python {platform.python_version()} on {platform.system()} {platform.machine()}"
+    )
 
 
 _VALID_PROFILES = (
