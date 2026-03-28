@@ -4,10 +4,21 @@
 
 <span class="version-badge">v3.11.1 — ProductionGuard, atomic claims, Semantic Kernel/DSPy, Helm, Sigstore signing</span>
 
+[![CI](https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/ci.yml)
+[![Pre-commit](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml)
+[![CodeQL](https://github.com/anulum/director-ai/actions/workflows/codeql.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/codeql.yml)
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
-[![Tests](https://img.shields.io/badge/tests-3545_passed-brightgreen)]()
-[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://github.com/anulum/director-ai/blob/main/LICENSE)
+[![Downloads](https://img.shields.io/pypi/dm/director-ai)](https://pypi.org/project/director-ai/)
+![Tests](https://img.shields.io/badge/tests-3545_passed-brightgreen)
+[![Coverage](https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg)](https://codecov.io/gh/anulum/director-ai)
 [![Python](https://img.shields.io/pypi/pyversions/director-ai)](https://pypi.org/project/director-ai/)
+![Ruff](https://img.shields.io/badge/code%20style-ruff-261230.svg)
+![mypy](https://img.shields.io/badge/types-mypy-blue.svg)
+![Sigstore](https://img.shields.io/badge/signing-Sigstore-purple.svg)
+[![License](https://img.shields.io/badge/license-AGPL--3.0-blue)](https://github.com/anulum/director-ai/blob/main/LICENSE)
+[![OpenSSF Best Practices](https://www.bestpractices.dev/projects/12102/badge)](https://www.bestpractices.dev/projects/12102)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/anulum/director-ai/badge)](https://securityscorecards.dev/viewer/?uri=github.com/anulum/director-ai)
+[![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.18822167.svg)](https://doi.org/10.5281/zenodo.18822167)
 
 | | |
 |---|---|
