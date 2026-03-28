@@ -50,6 +50,7 @@ class TestAsyncVoiceGuardBasic:
             use_nli=False,
             prompt="sky",
             score_every=1,
+            hard_limit=0.01,
         )
         tokens = ["The ", "sky ", "is ", "blue."]
         results = [r async for r in guard.feed_stream(iter(tokens))]
@@ -62,6 +63,7 @@ class TestAsyncVoiceGuardBasic:
             use_nli=False,
             prompt="sky",
             score_every=1,
+            hard_limit=0.01,
         )
 
         async def async_tokens():
