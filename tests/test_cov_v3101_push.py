@@ -526,7 +526,8 @@ class TestCLIEdgeCases:
 
         main(["version"])
         out = capsys.readouterr().out
-        parts = out.strip().split()[-1].split(".")
+        first_line = out.strip().splitlines()[0]
+        parts = first_line.split()[-1].split(".")
         assert len(parts) == 3
 
 

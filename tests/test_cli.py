@@ -42,8 +42,8 @@ class TestVersionCommand:
         main(["version"])
         captured = capsys.readouterr()
         assert "director-ai" in captured.out
-        # Version should be a semver string
-        parts = captured.out.strip().split()[-1].split(".")
+        first_line = captured.out.strip().splitlines()[0]
+        parts = first_line.split()[-1].split(".")
         assert len(parts) == 3
 
 
