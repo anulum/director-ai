@@ -19,6 +19,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import AsyncIterator
+from typing import Any
 
 from director_ai.core.exceptions import DependencyError
 
@@ -74,7 +75,7 @@ class ElevenLabsAdapter(TTSAdapter):
         self._api_key = api_key
         self._client = None
 
-    def _get_client(self):
+    def _get_client(self) -> Any:
         if self._client is not None:
             return self._client
         try:
@@ -135,7 +136,7 @@ class OpenAITTSAdapter(TTSAdapter):
         self._response_format = response_format
         self._client = None
 
-    def _get_client(self):
+    def _get_client(self) -> Any:
         if self._client is not None:
             return self._client
         try:
@@ -189,7 +190,7 @@ class DeepgramAdapter(TTSAdapter):
         self._api_key = api_key
         self._client = None
 
-    def _get_client(self):
+    def _get_client(self) -> Any:
         if self._client is not None:
             return self._client
         try:

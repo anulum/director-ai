@@ -83,7 +83,7 @@ async def voice_pipeline(
 
     text_buf: list[str] = []
 
-    async def _flush_buffer():
+    async def _flush_buffer() -> AsyncIterator[bytes]:
         if not text_buf:
             return
         chunk = "".join(text_buf)

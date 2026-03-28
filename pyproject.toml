@@ -248,6 +248,12 @@ disallow_untyped_defs = false
 check_untyped_defs = true
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = "director_ai.voice.*"
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+warn_unreachable = true
+
 [tool.bandit]
 exclude_dirs = ["tests", "benchmarks"]
 # B101: assert used in tests only (excluded above)

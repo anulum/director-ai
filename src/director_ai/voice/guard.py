@@ -61,17 +61,17 @@ class AsyncVoiceGuard:
 
     def __init__(
         self,
-        facts=None,
-        store=None,
-        threshold=0.3,
-        score_every=4,
-        hard_limit=0.25,
-        window_size=8,
-        soft_halt=True,
-        recovery="I need to verify that information. One moment.",
-        use_nli=True,
-        prompt="",
-    ):
+        facts: dict[str, str] | None = None,
+        store: GroundTruthStore | None = None,
+        threshold: float = 0.3,
+        score_every: int = 4,
+        hard_limit: float = 0.25,
+        window_size: int = 8,
+        soft_halt: bool = True,
+        recovery: str = "I need to verify that information. One moment.",
+        use_nli: bool = True,
+        prompt: str = "",
+    ) -> None:
         if store is not None:
             self._store = store
         else:
