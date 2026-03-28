@@ -51,10 +51,14 @@ def _load_samples(n: int) -> list[dict]:
 
 
 def _balanced_accuracy(labels: list[int], preds: list[bool]) -> float:
-    tp = sum(1 for l, p in zip(labels, preds) if l == 0 and p is False)
-    tn = sum(1 for l, p in zip(labels, preds) if l == 1 and p is True)
-    pos = sum(1 for l in labels if l == 0)
-    neg = sum(1 for l in labels if l == 1)
+    tp = sum(
+        1 for lbl, pred in zip(labels, preds, strict=True) if lbl == 0 and pred is False
+    )
+    tn = sum(
+        1 for lbl, pred in zip(labels, preds, strict=True) if lbl == 1 and pred is True
+    )
+    pos = sum(1 for lbl in labels if lbl == 0)
+    neg = sum(1 for lbl in labels if lbl == 1)
     recall_pos = tp / pos if pos > 0 else 0.0
     recall_neg = tn / neg if neg > 0 else 0.0
     return (recall_pos + recall_neg) / 2
@@ -176,10 +180,14 @@ def _run_config(
     elapsed = time.perf_counter() - t0
 
     ba = _balanced_accuracy(labels, preds)
-    tp = sum(1 for l, p in zip(labels, preds) if l == 0 and not p)
-    fp = sum(1 for l, p in zip(labels, preds) if l == 1 and not p)
-    tn = sum(1 for l, p in zip(labels, preds) if l == 1 and p)
-    fn = sum(1 for l, p in zip(labels, preds) if l == 0 and p)
+    tp = sum(
+        1 for lbl, pred in zip(labels, preds, strict=True) if lbl == 0 and not pred
+    )
+    fp = sum(
+        1 for lbl, pred in zip(labels, preds, strict=True) if lbl == 1 and not pred
+    )
+    tn = sum(1 for lbl, pred in zip(labels, preds, strict=True) if lbl == 1 and pred)
+    fn = sum(1 for lbl, pred in zip(labels, preds, strict=True) if lbl == 0 and pred)
 
     return {
         "config": config_name,
