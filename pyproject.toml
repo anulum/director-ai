@@ -62,6 +62,7 @@ server = [
 minicheck = [
     "minicheck>=0.1",
 ]
+voice = []  # TTS SDK is user's choice: elevenlabs, openai, or deepgram-sdk
 onnx = [
     "onnxruntime>=1.15,<2",
 ]

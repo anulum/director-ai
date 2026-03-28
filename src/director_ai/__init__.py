@@ -118,6 +118,13 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "score": (".integrations.sdk_guard", "score"),
     "VoiceGuard": (".integrations.voice", "VoiceGuard"),
     "VoiceToken": (".integrations.voice", "VoiceToken"),
+    # Voice AI subpackage (async guard + TTS adapters + pipeline)
+    "AsyncVoiceGuard": (".voice.guard", "AsyncVoiceGuard"),
+    "TTSAdapter": (".voice.adapters", "TTSAdapter"),
+    "ElevenLabsAdapter": (".voice.adapters", "ElevenLabsAdapter"),
+    "OpenAITTSAdapter": (".voice.adapters", "OpenAITTSAdapter"),
+    "DeepgramAdapter": (".voice.adapters", "DeepgramAdapter"),
+    "voice_pipeline": (".voice.pipeline", "voice_pipeline"),
     "CoherenceCallbackHandler": (
         ".integrations.langchain_callback",
         "CoherenceCallbackHandler",

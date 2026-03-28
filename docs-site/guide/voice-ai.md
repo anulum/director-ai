@@ -133,6 +133,92 @@ audio = tts.text_to_speech.convert(
 el_stream(audio)
 ```
 
+## Async Voice Pipeline (v3.12+)
+
+For async voice pipelines, `AsyncVoiceGuard` and `voice_pipeline` provide true streaming audio — approved tokens go to TTS immediately, not collect-then-speak.
+
+### 5-Line Integration
+
+```python
+from director_ai.voice import voice_pipeline, ElevenLabsAdapter
+
+tts = ElevenLabsAdapter(voice_id="JBFqnCBsd6RMkjVDRZzb")
+
+async for audio_chunk in voice_pipeline(llm_token_stream, tts, facts=my_facts, prompt=question):
+    await websocket.send_bytes(audio_chunk)
+```
+
+The pipeline buffers approved tokens into sentence-sized chunks for natural TTS prosody, sends each sentence to the adapter as it completes, and yields audio bytes as they arrive. On halt, the pipeline flushes remaining text, synthesises the recovery message, and stops.
+
+### Architecture
+
+```
+LLM tokens ──→ AsyncVoiceGuard ──→ sentence buffer ──→ TTSAdapter ──→ audio bytes
+                    │                                       │
+                    ├─ approved ──→ buffer token             ├─ ElevenLabsAdapter
+                    └─ halted   ──→ flush + recovery + stop  ├─ OpenAITTSAdapter
+                                                             └─ DeepgramAdapter
+```
+
+### AsyncVoiceGuard (Low-Level)
+
+Same scoring as sync `VoiceGuard`, but async-native. Use this directly when you don't need TTS integration:
+
+```python
+from director_ai.voice import AsyncVoiceGuard
+
+guard = AsyncVoiceGuard(facts=my_facts, prompt=question)
+
+async for result in guard.feed_stream(llm_token_stream):
+    if result.halted:
+        await handle_halt(result)
+        break
+    await process_approved_token(result.token)
+```
+
+`feed_stream()` accepts both sync and async iterables. `feed()` scores a single token.
+
+### TTS Adapters
+
+Install the TTS SDK you need:
+
+```bash
+pip install elevenlabs      # ElevenLabsAdapter
+pip install openai           # OpenAITTSAdapter
+pip install deepgram-sdk     # DeepgramAdapter
+```
+
+Each adapter implements the `TTSAdapter` ABC:
+
+```python
+class TTSAdapter(ABC):
+    async def synthesise(self, text: str) -> AsyncIterator[bytes]: ...
+    async def flush(self) -> AsyncIterator[bytes]: ...
+    async def close(self) -> None: ...
+```
+
+Write your own adapter for any TTS engine by subclassing `TTSAdapter`.
+
+### Pipeline Parameters
+
+`voice_pipeline()` accepts all `AsyncVoiceGuard` parameters plus:
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `on_halt` | `Callable` | `None` | Sync or async callback, receives halting `VoiceToken` |
+| `sentence_buffer` | `bool` | `True` | Buffer tokens into sentences before TTS (better prosody) |
+
+### Halt Callback
+
+```python
+async def on_halt(vtoken):
+    log.warning(f"Halt: {vtoken.halt_reason} at coherence {vtoken.coherence:.3f}")
+    await notify_supervisor(vtoken)
+
+async for audio in voice_pipeline(tokens, tts, facts=facts, on_halt=on_halt):
+    play(audio)
+```
+
 ## Latency Budget
 
 Voice AI requires end-to-end latency under 500ms for natural conversation. `VoiceGuard` with `score_every=4` adds negligible overhead:
@@ -160,3 +246,9 @@ Voice conversations differ from text:
 ::: director_ai.integrations.voice.VoiceGuard
 
 ::: director_ai.integrations.voice.VoiceToken
+
+::: director_ai.voice.guard.AsyncVoiceGuard
+
+::: director_ai.voice.pipeline.voice_pipeline
+
+::: director_ai.voice.adapters.TTSAdapter
