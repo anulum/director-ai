@@ -252,7 +252,6 @@ ignore_missing_imports = true
 module = "director_ai.voice.*"
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
-warn_unreachable = true
 
 [tool.bandit]
 exclude_dirs = ["tests", "benchmarks"]

@@ -43,7 +43,7 @@ class TTSAdapter(ABC):
     async def flush(self) -> AsyncIterator[bytes]:
         """Flush any buffered audio. Override if your TTS buffers internally."""
         return
-        yield b""  # make it a valid async generator
+        yield b""  # makes this a valid async generator
 
     async def close(self) -> None:
         """Release resources. Override in subclasses that hold connections."""
