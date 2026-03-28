@@ -620,6 +620,7 @@ class NLIScorer:
             from peft import PeftModel
 
             logger.info("Loading LoRA adapter: %s", adapter_path)
+            assert self._model is not None  # guaranteed by caller
             peft_model = PeftModel.from_pretrained(self._model, adapter_path)
             merged = peft_model.merge_and_unload()
             merged.eval()

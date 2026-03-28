@@ -134,7 +134,7 @@ class OpenAITTSAdapter(TTSAdapter):
         self._model = model
         self._api_key = api_key
         self._response_format = response_format
-        self._client = None
+        self._client: Any = None
 
     def _get_client(self) -> Any:
         if self._client is not None:
@@ -145,10 +145,9 @@ class OpenAITTSAdapter(TTSAdapter):
             raise DependencyError(
                 "OpenAITTSAdapter requires the openai package: pip install openai"
             ) from None
-        kwargs = {}
-        if self._api_key:
-            kwargs["api_key"] = self._api_key
-        self._client = AsyncOpenAI(**kwargs)
+        self._client = (
+            AsyncOpenAI(api_key=self._api_key) if self._api_key else AsyncOpenAI()
+        )
         return self._client
 
     async def synthesise(self, text: str) -> AsyncIterator[bytes]:

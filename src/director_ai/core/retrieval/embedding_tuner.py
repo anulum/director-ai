@@ -21,6 +21,7 @@ import logging
 import random
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger("DirectorAI.EmbeddingTuner")
 
@@ -101,7 +102,11 @@ def tune_embeddings(
         epochs,
     )
 
-    loader = DataLoader(train_examples, shuffle=True, batch_size=batch_size)
+    loader: DataLoader[Any] = DataLoader(
+        train_examples,  # type: ignore[arg-type]  # sentence-transformers InputExample
+        shuffle=True,
+        batch_size=batch_size,
+    )
     train_loss = losses.CosineSimilarityLoss(model)
 
     # Capture loss values
