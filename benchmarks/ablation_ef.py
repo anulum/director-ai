@@ -17,6 +17,7 @@ Usage::
 
     python -m benchmarks.ablation_ef --samples 100 --mode nli
 """
+
 from __future__ import annotations
 
 import json
@@ -34,18 +35,88 @@ from benchmarks.ablation_study import (
     _make_verdict,
 )
 
-_STOP_WORDS = frozenset({
-    "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-    "have", "has", "had", "do", "does", "did", "will", "would", "could",
-    "should", "may", "might", "shall", "can", "to", "of", "in", "for",
-    "on", "with", "at", "by", "from", "as", "into", "through", "during",
-    "before", "after", "above", "below", "between", "and", "but", "or",
-    "if", "then", "than", "that", "this", "these", "those", "it", "its",
-    "not", "no", "never", "neither", "nor", "cannot", "can't", "isn't",
-    "aren't", "wasn't", "weren't", "won't", "wouldn't", "shouldn't",
-    "couldn't", "doesn't", "don't", "didn't", "hasn't", "haven't",
-    "hadn't", "without", "none", "nobody",
-})
+_STOP_WORDS = frozenset(
+    {
+        "the",
+        "a",
+        "an",
+        "is",
+        "are",
+        "was",
+        "were",
+        "be",
+        "been",
+        "being",
+        "have",
+        "has",
+        "had",
+        "do",
+        "does",
+        "did",
+        "will",
+        "would",
+        "could",
+        "should",
+        "may",
+        "might",
+        "shall",
+        "can",
+        "to",
+        "of",
+        "in",
+        "for",
+        "on",
+        "with",
+        "at",
+        "by",
+        "from",
+        "as",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "between",
+        "and",
+        "but",
+        "or",
+        "if",
+        "then",
+        "than",
+        "that",
+        "this",
+        "these",
+        "those",
+        "it",
+        "its",
+        "not",
+        "no",
+        "never",
+        "neither",
+        "nor",
+        "cannot",
+        "can't",
+        "isn't",
+        "aren't",
+        "wasn't",
+        "weren't",
+        "won't",
+        "wouldn't",
+        "shouldn't",
+        "couldn't",
+        "doesn't",
+        "don't",
+        "didn't",
+        "hasn't",
+        "haven't",
+        "hadn't",
+        "without",
+        "none",
+        "nobody",
+    }
+)
 
 _WORD_RE = re.compile(r"[a-z0-9]+")
 
@@ -71,7 +142,7 @@ def _bm25_traceability(claim: str, source: str) -> float:
         return 0.0
 
     # Build simple IDF from source sentences
-    source_sents = [s.strip() for s in re.split(r'[.!?]+', source) if s.strip()]
+    source_sents = [s.strip() for s in re.split(r"[.!?]+", source) if s.strip()]
     n_docs = max(len(source_sents), 1)
 
     # Document frequency: how many source sentences contain each token
@@ -201,7 +272,8 @@ def _run_variant(
         scorer._multi_signal_verdict = verdict_fn
     elif skip_traceability:
         scorer._multi_signal_verdict = _make_verdict(
-            scorer, skip_traceability=True,
+            scorer,
+            skip_traceability=True,
         )
 
     orig_traceability = vs_mod._traceability
@@ -230,7 +302,10 @@ def _run_variant(
     return {
         "config": config_name,
         "balanced_accuracy": round(ba * 100, 2),
-        "tp": tp, "fp": fp, "tn": tn, "fn": fn,
+        "tp": tp,
+        "fp": fp,
+        "tn": tn,
+        "fn": fn,
         "precision": round(tp / (tp + fp) * 100, 2) if (tp + fp) > 0 else 0.0,
         "recall": round(tp / (tp + fn) * 100, 2) if (tp + fn) > 0 else 0.0,
         "samples": len(samples),
@@ -282,21 +357,33 @@ def main():
 
     # Reference configs from prior ablation
     configs = [
-        ("all_signals (baseline)", {
-            "nli_scorer": nli_scorer,
-        }),
-        ("no_traceability (best)", {
-            "nli_scorer": nli_scorer,
-            "skip_traceability": True,
-        }),
-        ("E: nli_gated_traceability", {
-            "nli_scorer": nli_scorer,
-            "verdict_fn": None,  # set below per-scorer
-        }),
-        ("F: bm25_traceability", {
-            "nli_scorer": nli_scorer,
-            "traceability_fn": _bm25_traceability,
-        }),
+        (
+            "all_signals (baseline)",
+            {
+                "nli_scorer": nli_scorer,
+            },
+        ),
+        (
+            "no_traceability (best)",
+            {
+                "nli_scorer": nli_scorer,
+                "skip_traceability": True,
+            },
+        ),
+        (
+            "E: nli_gated_traceability",
+            {
+                "nli_scorer": nli_scorer,
+                "verdict_fn": None,  # set below per-scorer
+            },
+        ),
+        (
+            "F: bm25_traceability",
+            {
+                "nli_scorer": nli_scorer,
+                "traceability_fn": _bm25_traceability,
+            },
+        ),
     ]
 
     results = []
@@ -306,6 +393,7 @@ def main():
         # Option E needs the scorer instance to build the verdict
         if name.startswith("E:"):
             from director_ai.core.scoring.verified_scorer import VerifiedScorer
+
             temp_scorer = VerifiedScorer(nli_scorer=nli_scorer)
             kwargs["verdict_fn"] = _make_verdict_nli_gated(temp_scorer)
 

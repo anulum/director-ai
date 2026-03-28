@@ -18,6 +18,7 @@ Usage::
     python -m benchmarks.ablation_study --samples 500 --mode heuristic
     python -m benchmarks.ablation_study --samples 100 --mode nli
 """
+
 from __future__ import annotations
 
 import json
@@ -59,9 +60,14 @@ def _balanced_accuracy(labels: list[int], preds: list[bool]) -> float:
     return (recall_pos + recall_neg) / 2
 
 
-def _make_verdict(scorer, skip_nli=False, skip_entity=False,
-                  skip_numerical=False, skip_negation=False,
-                  skip_traceability=False):
+def _make_verdict(
+    scorer,
+    skip_nli=False,
+    skip_entity=False,
+    skip_numerical=False,
+    skip_negation=False,
+    skip_traceability=False,
+):
     """Create a verdict function that skips disabled signals entirely.
 
     Unlike returning "neutral" values (which get counted as support),
@@ -240,8 +246,15 @@ def main():
         ("no_negation_flip", {"skip_negation": True}),
         ("no_traceability", {"skip_traceability": True}),
         ("no_nli", {"skip_nli": True}),
-        ("nli_only", {"skip_entity": True, "skip_numerical": True,
-                      "skip_negation": True, "skip_traceability": True}),
+        (
+            "nli_only",
+            {
+                "skip_entity": True,
+                "skip_numerical": True,
+                "skip_negation": True,
+                "skip_traceability": True,
+            },
+        ),
     ]
 
     results = []
