@@ -94,8 +94,11 @@ def main():
     parser.add_argument("--fp16", action="store_true", default=True)
     parser.add_argument("--no-fp16", action="store_false", dest="fp16")
     parser.add_argument("--gradient-checkpointing", action="store_true", default=True)
-    parser.add_argument("--no-gradient-checkpointing", action="store_false",
-                        dest="gradient_checkpointing")
+    parser.add_argument(
+        "--no-gradient-checkpointing",
+        action="store_false",
+        dest="gradient_checkpointing",
+    )
     args = parser.parse_args()
 
     logger.info("Loading judge dataset from %s", DATA_DIR)
@@ -133,9 +136,7 @@ def main():
 
     effective_batch = args.batch_size * args.grad_accum
     total_steps = (len(train_ds) * args.epochs) // effective_batch
-    logger.info(
-        "Effective batch: %d, Total steps: ~%d", effective_batch, total_steps
-    )
+    logger.info("Effective batch: %d, Total steps: ~%d", effective_batch, total_steps)
 
     training_args = TrainingArguments(
         output_dir=str(OUTPUT_DIR),
@@ -183,9 +184,8 @@ def main():
     tokenizer.save_pretrained(str(OUTPUT_DIR))
 
     import json
-    (OUTPUT_DIR / "judge_metrics.json").write_text(
-        json.dumps(final_metrics, indent=2)
-    )
+
+    (OUTPUT_DIR / "judge_metrics.json").write_text(json.dumps(final_metrics, indent=2))
     logger.info("Done. Model saved to %s", OUTPUT_DIR)
 
 
