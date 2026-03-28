@@ -25,10 +25,8 @@ import math
 import re
 import time
 from collections import Counter
-from pathlib import Path
 
 from benchmarks.ablation_study import (
-    DATA_PATH,
     RESULTS_DIR,
     _balanced_accuracy,
     _load_samples,
@@ -263,8 +261,8 @@ def _run_variant(
     traceability_fn=None,
     skip_traceability: bool = False,
 ) -> dict:
-    from director_ai.core.scoring.verified_scorer import VerifiedScorer
     import director_ai.core.scoring.verified_scorer as vs_mod
+    from director_ai.core.scoring.verified_scorer import VerifiedScorer
 
     scorer = VerifiedScorer(nli_scorer=nli_scorer)
 
@@ -294,10 +292,10 @@ def _run_variant(
     vs_mod._traceability = orig_traceability
 
     ba = _balanced_accuracy(labels, preds)
-    tp = sum(1 for l, p in zip(labels, preds) if l == 0 and not p)
-    fp = sum(1 for l, p in zip(labels, preds) if l == 1 and not p)
-    tn = sum(1 for l, p in zip(labels, preds) if l == 1 and p)
-    fn = sum(1 for l, p in zip(labels, preds) if l == 0 and p)
+    tp = sum(1 for lb, p in zip(labels, preds, strict=True) if lb == 0 and not p)
+    fp = sum(1 for lb, p in zip(labels, preds, strict=True) if lb == 1 and not p)
+    tn = sum(1 for lb, p in zip(labels, preds, strict=True) if lb == 1 and p)
+    fn = sum(1 for lb, p in zip(labels, preds, strict=True) if lb == 0 and p)
 
     return {
         "config": config_name,
