@@ -116,6 +116,10 @@ jobs:
         extras:
           - "dev,server"
           - "dev,grpc"
+          - "dev,openai,anthropic"
+          - "dev,langchain"
+          - "dev,llamaindex"
+          - "dev,voice"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
 
@@ -139,6 +143,21 @@ jobs:
           fi
           if echo "${{ matrix.extras }}" | grep -q "grpc"; then
             python -c "from director_ai.grpc_server import create_grpc_server; print('grpc OK')"
+          fi
+          if echo "${{ matrix.extras }}" | grep -q "openai"; then
+            python -c "import openai; print('openai OK')"
+          fi
+          if echo "${{ matrix.extras }}" | grep -q "anthropic"; then
+            python -c "import anthropic; print('anthropic OK')"
+          fi
+          if echo "${{ matrix.extras }}" | grep -q "langchain"; then
+            python -c "import langchain_core; print('langchain OK')"
+          fi
+          if echo "${{ matrix.extras }}" | grep -q "llamaindex"; then
+            python -c "import llama_index.core; print('llamaindex OK')"
+          fi
+          if echo "${{ matrix.extras }}" | grep -q "voice"; then
+            python -c "from director_ai.voice import AsyncVoiceGuard, TTSAdapter; print('voice OK')"
           fi
 
       - name: Run tests with coverage
