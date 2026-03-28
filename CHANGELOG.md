@@ -13,11 +13,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   streaming audio with sentence buffering and halt recovery.
 - **TTS adapters**: `ElevenLabsAdapter`, `OpenAITTSAdapter`, `DeepgramAdapter` —
   all lazy-import their SDK, raise `DependencyError` if missing.
-- **`[voice]` extra** in pyproject.toml (empty — TTS SDK is user's choice).
+- **`[voice]` extra** in pyproject.toml: installs `elevenlabs>=1.0`,
+  `openai>=1.0`, `deepgram-sdk>=3.0`.
 - 33 tests for async voice guard, TTS adapters, and pipeline integration.
 - `examples/voice_streaming_demo.py` — true async streaming demo with ElevenLabs.
 - `docs-site/guide/voice-ai.md` updated with async pipeline section, TTS adapter
   docs, and API reference directives.
+- **SDK-aware integration tests** (29 tests across 4 files): verify adapter code
+  against real SDK objects with mocked HTTP layer. Tests use `pytest.importorskip()`
+  and run only in CI extras matrix.
+- **CI extras matrix expanded** from 2 to 6 entries: `dev,server`, `dev,grpc`,
+  `dev,openai,anthropic`, `dev,langchain`, `dev,llamaindex`, `dev,voice`.
+  Each entry installs real SDK dependencies and runs the full test suite.
 - **VerifiedScorer ablation E+F script** (`benchmarks/ablation_ef.py`): NLI-gated
   and BM25 traceability variants tested and rejected.
 
