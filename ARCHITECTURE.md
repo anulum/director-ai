@@ -75,12 +75,18 @@ director-ai/
 │   │
 │   ├── integrations/
 │   │   ├── sdk_guard.py           guard() — 5 SDK shapes
+│   │   ├── voice.py               VoiceGuard — sync token filter for TTS
 │   │   ├── langchain.py           LangChain Runnable
 │   │   ├── llamaindex.py          LlamaIndex NodePostprocessor
 │   │   ├── langgraph.py           LangGraph node/edge
 │   │   ├── haystack.py            Haystack 2.x component
 │   │   ├── crewai.py              CrewAI tool
 │   │   └── fastapi_guard.py       FastAPI middleware
+│   │
+│   ├── voice/                     (v3.12 — async voice AI pipeline)
+│   │   ├── guard.py               AsyncVoiceGuard — async token scoring
+│   │   ├── adapters.py            TTSAdapter ABC + ElevenLabs, OpenAI, Deepgram
+│   │   └── pipeline.py            voice_pipeline() — guard + TTS → audio bytes
 │   │
 │   ├── cli.py                     CLI (18 commands)
 │   ├── server.py                  FastAPI REST server

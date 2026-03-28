@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **Async Voice AI pipeline** (`director_ai.voice`): `AsyncVoiceGuard` for async
+  token-by-token hallucination filtering, `voice_pipeline()` for end-to-end
+  streaming audio with sentence buffering and halt recovery.
+- **TTS adapters**: `ElevenLabsAdapter`, `OpenAITTSAdapter`, `DeepgramAdapter` —
+  all lazy-import their SDK, raise `DependencyError` if missing.
+- **`[voice]` extra** in pyproject.toml (empty — TTS SDK is user's choice).
+- 33 tests for async voice guard, TTS adapters, and pipeline integration.
+- `examples/voice_streaming_demo.py` — true async streaming demo with ElevenLabs.
+- `docs-site/guide/voice-ai.md` updated with async pipeline section, TTS adapter
+  docs, and API reference directives.
+- **VerifiedScorer ablation E+F script** (`benchmarks/ablation_ef.py`): NLI-gated
+  and BM25 traceability variants tested and rejected.
+
 ## [3.11.1] — 2026-03-27
 
 ### Fixed

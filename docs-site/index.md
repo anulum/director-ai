@@ -66,6 +66,7 @@ graph LR
 | Feature | Director-AI | NeMo Guardrails | Guardrails-AI | LLM-Guard |
 |---------|:-----------:|:---------------:|:-------------:|:---------:|
 | Mid-stream halt | **Yes** | No | No | No |
+| Async voice AI pipeline | **Yes** | No | No | No |
 | Custom KB RAG | **Yes** | Partial | No | No |
 | Token-level scoring | **Yes** | No | No | No |
 | NLI contradiction detection | **Yes** | No | No | Partial |
@@ -88,6 +89,7 @@ graph LR
 | [API Reference](api/index.md) | — | Every public class and function |
 | [Production Guide](deployment/production.md) | 15 min | Scaling, caching, monitoring, Docker |
 | [Domain Cookbooks](cookbook/legal.md) | 10 min | Legal, medical, finance, support recipes |
+| [Voice AI](guide/voice-ai.md) | 10 min | Async streaming guard + TTS adapters for voice pipelines |
 | [Glossary](glossary.md) | — | 35 terms defined and cross-linked |
 
 ## Obtain
