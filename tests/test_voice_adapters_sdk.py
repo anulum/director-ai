@@ -40,12 +40,12 @@ class TestElevenLabsAdapterSDK:
             api_key="test-key",
         )
 
-        mock_audio = AsyncMock()
-        mock_audio.__aiter__ = AsyncMock(
-            return_value=iter([b"chunk1", b"chunk2"]),
-        )
+        class FakeAudioStream:
+            async def __aiter__(self):
+                for chunk in [b"chunk1", b"chunk2"]:
+                    yield chunk
 
-        mock_convert = AsyncMock(return_value=mock_audio)
+        mock_convert = AsyncMock(return_value=FakeAudioStream())
         mock_client = MagicMock()
         mock_client.text_to_speech.convert = mock_convert
         adapter._client = mock_client
@@ -147,12 +147,12 @@ class TestDeepgramAdapterSDK:
 
         adapter = DeepgramAdapter(model="aura-zeus-en", api_key="dg-test")
 
-        async def fake_aiter():
-            for chunk in [b"dg1", b"dg2"]:
-                yield chunk
+        class FakeAsyncResponse:
+            async def __aiter__(self):
+                for chunk in [b"dg1", b"dg2"]:
+                    yield chunk
 
-        mock_response = MagicMock()
-        mock_response.__aiter__ = fake_aiter
+        mock_response = FakeAsyncResponse()
         mock_stream_raw = AsyncMock(return_value=mock_response)
         mock_v = MagicMock()
         mock_v.stream_raw = mock_stream_raw

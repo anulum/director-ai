@@ -40,7 +40,7 @@ class TestDirectorAIGuardWithRealLC:
             use_nli=False,
         )
         result = guard.check(
-            prompt="What is the refund policy?",
+            query="What is the refund policy?",
             response="Refunds within 30 days.",
         )
         assert isinstance(result, dict)
