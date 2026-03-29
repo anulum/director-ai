@@ -4,4 +4,4 @@
 # Mypy/pytest run in CI — pre-push catches the quick failures.
 set -e
 echo "Running preflight checks (lint gates)..."
-py -3.12 tools/preflight.py --no-tests
+/home/anulum/venv-rocm/bin/python tools/preflight.py --no-tests

@@ -103,13 +103,13 @@ from .types import (
     ReviewResult,
     ScoringEvidence,
 )
+from .verification.code_verifier import CodeCheckResult, verify_code
+from .verification.json_verifier import StructuredVerificationResult, verify_json
 
 # --- Verification ---
 from .verification.numeric_verifier import NumericVerificationResult, verify_numeric
 from .verification.reasoning_verifier import verify_reasoning_chain
-from .verification.json_verifier import StructuredVerificationResult, verify_json
 from .verification.tool_call_verifier import ToolCallResult, verify_tool_call
-from .verification.code_verifier import CodeCheckResult, verify_code
 from .verification.types import FieldVerdict
 
 __all__ = [

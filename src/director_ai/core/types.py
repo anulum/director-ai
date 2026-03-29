@@ -30,9 +30,7 @@ def _clamp(value: float, lo: float = 0.0, hi: float = 1.0) -> float:
         return lo
     if math.isinf(value):
         replacement = hi if value > 0 else lo
-        _clamp_logger.warning(
-            "Inf detected in _clamp — replacing with %s", replacement
-        )
+        _clamp_logger.warning("Inf detected in _clamp — replacing with %s", replacement)
         return replacement
     return max(lo, min(hi, value))
 
