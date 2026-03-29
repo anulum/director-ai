@@ -3,7 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage tests for nli.py â€” PyTorch/ONNX model scoring paths via mocks."""
+"""Coverage tests for nli.py — PyTorch/ONNX model scoring paths via mocks."""
 
 from __future__ import annotations
 

@@ -42,7 +42,7 @@ for day in range(30):
             AuditEntry(
                 prompt="Technical question",
                 response="Technical answer",
-                model="claude-4",
+                model="claude-sonnet-4-20250514",
                 provider="anthropic",
                 score=0.82 + day * 0.001,
                 approved=day % 20 != 0,

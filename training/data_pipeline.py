@@ -3,13 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — data_pipeline
-#!/usr/bin/env python3
-# ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Training Data Pipeline
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
 """
 Build unified NLI training dataset from four sources (~100K examples):
 

@@ -23,7 +23,7 @@
 | | |
 |---|---|
 | **2-Line Integration** — Wrap any LLM SDK client with `guard()`. Duck-type detection for OpenAI-compatible, Anthropic, Bedrock, Gemini, Cohere. [Quickstart &rarr;](quickstart.md) | **Token-Level Halt** — Catches hallucinations as they form, mid-stream, before the user sees incorrect information. [Streaming &rarr;](guide/streaming.md) |
-| **Custom KB Grounding** — Bring your own facts via RAG. ChromaDB, FAISS, Qdrant, or in-memory backends. [KB Ingestion &rarr;](guide/kb-ingestion.md) | **75.8% Balanced Accuracy** — FactCG-DeBERTa-v3-Large NLI model. 14.6 ms/pair ONNX GPU. SBOM on every release. [Scoring &rarr;](guide/scoring.md) |
+| **Custom KB Grounding** — Bring your own facts via RAG. ChromaDB, FAISS, Qdrant, or in-memory backends. [KB Ingestion &rarr;](guide/kb-ingestion.md) | **75.8% Balanced Accuracy** on [LLM-AggreFact](https://llm-aggrefact.github.io/) (29K samples, 11 datasets) — FactCG-DeBERTa-v3-Large NLI model. 14.6 ms/pair ONNX GPU. SBOM on every release. [Scoring &rarr;](guide/scoring.md) |
 
 ## Install
 

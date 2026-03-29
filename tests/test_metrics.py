@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Metrics & Observability Tests
+# Director-Class AI — Metrics & Observability Tests
 
 import time
 
@@ -102,7 +102,7 @@ class TestTimer:
 
     def test_timer_records_duration(self, collector):
         with collector.timer("review_duration_seconds"):
-            time.sleep(0.05)  # 50ms â€” safe for Windows timer resolution
+            time.sleep(0.05)  # 50ms — safe for Windows timer resolution
         m = collector.get_metrics()
         h = m["histograms"]["review_duration_seconds"]
         assert h["count"] == 1

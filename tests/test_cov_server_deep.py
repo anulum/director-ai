@@ -3,7 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Deep coverage for server.py â€” rate limiting, stats, audit, WS error, halt paths."""
+"""Deep coverage for server.py — rate limiting, stats, audit, WS error, halt paths."""
 
 from __future__ import annotations
 

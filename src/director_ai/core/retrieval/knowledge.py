@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Ground Truth Store (RAG Interface)
+# Director-Class AI — Ground Truth Store (RAG Interface)
 
 from __future__ import annotations
 
@@ -50,7 +50,7 @@ class GroundTruthStore:
         self.facts[full_key] = value
 
     def add_fact(self, key: str, value: str, tenant_id: str = "") -> None:
-        """Alias for add() â€” used by some callers."""
+        """Alias for add() — used by some callers."""
         self.add(key, value, tenant_id=tenant_id)
 
     def retrieve_context_with_chunks(
@@ -76,7 +76,7 @@ class GroundTruthStore:
         """
         if not self.facts:
             self.logger.info(
-                "GroundTruthStore is empty â€” add facts via .add() "
+                "GroundTruthStore is empty — add facts via .add() "
                 "or use VectorGroundTruthStore.ingest()",
             )
             return None

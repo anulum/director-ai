@@ -3,13 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — build_judge_dataset
-#!/usr/bin/env python3
-# ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Build Binary Judge Dataset
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
 """
 Build a binary (approve/reject) dataset for the local judge classifier.
 
@@ -186,6 +180,8 @@ def main():
     parser.add_argument("--seed", type=int, default=42)
     args = parser.parse_args()
 
+    if not DATA_DIR.exists():
+        raise FileNotFoundError(f"{DATA_DIR} not found — run data_pipeline.py first")
     logger.info("Loading existing 3-class dataset from %s", DATA_DIR)
     ds = load_from_disk(str(DATA_DIR))
     train_ds = ds["train"]

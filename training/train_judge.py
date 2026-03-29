@@ -3,13 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — train_judge
-#!/usr/bin/env python3
-# ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Train Binary Judge Classifier
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
 """
 Fine-tune DeBERTa-v3-base as a 2-class (approve/reject) judge for
 borderline NLI cases. Replaces external LLM judge (GPT-4o-mini / Haiku).
@@ -49,7 +43,7 @@ from sklearn.metrics import (
 )
 from transformers import (
     AutoModelForSequenceClassification,
-    DebertaV2Tokenizer,
+    AutoTokenizer,
     EarlyStoppingCallback,
     Trainer,
     TrainingArguments,
@@ -108,7 +102,7 @@ def main():
     logger.info("Train: %d, Eval: %d", len(train_ds), len(eval_ds))
 
     logger.info("Loading tokenizer: %s", args.base_model)
-    tokenizer = DebertaV2Tokenizer.from_pretrained(args.base_model)
+    tokenizer = AutoTokenizer.from_pretrained(args.base_model, use_fast=False)
 
     def tokenize(example):
         return tokenizer(
@@ -128,6 +122,7 @@ def main():
         num_labels=2,
         id2label={0: "approve", 1: "reject"},
         label2id={"approve": 0, "reject": 1},
+        ignore_mismatched_sizes=True,
     )
     if args.gradient_checkpointing:
         model.gradient_checkpointing_enable(

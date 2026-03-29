@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Async Streaming Kernel for WebSocket Production
+# Director-Class AI — Async Streaming Kernel for WebSocket Production
 
 """Async streaming oversight for WebSocket production use.
 
-Provides ``AsyncStreamingKernel`` â€” an async/await version of
+Provides ``AsyncStreamingKernel`` — an async/await version of
 ``StreamingKernel`` that yields ``TokenEvent`` objects as they arrive.
 
 Usage::
@@ -35,7 +35,7 @@ from .streaming import StreamSession, TokenEvent, _trend_drop
 
 logger = logging.getLogger("DirectorAI.AsyncStreaming")
 
-# Callback types â€” sync or async
+# Callback types — sync or async
 CoherenceCallback = Callable[[str], float] | Callable[[str], Awaitable[float]]
 
 
@@ -46,11 +46,11 @@ class AsyncStreamingKernel(HaltMonitor):
 
     Parameters
     ----------
-    hard_limit : float â€” absolute coherence floor (halt if below).
-    window_size : int â€” number of tokens in sliding coherence window.
-    window_threshold : float â€” halt if sliding window average drops below.
-    trend_window : int â€” tokens to check for downward trend.
-    trend_threshold : float â€” halt if coherence drops this much.
+    hard_limit : float — absolute coherence floor (halt if below).
+    window_size : int — number of tokens in sliding coherence window.
+    window_threshold : float — halt if sliding window average drops below.
+    trend_window : int — tokens to check for downward trend.
+    trend_threshold : float — halt if coherence drops this much.
 
     """
 
@@ -116,7 +116,7 @@ class AsyncStreamingKernel(HaltMonitor):
 
         Parameters
         ----------
-        token_source : async iterable of str â€” token source.
+        token_source : async iterable of str — token source.
         coherence_callback : (str) -> float OR async (str) -> Awaitable[float].
             Receives the accumulated output so far (not the individual
             token). Called every ``score_every_n`` tokens.
@@ -176,7 +176,7 @@ class AsyncStreamingKernel(HaltMonitor):
                     OSError,
                 ) as exc:
                     logger.warning(
-                        "Coherence callback error â€” using last score: %s",
+                        "Coherence callback error — using last score: %s",
                         exc,
                     )
                     score = last_score
@@ -229,7 +229,7 @@ class AsyncStreamingKernel(HaltMonitor):
                 i += 1
                 continue
 
-            # Hard limit â€” always immediate halt
+            # Hard limit — always immediate halt
             if score < self.hard_limit:
                 event.halted = True
                 self.emergency_stop()

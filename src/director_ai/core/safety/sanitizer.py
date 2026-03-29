@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Input Sanitizer (Prompt Injection Hardening)
+# Director-Class AI — Input Sanitizer (Prompt Injection Hardening)
 
 """Detect and score prompt injection attacks targeting the knowledge base.
 
@@ -150,10 +150,10 @@ class InputSanitizer:
 
     Parameters
     ----------
-    max_length : int â€” reject inputs longer than this.
-    extra_patterns : list[tuple[str, str]] â€” additional (name, regex) pairs.
-    block_threshold : float â€” suspicion score at or above which to block.
-    allowlist : list[str] â€” regex patterns that exempt a match.
+    max_length : int — reject inputs longer than this.
+    extra_patterns : list[tuple[str, str]] — additional (name, regex) pairs.
+    block_threshold : float — suspicion score at or above which to block.
+    allowlist : list[str] — regex patterns that exempt a match.
 
     """
 
@@ -240,7 +240,7 @@ class InputSanitizer:
         """Detect high ratio of unusual Unicode categories (homoglyphs, etc.).
 
         Mn (nonspacing marks) and Mc (spacing combining marks) are legitimate
-        in Arabic, Hebrew, Devanagari, Thai, and other scripts â€” not flagged.
+        in Arabic, Hebrew, Devanagari, Thai, and other scripts — not flagged.
         Only Me (enclosing marks), Cf (format), Co (private use), and
         Cn (unassigned) count as suspicious.
         """

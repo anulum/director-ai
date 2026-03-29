@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Request Batching
+# Director-Class AI — Request Batching
 
 """Batch processing for CoherenceScorer and CoherenceAgent.
 
@@ -66,7 +66,7 @@ class BatchProcessor:
     Parameters
     ----------
     backend : CoherenceAgent or CoherenceScorer instance.
-    max_concurrency : int â€” maximum parallel workers.
+    max_concurrency : int — maximum parallel workers.
 
     """
 
@@ -254,7 +254,7 @@ class BatchProcessor:
                 except TypeError:
                     approved, score = reviewer.review(prompt, response)
             metrics.inc("reviews_total")
-            if approved:  # pragma: no cover â€” tested via scorer.review
+            if approved:  # pragma: no cover — tested via scorer.review
                 metrics.inc("reviews_approved")
             else:
                 metrics.inc("reviews_rejected")

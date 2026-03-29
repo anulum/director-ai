@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” LangChain Integration (Callback Handler)
+# Director-Class AI — LangChain Integration (Callback Handler)
 
 """LangChain callback handler for coherence scoring.
 
@@ -45,9 +45,9 @@ class CoherenceCallbackHandler(BaseCallbackHandler):
 
     Parameters
     ----------
-    threshold : float â€” coherence threshold (default 0.6).
-    use_nli : bool â€” use DeBERTa NLI model for logical divergence.
-    raise_on_failure : bool â€” raise ``CoherenceError`` on low coherence
+    threshold : float — coherence threshold (default 0.6).
+    use_nli : bool — use DeBERTa NLI model for logical divergence.
+    raise_on_failure : bool — raise ``CoherenceError`` on low coherence
         instead of just logging a warning.
     ground_truth_store : optional ``GroundTruthStore`` for factual checks.
 
@@ -109,7 +109,7 @@ class CoherenceCallbackHandler(BaseCallbackHandler):
         self.scores.append(score)
 
         logger.info(
-            "Coherence: %.4f (H_logic=%.2f, H_fact=%.2f) â€” %s",
+            "Coherence: %.4f (H_logic=%.2f, H_fact=%.2f) — %s",
             score.score,
             score.h_logical,
             score.h_factual,

@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Continuous Batching Review Queue
+# Director-Class AI — Continuous Batching Review Queue
 
 """Server-level request queue for continuous batching.
 
@@ -61,9 +61,9 @@ class ReviewQueue:
 
     Parameters
     ----------
-    scorer : CoherenceScorer â€” backend with review() and review_batch().
-    max_batch : int â€” flush when this many requests accumulate.
-    flush_timeout_ms : float â€” flush after this many ms since first
+    scorer : CoherenceScorer — backend with review() and review_batch().
+    max_batch : int — flush when this many requests accumulate.
+    flush_timeout_ms : float — flush after this many ms since first
         pending request arrived (even if batch isn't full).
 
     """

@@ -1,11 +1,11 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI â€” test_cov_100.py
+# Director-AI — test_cov_100.py
 
-"""Final coverage push â€” targets every remaining testable gap."""
+"""Final coverage push — targets every remaining testable gap."""
 
 from __future__ import annotations
 
@@ -109,8 +109,8 @@ class TestLocalProviderStreamParsing:
 
         p = LocalProvider(api_url="http://fake:8080/v1/chat/completions")
         lines = [
-            b"",  # empty line â€” hits continue on line 382
-            b"event: ping",  # non-data line â€” hits continue
+            b"",  # empty line — hits continue on line 382
+            b"event: ping",  # non-data line — hits continue
             b"data: not-json",
             b'data: {"choices":[{"delta":{"content":"hi"}}]}',
             b"data: [DONE]",
@@ -424,7 +424,7 @@ class TestVectorStoreQdrantEnsureCollection:
 
 class TestExtractPromptBranches:
     def test_content_list_with_non_text_blocks(self):
-        """Content list with non-text dict â€” falls through."""
+        """Content list with non-text dict — falls through."""
         from director_ai.integrations.sdk_guard import _extract_prompt
 
         messages = [
@@ -559,7 +559,7 @@ class TestSdkGuardAsyncIteration:
 
 class TestStreamingWindowAboveThreshold:
     def test_window_full_but_average_above_threshold(self):
-        """Window fills up but avg >= threshold â€” falls through."""
+        """Window fills up but avg >= threshold — falls through."""
         from director_ai.core.streaming import StreamingKernel
 
         k = StreamingKernel(

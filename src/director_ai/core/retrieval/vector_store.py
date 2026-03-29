@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Vector Database Backend for GroundTruthStore
+# Director-Class AI — Vector Database Backend for GroundTruthStore
 
 """Pluggable vector database backend for embedding-based retrieval.
 
@@ -121,7 +121,7 @@ class VectorBackend(ABC):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
-        """Async add â€” delegates to sync add via executor by default."""
+        """Async add — delegates to sync add via executor by default."""
         import asyncio
 
         loop = asyncio.get_running_loop()
@@ -133,7 +133,7 @@ class VectorBackend(ABC):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
-        """Async query â€” delegates to sync query via executor by default."""
+        """Async query — delegates to sync query via executor by default."""
         import asyncio
         import functools
 
@@ -396,7 +396,7 @@ class HybridBackend(VectorBackend):
     the same documents. At query time, runs both sparse (BM25) and
     dense (wrapped backend) retrieval, then fuses results via RRF.
 
-    No external dependencies â€” uses a built-in BM25 implementation.
+    No external dependencies — uses a built-in BM25 implementation.
 
     RRF: score(d) = 1/(k + rank_sparse) + 1/(k + rank_dense).
     Croft et al. 2009, default k=60.
@@ -1101,7 +1101,7 @@ class ColBERTBackend(VectorBackend):
     """ColBERT v2 late-interaction retrieval via RAGatouille.
 
     Each token gets its own embedding vector. Matching uses MaxSim
-    across all token pairs â€” much more accurate than single-vector
+    across all token pairs — much more accurate than single-vector
     bi-encoders for partial and domain-specific matches.
 
     Requires ``pip install ragatouille``.
@@ -1203,7 +1203,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     Parameters
     ----------
-    backend : VectorBackend â€” vector DB backend (default: InMemoryBackend).
+    backend : VectorBackend — vector DB backend (default: InMemoryBackend).
 
     """
 
@@ -1220,7 +1220,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         return tenant_id or self.tenant_id
 
     def add_fact(self, key: str, value: str, tenant_id: str = "") -> None:
-        """Alias for add() â€” also populates parent keyword store."""
+        """Alias for add() — also populates parent keyword store."""
         tenant_id = self._resolved_tenant_id(tenant_id)
         fact_key = f"{tenant_id}:{key}" if tenant_id else key
         self.facts[fact_key] = value

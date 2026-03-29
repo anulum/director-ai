@@ -3,7 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage tests for vector_store.py â€” Pinecone/Weaviate/Qdrant backends."""
+"""Coverage tests for vector_store.py — Pinecone/Weaviate/Qdrant backends."""
 
 from __future__ import annotations
 

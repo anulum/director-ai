@@ -64,15 +64,17 @@ policy = Policy(
 )
 ```
 
-## Compliance Cost Avoidance
+## Compliance Cost Avoidance (Illustrative Estimates)
+
+!!! warning "These are illustrative industry estimates, not measured results from Director-AI deployments. Validate on your own workload before budgeting."
 
 | Risk | Exposure Without Director-AI | With Director-AI |
 |------|------------------------------|-----------------|
-| Wrong product terms quoted to customer | CFPB/FCA fine ($5K–$1M per violation) | Caught mid-stream, never reaches customer |
-| Hallucinated interest rate or fee | Customer dispute + regulatory review | KB-verified before display |
-| Unauthorized investment advice | SEC/FINRA action ($50K–$10M) | Policy engine blocks + audit trail |
+| Wrong product terms quoted to customer | CFPB/FCA fine ($5K–$1M per violation) | Caught mid-stream, never reaches customer (estimated) |
+| Hallucinated interest rate or fee | Customer dispute + regulatory review | KB-verified before display (estimated) |
+| Unauthorized investment advice | SEC/FINRA action ($50K–$10M) | Policy engine blocks + audit trail (estimated) |
 
-At 5,000 customer interactions/day, a 0.1% hallucination rate means 5 wrong answers daily. Over a year, that's 1,825 potential compliance incidents. With Director-AI, the catch rate reduces this to < 20/year (assuming high catch rate with KB + NLI at threshold=0.30).
+At 5,000 customer interactions/day, a 0.1% hallucination rate means 5 wrong answers daily. Over a year, that's 1,825 potential compliance incidents. With Director-AI, the catch rate reduces this to < 20/year (estimated, assuming high catch rate with KB + NLI at threshold=0.30). These figures are planning estimates based on industry rates, not measured deployment data.
 
 ## Key Considerations
 

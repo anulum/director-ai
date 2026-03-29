@@ -14,9 +14,12 @@ director-ai/
 │   │   │   ├── nli.py             NLIScorer — DeBERTa/FactCG/ONNX backends
 │   │   │   ├── verified_scorer.py VerifiedScorer — sentence-level multi-signal
 │   │   │   ├── meta_classifier.py DatasetTypeClassifier — adaptive thresholds
+│   │   │   ├── meta_confidence.py Meta-confidence signal computation
 │   │   │   ├── lite_scorer.py     LiteScorer — zero-dep heuristic
 │   │   │   ├── sharded_nli.py     ShardedNLIScorer — multi-GPU
 │   │   │   ├── backends.py        DeBERTa, ONNX, MiniCheck, Lite, Rust
+│   │   │   ├── consensus.py       Cross-model factual agreement
+│   │   │   ├── temporal_freshness.py  Staleness risk scoring
 │   │   │   └── _heuristics.py     Word-overlap fallback
 │   │   ├── retrieval/
 │   │   │   ├── knowledge.py       GroundTruthStore — in-memory facts
@@ -45,9 +48,6 @@ director-ai/
 │   │   │   ├── feedback_store.py  SQLite human correction store
 │   │   │   ├── online_calibrator.py  Threshold sweep + CIs
 │   │   │   └── conformal.py       Conformal prediction intervals
-│   │   ├── scoring/
-│   │   │   ├── consensus.py       Cross-model factual agreement
-│   │   │   └── temporal_freshness.py  Staleness risk scoring
 │   │
 │   ├── compliance/                 (v3.10.0 — EU AI Act Article 15)
 │   │   ├── audit_log.py           Scored interaction audit trail

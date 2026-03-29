@@ -1,13 +1,13 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Knowledge Ingestion API
+# Director-Class AI — Knowledge Ingestion API
 
 """REST API for document upload, chunking, and vector store management.
 
-Endpoints under ``/v1/knowledge/`` â€” all tenant-scoped.
+Endpoints under ``/v1/knowledge/`` — all tenant-scoped.
 """
 
 from __future__ import annotations
@@ -269,7 +269,7 @@ def create_knowledge_router() -> APIRouter:
 
     @router.put("/documents/{doc_id}")
     async def update_document(request: Request, doc_id: str, body: IngestRequest):
-        """Replace a document's content â€” re-chunks and re-embeds."""
+        """Replace a document's content — re-chunks and re-embeds."""
         tenant_id = _get_tenant(request)
         registry = _get_registry(request)
         store = _get_store(request)
@@ -301,7 +301,7 @@ def create_knowledge_router() -> APIRouter:
 
     @router.get("/search")
     async def search_knowledge(request: Request, query: str, top_k: int = 5):
-        """Test retrieval quality â€” returns matching chunks."""
+        """Test retrieval quality — returns matching chunks."""
         tenant_id = _get_tenant(request)
         store = _get_store(request)
 

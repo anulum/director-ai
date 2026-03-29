@@ -4,12 +4,6 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Cross-GPU Latency Benchmark
-
-# ---------------------------------------------------------------------
-# Director-Class AI — Cross-GPU Latency Benchmark
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ---------------------------------------------------------------------
 """Cross-GPU benchmark: PyTorch FP32/FP16, ONNX CUDA, ONNX TensorRT FP32/FP16.
 Auto-detects available backends and skips unsupported ones.
 

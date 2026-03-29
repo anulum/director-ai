@@ -3,12 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — rag_population
-# ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — RAG Population Example
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
 """Demonstrates how to populate the VectorGroundTruthStore with a real
 corpus and use it for factual divergence scoring.
 

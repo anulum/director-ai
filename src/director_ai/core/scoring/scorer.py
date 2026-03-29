@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€"2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€"2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€" Coherence Scorer (Weighted NLI Divergence)
+# Director-Class AI — Coherence Scorer (Weighted NLI Divergence)
 
 from __future__ import annotations
 
@@ -62,30 +62,30 @@ class CoherenceScorer:
 
     Parameters
     ----------
-    threshold : float â€" minimum coherence to approve (default 0.5).
-    soft_limit : float | None â€" scores between threshold and soft_limit
+    threshold : float – minimum coherence to approve (default 0.5).
+    soft_limit : float | None – scores between threshold and soft_limit
         trigger a warning. Default: threshold + 0.1.
-    w_logic : float â€" weight for logical divergence (default 0.6).
-    w_fact : float â€" weight for factual divergence (default 0.4).
+    w_logic : float – weight for logical divergence (default 0.6).
+    w_fact : float – weight for factual divergence (default 0.4).
         Must satisfy w_logic + w_fact = 1.0.
-    strict_mode : bool â€" when True, disables heuristic fallbacks entirely.
+    strict_mode : bool – when True, disables heuristic fallbacks entirely.
         If NLI model is unavailable and strict_mode is True, divergence
         returns 0.9 (reject) and sets ``strict_mode_rejected=True``.
-    history_window : int â€" rolling history size.
-    use_nli : bool | None â€" True forces NLI, False disables it,
+    history_window : int – rolling history size.
+    use_nli : bool | None – True forces NLI, False disables it,
         None (default) auto-detects based on installed packages.
-    ground_truth_store : GroundTruthStore | None â€" fact store for RAG.
-    nli_model : str | None â€" HuggingFace model ID or local path for NLI.
-    cache_size : int â€" LRU score cache max entries (0 to disable).
-    cache_ttl : float â€" cache entry TTL in seconds.
-    nli_quantize_8bit : bool â€" load NLI model with 8-bit quantization.
-    nli_device : str | None â€" torch device for NLI model.
-    nli_torch_dtype : str | None â€" torch dtype ("float16", "bfloat16").
-    llm_judge_enabled : bool â€" escalate to LLM when NLI margin is low.
-    llm_judge_confidence_threshold : float â€" softmax margin below which
+    ground_truth_store : GroundTruthStore | None – fact store for RAG.
+    nli_model : str | None – HuggingFace model ID or local path for NLI.
+    cache_size : int – LRU score cache max entries (0 to disable).
+    cache_ttl : float – cache entry TTL in seconds.
+    nli_quantize_8bit : bool – load NLI model with 8-bit quantization.
+    nli_device : str | None – torch device for NLI model.
+    nli_torch_dtype : str | None – torch dtype ("float16", "bfloat16").
+    llm_judge_enabled : bool – escalate to LLM when NLI margin is low.
+    llm_judge_confidence_threshold : float – softmax margin below which
         to escalate (default 0.3).
-    llm_judge_provider : str â€" "openai" or "anthropic".
-    privacy_mode : bool â€" redact PII (emails, phones, SSN-like patterns)
+    llm_judge_provider : str – "openai" or "anthropic".
+    privacy_mode : bool – redact PII (emails, phones, SSN-like patterns)
         before sending text to external LLM judge.
 
     """
@@ -332,7 +332,7 @@ class CoherenceScorer:
             return nli_score
         return self._local_judge_infer(prompt, response, nli_score)
 
-    def _local_judge_infer(  # pragma: no cover â€" requires torch, tested locally
+    def _local_judge_infer(  # pragma: no cover – requires torch, tested locally
         self,
         prompt: str,
         response: str,
@@ -1190,7 +1190,7 @@ class CoherenceScorer:
         """Compute coherence components.
 
         Returns (h_logical, h_factual, coherence, evidence).
-        H_logical and H_factual run in parallel â€" vector retrieval overlaps
+        H_logical and H_factual run in parallel – vector retrieval overlaps
         with the logical NLI forward pass.
 
         For dialogue prompts (auto-detected), uses bidirectional NLI with
@@ -1390,7 +1390,7 @@ class CoherenceScorer:
 
         Parameters
         ----------
-        session : ConversationSession | None â€" when provided, cross-turn
+        session : ConversationSession | None – when provided, cross-turn
             divergence is blended into the logical score and the turn is
             recorded after scoring.
 
@@ -1668,7 +1668,7 @@ class CoherenceScorer:
         session=None,
         tenant_id: str = "",
     ) -> tuple[bool, CoherenceScore]:
-        """Async version of review() â€" offloads NLI inference to a thread pool."""
+        """Async version of review() – offloads NLI inference to a thread pool."""
         import functools
 
         loop = asyncio.get_running_loop()

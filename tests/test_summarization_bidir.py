@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Summarization Bidirectional NLI Tests
+# Director-Class AI — Summarization Bidirectional NLI Tests
 
 """Tests for bidirectional NLI scoring on summarization task type."""
 
@@ -102,7 +102,7 @@ class TestSummarizationRouting:
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
         scorer._use_prompt_as_premise = True
         scorer._auto_dialogue_profile = True
-        # Dialogue prompt â€” should be detected as dialogue, not summarization
+        # Dialogue prompt — should be detected as dialogue, not summarization
         prompt = "User: Hi\nAssistant: Hello\nUser: How are you?"
         task = CoherenceScorer._detect_task_type(prompt)
         assert task == "dialogue"

@@ -3,13 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — train_hallucination_detector
-#!/usr/bin/env python3
-# ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Fine-Tune DeBERTa for Hallucination Detection
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
 """
 Fine-tune DeBERTa-v3-base on a balanced 100K subset of the unified
 hallucination detection dataset built by ``data_pipeline.py``.
@@ -83,13 +77,13 @@ class WeightedTrainer(Trainer):
         logits = outputs.logits
 
         if self._class_weights is not None:
-            w = self._class_weights.to(logits.device)
+            w = self._class_weights.to(logits.device, dtype=logits.dtype)
             loss = torch.nn.functional.cross_entropy(
-                logits, labels, weight=w, label_smoothing=0.05
+                logits.float(), labels, weight=w.float(), label_smoothing=0.05
             )
         else:
             loss = torch.nn.functional.cross_entropy(
-                logits, labels, label_smoothing=0.05
+                logits.float(), labels, label_smoothing=0.05
             )
 
         return (loss, outputs) if return_outputs else loss
@@ -178,7 +172,7 @@ def main():
         load_best_model_at_end=True,
         metric_for_best_model="balanced_accuracy",
         greater_is_better=True,
-        fp16=torch.cuda.is_available(),
+        fp16=torch.cuda.is_available() and not getattr(torch.version, "hip", None),
         gradient_checkpointing=True,
         gradient_checkpointing_kwargs={"use_reentrant": False},
         logging_steps=50,

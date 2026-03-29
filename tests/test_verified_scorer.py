@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI â€” VerifiedScorer Tests
+# Director-AI — VerifiedScorer Tests
 
 from __future__ import annotations
 
@@ -19,7 +19,7 @@ from director_ai.core.verified_scorer import (
 
 class TestSplitSentences:
     def test_basic(self):
-        # "Hello world." has only 2 words â€” filtered by min 3 words
+        # "Hello world." has only 2 words — filtered by min 3 words
         result = _split_sentences("Hello world here. This is a test.")
         assert "This is a test." in result
 
@@ -121,7 +121,7 @@ class TestVerifiedScorer:
             "The plan costs $199 per month.",
             "Our Basic plan costs $29 per month. Premium costs $79 per month.",
         )
-        # Without NLI, heuristic may not catch â€” check verdict is not "supported"
+        # Without NLI, heuristic may not catch — check verdict is not "supported"
         if r.claims:
             assert (
                 r.claims[0].verdict != "supported"

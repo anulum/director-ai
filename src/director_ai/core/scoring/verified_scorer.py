@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Verified Scorer (Sentence-Level Multi-Signal)
+# Director-Class AI — Verified Scorer (Sentence-Level Multi-Signal)
 
 """Sentence-level fact verification with multi-signal consensus.
 
@@ -13,7 +13,7 @@ with multiple independent signals, and reports per-claim verdicts
 with calibrated confidence.
 
 Signals:
-1. NLI entailment (FactCG â€” primary)
+1. NLI entailment (FactCG — primary)
 2. Entity consistency (named entities must match)
 3. Numerical consistency (numbers/dates must match)
 4. Negation detection (response must not negate source)
@@ -156,10 +156,10 @@ class VerifiedScorer:
 
     Parameters
     ----------
-    nli_scorer : NLIScorer or None â€” for NLI entailment signal.
-    nli_threshold : float â€” divergence above this = contradiction (default 0.65).
-    support_threshold : float â€” divergence below this = supported (default 0.35).
-    min_confidence : float â€” below this, verdict is "unverifiable" (default 0.4).
+    nli_scorer : NLIScorer or None — for NLI entailment signal.
+    nli_threshold : float — divergence above this = contradiction (default 0.65).
+    support_threshold : float — divergence below this = supported (default 0.35).
+    min_confidence : float — below this, verdict is "unverifiable" (default 0.4).
     """
 
     def __init__(

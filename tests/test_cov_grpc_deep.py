@@ -3,7 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Deep coverage for grpc_server.py â€” servicer RPCs, auth, TLS, reflection."""
+"""Deep coverage for grpc_server.py — servicer RPCs, auth, TLS, reflection."""
 
 from __future__ import annotations
 

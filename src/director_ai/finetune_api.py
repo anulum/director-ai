@@ -1,22 +1,22 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Fine-tuning REST API
+# Director-Class AI — Fine-tuning REST API
 
 """Server-side fine-tuning API (Phase C).
 
 Endpoints::
 
-    POST /v1/finetune/validate      â€” validate JSONL before training
-    POST /v1/finetune/start         â€” start fine-tuning job
-    GET  /v1/finetune/{job_id}      â€” job status + progress
-    GET  /v1/finetune/{job_id}/result â€” regression report + metrics
-    POST /v1/finetune/{job_id}/activate â€” activate fine-tuned model
-    POST /v1/finetune/{job_id}/rollback â€” revert to baseline
-    GET  /v1/finetune/models        â€” list all fine-tuned models
-    DELETE /v1/finetune/{job_id}    â€” delete model + artifacts
+    POST /v1/finetune/validate      — validate JSONL before training
+    POST /v1/finetune/start         — start fine-tuning job
+    GET  /v1/finetune/{job_id}      — job status + progress
+    GET  /v1/finetune/{job_id}/result — regression report + metrics
+    POST /v1/finetune/{job_id}/activate — activate fine-tuned model
+    POST /v1/finetune/{job_id}/rollback — revert to baseline
+    GET  /v1/finetune/models        — list all fine-tuned models
+    DELETE /v1/finetune/{job_id}    — delete model + artifacts
 
 Mount via::
 
@@ -434,7 +434,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         if job.activated:
             raise HTTPException(
                 409,
-                "Cannot delete an activated model â€” rollback first",
+                "Cannot delete an activated model — rollback first",
             )
 
         if job.model_path:

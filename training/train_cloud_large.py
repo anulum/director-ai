@@ -3,14 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — train_cloud_large
-#!/usr/bin/env python3
-# ─────────────────────────────────────────────────────────────────────
-# Director-Class AI — Cloud Fine-Tune DeBERTa-v3-large
-# For UpCloud L40S (48GB VRAM) or any high-VRAM GPU
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
-# License: GNU AGPL v3 | Commercial licensing available
-# ─────────────────────────────────────────────────────────────────────
+# Director-Class AI — Cloud Fine-Tune DeBERTa-v3-Large
 """
 Fine-tune DeBERTa-v3-large on the full 734K-example hallucination
 detection dataset. Designed for cloud GPUs with 24GB+ VRAM.

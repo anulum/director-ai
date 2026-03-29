@@ -3,7 +3,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage for vector_store.py â€” vendor backend import branches."""
+"""Coverage for vector_store.py — vendor backend import branches."""
 
 from __future__ import annotations
 

@@ -1,9 +1,9 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
-# Â© Concepts 1996â€“2026 Miroslav Ĺ otek. All rights reserved.
-# Â© Code 2020â€“2026 Miroslav Ĺ otek. All rights reserved.
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI â€” Server Tests
+# Director-Class AI — Server Tests
 
 import pytest
 
@@ -284,7 +284,7 @@ class TestWebSocketAgentError:
                 d1 = ws.receive_json()
                 assert "error" in d1
 
-            # Connection survives â€” next message works
+            # Connection survives — next message works
             ws.send_json({"prompt": "ok"})
             d2 = ws.receive_json()
             assert d2["type"] == "result"
