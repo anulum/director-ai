@@ -171,3 +171,79 @@ class TestAsyncVoiceGuardScoring:
         for token in ["a", "b", "c", "d", "e", "f", "g", "h"]:
             results.append(await guard.feed(token))
         assert all(r.approved for r in results)
+
+
+class TestAsyncVoiceGuardCoverageGaps:
+    """Targeted tests for the 3 uncovered paths in voice/guard.py."""
+
+    async def test_custom_store_passed_to_constructor(self):
+        """Line 76: store is not None branch."""
+        from director_ai.core.knowledge import GroundTruthStore
+
+        custom_store = GroundTruthStore()
+        custom_store.add("fact", "The Earth orbits the Sun.")
+        guard = AsyncVoiceGuard(
+            store=custom_store,
+            use_nli=False,
+            score_every=1,
+        )
+        assert guard._store is custom_store
+
+    async def test_window_avg_hard_halt_deterministic(self):
+        """Lines 197→217: window avg below threshold with soft_halt=False.
+
+        Trick: set hard_limit=0.0 so individual scores never trigger
+        hard_limit halt, but threshold=0.999 so the window avg check
+        at line 197 fires instead.
+        """
+        guard = AsyncVoiceGuard(
+            use_nli=False,
+            score_every=1,
+            threshold=0.999,
+            hard_limit=0.0,
+            window_size=1,
+            soft_halt=False,
+        )
+        results = []
+        for token in ["Hello ", "world ", "this ", "is ", "a ", "test."]:
+            result = await guard.feed(token)
+            results.append(result)
+            if result.halted:
+                break
+        halted = [r for r in results if r.halted]
+        assert len(halted) >= 1
+        assert halted[0].halt_reason == "window_avg"
+
+    async def test_window_avg_above_threshold_passes(self):
+        """Line 197→217: window filled but avg >= threshold, falls through."""
+        guard = AsyncVoiceGuard(
+            facts={"fact": "The sky is blue during the day."},
+            use_nli=False,
+            score_every=1,
+            threshold=0.0,
+            hard_limit=0.0,
+            window_size=1,
+            soft_halt=False,
+        )
+        results = []
+        for token in ["The ", "sky ", "is ", "blue."]:
+            result = await guard.feed(token)
+            results.append(result)
+        assert all(r.approved for r in results)
+        assert not any(r.halted for r in results)
+
+    async def test_async_feed_stream_halts_midstream(self):
+        """Line 234: halt during async iterator feed_stream."""
+
+        async def async_tokens():
+            for t in ["a", "b", "c", "d", "e", "f", "g", "h", "i", "j"]:
+                yield t
+
+        guard = AsyncVoiceGuard(
+            use_nli=False,
+            score_every=1,
+            hard_limit=0.99,
+        )
+        results = [r async for r in guard.feed_stream(async_tokens())]
+        assert results[-1].halted
+        assert len(results) < 10
