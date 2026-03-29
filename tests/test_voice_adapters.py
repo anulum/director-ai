@@ -147,3 +147,241 @@ class TestDeepgramAdapterMissing:
         adapter._client = "fake"
         await adapter.close()
         assert adapter._client is None
+
+
+# ---------------------------------------------------------------------------
+# Happy-path tests with mocked SDK clients
+# ---------------------------------------------------------------------------
+
+
+class TestElevenLabsAdapterHappyPath:
+    """Test ElevenLabsAdapter with a mocked elevenlabs client."""
+
+    async def test_get_client_creates_instance(self):
+        from unittest.mock import MagicMock
+
+        mock_module = MagicMock()
+        mock_client_cls = MagicMock()
+        mock_module.AsyncElevenLabs = mock_client_cls
+        with patch.dict(
+            "sys.modules", {"elevenlabs": MagicMock(), "elevenlabs.client": mock_module}
+        ):
+            adapter = ElevenLabsAdapter(voice_id="v1", api_key="key")
+            adapter._client = None
+            client = adapter._get_client()
+            mock_client_cls.assert_called_once_with(api_key="key")
+            assert client is mock_client_cls.return_value
+
+    async def test_get_client_without_api_key(self):
+        from unittest.mock import MagicMock
+
+        mock_module = MagicMock()
+        mock_client_cls = MagicMock()
+        mock_module.AsyncElevenLabs = mock_client_cls
+        with patch.dict(
+            "sys.modules", {"elevenlabs": MagicMock(), "elevenlabs.client": mock_module}
+        ):
+            adapter = ElevenLabsAdapter(voice_id="v1")
+            adapter._client = None
+            adapter._get_client()
+            mock_client_cls.assert_called_once_with()
+
+    async def test_get_client_returns_cached(self):
+        adapter = ElevenLabsAdapter()
+        adapter._client = "cached"
+        assert adapter._get_client() == "cached"
+
+    async def test_synthesise_async_iterable(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        adapter = ElevenLabsAdapter(voice_id="v1", model_id="m1")
+
+        async def fake_stream():
+            yield b"chunk1"
+            yield b"chunk2"
+
+        mock_client = MagicMock()
+        mock_client.text_to_speech.convert = AsyncMock(return_value=fake_stream())
+        adapter._client = mock_client
+
+        chunks = [c async for c in adapter.synthesise("Hello")]
+        assert chunks == [b"chunk1", b"chunk2"]
+        mock_client.text_to_speech.convert.assert_called_once_with(
+            text="Hello", voice_id="v1", model_id="m1"
+        )
+
+    async def test_synthesise_non_iterable(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        adapter = ElevenLabsAdapter(voice_id="v1")
+        mock_client = MagicMock()
+        mock_client.text_to_speech.convert = AsyncMock(return_value=b"raw_audio")
+        adapter._client = mock_client
+
+        chunks = [c async for c in adapter.synthesise("Hi")]
+        assert chunks == [b"raw_audio"]
+
+
+class TestOpenAITTSAdapterHappyPath:
+    """Test OpenAITTSAdapter with a mocked openai client."""
+
+    async def test_get_client_with_api_key(self):
+        from unittest.mock import MagicMock
+
+        mock_openai = MagicMock()
+        mock_cls = MagicMock()
+        mock_openai.AsyncOpenAI = mock_cls
+        with patch.dict("sys.modules", {"openai": mock_openai}):
+            adapter = OpenAITTSAdapter(api_key="sk-test")
+            adapter._client = None
+            client = adapter._get_client()
+            mock_cls.assert_called_once_with(api_key="sk-test")
+            assert client is mock_cls.return_value
+
+    async def test_get_client_without_api_key(self):
+        from unittest.mock import MagicMock
+
+        mock_openai = MagicMock()
+        mock_cls = MagicMock()
+        mock_openai.AsyncOpenAI = mock_cls
+        with patch.dict("sys.modules", {"openai": mock_openai}):
+            adapter = OpenAITTSAdapter()
+            adapter._client = None
+            adapter._get_client()
+            mock_cls.assert_called_once_with()
+
+    async def test_get_client_returns_cached(self):
+        adapter = OpenAITTSAdapter()
+        adapter._client = "cached"
+        assert adapter._get_client() == "cached"
+
+    async def test_synthesise_streams_bytes(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        adapter = OpenAITTSAdapter(voice="nova", model="tts-1", response_format="mp3")
+
+        async def fake_iter(size):
+            yield b"audio1"
+            yield b"audio2"
+
+        mock_response = MagicMock()
+        mock_response.iter_bytes = fake_iter
+
+        mock_client = MagicMock()
+        mock_client.audio.speech.create = AsyncMock(return_value=mock_response)
+        adapter._client = mock_client
+
+        chunks = [c async for c in adapter.synthesise("Test text")]
+        assert chunks == [b"audio1", b"audio2"]
+        mock_client.audio.speech.create.assert_called_once_with(
+            model="tts-1", voice="nova", input="Test text", response_format="mp3"
+        )
+
+    async def test_close_with_active_client(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        adapter = OpenAITTSAdapter()
+        mock_client = MagicMock()
+        mock_client.close = AsyncMock()
+        adapter._client = mock_client
+        await adapter.close()
+        mock_client.close.assert_called_once()
+        assert adapter._client is None
+
+
+class TestDeepgramAdapterHappyPath:
+    """Test DeepgramAdapter with a mocked deepgram client."""
+
+    async def test_get_client_with_api_key(self):
+        from unittest.mock import MagicMock
+
+        mock_dg = MagicMock()
+        mock_cls = MagicMock()
+        mock_dg.DeepgramClient = mock_cls
+        with patch.dict("sys.modules", {"deepgram": mock_dg}):
+            adapter = DeepgramAdapter(api_key="dg-key")
+            adapter._client = None
+            client = adapter._get_client()
+            mock_cls.assert_called_once_with(api_key="dg-key")
+            assert client is mock_cls.return_value
+
+    async def test_get_client_without_api_key(self):
+        from unittest.mock import MagicMock
+
+        mock_dg = MagicMock()
+        mock_cls = MagicMock()
+        mock_dg.DeepgramClient = mock_cls
+        with patch.dict("sys.modules", {"deepgram": mock_dg}):
+            adapter = DeepgramAdapter()
+            adapter._client = None
+            adapter._get_client()
+            mock_cls.assert_called_once_with()
+
+    async def test_get_client_returns_cached(self):
+        adapter = DeepgramAdapter()
+        adapter._client = "cached"
+        assert adapter._get_client() == "cached"
+
+    async def test_synthesise_async_iterable(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        adapter = DeepgramAdapter(model="aura-zeus-en")
+
+        async def fake_stream():
+            yield b"dg1"
+            yield b"dg2"
+
+        mock_response = fake_stream()
+        mock_client = MagicMock()
+        mock_v = MagicMock()
+        mock_v.stream_raw = AsyncMock(return_value=mock_response)
+        mock_client.speak.asyncrest.v.return_value = mock_v
+        adapter._client = mock_client
+
+        chunks = [c async for c in adapter.synthesise("Hi")]
+        assert chunks == [b"dg1", b"dg2"]
+
+    async def test_synthesise_stream_attribute(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        adapter = DeepgramAdapter()
+        mock_response = MagicMock(spec=[])
+        mock_response.stream = [b"s1", b"s2"]
+        mock_client = MagicMock()
+        mock_v = MagicMock()
+        mock_v.stream_raw = AsyncMock(return_value=mock_response)
+        mock_client.speak.asyncrest.v.return_value = mock_v
+        adapter._client = mock_client
+
+        chunks = [c async for c in adapter.synthesise("Stream")]
+        assert chunks == [b"s1", b"s2"]
+
+    async def test_synthesise_content_fallback(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        adapter = DeepgramAdapter()
+        mock_response = MagicMock(spec=[])
+        mock_response.content = b"raw_content"
+        del mock_response.stream
+        mock_client = MagicMock()
+        mock_v = MagicMock()
+        mock_v.stream_raw = AsyncMock(return_value=mock_response)
+        mock_client.speak.asyncrest.v.return_value = mock_v
+        adapter._client = mock_client
+
+        chunks = [c async for c in adapter.synthesise("Content")]
+        assert chunks == [b"raw_content"]
+
+    async def test_synthesise_bytes_fallback(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        adapter = DeepgramAdapter()
+        mock_response = b"raw_bytes"
+        mock_client = MagicMock()
+        mock_v = MagicMock()
+        mock_v.stream_raw = AsyncMock(return_value=mock_response)
+        mock_client.speak.asyncrest.v.return_value = mock_v
+        adapter._client = mock_client
+
+        chunks = [c async for c in adapter.synthesise("Bytes")]
+        assert chunks == [b"raw_bytes"]
