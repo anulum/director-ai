@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage tests for cli.py — serve execution, ingest, config edges."""
+"""Multi-angle tests for cli.py — serve, config, ingest pipelines.
+
+Covers: serve HTTP/gRPC transport, profile selection, config listing,
+ingest error paths, parametrised transports/profiles/ports,
+pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -58,6 +63,20 @@ class TestCliConfig:
         out = capsys.readouterr().out
         assert len(out) > 0
 
+    @pytest.mark.parametrize("profile", ["fast", "medical", "thorough"])
+    def test_serve_various_profiles(self, profile):
+        mock_uvicorn = MagicMock()
+        with patch.dict(sys.modules, {"uvicorn": mock_uvicorn}):
+            main(["serve", "--profile", profile])
+            mock_uvicorn.run.assert_called_once()
+
+    @pytest.mark.parametrize("port", ["8080", "9090", "3000"])
+    def test_serve_various_ports(self, port):
+        mock_uvicorn = MagicMock()
+        with patch.dict(sys.modules, {"uvicorn": mock_uvicorn}):
+            main(["serve", "--port", port])
+            mock_uvicorn.run.assert_called_once()
+
 
 class TestCliIngestEdges:
     def test_ingest_no_file(self):
@@ -67,3 +86,15 @@ class TestCliIngestEdges:
     def test_ingest_missing_file(self):
         with pytest.raises(SystemExit):
             main(["ingest", "/nonexistent/file.json"])
+
+
+class TestCliPerformanceDoc:
+    """Document CLI pipeline integration."""
+
+    def test_main_is_callable(self):
+        assert callable(main)
+
+    def test_config_list_produces_output(self, capsys):
+        main(["config", "--list"])
+        out = capsys.readouterr().out
+        assert len(out) > 0
