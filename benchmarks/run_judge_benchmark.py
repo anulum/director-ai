@@ -72,7 +72,7 @@ def _gpu_info() -> dict:
         return {"gpu": "unavailable", "cuda": False}
 
 
-def run_nli_only(max_samples: int) -> dict:
+def run_nli_only(max_samples: int, nli_torch_dtype: str | None = None) -> dict:
     """NLI-only baseline (no judge escalation)."""
     logger.info("=== NLI-only baseline (%d samples/task) ===", max_samples)
     from benchmarks.e2e_eval import print_e2e_results, run_e2e_benchmark
@@ -84,6 +84,7 @@ def run_nli_only(max_samples: int) -> dict:
         soft_limit=0.6,
         use_nli=True,
         scorer_backend="deberta",
+        nli_torch_dtype=nli_torch_dtype,
     )
     elapsed = time.time() - t0
     print_e2e_results(m)
@@ -98,7 +99,7 @@ def run_nli_only(max_samples: int) -> dict:
     return result
 
 
-def run_local_judge(max_samples: int) -> dict:
+def run_local_judge(max_samples: int, nli_torch_dtype: str | None = None) -> dict:
     """NLI + local DeBERTa-base judge (hybrid scorer)."""
     logger.info("=== NLI + local judge (%d samples/task) ===", max_samples)
     from benchmarks.e2e_eval import print_e2e_results, run_e2e_benchmark
@@ -117,6 +118,7 @@ def run_local_judge(max_samples: int) -> dict:
         scorer_backend="hybrid",
         llm_judge_provider="local",
         llm_judge_model=str(judge_path),
+        nli_torch_dtype=nli_torch_dtype,
     )
     elapsed = time.time() - t0
     print_e2e_results(m)
@@ -269,11 +271,19 @@ def main() -> None:
         action="store_true",
         help="Skip NLI-only baseline (if already have results)",
     )
+    parser.add_argument(
+        "--fp16",
+        action="store_true",
+        help="Use FP16 for NLI model (saves ~50%% VRAM)",
+    )
     args = parser.parse_args()
 
+    nli_dtype = "float16" if args.fp16 else None
     logger.info("GPU: %s", json.dumps(_gpu_info()))
     logger.info("Samples per task: %d", args.samples)
     logger.info("Judge model: %s", JUDGE_MODEL_PATH)
+    if nli_dtype:
+        logger.info("NLI dtype: %s", nli_dtype)
 
     results = {}
     total_t0 = time.time()
@@ -290,7 +300,7 @@ def main() -> None:
     nli_result = None
     if not args.skip_nli_only:
         try:
-            nli_result = run_nli_only(args.samples)
+            nli_result = run_nli_only(args.samples, nli_torch_dtype=nli_dtype)
             results["nli_only"] = {"status": "ok", "elapsed_s": nli_result["elapsed_s"]}
         except Exception as e:
             logger.error("NLI-only benchmark failed: %s", e, exc_info=True)
@@ -299,7 +309,7 @@ def main() -> None:
     # 3. Local judge
     judge_result = None
     try:
-        judge_result = run_local_judge(args.samples)
+        judge_result = run_local_judge(args.samples, nli_torch_dtype=nli_dtype)
         results["local_judge"] = {
             "status": "ok",
             "elapsed_s": judge_result["elapsed_s"],

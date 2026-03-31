@@ -217,6 +217,7 @@ def run_e2e_benchmark(
     scorer_backend: str = "deberta",
     llm_judge_provider: str | None = None,
     llm_judge_model: str | None = None,
+    nli_torch_dtype: str | None = None,
 ) -> E2EMetrics:
     """Run end-to-end guardrail benchmark on HaluEval.
 
@@ -232,6 +233,7 @@ def run_e2e_benchmark(
     scorer_backend : "deberta", "hybrid", "onnx", or "lite".
     llm_judge_provider : "openai" or "anthropic" (required for hybrid).
     llm_judge_model : model name for LLM judge.
+    nli_torch_dtype : "float16", "bfloat16", or None (FP32).
 
     """
     from director_ai.core.scorer import CoherenceScorer
@@ -255,6 +257,7 @@ def run_e2e_benchmark(
         ground_truth_store=VectorGroundTruthStore(),
         nli_model=nli_model,
         scorer_backend=scorer_backend,
+        nli_torch_dtype=nli_torch_dtype,
         llm_judge_enabled=llm_judge_provider is not None,
         llm_judge_provider=llm_judge_provider or "",
         llm_judge_model=llm_judge_model or "",
