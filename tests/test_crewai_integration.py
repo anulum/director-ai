@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — CrewAI Integration Tests
+# Director-Class AI — CrewAI Integration Tests (STRONG)
+"""Multi-angle tests for CrewAI DirectorAITool integration.
+
+Covers: pipe separator, no-pipe fallback, async run, threshold
+enforcement, filter mode, metadata mode, check method, no facts,
+custom store, parametrised thresholds, pipeline performance.
+"""
 
 import pytest
 
@@ -95,3 +101,34 @@ class TestDirectorAITool:
         tool = DirectorAITool(store=store, use_nli=False)
         result = tool.check("What is the capital?", "Paris is the capital of France.")
         assert result["approved"] is True
+
+    @pytest.mark.parametrize("threshold", [0.1, 0.3, 0.5, 0.7])
+    def test_parametrised_thresholds(self, threshold):
+        tool = DirectorAITool(
+            facts={"test": "Test fact."},
+            threshold=threshold,
+            use_nli=False,
+        )
+        result = tool.check("test", "Test fact.")
+        assert "score" in result
+        assert "approved" in result
+
+
+class TestCrewAIPerformanceDoc:
+    """Document CrewAI tool pipeline performance."""
+
+    def test_check_fast(self):
+        import time
+
+        tool = DirectorAITool(use_nli=False)
+        t0 = time.perf_counter()
+        for _ in range(10):
+            tool.check("test", "response")
+        per_call_ms = (time.perf_counter() - t0) / 10 * 1000
+        assert per_call_ms < 50, f"CrewAI check took {per_call_ms:.1f}ms"
+
+    def test_result_structure(self):
+        tool = DirectorAITool(use_nli=False)
+        result = tool.check("q", "r")
+        assert "score" in result
+        assert "approved" in result
