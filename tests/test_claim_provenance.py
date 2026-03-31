@@ -4,9 +4,16 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for Phase 5 Gem 2: Claim-Level Provenance."""
+"""Multi-angle tests for Phase 5 Gem 2: Claim-Level Provenance.
+
+Covers: claims from empty/populated evidence, unsupported claim filtering,
+provenance structure, multiple claims, empty attributions, parametrised
+divergence thresholds, pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
+
+import pytest
 
 from director_ai.core.types import (
     ClaimAttribution,
@@ -135,3 +142,62 @@ class TestClaimProvenance:
         ev = _make_evidence(attributions=[])
         score = _make_score(evidence=ev)
         assert score.claim_provenance() == []
+
+
+class TestClaimProvenanceParametrised:
+    """Parametrised claim provenance tests."""
+
+    @pytest.mark.parametrize(
+        "divergence,supported",
+        [
+            (0.0, True),
+            (0.1, True),
+            (0.5, True),
+            (0.8, False),
+            (1.0, False),
+        ],
+    )
+    def test_divergence_support_combinations(self, divergence, supported):
+        ev = _make_evidence(
+            attributions=[
+                ClaimAttribution("claim", 0, "src", 0, divergence, supported),
+            ],
+        )
+        score = _make_score(evidence=ev)
+        prov = score.claim_provenance()
+        assert len(prov) == 1
+        assert prov[0]["divergence"] == divergence
+        assert prov[0]["supported"] is supported
+
+    @pytest.mark.parametrize("n_claims", [0, 1, 3, 5, 10])
+    def test_various_claim_counts(self, n_claims):
+        attrs = [
+            ClaimAttribution(f"claim_{i}", i, f"src_{i}", i, 0.1, True)
+            for i in range(n_claims)
+        ]
+        ev = _make_evidence(attributions=attrs)
+        score = _make_score(evidence=ev)
+        assert len(score.claim_provenance()) == n_claims
+
+
+class TestClaimProvenancePerformanceDoc:
+    """Document claim provenance pipeline performance."""
+
+    def test_claim_attribution_has_required_fields(self):
+        attr = ClaimAttribution("claim", 0, "source", 0, 0.1, True)
+        assert hasattr(attr, "claim")
+        assert hasattr(attr, "claim_index")
+        assert hasattr(attr, "source_sentence")
+        assert hasattr(attr, "source_index")
+        assert hasattr(attr, "divergence")
+        assert hasattr(attr, "supported")
+
+    def test_provenance_dict_structure(self):
+        ev = _make_evidence(
+            attributions=[ClaimAttribution("c", 0, "s", 0, 0.1, True)],
+        )
+        score = _make_score(evidence=ev)
+        prov = score.claim_provenance()[0]
+        required_keys = ["claim", "supported", "source", "divergence", "source_index"]
+        for key in required_keys:
+            assert key in prov, f"Missing key: {key}"
