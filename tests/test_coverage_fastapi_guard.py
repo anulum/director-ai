@@ -4,6 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — FastAPI Guard Coverage Tests (STRONG)
+"""Multi-angle tests for FastAPI ProductionGuard middleware pipeline.
+
+Covers: guard creation, profile routing, review/process interception,
+threshold enforcement, fact injection, pipeline integration, and performance.
+"""
 
 from __future__ import annotations
 
