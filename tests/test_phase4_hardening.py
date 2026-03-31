@@ -4,7 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_phase4_hardening.py
+# Director-Class AI — Phase 4 Hardening Tests (STRONG)
+"""Multi-angle tests for Phase 4 hardening pipeline (STRONG)."""
 
 """Tests for Phase 4 hardening fixes:
 H48  DOS-1: batch per-line JSON size limit
