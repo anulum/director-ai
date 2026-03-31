@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_agent.py
+# Director-Class AI — CoherenceAgent Tests (STRONG)
+"""Multi-angle tests for CoherenceAgent pipeline.
+
+Covers: process, aprocess, provider routing, candidate evaluation, halt
+logic, coherence scoring, pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
 
