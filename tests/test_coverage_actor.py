@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage tests for actor.py — MockGenerator, LLMGenerator."""
+"""Multi-angle tests for actor.py — MockGenerator, LLMGenerator pipeline.
+
+Covers: candidate generation, mock responses, LLM URL routing,
+streaming fallback, SSE parsing, provider switching, pipeline
+integration with CoherenceAgent, and performance documentation.
+"""
 
 from __future__ import annotations
 
