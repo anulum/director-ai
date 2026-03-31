@@ -4,7 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Coalesced review_batch Tests
+# Director-Class AI — Coalesced review_batch Tests (STRONG)
+"""Multi-angle tests for coalesced review_batch pipeline (STRONG)."""
 
 """Tests for CoherenceScorer.review_batch() and BatchProcessor coalesced path."""
 
