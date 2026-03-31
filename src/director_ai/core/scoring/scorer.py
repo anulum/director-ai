@@ -1245,7 +1245,9 @@ class CoherenceScorer:
         fact_ia, fact_oa, logic_ia, logic_oa = self._resolve_agg_profile(prompt)
 
         _nli_available = self._nli is not None and self._nli.model_available
-        _task_type = self._detect_task_type(prompt, action) if _nli_available else "default"
+        _task_type = (
+            self._detect_task_type(prompt, action) if _nli_available else "default"
+        )
 
         # -- Dialogue path: bidirectional NLI + baseline calibration ----
         # Logical entailment is meaningless for dialogue (a question
@@ -1601,10 +1603,9 @@ class CoherenceScorer:
         batch_idx: list[int] = []
         fallback_idx: list[int] = []
         for i, (prompt, _action) in enumerate(items):
-            if (
-                self._auto_dialogue_profile
-                and self._detect_task_type(prompt, _action) in ("dialogue", "summarization")
-            ):
+            if self._auto_dialogue_profile and self._detect_task_type(
+                prompt, _action
+            ) in ("dialogue", "summarization"):
                 fallback_idx.append(i)
             else:
                 batch_idx.append(i)
