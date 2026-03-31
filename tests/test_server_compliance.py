@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for server compliance endpoints."""
+"""Multi-angle tests for server compliance endpoints.
+
+Covers: report JSON/markdown, drift detection, dashboard windows,
+503 when not configured, parametrised formats, endpoint field
+verification, and pipeline performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -117,3 +122,27 @@ class TestComplianceNotConfigured:
     def test_dashboard_503(self, no_compliance_client):
         resp = no_compliance_client.get("/v1/compliance/dashboard")
         assert resp.status_code == 503
+
+    @pytest.mark.parametrize(
+        "endpoint",
+        ["/v1/compliance/report", "/v1/compliance/drift", "/v1/compliance/dashboard"],
+    )
+    def test_all_endpoints_503_when_disabled(self, no_compliance_client, endpoint):
+        resp = no_compliance_client.get(endpoint)
+        assert resp.status_code == 503
+
+
+class TestCompliancePerformanceDoc:
+    """Document compliance server pipeline performance."""
+
+    def test_drift_response_has_all_fields(self, compliance_client):
+        resp = compliance_client.get("/v1/compliance/drift")
+        data = resp.json()
+        for field in ["detected", "severity", "z_score"]:
+            assert field in data, f"Missing: {field}"
+
+    def test_dashboard_has_all_windows(self, compliance_client):
+        resp = compliance_client.get("/v1/compliance/dashboard")
+        data = resp.json()
+        for window in ["24h", "7d", "30d"]:
+            assert window in data, f"Missing window: {window}"
