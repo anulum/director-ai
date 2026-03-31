@@ -6,7 +6,12 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Redis Enterprise Store Tests (Fakeredis)
 
-"""Tests for RedisGroundTruthStore and RedisScoreCache using fakeredis."""
+"""Multi-angle tests for Redis enterprise store pipeline.
+
+Covers: RedisGroundTruthStore add/query, RedisScoreCache put/get/TTL,
+tenant isolation, import guard, fakeredis mocking, parametrised
+operations, pipeline integration with CoherenceScorer, and performance.
+"""
 
 from __future__ import annotations
 
