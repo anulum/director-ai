@@ -843,8 +843,8 @@ class CoherenceScorer:
                 self._minicheck_nli = mc
                 self.logger.info("MiniCheck auto-routing enabled for summarisation")
                 return mc
-        except Exception:
-            pass
+        except Exception as exc:
+            self.logger.debug("MiniCheck auto-routing unavailable: %s", exc)
 
         self._minicheck_nli = None
         return None
