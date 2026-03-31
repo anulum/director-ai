@@ -6,8 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Consumer API Coverage Tests
 
-"""Tests the consumer-facing API: CoherenceAgent, CoherenceScorer, SafetyKernel,
-MockGenerator, GroundTruthStore, and dataclass types.
+"""Multi-angle tests for consumer-facing API pipeline (STRONG).
+
+Tests: CoherenceAgent, CoherenceScorer, SafetyKernel, MockGenerator,
+GroundTruthStore, and dataclass types. Pipeline wiring and performance.
 """
 
 from unittest.mock import MagicMock, patch
