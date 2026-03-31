@@ -5,20 +5,16 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Phase 4 Hardening Tests (STRONG)
-"""Multi-angle tests for Phase 4 hardening pipeline (STRONG)."""
+"""Multi-angle tests for Phase 4 hardening pipeline (STRONG).
 
-"""Tests for Phase 4 hardening fixes:
-H48  DOS-1: batch per-line JSON size limit
-H49  ERR-2: WebSocket receive_json exception handling
-H50  VAL-1: NaN/Inf clamp logging
-H52  VAL-2: null JSON prompt guard in batch
-H54  RES-2: batch timeout parameter validation
-H55  ERR-3: LLM error type distinction
-H57  VAL-3: CORS origins count limit
-H58  TYP-1: return type annotations on generators
-H59  DOC-1: batch limits in help text
-H64  TEST-4: bool coercion edge cases
+Covers: H48 DOS-1 batch JSON size limit, H49 ERR-2 WS exception,
+H50 VAL-1 NaN/Inf clamp, H52 VAL-2 null prompt guard,
+H54 RES-2 batch timeout validation, H55 ERR-3 LLM error types,
+H57 VAL-3 CORS origins limit, H58 TYP-1 generator annotations,
+H59 DOC-1 batch help text, H64 TEST-4 bool coercion.
 """
+
+from __future__ import annotations
 
 import logging
 
