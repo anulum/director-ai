@@ -4,7 +4,11 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for enterprise modules: PostgresAuditSink and Redis wrappers."""
+"""Multi-angle tests for enterprise modules pipeline (STRONG).
+
+Covers: PostgresAuditSink, Redis wrappers, tenant isolation, pipeline
+integration with server, and performance documentation.
+"""
 
 from __future__ import annotations
 

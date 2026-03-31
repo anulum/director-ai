@@ -4,9 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Final coverage push: server rate-limit with slowapi, WS streaming oversight,
-halt_evidence serialization, provider stream error paths, agent _build_scorer,
-cli evaluate/export edges.
+"""Multi-angle final coverage push (STRONG): rate-limit, WS oversight,
+halt_evidence, provider streams, agent scorer, CLI evaluate/export.
 """
 
 from __future__ import annotations

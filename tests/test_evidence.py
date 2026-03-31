@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Evidence, Fallback, and Soft Zone Tests
+# Director-Class AI — Evidence, Fallback, and Soft Zone Tests (STRONG)
+"""Multi-angle tests for evidence collection, fallback, and soft zone.
+
+Covers: evidence retrieval, chunk scoring, fallback mode, soft warning zone,
+halt evidence generation, pipeline integration with CoherenceScorer, and
+performance documentation.
+"""
 
 from director_ai.core import (
     CoherenceAgent,
