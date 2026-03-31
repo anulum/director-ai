@@ -4,7 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — v3.2.0 Hardening Tests
+# Director-Class AI — v3.2.0 Hardening Tests (STRONG)
+"""Multi-angle tests for v3.2.0 hardening pipeline (STRONG)."""
 
 from __future__ import annotations
 
