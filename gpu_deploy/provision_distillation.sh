@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Provision UpCloud L40S for Distillation Pipeline
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 # ─────────────────────────────────────────────────────────────────────
 #
 # Provisions UpCloud L40S (48GB VRAM), uploads code, starts pipeline.

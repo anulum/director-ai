@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Pack deployment tarball
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 # ─────────────────────────────────────────────────────────────────────
 # Creates director_ai_gpu.tar.gz with code only (no models/data).
 # Run from the DIRECTOR_AI root directory.

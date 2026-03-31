@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — ModernBERT GPU Instance Setup
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 # ─────────────────────────────────────────────────────────────────────
 # Run once after uploading director_ai_modernbert.tar.gz to /root/.
 # No HF_TOKEN required — eval uses local JSONL.

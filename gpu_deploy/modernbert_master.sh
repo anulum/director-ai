@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — ModernBERT Autonomous Training Pipeline
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ─────────────────────────────────────────────────────────────────────
 #

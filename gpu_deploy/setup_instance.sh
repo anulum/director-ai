@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — GPU Instance Setup
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 # ─────────────────────────────────────────────────────────────────────
 # Run once after SSH into the GPU instance.
 #

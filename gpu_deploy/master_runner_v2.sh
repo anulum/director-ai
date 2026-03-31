@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — GPU Runner v2: LoRA (frozen head) + Overlap Eval
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 # ─────────────────────────────────────────────────────────────────────
 # Task 1: LoRA re-run with modules_to_save=[] (5 experiments)
 # Task 2: AggreFact re-eval with overlap chunking (2 evals)

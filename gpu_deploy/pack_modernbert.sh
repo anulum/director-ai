@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Pack ModernBERT deployment tarball
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 # ─────────────────────────────────────────────────────────────────────
 # Creates director_ai_modernbert.tar.gz with code + eval data.
 # Unlike pack.sh, this INCLUDES aggrefact_test.jsonl for offline eval.

@@ -1,7 +1,7 @@
 #!/bin/bash
 # ─────────────────────────────────────────────────────────────────────
 # Director-Class AI — Accuracy Improvement GPU Master Runner
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 # ─────────────────────────────────────────────────────────────────────
 # Autonomous pipeline: Phases 1A → 6A-feat → 3A (×4) → 4A → 6A-train
 # Run inside screen: screen -S train bash gpu_deploy/master_runner.sh

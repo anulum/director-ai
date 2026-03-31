@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------
 # Director-AI — JarvisLabs GPU Benchmark Bootstrap
-# (C) 1998-2026 Miroslav Sotek. All rights reserved.
+# © 1998–2026 Miroslav Šotek. All rights reserved.
 # License: GNU AGPL v3 | Commercial licensing available
 # ---------------------------------------------------------------------
 # Run on a fresh JarvisLabs instance (Ubuntu + NVIDIA driver preinstalled).

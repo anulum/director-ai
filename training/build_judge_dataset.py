@@ -1,4 +1,5 @@
-# SPDX-License-Identifier: AGPL-3.0-or-later | Commercial license available
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
 # © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
@@ -7,9 +8,9 @@
 """
 Build a binary (approve/reject) dataset for the local judge classifier.
 
-Takes the existing 734K 3-class NLI dataset (training/data/), remaps labels
-to binary, runs FactCG NLI scoring on a subsample to get divergence scores,
-filters to borderline zone (0.2-0.8), and saves as training/data_judge/.
+Takes the existing 3-class NLI dataset (training/data/), remaps labels
+to binary, runs FactCG NLI scoring to get divergence scores, filters to
+borderline zone (0.2-0.8), and saves as training/data_judge/.
 
 The judge model learns to make approve/reject decisions on cases where
 the NLI scorer is uncertain (borderline divergence). The NLI divergence
@@ -18,19 +19,23 @@ is prepended to the input text so the judge can leverage it as a feature.
 Usage::
 
     python training/build_judge_dataset.py
-    python training/build_judge_dataset.py --subsample 50000 --borderline-keep 25000
+    python training/build_judge_dataset.py --subsample 0  # all samples (no limit)
+    python training/build_judge_dataset.py --subsample 0 --borderline-keep 0  # keep all borderline
     python training/build_judge_dataset.py --use-onnx  # faster NLI scoring
+    python training/build_judge_dataset.py --num-gpus 3 --gpu-offset 1  # multi-GPU
 """
 
 from __future__ import annotations
 
 import argparse
 import logging
+import os
 import time
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
 import numpy as np
-from datasets import Dataset, DatasetDict, load_from_disk
+from datasets import Dataset, DatasetDict, concatenate_datasets, load_from_disk
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
@@ -129,6 +134,72 @@ def _score_onnx(dataset: Dataset, batch_size: int = 16) -> Dataset:
     return dataset.add_column("nli_divergence", divergences)
 
 
+def _score_gpu_shard(args_tuple):
+    """Score a shard on a specific GPU (used by multi-GPU scoring)."""
+    shard_path, gpu_id, shard_id = args_tuple
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(gpu_id)
+
+    from director_ai.core.nli import NLIScorer
+
+    shard = load_from_disk(shard_path)
+    scorer = NLIScorer(use_model=True, backend="deberta")
+    divergences = []
+    total = len(shard)
+    t0 = time.monotonic()
+
+    for i, row in enumerate(shard):
+        d = scorer.score(row["premise"], row["hypothesis"])
+        divergences.append(round(d, 4))
+        if (i + 1) % 1000 == 0:
+            elapsed = time.monotonic() - t0
+            rate = (i + 1) / elapsed
+            eta = (total - i - 1) / rate
+            logger.info(
+                "GPU %d shard %d: %d/%d (%.1f/s, ETA %.0fs)",
+                gpu_id, shard_id, i + 1, total, rate, eta,
+            )
+
+    result_ds = shard.add_column("nli_divergence", divergences)
+    out_path = f"{shard_path}_scored"
+    result_ds.save_to_disk(out_path)
+    return out_path
+
+
+def score_with_nli_multigpu(
+    dataset: Dataset,
+    num_gpus: int = 1,
+    gpu_offset: int = 0,
+) -> Dataset:
+    """Score using multiple GPUs in parallel via process pool."""
+    if num_gpus <= 1:
+        return _score_pytorch(dataset)
+
+    import tempfile
+
+    tmpdir = Path(tempfile.mkdtemp(prefix="judge_shards_"))
+    shards = []
+    shard_size = len(dataset) // num_gpus
+
+    for i in range(num_gpus):
+        start = i * shard_size
+        end = len(dataset) if i == num_gpus - 1 else (i + 1) * shard_size
+        shard = dataset.select(range(start, end))
+        shard_path = str(tmpdir / f"shard_{i}")
+        shard.save_to_disk(shard_path)
+        shards.append((shard_path, gpu_offset + i, i))
+
+    logger.info(
+        "Scoring %d samples across %d GPUs (GPU %d-%d)",
+        len(dataset), num_gpus, gpu_offset, gpu_offset + num_gpus - 1,
+    )
+
+    with ProcessPoolExecutor(max_workers=num_gpus) as pool:
+        result_paths = list(pool.map(_score_gpu_shard, shards))
+
+    scored_shards = [load_from_disk(p) for p in result_paths]
+    return concatenate_datasets(scored_shards)
+
+
 def format_judge_input(example):
     """Format input text with NLI divergence prepended."""
     example["text"] = (
@@ -159,9 +230,9 @@ def filter_and_balance(
         "Borderline: %d, Confident: %d", len(borderline_idx), len(confident_idx)
     )
 
-    if len(borderline_idx) > borderline_keep:
+    if borderline_keep > 0 and len(borderline_idx) > borderline_keep:
         borderline_idx = rng.choice(borderline_idx, size=borderline_keep, replace=False)
-    if len(confident_idx) > confident_keep:
+    if confident_keep > 0 and len(confident_idx) > confident_keep:
         confident_idx = rng.choice(confident_idx, size=confident_keep, replace=False)
 
     indices = np.concatenate([borderline_idx, confident_idx])
@@ -171,13 +242,30 @@ def filter_and_balance(
 
 def main():
     parser = argparse.ArgumentParser(description="Build binary judge dataset")
-    parser.add_argument("--subsample", type=int, default=50000)
-    parser.add_argument("--borderline-keep", type=int, default=25000)
-    parser.add_argument("--confident-keep", type=int, default=10000)
+    parser.add_argument(
+        "--subsample", type=int, default=50000,
+        help="Subsample size (0 = use all samples)",
+    )
+    parser.add_argument(
+        "--borderline-keep", type=int, default=25000,
+        help="Max borderline samples to keep (0 = keep all)",
+    )
+    parser.add_argument(
+        "--confident-keep", type=int, default=10000,
+        help="Max confident samples to keep (0 = keep all)",
+    )
     parser.add_argument("--use-onnx", action="store_true")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--eval-ratio", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument(
+        "--num-gpus", type=int, default=1,
+        help="Number of GPUs for parallel NLI scoring",
+    )
+    parser.add_argument(
+        "--gpu-offset", type=int, default=0,
+        help="First GPU index to use (e.g. 1 to skip GPU 0)",
+    )
     args = parser.parse_args()
 
     if not DATA_DIR.exists():
@@ -196,12 +284,21 @@ def main():
         int((labels == 1).sum()),
     )
 
-    logger.info("Stratified subsample → %d", args.subsample)
-    sub = stratified_subsample(train_ds, args.subsample, seed=args.seed)
+    if args.subsample > 0:
+        logger.info("Stratified subsample → %d", args.subsample)
+        sub = stratified_subsample(train_ds, args.subsample, seed=args.seed)
+    else:
+        logger.info("Using ALL %d samples (no subsample limit)", len(train_ds))
+        sub = train_ds
 
     logger.info("Running NLI scoring on %d samples...", len(sub))
     t0 = time.monotonic()
-    sub = score_with_nli(sub, use_onnx=args.use_onnx, batch_size=args.batch_size)
+    if args.num_gpus > 1 and not args.use_onnx:
+        sub = score_with_nli_multigpu(
+            sub, num_gpus=args.num_gpus, gpu_offset=args.gpu_offset,
+        )
+    else:
+        sub = score_with_nli(sub, use_onnx=args.use_onnx, batch_size=args.batch_size)
     logger.info("NLI scoring done in %.1fs", time.monotonic() - t0)
 
     logger.info("Filtering to borderline + confident samples")
