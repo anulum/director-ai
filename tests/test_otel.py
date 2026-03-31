@@ -4,7 +4,14 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — OpenTelemetry Integration Tests
+# Director-Class AI — OpenTelemetry Integration Tests (STRONG)
+"""Multi-angle tests for OpenTelemetry observability pipeline.
+
+Covers: noop fallback, mock SDK setup, trace_review/trace_streaming spans,
+span enrichment (h_logical, h_factual, token_count, halted), unavailable
+SDK guard, parametrised span types, pipeline integration with scorer
+and streaming kernel, and performance documentation.
+"""
 
 from unittest.mock import MagicMock, patch
 
@@ -153,3 +160,27 @@ class TestOtelSpanEnrichment:
             assert "stream.avg_coherence" in attr_keys
         finally:
             otel_mod._tracer = None
+
+
+class TestOtelPerformanceDoc:
+    """Document OTel pipeline performance characteristics."""
+
+    def test_noop_span_zero_overhead(self):
+        import time
+
+        span = _NoopSpan()
+        t0 = time.perf_counter()
+        for _ in range(10000):
+            span.set_attribute("key", "value")
+        per_call_us = (time.perf_counter() - t0) / 10000 * 1_000_000
+        assert per_call_us < 10, f"NoopSpan took {per_call_us:.1f}µs"
+
+    def test_trace_review_context_manager_works(self):
+        import director_ai.core.otel as otel_mod
+
+        otel_mod._tracer = None
+        with (
+            patch.object(otel_mod, "_OTEL_AVAILABLE", False),
+            trace_review() as span,
+        ):
+            assert isinstance(span, _NoopSpan)
