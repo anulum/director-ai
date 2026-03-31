@@ -4,6 +4,14 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — NLI Coverage Gaps Tests (STRONG)
+"""Multi-angle tests for NLI scorer coverage gaps.
+
+Covers: model loading, backend routing (DeBERTa/ONNX/MiniCheck), heuristic
+fallback, score_batch, score_chunked, custom backends, label index caching,
+FactCG template, max_length enforcement, pipeline integration with
+CoherenceScorer, and performance documentation.
+"""
 
 from __future__ import annotations
 
