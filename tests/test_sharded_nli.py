@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Sharded NLI Tests
+# Director-Class AI — Sharded NLI Tests (STRONG)
+"""Multi-angle tests for ShardedNLIScorer multi-device pipeline.
+
+Covers: empty devices guard, single/multi device, round-robin distribution,
+batch scoring, model availability, chunked scoring, thread safety,
+parametrised device counts, pipeline integration, and performance.
+"""
 
 import pytest
 
@@ -93,3 +99,64 @@ class TestShardedNLIScorer:
         for t in threads:
             t.join()
         assert len(results) == 40
+
+    @pytest.mark.parametrize("n_devices", [1, 2, 3, 4])
+    def test_parametrised_device_counts(self, n_devices):
+        scorer = ShardedNLIScorer(
+            devices=["cpu"] * n_devices,
+            use_model=False,
+            backend="lite",
+        )
+        assert scorer.device_count == n_devices
+        s = scorer.score("test", "test")
+        assert 0.0 <= s <= 1.0
+
+    @pytest.mark.parametrize("batch_size", [1, 3, 5, 10])
+    def test_parametrised_batch_sizes(self, batch_size):
+        scorer = ShardedNLIScorer(
+            devices=["cpu"],
+            use_model=False,
+            backend="lite",
+        )
+        pairs = [("p", "h")] * batch_size
+        results = scorer.score_batch(pairs)
+        assert len(results) == batch_size
+
+
+class TestShardedNLIPerformanceDoc:
+    """Document sharded NLI pipeline performance."""
+
+    def test_score_deterministic(self):
+        scorer = ShardedNLIScorer(
+            devices=["cpu"],
+            use_model=False,
+            backend="lite",
+        )
+        s1 = scorer.score("X", "Y")
+        s2 = scorer.score("X", "Y")
+        assert s1 == s2
+
+    def test_sharded_scorer_integrates_with_coherence_scorer(self):
+        from director_ai.core import CoherenceScorer
+
+        scorer = CoherenceScorer(
+            use_nli=False,
+            nli_devices=["cpu", "cpu"],
+        )
+        approved, score = scorer.review("test", "test")
+        assert isinstance(approved, bool)
+        assert 0.0 <= score.score <= 1.0
+
+    def test_score_fast_heuristic(self):
+        import time
+
+        scorer = ShardedNLIScorer(
+            devices=["cpu"],
+            use_model=False,
+            backend="lite",
+        )
+        t0 = time.perf_counter()
+        for _ in range(100):
+            scorer.score("test", "test")
+        per_call_ms = (time.perf_counter() - t0) / 100 * 1000
+        assert per_call_ms < 5.0, f"Sharded score took {per_call_ms:.1f}ms"
