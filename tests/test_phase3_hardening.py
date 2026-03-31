@@ -4,7 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_phase3_hardening.py
+# Director-Class AI — Phase 3 Hardening Tests (STRONG)
+"""Multi-angle tests for Phase 3 hardening pipeline (STRONG)."""
 
 """Tests for Phase 3 hardening fixes (consumer core):
 H28  ROB-5: NLI assert â†’ RuntimeError
