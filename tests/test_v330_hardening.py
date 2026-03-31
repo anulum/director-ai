@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — v3.3.0 Hardening Tests
+# Director-Class AI — v3.3.0 Hardening Tests (STRONG)
+"""Multi-angle hardening tests for v3.3.0+ features.
+
+Covers: version sync, gRPC proto stubs, async agent pipeline,
+CLI chunk-size validation, CORS defaults, parametrised chunk sizes,
+and pipeline performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -114,3 +120,29 @@ class TestCORSDefault:
     def test_explicit_cors_preserved(self):
         cfg = DirectorConfig(cors_origins="https://example.com")
         assert cfg.cors_origins == "https://example.com"
+
+    @pytest.mark.parametrize(
+        "origins",
+        ["", "https://a.com", "https://a.com,https://b.com"],
+    )
+    def test_parametrised_cors_origins(self, origins):
+        cfg = DirectorConfig(cors_origins=origins)
+        assert cfg.cors_origins == origins
+
+
+class TestV330PerformanceDoc:
+    """Document v3.3.0 hardening pipeline characteristics."""
+
+    def test_aprocess_returns_result(self):
+        scorer = MagicMock()
+        scorer.review.return_value = (True, MagicMock(score=0.9, warning=False))
+        agent = CoherenceAgent(_scorer=scorer)
+        agent.generator = MagicMock()
+        agent.generator.generate_candidates.return_value = [{"text": "ok"}]
+        result = asyncio.run(agent.aprocess("test"))
+        assert hasattr(result, "output")
+        assert hasattr(result, "coherence")
+
+    def test_config_has_cors_field(self):
+        cfg = DirectorConfig()
+        assert hasattr(cfg, "cors_origins")
