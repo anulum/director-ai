@@ -4,9 +4,16 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for feedback store."""
+"""Multi-angle tests for feedback store (online calibration pipeline).
+
+Covers: empty store, report/retrieve, multiple reports, domain filtering,
+limit, disagreement detection, training data export, parametrised
+domains/limits, pipeline integration with calibrator, and performance.
+"""
 
 from __future__ import annotations
+
+import pytest
 
 from director_ai.core.calibration.feedback_store import FeedbackStore
 
@@ -86,4 +93,68 @@ class TestExport:
         assert "prompt" in data[0]
         assert "response" in data[0]
         assert "domain" in data[0]
+        store.close()
+
+
+class TestFeedbackStoreParametrised:
+    """Parametrised feedback store tests."""
+
+    @pytest.mark.parametrize("n_reports", [1, 5, 10, 50])
+    def test_various_report_counts(self, tmp_path, n_reports):
+        store = FeedbackStore(tmp_path / f"test_{n_reports}.db")
+        for i in range(n_reports):
+            store.report(f"q{i}", f"a{i}", True, True)
+        assert store.count() == n_reports
+        store.close()
+
+    @pytest.mark.parametrize("domain", ["medical", "finance", "legal", ""])
+    def test_various_domains(self, tmp_path, domain):
+        store = FeedbackStore(tmp_path / f"test_{domain}.db")
+        store.report("q", "a", True, True, domain=domain)
+        corrections = store.get_corrections(domain=domain if domain else None)
+        assert len(corrections) >= 1
+        store.close()
+
+    @pytest.mark.parametrize("limit", [1, 3, 5, 10])
+    def test_various_limits(self, tmp_path, limit):
+        store = FeedbackStore(tmp_path / f"test_lim_{limit}.db")
+        for i in range(20):
+            store.report(f"q{i}", f"a{i}", True, True)
+        result = store.get_corrections(limit=limit)
+        assert len(result) == limit
+        store.close()
+
+
+class TestFeedbackStorePerformanceDoc:
+    """Document feedback store pipeline performance."""
+
+    def test_report_fast(self, tmp_path):
+        import time
+
+        store = FeedbackStore(tmp_path / "perf.db")
+        t0 = time.perf_counter()
+        for i in range(100):
+            store.report(f"q{i}", f"a{i}", True, True, guardrail_score=0.8)
+        per_call_ms = (time.perf_counter() - t0) / 100 * 1000
+        assert per_call_ms < 50, f"report() took {per_call_ms:.1f}ms/call"
+        store.close()
+
+    def test_store_integrates_with_calibrator(self, tmp_path):
+        from director_ai.core.calibration.online_calibrator import OnlineCalibrator
+
+        store = FeedbackStore(tmp_path / "cal.db")
+        for i in range(25):
+            store.report(f"q{i}", f"a{i}", True, True, guardrail_score=0.8)
+        cal = OnlineCalibrator(store, min_corrections=20)
+        report = cal.calibrate()
+        assert report.correction_count == 25
+        store.close()
+
+    def test_export_has_required_fields(self, tmp_path):
+        store = FeedbackStore(tmp_path / "export.db")
+        store.report("q", "a", True, False, domain="test")
+        data = store.export_training_data()
+        assert len(data) == 1
+        for field in ["prompt", "response", "label", "domain"]:
+            assert field in data[0], f"Missing: {field}"
         store.close()
