@@ -4,7 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Property-Based Fuzz Tests
+# Director-Class AI — Property-Based Fuzz Tests (STRONG)
+"""Multi-angle property-based fuzz tests for pipeline robustness (STRONG)."""
 
 import os
 
