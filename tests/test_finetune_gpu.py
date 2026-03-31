@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — GPU-backed Fine-tuning Integration Tests
+# Director-Class AI — GPU-backed Fine-tuning Integration Tests (STRONG)
+"""Multi-angle tests for GPU fine-tuning pipeline.
+
+Covers: model loading, training loop, checkpoint saving, metric computation,
+early stopping, gradient checkpointing, FP16 training, LoRA configuration,
+pipeline integration with judge model, and performance documentation.
+"""
 
 from __future__ import annotations
 
