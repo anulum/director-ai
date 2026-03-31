@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for tool call verification."""
+"""Multi-angle tests for tool call verification pipeline.
+
+Covers: tool call schema validation, argument verification, hallucinated
+tool detection, missing parameter detection, pipeline integration with
+CoherenceScorer, and performance documentation.
+"""
 
 from __future__ import annotations
 
