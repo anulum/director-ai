@@ -437,3 +437,88 @@ class TestRustSSGFEngine:
     def test_wrong_k_length(self):
         with pytest.raises(ValueError):
             backfire_kernel.RustSSGFEngine(k=[0.1] * 10, n=16)
+
+
+# ── Parametrised FFI tests ─────────────────────────────────────────
+
+
+class TestFFIParametrised:
+    """Parametrised tests across FFI boundary."""
+
+    @pytest.mark.parametrize("threshold", [0.1, 0.3, 0.5, 0.7, 0.9])
+    def test_config_various_thresholds(self, threshold):
+        cfg = backfire_kernel.BackfireConfig(coherence_threshold=threshold)
+        assert cfg is not None
+
+    @pytest.mark.parametrize("n_tokens", [1, 5, 10, 50])
+    def test_streaming_various_lengths(self, n_tokens):
+        kernel = backfire_kernel.RustStreamingKernel()
+        tokens = [f"tok{i}" for i in range(n_tokens)]
+        session = kernel.stream_tokens(tokens, lambda t: 0.9)
+        assert not session.halted
+        assert session.token_count() == n_tokens
+
+    @pytest.mark.parametrize(
+        "premise,hypothesis",
+        [
+            ("The sky is blue", "The sky is blue"),
+            ("", "empty"),
+            ("Unicode: こんにちは", "Response"),
+        ],
+    )
+    def test_scorer_various_inputs(self, premise, hypothesis):
+        scorer = backfire_kernel.RustCoherenceScorer(
+            config=backfire_kernel.BackfireConfig(),
+        )
+        approved, score = scorer.review(premise, hypothesis)
+        assert isinstance(approved, bool)
+        assert 0.0 <= score.score <= 1.0
+
+
+# ── FFI Performance ──────────────────────────────────────────────
+
+
+class TestFFIPerformance:
+    """Document FFI boundary performance."""
+
+    def test_scorer_review_latency(self):
+        import time
+
+        scorer = backfire_kernel.RustCoherenceScorer(
+            config=backfire_kernel.BackfireConfig(),
+        )
+        # Warmup
+        for _ in range(10):
+            scorer.review("warmup", "warmup")
+
+        t0 = time.perf_counter()
+        for _ in range(1000):
+            scorer.review("What is AI?", "AI is intelligence.")
+        per_call_us = (time.perf_counter() - t0) / 1000 * 1_000_000
+        assert per_call_us < 100, (
+            f"FFI review took {per_call_us:.0f}µs (expected <100µs)"
+        )
+
+    def test_streaming_throughput(self):
+        import time
+
+        kernel = backfire_kernel.RustStreamingKernel()
+        tokens = [f"token_{i}" for i in range(100)]
+
+        t0 = time.perf_counter()
+        for _ in range(10):
+            kernel.stream_tokens(tokens, lambda t: 0.9)
+        elapsed_ms = (time.perf_counter() - t0) / 10 * 1000
+        per_token_us = elapsed_ms / 100 * 1000
+        assert per_token_us < 50, (
+            f"FFI stream {per_token_us:.0f}µs/token (expected <50µs)"
+        )
+
+    def test_pipeline_wiring_scorer_to_coherence(self):
+        """Verify Rust scorer wires into Python CoherenceScorer pipeline."""
+        from director_ai.core import CoherenceScorer
+
+        scorer = CoherenceScorer(use_nli=False, scorer_backend="rust")
+        approved, score = scorer.review("test", "test")
+        assert isinstance(approved, bool)
+        assert 0.0 <= score.score <= 1.0
