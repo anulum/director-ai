@@ -4,6 +4,15 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Agent Provider Tests (STRONG)
+"""Multi-angle tests for CoherenceAgent provider routing.
+
+Covers: default mock generator, LLM URL routing, mutual exclusion,
+unknown provider guard, missing API key guard, OpenAI/Anthropic
+instantiation, parametrised providers, pipeline integration,
+and performance documentation.
+"""
+
 from __future__ import annotations
 
 import os
@@ -67,3 +76,45 @@ class TestAgentProvider:
         result = agent.process("What color is the sky?")
         assert result.output
         assert result.candidates_evaluated > 0
+
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://localhost:8080/completion",
+            "http://localhost:11434/v1/completions",
+            "https://api.example.com/v1/completions",
+        ],
+    )
+    def test_parametrised_llm_urls(self, url):
+        from director_ai.core.actor import LLMGenerator
+
+        agent = CoherenceAgent(llm_api_url=url)
+        assert isinstance(agent.generator, LLMGenerator)
+
+    @pytest.mark.parametrize("bad_provider", ["gemini", "cohere", "mistral", ""])
+    def test_parametrised_unknown_providers(self, bad_provider):
+        env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
+        with patch.dict(os.environ, env, clear=True):
+            if bad_provider:
+                with pytest.raises(ValueError):
+                    CoherenceAgent(provider=bad_provider)
+
+
+class TestAgentProviderPerformanceDoc:
+    """Document agent provider pipeline performance."""
+
+    def test_default_agent_creates_fast(self):
+        import time
+
+        t0 = time.perf_counter()
+        CoherenceAgent()
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        assert elapsed_ms < 1000, f"Agent creation took {elapsed_ms:.0f}ms"
+
+    def test_process_returns_required_fields(self):
+        agent = CoherenceAgent()
+        result = agent.process("Test query")
+        assert hasattr(result, "output")
+        assert hasattr(result, "coherence")
+        assert hasattr(result, "halted")
+        assert hasattr(result, "candidates_evaluated")
