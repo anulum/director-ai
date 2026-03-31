@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Deep coverage for grpc_server.py — servicer RPCs, auth, TLS, reflection."""
+"""Multi-angle tests for gRPC servicer RPCs, auth, TLS, reflection.
+
+Covers: servicer method invocation, TLS configuration, auth middleware,
+reflection service, request/response handling, pipeline integration,
+and performance documentation.
+"""
 
 from __future__ import annotations
 

@@ -5,7 +5,12 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Voice Pipeline Tests
-"""Tests for voice_pipeline() integration."""
+"""Multi-angle tests for voice_pipeline() integration.
+
+Covers: text-to-speech pipeline, guard integration, hallucination detection
+in voice output, coherence threshold enforcement, adapter routing,
+pipeline wiring, and performance documentation.
+"""
 
 from __future__ import annotations
 
