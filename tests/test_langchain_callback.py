@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_langchain_callback.py
+# Director-Class AI — LangChain Callback Handler Tests (STRONG)
+"""Multi-angle tests for CoherenceCallbackHandler pipeline.
+
+Covers: on_llm_start/end, prompt tracking, score recording, threshold
+enforcement, HallucinationError raising, metadata mode, pipeline
+integration with CoherenceScorer, and performance documentation.
+"""
 
 from __future__ import annotations
 
