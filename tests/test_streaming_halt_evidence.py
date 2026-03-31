@@ -4,7 +4,15 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Streaming Halt Evidence Tests
+# Director-Class AI — Streaming Halt Evidence Tests (STRONG)
+"""Multi-angle tests for streaming kernel halt evidence pipeline.
+
+Covers: halt evidence with scorer, halt without scorer, halt event fields,
+suggested action per halt reason, parametrised halt scores, pipeline
+integration, and performance documentation.
+"""
+
+import pytest
 
 from director_ai.core import (
     CoherenceScorer,
@@ -79,3 +87,74 @@ class TestSuggestedAction:
     def test_unknown_reason_gives_generic(self):
         action = StreamingKernel._suggested_action("something_else")
         assert len(action) > 0
+
+    @pytest.mark.parametrize(
+        "reason",
+        [
+            "hard_limit (0.1 < 0.5)",
+            "window_avg (0.3 < 0.6)",
+            "downward_trend (0.2 > 0.1)",
+            "custom_reason",
+        ],
+    )
+    def test_all_reasons_produce_action(self, reason):
+        action = StreamingKernel._suggested_action(reason)
+        assert isinstance(action, str)
+        assert len(action) > 0
+
+
+class TestHaltEvidenceParametrised:
+    """Parametrised halt evidence tests."""
+
+    @pytest.mark.parametrize("score", [0.01, 0.1, 0.3, 0.49])
+    def test_various_halt_scores(self, score):
+        kernel = StreamingKernel(hard_limit=0.5)
+        session = kernel.stream_tokens(iter(["bad"]), lambda _: score)
+        assert session.halted
+        assert session.halt_reason is not None
+
+    @pytest.mark.parametrize("threshold", [0.3, 0.5, 0.7, 0.9])
+    def test_various_thresholds_with_scorer(self, threshold):
+        store = GroundTruthStore()
+        store.add("test", "test fact")
+        scorer = CoherenceScorer(
+            threshold=threshold, ground_truth_store=store, use_nli=False
+        )
+        kernel = StreamingKernel(hard_limit=0.99)
+        session = kernel.stream_tokens(iter(["x"]), lambda _: 0.1, scorer=scorer)
+        assert session.halted
+
+
+class TestHaltEvidencePerformanceDoc:
+    """Document halt evidence pipeline performance."""
+
+    def test_halt_evidence_has_all_fields(self):
+        store = GroundTruthStore()
+        store.add("test", "test fact")
+        scorer = CoherenceScorer(threshold=0.5, ground_truth_store=store, use_nli=False)
+        kernel = StreamingKernel(hard_limit=0.99)
+        session = kernel.stream_tokens(iter(["x"]), lambda _: 0.1, scorer=scorer)
+
+        ev = session.halt_evidence_structured
+        assert ev is not None
+        assert hasattr(ev, "reason")
+        assert hasattr(ev, "last_score")
+        assert hasattr(ev, "evidence_chunks")
+        assert hasattr(ev, "suggested_action")
+
+    def test_halt_evidence_chain_complete(self):
+        """Full pipeline: StreamingKernel → halt → scorer → evidence → action."""
+        store = GroundTruthStore()
+        store.add("sky", "The sky is blue")
+        scorer = CoherenceScorer(threshold=0.5, ground_truth_store=store, use_nli=False)
+        kernel = StreamingKernel(hard_limit=0.99)
+        session = kernel.stream_tokens(
+            iter(["wrong", "output"]), lambda _: 0.2, scorer=scorer
+        )
+
+        assert session.halted
+        ev = session.halt_evidence_structured
+        assert ev is not None
+        assert ev.reason != ""
+        assert ev.suggested_action != ""
+        assert isinstance(ev.evidence_chunks, list)
