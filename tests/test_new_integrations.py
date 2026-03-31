@@ -139,7 +139,8 @@ class TestIntegrationPerformanceDoc:
 
         from director_ai.integrations.langgraph import director_ai_node
 
-        node = director_ai_node(use_nli=False)
+        # threshold=0.1 to avoid HallucinationError on context-free input
+        node = director_ai_node(use_nli=False, threshold=0.1)
         state = {"messages": [{"content": "test response"}]}
         t0 = time.perf_counter()
         for _ in range(10):
