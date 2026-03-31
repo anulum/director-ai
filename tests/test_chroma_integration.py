@@ -6,7 +6,12 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — ChromaDB Integration Tests
 
-"""Integration tests for ChromaBackend using in-memory ChromaDB.
+"""Multi-angle integration tests for ChromaBackend using in-memory ChromaDB.
+
+Covers: add/count, multiple adds, query relevance, metadata, empty collection,
+n_results limit, VectorGroundTruthStore integration, add_fact, semantic
+similarity, parametrised n_results, pipeline integration with scorer,
+and performance documentation.
 
 Requires: pip install chromadb
 """
@@ -101,3 +106,31 @@ class TestChromaIntegration:
         texts = [r["text"] for r in results]
         # At least one result should be about oscillators/synchrony
         assert any("oscillat" in t.lower() or "synchron" in t.lower() for t in texts)
+
+    @pytest.mark.parametrize("n_results", [1, 2, 3, 5])
+    def test_parametrised_n_results(self, backend, n_results):
+        for i in range(10):
+            backend.add(f"d{i}", f"Document about topic {i}")
+        results = backend.query("topic", n_results=n_results)
+        assert len(results) <= n_results
+
+    def test_scorer_pipeline_with_chroma(self, backend):
+        """Full pipeline: ChromaBackend → VectorGroundTruthStore → CoherenceScorer."""
+        from director_ai.core import CoherenceScorer
+
+        store = VectorGroundTruthStore(backend=backend)
+        store.ingest(["Paris is the capital of France"])
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+        approved, score = scorer.review("capital of France", "Paris")
+        assert isinstance(approved, bool)
+        assert 0.0 <= score.score <= 1.0
+
+    def test_add_performance(self, backend):
+        """Document add latency."""
+        import time
+
+        t0 = time.perf_counter()
+        for i in range(100):
+            backend.add(f"perf{i}", f"Performance test document {i}")
+        per_add_ms = (time.perf_counter() - t0) / 100 * 1000
+        assert per_add_ms < 500, f"Chroma add took {per_add_ms:.1f}ms/doc"
