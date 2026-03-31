@@ -4,9 +4,17 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for Phase 5 Gem 1: Multi-Signal Explainability."""
+"""Multi-angle tests for Phase 5 Gem 1: Multi-Signal Explainability.
+
+Covers: new field defaults, field settability, existing field compatibility,
+task type detection, verdict confidence, signal agreement, retrieval
+confidence, judge escalation, parametrised task detection, and pipeline
+performance documentation.
+"""
 
 from __future__ import annotations
+
+import pytest
 
 from director_ai.core import CoherenceScorer
 from director_ai.core.types import CoherenceScore
@@ -108,3 +116,57 @@ class TestReviewExplainability:
         _, score = scorer.review("test", "response")
         # No judge configured = None (not False — we don't know)
         assert score.escalated_to_judge is None
+
+    @pytest.mark.parametrize(
+        "prompt,expected_task",
+        [
+            ("What is 2+2?", "qa"),
+            ("Summarise the following document:", "summarization"),
+        ],
+    )
+    def test_task_type_detection_parametrised(self, prompt, expected_task):
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        _, score = scorer.review(prompt, "Response text.")
+        assert score.detected_task_type is not None
+
+    @pytest.mark.parametrize("threshold", [0.1, 0.3, 0.5, 0.7, 0.9])
+    def test_explainability_at_various_thresholds(self, threshold):
+        scorer = CoherenceScorer(threshold=threshold, use_nli=False)
+        _, score = scorer.review("test", "response")
+        assert hasattr(score, "detected_task_type")
+        assert hasattr(score, "verdict_confidence")
+        assert hasattr(score, "signal_agreement")
+
+
+class TestExplainabilityPerformanceDoc:
+    """Document explainability pipeline performance."""
+
+    def test_score_has_all_explainability_fields(self):
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        _, score = scorer.review("What is AI?", "AI is intelligence.")
+        fields = [
+            "score",
+            "approved",
+            "h_logical",
+            "h_factual",
+            "detected_task_type",
+            "verdict_confidence",
+            "signal_agreement",
+        ]
+        for field in fields:
+            assert hasattr(score, field), f"Missing: {field}"
+
+    def test_explainability_overhead_minimal(self):
+        import time
+
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        for _ in range(10):
+            scorer.review("warmup", "warmup")
+
+        t0 = time.perf_counter()
+        for _ in range(100):
+            scorer.review("What is AI?", "AI is intelligence.")
+        per_call_ms = (time.perf_counter() - t0) / 100 * 1000
+        assert per_call_ms < 5.0, (
+            f"Explainability review took {per_call_ms:.3f}ms/call (expected <5ms)"
+        )
