@@ -4,6 +4,15 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — MiniCheck NLI Backend Tests (STRONG)
+"""Multi-angle tests for MiniCheck NLI backend.
+
+Covers: invalid backend guard, default backend, fallback to heuristic,
+mock dispatch, mock package scoring, batch scoring, high contradiction,
+parametrised backends, score invariants, pipeline integration, and
+performance documentation.
+"""
+
 from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
@@ -64,3 +73,51 @@ class TestMiniCheckBackend:
         assert len(results) == 2
         assert all(0.0 <= r <= 1.0 for r in results)
         mock_mc.score.assert_called_once_with(docs=["A", "C"], claims=["B", "D"])
+
+    @pytest.mark.parametrize("backend", ["deberta", "onnx", "minicheck"])
+    def test_valid_backends_accepted(self, backend):
+        scorer = NLIScorer(backend=backend, use_model=False)
+        assert scorer.backend == backend
+
+    @pytest.mark.parametrize(
+        "mc_score,expected_divergence",
+        [
+            (1.0, 0.0),
+            (0.5, 0.5),
+            (0.0, 1.0),
+        ],
+    )
+    def test_minicheck_score_to_divergence(self, mc_score, expected_divergence):
+        mock_mc = MagicMock()
+        mock_mc.score.return_value = [mc_score]
+        scorer = NLIScorer(backend="minicheck")
+        scorer._minicheck = mock_mc
+        scorer._minicheck_loaded = True
+        result = scorer.score("A", "B")
+        assert result == pytest.approx(expected_divergence)
+
+
+class TestMiniCheckPipelineIntegration:
+    """Verify MiniCheck wires into CoherenceScorer pipeline."""
+
+    def test_scorer_with_minicheck_backend(self):
+        from director_ai.core import CoherenceScorer
+
+        scorer = CoherenceScorer(use_nli=False, scorer_backend="minicheck")
+        approved, score = scorer.review("test", "test")
+        assert isinstance(approved, bool)
+        assert 0.0 <= score.score <= 1.0
+
+
+class TestMiniCheckPerformanceDoc:
+    """Document MiniCheck backend performance."""
+
+    def test_heuristic_fallback_fast(self):
+        import time
+
+        scorer = NLIScorer(backend="minicheck", use_model=False)
+        t0 = time.perf_counter()
+        for _ in range(100):
+            scorer.score("test", "test")
+        per_call_ms = (time.perf_counter() - t0) / 100 * 1000
+        assert per_call_ms < 1.0
