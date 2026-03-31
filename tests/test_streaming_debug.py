@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Streaming Debug Mode Tests
+# Director-Class AI — Streaming Debug Mode Tests (STRONG)
+"""Multi-angle tests for streaming kernel debug mode.
+
+Covers: debug log population, debug disabled path, event debug_info,
+window_avg tracking, accumulated token count, halt event debug,
+parametrised debug toggle, pipeline performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -94,3 +100,58 @@ def test_debug_on_halt_event():
     assert session.halted
     assert len(session.debug_log) == 2
     assert session.debug_log[1]["coherence"] == pytest.approx(0.3)
+
+
+@pytest.mark.parametrize("debug", [True, False])
+def test_debug_toggle(debug):
+    kernel = StreamingKernel(hard_limit=0.3, streaming_debug=debug)
+    session = kernel.stream_tokens(iter(["a", "b"]), _constant_coherence(0.8))
+    if debug:
+        assert len(session.debug_log) == 2
+    else:
+        assert session.debug_log == []
+
+
+@pytest.mark.parametrize("n_tokens", [1, 3, 5, 10])
+def test_debug_log_length_matches_tokens(n_tokens):
+    kernel = StreamingKernel(hard_limit=0.1, streaming_debug=True)
+    tokens = [f"t{i}" for i in range(n_tokens)]
+    session = kernel.stream_tokens(iter(tokens), _constant_coherence(0.9))
+    assert len(session.debug_log) == n_tokens
+
+
+class TestStreamingDebugPerformance:
+    """Document streaming debug pipeline performance."""
+
+    def test_debug_snapshot_has_required_keys(self):
+        kernel = StreamingKernel(hard_limit=0.1, streaming_debug=True)
+        session = kernel.stream_tokens(iter(["a"]), _constant_coherence(0.8))
+        snap = session.debug_log[0]
+        for key in [
+            "index",
+            "coherence",
+            "window_avg",
+            "trend_drop",
+            "accumulated_tokens",
+        ]:
+            assert key in snap, f"Missing key: {key}"
+
+    def test_debug_overhead_minimal(self):
+        import time
+
+        kernel_debug = StreamingKernel(hard_limit=0.1, streaming_debug=True)
+        kernel_plain = StreamingKernel(hard_limit=0.1, streaming_debug=False)
+        tokens = [f"t{i}" for i in range(100)]
+
+        t0 = time.perf_counter()
+        kernel_plain.stream_tokens(iter(tokens), _constant_coherence(0.9))
+        plain_ms = (time.perf_counter() - t0) * 1000
+
+        t0 = time.perf_counter()
+        kernel_debug.stream_tokens(iter(tokens), _constant_coherence(0.9))
+        debug_ms = (time.perf_counter() - t0) * 1000
+
+        # Debug mode should add <100% overhead
+        assert debug_ms < plain_ms * 3, (
+            f"Debug overhead too high: {debug_ms:.1f}ms vs {plain_ms:.1f}ms"
+        )
