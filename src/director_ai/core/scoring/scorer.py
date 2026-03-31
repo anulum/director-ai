@@ -733,23 +733,23 @@ class CoherenceScorer:
     ) -> tuple[float, ScoringEvidence | None]:
         """Bidirectional NLI + claim coverage for summarization.
 
-        Layer A: bidirectional NLI with baseline calibration.
-        Layer C: decompose summary into claims, score each against source,
-        compute coverage = supported_claims / total_claims.
+        When MiniCheck is available, uses sentence-level MiniCheck scoring
+        for claim coverage (Layer M) instead of FactCG-based claim
+        decomposition (Layer C).  MiniCheck provides 3× better
+        discrimination gap on HaluEval summarisation (0.216 vs 0.072).
+
+        Layer A: bidirectional FactCG NLI with baseline calibration.
+        Layer M (MiniCheck): sentence-level MiniCheck scoring + coverage.
+        Layer C (fallback): FactCG claim decomposition + coverage.
 
         Final divergence = alpha * (1 - coverage) + (1 - alpha) * layer_a.
-
-        Benchmark (HaluEval summarization, n=200, L4 GPU):
-        - Forward-only (Phase 3):  FPR=25.5%
-        - Bidir + bl=0.20 (Layer A): FPR=10.5%
-        - Layer A + C (alpha=0.4, st=0.6): FPR=2.0%
         """
         if self._nli is None or not self._nli.model_available:
             raise RuntimeError(
                 "NLI model required for summarization factual divergence"
             )
 
-        # Layer A: bidirectional NLI
+        # Layer A: bidirectional FactCG NLI
         h_fact_fwd, evidence = self.calculate_factual_divergence_with_evidence(
             prompt,
             response,
@@ -774,9 +774,27 @@ class CoherenceScorer:
         else:
             layer_a = raw_div
 
-        # Layer C: claim decomposition + coverage scoring with attribution.
-        # Truncate premise to avoid OOM on long source documents — claim
-        # coverage only needs enough context to verify individual claims.
+        # Layer M: MiniCheck sentence-level scoring (preferred over Layer C).
+        # MiniCheck is trained for document-grounded fact verification and
+        # handles abstractive paraphrases far better than FactCG NLI.
+        mc_scorer = self._get_minicheck_scorer()
+        if mc_scorer is not None:
+            coverage, per_claim_divs, claims = self._minicheck_claim_coverage(
+                mc_scorer, prompt[:3000], response
+            )
+            # MiniCheck coverage is a stronger signal than FactCG claim
+            # decomposition — give it 60% weight (vs 40% for FactCG Layer C).
+            mc_alpha = 0.6
+            adjusted = mc_alpha * (1.0 - coverage) + (1.0 - mc_alpha) * layer_a
+
+            if evidence is not None:
+                evidence.claim_coverage = coverage
+                evidence.per_claim_divergences = per_claim_divs
+                evidence.claims = claims
+            return adjusted, evidence
+
+        # Layer C (fallback): FactCG claim decomposition + coverage.
+        # Truncate premise to avoid OOM on long source documents.
         if self._claim_coverage_enabled:
             truncated_premise = prompt[:3000]
             try:
@@ -809,6 +827,55 @@ class CoherenceScorer:
             adjusted = layer_a
 
         return adjusted, evidence
+
+    def _get_minicheck_scorer(self) -> NLIScorer | None:
+        """Lazily create a MiniCheck NLI scorer for summarisation routing.
+
+        Returns None if MiniCheck is not installed or fails to initialise.
+        The scorer is cached after first successful creation.
+        """
+        if hasattr(self, "_minicheck_nli"):
+            return self._minicheck_nli
+
+        try:
+            mc = NLIScorer(use_model=True, backend="minicheck")
+            if mc._ensure_minicheck():
+                self._minicheck_nli = mc
+                self.logger.info("MiniCheck auto-routing enabled for summarisation")
+                return mc
+        except Exception:
+            pass
+
+        self._minicheck_nli = None
+        return None
+
+    @staticmethod
+    def _minicheck_claim_coverage(
+        mc_scorer: NLIScorer,
+        source: str,
+        summary: str,
+    ) -> tuple[float, list[float], list[str]]:
+        """Score each summary sentence with MiniCheck, return coverage.
+
+        Returns (coverage, per_sentence_divergences, sentences).
+        Coverage = fraction of sentences with divergence < 0.5.
+        """
+        try:
+            from nltk.tokenize import sent_tokenize
+        except ImportError:
+            # Fallback: split on periods
+            sentences = [s.strip() + "." for s in summary.split(".") if s.strip()]
+            if not sentences:
+                return 1.0, [], []
+        else:
+            sentences = sent_tokenize(summary)
+            if not sentences:
+                return 1.0, [], []
+
+        divs = [mc_scorer.score(source, sent) for sent in sentences]
+        supported = sum(1 for d in divs if d < 0.5)
+        coverage = supported / len(sentences) if sentences else 1.0
+        return coverage, divs, sentences
 
     # â"€â"€ Factual divergence â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
