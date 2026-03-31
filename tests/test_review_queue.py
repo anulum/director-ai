@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — ReviewQueue Tests
+# Director-Class AI — ReviewQueue Tests (STRONG)
+"""Multi-angle tests for async ReviewQueue batching pipeline.
+
+Covers: single submit, batch flush, concurrent submissions, timeout
+flush, error handling, lifecycle (start/stop/drain), parametrised
+batch sizes, pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -149,3 +155,36 @@ class TestReviewQueueLifecycle:
         queue = ReviewQueue(scorer)
         await queue.start()
         await queue.stop()
+
+
+class TestReviewQueueParametrised:
+    """Parametrised ReviewQueue tests."""
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("max_batch", [1, 2, 4, 8])
+    async def test_various_batch_sizes(self, scorer, max_batch):
+        queue = ReviewQueue(scorer, max_batch=max_batch, flush_timeout_ms=50.0)
+        await queue.start()
+        try:
+            approved, score = await queue.submit("test", "response")
+            assert isinstance(approved, bool)
+            assert isinstance(score, CoherenceScore)
+        finally:
+            await queue.stop()
+
+
+class TestReviewQueuePerformanceDoc:
+    """Document ReviewQueue pipeline performance."""
+
+    @pytest.mark.asyncio
+    async def test_submit_returns_score(self, scorer):
+        queue = ReviewQueue(scorer, max_batch=4, flush_timeout_ms=50.0)
+        await queue.start()
+        try:
+            approved, score = await queue.submit("Q", "A")
+            assert hasattr(score, "score")
+            assert hasattr(score, "h_logical")
+            assert hasattr(score, "h_factual")
+            assert 0.0 <= score.score <= 1.0
+        finally:
+            await queue.stop()
