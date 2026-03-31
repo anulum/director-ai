@@ -156,7 +156,12 @@ def _score_gpu_shard(args_tuple):
             eta = (total - i - 1) / rate
             logger.info(
                 "GPU %d shard %d: %d/%d (%.1f/s, ETA %.0fs)",
-                gpu_id, shard_id, i + 1, total, rate, eta,
+                gpu_id,
+                shard_id,
+                i + 1,
+                total,
+                rate,
+                eta,
             )
 
     result_ds = shard.add_column("nli_divergence", divergences)
@@ -190,7 +195,10 @@ def score_with_nli_multigpu(
 
     logger.info(
         "Scoring %d samples across %d GPUs (GPU %d-%d)",
-        len(dataset), num_gpus, gpu_offset, gpu_offset + num_gpus - 1,
+        len(dataset),
+        num_gpus,
+        gpu_offset,
+        gpu_offset + num_gpus - 1,
     )
 
     with ProcessPoolExecutor(max_workers=num_gpus) as pool:
@@ -243,15 +251,21 @@ def filter_and_balance(
 def main():
     parser = argparse.ArgumentParser(description="Build binary judge dataset")
     parser.add_argument(
-        "--subsample", type=int, default=50000,
+        "--subsample",
+        type=int,
+        default=50000,
         help="Subsample size (0 = use all samples)",
     )
     parser.add_argument(
-        "--borderline-keep", type=int, default=25000,
+        "--borderline-keep",
+        type=int,
+        default=25000,
         help="Max borderline samples to keep (0 = keep all)",
     )
     parser.add_argument(
-        "--confident-keep", type=int, default=10000,
+        "--confident-keep",
+        type=int,
+        default=10000,
         help="Max confident samples to keep (0 = keep all)",
     )
     parser.add_argument("--use-onnx", action="store_true")
@@ -259,11 +273,15 @@ def main():
     parser.add_argument("--eval-ratio", type=float, default=0.1)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument(
-        "--num-gpus", type=int, default=1,
+        "--num-gpus",
+        type=int,
+        default=1,
         help="Number of GPUs for parallel NLI scoring",
     )
     parser.add_argument(
-        "--gpu-offset", type=int, default=0,
+        "--gpu-offset",
+        type=int,
+        default=0,
         help="First GPU index to use (e.g. 1 to skip GPU 0)",
     )
     args = parser.parse_args()
@@ -295,7 +313,9 @@ def main():
     t0 = time.monotonic()
     if args.num_gpus > 1 and not args.use_onnx:
         sub = score_with_nli_multigpu(
-            sub, num_gpus=args.num_gpus, gpu_offset=args.gpu_offset,
+            sub,
+            num_gpus=args.num_gpus,
+            gpu_offset=args.gpu_offset,
         )
     else:
         sub = score_with_nli(sub, use_onnx=args.use_onnx, batch_size=args.batch_size)
