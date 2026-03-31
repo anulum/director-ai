@@ -4,7 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_local_judge.py
+# Director-Class AI — Local DeBERTa Judge Tests (STRONG)
+"""Multi-angle tests for local DeBERTa binary judge pipeline (STRONG)."""
 
 """Tests for local DeBERTa-base binary judge (Item 5)."""
 
