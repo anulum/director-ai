@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for gem CLI commands (verify-numeric, verify-reasoning, temporal-freshness, check-step)."""
+"""Multi-angle tests for gem CLI commands pipeline (STRONG)."""
 
 from __future__ import annotations
 
