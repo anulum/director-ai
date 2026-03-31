@@ -4,7 +4,15 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Lite Scorer Tests
+# Director-Class AI — Lite Scorer Tests (STRONG)
+"""Multi-angle tests for LiteScorer heuristic NLI.
+
+Covers: score range invariants, empty inputs, long text, batch scoring,
+entity overlap boost, identical text, CoherenceScorer pipeline integration,
+parametrised inputs, determinism, and performance documentation.
+"""
+
+import pytest
 
 from director_ai.core.lite_scorer import LiteScorer
 
@@ -86,3 +94,49 @@ class TestLiteScorerIntegration:
         approved, score = scorer.review("The sky is blue.", "The sky is blue.")
         assert isinstance(approved, bool)
         assert 0.0 <= score.score <= 1.0
+
+
+class TestLiteScorerParametrised:
+    """Parametrised LiteScorer tests."""
+
+    @pytest.mark.parametrize(
+        "premise,hypothesis",
+        [
+            ("The sky is blue", "The sky is blue"),
+            ("", "response"),
+            ("prompt", ""),
+            ("日本語テスト", "日本語レスポンス"),
+            ("a" * 10000, "b" * 10000),
+        ],
+    )
+    def test_various_inputs(self, premise, hypothesis):
+        scorer = LiteScorer()
+        result = scorer.score(premise, hypothesis)
+        assert 0.0 <= result <= 1.0
+
+    @pytest.mark.parametrize("batch_size", [0, 1, 5, 10])
+    def test_batch_sizes(self, batch_size):
+        scorer = LiteScorer()
+        pairs = [("p", "h")] * batch_size
+        results = scorer.score_batch(pairs)
+        assert len(results) == batch_size
+
+
+class TestLiteScorerPerformanceDoc:
+    """Document LiteScorer pipeline performance."""
+
+    def test_score_fast(self):
+        import time
+
+        scorer = LiteScorer()
+        t0 = time.perf_counter()
+        for _ in range(1000):
+            scorer.score("What is AI?", "AI is intelligence.")
+        per_call_us = (time.perf_counter() - t0) / 1000 * 1_000_000
+        assert per_call_us < 500, f"LiteScorer took {per_call_us:.0f}µs"
+
+    def test_deterministic(self):
+        scorer = LiteScorer()
+        s1 = scorer.score("X", "Y")
+        s2 = scorer.score("X", "Y")
+        assert s1 == s2
