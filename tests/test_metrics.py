@@ -331,3 +331,92 @@ class TestChunkCountHistograms:
         collector.observe("http_request_duration_seconds", 0.042)
         m = collector.get_metrics()
         assert m["histograms"]["http_request_duration_seconds"]["count"] == 1
+
+
+# ── Parametrised metrics tests ───────────────────────────────────────
+
+
+class TestMetricsParametrised:
+    """Parametrised tests across metric types and values."""
+
+    @pytest.mark.parametrize(
+        "counter_name",
+        ["reviews_total", "halts_total", "fallbacks_total", "cache_hits_total"],
+    )
+    def test_all_counters_increment(self, collector, counter_name):
+        collector.inc(counter_name)
+        m = collector.get_metrics()
+        assert m["counters"][counter_name]["total"] == 1.0
+
+    @pytest.mark.parametrize(
+        "histogram_name",
+        [
+            "review_latency_seconds",
+            "nli_latency_seconds",
+            "nli_premise_chunks",
+            "nli_hypothesis_chunks",
+            "http_request_duration_seconds",
+        ],
+    )
+    def test_all_histograms_observe(self, collector, histogram_name):
+        collector.observe(histogram_name, 0.5)
+        m = collector.get_metrics()
+        assert m["histograms"][histogram_name]["count"] == 1
+
+    @pytest.mark.parametrize("n_increments", [1, 10, 100])
+    def test_counter_accuracy(self, collector, n_increments):
+        for _ in range(n_increments):
+            collector.inc("reviews_total")
+        m = collector.get_metrics()
+        assert m["counters"]["reviews_total"]["total"] == float(n_increments)
+
+    @pytest.mark.parametrize(
+        "label",
+        ["hard_limit", "window_avg", "downward_trend"],
+    )
+    def test_halt_reasons_labeled(self, collector, label):
+        collector.inc("halts_total", label=label)
+        m = collector.get_metrics()
+        assert m["counters"]["halts_total"]["labels"][label] == 1.0
+
+
+# ── Metrics Pipeline Performance ─────────────────────────────────────
+
+
+class TestMetricsPerformance:
+    """Document metrics pipeline overhead — must not slow hot path."""
+
+    def test_inc_latency(self, collector):
+        t0 = time.perf_counter()
+        for _ in range(10000):
+            collector.inc("reviews_total")
+        per_call_us = (time.perf_counter() - t0) / 10000 * 1_000_000
+        assert per_call_us < 10, f"inc() took {per_call_us:.1f}µs (expected <10µs)"
+
+    def test_observe_latency(self, collector):
+        t0 = time.perf_counter()
+        for _ in range(10000):
+            collector.observe("review_latency_seconds", 0.05)
+        per_call_us = (time.perf_counter() - t0) / 10000 * 1_000_000
+        assert per_call_us < 10, f"observe() took {per_call_us:.1f}µs (expected <10µs)"
+
+    def test_get_metrics_latency(self, collector):
+        for _ in range(100):
+            collector.inc("reviews_total")
+            collector.observe("review_latency_seconds", 0.05)
+        t0 = time.perf_counter()
+        for _ in range(1000):
+            collector.get_metrics()
+        per_call_us = (time.perf_counter() - t0) / 1000 * 1_000_000
+        assert per_call_us < 500, f"get_metrics() took {per_call_us:.0f}µs"
+
+    def test_metrics_wired_to_pipeline(self):
+        """MetricsCollector must be accessible from the metrics module."""
+        from director_ai.core.metrics import metrics as global_metrics
+
+        global_metrics.reset()
+        global_metrics.inc("reviews_total")
+        global_metrics.observe("review_latency_seconds", 0.042)
+        m = global_metrics.get_metrics()
+        assert m["counters"]["reviews_total"]["total"] == 1.0
+        assert m["histograms"]["review_latency_seconds"]["count"] == 1
