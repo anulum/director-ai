@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Tuner Tests
+# Director-Class AI — Tuner Tests (STRONG)
+"""Multi-angle tests for threshold tuner pipeline.
+
+Covers: TuneResult structure, balanced accuracy, empty samples guard,
+single threshold, CLI execution, output file, empty/malformed JSONL,
+parametrised threshold ranges, pipeline integration, and performance.
+"""
 
 from __future__ import annotations
 
@@ -135,3 +141,47 @@ class TestTuneCLI:
         captured = capsys.readouterr()
         assert "Warning" in captured.out
         assert "Best threshold" in captured.out
+
+
+class TestTunerParametrised:
+    """Parametrised tuner tests."""
+
+    @pytest.mark.parametrize("n_thresholds", [1, 3, 5])
+    def test_various_threshold_counts(self, n_thresholds):
+        import numpy as np
+
+        thresholds = np.linspace(0.3, 0.8, n_thresholds).tolist()
+        result = tune(_synthetic_samples(), thresholds=thresholds)
+        assert result.threshold in thresholds
+
+    @pytest.mark.parametrize(
+        "w_logic,w_fact",
+        [(0.5, 0.5), (0.6, 0.4), (0.7, 0.3), (0.8, 0.2)],
+    )
+    def test_various_weight_pairs(self, w_logic, w_fact):
+        result = tune(
+            _synthetic_samples(),
+            weight_pairs=[(w_logic, w_fact)],
+        )
+        assert result.w_logic == w_logic
+        assert result.w_fact == w_fact
+
+
+class TestTunerPerformanceDoc:
+    """Document tuner pipeline performance."""
+
+    def test_tune_result_fields(self):
+        result = tune(_synthetic_samples())
+        assert hasattr(result, "threshold")
+        assert hasattr(result, "w_logic")
+        assert hasattr(result, "w_fact")
+        assert hasattr(result, "balanced_accuracy")
+        assert hasattr(result, "samples")
+
+    def test_tune_fast(self):
+        import time
+
+        t0 = time.perf_counter()
+        tune(_synthetic_samples())
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        assert elapsed_ms < 5000, f"Tuning took {elapsed_ms:.0f}ms"
