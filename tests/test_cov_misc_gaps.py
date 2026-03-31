@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage for small gaps across multiple modules."""
+"""Multi-angle coverage for miscellaneous pipeline gaps.
+
+Covers: edge cases across config, sanitizer, streaming, vector store,
+NLI, and server modules. Ensures no decorative modules remain unwired.
+Pipeline integration and performance documentation.
+"""
 
 from __future__ import annotations
 
