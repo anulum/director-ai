@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — CLI Ingest Format Tests (PDF/DOCX/HTML/CSV via doc_parser)
+# Director-AI — CLI Ingest Format Tests (STRONG)
+"""Multi-angle tests for CLI document ingestion pipeline.
+
+Covers: PDF, DOCX, HTML, CSV parsing via doc_parser, chunk sizing,
+overlap, metadata extraction, pipeline integration with VectorGroundTruthStore,
+and performance documentation.
+"""
 
 from __future__ import annotations
 
