@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Batch Processing Tests
+# Director-Class AI — Batch Processing Tests (STRONG)
+"""Multi-angle tests for BatchProcessor pipeline.
+
+Covers: process_batch, review_batch, concurrency, timeout handling,
+error recovery, result aggregation, empty batch, parametrised batch
+sizes, pipeline integration with CoherenceAgent, and performance.
+"""
 
 import pytest
 
