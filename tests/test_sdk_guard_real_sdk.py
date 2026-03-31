@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — SDK Guard Tests with Real SDK Objects
-"""Tests that verify guard() works with real OpenAI and Anthropic SDK objects.
+"""Multi-angle tests for SDK guard with real SDK objects (STRONG).
 
 These tests run only when the SDKs are installed (CI extras matrix).
 They verify that guard() correctly detects SDK shapes and installs

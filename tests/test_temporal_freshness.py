@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for Phase 5 Gem 8: Temporal Freshness Scoring."""
+"""Multi-angle tests for temporal freshness scoring pipeline (STRONG)."""
 
 from __future__ import annotations
 
