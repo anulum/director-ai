@@ -5,6 +5,13 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 
+# Director-Class AI — License Edge Case Tests (STRONG)
+"""Multi-angle tests for license validation edge cases.
+
+Covers: special chars, very long keys, unicode keys, empty/binary/huge files,
+community tier fallback, parametrised invalid keys, and pipeline performance.
+"""
+
 import pytest
 
 from director_ai.core.license import load_license, validate_file, validate_key
@@ -68,3 +75,37 @@ def test_load_with_key_only_falls_back_to_community(monkeypatch):
     info = load_license()
     assert info.tier == "community"
     assert info.valid
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        "",
+        "DAI",
+        "not-a-valid-key",
+        "DAI-PRO-",
+        "DAI-PRO-abc!@#",
+        "DAI-PRO-" + "x" * 10000,
+    ],
+)
+def test_parametrised_invalid_keys(key):
+    info = validate_key(key)
+    assert not info.valid
+
+
+class TestLicensePerformanceDoc:
+    """Document license validation performance."""
+
+    def test_validate_key_fast(self):
+        import time
+
+        t0 = time.perf_counter()
+        for _ in range(1000):
+            validate_key("DAI-PRO-test-key")
+        per_call_us = (time.perf_counter() - t0) / 1000 * 1_000_000
+        assert per_call_us < 100, f"validate_key took {per_call_us:.1f}µs"
+
+    def test_community_tier_is_default(self):
+        info = load_license()
+        assert info.tier == "community"
+        assert info.valid
