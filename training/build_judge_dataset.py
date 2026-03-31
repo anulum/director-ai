@@ -179,9 +179,9 @@ def score_with_nli_multigpu(
     if num_gpus <= 1:
         return _score_pytorch(dataset)
 
-    import tempfile
-
-    tmpdir = Path(tempfile.mkdtemp(prefix="judge_shards_"))
+    # Use NTFS disk for temp shards — root partition too small
+    tmpdir = Path(os.environ.get("TMPDIR", "/tmp")) / f"judge_shards_{os.getpid()}"
+    tmpdir.mkdir(parents=True, exist_ok=True)
     shards = []
     shard_size = len(dataset) // num_gpus
 
