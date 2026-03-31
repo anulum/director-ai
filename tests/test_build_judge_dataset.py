@@ -20,9 +20,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+datasets = pytest.importorskip("datasets")
+
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from training.build_judge_dataset import (
+from training.build_judge_dataset import (  # noqa: E402
     BORDERLINE_HIGH,
     BORDERLINE_LOW,
     LABEL_APPROVE,
@@ -32,9 +34,6 @@ from training.build_judge_dataset import (
     remap_labels,
     stratified_subsample,
 )
-
-datasets = pytest.importorskip("datasets")
-
 
 # ── Label remapping ─────────────────────────────────────────────────
 

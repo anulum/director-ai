@@ -21,10 +21,12 @@ from unittest.mock import patch
 
 import pytest
 
+pytest.importorskip("datasets")
+
 # Ensure training/ is importable
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from training.data_pipeline import (
+from training.data_pipeline import (  # noqa: E402
     LABEL_CONTRADICTION,
     LABEL_ENTAILMENT,
     LABEL_NEUTRAL,
