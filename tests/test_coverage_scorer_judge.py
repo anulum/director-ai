@@ -4,12 +4,19 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage tests for scorer.py — _parse_judge_reply, LLM judge with providers."""
+"""Multi-angle tests for scorer.py — judge reply parsing, LLM judge providers.
+
+Covers: JSON verdict parsing (yes/no/case-insensitive/invalid/empty),
+OpenAI judge agree/error, Anthropic judge, hybrid backend escalation,
+parametrised verdicts, pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
 
 import sys
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from director_ai.core import CoherenceScorer
 
@@ -115,3 +122,48 @@ class TestScorerEscalation:
                 "The sky is blue.",
             )
             assert 0.0 <= div <= 1.0
+
+
+class TestParseJudgeReplyParametrised:
+    """Parametrised judge reply parsing."""
+
+    @pytest.mark.parametrize(
+        "reply,expected",
+        [
+            ('{"verdict": "YES"}', True),
+            ('{"verdict": "NO"}', False),
+            ('{"verdict": "yes"}', True),
+            ('{"verdict": "no"}', False),
+            ("YES", True),
+            ("NO", False),
+            ("yes it is correct", True),
+            ("no it does not match", False),
+            ("", False),
+            ("random gibberish", False),
+        ],
+    )
+    def test_all_reply_formats(self, reply, expected):
+        result, _ = CoherenceScorer._parse_judge_reply(reply)
+        assert result is expected
+
+
+class TestJudgePerformanceDoc:
+    """Document judge pipeline performance."""
+
+    def test_parse_judge_reply_fast(self):
+        import time
+
+        t0 = time.perf_counter()
+        for _ in range(1000):
+            CoherenceScorer._parse_judge_reply('{"verdict": "YES"}')
+        per_call_us = (time.perf_counter() - t0) / 1000 * 1_000_000
+        assert per_call_us < 100, f"Parse took {per_call_us:.1f}µs"
+
+    def test_judge_check_returns_float(self):
+        scorer = CoherenceScorer(
+            use_nli=False,
+            llm_judge_enabled=True,
+            llm_judge_provider="unknown",
+        )
+        result = scorer._llm_judge_check("q", "a", 0.5)
+        assert isinstance(result, float)
