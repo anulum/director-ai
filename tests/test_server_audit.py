@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Server Audit Logging Tests
+# Director-Class AI — Server Audit Logging Tests (STRONG)
+"""Multi-angle tests for FastAPI server audit logging pipeline.
+
+Covers: review audit entry, process audit entry, disabled audit path,
+request-id roundtrip, auto-generated request-id, parametrised endpoints,
+audit entry fields, and pipeline performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -92,3 +98,50 @@ def test_request_id_generated_when_absent():
     assert r.status_code == 200
     rid = r.headers.get("X-Request-ID", "")
     assert len(rid) > 0
+
+
+@pytest.mark.parametrize(
+    "endpoint,payload",
+    [
+        ("/v1/review", {"prompt": "test", "response": "test"}),
+        ("/v1/process", {"prompt": "test question"}),
+    ],
+)
+def test_audit_entry_has_required_fields(tmp_path, endpoint, payload):
+    audit_file = tmp_path / "audit_fields.jsonl"
+    cfg = DirectorConfig(audit_log_path=str(audit_file), llm_provider="mock")
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.post(endpoint, json=payload)
+    assert r.status_code == 200
+    lines = audit_file.read_text(encoding="utf-8").strip().split("\n")
+    entry = json.loads(lines[0])
+    assert "approved" in entry
+
+
+class TestServerAuditPerformanceDoc:
+    """Document server audit pipeline performance."""
+
+    def test_health_endpoint_fast(self):
+        import time
+
+        cfg = DirectorConfig(llm_provider="mock")
+        app = create_app(cfg)
+        with TestClient(app) as client:
+            t0 = time.perf_counter()
+            for _ in range(10):
+                client.get("/v1/health")
+            per_call_ms = (time.perf_counter() - t0) / 10 * 1000
+        assert per_call_ms < 100, f"Health check took {per_call_ms:.0f}ms"
+
+    def test_review_returns_json(self):
+        cfg = DirectorConfig(llm_provider="mock")
+        app = create_app(cfg)
+        with TestClient(app) as client:
+            r = client.post(
+                "/v1/review",
+                json={"prompt": "test", "response": "test"},
+            )
+        assert r.status_code == 200
+        data = r.json()
+        assert isinstance(data, dict)
