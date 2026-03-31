@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Phase 2 Hardening Tests
 
-"""Tests for Phase 2 hardening items (H18-H27).
+"""Multi-angle tests for Phase 2 hardening items H18-H27 (STRONG).
 
 Covers:
   - H18: ChromaDB empty metadata fix
