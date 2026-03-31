@@ -4,6 +4,14 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Type Dataclass Tests (STRONG)
+"""Multi-angle tests for core type dataclasses.
+
+Covers: CoherenceScore fields, ReviewResult fields, HaltEvidence,
+EvidenceChunk, ScoringEvidence, defaults, parametrised construction,
+pipeline integration, and performance documentation.
+"""
+
 from __future__ import annotations
 
 from director_ai.core.types import (
