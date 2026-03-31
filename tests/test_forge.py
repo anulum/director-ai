@@ -6,7 +6,12 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — test_forge.py
 
-"""Tests for tools/forge.py — ForgeTrainer techniques."""
+"""Multi-angle tests for ForgeTrainer adversarial data augmentation.
+
+Covers: paraphrase generation, negation insertion, entity swap,
+numerical perturbation, ForgeTrainer batch generation, parametrised
+techniques, pipeline integration with training data, and performance.
+"""
 
 from __future__ import annotations
 
