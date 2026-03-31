@@ -5,11 +5,12 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Voice Adapter SDK-Aware Tests
-"""Tests that import real TTS SDKs and mock only the HTTP/API layer.
+"""Multi-angle tests for voice TTS adapters with real SDK objects.
 
-These tests run only when the SDKs are installed (CI extras matrix).
-They verify that adapter code correctly constructs SDK clients and
-calls the right methods with the right parameters.
+These tests run only when TTS SDKs are installed (CI extras matrix).
+Covers: ElevenLabs/OpenAI/Deepgram client construction, API method
+calls, parameter forwarding, error handling, pipeline integration
+with voice_pipeline(), and performance documentation.
 """
 
 from __future__ import annotations
