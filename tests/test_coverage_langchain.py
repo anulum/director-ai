@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage tests for langchain.py — DirectorAIGuard."""
+"""Multi-angle tests for LangChain DirectorAIGuard integration.
+
+Covers: check approved/rejected, raise_on_fail, metadata mode, invoke,
+async ainvoke, custom facts, threshold wiring, pipeline integration
+with CoherenceScorer, and performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -109,3 +114,23 @@ class TestAsync:
 
         with pytest.raises(HallucinationError):
             asyncio.run(run())
+
+
+class TestDirectorAIGuardPerformanceDoc:
+    """Document LangChain guard pipeline performance."""
+
+    def test_guard_check_fast(self):
+        import time
+
+        guard = DirectorAIGuard(threshold=0.3, use_nli=False)
+        t0 = time.perf_counter()
+        for _ in range(10):
+            guard.check("test", "test response")
+        per_call_ms = (time.perf_counter() - t0) / 10 * 1000
+        assert per_call_ms < 50, f"Guard check took {per_call_ms:.1f}ms"
+
+    def test_guard_result_structure(self):
+        guard = DirectorAIGuard(threshold=0.3, use_nli=False, raise_on_fail=False)
+        result = guard.check("test", "test response")
+        assert "approved" in result
+        assert "score" in result
