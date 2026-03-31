@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for cross-turn contradiction tracking."""
+"""Multi-angle tests for cross-turn contradiction tracking.
+
+Covers: contradiction detection across turns, consistency scoring,
+history window, threshold enforcement, parametrised turn counts,
+pipeline integration with CoherenceScorer, and performance documentation.
+"""
 
 from __future__ import annotations
 
