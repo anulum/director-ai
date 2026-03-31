@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — NLI Scorer Tests
+# Director-Class AI — NLI Scorer Tests (STRONG)
+"""Multi-angle tests for NLI scorer core pipeline.
+
+Covers: heuristic scoring, score range invariants, batch scoring,
+empty/long inputs, ONNX fallback, invalid backend guard, determinism,
+pipeline integration with CoherenceScorer, and performance documentation.
+"""
 
 import pytest
 
