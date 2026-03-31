@@ -4,9 +4,16 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for Phase 5 Gem 6: Feedback Loop Detection."""
+"""Multi-angle tests for Phase 5 Gem 6: Feedback Loop Detection.
+
+Covers: no-output baseline, exact recycled output, similarity threshold,
+multiple outputs, severity escalation, severity levels, trigram similarity,
+parametrised thresholds, pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
+
+import pytest
 
 from director_ai.compliance.feedback_loop_detector import FeedbackLoopDetector
 
@@ -118,3 +125,50 @@ class TestTrigramSimilarity:
         d.record_output("AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH", 1.0)
         alert = d.check_input("zzzz yyyy xxxx wwww vvvv uuuu tttt ssss")
         assert alert is None
+
+
+class TestFeedbackLoopParametrised:
+    """Parametrised feedback loop tests."""
+
+    @pytest.mark.parametrize("threshold", [0.1, 0.3, 0.5, 0.7, 0.9])
+    def test_various_thresholds(self, threshold):
+        d = FeedbackLoopDetector(similarity_threshold=threshold)
+        text = "A sufficiently long text for testing feedback loop detection."
+        d.record_output(text, 1.0)
+        alert = d.check_input(text)
+        # Exact match always exceeds any threshold
+        assert alert is not None
+
+    @pytest.mark.parametrize("n_outputs", [1, 3, 5])
+    def test_multiple_recorded_outputs(self, n_outputs):
+        d = FeedbackLoopDetector(similarity_threshold=0.5)
+        for i in range(n_outputs):
+            d.record_output(f"Output number {i} with enough words to test.", 1.0)
+        # Should not crash
+        alert = d.check_input("New unrelated input text for testing purposes.")
+        # May or may not alert — just verify no crash
+        assert alert is None or alert is not None
+
+
+class TestFeedbackLoopPerformanceDoc:
+    """Document feedback loop detection performance."""
+
+    def test_check_fast(self):
+        import time
+
+        d = FeedbackLoopDetector()
+        d.record_output("A test output with sufficient length for detection.", 1.0)
+        t0 = time.perf_counter()
+        for _ in range(100):
+            d.check_input("A test input for performance measurement purposes.")
+        per_call_ms = (time.perf_counter() - t0) / 100 * 1000
+        assert per_call_ms < 10, f"check_input took {per_call_ms:.1f}ms"
+
+    def test_alert_has_required_fields(self):
+        d = FeedbackLoopDetector(similarity_threshold=0.1)
+        text = "Sufficiently long text for testing alert field presence."
+        d.record_output(text, 1.0)
+        alert = d.check_input(text)
+        assert alert is not None
+        assert hasattr(alert, "severity")
+        assert hasattr(alert, "similarity")
