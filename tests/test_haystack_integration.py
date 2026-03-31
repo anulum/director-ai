@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Haystack Integration Tests
+# Director-Class AI — Haystack Integration Tests (STRONG)
+"""Multi-angle tests for Haystack DirectorAIChecker integration.
+
+Covers: approved/rejected paths, filter mode, no query, metadata,
+batch replies, pipeline-in-pipeline, score structure, custom store,
+parametrised thresholds, pipeline performance documentation.
+"""
 
 import pytest
 
@@ -126,3 +132,38 @@ class TestDirectorAIChecker:
             replies=["Paris is the capital of France."],
         )
         assert result["approved"][0] is True
+
+    @pytest.mark.parametrize("threshold", [0.1, 0.3, 0.5, 0.7])
+    def test_parametrised_thresholds(self, threshold):
+        checker = DirectorAIChecker(
+            facts={"test": "Test fact."},
+            threshold=threshold,
+            use_nli=False,
+        )
+        result = checker.run(query="test", replies=["Test fact."])
+        assert len(result["approved"]) == 1
+
+
+class TestHaystackPerformanceDoc:
+    """Document Haystack integration performance."""
+
+    def test_checker_run_fast(self):
+        import time
+
+        checker = DirectorAIChecker(
+            facts={"test": "Test."},
+            use_nli=False,
+        )
+        t0 = time.perf_counter()
+        for _ in range(10):
+            checker.run(query="test", replies=["Test response."])
+        per_call_ms = (time.perf_counter() - t0) / 10 * 1000
+        assert per_call_ms < 50, f"Haystack check took {per_call_ms:.1f}ms"
+
+    def test_result_structure(self):
+        checker = DirectorAIChecker(use_nli=False)
+        result = checker.run(query="q", replies=["r"])
+        assert "approved" in result
+        assert "scores" in result
+        assert isinstance(result["approved"], list)
+        assert isinstance(result["scores"], list)
