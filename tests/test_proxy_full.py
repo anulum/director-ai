@@ -117,3 +117,46 @@ class TestProxyValidation:
     def test_invalid_on_fail(self):
         with pytest.raises(ValueError, match="on_fail"):
             create_proxy_app(on_fail="explode")
+
+    @pytest.mark.parametrize("on_fail", ["warn", "reject"])
+    def test_valid_on_fail_modes(self, on_fail):
+        app = _make_app(on_fail=on_fail)
+        assert app is not None
+
+    @pytest.mark.parametrize("threshold", [0.1, 0.3, 0.5, 0.7, 0.9])
+    def test_various_thresholds(self, threshold):
+        app = _make_app(threshold=threshold)
+        assert app is not None
+
+
+class TestProxyPipelinePerformance:
+    """Document proxy pipeline integration characteristics."""
+
+    @pytest.mark.asyncio
+    async def test_health_endpoint_returns_200(self):
+        app = _make_app()
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app)) as c:
+            resp = await c.get("http://test/health")
+        assert resp.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_response_includes_coherence_headers(self):
+        app = _make_app(on_fail="warn")
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app)) as c:
+            resp = await c.post(
+                "http://test/v1/chat/completions",
+                json={"messages": [{"role": "user", "content": "test"}]},
+            )
+        assert "x-director-score" in resp.headers
+
+    @pytest.mark.asyncio
+    async def test_approved_response_has_content(self):
+        app = _make_app(threshold=0.0)
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app)) as c:
+            resp = await c.post(
+                "http://test/v1/chat/completions",
+                json={"messages": [{"role": "user", "content": "sky color"}]},
+            )
+        assert resp.status_code == 200
+        data = resp.json()
+        assert "choices" in data
