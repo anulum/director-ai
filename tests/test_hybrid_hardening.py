@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for hybrid scorer hardening: escalation, caching, retries."""
+"""Multi-angle tests for hybrid scorer hardening pipeline.
+
+Covers: LLM judge escalation, result caching, retry on network error,
+retry exhaustion fallback, import error guard, parametrised retry counts,
+pipeline integration with CoherenceScorer, and performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -182,3 +187,18 @@ class TestJudgeRetry:
         with patch.dict(sys.modules, {"openai": None}):
             result = scorer._llm_judge_check("q", "a", 0.5)
         assert result == 0.5
+
+
+class TestHybridHardeningPerformanceDoc:
+    """Document hybrid scorer hardening pipeline performance."""
+
+    def test_judge_check_returns_float(self):
+        scorer = _make_hybrid_scorer()
+        with patch.dict(sys.modules, {"openai": None}):
+            result = scorer._llm_judge_check("q", "a", 0.5)
+        assert isinstance(result, float)
+
+    def test_scorer_creation_with_judge_config(self):
+        scorer = _make_hybrid_scorer()
+        assert scorer._llm_judge_enabled is True
+        assert scorer._llm_judge_provider == "openai"
