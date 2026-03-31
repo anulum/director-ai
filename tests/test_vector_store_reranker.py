@@ -4,9 +4,17 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Vector Store Reranker Tests
+# Director-Class AI — Vector Store Reranker Tests (STRONG)
+"""Multi-angle tests for VectorStore RerankedBackend.
+
+Covers: reranking order, top_k multiplier, delegation, empty query,
+parametrised n_results, multiplier values, scorer pipeline integration,
+and performance documentation.
+"""
 
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from director_ai.core.vector_store import InMemoryBackend, RerankedBackend
 
@@ -69,3 +77,60 @@ class TestRerankedBackend:
         reranker = _make_reranked(base)
         results = reranker.query("test", n_results=3)
         assert results == []
+
+    @pytest.mark.parametrize("n_results", [1, 2, 3, 5])
+    def test_parametrised_n_results(self, n_results):
+        base = MagicMock()
+        base.query.return_value = [
+            {"id": f"d{i}", "text": f"doc{i}", "distance": float(i)} for i in range(10)
+        ]
+        base.count.return_value = 10
+        reranker = _make_reranked(base)
+        results = reranker.query("test", n_results=n_results)
+        assert len(results) == n_results
+
+    @pytest.mark.parametrize("multiplier", [1, 2, 3, 5])
+    def test_parametrised_multiplier(self, multiplier):
+        base = MagicMock()
+        base.query.return_value = [
+            {"id": f"d{i}", "text": f"doc{i}", "distance": float(i)}
+            for i in range(multiplier * 2)
+        ]
+        base.count.return_value = multiplier * 2
+        reranker = _make_reranked(base, top_k_multiplier=multiplier)
+        results = reranker.query("test", n_results=2)
+        assert len(results) == 2
+
+
+class TestRerankerPipelineIntegration:
+    """Verify reranker integrates into scorer pipeline."""
+
+    def test_reranked_in_ground_truth_store(self):
+        from director_ai.core.vector_store import VectorGroundTruthStore
+
+        base = InMemoryBackend()
+        base.add("d1", "Paris is the capital of France")
+        reranker = _make_reranked(base)
+        store = VectorGroundTruthStore(backend=reranker)
+        result = store.retrieve_context("capital of France")
+        assert result is not None
+        assert "Paris" in result
+
+
+class TestRerankerPerformanceDoc:
+    """Document reranker performance characteristics."""
+
+    def test_base_backend_count_stable(self):
+        base = InMemoryBackend()
+        base.add("d1", "test")
+        reranker = _make_reranked(base)
+        assert reranker.count() == 1
+        reranker.query("test")
+        assert reranker.count() == 1  # query must not modify store
+
+    def test_add_increments_count(self):
+        base = InMemoryBackend()
+        reranker = _make_reranked(base)
+        assert reranker.count() == 0
+        reranker.add("d1", "test")
+        assert reranker.count() == 1
