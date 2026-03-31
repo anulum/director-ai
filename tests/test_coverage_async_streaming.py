@@ -4,7 +4,11 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage tests for async_streaming.py — AsyncStreamingKernel."""
+"""Multi-angle coverage for AsyncStreamingKernel pipeline (STRONG).
+
+Covers: async token streaming, halt conditions, timeout, soft halt,
+event fields, pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
 
