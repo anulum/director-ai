@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage for vector_store.py — vendor backend import branches."""
+"""Multi-angle tests for vector store vendor backends.
+
+Covers: Pinecone, Weaviate, Qdrant, Chroma embedding, SentenceTransformer
+import guards, mock success paths, query with/without embed_fn,
+parametrised vendors, pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -182,3 +187,35 @@ class TestSentenceTransformerBackend:
 
             with pytest.raises(ImportError, match="sentence-transformers"):
                 SentenceTransformerBackend()
+
+
+class TestVectorVendorsPerformanceDoc:
+    """Document vendor backend pipeline characteristics."""
+
+    @pytest.mark.parametrize(
+        "backend_name,module",
+        [
+            ("QdrantBackend", "qdrant_client"),
+            ("SentenceTransformerBackend", "sentence_transformers"),
+        ],
+    )
+    def test_import_guard_raises(self, backend_name, module):
+        with patch.dict(sys.modules, {module: None}):
+            cls = getattr(
+                __import__("director_ai.core.vector_store", fromlist=[backend_name]),
+                backend_name,
+            )
+            with pytest.raises(ImportError):
+                cls()
+
+    def test_all_vendor_classes_exist(self):
+        from director_ai.core import vector_store as vs
+
+        for name in [
+            "PineconeBackend",
+            "WeaviateBackend",
+            "QdrantBackend",
+            "ChromaBackend",
+            "SentenceTransformerBackend",
+        ]:
+            assert hasattr(vs, name), f"Missing: {name}"
