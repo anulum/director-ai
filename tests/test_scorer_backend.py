@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Scorer Backend Tests
+# Director-Class AI — Scorer Backend Tests (STRONG)
+"""Multi-angle tests for scorer backend dispatch pipeline.
+
+Covers: DeBERTa, ONNX, Lite, Rust, MiniCheck backend routing, score
+ranges, batch scoring, heuristic fallback, pipeline integration with
+CoherenceScorer, and performance documentation.
+"""
 
 from director_ai.core import CoherenceScorer
 from director_ai.core.nli import NLIScorer

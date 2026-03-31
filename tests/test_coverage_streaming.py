@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage tests for streaming.py — StreamingKernel."""
+"""Multi-angle coverage tests for StreamingKernel pipeline (STRONG).
+
+Covers: token events, halt conditions, soft halt, debug mode, window avg,
+trend detection, emergency stop, reactivation, pipeline integration with
+CoherenceScorer and Rust backend, and performance documentation.
+"""
 
 from __future__ import annotations
 

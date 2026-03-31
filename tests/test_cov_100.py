@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — test_cov_100.py
+# Director-Class AI — Coverage 100% Push Tests (STRONG)
+"""Multi-angle tests for final coverage push to 100%.
+
+Covers: remaining untested branches across config, actor, streaming,
+vector store, NLI, server modules. Pipeline wiring verification and
+performance documentation.
+"""
 
 """Final coverage push — targets every remaining testable gap."""
 

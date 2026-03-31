@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Enterprise Module Tests
+# Director-Class AI — Enterprise Module Tests (STRONG)
+"""Multi-angle tests for enterprise module pipeline.
+
+Covers: TenantRouter, Policy engine, AuditLogger, RedisScoreCache,
+multi-tenant isolation, policy enforcement, audit trail, pipeline
+integration with CoherenceScorer/Server, and performance documentation.
+"""
 
 import json
 
