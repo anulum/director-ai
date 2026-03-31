@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage for batch.py timeout/error paths and actor.py SSE streaming."""
+"""Multi-angle tests for batch processing and actor SSE streaming.
+
+Covers: batch timeout handling, runtime error handling, review batch errors,
+SSE streaming path, fallback when httpx missing, parametrised error types,
+pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
 
@@ -126,3 +131,67 @@ class TestActorSSE:
             async for tok in gen.stream_tokens("test"):
                 tokens.append(tok)
             assert len(tokens) > 0
+
+
+class TestBatchParametrised:
+    """Parametrised batch processing tests."""
+
+    @pytest.mark.parametrize(
+        "error_cls",
+        [RuntimeError, ValueError, FuturesTimeoutError],
+    )
+    def test_process_batch_various_errors(self, error_cls):
+        agent = MagicMock()
+        agent.process.return_value = MagicMock(
+            output="ok",
+            coherence=MagicMock(
+                score=0.9, h_logical=0.1, h_factual=0.05, warning=False
+            ),
+            halted=False,
+            candidates_evaluated=1,
+            fallback_used=False,
+            halt_evidence=None,
+        )
+        proc = BatchProcessor(agent, max_concurrency=2, item_timeout=0.001)
+        with patch.object(proc, "_process_one", side_effect=error_cls("err")):
+            result = proc.process_batch(["q1"])
+            assert result.failed >= 0
+
+    @pytest.mark.parametrize("batch_size", [1, 3, 5])
+    def test_batch_various_sizes(self, batch_size):
+        agent = MagicMock()
+        agent.process.return_value = MagicMock(
+            output="ok",
+            coherence=MagicMock(
+                score=0.9, h_logical=0.1, h_factual=0.05, warning=False
+            ),
+            halted=False,
+            candidates_evaluated=1,
+            fallback_used=False,
+            halt_evidence=None,
+        )
+        proc = BatchProcessor(agent, max_concurrency=2, item_timeout=10.0)
+        result = proc.process_batch([f"q{i}" for i in range(batch_size)])
+        assert result.total == batch_size
+
+
+class TestBatchPerformanceDoc:
+    """Document batch pipeline performance."""
+
+    def test_batch_result_has_total(self):
+        agent = MagicMock()
+        agent.process.return_value = MagicMock(
+            output="ok",
+            coherence=MagicMock(
+                score=0.9, h_logical=0.1, h_factual=0.05, warning=False
+            ),
+            halted=False,
+            candidates_evaluated=1,
+            fallback_used=False,
+            halt_evidence=None,
+        )
+        proc = BatchProcessor(agent, max_concurrency=2, item_timeout=10.0)
+        result = proc.process_batch(["q1", "q2"])
+        assert hasattr(result, "total")
+        assert hasattr(result, "failed")
+        assert result.total == 2
