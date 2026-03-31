@@ -302,7 +302,8 @@ class CoherenceScorer:
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             self._local_judge_tokenizer = AutoTokenizer.from_pretrained(
-                model_path, use_fast=False,
+                model_path,
+                use_fast=False,
             )
             self._local_judge_model = (
                 AutoModelForSequenceClassification.from_pretrained(
