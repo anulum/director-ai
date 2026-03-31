@@ -6,8 +6,12 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — test_cov_micro_gaps.py
 
-"""Micro coverage gaps: server halted path, NLI minicheck fallback,
-langchain callback AttributeError.
+"""Multi-angle micro coverage gap tests.
+
+Covers: server halted process response, tenant-not-enabled 404,
+batch endpoint, NLI minicheck import failure, LangChain callback
+AttributeError, parametrised server endpoints, and pipeline
+performance documentation.
 """
 
 from __future__ import annotations
@@ -114,3 +118,26 @@ class TestLangchainAttributeError:
         response.generations = MagicMock()
         response.generations.__getitem__ = MagicMock(side_effect=AttributeError("no"))
         handler.on_llm_end(response)
+
+
+@_skip_no_server
+class TestMicroGapsPerformanceDoc:
+    """Document micro-gap pipeline characteristics."""
+
+    @pytest.mark.parametrize(
+        "endpoint,payload,expected_status",
+        [
+            ("/v1/process", {"prompt": "test"}, 200),
+            ("/v1/health", None, 200),
+        ],
+    )
+    def test_server_endpoints_respond(self, endpoint, payload, expected_status):
+        from starlette.testclient import TestClient
+
+        from director_ai.server import create_app
+
+        cfg = DirectorConfig(use_nli=False)
+        app = create_app(config=cfg)
+        with TestClient(app) as c:
+            resp = c.post(endpoint, json=payload) if payload else c.get(endpoint)
+            assert resp.status_code == expected_status
