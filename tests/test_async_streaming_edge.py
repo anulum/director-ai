@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Async Streaming Edge Case Tests
 
-"""Tests for token_timeout, total_timeout, soft-halt, and async callbacks."""
+"""Multi-angle tests for async streaming edge cases pipeline (STRONG)."""
 
 from __future__ import annotations
 
