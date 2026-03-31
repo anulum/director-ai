@@ -5,11 +5,11 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — LangChain Integration Tests with Real SDK
-"""Tests that import real langchain_core and verify integration types.
+"""Multi-angle tests for LangChain integration with real SDK.
 
 These tests run only when langchain-core is installed (CI extras matrix).
-They verify that DirectorAIGuard and CoherenceCallbackHandler work
-correctly with real LangChain types.
+Covers: DirectorAIGuard invoke, callback handler, metadata mode,
+pipeline integration with CoherenceScorer, and performance documentation.
 """
 
 from __future__ import annotations

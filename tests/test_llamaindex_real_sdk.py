@@ -5,11 +5,11 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — LlamaIndex Integration Tests with Real SDK
-"""Tests that import real llama_index.core and verify integration types.
+"""Multi-angle tests for LlamaIndex integration with real SDK.
 
 These tests run only when llama-index-core is installed (CI extras matrix).
-They verify that DirectorAIPostprocessor works correctly with real
-LlamaIndex NodeWithScore and QueryBundle objects.
+Covers: DirectorAIPostprocessor, node filtering, score annotation,
+pipeline integration with CoherenceScorer, and performance documentation.
 """
 
 from __future__ import annotations
