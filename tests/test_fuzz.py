@@ -29,6 +29,14 @@ except ImportError:
         def text(**_kw):
             return None
 
+        @staticmethod
+        def floats(**_kw):
+            return None
+
+        @staticmethod
+        def lists(*_a, **_kw):
+            return None
+
 
 pytestmark = pytest.mark.skipif(not _HAS_HYPOTHESIS, reason="hypothesis not installed")
 
@@ -77,3 +85,48 @@ def test_scores_always_in_range(premise, hyp):
     scorer = LiteScorer()
     s = scorer.score(premise, hyp)
     assert 0.0 <= s <= 1.0
+
+
+@settings(max_examples=_MAX_EXAMPLES, deadline=5000)
+@given(
+    prompt=st.text(min_size=0, max_size=500),
+    action=st.text(min_size=0, max_size=500),
+    threshold=st.floats(min_value=0.0, max_value=1.0),
+)
+def test_review_with_any_threshold(prompt, action, threshold):
+    from director_ai.core.scorer import CoherenceScorer
+
+    scorer = CoherenceScorer(threshold=threshold, use_nli=False)
+    approved, score = scorer.review(prompt, action)
+    assert isinstance(approved, bool)
+    assert 0.0 <= score.score <= 1.0
+
+
+@settings(max_examples=_MAX_EXAMPLES // 2, deadline=5000)
+@given(
+    premise=st.text(min_size=1, max_size=200),
+    hyp=st.text(min_size=1, max_size=200),
+)
+def test_lite_scorer_deterministic(premise, hyp):
+    """Same input must always produce same score."""
+    from director_ai.core.lite_scorer import LiteScorer
+
+    scorer = LiteScorer()
+    s1 = scorer.score(premise, hyp)
+    s2 = scorer.score(premise, hyp)
+    assert s1 == s2
+
+
+@settings(max_examples=_MAX_EXAMPLES // 4, deadline=10000)
+@given(
+    texts=st.lists(st.text(min_size=1, max_size=100), min_size=1, max_size=10),
+)
+def test_batch_scoring_length_matches(texts):
+    """score_batch must return exactly len(pairs) scores."""
+    from director_ai.core.lite_scorer import LiteScorer
+
+    scorer = LiteScorer()
+    pairs = [(t, t) for t in texts]
+    results = scorer.score_batch(pairs)
+    assert len(results) == len(pairs)
+    assert all(0.0 <= s <= 1.0 for s in results)
