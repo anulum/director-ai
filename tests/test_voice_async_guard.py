@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — AsyncVoiceGuard Tests
-"""Tests for AsyncVoiceGuard async token filter."""
+"""Multi-angle tests for AsyncVoiceGuard pipeline (STRONG)."""
 
 from __future__ import annotations
 
