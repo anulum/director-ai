@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Fine-tuning API Tests
+# Director-Class AI — Fine-tuning API Tests (STRONG)
+"""Multi-angle tests for fine-tuning API pipeline.
+
+Covers: finetune config, dataset loading, training, evaluation, checkpoint
+management, LoRA config, pipeline integration with judge training, and
+performance documentation.
+"""
 
 from __future__ import annotations
 
