@@ -14,6 +14,8 @@ pipeline wiring, and performance documentation.
 
 from __future__ import annotations
 
+import pytest
+
 from director_ai.voice.adapters import TTSAdapter
 from director_ai.voice.pipeline import voice_pipeline
 
@@ -187,4 +189,70 @@ class TestVoicePipelineEmpty:
             )
         ]
         assert audio == []
+        assert tts.closed
+
+
+class TestVoicePipelineParametrised:
+    """Parametrised voice pipeline tests."""
+
+    @pytest.mark.parametrize("score_every", [1, 2, 5])
+    async def test_various_score_intervals(self, score_every):
+        tts = RecordingAdapter()
+        tokens = ["Hello ", "world", ". ", "More ", "text."]
+        audio = [
+            chunk
+            async for chunk in voice_pipeline(
+                iter(tokens),
+                tts,
+                use_nli=False,
+                score_every=score_every,
+            )
+        ]
+        assert len(audio) > 0
+        assert tts.closed
+
+    @pytest.mark.parametrize("sentence_buffer", [True, False])
+    async def test_buffer_modes(self, sentence_buffer):
+        tts = RecordingAdapter()
+        tokens = ["A. ", "B."]
+        _ = [
+            chunk
+            async for chunk in voice_pipeline(
+                iter(tokens),
+                tts,
+                use_nli=False,
+                score_every=1,
+                sentence_buffer=sentence_buffer,
+            )
+        ]
+        assert len(tts.texts) >= 1
+
+
+class TestVoicePipelinePerformanceDoc:
+    """Document voice pipeline performance characteristics."""
+
+    async def test_audio_chunks_are_bytes(self):
+        tts = RecordingAdapter()
+        audio = [
+            chunk
+            async for chunk in voice_pipeline(
+                iter(["Test."]),
+                tts,
+                use_nli=False,
+                score_every=1,
+            )
+        ]
+        for chunk in audio:
+            assert isinstance(chunk, bytes)
+
+    async def test_adapter_closed_after_pipeline(self):
+        tts = RecordingAdapter()
+        _ = [
+            chunk
+            async for chunk in voice_pipeline(
+                iter(["Test."]),
+                tts,
+                use_nli=False,
+            )
+        ]
         assert tts.closed
