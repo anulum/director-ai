@@ -12,8 +12,6 @@ vector store, NLI, server modules. Pipeline wiring verification and
 performance documentation.
 """
 
-"""Final coverage push — targets every remaining testable gap."""
-
 from __future__ import annotations
 
 import json

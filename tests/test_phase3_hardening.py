@@ -5,20 +5,16 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Phase 3 Hardening Tests (STRONG)
-"""Multi-angle tests for Phase 3 hardening pipeline (STRONG)."""
+"""Multi-angle tests for Phase 3 hardening pipeline (STRONG).
 
-"""Tests for Phase 3 hardening fixes (consumer core):
-H28  ROB-5: NLI assert â†’ RuntimeError
-H29  CON-1: batch asyncio.get_running_loop()
-H30  ROB-1: batch coherence None guard
-H34  SEC-3: actor response.text truncation
-H35  SEC-5: config _coerce error message
-H36  API-2: config server_port/workers validation
-H37  RES-3: config from_yaml UTF-8
-H39  API-1: cli --port safety
-H42  CON-2: scorer history thread lock
-H44  ROB-8: scorer setLevel removed
+Covers: H28 ROB-5 NLI assert, H29 CON-1 batch asyncio,
+H30 ROB-1 batch coherence guard, H34 SEC-3 actor truncation,
+H35 SEC-5 config coerce, H36 API-2 port/workers validation,
+H37 RES-3 config from_yaml UTF-8, H39 API-1 cli port safety,
+H42 CON-2 scorer history lock, H44 ROB-8 scorer setLevel.
 """
+
+from __future__ import annotations
 
 import json
 import logging

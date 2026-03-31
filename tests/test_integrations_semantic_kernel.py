@@ -6,6 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Semantic Kernel Integration Tests (STRONG)
 """Multi-angle tests for Semantic Kernel integration pipeline (STRONG)."""
+
 from __future__ import annotations
 
 import asyncio

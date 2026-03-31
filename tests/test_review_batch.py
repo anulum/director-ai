@@ -5,9 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Coalesced review_batch Tests (STRONG)
-"""Multi-angle tests for coalesced review_batch pipeline (STRONG)."""
-
-"""Tests for CoherenceScorer.review_batch() and BatchProcessor coalesced path."""
+"""Multi-angle tests for CoherenceScorer.review_batch() and BatchProcessor (STRONG)."""
 
 from __future__ import annotations
 

@@ -5,9 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Local DeBERTa Judge Tests (STRONG)
-"""Multi-angle tests for local DeBERTa binary judge pipeline (STRONG)."""
-
-"""Tests for local DeBERTa-base binary judge (Item 5)."""
+"""Multi-angle tests for local DeBERTa-base binary judge pipeline (STRONG)."""
 
 from __future__ import annotations
 

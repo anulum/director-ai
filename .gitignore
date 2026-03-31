@@ -38,6 +38,11 @@ docs/*
 !docs/ROADMAP_2026_2027.md
 !docs/TECHNICAL_SPEC_V2.md
 !docs/API_REFERENCE.md
+!docs/DATA_PIPELINE.md
+!docs/BUILD_JUDGE_DATASET.md
+!docs/E2E_EVAL.md
+!docs/JUDGE_BENCHMARK.md
+!docs/RUST_FFI_PIPELINE.md
 !docs/archive/
 !docs/social/
 docs/_build/

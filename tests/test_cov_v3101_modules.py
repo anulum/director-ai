@@ -7,11 +7,10 @@
 # Director-AI — Coverage Push Module Tests v3.10.1 (STRONG)
 """Multi-angle coverage push tests for v3.10.1 modules.
 
-Covers: doc_chunker, doc_registry, sanitizer, stats, exceptions,
-types edge cases, pipeline integration, and performance documentation.
+Covers: otel, compliance, voice guard, license, doc_chunker,
+doc_registry, sanitizer, stats, exceptions, types edge cases,
+pipeline integration, and performance documentation.
 """
-
-"""Tests for otel, compliance, voice guard, license, and misc modules."""
 
 from __future__ import annotations
 
