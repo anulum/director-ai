@@ -4,7 +4,11 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Deep coverage for cli.py — batch, ingest, quickstart, tune, serve edge cases."""
+"""Multi-angle deep coverage for CLI edge cases (STRONG).
+
+Covers: batch, ingest, quickstart, tune, serve edge cases, profile loading,
+transport flags, chunk sizing, pipeline integration, and performance.
+"""
 
 from __future__ import annotations
 

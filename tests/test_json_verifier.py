@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for JSON output verification."""
+"""Multi-angle tests for JSON output verification pipeline (STRONG).
+
+Covers: schema validation, required fields, type checking, nested objects,
+array validation, null handling, pipeline integration with CoherenceScorer
+tool call verification, and performance documentation.
+"""
 
 from __future__ import annotations
 
