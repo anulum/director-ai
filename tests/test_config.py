@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Configuration Manager Tests
+# Director-Class AI — Configuration Manager Tests (STRONG)
+"""Multi-angle tests for DirectorConfig pipeline configuration.
+
+Covers: defaults, profile loading, env var override, YAML/JSON config files,
+threshold validation, CORS, audit log, tenant routing, logging, NLI settings,
+pipeline integration with CoherenceScorer/Agent/Server, and performance.
+"""
 
 import json
 import os
