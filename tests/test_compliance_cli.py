@@ -4,11 +4,18 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for the compliance CLI subcommand."""
+"""Multi-angle tests for the compliance CLI subcommand.
+
+Covers: drift detection, missing DB error, report md/json formats,
+status output, unknown subcommand guard, parametrised formats,
+pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
 
 import time
+
+import pytest
 
 from director_ai.cli import main as cli_main
 from director_ai.compliance.audit_log import AuditEntry, AuditLog
@@ -98,9 +105,41 @@ class TestComplianceCli:
         assert "z=" in out
 
     def test_unknown_subcommand(self, tmp_path, capsys):
-        import pytest
-
         db = str(tmp_path / "test.db")
         _populate_db(db)
         with pytest.raises(SystemExit, match="1"):
             cli_main(["compliance", "bogus", "--db", db])
+
+    @pytest.mark.parametrize("subcommand", ["status", "drift", "report"])
+    def test_all_subcommands_produce_output(self, tmp_path, capsys, subcommand):
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        cli_main(["compliance", subcommand, "--db", db])
+        out = capsys.readouterr().out
+        assert len(out) > 0
+
+    @pytest.mark.parametrize("fmt", ["json"])
+    def test_report_json_format(self, tmp_path, capsys, fmt):
+        db = str(tmp_path / "test.db")
+        _populate_db(db)
+        cli_main(["compliance", "report", "--db", db, "--format", fmt])
+        out = capsys.readouterr().out
+        assert '"total_interactions"' in out
+
+
+class TestCompliancePerformanceDoc:
+    """Document compliance CLI pipeline performance."""
+
+    def test_audit_log_creates_db(self, tmp_path):
+        db = str(tmp_path / "perf.db")
+        log = AuditLog(db)
+        assert log is not None
+        log.close()
+
+    def test_compliance_status_fast(self, tmp_path, capsys):
+        db = str(tmp_path / "perf.db")
+        _populate_db(db)
+        t0 = time.perf_counter()
+        cli_main(["compliance", "status", "--db", db])
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        assert elapsed_ms < 5000, f"Compliance status took {elapsed_ms:.0f}ms"
