@@ -1184,3 +1184,85 @@ class TestScoreClaimCoverage:
         )
         assert 0.0 <= coverage <= 1.0
         assert len(claims) == 2
+
+
+# ── Parametrised NLI gap tests ─────────────────────────────────────────
+
+
+class TestNLIGapsParametrised:
+    """Parametrised tests across NLI gap coverage."""
+
+    @pytest.mark.parametrize("backend", ["deberta", "onnx", "minicheck"])
+    def test_scorer_creation_all_backends(self, backend):
+        scorer = NLIScorer(use_model=False, backend=backend)
+        assert scorer.backend == backend
+
+    @pytest.mark.parametrize(
+        "premise,hypothesis",
+        [
+            ("The sky is blue", "The sky is blue"),
+            ("", "empty premise response"),
+            ("test", ""),
+            ("日本語テスト", "日本語レスポンス"),
+        ],
+    )
+    def test_heuristic_score_various_inputs(self, premise, hypothesis):
+        scorer = NLIScorer(use_model=False)
+        result = scorer.score(premise, hypothesis)
+        assert 0.0 <= result <= 1.0
+
+    @pytest.mark.parametrize("batch_size", [1, 3, 5, 10])
+    def test_score_batch_sizes(self, batch_size):
+        scorer = NLIScorer(use_model=False)
+        pairs = [("premise", "hypothesis")] * batch_size
+        results = scorer.score_batch(pairs)
+        assert len(results) == batch_size
+        assert all(0.0 <= r <= 1.0 for r in results)
+
+    @pytest.mark.parametrize("n_claims", [1, 2, 3])
+    def test_claim_coverage_counts(self, n_claims):
+        scorer = NLIScorer(use_model=False)
+        sentences = ". ".join([f"Claim number {i}" for i in range(n_claims)]) + "."
+        coverage, divs, claims = scorer.score_claim_coverage(
+            sentences,
+            sentences,
+        )
+        assert 0.0 <= coverage <= 1.0
+
+
+# ── NLI Pipeline Performance ──────────────────────────────────────────
+
+
+class TestNLIGapsPerformance:
+    """Document NLI pipeline performance characteristics."""
+
+    def test_heuristic_score_latency(self):
+        import time
+
+        scorer = NLIScorer(use_model=False)
+        t0 = time.perf_counter()
+        for _ in range(1000):
+            scorer.score("What is AI?", "AI is intelligence.")
+        per_call_us = (time.perf_counter() - t0) / 1000 * 1_000_000
+        assert per_call_us < 500, f"Heuristic score took {per_call_us:.0f}µs"
+
+    def test_batch_score_latency(self):
+        import time
+
+        scorer = NLIScorer(use_model=False)
+        pairs = [("premise", "hypothesis")] * 10
+        t0 = time.perf_counter()
+        for _ in range(100):
+            scorer.score_batch(pairs)
+        per_call_ms = (time.perf_counter() - t0) / 100 * 1000
+        assert per_call_ms < 50, f"Batch score took {per_call_ms:.1f}ms"
+
+    def test_scorer_integrates_with_coherence_scorer(self):
+        from director_ai.core import CoherenceScorer
+
+        scorer = CoherenceScorer(use_nli=False)
+        approved, score = scorer.review("test", "test")
+        assert isinstance(approved, bool)
+        assert 0.0 <= score.score <= 1.0
+        assert hasattr(score, "h_logical")
+        assert hasattr(score, "h_factual")
