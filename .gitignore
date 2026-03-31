@@ -44,7 +44,6 @@ docs/*
 !docs/E2E_EVAL.md
 !docs/JUDGE_BENCHMARK.md
 !docs/RUST_FFI_PIPELINE.md
-!docs/social/
 docs/_build/
 
 # =====================================================================
