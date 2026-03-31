@@ -115,3 +115,43 @@ class TestValidation:
     def test_invalid_trend_window(self):
         with pytest.raises(ValueError, match="trend_window"):
             AsyncStreamingKernel(trend_window=1)
+
+    @pytest.mark.parametrize("halt_mode", ["hard", "soft"])
+    def test_valid_halt_modes(self, halt_mode):
+        kernel = AsyncStreamingKernel(halt_mode=halt_mode)
+        assert kernel is not None
+
+    @pytest.mark.parametrize("window_size", [1, 2, 5, 10, 100])
+    def test_valid_window_sizes(self, window_size):
+        kernel = AsyncStreamingKernel(window_size=window_size)
+        assert kernel is not None
+
+    @pytest.mark.parametrize("hard_limit", [0.01, 0.1, 0.5, 0.9, 0.99])
+    def test_valid_hard_limits(self, hard_limit):
+        kernel = AsyncStreamingKernel(hard_limit=hard_limit)
+        assert kernel is not None
+
+
+class TestAsyncStreamingPerformance:
+    """Document async streaming pipeline performance characteristics."""
+
+    @pytest.mark.asyncio
+    async def test_event_has_coherence(self):
+        kernel = AsyncStreamingKernel(hard_limit=0.1)
+        events = await _collect(kernel, iter(["a", "b"]), lambda _: 0.8)
+        for event in events:
+            assert hasattr(event, "coherence")
+            assert 0.0 <= event.coherence <= 1.0
+
+    @pytest.mark.asyncio
+    async def test_event_has_token(self):
+        kernel = AsyncStreamingKernel(hard_limit=0.1)
+        events = await _collect(kernel, iter(["hello", "world"]), lambda _: 0.9)
+        assert events[0].token == "hello"
+
+    @pytest.mark.asyncio
+    async def test_non_halted_stream_complete(self):
+        kernel = AsyncStreamingKernel(hard_limit=0.1)
+        events = await _collect(kernel, iter(["a", "b", "c"]), lambda _: 0.9)
+        assert len(events) == 3
+        assert not events[-1].halted
