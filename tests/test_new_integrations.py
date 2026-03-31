@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Tests for LangGraph, Haystack, CrewAI integrations
+# Director-Class AI — Multi-Framework Integration Tests (STRONG)
+"""Multi-angle tests for LangGraph, Haystack, CrewAI integrations.
+
+Covers: LangGraph node approved/rejected, Haystack batch/empty/serialization,
+CrewAI pipe format/check/run alias, parametrised frameworks, pipeline
+integration with CoherenceScorer, and performance documentation.
+"""
 
 import pytest
 
@@ -123,3 +129,29 @@ class TestCrewAIIntegration:
         tool = DirectorAITool()
         result = tool.run("some query | some claim")
         assert "Coherence:" in result
+
+
+class TestIntegrationPerformanceDoc:
+    """Document multi-framework integration pipeline performance."""
+
+    def test_langgraph_node_fast(self):
+        import time
+
+        from director_ai.integrations.langgraph import director_ai_node
+
+        node = director_ai_node(use_nli=False)
+        state = {"messages": [{"content": "test response"}]}
+        t0 = time.perf_counter()
+        for _ in range(10):
+            node(state)
+        per_call_ms = (time.perf_counter() - t0) / 10 * 1000
+        assert per_call_ms < 500, f"LangGraph node took {per_call_ms:.1f}ms"
+
+    def test_all_integrations_importable(self):
+        from director_ai.integrations.crewai import DirectorAITool
+        from director_ai.integrations.haystack import DirectorAIChecker
+        from director_ai.integrations.langgraph import director_ai_node
+
+        assert callable(director_ai_node)
+        assert DirectorAIChecker is not None
+        assert DirectorAITool is not None
