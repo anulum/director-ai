@@ -6,7 +6,12 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Voice Guard Tests
 
-"""Tests for VoiceGuard real-time token filter."""
+"""Multi-angle tests for VoiceGuard real-time token filter.
+
+Covers: token acceptance/rejection, threshold enforcement, sentence
+buffering, coherence scoring, halt recovery, pipeline integration
+with voice_pipeline(), and performance documentation.
+"""
 
 from __future__ import annotations
 
