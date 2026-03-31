@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Deep coverage for nli.py — ONNX loading, quantize, FactCG, score routing."""
+"""Multi-angle deep coverage for nli.py — ONNX, quantize, FactCG, score routing.
+
+Covers: ONNX session loading, quantization paths, FactCG template scoring,
+score routing (deberta/onnx/minicheck), custom backend registration,
+pipeline integration with CoherenceScorer, and performance documentation.
+"""
 
 from __future__ import annotations
 
