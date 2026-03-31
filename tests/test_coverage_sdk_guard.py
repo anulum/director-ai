@@ -449,3 +449,81 @@ class _AsyncIter:
         if not self._items:
             raise StopAsyncIteration
         return self._items.pop(0)
+
+
+# ── Parametrised SDK guard tests ─────────────────────────────────────
+
+
+class TestSDKGuardParametrised:
+    """Parametrised tests across SDK shapes and on_fail modes."""
+
+    @pytest.mark.parametrize(
+        "make_client,shape_fn",
+        [
+            (_make_openai_client, _has_openai_shape),
+            (_make_anthropic_client, _has_anthropic_shape),
+            (_make_bedrock_client, _has_bedrock_shape),
+            (_make_gemini_client, _has_gemini_shape),
+            (_make_cohere_client, _has_cohere_shape),
+        ],
+        ids=["openai", "anthropic", "bedrock", "gemini", "cohere"],
+    )
+    def test_shape_detection(self, make_client, shape_fn):
+        client = make_client()
+        assert shape_fn(client) is True
+
+    @pytest.mark.parametrize("on_fail", ["raise", "log", "metadata"])
+    def test_guard_accepts_all_on_fail_modes(self, on_fail):
+        client = _make_openai_client()
+        result = guard(client, on_fail=on_fail)
+        assert result is client
+
+    @pytest.mark.parametrize("on_fail", ["log", "metadata"])
+    def test_handle_failure_non_raise(self, on_fail):
+        from director_ai.core.types import CoherenceScore
+
+        score = CoherenceScore(
+            score=0.3,
+            approved=False,
+            h_logical=0.4,
+            h_factual=0.5,
+        )
+        # log mode logs warning; metadata mode stores score in contextvars
+        _handle_failure(on_fail, "test query", "response text", score)
+        if on_fail == "metadata":
+            stored = get_score()
+            assert stored is not None
+            assert stored.score == 0.3
+
+
+# ── SDK Guard Pipeline Performance ──────────────────────────────────
+
+
+class TestSDKGuardPerformance:
+    """Document SDK guard pipeline performance."""
+
+    def test_guard_wrapping_fast(self):
+        import time
+
+        t0 = time.perf_counter()
+        for _ in range(100):
+            client = _make_openai_client()
+            guard(client)
+        per_call_ms = (time.perf_counter() - t0) / 100 * 1000
+        assert per_call_ms < 5.0, f"Guard wrapping took {per_call_ms:.1f}ms"
+
+    def test_score_function_returns_coherence_score(self):
+        from director_ai.integrations.sdk_guard import score as sdk_score
+
+        result = sdk_score(
+            "What is AI?",
+            "AI is intelligence.",
+            use_nli=False,
+        )
+        assert hasattr(result, "score")
+        assert 0.0 <= result.score <= 1.0
+
+    def test_extract_prompt_from_messages(self):
+        messages = [{"role": "user", "content": "What color is the sky?"}]
+        prompt = _extract_prompt(messages=messages)
+        assert "sky" in prompt
