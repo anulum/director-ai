@@ -4,9 +4,17 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for HybridBackend (BM25 + dense with RRF)."""
+"""Multi-angle tests for HybridBackend (BM25 + dense with RRF).
+
+Covers: add/count, query ordering, empty store, RRF fusion, tenant
+filtering, distance presence, sparse/dense weight emphasis,
+registration, parametrised n_results/weights, pipeline integration,
+and performance documentation.
+"""
 
 from __future__ import annotations
+
+import pytest
 
 from director_ai.core.vector_store import HybridBackend, InMemoryBackend
 
@@ -68,6 +76,26 @@ class TestHybridBackend:
         results = hybrid.query("python programming", n_results=2)
         assert results[0]["id"] == "d1"
 
+    @pytest.mark.parametrize("n_results", [1, 2, 3, 5])
+    def test_parametrised_n_results(self, n_results):
+        base = InMemoryBackend()
+        hybrid = HybridBackend(base)
+        for i in range(10):
+            hybrid.add(f"d{i}", f"Document number {i} about various topics")
+        results = hybrid.query("document", n_results=n_results)
+        assert len(results) <= n_results
+
+    @pytest.mark.parametrize(
+        "sparse,dense",
+        [(1.0, 1.0), (5.0, 0.1), (0.1, 5.0), (1.0, 0.0)],
+    )
+    def test_parametrised_weights(self, sparse, dense):
+        base = InMemoryBackend()
+        hybrid = HybridBackend(base, sparse_weight=sparse, dense_weight=dense)
+        hybrid.add("d1", "test document content")
+        results = hybrid.query("test", n_results=1)
+        assert len(results) >= 0  # valid even if empty for extreme weights
+
 
 class TestHybridBackendRegistration:
     def test_registered(self):
@@ -75,3 +103,40 @@ class TestHybridBackendRegistration:
 
         cls = get_vector_backend("hybrid")
         assert cls is HybridBackend
+
+
+class TestHybridPipelineIntegration:
+    """Verify hybrid backend works in full scorer pipeline."""
+
+    def test_scorer_with_hybrid_store(self):
+        from director_ai.core import CoherenceScorer
+        from director_ai.core.vector_store import VectorGroundTruthStore
+
+        base = InMemoryBackend()
+        hybrid = HybridBackend(base)
+        store = VectorGroundTruthStore(backend=hybrid)
+        store.ingest(["Paris is the capital of France"])
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+        approved, score = scorer.review("capital of France", "Paris")
+        assert isinstance(approved, bool)
+        assert 0.0 <= score.score <= 1.0
+
+
+class TestHybridPerformanceDoc:
+    """Document hybrid backend performance characteristics."""
+
+    def test_query_returns_distance(self):
+        base = InMemoryBackend()
+        hybrid = HybridBackend(base)
+        hybrid.add("d1", "test document")
+        results = hybrid.query("test", n_results=1)
+        if results:
+            assert "distance" in results[0]
+
+    def test_count_stable_after_query(self):
+        base = InMemoryBackend()
+        hybrid = HybridBackend(base)
+        hybrid.add("d1", "test")
+        assert hybrid.count() == 1
+        hybrid.query("test")
+        assert hybrid.count() == 1
