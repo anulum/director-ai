@@ -4,6 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Server Coverage Gaps Tests (STRONG)
+"""Multi-angle tests for FastAPI server coverage gaps.
+
+Covers: review/process/health endpoints, batch processing, streaming,
+CORS, rate limiting, tenant routing, audit logging, compliance,
+pipeline integration, and performance documentation.
+"""
 
 from __future__ import annotations
 

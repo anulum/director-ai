@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Coverage tests for sdk_guard.py — guard() + streaming proxies."""
+"""Multi-angle tests for SDK guard pipeline (STRONG).
+
+Covers: guard() wrapping for OpenAI/Anthropic, streaming proxy objects,
+on_fail modes (raise/log/metadata), fact injection, create/acreate,
+pipeline integration with CoherenceScorer, and performance documentation.
+"""
 
 from __future__ import annotations
 
