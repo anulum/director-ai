@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — TensorRT Export Tests
+# Director-Class AI — TensorRT Export Tests (STRONG)
+"""Multi-angle tests for TensorRT engine export and NLI inference.
+
+Covers: export function, cache creation, session loading, FP16 mode,
+batch inference, latency benchmarking, pipeline integration with
+CoherenceScorer, and performance documentation.
+"""
 
 from __future__ import annotations
 
