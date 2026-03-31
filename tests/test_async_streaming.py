@@ -4,7 +4,13 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Tests for AsyncStreamingKernel
+# Director-Class AI — AsyncStreamingKernel Tests (STRONG)
+"""Multi-angle tests for async streaming kernel pipeline.
+
+Covers: async token streaming, halt conditions, soft halt, timeout,
+concurrent callbacks, event structure, pipeline integration with
+CoherenceScorer, and performance documentation.
+"""
 
 import pytest
 
