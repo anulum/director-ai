@@ -12,6 +12,7 @@
 DEV_LOG.md
 claude-director-ai.md
 .claude/
+.coordination/
 .gemini_audit_prompt.md
 
 # Outreach emails, scripts, logs (contains credentials and contact data)
