@@ -577,11 +577,18 @@ class CoherenceScorer:
     # â"€â"€ Task-aware scoring profiles â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     @staticmethod
-    def _detect_task_type(prompt: str) -> str:
-        """Detect task type from prompt content.
+    def _detect_task_type(prompt: str, response: str = "") -> str:
+        """Detect task type from prompt content and length ratio.
 
         Returns one of: ``"dialogue"``, ``"summarization"``, ``"rag"``,
         ``"fact_check"``, ``"qa"``, or ``"default"``.
+
+        When *response* is provided, a length-ratio heuristic detects
+        summarisation even when the prompt lacks explicit keywords
+        (e.g. raw source documents without an instruction prefix).
+        A prompt longer than 1 000 chars whose response is shorter than
+        30 % of the prompt length is classified as summarisation —
+        unless dialogue markers are present.
         """
         matches = _DIALOGUE_TURN_RE.findall(prompt)
         if len(matches) >= 2:
@@ -593,6 +600,19 @@ class CoherenceScorer:
             for kw in ("summarize", "summary", "summarise", "tldr", "abstract")
         ):
             return "summarization"
+
+        # Length-ratio heuristic: long context + short response = summarisation.
+        # Typical summarisation: ctx ~3 600 chars, resp ~300 chars (ratio ~0.09).
+        # Typical QA: ctx ~370 chars, resp ~37 chars (ratio ~0.10, but ctx < 1000).
+        # Threshold: ctx > 1000 and resp/ctx < 0.30.
+        if (
+            response
+            and len(prompt) > 1000
+            and len(response) > 20
+            and len(response) / len(prompt) < 0.30
+        ):
+            return "summarization"
+
         if any(
             kw in lower
             for kw in (
@@ -754,15 +774,29 @@ class CoherenceScorer:
         else:
             layer_a = raw_div
 
-        # Layer C: claim decomposition + coverage scoring with attribution
+        # Layer C: claim decomposition + coverage scoring with attribution.
+        # Truncate premise to avoid OOM on long source documents — claim
+        # coverage only needs enough context to verify individual claims.
         if self._claim_coverage_enabled:
-            coverage, per_claim_divs, claims, attributions = (
-                self._nli.score_claim_coverage_with_attribution(
-                    prompt,
-                    response,
-                    support_threshold=self._claim_support_threshold,
+            truncated_premise = prompt[:3000]
+            try:
+                coverage, per_claim_divs, claims, attributions = (
+                    self._nli.score_claim_coverage_with_attribution(
+                        truncated_premise,
+                        response,
+                        support_threshold=self._claim_support_threshold,
+                    )
                 )
-            )
+            except (RuntimeError, Exception) as exc:
+                if "out of memory" in str(exc).lower():
+                    import torch
+
+                    torch.cuda.empty_cache()
+                    self.logger.warning(
+                        "OOM in claim coverage — falling back to layer A only"
+                    )
+                    return layer_a, evidence
+                raise
             alpha = self._claim_coverage_alpha
             adjusted = alpha * (1.0 - coverage) + (1.0 - alpha) * layer_a
 
@@ -802,7 +836,7 @@ class CoherenceScorer:
 
         # Resolve effective premise_ratio: QA tasks get higher ratio
         effective_premise_ratio = self._premise_ratio
-        task_type = self._detect_task_type(prompt)
+        task_type = self._detect_task_type(prompt, text_output)
         if task_type == "qa" and self._qa_premise_ratio > self._premise_ratio:
             effective_premise_ratio = self._qa_premise_ratio
 
@@ -925,7 +959,7 @@ class CoherenceScorer:
         fact_outer = _outer_agg if _outer_agg is not None else self._fact_outer_agg
 
         effective_premise_ratio = self._premise_ratio
-        task_type = self._detect_task_type(prompt)
+        task_type = self._detect_task_type(prompt, text_output)
         if task_type == "qa" and self._qa_premise_ratio > self._premise_ratio:
             effective_premise_ratio = self._qa_premise_ratio
 
@@ -1211,7 +1245,7 @@ class CoherenceScorer:
         fact_ia, fact_oa, logic_ia, logic_oa = self._resolve_agg_profile(prompt)
 
         _nli_available = self._nli is not None and self._nli.model_available
-        _task_type = self._detect_task_type(prompt) if _nli_available else "default"
+        _task_type = self._detect_task_type(prompt, action) if _nli_available else "default"
 
         # -- Dialogue path: bidirectional NLI + baseline calibration ----
         # Logical entailment is meaningless for dialogue (a question
@@ -1447,7 +1481,7 @@ class CoherenceScorer:
                 and not self._use_prompt_as_premise
                 and self._nli is not None
                 and self._nli.model_available
-                and self._detect_task_type(prompt) == "dialogue"
+                and self._detect_task_type(prompt, action) == "dialogue"
             )
             if session is not None and len(session) > 0 and not _skip_cross_turn:
                 ctx = session.context_text
@@ -1483,7 +1517,7 @@ class CoherenceScorer:
                 )
 
             # Always detect task type for explainability
-            task_type = self._detect_task_type(prompt)
+            task_type = self._detect_task_type(prompt, action)
 
             # Adaptive threshold: select per-task-type threshold
             effective_threshold = self.threshold
@@ -1569,7 +1603,7 @@ class CoherenceScorer:
         for i, (prompt, _action) in enumerate(items):
             if (
                 self._auto_dialogue_profile
-                and self._detect_task_type(prompt) == "dialogue"
+                and self._detect_task_type(prompt, _action) in ("dialogue", "summarization")
             ):
                 fallback_idx.append(i)
             else:
@@ -1637,7 +1671,7 @@ class CoherenceScorer:
             # Match review() finalisation: task-type, adaptive threshold,
             # meta-classifier — ensures batch/single parity.
             prompt = items[i][0]
-            task_type = self._detect_task_type(prompt)
+            task_type = self._detect_task_type(prompt, items[i][1])
             effective_threshold = self.threshold
             if self._adaptive_threshold_enabled and self._task_type_thresholds:
                 effective_threshold = self._task_type_thresholds.get(
