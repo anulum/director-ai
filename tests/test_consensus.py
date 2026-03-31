@@ -4,7 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Tests for Phase 5 Gem 10: Cross-Model Consensus."""
+"""Multi-angle tests for Phase 5 Gem 10: Cross-Model Consensus.
+
+Covers: identical/different responses, multi-model, single response,
+generate_fn, custom score_fn, validation guards, pairwise count,
+parametrised model counts, pipeline integration, and performance.
+"""
 
 from __future__ import annotations
 
@@ -117,3 +122,62 @@ class TestValidation:
         scorer = ConsensusScorer(models=["a", "b", "c", "d"])
         result = scorer.score_responses(responses)
         assert len(result.pairs) == 6  # C(4,2)
+
+
+class TestConsensusParametrised:
+    """Parametrised consensus tests."""
+
+    @pytest.mark.parametrize("n_models", [2, 3, 4, 5])
+    def test_pairwise_formula(self, n_models):
+        models = [f"m{i}" for i in range(n_models)]
+        responses = [ModelResponse(model=m, response="same text") for m in models]
+        scorer = ConsensusScorer(models=models)
+        result = scorer.score_responses(responses)
+        expected_pairs = n_models * (n_models - 1) // 2
+        assert len(result.pairs) == expected_pairs
+
+    @pytest.mark.parametrize(
+        "agreement,expected_consensus",
+        [(1.0, True), (0.9, True), (0.5, False), (0.0, False)],
+    )
+    def test_consensus_thresholds(self, agreement, expected_consensus):
+        def score_fn(a, b):
+            return 1.0 - agreement
+
+        responses = [
+            ModelResponse(model="a", response="x"),
+            ModelResponse(model="b", response="y"),
+        ]
+        scorer = ConsensusScorer(models=["a", "b"], score_fn=score_fn)
+        result = scorer.score_responses(responses)
+        assert result.has_consensus == expected_consensus
+
+
+class TestConsensusPerformanceDoc:
+    """Document consensus pipeline performance."""
+
+    def test_result_has_all_fields(self):
+        responses = [
+            ModelResponse(model="a", response="test"),
+            ModelResponse(model="b", response="test"),
+        ]
+        scorer = ConsensusScorer(models=["a", "b"])
+        result = scorer.score_responses(responses)
+        assert hasattr(result, "agreement_score")
+        assert hasattr(result, "has_consensus")
+        assert hasattr(result, "num_models")
+        assert hasattr(result, "pairs")
+        assert hasattr(result, "disagreement_pairs")
+
+    def test_scoring_fast(self):
+        import time
+
+        responses = [
+            ModelResponse(model=f"m{i}", response=f"Response from model {i}")
+            for i in range(5)
+        ]
+        scorer = ConsensusScorer(models=[f"m{i}" for i in range(5)])
+        t0 = time.perf_counter()
+        scorer.score_responses(responses)
+        elapsed_ms = (time.perf_counter() - t0) * 1000
+        assert elapsed_ms < 1000, f"Consensus scoring took {elapsed_ms:.0f}ms"
