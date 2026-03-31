@@ -4,6 +4,12 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — Proxy Coverage Tests (STRONG)
+"""Multi-angle tests for proxy server pipeline coverage.
+
+Covers: forwarding, coherence headers, auth, warn/reject modes,
+streaming, rate limiting, CORS, pipeline integration, and performance.
+"""
 
 from __future__ import annotations
 
