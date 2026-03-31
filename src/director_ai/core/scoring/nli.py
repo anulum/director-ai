@@ -557,6 +557,7 @@ class NLIScorer:
         self._model_loaded = False
         self._minicheck = None
         self._minicheck_loaded = False
+        self._cache_dir = os.environ.get("HF_HOME")
         self._lite_scorer = None
         self._onnx_batcher: OnnxDynamicBatcher | None = None
         self._last_token_count: int = 0
@@ -705,9 +706,55 @@ class NLIScorer:
             return self._minicheck is not None
         self._minicheck_loaded = True
         try:  # pragma: no cover — requires minicheck package with model
-            from minicheck import MiniCheck
+            try:
+                from minicheck import MiniCheck
+            except ImportError:
+                from minicheck.minicheck import MiniCheck
 
-            self._minicheck = MiniCheck(model_name="MiniCheck-DeBERTa-L")
+            try:
+                self._minicheck = MiniCheck(
+                    model_name="deberta-v3-large",
+                    cache_dir=self._cache_dir,
+                )
+            except (RuntimeError, ValueError):
+                # device_map="auto" fails on ROCm/older torch — load manually
+                logger.info("MiniCheck device_map=auto failed, loading manually")
+                self._minicheck = MiniCheck.__new__(MiniCheck)
+                from minicheck.inference import Inferencer
+
+                inf = Inferencer.__new__(Inferencer)
+                inf.model_name = "deberta-v3-large"
+                inf.max_model_len = 2048
+                inf.batch_size = 16
+
+                import torch
+                from transformers import (
+                    AutoConfig,
+                    AutoModelForSequenceClassification,
+                    AutoTokenizer,
+                )
+
+                ckpt = "lytang/MiniCheck-DeBERTa-v3-Large"
+                config = AutoConfig.from_pretrained(
+                    ckpt,
+                    num_labels=2,
+                    finetuning_task="text-classification",
+                    cache_dir=self._cache_dir,
+                )
+                config.problem_type = "single_label_classification"
+                inf.tokenizer = AutoTokenizer.from_pretrained(
+                    ckpt, use_fast=True, cache_dir=self._cache_dir
+                )
+                inf.model = AutoModelForSequenceClassification.from_pretrained(
+                    ckpt,
+                    config=config,
+                    cache_dir=self._cache_dir,
+                )
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                inf.model.to(device).eval()
+                inf.softmax = torch.nn.Softmax(dim=-1)
+                self._minicheck.model = inf
+
             logger.info("MiniCheck backend loaded.")
             return True
         except ImportError:
@@ -728,15 +775,24 @@ class NLIScorer:
     def _minicheck_score(self, premise: str, hypothesis: str) -> float:
         if not self._ensure_minicheck() or self._minicheck is None:
             return self._heuristic_score(premise, hypothesis)
-        pred = self._minicheck.score(docs=[premise], claims=[hypothesis])
-        return float(1.0 - pred[0])
+        result = self._minicheck.score(docs=[premise], claims=[hypothesis])
+        # MiniCheck returns (pred_labels, max_probs, sentences, prob_arrays)
+        if isinstance(result, tuple):
+            _, max_probs, *_ = result
+            return float(1.0 - max_probs[0])
+        return float(1.0 - result[0])
 
     def _minicheck_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         if not self._ensure_minicheck() or self._minicheck is None:
             return [self._heuristic_score(p, h) for p, h in pairs]
         docs = [p for p, _ in pairs]
         claims = [h for _, h in pairs]
-        preds = self._minicheck.score(docs=docs, claims=claims)
+        result = self._minicheck.score(docs=docs, claims=claims)
+        if isinstance(result, tuple):
+            _, max_probs, *_ = result
+            preds = max_probs
+        else:
+            preds = result
         return [float(1.0 - s) for s in preds]
 
     # â”€â”€ PyTorch backend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
