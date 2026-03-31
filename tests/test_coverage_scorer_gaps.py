@@ -710,3 +710,61 @@ class TestResolveAggProfile:
         scorer = CoherenceScorer(use_nli=False)
         fi, fo, li, lo = scorer._resolve_agg_profile("plain question")
         assert fi == scorer._fact_inner_agg
+
+
+# ── Parametrised scorer gap tests ────────────────────────────────────────
+
+
+class TestScorerGapsParametrised:
+    """Parametrised tests for scorer coverage gaps."""
+
+    @pytest.mark.parametrize("threshold", [0.0, 0.3, 0.5, 0.7, 1.0])
+    def test_review_at_various_thresholds(self, threshold):
+        scorer = CoherenceScorer(threshold=threshold, use_nli=False)
+        approved, score = scorer.review("test", "response")
+        assert isinstance(approved, bool)
+        assert 0.0 <= score.score <= 1.0
+
+    @pytest.mark.parametrize(
+        "w_logic,w_fact",
+        [(0.5, 0.5), (0.6, 0.4), (0.7, 0.3), (0.8, 0.2)],
+    )
+    def test_custom_weights(self, w_logic, w_fact):
+        scorer = CoherenceScorer(
+            threshold=0.5,
+            use_nli=False,
+            w_logic=w_logic,
+            w_fact=w_fact,
+        )
+        _, score = scorer.review("test", "test")
+        assert 0.0 <= score.score <= 1.0
+
+    @pytest.mark.parametrize("batch_size", [0, 1, 3, 5])
+    def test_review_batch_sizes(self, batch_size):
+        scorer = CoherenceScorer(use_nli=False)
+        pairs = [("p", "h")] * batch_size
+        results = scorer.review_batch(pairs)
+        assert len(results) == batch_size
+
+
+# ── Scorer Pipeline Performance ──────────────────────────────────────
+
+
+class TestScorerGapsPerformance:
+    """Document scorer pipeline performance."""
+
+    def test_review_latency(self):
+        import time
+
+        scorer = CoherenceScorer(use_nli=False)
+        t0 = time.perf_counter()
+        for _ in range(100):
+            scorer.review("What is AI?", "AI is intelligence.")
+        per_call_ms = (time.perf_counter() - t0) / 100 * 1000
+        assert per_call_ms < 5.0, f"Review took {per_call_ms:.1f}ms"
+
+    def test_review_returns_complete_score(self):
+        scorer = CoherenceScorer(use_nli=False)
+        _, score = scorer.review("test", "test")
+        for field in ["score", "h_logical", "h_factual", "approved", "warning"]:
+            assert hasattr(score, field), f"Missing: {field}"
