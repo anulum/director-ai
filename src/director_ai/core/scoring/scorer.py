@@ -93,6 +93,7 @@ class CoherenceScorer:
 
     W_LOGIC = 0.6
     W_FACT = 0.4
+    _minicheck_nli: NLIScorer | None
 
     def __init__(
         self,

@@ -753,6 +753,7 @@ class NLIScorer:
                 device = "cuda" if torch.cuda.is_available() else "cpu"
                 inf.model.to(device).eval()
                 inf.softmax = torch.nn.Softmax(dim=-1)
+                assert self._minicheck is not None  # narrowing for mypy
                 self._minicheck.model = inf
 
             logger.info("MiniCheck backend loaded.")
@@ -770,6 +771,7 @@ class NLIScorer:
                 "MiniCheck init failed: %s — using heuristic fallback",
                 e,
             )
+            self._minicheck = None
             return False
 
     def _minicheck_score(self, premise: str, hypothesis: str) -> float:

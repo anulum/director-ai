@@ -4,4 +4,10 @@
 # Mypy/pytest run in CI — pre-push catches the quick failures.
 set -e
 echo "Running preflight checks (lint gates)..."
-/home/anulum/venv-rocm/bin/python tools/preflight.py --no-tests
+REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
+if [ -x "$REPO_DIR/.venv/bin/python" ]; then
+    PYTHON="$REPO_DIR/.venv/bin/python"
+else
+    PYTHON="/home/anulum/venv-rocm/bin/python"
+fi
+"$PYTHON" tools/preflight.py --no-tests

@@ -147,6 +147,9 @@ class TestBatchSingleParity:
 
     def test_coalesced_nli_applies_task_type_and_meta_thresholds(self, monkeypatch):
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        # Disable auto-dialogue so summarization items go through the
+        # coalesced batch path rather than the single-review fallback.
+        scorer._auto_dialogue_profile = False
         items = [
             ("Prompt A", "Response A"),
             ("Prompt B", "Response B"),
@@ -184,7 +187,7 @@ class TestBatchSingleParity:
 
         task_types = {"Prompt A": "qa", "Prompt B": "summarization"}
         monkeypatch.setattr(
-            scorer, "_detect_task_type", lambda prompt: task_types[prompt]
+            scorer, "_detect_task_type", lambda prompt, response="": task_types[prompt]
         )
         monkeypatch.setattr(
             scorer, "_get_meta_classifier", lambda: FakeMetaClassifier()

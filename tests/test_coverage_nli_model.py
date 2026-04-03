@@ -195,10 +195,27 @@ class TestDecomposeClaims:
 
 class TestEnsureMinicheck:
     def test_ensure_minicheck_runtime_error(self):
+        """RuntimeError in MiniCheck() triggers ROCm manual loading fallback.
+
+        When the fallback also fails (minicheck.inference unavailable),
+        _ensure_minicheck must return False.
+        """
         scorer = NLIScorer(use_model=False, backend="minicheck")
         scorer._minicheck_loaded = False
+
+        class FakeMiniCheck:
+            def __init__(self, **kwargs):
+                raise RuntimeError("init fail")
+
         mock_minicheck_mod = MagicMock()
-        mock_minicheck_mod.MiniCheck.side_effect = RuntimeError("init fail")
-        with patch.dict(sys.modules, {"minicheck": mock_minicheck_mod}):
+        mock_minicheck_mod.MiniCheck = FakeMiniCheck
+        # Block minicheck.inference so the manual-loading fallback
+        # triggers ImportError and _ensure_minicheck returns False.
+        blocked = {
+            "minicheck": mock_minicheck_mod,
+            "minicheck.minicheck": mock_minicheck_mod,
+            "minicheck.inference": None,
+        }
+        with patch.dict(sys.modules, blocked):
             result = scorer._ensure_minicheck()
             assert result is False

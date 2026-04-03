@@ -121,3 +121,109 @@ class TestMiniCheckPerformanceDoc:
             scorer.score("test", "test")
         per_call_ms = (time.perf_counter() - t0) / 100 * 1000
         assert per_call_ms < 1.0
+
+
+class TestGetMinicheckScorer:
+    """Coverage for CoherenceScorer._get_minicheck_scorer (scorer.py:832-851)."""
+
+    def test_returns_none_when_minicheck_unavailable(self):
+        from director_ai.core.scoring.scorer import CoherenceScorer
+
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        result = scorer._get_minicheck_scorer()
+        assert result is None
+        assert scorer._minicheck_nli is None
+
+    def test_caches_none_on_failure(self):
+        from director_ai.core.scoring.scorer import CoherenceScorer
+
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        scorer._get_minicheck_scorer()
+        assert hasattr(scorer, "_minicheck_nli")
+        assert scorer._minicheck_nli is None
+        # Second call returns cached None without retry
+        result = scorer._get_minicheck_scorer()
+        assert result is None
+
+    def test_returns_cached_value_on_subsequent_calls(self):
+        from director_ai.core.scoring.scorer import CoherenceScorer
+
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        sentinel = MagicMock()
+        scorer._minicheck_nli = sentinel
+        assert scorer._get_minicheck_scorer() is sentinel
+
+    def test_caches_successful_scorer(self):
+        from director_ai.core.scoring.scorer import CoherenceScorer
+
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        mock_mc = MagicMock(spec=NLIScorer)
+        mock_mc._ensure_minicheck.return_value = True
+        with patch("director_ai.core.scoring.scorer.NLIScorer", return_value=mock_mc):
+            result = scorer._get_minicheck_scorer()
+        assert result is mock_mc
+        assert scorer._minicheck_nli is mock_mc
+
+
+class TestMinicheckClaimCoverage:
+    """Coverage for CoherenceScorer._minicheck_claim_coverage (scorer.py:853-879)."""
+
+    def test_all_supported(self):
+        from director_ai.core.scoring.scorer import CoherenceScorer
+
+        mock_scorer = MagicMock(spec=NLIScorer)
+        mock_scorer.score.return_value = 0.1  # low divergence = supported
+        coverage, divs, sents = CoherenceScorer._minicheck_claim_coverage(
+            mock_scorer, "Source text.", "First sentence. Second sentence."
+        )
+        assert len(sents) >= 2
+        assert coverage == 1.0
+        assert all(d == 0.1 for d in divs)
+
+    def test_none_supported(self):
+        from director_ai.core.scoring.scorer import CoherenceScorer
+
+        mock_scorer = MagicMock(spec=NLIScorer)
+        mock_scorer.score.return_value = 0.9  # high divergence = unsupported
+        coverage, divs, sents = CoherenceScorer._minicheck_claim_coverage(
+            mock_scorer, "Source text.", "First sentence. Second sentence."
+        )
+        assert coverage == 0.0
+        assert all(d == 0.9 for d in divs)
+
+    def test_partial_support(self):
+        from director_ai.core.scoring.scorer import CoherenceScorer
+
+        mock_scorer = MagicMock(spec=NLIScorer)
+        mock_scorer.score.side_effect = [0.1, 0.9]
+        coverage, divs, sents = CoherenceScorer._minicheck_claim_coverage(
+            mock_scorer, "Source text.", "Good claim. Bad claim."
+        )
+        assert coverage == pytest.approx(0.5)
+        assert divs == [0.1, 0.9]
+
+    def test_empty_summary(self):
+        from director_ai.core.scoring.scorer import CoherenceScorer
+
+        mock_scorer = MagicMock(spec=NLIScorer)
+        coverage, divs, sents = CoherenceScorer._minicheck_claim_coverage(
+            mock_scorer, "Source text.", ""
+        )
+        assert coverage == 1.0
+        assert divs == []
+        assert sents == []
+
+    def test_nltk_import_fallback(self):
+        """When nltk is unavailable, falls back to period-splitting."""
+        import sys
+
+        from director_ai.core.scoring.scorer import CoherenceScorer
+
+        mock_scorer = MagicMock(spec=NLIScorer)
+        mock_scorer.score.return_value = 0.2
+        with patch.dict(sys.modules, {"nltk": None, "nltk.tokenize": None}):
+            coverage, divs, sents = CoherenceScorer._minicheck_claim_coverage(
+                mock_scorer, "Source.", "First. Second."
+            )
+        assert len(sents) == 2
+        assert coverage == 1.0
