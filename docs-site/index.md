@@ -9,7 +9,7 @@
 [![CodeQL](https://github.com/anulum/director-ai/actions/workflows/codeql.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/codeql.yml)
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
 [![Downloads](https://img.shields.io/pypi/dm/director-ai)](https://pypi.org/project/director-ai/)
-![Tests](https://img.shields.io/badge/tests-4108_passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-4126_passed-brightgreen)
 [![Coverage](https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg)](https://codecov.io/gh/anulum/director-ai)
 [![Python](https://img.shields.io/pypi/pyversions/director-ai)](https://pypi.org/project/director-ai/)
 ![Ruff](https://img.shields.io/badge/code%20style-ruff-261230.svg)

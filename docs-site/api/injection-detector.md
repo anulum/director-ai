@@ -221,6 +221,19 @@ print(f"Bypassed categories: {report.vulnerable_categories}")
 
 Attack categories: instruction override, delimiter injection, data exfiltration, context switching, encoding payloads, roleplay injection, multilingual switching, markdown/link injection, gradual semantic drift.
 
+## Rust Acceleration
+
+When `backfire_kernel` is installed, the per-claim scoring loop (`traceability`, `entity_overlap`, baseline calibration, verdict logic) runs in Rust via PyO3. The Python fallback is used transparently otherwise.
+
+| Function | Purpose | Speedup (100 claims) |
+|----------|---------|---------------------|
+| `rust_bidirectional_divergence` | Batch traceability + entity + calibration | 3.73× |
+| `rust_injection_verdict` | Per-claim verdict + risk aggregation | >10× |
+
+Install: `pip install -e backfire-kernel/crates/backfire-ffi` (requires maturin + Rust toolchain).
+
+The Rust path is auto-selected via `_RUST_INJECTION` flag in `injection.py`.
+
 ## Full API
 
 ::: director_ai.core.safety.injection.InjectionDetector

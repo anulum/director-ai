@@ -97,7 +97,7 @@ director-ai/
 │
 ├── backfire-kernel/               Rust scorer backend (PyO3/maturin)
 │
-├── tests/                         4100+ tests, ≥90% coverage
+├── tests/                         4120+ tests, ≥90% coverage
 ├── benchmarks/                    27 evaluators
 ├── notebooks/                     16 Jupyter notebooks
 ├── docs-site/                     MkDocs documentation

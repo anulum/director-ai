@@ -43,6 +43,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   exfiltration, context switch, encoding, roleplay, multilingual, markdown,
   gradual drift), 27 built-in patterns, `RobustnessReport` output.
 - 50 tests for Phase 3 (middleware, SDK guard, adversarial suite).
+- **Rust-accelerated injection signals** (`backfire-kernel`):
+  `rust_bidirectional_divergence` (batch traceability + entity overlap +
+  baseline calibration) and `rust_injection_verdict` (multi-signal per-claim
+  verdict + aggregation). Auto-selected when backfire_kernel is installed;
+  transparent Python fallback otherwise. 3.73× speedup at 100 claims.
+- 18 tests for Phase 4 (Rust FFI + Python consistency).
+- 12 Rust unit tests for injection signals.
 - **Async Voice AI pipeline** (`director_ai.voice`): `AsyncVoiceGuard` for async
   token-by-token hallucination filtering, `voice_pipeline()` for end-to-end
   streaming audio with sentence buffering and halt recovery.

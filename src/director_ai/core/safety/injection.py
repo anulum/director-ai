@@ -30,6 +30,16 @@ from ..types import InjectedClaim, InjectionResult
 
 logger = logging.getLogger("DirectorAI.Injection")
 
+try:
+    from backfire_kernel import (
+        rust_bidirectional_divergence,
+        rust_injection_verdict,
+    )
+
+    _RUST_INJECTION = True
+except ImportError:
+    _RUST_INJECTION = False
+
 _VERDICTS = frozenset({"grounded", "drifted", "injected"})
 
 
@@ -219,7 +229,53 @@ class InjectionDetector:
     ) -> list[InjectedClaim]:
         fwd_scores, rev_scores = self._bidirectional_nli_batch(intent, claims)
 
-        result: list[InjectedClaim] = []
+        # Rust fast path: batch traceability + entity + calibration
+        if _RUST_INJECTION:
+            bidir_data = rust_bidirectional_divergence(
+                claims,
+                intent,
+                fwd_scores,
+                rev_scores,
+                self._cfg.baseline_divergence,
+            )
+            traces = [t[0] for t in bidir_data]
+            entities = [t[1] for t in bidir_data]
+            calibrateds = [t[2] for t in bidir_data]
+
+            verdicts_raw, _, _, _ = rust_injection_verdict(
+                calibrateds,
+                traces,
+                entities,
+                0.0,
+                injection_threshold=self._cfg.injection_threshold,
+                drift_threshold=self._cfg.drift_threshold,
+                injection_claim_threshold=self._cfg.injection_claim_threshold,
+                traceability_floor=self._cfg.traceability_floor,
+                stage1_weight=self._cfg.stage1_weight,
+            )
+            verdict_map = {0: "grounded", 1: "drifted", 2: "injected"}
+            result: list[InjectedClaim] = []
+            for i, claim in enumerate(claims):
+                fwd = fwd_scores[i]
+                rev = rev_scores[i]
+                v_code, confidence = verdicts_raw[i]
+                result.append(
+                    InjectedClaim(
+                        claim=claim,
+                        claim_index=i,
+                        intent_divergence=fwd,
+                        reverse_divergence=rev,
+                        bidirectional_divergence=min(fwd, rev),
+                        traceability=traces[i],
+                        entity_match=entities[i],
+                        verdict=verdict_map.get(v_code, "grounded"),
+                        confidence=confidence,
+                    )
+                )
+            return result
+
+        # Python fallback path
+        result = []
         for i, claim in enumerate(claims):
             fwd = fwd_scores[i]
             rev = rev_scores[i]
