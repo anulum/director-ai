@@ -17,6 +17,8 @@ __all__ = [
     "CoherenceScore",
     "EvidenceChunk",
     "HaltEvidence",
+    "InjectedClaim",
+    "InjectionResult",
     "ReviewResult",
     "ScoringEvidence",
 ]
@@ -107,6 +109,7 @@ class CoherenceScore:
     retrieval_confidence: float | None = (
         None  # best retrieval distance (0=no match, 1=exact)
     )
+    injection_risk: float | None = None  # 0-1, intent-grounded injection risk
 
     # -- Claim-Level Provenance (Gem 2) ------------------------------------
 
@@ -162,6 +165,62 @@ class CoherenceScore:
             }
             for a in self.attributions
         ]
+
+
+@dataclass
+class InjectedClaim:
+    """A response claim scored against the original intent for injection detection."""
+
+    claim: str
+    claim_index: int
+    intent_divergence: float  # forward NLI: intent → claim
+    reverse_divergence: float  # reverse NLI: claim → intent
+    bidirectional_divergence: float  # min(forward, reverse)
+    traceability: float  # content-word overlap with intent [0, 1]
+    entity_match: float  # named-entity overlap with intent [0, 1]
+    verdict: str  # "grounded", "drifted", or "injected"
+    confidence: float  # confidence in verdict [0, 1]
+
+
+@dataclass
+class InjectionResult:
+    """Result of intent-grounded prompt injection detection."""
+
+    injection_detected: bool
+    injection_risk: float  # 0.0 = clean, 1.0 = certain injection
+    intent_coverage: float  # fraction of response claims grounded in intent
+    total_claims: int
+    grounded_claims: int
+    drifted_claims: int
+    injected_claims: int
+    claims: list[InjectedClaim]
+    input_sanitizer_score: float  # Stage 1 (InputSanitizer) suspicion
+    combined_score: float  # weighted Stage1 + Stage2
+
+    def to_dict(self) -> dict:
+        """Serialise to JSON-safe dict."""
+        return {
+            "injection_detected": self.injection_detected,
+            "injection_risk": self.injection_risk,
+            "intent_coverage": self.intent_coverage,
+            "total_claims": self.total_claims,
+            "grounded_claims": self.grounded_claims,
+            "drifted_claims": self.drifted_claims,
+            "injected_claims": self.injected_claims,
+            "input_sanitizer_score": self.input_sanitizer_score,
+            "combined_score": self.combined_score,
+            "claims": [
+                {
+                    "claim": c.claim,
+                    "claim_index": c.claim_index,
+                    "verdict": c.verdict,
+                    "bidirectional_divergence": c.bidirectional_divergence,
+                    "traceability": c.traceability,
+                    "confidence": c.confidence,
+                }
+                for c in self.claims
+            ],
+        }
 
 
 @dataclass
