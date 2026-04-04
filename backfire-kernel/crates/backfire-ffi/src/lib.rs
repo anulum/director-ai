@@ -1158,8 +1158,12 @@ fn rust_injection_verdict(
         traceability_floor,
         stage1_weight,
     };
-    let verdicts =
-        backfire_core::signals::injection_verdicts(&calibrated_divs, &traceabilities, &entity_matches, &cfg);
+    let verdicts = backfire_core::signals::injection_verdicts(
+        &calibrated_divs,
+        &traceabilities,
+        &entity_matches,
+        &cfg,
+    );
     let (risk, combined, detected) =
         backfire_core::signals::injection_aggregate(&verdicts, sanitizer_score, &cfg);
     (verdicts, risk, combined, detected)

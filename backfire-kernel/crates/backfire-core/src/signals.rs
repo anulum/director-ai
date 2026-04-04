@@ -256,7 +256,10 @@ pub fn bidirectional_divergence(
     reverse_scores: &[f64],
     baseline: f64,
 ) -> Vec<(f64, f64, f64)> {
-    let n = claims.len().min(forward_scores.len()).min(reverse_scores.len());
+    let n = claims
+        .len()
+        .min(forward_scores.len())
+        .min(reverse_scores.len());
     let mut result = Vec::with_capacity(n);
     let bl = baseline.clamp(0.0, 0.999);
 
@@ -366,9 +369,9 @@ pub fn injection_aggregate(
     let weighted: f64 = verdicts
         .iter()
         .map(|&(v, _)| match v {
-            2 => 1.0,       // injected
-            1 => 0.4,       // drifted
-            _ => 0.0,       // grounded
+            2 => 1.0, // injected
+            1 => 0.4, // drifted
+            _ => 0.0, // grounded
         })
         .sum();
 
@@ -546,12 +549,8 @@ mod tests {
     #[test]
     fn test_injection_verdicts_mixed() {
         let cfg = InjectionVerdictConfig::default();
-        let verdicts = injection_verdicts(
-            &[0.1, 0.65, 0.9],
-            &[0.8, 0.5, 0.05],
-            &[0.9, 0.7, 0.1],
-            &cfg,
-        );
+        let verdicts =
+            injection_verdicts(&[0.1, 0.65, 0.9], &[0.8, 0.5, 0.05], &[0.9, 0.7, 0.1], &cfg);
         assert_eq!(verdicts[0].0, 0); // grounded
         assert_eq!(verdicts[1].0, 1); // drifted
         assert_eq!(verdicts[2].0, 2); // injected

@@ -1,0 +1,6 @@
+# Typos configuration — https://github.com/crate-ci/typos
+# False positives from intentional multilingual injection test patterns.
+
+[default.extend-words]
+# German word "Alle" (= "all") in multilingual injection adversarial pattern
+Alle = "Alle"
