@@ -866,15 +866,13 @@ class CoherenceScorer:
         """
         try:
             from nltk.tokenize import sent_tokenize
-        except ImportError:
-            # Fallback: split on periods
-            sentences = [s.strip() + "." for s in summary.split(".") if s.strip()]
-            if not sentences:
-                return 1.0, [], []
-        else:
+
             sentences = sent_tokenize(summary)
-            if not sentences:
-                return 1.0, [], []
+        except (ImportError, LookupError):
+            # Fallback: split on periods (nltk missing or punkt_tab not downloaded)
+            sentences = [s.strip() + "." for s in summary.split(".") if s.strip()]
+        if not sentences:
+            return 1.0, [], []
 
         divs = [mc_scorer.score(source, sent) for sent in sentences]
         supported = sum(1 for d in divs if d < 0.5)
