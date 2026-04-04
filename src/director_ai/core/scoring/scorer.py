@@ -12,7 +12,6 @@ import asyncio
 import logging
 import re
 import threading
-import time
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -21,32 +20,21 @@ from ..cache import ScoreCache
 from ..metrics import metrics
 from ..otel import trace_review
 from ..types import CoherenceScore, EvidenceChunk, ScoringEvidence
+from ._llm_judge import LLMJudge
+from ._task_scoring import (
+    _DIALOGUE_TURN_RE,  # noqa: F401 — re-export for backward compat
+    detect_task_type,
+    dialogue_factual_divergence,
+    summarization_factual_divergence,
+)
 from .nli import NLIScorer, nli_available
 
 __all__ = ["CoherenceScorer"]
 
 # Heuristic divergence defaults (used when NLI model unavailable)
-DIVERGENCE_NEUTRAL = 0.5  # no signal â†’ agnostic
+DIVERGENCE_NEUTRAL = 0.5  # no signal → agnostic
 DIVERGENCE_ALIGNED = 0.1  # keyword heuristic: "consistent with reality"
 DIVERGENCE_CONTRADICTED = 0.9  # keyword heuristic: "opposite is true"
-
-# LLM-as-judge blending constants
-LLM_JUDGE_AGREE_DIVERGENCE = 0.2
-LLM_JUDGE_DISAGREE_DIVERGENCE = 0.8
-LLM_JUDGE_LLM_WEIGHT = 0.3  # nli_w = 1.0 - llm_w * judge_conf
-
-# Dialogue detection: â‰Ą2 speaker-turn markers â†’ dialogue task.
-# Uses (?:^|\s) to match speakers at line start OR after whitespace
-# (HaluEval puts all turns on one line: "[Human]: text [Assistant]: text").
-_DIALOGUE_TURN_RE = re.compile(
-    r"(?:^|\s)(?:"
-    r"(?:User|Human|Customer|Student|Interviewer|Speaker"
-    r"|Assistant|AI|Bot|Agent|Interviewee|System)"
-    r"[\s\d]*:"
-    r"|\[(?:User|Human|Assistant|AI|System)\]"
-    r")",
-    re.IGNORECASE,
-)
 
 
 class CoherenceScorer:
@@ -232,11 +220,6 @@ class CoherenceScorer:
             )
         else:
             self._nli = None  # type: ignore[assignment]
-        self._llm_judge_enabled = llm_judge_enabled or scorer_backend == "hybrid"
-        self._llm_judge_threshold = llm_judge_confidence_threshold
-        self._llm_judge_provider = llm_judge_provider
-        self._llm_judge_model = llm_judge_model
-        self._judge_cache: dict[int, float] = {}
         self._privacy_mode = privacy_mode
         self._redactor = PIIRedactor(enabled=privacy_mode)
         self._parallel_pool = ThreadPoolExecutor(max_workers=2)
@@ -248,19 +231,13 @@ class CoherenceScorer:
         self._fact_retrieval_top_k = 3
         self._use_prompt_as_premise = False
         self._auto_dialogue_profile = True  # auto-detect dialogue, apply bidir NLI
-        self._dialogue_nli_baseline = (
-            0.80  # expected NLI divergence for correct dialogue
-        )
-        self._summarization_nli_baseline = 0.20  # HaluEval 200: 25.5%â†’10.5% FPR
+        self._dialogue_nli_baseline = 0.80
+        self._summarization_nli_baseline = 0.20  # HaluEval 200: 25.5%→10.5% FPR
         self._claim_coverage_enabled = True
-        self._claim_support_threshold = 0.6  # HaluEval 200: 10.5%â†’2.0% FPR
+        self._claim_support_threshold = 0.6  # HaluEval 200: 10.5%→2.0% FPR
         self._rag_claim_decomposition = True  # per-sentence scoring for RAG path
-        self._retrieval_abstention_threshold = (
-            0.0  # 0 = disabled; >0 = min retrieval score
-        )
-        self._claim_coverage_alpha = (
-            0.4  # blend: alpha * (1-coverage) + (1-alpha) * layer_a
-        )
+        self._retrieval_abstention_threshold = 0.0
+        self._claim_coverage_alpha = 0.4
         self._adaptive_threshold_enabled = False
         self._task_type_thresholds: dict[str, float] = {}
         self._chunk_overlap_ratio = 0.5
@@ -268,25 +245,79 @@ class CoherenceScorer:
         self._confidence_weighted_agg = False
         self._meta_classifier_path = ""
         self._meta_classifier = None
-        # Phase 6B: per-task-type judge escalation thresholds
-        # Wider borderline zone â†’ more aggressive judge routing
-        self._task_judge_thresholds: dict[str, float] = {
-            "dialogue": 0.35,
-            "summarization": 0.25,
-            "qa": 0.30,
-            "fact_check": 0.20,
-            "default": self._llm_judge_threshold,
-        }
 
-        # Local DeBERTa-base judge model (replaces LLM API calls)
-        self._local_judge_model = None
-        self._local_judge_tokenizer = None
-        self._local_judge_device = "cpu"
-        if llm_judge_provider == "local" and llm_judge_model:
-            self._init_local_judge(llm_judge_model, nli_device)
+        # LLM-as-judge subsystem (composed — see _llm_judge.py)
+        self._judge = LLMJudge(
+            provider=llm_judge_provider
+            if (llm_judge_enabled or scorer_backend == "hybrid")
+            else "",
+            model=llm_judge_model,
+            confidence_threshold=llm_judge_confidence_threshold,
+            device=nli_device,
+            privacy_mode=privacy_mode,
+        )
+        # Backward-compat aliases used by tests
+        self._llm_judge_enabled = self._judge.enabled
+        self._llm_judge_provider = llm_judge_provider
+        self._llm_judge_threshold = llm_judge_confidence_threshold
 
         # Injection detection: set via enable_injection_detection()
         self._injection_detector = None
+
+    # -- Backward-compat proxies for judge internals (used by tests) ----
+
+    @property
+    def _local_judge_model(self):
+        return self._judge._local_judge_model
+
+    @_local_judge_model.setter
+    def _local_judge_model(self, value):
+        self._judge._local_judge_model = value
+
+    @property
+    def _local_judge_tokenizer(self):
+        return self._judge._local_judge_tokenizer
+
+    @_local_judge_tokenizer.setter
+    def _local_judge_tokenizer(self, value):
+        self._judge._local_judge_tokenizer = value
+
+    @property
+    def _local_judge_device(self):
+        return self._judge._local_judge_device
+
+    @_local_judge_device.setter
+    def _local_judge_device(self, value):
+        self._judge._local_judge_device = value
+
+    @property
+    def _judge_cache(self):
+        return self._judge._judge_cache
+
+    @property
+    def _JUDGE_CACHE_MAX(self):  # noqa: N802
+        return self._judge._JUDGE_CACHE_MAX
+
+    @property
+    def _JUDGE_RETRY_MAX(self):  # noqa: N802
+        return self._judge._JUDGE_RETRY_MAX
+
+    @property
+    def _llm_judge_model(self):
+        return self._judge.model
+
+    @property
+    def _task_judge_thresholds(self):
+        return self._judge.task_judge_thresholds
+
+    def _local_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
+        """Backward-compat proxy for LLMJudge._local_judge_check."""
+        return self._judge._local_judge_check(prompt, response, nli_score)
+
+    @staticmethod
+    def _parse_judge_reply(reply: str) -> tuple[bool, float]:
+        """Backward-compat proxy for LLMJudge._parse_judge_reply."""
+        return LLMJudge._parse_judge_reply(reply)
 
     def close(self) -> None:
         """Shut down internal thread pool."""
@@ -296,118 +327,6 @@ class CoherenceScorer:
         pool = getattr(self, "_parallel_pool", None)
         if pool is not None:
             pool.shutdown(wait=False)
-
-    def _init_local_judge(
-        self,
-        model_path: str,
-        device: str | None = None,
-    ):  # pragma: no cover
-        """Load local DeBERTa-base judge model for borderline escalation."""
-        try:
-            import torch
-            from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
-            self._local_judge_tokenizer = AutoTokenizer.from_pretrained(
-                model_path,
-                use_fast=False,
-            )
-            self._local_judge_model = (
-                AutoModelForSequenceClassification.from_pretrained(
-                    model_path,
-                    low_cpu_mem_usage=False,
-                )
-            )
-            self._local_judge_device = device or (
-                "cuda" if torch.cuda.is_available() else "cpu"
-            )
-            self._local_judge_model.to(self._local_judge_device)
-            self._local_judge_model.eval()
-            self.logger.info(
-                "Local judge loaded: %s on %s",
-                model_path,
-                self._local_judge_device,
-            )
-        except Exception as exc:
-            self.logger.warning("Failed to load local judge model: %s", exc)
-            self._local_judge_model = None
-            self._local_judge_tokenizer = None
-
-    def _local_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
-        """Local DeBERTa-base binary judge (replaces LLM API call).
-
-        Returns adjusted divergence via the same 70/30 blending as the LLM path.
-        Falls back to raw nli_score if model unavailable.
-        """
-        if self._local_judge_model is None or self._local_judge_tokenizer is None:
-            return nli_score
-        return self._local_judge_infer(prompt, response, nli_score)
-
-    def _local_judge_infer(  # pragma: no cover – requires torch, tested locally
-        self,
-        prompt: str,
-        response: str,
-        nli_score: float,
-    ) -> float:
-        """Run local judge forward pass and blend with NLI score."""
-        import torch
-
-        cache_key = hash((prompt[:500], response[:500]))
-        cached = self._judge_cache.get(cache_key)
-        if cached is not None:
-            metrics.inc("llm_judge_cache_hits")
-            return cached
-        metrics.inc("llm_judge_cache_misses")
-
-        t0 = time.monotonic()
-        metrics.inc("llm_judge_escalations")
-
-        judge_input = (
-            f"NLI divergence: {nli_score:.2f}\n"
-            f"Context: {prompt[:400]}\n"
-            f"Response: {response[:400]}"
-        )
-        tokenizer = self._local_judge_tokenizer
-        model = self._local_judge_model
-        assert tokenizer is not None and model is not None
-        inputs = tokenizer(
-            judge_input,
-            return_tensors="pt",
-            max_length=384,
-            truncation=True,
-        )
-        inputs = {k: v.to(self._local_judge_device) for k, v in inputs.items()}
-
-        with torch.no_grad():
-            logits = model(**inputs).logits
-        probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
-
-        judge_agrees = probs[0] > 0.5  # class 0 = approve
-        judge_conf = float(max(probs))  # confidence = max class probability
-        llm_divergence = (
-            LLM_JUDGE_AGREE_DIVERGENCE
-            if judge_agrees
-            else LLM_JUDGE_DISAGREE_DIVERGENCE
-        )
-        llm_w = LLM_JUDGE_LLM_WEIGHT * judge_conf
-        nli_w = 1.0 - llm_w
-        adjusted = max(0.0, min(1.0, nli_w * nli_score + llm_w * llm_divergence))
-
-        if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
-            self._judge_cache.pop(next(iter(self._judge_cache)))
-        self._judge_cache[cache_key] = adjusted
-
-        metrics.observe("llm_judge_seconds", time.monotonic() - t0)
-        return adjusted
-
-    # â"€â"€ LLM-as-judge escalation â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
-
-    _DEFAULT_MODELS = {
-        "openai": "gpt-4o-mini",
-        "anthropic": "claude-haiku-4-5-20251001",
-    }
-    _JUDGE_CACHE_MAX = 256
-    _JUDGE_RETRY_MAX = 3
-    _JUDGE_RETRY_BACKOFF = (0.5, 1.0)
 
     _BUNDLED_CLASSIFIER = "models/dataset_type_classifier.pkl"
 
@@ -435,224 +354,27 @@ class CoherenceScorer:
             return None
 
     def _should_escalate(self, nli_score: float, task_type: str = "default") -> bool:
-        """True when the judge (LLM or local) should be consulted."""
-        if not self._llm_judge_enabled or not self._llm_judge_provider:
-            return False
-        if self._llm_judge_provider == "local" and self._local_judge_model is None:
-            return False
-        threshold = self._task_judge_thresholds.get(
-            task_type,
-            self._llm_judge_threshold,
-        )
-        return bool(abs(nli_score - 0.5) < threshold)
+        """Delegate to LLMJudge.should_escalate()."""
+        return self._judge.should_escalate(nli_score, task_type)
 
     def _llm_judge_check(self, prompt: str, response: str, nli_score: float) -> float:
-        """Escalate to judge when NLI confidence is low.
-
-        Routes to local DeBERTa judge or external LLM API depending on
-        llm_judge_provider. Returns adjusted divergence score.
-        """
-        if self._llm_judge_provider == "local":
-            return self._local_judge_check(prompt, response, nli_score)
-
-        import os
-
-        cache_key = hash((prompt[:500], response[:500]))
-        cached = self._judge_cache.get(cache_key)
-        if cached is not None:
-            metrics.inc("llm_judge_cache_hits")
-            return cached
-        metrics.inc("llm_judge_cache_misses")
-
-        t0 = time.monotonic()
-        metrics.inc("llm_judge_escalations")
-
-        model = (
-            os.environ.get("DIRECTOR_LLM_JUDGE_MODEL")
-            or getattr(self, "_llm_judge_model", "")
-            or self._DEFAULT_MODELS.get(self._llm_judge_provider, "")
+        """Delegate to LLMJudge.check()."""
+        return self._judge.check(
+            prompt,
+            response,
+            nli_score,
+            redactor=self._redactor,
         )
 
-        p_text = prompt[:500]
-        r_text = response[:500]
-        if self._privacy_mode:
-            p_text = self._redactor(p_text)
-            r_text = self._redactor(r_text)
-
-        judge_prompt = (
-            f"Given the prompt: {p_text}\n"
-            f"Response: {r_text}\n"
-            f"NLI divergence score: {nli_score:.3f}\n"
-            "Is this response factually correct? "
-            'Reply with JSON: {"verdict": "YES" or "NO", "confidence": 0-100}'
-        )
-        try:
-            reply = self._call_llm_judge(model, judge_prompt, nli_score)
-            if reply is None:
-                return nli_score
-
-            llm_agrees, judge_conf = self._parse_judge_reply(reply)
-            llm_divergence = (
-                LLM_JUDGE_AGREE_DIVERGENCE
-                if llm_agrees
-                else LLM_JUDGE_DISAGREE_DIVERGENCE
-            )
-            # Scale LLM influence by judge confidence: at conf=1.0 full
-            # weight (0.3), at conf=0.5 half weight (0.15).
-            llm_w = LLM_JUDGE_LLM_WEIGHT * judge_conf
-            nli_w = 1.0 - llm_w
-            adjusted = max(
-                0.0,
-                min(1.0, nli_w * nli_score + llm_w * llm_divergence),
-            )
-            if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
-                self._judge_cache.pop(next(iter(self._judge_cache)))
-            self._judge_cache[cache_key] = adjusted
-            return adjusted
-        finally:
-            metrics.observe("llm_judge_seconds", time.monotonic() - t0)
-
-    def _call_llm_judge(
-        self,
-        model: str,
-        judge_prompt: str,
-        fallback: float,
-    ) -> str | None:
-        """Call LLM provider with retry on transient errors.
-
-        Returns reply text, or None on permanent/exhausted failure.
-        """
-        last_exc: Exception | None = None
-        for attempt in range(self._JUDGE_RETRY_MAX):
-            try:
-                if self._llm_judge_provider == "openai":
-                    import openai
-
-                    client = openai.OpenAI()
-                    result = client.chat.completions.create(
-                        model=model,
-                        messages=[{"role": "user", "content": judge_prompt}],
-                        max_tokens=50,
-                        response_format={"type": "json_object"},
-                    )
-                    return result.choices[0].message.content or ""
-                if self._llm_judge_provider == "anthropic":
-                    import anthropic
-
-                    client = anthropic.Anthropic()  # type: ignore[assignment]
-                    result = client.messages.create(  # type: ignore[attr-defined]
-                        model=model,
-                        max_tokens=50,
-                        messages=[{"role": "user", "content": judge_prompt}],
-                    )
-                    return result.content[0].text if result.content else ""
-                return None
-            except ImportError as exc:
-                self.logger.warning("LLM judge import failed: %s", exc)
-                return None
-            except Exception as exc:
-                last_exc = exc
-                if attempt < len(self._JUDGE_RETRY_BACKOFF):
-                    time.sleep(self._JUDGE_RETRY_BACKOFF[attempt])
-
-        self.logger.warning(
-            "LLM judge failed after %d attempts: %s",
-            self._JUDGE_RETRY_MAX,
-            last_exc,
-        )
-        return None
-
-    @staticmethod
-    def _parse_judge_reply(reply: str) -> tuple[bool, float]:
-        """Parse verdict and confidence from LLM judge JSON.
-
-        Returns (agrees: bool, confidence: 0.0-1.0).
-        Falls back to string matching with 0.5 confidence.
-        """
-        import json as _json
-
-        try:
-            data = _json.loads(reply)
-            agrees = str(data.get("verdict", "")).upper() == "YES"
-            raw_conf = float(data.get("confidence", 50))
-            conf = max(0.0, min(1.0, raw_conf / 100.0))
-            return agrees, conf
-        except (ValueError, TypeError, AttributeError):
-            return "YES" in reply.upper(), 0.5
-
-    # â"€â"€ Task-aware scoring profiles â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # -- Task-aware scoring (delegated to _task_scoring.py) -----------
 
     @staticmethod
     def _detect_task_type(prompt: str, response: str = "") -> str:
-        """Detect task type from prompt content and length ratio.
-
-        Returns one of: ``"dialogue"``, ``"summarization"``, ``"rag"``,
-        ``"fact_check"``, ``"qa"``, or ``"default"``.
-
-        When *response* is provided, a length-ratio heuristic detects
-        summarisation even when the prompt lacks explicit keywords
-        (e.g. raw source documents without an instruction prefix).
-        A prompt longer than 1 000 chars whose response is shorter than
-        30 % of the prompt length is classified as summarisation —
-        unless dialogue markers are present.
-        """
-        matches = _DIALOGUE_TURN_RE.findall(prompt)
-        if len(matches) >= 2:
-            return "dialogue"
-
-        lower = prompt.lower()
-        if any(
-            kw in lower
-            for kw in ("summarize", "summary", "summarise", "tldr", "abstract")
-        ):
-            return "summarization"
-
-        # Length-ratio heuristic: long context + short response = summarisation.
-        # Typical summarisation: ctx ~3 600 chars, resp ~300 chars (ratio ~0.09).
-        # Typical QA: ctx ~370 chars, resp ~37 chars (ratio ~0.10, but ctx < 1000).
-        # Threshold: ctx > 1000 and resp/ctx < 0.30.
-        if (
-            response
-            and len(prompt) > 1000
-            and len(response) > 20
-            and len(response) / len(prompt) < 0.30
-        ):
-            return "summarization"
-
-        if any(
-            kw in lower
-            for kw in (
-                "based on the context",
-                "based on the following",
-                "given the document",
-                "given the passage",
-                "retrieved",
-                "source document",
-                "reference text",
-            )
-        ):
-            return "rag"
-        if any(
-            kw in lower
-            for kw in ("verify", "fact-check", "is it true", "claim", "support")
-        ):
-            return "fact_check"
-        if "?" in prompt or any(
-            kw in lower
-            for kw in ("answer the question", "based on the", "according to")
-        ):
-            return "qa"
-        return "default"
+        """Detect task type from prompt content and length ratio."""
+        return detect_task_type(prompt, response)
 
     def _resolve_agg_profile(self, prompt: str) -> tuple[str, str, str, str]:
-        """Return (fact_inner, fact_outer, logic_inner, logic_outer) agg settings.
-
-        For dialogue prompts the aggregation override is less important than
-        the bidirectional-NLI + baseline-calibration path handled by
-        ``_heuristic_coherence``.  This method still returns min-mean for
-        dialogue so that callers who bypass ``_heuristic_coherence`` get a
-        reasonable default.
-        """
+        """Return (fact_inner, fact_outer, logic_inner, logic_outer) agg settings."""
         fi, fo = self._fact_inner_agg, self._fact_outer_agg
         li, lo = self._logic_inner_agg, self._logic_outer_agg
 
@@ -663,13 +385,13 @@ class CoherenceScorer:
             and fo == "max"
             and li == "max"
             and lo == "max"
-            and self._detect_task_type(prompt) == "dialogue"
+            and detect_task_type(prompt) == "dialogue"
         ):
             return "min", "mean", "min", "mean"
 
         return fi, fo, li, lo
 
-    # â"€â"€ Dialogue-specific scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # -- Dialogue-specific scoring -----------------------------------------
 
     def _dialogue_factual_divergence(
         self,
@@ -677,59 +399,19 @@ class CoherenceScorer:
         response: str,
         tenant_id: str = "",
     ) -> tuple[float, ScoringEvidence | None]:
-        """Bidirectional NLI scoring with baseline calibration for dialogue.
-
-        The standard NLI approach (FactCG "supported/not-supported") gives
-        ~0.92 divergence for *correct* dialogue responses because new
-        information isn't "supported" by the conversation context.  This
-        method:
-
-        1. Scores both directions:
-           - forward ``score(context, response)``
-           - reverse ``score(response, context)``
-        2. Takes the **minimum** (most lenient direction).
-        3. Applies **baseline calibration**:
-           ``adjusted = max(0, (raw - baseline) / (1 - baseline))``
-           to shift out expected dialogue divergence (default baseline=0.80).
-
-        Benchmark (HaluEval dialogue, n=200, L4 GPU):
-        - Forward-only default:  FPR=97.5%
-        - Bidir + bl=0.80 t=0.50: FPR=4.5%
-        - Bidir + bl=0.85 t=0.50: FPR=4.5%
-        """
+        """Bidirectional NLI scoring with baseline calibration for dialogue."""
         if self._nli is None or not self._nli.model_available:
             raise RuntimeError("NLI model required for dialogue factual divergence")
-
-        # Forward pass: full evidence path
-        h_fact_fwd, evidence = self.calculate_factual_divergence_with_evidence(
+        return dialogue_factual_divergence(
+            self._nli,
             prompt,
             response,
             tenant_id,
-            _inner_agg="min",
-            _outer_agg="mean",
+            calculate_factual_with_evidence=self.calculate_factual_divergence_with_evidence,
+            baseline=self._dialogue_nli_baseline,
         )
 
-        # Reverse pass: does the response support the context?
-        # Uses score_chunked for chunking support on long texts.
-        h_fact_rev, _ = self._nli.score_chunked(
-            response,
-            prompt,
-            inner_agg="min",
-            outer_agg="mean",
-            premise_ratio=0.4,
-        )
-
-        # Bidirectional minimum (most lenient direction)
-        raw_div = min(h_fact_fwd, h_fact_rev)
-
-        # Baseline calibration: shift expected dialogue divergence to 0
-        baseline = self._dialogue_nli_baseline
-        denom = 1.0 - baseline
-        adjusted = max(0.0, (raw_div - baseline) / denom) if denom > 1e-9 else raw_div
-
-        return adjusted, evidence
-
-    # â"€â"€ Summarization-specific scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # -- Summarization-specific scoring ------------------------------------
 
     def _summarization_factual_divergence(
         self,
@@ -737,109 +419,29 @@ class CoherenceScorer:
         response: str,
         tenant_id: str = "",
     ) -> tuple[float, ScoringEvidence | None]:
-        """Bidirectional NLI + claim coverage for summarization.
-
-        When MiniCheck is available, uses sentence-level MiniCheck scoring
-        for claim coverage (Layer M) instead of FactCG-based claim
-        decomposition (Layer C).  MiniCheck provides 3× better
-        discrimination gap on HaluEval summarisation (0.216 vs 0.072).
-
-        Layer A: bidirectional FactCG NLI with baseline calibration.
-        Layer M (MiniCheck): sentence-level MiniCheck scoring + coverage.
-        Layer C (fallback): FactCG claim decomposition + coverage.
-
-        Final divergence = alpha * (1 - coverage) + (1 - alpha) * layer_a.
-        """
+        """Bidirectional NLI + claim coverage for summarisation."""
         if self._nli is None or not self._nli.model_available:
             raise RuntimeError(
                 "NLI model required for summarization factual divergence"
             )
-
-        # Layer A: bidirectional FactCG NLI
-        h_fact_fwd, evidence = self.calculate_factual_divergence_with_evidence(
+        return summarization_factual_divergence(
+            self._nli,
             prompt,
             response,
             tenant_id,
-            _inner_agg=self._fact_inner_agg,
-            _outer_agg=self._fact_outer_agg,
-        )
-
-        h_fact_rev, _ = self._nli.score_chunked(
-            response,
-            prompt,
-            inner_agg="min",
-            outer_agg="mean",
+            calculate_factual_with_evidence=self.calculate_factual_divergence_with_evidence,
+            fact_inner_agg=self._fact_inner_agg,
+            fact_outer_agg=self._fact_outer_agg,
             premise_ratio=self._premise_ratio,
+            claim_coverage_enabled=self._claim_coverage_enabled,
+            claim_support_threshold=self._claim_support_threshold,
+            claim_coverage_alpha=self._claim_coverage_alpha,
+            baseline=self._summarization_nli_baseline,
+            get_minicheck_scorer=self._get_minicheck_scorer,
         )
-
-        raw_div = min(h_fact_fwd, h_fact_rev)
-
-        baseline = self._summarization_nli_baseline
-        if baseline > 0.0:
-            layer_a = max(0.0, (raw_div - baseline) / (1.0 - baseline))
-        else:
-            layer_a = raw_div
-
-        # Layer M: MiniCheck sentence-level scoring (preferred over Layer C).
-        # MiniCheck is trained for document-grounded fact verification and
-        # handles abstractive paraphrases far better than FactCG NLI.
-        mc_scorer = self._get_minicheck_scorer()
-        if mc_scorer is not None:
-            coverage, per_claim_divs, claims = self._minicheck_claim_coverage(
-                mc_scorer, prompt[:3000], response
-            )
-            # MiniCheck coverage is a stronger signal than FactCG claim
-            # decomposition — give it 60% weight (vs 40% for FactCG Layer C).
-            mc_alpha = 0.6
-            adjusted = mc_alpha * (1.0 - coverage) + (1.0 - mc_alpha) * layer_a
-
-            if evidence is not None:
-                evidence.claim_coverage = coverage
-                evidence.per_claim_divergences = per_claim_divs
-                evidence.claims = claims
-            return adjusted, evidence
-
-        # Layer C (fallback): FactCG claim decomposition + coverage.
-        # Truncate premise to avoid OOM on long source documents.
-        if self._claim_coverage_enabled:
-            truncated_premise = prompt[:3000]
-            try:
-                coverage, per_claim_divs, claims, attributions = (
-                    self._nli.score_claim_coverage_with_attribution(
-                        truncated_premise,
-                        response,
-                        support_threshold=self._claim_support_threshold,
-                    )
-                )
-            except (RuntimeError, Exception) as exc:
-                if "out of memory" in str(exc).lower():
-                    import torch
-
-                    torch.cuda.empty_cache()
-                    self.logger.warning(
-                        "OOM in claim coverage — falling back to layer A only"
-                    )
-                    return layer_a, evidence
-                raise
-            alpha = self._claim_coverage_alpha
-            adjusted = alpha * (1.0 - coverage) + (1.0 - alpha) * layer_a
-
-            if evidence is not None:
-                evidence.claim_coverage = coverage
-                evidence.per_claim_divergences = per_claim_divs
-                evidence.claims = claims
-                evidence.attributions = attributions
-        else:
-            adjusted = layer_a
-
-        return adjusted, evidence
 
     def _get_minicheck_scorer(self) -> NLIScorer | None:
-        """Lazily create a MiniCheck NLI scorer for summarisation routing.
-
-        Returns None if MiniCheck is not installed or fails to initialise.
-        The scorer is cached after first successful creation.
-        """
+        """Lazily create a MiniCheck NLI scorer for summarisation routing."""
         if hasattr(self, "_minicheck_nli"):
             return self._minicheck_nli
 
@@ -854,32 +456,6 @@ class CoherenceScorer:
 
         self._minicheck_nli = None
         return None
-
-    @staticmethod
-    def _minicheck_claim_coverage(
-        mc_scorer: NLIScorer,
-        source: str,
-        summary: str,
-    ) -> tuple[float, list[float], list[str]]:
-        """Score each summary sentence with MiniCheck, return coverage.
-
-        Returns (coverage, per_sentence_divergences, sentences).
-        Coverage = fraction of sentences with divergence < 0.5.
-        """
-        try:
-            from nltk.tokenize import sent_tokenize
-
-            sentences = sent_tokenize(summary)
-        except (ImportError, LookupError):
-            # Fallback: split on periods (nltk missing or punkt_tab not downloaded)
-            sentences = [s.strip() + "." for s in summary.split(".") if s.strip()]
-        if not sentences:
-            return 1.0, [], []
-
-        divs = [mc_scorer.score(source, sent) for sent in sentences]
-        supported = sum(1 for d in divs if d < 0.5)
-        coverage = supported / len(sentences) if sentences else 1.0
-        return coverage, divs, sentences
 
     # ── Injection detection ──────────────────────────────────────────
 

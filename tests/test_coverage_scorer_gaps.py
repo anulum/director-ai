@@ -51,7 +51,9 @@ class TestLocalJudgeInit:
         assert scorer._local_judge_model is None
 
     def test_local_judge_provider_with_model_tries_init(self):
-        with patch.object(CoherenceScorer, "_init_local_judge") as mock_init:
+        from director_ai.core.scoring._llm_judge import LLMJudge
+
+        with patch.object(LLMJudge, "_init_local_judge") as mock_init:
             CoherenceScorer(
                 use_nli=False,
                 llm_judge_enabled=True,
