@@ -57,3 +57,16 @@ class HallucinationError(DirectorAIError):
         super().__init__(
             f"Hallucination detected (coherence={score.score:.3f}): {response[:100]}",
         )
+
+
+class InjectionDetectedError(DirectorAIError):
+    """Raised when a guarded LLM response is flagged for prompt injection."""
+
+    def __init__(self, query: str, response: str, score):
+        self.query = query
+        self.response = response
+        self.score = score
+        risk = getattr(score, "injection_risk", None) or 0.0
+        super().__init__(
+            f"Injection detected (risk={risk:.3f}): {response[:100]}",
+        )

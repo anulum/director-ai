@@ -23,7 +23,7 @@ from contextvars import ContextVar
 from typing import Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
-from director_ai.core.exceptions import HallucinationError
+from director_ai.core.exceptions import HallucinationError, InjectionDetectedError
 from director_ai.core.types import CoherenceScore
 
 _log = logging.getLogger("DirectorAI.guard")
@@ -49,10 +49,14 @@ def score(
     threshold: float = 0.3,
     use_nli: bool | None = None,
     profile: str | None = None,
+    injection_detection: bool = False,
+    injection_threshold: float = 0.7,
 ) -> CoherenceScore:
     """Score a single prompt/response pair for hallucination.
 
     Returns a ``CoherenceScore`` without requiring an SDK client.
+    When *injection_detection* is enabled, ``CoherenceScore.injection_risk``
+    is populated with the intent-grounded injection risk score.
     """
     if profile is not None:
         from director_ai.core.config import DirectorConfig
@@ -73,6 +77,8 @@ def score(
             ground_truth_store=gts,
             use_nli=use_nli,
         )
+    if injection_detection:
+        scorer.enable_injection_detection(injection_threshold=injection_threshold)
     _approved, cs = scorer.review(prompt, response)
     return cs  # type: ignore[no-any-return]
 
@@ -85,6 +91,8 @@ def guard(
     threshold: float = 0.3,
     use_nli: bool | None = None,
     on_fail: str = "raise",
+    injection_detection: bool = False,
+    injection_threshold: float = 0.7,
 ) -> Any:
     """Wrap an LLM SDK client with coherence scoring.
 
@@ -96,6 +104,10 @@ def guard(
     - **AWS Bedrock** (``client.converse`` / ``client.converse_stream``).
     - **Google Gemini** (``client.generate_content``).
     - **Cohere** (``client.chat`` without ``client.completions``).
+
+    When *injection_detection* is enabled, each response is additionally
+    checked for prompt injection via intent-grounded NLI divergence.
+    The *injection_threshold* controls sensitivity (0.0–1.0).
 
     Returns the guarded client. For OpenAI/Anthropic the original object
     is mutated in place. For Bedrock, Gemini, and Cohere a new proxy is
@@ -115,21 +127,45 @@ def guard(
         ground_truth_store=gts,
         use_nli=use_nli,
     )
+    inj_threshold = injection_threshold if injection_detection else None
+    if injection_detection:
+        scorer.enable_injection_detection(injection_threshold=injection_threshold)
 
     if _has_openai_shape(client):
         client.chat.completions = _OpenAICompletionsProxy(
             client.chat.completions,
             scorer,
             on_fail,
+            injection_threshold=inj_threshold,
         )
     elif _has_anthropic_shape(client):
-        client.messages = _AnthropicMessagesProxy(client.messages, scorer, on_fail)
+        client.messages = _AnthropicMessagesProxy(
+            client.messages,
+            scorer,
+            on_fail,
+            injection_threshold=inj_threshold,
+        )
     elif _has_bedrock_shape(client):
-        client = _BedrockProxy(client, scorer, on_fail)
+        client = _BedrockProxy(
+            client,
+            scorer,
+            on_fail,
+            injection_threshold=inj_threshold,
+        )
     elif _has_gemini_shape(client):
-        client = _GeminiProxy(client, scorer, on_fail)
+        client = _GeminiProxy(
+            client,
+            scorer,
+            on_fail,
+            injection_threshold=inj_threshold,
+        )
     elif _has_cohere_shape(client):
-        client = _CohereProxy(client, scorer, on_fail)
+        client = _CohereProxy(
+            client,
+            scorer,
+            on_fail,
+            injection_threshold=inj_threshold,
+        )
     else:
         raise TypeError(
             f"Unsupported client type: {type(client).__qualname__}. "
@@ -187,7 +223,31 @@ def _handle_failure(on_fail, query, response_text, score):
         _score_var.set(score)
 
 
-def _score_and_gate(scorer, on_fail, query, response_text):
+def _handle_injection_failure(on_fail, query, response_text, score):
+    """Handle a detected injection — mirrors _handle_failure semantics."""
+    if on_fail == "raise":
+        raise InjectionDetectedError(query, response_text, score)
+    if on_fail == "log":
+        risk = getattr(score, "injection_risk", None) or 0.0
+        _log.warning(
+            "Injection detected (risk=%.3f): %.100s",
+            risk,
+            response_text,
+        )
+    elif on_fail == "metadata":  # pragma: no branch
+        _score_var.set(score)
+
+
+def _check_injection(on_fail, query, response_text, cs, injection_threshold):
+    """Check injection risk on a scored response and handle failure."""
+    if injection_threshold is None:
+        return
+    risk = cs.injection_risk
+    if risk is not None and risk >= injection_threshold:
+        _handle_injection_failure(on_fail, query, response_text, cs)
+
+
+def _score_and_gate(scorer, on_fail, query, response_text, *, injection_threshold=None):
     result = scorer.review(query, response_text)
     if asyncio.iscoroutine(result):
         try:
@@ -207,10 +267,13 @@ def _score_and_gate(scorer, on_fail, query, response_text):
         _score_var.set(cs)
     if not approved:
         _handle_failure(on_fail, query, response_text, cs)
+    _check_injection(on_fail, query, response_text, cs, injection_threshold)
     return cs
 
 
-async def _ascore_and_gate(scorer, on_fail, query, response_text):
+async def _ascore_and_gate(
+    scorer, on_fail, query, response_text, *, injection_threshold=None
+):
     result = scorer.review(query, response_text)
     if asyncio.iscoroutine(result):
         approved, cs = await result
@@ -220,6 +283,7 @@ async def _ascore_and_gate(scorer, on_fail, query, response_text):
         _score_var.set(cs)
     if not approved:
         _handle_failure(on_fail, query, response_text, cs)
+    _check_injection(on_fail, query, response_text, cs, injection_threshold)
     return cs
 
 
@@ -229,10 +293,11 @@ async def _ascore_and_gate(scorer, on_fail, query, response_text):
 class _OpenAICompletionsProxy:
     """Drop-in for ``client.chat.completions``."""
 
-    def __init__(self, original, scorer, on_fail):
+    def __init__(self, original, scorer, on_fail, *, injection_threshold=None):
         self._original = original
         self._scorer = scorer
         self._on_fail = on_fail
+        self._injection_threshold = injection_threshold
         if inspect.iscoroutinefunction(original.create):
             self.create = self._acreate_entry  # type: ignore[assignment]
 
@@ -242,10 +307,22 @@ class _OpenAICompletionsProxy:
         response = self._original.create(**kwargs)
 
         if streaming:
-            return _GuardedOpenAIStream(response, self._scorer, self._on_fail, prompt)
+            return _GuardedOpenAIStream(
+                response,
+                self._scorer,
+                self._on_fail,
+                prompt,
+                injection_threshold=self._injection_threshold,
+            )
 
         text = _openai_response_text(response)
-        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
         return response
 
     async def _acreate_entry(self, **kwargs):
@@ -256,9 +333,21 @@ class _OpenAICompletionsProxy:
     async def _acreate(self, prompt, streaming, kwargs):
         response = await self._original.create(**kwargs)
         if streaming:
-            return _GuardedOpenAIStream(response, self._scorer, self._on_fail, prompt)
+            return _GuardedOpenAIStream(
+                response,
+                self._scorer,
+                self._on_fail,
+                prompt,
+                injection_threshold=self._injection_threshold,
+            )
         text = _openai_response_text(response)
-        await _ascore_and_gate(self._scorer, self._on_fail, prompt, text)
+        await _ascore_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
         return response
 
     def __getattr__(self, name):
@@ -281,13 +370,14 @@ def _extract_stream_delta(chunk) -> str | None:
 class _GuardedOpenAIStream:
     """Wraps an OpenAI stream with periodic coherence checks."""
 
-    def __init__(self, stream, scorer, on_fail, prompt):
+    def __init__(self, stream, scorer, on_fail, prompt, *, injection_threshold=None):
         self._stream = stream
         self._scorer = scorer
         self._on_fail = on_fail
         self._prompt = prompt
         self._buffer = []
         self._token_count = 0
+        self._injection_threshold = injection_threshold
 
     def __iter__(self):
         for chunk in self._stream:
@@ -321,7 +411,13 @@ class _GuardedOpenAIStream:
     async def _afinal_check(self):
         text = "".join(self._buffer)
         if text:
-            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            await _ascore_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )
 
     def _periodic_check(self):
         text = "".join(self._buffer)
@@ -332,7 +428,13 @@ class _GuardedOpenAIStream:
     def _final_check(self):
         text = "".join(self._buffer)
         if text:
-            _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            _score_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )
 
 
 # â”€â”€ Anthropic proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -341,10 +443,11 @@ class _GuardedOpenAIStream:
 class _AnthropicMessagesProxy:
     """Drop-in for ``client.messages``."""
 
-    def __init__(self, original, scorer, on_fail):
+    def __init__(self, original, scorer, on_fail, *, injection_threshold=None):
         self._original = original
         self._scorer = scorer
         self._on_fail = on_fail
+        self._injection_threshold = injection_threshold
         if inspect.iscoroutinefunction(original.create):
             self.create = self._acreate_entry  # type: ignore[assignment]
 
@@ -359,10 +462,17 @@ class _AnthropicMessagesProxy:
                 self._scorer,
                 self._on_fail,
                 prompt,
+                injection_threshold=self._injection_threshold,
             )
 
         text = _anthropic_response_text(response)
-        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
         return response
 
     async def _acreate_entry(self, **kwargs):
@@ -378,9 +488,16 @@ class _AnthropicMessagesProxy:
                 self._scorer,
                 self._on_fail,
                 prompt,
+                injection_threshold=self._injection_threshold,
             )
         text = _anthropic_response_text(response)
-        await _ascore_and_gate(self._scorer, self._on_fail, prompt, text)
+        await _ascore_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
         return response
 
     def __getattr__(self, name):
@@ -407,13 +524,14 @@ def _extract_anthropic_event_text(event) -> str | None:
 class _GuardedAnthropicStream:
     """Wraps an Anthropic stream with periodic coherence checks."""
 
-    def __init__(self, stream, scorer, on_fail, prompt):
+    def __init__(self, stream, scorer, on_fail, prompt, *, injection_threshold=None):
         self._stream = stream
         self._scorer = scorer
         self._on_fail = on_fail
         self._prompt = prompt
         self._buffer = []
         self._token_count = 0
+        self._injection_threshold = injection_threshold
 
     def __iter__(self):
         for event in self._stream:
@@ -447,7 +565,13 @@ class _GuardedAnthropicStream:
     async def _afinal_check(self):
         text = "".join(self._buffer)
         if text:
-            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            await _ascore_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )
 
     def _periodic_check(self):
         text = "".join(self._buffer)
@@ -458,7 +582,13 @@ class _GuardedAnthropicStream:
     def _final_check(self):
         text = "".join(self._buffer)
         if text:
-            _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            _score_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )
 
 
 # â”€â”€ Bedrock proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -501,22 +631,35 @@ def _extract_bedrock_stream_delta(event: dict) -> str | None:
 class _BedrockProxy:
     """Wraps a boto3 Bedrock Runtime client with coherence scoring."""
 
-    def __init__(self, client, scorer, on_fail):
+    def __init__(self, client, scorer, on_fail, *, injection_threshold=None):
         self._client = client
         self._scorer = scorer
         self._on_fail = on_fail
+        self._injection_threshold = injection_threshold
 
     def converse(self, **kwargs):
         prompt = _extract_bedrock_prompt(kwargs.get("messages", []))
         response = self._client.converse(**kwargs)
         text = _bedrock_response_text(response)
-        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
         return response
 
     def converse_stream(self, **kwargs):
         prompt = _extract_bedrock_prompt(kwargs.get("messages", []))
         response = self._client.converse_stream(**kwargs)
-        return _GuardedBedrockStream(response, self._scorer, self._on_fail, prompt)
+        return _GuardedBedrockStream(
+            response,
+            self._scorer,
+            self._on_fail,
+            prompt,
+            injection_threshold=self._injection_threshold,
+        )
 
     def __getattr__(self, name):
         return getattr(self._client, name)
@@ -525,13 +668,14 @@ class _BedrockProxy:
 class _GuardedBedrockStream:
     """Wraps Bedrock converse_stream with periodic coherence checks."""
 
-    def __init__(self, response, scorer, on_fail, prompt):
+    def __init__(self, response, scorer, on_fail, prompt, *, injection_threshold=None):
         self._response = response
         self._scorer = scorer
         self._on_fail = on_fail
         self._prompt = prompt
         self._buffer: list[str] = []
         self._token_count = 0
+        self._injection_threshold = injection_threshold
 
     def __iter__(self):
         stream = self._response.get("stream", self._response)
@@ -565,7 +709,13 @@ class _GuardedBedrockStream:
             yield event
         text = "".join(self._buffer)
         if text:
-            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            await _ascore_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )
 
     def _periodic_check(self):
         text = "".join(self._buffer)
@@ -576,7 +726,13 @@ class _GuardedBedrockStream:
     def _final_check(self):
         text = "".join(self._buffer)
         if text:
-            _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            _score_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )
 
 
 # â”€â”€ Gemini proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -608,19 +764,32 @@ def _extract_gemini_prompt(args: tuple, kwargs: dict) -> str:
 class _GeminiProxy:
     """Wraps a google.generativeai GenerativeModel with coherence scoring."""
 
-    def __init__(self, client, scorer, on_fail):
+    def __init__(self, client, scorer, on_fail, *, injection_threshold=None):
         self._client = client
         self._scorer = scorer
         self._on_fail = on_fail
+        self._injection_threshold = injection_threshold
 
     def generate_content(self, *args, **kwargs):
         prompt = _extract_gemini_prompt(args, kwargs)
         streaming = kwargs.get("stream", False)
         response = self._client.generate_content(*args, **kwargs)
         if streaming:
-            return _GuardedGeminiStream(response, self._scorer, self._on_fail, prompt)
+            return _GuardedGeminiStream(
+                response,
+                self._scorer,
+                self._on_fail,
+                prompt,
+                injection_threshold=self._injection_threshold,
+            )
         text = getattr(response, "text", "") or ""
-        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
         return response
 
     def __getattr__(self, name):
@@ -630,13 +799,14 @@ class _GeminiProxy:
 class _GuardedGeminiStream:
     """Wraps a Gemini streaming response with periodic coherence checks."""
 
-    def __init__(self, stream, scorer, on_fail, prompt):
+    def __init__(self, stream, scorer, on_fail, prompt, *, injection_threshold=None):
         self._stream = stream
         self._scorer = scorer
         self._on_fail = on_fail
         self._prompt = prompt
         self._buffer: list[str] = []
         self._token_count = 0
+        self._injection_threshold = injection_threshold
 
     def __iter__(self):
         for chunk in self._stream:
@@ -668,7 +838,13 @@ class _GuardedGeminiStream:
             yield chunk
         text = "".join(self._buffer)
         if text:
-            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            await _ascore_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )
 
     def _periodic_check(self):
         text = "".join(self._buffer)
@@ -679,7 +855,13 @@ class _GuardedGeminiStream:
     def _final_check(self):
         text = "".join(self._buffer)
         if text:
-            _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            _score_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )
 
 
 # â”€â”€ Cohere proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -697,22 +879,35 @@ def _has_cohere_shape(client) -> bool:
 class _CohereProxy:
     """Wraps a Cohere client with coherence scoring."""
 
-    def __init__(self, client, scorer, on_fail):
+    def __init__(self, client, scorer, on_fail, *, injection_threshold=None):
         self._client = client
         self._scorer = scorer
         self._on_fail = on_fail
+        self._injection_threshold = injection_threshold
 
     def chat(self, **kwargs):
         prompt = kwargs.get("message", "")
         response = self._client.chat(**kwargs)
         text = getattr(response, "text", "") or ""
-        _score_and_gate(self._scorer, self._on_fail, prompt, text)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
         return response
 
     def chat_stream(self, **kwargs):
         prompt = kwargs.get("message", "")
         response = self._client.chat_stream(**kwargs)
-        return _GuardedCohereStream(response, self._scorer, self._on_fail, prompt)
+        return _GuardedCohereStream(
+            response,
+            self._scorer,
+            self._on_fail,
+            prompt,
+            injection_threshold=self._injection_threshold,
+        )
 
     def __getattr__(self, name):
         return getattr(self._client, name)
@@ -721,13 +916,14 @@ class _CohereProxy:
 class _GuardedCohereStream:
     """Wraps a Cohere chat_stream with periodic coherence checks."""
 
-    def __init__(self, stream, scorer, on_fail, prompt):
+    def __init__(self, stream, scorer, on_fail, prompt, *, injection_threshold=None):
         self._stream = stream
         self._scorer = scorer
         self._on_fail = on_fail
         self._prompt = prompt
         self._buffer: list[str] = []
         self._token_count = 0
+        self._injection_threshold = injection_threshold
 
     def __iter__(self):
         for event in self._stream:
@@ -759,7 +955,13 @@ class _GuardedCohereStream:
             yield event
         text = "".join(self._buffer)
         if text:
-            await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            await _ascore_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )
 
     def _periodic_check(self):
         text = "".join(self._buffer)
@@ -770,4 +972,10 @@ class _GuardedCohereStream:
     def _final_check(self):
         text = "".join(self._buffer)
         if text:
-            _score_and_gate(self._scorer, self._on_fail, self._prompt, text)
+            _score_and_gate(
+                self._scorer,
+                self._on_fail,
+                self._prompt,
+                text,
+                injection_threshold=self._injection_threshold,
+            )

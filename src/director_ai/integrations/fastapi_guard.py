@@ -6,20 +6,32 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — FastAPI Middleware
 
-"""ASGI middleware that scores JSON responses for hallucination.
+"""ASGI middleware that scores JSON responses for hallucination and injection.
 
 Usage::
 
     from director_ai.integrations.fastapi_guard import DirectorGuard
     app.add_middleware(DirectorGuard, facts={"policy": "30-day refunds"})
+
+    # With injection detection:
+    app.add_middleware(
+        DirectorGuard,
+        facts={"policy": "30-day refunds"},
+        injection_detection=True,
+        injection_threshold=0.7,
+    )
 """
 
 from __future__ import annotations
 
 import json
 import logging
+from typing import TYPE_CHECKING
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
+
+if TYPE_CHECKING:
+    from director_ai.core.safety.injection import InjectionDetector
 
 _log = logging.getLogger("DirectorAI.FastAPIGuard")
 
@@ -45,6 +57,10 @@ class DirectorGuard:
         URL paths to score. ``None`` scores all POST responses.
     on_fail : str
         ``"warn"`` adds headers only. ``"reject"`` returns 422.
+    injection_detection : bool
+        Enable output-side prompt injection detection.
+    injection_threshold : float
+        Combined risk threshold for injection detection (0.0–1.0).
 
     """
 
@@ -58,6 +74,8 @@ class DirectorGuard:
         use_nli: bool | None = None,
         paths: list[str] | None = None,
         on_fail: str = "warn",
+        injection_detection: bool = False,
+        injection_threshold: float = 0.7,
     ):
         if on_fail not in ("warn", "reject"):
             raise ValueError(f"on_fail must be 'warn' or 'reject', got {on_fail!r}")
@@ -65,6 +83,9 @@ class DirectorGuard:
         self.paths = set(paths) if paths else None
         self.on_fail = on_fail
         self.threshold = threshold
+        self.injection_detection = injection_detection
+        self.injection_threshold = injection_threshold
+        self._injection_detector: InjectionDetector | None = None
 
         gts = store or GroundTruthStore()
         if facts:
@@ -134,6 +155,7 @@ class DirectorGuard:
 
         extra_headers = []
         reject = False
+        reject_body = b""
 
         if prompt and response_text:
             approved, cs = self.scorer.review(prompt, response_text)
@@ -153,6 +175,41 @@ class DirectorGuard:
                         },
                     },
                 ).encode()
+
+            # Injection detection (output-side NLI)
+            if self.injection_detection:
+                system_prompt = _extract_system_prompt(bytes(request_body))
+                detector = self._get_injection_detector()
+                inj = detector.detect(
+                    intent=prompt,
+                    response=response_text,
+                    user_query=prompt,
+                    system_prompt=system_prompt,
+                )
+                extra_headers.extend(
+                    [
+                        (
+                            b"x-director-injection-risk",
+                            f"{inj.injection_risk:.4f}".encode(),
+                        ),
+                        (
+                            b"x-director-injection-detected",
+                            str(inj.injection_detected).lower().encode(),
+                        ),
+                    ],
+                )
+                if inj.injection_detected and self.on_fail == "reject":
+                    reject = True
+                    reject_body = json.dumps(
+                        {
+                            "error": {
+                                "message": "Injection detected by Director-AI",
+                                "type": "injection_detected",
+                                "injection_risk": inj.injection_risk,
+                                "threshold": self.injection_threshold,
+                            },
+                        },
+                    ).encode()
 
         if reject:
             await send(
@@ -186,6 +243,43 @@ class DirectorGuard:
                     "body": bytes(response_body),
                 },
             )
+
+    def _get_injection_detector(self) -> InjectionDetector:
+        """Lazily initialise the injection detector."""
+        if self._injection_detector is None:
+            from director_ai.core.safety.injection import InjectionDetector
+
+            nli = getattr(self.scorer, "_nli", None)
+            self._injection_detector = InjectionDetector(
+                nli_scorer=nli,
+                injection_threshold=self.injection_threshold,
+            )
+            _log.info(
+                "Injection detector initialised (threshold=%.2f)",
+                self.injection_threshold,
+            )
+        return self._injection_detector
+
+
+def _extract_system_prompt(body: bytes) -> str:
+    """Extract the system-role message from an OpenAI-style request body."""
+    try:
+        data = json.loads(body)
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        return ""
+    if not isinstance(data, dict):
+        return ""
+    messages = data.get("messages")
+    if isinstance(messages, list):
+        for msg in messages:
+            if isinstance(msg, dict) and msg.get("role") == "system":
+                c = msg.get("content", "")
+                return str(c) if isinstance(c, str) else ""
+    # Fallback: explicit system_prompt field
+    sp = data.get("system_prompt") or data.get("system")
+    if isinstance(sp, str) and sp:
+        return sp
+    return ""
 
 
 def _extract_request_prompt(body: bytes) -> str:

@@ -190,6 +190,8 @@ class TestScorerClaimCoverageIntegration:
         scorer._claim_coverage_enabled = True
         scorer._claim_coverage_alpha = 0.4
         scorer._claim_support_threshold = 0.6
+        # Force Layer C path — bypass MiniCheck (Layer M) auto-routing.
+        scorer._minicheck_nli = None
 
         mock_nli = MagicMock()
         mock_nli.model_available = True
