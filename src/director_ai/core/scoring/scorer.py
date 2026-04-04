@@ -319,6 +319,17 @@ class CoherenceScorer:
         """Backward-compat proxy for LLMJudge._parse_judge_reply."""
         return LLMJudge._parse_judge_reply(reply)
 
+    @staticmethod
+    def _minicheck_claim_coverage(
+        mc_scorer,
+        source: str,
+        summary: str,
+    ) -> tuple[float, list[float], list[str]]:
+        """Backward-compat proxy for minicheck_claim_coverage."""
+        from ._task_scoring import minicheck_claim_coverage
+
+        return minicheck_claim_coverage(mc_scorer, source, summary)
+
     def close(self) -> None:
         """Shut down internal thread pool."""
         self._parallel_pool.shutdown(wait=False)
