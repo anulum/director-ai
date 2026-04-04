@@ -72,6 +72,7 @@ class DirectorConfig:
     soft_limit: float = 0.6
     use_nli: bool = False
     nli_model: str = "yaxili96/FactCG-DeBERTa-v3-Large"
+    nli_model_revision: str = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
     nli_max_length: int = 512  # >512 for long-context models (Longformer, BigBird)
     max_candidates: int = 3
     history_window: int = 5
@@ -104,11 +105,13 @@ class DirectorConfig:
     # Vector store
     vector_backend: str = "memory"
     embedding_model: str = "BAAI/bge-large-en-v1.5"
+    embedding_model_revision: str = "d4aa6901d3a41ba39fb536a557fa166f842b0e09"
     chroma_collection: str = "director_ai"
     chroma_persist_dir: str = ""
     hybrid_retrieval: bool = True  # BM25 + dense with Reciprocal Rank Fusion
     reranker_enabled: bool = True  # cross-encoder reranking on top of retrieval
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    reranker_model_revision: str = "c5ee24cb16019beea0893ab7796b1df96625c6b8"
     reranker_top_k_multiplier: int = 3
     retrieval_abstention_threshold: float = 0.3  # 0 = disabled; min similarity to score
 
@@ -657,6 +660,7 @@ class DirectorConfig:
             "scorer_backend": self.scorer_backend,
             "soft_limit": self.soft_limit,
             "nli_model": self.nli_model,
+            "nli_revision": self.nli_model_revision or None,
             "nli_max_length": self.nli_max_length,
             "llm_judge_enabled": self.llm_judge_enabled,
             "llm_judge_confidence_threshold": self.llm_judge_confidence_threshold,

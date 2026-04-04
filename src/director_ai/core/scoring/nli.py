@@ -41,6 +41,7 @@ _DEFAULT_COST_PER_TOKEN = 1e-5
 logger = logging.getLogger("DirectorAI.NLI")
 
 _DEFAULT_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
+_DEFAULT_MODEL_REVISION = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
 _RECOMMENDED_MODEL = "lytang/MiniCheck-DeBERTa-L"
 
 # FactCG instruction template (NAACL 2025, derenlei/FactCG)
@@ -130,6 +131,7 @@ def _load_nli_model(
     quantize_8bit: bool = False,
     device: str | None = None,
     torch_dtype: str | None = None,
+    revision: str | None = None,
 ):
     """Lazily load an NLI model + tokenizer (cached by model_name).
 
@@ -146,8 +148,18 @@ def _load_nli_model(
             device = "cuda"
             logger.info("CUDA available, auto-selecting GPU device")
 
-        logger.info("Loading NLI model: %s (device=%s)", model_name, device)
-        tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
+        rev = revision or (
+            _DEFAULT_MODEL_REVISION if model_name == _DEFAULT_MODEL else None
+        )
+        logger.info(
+            "Loading NLI model: %s (device=%s, revision=%s)",
+            model_name,
+            device,
+            rev[:12] if rev else "latest",
+        )
+        tokenizer = AutoTokenizer.from_pretrained(
+            model_name, use_fast=False, revision=rev
+        )
 
         load_kwargs: dict = {}
         if torch_dtype:
@@ -175,6 +187,7 @@ def _load_nli_model(
         load_kwargs.setdefault("low_cpu_mem_usage", False)
         model = AutoModelForSequenceClassification.from_pretrained(
             model_name,
+            revision=rev,
             **load_kwargs,
         )
 
@@ -523,6 +536,7 @@ class NLIScorer:
         onnx_flush_timeout_ms: float = 10.0,
         cost_per_token: float = _DEFAULT_COST_PER_TOKEN,
         lora_adapter_path: str | None = None,
+        revision: str | None = None,
     ) -> None:
         # Accept ScorerBackend instance directly
         self._custom_backend = None
@@ -566,6 +580,7 @@ class NLIScorer:
         # None = not yet resolved; tuple = (contradiction_idx, neutral_idx)
         self._label_indices: tuple[int, int] | None = None
         self._lora_adapter_path = lora_adapter_path
+        self._revision = revision
 
     @property
     def _backend_ready(self) -> bool:
@@ -608,6 +623,7 @@ class NLIScorer:
                 quantize_8bit=self._quantize_8bit,
                 device=self._device,
                 torch_dtype=self._torch_dtype,
+                revision=self._revision,
             )
             if self._model is not None:
                 self._label_indices = _resolve_label_indices(self._model)

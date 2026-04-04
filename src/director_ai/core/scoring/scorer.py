@@ -123,6 +123,7 @@ class CoherenceScorer:
         privacy_mode=False,
         cache=None,
         nli_max_length=512,
+        nli_revision=None,
     ):
         if not (0.0 <= threshold <= 1.0):
             raise ValueError(f"threshold must be in [0, 1], got {threshold}")
@@ -227,6 +228,7 @@ class CoherenceScorer:
                 onnx_batch_size=onnx_batch_size,
                 onnx_flush_timeout_ms=onnx_flush_timeout_ms,
                 max_length=nli_max_length,
+                revision=nli_revision,
             )
         else:
             self._nli = None  # type: ignore[assignment]
