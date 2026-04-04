@@ -66,6 +66,7 @@ from .runtime.session import ConversationSession, Turn
 from .runtime.streaming import StreamingKernel, StreamSession, TokenEvent
 
 # --- Safety ---
+from .safety.injection import InjectionDetector
 from .safety.sanitizer import InputSanitizer, SanitizeResult
 from .scoring.backends import (
     ScorerBackend,
@@ -101,6 +102,8 @@ from .types import (
     CoherenceScore,
     EvidenceChunk,
     HaltEvidence,
+    InjectedClaim,
+    InjectionResult,
     ReviewResult,
     ScoringEvidence,
 )
@@ -151,6 +154,7 @@ __all__ = [
     "StreamingKernel",
     "TokenEvent",
     # Safety
+    "InjectionDetector",
     "InputSanitizer",
     "SanitizeResult",
     # Training
@@ -165,6 +169,8 @@ __all__ = [
     "ConversationSession",
     "EvidenceChunk",
     "HaltEvidence",
+    "InjectedClaim",
+    "InjectionResult",
     "ReviewResult",
     "ScoringEvidence",
     "Turn",

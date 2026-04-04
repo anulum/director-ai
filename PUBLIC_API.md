@@ -18,7 +18,7 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `GroundTruthStore` | `core.knowledge` | In-memory keyword fact store |
 | `VectorGroundTruthStore` | `core.vector_store` | Vector DB RAG store |
 | `ScoreCache` | `core.cache` | LRU score cache |
-| `InputSanitizer` | `core.sanitizer` | Prompt injection pattern detection (Stage 1) |
+| `InputSanitizer` | `core.safety.sanitizer` | Prompt injection pattern detection (Stage 1) |
 | `InjectionDetector` | `core.safety.injection` | Intent-grounded injection detection via NLI (Stage 2) |
 | `ConversationSession` | `core.session` | Multi-turn conversation tracker |
 | `DirectorConfig` | `core.config` | Configuration dataclass |
