@@ -442,9 +442,7 @@ class ComplianceDashboardResponse(BaseModel):
     period_24h: PeriodMetrics = PeriodMetrics(
         total=0, hallucination_rate=0, avg_score=0
     )
-    period_7d: PeriodMetrics = PeriodMetrics(
-        total=0, hallucination_rate=0, avg_score=0
-    )
+    period_7d: PeriodMetrics = PeriodMetrics(total=0, hallucination_rate=0, avg_score=0)
     period_30d: PeriodMetrics = PeriodMetrics(
         total=0, hallucination_rate=0, avg_score=0
     )
