@@ -42,11 +42,15 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.config import DirectorConfig
 from director_ai.core.scoring.verified_scorer import VerifiedScorer
-from director_ai.core.types import CoherenceScore
+from director_ai.core.types import CoherenceScore, InjectionResult
+
+if TYPE_CHECKING:
+    from director_ai.core.safety.injection import InjectionDetector
 
 logger = logging.getLogger("DirectorAI.Guard")
 
@@ -85,6 +89,7 @@ class ProductionGuard:
         self._calibrator = None
         self._conformal = None
         self._feedback = None
+        self._injection_detector: InjectionDetector | None = None
 
     @classmethod
     def from_profile(
@@ -167,6 +172,43 @@ class ProductionGuard:
         self._calibrator.update(result.score, correct_label)
         if self._conformal is not None:
             self._conformal.add_observation(result.score, correct_label)
+
+    def check_injection(
+        self,
+        intent: str,
+        response: str,
+        user_query: str = "",
+        system_prompt: str = "",
+    ) -> InjectionResult:
+        """Detect prompt injection effects in a response via NLI divergence.
+
+        Lazily initialises InjectionDetector on first call using config
+        thresholds.  Reuses the scorer's NLI model when available.
+        """
+        if self._injection_detector is None:
+            from director_ai.core.safety.injection import InjectionDetector
+
+            nli = getattr(self._scorer, "_nli", None)
+            cfg = self._config
+            self._injection_detector = InjectionDetector(
+                nli_scorer=nli,
+                injection_threshold=cfg.injection_threshold,
+                drift_threshold=cfg.injection_drift_threshold,
+                injection_claim_threshold=cfg.injection_claim_threshold,
+                baseline_divergence=cfg.injection_baseline_divergence,
+                stage1_weight=cfg.injection_stage1_weight,
+            )
+            logger.info(
+                "Injection detector initialised (threshold=%.2f)",
+                cfg.injection_threshold,
+            )
+
+        return self._injection_detector.detect(
+            intent=intent,
+            response=response,
+            user_query=user_query,
+            system_prompt=system_prompt,
+        )
 
     def verify_tool(
         self,

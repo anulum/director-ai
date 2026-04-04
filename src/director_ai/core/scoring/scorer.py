@@ -283,6 +283,9 @@ class CoherenceScorer:
         if llm_judge_provider == "local" and llm_judge_model:
             self._init_local_judge(llm_judge_model, nli_device)
 
+        # Injection detection: set via enable_injection_detection()
+        self._injection_detector = None
+
     def close(self) -> None:
         """Shut down internal thread pool."""
         self._parallel_pool.shutdown(wait=False)
@@ -878,7 +881,45 @@ class CoherenceScorer:
         coverage = supported / len(sentences) if sentences else 1.0
         return coverage, divs, sentences
 
-    # â"€â"€ Factual divergence â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
+    # ── Injection detection ──────────────────────────────────────────
+
+    def enable_injection_detection(
+        self,
+        injection_threshold: float = 0.7,
+        drift_threshold: float = 0.6,
+        injection_claim_threshold: float = 0.75,
+        baseline_divergence: float = 0.4,
+        stage1_weight: float = 0.3,
+    ) -> None:
+        """Enable output-side injection detection on every review() call."""
+        from ..safety.injection import InjectionDetector
+
+        sanitizer = None
+        try:
+            from ..safety.sanitizer import InputSanitizer
+
+            sanitizer = InputSanitizer()
+        except Exception:
+            pass
+
+        self._injection_detector = InjectionDetector(
+            nli_scorer=self._nli,
+            sanitizer=sanitizer,
+            injection_threshold=injection_threshold,
+            drift_threshold=drift_threshold,
+            injection_claim_threshold=injection_claim_threshold,
+            baseline_divergence=baseline_divergence,
+            stage1_weight=stage1_weight,
+        )
+        self.logger.info(
+            "Injection detection enabled (threshold=%.2f)", injection_threshold
+        )
+
+    def _get_injection_detector(self):
+        """Return the InjectionDetector if enabled, else None."""
+        return self._injection_detector
+
+    # ── Factual divergence ────────────────────────────────────────────
 
     def calculate_factual_divergence(
         self,
@@ -1633,12 +1674,23 @@ class CoherenceScorer:
                             "Contradiction tracking failed", exc_info=True
                         )
                 session.add_turn(prompt, action, result[1].score)
+            # Injection detection (when enabled)
+            inj_detector = self._get_injection_detector()
+            if inj_detector is not None:
+                try:
+                    inj = inj_detector.detect(intent=prompt, response=action)
+                    result[1].injection_risk = inj.injection_risk
+                except Exception:
+                    self.logger.warning("Injection detection failed", exc_info=True)
+
             span.set_attribute("coherence.score", result[1].score)
             span.set_attribute("coherence.approved", result[0])
             span.set_attribute("coherence.cached", False)
             span.set_attribute("coherence.h_logical", h_logic)
             span.set_attribute("coherence.h_factual", h_fact)
             span.set_attribute("coherence.warning", result[1].warning)
+            if result[1].injection_risk is not None:
+                span.set_attribute("coherence.injection_risk", result[1].injection_risk)
             return result
 
     # â"€â"€ Batch API (coalesced NLI) â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€

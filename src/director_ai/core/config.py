@@ -161,6 +161,14 @@ class DirectorConfig:
     sanitizer_block_threshold: float = 0.8
     redact_pii: bool = False
 
+    # Injection Detection (output-side NLI-based)
+    injection_detection_enabled: bool = False
+    injection_threshold: float = 0.7
+    injection_drift_threshold: float = 0.6
+    injection_claim_threshold: float = 0.75
+    injection_baseline_divergence: float = 0.4
+    injection_stage1_weight: float = 0.3
+
     # Scoring weights (0.0 = use CoherenceScorer class defaults)
     w_logic: float = 0.0
     w_fact: float = 0.0

@@ -380,6 +380,52 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         reason: str = ""
         claims: list[dict] = []
 
+    class InjectionRequest(BaseModel):
+        system_prompt: str = Field(
+            "",
+            max_length=_MAX_PROMPT_CHARS,
+            description="System prompt / task description",
+        )
+        user_query: str = Field(
+            "",
+            max_length=_MAX_PROMPT_CHARS,
+            description="User query",
+        )
+        response: str = Field(
+            ...,
+            min_length=1,
+            max_length=_MAX_RESPONSE_CHARS,
+            description="LLM response to check for injection effects",
+        )
+        intent: str = Field(
+            "",
+            max_length=_MAX_PROMPT_CHARS,
+            description="Direct intent (used if system_prompt/user_query empty)",
+        )
+
+    class InjectionClaimResponse(BaseModel):
+        claim: str
+        claim_index: int
+        intent_divergence: float
+        reverse_divergence: float
+        bidirectional_divergence: float
+        traceability: float
+        entity_match: float
+        verdict: str
+        confidence: float
+
+    class InjectionResponse(BaseModel):
+        injection_detected: bool
+        injection_risk: float
+        intent_coverage: float
+        total_claims: int
+        grounded_claims: int
+        drifted_claims: int
+        injected_claims: int
+        claims: list[dict] = []
+        input_sanitizer_score: float
+        combined_score: float
+
     class HourlyDataPoint(BaseModel):
         hour: str = ""
         total: int = 0
@@ -1131,7 +1177,51 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         )
         return result.to_dict()
 
-    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Process Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
+    # ── Injection Detection (output-side NLI) ─────────────────────
+
+    @app.post("/v1/injection/detect", response_model=InjectionResponse)
+    async def detect_injection(req: InjectionRequest, request: Request):
+        """Detect prompt injection effects in LLM output via NLI divergence.
+
+        Analyses whether the response diverges from the stated intent
+        (system_prompt + user_query).  Returns per-claim attribution
+        with grounded/drifted/injected verdicts.
+        """
+        import asyncio
+
+        from .core.safety.injection import InjectionDetector
+
+        scorer = request.app.state._state.get("scorer")
+        nli = getattr(scorer, "_nli", None) if scorer else None
+
+        cfg = request.app.state._state.get("config")
+
+        sanitizer = request.app.state._state.get("sanitizer")
+
+        detector = InjectionDetector(
+            nli_scorer=nli,
+            sanitizer=sanitizer,
+            injection_threshold=getattr(cfg, "injection_threshold", 0.7),
+            drift_threshold=getattr(cfg, "injection_drift_threshold", 0.6),
+            injection_claim_threshold=getattr(cfg, "injection_claim_threshold", 0.75),
+            baseline_divergence=getattr(cfg, "injection_baseline_divergence", 0.4),
+            stage1_weight=getattr(cfg, "injection_stage1_weight", 0.3),
+        )
+
+        intent = req.intent or ""
+        loop = asyncio.get_running_loop()
+        result = await loop.run_in_executor(
+            None,
+            lambda: detector.detect(
+                intent=intent,
+                response=req.response,
+                user_query=req.user_query,
+                system_prompt=req.system_prompt,
+            ),
+        )
+        return result.to_dict()
+
+    # ── Process ───────────────────────────────────────────────────
 
     @app.post("/v1/process", response_model=ProcessResponse)
     async def process(
