@@ -122,6 +122,7 @@ class LLMJudge:
             self._local_judge_device = device or (
                 "cuda" if torch.cuda.is_available() else "cpu"
             )
+            assert self._local_judge_model is not None
             self._local_judge_model.to(self._local_judge_device)
             self._local_judge_model.eval()
             logger.info(
