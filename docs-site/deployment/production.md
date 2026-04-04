@@ -83,6 +83,12 @@ scorer = CoherenceScorer(
     nli_quantize_8bit=True,
     nli_device="cuda",
 )
+
+# Optional: enable injection detection on every review()
+scorer.enable_injection_detection(
+    injection_threshold=0.7,
+    baseline_divergence=0.4,
+)
 ```
 
 ## Scaling

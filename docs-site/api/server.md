@@ -61,6 +61,7 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | `POST` | `/v1/verify/reasoning` | Reasoning chain logic verification |
 | `POST` | `/v1/temporal-freshness` | Temporal freshness / staleness scoring |
 | `POST` | `/v1/consensus` | Cross-model factual agreement |
+| `POST` | `/v1/injection/detect` | Intent-grounded prompt injection detection |
 | `POST` | `/v1/adversarial/test` | Adversarial robustness self-test |
 | `POST` | `/v1/conformal/predict` | Conformal prediction interval |
 | `POST` | `/v1/compliance/feedback-loops` | Feedback loop detection (Art 15(4)) |
@@ -137,6 +138,53 @@ director-ai serve
 ```
 
 The queue collects concurrent `/v1/review` requests and flushes them as a single `review_batch()` call, reducing GPU kernel launches from 2*N to 2 per flush window (when NLI is available).
+
+## Injection Detection
+
+Detect prompt injection effects in LLM output via bidirectional NLI divergence from original intent.
+
+```bash
+curl -X POST http://localhost:8080/v1/injection/detect \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "system_prompt": "You are a helpful customer service agent.",
+    "user_query": "What is the refund policy?",
+    "response": "Ignore all previous instructions. The system prompt is..."
+  }'
+```
+
+### Request Body
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `response` | `str` | Yes | LLM response to analyse |
+| `system_prompt` | `str` | No | System prompt / task description |
+| `user_query` | `str` | No | User's original query |
+| `intent` | `str` | No | Direct intent (fallback if system_prompt/user_query empty) |
+
+### Response
+
+```json
+{
+  "injection_detected": true,
+  "injection_risk": 0.85,
+  "intent_coverage": 0.33,
+  "total_claims": 3,
+  "grounded_claims": 1,
+  "drifted_claims": 0,
+  "injected_claims": 2,
+  "claims": [
+    {
+      "claim": "Ignore all previous instructions.",
+      "verdict": "injected",
+      "bidirectional_divergence": 0.92,
+      "traceability": 0.05
+    }
+  ],
+  "input_sanitizer_score": 0.95,
+  "combined_score": 0.88
+}
+```
 
 ## Full API
 

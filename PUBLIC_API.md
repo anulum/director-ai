@@ -18,7 +18,8 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `GroundTruthStore` | `core.knowledge` | In-memory keyword fact store |
 | `VectorGroundTruthStore` | `core.vector_store` | Vector DB RAG store |
 | `ScoreCache` | `core.cache` | LRU score cache |
-| `InputSanitizer` | `core.sanitizer` | Prompt injection detection |
+| `InputSanitizer` | `core.sanitizer` | Prompt injection pattern detection (Stage 1) |
+| `InjectionDetector` | `core.safety.injection` | Intent-grounded injection detection via NLI (Stage 2) |
 | `ConversationSession` | `core.session` | Multi-turn conversation tracker |
 | `DirectorConfig` | `core.config` | Configuration dataclass |
 | `VerifiedScorer` | `core.verified_scorer` | Sentence-level multi-signal fact verifier |
@@ -47,6 +48,8 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 | `TokenEvent` | `core.streaming` | Single token event from streaming |
 | `StreamSession` | `core.streaming` | Streaming session metrics |
 | `SanitizeResult` | `core.sanitizer` | Sanitizer check result |
+| `InjectionResult` | `core.types` | Injection detection result with per-claim attribution |
+| `InjectedClaim` | `core.types` | Per-claim injection verdict (grounded/drifted/injected) |
 | `Turn` | `core.session` | Single conversation turn |
 
 ### Retrieval Strategy
@@ -114,7 +117,7 @@ Frozen API surface. Breaking changes to items listed here require a major versio
 
 | Method | Description |
 |--------|-------------|
-| `review(prompt, response)` | Single review → `(bool, CoherenceScore)` |
+| `review(prompt, response)` | Single review → `(bool, CoherenceScore)` (sets `injection_risk` when detection enabled) |
 | `areview(prompt, response)` | Async single review (thread pool offload) |
 | `review_batch(items)` | Batch review with coalesced NLI — same threshold/task-type/meta-classifier logic as `review()`, but does not support session/cross-turn/contradiction tracking → `list[(bool, CoherenceScore)]` |
 
@@ -186,6 +189,7 @@ bypass the queue.
 | `PUT` | `/v1/knowledge/documents/{id}` | Re-ingest updated content |
 | `GET` | `/v1/knowledge/search` | Test retrieval quality |
 | `POST` | `/v1/knowledge/tune-embeddings` | Fine-tune embeddings on ingested docs |
+| `POST` | `/v1/injection/detect` | Intent-grounded prompt injection detection |
 
 ## Meta-Confidence Scoring (v3.10.0)
 
@@ -201,6 +205,7 @@ bypass the queue.
 | `nli_model_confidence` | `float \| None` | NLI softmax entropy-based confidence |
 | `signal_agreement` | `float \| None` | Agreement between h_logical and h_factual |
 | `contradiction_index` | `float \| None` | Cross-turn self-contradiction severity |
+| `injection_risk` | `float \| None` | Intent-grounded injection risk [0, 1] (when detection enabled) |
 
 ## Contradiction Tracking (v3.10.0)
 

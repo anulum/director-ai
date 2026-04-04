@@ -16,6 +16,12 @@ graph TD
         Halt["Halt Decision<br/>(hard / soft mode)"]
     end
 
+    subgraph "InjectionDetector"
+        Stage1["Stage 1: InputSanitizer<br/>(regex patterns)"]
+        Stage2["Stage 2: Bidirectional NLI<br/>(intent divergence)"]
+        Verdict["Per-Claim Verdicts<br/>(grounded / drifted / injected)"]
+    end
+
     subgraph "VerifiedScorer"
         SentMatch["Sentence Matching<br/>(NLI pair-wise)"]
         Signals["5 Signals<br/>(NLI, Entity, Number, Negation, Traceability)"]
@@ -33,6 +39,8 @@ graph TD
     end
 
     Prompt["Prompt + Response"] --> CoherenceScorer
+    Prompt --> |"/v1/injection/detect"| InjectionDetector
+    InjectionDetector --> Stage1 --> Stage2 --> Verdict
     Prompt --> |"/v1/verify"| VerifiedScorer
     VerifiedScorer --> SentMatch --> Signals --> Verdicts
     CoherenceScorer --> NLI

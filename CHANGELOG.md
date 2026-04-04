@@ -8,6 +8,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Intent-grounded prompt injection detection** (`core.safety.injection`):
+  two-stage pipeline — `InputSanitizer` (regex, fast) + `InjectionDetector`
+  (NLI bidirectional, semantic). Detects the *effect* of injection in the
+  output rather than pattern-matching the input. Per-claim attribution with
+  grounded/drifted/injected verdicts.
+- **`InjectionDetector`** class: bidirectional NLI divergence scoring against
+  the original intent (system prompt + user query). Baseline calibration,
+  traceability floor, multi-signal verdict per claim.
+- **`InjectionResult`**, **`InjectedClaim`** dataclasses in `core.types`.
+- **`injection_risk`** field on `CoherenceScore` — populated when injection
+  detection is enabled via `CoherenceScorer.enable_injection_detection()`.
+- **`POST /v1/injection/detect`** server endpoint — standalone injection
+  analysis with per-claim attribution.
+- **`ProductionGuard.check_injection()`** — lazy-init injection detector
+  using config thresholds, returns `InjectionResult`.
+- **6 config fields** on `DirectorConfig`: `injection_detection_enabled`,
+  `injection_threshold`, `injection_drift_threshold`,
+  `injection_claim_threshold`, `injection_baseline_divergence`,
+  `injection_stage1_weight`.
+- 40 tests for `InjectionDetector` (Phase 1) + 26 integration tests (Phase 2).
 - **Async Voice AI pipeline** (`director_ai.voice`): `AsyncVoiceGuard` for async
   token-by-token hallucination filtering, `voice_pipeline()` for end-to-end
   streaming audio with sentence buffering and halt recovery.

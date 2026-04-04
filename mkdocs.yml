@@ -176,6 +176,7 @@ nav:
       - NLI Backends: api/nli.md
       - Score Cache: api/cache.md
       - Input Sanitizer: api/sanitizer.md
+      - Injection Detector: api/injection-detector.md
       - Enterprise: api/enterprise.md
       - VerifiedScorer: api/verified-scorer.md
       - Knowledge API: api/knowledge.md

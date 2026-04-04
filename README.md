@@ -60,6 +60,7 @@ graph LR
 8. **Verification gems** — numeric consistency checks, reasoning chain verification, temporal freshness scoring, cross-model consensus, conformal prediction intervals. All stdlib-only, zero dependencies.
 9. **Agentic loop monitor** — detects circular tool calls, goal drift, and budget exhaustion in AI agent loops. The first guardrail that monitors agent execution, not just individual calls.
 10. **Adversarial self-test** — 25-pattern robustness suite tests your guardrail against zero-width chars, homoglyphs, encoding tricks, and prompt injection.
+11. **Intent-grounded injection detection** — two-stage pipeline: regex pattern matching (fast) + bidirectional NLI divergence scoring (semantic). Detects the *effect* of injection in the output — works regardless of how the attack was encoded. Per-claim attribution with grounded/drifted/injected verdicts.
 
 ### Scope
 

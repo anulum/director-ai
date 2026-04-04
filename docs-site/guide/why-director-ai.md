@@ -34,7 +34,7 @@ It does **not** handle:
 | Problem | Use Instead |
 |---------|-------------|
 | Toxicity / hate speech | [NeMo Guardrails](https://docs.nvidia.com/nemo/guardrails/latest/), [LLM-Guard](https://llm-guard.com/) |
-| Prompt injection | [Rebuff](https://github.com/protectai/rebuff), [LLM-Guard](https://llm-guard.com/) |
+| Prompt injection (input-side only) | [Rebuff](https://github.com/protectai/rebuff), [LLM-Guard](https://llm-guard.com/) — though Director-AI now includes `InjectionDetector` for output-side NLI-based detection |
 | PII leakage | [Presidio](https://github.com/microsoft/presidio), [LLM-Guard](https://llm-guard.com/) |
 | Content moderation | [OpenAI Moderation API](https://platform.openai.com/docs/guides/moderation), [Llama Guard](https://ai.meta.com/blog/purple-llama-llama-guard/) |
 | Code safety | [Semgrep](https://semgrep.dev/), [Snyk Code](https://snyk.io/product/snyk-code/) |

@@ -20,6 +20,7 @@ The primary return type from `CoherenceScorer.review()` and `score()`.
 | `nli_model_confidence` | `float \| None` | NLI softmax entropy-based confidence (v3.10.0) |
 | `signal_agreement` | `float \| None` | Agreement between h_logical and h_factual [0, 1] (v3.10.0) |
 | `contradiction_index` | `float \| None` | Cross-turn self-contradiction severity [0, 1] (v3.10.0) |
+| `injection_risk` | `float \| None` | Intent-grounded injection risk [0, 1] (when detection enabled) |
 
 ```python
 approved, score = scorer.review(query, response)
@@ -120,6 +121,43 @@ if session.halt_evidence_structured:
     for chunk in ev.evidence_chunks:
         print(f"  {chunk.text[:80]} (distance={chunk.distance:.3f})")
 ```
+
+---
+
+## InjectionResult {: #injectionresult }
+
+Return type from `InjectionDetector.detect()` and `ProductionGuard.check_injection()`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `injection_detected` | `bool` | Whether combined score exceeds threshold |
+| `injection_risk` | `float` | Aggregated injection risk [0, 1] |
+| `intent_coverage` | `float` | Fraction of grounded claims |
+| `total_claims` | `int` | Total decomposed claims |
+| `grounded_claims` | `int` | Claims aligned with intent |
+| `drifted_claims` | `int` | Claims deviating from intent |
+| `injected_claims` | `int` | Claims with no traceability to intent |
+| `claims` | `list[InjectedClaim]` | Per-claim breakdown |
+| `input_sanitizer_score` | `float` | Stage 1 pattern-match score |
+| `combined_score` | `float` | Weighted Stage 1 + Stage 2 |
+
+---
+
+## InjectedClaim {: #injectedclaim }
+
+Per-claim injection attribution from `InjectionDetector`.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `claim` | `str` | The atomic claim text |
+| `claim_index` | `int` | Position in decomposed list |
+| `intent_divergence` | `float` | Forward NLI: intent → claim |
+| `reverse_divergence` | `float` | Reverse NLI: claim → intent |
+| `bidirectional_divergence` | `float` | min(forward, reverse) |
+| `traceability` | `float` | Content-word overlap with intent |
+| `entity_match` | `float` | Named-entity overlap with intent |
+| `verdict` | `str` | `"grounded"`, `"drifted"`, or `"injected"` |
+| `confidence` | `float` | Verdict confidence [0, 1] |
 
 ---
 

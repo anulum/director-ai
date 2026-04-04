@@ -36,7 +36,8 @@ director-ai/
 │   │   │   ├── review_queue.py    ReviewQueue — continuous batching
 │   │   │   └── session.py         ConversationSession — multi-turn
 │   │   ├── safety/
-│   │   │   ├── sanitizer.py       InputSanitizer — prompt injection
+│   │   │   ├── sanitizer.py       InputSanitizer — prompt injection (Stage 1: regex)
+│   │   │   ├── injection.py       InjectionDetector — intent-grounded detection (Stage 2: NLI)
 │   │   │   ├── policy.py          Policy — rule engine
 │   │   │   └── audit.py           AuditLogger — JSONL audit trail
 │   │   ├── verification/           (v3.10.0 — stdlib only)
@@ -120,7 +121,9 @@ LLM Provider ──► guard() / CoherenceAgent
                       │
                       ├──► StreamingKernel (token-level halt)
                       │
-                      ├──► InputSanitizer (prompt injection)
+                      ├──► InputSanitizer (Stage 1: regex injection detection)
+                      │
+                      ├──► InjectionDetector (Stage 2: NLI intent-drift detection)
                       │
                       └──► AuditLogger (JSONL)
                               │
@@ -130,8 +133,9 @@ LLM Provider ──► guard() / CoherenceAgent
 
 ## Scoring Pipeline
 
-1. `InputSanitizer` checks prompt for injection patterns
-2. `CoherenceScorer.review(prompt, response)`:
+1. `InputSanitizer` checks prompt for injection patterns (Stage 1)
+2. `InjectionDetector` measures output divergence from intent via bidirectional NLI (Stage 2, optional)
+3. `CoherenceScorer.review(prompt, response)`:
    - Chunk response if > 3 sentences
    - NLI entailment score per chunk (if `[nli]` installed)
    - RAG fact-check against `GroundTruthStore` (if facts loaded)

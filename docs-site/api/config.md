@@ -144,6 +144,22 @@ store = config.build_store()
 | `cache_ttl` | `float` | `300.0` | Cache entry TTL (seconds) |
 | `redis_url` | `str` | `""` | Redis URL for distributed caching |
 
+### Injection Detection
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `injection_detection_enabled` | `bool` | `False` | Enable two-stage injection detection |
+| `injection_threshold` | `float` | `0.7` | Combined score above which injection is flagged |
+| `injection_drift_threshold` | `float` | `0.6` | Per-claim calibrated divergence above which = "drifted" |
+| `injection_claim_threshold` | `float` | `0.75` | Divergence + low traceability = "injected" |
+| `injection_baseline_divergence` | `float` | `0.4` | Expected normal intent divergence for on-topic responses |
+| `injection_stage1_weight` | `float` | `0.3` | Weight of InputSanitizer score in combined score |
+
+```bash
+DIRECTOR_INJECTION_DETECTION_ENABLED=true
+DIRECTOR_INJECTION_THRESHOLD=0.7
+```
+
 ## Full API
 
 ::: director_ai.core.config.DirectorConfig

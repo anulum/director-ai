@@ -85,7 +85,8 @@ The package lives in `src/director_ai/` with two profiles:
 | `core/retrieval/` | `vector_store.py` | `VectorGroundTruthStore` | Vector store with pluggable backends |
 | `core/safety/` | `policy.py` | `Policy`, `Violation` | YAML declarative policy engine |
 | `core/safety/` | `audit.py` | `AuditLogger`, `AuditEntry` | Structured JSON audit trail |
-| `core/safety/` | `sanitizer.py` | `InputSanitizer`, `SanitizeResult` | Prompt injection hardening |
+| `core/safety/` | `sanitizer.py` | `InputSanitizer`, `SanitizeResult` | Prompt injection hardening (Stage 1: regex) |
+| `core/safety/` | `injection.py` | `InjectionDetector` | Intent-grounded injection detection (Stage 2: NLI) |
 | `core/scoring/` | `meta_confidence.py` | `compute_meta_confidence` | Verdict confidence estimation (v3.10.0) |
 | `core/runtime/` | `contradiction_tracker.py` | `ContradictionTracker` | Cross-turn contradiction detection (v3.10.0) |
 | `core/verification/` | `json_verifier.py` | `verify_json()` | JSON Schema + value grounding (v3.10.0) |

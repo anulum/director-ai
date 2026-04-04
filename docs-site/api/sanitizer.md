@@ -58,6 +58,35 @@ scorer = config.build_scorer()
 # Inputs are sanitized before scoring
 ```
 
+## Stage 2: Intent-Grounded Detection
+
+`InputSanitizer` catches known patterns (Stage 1). For attacks that evade regex — semantic paraphrases, novel encodings, indirect manipulation — `InjectionDetector` measures whether the LLM *output* diverges from the original intent using bidirectional NLI.
+
+```python
+from director_ai.core.safety.injection import InjectionDetector
+
+detector = InjectionDetector(nli_scorer=scorer._nli)
+
+result = detector.detect(
+    intent="",
+    response="The refund policy allows returns within 30 days.",
+    user_query="What is the refund policy?",
+    system_prompt="You are a customer service agent.",
+)
+print(result.injection_detected)  # False
+print(result.injection_risk)      # 0.12
+```
+
+Per-claim verdicts:
+
+| Verdict | Meaning |
+|---------|---------|
+| `grounded` | Claim aligns with intent (low divergence, adequate traceability) |
+| `drifted` | Claim deviates from intent but has some traceability |
+| `injected` | Claim has no traceability to intent (fabrication or injection) |
+
+See [Injection Detector](injection-detector.md) for full API reference.
+
 ## Full API
 
 ::: director_ai.core.safety.sanitizer.InputSanitizer
