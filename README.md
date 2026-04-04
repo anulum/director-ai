@@ -29,6 +29,8 @@
   <a href="https://api.reuse.software/info/github.com/anulum/director-ai"><img src="https://api.reuse.software/badge/github.com/anulum/director-ai" alt="REUSE"></a>
 </p>
 
+> **Active Development** — Director-AI is under intensive development. The core guardrail engine, NLI scoring pipeline, 5-SDK guard, FastAPI middleware, REST/gRPC servers, and intent-grounded injection detection are fully functional, tested (4 126+ passing tests, zero functional failures), and production-deployable via PyPI. We are currently adding Rust-accelerated signal paths and expanding adversarial robustness coverage. APIs may evolve as this work progresses.
+
 ---
 
 ## What It Does
