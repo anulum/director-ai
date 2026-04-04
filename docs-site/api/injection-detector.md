@@ -141,6 +141,86 @@ All parameters are configurable via `DirectorConfig` fields prefixed with `injec
 
 See [InjectionResult](types.md#injectionresult) and [InjectedClaim](types.md#injectedclaim).
 
+## FastAPI Middleware
+
+`DirectorGuard` adds `X-Director-Injection-Risk` and `X-Director-Injection-Detected` response headers when injection detection is enabled:
+
+```python
+from director_ai.integrations.fastapi_guard import DirectorGuard
+
+app.add_middleware(
+    DirectorGuard,
+    facts={"refund": "within 30 days"},
+    injection_detection=True,
+    injection_threshold=0.7,
+    on_fail="reject",  # 422 on injection
+)
+```
+
+Response headers:
+
+| Header | Value | Description |
+|--------|-------|-------------|
+| `X-Director-Injection-Risk` | `0.0000`–`1.0000` | Combined injection risk score |
+| `X-Director-Injection-Detected` | `true` / `false` | Whether injection was flagged |
+
+The middleware extracts the system prompt from OpenAI-style `messages` arrays (first `role: system` message) for accurate intent construction.
+
+## SDK Guard
+
+`guard()` accepts `injection_detection` and `injection_threshold` across all 5 SDK shapes (OpenAI, Anthropic, Bedrock, Gemini, Cohere):
+
+```python
+from director_ai import guard
+from openai import OpenAI
+
+client = guard(
+    OpenAI(),
+    facts={"refund": "within 30 days"},
+    injection_detection=True,
+    injection_threshold=0.7,
+    on_fail="raise",  # raises InjectionDetectedError
+)
+
+response = client.chat.completions.create(
+    model="gpt-4o-mini",
+    messages=[{"role": "user", "content": "What is the refund policy?"}],
+)
+```
+
+| `on_fail` | Injection behaviour |
+|-----------|---------------------|
+| `"raise"` | Raises `InjectionDetectedError` |
+| `"log"` | Logs warning with risk score |
+| `"metadata"` | Stores score in context var (access via `get_score()`) |
+
+The `score()` function also accepts `injection_detection=True`:
+
+```python
+from director_ai import score
+
+cs = score("What is 2+2?", response_text, injection_detection=True)
+print(cs.injection_risk)
+```
+
+## Adversarial Robustness Testing
+
+`InjectionAdversarialTester` tests injection detection against 27 built-in attack patterns across 9 categories:
+
+```python
+from director_ai.core.safety.injection import InjectionDetector
+from director_ai.testing.adversarial_suite import InjectionAdversarialTester
+
+detector = InjectionDetector()
+tester = InjectionAdversarialTester(detector.detect)
+report = tester.run()
+
+print(f"Detection rate: {report.detection_rate:.1%}")
+print(f"Bypassed categories: {report.vulnerable_categories}")
+```
+
+Attack categories: instruction override, delimiter injection, data exfiltration, context switching, encoding payloads, roleplay injection, multilingual switching, markdown/link injection, gradual semantic drift.
+
 ## Full API
 
 ::: director_ai.core.safety.injection.InjectionDetector

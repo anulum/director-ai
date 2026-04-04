@@ -60,7 +60,7 @@ director-ai/
 │   │   └── loop_monitor.py        Circular call, goal drift, budget monitor
 │   │
 │   │   ├── testing/                (v3.10.0 — self-test)
-│   │   │   └── adversarial_suite.py   25-pattern adversarial robustness test
+│   │   │   └── adversarial_suite.py   25 hallucination + 27 injection adversarial patterns
 │   │   ├── training/
 │   │   │   ├── finetune.py        NLI fine-tuning
 │   │   │   ├── finetune_benchmark.py  Pre/post benchmark
@@ -97,7 +97,7 @@ director-ai/
 │
 ├── backfire-kernel/               Rust scorer backend (PyO3/maturin)
 │
-├── tests/                         4050+ tests, ≥90% coverage
+├── tests/                         4100+ tests, ≥90% coverage
 ├── benchmarks/                    27 evaluators
 ├── notebooks/                     16 Jupyter notebooks
 ├── docs-site/                     MkDocs documentation

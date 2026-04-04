@@ -82,6 +82,35 @@ def main():
     print("=== ProductionGuard ===")
     print(f"  Detected: {result.injection_detected}")
     print(f"  Risk:     {result.injection_risk:.3f}")
+    print()
+
+    # SDK guard() with injection detection
+    from director_ai.integrations.sdk_guard import score as sdk_score
+
+    cs = sdk_score(
+        "What is the refund policy?",
+        "Refunds are processed within 30 days.",
+        injection_detection=True,
+        injection_threshold=0.7,
+    )
+    print("=== SDK score() ===")
+    print(f"  Coherence:      {cs.score:.3f}")
+    print(f"  Injection risk: {cs.injection_risk}")
+    print()
+
+    # Adversarial robustness testing
+    from director_ai.testing.adversarial_suite import InjectionAdversarialTester
+
+    tester = InjectionAdversarialTester(detector.detect)
+    report = tester.run()
+    print("=== Adversarial Suite ===")
+    print(f"  Patterns:       {report.total_patterns}")
+    print(f"  Detected:       {report.detected}")
+    print(f"  Bypassed:       {report.bypassed}")
+    print(f"  Detection rate: {report.detection_rate:.1%}")
+    print(f"  Robust:         {report.is_robust}")
+    if report.vulnerable_categories:
+        print(f"  Vulnerable:     {report.vulnerable_categories}")
 
 
 if __name__ == "__main__":

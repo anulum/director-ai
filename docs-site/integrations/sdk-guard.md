@@ -87,6 +87,36 @@ if score and not score.approved:
     print(f"Low coherence: {score.score:.3f}")
 ```
 
+## Injection Detection
+
+Enable output-side prompt injection detection on any guarded client:
+
+```python
+client = guard(
+    OpenAI(),
+    facts={"refund": "within 30 days"},
+    injection_detection=True,
+    injection_threshold=0.7,
+    on_fail="raise",
+)
+```
+
+When injection is detected, the failure mode mirrors hallucination handling:
+
+| Mode | Behaviour |
+|------|-----------|
+| `on_fail="raise"` | Raises `InjectionDetectedError` |
+| `on_fail="log"` | Logs `Injection detected (risk=0.xxx)` warning |
+| `on_fail="metadata"` | Stores score in context var (check `cs.injection_risk`) |
+
+The `score()` function also supports injection detection:
+
+```python
+from director_ai import score
+cs = score(prompt, response, injection_detection=True)
+print(cs.injection_risk)  # 0.0–1.0 or None
+```
+
 ## Streaming Support
 
 Streaming is automatically guarded with periodic coherence checks every 8 tokens:

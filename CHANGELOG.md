@@ -28,6 +28,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `injection_claim_threshold`, `injection_baseline_divergence`,
   `injection_stage1_weight`.
 - 40 tests for `InjectionDetector` (Phase 1) + 26 integration tests (Phase 2).
+- **DirectorGuard middleware injection detection** — `injection_detection` and
+  `injection_threshold` parameters, `X-Director-Injection-Risk` and
+  `X-Director-Injection-Detected` response headers, system prompt extraction
+  from OpenAI-style messages, lazy-init detector, 422 rejection on injection
+  when `on_fail="reject"`.
+- **SDK `guard()` injection detection** — `injection_detection` and
+  `injection_threshold` parameters across all 5 proxy types (OpenAI,
+  Anthropic, Bedrock, Gemini, Cohere). `InjectionDetectedError` exception
+  for raise/log/metadata failure modes.
+- **`InjectionDetectedError`** exception in `core.exceptions`.
+- **`InjectionAdversarialTester`** in `testing.adversarial_suite` — 9 injection
+  attack transforms (instruction override, delimiter injection, data
+  exfiltration, context switch, encoding, roleplay, multilingual, markdown,
+  gradual drift), 27 built-in patterns, `RobustnessReport` output.
+- 50 tests for Phase 3 (middleware, SDK guard, adversarial suite).
 - **Async Voice AI pipeline** (`director_ai.voice`): `AsyncVoiceGuard` for async
   token-by-token hallucination filtering, `voice_pipeline()` for end-to-end
   streaming audio with sentence buffering and halt recovery.

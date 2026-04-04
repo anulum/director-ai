@@ -191,6 +191,22 @@ bypass the queue.
 | `POST` | `/v1/knowledge/tune-embeddings` | Fine-tune embeddings on ingested docs |
 | `POST` | `/v1/injection/detect` | Intent-grounded prompt injection detection |
 
+## Injection Detection Exceptions
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `InjectionDetectedError` | `core.exceptions` | Raised by SDK guard when injection is detected (`on_fail="raise"`) |
+
+## Adversarial Testing
+
+| Class | Module | Description |
+|-------|--------|-------------|
+| `AdversarialTester` | `testing.adversarial_suite` | Test hallucination guardrail robustness (25 patterns) |
+| `InjectionAdversarialTester` | `testing.adversarial_suite` | Test injection detection robustness (27 patterns) |
+| `AdversarialPattern` | `testing.adversarial_suite` | Single adversarial attack pattern |
+| `AdversarialResult` | `testing.adversarial_suite` | Result of testing one pattern |
+| `RobustnessReport` | `testing.adversarial_suite` | Robustness summary (detection rate, vulnerable categories) |
+
 ## Meta-Confidence Scoring (v3.10.0)
 
 | Function | Module | Description |

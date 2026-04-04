@@ -156,6 +156,7 @@ nav:
       - Migration (v2→v3): guide/migration-v2-v3.md
   - Integrations:
       - OpenAI / Anthropic SDK: integrations/sdk-guard.md
+      - FastAPI Middleware: integrations/fastapi-guard.md
       - LangChain: integrations/langchain.md
       - LlamaIndex: integrations/llamaindex.md
       - LangGraph: integrations/langgraph.md
