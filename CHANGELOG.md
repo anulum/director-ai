@@ -70,6 +70,28 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **VerifiedScorer ablation E+F script** (`benchmarks/ablation_ef.py`): NLI-gated
   and BM25 traceability variants tested and rejected.
 
+### Changed
+- **God File refactoring** — four large modules split into focused sub-modules
+  with zero API changes (all re-exported through original paths):
+  - `server.py` (2144→1737): Pydantic models → `_server_models.py`,
+    serialisation helpers → `_server_helpers.py`.
+  - `scorer.py` (1843→1419): LLM judge → `_llm_judge.py`,
+    task detection + dialogue/summarisation → `_task_scoring.py`.
+  - `cli.py` (1653→399): 25 subcommands → `_cli_bench.py`,
+    `_cli_serve.py`, `_cli_verify.py`, `_cli_ingest.py`.
+  - `nli.py` (1536→1262): ONNX/TensorRT export + dynamic batcher →
+    `_nli_export.py`.
+
+### Fixed
+- **MiniCheck heuristic fallback** now respects `use_model=False` — skips
+  expensive MiniCheck init (which triggers CVE-2025-32434 torch.load warning
+  on torch < 2.6) and falls back to heuristic immediately.
+- **types-PyYAML** added to dev dependencies for mypy stubs.
+- **German "Alle"** added to root `_typos.toml` for injection test patterns.
+- **Salted API key hash** — audit fingerprint uses salted SHA-256.
+- **HuggingFace model revision pins** — NLI, embedding, and reranker models
+  pinned to specific commit hashes for supply-chain security.
+
 ## [3.11.1] — 2026-03-27
 
 ### Fixed

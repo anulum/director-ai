@@ -11,7 +11,10 @@ director-ai/
 │   ├── core/
 │   │   ├── scoring/
 │   │   │   ├── scorer.py          CoherenceScorer — dual-entropy scoring
-│   │   │   ├── nli.py             NLIScorer — DeBERTa/FactCG/ONNX backends
+│   │   │   ├── _llm_judge.py      LLMJudge — LLM-as-judge escalation
+│   │   │   ├── _task_scoring.py   Task-type detection + dialogue/summarisation
+│   │   │   ├── nli.py             NLIScorer — DeBERTa/FactCG backends
+│   │   │   ├── _nli_export.py     ONNX/TensorRT export + dynamic batcher
 │   │   │   ├── verified_scorer.py VerifiedScorer — sentence-level multi-signal
 │   │   │   ├── meta_classifier.py DatasetTypeClassifier — adaptive thresholds
 │   │   │   ├── meta_confidence.py Meta-confidence signal computation
@@ -89,8 +92,14 @@ director-ai/
 │   │   ├── adapters.py            TTSAdapter ABC + ElevenLabs, OpenAI, Deepgram
 │   │   └── pipeline.py            voice_pipeline() — guard + TTS → audio bytes
 │   │
-│   ├── cli.py                     CLI (18 commands)
+│   ├── cli.py                     CLI dispatcher (25 commands)
+│   ├── _cli_bench.py              CLI: eval/bench/tune/finetune/export
+│   ├── _cli_serve.py              CLI: serve/proxy/stress-test
+│   ├── _cli_verify.py             CLI: doctor/license/compliance/verify
+│   ├── _cli_ingest.py             CLI: document ingestion
 │   ├── server.py                  FastAPI REST server
+│   ├── _server_models.py          Pydantic request/response models
+│   ├── _server_helpers.py         Evidence serialisation helpers
 │   ├── grpc_server.py             gRPC server
 │   ├── knowledge_api.py           Document ingestion API router
 │   └── proxy.py                   OpenAI-compatible guardrail proxy
