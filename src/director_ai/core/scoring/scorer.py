@@ -898,7 +898,7 @@ class CoherenceScorer:
 
             sanitizer = InputSanitizer()
         except Exception:
-            pass
+            self.logger.debug("InputSanitizer unavailable for injection detection")
 
         self._injection_detector = InjectionDetector(
             nli_scorer=self._nli,
