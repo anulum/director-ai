@@ -839,10 +839,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 )
             import hashlib
 
-            # Truncated SHA-256 fingerprint for audit logs only — NOT used for
-            # authentication or password storage. The API key is verified via
-            # constant-time HMAC comparison above.
-            api_key_hash = hashlib.sha256(provided.encode()).hexdigest()[:16]
+            # Salted truncated SHA-256 fingerprint for audit logs only — NOT
+            # used for authentication or password storage. The API key is
+            # verified via constant-time HMAC comparison above. Salt prevents
+            # rainbow table recovery if audit logs leak.
+            audit_salt = b"director-ai-audit-v1"
+            api_key_hash = hashlib.sha256(audit_salt + provided.encode()).hexdigest()[
+                :16
+            ]
 
             # Tenant binding: enforce API key Ă˘â€ â€™ tenant mapping if configured
             if _api_key_tenant_map:
