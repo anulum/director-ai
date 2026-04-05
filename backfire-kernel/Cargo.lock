@@ -81,7 +81,9 @@ dependencies = [
  "criterion",
  "env_logger",
  "log",
+ "once_cell",
  "parking_lot",
+ "regex",
 ]
 
 [[package]]

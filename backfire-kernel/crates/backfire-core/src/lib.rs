@@ -37,6 +37,7 @@
 //!    performs only arithmetic, comparisons, and atomic loads/stores.
 
 pub mod bm25;
+pub mod compute;
 pub mod kernel;
 pub mod knowledge;
 pub mod nli;

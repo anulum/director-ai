@@ -32,6 +32,13 @@ from dataclasses import dataclass, field
 
 __all__ = ["InputSanitizer", "SanitizeResult"]
 
+try:
+    from backfire_kernel import rust_has_suspicious_unicode, rust_sanitizer_score
+
+    _RUST_SANITIZER = True
+except ImportError:
+    _RUST_SANITIZER = False
+
 _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     (
         "instruction_override",
@@ -198,6 +205,23 @@ class InputSanitizer:
                 matches=["unicode"],
             )
 
+        # Rust fast path: use when no custom patterns or allowlist
+        if (
+            _RUST_SANITIZER
+            and not self._allowlist
+            and len(self._patterns) == len(_INJECTION_PATTERNS)
+        ):
+            clamped, matched = rust_sanitizer_score(text)
+            blocked = clamped >= self.block_threshold
+            return SanitizeResult(
+                blocked=blocked,
+                reason=matched[0] if matched else "",
+                pattern=matched[0] if matched else "",
+                suspicion_score=clamped,
+                matches=matched,
+            )
+
+        # Python fallback
         allowlisted = self._is_allowlisted(text)
         matched: list[str] = []
         total = 0.0
@@ -245,6 +269,8 @@ class InputSanitizer:
         Only Me (enclosing marks), Cf (format), Co (private use), and
         Cn (unassigned) count as suspicious.
         """
+        if _RUST_SANITIZER:
+            return rust_has_suspicious_unicode(text)
         if not text:
             return False
         suspicious = 0

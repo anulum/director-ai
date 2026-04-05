@@ -1212,6 +1212,76 @@ impl PyBM25 {
     }
 }
 
+// ── Compute accelerators (sanitizer, task detection, verification, NLI) ──
+
+#[pyfunction]
+fn rust_sanitizer_score(text: &str) -> (f64, Vec<String>) {
+    backfire_core::compute::sanitizer_score(text)
+}
+
+#[pyfunction]
+fn rust_has_suspicious_unicode(text: &str) -> bool {
+    backfire_core::compute::has_suspicious_unicode(text)
+}
+
+#[pyfunction]
+fn rust_detect_task_type(prompt: &str, response: &str) -> String {
+    backfire_core::compute::detect_task_type(prompt, response)
+}
+
+#[pyfunction]
+fn rust_verify_numeric(
+    text: &str,
+    current_year: i32,
+) -> (usize, Vec<(String, String, String, String)>, bool) {
+    let (claims, issues, valid) = backfire_core::compute::verify_numeric(text, current_year);
+    let issues_tuples: Vec<(String, String, String, String)> = issues
+        .into_iter()
+        .map(|i| (i.issue_type, i.description, i.severity, i.context))
+        .collect();
+    (claims, issues_tuples, valid)
+}
+
+#[pyfunction]
+fn rust_score_temporal_freshness(text: &str) -> (Vec<(String, String, f64)>, f64, bool) {
+    let (claims, overall, has) = backfire_core::compute::score_temporal_freshness(text);
+    let claims_tuples: Vec<(String, String, f64)> = claims
+        .into_iter()
+        .map(|c| (c.text, c.claim_type, c.staleness_risk))
+        .collect();
+    (claims_tuples, overall, has)
+}
+
+#[pyfunction]
+fn rust_extract_reasoning_steps(text: &str) -> Vec<String> {
+    backfire_core::compute::extract_reasoning_steps(text)
+}
+
+#[pyfunction]
+fn rust_word_overlap(text_a: &str, text_b: &str) -> f64 {
+    backfire_core::compute::word_overlap(text_a, text_b)
+}
+
+#[pyfunction]
+fn rust_softmax(logits: Vec<f64>, cols: usize) -> Vec<f64> {
+    backfire_core::compute::softmax(&logits, cols)
+}
+
+#[pyfunction]
+fn rust_probs_to_divergence(
+    probs: Vec<f64>,
+    cols: usize,
+    contradiction_idx: usize,
+    neutral_idx: usize,
+) -> Vec<f64> {
+    backfire_core::compute::probs_to_divergence(&probs, cols, contradiction_idx, neutral_idx)
+}
+
+#[pyfunction]
+fn rust_probs_to_confidence(probs: Vec<f64>, cols: usize) -> Vec<f64> {
+    backfire_core::compute::probs_to_confidence(&probs, cols)
+}
+
 #[pymodule]
 fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core safety gate
@@ -1242,5 +1312,16 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_injection_verdict, m)?)?;
     // BM25 retrieval engine
     m.add_class::<PyBM25>()?;
+    // Compute accelerators
+    m.add_function(wrap_pyfunction!(rust_sanitizer_score, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_has_suspicious_unicode, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_detect_task_type, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_verify_numeric, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_score_temporal_freshness, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_extract_reasoning_steps, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_word_overlap, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_softmax, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_probs_to_divergence, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_probs_to_confidence, m)?)?;
     Ok(())
 }

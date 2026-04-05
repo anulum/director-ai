@@ -20,6 +20,13 @@ import re
 
 from ..types import ScoringEvidence
 
+try:
+    from backfire_kernel import rust_detect_task_type
+
+    _RUST_TASK = True
+except ImportError:
+    _RUST_TASK = False
+
 logger = logging.getLogger("DirectorAI")
 
 # Dialogue detection: ≥2 speaker-turn markers → dialogue task.
@@ -40,12 +47,16 @@ def detect_task_type(prompt: str, response: str = "") -> str:
     Returns one of: ``"dialogue"``, ``"summarization"``, ``"rag"``,
     ``"fact_check"``, ``"qa"``, or ``"default"``.
 
+    Uses Rust accelerator when available, Python fallback otherwise.
+
     When *response* is provided, a length-ratio heuristic detects
     summarisation even when the prompt lacks explicit keywords.
     A prompt longer than 1 000 chars whose response is shorter than
     30 % of the prompt length is classified as summarisation —
     unless dialogue markers are present.
     """
+    if _RUST_TASK:
+        return rust_detect_task_type(prompt, response)
     matches = _DIALOGUE_TURN_RE.findall(prompt)
     if len(matches) >= 2:
         return "dialogue"

@@ -17,6 +17,8 @@ description = "Director-Class AI Backfire Kernel — scoring engine, token gatin
 backfire-types = { path = "../backfire-types" }
 log = { workspace = true }
 parking_lot = { workspace = true }
+regex = { workspace = true }
+once_cell = { workspace = true }
 
 [dev-dependencies]
 criterion = { workspace = true }

@@ -29,6 +29,13 @@ __all__ = [
     "verify_numeric",
 ]
 
+try:
+    from backfire_kernel import rust_verify_numeric
+
+    _RUST_NUMERIC = True
+except ImportError:
+    _RUST_NUMERIC = False
+
 _PERCENT_PATTERN = re.compile(
     r"(?:grew|increased|decreased|dropped|rose|fell|declined|changed|gained|lost)"
     r"\s+(?:by\s+)?(\d{1,10}(?:\.\d{1,10})?)\s*%"
@@ -102,7 +109,22 @@ def verify_numeric(text: str) -> NumericVerificationResult:
 
     Checks percentage arithmetic, date logic, probability bounds,
     and internal number consistency. Returns issues found.
+
+    Uses Rust accelerator when available, Python fallback otherwise.
     """
+    if _RUST_NUMERIC:
+        current_year = datetime.now().year
+        claims_found, raw_issues, valid = rust_verify_numeric(text, current_year)
+        issues = [
+            NumericIssue(
+                issue_type=it, description=desc, severity=sev, context=ctx,
+            )
+            for it, desc, sev, ctx in raw_issues
+        ]
+        return NumericVerificationResult(
+            claims_found=claims_found, issues=issues, valid=valid,
+        )
+
     issues: list[NumericIssue] = []
     claims_found = 0
 
