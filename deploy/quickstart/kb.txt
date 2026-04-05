@@ -1,0 +1,8 @@
+refund_policy: Refunds are available within 30 days of purchase only. No exceptions after 30 days.
+shipping: Standard shipping takes 5-7 business days. Express shipping is 1-2 business days.
+returns: Items must be unused and in original packaging. Opened software cannot be returned.
+warranty: All products come with a 1-year manufacturer warranty. Extended warranty available for purchase.
+pricing: Prices are in USD. We do not price-match competitors.
+support_hours: Customer support is available Monday-Friday 9am-5pm EST. No weekend support.
+payment: We accept Visa, Mastercard, and PayPal. No cryptocurrency or wire transfers.
+cancellation: Orders can be cancelled within 1 hour of placement. After that, standard return policy applies.

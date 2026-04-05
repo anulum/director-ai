@@ -162,6 +162,26 @@ speedup. String-heavy functions (`negation_flip`, `traceability`) are slower in
 Rust due to PyO3 FFI string marshalling overhead at microsecond scale — the
 crossing cost exceeds the computation time.
 
+### Cross-Platform NLI Latency (p99, PyTorch FP32, 16-pair batch)
+
+Measured 2026-04-05 with `benchmarks/latency_distribution.py`.
+
+| Platform | Type | Per-pair p99 | Batch p99 (16p) | Notes |
+|----------|------|-------------|-----------------|-------|
+| GTX 1060 6GB | CUDA 12.6 | **17.9 ms** | 287 ms | Consumer GPU, PyTorch 2.6 |
+| RX 6600 XT 8GB | ROCm 6.2 | 80.1 ms | 1,282 ms | hipBLAS fallback, mining rig |
+| EPYC 9575F 4C | CPU | 118.9 ms | 1,903 ms | UpCloud cloud, Zen 5 (2025) |
+| Xeon E5-2640 2×6C | CPU | 207.3 ms | 3,317 ms | ML350 Gen8, 128 GB RAM |
+
+Heuristic-only (no NLI model): p99 < 0.5 ms on all platforms.
+
+Raw data: `benchmarks/results/latency_*.json`. Run your own:
+
+```bash
+python -m benchmarks.latency_distribution --run --iterations 500         # CPU
+python -m benchmarks.latency_distribution --run --nli --device cuda:0    # GPU
+```
+
 ---
 
 ## End-to-End Guardrail

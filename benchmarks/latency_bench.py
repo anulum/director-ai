@@ -282,7 +282,7 @@ def print_result(r: LatencyResult) -> None:
     print(
         f"  {r.name:28s}  mean={r.mean:8.2f} ms  "
         f"median={r.median:8.2f} ms  p95={r.p95:8.2f} ms  "
-        f"(n={len(r.times_ms)})",
+        f"p99={r.p99:8.2f} ms  (n={len(r.times_ms)})",
     )
 
 
@@ -521,15 +521,16 @@ def main():
     # ── Summary table ─────────────────────────────────────────
     print(f"\n{'=' * 72}")
     print(
-        f"  {'Benchmark':28s}  {'mean':>8s}  {'median':>8s}  {'p95':>8s}  {'per-pair':>8s}",
+        f"  {'Benchmark':28s}  {'mean':>8s}  {'median':>8s}  "
+        f"{'p95':>8s}  {'p99':>8s}  {'per-pair':>8s}",
     )
-    print(f"  {'-' * 64}")
+    print(f"  {'-' * 76}")
     for r in results:
         n_pairs = 16 if "16 pairs" in r.name else 1
         per_pair = r.median / n_pairs
         print(
             f"  {r.name:28s}  {r.mean:7.1f}ms  {r.median:7.1f}ms  "
-            f"{r.p95:7.1f}ms  {per_pair:7.1f}ms",
+            f"{r.p95:7.1f}ms  {r.p99:7.1f}ms  {per_pair:7.1f}ms",
         )
     print(f"{'=' * 72}\n")
 

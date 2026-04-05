@@ -152,6 +152,8 @@ nav:
       - Architecture: guide/architecture.md
       - Enterprise: guide/enterprise.md
       - AGPL Compliance: guide/agpl-compliance.md
+      - Failure Case Studies: guide/failure-case-studies.md
+      - Feature Depth Assessment: guide/feature-depth-assessment.md
       - Troubleshooting: guide/troubleshooting.md
       - Migration (v2→v3): guide/migration-v2-v3.md
   - Integrations:

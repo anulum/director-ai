@@ -171,6 +171,18 @@ Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison
 
 Full results: [`benchmarks/results/rust_compute_bench.json`](benchmarks/results/rust_compute_bench.json).
 
+### Cross-platform NLI latency (p99, 16-pair batch)
+
+| Platform | Type | Per-pair p99 | Batch p99 (16p) | Notes |
+|----------|------|-------------|-----------------|-------|
+| GTX 1060 6GB | CUDA 12.6 | **17.9 ms** | 287 ms | PyTorch FP32, 100 iterations |
+| RX 6600 XT 8GB | ROCm 6.2 | 80.1 ms | 1,282 ms | hipBLAS fallback |
+| EPYC 9575F 4C | CPU | 118.9 ms | 1,903 ms | UpCloud cloud, Zen 5 |
+| Xeon E5-2640 2×6C | CPU | 207.3 ms | 3,317 ms | ML350 Gen8, 128 GB RAM |
+
+Heuristic-only (no NLI): p99 < 0.5 ms on all platforms.
+Raw data: [`benchmarks/results/`](benchmarks/results/).
+
 ---
 
 ## Known Limitations

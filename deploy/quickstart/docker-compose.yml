@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI Quickstart — 2-minute setup
+#
+# Usage:
+#   cd deploy/quickstart
+#   docker compose up
+#
+# Then point your OpenAI client at http://localhost:8080/v1
+# Every response is scored against kb.txt — hallucinations are rejected.
+#
+# Test:
+#   curl http://localhost:8080/v1/health
+#   curl -X POST http://localhost:8080/v1/score \
+#     -H "Content-Type: application/json" \
+#     -d '{"prompt": "What is the refund policy?", "response": "We offer lifetime refunds."}'
+
+services:
+  director-proxy:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./kb.txt:/app/kb.txt:ro
+    command: ["proxy", "--port", "8080", "--facts", "/app/kb.txt", "--threshold", "0.3", "--on-fail", "reject"]
+    environment:
+      - DIRECTOR_LOG_LEVEL=INFO
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/v1/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
