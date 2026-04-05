@@ -241,11 +241,11 @@ class TestCliEdgeBranches:
 
     def test_ingest_skips_oversized_file(self, tmp_path):
         """Files exceeding _INGEST_MAX_FILE_SIZE are skipped (lines 402-403)."""
-        from director_ai import cli
+        from director_ai import _cli_ingest
 
-        orig_limit = cli._INGEST_MAX_FILE_SIZE
+        orig_limit = _cli_ingest._INGEST_MAX_FILE_SIZE
         try:
-            cli._INGEST_MAX_FILE_SIZE = 10  # 10 bytes
+            _cli_ingest._INGEST_MAX_FILE_SIZE = 10  # 10 bytes
             big = tmp_path / "big.txt"
             big.write_text("x" * 100, encoding="utf-8")
 
@@ -257,11 +257,11 @@ class TestCliEdgeBranches:
                 mock_store.ingest.return_value = 0
                 mock_cfg.build_store.return_value = mock_store
                 mock_from_env.return_value = mock_cfg
-                cli._cmd_ingest([str(tmp_path)])
+                _cli_ingest._cmd_ingest([str(tmp_path)])
             texts = mock_store.ingest.call_args[0][0]
             assert len(texts) == 0
         finally:
-            cli._INGEST_MAX_FILE_SIZE = orig_limit
+            _cli_ingest._INGEST_MAX_FILE_SIZE = orig_limit
 
     def test_eval_model_flag_parsed(self):
         """--model flag in eval is parsed (lines 469-473)."""
