@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.12.0] — 2026-04-05
+
 ### Added
 - **Intent-grounded prompt injection detection** (`core.safety.injection`):
   two-stage pipeline — `InputSanitizer` (regex, fast) + `InjectionDetector`

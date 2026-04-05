@@ -72,9 +72,9 @@ Director-AI beats all tested frontier LLMs on AggreFact at $0 per call and 0.5 m
 
 ## Latency
 
-### NLI Single-Pair (v3.11.1 — CUDA auto-detection)
+### NLI Single-Pair (v3.12.0 — CUDA auto-detection)
 
-v3.11.1 fixed `_load_nli_model()` to auto-select CUDA when available.
+v3.12.0 fixed `_load_nli_model()` to auto-select CUDA when available.
 No `nli_device` parameter required — the model moves to GPU automatically.
 
 | Hardware | Median | p95 | Throughput | VRAM |
@@ -143,7 +143,7 @@ xychart-beta
 | CoherenceScorer.review() | 0.022 ms | 0.002 ms | 11.0x |
 | Kuramoto UPDE 100 steps | 2.626 ms | 0.272 ms | 9.7x |
 
-### Rust vs Python Signal Functions (v3.11.1, 5000 iterations)
+### Rust vs Python Signal Functions (v3.12.0, 5000 iterations)
 
 Verification signal functions ported to Rust via `backfire-kernel` (PyO3 FFI).
 Auto-dispatch: uses Rust when `backfire-kernel` installed, falls back silently.

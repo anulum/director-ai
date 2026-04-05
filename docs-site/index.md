@@ -2,7 +2,7 @@
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
-<span class="version-badge">v3.11.1 — ProductionGuard, atomic claims, Semantic Kernel/DSPy, Helm, Sigstore signing</span>
+<span class="version-badge">v3.12.0 — 12 Rust accelerators (9.4× speedup), injection detection, voice pipeline, God File refactoring</span>
 
 [![CI](https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/ci.yml)
 [![Pre-commit](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml)
@@ -142,7 +142,7 @@ AGPL-3.0 for open source / research. [Commercial licensing](licensing.md) availa
 [GitHub Discussions](https://github.com/anulum/director-ai/discussions) |
 [www.anulum.li](https://www.anulum.li)
 
-*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.11.1.*
+*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.12.0.*
 
 <p align="center">
   <a href="https://www.anulum.li">
