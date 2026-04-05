@@ -106,9 +106,9 @@ director-ai/
 │
 ├── backfire-kernel/               Rust scorer backend (PyO3/maturin)
 │   └── crates/backfire-core/src/
-│       ├── compute.rs             10 Rust accelerators (sanitizer, task type,
-│       │                          numeric verifier, temporal freshness,
-│       │                          reasoning steps, NLI softmax/divergence)
+│       ├── compute.rs             12 Rust compute functions (sanitizer, unicode,
+│       │                          task type, numeric, temporal, reasoning,
+│       │                          word overlap, NLI softmax/div/conf, lite score)
 │       ├── signals.rs             VerifiedScorer signals (entity, negation, etc.)
 │       └── kernel.rs              Safety kernel, streaming gate
 │

@@ -58,7 +58,7 @@ All three must pass in CI before merge.
 3. **Lint** must pass: `ruff check && ruff format --check`
 4. **Coverage**: add tests for new functionality
 5. **Commits**: one logical change per commit, imperative mood, under 72 chars
-6. **PR description**: summarize changes, link related issues
+6. **PR description**: summarise changes, link related issues
 
 ## Architecture
 
