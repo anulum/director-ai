@@ -105,6 +105,12 @@ director-ai/
 │   └── proxy.py                   OpenAI-compatible guardrail proxy
 │
 ├── backfire-kernel/               Rust scorer backend (PyO3/maturin)
+│   └── crates/backfire-core/src/
+│       ├── compute.rs             10 Rust accelerators (sanitizer, task type,
+│       │                          numeric verifier, temporal freshness,
+│       │                          reasoning steps, NLI softmax/divergence)
+│       ├── signals.rs             VerifiedScorer signals (entity, negation, etc.)
+│       └── kernel.rs              Safety kernel, streaming gate
 │
 ├── tests/                         4120+ tests, ≥90% coverage
 ├── benchmarks/                    27 evaluators

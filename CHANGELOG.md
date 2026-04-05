@@ -69,6 +69,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Each entry installs real SDK dependencies and runs the full test suite.
 - **VerifiedScorer ablation E+F script** (`benchmarks/ablation_ef.py`): NLI-gated
   and BM25 traceability variants tested and rejected.
+- **Rust compute accelerators** (`backfire-core::compute`): 10 new FFI functions
+  for CPU-bound Python operations. Hot-path functions auto-select Rust when
+  `backfire_kernel` is installed, with transparent Python fallback:
+  - `rust_sanitizer_score` — 11 injection regex patterns (wired into `InputSanitizer.score()`)
+  - `rust_has_suspicious_unicode` — Unicode category analysis (wired)
+  - `rust_detect_task_type` — task classification from prompt (wired into `detect_task_type()`)
+  - `rust_verify_numeric` — numeric consistency checks (wired into `verify_numeric()`)
+  - `rust_score_temporal_freshness`, `rust_extract_reasoning_steps`,
+    `rust_word_overlap`, `rust_softmax`, `rust_probs_to_divergence`,
+    `rust_probs_to_confidence` — FFI-ready, Python wiring on demand.
+  - 34 Rust unit tests + 38 Python parity tests.
 
 ### Changed
 - **God File refactoring** — four large modules split into focused sub-modules
