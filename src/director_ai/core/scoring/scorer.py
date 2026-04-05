@@ -934,7 +934,7 @@ class CoherenceScorer:
         # Eager-load NLI in the main thread to avoid PyTorch 2.6 dispatch
         # corruption when from_pretrained runs inside a ThreadPoolExecutor
         # worker after a CUDA model was already loaded.
-        if self._nli is not None:
+        if self._nli is not None and hasattr(self._nli, "_ensure_model"):
             self._nli._ensure_model()
 
         # Task-aware aggregation profile
