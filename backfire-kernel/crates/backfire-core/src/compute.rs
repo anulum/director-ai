@@ -529,7 +529,7 @@ pub fn extract_reasoning_steps(text: &str) -> Vec<String> {
 
     // Sentence fallback
     let sentences: Vec<String> = text
-        .split(|c: char| c == '.' || c == '!' || c == '?')
+        .split(['.', '!', '?'])
         .map(|s| s.trim().to_string())
         .filter(|s| s.len() > 10)
         .collect();
