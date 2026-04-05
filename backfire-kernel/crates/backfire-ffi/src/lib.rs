@@ -1229,11 +1229,10 @@ fn rust_detect_task_type(prompt: &str, response: &str) -> String {
     backfire_core::compute::detect_task_type(prompt, response)
 }
 
+type NumericIssuesTuple = Vec<(String, String, String, String)>;
+
 #[pyfunction]
-fn rust_verify_numeric(
-    text: &str,
-    current_year: i32,
-) -> (usize, Vec<(String, String, String, String)>, bool) {
+fn rust_verify_numeric(text: &str, current_year: i32) -> (usize, NumericIssuesTuple, bool) {
     let (claims, issues, valid) = backfire_core::compute::verify_numeric(text, current_year);
     let issues_tuples: Vec<(String, String, String, String)> = issues
         .into_iter()

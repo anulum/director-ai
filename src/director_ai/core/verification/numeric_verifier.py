@@ -115,22 +115,21 @@ def verify_numeric(text: str) -> NumericVerificationResult:
     if _RUST_NUMERIC:
         current_year = datetime.now().year
         claims_found, raw_issues, valid = rust_verify_numeric(text, current_year)
-        issues = [
-            NumericIssue(
-                issue_type=it,
-                description=desc,
-                severity=sev,
-                context=ctx,
-            )
-            for it, desc, sev, ctx in raw_issues
-        ]
         return NumericVerificationResult(
             claims_found=claims_found,
-            issues=issues,
+            issues=[
+                NumericIssue(
+                    issue_type=it,
+                    description=desc,
+                    severity=sev,
+                    context=ctx,
+                )
+                for it, desc, sev, ctx in raw_issues
+            ],
             valid=valid,
         )
 
-    issues = []  # type: list[NumericIssue]
+    issues: list[NumericIssue] = []
     claims_found = 0
 
     # 1. Percentage arithmetic
