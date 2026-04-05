@@ -12,16 +12,11 @@
   <a href="https://github.com/anulum/director-ai/actions/workflows/ci.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml/badge.svg" alt="Pre-commit"></a>
   <a href="https://github.com/anulum/director-ai/actions/workflows/codeql.yml"><img src="https://github.com/anulum/director-ai/actions/workflows/codeql.yml/badge.svg" alt="CodeQL"></a>
-  <img src="https://img.shields.io/badge/tests-4126_passed-brightgreen.svg" alt="Tests">
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/v/director-ai.svg" alt="PyPI"></a>
   <a href="https://pypi.org/project/director-ai/"><img src="https://img.shields.io/pypi/dm/director-ai.svg" alt="Downloads"></a>
   <a href="https://codecov.io/gh/anulum/director-ai"><img src="https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg" alt="Coverage"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/pypi/pyversions/director-ai.svg" alt="Python"></a>
-  <img src="https://img.shields.io/badge/code%20style-ruff-261230.svg" alt="Ruff">
-  <img src="https://img.shields.io/badge/types-mypy-blue.svg" alt="mypy">
-  <img src="https://img.shields.io/badge/signing-Sigstore-purple.svg" alt="Sigstore">
   <a href="https://www.gnu.org/licenses/agpl-3.0"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a>
-  <a href="https://huggingface.co/spaces/anulum/director-ai-guardrail"><img src="https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Demo-orange.svg" alt="HF Spaces"></a>
   <a href="https://doi.org/10.5281/zenodo.18822167"><img src="https://zenodo.org/badge/doi/10.5281/zenodo.18822167.svg" alt="DOI"></a>
   <a href="https://anulum.github.io/director-ai"><img src="https://img.shields.io/badge/docs-mkdocs-blue.svg" alt="Docs"></a>
   <a href="https://www.bestpractices.dev/projects/12102"><img src="https://www.bestpractices.dev/projects/12102/badge" alt="OpenSSF Best Practices"></a>
@@ -29,15 +24,23 @@
   <a href="https://api.reuse.software/info/github.com/anulum/director-ai"><img src="https://api.reuse.software/badge/github.com/anulum/director-ai" alt="REUSE"></a>
 </p>
 
-> **Active Development** — Director-AI is under intensive development. The core guardrail engine, NLI scoring pipeline, 5-SDK guard, FastAPI middleware, REST/gRPC servers, and intent-grounded injection detection are fully functional, tested (4 126+ passing tests, zero functional failures), and production-deployable via PyPI. We are currently adding Rust-accelerated signal paths and expanding adversarial robustness coverage. APIs may evolve as this work progresses.
+---
+
+## About
+
+Director-AI is an internal research tool developed at [ANULUM Institute](https://www.anulum.li) as part of the [God of the Math Collection](https://www.anulum.li) (GOTM) — a multi-project scientific computing ecosystem spanning neuroscience, plasma physics, stochastic computing, and AI safety.
+
+The system was built to solve a specific internal need: **real-time hallucination detection for LLM outputs used in scientific pipelines**, where a single fabricated number or citation can invalidate downstream analysis. It is now commercially offered under dual licensing.
+
+**Team:** ANULUM maintains a research team (intentionally undisclosed). GitHub automation and repository maintenance are handled by the owner. Contributions are welcome under AGPL v3 terms.
+
+> **Active Development** — APIs may evolve. The core guardrail engine, NLI scoring, 5-SDK guard, FastAPI middleware, REST/gRPC servers, and injection detection are functional and tested (4300+ passing tests). Rust-accelerated compute paths ship as of v3.12.0.
 
 ---
 
 ## What It Does
 
-Director-AI sits between your LLM and the user. It scores every output for
-hallucination before it reaches anyone — and can halt generation mid-stream if
-coherence drops below threshold.
+Director-AI sits between your LLM and the user. It scores every output for hallucination — and can halt generation mid-stream when coherence drops.
 
 ```mermaid
 graph LR
@@ -50,39 +53,25 @@ graph LR
     V -->|No| H["HALT + evidence"]
 ```
 
-**Ten things make it different:**
+### Core capabilities
 
-1. **Token-level streaming halt** — not post-hoc review. Severs output the moment coherence degrades.
-2. **Dual-entropy scoring** — NLI contradiction detection (DeBERTa) + RAG fact-checking against your knowledge base.
-3. **Meta-confidence** — the guardrail tells you how confident it is in its own verdict. Route low-confidence results to human review.
-4. **Structured output verification** — JSON schema validation, tool call fabrication detection, code hallucinated API detection. Zero dependencies (stdlib only).
-5. **Online calibration** — collects human feedback, automatically adjusts thresholds for your deployment. The longer you use it, the better it gets.
-6. **Contradiction tracking** — detects when an AI contradicts itself across conversation turns.
-7. **EU AI Act compliance** — automated Article 15 documentation. Accuracy metrics, drift detection, feedback loop detection, audit trails, per-model breakdown with confidence intervals. Ready for August 2026 enforcement.
-8. **Verification gems** — numeric consistency checks, reasoning chain verification, temporal freshness scoring, cross-model consensus, conformal prediction intervals. All stdlib-only, zero dependencies.
-9. **Agentic loop monitor** — detects circular tool calls, goal drift, and budget exhaustion in AI agent loops. The first guardrail that monitors agent execution, not just individual calls.
-10. **Adversarial self-test** — 25-pattern robustness suite tests your guardrail against zero-width chars, homoglyphs, encoding tricks, and prompt injection.
-11. **Intent-grounded injection detection** — two-stage pipeline: regex pattern matching (fast) + bidirectional NLI divergence scoring (semantic). Detects the *effect* of injection in the output — works regardless of how the attack was encoded. Per-claim attribution with grounded/drifted/injected verdicts.
+- **Token-level streaming halt** — severs output mid-generation when coherence degrades. Not post-hoc review.
+- **Dual-entropy scoring** — NLI contradiction detection (0.4B DeBERTa) + RAG fact-checking against your knowledge base.
+- **Structured output verification** — JSON schema validation, numeric consistency, reasoning chain verification, temporal freshness scoring. Stdlib-only, zero dependencies.
+- **Intent-grounded injection detection** — two-stage pipeline: regex pattern matching (fast) + bidirectional NLI divergence scoring (semantic). Detects the *effect* of injection in the output.
+- **12 Rust-accelerated compute functions** — 9.4× geometric mean speedup over Python paths. Transparent fallback when Rust kernel is not installed.
 
-### Scope
+### Additional modules
 
-Pure Python core — no compiled extensions required. Optional Rust kernel (`pip install director-ai[rust]`) for SIMD-accelerated scoring. Works on any platform with Python 3.11+.
+Meta-confidence estimation, online calibration from feedback, contradiction tracking across turns, agentic loop monitoring, adversarial robustness testing (25 patterns), EU AI Act audit trails, domain presets (medical/finance/legal/creative), cross-model consensus, conformal prediction intervals.
 
-| Layer | Packages | Install |
-|-------|----------|---------|
-| **Core** (zero heavy deps) | `CoherenceScorer`, `StreamingKernel`, `GroundTruthStore`, `HaltMonitor` | `pip install director-ai` |
-| **NLI models** | DeBERTa, FactCG, MiniCheck, ONNX Runtime | `pip install director-ai[nli]` |
-| **Vector DBs** | ChromaDB (`[vector]`), Pinecone (`[pinecone]`), Weaviate (`[weaviate]`), Qdrant (`[qdrant]`) | `pip install director-ai[vector]` |
-| **LLM judge** | OpenAI, Anthropic escalation | `pip install director-ai[openai]` |
-| **Observability** | OpenTelemetry spans | `pip install director-ai[otel]` |
-| **Server** | FastAPI + Uvicorn | `pip install director-ai[server]` |
+Full documentation: [anulum.github.io/director-ai](https://anulum.github.io/director-ai)
 
-## Four Ways to Add Guardrails
+---
 
-### A: Wrap your SDK (6 lines)
+## Quick Start
 
-Duck-type detection for five SDK shapes: OpenAI-compatible (OpenAI, vLLM, Groq,
-LiteLLM, Ollama), Anthropic, AWS Bedrock, Google Gemini, and Cohere.
+### Wrap your SDK (6 lines)
 
 ```python
 from director_ai import guard
@@ -98,9 +87,7 @@ response = client.chat.completions.create(
 )
 ```
 
-### B: One-shot check (4 lines)
-
-Score a single prompt/response pair without an SDK client:
+### One-shot check (4 lines)
 
 ```python
 from director_ai import score
@@ -111,21 +98,16 @@ cs = score("What is the refund policy?", response_text,
 print(f"Coherence: {cs.score:.3f}  Approved: {cs.approved}")
 ```
 
-### C: Zero code changes (2 lines)
-
-Point any OpenAI-compatible client at the proxy:
+### Proxy (2 lines, zero code changes)
 
 ```bash
 pip install director-ai[server]
 director-ai proxy --port 8080 --facts kb.txt --threshold 0.3
 ```
 
-Then set `OPENAI_BASE_URL=http://localhost:8080/v1` in your app. Every response
-gets scored; hallucinations are rejected (or flagged with `--on-fail warn`).
+Set `OPENAI_BASE_URL=http://localhost:8080/v1` in your app. Every response gets scored.
 
-### D: FastAPI middleware (3 lines)
-
-Guard your own API endpoints:
+### FastAPI middleware (3 lines)
 
 ```python
 from director_ai.integrations.fastapi_guard import DirectorGuard
@@ -136,41 +118,36 @@ app.add_middleware(DirectorGuard,
 )
 ```
 
-Responses on POST endpoints get `X-Director-Score` and `X-Director-Approved`
-headers. Set `paths=["/api/chat"]` to limit which endpoints are scored.
+Also available: LangChain, LlamaIndex, LangGraph, Haystack, CrewAI, Semantic Kernel, DSPy integrations.
+
+---
 
 ## Installation
 
 ```bash
 pip install "director-ai[nli]"                    # recommended — NLI model scoring
 pip install "director-ai[nli,vector,server]"       # production stack with RAG + REST API
-pip install "director-ai[nli,voice]"               # voice AI with TTS adapters
 pip install director-ai                            # heuristic-only (limited accuracy)
 ```
 
-Extras: `[vector]` (ChromaDB), `[voice]` (ElevenLabs, OpenAI TTS, Deepgram), `[finetune]` (domain adaptation), `[ingestion]` (PDF/DOCX parsing), `[colbert]` (late-interaction retrieval).
-Framework integrations: `[langchain]`, `[llamaindex]`, `[langgraph]`, `[haystack]`, `[crewai]`, Semantic Kernel, DSPy/Instructor.
-Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstore-signed releases.
-Voice AI: `VoiceGuard` (sync) and `AsyncVoiceGuard` + `voice_pipeline()` (async) — real-time token filter for TTS pipelines with ElevenLabs, OpenAI TTS, and Deepgram adapters ([guide](https://anulum.github.io/director-ai/guide/voice-ai/)).
+| Layer | What you get | Install extra |
+|-------|-------------|---------------|
+| **Core** (zero heavy deps) | `CoherenceScorer`, `StreamingKernel`, `GroundTruthStore` | — |
+| **NLI models** | DeBERTa, FactCG, MiniCheck, ONNX Runtime | `[nli]` |
+| **Vector DBs** | Chroma, Pinecone, Weaviate, Qdrant | `[vector]` / `[pinecone]` / etc. |
+| **Server** | FastAPI + Uvicorn REST/gRPC | `[server]` |
+| **Rust kernel** | 12 accelerated compute functions | `[rust]` (requires maturin) |
+| **Voice** | ElevenLabs, OpenAI TTS, Deepgram adapters | `[voice]` |
 
-Full installation guide: [docs](https://anulum.github.io/director-ai/installation/).
+Python 3.11+. Full guide: [docs/installation](https://anulum.github.io/director-ai/installation/).
 
-## Docker
-
-Dockerfile included for self-hosted builds. Pre-built images not yet published to a registry.
-
-```bash
-docker build -t director-ai .                                      # build locally
-docker run -p 8080:8080 director-ai                                # CPU
-docker build -f Dockerfile.gpu -t director-ai:gpu .                # GPU build
-docker run --gpus all -p 8080:8080 director-ai:gpu                 # GPU
-```
+---
 
 ## Benchmarks
 
 ### Accuracy — LLM-AggreFact (29,320 samples)
 
-Scoring model: [`yaxili96/FactCG-DeBERTa-v3-Large`](https://huggingface.co/yaxili96/FactCG-DeBERTa-v3-Large) (0.4B params, MIT license).
+Model: [`yaxili96/FactCG-DeBERTa-v3-Large`](https://huggingface.co/yaxili96/FactCG-DeBERTa-v3-Large) (0.4B params, MIT).
 
 | Model | Balanced Acc | Params | Latency | Streaming |
 |-------|-------------|--------|---------|-----------|
@@ -179,59 +156,48 @@ Scoring model: [`yaxili96/FactCG-DeBERTa-v3-Large`](https://huggingface.co/yaxil
 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
 | MiniCheck-DeBERTa-L | 72.6% | 0.4B | ~120 ms | No |
 
-75.8% balanced accuracy comes from the FactCG-DeBERTa-v3-Large model (77.2% in
-the [NAACL 2025 paper](https://arxiv.org/abs/2501.17144); our eval yields 75.86%
-due to threshold tuning and data split version). Latency: 14.6 ms/pair measured
-on GTX 1060 6GB with ONNX GPU batching (16-pair batch, 30 iterations, 5 warmup).
-Director-AI's unique value is the *system*: NLI + KB + streaming halt.
+Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
 
-Full results: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
-Performance trade-offs and E2E pipeline metrics: [docs](https://anulum.github.io/director-ai/guide/streaming/).
+### Rust compute acceleration (v3.12.0)
 
-## Domain Presets
+12 functions, 5000 iterations each. Geometric mean: **9.4× speedup**.
 
-10 built-in profiles with preset thresholds (starting points — adjust for your data):
+| Function | Python (µs) | Rust (µs) | Speedup |
+|----------|------------|-----------|---------|
+| sanitizer_score | 57 | 2.1 | 27× |
+| temporal_freshness | 53 | 2.5 | 21× |
+| probs_to_confidence (200×3) | 486 | 15 | 33× |
+| lite_score | 47 | 26 | 1.8× |
 
-```bash
-director-ai config --profile medical   # threshold=0.30, NLI on, reranker on
-director-ai config --profile finance   # threshold=0.30, w_fact=0.6
-director-ai config --profile legal     # threshold=0.30, w_logic=0.6
-director-ai config --profile creative  # threshold=0.40, permissive
-```
+Full results: [`benchmarks/results/rust_compute_bench.json`](benchmarks/results/rust_compute_bench.json).
 
-Domain-specific benchmark scripts exist but have not yet been validated with measured results.
-Run them yourself (requires GPU + HuggingFace datasets):
+---
 
-```bash
-python -m benchmarks.medical_eval   # MedNLI + PubMedQA
-python -m benchmarks.legal_eval     # ContractNLI + CUAD (RAGBench)
-python -m benchmarks.finance_eval   # FinanceBench + Financial PhraseBank
-```
+## Known Limitations
 
-<details>
-<summary><strong>Known Limitations & When Not to Use</strong></summary>
+Be aware of these before deploying:
 
-#### Accuracy
-
-- **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap heuristics (~55% accuracy). Use `strict_mode=True` to reject (0.9) instead of guessing.
-- **Summarisation FPR at 10.5%**: Reduced from 95% via bidirectional NLI + baseline calibration (v3.5). AggreFact-CNN: 68.8%, ExpertQA: 59.1% (structurally expected at 0.4B params).
-- **NLI-only scoring needs KB grounding**: Without a knowledge base, PubMedQA F1=62.1%, FinanceBench 80%+ FPR. Load your domain facts into the vector store.
-
-#### Performance
-
+- **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap (~55% accuracy). Not recommended for production.
+- **Summarisation FPR is 10.5%**: Reduced from 95% via bidirectional NLI + baseline calibration (v3.5). Still too high for some use cases — tune thresholds per domain.
+- **NLI needs KB grounding**: Without a knowledge base, domain accuracy drops significantly (PubMedQA F1=62.1%, FinanceBench 80%+ FPR).
 - **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
-- **Long documents need ≥16GB VRAM**: Legal contracts and SEC filings exceed 6GB during chunked NLI inference.
+- **Long documents need ≥16 GB VRAM**: Chunked NLI on legal/financial docs exceeds 6 GB.
+- **LLM-as-judge sends data externally**: When enabled, truncated prompt+response (500 chars) go to the configured provider. Off by default.
+- **Domain presets are starting points**: Default thresholds need tuning for your data. Domain benchmark scripts exist but results are not yet validated.
 
-#### Configuration
+---
 
-- **Weights are domain-dependent**: Default `w_logic=0.6, w_fact=0.4` suits general QA. Adjust for your domain or use a built-in profile.
-- **Threshold defaults differ by API surface**: `guard()`/`score()` default to `threshold=0.3` (permissive). `DirectorConfig` defaults to `coherence_threshold=0.6` (conservative). Always set the threshold explicitly.
+## Docker
 
-#### Privacy
+```bash
+docker build -t director-ai .                          # CPU
+docker build -f Dockerfile.gpu -t director-ai:gpu .    # GPU
+docker run -p 8080:8080 director-ai                    # run
+```
 
-- **LLM-as-judge sends data externally**: When `llm_judge_enabled=True`, truncated prompt+response (500 chars) are sent to the configured provider. Do not enable in privacy-sensitive deployments without user consent. The default NLI-only mode runs entirely locally with no external calls.
+Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstore-signed releases.
 
-</details>
+---
 
 ## Citation
 
@@ -253,13 +219,7 @@ Dual-licensed:
 1. **Open-Source**: [GNU AGPL v3.0](LICENSE) — research, personal use, open-source projects.
 2. **Commercial**: [Proprietary license](https://www.anulum.li/licensing) — removes copyleft for closed-source and SaaS.
 
-See [Licensing](docs-site/licensing.md) for pricing tiers and FAQ.
-
 Contact: [anulum.li](https://www.anulum.li) | [director.class.ai@anulum.li](mailto:director.class.ai@anulum.li)
-
-## Community
-
-Join the [Director-AI Discord](https://discord.gg/JvMdKv49) for CI notifications, release announcements, and support. The Discord bot also provides `/version`, `/docs`, `/install`, `/status`, and `/quickstart` slash commands.
 
 ## Contributing
 
@@ -276,5 +236,5 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). By contributing, you agree to AGPL v3 te
     <img src="docs/assets/fortis_studio_logo.jpg" width="180" alt="Fortis Studio">
   </a>
   <br>
-  <em>Developed by <a href="https://www.anulum.li">ANULUM</a> / Fortis Studio</em>
+  <em>Developed by <a href="https://www.anulum.li">ANULUM Institute</a> / Fortis Studio — Marbach SG, Switzerland</em>
 </p>
