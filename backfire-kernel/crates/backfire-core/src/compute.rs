@@ -484,8 +484,10 @@ static NUMBERED_SPLIT_RE: Lazy<Regex> =
 static BULLET_STEP_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?m)^\s*[-*•]\s+(.+)$").unwrap());
 
 static NL_STEP_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)(?:^|\n)(?:First|Second|Third|Next|Then|Finally|Therefore|Thus|Hence|So)[,]?\s+")
-        .unwrap()
+    Regex::new(
+        r"(?i)(?:^|\n)(?:First|Second|Third|Next|Then|Finally|Therefore|Thus|Hence|So)[,]?\s+",
+    )
+    .unwrap()
 });
 
 /// Extract reasoning steps from text.
@@ -672,10 +674,29 @@ static LITE_ENTITY_RE: Lazy<Regex> =
 
 static LITE_NEGATION_WORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     [
-        "not", "no", "never", "neither", "nobody", "nothing", "nowhere", "nor",
-        "cannot", "can't", "don't", "doesn't", "didn't", "won't", "wouldn't",
-        "shouldn't", "isn't", "aren't", "wasn't", "weren't", "hasn't",
-        "haven't", "hadn't",
+        "not",
+        "no",
+        "never",
+        "neither",
+        "nobody",
+        "nothing",
+        "nowhere",
+        "nor",
+        "cannot",
+        "can't",
+        "don't",
+        "doesn't",
+        "didn't",
+        "won't",
+        "wouldn't",
+        "shouldn't",
+        "isn't",
+        "aren't",
+        "wasn't",
+        "weren't",
+        "hasn't",
+        "haven't",
+        "hadn't",
     ]
     .into_iter()
     .collect()
@@ -747,7 +768,8 @@ pub fn lite_score(premise: &str, hypothesis: &str) -> f64 {
         0.0
     };
 
-    let similarity = 0.4 * jaccard + 0.2 * len_ratio + 0.2 * ent_overlap + 0.2 * (1.0 - neg_penalty);
+    let similarity =
+        0.4 * jaccard + 0.2 * len_ratio + 0.2 * ent_overlap + 0.2 * (1.0 - neg_penalty);
     (1.0 - similarity).clamp(0.0, 1.0)
 }
 
@@ -755,10 +777,7 @@ pub fn lite_score(premise: &str, hypothesis: &str) -> f64 {
 ///
 /// Mirrors `LiteScorer.score_batch()` from `lite_scorer.py`.
 pub fn lite_score_batch(pairs: &[(String, String)]) -> Vec<f64> {
-    pairs
-        .iter()
-        .map(|(p, h)| lite_score(p, h))
-        .collect()
+    pairs.iter().map(|(p, h)| lite_score(p, h)).collect()
 }
 
 // ── Tests ───────────────────────────────────────────────────────────
@@ -1054,7 +1073,10 @@ mod tests {
 
     #[test]
     fn test_lite_score_entity_mismatch() {
-        let s = lite_score("Apple released a new product.", "Samsung released a new product.");
+        let s = lite_score(
+            "Apple released a new product.",
+            "Samsung released a new product.",
+        );
         // Same structure, different entity → entity overlap < 1
         assert!(s > 0.1, "entity mismatch should increase divergence: {s}");
     }
@@ -1062,8 +1084,14 @@ mod tests {
     #[test]
     fn test_lite_score_batch() {
         let pairs = vec![
-            ("The sky is blue.".to_string(), "The sky is blue.".to_string()),
-            ("Yes it works.".to_string(), "No it does not work.".to_string()),
+            (
+                "The sky is blue.".to_string(),
+                "The sky is blue.".to_string(),
+            ),
+            (
+                "Yes it works.".to_string(),
+                "No it does not work.".to_string(),
+            ),
         ];
         let results = lite_score_batch(&pairs);
         assert_eq!(results.len(), 2);

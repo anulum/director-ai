@@ -129,7 +129,7 @@ def _probs_to_divergence(
     ci, ni = label_indices or (2, 1)
     if _RUST_NLI and probs.shape[0] >= 10:
         flat = probs.flatten().tolist()
-        return rust_probs_to_divergence(flat, ncols, ci, ni)
+        return [float(v) for v in rust_probs_to_divergence(flat, ncols, ci, ni)]
     if ncols == 2:
         return [float(1.0 - row[1]) for row in probs]
     return [float(row[ci]) + float(row[ni]) * 0.5 for row in probs]
@@ -147,7 +147,7 @@ def _probs_to_confidence(probs: np.ndarray) -> list[float]:
     ncols = probs.shape[1]
     if _RUST_NLI and probs.shape[0] >= 10:
         flat = probs.flatten().tolist()
-        return rust_probs_to_confidence(flat, ncols)
+        return [float(v) for v in rust_probs_to_confidence(flat, ncols)]
     log_k = float(np.log(ncols)) if ncols > 1 else 1.0
     result: list[float] = []
     for row in probs:

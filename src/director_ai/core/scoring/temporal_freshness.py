@@ -107,7 +107,7 @@ def score_temporal_freshness(
     # Rust fast path: regex extraction when no source_timestamp
     if _RUST_TEMPORAL and source_timestamp is None:
         raw_claims, _overall, _has = rust_score_temporal_freshness(text)
-        claims = [
+        rust_claims = [
             FreshnessClaim(
                 text=t,
                 claim_type=ct,
@@ -116,11 +116,11 @@ def score_temporal_freshness(
             )
             for t, ct, risk in raw_claims
         ]
-        overall = max((c.staleness_risk for c in claims), default=0.0)
+        rust_overall = max((c.staleness_risk for c in rust_claims), default=0.0)
         return FreshnessResult(
-            claims=claims,
-            overall_staleness_risk=overall,
-            has_temporal_claims=len(claims) > 0,
+            claims=rust_claims,
+            overall_staleness_risk=rust_overall,
+            has_temporal_claims=len(rust_claims) > 0,
         )
 
     claims: list[FreshnessClaim] = []
