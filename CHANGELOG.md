@@ -76,10 +76,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `rust_has_suspicious_unicode` — Unicode category analysis (wired)
   - `rust_detect_task_type` — task classification from prompt (wired into `detect_task_type()`)
   - `rust_verify_numeric` — numeric consistency checks (wired into `verify_numeric()`)
-  - `rust_score_temporal_freshness`, `rust_extract_reasoning_steps`,
-    `rust_word_overlap`, `rust_softmax`, `rust_probs_to_divergence`,
-    `rust_probs_to_confidence` — FFI-ready, Python wiring on demand.
+  - `rust_score_temporal_freshness` — 4 temporal claim patterns (wired into `score_temporal_freshness()`)
+  - `rust_extract_reasoning_steps` — chain-of-thought extraction (wired into `extract_steps()`)
+  - `rust_word_overlap` — Jaccard word similarity (wired into `_word_overlap()`)
+  - `rust_softmax` — row-wise softmax (wired into `_softmax_np()`, threshold ≥100 elements)
+  - `rust_probs_to_divergence` — NLI divergence (wired into `_probs_to_divergence()`, threshold ≥10 rows)
+  - `rust_probs_to_confidence` — NLI confidence (wired into `_probs_to_confidence()`, threshold ≥10 rows)
   - 34 Rust unit tests + 38 Python parity tests.
+- **Rust compute benchmark** (`benchmarks/rust_compute_bench.py`): measures all
+  10 Rust accelerators vs Python fallbacks. Geometric mean **11.1× speedup**;
+  best: sanitizer_score (benign) 53.8×, worst: word_overlap 0.8× (FFI overhead
+  dominates for trivial string ops). Key results (median µs, 5000 iterations):
+  sanitizer_score 57→2.4µs, temporal_freshness 53→2.5µs, softmax(200×3)
+  204→20µs, probs_to_confidence(200×3) 539→16µs.
 
 ### Changed
 - **God File refactoring** — four large modules split into focused sub-modules

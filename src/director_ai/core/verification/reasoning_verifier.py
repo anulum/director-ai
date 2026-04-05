@@ -27,6 +27,13 @@ __all__ = [
     "verify_reasoning_chain",
 ]
 
+try:
+    from backfire_kernel import rust_extract_reasoning_steps, rust_word_overlap
+
+    _RUST_REASONING = True
+except ImportError:
+    _RUST_REASONING = False
+
 _STEP_PATTERNS = [
     re.compile(
         r"(?:^|\n)\s*(?:Step\s+)?(\d+)[.):]\s*(.+?)(?=\n\s*(?:Step\s+)?\d+[.):]+|\Z)",
@@ -90,7 +97,25 @@ class ReasoningChainResult:
 
 
 def extract_steps(text: str) -> list[ReasoningStep]:
-    """Extract reasoning steps from chain-of-thought text."""
+    """Extract reasoning steps from chain-of-thought text.
+
+    Uses Rust accelerator for regex extraction when available.
+    """
+    if _RUST_REASONING:
+        raw_steps = rust_extract_reasoning_steps(text)
+        if len(raw_steps) >= 2 or (
+            len(raw_steps) == 1 and raw_steps[0] != text.strip()
+        ):
+            return [
+                ReasoningStep(
+                    index=i,
+                    text=s,
+                    is_conclusion=bool(_CONCLUSION_MARKERS.match(s)),
+                )
+                for i, s in enumerate(raw_steps)
+            ]
+
+    # Python fallback
     # Try numbered steps first
     for pattern in _STEP_PATTERNS:
         matches = pattern.findall(text)
@@ -118,6 +143,8 @@ def extract_steps(text: str) -> list[ReasoningStep]:
 
 def _word_overlap(a: str, b: str) -> float:
     """Jaccard word overlap as a heuristic for logical support."""
+    if _RUST_REASONING:
+        return float(rust_word_overlap(a, b))
     wa = set(a.lower().split())
     wb = set(b.lower().split())
     if not wa or not wb:

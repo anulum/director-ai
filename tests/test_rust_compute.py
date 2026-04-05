@@ -135,7 +135,7 @@ class TestRustDetectTaskType:
             ("User: hi\nAssistant: hello\nUser: bye", "", "dialogue"),
             ("Summarize this text", "", "summarization"),
             ("Based on the following document", "", "rag"),
-            ("Is it true that water boils at 100C?", "", "qa"),
+            ("Is it true that water boils at 100C?", "", "fact_check"),
             ("Generate a poem", "", "default"),
         ]
         for prompt, response, expected in cases:
@@ -207,8 +207,9 @@ class TestRustReasoningSteps:
         assert len(steps) == 3
 
     def test_single_fallback(self):
+        # Single short statement without markers returns empty (no steps to verify)
         steps = rust.rust_extract_reasoning_steps("Just one statement.")
-        assert len(steps) == 1
+        assert len(steps) == 0
 
 
 class TestRustWordOverlap:

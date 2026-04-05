@@ -18,6 +18,20 @@ from dataclasses import dataclass, field
 
 __all__ = ["FreshnessClaim", "FreshnessResult", "score_temporal_freshness"]
 
+try:
+    from backfire_kernel import rust_score_temporal_freshness
+
+    _RUST_TEMPORAL = True
+except ImportError:
+    _RUST_TEMPORAL = False
+
+_CLAIM_REASONS: dict[str, str] = {
+    "position": "Leadership positions change frequently",
+    "statistic": "Statistics are updated periodically",
+    "current_reference": "Temporal claim may not reflect current state",
+    "record": "Records and rankings change over time",
+}
+
 _POSITION_PATTERN = re.compile(
     r"(?:the\s+)?(?:CEO|CTO|CFO|COO|president|prime\s+minister|chairman|"
     r"director|head|leader|secretary|minister|governor|mayor)\s+"
@@ -90,6 +104,25 @@ def score_temporal_freshness(
     FreshnessResult
         Per-claim staleness analysis.
     """
+    # Rust fast path: regex extraction when no source_timestamp
+    if _RUST_TEMPORAL and source_timestamp is None:
+        raw_claims, _overall, _has = rust_score_temporal_freshness(text)
+        claims = [
+            FreshnessClaim(
+                text=t,
+                claim_type=ct,
+                staleness_risk=risk,
+                reason=_CLAIM_REASONS.get(ct, "Temporal claim"),
+            )
+            for t, ct, risk in raw_claims
+        ]
+        overall = max((c.staleness_risk for c in claims), default=0.0)
+        return FreshnessResult(
+            claims=claims,
+            overall_staleness_risk=overall,
+            has_temporal_claims=len(claims) > 0,
+        )
+
     claims: list[FreshnessClaim] = []
 
     # Age factor: how old is the source data?

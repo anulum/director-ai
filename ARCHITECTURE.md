@@ -113,7 +113,8 @@ director-ai/
 │       └── kernel.rs              Safety kernel, streaming gate
 │
 ├── tests/                         4120+ tests, ≥90% coverage
-├── benchmarks/                    27 evaluators
+├── benchmarks/                    28 evaluators
+│   └── rust_compute_bench.py      Rust vs Python benchmark (10 compute fns)
 ├── notebooks/                     16 Jupyter notebooks
 ├── docs-site/                     MkDocs documentation
 └── demo/                          HF Spaces Gradio demo

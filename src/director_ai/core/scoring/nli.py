@@ -27,6 +27,17 @@ from functools import lru_cache
 import numpy as np
 
 from ..metrics import metrics
+
+try:
+    from backfire_kernel import (
+        rust_probs_to_confidence,
+        rust_probs_to_divergence,
+        rust_softmax,
+    )
+
+    _RUST_NLI = True
+except ImportError:
+    _RUST_NLI = False
 from ._nli_export import (
     OnnxDynamicBatcher,  # noqa: F401 — re-export
     _load_onnx_session,
@@ -67,7 +78,15 @@ _DIVERGENCE_CONTRADICTED = 0.9
 
 
 def _softmax_np(x: np.ndarray) -> np.ndarray:
-    """Row-wise softmax for 2D numpy array."""
+    """Row-wise softmax for 2D numpy array.
+
+    Uses Rust accelerator for large batches when available.
+    """
+    if _RUST_NLI and x.size >= 100:
+        flat = x.flatten().tolist()
+        cols = x.shape[1]
+        result = rust_softmax(flat, cols)
+        return np.array(result, dtype=np.float64).reshape(x.shape)
     e = np.exp(x - x.max(axis=1, keepdims=True))
     s: np.ndarray = e / e.sum(axis=1, keepdims=True)
     return s
@@ -103,11 +122,16 @@ def _probs_to_divergence(
     3-class: divergence = P(contradiction) + 0.5 * P(neutral).
     ``label_indices`` is (contradiction_idx, neutral_idx) from
     ``_resolve_label_indices``; defaults to (2, 1).
+
+    Uses Rust accelerator for large batches when available.
     """
     ncols = probs.shape[1]
+    ci, ni = label_indices or (2, 1)
+    if _RUST_NLI and probs.shape[0] >= 10:
+        flat = probs.flatten().tolist()
+        return rust_probs_to_divergence(flat, ncols, ci, ni)
     if ncols == 2:
         return [float(1.0 - row[1]) for row in probs]
-    ci, ni = label_indices or (2, 1)
     return [float(row[ci]) + float(row[ni]) * 0.5 for row in probs]
 
 
@@ -117,8 +141,13 @@ def _probs_to_confidence(probs: np.ndarray) -> list[float]:
     Confidence = 1 - H(p)/log(K) where H is entropy and K is num classes.
     Returns values in [0, 1]: 1 = maximally confident (one-hot),
     0 = maximally uncertain (uniform).
+
+    Uses Rust accelerator for large batches when available.
     """
     ncols = probs.shape[1]
+    if _RUST_NLI and probs.shape[0] >= 10:
+        flat = probs.flatten().tolist()
+        return rust_probs_to_confidence(flat, ncols)
     log_k = float(np.log(ncols)) if ncols > 1 else 1.0
     result: list[float] = []
     for row in probs:

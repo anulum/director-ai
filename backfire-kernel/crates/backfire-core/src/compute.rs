@@ -373,23 +373,30 @@ pub fn verify_numeric(text: &str, current_year: i32) -> (usize, Vec<NumericIssue
 
 // ── score_temporal_freshness() ──────────────────────────────────────
 
+// Mirrors Python _POSITION_PATTERN from temporal_freshness.py
 static POSITION_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)\b(current|present|incumbent|reigning|sitting)\s+(president|ceo|prime minister|chancellor|king|queen|chairman|director|mayor|governor)")
-        .unwrap()
+    Regex::new(
+        r"(?i)(?:the\s+)?(?:CEO|CTO|CFO|COO|president|prime\s+minister|chairman|director|head|leader|secretary|minister|governor|mayor)\s+(?:of\s+)?(?:\S+(?:\s+\S+){0,10})\s+(?:is|was)\b"
+    ).unwrap()
 });
 
-static STATISTIC_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?i)\b(as of|since|from)\s+(\d{4}|\w+\s+\d{4})").unwrap());
+// Mirrors Python _STAT_PATTERN from temporal_freshness.py
+static STATISTIC_RE: Lazy<Regex> = Lazy::new(|| {
+    Regex::new(
+        r"(?i)(?:population|GDP|revenue|market\s+cap|stock\s+price|unemployment|inflation|interest\s+rate|exchange\s+rate|growth\s+rate)(?:\s+\w+){0,5}\s+[\d,.]+\s*(?:million|billion|trillion|%|percent)?"
+    ).unwrap()
+});
 
+// Mirrors Python _CURRENT_PATTERN from temporal_freshness.py
 static CURRENT_REF_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)\b(currently|now|today|at present|at the moment|presently)\b").unwrap()
+    Regex::new(r"(?i)(?:currently|as of|right now|at present|today|this year|in \d{4})").unwrap()
 });
 
+// Mirrors Python _RECORD_PATTERN from temporal_freshness.py
 static RECORD_RE: Lazy<Regex> = Lazy::new(|| {
     Regex::new(
-        r"(?i)\b(world record|highest|lowest|fastest|most|largest|smallest|richest|poorest)\b",
-    )
-    .unwrap()
+        r"(?i)(?:world\s+record|fastest|tallest|largest|smallest|highest|lowest|most\s+\w+|best\s+selling|top\s+\w+|#1|number\s+one)"
+    ).unwrap()
 });
 
 /// A temporal claim with staleness risk.
@@ -407,57 +414,73 @@ pub struct TemporalClaim {
 pub fn score_temporal_freshness(text: &str) -> (Vec<TemporalClaim>, f64, bool) {
     let mut claims = Vec::new();
 
+    // age_factor = 0.5 (unknown source = moderate risk, same as Python)
+    let age_factor: f64 = 0.5;
+
     for m in POSITION_RE.find_iter(text) {
+        let risk = (0.6 + 0.4 * age_factor).min(1.0);
         claims.push(TemporalClaim {
-            text: m.as_str().to_string(),
+            text: m.as_str().trim().to_string(),
             claim_type: "position".into(),
-            staleness_risk: 0.8,
+            staleness_risk: risk,
         });
     }
 
     for m in STATISTIC_RE.find_iter(text) {
+        let risk = (0.4 + 0.4 * age_factor).min(1.0);
         claims.push(TemporalClaim {
-            text: m.as_str().to_string(),
+            text: m.as_str().trim().to_string(),
             claim_type: "statistic".into(),
-            staleness_risk: 0.6,
+            staleness_risk: risk,
         });
     }
 
     for m in CURRENT_REF_RE.find_iter(text) {
+        // Context extraction: 30 chars before, 50 chars after
+        let start = m.start().saturating_sub(30);
+        let end = (m.end() + 50).min(text.len());
+        let ctx = text[start..end].trim().to_string();
+        let risk = (0.5 + 0.5 * age_factor).min(1.0);
         claims.push(TemporalClaim {
-            text: m.as_str().to_string(),
+            text: ctx,
             claim_type: "current_reference".into(),
-            staleness_risk: 0.5,
+            staleness_risk: risk,
         });
     }
 
     for m in RECORD_RE.find_iter(text) {
+        // Context extraction: 20 chars before, 40 chars after
+        let start = m.start().saturating_sub(20);
+        let end = (m.end() + 40).min(text.len());
+        let ctx = text[start..end].trim().to_string();
+        let risk = (0.3 + 0.3 * age_factor).min(1.0);
         claims.push(TemporalClaim {
-            text: m.as_str().to_string(),
+            text: ctx,
             claim_type: "record".into(),
-            staleness_risk: 0.7,
+            staleness_risk: risk,
         });
     }
 
     let has_temporal = !claims.is_empty();
-    let overall = if claims.is_empty() {
-        0.0
-    } else {
-        claims.iter().map(|c| c.staleness_risk).sum::<f64>() / claims.len() as f64
-    };
+    // Python uses max(), not average
+    let overall = claims
+        .iter()
+        .map(|c| c.staleness_risk)
+        .fold(0.0_f64, f64::max);
 
     (claims, overall, has_temporal)
 }
 
 // ── Reasoning verifier helpers ──────────────────────────────────────
 
-static NUMBERED_STEP_RE: Lazy<Regex> =
-    Lazy::new(|| Regex::new(r"(?m)^\s*(\d+)\.\s+(.+)$").unwrap());
+// Split on numbered step boundaries (works inline and multiline)
+static NUMBERED_SPLIT_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"(?:^|\n)\s*(?:Step\s+)?\d+[.):]").unwrap());
 
 static BULLET_STEP_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"(?m)^\s*[-*•]\s+(.+)$").unwrap());
 
 static NL_STEP_RE: Lazy<Regex> = Lazy::new(|| {
-    Regex::new(r"(?i)\b(?:first|second|third|then|next|finally|therefore|thus|hence|consequently|so|because|since)\b[,:]?\s+(.+?)(?:\.|$)")
+    Regex::new(r"(?i)(?:^|\n)(?:First|Second|Third|Next|Then|Finally|Therefore|Thus|Hence|So)[,]?\s+")
         .unwrap()
 });
 
@@ -466,10 +489,13 @@ static NL_STEP_RE: Lazy<Regex> = Lazy::new(|| {
 /// Tries numbered steps, bullets, then natural language markers.
 /// Mirrors `extract_steps()` from `reasoning_verifier.py`.
 pub fn extract_reasoning_steps(text: &str) -> Vec<String> {
-    // Try numbered steps
-    let numbered: Vec<String> = NUMBERED_STEP_RE
-        .captures_iter(text)
-        .map(|c| c[2].trim().to_string())
+    // Try numbered steps — split text at step boundaries, keep content
+    let splits: Vec<&str> = NUMBERED_SPLIT_RE.split(text).collect();
+    // First element is text before any step marker (usually empty)
+    let numbered: Vec<String> = splits
+        .iter()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
         .collect();
     if numbered.len() >= 2 {
         return numbered;
@@ -484,21 +510,28 @@ pub fn extract_reasoning_steps(text: &str) -> Vec<String> {
         return bullets;
     }
 
-    // Try natural language markers
-    let nl: Vec<String> = NL_STEP_RE
-        .captures_iter(text)
-        .map(|c| c[1].trim().to_string())
+    // Try natural language markers — split on marker, keep content after
+    let nl_splits: Vec<&str> = NL_STEP_RE.split(text).collect();
+    let nl: Vec<String> = nl_splits
+        .iter()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
         .collect();
     if nl.len() >= 2 {
         return nl;
     }
 
-    // Single-step fallback
-    if !text.trim().is_empty() {
-        vec![text.trim().to_string()]
-    } else {
-        vec![]
+    // Sentence fallback
+    let sentences: Vec<String> = text
+        .split(|c: char| c == '.' || c == '!' || c == '?')
+        .map(|s| s.trim().to_string())
+        .filter(|s| s.len() > 10)
+        .collect();
+    if sentences.len() >= 2 {
+        return sentences;
     }
+
+    vec![]
 }
 
 /// Jaccard word overlap between two texts.
@@ -790,7 +823,7 @@ mod tests {
 
     #[test]
     fn test_temporal_statistic() {
-        let (claims, _, has) = score_temporal_freshness("As of 2024, the GDP was $25 trillion.");
+        let (claims, _, has) = score_temporal_freshness("GDP of Germany was 4.2 trillion.");
         assert!(has);
         assert!(claims.iter().any(|c| c.claim_type == "statistic"));
     }
