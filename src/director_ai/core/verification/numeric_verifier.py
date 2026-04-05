@@ -117,12 +117,17 @@ def verify_numeric(text: str) -> NumericVerificationResult:
         claims_found, raw_issues, valid = rust_verify_numeric(text, current_year)
         issues = [
             NumericIssue(
-                issue_type=it, description=desc, severity=sev, context=ctx,
+                issue_type=it,
+                description=desc,
+                severity=sev,
+                context=ctx,
             )
             for it, desc, sev, ctx in raw_issues
         ]
         return NumericVerificationResult(
-            claims_found=claims_found, issues=issues, valid=valid,
+            claims_found=claims_found,
+            issues=issues,
+            valid=valid,
         )
 
     issues: list[NumericIssue] = []

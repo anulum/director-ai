@@ -96,9 +96,7 @@ class TestRustDetectTaskType:
 
     def test_dialogue(self):
         assert (
-            rust.rust_detect_task_type(
-                "User: hello\nAssistant: hi\nUser: how?", ""
-            )
+            rust.rust_detect_task_type("User: hello\nAssistant: hi\nUser: how?", "")
             == "dialogue"
         )
 
@@ -115,8 +113,7 @@ class TestRustDetectTaskType:
 
     def test_rag(self):
         assert (
-            rust.rust_detect_task_type("Based on the context, what is X?", "")
-            == "rag"
+            rust.rust_detect_task_type("Based on the context, what is X?", "") == "rag"
         )
 
     def test_fact_check(self):
