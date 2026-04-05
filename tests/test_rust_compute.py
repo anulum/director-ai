@@ -13,6 +13,7 @@ Verifies parity between Rust and Python implementations for:
 - score_temporal_freshness (staleness risk)
 - extract_reasoning_steps (step extraction)
 - word_overlap (Jaccard similarity)
+- lite_score (LiteScorer.score)
 - softmax / probs_to_divergence / probs_to_confidence (NLI helpers)
 """
 
@@ -249,3 +250,107 @@ class TestRustNLIHelpers:
     def test_probs_to_confidence_certain(self):
         confs = rust.rust_probs_to_confidence([0.001, 0.999], 2)
         assert confs[0] > 0.95
+
+
+class TestRustLiteScore:
+    """Parity tests: rust_lite_score vs Python LiteScorer.score."""
+
+    def test_identical_texts(self):
+        s = rust.rust_lite_score("The sky is blue.", "The sky is blue.")
+        assert s < 0.01, f"identical texts should have near-zero divergence: {s}"
+
+    def test_empty_premise(self):
+        assert abs(rust.rust_lite_score("", "something") - 0.5) < 1e-9
+
+    def test_empty_hypothesis(self):
+        assert abs(rust.rust_lite_score("hello", "") - 0.5) < 1e-9
+
+    def test_negation_asymmetry(self):
+        base = rust.rust_lite_score(
+            "The product works well.", "The product works well."
+        )
+        neg = rust.rust_lite_score(
+            "The product works well.", "The product does not work well."
+        )
+        assert neg > base, "negation should increase divergence"
+
+    def test_entity_mismatch(self):
+        s = rust.rust_lite_score(
+            "Apple released a new phone.", "Samsung released a new phone."
+        )
+        assert s > 0.05, f"entity mismatch should increase divergence: {s}"
+
+    def test_completely_different(self):
+        s = rust.rust_lite_score(
+            "Quantum computing uses qubits.",
+            "The recipe calls for flour and sugar.",
+        )
+        assert s > 0.5, f"unrelated texts should have high divergence: {s}"
+
+    def test_parity_with_python(self):
+        """Verify Rust and Python produce identical results."""
+        from director_ai.core.scoring._heuristics import (
+            ENTITY_RE,
+            NEGATION_WORDS,
+            WORD_RE,
+        )
+
+        # Force Python path for parity check
+        cases = [
+            ("The sky is blue.", "The sky is green."),
+            ("Hello world.", "Hello world."),
+            ("", "something"),
+            ("text", ""),
+            ("Apple is great.", "Samsung is great."),
+        ]
+        for premise, hypothesis in cases:
+            # Python computation (inline, not via LiteScorer to avoid Rust path)
+            if not premise or not hypothesis:
+                py_result = 0.5
+            else:
+                p_words = set(WORD_RE.findall(premise.lower()))
+                h_words = set(WORD_RE.findall(hypothesis.lower()))
+                if not p_words or not h_words:
+                    py_result = 0.5
+                else:
+                    intersection = len(p_words & h_words)
+                    union = len(p_words | h_words)
+                    jaccard = intersection / union
+                    len_ratio = min(len(premise), len(hypothesis)) / max(
+                        len(premise), len(hypothesis)
+                    )
+                    p_ents = set(ENTITY_RE.findall(premise))
+                    h_ents = set(ENTITY_RE.findall(hypothesis))
+                    if p_ents and h_ents:
+                        ent_overlap = len(p_ents & h_ents) / len(p_ents | h_ents)
+                    elif p_ents or h_ents:
+                        ent_overlap = 0.0
+                    else:
+                        ent_overlap = 0.5
+                    p_neg = len(p_words & NEGATION_WORDS)
+                    h_neg = len(h_words & NEGATION_WORDS)
+                    neg_penalty = 0.3 if (p_neg == 0) != (h_neg == 0) else 0.0
+                    similarity = (
+                        0.4 * jaccard
+                        + 0.2 * len_ratio
+                        + 0.2 * ent_overlap
+                        + 0.2 * (1.0 - neg_penalty)
+                    )
+                    py_result = max(0.0, min(1.0, 1.0 - similarity))
+
+            rs_result = rust.rust_lite_score(premise, hypothesis)
+            assert abs(rs_result - py_result) < 1e-9, (
+                f"Parity failed for ({premise!r}, {hypothesis!r}): "
+                f"rust={rs_result}, python={py_result}"
+            )
+
+    def test_batch(self):
+        pairs = [
+            ("The sky is blue.", "The sky is blue."),
+            ("Yes it works.", "No it does not work."),
+            ("Apple is great.", "Samsung is terrible."),
+        ]
+        results = rust.rust_lite_score_batch(pairs)
+        assert len(results) == 3
+        # Identical should be lowest divergence
+        assert results[0] < results[1]

@@ -93,6 +93,25 @@ REASONING_TEXT = (
 OVERLAP_A = "The quick brown fox jumps over the lazy dog near the river bank"
 OVERLAP_B = "A quick brown fox leaps over a lazy dog by the river bank"
 
+LITE_PREMISE = (
+    "The Team Plan costs $19 per user per month and supports up to "
+    "25 users with email support. Phone support is available for all "
+    "paid plans. We are SOC 2 Type II, ISO 27001, HIPAA, and FedRAMP certified."
+)
+LITE_HYPOTHESIS = (
+    "Team Plan costs $19 per user per month, up to 25 users. "
+    "Phone support is Enterprise only. "
+    "All paid plans include a 14-day free trial. "
+    "SOC 2 Type II and ISO 27001 certified."
+)
+LITE_BATCH_PAIRS = [
+    (LITE_PREMISE, LITE_HYPOTHESIS),
+    ("The sky is blue.", "The sky is green."),
+    ("Apple released a new product.", "Samsung released a new product."),
+    ("The company never ships late.", "The company always ships late."),
+    ("Quantum computing uses qubits.", "The recipe calls for flour and sugar."),
+] * 20  # 100 pairs
+
 
 def _make_softmax_data(rows: int, cols: int = 3) -> np.ndarray:
     rng = np.random.default_rng(42)
@@ -425,6 +444,69 @@ def py_verify_numeric(text: str) -> tuple[int, list[tuple[str, str, str, str]], 
     return count, issues, count == 0
 
 
+# ─── Lite scorer (Python path) ────────────────────────────────────────
+
+_PY_LITE_WORD_RE = re.compile(r"\b\w+\b")
+_PY_LITE_ENTITY_RE = re.compile(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b")
+_PY_LITE_NEG = frozenset(
+    {
+        "not",
+        "no",
+        "never",
+        "neither",
+        "nobody",
+        "nothing",
+        "nowhere",
+        "nor",
+        "cannot",
+        "can't",
+        "don't",
+        "doesn't",
+        "didn't",
+        "won't",
+        "wouldn't",
+        "shouldn't",
+        "isn't",
+        "aren't",
+        "wasn't",
+        "weren't",
+        "hasn't",
+        "haven't",
+        "hadn't",
+    }
+)
+
+
+def py_lite_score(premise: str, hypothesis: str) -> float:
+    if not premise or not hypothesis:
+        return 0.5
+    p_words = set(_PY_LITE_WORD_RE.findall(premise.lower()))
+    h_words = set(_PY_LITE_WORD_RE.findall(hypothesis.lower()))
+    if not p_words or not h_words:
+        return 0.5
+    jaccard = len(p_words & h_words) / len(p_words | h_words)
+    len_ratio = min(len(premise), len(hypothesis)) / max(len(premise), len(hypothesis))
+    p_ents = set(_PY_LITE_ENTITY_RE.findall(premise))
+    h_ents = set(_PY_LITE_ENTITY_RE.findall(hypothesis))
+    if p_ents and h_ents:
+        ent_overlap = len(p_ents & h_ents) / len(p_ents | h_ents)
+    elif p_ents or h_ents:
+        ent_overlap = 0.0
+    else:
+        ent_overlap = 0.5
+    p_neg = len(p_words & _PY_LITE_NEG)
+    h_neg = len(h_words & _PY_LITE_NEG)
+    neg_penalty = 0.3 if (p_neg == 0) != (h_neg == 0) else 0.0
+    similarity = (
+        0.4 * jaccard + 0.2 * len_ratio + 0.2 * ent_overlap + 0.2 * (1.0 - neg_penalty)
+    )
+    return max(0.0, min(1.0, 1.0 - similarity))
+
+
+def py_lite_score_batch(pairs: list[tuple[str, str]]) -> list[float]:
+    return [py_lite_score(p, h) for p, h in pairs]
+
+
 # ─── Benchmark runner ────────────────────────────────────────────────
 
 
@@ -451,6 +533,8 @@ def _try_import_rust():
             rust_detect_task_type,
             rust_extract_reasoning_steps,
             rust_has_suspicious_unicode,
+            rust_lite_score,
+            rust_lite_score_batch,
             rust_probs_to_confidence,
             rust_probs_to_divergence,
             rust_sanitizer_score,
@@ -471,6 +555,8 @@ def _try_import_rust():
             "softmax": rust_softmax,
             "probs_to_divergence": rust_probs_to_divergence,
             "probs_to_confidence": rust_probs_to_confidence,
+            "lite_score": rust_lite_score,
+            "lite_score_batch": rust_lite_score_batch,
         }
     except ImportError:
         return None
@@ -630,6 +716,22 @@ def main():
             "py_args": (pr_large_flat, 3),
             "rs_fn": rust_fns["probs_to_confidence"] if rust_fns else None,
             "rs_args": (pr_large_flat, 3),
+        },
+        {
+            "name": "lite_score",
+            "description": "Heuristic divergence scorer",
+            "py_fn": py_lite_score,
+            "py_args": (LITE_PREMISE, LITE_HYPOTHESIS),
+            "rs_fn": rust_fns["lite_score"] if rust_fns else None,
+            "rs_args": (LITE_PREMISE, LITE_HYPOTHESIS),
+        },
+        {
+            "name": "lite_score_batch (100 pairs)",
+            "description": "Batch heuristic scorer",
+            "py_fn": py_lite_score_batch,
+            "py_args": (LITE_BATCH_PAIRS,),
+            "rs_fn": rust_fns["lite_score_batch"] if rust_fns else None,
+            "rs_args": (LITE_BATCH_PAIRS,),
         },
     ]
 

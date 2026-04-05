@@ -1281,6 +1281,16 @@ fn rust_probs_to_confidence(probs: Vec<f64>, cols: usize) -> Vec<f64> {
     backfire_core::compute::probs_to_confidence(&probs, cols)
 }
 
+#[pyfunction]
+fn rust_lite_score(premise: &str, hypothesis: &str) -> f64 {
+    backfire_core::compute::lite_score(premise, hypothesis)
+}
+
+#[pyfunction]
+fn rust_lite_score_batch(pairs: Vec<(String, String)>) -> Vec<f64> {
+    backfire_core::compute::lite_score_batch(&pairs)
+}
+
 #[pymodule]
 fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     // Core safety gate
@@ -1322,5 +1332,7 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_softmax, m)?)?;
     m.add_function(wrap_pyfunction!(rust_probs_to_divergence, m)?)?;
     m.add_function(wrap_pyfunction!(rust_probs_to_confidence, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_lite_score, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_lite_score_batch, m)?)?;
     Ok(())
 }

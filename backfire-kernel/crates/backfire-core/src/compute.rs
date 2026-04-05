@@ -25,6 +25,10 @@
 //! - [`softmax`] — row-wise softmax for NLI logits
 //! - [`probs_to_divergence`] — NLI probability → divergence score
 //! - [`probs_to_confidence`] — NLI probability → confidence score
+//! - [`lite_score`] — lightweight heuristic divergence (no-NLI fallback)
+//! - [`lite_score_batch`] — batch version of lite_score
+
+use std::collections::HashSet;
 
 use once_cell::sync::Lazy;
 use regex::Regex;
@@ -538,8 +542,6 @@ pub fn extract_reasoning_steps(text: &str) -> Vec<String> {
 ///
 /// Mirrors `_word_overlap()` from `reasoning_verifier.py`.
 pub fn word_overlap(text_a: &str, text_b: &str) -> f64 {
-    use std::collections::HashSet;
-
     let words_a: HashSet<String> = text_a
         .split_whitespace()
         .map(|w| w.to_lowercase())
@@ -659,6 +661,104 @@ pub fn probs_to_confidence(probs: &[f64], cols: usize) -> Vec<f64> {
     }
 
     result
+}
+
+// ── Lite scorer ────────────────────────────────────────────────────
+
+static LITE_WORD_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b\w+\b").unwrap());
+
+static LITE_ENTITY_RE: Lazy<Regex> =
+    Lazy::new(|| Regex::new(r"\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*\b").unwrap());
+
+static LITE_NEGATION_WORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    [
+        "not", "no", "never", "neither", "nobody", "nothing", "nowhere", "nor",
+        "cannot", "can't", "don't", "doesn't", "didn't", "won't", "wouldn't",
+        "shouldn't", "isn't", "aren't", "wasn't", "weren't", "hasn't",
+        "haven't", "hadn't",
+    ]
+    .into_iter()
+    .collect()
+});
+
+/// Lightweight divergence scorer using word overlap, length ratio,
+/// named entity heuristics, and negation asymmetry.
+///
+/// Returns divergence in [0, 1]. 0 = aligned, 1 = contradicted.
+/// Mirrors `LiteScorer.score()` from `lite_scorer.py`.
+pub fn lite_score(premise: &str, hypothesis: &str) -> f64 {
+    if premise.is_empty() || hypothesis.is_empty() {
+        return 0.5;
+    }
+
+    let p_words: HashSet<String> = LITE_WORD_RE
+        .find_iter(&premise.to_lowercase())
+        .map(|m| m.as_str().to_string())
+        .collect();
+    let h_words: HashSet<String> = LITE_WORD_RE
+        .find_iter(&hypothesis.to_lowercase())
+        .map(|m| m.as_str().to_string())
+        .collect();
+
+    if p_words.is_empty() || h_words.is_empty() {
+        return 0.5;
+    }
+
+    // Jaccard overlap
+    let intersection = p_words.intersection(&h_words).count();
+    let union = p_words.union(&h_words).count();
+    let jaccard = intersection as f64 / union as f64;
+
+    // Length ratio penalty
+    let len_ratio =
+        premise.len().min(hypothesis.len()) as f64 / premise.len().max(hypothesis.len()) as f64;
+
+    // Named entity overlap
+    let p_ents: HashSet<String> = LITE_ENTITY_RE
+        .find_iter(premise)
+        .map(|m| m.as_str().to_string())
+        .collect();
+    let h_ents: HashSet<String> = LITE_ENTITY_RE
+        .find_iter(hypothesis)
+        .map(|m| m.as_str().to_string())
+        .collect();
+    let ent_overlap = if !p_ents.is_empty() && !h_ents.is_empty() {
+        let ei = p_ents.intersection(&h_ents).count();
+        let eu = p_ents.union(&h_ents).count();
+        ei as f64 / eu as f64
+    } else if !p_ents.is_empty() || !h_ents.is_empty() {
+        0.0
+    } else {
+        0.5
+    };
+
+    // Negation asymmetry
+    let p_neg = p_words
+        .iter()
+        .filter(|w| LITE_NEGATION_WORDS.contains(w.as_str()))
+        .count();
+    let h_neg = h_words
+        .iter()
+        .filter(|w| LITE_NEGATION_WORDS.contains(w.as_str()))
+        .count();
+    let neg_penalty = if (p_neg == 0) != (h_neg == 0) {
+        0.3
+    } else {
+        0.0
+    };
+
+    let similarity = 0.4 * jaccard + 0.2 * len_ratio + 0.2 * ent_overlap + 0.2 * (1.0 - neg_penalty);
+    (1.0 - similarity).clamp(0.0, 1.0)
+}
+
+/// Batch lite scoring for multiple (premise, hypothesis) pairs.
+///
+/// Mirrors `LiteScorer.score_batch()` from `lite_scorer.py`.
+pub fn lite_score_batch(pairs: &[(String, String)]) -> Vec<f64> {
+    pairs
+        .iter()
+        .map(|(p, h)| lite_score(p, h))
+        .collect()
 }
 
 // ── Tests ───────────────────────────────────────────────────────────
@@ -926,5 +1026,47 @@ mod tests {
         // Build string with > 15% suspicious chars
         let text = "\u{202E}\u{202E}\u{202E}ab";
         assert!(has_suspicious_unicode(text)); // 3/5 = 60%
+    }
+
+    // -- lite_score --
+
+    #[test]
+    fn test_lite_score_identical() {
+        let s = lite_score("The sky is blue today.", "The sky is blue today.");
+        assert!(s < 0.15, "identical texts should have low divergence: {s}");
+    }
+
+    #[test]
+    fn test_lite_score_contradicted() {
+        let s = lite_score(
+            "The company never ships products late.",
+            "The company always ships products extremely late.",
+        );
+        // Negation asymmetry should raise divergence above identical-text baseline
+        assert!(s > 0.2, "contradicted should have higher divergence: {s}");
+    }
+
+    #[test]
+    fn test_lite_score_empty() {
+        assert!((lite_score("", "something") - 0.5).abs() < 1e-9);
+        assert!((lite_score("hello", "") - 0.5).abs() < 1e-9);
+    }
+
+    #[test]
+    fn test_lite_score_entity_mismatch() {
+        let s = lite_score("Apple released a new product.", "Samsung released a new product.");
+        // Same structure, different entity → entity overlap < 1
+        assert!(s > 0.1, "entity mismatch should increase divergence: {s}");
+    }
+
+    #[test]
+    fn test_lite_score_batch() {
+        let pairs = vec![
+            ("The sky is blue.".to_string(), "The sky is blue.".to_string()),
+            ("Yes it works.".to_string(), "No it does not work.".to_string()),
+        ];
+        let results = lite_score_batch(&pairs);
+        assert_eq!(results.len(), 2);
+        assert!(results[0] < results[1], "identical < contradicted");
     }
 }
