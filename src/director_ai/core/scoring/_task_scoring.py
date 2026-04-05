@@ -56,7 +56,7 @@ def detect_task_type(prompt: str, response: str = "") -> str:
     unless dialogue markers are present.
     """
     if _RUST_TASK:
-        return rust_detect_task_type(prompt, response)
+        return str(rust_detect_task_type(prompt, response))
     matches = _DIALOGUE_TURN_RE.findall(prompt)
     if len(matches) >= 2:
         return "dialogue"

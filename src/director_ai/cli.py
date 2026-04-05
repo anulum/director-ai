@@ -33,7 +33,7 @@ from ._cli_bench import (
     _cmd_tune,
     _cmd_validate_data,
 )
-from ._cli_ingest import _cmd_ingest
+from ._cli_ingest import _INGEST_MAX_FILE_SIZE, _cmd_ingest  # noqa: F401
 from ._cli_serve import _cmd_proxy, _cmd_serve, _cmd_stress_test
 from ._cli_verify import (
     _cmd_adversarial_test,

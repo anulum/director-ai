@@ -223,7 +223,7 @@ class InputSanitizer:
 
         # Python fallback
         allowlisted = self._is_allowlisted(text)
-        matched: list[str] = []
+        py_matched: list[str] = []
         total = 0.0
         for name, pat in self._patterns:
             if pat.search(text):
@@ -231,16 +231,16 @@ class InputSanitizer:
                 if allowlisted:
                     weight *= 0.1  # reduce but don't skip — prevents full bypass
                 total += weight
-                matched.append(name)
+                py_matched.append(name)
 
         clamped = min(total, 1.0)
         blocked = clamped >= self.block_threshold
         return SanitizeResult(
             blocked=blocked,
-            reason=matched[0] if matched else "",
-            pattern=matched[0] if matched else "",
+            reason=py_matched[0] if py_matched else "",
+            pattern=py_matched[0] if py_matched else "",
             suspicion_score=clamped,
-            matches=matched,
+            matches=py_matched,
         )
 
     def check(self, text: str) -> SanitizeResult:
@@ -270,7 +270,7 @@ class InputSanitizer:
         Cn (unassigned) count as suspicious.
         """
         if _RUST_SANITIZER:
-            return rust_has_suspicious_unicode(text)
+            return bool(rust_has_suspicious_unicode(text))
         if not text:
             return False
         suspicious = 0

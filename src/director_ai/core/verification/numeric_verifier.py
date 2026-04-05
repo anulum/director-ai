@@ -130,7 +130,7 @@ def verify_numeric(text: str) -> NumericVerificationResult:
             valid=valid,
         )
 
-    issues: list[NumericIssue] = []
+    issues = []  # type: list[NumericIssue]
     claims_found = 0
 
     # 1. Percentage arithmetic

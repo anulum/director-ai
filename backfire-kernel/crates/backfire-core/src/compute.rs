@@ -83,9 +83,8 @@ pub fn has_suspicious_unicode(text: &str) -> bool {
         total += 1;
         // Cf (format), Co (private use), Cn (unassigned) categories
         // Rust doesn't have unicodedata.category, but we can check ranges
-        if ch.is_control() && ch != '\n' && ch != '\r' && ch != '\t' {
-            suspicious += 1;
-        } else if matches!(ch,
+        let is_suspicious_control = ch.is_control() && ch != '\n' && ch != '\r' && ch != '\t';
+        let is_suspicious_unicode = matches!(ch,
             '\u{200B}'..='\u{200F}' |  // zero-width, LTR/RTL marks
             '\u{202A}'..='\u{202E}' |  // bidi overrides
             '\u{2060}'..='\u{2069}' |  // word joiners, bidi isolates
@@ -93,7 +92,8 @@ pub fn has_suspicious_unicode(text: &str) -> bool {
             '\u{E0001}'..='\u{E007F}' | // tags
             '\u{F0000}'..='\u{FFFFD}' | // private use area
             '\u{100000}'..='\u{10FFFD}'  // supplementary private use
-        ) {
+        );
+        if is_suspicious_control || is_suspicious_unicode {
             suspicious += 1;
         }
     }

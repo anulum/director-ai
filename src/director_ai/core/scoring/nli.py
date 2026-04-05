@@ -517,7 +517,7 @@ class NLIScorer:
             return False
 
     def _minicheck_score(self, premise: str, hypothesis: str) -> float:
-        if not self.use_model:
+        if not getattr(self, "use_model", True) and not self._minicheck_loaded:
             return self._heuristic_score(premise, hypothesis)
         if not self._ensure_minicheck() or self._minicheck is None:
             return self._heuristic_score(premise, hypothesis)
@@ -529,7 +529,7 @@ class NLIScorer:
         return float(1.0 - result[0])
 
     def _minicheck_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
-        if not self.use_model:
+        if not getattr(self, "use_model", True) and not self._minicheck_loaded:
             return [self._heuristic_score(p, h) for p, h in pairs]
         if not self._ensure_minicheck() or self._minicheck is None:
             return [self._heuristic_score(p, h) for p, h in pairs]
