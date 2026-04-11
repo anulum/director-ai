@@ -147,7 +147,9 @@ Python 3.11+. Full guide: [docs/installation](https://anulum.github.io/director-
 
 ### Accuracy — LLM-AggreFact (29,320 samples)
 
-Model: [`yaxili96/FactCG-DeBERTa-v3-Large`](https://huggingface.co/yaxili96/FactCG-DeBERTa-v3-Large) (0.4B params, MIT).
+Two judges ship with this release.
+
+**Default — `yaxili96/FactCG-DeBERTa-v3-Large`** (0.4B params, MIT). The fast NLI baseline.
 
 | Model | Balanced Acc | Params | Latency | Streaming |
 |-------|-------------|--------|---------|-----------|
@@ -157,6 +159,8 @@ Model: [`yaxili96/FactCG-DeBERTa-v3-Large`](https://huggingface.co/yaxili96/Fact
 | MiniCheck-DeBERTa-L | 72.6% | 0.4B | ~120 ms | No |
 
 Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
+
+**Optional — Gemma 4 E4B Q6 with per-task-family routing.** A zero-training LLM-as-judge that routes prompts by task family (`summ` / `rag` / `claim`) reaches **82.11 %** sample-pooled balanced accuracy on the same 29,320 samples — the highest result we have reproduced on a single 8 GB consumer GPU. Per-family breakdown: `summ` 78.24 %, `rag` 79.42 %, `claim` 87.11 %. Details, prompts, and per-dataset numbers in [`training/EXPERIMENT_RESULTS.md`](training/EXPERIMENT_RESULTS.md). The routed judge is opt-in (`--backend llama-cpp`); FactCG remains the default.
 
 ### Rust compute acceleration (v3.12.0)
 
