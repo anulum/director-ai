@@ -58,11 +58,37 @@ def load_aggrefact() -> list[dict]:
 
 
 def load_cached_scores(path: str) -> dict[int, dict]:
-    """Load cached scores, keyed by index for alignment with AggreFact rows."""
+    """Load cached scores, keyed by index for alignment with AggreFact rows.
+
+    Schema-aware. Accepts both:
+      - v1 (legacy): ``scores: [{dataset, label, score, latency_ms?}]``
+      - v2 (ensemble): parallel ``scores`` / ``labels`` / ``datasets_per_sample``
+        lists, as written by ``benchmarks.aggrefact_eval.score_and_save`` since
+        2026-04-11. Older readers depended on the ``{dataset, label, score}``
+        dict shape, so v2 is materialised back into that dict shape here.
+    """
     data = json.loads(Path(path).read_text())
-    by_idx = {}
-    for i, entry in enumerate(data["scores"]):
-        by_idx[i] = entry
+    raw_scores = data.get("scores", [])
+    by_idx: dict[int, dict] = {}
+
+    if raw_scores and isinstance(raw_scores[0], dict):
+        for i, entry in enumerate(raw_scores):
+            by_idx[i] = entry
+    else:
+        labels = data.get("labels", [])
+        datasets = data.get("datasets_per_sample", [])
+        if not (len(raw_scores) == len(labels) == len(datasets)):
+            msg = (
+                f"Cached file {path} has inconsistent v2 list lengths: "
+                f"scores={len(raw_scores)} labels={len(labels)} "
+                f"datasets={len(datasets)}"
+            )
+            raise ValueError(msg)
+        for i, (ds, lbl, scr) in enumerate(
+            zip(datasets, labels, raw_scores, strict=True)
+        ):
+            by_idx[i] = {"dataset": ds, "label": int(lbl), "score": float(scr)}
+
     logger.info("Loaded %d cached scores", len(by_idx))
     return by_idx
 

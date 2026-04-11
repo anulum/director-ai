@@ -342,19 +342,41 @@ def _load_aggrefact(max_samples: int | None = None) -> list[dict]:
     return rows
 
 
+SCHEMA_VERSION = 2  # bump when JSON layout changes
+
+
 def score_and_save(
     out_path: str | Path,
     max_samples: int | None = None,
     model_name: str | None = None,
 ) -> Path:
-    """Score all samples once, save raw (dataset, label, entailment_prob) to JSON.
+    """Score all samples once and save in the ensemble-compatible JSON schema.
 
-    GPU runs this once. Local runs load the result with ``load_cached_scores()``.
+    The output mirrors ``benchmarks/gemma_aggrefact_eval.py`` so a downstream
+    ensemble analyser can load Gemma and FactCG predictions uniformly.
+
+    Two distinct balanced-accuracy numbers are saved (both useful, do not
+    confuse them):
+
+    - ``global_balanced_accuracy``: sample-pooled BA computed once across all
+      29 320 samples using a single threshold swept on the pool. Matches the
+      convention used by FactCG paper and ``gemma_aggrefact_eval.py``.
+    - ``per_dataset_avg_balanced_accuracy``: unweighted mean of per-dataset
+      BAs, each measured at its own optimal threshold. Higher than global on
+      heterogeneous benchmarks because each dataset gets its own calibration.
+
+    The file is also readable by ``load_cached_scores()`` (schema-version
+    aware — old v1 files keep loading too).
     """
     predictor = _BinaryNLIPredictor(model_name=model_name)
     rows = _load_aggrefact(max_samples)
 
-    scored: list[dict] = []
+    scores: list[float] = []
+    labels: list[int] = []
+    datasets: list[str] = []
+    latencies: list[float] = []
+    t_start = time.time()
+
     for i, row in enumerate(rows):
         doc = row.get("doc", "")
         claim = row.get("claim", "")
@@ -362,48 +384,102 @@ def score_and_save(
         ds_name = row.get("dataset", "unknown")
         if label is None or not doc or not claim:
             continue
-        t0 = time.perf_counter()
+        t0 = time.time()
         ent_prob = predictor.score(doc, claim)
-        elapsed = time.perf_counter() - t0
-        scored.append(
-            {
-                "dataset": ds_name,
-                "label": int(label),
-                "score": round(float(ent_prob), 6),
-                "latency_ms": round(elapsed * 1000, 2),
-            }
-        )
+        elapsed = time.time() - t0
+        scores.append(round(float(ent_prob), 6))
+        labels.append(int(label))
+        datasets.append(ds_name)
+        latencies.append(elapsed)
         if (i + 1) % 1000 == 0:
             logger.info("Scored %d / %d", i + 1, len(rows))
 
+    total_time = time.time() - t_start
+
+    by_dataset: dict[str, list[tuple[int, float]]] = {}
+    for lbl, scr, ds in zip(labels, scores, datasets, strict=True):
+        by_dataset.setdefault(ds, []).append((lbl, scr))
+
+    # Per-dataset optimal thresholds (each dataset swept independently).
+    per_ds_t, per_ds_metrics = sweep_on_cached(by_dataset, per_dataset=True)
+    per_dataset_avg_ba = per_ds_metrics.avg_balanced_acc
+
+    # Sample-pooled single-threshold global BA (matches Gemma JSON convention).
+    global_thresh, global_metrics = sweep_on_cached(by_dataset, per_dataset=False)
+    global_ba = global_metrics.avg_balanced_acc
+
+    # Predictions from per-dataset thresholds (most useful for ensemble work).
+    predictions: list[int] = [
+        1 if s >= per_ds_t.get(d, 0.5) else 0
+        for s, d in zip(scores, datasets, strict=True)
+    ]
+
+    results = {
+        "schema_version": SCHEMA_VERSION,
+        "model": model_name or "yaxili96/FactCG-DeBERTa-v3-Large",
+        "backend": "transformers",
+        "samples": len(scores),
+        "global_balanced_accuracy": global_ba,
+        "global_threshold": global_thresh,
+        "per_dataset_avg_balanced_accuracy": per_dataset_avg_ba,
+        "per_dataset": {
+            ds: {"samples": m["total"], "balanced_accuracy": m["balanced_acc"]}
+            for ds, m in per_ds_metrics.per_dataset.items()
+        },
+        "per_dataset_thresholds": per_ds_t,
+        "scores": scores,
+        "predictions": predictions,
+        "labels": labels,
+        "datasets_per_sample": datasets,
+        "unknown_predictions": 0,
+        "total_time_seconds": total_time,
+        "mean_latency_ms": 1000 * sum(latencies) / len(latencies) if latencies else 0,
+        "p50_latency_ms": (
+            1000 * sorted(latencies)[len(latencies) // 2] if latencies else 0
+        ),
+        "p99_latency_ms": (
+            1000 * sorted(latencies)[int(len(latencies) * 0.99)] if latencies else 0
+        ),
+    }
+
     out = Path(out_path)
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(
-        json.dumps(
-            {
-                "model": model_name or "yaxili96/FactCG-DeBERTa-v3-Large",
-                "total": len(scored),
-                "scores": scored,
-            },
-            indent=2,
-        )
-    )
-    logger.info("Saved %d raw scores to %s", len(scored), out)
+    out.write_text(json.dumps(results, indent=2))
+    logger.info("Saved ensemble-compatible results to %s", out)
     return out
 
 
 def load_cached_scores(path: str | Path) -> dict[str, list[tuple[int, float]]]:
     """Load cached scores from ``score_and_save()`` output.
 
-    Returns {dataset_name: [(label, entailment_prob), ...]}.
+    Returns ``{dataset_name: [(label, entailment_prob), ...]}``. Schema-aware:
+    accepts both the legacy v1 layout (``scores: list[{dataset,label,score}]``)
+    and the v2 ensemble layout (parallel ``scores``/``labels``/``datasets_per_sample``
+    lists).
     """
     data = json.loads(Path(path).read_text())
     by_dataset: dict[str, list[tuple[int, float]]] = {}
-    for entry in data["scores"]:
-        ds = entry["dataset"]
-        if ds not in by_dataset:
-            by_dataset[ds] = []
-        by_dataset[ds].append((entry["label"], entry["score"]))
+    raw_scores = data.get("scores", [])
+
+    if raw_scores and isinstance(raw_scores[0], dict):
+        # Legacy v1 layout
+        for entry in raw_scores:
+            by_dataset.setdefault(entry["dataset"], []).append(
+                (int(entry["label"]), float(entry["score"]))
+            )
+    else:
+        # v2 ensemble layout
+        labels = data.get("labels", [])
+        datasets = data.get("datasets_per_sample", [])
+        if not (len(raw_scores) == len(labels) == len(datasets)):
+            msg = (
+                f"Cached file {path} has inconsistent list lengths: "
+                f"scores={len(raw_scores)} labels={len(labels)} datasets={len(datasets)}"
+            )
+            raise ValueError(msg)
+        for ds, lbl, scr in zip(datasets, labels, raw_scores, strict=True):
+            by_dataset.setdefault(ds, []).append((int(lbl), float(scr)))
+
     logger.info(
         "Loaded %d cached scores across %d datasets from %s",
         sum(len(v) for v in by_dataset.values()),
@@ -901,15 +977,14 @@ if __name__ == "__main__":
             max_samples=args.max_samples,
             model_name=args.model,
         )
-        print(f"\nScores saved to {out}")
-        # Also run global + per-dataset sweep on the just-scored data
-        by_dataset = load_cached_scores(out)
-        best_global, m_global = sweep_on_cached(by_dataset, per_dataset=False)
-        _print_aggrefact_results(m_global, "global threshold")
-        _, m = sweep_on_cached(by_dataset, per_dataset=True)
-        _print_aggrefact_results(m, "per-dataset thresholds")
-        delta = m.avg_balanced_acc - m_global.avg_balanced_acc
-        print(f"  Per-dataset uplift: {delta:+.2%}")
+        print(f"\nEnsemble-compatible results saved to {out}")
+        # Print summary from the saved JSON
+        with open(out) as f:
+            r = json.load(f)
+        print(
+            f"Global Balanced Accuracy (per-dataset optimal): {r['global_balanced_accuracy']:.2%}"
+        )
+
     elif args.load_scores:
         by_dataset = load_cached_scores(args.load_scores)
         if args.per_dataset:
