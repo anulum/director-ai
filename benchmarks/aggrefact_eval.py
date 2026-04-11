@@ -276,7 +276,10 @@ class _BinaryNLIPredictor:
             return self._score_single(chunks[0], hypothesis)
         try:
             return max(self._score_batch([(c, hypothesis) for c in chunks]))
-        except RuntimeError:
+        except (RuntimeError, self._torch.OutOfMemoryError):
+            # Fall back to per-chunk scoring on OOM (8 GB GPUs hit this on
+            # long premises with many chunks).
+            self._torch.cuda.empty_cache()
             return max(self._score_single(c, hypothesis) for c in chunks)
 
 
@@ -349,6 +352,7 @@ def score_and_save(
     out_path: str | Path,
     max_samples: int | None = None,
     model_name: str | None = None,
+    max_length: int = 2048,
 ) -> Path:
     """Score all samples once and save in the ensemble-compatible JSON schema.
 
@@ -368,7 +372,7 @@ def score_and_save(
     The file is also readable by ``load_cached_scores()`` (schema-version
     aware — old v1 files keep loading too).
     """
-    predictor = _BinaryNLIPredictor(model_name=model_name)
+    predictor = _BinaryNLIPredictor(model_name=model_name, max_length=max_length)
     rows = _load_aggrefact(max_samples)
 
     scores: list[float] = []
@@ -431,6 +435,7 @@ def score_and_save(
         "predictions": predictions,
         "labels": labels,
         "datasets_per_sample": datasets,
+        "latencies_per_sample": latencies,
         "unknown_predictions": 0,
         "total_time_seconds": total_time,
         "mean_latency_ms": 1000 * sum(latencies) / len(latencies) if latencies else 0,
@@ -969,6 +974,12 @@ if __name__ == "__main__":
         metavar="PATH",
         help="Load cached scores from PATH — skip inference, run threshold analysis",
     )
+    parser.add_argument(
+        "--max-length",
+        type=int,
+        default=2048,
+        help="Max NLI tokenizer length per chunk (lower = less VRAM, default 2048)",
+    )
     args = parser.parse_args()
 
     if args.save_scores:
@@ -976,6 +987,7 @@ if __name__ == "__main__":
             args.save_scores,
             max_samples=args.max_samples,
             model_name=args.model,
+            max_length=args.max_length,
         )
         print(f"\nEnsemble-compatible results saved to {out}")
         # Print summary from the saved JSON
