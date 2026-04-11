@@ -175,3 +175,15 @@ features/
 
 # MkDocs build output
 site/
+
+# Local backups — never committed
+BACKUP/
+ARCHIVE/
+MODELS/
+
+# Lower-case models symlink (machine-specific path on dev rig)
+/models
+# nohup wrapper output — ephemeral
+nohup.out
+# Auto-generated benchmark / analysis reports — never committed
+/reports/
