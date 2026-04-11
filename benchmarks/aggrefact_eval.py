@@ -1112,10 +1112,13 @@ if __name__ == "__main__":
         )
         _print_aggrefact_results(m, args.model or "default")
 
-    # Derive output filename from model name to avoid overwriting
-    model_tag = (args.model or "default").replace("/", "_").replace("\\", "_")
-    outfile = f"aggrefact_{model_tag}.json"
-    save_results(
-        {"benchmark": "LLM-AggreFact", "model": args.model or "default", **m.to_dict()},
-        outfile,
-    )
+    # Derive output filename from model name to avoid overwriting.
+    # Skipped when ``--save-scores`` / ``--bidirectional`` ran — those modes
+    # have already written their own output and ``m`` is not defined here.
+    if "m" in locals():
+        model_tag = (args.model or "default").replace("/", "_").replace("\\", "_")
+        outfile = f"aggrefact_{model_tag}.json"
+        save_results(
+            {"benchmark": "LLM-AggreFact", "model": args.model or "default", **m.to_dict()},
+            outfile,
+        )
