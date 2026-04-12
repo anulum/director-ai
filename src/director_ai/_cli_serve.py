@@ -18,7 +18,7 @@ import sys
 
 def _cmd_serve(args: list[str]) -> None:
     port = 8080
-    host = "0.0.0.0"
+    host = "0.0.0.0"  # nosec B104 — CLI default; production via HOST env var or --host flag
     profile = "default"
     mode = ""
     workers = 1
@@ -187,7 +187,7 @@ def _cmd_proxy(args: list[str]) -> None:
         f"Director-AI proxy on :{port} â†’ {upstream_url} "
         f"(threshold={threshold}, on_fail={on_fail})",
     )
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=port)  # nosec B104 — CLI proxy; production behind reverse proxy
 
 
 def _cmd_stress_test(args: list[str]) -> None:

@@ -146,7 +146,7 @@ class PostgresAuditSink:
 
     def _set_version(self, cur: Any, version: int) -> None:
         ph = "?" if self._is_sqlite else "%s"
-        cur.execute(f"INSERT INTO _schema_version (version) VALUES ({ph})", (version,))
+        cur.execute(f"INSERT INTO _schema_version (version) VALUES ({ph})", (version,))  # nosec B608 — ph is literal "?" or "%s" dialect switch
 
     def _apply_v1(self, cur: Any) -> None:
         bool_type = "INTEGER" if self._is_sqlite else "BOOLEAN"
@@ -193,7 +193,7 @@ class PostgresAuditSink:
             return
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
-        sql = f"INSERT INTO {self.table_name} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"
+        sql = f"INSERT INTO {self.table_name} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"  # nosec B608 — table_name code-controlled; values via placeholders
         values = (
             entry.timestamp,
             entry.query_hash,
@@ -237,7 +237,7 @@ class PostgresAuditSink:
             return 0
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
-        sql = f"INSERT INTO {self.table_name} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"
+        sql = f"INSERT INTO {self.table_name} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"  # nosec B608 — table_name code-controlled; values via placeholders
         rows = [
             (
                 e.timestamp,
@@ -291,7 +291,7 @@ class PostgresAuditSink:
             params.append(val)
         where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
         sql = (
-            f"SELECT {', '.join(_COLUMNS)}, created_at FROM {self.table_name}"
+            f"SELECT {', '.join(_COLUMNS)}, created_at FROM {self.table_name}"  # nosec B608 — table_name code-controlled
             f"{where} ORDER BY created_at DESC LIMIT {ph}"
         )
         params.append(limit)
@@ -314,10 +314,10 @@ class PostgresAuditSink:
             return 0
         ph = "?" if self._is_sqlite else "%s"
         if tenant_id is not None:
-            sql = f"SELECT COUNT(*) FROM {self.table_name} WHERE tenant_id = {ph}"
+            sql = f"SELECT COUNT(*) FROM {self.table_name} WHERE tenant_id = {ph}"  # nosec B608
             params: tuple = (tenant_id,)
         else:
-            sql = f"SELECT COUNT(*) FROM {self.table_name}"
+            sql = f"SELECT COUNT(*) FROM {self.table_name}"  # nosec B608
             params = ()
         try:
             cur = conn.cursor()

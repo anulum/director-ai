@@ -122,7 +122,7 @@ class DirectorConfig:
     cache_ttl: float = 300.0
 
     # Server
-    server_host: str = "0.0.0.0"
+    server_host: str = "0.0.0.0"  # nosec B104 — override via HOST env var; production behind reverse proxy
     server_port: int = 8080
     server_workers: int = 1
     cors_origins: str = ""
