@@ -164,11 +164,16 @@ def extract_steps(text: str) -> list[ReasoningStep]:
 
 
 def _word_overlap(a: str, b: str) -> float:
-    """Jaccard word overlap as a heuristic for logical support."""
+    """Jaccard word overlap as a heuristic for logical support.
+
+    Strips trailing punctuation from each token so that sentence-
+    boundary artefacts (e.g. ``"round."`` vs ``"round"``) do not
+    reduce the overlap score.
+    """
     if _RUST_REASONING:
         return float(rust_word_overlap(a, b))
-    wa = set(a.lower().split())
-    wb = set(b.lower().split())
+    wa = {w.strip(".,;:!?\"'()[]") for w in a.lower().split()} - {""}
+    wb = {w.strip(".,;:!?\"'()[]") for w in b.lower().split()} - {""}
     if not wa or not wb:
         return 0.0
     return len(wa & wb) / len(wa | wb)

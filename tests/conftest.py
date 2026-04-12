@@ -6,11 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Shared Test Fixtures
 
+import importlib.machinery
 import os
-
-# faiss-cpu 1.13.1 AVX2 .pyd hangs on DLL init (Windows);
-# generic backend loads in ~2s and CI uses Linux where this is not needed.
-os.environ.setdefault("FAISS_OPT_LEVEL", "generic")
+import sys
+import types
 
 import pytest
 
@@ -21,6 +20,29 @@ from director_ai.core import (
     MockGenerator,
     SafetyKernel,
 )
+
+# faiss-cpu 1.13.1 AVX2 .pyd hangs on DLL init (Windows);
+# generic backend loads in ~2s and CI uses Linux where this is not needed.
+os.environ.setdefault("FAISS_OPT_LEVEL", "generic")
+
+# ── Stub heavy optional deps so benchmark tests can patch them in CI ────
+# When llama_cpp / datasets are not installed (CI base environment),
+# ``unittest.mock.patch("llama_cpp.Llama")`` fails because the module
+# does not exist in sys.modules. Pre-populating with empty stubs lets
+# patch() succeed; the actual implementation is always mocked in tests.
+for _mod_name in ("llama_cpp", "datasets"):
+    if _mod_name not in sys.modules:
+        _stub = types.ModuleType(_mod_name)
+        _stub.__spec__ = importlib.machinery.ModuleSpec(_mod_name, None)
+        sys.modules[_mod_name] = _stub
+
+# Ensure stub modules have the attributes that benchmark tests patch.
+_llama_stub = sys.modules.get("llama_cpp")
+if _llama_stub is not None and not hasattr(_llama_stub, "Llama"):
+    _llama_stub.Llama = None  # type: ignore[attr-defined]
+_ds_stub = sys.modules.get("datasets")
+if _ds_stub is not None and not hasattr(_ds_stub, "load_dataset"):
+    _ds_stub.load_dataset = None  # type: ignore[attr-defined]
 
 
 @pytest.fixture
