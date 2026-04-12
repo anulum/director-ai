@@ -111,8 +111,6 @@ class LlamaCppLogprobBackend:
             logits_all=True,  # required for logprobs
         )
         # Find token IDs for "SUPPORTED" and "NOT" (NOT_SUPPORTED starts with NOT)
-        # Check what tokens the chat template produces
-        test_prompt = "Answer:"
         toks_supported = self.llm.tokenize(b" SUPPORTED", add_bos=False)
         toks_not = self.llm.tokenize(b" NOT", add_bos=False)
         logger.info("token ids: SUPPORTED=%s, NOT=%s", toks_supported, toks_not)
@@ -221,7 +219,6 @@ def main():
             )
 
     # Final analysis
-    valid_scores = [s for s in scores if s is not None]
     invalid = sum(1 for s in scores if s is None)
 
     ba_default = compute_balanced_accuracy(scores, labels, 0.5)

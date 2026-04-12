@@ -167,7 +167,7 @@ def routed_ensemble(
         by_dataset[d].append(i)
 
     train_idx: set[int] = set()
-    for d, idxs in by_dataset.items():
+    for _d, idxs in by_dataset.items():
         rng.shuffle(idxs)
         cut = len(idxs) // 2
         train_idx.update(idxs[:cut])
@@ -279,7 +279,7 @@ def main():
 
     # Per-judge metrics
     individual = {}
-    for j_idx, j in enumerate(judges):
+    for _j_idx, j in enumerate(judges):
         ba = balanced_accuracy(j["preds"], labels)
         per_ds = per_dataset_ba(j["preds"], labels, datasets)
         individual[j["name"]] = {
