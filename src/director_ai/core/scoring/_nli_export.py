@@ -101,6 +101,7 @@ def export_onnx(
     model_name: str = _DEFAULT_MODEL,
     output_dir: str = "factcg_onnx",
     quantize: str | None = None,
+    revision: str | None = None,
 ) -> str:
     """Export NLI model to ONNX format, optionally quantized.
 
@@ -119,9 +120,14 @@ def export_onnx(
     )
     from transformers import AutoTokenizer
 
-    model = ORTModelForSequenceClassification.from_pretrained(model_name, export=True)
+    from .nli import _resolve_revision
+
+    rev = _resolve_revision(model_name, revision)
+    model = ORTModelForSequenceClassification.from_pretrained(
+        model_name, export=True, revision=rev,
+    )
     model.save_pretrained(output_dir)
-    AutoTokenizer.from_pretrained(model_name).save_pretrained(output_dir)
+    AutoTokenizer.from_pretrained(model_name, revision=rev).save_pretrained(output_dir)
     logger.info("ONNX model exported to %s", output_dir)
 
     if quantize == "int8":

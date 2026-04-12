@@ -61,6 +61,25 @@ _DEFAULT_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 _DEFAULT_MODEL_REVISION = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
 _RECOMMENDED_MODEL = "lytang/MiniCheck-DeBERTa-L"
 
+#: Pinned revisions for all known HuggingFace Hub models used in
+#: production. Prevents supply-chain drift when upstream pushes a
+#: new commit.  Update SHAs deliberately after verifying the new
+#: revision against the AggreFact benchmark.
+MODEL_REGISTRY: dict[str, str] = {
+    _DEFAULT_MODEL: _DEFAULT_MODEL_REVISION,
+    "lytang/MiniCheck-DeBERTa-v3-Large": "2f2d01a54fa022a7ffadb76260e1ea8bc88c82bb",
+}
+
+
+def _resolve_revision(model_name: str, revision: str | None = None) -> str | None:
+    """Return an explicit revision SHA for *model_name*, or *None* if unknown.
+
+    If *revision* is already set by the caller, it takes precedence.
+    """
+    if revision is not None:
+        return revision
+    return MODEL_REGISTRY.get(model_name)
+
 # FactCG instruction template (NAACL 2025, derenlei/FactCG)
 _FACTCG_TEMPLATE = (
     "{text_a}\n\nChoose your answer: based on the paragraph above "
@@ -183,9 +202,7 @@ def _load_nli_model(
             device = "cuda"
             logger.info("CUDA available, auto-selecting GPU device")
 
-        rev = revision or (
-            _DEFAULT_MODEL_REVISION if model_name == _DEFAULT_MODEL else None
-        )
+        rev = _resolve_revision(model_name, revision)
         logger.info(
             "Loading NLI model: %s (device=%s, revision=%s)",
             model_name,
@@ -506,20 +523,24 @@ class NLIScorer:
                 )
 
                 ckpt = "lytang/MiniCheck-DeBERTa-v3-Large"
+                mc_rev = _resolve_revision(ckpt)
                 config = AutoConfig.from_pretrained(
                     ckpt,
                     num_labels=2,
                     finetuning_task="text-classification",
                     cache_dir=self._cache_dir,
+                    revision=mc_rev,
                 )
                 config.problem_type = "single_label_classification"
                 inf.tokenizer = AutoTokenizer.from_pretrained(
-                    ckpt, use_fast=True, cache_dir=self._cache_dir
+                    ckpt, use_fast=True, cache_dir=self._cache_dir,
+                    revision=mc_rev,
                 )
                 inf.model = AutoModelForSequenceClassification.from_pretrained(
                     ckpt,
                     config=config,
                     cache_dir=self._cache_dir,
+                    revision=mc_rev,
                 )
                 device = "cuda" if torch.cuda.is_available() else "cpu"
                 inf.model.to(device).eval()
