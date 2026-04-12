@@ -13,7 +13,8 @@ Includes: coherence scorer, streaming kernel, safety kernel, ground truth store,
 | Extra | Command | Adds |
 |-------|---------|------|
 | `nli` | `pip install director-ai[nli]` | FactCG-DeBERTa-v3-Large NLI (75.6% per-ds mean BA, 14.6ms/pair ONNX GPU) |
-| `minicheck` | `pip install director-ai[minicheck]` | MiniCheck alternative (72.6% bal. acc) |
+| `embed` | `pip install director-ai[embed]` | Embedding cosine-similarity scorer (~65% BA, 3ms CPU) |
+| `minicheck` | `pip install director-ai[minicheck]` | MiniCheck alternative |
 | `vector` | `pip install director-ai[vector]` | ChromaDB vector store |
 | `embeddings` | `pip install director-ai[embeddings]` | sentence-transformers (bge-large) |
 | `onnx` | `pip install director-ai[onnx]` | ONNX Runtime inference (14.6ms/pair GPU, portable CPU fallback) |

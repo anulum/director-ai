@@ -125,14 +125,27 @@ Also available: LangChain, LlamaIndex, LangGraph, Haystack, CrewAI, Semantic Ker
 ## Installation
 
 ```bash
-pip install "director-ai[nli]"                    # recommended — NLI model scoring
+pip install "director-ai[nli]"                    # recommended — NLI model scoring (75.6% BA)
+pip install "director-ai[embed]"                   # embedding scorer (~65% BA, CPU-only, 3ms)
+pip install director-ai                            # rule-based + heuristic (zero ML deps, <1ms)
 pip install "director-ai[nli,vector,server]"       # production stack with RAG + REST API
-pip install director-ai                            # heuristic-only (limited accuracy)
 ```
+
+### 5-tier scoring backends
+
+| Tier | Backend | Accuracy | Latency | Install |
+|------|---------|----------|---------|---------|
+| **5** | NLI (FactCG) | **75.6% BA** | 14.6 ms | `[nli]` |
+| **3** | Embedding (bge-small) | ~65% BA | 3 ms | `[embed]` |
+| **2** | Rules engine (8 rules) | rule-based | <1 ms | — (base) |
+| **1** | Heuristic (lite) | ~55% BA | <1 ms | — (base) |
+
+Select via config: `scorer_backend="rules"`, `"embed"`, `"deberta"`, or `"lite"`.
 
 | Layer | What you get | Install extra |
 |-------|-------------|---------------|
-| **Core** (zero heavy deps) | `CoherenceScorer`, `StreamingKernel`, `GroundTruthStore` | — |
+| **Core** (zero heavy deps) | `CoherenceScorer`, `StreamingKernel`, `GroundTruthStore`, rules engine | — |
+| **Embeddings** | Sentence-transformer cosine-similarity scorer | `[embed]` |
 | **NLI models** | DeBERTa, FactCG, MiniCheck, ONNX Runtime | `[nli]` |
 | **Vector DBs** | Chroma, Pinecone, Weaviate, Qdrant | `[vector]` / `[pinecone]` / etc. |
 | **Server** | FastAPI + Uvicorn REST/gRPC | `[server]` |

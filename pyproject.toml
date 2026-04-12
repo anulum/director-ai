@@ -108,6 +108,9 @@ reranker = [
 embeddings = [
     "sentence-transformers>=2.2,<4",
 ]
+embed = [
+    "sentence-transformers>=2.2,<4",
+]
 langgraph = [
     "langgraph>=0.2",
 ]
@@ -178,6 +181,8 @@ deberta = "director_ai.core.scoring.backends:DeBERTaBackend"
 onnx = "director_ai.core.scoring.backends:OnnxBackend"
 minicheck = "director_ai.core.backends:MiniCheckBackend"
 lite = "director_ai.core.backends:LiteBackend"
+rules = "director_ai.core.scoring.backends:RulesBackendWrapper"
+embed = "director_ai.core.scoring.backends:EmbedBackendWrapper"
 rust = "director_ai.core.backends:RustBackend"
 backfire = "director_ai.core.backends:RustBackend"
 

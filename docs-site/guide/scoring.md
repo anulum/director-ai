@@ -94,6 +94,24 @@ scorer = CoherenceScorer(use_nli=True)
 | PyTorch GPU sequential | 197 ms/pair | 75.6% BA |
 | ONNX CPU batch | 383 ms/pair | 75.6% BA |
 
+### Embedding scorer (no GPU needed)
+
+~65% balanced accuracy at 3ms/pair on CPU. Good for screening before NLI.
+
+```python
+scorer = CoherenceScorer(scorer_backend="embed")
+# requires: pip install director-ai[embed]
+```
+
+### Rules engine (zero ML, <1ms)
+
+8 configurable rules (entity grounding, numeric consistency, negation flip, etc.). Guardrails AI-style explicit control. Ships in the base package.
+
+```python
+scorer = CoherenceScorer(scorer_backend="rules")
+# no extra install needed
+```
+
 ### MiniCheck (lighter alternative)
 
 72.6% balanced accuracy. Lower VRAM (~400MB vs ~1.5GB).

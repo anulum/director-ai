@@ -530,6 +530,22 @@ class DirectorConfig:
                 "metrics_enabled": False,
                 "profile": "lite",
             },
+            "rules": {
+                "use_nli": False,
+                "scorer_backend": "rules",
+                "coherence_threshold": 0.5,
+                "max_candidates": 1,
+                "metrics_enabled": False,
+                "profile": "rules",
+            },
+            "embed": {
+                "use_nli": False,
+                "scorer_backend": "embed",
+                "coherence_threshold": 0.6,
+                "max_candidates": 2,
+                "metrics_enabled": False,
+                "profile": "embed",
+            },
         }
         if name not in profiles:
             raise ValueError(
