@@ -69,12 +69,14 @@ def load_judge(path: str) -> dict:
         "model": name,
         "preds": [int(p) for p in preds],
         "scores": [float(s) for s in scores] if scores else None,
-        "labels": [int(l) for l in labels],
+        "labels": [int(lab) for lab in labels],
         "datasets": list(datasets),
     }
 
 
-def align_judges(judges: list[dict]) -> tuple[list[int], list[str], list[list[int]], list[list[float]]]:
+def align_judges(
+    judges: list[dict],
+) -> tuple[list[int], list[str], list[list[int]], list[list[float]]]:
     """Verify all judges share the same labels/datasets ordering. Return aligned tensors."""
     base_labels = judges[0]["labels"]
     base_datasets = judges[0]["datasets"]
@@ -86,7 +88,9 @@ def align_judges(judges: list[dict]) -> tuple[list[int], list[str], list[list[in
             msg = f"dataset mismatch between {judges[0]['name']} and {j['name']}"
             raise ValueError(msg)
     preds_matrix = [j["preds"] for j in judges]
-    scores_matrix = [j["scores"] if j["scores"] else [-1] * len(base_labels) for j in judges]
+    scores_matrix = [
+        j["scores"] if j["scores"] else [-1] * len(base_labels) for j in judges
+    ]
     return base_labels, base_datasets, preds_matrix, scores_matrix
 
 
@@ -95,10 +99,10 @@ def align_judges(judges: list[dict]) -> tuple[list[int], list[str], list[list[in
 
 def balanced_accuracy(preds: list[int], labels: list[int]) -> float:
     pos = neg = tp = tn = 0
-    for p, l in zip(preds, labels, strict=True):
+    for p, lab in zip(preds, labels, strict=True):
         if p < 0:
             continue
-        if l == 1:
+        if lab == 1:
             pos += 1
             if p == 1:
                 tp += 1
@@ -113,9 +117,9 @@ def balanced_accuracy(preds: list[int], labels: list[int]) -> float:
 
 def per_dataset_ba(preds: list[int], labels: list[int], datasets: list[str]) -> dict:
     out: dict[str, tuple[list[int], list[int]]] = defaultdict(lambda: ([], []))
-    for p, l, d in zip(preds, labels, datasets, strict=True):
+    for p, lab, d in zip(preds, labels, datasets, strict=True):
         out[d][0].append(p)
-        out[d][1].append(l)
+        out[d][1].append(lab)
     return {
         d: {"samples": len(l_), "balanced_accuracy": balanced_accuracy(p_, l_)}
         for d, (p_, l_) in out.items()
@@ -227,7 +231,10 @@ def lr_fusion_ensemble(
         out_pred[test] = clf.predict(x[test])
         logger.info(
             "  fold %d: train=%d test=%d fit_score=%.4f",
-            fold + 1, len(train), len(test), clf.score(x[train], y[train]),
+            fold + 1,
+            len(train),
+            len(test),
+            clf.score(x[train], y[train]),
         )
     return out_pred.tolist()
 
@@ -250,10 +257,15 @@ def oracle_upper_bound(preds_matrix: list[list[int]], labels: list[int]) -> list
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument("--judges", nargs="+", required=True,
-                   help="Paths to judge JSON files (v2 ensemble schema)")
-    p.add_argument("--output", type=str,
-                   default="benchmarks/results/sentinel_judge_report.json")
+    p.add_argument(
+        "--judges",
+        nargs="+",
+        required=True,
+        help="Paths to judge JSON files (v2 ensemble schema)",
+    )
+    p.add_argument(
+        "--output", type=str, default="benchmarks/results/sentinel_judge_report.json"
+    )
     args = p.parse_args()
 
     judges = [load_judge(p_) for p_ in args.judges]
@@ -261,7 +273,9 @@ def main():
     logger.info("Loaded %d judges: %s", len(judges), judge_names)
 
     labels, datasets, preds_matrix, scores_matrix = align_judges(judges)
-    logger.info("Aligned %d samples across %d datasets", len(labels), len(set(datasets)))
+    logger.info(
+        "Aligned %d samples across %d datasets", len(labels), len(set(datasets))
+    )
 
     # Per-judge metrics
     individual = {}
@@ -281,9 +295,7 @@ def main():
     logger.info("  voting BA: %.4f", vote_ba)
 
     logger.info("Routed ensemble...")
-    routed_preds, routing = routed_ensemble(
-        preds_matrix, labels, datasets, judge_names
-    )
+    routed_preds, routing = routed_ensemble(preds_matrix, labels, datasets, judge_names)
     routed_ba = balanced_accuracy(routed_preds, labels)
     logger.info("  routed BA: %.4f", routed_ba)
     logger.info("  routing: %s", routing)

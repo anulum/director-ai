@@ -44,14 +44,15 @@ CLAIM:
 Answer with exactly one word: SUPPORTED or NOT_SUPPORTED."""
 
 
-def compute_balanced_accuracy(scores: list[float], labels: list[int],
-                              threshold: float = 0.5) -> float:
+def compute_balanced_accuracy(
+    scores: list[float], labels: list[int], threshold: float = 0.5
+) -> float:
     pos = neg = tp = tn = 0
-    for s, l in zip(scores, labels, strict=True):
+    for s, lab in zip(scores, labels, strict=True):
         if s is None:
             continue
         pred = 1 if s >= threshold else 0
-        if l == 1:
+        if lab == 1:
             pos += 1
             if pred == 1:
                 tp += 1
@@ -74,12 +75,13 @@ def sweep_threshold(scores: list[float], labels: list[int]) -> tuple[float, floa
     return best_t, best_ba
 
 
-def per_dataset_sweep(scores: list[float], labels: list[int],
-                       datasets: list[str]) -> dict:
+def per_dataset_sweep(
+    scores: list[float], labels: list[int], datasets: list[str]
+) -> dict:
     by_ds = defaultdict(lambda: ([], []))
-    for s, l, d in zip(scores, labels, datasets, strict=True):
+    for s, lab, d in zip(scores, labels, datasets, strict=True):
         by_ds[d][0].append(s)
-        by_ds[d][1].append(l)
+        by_ds[d][1].append(lab)
 
     out = {}
     avg_ba = 0.0
@@ -97,6 +99,7 @@ class LlamaCppLogprobBackend:
 
     def __init__(self, model_path: str, n_ctx: int = 4096, n_threads: int = 2):
         from llama_cpp import Llama
+
         logger.info("Loading: %s", model_path)
         self.llm = Llama(
             model_path=model_path,
@@ -154,6 +157,7 @@ class LlamaCppLogprobBackend:
 
 def load_aggrefact(max_samples: int | None = None):
     from datasets import load_dataset
+
     ds = load_dataset("lytang/LLM-AggreFact", split="test")
     if max_samples:
         ds = ds.select(range(min(max_samples, len(ds))))
@@ -164,8 +168,9 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", required=True)
     p.add_argument("--max-samples", type=int, default=None)
-    p.add_argument("--output", type=str,
-                   default="benchmarks/results/gemma_logprob.json")
+    p.add_argument(
+        "--output", type=str, default="benchmarks/results/gemma_logprob.json"
+    )
     p.add_argument("--n-ctx", type=int, default=4096)
     p.add_argument("--n-threads", type=int, default=2)
     p.add_argument("--log-every", type=int, default=500)
@@ -206,8 +211,14 @@ def main():
             elapsed = time.time() - t_start
             ba_05 = compute_balanced_accuracy(scores, labels, 0.5)
             eta = (len(ds) - i - 1) * elapsed / (i + 1) / 60
-            logger.info("[%d/%d] BA@0.5=%.4f %.0fms/sample ETA=%.1fmin",
-                        i + 1, len(ds), ba_05, 1000 * elapsed / (i + 1), eta)
+            logger.info(
+                "[%d/%d] BA@0.5=%.4f %.0fms/sample ETA=%.1fmin",
+                i + 1,
+                len(ds),
+                ba_05,
+                1000 * elapsed / (i + 1),
+                eta,
+            )
 
     # Final analysis
     valid_scores = [s for s in scores if s is not None]
@@ -228,8 +239,8 @@ def main():
         "per_dataset": per_ds,
         "invalid_scores": invalid,
         "total_time_seconds": total,
-        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies)//2],
-        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies)*0.99)],
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2],
+        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies) * 0.99)],
         "scores": scores,  # save for ensemble analysis
         "labels": labels,
         "datasets": datasets_list,
@@ -241,12 +252,17 @@ def main():
     logger.info("Global BA @ t=0.5:    %.4f", ba_default)
     logger.info("Global BA optimal:    %.4f (t=%.2f)", ba_best, best_t)
     logger.info("Per-dataset average:  %.4f", avg_per_ds)
-    logger.info("Invalid: %d (%.1f%%)", invalid, 100*invalid/len(ds))
-    logger.info("Time: %.1fmin", total/60)
+    logger.info("Invalid: %d (%.1f%%)", invalid, 100 * invalid / len(ds))
+    logger.info("Time: %.1fmin", total / 60)
     logger.info("=" * 60)
     for ds_name, m in sorted(per_ds.items()):
-        logger.info("  %-20s %5d  BA=%.4f  t=%.2f",
-                    ds_name, m["samples"], m["balanced_accuracy"], m["threshold"])
+        logger.info(
+            "  %-20s %5d  BA=%.4f  t=%.2f",
+            ds_name,
+            m["samples"],
+            m["balanced_accuracy"],
+            m["threshold"],
+        )
     logger.info("Saved: %s", args.output)
 
 

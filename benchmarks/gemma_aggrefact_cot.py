@@ -55,10 +55,10 @@ def parse_cot(text: str) -> int:
 
 def compute_ba(preds, labels):
     pos = neg = tp = tn = 0
-    for p, l in zip(preds, labels, strict=True):
+    for p, lab in zip(preds, labels, strict=True):
         if p < 0:
             continue
-        if l == 1:
+        if lab == 1:
             pos += 1
             if p == 1:
                 tp += 1
@@ -76,8 +76,7 @@ def main():
     p.add_argument("--model", required=True)
     p.add_argument("--max-samples", type=int, default=None)
     p.add_argument("--max-tokens", type=int, default=64)
-    p.add_argument("--output", type=str,
-                   default="benchmarks/results/gemma_cot.json")
+    p.add_argument("--output", type=str, default="benchmarks/results/gemma_cot.json")
     p.add_argument("--n-ctx", type=int, default=4096)
     p.add_argument("--n-threads", type=int, default=2)
     p.add_argument("--log-every", type=int, default=500)
@@ -94,8 +93,11 @@ def main():
     logger.info("Loading: %s", args.model)
     llm = Llama(
         model_path=args.model,
-        n_gpu_layers=-1, n_ctx=args.n_ctx,
-        n_threads=args.n_threads, n_batch=512, verbose=False,
+        n_gpu_layers=-1,
+        n_ctx=args.n_ctx,
+        n_threads=args.n_threads,
+        n_batch=512,
+        verbose=False,
     )
     logger.info("Loaded")
 
@@ -129,9 +131,15 @@ def main():
             elapsed = time.time() - t_start
             ba = compute_ba(preds, labels)
             eta = (len(ds) - i - 1) * elapsed / (i + 1) / 60
-            logger.info("[%d/%d] BA=%.4f unk=%d %.0fms/sample ETA=%.1fmin",
-                        i + 1, len(ds), ba, unknown,
-                        1000 * elapsed / (i + 1), eta)
+            logger.info(
+                "[%d/%d] BA=%.4f unk=%d %.0fms/sample ETA=%.1fmin",
+                i + 1,
+                len(ds),
+                ba,
+                unknown,
+                1000 * elapsed / (i + 1),
+                eta,
+            )
 
     # Per-dataset
     by_ds = defaultdict(lambda: ([], []))
@@ -152,8 +160,8 @@ def main():
         "per_dataset": per_ds_metrics,
         "unknown_predictions": unknown,
         "total_time_seconds": total,
-        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies)//2],
-        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies)*0.99)],
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2],
+        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies) * 0.99)],
         "sample_responses": raw[:20],
     }
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
@@ -161,9 +169,10 @@ def main():
 
     logger.info("=" * 60)
     logger.info("Global BA: %.4f", results["global_balanced_accuracy"])
-    logger.info("Unknown:   %d (%.1f%%)", unknown, 100*unknown/len(ds))
-    logger.info("Time:      %.1fmin (%.0fms/sample)",
-                total/60, 1000*total/len(ds))
+    logger.info("Unknown:   %d (%.1f%%)", unknown, 100 * unknown / len(ds))
+    logger.info(
+        "Time:      %.1fmin (%.0fms/sample)", total / 60, 1000 * total / len(ds)
+    )
     logger.info("=" * 60)
     for n, m in sorted(per_ds_metrics.items()):
         logger.info("  %-20s %5d  %.4f", n, m["samples"], m["balanced_accuracy"])
