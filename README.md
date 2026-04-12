@@ -151,12 +151,13 @@ Two judges ship with this release.
 
 **Default — `yaxili96/FactCG-DeBERTa-v3-Large`** (0.4B params, MIT). The fast NLI baseline.
 
-| Model | Balanced Acc | Params | Latency | Streaming |
-|-------|-------------|--------|---------|-----------|
-| Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms | No |
-| **Director-AI (FactCG)** | **75.8%** | 0.4B | **14.6 ms** | **Yes** |
-| MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
-| MiniCheck-DeBERTa-L | 72.6% | 0.4B | ~120 ms | No |
+| Rank | Model | Per-dataset mean BA | Params | Latency | Streaming |
+|------|-------|---------------------|--------|---------|-----------|
+| #1 | Bespoke-MiniCheck-7B | **77.4%** | 7B | ~100 ms | No |
+| **#6** | **Director-AI (FactCG)** | **75.6%** | 0.4B | **14.6 ms** | **Yes** |
+| #8 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | ~120 ms | No |
+
+With per-dataset threshold tuning (no retraining), FactCG reaches **77.76%** — ahead of Bespoke-MiniCheck-7B (#1 at 77.4%). This is the same 0.4B model, single `pip install`, 14.6 ms latency.
 
 Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
 
@@ -168,7 +169,7 @@ Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison
 > are reported in `training/EXPERIMENT_RESULTS.md` for
 > traceability.
 
-**Optional — Gemma 4 E4B Q6 with per-task-family routing.** A zero-training LLM-as-judge alternative for users who prefer LLM-as-judge architectures over NLI. Per-task-family prompts (`summ` / `rag` / `claim`) raise the routed Gemma judge from 72.87 % to 75.55 % per-dataset mean BA on the AggreFact 29 K test set, comparable to the FactCG default. Per-family breakdown of the underlying sample-pooled BA: `summ` 78.24 %, `rag` 79.42 %, `claim` 87.11 %. The routed judge is opt-in (`--backend llama-cpp`); FactCG remains the default.
+**Optional — Gemma 4 E4B Q6 with per-task-family routing.** A zero-training LLM-as-judge alternative for users who prefer LLM-as-judge architectures over NLI. Per-task-family prompts (`summ` / `rag` / `claim`) bring the routed Gemma judge to 75.55% per-dataset mean BA on the AggreFact 29K test set, comparable to the FactCG default. The routed judge is opt-in (`--backend llama-cpp`); FactCG remains the default.
 
 ### Rust compute acceleration (v3.12.0)
 
