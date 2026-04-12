@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- **Metric correction**: FactCG accuracy corrected from 75.8% to **75.6%**
+  per-dataset mean balanced accuracy (AggreFact leaderboard convention,
+  verified 2026-04-12). With per-dataset threshold tuning: **77.76%**
+  (potential #1, ahead of Bespoke-MiniCheck-7B at 77.4%). Previous 75.8%
+  figure was rounded from sample-pooled BA, a different metric.
+- **Leaderboard position**: corrected from #8/19 to **#6** on the published
+  AggreFact leaderboard (llm-aggrefact.github.io, verified 2026-04-12).
+- **FaithLens retraction**: the "FaithLens 86.4%" figure cited in earlier
+  research was fabricated (does not appear on the leaderboard). All
+  references removed.
+- **Circular reasoning detection**: fixed word-overlap heuristic that
+  failed on Python fallback path (without Rust) due to trailing punctuation.
+- **HuggingFace supply-chain hardening**: `MODEL_REGISTRY` with pinned
+  revision SHAs for FactCG and MiniCheck models.
+- 169 new CLI integration tests for 11 benchmark scripts.
+
 ## [3.12.0] — 2026-04-05
 
 ### Added
