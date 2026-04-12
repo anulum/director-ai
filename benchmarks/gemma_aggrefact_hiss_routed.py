@@ -54,6 +54,15 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+from _judge_common import (
+    DATASET_TO_FAMILY,
+    PROMPTS,
+    compute_balanced_accuracy,
+)
+from _judge_common import (
+    parse_response as parse_verdict,
+)
+
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
 )
@@ -70,55 +79,6 @@ CLAIM:
 
 Sub-claims:
 1."""
-
-
-# ── Routed verify prompts (verbatim from gemma_aggrefact_routed.py) ─────
-
-PROMPT_SUMM = """You are a careful summarisation evaluator. Decide if the SUMMARY claim is fully supported by the SOURCE document. Be strict: any added detail, paraphrased number, or unsupported entity is NOT_SUPPORTED.
-
-SOURCE:
-{premise}
-
-SUMMARY CLAIM:
-{hypothesis}
-
-Answer with exactly one word: SUPPORTED or NOT_SUPPORTED."""
-
-PROMPT_RAG = """You are a fact-checking assistant for retrieval-augmented generation outputs. Decide if the CLAIM is fully grounded in the retrieved CONTEXT. Reject claims that depend on world knowledge not present in the CONTEXT.
-
-CONTEXT:
-{premise}
-
-CLAIM:
-{hypothesis}
-
-Answer with exactly one word: SUPPORTED or NOT_SUPPORTED."""
-
-PROMPT_CLAIM = """You are a fact-checking assistant. Decide if the CLAIM is fully supported by the CONTEXT. Focus on whether every assertion in the CLAIM matches the CONTEXT verbatim or by direct entailment.
-
-CONTEXT:
-{premise}
-
-CLAIM:
-{hypothesis}
-
-Answer with exactly one word: SUPPORTED or NOT_SUPPORTED."""
-
-DATASET_TO_FAMILY = {
-    "AggreFact-CNN": "summ",
-    "AggreFact-XSum": "summ",
-    "TofuEval-MediaS": "summ",
-    "TofuEval-MeetB": "summ",
-    "RAGTruth": "rag",
-    "ClaimVerify": "rag",
-    "FactCheck-GPT": "rag",
-    "ExpertQA": "rag",
-    "Reveal": "claim",
-    "Lfqa": "claim",
-    "Wice": "claim",
-}
-
-PROMPTS = {"summ": PROMPT_SUMM, "rag": PROMPT_RAG, "claim": PROMPT_CLAIM}
 
 LIST_LINE_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s+(.+?)\s*$")
 
@@ -142,39 +102,6 @@ def parse_subclaims(raw: str, original_claim: str, max_n: int = 4) -> list[str]:
     if not out:
         out = [original_claim]
     return out
-
-
-def parse_verdict(raw: str) -> int:
-    t = raw.strip().upper()
-    if "NOT_SUPPORTED" in t or "NOT SUPPORTED" in t or "NOT-SUPPORTED" in t:
-        return 0
-    if "SUPPORTED" in t:
-        return 1
-    if t.startswith("YES") or t.startswith("TRUE"):
-        return 1
-    if t.startswith("NO") or t.startswith("FALSE"):
-        return 0
-    return -1
-
-
-def compute_balanced_accuracy(
-    preds: list[int], labels: list[int]
-) -> float:
-    pos = neg = tp = tn = 0
-    for p_, l_ in zip(preds, labels, strict=True):
-        if p_ < 0:
-            continue
-        if l_ == 1:
-            pos += 1
-            if p_ == 1:
-                tp += 1
-        else:
-            neg += 1
-            if p_ == 0:
-                tn += 1
-    if pos == 0 or neg == 0:
-        return 0.0
-    return (tp / pos + tn / neg) / 2
 
 
 def main():
