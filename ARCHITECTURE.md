@@ -162,11 +162,11 @@ LLM Provider ──► guard() / CoherenceAgent
 
 ## Backend Tiers
 
-| Backend | Install | Accuracy | Latency |
-|---------|---------|----------|---------|
+| Backend | Install | Accuracy (per-ds mean BA) | Latency |
+|---------|---------|---------------------------|---------|
 | Heuristic (lite) | core | ~65% | <0.5 ms |
-| DeBERTa | `[nli]` | 75.8% | 197 ms (CPU), 19 ms (GPU batch) |
-| FactCG (ONNX) | `[nli,onnx]` | 75.8% | 14.6 ms (GPU batch) |
+| DeBERTa | `[nli]` | 75.6% | 197 ms (CPU), 19 ms (GPU batch) |
+| FactCG (ONNX) | `[nli,onnx]` | 75.6% (77.76% tuned) | 14.6 ms (GPU batch) |
 | Rust (backfire) | `[rust]` | ~65% | ~1 ms |
 | Hybrid (NLI+Judge) | `[nli,openai]` | ~78% | 200-500 ms |
 
