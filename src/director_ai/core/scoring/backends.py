@@ -184,11 +184,29 @@ class RustBackend(ScorerBackend):
         return [self.score(p, h) for p, h in pairs]
 
 
+class RulesBackendWrapper(ScorerBackend):
+    """Wraps RulesBackend (zero ML deps, <1ms, rule-based)."""
+
+    def __init__(self, **kwargs) -> None:
+        from .rules_scorer import RulesBackend
+
+        self._scorer = RulesBackend(
+            rules_file=kwargs.get("rules_file", ""),
+        )
+
+    def score(self, premise: str, hypothesis: str) -> float:
+        return self._scorer.score(premise, hypothesis)
+
+    def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        return self._scorer.score_batch(pairs)
+
+
 # Auto-register built-ins
 register_backend("deberta", DeBERTaBackend)
 register_backend("onnx", OnnxBackend)
 register_backend("minicheck", MiniCheckBackend)
 register_backend("lite", LiteBackend)
+register_backend("rules", RulesBackendWrapper)
 
 try:
     from backfire_kernel import BackfireConfig as _BkCfg  # noqa: F401
