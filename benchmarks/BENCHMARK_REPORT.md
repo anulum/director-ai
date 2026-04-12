@@ -117,7 +117,7 @@ Metric: macro-averaged balanced accuracy (standard for LLM-AggreFact).
 | Model | Bal. Acc | Params | Streaming |
 |-------|---------|--------|-----------|
 | Bespoke-MiniCheck-7B | 77.4% | 7B | No |
-| **Director-AI (FactCG)** | **75.8%** | 0.4B | Yes |
+| **Director-AI (FactCG)** | **75.6%** | 0.4B | Yes |
 | MiniCheck-Flan-T5-L | 75.0% | 0.8B | No |
 | MiniCheck-DeBERTa-L | 72.6% | 0.4B | No |
 | HHEM-2.1-Open | 71.8% | ~0.4B | No |
@@ -429,7 +429,7 @@ not per-request overhead.
    QA: 3-4% FPR. All three task types now production-grade.
 4. **ONNX CPU not competitive**: 383 ms/pair. Requires `onnxruntime-gpu`.
 5. **Fine-tuned NLI replacement regressed**: DeBERTa-v3-large fine-tuned as
-   a 3-class NLI replacement scored 64.7% — below FactCG 75.8%. The local
+   a 3-class NLI replacement scored 64.7% — below FactCG 75.6%. The local
    judge (2-class binary on borderline cases only) is a different approach
    that succeeded: +0.23pp F1, +0.80pp QA precision at 1000 samples/task.
 6. **Competitor latencies are estimates**: values marked "~" or "(est.)"
@@ -446,10 +446,10 @@ not per-request overhead.
 | Latency | 0.9 ms (Ada) | 50-300 ms + LLM | 1-10 s | 2.26 s | 5-10 s |
 | Streaming halt | Yes | No | No | No | No |
 | Offline/local | Yes | No | Yes (GPU) | No | No |
-| AggreFact bal. acc | 75.8% | N/A | N/A | N/A | N/A |
+| AggreFact bal. acc | 75.6% | N/A | N/A | N/A | N/A |
 | Integrations | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
 
-Director-AI's unique value: sub-ms streaming halt + 75.8% balanced accuracy
+Director-AI's unique value: sub-ms streaming halt + 75.6% balanced accuracy
 at 0.4B params + local judge at 3.97ms (no API dependency). No competitor
 offers token-level halt with fully local hybrid scoring.
 
