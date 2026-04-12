@@ -46,9 +46,7 @@ from _judge_common import (
     parse_response,
 )
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -90,15 +88,11 @@ def main():
     ds = load_dataset("lytang/LLM-AggreFact", split="test")
     if args.max_samples:
         ds = ds.select(range(min(args.max_samples, len(ds))))
-    logger.info(
-        "Samples: %d  K=%d  T=%.2f", len(ds), args.k, args.temperature
-    )
+    logger.info("Samples: %d  K=%d  T=%.2f", len(ds), args.k, args.temperature)
 
     family_counts: dict[str, int] = defaultdict(int)
     for sample in ds:
-        family_counts[
-            DATASET_TO_FAMILY.get(sample["dataset"], "claim")
-        ] += 1
+        family_counts[DATASET_TO_FAMILY.get(sample["dataset"], "claim")] += 1
     logger.info("Family distribution: %s", dict(family_counts))
 
     logger.info("Loading: %s", args.model)
@@ -128,9 +122,7 @@ def main():
         label = int(sample["label"])
         dataset_name = sample["dataset"]
         family = DATASET_TO_FAMILY.get(dataset_name, "claim")
-        prompt = PROMPTS[family].format(
-            premise=premise, hypothesis=hypothesis
-        )
+        prompt = PROMPTS[family].format(premise=premise, hypothesis=hypothesis)
 
         votes_sup = 0
         votes_not = 0
@@ -200,20 +192,16 @@ def main():
         "k": args.k,
         "temperature": args.temperature,
         "top_p": args.top_p,
-        "global_balanced_accuracy": compute_balanced_accuracy(
-            preds, labels
-        ),
+        "global_balanced_accuracy": compute_balanced_accuracy(preds, labels),
         "per_dataset": per_ds_metrics,
         "per_family": per_family_metrics,
         "dataset_to_family": DATASET_TO_FAMILY,
         "unknown_predictions": unknown,
         "total_time_seconds": total,
-        "p50_latency_ms": 1000
-        * sorted(latencies)[len(latencies) // 2]
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
         if latencies
         else 0,
-        "p99_latency_ms": 1000
-        * sorted(latencies)[int(len(latencies) * 0.99)]
+        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies) * 0.99)]
         if latencies
         else 0,
         "predictions": preds,
@@ -228,12 +216,8 @@ def main():
 
     logger.info("=" * 60)
     logger.info("K=%d T=%.2f", args.k, args.temperature)
-    logger.info(
-        "Global BA:    %.4f", results["global_balanced_accuracy"]
-    )
-    logger.info(
-        "Unknown:      %d (%.1f%%)", unknown, 100 * unknown / len(ds)
-    )
+    logger.info("Global BA:    %.4f", results["global_balanced_accuracy"])
+    logger.info("Unknown:      %d (%.1f%%)", unknown, 100 * unknown / len(ds))
     logger.info("Time:         %.1fmin", total / 60)
     logger.info("=" * 60)
     for fam, m in sorted(per_family_metrics.items()):

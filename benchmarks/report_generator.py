@@ -88,8 +88,10 @@ def format_judge_table(
     """One row per judge JSON. All numbers come from the JSON itself."""
     if not judges:
         return ["_No AggreFact judge JSONs found in the results directory._"]
-    rows = ["| Judge | Samples | Sample-pooled BA | Per-dataset avg BA | Method |",
-            "|-------|---------|------------------|---------------------|--------|"]
+    rows = [
+        "| Judge | Samples | Sample-pooled BA | Per-dataset avg BA | Method |",
+        "|-------|---------|------------------|---------------------|--------|",
+    ]
     for label, payload in judges:
         samples = payload.get("samples", "—")
         global_ba = payload.get("global_balanced_accuracy")
@@ -97,13 +99,9 @@ def format_judge_table(
         method = payload.get("method", payload.get("backend", "—"))
         global_str = f"{global_ba:.2%}" if isinstance(global_ba, (int, float)) else "—"
         per_ds_str = (
-            f"{per_ds_avg:.2%}"
-            if isinstance(per_ds_avg, (int, float))
-            else "—"
+            f"{per_ds_avg:.2%}" if isinstance(per_ds_avg, (int, float)) else "—"
         )
-        rows.append(
-            f"| {label} | {samples} | {global_str} | {per_ds_str} | {method} |"
-        )
+        rows.append(f"| {label} | {samples} | {global_str} | {per_ds_str} | {method} |")
     return rows
 
 
@@ -111,8 +109,7 @@ def format_rust_table(rust_payload: dict[str, Any] | None) -> list[str]:
     """Render the Rust compute benchmark table from rust_compute_bench.json."""
     if not rust_payload or "results" not in rust_payload:
         return [
-            "_No `rust_compute_bench.json` found — Rust acceleration "
-            "section omitted._"
+            "_No `rust_compute_bench.json` found — Rust acceleration section omitted._"
         ]
     iterations = rust_payload.get("iterations", "—")
     rust_available = rust_payload.get("rust_available", False)
@@ -131,11 +128,7 @@ def format_rust_table(rust_payload: dict[str, Any] | None) -> list[str]:
         speedup = fn.get("speedup")
         py_str = f"{py:.2f}" if isinstance(py, (int, float)) else "—"
         rs_str = f"{rs:.2f}" if isinstance(rs, (int, float)) else "—"
-        sp_str = (
-            f"{speedup:.1f}×"
-            if isinstance(speedup, (int, float))
-            else "—"
-        )
+        sp_str = f"{speedup:.1f}×" if isinstance(speedup, (int, float)) else "—"
         lines.append(f"| {fn_name} | {py_str} | {rs_str} | {sp_str} |")
     return lines
 
@@ -216,24 +209,17 @@ def generate_report(
     """Write the Markdown summary to ``output_path`` and return the path."""
     judges = find_judge_results(results_dir)
     rust = load_json(results_dir / "rust_compute_bench.json")
-    external_payload = (
-        load_json(leaderboard_path) if leaderboard_path else None
-    )
+    external_payload = load_json(leaderboard_path) if leaderboard_path else None
     external = (
-        external_payload.get("entries")
-        if isinstance(external_payload, dict)
-        else None
+        external_payload.get("entries") if isinstance(external_payload, dict) else None
     )
-    sentinel = (
-        load_json(sentinel_path) if sentinel_path else None
-    )
+    sentinel = load_json(sentinel_path) if sentinel_path else None
 
     lines: list[str] = []
     lines.append("# Director-AI — AggreFact & Compute Benchmark Summary")
     lines.append("")
     lines.append(
-        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  "
-        f"(local clock)"
+        f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  (local clock)"
     )
     lines.append(
         f"Source: every number in this document is read from a JSON file "
@@ -267,9 +253,7 @@ def generate_report(
         "estimates, no tilde-prefixed numbers._"
     )
     lines.append("")
-    lines.append(
-        "Co-Authored-By: Arcane Sapience <protoscience@anulum.li>"
-    )
+    lines.append("Co-Authored-By: Arcane Sapience <protoscience@anulum.li>")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text("\n".join(lines))
@@ -300,15 +284,12 @@ if __name__ == "__main__":
         "--output",
         type=Path,
         default=Path(
-            f"reports/aggrefact_summary_"
-            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+            f"reports/aggrefact_summary_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
         ),
     )
     args = parser.parse_args()
 
-    leaderboard = (
-        args.leaderboard if args.leaderboard.is_file() else None
-    )
+    leaderboard = args.leaderboard if args.leaderboard.is_file() else None
     out = generate_report(
         args.results,
         args.output,

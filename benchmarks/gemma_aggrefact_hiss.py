@@ -63,8 +63,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", required=True)
     p.add_argument("--max-samples", type=int, default=None)
-    p.add_argument("--output", type=str,
-                   default="benchmarks/results/gemma_hiss.json")
+    p.add_argument("--output", type=str, default="benchmarks/results/gemma_hiss.json")
     p.add_argument("--n-ctx", type=int, default=4096)
     p.add_argument("--n-threads", type=int, default=2)
     p.add_argument("--max-decompose-tokens", type=int, default=128)
@@ -112,8 +111,10 @@ def main():
             # Pass 1 — decomposition
             d_out = llm.create_chat_completion(
                 messages=[
-                    {"role": "user",
-                     "content": DECOMPOSE_PROMPT.format(claim=hypothesis)},
+                    {
+                        "role": "user",
+                        "content": DECOMPOSE_PROMPT.format(claim=hypothesis),
+                    },
                 ],
                 max_tokens=args.max_decompose_tokens,
                 temperature=0.0,
@@ -126,9 +127,12 @@ def main():
             for sub in subclaims:
                 v_out = llm.create_chat_completion(
                     messages=[
-                        {"role": "user",
-                         "content": VERIFY_PROMPT.format(
-                             premise=premise, hypothesis=sub)},
+                        {
+                            "role": "user",
+                            "content": VERIFY_PROMPT.format(
+                                premise=premise, hypothesis=sub
+                            ),
+                        },
                     ],
                     max_tokens=args.max_verify_tokens,
                     temperature=0.0,
@@ -157,13 +161,15 @@ def main():
         subclaim_counts.append(n_sub)
 
         if i < 10:
-            raw_samples.append({
-                "claim": hypothesis[:120],
-                "n_sub": n_sub,
-                "sub_verdicts": sub_verdicts,
-                "pred": pred,
-                "label": label,
-            })
+            raw_samples.append(
+                {
+                    "claim": hypothesis[:120],
+                    "n_sub": n_sub,
+                    "sub_verdicts": sub_verdicts,
+                    "pred": pred,
+                    "label": label,
+                }
+            )
 
         if (i + 1) % args.log_every == 0:
             elapsed = time.time() - t_start
@@ -172,8 +178,13 @@ def main():
             eta = (len(ds) - i - 1) * elapsed / (i + 1) / 60
             logger.info(
                 "[%d/%d] BA=%.4f unk=%d mean_sub=%.2f %.0fms/sample ETA=%.1fmin",
-                i + 1, len(ds), ba, unknown, mean_sub,
-                1000 * elapsed / (i + 1), eta,
+                i + 1,
+                len(ds),
+                ba,
+                unknown,
+                mean_sub,
+                1000 * elapsed / (i + 1),
+                eta,
             )
 
     per_ds_metrics = aggregate_per_dataset(preds, labels, datasets_list)
@@ -186,9 +197,12 @@ def main():
         "global_balanced_accuracy": compute_balanced_accuracy(preds, labels),
         "per_dataset": per_ds_metrics,
         "unknown_predictions": unknown,
-        "mean_subclaims_per_sample": sum(subclaim_counts) / max(len(subclaim_counts), 1),
+        "mean_subclaims_per_sample": sum(subclaim_counts)
+        / max(len(subclaim_counts), 1),
         "total_time_seconds": total,
-        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2] if latencies else 0,
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
+        if latencies
+        else 0,
         "p99_latency_ms": (
             1000 * sorted(latencies)[int(len(latencies) * 0.99)] if latencies else 0
         ),

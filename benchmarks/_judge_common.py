@@ -132,11 +132,7 @@ def parse_subclaims(raw: str, original_claim: str, max_n: int = 5) -> list[str]:
     If no list items are found, returns ``[original_claim]`` as a fallback.
     Filters out meta-labels like "sub-claims" or "claim".
     """
-    text = (
-        "1. " + raw
-        if not raw.lstrip().startswith(("1", "-", "*"))
-        else raw
-    )
+    text = "1. " + raw if not raw.lstrip().startswith(("1", "-", "*")) else raw
     out: list[str] = []
     for line in text.splitlines():
         m = LIST_LINE_RE.match(line)
@@ -155,7 +151,9 @@ def parse_subclaims(raw: str, original_claim: str, max_n: int = 5) -> list[str]:
 
 
 def aggregate_per_dataset(
-    preds: list[int], labels: list[int], datasets: list[str],
+    preds: list[int],
+    labels: list[int],
+    datasets: list[str],
 ) -> dict[str, dict]:
     """Group predictions by dataset and compute BA for each."""
     from collections import defaultdict
@@ -171,7 +169,9 @@ def aggregate_per_dataset(
 
 
 def aggregate_per_family(
-    preds: list[int], labels: list[int], families: list[str],
+    preds: list[int],
+    labels: list[int],
+    families: list[str],
 ) -> dict[str, dict]:
     """Group predictions by task family and compute BA for each."""
     from collections import defaultdict

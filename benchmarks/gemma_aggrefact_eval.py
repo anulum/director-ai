@@ -61,6 +61,7 @@ class LlamaCppBackend:
 
     def __init__(self, model_path: str, n_ctx: int = 4096, n_threads: int = 2):
         from llama_cpp import Llama
+
         logger.info("Loading llama-cpp model: %s", model_path)
         self.llm = Llama(
             model_path=model_path,
@@ -86,17 +87,28 @@ class LlamaCppBackend:
 class TransformersBackend:
     """HuggingFace transformers backend (cloud GPU)."""
 
-    def __init__(self, model_id: str, dtype: str = "bfloat16", device: str = "cuda",
-                 quantize: str | None = None):
+    def __init__(
+        self,
+        model_id: str,
+        dtype: str = "bfloat16",
+        device: str = "cuda",
+        quantize: str | None = None,
+    ):
         import torch
         from transformers import AutoModelForCausalLM, AutoTokenizer
-        logger.info("Loading transformers model: %s (dtype=%s, quant=%s)",
-                    model_id, dtype, quantize)
+
+        logger.info(
+            "Loading transformers model: %s (dtype=%s, quant=%s)",
+            model_id,
+            dtype,
+            quantize,
+        )
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
 
         kwargs = {"device_map": device}
         if quantize == "4bit":
             from transformers import BitsAndBytesConfig
+
             kwargs["quantization_config"] = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_compute_dtype=torch.bfloat16,
@@ -112,24 +124,32 @@ class TransformersBackend:
 
     def judge(self, premise: str, hypothesis: str) -> str:
         import torch
+
         prompt = JUDGE_PROMPT.format(premise=premise, hypothesis=hypothesis)
         messages = [{"role": "user", "content": prompt}]
         inputs = self.tokenizer.apply_chat_template(
-            messages, return_tensors="pt", add_generation_prompt=True,
+            messages,
+            return_tensors="pt",
+            add_generation_prompt=True,
             tokenize=True,
         ).to(self.model.device)
         with torch.no_grad():
             out = self.model.generate(
-                inputs, max_new_tokens=8, do_sample=False,
+                inputs,
+                max_new_tokens=8,
+                do_sample=False,
                 pad_token_id=self.tokenizer.eos_token_id,
             )
-        text = self.tokenizer.decode(out[0][inputs.shape[1]:], skip_special_tokens=True)
+        text = self.tokenizer.decode(
+            out[0][inputs.shape[1] :], skip_special_tokens=True
+        )
         return text
 
 
 def load_aggrefact(max_samples: int | None = None):
     """Load LLM-AggreFact dataset (gated, needs HF_TOKEN)."""
     from datasets import load_dataset
+
     logger.info("Loading LLM-AggreFact...")
     ds = load_dataset("lytang/LLM-AggreFact", split="test")
     if max_samples:
@@ -143,7 +163,9 @@ def main():
     p.add_argument("--backend", choices=["llama-cpp", "transformers"], required=True)
     p.add_argument("--model", required=True)
     p.add_argument("--max-samples", type=int, default=None)
-    p.add_argument("--output", type=str, default="benchmarks/results/gemma_aggrefact.json")
+    p.add_argument(
+        "--output", type=str, default="benchmarks/results/gemma_aggrefact.json"
+    )
     p.add_argument("--n-ctx", type=int, default=4096)
     p.add_argument("--n-threads", type=int, default=2)
     p.add_argument("--dtype", type=str, default="bfloat16")
@@ -200,8 +222,12 @@ def main():
             eta_s = (len(ds) - i - 1) * (elapsed_total / (i + 1))
             logger.info(
                 "[%d/%d] BA=%.4f unk=%d %.0fms/sample ETA=%.1fmin",
-                i + 1, len(ds), current_ba, unknown_count,
-                1000 * elapsed_total / (i + 1), eta_s / 60,
+                i + 1,
+                len(ds),
+                current_ba,
+                unknown_count,
+                1000 * elapsed_total / (i + 1),
+                eta_s / 60,
             )
 
     # Final metrics
@@ -230,8 +256,12 @@ def main():
         "unknown_predictions": unknown_count,
         "total_time_seconds": total_time,
         "mean_latency_ms": 1000 * sum(latencies) / len(latencies) if latencies else 0,
-        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies)//2] if latencies else 0,
-        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies)*0.99)] if latencies else 0,
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
+        if latencies
+        else 0,
+        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies) * 0.99)]
+        if latencies
+        else 0,
     }
 
     # Include per-sample predictions for ensemble analysis
@@ -243,9 +273,12 @@ def main():
     Path(args.output).write_text(json.dumps(results, indent=2))
     logger.info("=" * 60)
     logger.info("Global BA: %.4f", global_ba)
-    logger.info("Unknown:   %d (%.1f%%)", unknown_count, 100*unknown_count/len(ds))
-    logger.info("Time:      %.1fmin (%.0fms/sample)",
-                total_time/60, 1000*total_time/len(ds))
+    logger.info("Unknown:   %d (%.1f%%)", unknown_count, 100 * unknown_count / len(ds))
+    logger.info(
+        "Time:      %.1fmin (%.0fms/sample)",
+        total_time / 60,
+        1000 * total_time / len(ds),
+    )
     logger.info("=" * 60)
     for name, m in sorted(per_dataset_metrics.items()):
         logger.info("  %-20s %5d  %.4f", name, m["samples"], m["balanced_accuracy"])

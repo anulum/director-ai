@@ -50,9 +50,7 @@ from _judge_common import (
     PROMPTS,
 )
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -171,11 +169,7 @@ class GemmaRoutedLogprobBackend:
                 score = p_sup / (p_sup + p_not)
         if score is None:
             t = text.upper()
-            score = (
-                0.0
-                if "NOT" in t
-                else (1.0 if "SUPPORTED" in t else None)
-            )
+            score = 0.0 if "NOT" in t else (1.0 if "SUPPORTED" in t else None)
         return score, text
 
 
@@ -205,14 +199,10 @@ def main():
 
     family_counts: dict[str, int] = defaultdict(int)
     for sample in ds:
-        family_counts[
-            DATASET_TO_FAMILY.get(sample["dataset"], "claim")
-        ] += 1
+        family_counts[DATASET_TO_FAMILY.get(sample["dataset"], "claim")] += 1
     logger.info("Family distribution: %s", dict(family_counts))
 
-    backend = GemmaRoutedLogprobBackend(
-        args.model, args.n_ctx, args.n_threads
-    )
+    backend = GemmaRoutedLogprobBackend(args.model, args.n_ctx, args.n_threads)
 
     scores: list[float | None] = []
     labels: list[int] = []
@@ -284,9 +274,7 @@ def main():
     results = {
         "schema_version": 2,
         "model": args.model,
-        "method": (
-            "per-dataset prompt routing (summ/rag/claim) + logprob scores"
-        ),
+        "method": ("per-dataset prompt routing (summ/rag/claim) + logprob scores"),
         "samples": len(ds),
         "global_balanced_accuracy_t05": ba_t05,
         "global_balanced_accuracy_optimal": ba_best,
@@ -297,12 +285,10 @@ def main():
         "dataset_to_family": DATASET_TO_FAMILY,
         "invalid_scores": invalid,
         "total_time_seconds": total,
-        "p50_latency_ms": 1000
-        * sorted(latencies)[len(latencies) // 2]
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
         if latencies
         else 0,
-        "p99_latency_ms": 1000
-        * sorted(latencies)[int(len(latencies) * 0.99)]
+        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies) * 0.99)]
         if latencies
         else 0,
         "scores": scores,
@@ -318,9 +304,7 @@ def main():
     logger.info("Global BA @ t=0.5:    %.4f", ba_t05)
     logger.info("Global BA optimal:    %.4f (t=%.2f)", ba_best, best_t)
     logger.info("Per-dataset average:  %.4f", per_ds_avg)
-    logger.info(
-        "Invalid: %d (%.1f%%)", invalid, 100 * invalid / len(ds)
-    )
+    logger.info("Invalid: %d (%.1f%%)", invalid, 100 * invalid / len(ds))
     logger.info("Time: %.1fmin", total / 60)
     logger.info("=" * 60)
     for ds_name, m in sorted(per_ds.items()):

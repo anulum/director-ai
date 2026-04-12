@@ -58,8 +58,7 @@ def main():
     p.add_argument("--model", default="qualifire/context-grounding-paladin-mini")
     p.add_argument("--max-samples", type=int, default=None)
     p.add_argument("--max-input-tokens", type=int, default=4096)
-    p.add_argument("--output", type=str,
-                   default="benchmarks/results/paladin_mini.json")
+    p.add_argument("--output", type=str, default="benchmarks/results/paladin_mini.json")
     p.add_argument("--log-every", type=int, default=200)
     args = p.parse_args()
 
@@ -98,15 +97,20 @@ def main():
         try:
             messages = [{"role": "user", "content": prompt}]
             inputs = tokenizer.apply_chat_template(
-                messages, return_tensors="pt", add_generation_prompt=True,
-                truncation=True, max_length=args.max_input_tokens,
+                messages,
+                return_tensors="pt",
+                add_generation_prompt=True,
+                truncation=True,
+                max_length=args.max_input_tokens,
             ).to(model.device)
             with torch.no_grad():
                 out = model.generate(
-                    inputs, max_new_tokens=8, do_sample=False,
+                    inputs,
+                    max_new_tokens=8,
+                    do_sample=False,
                     pad_token_id=tokenizer.eos_token_id,
                 )
-            text = tokenizer.decode(out[0][inputs.shape[1]:], skip_special_tokens=True)
+            text = tokenizer.decode(out[0][inputs.shape[1] :], skip_special_tokens=True)
         except Exception as e:
             logger.warning("Sample %d failed: %s", i, e)
             text = "ERROR"
@@ -125,8 +129,12 @@ def main():
             eta = (len(ds) - i - 1) * elapsed / (i + 1) / 60
             logger.info(
                 "[%d/%d] BA=%.4f unk=%d %.0fms/sample ETA=%.1fmin",
-                i + 1, len(ds), ba, unknown,
-                1000 * elapsed / (i + 1), eta,
+                i + 1,
+                len(ds),
+                ba,
+                unknown,
+                1000 * elapsed / (i + 1),
+                eta,
             )
 
     by_ds: dict[str, tuple[list[int], list[int]]] = defaultdict(lambda: ([], []))
@@ -150,7 +158,9 @@ def main():
         "datasets_per_sample": datasets_list,
         "unknown_predictions": unknown,
         "total_time_seconds": total,
-        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2] if latencies else 0,
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
+        if latencies
+        else 0,
         "p99_latency_ms": (
             1000 * sorted(latencies)[int(len(latencies) * 0.99)] if latencies else 0
         ),

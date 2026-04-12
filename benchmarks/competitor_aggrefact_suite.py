@@ -40,9 +40,7 @@ from collections.abc import Iterable
 from pathlib import Path
 from typing import Any
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -150,9 +148,7 @@ class AzureBackend(BaseBackend):
 
     name = "azure"
 
-    def __init__(
-        self, endpoint: str | None = None, key: str | None = None
-    ) -> None:
+    def __init__(self, endpoint: str | None = None, key: str | None = None) -> None:
         self.endpoint = endpoint or os.getenv("AZURE_SAFETY_ENDPOINT")
         self.key = key or os.getenv("AZURE_SAFETY_KEY")
 
@@ -198,9 +194,7 @@ class MockBackend(BaseBackend):
 
     def __init__(self, fixed_score: float = 0.8) -> None:
         if not 0.0 <= fixed_score <= 1.0:
-            raise ValueError(
-                f"fixed_score must be in [0, 1], got {fixed_score}"
-            )
+            raise ValueError(f"fixed_score must be in [0, 1], got {fixed_score}")
         self.fixed_score = fixed_score
 
     def score(self, premise: str, hypothesis: str) -> float:
@@ -257,8 +251,7 @@ def run_suite(
         backend_name = backend
         if backend_name not in BACKENDS:
             raise ValueError(
-                f"Unknown backend '{backend_name}'. "
-                f"Available: {sorted(BACKENDS)}"
+                f"Unknown backend '{backend_name}'. Available: {sorted(BACKENDS)}"
             )
         backend_obj = BACKENDS[backend_name]()
 

@@ -49,6 +49,7 @@ class HHEMBackend:
     def __init__(self, model_id: str, max_length: int):
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
         self.torch = torch
         self.tokenizer = AutoTokenizer.from_pretrained(model_id, trust_remote_code=True)
         self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -63,8 +64,10 @@ class HHEMBackend:
         text = f"{premise}<eos>{hypothesis}"
         with self.torch.no_grad():
             inputs = self.tokenizer(
-                text, return_tensors="pt",
-                truncation=True, max_length=self.max_length,
+                text,
+                return_tensors="pt",
+                truncation=True,
+                max_length=self.max_length,
             ).to(self.model.device)
             logits = self.model(**inputs).logits
             return float(self.torch.sigmoid(logits[0, 0]).item())
@@ -79,6 +82,7 @@ class MiniCheckBackend:
     def __init__(self, model_id: str, max_length: int):
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
+
         self.torch = torch
         self.tokenizer = AutoTokenizer.from_pretrained(model_id)
         self.model = AutoModelForSequenceClassification.from_pretrained(model_id)
@@ -89,8 +93,11 @@ class MiniCheckBackend:
     def score(self, premise: str, hypothesis: str) -> float:
         with self.torch.no_grad():
             inputs = self.tokenizer(
-                premise, hypothesis,
-                return_tensors="pt", truncation=True, max_length=self.max_length,
+                premise,
+                hypothesis,
+                return_tensors="pt",
+                truncation=True,
+                max_length=self.max_length,
             ).to(self.model.device)
             logits = self.model(**inputs).logits
             probs = self.torch.softmax(logits, dim=-1)
@@ -156,8 +163,14 @@ def main():
             elapsed = time.time() - t_start
             ba = balanced_accuracy(preds, labels)
             eta = (len(ds) - i - 1) * elapsed / (i + 1) / 60
-            logger.info("[%d/%d] BA=%.4f %.0fms/sample ETA=%.1fmin",
-                        i + 1, len(ds), ba, 1000 * elapsed / (i + 1), eta)
+            logger.info(
+                "[%d/%d] BA=%.4f %.0fms/sample ETA=%.1fmin",
+                i + 1,
+                len(ds),
+                ba,
+                1000 * elapsed / (i + 1),
+                eta,
+            )
 
     by_ds: dict[str, tuple[list[int], list[int]]] = defaultdict(lambda: ([], []))
     for p_, l_, d_ in zip(preds, labels, datasets_list, strict=True):
@@ -182,7 +195,9 @@ def main():
         "threshold": args.threshold,
         "unknown_predictions": sum(1 for p in preds if p < 0),
         "total_time_seconds": total,
-        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2] if latencies else 0,
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
+        if latencies
+        else 0,
         "p99_latency_ms": (
             1000 * sorted(latencies)[int(len(latencies) * 0.99)] if latencies else 0
         ),

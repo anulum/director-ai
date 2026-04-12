@@ -66,9 +66,7 @@ from _judge_common import (
     parse_response as parse_verdict,
 )
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -89,8 +87,7 @@ def main():
         type=int,
         default=12,
         help=(
-            "Claims shorter than this skip decomposition and use the "
-            "routed K=1 path"
+            "Claims shorter than this skip decomposition and use the routed K=1 path"
         ),
     )
     p.add_argument(
@@ -126,9 +123,7 @@ def main():
 
     family_counts: dict[str, int] = defaultdict(int)
     for sample in ds:
-        family_counts[
-            DATASET_TO_FAMILY.get(sample["dataset"], "claim")
-        ] += 1
+        family_counts[DATASET_TO_FAMILY.get(sample["dataset"], "claim")] += 1
     logger.info("Family distribution: %s", dict(family_counts))
 
     logger.info("Loading: %s", args.model)
@@ -203,9 +198,7 @@ def main():
                     messages=[
                         {
                             "role": "user",
-                            "content": DECOMPOSE_PROMPT.format(
-                                claim=hypothesis
-                            ),
+                            "content": DECOMPOSE_PROMPT.format(claim=hypothesis),
                         }
                     ],
                     max_tokens=160,
@@ -239,9 +232,7 @@ def main():
                     )
                     text = out["choices"][0]["message"]["content"]
                 except Exception as exc:  # noqa: BLE001
-                    logger.warning(
-                        "Sample %d sub-verify failed: %s", i, exc
-                    )
+                    logger.warning("Sample %d sub-verify failed: %s", i, exc)
                     text = "ERROR"
                 v = parse_verdict(text)
                 if v == 1:
@@ -299,20 +290,16 @@ def main():
         "support_frac": args.support_frac,
         "max_subclaims": args.max_subclaims,
         "skipped_decompose": skipped_decompose,
-        "global_balanced_accuracy": compute_balanced_accuracy(
-            preds, labels
-        ),
+        "global_balanced_accuracy": compute_balanced_accuracy(preds, labels),
         "per_dataset": per_ds_metrics,
         "per_family": per_family_metrics,
         "dataset_to_family": DATASET_TO_FAMILY,
         "unknown_predictions": unknown,
         "total_time_seconds": total,
-        "p50_latency_ms": 1000
-        * sorted(latencies)[len(latencies) // 2]
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
         if latencies
         else 0,
-        "p99_latency_ms": 1000
-        * sorted(latencies)[int(len(latencies) * 0.99)]
+        "p99_latency_ms": 1000 * sorted(latencies)[int(len(latencies) * 0.99)]
         if latencies
         else 0,
         "predictions": preds,
@@ -328,9 +315,7 @@ def main():
     out_path.write_text(json.dumps(results, indent=2))
 
     logger.info("=" * 60)
-    logger.info(
-        "Global BA:    %.4f", results["global_balanced_accuracy"]
-    )
+    logger.info("Global BA:    %.4f", results["global_balanced_accuracy"])
     logger.info(
         "Decomposed:   %d (%.1f%%)",
         len(ds) - skipped_decompose,
@@ -341,9 +326,7 @@ def main():
         skipped_decompose,
         100 * skipped_decompose / len(ds),
     )
-    logger.info(
-        "Unknown:      %d (%.1f%%)", unknown, 100 * unknown / len(ds)
-    )
+    logger.info("Unknown:      %d (%.1f%%)", unknown, 100 * unknown / len(ds))
     logger.info("Time:         %.1fmin", total / 60)
     logger.info("=" * 60)
     for fam, m in sorted(per_family_metrics.items()):

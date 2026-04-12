@@ -45,7 +45,8 @@ def balanced_accuracy(preds: np.ndarray, labels: np.ndarray) -> float:
 
 
 def sweep_threshold(
-    scores: np.ndarray, labels: np.ndarray,
+    scores: np.ndarray,
+    labels: np.ndarray,
 ) -> tuple[float, float]:
     """Sweep 0.05..0.95 in 0.05 steps, return ``(best_t, best_ba)``."""
     best_t, best_ba = 0.5, 0.0
@@ -58,7 +59,9 @@ def sweep_threshold(
 
 
 def per_dataset_threshold_sweep(
-    scores: np.ndarray, labels: np.ndarray, datasets: list[str],
+    scores: np.ndarray,
+    labels: np.ndarray,
+    datasets: list[str],
 ) -> dict[str, dict[str, Any]]:
     """Per-dataset threshold optimisation."""
     by_ds: dict[str, list[int]] = defaultdict(list)
@@ -135,14 +138,13 @@ def lr_fusion_5fold(
         preds[test_idx] = lr.predict(feature_matrix[test_idx])
         coef_sums += lr.coef_[0]
         intercept_sum += lr.intercept_[0]
-    avg_coefs = dict(
-        zip(feature_names, (coef_sums / 5).tolist(), strict=True)
-    )
+    avg_coefs = dict(zip(feature_names, (coef_sums / 5).tolist(), strict=True))
     return preds, avg_coefs, intercept_sum / 5
 
 
 def pairwise_correlation(
-    score_arrays: list[np.ndarray], names: list[str],
+    score_arrays: list[np.ndarray],
+    names: list[str],
 ) -> dict[str, dict[str, float]]:
     """Pairwise Pearson correlation between every pair of score arrays."""
     out: dict[str, dict[str, float]] = {}

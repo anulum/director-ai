@@ -62,9 +62,7 @@ from _analysis_common import (
     sweep_threshold,
 )
 
-logging.basicConfig(
-    level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
-)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -108,13 +106,11 @@ def main():
     for j in score_judges[1:] + binary_judges:
         if not np.array_equal(j["labels"], base_labels):
             raise ValueError(
-                f"label mismatch between {score_judges[0]['name']} "
-                f"and {j['name']}"
+                f"label mismatch between {score_judges[0]['name']} and {j['name']}"
             )
         if j["datasets"] != base_datasets:
             raise ValueError(
-                f"dataset mismatch between {score_judges[0]['name']} "
-                f"and {j['name']}"
+                f"dataset mismatch between {score_judges[0]['name']} and {j['name']}"
             )
     n = len(base_labels)
     logger.info(
@@ -128,17 +124,13 @@ def main():
     individual: dict[str, dict[str, Any]] = {}
     for j in score_judges:
         if j["scores"] is None:
-            logger.warning(
-                "Judge %s has no scores field; skipping", j["name"]
-            )
+            logger.warning("Judge %s has no scores field; skipping", j["name"])
             continue
         # Drop NaN samples (from None scores) for the BA calculation
         valid_mask = ~np.isnan(j["scores"])
         s_clean = j["scores"][valid_mask]
         l_clean = base_labels[valid_mask]
-        d_clean = [
-            base_datasets[i] for i in range(n) if valid_mask[i]
-        ]
+        d_clean = [base_datasets[i] for i in range(n) if valid_mask[i]]
         n_invalid = int((~valid_mask).sum())
 
         # Sample-pooled global BA at threshold 0.5 and at the optimum
@@ -147,9 +139,7 @@ def main():
         best_t, ba_best = sweep_threshold(s_clean, l_clean)
 
         # Per-dataset thresholds
-        per_ds = per_dataset_threshold_sweep(
-            s_clean, l_clean, d_clean
-        )
+        per_ds = per_dataset_threshold_sweep(s_clean, l_clean, d_clean)
         per_ds_avg = float(
             np.mean([m["balanced_accuracy"] for m in per_ds.values()])
             if per_ds
@@ -192,8 +182,7 @@ def main():
                 "  %-50s %s",
                 ni,
                 "  ".join(
-                    f"{nj[:24]}={correlations[ni][nj]:+.3f}"
-                    for nj in score_names
+                    f"{nj[:24]}={correlations[ni][nj]:+.3f}" for nj in score_names
                 ),
             )
 
@@ -202,9 +191,7 @@ def main():
     if len(score_arrays) >= 2:
         feature_matrix = np.column_stack(score_arrays)
         # Replace NaN with 0.5 in the feature matrix
-        feature_matrix = np.where(
-            np.isnan(feature_matrix), 0.5, feature_matrix
-        )
+        feature_matrix = np.where(np.isnan(feature_matrix), 0.5, feature_matrix)
         preds_lr, coefs, intercept = lr_fusion_5fold(
             feature_matrix, base_labels, score_names
         )
@@ -232,18 +219,14 @@ def main():
             if j["preds"] is None:
                 continue
             # Map -1 (unknown) to 0.5
-            arr = np.where(
-                j["preds"] < 0, 0.5, j["preds"].astype(float)
-            )
+            arr = np.where(j["preds"] < 0, 0.5, j["preds"].astype(float))
             binary_arrays.append(arr)
             binary_names.append(j["name"])
         if binary_arrays:
             mixed_features = score_arrays + binary_arrays
             mixed_names = score_names + binary_names
             mixed_matrix = np.column_stack(mixed_features)
-            mixed_matrix = np.where(
-                np.isnan(mixed_matrix), 0.5, mixed_matrix
-            )
+            mixed_matrix = np.where(np.isnan(mixed_matrix), 0.5, mixed_matrix)
             preds_mixed, coefs_mixed, intercept_mixed = lr_fusion_5fold(
                 mixed_matrix, base_labels, mixed_names
             )

@@ -56,8 +56,7 @@ def main():
     p = argparse.ArgumentParser()
     p.add_argument("--model", required=True)
     p.add_argument("--max-samples", type=int, default=None)
-    p.add_argument("--output", type=str,
-                   default="benchmarks/results/gemma_routed.json")
+    p.add_argument("--output", type=str, default="benchmarks/results/gemma_routed.json")
     p.add_argument("--n-ctx", type=int, default=4096)
     p.add_argument("--n-threads", type=int, default=2)
     p.add_argument("--log-every", type=int, default=500)
@@ -132,8 +131,12 @@ def main():
             eta = (len(ds) - i - 1) * elapsed / (i + 1) / 60
             logger.info(
                 "[%d/%d] BA=%.4f unk=%d %.0fms/sample ETA=%.1fmin",
-                i + 1, len(ds), ba, unknown,
-                1000 * elapsed / (i + 1), eta,
+                i + 1,
+                len(ds),
+                ba,
+                unknown,
+                1000 * elapsed / (i + 1),
+                eta,
             )
 
     per_ds_metrics = aggregate_per_dataset(preds, labels, datasets_list)
@@ -150,7 +153,9 @@ def main():
         "dataset_to_family": DATASET_TO_FAMILY,
         "unknown_predictions": unknown,
         "total_time_seconds": total,
-        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2] if latencies else 0,
+        "p50_latency_ms": 1000 * sorted(latencies)[len(latencies) // 2]
+        if latencies
+        else 0,
         "p99_latency_ms": (
             1000 * sorted(latencies)[int(len(latencies) * 0.99)] if latencies else 0
         ),

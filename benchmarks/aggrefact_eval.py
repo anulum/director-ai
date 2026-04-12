@@ -127,11 +127,7 @@ class AggreFactMetrics:
     def per_dataset_mean_balanced_acc(self) -> float:
         """Unweighted mean of per-dataset BAs (AggreFact leaderboard
         convention)."""
-        accs = [
-            d["balanced_acc"]
-            for d in self.per_dataset.values()
-            if d["total"] > 0
-        ]
+        accs = [d["balanced_acc"] for d in self.per_dataset.values() if d["total"] > 0]
         return float(np.mean(accs)) if accs else 0.0
 
     @property
@@ -148,7 +144,6 @@ class AggreFactMetrics:
         intended).
         """
         return self.per_dataset_mean_balanced_acc
-
 
     @property
     def total_samples(self) -> int:
@@ -391,9 +386,7 @@ def _load_aggrefact(max_samples: int | None = None) -> list[dict]:
 SCHEMA_VERSION = 2  # bump when JSON layout changes
 
 
-def _compute_sample_pooled_ba(
-    predictions: list[int], labels: list[int]
-) -> float:
+def _compute_sample_pooled_ba(predictions: list[int], labels: list[int]) -> float:
     """True sample-pooled balanced accuracy on the flat (preds, labels)
     pool. Predictions of -1 (unknown) are dropped from the count.
 
@@ -507,13 +500,8 @@ def score_and_save(
     # Also report sample-pooled at the single global threshold for
     # apples-to-apples comparison with judges that use a single
     # threshold (e.g. the Gemma routed champion).
-    preds_at_global_t = [
-        1 if s >= global_thresh else 0
-        for s in scores
-    ]
-    sample_pooled_ba_global_t = _compute_sample_pooled_ba(
-        preds_at_global_t, labels
-    )
+    preds_at_global_t = [1 if s >= global_thresh else 0 for s in scores]
+    sample_pooled_ba_global_t = _compute_sample_pooled_ba(preds_at_global_t, labels)
 
     results = {
         "schema_version": SCHEMA_VERSION,
@@ -531,9 +519,7 @@ def score_and_save(
         "sample_pooled_balanced_accuracy_at_global_threshold": (
             sample_pooled_ba_global_t
         ),
-        "sample_pooled_balanced_accuracy_at_per_dataset_thresholds": (
-            sample_pooled_ba
-        ),
+        "sample_pooled_balanced_accuracy_at_per_dataset_thresholds": (sample_pooled_ba),
         # ── Legacy aliases (DEPRECATED — kept for back-compat only)
         # `global_balanced_accuracy` was historically the per-dataset
         # mean at the global threshold, NOT sample-pooled, despite
@@ -1248,6 +1234,10 @@ if __name__ == "__main__":
         model_tag = (args.model or "default").replace("/", "_").replace("\\", "_")
         outfile = f"aggrefact_{model_tag}.json"
         save_results(
-            {"benchmark": "LLM-AggreFact", "model": args.model or "default", **m.to_dict()},
+            {
+                "benchmark": "LLM-AggreFact",
+                "model": args.model or "default",
+                **m.to_dict(),
+            },
             outfile,
         )
