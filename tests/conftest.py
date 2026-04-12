@@ -35,25 +35,39 @@ os.environ.setdefault("FAISS_OPT_LEVEL", "generic")
 # IMPORTANT: only stub if the package is truly missing (importlib cannot
 # find it). If the real package is installed, we must NOT overwrite it
 # because other tests (e.g. test_build_judge_dataset) import real symbols.
-# Stub llama_cpp and datasets when not installed so that
-# ``unittest.mock.patch("llama_cpp.Llama")`` / ``patch("datasets.load_dataset")``
-# in benchmark tests can succeed without the real packages.
-# Stubs are tagged with ``_is_conftest_stub = True`` so that tests
-# needing the *real* package can detect and skip appropriately.
-for _mod_name in ("llama_cpp", "datasets"):
-    if _mod_name not in sys.modules and importlib.util.find_spec(_mod_name) is None:
-        _stub = types.ModuleType(_mod_name)
-        _stub.__spec__ = importlib.machinery.ModuleSpec(_mod_name, None)
-        _stub._is_conftest_stub = True  # type: ignore[attr-defined]
-        sys.modules[_mod_name] = _stub
+# Stub llama_cpp when not installed so benchmark tests can patch it.
+if "llama_cpp" not in sys.modules and importlib.util.find_spec("llama_cpp") is None:
+    _stub = types.ModuleType("llama_cpp")
+    _stub.__spec__ = importlib.machinery.ModuleSpec("llama_cpp", None)
+    _stub.Llama = None  # type: ignore[attr-defined]
+    sys.modules["llama_cpp"] = _stub
 
-# Add patchable attributes to stubs only.
-_llama = sys.modules.get("llama_cpp")
-if _llama is not None and getattr(_llama, "_is_conftest_stub", False):
-    _llama.Llama = None  # type: ignore[attr-defined]
-_ds = sys.modules.get("datasets")
-if _ds is not None and getattr(_ds, "_is_conftest_stub", False):
-    _ds.load_dataset = None  # type: ignore[attr-defined]
+# NOTE: we intentionally do NOT stub ``datasets`` here because
+# test_build_judge_dataset.py and test_data_pipeline.py use
+# pytest.importorskip("datasets") and a global stub defeats that
+# guard. Benchmark tests that need to patch datasets.load_dataset
+# must use the ``_ensure_datasets_stub`` fixture below.
+
+
+@pytest.fixture(autouse=False)
+def _ensure_datasets_stub():
+    """Temporarily ensure a ``datasets`` module exists in sys.modules.
+
+    Benchmark tests that call ``patch("datasets.load_dataset")`` need
+    the module to exist.  This fixture inserts a minimal stub before
+    the test and removes it afterwards — so it never leaks into tests
+    that rely on ``importorskip("datasets")``.
+    """
+    _inserted = False
+    if "datasets" not in sys.modules:
+        _ds = types.ModuleType("datasets")
+        _ds.__spec__ = importlib.machinery.ModuleSpec("datasets", None)
+        _ds.load_dataset = None  # type: ignore[attr-defined]
+        sys.modules["datasets"] = _ds
+        _inserted = True
+    yield
+    if _inserted and "datasets" in sys.modules:
+        del sys.modules["datasets"]
 
 
 @pytest.fixture

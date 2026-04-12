@@ -26,6 +26,8 @@ import pytest
 
 torch = pytest.importorskip("torch", reason="torch required for competitor backends")
 
+pytestmark = pytest.mark.usefixtures("_ensure_datasets_stub")
+
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "benchmarks"))
 
