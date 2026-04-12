@@ -20,7 +20,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-datasets = pytest.importorskip("datasets")
+# conftest.py may insert a stub ``datasets`` module for benchmark test
+# patching.  Detect that and skip if the *real* package is not installed.
+_ds_mod = sys.modules.get("datasets")
+if _ds_mod is not None and getattr(_ds_mod, "_is_conftest_stub", False):
+    pytest.skip("real datasets package not installed", allow_module_level=True)
+else:
+    datasets = pytest.importorskip("datasets")
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 

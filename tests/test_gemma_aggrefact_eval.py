@@ -130,7 +130,7 @@ class TestLlamaCppBackend:
 class TestLoadAggrefact:
     def test_max_samples_truncates(self):
         ds = _toy_dataset()
-        with patch("datasets.load_dataset", create=True, return_value=ds):
+        with patch("datasets.load_dataset", return_value=ds):
             from gemma_aggrefact_eval import load_aggrefact
 
             result = load_aggrefact(max_samples=2)
@@ -138,7 +138,7 @@ class TestLoadAggrefact:
 
     def test_no_max_returns_all(self):
         ds = _toy_dataset()
-        with patch("datasets.load_dataset", create=True, return_value=ds):
+        with patch("datasets.load_dataset", return_value=ds):
             from gemma_aggrefact_eval import load_aggrefact
 
             result = load_aggrefact()
@@ -172,7 +172,7 @@ class TestMainCli:
                 ],
             ),
             patch("llama_cpp.Llama", return_value=mock),
-            patch("datasets.load_dataset", create=True, return_value=ds),
+            patch("datasets.load_dataset", return_value=ds),
         ):
             from gemma_aggrefact_eval import main
 
@@ -250,7 +250,7 @@ class TestMainCli:
                 ],
             ),
             patch("llama_cpp.Llama", return_value=mock),
-            patch("datasets.load_dataset", create=True, return_value=ds),
+            patch("datasets.load_dataset", return_value=ds),
         ):
             from gemma_aggrefact_eval import main
 
