@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- **5-tier scoring pyramid** — pluggable backend architecture:
+  - **Tier 2 — Rules engine** (`scorer_backend="rules"`): 8 configurable
+    rules (entity grounding, numeric consistency, negation flip, etc.).
+    Zero ML deps, <1ms. Direct Guardrails AI competitor.
+  - **Tier 3 — Embedding scorer** (`scorer_backend="embed"`):
+    sentence-transformers cosine similarity, ~65% BA at 3ms CPU.
+    Install: `pip install director-ai[embed]`.
+  - **Tier 4 — Distilled NLI** (`scorer_backend="nli-lite"`): MiniLM-class
+    model distilled from FactCG. Target ~70% BA at 5ms. ONNX + PyTorch.
+    Install: `pip install director-ai[nli-lite]`. Model training pending.
+  - All backends registered via `ScorerBackend` ABC + entry-point system.
+- **SaaS middleware** (`director_ai.middleware`):
+  - `APIKeyMiddleware`: Bearer/X-API-Key auth, env/file key sources,
+    constant-time hmac validation, audit-safe key hashing.
+  - `RateLimitMiddleware`: per-key token-bucket with configurable RPM
+    and burst, 429 + Retry-After.
+  - Cloud Run Dockerfile (`deploy/cloud-run/Dockerfile.saas`) with
+    FactCG ONNX pre-baked, non-root user, healthcheck.
+- Config profiles: `"rules"`, `"embed"` added to `DirectorConfig.from_profile()`.
+
 ### Fixed
 - **Metric correction**: FactCG accuracy corrected from 75.8% to **75.6%**
   per-dataset mean balanced accuracy (AggreFact leaderboard convention,

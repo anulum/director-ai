@@ -16,11 +16,13 @@
 pip install director-ai
 ```
 
-For NLI-enhanced scoring (recommended for production):
+Choose your scoring tier:
 
 ```bash
-pip install director-ai[nli]         # FactCG-DeBERTa-v3-Large (75.6% per-dataset mean BA)
-pip install director-ai[minicheck]   # MiniCheck alternative
+pip install director-ai                # rules engine + heuristic (zero ML, <1ms)
+pip install director-ai[embed]         # + embedding scorer (~65% BA, 3ms CPU)
+pip install director-ai[nli]           # + FactCG NLI (75.6% BA, 14.6ms GPU) — recommended
+pip install director-ai[nli,server]    # + REST API server for production
 ```
 
 ## CLI Quickstart

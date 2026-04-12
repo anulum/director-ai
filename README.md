@@ -34,7 +34,7 @@ The system was built to solve a specific internal need: **real-time hallucinatio
 
 **Team:** ANULUM maintains a research team (intentionally undisclosed). GitHub automation and repository maintenance are handled by the owner. Contributions are welcome under AGPL v3 terms.
 
-> **Active Development** — APIs may evolve. The core guardrail engine, NLI scoring, 5-SDK guard, FastAPI middleware, REST/gRPC servers, and injection detection are functional and tested (4300+ passing tests). Rust-accelerated compute paths ship as of v3.12.0.
+> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), 7-SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, and SaaS middleware (API keys + rate limiting) are functional and tested (4900+ passing tests). Rust-accelerated compute paths ship as of v3.12.0.
 
 ---
 

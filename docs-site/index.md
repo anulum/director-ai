@@ -25,6 +25,7 @@
 | **2-Line Integration** — Wrap any LLM SDK client with `guard()`. Duck-type detection for OpenAI-compatible, Anthropic, Bedrock, Gemini, Cohere. [Quickstart &rarr;](quickstart.md) | **Token-Level Halt** — Catches hallucinations as they form, mid-stream, before the user sees incorrect information. [Streaming &rarr;](guide/streaming.md) |
 | **Custom KB Grounding** — Bring your own facts via RAG. ChromaDB, FAISS, Qdrant, or in-memory backends. [KB Ingestion &rarr;](guide/kb-ingestion.md) | **75.6% Balanced Accuracy** on [LLM-AggreFact](https://llm-aggrefact.github.io/) (29K samples, 11 datasets, #6 on leaderboard; 77.76% with per-dataset tuning) — FactCG-DeBERTa-v3-Large NLI model. 14.6 ms/pair ONNX GPU. SBOM on every release. [Scoring &rarr;](guide/scoring.md) |
 | **Injection Detection** — Two-stage pipeline: regex pattern matching + bidirectional NLI intent-drift scoring. Catches injection effects in the output regardless of encoding. Per-claim attribution. [Injection Detector &rarr;](api/injection-detector.md) | **ProductionGuard** — Batteries-included entry point: calibrated scoring, human feedback loop, conformal CIs, tool-call verification, and injection detection. [Guard &rarr;](guide/production-guard.md) |
+| **5-Tier Scoring** — From zero-dep rules engine (<1ms) to embedding similarity (3ms) to full NLI (14.6ms). Choose your accuracy/latency trade-off. [Scoring &rarr;](guide/scoring.md) | **SaaS-Ready** — API key auth + token-bucket rate limiting middleware. Cloud Run Dockerfile included. Self-host or let us host. |
 
 ## Install
 
