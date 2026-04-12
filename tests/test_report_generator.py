@@ -162,9 +162,7 @@ class TestLoadJson:
 
 class TestFindJudgeResults:
     def test_picks_up_v2_aggrefact(self, tmp_path):
-        (tmp_path / "factcg.json").write_text(
-            json.dumps(_aggrefact_eval_v2())
-        )
+        (tmp_path / "factcg.json").write_text(json.dumps(_aggrefact_eval_v2()))
         out = find_judge_results(tmp_path)
         assert len(out) == 1
         label, payload = out[0]
@@ -172,9 +170,7 @@ class TestFindJudgeResults:
         assert payload["global_balanced_accuracy"] == pytest.approx(0.7558)
 
     def test_picks_up_routed_gemma(self, tmp_path):
-        (tmp_path / "gemma_routed.json").write_text(
-            json.dumps(_routed_gemma_v2())
-        )
+        (tmp_path / "gemma_routed.json").write_text(json.dumps(_routed_gemma_v2()))
         out = find_judge_results(tmp_path)
         assert len(out) == 1
         label, payload = out[0]
@@ -199,19 +195,13 @@ class TestFindJudgeResults:
         assert find_judge_results(tmp_path) == []
 
     def test_handles_multiple_judges(self, tmp_path):
-        (tmp_path / "fact.json").write_text(
-            json.dumps(_aggrefact_eval_v2())
-        )
-        (tmp_path / "gemma.json").write_text(
-            json.dumps(_routed_gemma_v2())
-        )
+        (tmp_path / "fact.json").write_text(json.dumps(_aggrefact_eval_v2()))
+        (tmp_path / "gemma.json").write_text(json.dumps(_routed_gemma_v2()))
         out = find_judge_results(tmp_path)
         assert len(out) == 2
 
     def test_skips_malformed_json(self, tmp_path):
-        (tmp_path / "ok.json").write_text(
-            json.dumps(_aggrefact_eval_v2())
-        )
+        (tmp_path / "ok.json").write_text(json.dumps(_aggrefact_eval_v2()))
         (tmp_path / "bad.json").write_text("{invalid")
         out = find_judge_results(tmp_path)
         assert len(out) == 1
@@ -272,9 +262,7 @@ class TestFormatExternalLeaderboard:
         assert any("external comparison" in line for line in out)
 
     def test_renders_entries(self):
-        out = "\n".join(
-            format_external_leaderboard(_external_leaderboard()["entries"])
-        )
+        out = "\n".join(format_external_leaderboard(_external_leaderboard()["entries"]))
         assert "FaithLens 8B" in out
         assert "86.40%" in out
         assert "Bespoke-MiniCheck-7B" in out
@@ -309,12 +297,8 @@ class TestGenerateReport:
     def _setup_results_dir(self, tmp_path: Path) -> Path:
         results = tmp_path / "results"
         results.mkdir()
-        (results / "factcg.json").write_text(
-            json.dumps(_aggrefact_eval_v2())
-        )
-        (results / "gemma.json").write_text(
-            json.dumps(_routed_gemma_v2())
-        )
+        (results / "factcg.json").write_text(json.dumps(_aggrefact_eval_v2()))
+        (results / "gemma.json").write_text(json.dumps(_routed_gemma_v2()))
         (results / "rust_compute_bench.json").write_text(
             json.dumps(_rust_compute_bench())
         )
@@ -337,9 +321,7 @@ class TestGenerateReport:
         assert ret == out
         assert out.exists()
         text = out.read_text()
-        assert text.startswith(
-            "# Director-AI — AggreFact & Compute Benchmark Summary"
-        )
+        assert text.startswith("# Director-AI — AggreFact & Compute Benchmark Summary")
 
     def test_contains_every_judge(self, tmp_path):
         results = self._setup_results_dir(tmp_path)
@@ -435,16 +417,12 @@ class TestGenerateReport:
         assert "No AggreFact judge JSONs" in text
         assert "rust_compute_bench.json" in text  # missing-rust note
         # The header is still present.
-        assert text.startswith(
-            "# Director-AI — AggreFact & Compute Benchmark Summary"
-        )
+        assert text.startswith("# Director-AI — AggreFact & Compute Benchmark Summary")
 
     def test_no_hardcoded_speedup_when_rust_missing(self, tmp_path):
         results = tmp_path / "results"
         results.mkdir()
-        (results / "factcg.json").write_text(
-            json.dumps(_aggrefact_eval_v2())
-        )
+        (results / "factcg.json").write_text(json.dumps(_aggrefact_eval_v2()))
         out = tmp_path / "report.md"
         generate_report(results, out)
         text = out.read_text()

@@ -169,31 +169,23 @@ class TestRunSuite:
     def test_threshold_cut_above(self):
         # fixed score 0.6, threshold 0.5 -> all predicted 1; labels split
         # 1/0/1/0 -> recall_pos 1.0, recall_neg 0.0 -> BA 0.5.
-        results = run_suite(
-            MockBackend(0.6), dataset=_toy_dataset(), threshold=0.5
-        )
+        results = run_suite(MockBackend(0.6), dataset=_toy_dataset(), threshold=0.5)
         assert results["predictions"] == [1, 1, 1, 1]
         assert results["global_balanced_accuracy"] == 0.5
 
     def test_threshold_cut_below(self):
         # fixed score 0.4, threshold 0.5 -> all predicted 0 -> BA 0.5.
-        results = run_suite(
-            MockBackend(0.4), dataset=_toy_dataset(), threshold=0.5
-        )
+        results = run_suite(MockBackend(0.4), dataset=_toy_dataset(), threshold=0.5)
         assert results["predictions"] == [0, 0, 0, 0]
         assert results["global_balanced_accuracy"] == 0.5
 
     def test_threshold_at_score_predicts_one(self):
         # score >= threshold => 1. Score == threshold is included.
-        results = run_suite(
-            MockBackend(0.5), dataset=_toy_dataset(), threshold=0.5
-        )
+        results = run_suite(MockBackend(0.5), dataset=_toy_dataset(), threshold=0.5)
         assert results["predictions"] == [1, 1, 1, 1]
 
     def test_max_samples_truncates(self):
-        results = run_suite(
-            MockBackend(), dataset=_toy_dataset(), max_samples=2
-        )
+        results = run_suite(MockBackend(), dataset=_toy_dataset(), max_samples=2)
         assert results["samples"] == 2
         assert results["labels"] == [1, 0]
 
@@ -248,9 +240,7 @@ class TestRunSuite:
 class TestBackendRegistry:
     def test_every_backend_is_subclass(self):
         for name, cls in BACKENDS.items():
-            assert issubclass(cls, BaseBackend), (
-                f"{name} not a BaseBackend"
-            )
+            assert issubclass(cls, BaseBackend), f"{name} not a BaseBackend"
 
     def test_registry_contains_expected_keys(self):
         assert set(BACKENDS) == {
