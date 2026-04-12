@@ -208,6 +208,34 @@ register_backend("minicheck", MiniCheckBackend)
 register_backend("lite", LiteBackend)
 register_backend("rules", RulesBackendWrapper)
 
+
+class EmbedBackendWrapper(ScorerBackend):
+    """Wraps EmbedBackend (sentence-transformers, ~65% BA, 3ms CPU)."""
+
+    def __init__(self, **kwargs) -> None:
+        from .embed_scorer import EmbedBackend
+
+        self._scorer = EmbedBackend(
+            model_name=kwargs.get("model_name", "BAAI/bge-small-en-v1.5"),
+            device=kwargs.get("device", "cpu"),
+            cache_dir=kwargs.get("cache_dir"),
+        )
+
+    def score(self, premise: str, hypothesis: str) -> float:
+        return self._scorer.score(premise, hypothesis)
+
+    def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        return self._scorer.score_batch(pairs)
+
+
+try:
+    import importlib.util
+
+    if importlib.util.find_spec("sentence_transformers") is not None:
+        register_backend("embed", EmbedBackendWrapper)
+except ImportError:  # pragma: no cover
+    pass
+
 try:
     from backfire_kernel import BackfireConfig as _BkCfg  # noqa: F401
     from backfire_kernel import RustCoherenceScorer as _RustScorer  # noqa: F401
