@@ -95,7 +95,28 @@ REFERENCE_SCORES = {
 
 @dataclass
 class AggreFactMetrics:
-    """Per-dataset and aggregate balanced accuracy."""
+    """Per-dataset balanced accuracy plus the two aggregate metrics
+    that the AggreFact community uses interchangeably.
+
+    Two distinct aggregates are exposed and **must not be confused**:
+
+    - ``per_dataset_mean_balanced_acc`` — unweighted mean of the
+      per-dataset balanced accuracies. **This is the AggreFact
+      leaderboard convention** (verified verbatim from
+      https://llm-aggrefact.github.io/ on 2026-04-12). Heterogeneous
+      benchmarks are evaluated this way to prevent the largest
+      dataset (RAGTruth, ~16 K samples) from dominating the score.
+    - ``sample_pooled_balanced_acc`` — balanced accuracy computed
+      once across the flat sample pool, weighted by dataset size.
+      Convenient for fast comparison of judges on the same data
+      distribution but **not the leaderboard metric**.
+
+    Historical note: the legacy ``avg_balanced_acc`` property
+    returned the per-dataset mean. It is preserved as an alias for
+    backwards compatibility but new code should call
+    ``per_dataset_mean_balanced_acc`` explicitly so the metric is
+    unambiguous in every call site.
+    """
 
     per_dataset: dict[str, dict] = field(default_factory=dict)
     threshold: float = 0.5
@@ -103,9 +124,31 @@ class AggreFactMetrics:
     inference_times: list[float] = field(default_factory=list, repr=False)
 
     @property
-    def avg_balanced_acc(self) -> float:
-        accs = [d["balanced_acc"] for d in self.per_dataset.values() if d["total"] > 0]
+    def per_dataset_mean_balanced_acc(self) -> float:
+        """Unweighted mean of per-dataset BAs (AggreFact leaderboard
+        convention)."""
+        accs = [
+            d["balanced_acc"]
+            for d in self.per_dataset.values()
+            if d["total"] > 0
+        ]
         return float(np.mean(accs)) if accs else 0.0
+
+    @property
+    def avg_balanced_acc(self) -> float:
+        """**Deprecated alias** — same value as
+        ``per_dataset_mean_balanced_acc``.
+
+        Kept so that pre-2026-04-12 callers don't break, but new
+        code should use the explicit name. Every call site of
+        ``avg_balanced_acc`` in the repo should be migrated to
+        either ``per_dataset_mean_balanced_acc`` (when the
+        leaderboard metric is intended) or
+        ``sample_pooled_balanced_acc`` (when sample-pooled is
+        intended).
+        """
+        return self.per_dataset_mean_balanced_acc
+
 
     @property
     def total_samples(self) -> int:
@@ -348,6 +391,34 @@ def _load_aggrefact(max_samples: int | None = None) -> list[dict]:
 SCHEMA_VERSION = 2  # bump when JSON layout changes
 
 
+def _compute_sample_pooled_ba(
+    predictions: list[int], labels: list[int]
+) -> float:
+    """True sample-pooled balanced accuracy on the flat (preds, labels)
+    pool. Predictions of -1 (unknown) are dropped from the count.
+
+    Returns 0.0 when either class has zero predictions left.
+    Distinct from ``AggreFactMetrics.per_dataset_mean_balanced_acc``
+    which averages BAs across datasets — see the docstring of
+    ``AggreFactMetrics`` for the discussion of when to use which.
+    """
+    pos = neg = tp = tn = 0
+    for p, lab in zip(predictions, labels, strict=True):
+        if p < 0:
+            continue
+        if lab == 1:
+            pos += 1
+            if p == 1:
+                tp += 1
+        else:
+            neg += 1
+            if p == 0:
+                tn += 1
+    if pos == 0 or neg == 0:
+        return 0.0
+    return (tp / pos + tn / neg) / 2
+
+
 def score_and_save(
     out_path: str | Path,
     max_samples: int | None = None,
@@ -359,15 +430,22 @@ def score_and_save(
     The output mirrors ``benchmarks/gemma_aggrefact_eval.py`` so a downstream
     ensemble analyser can load Gemma and FactCG predictions uniformly.
 
-    Two distinct balanced-accuracy numbers are saved (both useful, do not
-    confuse them):
+    **Four** balanced-accuracy numbers are saved, in two metric families
+    × two threshold strategies. Do not confuse them:
 
-    - ``global_balanced_accuracy``: sample-pooled BA computed once across all
-      29 320 samples using a single threshold swept on the pool. Matches the
-      convention used by FactCG paper and ``gemma_aggrefact_eval.py``.
-    - ``per_dataset_avg_balanced_accuracy``: unweighted mean of per-dataset
-      BAs, each measured at its own optimal threshold. Higher than global on
-      heterogeneous benchmarks because each dataset gets its own calibration.
+    | Metric × Threshold | Single global threshold | Per-dataset thresholds |
+    |--------------------|-------------------------|------------------------|
+    | per-dataset mean   | ``per_dataset_mean_balanced_accuracy_at_global_threshold`` (= AggreFact leaderboard convention) | ``per_dataset_mean_balanced_accuracy_at_per_dataset_thresholds`` (post-hoc tuned) |
+    | sample-pooled      | ``sample_pooled_balanced_accuracy_at_global_threshold`` | ``sample_pooled_balanced_accuracy_at_per_dataset_thresholds`` |
+
+    **The leaderboard convention is per-dataset mean** (verified
+    verbatim from ``https://llm-aggrefact.github.io/`` on 2026-04-12).
+    Sample-pooled is reported in addition because it's convenient for
+    fast comparison of judges on the same data distribution.
+
+    Legacy aliases (``global_balanced_accuracy`` and
+    ``per_dataset_avg_balanced_accuracy``) are kept for back-compat,
+    they map to the per-dataset-mean variants.
 
     The file is also readable by ``load_cached_scores()`` (schema-version
     aware — old v1 files keep loading too).
@@ -406,11 +484,13 @@ def score_and_save(
 
     # Per-dataset optimal thresholds (each dataset swept independently).
     per_ds_t, per_ds_metrics = sweep_on_cached(by_dataset, per_dataset=True)
-    per_dataset_avg_ba = per_ds_metrics.avg_balanced_acc
+    per_dataset_avg_ba = per_ds_metrics.per_dataset_mean_balanced_acc
 
-    # Sample-pooled single-threshold global BA (matches Gemma JSON convention).
+    # Per-dataset MEAN at a single global threshold (this is the
+    # AggreFact leaderboard convention — verified verbatim from
+    # https://llm-aggrefact.github.io/ on 2026-04-12).
     global_thresh, global_metrics = sweep_on_cached(by_dataset, per_dataset=False)
-    global_ba = global_metrics.avg_balanced_acc
+    per_ds_mean_at_global_t = global_metrics.per_dataset_mean_balanced_acc
 
     # Predictions from per-dataset thresholds (most useful for ensemble work).
     predictions: list[int] = [
@@ -418,19 +498,56 @@ def score_and_save(
         for s, d in zip(scores, datasets, strict=True)
     ]
 
+    # **TRUE sample-pooled balanced accuracy.** Computed once across
+    # the flat (predictions, labels) pool, weighted by dataset size.
+    # This is NOT the leaderboard metric but is useful for fast
+    # comparison of judges on the same data distribution. Computed
+    # at the per-dataset thresholds (most-tuned variant).
+    sample_pooled_ba = _compute_sample_pooled_ba(predictions, labels)
+    # Also report sample-pooled at the single global threshold for
+    # apples-to-apples comparison with judges that use a single
+    # threshold (e.g. the Gemma routed champion).
+    preds_at_global_t = [
+        1 if s >= global_thresh else 0
+        for s in scores
+    ]
+    sample_pooled_ba_global_t = _compute_sample_pooled_ba(
+        preds_at_global_t, labels
+    )
+
     results = {
         "schema_version": SCHEMA_VERSION,
         "model": model_name or "yaxili96/FactCG-DeBERTa-v3-Large",
         "backend": "transformers",
         "samples": len(scores),
-        "global_balanced_accuracy": global_ba,
-        "global_threshold": global_thresh,
+        # ── Leaderboard metric (per-dataset mean) — both variants ─
+        "per_dataset_mean_balanced_accuracy_at_global_threshold": (
+            per_ds_mean_at_global_t
+        ),
+        "per_dataset_mean_balanced_accuracy_at_per_dataset_thresholds": (
+            per_dataset_avg_ba
+        ),
+        # ── Sample-pooled (NOT the leaderboard metric) — both variants
+        "sample_pooled_balanced_accuracy_at_global_threshold": (
+            sample_pooled_ba_global_t
+        ),
+        "sample_pooled_balanced_accuracy_at_per_dataset_thresholds": (
+            sample_pooled_ba
+        ),
+        # ── Legacy aliases (DEPRECATED — kept for back-compat only)
+        # `global_balanced_accuracy` was historically the per-dataset
+        # mean at the global threshold, NOT sample-pooled, despite
+        # the misleading name. Migrate to the explicit fields above.
+        "global_balanced_accuracy": per_ds_mean_at_global_t,
         "per_dataset_avg_balanced_accuracy": per_dataset_avg_ba,
+        # ── Thresholds + per-dataset breakdown ────────────────────
+        "global_threshold": global_thresh,
         "per_dataset": {
             ds: {"samples": m["total"], "balanced_accuracy": m["balanced_acc"]}
             for ds, m in per_ds_metrics.per_dataset.items()
         },
         "per_dataset_thresholds": per_ds_t,
+        # ── Raw arrays (for ensemble fusion + replay) ─────────────
         "scores": scores,
         "predictions": predictions,
         "labels": labels,
