@@ -10,7 +10,7 @@ Covers:
 
 * ``main()`` — K-sample majority voting, support_fractions output,
   JSON schema (k, temperature, top_p, per_family), all-unknown path
-  when every vote is unparseable, mixed vote scenarios.
+  when every vote is unparsable, mixed vote scenarios.
 """
 
 from __future__ import annotations

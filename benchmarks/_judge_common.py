@@ -87,7 +87,7 @@ AGGREFACT_DATASETS: tuple[str, ...] = tuple(sorted(DATASET_TO_FAMILY))
 def parse_response(text: str) -> int:
     """Parse an LLM verdict into a binary label.
 
-    Returns 1 (supported), 0 (not supported), or -1 (unparseable).
+    Returns 1 (supported), 0 (not supported), or -1 (unparsable).
     Handles common model-output variations:
 
     - ``SUPPORTED``, ``NOT_SUPPORTED``, ``NOT SUPPORTED``,
