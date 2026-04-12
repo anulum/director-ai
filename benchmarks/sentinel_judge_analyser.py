@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Sentinel-Judge Ensemble Analyzer
+# Director-Class AI — Sentinel-Judge Ensemble Analyser
 """Combine per-sample predictions from multiple judges and report ensemble metrics.
 
 Loads JSON files produced by ``benchmarks/gemma_aggrefact_eval.py`` and
@@ -21,7 +21,7 @@ Computes:
 
 Usage::
 
-    python benchmarks/sentinel_judge_analyzer.py \\
+    python benchmarks/sentinel_judge_analyser.py \\
         --judges \\
             benchmarks/results/gemma_e4b_q6_with_preds.json \\
             benchmarks/results/factcg_with_scores.json \\

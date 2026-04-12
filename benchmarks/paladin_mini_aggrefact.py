@@ -17,7 +17,7 @@ Backend: transformers + ROCm (HIP_VISIBLE_DEVICES). Phi-3 has no architecture
 quirks on RDNA2 — unlike gemma4 with bitsandbytes, this works in bf16 directly.
 
 Output schema matches benchmarks/gemma_aggrefact_eval.py so the
-sentinel_judge_analyzer.py can load it as a third judge.
+sentinel_judge_analyser.py can load it as a third judge.
 
 Usage::
 

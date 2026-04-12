@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""STRONG tests for ``benchmarks.sentinel_judge_analyzer``.
+"""STRONG tests for ``benchmarks.sentinel_judge_analyser``.
 
 Covers:
 
@@ -32,7 +32,7 @@ import pytest
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "benchmarks"))
 
-from sentinel_judge_analyzer import (  # noqa: E402
+from sentinel_judge_analyser import (  # noqa: E402
     align_judges,
     balanced_accuracy,
     load_judge,
@@ -344,7 +344,7 @@ class TestMainCli:
                 str(out),
             ],
         ):
-            from sentinel_judge_analyzer import main
+            from sentinel_judge_analyser import main
 
             main()
         assert out.exists()
@@ -376,7 +376,7 @@ class TestMainCli:
                 str(out),
             ],
         ):
-            from sentinel_judge_analyzer import main
+            from sentinel_judge_analyser import main
 
             main()
         report = json.loads(out.read_text())
@@ -407,7 +407,7 @@ class TestMainCli:
                 str(out),
             ],
         ):
-            from sentinel_judge_analyzer import main
+            from sentinel_judge_analyser import main
 
             main()
         report = json.loads(out.read_text())
@@ -431,7 +431,7 @@ class TestMainCli:
                 str(out),
             ],
         ):
-            from sentinel_judge_analyzer import main
+            from sentinel_judge_analyser import main
 
             main()
         report = json.loads(out.read_text())

@@ -49,15 +49,18 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import re
 import time
 from collections import defaultdict
 from pathlib import Path
 
 from _judge_common import (
     DATASET_TO_FAMILY,
+    DECOMPOSE_PROMPT,
     PROMPTS,
+    aggregate_per_dataset,
+    aggregate_per_family,
     compute_balanced_accuracy,
+    parse_subclaims,
 )
 from _judge_common import (
     parse_response as parse_verdict,
@@ -67,41 +70,6 @@ logging.basicConfig(
     level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s"
 )
 logger = logging.getLogger(__name__)
-
-
-# ── Decomposition prompt (single, generic — only the verify step is routed) ──
-
-DECOMPOSE_PROMPT = """Break the CLAIM into 1-4 atomic sub-claims that can be checked independently.
-Return them as a numbered list, one sub-claim per line. Do not add explanation. Do not repeat the original claim.
-
-CLAIM:
-{claim}
-
-Sub-claims:
-1."""
-
-LIST_LINE_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s+(.+?)\s*$")
-
-
-def parse_subclaims(raw: str, original_claim: str, max_n: int = 4) -> list[str]:
-    """Extract atomic sub-claims from the decomposition response."""
-    text = (
-        "1. " + raw
-        if not raw.lstrip().startswith(("1", "-", "*"))
-        else raw
-    )
-    out: list[str] = []
-    for line in text.splitlines():
-        m = LIST_LINE_RE.match(line)
-        if m:
-            sub = m.group(1).strip()
-            if sub and sub.lower() not in {"sub-claims", "sub-claim", "claim"}:
-                out.append(sub)
-        if len(out) >= max_n:
-            break
-    if not out:
-        out = [original_claim]
-    return out
 
 
 def main():
@@ -313,33 +281,8 @@ def main():
                 eta_min,
             )
 
-    by_ds: dict[str, tuple[list[int], list[int]]] = defaultdict(
-        lambda: ([], [])
-    )
-    for p_, l_, d_ in zip(preds, labels, datasets_list, strict=True):
-        by_ds[d_][0].append(p_)
-        by_ds[d_][1].append(l_)
-    per_ds_metrics = {
-        ds: {
-            "samples": len(l_),
-            "balanced_accuracy": compute_balanced_accuracy(p_, l_),
-        }
-        for ds, (p_, l_) in by_ds.items()
-    }
-
-    by_fam: dict[str, tuple[list[int], list[int]]] = defaultdict(
-        lambda: ([], [])
-    )
-    for p_, l_, f_ in zip(preds, labels, families, strict=True):
-        by_fam[f_][0].append(p_)
-        by_fam[f_][1].append(l_)
-    per_family_metrics = {
-        f: {
-            "samples": len(l_),
-            "balanced_accuracy": compute_balanced_accuracy(p_, l_),
-        }
-        for f, (p_, l_) in by_fam.items()
-    }
+    per_ds_metrics = aggregate_per_dataset(preds, labels, datasets_list)
+    per_family_metrics = aggregate_per_family(preds, labels, families)
 
     total = time.time() - t_start
     results = {

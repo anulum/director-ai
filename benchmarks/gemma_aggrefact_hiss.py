@@ -32,13 +32,14 @@ from __future__ import annotations
 import argparse
 import json
 import logging
-import re
 import time
-from collections import defaultdict
 from pathlib import Path
 
 from _judge_common import (
+    DECOMPOSE_PROMPT,
+    aggregate_per_dataset,
     compute_balanced_accuracy,
+    parse_subclaims,
 )
 from _judge_common import (
     parse_response as parse_verdict,
@@ -46,15 +47,6 @@ from _judge_common import (
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
-
-DECOMPOSE_PROMPT = """Break the CLAIM into 1-5 atomic sub-claims that can be checked independently.
-Return them as a numbered list, one sub-claim per line. Do not add explanation.
-
-CLAIM:
-{claim}
-
-Sub-claims:
-1."""
 
 VERIFY_PROMPT = """You are a fact-checking assistant. Decide if the CLAIM is fully supported by the CONTEXT.
 
@@ -65,28 +57,6 @@ CLAIM:
 {hypothesis}
 
 Answer with exactly one word: SUPPORTED or NOT_SUPPORTED."""
-
-# Match a leading list marker: "1.", "1)", "- ", "* "
-LIST_LINE_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s+(.+?)\s*$")
-
-
-def parse_subclaims(raw: str, original_claim: str) -> list[str]:
-    """Extract atomic sub-claims from the decomposition response."""
-    # The prompt ends with "1." so the model continues from there. We add
-    # a synthetic "1." prefix to the first line so the regex catches it.
-    text = "1. " + raw if not raw.lstrip().startswith(("1", "-", "*")) else raw
-    out: list[str] = []
-    for line in text.splitlines():
-        m = LIST_LINE_RE.match(line)
-        if m:
-            sub = m.group(1).strip()
-            if sub and sub.lower() not in {"sub-claims", "sub-claim", "claim"}:
-                out.append(sub)
-        if len(out) >= 5:
-            break
-    if not out:
-        out = [original_claim]
-    return out
 
 
 def main():
@@ -206,14 +176,7 @@ def main():
                 1000 * elapsed / (i + 1), eta,
             )
 
-    by_ds: dict[str, tuple[list[int], list[int]]] = defaultdict(lambda: ([], []))
-    for p_, l_, d_ in zip(preds, labels, datasets_list, strict=True):
-        by_ds[d_][0].append(p_)
-        by_ds[d_][1].append(l_)
-    per_ds_metrics = {
-        ds: {"samples": len(l_), "balanced_accuracy": compute_balanced_accuracy(p_, l_)}
-        for ds, (p_, l_) in by_ds.items()
-    }
+    per_ds_metrics = aggregate_per_dataset(preds, labels, datasets_list)
 
     total = time.time() - t_start
     results = {

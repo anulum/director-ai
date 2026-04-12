@@ -17,7 +17,7 @@ has its own input format. We adapt the prompt per backend so that the
 output is comparable to our other AggreFact JSONs (same schema).
 
 Output schema matches benchmarks/gemma_aggrefact_eval.py so the
-sentinel_judge_analyzer.py can ensemble them with the LLM judges.
+sentinel_judge_analyser.py can ensemble them with the LLM judges.
 
 Usage::
 

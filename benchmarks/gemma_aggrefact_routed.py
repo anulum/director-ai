@@ -42,6 +42,8 @@ from pathlib import Path
 from _judge_common import (
     DATASET_TO_FAMILY,
     PROMPTS,
+    aggregate_per_dataset,
+    aggregate_per_family,
     compute_balanced_accuracy,
     parse_response,
 )
@@ -134,24 +136,8 @@ def main():
                 1000 * elapsed / (i + 1), eta,
             )
 
-    by_ds: dict[str, tuple[list[int], list[int]]] = defaultdict(lambda: ([], []))
-    for p_, l_, d_ in zip(preds, labels, datasets_list, strict=True):
-        by_ds[d_][0].append(p_)
-        by_ds[d_][1].append(l_)
-    per_ds_metrics = {
-        ds: {"samples": len(l_), "balanced_accuracy": compute_balanced_accuracy(p_, l_)}
-        for ds, (p_, l_) in by_ds.items()
-    }
-
-    # Per-family aggregate
-    by_fam: dict[str, tuple[list[int], list[int]]] = defaultdict(lambda: ([], []))
-    for p_, l_, f_ in zip(preds, labels, families, strict=True):
-        by_fam[f_][0].append(p_)
-        by_fam[f_][1].append(l_)
-    per_family_metrics = {
-        f: {"samples": len(l_), "balanced_accuracy": compute_balanced_accuracy(p_, l_)}
-        for f, (p_, l_) in by_fam.items()
-    }
+    per_ds_metrics = aggregate_per_dataset(preds, labels, datasets_list)
+    per_family_metrics = aggregate_per_family(preds, labels, families)
 
     total = time.time() - t_start
     results = {

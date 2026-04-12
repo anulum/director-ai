@@ -24,6 +24,8 @@ Import convention::
 
 from __future__ import annotations
 
+import re
+
 # ── Per-task-family prompt routing ───────────────────────────────────────
 
 PROMPT_SUMM = (
@@ -104,6 +106,84 @@ def parse_response(text: str) -> int:
     if t.startswith("NO") or t.startswith("FALSE"):
         return 0
     return -1
+
+
+# ── Balanced accuracy ────────────────────────────────────────────────────
+
+
+# ── HiSS decomposition helpers ──────────────────────────────────────────
+
+DECOMPOSE_PROMPT = """Break the CLAIM into 1-4 atomic sub-claims that can be checked independently.
+Return them as a numbered list, one sub-claim per line. Do not add explanation. Do not repeat the original claim.
+
+CLAIM:
+{claim}
+
+Sub-claims:
+1."""
+
+#: Match a leading list marker: "1.", "1)", "- ", "* "
+LIST_LINE_RE = re.compile(r"^\s*(?:\d+[.)]|[-*])\s+(.+?)\s*$")
+
+
+def parse_subclaims(raw: str, original_claim: str, max_n: int = 5) -> list[str]:
+    """Extract atomic sub-claims from a decomposition response.
+
+    If no list items are found, returns ``[original_claim]`` as a fallback.
+    Filters out meta-labels like "sub-claims" or "claim".
+    """
+    text = (
+        "1. " + raw
+        if not raw.lstrip().startswith(("1", "-", "*"))
+        else raw
+    )
+    out: list[str] = []
+    for line in text.splitlines():
+        m = LIST_LINE_RE.match(line)
+        if m:
+            sub = m.group(1).strip()
+            if sub and sub.lower() not in {"sub-claims", "sub-claim", "claim"}:
+                out.append(sub)
+        if len(out) >= max_n:
+            break
+    if not out:
+        out = [original_claim]
+    return out
+
+
+# ── Per-dataset / per-family aggregation ────────────────────────────────
+
+
+def aggregate_per_dataset(
+    preds: list[int], labels: list[int], datasets: list[str],
+) -> dict[str, dict]:
+    """Group predictions by dataset and compute BA for each."""
+    from collections import defaultdict
+
+    by_ds: dict[str, tuple[list[int], list[int]]] = defaultdict(lambda: ([], []))
+    for p_, l_, d_ in zip(preds, labels, datasets, strict=True):
+        by_ds[d_][0].append(p_)
+        by_ds[d_][1].append(l_)
+    return {
+        ds: {"samples": len(l_), "balanced_accuracy": compute_balanced_accuracy(p_, l_)}
+        for ds, (p_, l_) in by_ds.items()
+    }
+
+
+def aggregate_per_family(
+    preds: list[int], labels: list[int], families: list[str],
+) -> dict[str, dict]:
+    """Group predictions by task family and compute BA for each."""
+    from collections import defaultdict
+
+    by_fam: dict[str, tuple[list[int], list[int]]] = defaultdict(lambda: ([], []))
+    for p_, l_, f_ in zip(preds, labels, families, strict=True):
+        by_fam[f_][0].append(p_)
+        by_fam[f_][1].append(l_)
+    return {
+        f: {"samples": len(l_), "balanced_accuracy": compute_balanced_accuracy(p_, l_)}
+        for f, (p_, l_) in by_fam.items()
+    }
 
 
 # ── Balanced accuracy ────────────────────────────────────────────────────

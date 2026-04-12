@@ -175,7 +175,7 @@ def format_oracle_section(
     if not sentinel_payload:
         return [
             "_No sentinel-judge analyser output available. Run "
-            "`benchmarks.sentinel_judge_analyzer` once two or more "
+            "`benchmarks.sentinel_judge_analyser` once two or more "
             "judges have completed._"
         ]
     voting = sentinel_payload.get("voting_balanced_accuracy")
