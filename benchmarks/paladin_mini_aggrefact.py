@@ -36,6 +36,9 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+from _judge_common import compute_balanced_accuracy as balanced_accuracy
+from _judge_common import parse_response
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
@@ -48,37 +51,6 @@ CLAIM:
 {hypothesis}
 
 Answer with exactly one word: SUPPORTED or NOT_SUPPORTED."""
-
-
-def parse_response(text: str) -> int:
-    t = text.strip().upper()
-    if "NOT_SUPPORTED" in t or "NOT SUPPORTED" in t or "NOT-SUPPORTED" in t:
-        return 0
-    if "SUPPORTED" in t:
-        return 1
-    if t.startswith("YES") or t.startswith("TRUE"):
-        return 1
-    if t.startswith("NO") or t.startswith("FALSE"):
-        return 0
-    return -1
-
-
-def balanced_accuracy(preds: list[int], labels: list[int]) -> float:
-    pos = neg = tp = tn = 0
-    for p, l in zip(preds, labels, strict=True):
-        if p < 0:
-            continue
-        if l == 1:
-            pos += 1
-            if p == 1:
-                tp += 1
-        else:
-            neg += 1
-            if p == 0:
-                tn += 1
-    if pos == 0 or neg == 0:
-        return 0.0
-    return (tp / pos + tn / neg) / 2
 
 
 def main():

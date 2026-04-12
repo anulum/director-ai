@@ -35,27 +35,10 @@ import time
 from collections import defaultdict
 from pathlib import Path
 
+from _judge_common import compute_balanced_accuracy as balanced_accuracy
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
-
-
-def balanced_accuracy(preds: list[int], labels: list[int]) -> float:
-    pos = neg = tp = tn = 0
-    for p, l in zip(preds, labels, strict=True):
-        if p < 0:
-            continue
-        if l == 1:
-            pos += 1
-            if p == 1:
-                tp += 1
-        else:
-            neg += 1
-            if p == 0:
-                tn += 1
-    if pos == 0 or neg == 0:
-        return 0.0
-    return (tp / pos + tn / neg) / 2
-
 
 # ── HHEM-2.1 (Vectara) ───────────────────────────────────────────────────
 
