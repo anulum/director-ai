@@ -160,7 +160,15 @@ Two judges ship with this release.
 
 Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison: [`benchmarks/comparison/COMPETITOR_COMPARISON.md`](benchmarks/comparison/COMPETITOR_COMPARISON.md).
 
-**Optional — Gemma 4 E4B Q6 with per-task-family routing.** A zero-training LLM-as-judge that routes prompts by task family (`summ` / `rag` / `claim`) reaches **82.11 %** sample-pooled balanced accuracy on the same 29,320 samples — the highest result we have reproduced on a single 8 GB consumer GPU. Per-family breakdown: `summ` 78.24 %, `rag` 79.42 %, `claim` 87.11 %. Details, prompts, and per-dataset numbers in [`training/EXPERIMENT_RESULTS.md`](training/EXPERIMENT_RESULTS.md). The routed judge is opt-in (`--backend llama-cpp`); FactCG remains the default.
+> **Note on metrics.** The numbers in the table above use the
+> AggreFact leaderboard convention — **per-dataset mean balanced
+> accuracy across the 11 datasets** ([source: llm-aggrefact.github.io](https://llm-aggrefact.github.io/)).
+> Sample-pooled balanced accuracy is a different metric and is
+> systematically higher on heterogeneous benchmarks. Both numbers
+> are reported in `training/EXPERIMENT_RESULTS.md` for
+> traceability.
+
+**Optional — Gemma 4 E4B Q6 with per-task-family routing.** A zero-training LLM-as-judge alternative for users who prefer LLM-as-judge architectures over NLI. Per-task-family prompts (`summ` / `rag` / `claim`) raise the routed Gemma judge from 72.87 % to 75.55 % per-dataset mean BA on the AggreFact 29 K test set, comparable to the FactCG default. Per-family breakdown of the underlying sample-pooled BA: `summ` 78.24 %, `rag` 79.42 %, `claim` 87.11 %. The routed judge is opt-in (`--backend llama-cpp`); FactCG remains the default.
 
 ### Rust compute acceleration (v3.12.0)
 
