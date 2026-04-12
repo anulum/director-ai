@@ -80,6 +80,7 @@ def _resolve_revision(model_name: str, revision: str | None = None) -> str | Non
         return revision
     return MODEL_REGISTRY.get(model_name)
 
+
 # FactCG instruction template (NAACL 2025, derenlei/FactCG)
 _FACTCG_TEMPLATE = (
     "{text_a}\n\nChoose your answer: based on the paragraph above "
@@ -533,7 +534,9 @@ class NLIScorer:
                 )
                 config.problem_type = "single_label_classification"
                 inf.tokenizer = AutoTokenizer.from_pretrained(
-                    ckpt, use_fast=True, cache_dir=self._cache_dir,
+                    ckpt,
+                    use_fast=True,
+                    cache_dir=self._cache_dir,
                     revision=mc_rev,
                 )
                 inf.model = AutoModelForSequenceClassification.from_pretrained(

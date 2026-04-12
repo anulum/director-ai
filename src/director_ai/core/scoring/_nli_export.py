@@ -124,7 +124,9 @@ def export_onnx(
 
     rev = _resolve_revision(model_name, revision)
     model = ORTModelForSequenceClassification.from_pretrained(
-        model_name, export=True, revision=rev,
+        model_name,
+        export=True,
+        revision=rev,
     )
     model.save_pretrained(output_dir)
     AutoTokenizer.from_pretrained(model_name, revision=rev).save_pretrained(output_dir)
