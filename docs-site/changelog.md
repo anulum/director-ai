@@ -274,7 +274,7 @@ See the full changelog in [CHANGELOG.md on GitHub](https://github.com/anulum/dir
 
 ## v1.3.0 (2026-03-01)
 
-- Default NLI model: FactCG-DeBERTa-v3-Large (75.8% balanced accuracy)
+- Default NLI model: FactCG-DeBERTa-v3-Large (75.6% per-dataset mean balanced accuracy)
 
 ## v1.2.0 — v1.2.1 (2026-02-27)
 

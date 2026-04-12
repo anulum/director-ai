@@ -62,8 +62,8 @@ latency budget and accuracy requirements.
 | Backend | Per-pair (GPU) | Per-pair (CPU) | Accuracy | Best for |
 |---------|---------------|----------------|----------|----------|
 | `heuristic` | <0.1 ms | <0.1 ms | ~55% | Prototyping, edge devices |
-| `deberta` (PyTorch) | 19 ms (batch) / 197 ms (seq) | N/A | 75.8% | Standard GPU production |
-| `onnx` | **14.6 ms** (batch) / 65 ms (seq) | 383 ms | 75.8% | Fastest GPU path |
+| `deberta` (PyTorch) | 19 ms (batch) / 197 ms (seq) | N/A | 75.6% | Standard GPU production |
+| `onnx` | **14.6 ms** (batch) / 65 ms (seq) | 383 ms | 75.6% | Fastest GPU path |
 | `lite` | <1 ms | <1 ms | ~60% | High-throughput, low-accuracy OK |
 | `hybrid` | 200-500 ms | 500-2000 ms | ~78% est. | Max accuracy, summarisation |
 

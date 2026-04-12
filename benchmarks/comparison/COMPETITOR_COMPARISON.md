@@ -14,7 +14,7 @@ Last updated: 2026-03-14 (v3.8.0) — full competitive landscape, frontier LLM e
 | **Streaming halt** | Yes (token-level) | No | No | No | No |
 | **Offline/local** | Yes (NLI mode) | No (needs LLM) | Yes (GPU) | No (needs LLM) | No (needs LLM) |
 | **False-halt rate** | 4.4% (135 passages, heuristic) | N/A | N/A | N/A | N/A |
-| **AggreFact bal. acc** | 75.8% (0.4B) | N/A | N/A | N/A | N/A |
+| **AggreFact bal. acc** | 75.6% (0.4B) | N/A | N/A | N/A | N/A |
 | **Integrations** | LC/LI/LG/HS/CrewAI | LangChain | Python | LC/LI | Python |
 | **License** | AGPL v3 | Apache 2.0 | Apache 2.0 | Apache 2.0 | MIT |
 
@@ -188,7 +188,7 @@ commitment, too small to trigger catastrophic forgetting.
 
 | Model | Bal. Acc | Threshold | Notes |
 |-------|---------|-----------|-------|
-| **FactCG-DeBERTa-v3-Large** | **75.8%** | 0.46 | Production model |
+| **FactCG-DeBERTa-v3-Large** | **75.6%** | 0.46 | Production model |
 | MoritzLaurer/DeBERTa-v3-base-mnli-fever-anli | 66.2% | 0.53 | 3-class NLI baseline |
 | Fine-tuned DeBERTa-v3-large-hallucination | 64.7% | 0.90 | Fine-tuning regressed |
 | Fine-tuned DeBERTa-v3-base-hallucination | 59.0% | 0.88 | Fine-tuning regressed worse |
@@ -393,7 +393,7 @@ Scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 
 | Script | Dataset | What it Tests | Metric | Status |
 |--------|---------|---------------|--------|--------|
-| `aggrefact_eval` | LLM-AggreFact (29K) | Factual consistency (11 datasets) | Balanced accuracy | **75.8%** (FactCG) |
+| `aggrefact_eval` | LLM-AggreFact (29K) | Factual consistency (11 datasets) | Balanced accuracy | **75.6%** (FactCG) |
 | `e2e_eval` | HaluEval (300-600) | Full pipeline: Agent + KB + Kernel | Catch rate, precision, F1 | **90.7% catch (hybrid)** |
 | `e2e_eval --hybrid` | HaluEval (600) | Hybrid NLI + LLM judge | Catch, FPR, F1 | **90.7% / 71.2% F1** |
 | `run_ragtruth_freshqa` | RAGTruth (2,700) | NLI hallucination detection | Catch, precision, F1 | **49.3% catch (NLI-only)** |

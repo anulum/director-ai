@@ -81,7 +81,7 @@ scorer = CoherenceScorer(use_nli=False)
 
 ### FactCG-DeBERTa-v3-Large (recommended)
 
-75.8% balanced accuracy on AggreFact. Uses instruction template + SummaC source chunking.
+75.6% per-dataset mean BA on AggreFact. Uses instruction template + SummaC source chunking.
 
 ```python
 scorer = CoherenceScorer(use_nli=True)
@@ -89,10 +89,10 @@ scorer = CoherenceScorer(use_nli=True)
 
 | Backend | Latency | Accuracy |
 |---------|---------|----------|
-| ONNX GPU batch | 14.6 ms/pair | 75.8% BA |
-| PyTorch GPU batch | 19 ms/pair | 75.8% BA |
-| PyTorch GPU sequential | 197 ms/pair | 75.8% BA |
-| ONNX CPU batch | 383 ms/pair | 75.8% BA |
+| ONNX GPU batch | 14.6 ms/pair | 75.6% BA |
+| PyTorch GPU batch | 19 ms/pair | 75.6% BA |
+| PyTorch GPU sequential | 197 ms/pair | 75.6% BA |
+| ONNX CPU batch | 383 ms/pair | 75.6% BA |
 
 ### MiniCheck (lighter alternative)
 

@@ -31,10 +31,10 @@ result = agent.process("What is our refund policy?")
 Honest benchmarks (LLM-AggreFact, 29K samples):
 
 Bespoke-MiniCheck-7B: 77.4% (7B params)
-Director-AI (FactCG): 75.8% (0.4B params)
+Director-AI (FactCG): 75.6% (0.4B params)
 MiniCheck-Flan-T5-L:  75.0% (0.8B params)
 
-4th on the leaderboard, 1.6pp behind the top 7B model at 17x fewer params. And the only tool with streaming halt.
+6th on the leaderboard, 1.6pp behind the top 7B model at 17x fewer params. And the only tool with streaming halt.
 
 **Tweet 4/6:**
 Enterprise-ready out of the box:
@@ -75,7 +75,7 @@ I built Director-AI because every hallucination detector I found works post-hoc 
 
 Director-AI sits between the LLM and the user. It scores coherence token-by-token using dual-entropy (NLI contradiction detection + RAG fact-checking against your own knowledge base). When coherence drops below threshold, it halts the stream immediately.
 
-Honest numbers: 75.8% balanced accuracy on LLM-AggreFact (29K samples). 4th on the leaderboard, 1.6pp behind MiniCheck-7B (77.4%) at 17x fewer params. And none of them offer streaming halt. The system value is real-time gating + custom KB + configurable policy.
+Honest numbers: 75.6% balanced accuracy on LLM-AggreFact (29K samples). 6th on the leaderboard, 1.8pp behind Bespoke-MiniCheck-7B (77.4%) at 17x fewer params. And none of them offer streaming halt. The system value is real-time gating + custom KB + configurable policy.
 
 Enterprise modules included: YAML policy engine, audit logger, multi-tenant KB isolation, prompt injection hardening, LangChain/LlamaIndex integrations.
 
@@ -108,7 +108,7 @@ LlamaIndex postprocessor also included.
 
 Enterprise stuff: policy engine, audit trail, multi-tenant KB, prompt injection hardening, REST API, CLI.
 
-75.8% balanced accuracy on AggreFact (4th on leaderboard). And no competitor offers streaming halt. The NLI model is swappable.
+75.6% balanced accuracy on AggreFact (6th on leaderboard). And no competitor offers streaming halt. The NLI model is swappable.
 
 `pip install director-ai[nli,vector]`
 

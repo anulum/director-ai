@@ -94,8 +94,8 @@ Sentence-level NLI scoring with max-aggregation. Catches localized hallucination
 
 | Backend | Install | Latency | Accuracy | GPU |
 |---------|---------|---------|----------|-----|
-| `deberta` | `pip install director-ai[nli]` | 19 ms/pair (GPU batch) | 75.8% BA | Yes |
-| `onnx` | `pip install director-ai[onnx]` | 14.6 ms/pair (GPU batch) | 75.8% BA | Yes |
+| `deberta` | `pip install director-ai[nli]` | 19 ms/pair (GPU batch) | 75.6% BA | Yes |
+| `onnx` | `pip install director-ai[onnx]` | 14.6 ms/pair (GPU batch) | 75.6% BA | Yes |
 | `minicheck` | `pip install director-ai[minicheck]` | ~60 ms/pair | 72.6% BA | Yes |
 | `lite` | included | <0.5 ms/pair | ~65% BA | No |
 | `hybrid` | `[nli]` + LLM API key | 20-50 ms/pair | ~78% BA | Yes |

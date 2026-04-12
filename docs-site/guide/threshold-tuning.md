@@ -7,9 +7,9 @@ flowchart TD
     START["Choose scoring mode"] --> Q1{"Factual precision<br/>required?"}
     Q1 -->|"No (dev/prototype)"| HEUR["Heuristic<br/>use_nli=False<br/><0.1ms, moderate accuracy"]
     Q1 -->|"Yes"| Q2{"GPU available?"}
-    Q2 -->|"No"| CPU["ONNX CPU batch<br/>383ms/pair, 75.8% BA"]
+    Q2 -->|"No"| CPU["ONNX CPU batch<br/>383ms/pair, 75.6% BA"]
     Q2 -->|"Yes"| Q3{"Long documents?"}
-    Q3 -->|"No"| NLI["NLI (ONNX GPU)<br/>14.6ms/pair, 75.8% BA"]
+    Q3 -->|"No"| NLI["NLI (ONNX GPU)<br/>14.6ms/pair, 75.6% BA"]
     Q3 -->|"Yes"| CHUNK["Chunked NLI<br/>30-400ms, catches localized hallucinations"]
     Q2 -->|"Yes + high stakes"| Q4{"Extra precision needed?"}
     Q4 -->|"Yes"| HYBRID["Hybrid (NLI + LLM judge)<br/>200-500ms, ~78% est."]

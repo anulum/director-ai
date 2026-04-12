@@ -23,9 +23,9 @@ Measured on GTX 1060 6GB, 16-pair batch, FactCG-DeBERTa-v3-Large:
 
 | Backend | Precision | VRAM | Latency/pair | Bal. Acc |
 |---------|-----------|------|-------------|----------|
-| ONNX GPU (FP32) | FP32 | 1.2 GB | 14.6 ms | 75.8% |
-| PyTorch GPU (FP32) | FP32 | 1.4 GB | 19.0 ms | 75.8% |
-| PyTorch GPU (FP16) | FP16 | 0.7 GB | ~10 ms | 75.8% |
+| ONNX GPU (FP32) | FP32 | 1.2 GB | 14.6 ms | 75.6% |
+| PyTorch GPU (FP32) | FP32 | 1.4 GB | 19.0 ms | 75.6% |
+| PyTorch GPU (FP16) | FP16 | 0.7 GB | ~10 ms | 75.6% |
 | PyTorch GPU (INT8) | INT8 | ~0.4 GB | ~8 ms | ~75.1% |
 
 !!! note

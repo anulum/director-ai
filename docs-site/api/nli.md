@@ -1,6 +1,6 @@
 # NLI Backends
 
-Natural Language Inference scorer using FactCG-DeBERTa-v3-Large (75.8% balanced accuracy on AggreFact). Used internally by `CoherenceScorer` — direct use is only needed for custom pipelines or benchmarking.
+Natural Language Inference scorer using FactCG-DeBERTa-v3-Large (75.6% per-dataset mean BA on AggreFact). Used internally by `CoherenceScorer` — direct use is only needed for custom pipelines or benchmarking.
 
 ## Usage
 
@@ -46,8 +46,8 @@ Returns `True` if `torch` and `transformers` are importable.
 
 | Backend | Model | Latency (GPU batch) | Accuracy | VRAM |
 |---------|-------|---------------------|----------|------|
-| `deberta` | FactCG-DeBERTa-v3-Large | 19 ms/pair | 75.8% BA | ~1.5 GB |
-| `onnx` | Same (exported) | 14.6 ms/pair | 75.8% BA | ~1.2 GB |
+| `deberta` | FactCG-DeBERTa-v3-Large | 19 ms/pair | 75.6% BA | ~1.5 GB |
+| `onnx` | Same (exported) | 14.6 ms/pair | 75.6% BA | ~1.2 GB |
 | `minicheck` | MiniCheck-DeBERTa-L | ~60 ms/pair | 72.6% BA | ~400 MB |
 | `lite` | word-overlap heuristic | <0.5 ms/pair | ~65% BA | 0 |
 

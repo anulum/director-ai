@@ -12,7 +12,7 @@ Includes: coherence scorer, streaming kernel, safety kernel, ground truth store,
 
 | Extra | Command | Adds |
 |-------|---------|------|
-| `nli` | `pip install director-ai[nli]` | FactCG-DeBERTa-v3-Large NLI (75.8% bal. acc, 14.6ms/pair ONNX GPU) |
+| `nli` | `pip install director-ai[nli]` | FactCG-DeBERTa-v3-Large NLI (75.6% per-ds mean BA, 14.6ms/pair ONNX GPU) |
 | `minicheck` | `pip install director-ai[minicheck]` | MiniCheck alternative (72.6% bal. acc) |
 | `vector` | `pip install director-ai[vector]` | ChromaDB vector store |
 | `embeddings` | `pip install director-ai[embeddings]` | sentence-transformers (bge-large) |
@@ -39,7 +39,7 @@ Includes: coherence scorer, streaming kernel, safety kernel, ground truth store,
 pip install director-ai[nli,vector,embeddings,openai]
 ```
 
-FactCG NLI (75.8% balanced accuracy, 14.6ms/pair ONNX GPU batch), ChromaDB + bge-large embeddings, OpenAI SDK interception.
+FactCG NLI (75.6% per-dataset mean BA, 14.6ms/pair ONNX GPU batch), ChromaDB + bge-large embeddings, OpenAI SDK interception.
 
 ## GPU Acceleration
 

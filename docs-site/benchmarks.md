@@ -408,7 +408,7 @@ All scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 
 | Script | Dataset | Metric | Result |
 |--------|---------|--------|--------|
-| `aggrefact_eval --sweep` | LLM-AggreFact (29K) | Balanced accuracy | **75.8%** |
+| `aggrefact_eval --sweep` | LLM-AggreFact (29K) | Balanced accuracy | **75.6%** |
 | `e2e_eval --nli` | HaluEval (300) | Catch rate / F1 | **46.7% / 51.3%** |
 | `e2e_eval --hybrid` | HaluEval (600) | Catch rate / F1 | **90.7% / 71.2%** |
 | `run_ragtruth_freshqa` | RAGTruth (2,700) | Catch rate | **49.3%** |
