@@ -195,7 +195,7 @@ class TestMainCli:
                 ],
             ),
             patch("llama_cpp.Llama", return_value=mock_llm),
-            patch("datasets.load_dataset", return_value=mock_ds),
+            patch("datasets.load_dataset", create=True, return_value=mock_ds),
         ):
             from gemma_aggrefact_hiss import main
 

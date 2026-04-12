@@ -134,7 +134,7 @@ class TestMainCli:
         with (
             patch("sys.argv", args),
             patch("llama_cpp.Llama", return_value=mock_llm),
-            patch("datasets.load_dataset", return_value=_toy_dataset()),
+            patch("datasets.load_dataset", create=True, return_value=_toy_dataset()),
         ):
             from gemma_aggrefact_hiss_routed import main
 

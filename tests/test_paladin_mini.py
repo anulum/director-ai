@@ -92,7 +92,7 @@ class TestMainCli:
             ),
             patch("transformers.AutoTokenizer") as tok_cls,
             patch("transformers.AutoModelForCausalLM") as model_cls,
-            patch("datasets.load_dataset", return_value=_toy_dataset()),
+            patch("datasets.load_dataset", create=True, return_value=_toy_dataset()),
         ):
             tok_cls.from_pretrained.return_value = mock_tok
             model_cls.from_pretrained.return_value = mock_model

@@ -86,7 +86,7 @@ class TestMainCli:
                 ],
             ),
             patch("llama_cpp.Llama", return_value=mock),
-            patch("datasets.load_dataset", return_value=_toy_dataset()),
+            patch("datasets.load_dataset", create=True, return_value=_toy_dataset()),
         ):
             from gemma_aggrefact_routed import main
 
@@ -173,7 +173,7 @@ class TestMainCli:
                 ],
             ),
             patch("llama_cpp.Llama", return_value=mock),
-            patch("datasets.load_dataset", return_value=_toy_dataset()),
+            patch("datasets.load_dataset", create=True, return_value=_toy_dataset()),
         ):
             from gemma_aggrefact_routed import main
 

@@ -35,20 +35,13 @@ os.environ.setdefault("FAISS_OPT_LEVEL", "generic")
 # IMPORTANT: only stub if the package is truly missing (importlib cannot
 # find it). If the real package is installed, we must NOT overwrite it
 # because other tests (e.g. test_build_judge_dataset) import real symbols.
-for _mod_name in ("llama_cpp", "datasets"):
-    if _mod_name not in sys.modules and importlib.util.find_spec(_mod_name) is None:
-        _stub = types.ModuleType(_mod_name)
-        _stub.__spec__ = importlib.machinery.ModuleSpec(_mod_name, None)
-        sys.modules[_mod_name] = _stub
-
-# Ensure stub modules have the attributes that benchmark tests patch.
-# Only set on our stubs (real modules already have these).
-_llama_stub = sys.modules.get("llama_cpp")
-if _llama_stub is not None and not hasattr(_llama_stub, "Llama"):
-    _llama_stub.Llama = None  # type: ignore[attr-defined]
-_ds_stub = sys.modules.get("datasets")
-if _ds_stub is not None and not hasattr(_ds_stub, "load_dataset"):
-    _ds_stub.load_dataset = None  # type: ignore[attr-defined]
+# Only stub llama_cpp (never datasets — test_build_judge_dataset uses
+# pytest.importorskip("datasets") and a stub would defeat that guard).
+if "llama_cpp" not in sys.modules and importlib.util.find_spec("llama_cpp") is None:
+    _stub = types.ModuleType("llama_cpp")
+    _stub.__spec__ = importlib.machinery.ModuleSpec("llama_cpp", None)
+    _stub.Llama = None  # type: ignore[attr-defined]
+    sys.modules["llama_cpp"] = _stub
 
 
 @pytest.fixture
