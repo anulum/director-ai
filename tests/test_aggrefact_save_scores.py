@@ -13,9 +13,13 @@ import unittest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+import pytest
+
+pytest.importorskip("sklearn", reason="sklearn required for aggrefact_eval")
+
 sys.path.append(str(Path(__file__).parent.parent / "benchmarks"))
 
-from aggrefact_eval import score_and_save
+from aggrefact_eval import score_and_save  # noqa: E402
 
 
 class TestAggrefactSaveScores(unittest.TestCase):

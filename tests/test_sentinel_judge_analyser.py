@@ -26,8 +26,10 @@ import sys
 from pathlib import Path
 from unittest.mock import patch
 
-import numpy as np
 import pytest
+
+np = pytest.importorskip("numpy", reason="numpy required for sentinel_judge_analyser")
+pytest.importorskip("sklearn", reason="sklearn required for sentinel_judge_analyser")
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "benchmarks"))
