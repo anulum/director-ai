@@ -51,6 +51,11 @@ _CONCLUSION_MARKERS = re.compile(
     re.IGNORECASE,
 )
 
+_STEP_LABEL_RE = re.compile(
+    r"^\s*(?:Step\s+)?\d+[.:)]\s*",
+    re.IGNORECASE,
+)
+
 _BECAUSE_PATTERN = re.compile(
     r"(.+?)\s+because\s+(.+)",
     re.IGNORECASE | re.DOTALL,
@@ -96,10 +101,25 @@ class ReasoningChainResult:
         return [v for v in self.verdicts if v.verdict == "unsupported_leap"]
 
 
+def _strip_step_label(text: str) -> str:
+    """Remove a leading ``Step N:`` / ``1.`` / ``2)`` prefix from a step.
+
+    This is critical for circular-detection accuracy: the ``_word_overlap``
+    comparator uses Jaccard over whitespace-split tokens, and retaining
+    ``Step 1:`` / ``Step 2:`` introduces two unique tokens per step that
+    dilute the overlap score by ~0.05-0.15, enough to push genuinely
+    circular claims below the 0.85 detection threshold.
+    """
+    return _STEP_LABEL_RE.sub("", text).strip()
+
+
 def extract_steps(text: str) -> list[ReasoningStep]:
     """Extract reasoning steps from chain-of-thought text.
 
     Uses Rust accelerator for regex extraction when available.
+    Every extracted step has its ``Step N:``-style prefix stripped
+    so that downstream word-overlap comparisons are not diluted by
+    the label tokens.
     """
     if _RUST_REASONING:
         raw_steps = rust_extract_reasoning_steps(text)
@@ -109,7 +129,7 @@ def extract_steps(text: str) -> list[ReasoningStep]:
             return [
                 ReasoningStep(
                     index=i,
-                    text=s,
+                    text=_strip_step_label(s),
                     is_conclusion=bool(_CONCLUSION_MARKERS.match(s)),
                 )
                 for i, s in enumerate(raw_steps)
@@ -123,6 +143,7 @@ def extract_steps(text: str) -> list[ReasoningStep]:
             steps = []
             for i, m in enumerate(matches):
                 step_text = m[-1].strip() if isinstance(m, tuple) else m.strip()
+                step_text = _strip_step_label(step_text)
                 is_conclusion = bool(_CONCLUSION_MARKERS.match(step_text))
                 steps.append(
                     ReasoningStep(index=i, text=step_text, is_conclusion=is_conclusion)
@@ -134,6 +155,7 @@ def extract_steps(text: str) -> list[ReasoningStep]:
     if len(sentences) >= 2:
         steps = []
         for i, s in enumerate(sentences):
+            s = _strip_step_label(s)
             is_conclusion = bool(_CONCLUSION_MARKERS.match(s))
             steps.append(ReasoningStep(index=i, text=s, is_conclusion=is_conclusion))
         return steps
