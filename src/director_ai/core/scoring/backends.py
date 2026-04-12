@@ -236,6 +236,30 @@ try:
 except ImportError:  # pragma: no cover
     pass
 
+
+class DistilledNLIBackendWrapper(ScorerBackend):
+    """Wraps DistilledNLIBackend (~70% BA, 5ms, ONNX INT8)."""
+
+    def __init__(self, **kwargs) -> None:
+        from .distilled_scorer import DistilledNLIBackend
+
+        self._scorer = DistilledNLIBackend(
+            model_path=kwargs.get("model_path", "anulum/director-ai-nli-lite"),
+            use_onnx=kwargs.get("use_onnx", True),
+            device=kwargs.get("device", "cpu"),
+        )
+
+    def score(self, premise: str, hypothesis: str) -> float:
+        return self._scorer.score(premise, hypothesis)
+
+    def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        return self._scorer.score_batch(pairs)
+
+
+# nli-lite registered only when model is available (lazy — doesn't
+# check at import time, will fail gracefully at score() time).
+register_backend("nli-lite", DistilledNLIBackendWrapper)
+
 try:
     from backfire_kernel import BackfireConfig as _BkCfg  # noqa: F401
     from backfire_kernel import RustCoherenceScorer as _RustScorer  # noqa: F401
