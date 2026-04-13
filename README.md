@@ -34,7 +34,7 @@ The system was built to solve a specific internal need: **real-time hallucinatio
 
 **Team:** ANULUM maintains a research team (intentionally undisclosed). GitHub automation and repository maintenance are handled by the owner. Contributions are welcome under AGPL v3 terms.
 
-> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), 7-SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, and SaaS middleware (API keys + rate limiting) are functional and tested (4900+ passing tests). Rust-accelerated compute paths ship as of v3.12.0.
+> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), 7-SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, and SaaS middleware (API keys + rate limiting) are functional and tested (5000+ passing tests). Rust-accelerated compute paths ship as of v3.12.0.
 
 ---
 
@@ -136,6 +136,7 @@ pip install "director-ai[nli,vector,server]"       # production stack with RAG +
 | Tier | Backend | Accuracy | Latency | Install |
 |------|---------|----------|---------|---------|
 | **5** | NLI (FactCG) | **75.6% BA** | 14.6 ms | `[nli]` |
+| **4** | Distilled NLI (preview) | ~70% BA | 5 ms | `[nli-lite]` |
 | **3** | Embedding (bge-small) | ~65% BA | 3 ms | `[embed]` |
 | **2** | Rules engine (8 rules) | rule-based | <1 ms | — (base) |
 | **1** | Heuristic (lite) | ~55% BA | <1 ms | — (base) |
@@ -245,7 +246,7 @@ Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstor
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.12.0},
+  version   = {3.13.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

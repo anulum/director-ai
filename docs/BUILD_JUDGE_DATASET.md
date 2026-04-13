@@ -1,6 +1,6 @@
 # Director-AI Judge Dataset Builder
 
-> **Module**: `training/build_judge_dataset.py` | **Version**: 3.12.0 | **License**: GNU AGPL v3
+> **Module**: `training/build_judge_dataset.py` | **Version**: 3.13.0 | **License**: GNU AGPL v3
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 > © Code 2020–2026 Miroslav Šotek. All rights reserved.

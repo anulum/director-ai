@@ -1,6 +1,6 @@
 # Director-AI Training Data Pipeline
 
-> **Module**: `training/data_pipeline.py` | **Version**: 3.12.0 | **License**: GNU AGPL v3
+> **Module**: `training/data_pipeline.py` | **Version**: 3.13.0 | **License**: GNU AGPL v3
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 > © Code 2020–2026 Miroslav Šotek. All rights reserved.

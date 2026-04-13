@@ -310,7 +310,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     app = FastAPI(
         title="Director-Class AI",
-        version="3.12.0",
+        version="3.13.0",
         description="Real-time multi-agent orchestration and coherence scoring.",
         lifespan=lifespan,
     )

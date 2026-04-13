@@ -5,7 +5,7 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [3.13.0] — 2026-04-13
 
 ### Added
 - **5-tier scoring pyramid** — pluggable backend architecture:
@@ -17,7 +17,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     Install: `pip install director-ai[embed]`.
   - **Tier 4 — Distilled NLI** (`scorer_backend="nli-lite"`): MiniLM-class
     model distilled from FactCG. Target ~70% BA at 5ms. ONNX + PyTorch.
-    Install: `pip install director-ai[nli-lite]`. Model training pending.
+    Install: `pip install director-ai[nli-lite]`. *Preview — model training
+    pending; code and backend are functional.*
   - All backends registered via `ScorerBackend` ABC + entry-point system.
 - **SaaS middleware** (`director_ai.middleware`):
   - `APIKeyMiddleware`: Bearer/X-API-Key auth, env/file key sources,
@@ -44,6 +45,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **HuggingFace supply-chain hardening**: `MODEL_REGISTRY` with pinned
   revision SHAs for FactCG and MiniCheck models.
 - 169 new CLI integration tests for 11 benchmark scripts.
+
+### Changed
+- **Rust fast-path for rules engine**: 4 rules (EntityGrounding, NumericConsistency,
+  NegationFlip, WordOverlap) wired to Rust `backfire_kernel` for sub-microsecond
+  execution when the Rust kernel is installed.
+- **9 scorer backends** registered: deberta, onnx, minicheck, lite, rules,
+  embed, nli-lite, rust, backfire.
 
 ## [3.12.0] — 2026-04-05
 
