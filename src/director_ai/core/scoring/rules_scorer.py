@@ -33,6 +33,25 @@ from pathlib import Path
 
 from ._heuristics import ENTITY_RE, NEGATION_WORDS, STOP_WORDS
 
+# Rust fast-path: use backfire_kernel when available
+try:
+    from backfire_kernel import (
+        rust_entity_overlap as _rust_entity_overlap,
+    )
+    from backfire_kernel import (
+        rust_negation_flip as _rust_negation_flip,
+    )
+    from backfire_kernel import (
+        rust_numerical_consistency as _rust_numerical_consistency,
+    )
+    from backfire_kernel import (
+        rust_word_overlap as _rust_word_overlap,
+    )
+
+    _RUST_AVAILABLE = True
+except ImportError:
+    _RUST_AVAILABLE = False
+
 # ── Rule ABC + result ───────────────────────────────────────────────────
 
 
@@ -65,6 +84,9 @@ class EntityGroundingRule(Rule):
     name = "entity_grounding"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        if _RUST_AVAILABLE:
+            score = _rust_entity_overlap(premise, hypothesis)
+            return RuleResult(self.name, score)
         premise_ents = set(ENTITY_RE.findall(premise))
         hyp_ents = set(ENTITY_RE.findall(hypothesis))
         if not hyp_ents:
@@ -83,6 +105,15 @@ class NumericConsistencyRule(Rule):
     _NUM_RE = re.compile(r"\b\d+(?:\.\d+)?(?:%|°[CF]?)?\b")
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        if _RUST_AVAILABLE:
+            result = _rust_numerical_consistency(premise, hypothesis)
+            if result is None:
+                return RuleResult(self.name, 1.0, "no numbers")
+            return RuleResult(
+                self.name,
+                1.0 if result else 0.0,
+                "" if result else "numeric mismatch",
+            )
         premise_nums = set(self._NUM_RE.findall(premise))
         hyp_nums = set(self._NUM_RE.findall(hypothesis))
         if not hyp_nums:
@@ -100,6 +131,11 @@ class NegationFlipRule(Rule):
     name = "negation_flip"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        if _RUST_AVAILABLE:
+            flipped = _rust_negation_flip(premise, hypothesis)
+            if flipped:
+                return RuleResult(self.name, 0.3, "negation mismatch")
+            return RuleResult(self.name, 1.0)
         p_words = set(re.findall(r"\w+", premise.lower()))
         h_words = set(re.findall(r"\w+", hypothesis.lower()))
         p_neg = bool(p_words & NEGATION_WORDS)
@@ -131,6 +167,8 @@ class WordOverlapRule(Rule):
     name = "word_overlap"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        if _RUST_AVAILABLE:
+            return RuleResult(self.name, _rust_word_overlap(premise, hypothesis))
         p_words = set(re.findall(r"\w+", premise.lower())) - STOP_WORDS
         h_words = set(re.findall(r"\w+", hypothesis.lower())) - STOP_WORDS
         if not p_words or not h_words:
