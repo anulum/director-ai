@@ -128,6 +128,10 @@ class DirectorConfig:
     hyde_enabled: bool = False
     hyde_prompt_template: str = ""  # empty = use default template
 
+    # Query decomposition (v3.15+)
+    query_decomposition_enabled: bool = False
+    query_decomposition_strategy: str = "heuristic"  # "heuristic" or "llm"
+
     # Enterprise & Caching
     redis_url: str = ""
     redis_prefix: str = "dai:"
@@ -693,6 +697,18 @@ class DirectorConfig:
             # Generator will be injected by build_scorer() or by the user
             backend = HyDEBackend(base=backend, **kw_hyde)
             logger.info("HyDE retrieval enabled")
+
+        if self.query_decomposition_enabled:
+            from .retrieval.query_decomposition import QueryDecompositionBackend
+
+            backend = QueryDecompositionBackend(
+                base=backend,
+                strategy=self.query_decomposition_strategy,
+            )
+            logger.info(
+                "Query decomposition enabled (strategy=%s)",
+                self.query_decomposition_strategy,
+            )
 
         return VectorGroundTruthStore(backend=backend)
 
