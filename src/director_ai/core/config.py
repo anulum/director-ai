@@ -132,6 +132,10 @@ class DirectorConfig:
     query_decomposition_enabled: bool = False
     query_decomposition_strategy: str = "heuristic"  # "heuristic" or "llm"
 
+    # Contextual compression (v3.15+)
+    contextual_compression_enabled: bool = False
+    contextual_compression_strategy: str = "heuristic"  # "heuristic" or "llm"
+
     # Enterprise & Caching
     redis_url: str = ""
     redis_prefix: str = "dai:"
@@ -709,6 +713,17 @@ class DirectorConfig:
                 "Query decomposition enabled (strategy=%s)",
                 self.query_decomposition_strategy,
             )
+
+        if self.contextual_compression_enabled:
+            from .retrieval.contextual_compression import (
+                ContextualCompressionBackend,
+            )
+
+            backend = ContextualCompressionBackend(
+                base=backend,
+                strategy=self.contextual_compression_strategy,
+            )
+            logger.info("Contextual compression enabled")
 
         return VectorGroundTruthStore(backend=backend)
 
