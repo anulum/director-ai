@@ -175,9 +175,9 @@ class KBHealthCheck:
             if hasattr(self._store, "backend") and hasattr(
                 self._store.backend, "count"
             ):
-                return self._store.backend.count()
+                return int(self._store.backend.count())
             if hasattr(self._store, "count"):
-                return self._store.count()
+                return int(self._store.count())
             if hasattr(self._store, "facts") and isinstance(self._store.facts, dict):
                 return len(self._store.facts)
             return 0
@@ -234,6 +234,6 @@ class KBHealthCheck:
             if hasattr(self._store, "backend") and hasattr(
                 self._store.backend, "count"
             ):
-                return self._store.backend.count()
+                return int(self._store.backend.count())
             return self._check_document_count()
         return 0
