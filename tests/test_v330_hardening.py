@@ -31,7 +31,7 @@ class TestVersionSync:
     def test_version_is_3_3_0(self):
         from director_ai import __version__
 
-        assert __version__ == "3.13.0"
+        assert __version__ == "3.14.0"
 
 
 # â”€â”€ Item 3: gRPC proto stubs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

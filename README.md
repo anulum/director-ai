@@ -272,7 +272,7 @@ Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstor
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.13.0},
+  version   = {3.14.0},
   license   = {AGPL-3.0-or-later}
 }
 ```

@@ -1,6 +1,6 @@
 # Production Deployment Checklist
 
-> **Module**: Director-AI | **Version**: 3.13.0 | **License**: GNU AGPL v3
+> **Module**: Director-AI | **Version**: 3.14.0 | **License**: GNU AGPL v3
 >
 > © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
 
