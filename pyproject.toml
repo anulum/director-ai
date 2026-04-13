@@ -193,6 +193,7 @@ backfire = "director_ai.core.backends:RustBackend"
 
 [project.entry-points."director_ai.vector_backends"]
 memory = "director_ai.core.vector_store:InMemoryBackend"
+parent-child = "director_ai.core.retrieval.parent_child:ParentChildBackend"
 
 [project.urls]
 Homepage = "https://www.anulum.li"

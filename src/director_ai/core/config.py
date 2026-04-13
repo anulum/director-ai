@@ -115,6 +115,15 @@ class DirectorConfig:
     reranker_top_k_multiplier: int = 3
     retrieval_abstention_threshold: float = 0.3  # 0 = disabled; min similarity to score
 
+    # Parent-child chunking (v3.14+)
+    parent_child_enabled: bool = False
+    parent_chunk_size: int = 2048
+    child_chunk_size: int = 256
+
+    # Adaptive retrieval routing (v3.14+)
+    adaptive_retrieval_enabled: bool = False
+    adaptive_retrieval_threshold: float = 0.5
+
     # Enterprise & Caching
     redis_url: str = ""
     redis_prefix: str = "dai:"
@@ -656,6 +665,20 @@ class DirectorConfig:
                 logger.info("Cross-encoder reranker enabled: %s", self.reranker_model)
             except ImportError:
                 logger.warning("sentence-transformers not installed, skipping reranker")
+
+        if self.parent_child_enabled:
+            from .retrieval.parent_child import ParentChildBackend
+
+            backend = ParentChildBackend(
+                base=backend,
+                parent_size=self.parent_chunk_size,
+                child_size=self.child_chunk_size,
+            )
+            logger.info(
+                "Parent-child chunking enabled (parent=%d, child=%d)",
+                self.parent_chunk_size,
+                self.child_chunk_size,
+            )
 
         return VectorGroundTruthStore(backend=backend)
 
