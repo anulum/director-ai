@@ -154,6 +154,7 @@ class DistilledNLIBackend:
 
     def _infer(self, premise: str, hypothesis: str) -> float:
         """Run inference, return P(entailment) in [0, 1]."""
+        assert self._tokeniser is not None  # guaranteed by _ensure_loaded
         inputs = self._tokeniser(
             premise,
             hypothesis,

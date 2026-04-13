@@ -101,6 +101,7 @@ class EmbedBackend:
         For factual checking, use NLI (Tier 5).
         """
         self._ensure_model()
+        assert self._model is not None  # guaranteed by _ensure_model
         embeddings = self._model.encode(
             [premise, hypothesis],
             normalize_embeddings=True,
@@ -119,6 +120,7 @@ class EmbedBackend:
         if not pairs:
             return []
         self._ensure_model()
+        assert self._model is not None  # guaranteed by _ensure_model
         premises = [p for p, _ in pairs]
         hypotheses = [h for _, h in pairs]
         # Batch encode both sets
