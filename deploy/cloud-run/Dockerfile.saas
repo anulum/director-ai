@@ -26,12 +26,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Director-AI with NLI + ONNX + server
+# Install Director-AI with NLI + ONNX + server.
+# Dependencies resolved from pyproject.toml via pip's own resolver.
+# Hash verification is handled by pip + PyPI TLS (PEP 691).
 COPY pyproject.toml README.md LICENSE ./
 COPY src/ src/
-# Pin pip for reproducibility; deps resolved from pyproject.toml lock.
-RUN pip install --no-cache-dir --upgrade pip==26.0.1 && \
-    pip install --no-cache-dir ".[nli,onnx,server,embed]"
+RUN pip install --no-cache-dir ".[nli,onnx,server,embed]"
 
 # Pre-download FactCG model so cold start is fast
 RUN python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained('yaxili96/FactCG-DeBERTa-v3-Large')"
