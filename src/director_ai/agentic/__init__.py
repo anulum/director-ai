@@ -7,6 +7,7 @@
 # agentic subpackage — safety monitoring for AI agent loops
 
 from director_ai.agentic.agent_profile import AgentProfile
+from director_ai.agentic.handoff_scorer import HandoffScore, HandoffScorer
 from director_ai.agentic.loop_monitor import LoopMonitor, LoopStatus, StepVerdict
 from director_ai.agentic.swarm_guardian import AgentState, HandoffResult, SwarmGuardian
 
@@ -14,6 +15,8 @@ __all__ = [
     "AgentProfile",
     "AgentState",
     "HandoffResult",
+    "HandoffScore",
+    "HandoffScorer",
     "LoopMonitor",
     "LoopStatus",
     "StepVerdict",
