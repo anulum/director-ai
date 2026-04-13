@@ -62,3 +62,66 @@ Director-AI is licensed under GNU AGPL v3. Key obligations:
 
 - No third-party security audit.
 - Heuristic scorer (without NLI model) is deterministic and trivially bypassed.
+
+## Residual Risks (documented for transparency)
+
+### Regex-based injection detection (Stage 1) bypass
+
+``InputSanitizer`` Stage 1 uses regex pattern matching. Sophisticated
+adversaries can bypass it via:
+- Unicode homoglyphs (Cyrillic а vs Latin a)
+- Zero-width characters inserted between keywords
+- Base64 or ROT13 encoding of instructions
+- Prompt-level obfuscation (indirect references)
+
+**Mitigation**: Stage 2 (``InjectionDetector``) uses NLI divergence
+scoring to detect the *effect* of injection in the output regardless
+of encoding. The dual-stage design means Stage 1 is a fast filter,
+not the primary defence. Enable both stages for production.
+
+### Knowledge base poisoning
+
+If an attacker can modify KB entries (e.g., via an unprotected
+ingestion API), they can insert false "ground truth" that the scorer
+will validate against. Hallucinated outputs matching poisoned KB
+entries will score as grounded.
+
+**Mitigation**: Use ``TenantRouter`` with strict ACLs on KB writes.
+Enable ``AuditLogger`` to detect unexpected KB modifications. Use
+signed/hashed KB entries for tamper detection (future roadmap).
+
+### NLI model evasion
+
+Adversaries can craft outputs that the NLI model fails to detect as
+contradictions (adversarial examples). FactCG-DeBERTa-v3-Large is
+robust for general text but may miss:
+- Numerical inconsistencies (e.g., "100" vs "101")
+- Subtle logical inversions in complex sentences
+- Domain-specific terminology substitutions
+
+**Mitigation**: Use the rules engine (Tier 2) for numeric consistency
+checks. Enable ``AdversarialTester`` for red-teaming. Consider
+multi-scorer consensus for high-stakes domains.
+
+### Metric evasion in streaming mode
+
+In token-level streaming, an adversary could front-load coherent
+tokens to build trust, then inject hallucinated content after the
+coherence window has shifted.
+
+**Mitigation**: ``StreamingKernel`` uses adaptive window sizing and
+three independent halt mechanisms. ``ContradictionTracker`` catches
+cross-turn inconsistencies. Set ``hard_limit`` conservatively for
+high-risk applications.
+
+### Dependency supply chain
+
+Despite SHA-pinned HuggingFace models and ``pip-audit`` in CI,
+transitive dependencies (torch, transformers, ONNX) have a broad
+attack surface. A compromised upstream package could execute arbitrary
+code at model-load time.
+
+**Mitigation**: ``MODEL_REGISTRY`` with pinned revision SHAs.
+``use_model=False`` fallback available. SBOM generation in release
+pipeline. Sigstore signing of published packages. Consider airgapped
+deployment for highest-security environments.
