@@ -148,6 +148,16 @@ enterprise = [
     "argon2-cffi>=23.1",
     "psycopg2-binary>=2.9",
 ]
+ui = [
+    "gradio>=4.0,<5",
+]
+reports = [
+    "weasyprint>=60",
+    "jinja2>=3.1",
+]
+autogen = [
+    "pyautogen>=0.2",
+]
 research = []
 train = [
     "transformers>=4.30",

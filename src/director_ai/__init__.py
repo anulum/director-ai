@@ -190,6 +190,35 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         ".core.verification.numeric_verifier",
         "NumericVerificationResult",
     ),
+    # Agentic swarm guardian (v3.14+)
+    "AgentProfile": (".agentic.agent_profile", "AgentProfile"),
+    "SwarmGuardian": (".agentic.swarm_guardian", "SwarmGuardian"),
+    "HandoffScorer": (".agentic.handoff_scorer", "HandoffScorer"),
+    "SwarmMetrics": (".agentic.swarm_metrics", "SwarmMetrics"),
+    # Compliance cost analyser (v4.0+)
+    "CostAnalyser": (".compliance.cost_analyser", "CostAnalyser"),
+    # Advanced RAG backends (v3.14+)
+    "ParentChildBackend": (
+        ".core.retrieval.parent_child",
+        "ParentChildBackend",
+    ),
+    "AdaptiveRouter": (
+        ".core.retrieval.adaptive_router",
+        "AdaptiveRouter",
+    ),
+    "HyDEBackend": (".core.retrieval.hyde", "HyDEBackend"),
+    "QueryDecompositionBackend": (
+        ".core.retrieval.query_decomposition",
+        "QueryDecompositionBackend",
+    ),
+    "ContextualCompressionBackend": (
+        ".core.retrieval.contextual_compression",
+        "ContextualCompressionBackend",
+    ),
+    "MultiVectorBackend": (
+        ".core.retrieval.multi_vector",
+        "MultiVectorBackend",
+    ),
 }
 
 __all__ = sorted(_LAZY_IMPORTS)
