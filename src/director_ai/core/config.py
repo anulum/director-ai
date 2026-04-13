@@ -124,6 +124,10 @@ class DirectorConfig:
     adaptive_retrieval_enabled: bool = False
     adaptive_retrieval_threshold: float = 0.5
 
+    # HyDE — Hypothetical Document Embeddings (v3.15+)
+    hyde_enabled: bool = False
+    hyde_prompt_template: str = ""  # empty = use default template
+
     # Enterprise & Caching
     redis_url: str = ""
     redis_prefix: str = "dai:"
@@ -679,6 +683,16 @@ class DirectorConfig:
                 self.parent_chunk_size,
                 self.child_chunk_size,
             )
+
+        if self.hyde_enabled:
+            from .retrieval.hyde import HyDEBackend
+
+            kw_hyde: dict = {}
+            if self.hyde_prompt_template:
+                kw_hyde["template"] = self.hyde_prompt_template
+            # Generator will be injected by build_scorer() or by the user
+            backend = HyDEBackend(base=backend, **kw_hyde)
+            logger.info("HyDE retrieval enabled")
 
         return VectorGroundTruthStore(backend=backend)
 
