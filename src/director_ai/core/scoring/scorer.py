@@ -246,6 +246,7 @@ class CoherenceScorer:
         self._meta_classifier_path = ""
         self._meta_classifier = None
         self._adaptive_router = None  # set via enable_adaptive_retrieval()
+        self._dry_run = False  # when True, log but never reject
 
         # LLM-as-judge subsystem (composed — see _llm_judge.py)
         self._judge = LLMJudge(
@@ -1077,6 +1078,15 @@ class CoherenceScorer:
         """
         t = threshold_override if threshold_override is not None else self.threshold
         approved = coherence >= t
+
+        # Dry-run mode: log actual score but always approve
+        if self._dry_run and not approved:
+            self.logger.info(
+                "DRY-RUN: would reject (score=%.3f < threshold=%.3f) but approving",
+                coherence,
+                t,
+            )
+            approved = True
         warning = False
 
         if not approved:

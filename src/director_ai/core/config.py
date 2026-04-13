@@ -66,6 +66,10 @@ class DirectorConfig:
     #   auto     — KB if available + relevant, falls back to general NLI.
     mode: str = "auto"
 
+    # Operational modes
+    dry_run: bool = False  # log scores but never halt/reject (observability mode)
+    production_mode: bool = False  # enforce HTTPS-only, strict CORS, require auth
+
     # Scoring
     coherence_threshold: float = 0.6
     hard_limit: float = 0.5
@@ -358,6 +362,17 @@ class DirectorConfig:
             )
         if self.reranker_enabled and not self.reranker_model.strip():
             raise ValueError("reranker_model must be set when reranker_enabled=True")
+
+        # Production mode enforcements
+        if self.production_mode:
+            if not self.api_keys and not self.api_key_tenant_map:
+                raise ValueError(
+                    "production_mode requires api_keys or api_key_tenant_map"
+                )
+            if self.server_host == "0.0.0.0":  # noqa: S104
+                logger.warning(
+                    "production_mode: binding to 0.0.0.0 — ensure reverse proxy with TLS"
+                )
         if (
             self.vector_backend == "sentence-transformer"
             and not self.embedding_model.strip()
@@ -835,6 +850,9 @@ class DirectorConfig:
             scorer.enable_adaptive_retrieval(
                 threshold=self.adaptive_retrieval_threshold,
             )
+        if self.dry_run:
+            scorer._dry_run = True
+            logger.info("Dry-run mode: scoring but never rejecting")
         return scorer
 
     _REDACTED_FIELDS: frozenset[str] = frozenset(
