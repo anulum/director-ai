@@ -34,7 +34,7 @@ The system was built to solve a specific internal need: **real-time hallucinatio
 
 **Team:** ANULUM maintains a research team (intentionally undisclosed). GitHub automation and repository maintenance are handled by the owner. Contributions are welcome under AGPL v3 terms.
 
-> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), 7-SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, and SaaS middleware (API keys + rate limiting) are functional and tested (5000+ passing tests). Rust-accelerated compute paths ship as of v3.12.0.
+> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), 7-SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, SaaS middleware (API keys + rate limiting), advanced RAG (6 pluggable retrieval backends), multi-agent swarm guardian (4 framework adapters), config wizard, and compliance reports are functional and tested (5300+ passing tests). Rust-accelerated compute paths ship as of v3.12.0.
 
 ---
 
@@ -61,9 +61,33 @@ graph LR
 - **Intent-grounded injection detection** — two-stage pipeline: regex pattern matching (fast) + bidirectional NLI divergence scoring (semantic). Detects the *effect* of injection in the output.
 - **12 Rust-accelerated compute functions** — 9.4× geometric mean speedup over Python paths. Transparent fallback when Rust kernel is not installed.
 
+### Advanced RAG (6 pluggable retrieval strategies)
+
+All independently toggleable via config, composable as a decorator stack:
+
+| Strategy | What it does | Config field |
+|----------|-------------|--------------|
+| **Parent-child chunking** | Index small chunks, return large parents for context | `parent_child_enabled` |
+| **Adaptive retrieval** | Skip KB lookup for creative/conversational queries | `adaptive_retrieval_enabled` |
+| **HyDE** | LLM generates pseudo-answer, embeds that for retrieval | `hyde_enabled` |
+| **Query decomposition** | Split compound queries, retrieve for each, merge via RRF | `query_decomposition_enabled` |
+| **Contextual compression** | Keep only query-relevant sentences from retrieved passages | `contextual_compression_enabled` |
+| **Multi-vector** | Index content + summary + title representations per doc | `multi_vector_enabled` |
+
+On top of the existing hybrid (BM25+dense), cross-encoder reranking, ColBERT, and 11 vector backends (Chroma, Pinecone, Qdrant, FAISS, Weaviate, Elasticsearch, etc.).
+
+### Multi-agent swarm guardian
+
+Guard entire agent swarms — not just individual LLM calls:
+
+- **SwarmGuardian**: central registry with cross-agent contradiction detection + cascade halt
+- **AgentProfile**: per-agent thresholds (researcher vs summariser vs coder)
+- **HandoffScorer**: score inter-agent messages before handoff
+- **Framework adapters**: LangGraph, CrewAI, OpenAI Swarm, AutoGen — zero framework deps
+
 ### Additional modules
 
-Meta-confidence estimation, online calibration from feedback, contradiction tracking across turns, agentic loop monitoring, adversarial robustness testing (25 patterns), EU AI Act audit trails, domain presets (medical/finance/legal/creative), cross-model consensus, conformal prediction intervals.
+Meta-confidence estimation, online calibration from feedback, contradiction tracking across turns, agentic loop monitoring, adversarial robustness testing (25 patterns), EU AI Act audit trails, domain presets (medical/finance/legal/creative), cross-model consensus, conformal prediction intervals, token cost analyser, compliance report templates (HTML/Markdown), config wizard (Gradio UI + CLI).
 
 Full documentation: [anulum.github.io/director-ai](https://anulum.github.io/director-ai)
 
@@ -129,6 +153,8 @@ pip install "director-ai[nli]"                    # recommended — NLI model sc
 pip install "director-ai[embed]"                   # embedding scorer (~65% BA, CPU-only, 3ms)
 pip install director-ai                            # rule-based + heuristic (zero ML deps, <1ms)
 pip install "director-ai[nli,vector,server]"       # production stack with RAG + REST API
+pip install "director-ai[ui]"                      # config wizard (Gradio web UI)
+pip install "director-ai[reports]"                 # PDF/HTML compliance reports
 ```
 
 ### 5-tier scoring backends

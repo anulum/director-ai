@@ -28,6 +28,49 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Cloud Run Dockerfile (`deploy/cloud-run/Dockerfile.saas`) with
     FactCG ONNX pre-baked, non-root user, healthcheck.
 - Config profiles: `"rules"`, `"embed"` added to `DirectorConfig.from_profile()`.
+- **6 advanced RAG retrieval strategies** — all independently toggleable,
+  composable as a decorator stack on any vector backend:
+  - **Parent-child chunking** (`parent_child_enabled`): index small child
+    chunks for precision, return full parent chunks for context.
+    Chroma/FAISS persistence via metadata.
+  - **Adaptive retrieval routing** (`adaptive_retrieval_enabled`): skip KB
+    lookup for creative/conversational queries. Uses `rust_detect_task_type`
+    FFI when available.
+  - **HyDE** (`hyde_enabled`): LLM generates pseudo-answer, embeds that
+    instead of raw query. TTL-cached, graceful fallback.
+  - **Query decomposition** (`query_decomposition_enabled`): split compound
+    queries into sub-queries, retrieve for each, merge via RRF.
+  - **Contextual compression** (`contextual_compression_enabled`): keep only
+    query-relevant sentences from retrieved passages.
+  - **Multi-vector** (`multi_vector_enabled`): index content + summary +
+    title representations per document.
+- **Multi-agent swarm guardian** (`director_ai.agentic`):
+  - `AgentProfile`: per-agent config with role-based defaults (researcher,
+    summariser, coder, reviewer, planner, executor).
+  - `SwarmGuardian`: central agent registry with cross-agent handoff
+    scoring, dependency graph, cascade halt on quarantine.
+  - `HandoffScorer`: score inter-agent messages for factual grounding
+    (keyword + optional NLI), history tracking with aggregate stats.
+  - `SwarmMetrics`: per-agent hallucination rate, handoff counts,
+    quarantine events.
+  - Framework adapters (zero framework deps): LangGraph (`guardian_edge`,
+    `SwarmGraphBuilder`), CrewAI (`CrewGuardian`), OpenAI Swarm
+    (`GuardedHandoff`), AutoGen (`GroupChatGuardian`).
+- **Compliance & reporting**:
+  - `CostAnalyser`: token cost estimation per model/agent (CHF default).
+  - HTML/Markdown report templates for compliance, cost, and swarm health.
+- **Config wizard** (`director-ai wizard`): interactive YAML generator
+  with Gradio web UI (`pip install director-ai[ui]`) and CLI fallback.
+  Introspects `DirectorConfig` fields grouped by category.
+- **13 new config fields**: `parent_child_enabled`, `parent_chunk_size`,
+  `child_chunk_size`, `adaptive_retrieval_enabled`,
+  `adaptive_retrieval_threshold`, `hyde_enabled`, `hyde_prompt_template`,
+  `query_decomposition_enabled`, `query_decomposition_strategy`,
+  `contextual_compression_enabled`, `contextual_compression_strategy`,
+  `multi_vector_enabled`, `multi_vector_representations`.
+- **3 new pip extras**: `[ui]` (Gradio), `[reports]` (WeasyPrint + Jinja2),
+  `[autogen]` (pyautogen).
+- 374 new tests across 18 modules.
 
 ### Fixed
 - **Metric correction**: FactCG accuracy corrected from 75.8% to **75.6%**

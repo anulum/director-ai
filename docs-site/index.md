@@ -2,7 +2,7 @@
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
-<span class="version-badge">v3.13.0 — 5-tier scoring pyramid (rules → embeddings → NLI), SaaS middleware, 9 scorer backends</span>
+<span class="version-badge">v3.13.0 — 5-tier scoring, 6 advanced RAG strategies, multi-agent swarm guardian, config wizard</span>
 
 [![CI](https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/ci.yml)
 [![Pre-commit](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml)
