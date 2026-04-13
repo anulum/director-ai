@@ -124,6 +124,10 @@ class TestOnnxPath:
 # ── PyTorch fallback path (mocked) ─────────────────────────────────────
 
 
+@__import__("pytest").mark.skipif(
+    not __import__("importlib").util.find_spec("torch"),
+    reason="torch not installed",
+)
 class TestPyTorchPath:
     def _mock_backend(self):
         import torch
