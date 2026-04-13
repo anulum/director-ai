@@ -91,11 +91,13 @@ class TestFunctionWrapping:
         # threshold check: should_halt = score > (1 - threshold)
         # 0.5 > (1 - 0.30) = 0.5 > 0.70 = False → approved
         g = SwarmGuardian(hallucination_threshold=0.5)
-        g.register_agent(AgentProfile(
-            agent_id="r-ok",
-            role="researcher",
-            coherence_threshold=0.30,
-        ))
+        g.register_agent(
+            AgentProfile(
+                agent_id="r-ok",
+                role="researcher",
+                coherence_threshold=0.30,
+            )
+        )
         g.register_agent(AgentProfile.for_role("summariser", agent_id="w-ok"))
         h = GuardedHandoff(g, "r-ok", "w-ok")
 

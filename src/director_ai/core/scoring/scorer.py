@@ -524,9 +524,7 @@ class CoherenceScorer:
             factual_threshold=threshold,
             default_retrieve=default_retrieve,
         )
-        self.logger.info(
-            "Adaptive retrieval enabled (threshold=%.2f)", threshold
-        )
+        self.logger.info("Adaptive retrieval enabled (threshold=%.2f)", threshold)
 
     # ── Factual divergence ────────────────────────────────────────────
 
