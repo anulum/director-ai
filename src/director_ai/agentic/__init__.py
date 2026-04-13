@@ -10,6 +10,7 @@ from director_ai.agentic.agent_profile import AgentProfile
 from director_ai.agentic.handoff_scorer import HandoffScore, HandoffScorer
 from director_ai.agentic.loop_monitor import LoopMonitor, LoopStatus, StepVerdict
 from director_ai.agentic.swarm_guardian import AgentState, HandoffResult, SwarmGuardian
+from director_ai.agentic.swarm_metrics import SwarmMetrics
 
 __all__ = [
     "AgentProfile",
@@ -21,4 +22,5 @@ __all__ = [
     "LoopStatus",
     "StepVerdict",
     "SwarmGuardian",
+    "SwarmMetrics",
 ]
