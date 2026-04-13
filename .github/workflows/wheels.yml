@@ -119,5 +119,14 @@ jobs:
           merge-multiple: true
           path: dist/
 
+      - name: Check if version already published
+        id: check
+        run: |
+          VERSION=$(ls dist/*.tar.gz | head -1 | sed 's/.*-\(.*\)\.tar\.gz/\1/')
+          STATUS=$(curl -s -o /dev/null -w '%{http_code}' "https://pypi.org/pypi/backfire-kernel/${VERSION}/json")
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "exists=$( [ "$STATUS" = "200" ] && echo true || echo false )" >> "$GITHUB_OUTPUT"
+
       - name: Publish to PyPI
+        if: steps.check.outputs.exists != 'true'
         uses: pypa/gh-action-pypi-publish@ed0c53931b1dc9bd32cbe73a98c7f6766f8a527e # v1.13.0
