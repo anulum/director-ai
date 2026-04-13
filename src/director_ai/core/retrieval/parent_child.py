@@ -70,13 +70,18 @@ class ParentChildBackend(VectorBackend):
         child_size: int = 256,
         parent_overlap: int = 128,
         child_overlap: int = 32,
+        persist_parents: bool = True,
     ) -> None:
         self._base = base
         self._parent_size = parent_size
         self._child_size = child_size
         self._parent_overlap = parent_overlap
         self._child_overlap = child_overlap
-        self._parents: dict[str, str] = {}  # parent_id → parent_text
+        self._persist_parents = persist_parents
+        # In-memory parent store (fast fallback for InMemory/non-persisted backends).
+        # When persist_parents=True, parent_text is also embedded in child metadata
+        # so that Chroma/FAISS/Pinecone backends can reconstruct parents after restart.
+        self._parents: dict[str, str] = {}
         self._lock = threading.Lock()
 
     def add(
@@ -113,6 +118,8 @@ class ParentChildBackend(VectorBackend):
                         "child_index": c_idx,
                         "doc_id": doc_id,
                     }
+                    if self._persist_parents:
+                        child_meta["parent_text"] = parent_text
                     self._base.add(cid, child_text, child_meta)
 
         logger.debug(
@@ -146,8 +153,11 @@ class ParentChildBackend(VectorBackend):
                 seen_parents.add(pid)
 
                 parent_text = self._parents.get(pid)
+                if parent_text is None and self._persist_parents:
+                    # Recover from persisted metadata (Chroma/FAISS restart)
+                    parent_text = child_meta.get("parent_text")
                 if parent_text is None:
-                    # Fallback: return child text if parent not found
+                    # Last resort: return child text if parent not found
                     results.append(child)
                 else:
                     results.append(
