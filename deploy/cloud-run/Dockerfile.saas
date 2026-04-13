@@ -17,7 +17,7 @@
 #     --min-instances 1 --max-instances 10 \
 #     --memory 2Gi --cpu 2 --port 8080
 
-FROM python:3.12-slim AS base
+FROM python:3.12-slim@sha256:804ddf3251a60bbf9c92e73b7566c40428d54d0e79d3428194edf40da6521286 AS base
 
 WORKDIR /app
 
@@ -29,7 +29,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Install Director-AI with NLI + ONNX + server
 COPY pyproject.toml README.md LICENSE ./
 COPY src/ src/
-RUN pip install --no-cache-dir ".[nli,onnx,server,embed]"
+# Pin pip for reproducibility; deps resolved from pyproject.toml lock.
+RUN pip install --no-cache-dir --upgrade pip==26.0.1 && \
+    pip install --no-cache-dir ".[nli,onnx,server,embed]"
 
 # Pre-download FactCG model so cold start is fast
 RUN python -c "from transformers import AutoTokenizer; AutoTokenizer.from_pretrained('yaxili96/FactCG-DeBERTa-v3-Large')"

@@ -121,5 +121,10 @@ def _extract_key(request: Request) -> str | None:
 
 
 def _hash_key(key: str) -> str:
-    """SHA-256 hash of the key for audit logging (never log raw keys)."""
-    return hashlib.sha256(key.encode()).hexdigest()[:16]
+    """HMAC-SHA256 fingerprint for audit logging (never log raw keys).
+
+    Uses a static application-level salt so that fingerprints are
+    deterministic across restarts but not reversible without the salt.
+    """
+    salt = b"director-ai-audit-v1"
+    return hmac.new(salt, key.encode(), hashlib.sha256).hexdigest()[:16]
