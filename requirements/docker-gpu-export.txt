@@ -1,4 +1,6 @@
 optimum==2.1.0 \
     --hash=sha256:bc3af32e1236a9b2c2ca1d27ed9d3ab1b6591e24c6bcd47f9671a8198a30ea88
+optimum-onnx==0.1.0 \
+    --hash=sha256:0301ec7a6ec5c77a57581e9970d380a6dc104bdb8f15b282e05af40d829c2eda
 onnxruntime==1.22.0 \
     --hash=sha256:b978aa63a9a22095479c38371a9b359d4c15173cbb164eaad5f2cd27d666aa65
