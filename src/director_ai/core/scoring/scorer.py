@@ -245,6 +245,7 @@ class CoherenceScorer:
         self._confidence_weighted_agg = False
         self._meta_classifier_path = ""
         self._meta_classifier = None
+        self._adaptive_router = None  # set via enable_adaptive_retrieval()
 
         # LLM-as-judge subsystem (composed — see _llm_judge.py)
         self._judge = LLMJudge(
@@ -506,6 +507,27 @@ class CoherenceScorer:
         """Return the InjectionDetector if enabled, else None."""
         return self._injection_detector
 
+    def enable_adaptive_retrieval(
+        self,
+        threshold: float = 0.5,
+        default_retrieve: bool = True,
+    ) -> None:
+        """Enable adaptive retrieval routing.
+
+        When enabled, non-factual queries (creative, conversational)
+        skip KB retrieval entirely, saving latency and avoiding false
+        KB matches on queries that do not need grounding.
+        """
+        from ..retrieval.adaptive_router import AdaptiveRouter
+
+        self._adaptive_router = AdaptiveRouter(
+            factual_threshold=threshold,
+            default_retrieve=default_retrieve,
+        )
+        self.logger.info(
+            "Adaptive retrieval enabled (threshold=%.2f)", threshold
+        )
+
     # ── Factual divergence ────────────────────────────────────────────
 
     def calculate_factual_divergence(
@@ -563,6 +585,17 @@ class CoherenceScorer:
 
         if not self.ground_truth_store:
             return DIVERGENCE_NEUTRAL
+
+        # Adaptive retrieval routing: skip KB lookup for non-factual queries.
+        if self._adaptive_router is not None:
+            decision = self._adaptive_router.should_retrieve(prompt, text_output)
+            if not decision.retrieve:
+                self.logger.debug(
+                    "Adaptive router skipped retrieval (type=%s, conf=%.2f)",
+                    decision.task_type,
+                    decision.confidence,
+                )
+                return DIVERGENCE_NEUTRAL
 
         with metrics.timer("factual_retrieval_seconds"):
             context = self.ground_truth_store.retrieve_context(

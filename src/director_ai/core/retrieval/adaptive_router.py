@@ -33,6 +33,15 @@ from dataclasses import dataclass
 
 __all__ = ["AdaptiveRouter", "RoutingDecision"]
 
+# Rust fast-path for pattern matching (backfire_kernel FFI)
+_RUST_AVAILABLE = False
+try:
+    from backfire_kernel import rust_detect_task_type as _rust_task_type
+
+    _RUST_AVAILABLE = True
+except ImportError:
+    _rust_task_type = None  # type: ignore[assignment]
+
 # Task types that benefit from KB retrieval
 _RETRIEVAL_TYPES = frozenset({"rag", "fact_check", "qa"})
 
@@ -156,7 +165,13 @@ class AdaptiveRouter:
 
 
 def _detect_task_type_safe(query: str, response: str) -> str:
-    """Import and call detect_task_type with fallback."""
+    """Detect task type via Rust FFI or Python fallback.
+
+    Uses ``rust_detect_task_type`` when backfire_kernel is installed
+    (transparent Rust fast-path, ~2µs vs ~50µs Python regex).
+    """
+    if _RUST_AVAILABLE and _rust_task_type is not None:
+        return str(_rust_task_type(query, response))
     try:
         from director_ai.core.scoring._task_scoring import detect_task_type
 

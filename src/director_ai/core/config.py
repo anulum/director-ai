@@ -768,6 +768,10 @@ class DirectorConfig:
                 )
         if self.meta_classifier_path:
             scorer._meta_classifier_path = self.meta_classifier_path
+        if self.adaptive_retrieval_enabled:
+            scorer.enable_adaptive_retrieval(
+                threshold=self.adaptive_retrieval_threshold,
+            )
         return scorer
 
     _REDACTED_FIELDS: frozenset[str] = frozenset(
