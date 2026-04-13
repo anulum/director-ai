@@ -8,5 +8,14 @@
 
 from director_ai.agentic.agent_profile import AgentProfile
 from director_ai.agentic.loop_monitor import LoopMonitor, LoopStatus, StepVerdict
+from director_ai.agentic.swarm_guardian import AgentState, HandoffResult, SwarmGuardian
 
-__all__ = ["AgentProfile", "LoopMonitor", "LoopStatus", "StepVerdict"]
+__all__ = [
+    "AgentProfile",
+    "AgentState",
+    "HandoffResult",
+    "LoopMonitor",
+    "LoopStatus",
+    "StepVerdict",
+    "SwarmGuardian",
+]
