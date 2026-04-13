@@ -136,6 +136,10 @@ class DirectorConfig:
     contextual_compression_enabled: bool = False
     contextual_compression_strategy: str = "heuristic"  # "heuristic" or "llm"
 
+    # Multi-vector retrieval (v3.15+)
+    multi_vector_enabled: bool = False
+    multi_vector_representations: str = "content,summary,title"
+
     # Enterprise & Caching
     redis_url: str = ""
     redis_prefix: str = "dai:"
@@ -724,6 +728,20 @@ class DirectorConfig:
                 strategy=self.contextual_compression_strategy,
             )
             logger.info("Contextual compression enabled")
+
+        if self.multi_vector_enabled:
+            from .retrieval.multi_vector import MultiVectorBackend
+
+            reps = [
+                r.strip()
+                for r in self.multi_vector_representations.split(",")
+                if r.strip()
+            ]
+            backend = MultiVectorBackend(base=backend, representations=reps)
+            logger.info(
+                "Multi-vector retrieval enabled (representations=%s)",
+                reps,
+            )
 
         return VectorGroundTruthStore(backend=backend)
 
