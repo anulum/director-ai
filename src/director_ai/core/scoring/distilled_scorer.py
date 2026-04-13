@@ -148,6 +148,7 @@ class DistilledNLIBackend:
             self._model_path,
             revision=DEFAULT_DISTILLED_REVISION,
         )
+        assert self._model is not None
         self._model.to(self._device).eval()
         self._torch = torch
         logger.info("Distilled NLI loaded (PyTorch): %s", self._model_path)
@@ -197,5 +198,6 @@ class DistilledNLIBackend:
 
 def _softmax(logits: np.ndarray) -> np.ndarray:
     """Numerically stable softmax."""
-    e = np.exp(logits - np.max(logits))
-    return e / e.sum()
+    e: np.ndarray = np.exp(logits - np.max(logits))
+    result: np.ndarray = e / e.sum()
+    return result
