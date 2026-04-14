@@ -197,6 +197,9 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "SwarmMetrics": (".agentic.swarm_metrics", "SwarmMetrics"),
     # Compliance cost analyser (v4.0+)
     "CostAnalyser": (".compliance.cost_analyser", "CostAnalyser"),
+    # KB health diagnostics (v3.14+)
+    "KBHealthCheck": (".core.retrieval.kb_health", "KBHealthCheck"),
+    "KBHealthReport": (".core.retrieval.kb_health", "KBHealthReport"),
     # Advanced RAG backends (v3.14+)
     "ParentChildBackend": (
         ".core.retrieval.parent_child",
