@@ -10,19 +10,18 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends git curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Python deps (minimal for training + eval)
+# Python deps — pinned for reproducibility (Scorecard PinnedDependenciesID)
 # Upgrade torch to 2.6+ (CVE-2025-32434 blocks torch.load on <2.6)
 RUN pip install --no-cache-dir torch==2.6.0 --index-url https://download.pytorch.org/whl/cu121
-
 RUN pip install --no-cache-dir \
-    transformers>=4.51 \
-    datasets>=3.0 \
-    scikit-learn>=1.4 \
-    optimum[onnxruntime]>=1.22 \
-    accelerate>=1.0 \
-    huggingface-hub>=0.28 \
-    google-cloud-storage>=2.18 \
-    sentencepiece>=0.2
+    transformers==4.51.3 \
+    datasets==3.6.0 \
+    scikit-learn==1.6.1 \
+    optimum[onnxruntime]==1.24.1 \
+    accelerate==1.7.0 \
+    huggingface-hub==0.32.4 \
+    google-cloud-storage==2.19.0 \
+    sentencepiece==0.2.0
 
 # Copy project
 COPY pyproject.toml ./
@@ -31,8 +30,8 @@ COPY benchmarks/ benchmarks/
 COPY training/distil_v5_cloud.py training/distil_v5_cloud.py
 COPY training/run_vertex.sh training/run_vertex.sh
 
-# Install director-ai (needed for eval)
-RUN pip install --no-cache-dir -e ".[nli]"
+# Install director-ai from local source (deps already satisfied above)
+RUN pip install --no-cache-dir --no-deps -e .
 
 RUN chmod +x training/run_vertex.sh
 
