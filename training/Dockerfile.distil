@@ -2,7 +2,7 @@
 # Director-AI — Distillation v5 cloud training container
 # For Vertex AI Custom Training Jobs
 
-FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
+FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime@sha256:831247999fbf7e08f61b3e39f6d77ee434f38f6f07f769d00db451e853878067
 
 WORKDIR /app
 
@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends git curl && \
     rm -rf /var/lib/apt/lists/*
 
 # Python deps (minimal for training + eval)
+# Upgrade torch to 2.6+ (CVE-2025-32434 blocks torch.load on <2.6)
+RUN pip install --no-cache-dir torch==2.6.0 --index-url https://download.pytorch.org/whl/cu121
+
 RUN pip install --no-cache-dir \
     transformers>=4.51 \
     datasets>=3.0 \
