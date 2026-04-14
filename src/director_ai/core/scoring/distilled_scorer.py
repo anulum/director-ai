@@ -39,7 +39,7 @@ import numpy as np
 logger = logging.getLogger("DirectorAI.DistilledNLI")
 
 DEFAULT_DISTILLED_MODEL = "anulum/director-ai-nli-lite"
-DEFAULT_DISTILLED_REVISION = None  # will be pinned after first training run
+DEFAULT_DISTILLED_REVISION = "f88222676f64b698c1fcb394f4eeb8da40405027"
 
 
 class DistilledNLIBackend:
