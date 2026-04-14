@@ -488,6 +488,52 @@ def _cmd_wizard(args: list[str]) -> None:
                 print(f"\nConfig written to {output_path}")
 
 
+def _cmd_cost_report(args: list[str]) -> None:
+    """Show token cost report from the running scorer's CostAnalyser."""
+    fmt = "text"
+    i = 0
+    while i < len(args):
+        if args[i] == "--format" and i + 1 < len(args):
+            fmt = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    from director_ai.core.config import DirectorConfig
+
+    cfg = DirectorConfig.from_env()
+    if not cfg.cost_tracking_enabled:
+        print(
+            "Cost tracking is disabled. "
+            "Set DIRECTOR_COST_TRACKING_ENABLED=true or cost_tracking_enabled: true"
+        )
+        sys.exit(1)
+
+    scorer = cfg.build_scorer()
+    analyser = getattr(scorer, "_cost_analyser", None)
+    if analyser is None:
+        print("No CostAnalyser attached to scorer.")
+        sys.exit(1)
+
+    report = analyser.report()
+
+    if fmt == "json":
+        print(json.dumps(report, indent=2))
+    elif fmt == "html":
+        from director_ai.compliance.report_templates import render_cost_html
+
+        print(render_cost_html(report))
+    else:
+        print(f"Total cost: {report['currency']} {report['total_cost']:.6f}")
+        print(f"Total tokens: {report['total_tokens']:,}")
+        for key, m in report.get("models", {}).items():
+            print(
+                f"  {key}: {m['call_count']} calls, "
+                f"{m['total_tokens']:,} tokens, "
+                f"{report['currency']} {m['estimated_cost']:.6f}"
+            )
+
+
 def _cmd_adversarial_test(args: list[str]) -> None:
     """Run adversarial robustness test against the guardrail."""
     from director_ai.core.config import DirectorConfig

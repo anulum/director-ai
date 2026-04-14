@@ -40,6 +40,7 @@ from ._cli_verify import (
     _cmd_check_step,
     _cmd_compliance,
     _cmd_consensus,
+    _cmd_cost_report,
     _cmd_doctor,
     _cmd_kb_health,
     _cmd_license,
@@ -94,6 +95,7 @@ def main(argv: list[str] | None = None) -> None:
         "adversarial-test": _cmd_adversarial_test,
         "kb-health": _cmd_kb_health,
         "wizard": _cmd_wizard,
+        "cost-report": _cmd_cost_report,
     }
 
     if cmd not in commands:
@@ -130,7 +132,8 @@ def _print_help() -> None:
         "  config [--profile X]  Show/set configuration\n"
         "  compliance <sub>      EU AI Act compliance (report, status, drift)\n"
         "  kb-health [options]   Knowledge base health diagnostics\n"
-        "  wizard [--cli]        Interactive configuration wizard\n",
+        "  wizard [--cli]        Interactive configuration wizard\n"
+        "  cost-report [--format F]  Token cost report (text|json|html)\n",
     )
 
 

@@ -70,6 +70,7 @@ class DirectorConfig:
     dry_run: bool = False  # log scores but never halt/reject (observability mode)
     production_mode: bool = False  # enforce HTTPS-only, strict CORS, require auth
     hardened: bool = False  # strict_mode + all sanitisers + injection detection
+    cost_tracking_enabled: bool = False  # attach CostAnalyser to scorer
 
     # Scoring
     coherence_threshold: float = 0.6
@@ -892,6 +893,17 @@ class DirectorConfig:
         if self.dry_run:
             scorer._dry_run = True
             logger.info("Dry-run mode: scoring but never rejecting")
+        if self.cost_tracking_enabled:
+            from director_ai.compliance.cost_analyser import CostAnalyser
+
+            analyser = CostAnalyser()
+            scorer._cost_analyser = analyser
+
+            def _cost_cb(model: str, inp: int, out: int) -> None:
+                analyser.record(model, input_tokens=inp, output_tokens=out)
+
+            scorer._judge._cost_callback = _cost_cb
+            logger.info("Cost tracking enabled on scorer")
         return scorer
 
     _REDACTED_FIELDS: frozenset[str] = frozenset(

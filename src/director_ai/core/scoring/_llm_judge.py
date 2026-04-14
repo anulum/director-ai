@@ -73,12 +73,14 @@ class LLMJudge:
         device: str | None = None,
         privacy_mode: bool = False,
         task_judge_thresholds: dict[str, float] | None = None,
+        cost_callback=None,
     ) -> None:
         self.provider = provider
         self.model = model
         self.confidence_threshold = confidence_threshold
         self._judge_cache: dict[int, float] = {}
         self._privacy_mode = privacy_mode
+        self._cost_callback = cost_callback
 
         # Local DeBERTa-base judge model
         self._local_judge_model = None
@@ -333,6 +335,12 @@ class LLMJudge:
                         max_tokens=50,
                         response_format={"type": "json_object"},
                     )
+                    if self._cost_callback and result.usage:
+                        self._cost_callback(
+                            model,
+                            result.usage.prompt_tokens,
+                            result.usage.completion_tokens,
+                        )
                     return result.choices[0].message.content or ""
                 if self.provider == "anthropic":
                     import anthropic
@@ -343,6 +351,12 @@ class LLMJudge:
                         max_tokens=50,
                         messages=[{"role": "user", "content": judge_prompt}],
                     )
+                    if self._cost_callback and result.usage:
+                        self._cost_callback(
+                            model,
+                            result.usage.input_tokens,
+                            result.usage.output_tokens,
+                        )
                     return result.content[0].text if result.content else ""
                 return None
             except ImportError as exc:
