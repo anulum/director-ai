@@ -69,6 +69,7 @@ class DirectorConfig:
     # Operational modes
     dry_run: bool = False  # log scores but never halt/reject (observability mode)
     production_mode: bool = False  # enforce HTTPS-only, strict CORS, require auth
+    hardened: bool = False  # strict_mode + all sanitisers + injection detection
 
     # Scoring
     coherence_threshold: float = 0.6
@@ -101,7 +102,8 @@ class DirectorConfig:
     privacy_mode: bool = False
 
     # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite", "rust"
-    scorer_backend: str = "deberta"
+    # "auto" picks best available: rust > onnx > deberta > nli-lite > lite
+    scorer_backend: str = "auto"
 
     # Multi-GPU NLI sharding (comma-separated, e.g. "cuda:0,cuda:1")
     nli_devices: str = ""
@@ -362,6 +364,16 @@ class DirectorConfig:
             )
         if self.reranker_enabled and not self.reranker_model.strip():
             raise ValueError("reranker_model must be set when reranker_enabled=True")
+
+        # Hardened mode: enforce all safety features
+        if self.hardened:
+            object.__setattr__(self, "production_mode", True)
+            object.__setattr__(self, "use_nli", True)
+            object.__setattr__(self, "injection_detection_enabled", True)
+            object.__setattr__(self, "sanitize_inputs", True)
+            object.__setattr__(self, "redact_pii", True)
+            object.__setattr__(self, "strict_mode", True)
+            logger.info("Hardened mode: all safety features enforced")
 
         # Production mode enforcements
         if self.production_mode:
@@ -760,6 +772,31 @@ class DirectorConfig:
 
         return VectorGroundTruthStore(backend=backend)
 
+    def _resolve_scorer_backend(self) -> str:
+        """Resolve 'auto' scorer backend to best available."""
+        if self.scorer_backend != "auto":
+            return self.scorer_backend
+
+        # Priority: rust > onnx > deberta > nli-lite > lite
+        try:
+            import backfire_kernel  # noqa: F401
+
+            logger.info("Auto scorer: selected 'rust' (backfire_kernel available)")
+            return "rust"
+        except ImportError:
+            pass
+
+        if self.onnx_path:
+            logger.info("Auto scorer: selected 'onnx' (onnx_path configured)")
+            return "onnx"
+
+        if self.use_nli:
+            logger.info("Auto scorer: selected 'deberta' (NLI enabled)")
+            return "deberta"
+
+        logger.info("Auto scorer: selected 'lite' (no NLI available)")
+        return "lite"
+
     def build_scorer(self, store=None):
         """Construct a CoherenceScorer wired to all relevant config fields."""
         from .scoring.scorer import CoherenceScorer
@@ -771,10 +808,12 @@ class DirectorConfig:
         if self.llm_judge_provider == "local" and self.llm_judge_local_model:
             judge_model = self.llm_judge_local_model
 
+        resolved_backend = self._resolve_scorer_backend()
+
         kw: dict = {
             "threshold": self.coherence_threshold,
             "use_nli": self.use_nli,
-            "scorer_backend": self.scorer_backend,
+            "scorer_backend": resolved_backend,
             "soft_limit": self.soft_limit,
             "nli_model": self.nli_model,
             "nli_revision": self.nli_model_revision or None,
