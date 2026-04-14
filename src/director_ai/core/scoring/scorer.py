@@ -247,6 +247,9 @@ class CoherenceScorer:
         self._meta_classifier = None
         self._adaptive_router = None  # set via enable_adaptive_retrieval()
         self._dry_run = False  # when True, log but never reject
+        self._cost_analyser = (
+            None  # set by config.build_scorer() when cost_tracking_enabled
+        )
 
         # LLM-as-judge subsystem (composed — see _llm_judge.py)
         self._judge = LLMJudge(

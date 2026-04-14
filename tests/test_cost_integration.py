@@ -127,6 +127,7 @@ class TestLLMJudgeCostCallback:
 
     def test_callback_invoked_on_openai_call(self):
         """cost_callback is called with usage data after OpenAI call."""
+        pytest.importorskip("openai")
         cb = MagicMock()
         j = LLMJudge(provider="openai", model="gpt-4o-mini", cost_callback=cb)
 
@@ -152,6 +153,7 @@ class TestLLMJudgeCostCallback:
 
     def test_callback_not_invoked_when_none(self):
         """No error when cost_callback is None."""
+        pytest.importorskip("openai")
         j = LLMJudge(provider="openai", model="gpt-4o-mini")
 
         mock_usage = MagicMock()
@@ -197,12 +199,12 @@ class TestCostTrackingConfig:
         assert isinstance(scorer._cost_analyser, CostAnalyser)
 
     def test_disabled_no_analyser(self):
-        """When disabled, no CostAnalyser on scorer."""
+        """When disabled, _cost_analyser stays None."""
         from director_ai.core.config import DirectorConfig
 
         cfg = DirectorConfig(cost_tracking_enabled=False)
         scorer = cfg.build_scorer()
-        assert not hasattr(scorer, "_cost_analyser")
+        assert scorer._cost_analyser is None
 
     def test_callback_wired_to_judge(self):
         """cost_callback on judge is set when cost tracking enabled."""

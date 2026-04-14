@@ -1,35 +1,36 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 # Director-AI — Distillation v5 cloud training container
-# Usage:
-#   docker build -f training/Dockerfile.distil -t distil-v5 .
-#   docker run --gpus all -v $(pwd)/training/output:/app/training/output distil-v5 --strategy all
+# For Vertex AI Custom Training Jobs
 
 FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
 
 WORKDIR /app
 
 # System deps
-RUN apt-get update && apt-get install -y --no-install-recommends git && \
+RUN apt-get update && apt-get install -y --no-install-recommends git curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Python deps (minimal for training)
+# Python deps (minimal for training + eval)
 RUN pip install --no-cache-dir \
-    transformers>=4.45 \
+    transformers>=4.51 \
     datasets>=3.0 \
     scikit-learn>=1.4 \
     optimum[onnxruntime]>=1.22 \
     accelerate>=1.0 \
-    huggingface-hub>=0.28
+    huggingface-hub>=0.28 \
+    google-cloud-storage>=2.18 \
+    sentencepiece>=0.2
 
-# Copy project (only what's needed for training + eval)
+# Copy project
 COPY pyproject.toml ./
 COPY src/ src/
 COPY benchmarks/ benchmarks/
 COPY training/distil_v5_cloud.py training/distil_v5_cloud.py
-COPY training/output/distil_labels_v3_flipped.json training/output/distil_labels_v3_flipped.json
+COPY training/run_vertex.sh training/run_vertex.sh
 
-# Install director-ai in editable mode (needed for eval)
+# Install director-ai (needed for eval)
 RUN pip install --no-cache-dir -e ".[nli]"
 
-ENTRYPOINT ["python", "training/distil_v5_cloud.py"]
-CMD ["--strategy", "all"]
+RUN chmod +x training/run_vertex.sh
+
+ENTRYPOINT ["bash", "training/run_vertex.sh"]
