@@ -70,7 +70,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `multi_vector_enabled`, `multi_vector_representations`.
 - **3 new pip extras**: `[ui]` (Gradio), `[reports]` (WeasyPrint + Jinja2),
   `[autogen]` (pyautogen).
-- 374 new tests across 18 modules.
+- **CLI subcommands wired**: `director-ai kb-health` (KB diagnostics),
+  `director-ai wizard` (config wizard), `director-ai cost-report` (token
+  cost report in text/JSON/HTML), `director-ai compliance report --format html`
+  (HTML compliance report via `render_compliance_html`).
+- **CostAnalyser auto-integration**: `cost_tracking_enabled` config field
+  wires `CostAnalyser` into scorer pipeline. LLM judge API calls (OpenAI,
+  Anthropic) automatically record token usage via `cost_callback`.
+- **Formal benchmarks doc**: `docs/BENCHMARKS.md` with 5-tier scoring
+  pyramid, AggreFact per-dataset BA, RAG backend latency/memory tables,
+  SwarmGuardian and framework adapter performance.
+- 421 new tests across 20 modules.
 
 ### Fixed
 - **Metric correction**: FactCG accuracy corrected from 75.8% to **75.6%**
@@ -95,6 +105,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   execution when the Rust kernel is installed.
 - **9 scorer backends** registered: deberta, onnx, minicheck, lite, rules,
   embed, nli-lite, rust, backfire.
+- **`scorer_backend` default** changed from `"deberta"` to `"auto"` —
+  auto-detects best available (rust > onnx > deberta > lite).
+- **`hardened` mode**: enables strict_mode, all sanitisers, injection
+  detection, NLI, and PII redaction in one flag.
+- **`dry_run` mode**: scores but never rejects (observability mode).
+- **`production_mode`**: enforces API key authentication.
 
 ## [3.12.0] — 2026-04-05
 
