@@ -41,10 +41,12 @@ from ._cli_verify import (
     _cmd_compliance,
     _cmd_consensus,
     _cmd_doctor,
+    _cmd_kb_health,
     _cmd_license,
     _cmd_temporal_freshness,
     _cmd_verify_numeric,
     _cmd_verify_reasoning,
+    _cmd_wizard,
 )
 
 
@@ -90,6 +92,8 @@ def main(argv: list[str] | None = None) -> None:
         "check-step": _cmd_check_step,
         "consensus": _cmd_consensus,
         "adversarial-test": _cmd_adversarial_test,
+        "kb-health": _cmd_kb_health,
+        "wizard": _cmd_wizard,
     }
 
     if cmd not in commands:
@@ -124,7 +128,9 @@ def _print_help() -> None:
         "  stress-test [options] Benchmark streaming kernel throughput\n"
         "  doctor                Check runtime dependencies and readiness\n"
         "  config [--profile X]  Show/set configuration\n"
-        "  compliance <sub>      EU AI Act compliance (report, status, drift)\n",
+        "  compliance <sub>      EU AI Act compliance (report, status, drift)\n"
+        "  kb-health [options]   Knowledge base health diagnostics\n"
+        "  wizard [--cli]        Interactive configuration wizard\n",
     )
 
 

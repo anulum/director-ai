@@ -189,7 +189,7 @@ def _cmd_compliance(args: list[str]) -> None:
             "Usage: director-ai compliance <subcommand> [options]\n"
             "\n"
             "Subcommands:\n"
-            "  report  [--db PATH] [--since TS] [--until TS] [--format md|json]\n"
+            "  report  [--db PATH] [--since TS] [--until TS] [--format md|json|html]\n"
             "  status  [--db PATH]   Quick summary\n"
             "  drift   [--db PATH]   Drift detection analysis\n",
         )
@@ -251,6 +251,24 @@ def _cmd_compliance(args: list[str]) -> None:
                     indent=2,
                 )
             )
+        elif fmt == "html":
+            from director_ai.compliance.report_templates import render_compliance_html
+
+            html = render_compliance_html(
+                {
+                    "title": "EU AI Act Article 15 Report",
+                    "period": f"{since or 'start'} to {until or 'now'}",
+                    "hallucination_rate": report.overall_hallucination_rate,
+                    "total_reviews": report.total_interactions,
+                    "approved_count": getattr(report, "approved_count", 0),
+                    "rejected_count": getattr(report, "rejected_count", 0),
+                    "avg_score": report.avg_score,
+                    "avg_latency_ms": getattr(report, "avg_latency_ms", 0),
+                    "drift_detected": report.drift_detected,
+                    "models": getattr(report, "model_breakdown", []),
+                }
+            )
+            print(html)
         else:
             print(report.to_markdown())
 
@@ -388,6 +406,86 @@ def _cmd_consensus(args: list[str]) -> None:
     for p in result.pairs:
         status = "agree" if p.agreed else "DISAGREE"
         print(f"  {p.model_a} vs {p.model_b}: {status} (divergence={p.divergence:.2f})")
+
+
+def _cmd_kb_health(args: list[str]) -> None:
+    """Run knowledge base health diagnostics."""
+    from director_ai.core.config import DirectorConfig
+    from director_ai.core.retrieval.kb_health import KBHealthCheck
+
+    cfg = DirectorConfig.from_env()
+    store = cfg.build_store()
+
+    min_docs = 1
+    max_latency = 100.0
+    i = 0
+    while i < len(args):
+        if args[i] == "--min-docs" and i + 1 < len(args):
+            min_docs = int(args[i + 1])
+            i += 2
+        elif args[i] == "--max-latency" and i + 1 < len(args):
+            max_latency = float(args[i + 1])
+            i += 2
+        else:
+            i += 1
+
+    check = KBHealthCheck(
+        store,
+        min_documents=min_docs,
+        max_query_latency_ms=max_latency,
+    )
+    report = check.run()
+
+    print(report.summary)
+    if report.issues:
+        for issue in report.issues:
+            print(f"  ISSUE: {issue}")
+    if report.warnings:
+        for warn in report.warnings:
+            print(f"  WARNING: {warn}")
+
+    sys.exit(0 if report.healthy else 1)
+
+
+def _cmd_wizard(args: list[str]) -> None:
+    """Launch the interactive configuration wizard."""
+    cli_mode = "--cli" in args
+    port = 7860
+    share = "--share" in args
+    output_path = None
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--port" and i + 1 < len(args):
+            port = int(args[i + 1])
+            i += 2
+        elif args[i] == "--output" and i + 1 < len(args):
+            output_path = args[i + 1]
+            i += 2
+        else:
+            i += 1
+
+    from director_ai.ui.config_wizard import launch_cli, launch_gradio
+
+    if cli_mode:
+        yaml_str = launch_cli()
+        if output_path:
+            from pathlib import Path
+
+            Path(output_path).write_text(yaml_str, encoding="utf-8")
+            print(f"\nConfig written to {output_path}")
+    else:
+        try:
+            launch_gradio(port=port, share=share)
+        except ImportError:
+            print("Gradio not installed. Using CLI mode instead.")
+            print("Install with: pip install director-ai[ui]\n")
+            yaml_str = launch_cli()
+            if output_path:
+                from pathlib import Path
+
+                Path(output_path).write_text(yaml_str, encoding="utf-8")
+                print(f"\nConfig written to {output_path}")
 
 
 def _cmd_adversarial_test(args: list[str]) -> None:
