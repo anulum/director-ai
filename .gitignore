@@ -170,6 +170,10 @@ benchmarks/forge_ab_results.json
 # =====================================================================
 ckpts/
 /training/
+!/training/distil_factcg.py
+!/training/distil_v5_cloud.py
+!/training/Dockerfile.distil
+!/training/launch_cloud.sh
 data/
 /models/
 !src/director_ai/models/

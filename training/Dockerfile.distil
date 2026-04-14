@@ -1,0 +1,35 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI — Distillation v5 cloud training container
+# Usage:
+#   docker build -f training/Dockerfile.distil -t distil-v5 .
+#   docker run --gpus all -v $(pwd)/training/output:/app/training/output distil-v5 --strategy all
+
+FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime
+
+WORKDIR /app
+
+# System deps
+RUN apt-get update && apt-get install -y --no-install-recommends git && \
+    rm -rf /var/lib/apt/lists/*
+
+# Python deps (minimal for training)
+RUN pip install --no-cache-dir \
+    transformers>=4.45 \
+    datasets>=3.0 \
+    scikit-learn>=1.4 \
+    optimum[onnxruntime]>=1.22 \
+    accelerate>=1.0 \
+    huggingface-hub>=0.28
+
+# Copy project (only what's needed for training + eval)
+COPY pyproject.toml ./
+COPY src/ src/
+COPY benchmarks/ benchmarks/
+COPY training/distil_v5_cloud.py training/distil_v5_cloud.py
+COPY training/output/distil_labels_v3_flipped.json training/output/distil_labels_v3_flipped.json
+
+# Install director-ai in editable mode (needed for eval)
+RUN pip install --no-cache-dir -e ".[nli]"
+
+ENTRYPOINT ["python", "training/distil_v5_cloud.py"]
+CMD ["--strategy", "all"]
