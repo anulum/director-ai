@@ -9,7 +9,7 @@ Director-AI uses a 5-tier scoring pyramid. Each tier trades latency for accuracy
 | 1 | Heuristic keywords | ~55% | <1ms | 0 | Regex patterns, no model |
 | 2 | Rules engine | ~58% | <1ms | 0 | Configurable rule chains |
 | 3 | Embedding similarity | ~65% | 5ms | varies | SentenceTransformers cosine |
-| 4 | Distilled NLI (DeBERTa-v3-xsmall) | *pending* | 27ms CPU | 70M | Knowledge-distilled from Tier 5 |
+| 4 | Distilled NLI (DeBERTa-v3-xsmall) | 49.8% (**FAIL**) | 27ms CPU | 70M | Insufficient capacity, needs re-training |
 | 5 | Full NLI (FactCG-DeBERTa-v3-Large) | 75.8% | 574ms GPU | 400M | Reference model |
 
 ### Full NLI (Tier 5) — AggreFact Breakdown
@@ -41,7 +41,13 @@ Training: 10 epochs, KL divergence + hard label blend (alpha=0.3), T=1.5.
 - Sanity checks (6/6 PASS):
   - Supported claims: P[support] = 0.84–0.87
   - Contradicted claims: P[contra] = 0.74–0.89
-- Full AggreFact evaluation: *in progress*
+- **Full AggreFact evaluation: 49.8% BA** (29,320 samples, per-dataset optimal)
+  - This is at random chance — the student model does not generalise beyond
+    the 6 hand-picked sanity examples
+  - Root cause: DeBERTa-v3-xsmall (70M) lacks capacity for the FactCG
+    instruction template pattern. Larger student or more training needed.
+  - **Status: NOT production-ready.** Use Tier 5 (full NLI) or Tier 3
+    (embedding) until distillation is improved.
 
 ---
 
