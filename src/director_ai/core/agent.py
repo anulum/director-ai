@@ -12,6 +12,7 @@ import asyncio
 import logging
 import os
 from collections.abc import AsyncIterator
+from typing import TYPE_CHECKING
 
 from .actor import LLMGenerator, MockGenerator
 from .retrieval.knowledge import GroundTruthStore
@@ -19,6 +20,15 @@ from .runtime.kernel import HaltMonitor
 from .runtime.streaming import StreamingKernel
 from .scoring.scorer import CoherenceScorer
 from .types import HaltEvidence, ReviewResult
+
+if TYPE_CHECKING:
+    from .containment import ContainmentGuard, RealityAnchor
+    from .cyber_physical import GroundingHook, GroundingVerdict, PhysicalAction
+    from .zk_attestation import (
+        CrossOrgPassport,
+        PassportVerdict,
+        PassportVerifier,
+    )
 
 __all__ = ["CoherenceAgent"]
 
@@ -57,6 +67,10 @@ class CoherenceAgent:
         *,
         _scorer=None,
         _store=None,
+        containment_guard: ContainmentGuard | None = None,
+        containment_anchor: RealityAnchor | None = None,
+        grounding_hook: GroundingHook | None = None,
+        passport_verifier: PassportVerifier | None = None,
     ):
         self.logger = logging.getLogger("CoherenceAgent")
         self.fallback = fallback
@@ -64,6 +78,12 @@ class CoherenceAgent:
 
         if provider and llm_api_url:
             raise ValueError("provider and llm_api_url are mutually exclusive")
+
+        if (containment_guard is None) != (containment_anchor is None):
+            raise ValueError(
+                "containment_guard and containment_anchor must be "
+                "configured together (both or neither)"
+            )
 
         if provider:
             self.generator = self._build_provider(provider, api_key=api_key)
@@ -84,6 +104,14 @@ class CoherenceAgent:
             hard_limit=self.kernel.hard_limit,
             adaptive=True,
         )
+
+        # Opt-in safety hooks — None means "not engaged", preserving
+        # the existing end-to-end behaviour bit-for-bit when the
+        # caller does not configure any of them.
+        self.containment_guard = containment_guard
+        self.containment_anchor = containment_anchor
+        self.grounding_hook = grounding_hook
+        self.passport_verifier = passport_verifier
 
     def _build_scorer(self, use_nli):
         """Construct scorer, preferring Rust backend when installed."""
@@ -144,8 +172,73 @@ class CoherenceAgent:
         best, rejected, n = self._score_candidates(candidates, prompt, tenant_id)
 
         if best[0] is not None:
-            return self._emit_approved(best, n)
-        return self._handle_rejection(prompt, tenant_id, rejected, n)
+            result = self._emit_approved(best, n)
+        else:
+            result = self._handle_rejection(prompt, tenant_id, rejected, n)
+
+        return self._apply_containment_guard(result, prompt)
+
+    def _apply_containment_guard(
+        self, result: ReviewResult, prompt: str
+    ) -> ReviewResult:
+        """If a containment guard is configured, scan the output text
+        against the session's reality anchor. A ``"block"`` verdict
+        converts the result into a halted ReviewResult whose
+        ``halt_evidence`` carries the guard's findings for audit.
+        """
+        guard = self.containment_guard
+        anchor = self.containment_anchor
+        if guard is None or anchor is None:
+            return result
+        verdict = guard.check({"text": result.output, "prompt": prompt}, anchor)
+        if verdict.decision != "block":
+            return result
+
+        reasons = "; ".join(
+            f"{f.category}:{f.severity}" for f in verdict.findings
+        )
+        if verdict.anchor_reason:
+            reasons = verdict.anchor_reason + (f"; {reasons}" if reasons else "")
+        return ReviewResult(
+            output="[CONTAINMENT-BLOCK]: Output suppressed by containment guard.",
+            coherence=result.coherence,
+            halted=True,
+            candidates_evaluated=result.candidates_evaluated,
+            halt_evidence=HaltEvidence(
+                reason="containment_block",
+                last_score=(
+                    result.coherence.score if result.coherence is not None else 0.0
+                ),
+                evidence_chunks=[],
+                nli_scores=None,
+                suggested_action=(
+                    "Review the containment findings: " + reasons
+                ),
+            ),
+            fallback_used=result.fallback_used,
+        )
+
+    def verify_physical_action(
+        self, action: PhysicalAction
+    ) -> GroundingVerdict:
+        """Screen a proposed physical action against the configured
+        grounding hook. Raises :class:`RuntimeError` if no hook is
+        configured — callers opt in explicitly.
+        """
+        if self.grounding_hook is None:
+            raise RuntimeError(
+                "grounding_hook not configured on this CoherenceAgent"
+            )
+        return self.grounding_hook.evaluate(action)
+
+    def verify_passport(self, passport: CrossOrgPassport) -> PassportVerdict:
+        """Run the configured passport verifier against *passport*.
+        Raises :class:`RuntimeError` when no verifier is attached."""
+        if self.passport_verifier is None:
+            raise RuntimeError(
+                "passport_verifier not configured on this CoherenceAgent"
+            )
+        return self.passport_verifier.verify(passport)
 
     def _score_candidates(self, candidates, prompt, tenant_id):
         """Score all candidates, return (best_approved, best_rejected, count)."""
