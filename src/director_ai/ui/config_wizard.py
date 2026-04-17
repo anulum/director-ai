@@ -116,7 +116,12 @@ def launch_gradio(port: int = 7860, share: bool = False) -> None:
         gr.Markdown("# Director-AI Configuration Wizard")
         gr.Markdown("Toggle features, adjust thresholds, generate YAML.")
 
-        inputs = {}
+        # Heterogeneous widget dict — the entries are instantiated
+        # with different Gradio widget classes depending on the
+        # field's declared type. ``Any`` is the accurate type here;
+        # pinning to a common base (``Component``) is also an option
+        # but adds an import just to satisfy the checker.
+        inputs: dict[str, Any] = {}
         for group_name in FIELD_GROUPS:
             field_list = groups.get(group_name, [])
             if not field_list:

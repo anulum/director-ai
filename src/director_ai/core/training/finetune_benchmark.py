@@ -104,7 +104,9 @@ def _evaluate_model(
     model = AutoModelForSequenceClassification.from_pretrained(str(model_path))
     model.eval()
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    from .._device import select_torch_device
+
+    device = torch.device(select_torch_device())
     model.to(device)
 
     is_factcg = "factcg" in str(model_path).lower()
@@ -121,7 +123,7 @@ def _evaluate_model(
         ]
     labels = [s["label"] for s in samples]
 
-    all_preds = []
+    all_preds: list[int] = []
     for i in range(0, len(texts), batch_size):
         batch_texts = texts[i : i + batch_size]
         encodings = tokenizer(
@@ -135,7 +137,7 @@ def _evaluate_model(
         with torch.no_grad():
             logits = model(**encodings).logits
         preds = torch.argmax(logits, dim=-1).cpu().numpy()
-        all_preds.extend(preds.tolist())
+        all_preds.extend(int(p) for p in preds.flatten())
 
     bal_acc = _balanced_accuracy(labels, all_preds)
     f1 = _binary_f1_score(labels, all_preds)

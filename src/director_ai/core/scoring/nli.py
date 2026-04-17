@@ -199,9 +199,12 @@ def _load_nli_model(
             AutoTokenizer,
         )
 
-        if device is None and torch.cuda.is_available():
-            device = "cuda"
-            logger.info("CUDA available, auto-selecting GPU device")
+        if device is None:
+            from .._device import select_torch_device
+
+            device = select_torch_device()
+            if device.startswith("cuda"):
+                logger.info("auto-selected GPU device %s", device)
 
         rev = _resolve_revision(model_name, revision)
         logger.info(
@@ -545,7 +548,9 @@ class NLIScorer:
                     cache_dir=self._cache_dir,
                     revision=mc_rev,
                 )
-                device = "cuda" if torch.cuda.is_available() else "cpu"
+                from .._device import select_torch_device
+
+                device = select_torch_device()
                 inf.model.to(device).eval()
                 inf.softmax = torch.nn.Softmax(dim=-1)
                 assert self._minicheck is not None  # narrowing for mypy

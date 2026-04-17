@@ -108,7 +108,6 @@ class LLMJudge:
     ) -> None:  # pragma: no cover
         """Load local DeBERTa-base judge model for borderline escalation."""
         try:
-            import torch
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             self._local_judge_tokenizer = AutoTokenizer.from_pretrained(
@@ -121,9 +120,9 @@ class LLMJudge:
                     low_cpu_mem_usage=False,
                 )
             )
-            self._local_judge_device = device or (
-                "cuda" if torch.cuda.is_available() else "cpu"
-            )
+            from .._device import select_torch_device
+
+            self._local_judge_device = select_torch_device(device)
             assert self._local_judge_model is not None
             self._local_judge_model.to(self._local_judge_device)
             self._local_judge_model.eval()

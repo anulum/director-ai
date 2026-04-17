@@ -31,6 +31,10 @@ Usage::
 from __future__ import annotations
 
 import logging
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover — typing-only import
+    from sentence_transformers import SentenceTransformer
 
 logger = logging.getLogger("DirectorAI.EmbedScorer")
 
@@ -65,7 +69,7 @@ class EmbedBackend:
         self._model_name = model_name
         self._device = device
         self._cache_dir = cache_dir
-        self._model = None  # lazy
+        self._model: SentenceTransformer | None = None  # lazy
 
     def _ensure_model(self):
         """Lazy-load the sentence-transformer model."""

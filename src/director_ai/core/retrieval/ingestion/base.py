@@ -119,7 +119,7 @@ class IngestionPlugin(ABC):
 
 
 def _store_add(
-    store: GroundTruthStore,
+    store: Any,
     key: str,
     value: str,
     metadata: dict[str, Any],
@@ -129,7 +129,11 @@ def _store_add(
 
     ``GroundTruthStore`` accepts ``(key, value, tenant_id)`` and
     ``VectorGroundTruthStore`` accepts ``(key, value, metadata,
-    tenant_id)``. The adapter falls back gracefully so either works.
+    tenant_id)``. The adapter probes the richer form first and
+    falls back. ``store`` is typed as ``Any`` because the two
+    classes share no common ancestor that declares the ``metadata``
+    kwarg — introducing a protocol purely to satisfy mypy would add
+    an abstraction for the sake of the type checker, not the code.
     """
     try:
         store.add(key=key, value=value, metadata=metadata, tenant_id=tenant_id)
