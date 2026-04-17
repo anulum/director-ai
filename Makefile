@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 .DEFAULT_GOAL := help
-.PHONY: help test test-rust test-julia test-lean test-go test-all proto lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate
+.PHONY: help test test-rust test-julia test-lean test-go test-all proto lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -25,6 +25,12 @@ test-go: ## Run Go gateway tests
 
 proto: ## Regenerate Python and Go stubs from schemas/proto/*.proto
 	bash schemas/generate.sh
+
+grpc-scoring: ## Run the director.v1 CoherenceScoring gRPC server (port 50052)
+	python -m director_ai.grpc_scoring --listen "[::]:50052"
+
+ab-bench: ## A/B benchmark: gateway vs gateway+scoring (needs k6 installed)
+	bash gateway/go/bench/ab_bench.sh
 
 test-all: test test-rust test-julia test-lean test-go ## Run Python + Rust + Julia + Lean + Go checks
 

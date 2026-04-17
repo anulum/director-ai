@@ -22,15 +22,17 @@ import (
 
 // Config is the fully resolved gateway configuration.
 type Config struct {
-	ListenAddr      string
-	UpstreamURL     string
-	UpstreamTimeout time.Duration
-	APIKeys         []string
-	AuditSalt       []byte
-	AuditLogPath    string
-	RateLimitRPM    int
-	RateLimitBurst  int
+	ListenAddr        string
+	UpstreamURL       string
+	UpstreamTimeout   time.Duration
+	APIKeys           []string
+	AuditSalt         []byte
+	AuditLogPath      string
+	RateLimitRPM      int
+	RateLimitBurst    int
 	AllowHTTPUpstream bool
+	ScoringAddr       string
+	ScoringTimeout    time.Duration
 }
 
 const (
@@ -39,6 +41,7 @@ const (
 	defaultUpstreamTimeout = 30 * time.Second
 	defaultRateLimitRPM    = 600
 	defaultRateLimitBurst  = 60
+	defaultScoringTimeout  = 2 * time.Second
 	legacyAuditSalt        = "director-ai-audit-v1"
 )
 
@@ -55,6 +58,16 @@ func Load() (*Config, error) {
 		RateLimitBurst:    defaultRateLimitBurst,
 		AllowHTTPUpstream: envBool("DIRECTOR_ALLOW_HTTP_UPSTREAM"),
 		AuditLogPath:      os.Getenv("DIRECTOR_AUDIT_LOG"),
+		ScoringAddr:       os.Getenv("DIRECTOR_SCORING_ADDR"),
+		ScoringTimeout:    defaultScoringTimeout,
+	}
+
+	if raw := os.Getenv("DIRECTOR_SCORING_TIMEOUT_MS"); raw != "" {
+		ms, err := strconv.Atoi(raw)
+		if err != nil || ms <= 0 {
+			return nil, fmt.Errorf("DIRECTOR_SCORING_TIMEOUT_MS: %q", raw)
+		}
+		cfg.ScoringTimeout = time.Duration(ms) * time.Millisecond
 	}
 
 	if raw := os.Getenv("DIRECTOR_UPSTREAM_TIMEOUT_SECONDS"); raw != "" {

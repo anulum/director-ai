@@ -149,10 +149,48 @@ they come from a run on representative hardware with a real
 upstream; Gemini-style "8-12× speedup" claims are explicitly out of
 scope for this phase.
 
+## Scoring integration (Phase 3)
+
+When `DIRECTOR_SCORING_ADDR` is set, the gateway wraps the proxy
+with a scoring middleware that:
+
+1. buffers the upstream response (chat-completion JSON only;
+   `text/event-stream` is passed through untouched for now),
+2. extracts the assistant message,
+3. calls `director.v1.CoherenceScoring/ScoreClaim` over gRPC,
+4. stamps `X-Coherence-Score` + `X-Coherence-Halted` response
+   headers, and
+5. rewrites halted responses as HTTP 422 with a JSON error body.
+
+Additional env vars:
+
+| Variable | Default | Meaning |
+| --- | --- | --- |
+| `DIRECTOR_SCORING_ADDR` | *(empty)* | `host:port` of the gRPC scoring server |
+| `DIRECTOR_SCORING_TIMEOUT_MS` | `2000` | per-RPC timeout |
+
+Clients may override the server threshold per request with
+`X-Coherence-Threshold: 0.72`.
+
+The Python-side server lives in `src/director_ai/grpc_scoring.py`;
+run it with `make grpc-scoring` or `python -m
+director_ai.grpc_scoring`.
+
+## A/B benchmark
+
+`bench/ab_bench.sh` boots a mock upstream, then runs k6 twice — once
+with scoring off and once with the Python gRPC sidecar in place —
+and writes k6 summaries to `bench/out/`. No numbers are quoted
+until they come from a run on representative hardware.
+
+```bash
+make ab-bench          # defaults: VUS=50 DURATION=30s
+```
+
 ## Not in this phase
 
-- Scoring integration (Phase 3 — Python exposes a
-  `CoherenceScoring` gRPC server; Go calls it per stream).
+- Streaming scoring integration (requires SSE parsing + a `ScoreStream`
+  wrapper around the upstream token stream).
 - Distributed rate limiting across replicas (Redis backend).
 - Circuit breaker on upstream errors.
 - Structured metrics (Prometheus or OpenTelemetry).

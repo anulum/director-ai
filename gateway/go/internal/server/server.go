@@ -20,17 +20,19 @@ import (
 	"github.com/anulum/director-ai/gateway/internal/config"
 	"github.com/anulum/director-ai/gateway/internal/proxy"
 	"github.com/anulum/director-ai/gateway/internal/ratelimit"
+	"github.com/anulum/director-ai/gateway/internal/scoring"
 )
 
 // Components bundles the wired middleware so callers can assemble a
 // server once and reuse it for tests.
 type Components struct {
-	Config   *config.Config
-	Auth     *auth.Middleware
-	Rate     *ratelimit.Limiter
-	Proxy    *proxy.Client
-	Audit    *audit.Logger
-	Handler  http.Handler
+	Config  *config.Config
+	Auth    *auth.Middleware
+	Rate    *ratelimit.Limiter
+	Proxy   *proxy.Client
+	Audit   *audit.Logger
+	Scoring *scoring.Client
+	Handler http.Handler
 }
 
 // Build builds the middleware chain from a resolved config.
@@ -44,6 +46,20 @@ func Build(cfg *config.Config, auditLogger *audit.Logger) (*Components, error) {
 	authMW := auth.New(cfg.APIKeys, cfg.AuditSalt)
 	rate := ratelimit.New(cfg.RateLimitRPM, cfg.RateLimitBurst)
 
+	var scoringClient *scoring.Client
+	var scoringMW *scoring.Middleware
+	if cfg.ScoringAddr != "" {
+		scoringClient, err = scoring.Dial(cfg.ScoringAddr, cfg.ScoringTimeout)
+		if err != nil {
+			return nil, err
+		}
+		scoringMW = &scoring.Middleware{
+			Scorer:          scoringClient,
+			Timeout:         cfg.ScoringTimeout,
+			ThresholdHeader: "X-Coherence-Threshold",
+		}
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/healthz", health)
@@ -54,9 +70,13 @@ func Build(cfg *config.Config, auditLogger *audit.Logger) (*Components, error) {
 	// outermost wrapper inward; the audit middleware must run after
 	// auth so it can read the fingerprint the latter stamps onto the
 	// request context, but it must wrap the rate limiter so 429s get
-	// logged too. Final chain:
-	//   requestID → auth → audit → rate → mux
+	// logged too. Scoring, when enabled, wraps the proxy so it sees
+	// the assistant message after the upstream returns. Final chain:
+	//   requestID → auth → audit → rate → scoring → mux
 	var handler http.Handler = mux
+	if scoringMW.Enabled() {
+		handler = scoringMW.Handler(handler)
+	}
 	handler = rate.Handler(handler, auth.FingerprintFromContext)
 	handler = auditMiddleware(auditLogger, cfg.UpstreamURL)(handler)
 	handler = authMW.Handler(handler)
@@ -68,6 +88,7 @@ func Build(cfg *config.Config, auditLogger *audit.Logger) (*Components, error) {
 		Rate:    rate,
 		Proxy:   prx,
 		Audit:   auditLogger,
+		Scoring: scoringClient,
 		Handler: handler,
 	}, nil
 }

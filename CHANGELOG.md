@@ -38,6 +38,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   audit record shape, SSE streaming via `http.Flusher`. Binary
   entrypoint `cmd/director-gateway`, k6 load script under
   `gateway/go/bench/`, 50 Go test cases, clean `go test -race`.
+- `director.v1.CoherenceScoring` gRPC server
+  (`src/director_ai/grpc_scoring.py`) — wraps `CoherenceScorer`
+  with `ScoreClaim` (unary) and `ScoreStream` (bidirectional)
+  RPCs. New CLI: `python -m director_ai.grpc_scoring`.
+- Go scoring client (`gateway/go/internal/scoring/`) — dials the
+  Python gRPC server and adds an optional response middleware that
+  extracts the assistant message from chat-completion JSON, runs
+  `ScoreClaim` against it, stamps `X-Coherence-Score` /
+  `X-Coherence-Halted` headers and rewrites halted answers as 422
+  JSON. Enabled by `DIRECTOR_SCORING_ADDR`; per-request override
+  via `X-Coherence-Threshold`. Additional env:
+  `DIRECTOR_SCORING_TIMEOUT_MS`.
+- `bench/ab_bench.sh` — boots a mock upstream, runs two k6 scenarios
+  (gateway only, gateway + scoring sidecar), and records the k6
+  summaries for comparison. `make grpc-scoring` and `make ab-bench`
+  targets wire everything together.
 
 ### Changed
 - `CoherenceAgent.__init__` and `_build_provider` accept `api_key=`
