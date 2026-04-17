@@ -96,6 +96,13 @@ class PromptRiskScorer:
         ``(heuristic, sanitiser, injection)``; must sum to 1.0.
     max_safe_length :
         Prompt length at which the length heuristic saturates at 1.0.
+    prefer_rust :
+        When ``True`` (the default) and ``backfire_kernel`` is
+        importable, the system-marker regex walk delegates to
+        :class:`backfire_kernel.PiiScanner` so the whole marker set
+        is checked in a single pass with a ``RegexSet`` prefilter.
+        Set ``False`` to force the pure-Python path for
+        benchmarking or in environments without the Rust wheel.
     """
 
     def __init__(
@@ -105,6 +112,7 @@ class PromptRiskScorer:
         injection_detector: Any | None = None,
         weights: tuple[float, float, float] = (0.15, 0.5, 0.35),
         max_safe_length: int = 8000,
+        prefer_rust: bool = True,
     ) -> None:
         if max_safe_length <= 0:
             raise ValueError(f"max_safe_length must be positive; got {max_safe_length}")
@@ -115,6 +123,9 @@ class PromptRiskScorer:
         self._injection = injection_detector
         self._weights = weights
         self._max_safe_length = max_safe_length
+        self._rust_scanner = (
+            _build_rust_marker_scanner() if prefer_rust else None
+        )
 
     def score(self, prompt: str) -> RiskComponents:
         """Return a :class:`RiskComponents` breakdown for ``prompt``.
@@ -147,7 +158,7 @@ class PromptRiskScorer:
         structural = sum(prompt.count(ch) for ch in _STRUCTURAL_CHARS)
         structural_density = structural / max(length, 1)
         structural_risk = min(1.0, structural_density * 40.0)
-        marker_hits = sum(1 for p in _SYSTEM_STYLE_MARKERS if p.search(prompt))
+        marker_hits = self._count_marker_hits(prompt)
         marker_risk = min(1.0, marker_hits * 0.35)
         risk = max(
             0.4 * length_ratio,
@@ -155,6 +166,24 @@ class PromptRiskScorer:
             marker_risk,
         )
         return min(1.0, risk)
+
+    def _count_marker_hits(self, prompt: str) -> int:
+        """Delegate the system-marker regex walk to the Rust scanner
+        when available. The scanner reports one match per hit across
+        all patterns; we only need a distinct-category count, so
+        collapse by category name before returning."""
+        if self._rust_scanner is not None:
+            matches = self._rust_scanner.scan(prompt)
+            if not matches:
+                return 0
+            return len({m[0] for m in matches})
+        return sum(1 for p in _SYSTEM_STYLE_MARKERS if p.search(prompt))
+
+    @property
+    def backend(self) -> str:
+        """``"rust"`` when the fast-path scanner is active, otherwise
+        ``"python"``. Exposed for tests and operator-facing logs."""
+        return "rust" if self._rust_scanner is not None else "python"
 
     def _sanitiser_signal(self, prompt: str) -> float:
         if self._sanitiser is None:
@@ -190,3 +219,26 @@ def _clip01(value: Any) -> float:
     if as_float > 1.0:
         return 1.0
     return as_float
+
+
+def _build_rust_marker_scanner() -> Any | None:
+    """Return a ``backfire_kernel.PiiScanner`` loaded with the
+    system-style marker patterns, or ``None`` when the Rust wheel
+    is not importable. The scanner works on any regex batch, not
+    just PII — the name reflects its original use case but the
+    implementation is a generic ``RegexSet`` walker.
+    """
+    try:
+        from backfire_kernel import PiiScanner as _RustScanner
+    except ImportError:
+        return None
+    # The Python patterns are compiled with ``re.IGNORECASE``. Rust
+    # ``regex::RegexSet`` does not carry Python flags, so we prepend
+    # the ``(?i)`` inline flag on each source pattern.
+    patterns: list[tuple[str, str]] = [
+        (f"marker_{i}", "(?i)" + p.pattern) for i, p in enumerate(_SYSTEM_STYLE_MARKERS)
+    ]
+    try:
+        return _RustScanner(patterns)
+    except Exception:  # pragma: no cover — defensive
+        return None

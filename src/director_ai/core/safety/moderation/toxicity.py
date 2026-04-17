@@ -62,6 +62,12 @@ class KeywordToxicityDetector(ModerationDetector):
     Accepts ``extra_keywords`` and ``extra_patterns`` for operator
     extensions. ``case_sensitive=False`` by default; flip it for
     languages where case is meaningful (e.g. German nouns).
+
+    When ``backfire_kernel`` is importable the scan delegates to
+    :class:`backfire_kernel.PiiScanner` (a generic ``RegexSet``
+    walker — the PII label reflects the class's original use
+    case, not the scope). Set ``prefer_rust=False`` to force the
+    pure-Python path.
     """
 
     name = "toxicity_keyword"
@@ -72,6 +78,7 @@ class KeywordToxicityDetector(ModerationDetector):
         extra_keywords: Iterable[str] | None = None,
         extra_patterns: Iterable[tuple[str, str]] | None = None,
         case_sensitive: bool = False,
+        prefer_rust: bool = True,
     ) -> None:
         flags = 0 if case_sensitive else re.IGNORECASE
         seeds = list(_DEFAULT_TOXICITY_SEEDS) + list(extra_keywords or [])
@@ -83,29 +90,56 @@ class KeywordToxicityDetector(ModerationDetector):
             if key and key not in seen:
                 seen.add(key)
                 deduped.append(s)
-        self._keyword_patterns: list[tuple[str, re.Pattern[str]]] = [
-            ("keyword", re.compile(rf"\b{re.escape(k)}\b", flags))
-            for k in deduped
-        ]
+        # Source strings kept for the Rust scanner — Python regex
+        # objects cannot round-trip through the FFI boundary, but the
+        # raw pattern strings can.
+        source_patterns: list[tuple[str, str]] = []
+        self._keyword_patterns: list[tuple[str, re.Pattern[str]]] = []
+        for k in deduped:
+            pattern_str = rf"\b{re.escape(k)}\b"
+            if not case_sensitive:
+                pattern_str = "(?i)" + pattern_str
+            self._keyword_patterns.append(("keyword", re.compile(rf"\b{re.escape(k)}\b", flags)))
+            source_patterns.append(("keyword", pattern_str))
         for category, patterns in _ATTACK_CATEGORIES.items():
             for pattern in patterns:
-                self._keyword_patterns.append(
-                    (category, re.compile(pattern, flags))
+                self._keyword_patterns.append((category, re.compile(pattern, flags)))
+                source_patterns.append(
+                    (category, pattern if case_sensitive else "(?i)" + pattern)
                 )
         for category, pattern in extra_patterns or []:
             try:
-                self._keyword_patterns.append(
-                    (category, re.compile(pattern, flags))
-                )
+                self._keyword_patterns.append((category, re.compile(pattern, flags)))
             except re.error as exc:
                 raise ValueError(
                     f"invalid regex for toxicity category {category!r}: {exc}"
                 ) from exc
+            source_patterns.append(
+                (category, pattern if case_sensitive else "(?i)" + pattern)
+            )
+        self._rust_scanner = (
+            _build_rust_scanner(source_patterns) if prefer_rust else None
+        )
 
     def analyse(self, text: str) -> ModerationResult:
-        matches: list[ModerationMatch] = []
         if not text:
-            return ModerationResult(detector=self.name, matches=matches)
+            return ModerationResult(detector=self.name, matches=[])
+        if self._rust_scanner is not None:
+            raw = self._rust_scanner.scan(text)
+            return ModerationResult(
+                detector=self.name,
+                matches=[
+                    ModerationMatch(
+                        detector=self.name,
+                        category=category,
+                        start=start,
+                        end=end,
+                        text=text,
+                    )
+                    for category, start, end in raw
+                ],
+            )
+        matches: list[ModerationMatch] = []
         for category, pattern in self._keyword_patterns:
             for m in pattern.finditer(text):
                 matches.append(
@@ -118,6 +152,11 @@ class KeywordToxicityDetector(ModerationDetector):
                     )
                 )
         return ModerationResult(detector=self.name, matches=matches)
+
+    @property
+    def backend(self) -> str:
+        """``"rust"`` when the fast-path is active, else ``"python"``."""
+        return "rust" if self._rust_scanner is not None else "python"
 
 
 class DetoxifyDetector(ModerationDetector):
@@ -201,3 +240,20 @@ class DetoxifyDetector(ModerationDetector):
                 )
             )
         return ModerationResult(detector=self.name, matches=matches)
+
+
+def _build_rust_scanner(patterns: list[tuple[str, str]]) -> Any | None:
+    """Instantiate a ``backfire_kernel.PiiScanner`` on the supplied
+    patterns, or return ``None`` when the Rust wheel is not
+    available. ``PiiScanner`` is the Rust multi-pattern regex
+    engine; the name tracks its first use site but the scanner
+    itself is content-agnostic.
+    """
+    try:
+        from backfire_kernel import PiiScanner as _RustScanner
+    except ImportError:
+        return None
+    try:
+        return _RustScanner(patterns)
+    except Exception:  # pragma: no cover — defensive
+        return None
