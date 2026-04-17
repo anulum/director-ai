@@ -203,6 +203,7 @@ nav:
       - Customer Support: cookbook/customer-support.md
       - Multi-Agent Handoff Failures: cookbook/multi-agent-handoff-failures.md
       - Long-Context RAG Drift: cookbook/long-context-rag-drift.md
+      - Streaming Halt: cookbook/streaming-halt-guide.md
       - Case Studies: cookbook/case-studies.md
   - Benchmarks: benchmarks.md
   - Tutorials: tutorials.md

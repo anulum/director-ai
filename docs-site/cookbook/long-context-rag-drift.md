@@ -146,5 +146,5 @@ benefit from two additional signals on top of chunked NLI:
 
 * [`docs/BENCHMARKS.md`](https://github.com/anulum/director-ai/blob/main/docs/BENCHMARKS.md)
   — AggreFact per-dataset scores and latency matrix.
-* Streaming-halt guide (planned under `guide/streaming-halt.md`) —
-  catching drift *during* generation, not post-hoc.
+* [`docs-site/cookbook/streaming-halt-guide.md`](./streaming-halt-guide.md)
+  — catching drift *during* generation instead of post-hoc.
