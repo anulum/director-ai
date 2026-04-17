@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   threshold, a bootstrap 95% CI, and a Bayesian posterior (Turing.jl
   NUTS). Python feeder at `tools/prepare_threshold_data.py`. New
   `make test-julia` and `make julia-instantiate` targets.
+- Lean 4 formal model of the HaltMonitor threshold check
+  (`formal/HaltMonitor/`) with four machine-checked theorems: no
+  token whose coherence score falls below `hard_limit` can ever be
+  emitted. New `make test-lean` target plus `test-all` wiring.
 
 ### Changed
 - `CoherenceAgent.__init__` and `_build_provider` accept `api_key=`

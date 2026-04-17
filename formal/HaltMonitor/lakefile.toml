@@ -1,0 +1,5 @@
+name = "HaltMonitor"
+defaultTargets = ["HaltMonitor"]
+
+[[lean_lib]]
+name = "HaltMonitor"
