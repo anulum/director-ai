@@ -204,6 +204,7 @@ nav:
       - Multi-Agent Handoff Failures: cookbook/multi-agent-handoff-failures.md
       - Long-Context RAG Drift: cookbook/long-context-rag-drift.md
       - Streaming Halt: cookbook/streaming-halt-guide.md
+      - Agent Trajectory Preflight: cookbook/agent-trajectory-preflight.md
       - Case Studies: cookbook/case-studies.md
   - Benchmarks: benchmarks.md
   - Tutorials: tutorials.md
