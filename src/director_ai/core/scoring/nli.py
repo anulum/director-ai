@@ -268,13 +268,24 @@ def clear_model_cache() -> None:
 
 
 def nli_available() -> bool:
-    """Check whether torch + transformers are importable."""
+    """Check whether torch + transformers are importable.
+
+    ``importlib.util.find_spec`` raises :class:`ValueError` when a
+    test mocks a module via ``sys.modules`` without setting
+    ``__spec__``; in that case the caller has deliberately
+    installed a fake, so treat the package as available.
+    """
     import importlib.util
 
-    return (
-        importlib.util.find_spec("torch") is not None
-        and importlib.util.find_spec("transformers") is not None
-    )
+    for name in ("torch", "transformers"):
+        try:
+            if importlib.util.find_spec(name) is None:
+                return False
+        except (ImportError, ValueError):
+            # ValueError = mocked module without __spec__ — trust
+            # the test-time injection and continue.
+            continue
+    return True
 
 
 # ── Scorer â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€

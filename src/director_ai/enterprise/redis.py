@@ -14,11 +14,17 @@ from __future__ import annotations
 import json
 import logging
 import time
+from typing import Any
 
+# redis is optional — declare as Any so the except-branch
+# assignment does not conflict with mypy-inferred module type.
+redis: Any
 try:
-    import redis
+    import redis as _redis_mod
+
+    redis = _redis_mod
 except ImportError:
-    redis = None  # type: ignore
+    redis = None
 
 from director_ai.core.cache import ScoreCache
 from director_ai.core.knowledge import GroundTruthStore

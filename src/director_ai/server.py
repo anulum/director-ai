@@ -28,11 +28,64 @@ import logging
 import time
 import uuid
 from contextlib import asynccontextmanager
+from typing import Any
 
 from .core.config import DirectorConfig
 from .core.metrics import metrics
 
-__all__ = ["create_app"]
+__all__ = [
+    "AdversarialPatternResponse",
+    "AdversarialResponse",
+    "AgenticStepRequest",
+    "AgenticStepResponse",
+    "BatchRequest",
+    "BatchResponse",
+    "ComplianceDashboardResponse",
+    "ComplianceReportResponse",
+    "ConfigResponse",
+    "ConformalRequest",
+    "ConformalResponse",
+    "ConsensusRequest",
+    "ConsensusResponse",
+    "ConsensusResponseItem",
+    "DeletedResponse",
+    "DriftResponse",
+    "FeedbackLoopCheckRequest",
+    "FeedbackLoopResponse",
+    "FreshnessClaimResponse",
+    "FreshnessResponse",
+    "HealthResponse",
+    "HourlyDataPoint",
+    "HourlyResponse",
+    "InjectionClaimResponse",
+    "InjectionRequest",
+    "InjectionResponse",
+    "ModelMetricsResponse",
+    "NumericIssueResponse",
+    "NumericVerifyResponse",
+    "PairwiseAgreementResponse",
+    "PeriodMetrics",
+    "ProcessRequest",
+    "ProcessResponse",
+    "ReadyResponse",
+    "ReasoningVerdictResponse",
+    "ReasoningVerifyResponse",
+    "ReviewRequest",
+    "ReviewResponse",
+    "SessionResponse",
+    "SourceResponse",
+    "StatsResponse",
+    "StatusResponse",
+    "TenantFactRequest",
+    "TenantInfo",
+    "TenantListResponse",
+    "TenantVectorFactRequest",
+    "TextRequest",
+    "TurnInfo",
+    "VerifyResponse",
+    "WindowStats",
+    "create_app",
+]
 
 REQUEST_ID_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
     "request_id",
@@ -54,16 +107,23 @@ try:
 except ImportError:
     _FASTAPI_AVAILABLE = False
 
+# slowapi is optional — declare as Any up front so the
+# except-branch assignment does not conflict with mypy-inferred
+# module / class types from the imports above.
+slowapi: Any
+Limiter: Any
 try:
-    import slowapi
-    from slowapi import Limiter
+    import slowapi as _slowapi_mod
+    from slowapi import Limiter as _Limiter
     from slowapi.middleware import SlowAPIMiddleware
     from slowapi.util import get_remote_address
 
+    slowapi = _slowapi_mod
+    Limiter = _Limiter
     _SLOWAPI_AVAILABLE = True
 except ImportError:
-    slowapi = None  # type: ignore
-    Limiter = None  # type: ignore
+    slowapi = None
+    Limiter = None
     _SLOWAPI_AVAILABLE = False
 
 
@@ -86,7 +146,7 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
     from ._server_helpers import (
         halt_evidence_to_dict as _halt_evidence_to_dict,
     )
-    from ._server_models import (  # noqa: F401 — re-export for backward compat
+    from ._server_models import (
         AdversarialPatternResponse,
         AdversarialResponse,
         AgenticStepRequest,
@@ -958,7 +1018,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 request.url.path,
             )
 
-        results = []
+        results: list[dict[str, Any]] = []
         try:
             import time
 
@@ -1009,7 +1069,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     )
 
             return BatchResponse(
-                results=results,  # type: ignore
+                results=results,
                 total=batch_res.total,
                 succeeded=batch_res.succeeded,
                 failed=batch_res.failed,

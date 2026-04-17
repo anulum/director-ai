@@ -29,16 +29,24 @@ if TYPE_CHECKING:  # pragma: no cover
 
 logger = logging.getLogger("DirectorAI.LangChain")
 
-try:
+if TYPE_CHECKING:
+    # Present the real langchain base class to the type checker
+    # so subclasses in this module are checked against its
+    # signatures.
     from langchain_core.callbacks import BaseCallbackHandler
-except ImportError:
-    # Provide a usable base when langchain-core is not installed,
-    # so the module can still be imported for type checking.
-    class BaseCallbackHandler:  # type: ignore[no-redef]
-        """Stub base when langchain-core is not installed."""
+else:
+    # Runtime resolution: fall back to a minimal base that
+    # exposes the same constructor surface when langchain-core
+    # is not installed.
+    try:
+        from langchain_core.callbacks import BaseCallbackHandler
+    except ImportError:
 
-        def __init__(self, **kwargs: Any) -> None:
-            pass
+        class BaseCallbackHandler:
+            """Fallback base used when langchain-core is not installed."""
+
+            def __init__(self, **kwargs: Any) -> None:
+                pass
 
 
 class CoherenceCallbackHandler(BaseCallbackHandler):

@@ -42,7 +42,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.config import DirectorConfig
@@ -86,9 +86,12 @@ class ProductionGuard:
             use_nli=self._config.use_nli,
         )
         self._verified = VerifiedScorer()
-        self._calibrator = None
-        self._conformal = None
-        self._feedback = None
+        # Calibration pieces are lazily installed by
+        # :meth:`enable_calibration`; declare them as optionals
+        # up-front so the later assignments do not narrow.
+        self._calibrator: Any = None
+        self._conformal: Any = None
+        self._feedback: Any = None
         self._injection_detector: InjectionDetector | None = None
 
     @classmethod
@@ -118,9 +121,9 @@ class ProductionGuard:
         from director_ai.core.calibration.online_calibrator import OnlineCalibrator
 
         fb = FeedbackStore()
-        self._feedback = fb  # type: ignore[assignment]
-        self._calibrator = OnlineCalibrator(store=fb)  # type: ignore[assignment]
-        self._conformal = ConformalPredictor(coverage=1.0 - alpha)  # type: ignore[assignment]
+        self._feedback = fb
+        self._calibrator = OnlineCalibrator(store=fb)
+        self._conformal = ConformalPredictor(coverage=1.0 - alpha)
         logger.info("Calibration enabled (alpha=%.2f)", alpha)
 
     def check(

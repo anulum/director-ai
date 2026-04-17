@@ -25,6 +25,7 @@ Usage::
 
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import fields as dc_fields
 
 __all__ = ["get_field_groups", "FieldMeta", "FIELD_GROUPS"]
@@ -173,7 +174,9 @@ def get_field_groups() -> dict[str, list[dict]]:
             name=f.name,
             group=group,
             field_type=f.type if isinstance(f.type, type) else str,
-            default=f.default if f.default is not f.default_factory else None,  # type: ignore[attr-defined]
+            default=(
+                f.default if f.default is not dataclasses.MISSING else None
+            ),
             widget=widget,
             description="",
         )

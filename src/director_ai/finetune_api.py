@@ -272,7 +272,10 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     async def validate_data(file: UploadFile, req: ValidateRequest | None = None):
         """Validate uploaded JSONL data before training."""
         if req is None:
-            req = ValidateRequest()  # type: ignore[call-arg]
+            # Pydantic v2's mypy plugin wants explicit kwargs for
+            # optional fields; the defaults below mirror the model
+            # definition.
+            req = ValidateRequest(epochs=3, batch_size=16)
 
         content = await _read_upload_with_limit(file)
         data_path = upload_dir / f"validate_{uuid.uuid4().hex[:8]}.jsonl"
@@ -302,7 +305,16 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     async def start_training(file: UploadFile, req: StartRequest | None = None):
         """Upload data and start a fine-tuning job."""
         if req is None:
-            req = StartRequest()  # type: ignore[call-arg]
+            req = StartRequest(
+                epochs=3,
+                batch_size=16,
+                learning_rate=2e-5,
+                mix_general_data=False,
+                general_data_ratio=0.2,
+                early_stopping_patience=0,
+                class_weighted_loss=False,
+                auto_benchmark=True,
+            )
 
         content = await _read_upload_with_limit(file)
         job_id_prefix = uuid.uuid4().hex[:8]

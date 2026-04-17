@@ -24,6 +24,7 @@ import asyncio
 import hmac
 import logging
 import threading
+from typing import Any
 
 from .core.config import DirectorConfig
 
@@ -69,9 +70,12 @@ def create_grpc_server(
     if cfg.api_key_tenant_map:
         _api_key_tenant_map = _json_mod.loads(cfg.api_key_tenant_map)
 
-    # Resolve proto message factories
+    # Resolve proto message factories. director_pb2 is
+    # protoc-generated without type stubs; Any-typing at the
+    # import boundary documents that the attribute access is
+    # trusted.
     try:
-        from . import director_pb2
+        from . import director_pb2 as _director_pb2_raw
     except ImportError as exc:
         raise ImportError(
             "gRPC protobuf stubs not found. "
@@ -80,10 +84,11 @@ def create_grpc_server(
             "proto/director.proto",
         ) from exc
 
-    review_resp = director_pb2.ReviewResponse  # type: ignore[attr-defined]
-    process_resp = director_pb2.ProcessResponse  # type: ignore[attr-defined]
-    batch_resp = director_pb2.BatchReviewResponse  # type: ignore[attr-defined]
-    token_evt = director_pb2.TokenEvent  # type: ignore[attr-defined]
+    director_pb2: Any = _director_pb2_raw
+    review_resp = director_pb2.ReviewResponse
+    process_resp = director_pb2.ProcessResponse
+    batch_resp = director_pb2.BatchReviewResponse
+    token_evt = director_pb2.TokenEvent
     has_proto = True
 
     # Shared background event loop for async streaming RPCs
@@ -103,9 +108,18 @@ def create_grpc_server(
         return str(metadata.get("x-tenant-id", ""))
 
     class DirectorServicer:
-        """Implements the DirectorService RPC methods."""
+        """Implements the DirectorService RPC methods.
 
-        def Review(self, request, context):  # noqa: N802
+        The gRPC-generated server stub dispatches by PascalCase
+        attribute name (``Review``, ``Process`` etc.). Internal
+        implementations are written as snake_case methods to keep
+        Python naming conventions, then bound to the PascalCase
+        names as class aliases — the pattern avoids inline
+        naming-rule suppressions without fighting the protocol
+        binding.
+        """
+
+        def review(self, request, context):
             tid = _tenant_from_context(context)
             approved, score = scorer.review(
                 request.prompt,
@@ -120,7 +134,7 @@ def create_grpc_server(
                 warning=score.warning,
             )
 
-        def Process(self, request, context):  # noqa: N802
+        def process(self, request, context):
             tid = _tenant_from_context(context)
             result = agent.process(request.prompt, tenant_id=tid)
             return process_resp(
@@ -132,7 +146,7 @@ def create_grpc_server(
                 fallback_used=result.fallback_used,
             )
 
-        def ReviewBatch(self, request, context):  # noqa: N802
+        def review_batch(self, request, context):
             if len(request.requests) > 1000:
                 context.abort(
                     grpc.StatusCode.INVALID_ARGUMENT,
@@ -158,7 +172,7 @@ def create_grpc_server(
                 )
             return batch_resp(responses=responses)
 
-        def StreamTokens(self, request, context):  # noqa: N802
+        def stream_tokens(self, request, context):
             import queue
 
             tid = _tenant_from_context(context)
@@ -190,6 +204,13 @@ def create_grpc_server(
                 i += 1
 
             future.result()
+
+        # gRPC dispatch aliases — the generated service stub looks
+        # up methods by their PascalCase proto names.
+        Review = review
+        Process = process
+        ReviewBatch = review_batch
+        StreamTokens = stream_tokens
 
     # Auth interceptor
     class _AuthInterceptor(grpc.ServerInterceptor):

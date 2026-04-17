@@ -20,7 +20,7 @@ import contextlib
 import inspect
 import logging
 from contextvars import ContextVar
-from typing import Any
+from typing import Any, cast
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.exceptions import HallucinationError, InjectionDetectedError
@@ -80,7 +80,7 @@ def score(
     if injection_detection:
         scorer.enable_injection_detection(injection_threshold=injection_threshold)
     _approved, cs = scorer.review(prompt, response)
-    return cs  # type: ignore[no-any-return]
+    return cast(CoherenceScore, cs)
 
 
 def guard(
@@ -291,17 +291,26 @@ async def _ascore_and_gate(
 
 
 class _OpenAICompletionsProxy:
-    """Drop-in for ``client.chat.completions``."""
+    """Drop-in for ``client.chat.completions``.
+
+    Wraps either a sync or async OpenAI client. The public
+    ``create`` attribute is bound to the right dispatcher at
+    init time so callers see a natural method surface without
+    re-assigning a method on an existing class definition.
+    """
 
     def __init__(self, original, scorer, on_fail, *, injection_threshold=None):
         self._original = original
         self._scorer = scorer
         self._on_fail = on_fail
         self._injection_threshold = injection_threshold
-        if inspect.iscoroutinefunction(original.create):
-            self.create = self._acreate_entry  # type: ignore[assignment]
+        self.create: Any = (
+            self._acreate_entry
+            if inspect.iscoroutinefunction(original.create)
+            else self._sync_create
+        )
 
-    def create(self, **kwargs):
+    def _sync_create(self, **kwargs):
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
         response = self._original.create(**kwargs)
@@ -441,17 +450,24 @@ class _GuardedOpenAIStream:
 
 
 class _AnthropicMessagesProxy:
-    """Drop-in for ``client.messages``."""
+    """Drop-in for ``client.messages``.
+
+    Same sync / async dispatch pattern as
+    :class:`_OpenAICompletionsProxy`.
+    """
 
     def __init__(self, original, scorer, on_fail, *, injection_threshold=None):
         self._original = original
         self._scorer = scorer
         self._on_fail = on_fail
         self._injection_threshold = injection_threshold
-        if inspect.iscoroutinefunction(original.create):
-            self.create = self._acreate_entry  # type: ignore[assignment]
+        self.create: Any = (
+            self._acreate_entry
+            if inspect.iscoroutinefunction(original.create)
+            else self._sync_create
+        )
 
-    def create(self, **kwargs):
+    def _sync_create(self, **kwargs):
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
         response = self._original.create(**kwargs)

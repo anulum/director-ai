@@ -27,6 +27,7 @@ import hmac
 import logging
 import os
 from collections.abc import Callable
+from pathlib import Path
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -77,7 +78,7 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
         if env_keys:
             result.update(k.strip() for k in env_keys.split(",") if k.strip())
         if keys_file and os.path.isfile(keys_file):
-            with open(keys_file) as f:  # noqa: PTH123
+            with Path(keys_file).open() as f:
                 for line in f:
                     line = line.strip()
                     if line and not line.startswith("#"):

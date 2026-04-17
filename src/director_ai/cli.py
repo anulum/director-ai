@@ -33,7 +33,13 @@ from ._cli_bench import (
     _cmd_tune,
     _cmd_validate_data,
 )
-from ._cli_ingest import _INGEST_MAX_FILE_SIZE, _cmd_ingest  # noqa: F401
+from ._cli_ingest import _INGEST_MAX_FILE_SIZE, _cmd_ingest
+
+# Historical re-export — downstream tests and tooling reach for
+# ``director_ai.cli._INGEST_MAX_FILE_SIZE``. Listing it in
+# ``__all__`` documents the public surface so ruff does not flag
+# the import as unused.
+__all__ = ["_INGEST_MAX_FILE_SIZE"]
 from ._cli_serve import _cmd_proxy, _cmd_serve, _cmd_stress_test
 from ._cli_verify import (
     _cmd_adversarial_test,
@@ -372,14 +378,24 @@ def _cmd_batch(args: list[str]) -> None:
     print(f"Duration: {result.duration_seconds:.2f}s")
 
     if output_file:
+        from director_ai.core.types import ReviewResult
+
         with open(output_file, "w", encoding="utf-8") as f:
             for r in result.results:
+                if not isinstance(r, ReviewResult):
+                    # BatchResult.results can also hold
+                    # (approved, score) tuples from the review
+                    # path; skip those — the CLI --out flag
+                    # only serialises full ReviewResult records.
+                    continue
                 f.write(
                     json.dumps(
                         {
-                            "output": r.output,  # type: ignore[union-attr]
-                            "halted": r.halted,  # type: ignore[union-attr]
-                            "coherence": r.coherence.score if r.coherence else None,  # type: ignore[union-attr]
+                            "output": r.output,
+                            "halted": r.halted,
+                            "coherence": (
+                                r.coherence.score if r.coherence else None
+                            ),
                         },
                     )
                     + "\n",
