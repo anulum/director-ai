@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 .DEFAULT_GOAL := help
-.PHONY: help test test-rust test-julia test-lean test-all lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate
+.PHONY: help test test-rust test-julia test-lean test-go test-all proto lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -20,7 +20,13 @@ test-julia: ## Run Julia threshold-tuner tests
 test-lean: ## Build Lean 4 formal models (HaltMonitor)
 	cd formal/HaltMonitor && lake build
 
-test-all: test test-rust test-julia test-lean ## Run Python + Rust + Julia + Lean checks
+test-go: ## Run Go gateway tests
+	cd gateway/go && go test ./...
+
+proto: ## Regenerate Python and Go stubs from schemas/proto/*.proto
+	bash schemas/generate.sh
+
+test-all: test test-rust test-julia test-lean test-go ## Run Python + Rust + Julia + Lean + Go checks
 
 lint: ## Check style (ruff format + ruff check)
 	ruff format --check src/ tests/

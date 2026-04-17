@@ -23,6 +23,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`formal/HaltMonitor/`) with four machine-checked theorems: no
   token whose coherence score falls below `hard_limit` can ever be
   emitted. New `make test-lean` target plus `test-all` wiring.
+- Frozen `director.v1` wire schema in `schemas/proto/director/v1/`
+  — chat completion, coherence verdict, tenant, API key, and audit
+  messages plus `CoherenceScoring` and `ChatGateway` service
+  definitions. Generated Python stubs under
+  `src/director_ai/proto/director/v1/`, Go stubs under
+  `gateway/go/proto/director/v1/`. `schemas/generate.sh`
+  regenerator, hand-written `director_ai.proto.converters`
+  adapters, and `make proto` / `make test-go` targets.
 
 ### Changed
 - `CoherenceAgent.__init__` and `_build_provider` accept `api_key=`

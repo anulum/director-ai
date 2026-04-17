@@ -1,0 +1,248 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Commercial licence available
+// © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+// © Code 2020–2026 Miroslav Šotek. All rights reserved.
+// ORCID: 0009-0009-3560-0851
+// Contact: www.anulum.li | protoscience@anulum.li
+// Director-Class AI — wire protocol (v1)
+//
+// The single source of truth for messages crossing a boundary —
+// Python server ↔ Go gateway, any SDK ↔ gateway, any auditor ↔
+// persisted audit records. Business logic types that never cross a
+// boundary (internal dataclasses, cache structures) stay in their
+// native language.
+//
+// Versioning rule: once a message lands in v1, its existing fields
+// are frozen. Additive-only. Break on v2.
+
+syntax = "proto3";
+
+package director.v1;
+
+option go_package = "github.com/anulum/director-ai/gateway/proto/directorv1;directorv1";
+option java_package = "li.anulum.director.v1";
+option java_multiple_files = true;
+option csharp_namespace = "Director.V1";
+
+// ---------------------------------------------------------------
+// Chat completion — OpenAI-compatible subset
+// ---------------------------------------------------------------
+
+enum Role {
+  ROLE_UNSPECIFIED = 0;
+  ROLE_SYSTEM = 1;
+  ROLE_USER = 2;
+  ROLE_ASSISTANT = 3;
+  ROLE_TOOL = 4;
+}
+
+message ChatMessage {
+  Role role = 1;
+  string content = 2;
+  // OpenAI allows a stable name per message, used for multi-user
+  // conversations and tool responses. Empty = not set.
+  string name = 3;
+}
+
+message ChatCompletionRequest {
+  string model = 1;
+  repeated ChatMessage messages = 2;
+  // Sampling temperature. Zero signals "unset"; gateways forward
+  // the upstream default rather than zero-inject.
+  float temperature = 3;
+  int32 max_tokens = 4;
+  bool stream = 5;
+  // Tenant binding. Empty = use the tenant bound to the API key.
+  string tenant_id = 6;
+  // Opaque per-request ID for correlation. Gateways must not mutate.
+  string request_id = 7;
+}
+
+message ChatChoice {
+  int32 index = 1;
+  ChatMessage message = 2;
+  // Delta content for streaming chunks. Assistants should populate
+  // `message.content` for non-stream and `delta_content` for stream.
+  string delta_content = 3;
+  string finish_reason = 4;
+}
+
+message TokenUsage {
+  int32 prompt_tokens = 1;
+  int32 completion_tokens = 2;
+  int32 total_tokens = 3;
+}
+
+message ChatCompletionResponse {
+  string id = 1;
+  string model = 2;
+  int64 created_unix = 3;
+  repeated ChatChoice choices = 4;
+  TokenUsage usage = 5;
+  // Director-AI augmentation. Present on both stream chunks and
+  // final non-stream responses.
+  CoherenceVerdict coherence = 6;
+}
+
+// ---------------------------------------------------------------
+// Scoring contract
+// ---------------------------------------------------------------
+
+enum HaltReason {
+  HALT_REASON_UNSPECIFIED = 0;
+  HALT_REASON_NONE = 1;
+  HALT_REASON_COHERENCE_BELOW_THRESHOLD = 2;
+  HALT_REASON_INJECTION_DETECTED = 3;
+  HALT_REASON_POLICY_VIOLATION = 4;
+  HALT_REASON_TOKEN_TIMEOUT = 5;
+  HALT_REASON_TOTAL_TIMEOUT = 6;
+  HALT_REASON_CALLBACK_TIMEOUT = 7;
+}
+
+// One line of scorer output for a claim-document pair. Ground-truth
+// sources that survive grounding are listed; full source text is
+// not duplicated — a reference is enough at the wire boundary.
+message GroundingSource {
+  string source_id = 1;
+  float similarity = 2;
+  float nli_support = 3;
+}
+
+message CoherenceVerdict {
+  float score = 1;
+  bool halted = 2;
+  HaltReason halt_reason = 3;
+  // Scores below `hard_limit` halt the stream. Carried on the wire
+  // so a thin client can log the operating point without querying
+  // the server for its configuration.
+  float hard_limit = 4;
+  // Confidence intervals for `score`, if computed. Zero-zero means
+  // "not available" — consumers must not infer tight certainty from
+  // an absent CI.
+  float score_lower = 5;
+  float score_upper = 6;
+  // Evidence trail for the verdict. Unused in heuristic mode.
+  repeated GroundingSource sources = 7;
+  // Free-form human string for logging and UI hover. Machine
+  // consumers should branch on `halt_reason`, not parse this.
+  string message = 8;
+}
+
+// Single-shot scoring RPC input. Kept flat so clients can batch
+// claims without nesting.
+message ScoreClaimRequest {
+  string claim = 1;
+  repeated string documents = 2;
+  string tenant_id = 3;
+  string request_id = 4;
+  // Per-call override of the server default. Zero = use server.
+  float threshold = 5;
+}
+
+message ScoreClaimResponse {
+  CoherenceVerdict verdict = 1;
+  // Server-measured wall time, independent of any client-side timer.
+  int64 latency_ms = 2;
+}
+
+// Streaming scoring: one request per token (or chunk), one verdict
+// per token. The server decides when to halt; clients must honour
+// `halted` immediately on any chunk.
+message ScoreTokenRequest {
+  string tenant_id = 1;
+  string request_id = 2;
+  // Accumulated assistant output to this point (not a delta). Mirrors
+  // the `accumulated = "".join(output_buffer) + token` shape on the
+  // Python side.
+  string accumulated_text = 3;
+  // Candidate token about to be emitted. Empty on the final "flush"
+  // request that closes the stream.
+  string next_token = 4;
+  repeated string documents = 5;
+}
+
+message ScoreTokenResponse {
+  CoherenceVerdict verdict = 1;
+}
+
+// ---------------------------------------------------------------
+// Tenant / API key metadata
+// ---------------------------------------------------------------
+
+enum TenantTier {
+  TENANT_TIER_UNSPECIFIED = 0;
+  TENANT_TIER_INDIE = 1;
+  TENANT_TIER_PRO = 2;
+  TENANT_TIER_PERPETUAL = 3;
+  TENANT_TIER_ENTERPRISE_PILOT = 4;
+  TENANT_TIER_ENTERPRISE = 5;
+}
+
+message Tenant {
+  string tenant_id = 1;
+  string display_name = 2;
+  TenantTier tier = 3;
+  // When the tenant was created, in unix seconds UTC.
+  int64 created_unix = 4;
+  // Per-tenant rate limits. Zero = inherit gateway default.
+  int32 rpm_limit = 5;
+  int32 rpd_limit = 6;
+  // Fingerprint identifier of the API key bound to this tenant, as
+  // emitted by audit_salt.get_audit_salt + truncated SHA-256. Raw
+  // keys never cross this wire.
+  repeated string api_key_fingerprints = 7;
+}
+
+message APIKeyMetadata {
+  // Truncated salted fingerprint — never the raw key.
+  string fingerprint = 1;
+  string tenant_id = 2;
+  // When the key was issued, in unix seconds UTC.
+  int64 issued_unix = 3;
+  // When the key should stop working. Zero = no expiry.
+  int64 expires_unix = 4;
+  bool revoked = 5;
+}
+
+// ---------------------------------------------------------------
+// Audit record — one decision, one row
+// ---------------------------------------------------------------
+
+message AuditRecord {
+  // RFC-3339 string with nanosecond resolution. String form keeps
+  // the wire format readable in text logs and survives clock-skew
+  // debates between services.
+  string timestamp = 1;
+  string request_id = 2;
+  string tenant_id = 3;
+  string api_key_fingerprint = 4;
+  // Salted hash of the input query — never the plaintext.
+  string query_hash = 5;
+  // Response length in characters, for volume metrics. Zero on halt.
+  int32 response_length = 6;
+  CoherenceVerdict verdict = 7;
+  // Structured policy violation codes.
+  repeated string policy_violations = 8;
+  // Wall time the decision took end-to-end at the gateway.
+  int64 latency_ms = 9;
+  // Model name actually routed to (may differ from requested model
+  // when the gateway falls back). Empty on pure heuristic scoring.
+  string model = 10;
+}
+
+// ---------------------------------------------------------------
+// Services — kept minimal here; individual RPCs may grow. Fields
+// are the contract, services are convenience.
+// ---------------------------------------------------------------
+
+service CoherenceScoring {
+  rpc ScoreClaim(ScoreClaimRequest) returns (ScoreClaimResponse);
+  rpc ScoreStream(stream ScoreTokenRequest)
+      returns (stream ScoreTokenResponse);
+}
+
+service ChatGateway {
+  rpc ChatCompletion(ChatCompletionRequest) returns (ChatCompletionResponse);
+  rpc ChatCompletionStream(ChatCompletionRequest)
+      returns (stream ChatCompletionResponse);
+}
