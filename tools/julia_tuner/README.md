@@ -95,7 +95,7 @@ One JSON object per line, UTF-8:
 
 `point.threshold` is the sample optimum; `bootstrap.*` and
 `bayesian.*` bracket the uncertainty. When the two intervals agree
-within their reported spread, the operating point is robust; when
+within their reported spread, the operating point is stable; when
 they disagree, the sample is likely too small or too skewed.
 
 ## Tests

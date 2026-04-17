@@ -20,6 +20,7 @@ import (
 	"github.com/anulum/director-ai/gateway/internal/config"
 	"github.com/anulum/director-ai/gateway/internal/proxy"
 	"github.com/anulum/director-ai/gateway/internal/ratelimit"
+	"github.com/anulum/director-ai/gateway/internal/risk"
 	"github.com/anulum/director-ai/gateway/internal/scoring"
 )
 
@@ -32,6 +33,7 @@ type Components struct {
 	Proxy   *proxy.Client
 	Audit   *audit.Logger
 	Scoring *scoring.Client
+	Risk    *risk.Middleware
 	Handler http.Handler
 }
 
@@ -60,6 +62,17 @@ func Build(cfg *config.Config, auditLogger *audit.Logger) (*Components, error) {
 		}
 	}
 
+	var riskMW *risk.Middleware
+	if cfg.RiskEnabled {
+		budget, err := risk.NewBudget(
+			cfg.RiskAllowance, cfg.RiskWindowSeconds, nil,
+		)
+		if err != nil {
+			return nil, err
+		}
+		riskMW = risk.NewMiddleware(risk.NewScorer(), budget)
+	}
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("/health", health)
 	mux.HandleFunc("/healthz", health)
@@ -71,13 +84,19 @@ func Build(cfg *config.Config, auditLogger *audit.Logger) (*Components, error) {
 	// auth so it can read the fingerprint the latter stamps onto the
 	// request context, but it must wrap the rate limiter so 429s get
 	// logged too. Scoring, when enabled, wraps the proxy so it sees
-	// the assistant message after the upstream returns. Final chain:
-	//   requestID → auth → audit → rate → scoring → mux
+	// the assistant message after the upstream returns. Risk runs
+	// between auth and rate so obvious attacks are rejected before
+	// the token bucket or the upstream call, and the budget
+	// reservation key is the authenticated fingerprint. Final chain:
+	//   requestID → auth → audit → risk → rate → scoring → mux
 	var handler http.Handler = mux
 	if scoringMW.Enabled() {
 		handler = scoringMW.Handler(handler)
 	}
 	handler = rate.Handler(handler, auth.FingerprintFromContext)
+	if riskMW.Enabled() {
+		handler = riskMW.Handler(handler)
+	}
 	handler = auditMiddleware(auditLogger, cfg.UpstreamURL)(handler)
 	handler = authMW.Handler(handler)
 	handler = requestIDMiddleware(handler)
@@ -89,6 +108,7 @@ func Build(cfg *config.Config, auditLogger *audit.Logger) (*Components, error) {
 		Proxy:   prx,
 		Audit:   auditLogger,
 		Scoring: scoringClient,
+		Risk:    riskMW,
 		Handler: handler,
 	}, nil
 }

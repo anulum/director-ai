@@ -33,6 +33,9 @@ type Config struct {
 	AllowHTTPUpstream bool
 	ScoringAddr       string
 	ScoringTimeout    time.Duration
+	RiskEnabled       bool
+	RiskAllowance     float64
+	RiskWindowSeconds float64
 }
 
 const (
@@ -60,6 +63,24 @@ func Load() (*Config, error) {
 		AuditLogPath:      os.Getenv("DIRECTOR_AUDIT_LOG"),
 		ScoringAddr:       os.Getenv("DIRECTOR_SCORING_ADDR"),
 		ScoringTimeout:    defaultScoringTimeout,
+		RiskEnabled:       envBool("DIRECTOR_RISK_ENABLED"),
+		RiskAllowance:     10.0,
+		RiskWindowSeconds: 60.0,
+	}
+
+	if raw := os.Getenv("DIRECTOR_RISK_ALLOWANCE"); raw != "" {
+		v, err := strconv.ParseFloat(raw, 64)
+		if err != nil || v <= 0 {
+			return nil, fmt.Errorf("DIRECTOR_RISK_ALLOWANCE: %q", raw)
+		}
+		cfg.RiskAllowance = v
+	}
+	if raw := os.Getenv("DIRECTOR_RISK_WINDOW_SECONDS"); raw != "" {
+		v, err := strconv.ParseFloat(raw, 64)
+		if err != nil || v <= 0 {
+			return nil, fmt.Errorf("DIRECTOR_RISK_WINDOW_SECONDS: %q", raw)
+		}
+		cfg.RiskWindowSeconds = v
 	}
 
 	if raw := os.Getenv("DIRECTOR_SCORING_TIMEOUT_MS"); raw != "" {
