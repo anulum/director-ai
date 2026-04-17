@@ -14,6 +14,7 @@ fallback, margin validation."""
 from __future__ import annotations
 
 import math
+from typing import Any, cast
 
 import pytest
 
@@ -154,8 +155,11 @@ class TestOracle:
 
     def test_invalid_label_rejected(self):
         oracle = TraceSafeOracle(embedder=HashBagEmbedder(dim=32))
+        # cast bypasses the Literal narrowing so the runtime validator
+        # itself is what rejects the label — the whole point of the test.
+        bad_label = cast(Any, "something")
         with pytest.raises(ValueError, match="label"):
-            oracle.add_sample(TraceSample("x", label="something"))  # type: ignore[arg-type]
+            oracle.add_sample(TraceSample("x", label=bad_label))
 
     def test_negative_margin_rejected(self):
         with pytest.raises(ValueError, match="decision_margin"):

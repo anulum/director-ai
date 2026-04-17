@@ -269,7 +269,7 @@ class TestRiskRouter:
     def _router(self, risk: float, *, allowance: float = 10.0) -> RiskRouter:
         clock = _Clock()
         return RiskRouter(
-            scorer=_FixedScorer(risk),  # type: ignore[arg-type]
+            scorer=_FixedScorer(risk),
             budget=RiskBudget(allowance=allowance, window_seconds=60, clock=clock),
         )
 
@@ -308,7 +308,7 @@ class TestRiskRouter:
         budget = RiskBudget(allowance=1.0, window_seconds=10.0, clock=clock)
         with pytest.raises(ValueError, match="thresholds must"):
             RiskRouter(
-                scorer=scorer,  # type: ignore[arg-type]
+                scorer=scorer,
                 budget=budget,
                 rules_threshold=0.6,
                 embed_threshold=0.4,  # backwards
@@ -327,7 +327,7 @@ class TestRiskRouter:
         budget = RiskBudget(allowance=1.0, window_seconds=60, clock=clock)
         budget.set_allowance("vip", 10.0)
         router = RiskRouter(
-            scorer=_FixedScorer(0.7),  # type: ignore[arg-type]
+            scorer=_FixedScorer(0.7),
             budget=budget,
         )
         # Normal tenant exhausts at second call.

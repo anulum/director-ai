@@ -29,7 +29,7 @@ length heuristic.
 """
 
 from .budget import BudgetEntry, RiskBudget
-from .router import RiskRouter, RoutingDecision
+from .router import RiskRouter, RiskScorerProtocol, RoutingDecision
 from .scorer import PromptRiskScorer, RiskComponents
 
 __all__ = [
@@ -38,5 +38,6 @@ __all__ = [
     "RiskBudget",
     "RiskComponents",
     "RiskRouter",
+    "RiskScorerProtocol",
     "RoutingDecision",
 ]

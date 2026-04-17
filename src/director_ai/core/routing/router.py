@@ -26,13 +26,25 @@ scorer and budget.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Protocol, runtime_checkable
 
 from .budget import BudgetEntry, RiskBudget
-from .scorer import PromptRiskScorer, RiskComponents
+from .scorer import RiskComponents
 
 Action = Literal["allow", "reject"]
 Backend = Literal["rules", "embed", "nli"]
+
+
+@runtime_checkable
+class RiskScorerProtocol(Protocol):
+    """Structural type for anything the router can score with.
+
+    The concrete :class:`~director_ai.core.routing.PromptRiskScorer`
+    satisfies this Protocol; test doubles and operator-supplied
+    scorers do too, without having to subclass the default scorer.
+    """
+
+    def score(self, prompt: str) -> RiskComponents: ...
 
 
 @dataclass(frozen=True)
@@ -77,7 +89,7 @@ class RiskRouter:
     def __init__(
         self,
         *,
-        scorer: PromptRiskScorer,
+        scorer: RiskScorerProtocol,
         budget: RiskBudget,
         rules_threshold: float = 0.2,
         embed_threshold: float = 0.55,
