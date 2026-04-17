@@ -14,6 +14,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `director_ai.core.safety.audit_salt.get_audit_salt()` — loads the
   audit-log fingerprint salt from `DIRECTOR_AUDIT_SALT` or
   `DIRECTOR_AUDIT_SALT_FILE`, with a legacy fallback that warns once.
+- Julia threshold tuner (`tools/julia_tuner/`) — offline analytics
+  module that takes labelled scorer output and returns a point
+  threshold, a bootstrap 95% CI, and a Bayesian posterior (Turing.jl
+  NUTS). Python feeder at `tools/prepare_threshold_data.py`. New
+  `make test-julia` and `make julia-instantiate` targets.
 
 ### Changed
 - `CoherenceAgent.__init__` and `_build_provider` accept `api_key=`

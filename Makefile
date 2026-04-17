@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 .DEFAULT_GOAL := help
-.PHONY: help test test-rust test-all lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup
+.PHONY: help test test-rust test-julia test-all lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -11,7 +11,13 @@ test: ## Run Python tests with coverage
 test-rust: ## Run Rust tests (backfire-kernel)
 	cd backfire-kernel && cargo test --workspace
 
-test-all: test test-rust ## Run Python + Rust tests
+julia-instantiate: ## Install Julia tuner dependencies
+	julia --project=tools/julia_tuner -e 'using Pkg; Pkg.instantiate(); Pkg.precompile()'
+
+test-julia: ## Run Julia threshold-tuner tests
+	julia --project=tools/julia_tuner -e 'using Pkg; Pkg.test()'
+
+test-all: test test-rust test-julia ## Run Python + Rust + Julia tests
 
 lint: ## Check style (ruff format + ruff check)
 	ruff format --check src/ tests/
