@@ -157,6 +157,23 @@ ingestion = [
     "python-docx>=1.0",
     "beautifulsoup4>=4.12",
 ]
+# Auto-KB ingestion plugins (S3 / Notion / Google Drive). Separate
+# from the document-parsing extras above so operators can pick only
+# the sources they actually use.
+ingestion-s3 = [
+    "boto3>=1.26",
+]
+ingestion-notion = [
+    "notion-client>=2.0",
+]
+ingestion-gdrive = [
+    "google-api-python-client>=2.100",
+]
+auto-kb = [
+    "boto3>=1.26",
+    "notion-client>=2.0",
+    "google-api-python-client>=2.100",
+]
 colbert = [
     "ragatouille>=0.0.8",
 ]
@@ -251,6 +268,10 @@ ignore = ["E501"]
 "src/director_ai/__init__.py" = ["F401"]
 "notebooks/*.ipynb" = ["N802", "N803", "N806", "B007", "SIM108", "F401", "I001"]
 "tests/test_coverage_*.py" = ["N801", "N806", "SIM117", "B018"]
+# Ingestion stubs mirror PascalCase API surfaces of boto3 and the
+# Google Drive client so operators can swap the stub for the real
+# SDK without rewriting signatures.
+"tests/test_ingestion_plugins.py" = ["N803"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
