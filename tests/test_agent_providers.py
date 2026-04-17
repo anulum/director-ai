@@ -51,9 +51,37 @@ class TestAgentProvider:
         env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
         with (
             patch.dict(os.environ, env, clear=True),
-            pytest.raises(ValueError, match="OPENAI_API_KEY not set"),
+            pytest.raises(ValueError, match="OPENAI_API_KEY"),
         ):
             CoherenceAgent(provider="openai")
+
+    def test_explicit_api_key_does_not_touch_env(self):
+        """VULN-DAI-001 regression: api_key passed directly must not set
+        OPENAI_API_KEY in the process environment."""
+        env = {k: v for k, v in os.environ.items() if k != "OPENAI_API_KEY"}
+        with patch.dict(os.environ, env, clear=True):
+            agent = CoherenceAgent(provider="openai", api_key="sk-direct")
+            from director_ai.integrations.providers import OpenAIProvider
+
+            assert isinstance(agent.generator, OpenAIProvider)
+            assert agent.generator.api_key == "sk-direct"
+            assert "OPENAI_API_KEY" not in os.environ
+
+    def test_explicit_api_key_overrides_env(self):
+        """Passed api_key wins over environment value."""
+        with patch.dict(os.environ, {"OPENAI_API_KEY": "sk-env"}):
+            agent = CoherenceAgent(provider="openai", api_key="sk-explicit")
+            assert agent.generator.api_key == "sk-explicit"
+
+    def test_anthropic_explicit_api_key_no_env_leak(self):
+        env = {k: v for k, v in os.environ.items() if k != "ANTHROPIC_API_KEY"}
+        with patch.dict(os.environ, env, clear=True):
+            agent = CoherenceAgent(provider="anthropic", api_key="ant-direct")
+            from director_ai.integrations.providers import AnthropicProvider
+
+            assert isinstance(agent.generator, AnthropicProvider)
+            assert agent.generator.api_key == "ant-direct"
+            assert "ANTHROPIC_API_KEY" not in os.environ
 
     @patch.dict(os.environ, {"OPENAI_API_KEY": "sk-test-key"})
     def test_openai_provider_creates_openai(self):

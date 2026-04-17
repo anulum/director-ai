@@ -44,7 +44,7 @@ class TestConstruction:
     def test_provider_missing_env_raises(self):
         with (
             patch.dict(os.environ, {}, clear=True),
-            pytest.raises(ValueError, match="not set"),
+            pytest.raises(ValueError, match="OPENAI_API_KEY"),
         ):
             CoherenceAgent(provider="openai")
 

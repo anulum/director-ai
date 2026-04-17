@@ -5,6 +5,25 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] — 2026-04-17
+
+### Added
+- `facts_root` parameter on `create_proxy_app` / `_load_facts` and
+  `--facts-root` CLI flag to restrict proxy facts loading to a chosen
+  directory (symlinks resolved).
+- `director_ai.core.safety.audit_salt.get_audit_salt()` — loads the
+  audit-log fingerprint salt from `DIRECTOR_AUDIT_SALT` or
+  `DIRECTOR_AUDIT_SALT_FILE`, with a legacy fallback that warns once.
+
+### Changed
+- `CoherenceAgent.__init__` and `_build_provider` accept `api_key=`
+  directly; the server passes `DirectorConfig.llm_api_key` through
+  instead of setting `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` on the
+  process environment.
+- API-key audit fingerprints in `server.py` and
+  `middleware/api_key.py` now use the per-installation salt from
+  `get_audit_salt()` instead of a hardcoded constant.
+
 ## [3.14.0] — 2026-04-14
 
 ### Added

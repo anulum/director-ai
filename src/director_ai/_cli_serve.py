@@ -127,6 +127,7 @@ def _cmd_proxy(args: list[str]) -> None:
     port = 8080
     threshold = 0.6
     facts_path = None
+    facts_root: str | None = None
     upstream_url = "https://api.openai.com"
     on_fail = "reject"
     api_keys: list[str] = []
@@ -143,6 +144,9 @@ def _cmd_proxy(args: list[str]) -> None:
             i += 2
         elif args[i] == "--facts" and i + 1 < len(args):
             facts_path = args[i + 1]
+            i += 2
+        elif args[i] == "--facts-root" and i + 1 < len(args):
+            facts_root = args[i + 1]
             i += 2
         elif args[i] == "--upstream-url" and i + 1 < len(args):
             upstream_url = args[i + 1]
@@ -176,6 +180,7 @@ def _cmd_proxy(args: list[str]) -> None:
     app = create_proxy_app(
         threshold=threshold,
         facts_path=facts_path,
+        facts_root=facts_root,
         upstream_url=upstream_url,
         on_fail=on_fail,
         api_keys=api_keys or None,

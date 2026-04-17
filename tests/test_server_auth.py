@@ -9,6 +9,8 @@
 
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from director_ai.core.config import DirectorConfig
@@ -266,13 +268,15 @@ def test_rate_limit_strict_raises_without_slowapi(monkeypatch):
 
 
 def test_server_provider_wiring_openai(monkeypatch):
-    """Non-local provider config sets env key for CoherenceAgent."""
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key-openai")
+    """VULN-DAI-001 regression: provider config must pass api_key directly to
+    CoherenceAgent and never write it into os.environ."""
+    monkeypatch.delenv("OPENAI_API_KEY", raising=False)
     cfg = DirectorConfig(llm_provider="openai", llm_api_key="from-config")
     app = create_app(cfg)
     with TestClient(app) as client:
         r = client.get("/v1/health")
     assert r.status_code == 200
+    assert os.environ.get("OPENAI_API_KEY") != "from-config"
 
 
 def test_sqlite_stats_works(tmp_path):

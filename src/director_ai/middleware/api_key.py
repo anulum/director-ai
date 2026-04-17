@@ -122,9 +122,12 @@ def _extract_key(request: Request) -> str | None:
 def _hash_key(key: str) -> str:
     """HMAC-SHA512 fingerprint for audit logging (never log raw keys).
 
-    Uses a static application-level salt so that fingerprints are
-    deterministic across restarts but not reversible without the salt.
-    SHA-512 chosen to satisfy CodeQL crypto-strength requirements.
+    Salt is loaded per-installation via
+    :func:`director_ai.core.safety.audit_salt.get_audit_salt`; this
+    preserves deterministic fingerprints within one deployment while
+    preventing a shared rainbow table across all Director-AI installs.
+    SHA-512 is chosen to satisfy CodeQL crypto-strength requirements.
     """
-    salt = b"director-ai-audit-v1"
-    return hmac.new(salt, key.encode(), "sha512").hexdigest()[:16]
+    from director_ai.core.safety.audit_salt import get_audit_salt
+
+    return hmac.new(get_audit_salt(), key.encode(), "sha512").hexdigest()[:16]

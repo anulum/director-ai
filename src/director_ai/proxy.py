@@ -31,6 +31,7 @@ STREAM_CHECK_INTERVAL = 8
 def create_proxy_app(
     threshold: float = 0.6,
     facts_path: str | None = None,
+    facts_root: str | None = None,
     upstream_url: str = "https://api.openai.com",
     on_fail: str = "reject",
     use_nli: bool | None = None,
@@ -47,6 +48,13 @@ def create_proxy_app(
         Coherence threshold below which responses are flagged.
     facts_path : str | None
         Path to a ``key: value`` facts file (one per line).
+    facts_root : str | None
+        Allowed root directory for ``facts_path``. When set, the
+        resolved ``facts_path`` (with symlinks followed) must lie
+        inside ``facts_root``; otherwise :class:`ValueError` is raised.
+        Leave ``None`` for CLI/operator use; set in production
+        deployments where ``facts_path`` is derived from untrusted
+        configuration.
     upstream_url : str
         Base URL of the upstream OpenAI-compatible API.
     on_fail : str
@@ -82,7 +90,7 @@ def create_proxy_app(
 
     store = GroundTruthStore()
     if facts_path:
-        _load_facts(store, facts_path)
+        _load_facts(store, facts_path, facts_root=facts_root)
 
     scorer = CoherenceScorer(
         threshold=threshold,
@@ -377,10 +385,29 @@ def _forward_headers(request) -> dict[str, str]:
     return headers
 
 
-def _load_facts(store: GroundTruthStore, path: str) -> None:
-    resolved = pathlib.Path(path).resolve()
+def _load_facts(
+    store: GroundTruthStore,
+    path: str,
+    *,
+    facts_root: str | None = None,
+) -> None:
+    try:
+        resolved = pathlib.Path(path).resolve(strict=True)
+    except FileNotFoundError as exc:
+        raise FileNotFoundError(f"Facts file not found: {path}") from exc
     if not resolved.is_file():
         raise FileNotFoundError(f"Facts file not found: {path}")
+    if facts_root is not None:
+        try:
+            root_resolved = pathlib.Path(facts_root).resolve(strict=True)
+        except FileNotFoundError as exc:
+            raise FileNotFoundError(f"facts_root not found: {facts_root}") from exc
+        if not root_resolved.is_dir():
+            raise ValueError(f"facts_root must be a directory: {facts_root}")
+        if not resolved.is_relative_to(root_resolved):
+            raise ValueError(
+                f"facts_path {resolved} is outside facts_root {root_resolved}"
+            )
     with open(resolved, encoding="utf-8") as f:
         for line in f:
             line = line.strip()

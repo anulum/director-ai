@@ -53,6 +53,7 @@ class CoherenceAgent:
         provider=None,
         fallback=None,
         disclaimer_prefix="[Unverified] ",
+        api_key=None,
         *,
         _scorer=None,
         _store=None,
@@ -65,7 +66,7 @@ class CoherenceAgent:
             raise ValueError("provider and llm_api_url are mutually exclusive")
 
         if provider:
-            self.generator = self._build_provider(provider)
+            self.generator = self._build_provider(provider, api_key=api_key)
             self.logger.info("Using %s provider", provider)
         elif llm_api_url:
             self.generator = LLMGenerator(llm_api_url)
@@ -115,18 +116,20 @@ class CoherenceAgent:
         )
 
     @staticmethod
-    def _build_provider(name: str):
+    def _build_provider(name: str, api_key: str | None = None):
         from ..integrations.providers import AnthropicProvider, OpenAIProvider
 
         env_key = _PROVIDER_ENV_KEYS.get(name)
         if not env_key:
             raise ValueError(f"Unknown provider {name!r}; use 'openai' or 'anthropic'")
-        api_key = os.environ.get(env_key, "")
-        if not api_key:
-            raise ValueError(f"{env_key} not set in environment")
+        resolved_key = api_key or os.environ.get(env_key, "")
+        if not resolved_key:
+            raise ValueError(
+                f"API key for {name!r} not supplied; pass api_key=... or set {env_key}"
+            )
         if name == "openai":
-            return OpenAIProvider(api_key=api_key)
-        return AnthropicProvider(api_key=api_key)
+            return OpenAIProvider(api_key=resolved_key)
+        return AnthropicProvider(api_key=resolved_key)
 
     _ERROR_MARKERS = ("[Timeout]", "[Error]", "[ConnectionError]", "[Connection Error]")
 

@@ -207,13 +207,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         elif cfg.llm_provider in ("openai", "anthropic"):
             agent_kwargs["provider"] = cfg.llm_provider
             if cfg.llm_api_key:
-                import os as _os
-
-                _env_keys = {
-                    "openai": "OPENAI_API_KEY",
-                    "anthropic": "ANTHROPIC_API_KEY",
-                }
-                _os.environ.setdefault(_env_keys[cfg.llm_provider], cfg.llm_api_key)
+                agent_kwargs["api_key"] = cfg.llm_api_key
             logger.info("LLM provider: %s", cfg.llm_provider)
         agent = CoherenceAgent(**agent_kwargs)
         batch_proc = BatchProcessor(agent, max_concurrency=cfg.batch_max_concurrency)
@@ -432,14 +426,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 )
             import hashlib
 
+            from .core.safety.audit_salt import get_audit_salt
+
             # Salted truncated SHA-256 fingerprint for audit logs only — NOT
             # used for authentication or password storage. The API key is
-            # verified via constant-time HMAC comparison above. Salt prevents
-            # rainbow table recovery if audit logs leak.
-            audit_salt = b"director-ai-audit-v1"
-            api_key_hash = hashlib.sha256(audit_salt + provided.encode()).hexdigest()[
-                :16
-            ]
+            # verified via constant-time HMAC comparison above. Salt is
+            # per-installation (VULN-DAI-003) so a leaked log from one
+            # deployment cannot be replayed against fingerprints from another.
+            api_key_hash = hashlib.sha256(
+                get_audit_salt() + provided.encode(),
+            ).hexdigest()[:16]
 
             # Tenant binding: enforce API key Ă˘â€ â€™ tenant mapping if configured
             if _api_key_tenant_map:
