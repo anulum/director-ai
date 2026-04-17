@@ -42,6 +42,21 @@ import secrets
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import (
+        rust_merkle_auth_path as _rust_merkle_auth_path,
+    )
+    from backfire_kernel import (
+        rust_merkle_root as _rust_merkle_root,
+    )
+    from backfire_kernel import (
+        rust_merkle_walk_path as _rust_merkle_walk_path,
+    )
+
+    _RUST_MERKLE_AVAILABLE = True
+except ImportError:  # pragma: no cover — optional accelerator
+    _RUST_MERKLE_AVAILABLE = False
+
 HistorySample = Mapping[str, object]
 """Canonical shape of a committed sample — a plain mapping. The
 prover usually builds these as ``dict[str, object]``, but
@@ -249,6 +264,8 @@ def _hash_node(left: bytes, right: bytes) -> bytes:
 
 
 def _merkle_root(leaves: Sequence[bytes]) -> bytes:
+    if _RUST_MERKLE_AVAILABLE:
+        return bytes(_rust_merkle_root(list(leaves)))
     level = list(leaves)
     while len(level) > 1:
         nxt: list[bytes] = []
@@ -264,6 +281,8 @@ def _merkle_root(leaves: Sequence[bytes]) -> bytes:
 
 def _auth_path(leaves: Sequence[bytes], index: int) -> list[bytes]:
     """Sibling hashes from *index* up to the root (exclusive)."""
+    if _RUST_MERKLE_AVAILABLE:
+        return [bytes(b) for b in _rust_merkle_auth_path(list(leaves), index)]
     path: list[bytes] = []
     level = list(leaves)
     i = index
@@ -286,6 +305,10 @@ def _auth_path(leaves: Sequence[bytes], index: int) -> list[bytes]:
 
 
 def _walk_path(leaf: bytes, index: int, siblings: Sequence[bytes]) -> bytes:
+    if _RUST_MERKLE_AVAILABLE:
+        return bytes(
+            _rust_merkle_walk_path(leaf, index, [bytes(s) for s in siblings])
+        )
     node = leaf
     i = index
     for sibling in siblings:

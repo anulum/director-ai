@@ -24,6 +24,8 @@ backfire-physics = { path = "../backfire-physics" }
 backfire-observers = { path = "../backfire-observers" }
 backfire-ssgf = { path = "../backfire-ssgf" }
 pyo3 = { workspace = true }
+sha2 = { workspace = true }
+hmac = { workspace = true }
 
 [lints]
 workspace = true

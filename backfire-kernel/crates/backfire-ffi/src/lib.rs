@@ -58,6 +58,8 @@ use backfire_physics::{
 };
 use backfire_ssgf::{SSGFConfig, SSGFEngine};
 
+mod safety_hooks;
+
 // ─── PyBackfireConfig ───────────────────────────────────────────────
 
 /// Python-visible configuration for the Backfire Kernel.
@@ -1338,6 +1340,9 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_lite_score_batch, m)?)?;
     // PII regex multi-pattern scanner
     m.add_class::<PyPiiScanner>()?;
+    // Safety-hook acceleration (cyber-physical geometry/IK +
+    // zk-attestation Merkle + challenge derivation)
+    safety_hooks::register(m)?;
     Ok(())
 }
 

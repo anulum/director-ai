@@ -6,12 +6,38 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — geometry primitives
 
-"""3-D geometry primitives used by the grounding hook."""
+"""3-D geometry primitives used by the grounding hook.
+
+When ``backfire_kernel`` (the Rust FFI) is installed, the
+containment / intersection tests dispatch to ``rust_*`` functions
+that are bit-exact with the Python reference; otherwise the pure-
+Python path runs. The dispatcher is resolved at import time so
+the hot path does no per-call ``hasattr`` lookups.
+"""
 
 from __future__ import annotations
 
 import math
 from dataclasses import dataclass
+from typing import cast
+
+try:
+    from backfire_kernel import (
+        rust_aabb_contains as _rust_aabb_contains,
+    )
+    from backfire_kernel import (
+        rust_sphere_contains as _rust_sphere_contains,
+    )
+    from backfire_kernel import (
+        rust_sphere_intersects_aabb as _rust_sphere_intersects_aabb,
+    )
+    from backfire_kernel import (
+        rust_sphere_intersects_sphere as _rust_sphere_intersects_sphere,
+    )
+
+    _RUST_GEOM_AVAILABLE = True
+except ImportError:  # pragma: no cover — optional accelerator
+    _RUST_GEOM_AVAILABLE = False
 
 
 @dataclass(frozen=True)
@@ -79,6 +105,18 @@ class AABB:
             )
 
     def contains(self, point: Vec3) -> bool:
+        if _RUST_GEOM_AVAILABLE:
+            # cast documents the narrowing at the PyO3 boundary —
+            # the Rust function signature returns ``bool`` but the
+            # FFI binding is untyped at the Python level.
+            return cast(
+                bool,
+                _rust_aabb_contains(
+                    (self.min_corner.x, self.min_corner.y, self.min_corner.z),
+                    (self.max_corner.x, self.max_corner.y, self.max_corner.z),
+                    (point.x, point.y, point.z),
+                ),
+            )
         return (
             self.min_corner.x <= point.x <= self.max_corner.x
             and self.min_corner.y <= point.y <= self.max_corner.y
@@ -125,12 +163,41 @@ class Sphere:
             raise ValueError(f"Sphere.radius must be non-negative; got {self.radius!r}")
 
     def contains(self, point: Vec3) -> bool:
+        if _RUST_GEOM_AVAILABLE:
+            return cast(
+                bool,
+                _rust_sphere_contains(
+                    (self.centre.x, self.centre.y, self.centre.z),
+                    self.radius,
+                    (point.x, point.y, point.z),
+                ),
+            )
         return self.centre.distance(point) <= self.radius
 
     def intersects(self, other: Sphere) -> bool:
+        if _RUST_GEOM_AVAILABLE:
+            return cast(
+                bool,
+                _rust_sphere_intersects_sphere(
+                    (self.centre.x, self.centre.y, self.centre.z),
+                    self.radius,
+                    (other.centre.x, other.centre.y, other.centre.z),
+                    other.radius,
+                ),
+            )
         return self.centre.distance(other.centre) <= self.radius + other.radius
 
     def intersects_aabb(self, box: AABB) -> bool:
         """Closest-point-to-sphere test."""
+        if _RUST_GEOM_AVAILABLE:
+            return cast(
+                bool,
+                _rust_sphere_intersects_aabb(
+                    (self.centre.x, self.centre.y, self.centre.z),
+                    self.radius,
+                    (box.min_corner.x, box.min_corner.y, box.min_corner.z),
+                    (box.max_corner.x, box.max_corner.y, box.max_corner.z),
+                ),
+            )
         closest = self.centre.clamp(box.min_corner, box.max_corner)
         return self.centre.distance(closest) <= self.radius

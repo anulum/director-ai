@@ -29,6 +29,13 @@ from typing import Protocol, runtime_checkable
 
 from .geometry import AABB, Sphere, Vec3
 
+try:
+    from backfire_kernel import rust_two_link_ik as _rust_two_link_ik
+
+    _RUST_IK_AVAILABLE = True
+except ImportError:  # pragma: no cover — optional accelerator
+    _RUST_IK_AVAILABLE = False
+
 
 @dataclass(frozen=True)
 class PhysicalAction:
@@ -169,6 +176,16 @@ class SimpleKinematicModel:
                 "extend with a numerical solver for longer chains"
             )
         l1, l2 = links
+        elbow_up = self.branch == "elbow_up"
+        if _RUST_IK_AVAILABLE:
+            result = _rust_two_link_ik(
+                l1,
+                l2,
+                (self.chain.base.x, self.chain.base.y),
+                (target.x, target.y),
+                elbow_up,
+            )
+            return None if result is None else result
         dx = target.x - self.chain.base.x
         dy = target.y - self.chain.base.y
         distance = math.sqrt(dx * dx + dy * dy)
@@ -179,7 +196,7 @@ class SimpleKinematicModel:
         )
         cos_theta2 = max(-1.0, min(1.0, cos_theta2))
         theta2 = math.acos(cos_theta2)
-        if self.branch == "elbow_down":
+        if not elbow_up:
             theta2 = -theta2
         k1 = l1 + l2 * math.cos(theta2)
         k2 = l2 * math.sin(theta2)

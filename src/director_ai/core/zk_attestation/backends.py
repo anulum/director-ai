@@ -29,6 +29,15 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
+try:
+    from backfire_kernel import (
+        rust_derive_challenge_indices as _rust_derive_challenge_indices,
+    )
+
+    _RUST_CHALLENGE_AVAILABLE = True
+except ImportError:  # pragma: no cover — optional accelerator
+    _RUST_CHALLENGE_AVAILABLE = False
+
 from .commitment import (
     CommitmentProof,
     commit_samples,
@@ -170,6 +179,12 @@ class CommitmentBackend:
         while still being unpredictable to anyone who has not seen
         the root.
         """
+        if _RUST_CHALLENGE_AVAILABLE:
+            return list(
+                _rust_derive_challenge_indices(
+                    seed_material, sample_count, challenge_size
+                ),
+            )
         indices: list[int] = []
         seen: set[int] = set()
         counter = 0
