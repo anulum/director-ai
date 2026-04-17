@@ -43,11 +43,10 @@ Action = Literal["proceed", "warn", "halt"]
 class Actor(Protocol):
     """Any callable that produces a sampled trajectory.
 
-    A real implementation is expected to wrap a distilled LLM (the
-    lightweight policy model from the 2026 roadmap), but the
-    protocol is content-agnostic: the simulator only requires a
-    deterministic, seedable token generator. Tests inject fixed
-    draws.
+    A real implementation typically wraps a distilled lightweight
+    policy model, but the protocol is content-agnostic: the
+    simulator only requires a deterministic, seedable token
+    generator. Tests inject fixed draws.
     """
 
     def sample(self, prompt: str, seed: int) -> list[str]:

@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — agent trajectory simulator package
 
-"""Monte-Carlo agent trajectory simulator (roadmap 2026-2030,
-Tier 1 #1 — foundation).
+"""Monte-Carlo agent trajectory simulator.
 
 Given a prompt and an :class:`Actor` that can draw token sequences
 with seeded randomness, :class:`TrajectorySimulator` runs N
@@ -25,11 +24,9 @@ will also halt — catching it in preflight saves tokens and lets
 the gateway return a structured 422 before the user sees a
 broken stream.
 
-This module is **foundation scope** for the 2026-04-21 roadmap
-start. Follow-ups tracked separately: distilled-actor integration,
-pipeline wiring into the CoherenceAgent, conformal calibration
-against historical traces, and a Rust-accelerated Monte-Carlo
-loop.
+The :class:`Actor` Protocol is the stable boundary: distilled
+policy models, Rust-accelerated samplers, and calibrated-on-trace
+actors all slot in as drop-in implementations.
 """
 
 from .simulator import (

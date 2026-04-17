@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — prompt-risk routing package
 
-"""Predictive prompt-risk routing (roadmap 2026-2030, Tier 1 #2).
+"""Predictive prompt-risk routing.
 
 Ultra-fast input risk scoring so the gateway can pick the right
 scoring backend and honour a per-tenant risk budget before the

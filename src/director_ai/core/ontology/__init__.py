@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — ontology oracle package
 
-"""Ontological consistency oracle (roadmap Tier 1 Batch 4 #7).
+"""Ontological consistency oracle.
 
 A lightweight category / modal-logic enforcer that catches the
 class-level contradictions a pure NLI layer misses: asserting
@@ -17,13 +17,14 @@ subclass of food when the ontology declares otherwise.
   ``disjoint_with``, ``part_of``) with cycle detection on ``is_a``
   edges and inherited disjointness across subclass chains.
 * :class:`OntologyChecker` — evaluates type assertions (an
-  individual is-a class) and flags disjointness violations. Pairs
-  with the :mod:`~director_ai.core.safety.policy` module via
-  a separate adapter (out of foundation scope).
+  individual is-a class) and flags disjointness violations.
+  Integrates with :mod:`~director_ai.core.safety.policy` through
+  a separate adapter when operators wire it into the Policy
+  layer.
 
-Foundation scope: the three relations above with transitive
-closure on ``is_a``. Modal operators (``necessarily``, ``possibly``)
-and role relations are drop-ins on top of :class:`OntologyGraph`.
+The :class:`OntologyGraph` API is the stable surface: modal
+operators (``necessarily``, ``possibly``) and role relations
+compose on top without breakage.
 """
 
 from .checker import OntologyChecker, OntologyViolation

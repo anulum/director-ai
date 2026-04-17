@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — causal counterfactual verifier package
 
-"""Causal counterfactual trajectory verifier (roadmap Tier 1 Batch 3 #5).
+"""Causal counterfactual trajectory verifier.
 
 A fast, dependency-free structural causal model (SCM) evaluator
 that answers "would the safety invariant still hold if the agent
@@ -21,10 +21,11 @@ had made decision X instead of Y?" by:
   branches around a decision point and reports which branches
   keep the safety invariant satisfied.
 
-Foundation scope: deterministic structural equations (caller-supplied
-callables). Stochastic structural equations, DoWhy-style effect
-estimation, and the Rust kernel are drop-ins on top of the stable
-:class:`CausalGraph` and :class:`Intervention` boundaries.
+Structural equations are caller-supplied callables; this is the
+deterministic core. Stochastic structural equations, DoWhy-style
+effect estimation, and Rust-accelerated propagation plug in on
+top of the stable :class:`CausalGraph` and :class:`Intervention`
+boundaries.
 """
 
 from .counterfactual import CounterfactualBranch, CounterfactualVerifier, Verdict

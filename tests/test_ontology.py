@@ -71,8 +71,9 @@ class TestOntologyGraph:
     def test_part_of_records(self):
         g = OntologyGraph()
         g.add_part_of("engine", "car")
-        # Foundation scope: no checker consumes part_of yet, but the
-        # relation must still be stored so future checkers can see it.
+        # part_of is stored on the graph so future mereological
+        # checkers can see it; the default checker does not consume
+        # it yet — the test pins the storage contract.
         assert "car" not in g.parents("engine")
         assert "engine" in g.classes()
 

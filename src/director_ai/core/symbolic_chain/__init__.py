@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — neural-symbolic reasoning chain package
 
-"""Verifiable neural-symbolic reasoning chain (roadmap Tier 1 Batch 3 #6).
+"""Verifiable neural-symbolic reasoning chain.
 
 Extract atomic claims and their relations from a response, then
 run the set through a theorem prover to detect contradictions
@@ -19,16 +19,13 @@ modal operators).
 * :class:`ProverBackend` — Protocol that accepts a set of
   :class:`Claim` + :class:`ClaimRelation` and returns a
   :class:`ConsistencyReport`.
-* :class:`GraphProver` — ships with the foundation. Pure-Python
-  graph closure: detects direct contradictions and the simplest
-  transitive ``A implies B`` / ``B contradicts C`` → ``A
-  contradicts C`` pattern. Z3/Lean drop in on the same Protocol.
+* :class:`GraphProver` — pure-Python closure-based prover.
+  Detects direct contradictions and one-hop transitive
+  ``A implies B`` / ``B contradicts C`` → ``A contradicts C``.
+  Z3 / Lean / WASM provers drop in on the same Protocol
+  when richer SMT reasoning is required.
 * :class:`NeuralSymbolicVerifier` — the glue that turns an NLI
   output and a claim set into a :class:`ConsistencyReport`.
-
-Foundation scope: deterministic graph prover, no Z3, no Lean.
-The Protocol boundary is stable so those can land without API
-churn.
 """
 
 from .claims import Claim, ClaimRelation, ClaimRelationKind

@@ -13,8 +13,8 @@ existing :class:`~director_ai.core.safety.policy.Policy` consumes.
 The compiler:
 
 * Delegates rule extraction to any :class:`RuleExtractor` (the
-  shipped :class:`StubExtractor` is deterministic; callers swap in
-  an LLM extractor as a drop-in).
+  shipped :class:`RegexRuleExtractor` is deterministic; callers
+  swap in an LLM extractor as a drop-in).
 * Deduplicates rules by ``id`` across all documents so the same
   phrase appearing in two docs lands as one rule.
 * Optionally calibrates the thresholds of threshold-bearing rules
@@ -31,7 +31,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
-from .extractor import RuleExtractor, StubExtractor
+from .extractor import RegexRuleExtractor, RuleExtractor
 from .rule import CompiledRule
 
 if TYPE_CHECKING:  # pragma: no cover — import only for typing
@@ -96,11 +96,11 @@ class PolicyCompiler:
     ----------
     extractor :
         Any :class:`RuleExtractor`. Defaults to a fresh
-        :class:`StubExtractor`.
+        :class:`RegexRuleExtractor`.
     """
 
     def __init__(self, *, extractor: RuleExtractor | None = None) -> None:
-        self._extractor: RuleExtractor = extractor or StubExtractor()
+        self._extractor: RuleExtractor = extractor or RegexRuleExtractor()
         self._next_version = 1
 
     def compile(self, documents: Iterable[str]) -> PolicyBundle:

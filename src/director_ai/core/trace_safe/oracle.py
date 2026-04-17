@@ -26,12 +26,12 @@ the cost of false positives / negatives; high margin = more
 0.05 — small enough to be actionable, large enough to avoid
 flipping on noise.
 
-Foundation scope: centroid classifier only. Spectral clustering
-for multi-modal unsafe classes (``attack`` vs ``drift`` vs
-``policy-violation``) is a follow-up — the centroid approach
-misclassifies multi-modal unsafe clusters when the centroid lands
-between modes. The public API already returns the nearest exemplar
-label so operators can begin annotating clusters manually.
+Known limitation: a single centroid misclassifies multi-modal
+unsafe clusters (``attack`` vs ``drift`` vs ``policy-violation``)
+when the centroid lands between modes. The verdict already
+returns the nearest exemplar label so operators can annotate
+clusters manually; spectral-clustering extensions slot in on the
+same :class:`TraceEmbedder` Protocol.
 """
 
 from __future__ import annotations

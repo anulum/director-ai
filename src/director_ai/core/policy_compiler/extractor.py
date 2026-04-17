@@ -4,16 +4,16 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — rule extractor Protocol + stub
+# Director-Class AI — rule extractor Protocol + regex extractor
 
 """Rule extraction boundary.
 
 Concrete extractors (LLM-backed, grammar-based, human-curated)
-plug in via :class:`RuleExtractor`. The :class:`StubExtractor`
+plug in via :class:`RuleExtractor`. The :class:`RegexRuleExtractor`
 that ships here parses the common compliance phrasings with a
-small regex set so the compiler is testable without a model —
-it is also a reasonable bootstrap for documents that already use
-imperative "must not / shall not / maximum / at least" style.
+deterministic regex set — the right choice for documents that
+already use imperative "must not / shall not / maximum / at least"
+style, and the dependency-free path that runs in CI without a model.
 """
 
 from __future__ import annotations
@@ -51,7 +51,7 @@ class RuleExtractor(Protocol):
     def extract(self, document: str) -> list[CompiledRule]: ...
 
 
-class StubExtractor:
+class RegexRuleExtractor:
     """Deterministic regex-based extractor.
 
     Recognises four phrasings used by most compliance style guides:
@@ -64,14 +64,14 @@ class StubExtractor:
     * "block pattern \\`REGEX\\`" → ``pattern`` rule with the
       backticked regex.
 
-    The stub is intentionally narrow — it trades coverage for
-    determinism so unit tests and bootstrap deployments do not
-    need an LLM. Rule IDs are stable SHA-256 hashes of
+    The extractor trades phrasing coverage for determinism so
+    CI and air-gapped deployments can compile policies without an
+    LLM. Rule IDs are stable SHA-256 hashes of
     ``(kind, value, source)`` so recompilation of the same
     document yields identical IDs (important for hot-swap diffs).
     """
 
-    def __init__(self, *, source: str = "stub") -> None:
+    def __init__(self, *, source: str = "regex-extractor") -> None:
         self._source = source
 
     def extract(self, document: str) -> list[CompiledRule]:

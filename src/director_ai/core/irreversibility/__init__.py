@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — irreversibility forecaster package
 
-"""Irreversibility impact forecaster (roadmap Tier 1 Batch 4 #8).
+"""Irreversibility impact forecaster.
 
 Estimate the probability that an action sequence crosses a
 point-of-no-return — a state from which the safety invariant can
@@ -15,18 +15,20 @@ no longer be restored by any subsequent reversal.
 * :class:`ReversibilityEstimator` — Protocol for anything that
   scores a single action's reversibility in ``[0, 1]`` (1.0 =
   trivially reversible, 0.0 = permanent). The shipped
-  :class:`RuleReversibility` is a keyword-based stub useful for
-  tests and bootstrap; model-backed estimators drop in later.
+  :class:`RuleReversibility` is a deterministic keyword-based
+  estimator; model-backed and causal-graph-aware estimators
+  drop in on the same Protocol.
 * :class:`IrreversibilityForecaster` — seeded Monte-Carlo sampler
   that walks ``N`` draws of ``K``-step sequences, records the
   fraction that crosses the caller-supplied irreversibility
-  threshold, and returns a conformal-style credible interval
-  (Wilson score, not a heavy prior — enough for go/no-go).
+  threshold, and returns a Wilson-score credible interval —
+  lighter than a full conformal prior and tight enough for
+  go/no-go decisions.
 
-Foundation scope: independent-action sampling (no causal graph,
-no HaltMonitor coupling). The Protocol boundary for the
-estimator is stable so a causal-graph-aware estimator composed
-with :mod:`~director_ai.core.causal_verifier` slots in later.
+Independent-action sampling is the default. A causal-graph-aware
+estimator composed with :mod:`~director_ai.core.causal_verifier`
+slots in through the :class:`ReversibilityEstimator` Protocol
+without any API change here.
 """
 
 from .forecaster import Forecast, IrreversibilityForecaster

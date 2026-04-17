@@ -6,8 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — TraceSafe package
 
-"""Dynamic mid-trajectory safety oracle (roadmap 2026-2030,
-Tier 1 Batch 2 — TraceSafe foundation).
+"""Dynamic mid-trajectory safety oracle.
 
 Given a partial agent trace (a list of accumulated tokens or a
 text snapshot), TraceSafe classifies it against a curated corpus
@@ -16,13 +15,11 @@ stream finishes. The oracle plugs into :class:`StreamingKernel`
 via a standard :class:`TokenTraceCallback` — every Nth emitted
 token triggers a snapshot evaluation.
 
-Foundation scope: hash-bag embedding baseline (zero optional
-dependencies), centroid distance classifier, configurable
-decision bands. Follow-ups tracked separately: sentence-
-transformer embedder, spectral clustering for multi-modal unsafe
-classes, Rust fast-path for the cosine-distance scan, and
-kernel-level integration with
-``core.runtime.streaming.StreamingKernel``.
+The :class:`TraceEmbedder` Protocol is the stable boundary:
+the :class:`HashBagEmbedder` that ships here is a deterministic
+FNV-1a baseline that runs without optional dependencies;
+sentence-transformer, cross-encoder, and Rust-accelerated
+embedders slot in as drop-in implementations.
 """
 
 from .embedder import HashBagEmbedder, TraceEmbedder

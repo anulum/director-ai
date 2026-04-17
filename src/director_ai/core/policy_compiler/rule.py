@@ -32,8 +32,8 @@ class CompiledRule:
     ----------
     id :
         Stable identifier — SHA-256 digest of (kind, value, source)
-        when produced by :class:`StubExtractor`. Callers that plug
-        in their own extractor are free to use any stable string.
+        when produced by :class:`RegexRuleExtractor`. Callers that
+        plug in their own extractor are free to use any stable string.
     kind :
         One of ``forbidden`` / ``pattern`` / ``max_length`` /
         ``required_citations``. Validated at construction.

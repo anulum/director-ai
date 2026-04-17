@@ -14,9 +14,10 @@ the prover, and returns a :class:`ConsistencyReport`. This lets
 the scoring pipeline escalate from fuzzy NLI to a structured
 check when a policy demands it.
 
-Foundation scope: the verifier is a thin adapter. The interesting
-work is in the prover (swappable) and the claim extractor (out of
-scope for this module — claims come in pre-built).
+The verifier is a thin adapter by design. The interesting work
+lives in the prover (swappable via :class:`ProverBackend`) and
+the claim extractor, which runs upstream and hands pre-built
+claims to :meth:`verify`.
 """
 
 from __future__ import annotations
