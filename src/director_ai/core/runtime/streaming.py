@@ -23,6 +23,12 @@ from collections import deque
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from ..observability.callbacks import (
+    TokenTraceCallback,
+    TokenTraceEmitter,
+    TokenTraceEvent,
+)
+from ..observability.tracing import trace_token
 from ..otel import trace_streaming
 from ..types import HaltEvidence
 from .kernel import HaltMonitor
@@ -221,6 +227,9 @@ class StreamingKernel(HaltMonitor):
         scorer: CoherenceScorer | None = None,
         top_k: int = 3,
         prompt: str = "",
+        trace_callbacks: list[TokenTraceCallback] | None = None,
+        tenant_id: str = "",
+        request_id: str = "",
     ) -> StreamSession:
         """Process tokens one by one with sliding window oversight.
 
@@ -250,6 +259,38 @@ class StreamingKernel(HaltMonitor):
         _soft_halt_pending = False
         _soft_halt_reason = ""
         _soft_halt_extra_tokens = 0
+
+        emitter = TokenTraceEmitter(trace_callbacks)
+
+        def _emit_trace(event: TokenEvent, halt_reason: str = "") -> None:
+            """Fan out an OTEL child span and every registered callback."""
+            with trace_token(
+                event.index,
+                token=event.token,
+                tenant_id=tenant_id,
+                request_id=request_id,
+            ) as span:
+                setter = getattr(span, "set_attribute", None)
+                if setter is not None:
+                    setter("token.coherence", float(event.coherence))
+                    setter("token.halted", bool(event.halted))
+                    if halt_reason:
+                        setter("token.halt_reason", halt_reason)
+                    if event.warning:
+                        setter("token.warning", True)
+            if emitter.enabled:
+                emitter.emit(
+                    TokenTraceEvent(
+                        index=event.index,
+                        token=event.token,
+                        coherence=event.coherence,
+                        timestamp=event.timestamp,
+                        halted=event.halted,
+                        halt_reason=halt_reason,
+                        tenant_id=tenant_id,
+                        request_id=request_id,
+                    )
+                )
 
         def _finalize_halt(event: TokenEvent, reason: str) -> None:
             event.halted = True
@@ -348,7 +389,9 @@ class StreamingKernel(HaltMonitor):
                 if _is_sentence_boundary(token) or at_cap:
                     session.soft_halted = True
                     _finalize_halt(event, _soft_halt_reason)
+                    _emit_trace(event, _soft_halt_reason)
                     break
+                _emit_trace(event)
                 continue
 
             halt_reason = ""
@@ -375,13 +418,16 @@ class StreamingKernel(HaltMonitor):
                     if _is_sentence_boundary(token):
                         session.soft_halted = True
                         _finalize_halt(event, halt_reason)
+                        _emit_trace(event, halt_reason)
                         break
+                    _emit_trace(event, halt_reason)
                     continue
                 # Hard halt
                 _finalize_halt(event, halt_reason)
                 if "hard_limit" in halt_reason:
                     self.emergency_stop()
                 session.events.append(event)
+                _emit_trace(event, halt_reason)
                 break
 
             if score < self.soft_limit:
@@ -389,6 +435,7 @@ class StreamingKernel(HaltMonitor):
                 session.warning_count += 1
 
             session.events.append(event)
+            _emit_trace(event)
 
         session.end_time = time.monotonic()
         if session.halted and self.on_halt:
@@ -402,6 +449,22 @@ class StreamingKernel(HaltMonitor):
             span.set_attribute("stream.warning_count", session.warning_count)
             if session.coherence_history:
                 span.set_attribute("stream.avg_coherence", session.avg_coherence)
+
+        if emitter.enabled:
+            emitter.end(
+                tenant_id=tenant_id,
+                request_id=request_id,
+                summary={
+                    "halted": session.halted,
+                    "soft_halted": session.soft_halted,
+                    "halt_reason": session.halt_reason,
+                    "token_count": session.token_count,
+                    "warning_count": session.warning_count,
+                    "avg_coherence": (
+                        session.avg_coherence if session.coherence_history else 0.0
+                    ),
+                },
+            )
         return session
 
     def stream_output(self, token_generator, coherence_callback) -> str:
