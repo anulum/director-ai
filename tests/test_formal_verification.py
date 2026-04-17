@@ -15,6 +15,8 @@ backend adapters."""
 
 from __future__ import annotations
 
+import importlib.util
+
 import pytest
 
 from director_ai.core.formal_verification import (
@@ -281,12 +283,8 @@ class TestZ3Backend:
             Z3Backend(z3_solver=None)
 
     def test_from_z3_without_package(self):
-        try:
-            import z3  # noqa: F401
-
+        if importlib.util.find_spec("z3") is not None:
             pytest.skip("z3 installed — ImportError branch cannot fire")
-        except ImportError:
-            pass
         with pytest.raises(ImportError, match="formal"):
             Z3Backend.from_z3()
 

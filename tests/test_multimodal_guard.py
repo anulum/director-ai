@@ -14,6 +14,7 @@ paths, and a lightweight property check on the cosine kernel."""
 
 from __future__ import annotations
 
+import importlib.util
 import math
 
 import pytest
@@ -97,12 +98,8 @@ class TestTorchCLIPImageEncoderGuard:
         """The optional ``open_clip_torch`` extra is not installed
         in CI; the :class:`ImportError` message must point the
         operator at the install command."""
-        try:
-            import open_clip  # noqa: F401
-
+        if importlib.util.find_spec("open_clip") is not None:
             pytest.skip("open_clip installed; cannot test the ImportError branch")
-        except ImportError:
-            pass
         with pytest.raises(ImportError, match="multimodal"):
             TorchCLIPImageEncoder.from_pretrained()
 
@@ -176,12 +173,8 @@ class TestHashBagCrossModalVerifier:
 
 class TestTorchCLIPVerifierGuard:
     def test_from_pretrained_without_open_clip(self):
-        try:
-            import open_clip  # noqa: F401
-
+        if importlib.util.find_spec("open_clip") is not None:
             pytest.skip("open_clip installed")
-        except ImportError:
-            pass
         with pytest.raises(ImportError, match="multimodal"):
             TorchCLIPCrossModalVerifier.from_pretrained()
 

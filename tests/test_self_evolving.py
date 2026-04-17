@@ -15,6 +15,7 @@ SelfEvolver orchestrator end-to-end."""
 
 from __future__ import annotations
 
+import importlib.util
 import os
 import threading
 from typing import Any, cast
@@ -321,12 +322,8 @@ class TestLoraTrainerGuard:
             LoraGuardrailTrainer(epochs=0)
 
     def test_train_raises_when_optional_deps_missing(self):
-        try:
-            import peft  # noqa: F401
-
+        if importlib.util.find_spec("peft") is not None:
             pytest.skip("peft installed; ImportError branch cannot fire")
-        except ImportError:
-            pass
         t = LoraGuardrailTrainer()
         with pytest.raises(ImportError, match="training"):
             t.train(_balanced_events(), version=1)
