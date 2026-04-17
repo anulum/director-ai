@@ -41,6 +41,7 @@ pub mod compute;
 pub mod kernel;
 pub mod knowledge;
 pub mod nli;
+pub mod pii_scan;
 pub mod scorer;
 pub mod signals;
 
@@ -48,4 +49,5 @@ pub use bm25::BM25Engine;
 pub use kernel::{SafetyKernel, StreamingKernel};
 pub use knowledge::{GroundTruthStore, InMemoryKnowledge};
 pub use nli::{HeuristicNli, NliBackend};
+pub use pii_scan::{PiiMatch, PiiScanner};
 pub use scorer::CoherenceScorer;

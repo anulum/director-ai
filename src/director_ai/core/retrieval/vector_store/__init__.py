@@ -15,27 +15,27 @@ continue to work. New code may import from the submodules directly.
 
 from __future__ import annotations
 
-from .base import (
-    _VECTOR_EP_LOADED,  # noqa: F401 — legacy tests import the private
-    _VECTOR_REGISTRY,  # noqa: F401 — legacy tests reach in directly
-    RECOMMENDED_EMBEDDING_MODEL,
-    InMemoryBackend,
-    VectorBackend,
-    get_vector_backend,
-    list_vector_backends,
-    register_vector_backend,
-)
-from .composite import HybridBackend, RerankedBackend
-from .embedding import ChromaBackend, SentenceTransformerBackend
-from .store import VectorGroundTruthStore
-from .vendors import (
-    ColBERTBackend,
-    ElasticsearchBackend,
-    FAISSBackend,
-    PineconeBackend,
-    QdrantBackend,
-    WeaviateBackend,
-)
+from importlib.util import find_spec
+
+from .base import _VECTOR_EP_LOADED as _VECTOR_EP_LOADED
+from .base import _VECTOR_REGISTRY as _VECTOR_REGISTRY
+from .base import RECOMMENDED_EMBEDDING_MODEL as RECOMMENDED_EMBEDDING_MODEL
+from .base import InMemoryBackend as InMemoryBackend
+from .base import VectorBackend as VectorBackend
+from .base import get_vector_backend as get_vector_backend
+from .base import list_vector_backends as list_vector_backends
+from .base import register_vector_backend as register_vector_backend
+from .composite import HybridBackend as HybridBackend
+from .composite import RerankedBackend as RerankedBackend
+from .embedding import ChromaBackend as ChromaBackend
+from .embedding import SentenceTransformerBackend as SentenceTransformerBackend
+from .store import VectorGroundTruthStore as VectorGroundTruthStore
+from .vendors import ColBERTBackend as ColBERTBackend
+from .vendors import ElasticsearchBackend as ElasticsearchBackend
+from .vendors import FAISSBackend as FAISSBackend
+from .vendors import PineconeBackend as PineconeBackend
+from .vendors import QdrantBackend as QdrantBackend
+from .vendors import WeaviateBackend as WeaviateBackend
 
 __all__ = [
     "RECOMMENDED_EMBEDDING_MODEL",
@@ -59,53 +59,28 @@ __all__ = [
 
 
 # Auto-register built-in vector backends on import so
-# ``get_vector_backend("memory")`` works without an explicit
-# register call.
+# ``get_vector_backend("memory")`` works without an explicit call.
 register_vector_backend("memory", InMemoryBackend)
 register_vector_backend("sentence-transformer", SentenceTransformerBackend)
 register_vector_backend("hybrid", HybridBackend)
 
-try:
-    import chromadb as _chromadb  # noqa: F401
 
+# Probe optional vendor packages via ``importlib.util.find_spec`` —
+# this checks availability without actually importing the heavy
+# modules, so a missing vendor never raises and no unused-import
+# warning is ever triggered.
+if find_spec("chromadb") is not None:
     register_vector_backend("chroma", ChromaBackend)
-except ImportError:
-    pass
-
-try:
-    import pinecone as _pinecone  # noqa: F401
-
+if find_spec("pinecone") is not None:
     register_vector_backend("pinecone", PineconeBackend)
-except ImportError:
-    pass
-
-try:
-    import weaviate as _weaviate  # noqa: F401
-
+if find_spec("weaviate") is not None:
     register_vector_backend("weaviate", WeaviateBackend)
-except ImportError:
-    pass
-
-try:
-    from qdrant_client import QdrantClient as _QdrantClient  # noqa: F401
-
+if find_spec("qdrant_client") is not None:
     register_vector_backend("qdrant", QdrantBackend)
-except ImportError:
-    pass
-
-try:
-    import faiss as _faiss  # noqa: F401
-
+if find_spec("faiss") is not None:
     register_vector_backend("faiss", FAISSBackend)
-except ImportError:
-    pass
-
-try:
-    from elasticsearch import Elasticsearch as _Elasticsearch  # noqa: F401
-
+if find_spec("elasticsearch") is not None:
     register_vector_backend("elasticsearch", ElasticsearchBackend)
-except ImportError:
-    pass
 
 # ColBERT imports its heavy dependency lazily from the constructor, so
 # the class is always registrable — the ImportError surfaces only when

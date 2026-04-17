@@ -33,7 +33,6 @@ import time
 from collections.abc import Iterable, Iterator
 from dataclasses import dataclass, field
 from queue import Empty, Queue
-from typing import TYPE_CHECKING
 
 import gradio as gr
 
@@ -42,10 +41,6 @@ from director_ai.core.observability.callbacks import (
     TokenTraceEvent,
 )
 from director_ai.core.runtime.streaming import StreamingKernel
-
-if TYPE_CHECKING:
-    pass  # noqa: F401 — future type-only imports
-
 
 # ---------------------------------------------------------------
 # Scenario catalogue

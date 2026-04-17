@@ -272,6 +272,9 @@ ignore = ["E501"]
 # Google Drive client so operators can swap the stub for the real
 # SDK without rewriting signatures.
 "tests/test_ingestion_plugins.py" = ["N803"]
+# gRPC method names come from protoc as PascalCase; the
+# CoherenceScoring servicer overrides them exactly.
+"src/director_ai/grpc_scoring.py" = ["N802"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -12,6 +12,7 @@ to-end JSONL emission."""
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import math
 import sys
@@ -19,16 +20,22 @@ from pathlib import Path
 
 import pytest
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+# ``tools/prepare_threshold_data.py`` is not an installed module,
+# so load it by path. ``importlib.util`` keeps imports at the top
+# of the file and avoids the ``sys.path.insert`` / E402 anti-pattern.
+_TOOLS_PATH = Path(__file__).resolve().parent.parent / "tools" / "prepare_threshold_data.py"
+_spec = importlib.util.spec_from_file_location("prepare_threshold_data", _TOOLS_PATH)
+assert _spec is not None and _spec.loader is not None
+prepare_threshold_data = importlib.util.module_from_spec(_spec)
+sys.modules["prepare_threshold_data"] = prepare_threshold_data
+_spec.loader.exec_module(prepare_threshold_data)
 
-from prepare_threshold_data import (  # noqa: E402
-    _coerce_label,
-    _coerce_score,
-    iter_records,
-    main,
-    normalise,
-    write_jsonl,
-)
+_coerce_label = prepare_threshold_data._coerce_label
+_coerce_score = prepare_threshold_data._coerce_score
+iter_records = prepare_threshold_data.iter_records
+main = prepare_threshold_data.main
+normalise = prepare_threshold_data.normalise
+write_jsonl = prepare_threshold_data.write_jsonl
 
 
 class TestCoerceLabel:

@@ -79,6 +79,38 @@ class TestRegexPII:
         assert "4111-1111-1111-1111" in snippet
         assert len(snippet) <= len("4111-1111-1111-1111") + 20 + 10
 
+    def test_prefer_rust_false_forces_python_backend(self):
+        det = RegexPIIDetector(prefer_rust=False)
+        assert det.backend == "python"
+        # Python backend still finds the same hits.
+        res = det.analyse("card 4111-1111-1111-1111 email a@b.co")
+        cats = {m.category for m in res.matches}
+        assert "credit_card" in cats
+        assert "email" in cats
+
+    def test_default_uses_rust_when_available(self):
+        det = RegexPIIDetector()
+        try:
+            import backfire_kernel  # noqa: F401 — probe only
+        except ImportError:
+            pytest.skip("backfire_kernel not installed — nothing to assert")
+        assert det.backend == "rust"
+
+    def test_rust_and_python_agree_on_categories(self):
+        try:
+            import backfire_kernel  # noqa: F401 — probe only
+        except ImportError:
+            pytest.skip("backfire_kernel not installed — cannot compare")
+        text = (
+            "email a@b.co, card 4111-1111-1111-1111, "
+            "ssn 123-45-6789, ip 10.0.0.1"
+        )
+        rust = RegexPIIDetector(prefer_rust=True)
+        py = RegexPIIDetector(prefer_rust=False)
+        rust_cats = sorted(m.category for m in rust.analyse(text).matches)
+        py_cats = sorted(m.category for m in py.analyse(text).matches)
+        assert rust_cats == py_cats
+
 
 # --- Presidio adapter ------------------------------------------------
 

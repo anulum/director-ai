@@ -59,12 +59,18 @@ _DEFAULT_REGEX_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
 
 
 class RegexPIIDetector(ModerationDetector):
-    """Dependency-free regex PII detector.
+    """Regex PII detector with an optional Rust fast-path.
 
     Shares its pattern list with :class:`PIIRedactor` but exposes
     structured :class:`ModerationMatch` results with start/end
     offsets so the Policy layer can report *where* a finding sits —
     the redactor only rewrites the string in place.
+
+    When ``backfire_kernel`` is importable the detector delegates
+    scanning to :class:`backfire_kernel.PiiScanner`, which batches
+    every pattern behind a single ``RegexSet`` and skips patterns
+    that cannot match. Set ``prefer_rust=False`` to force the pure
+    Python path (useful for benchmarking or debugging).
     """
 
     name = "pii_regex"
@@ -72,8 +78,13 @@ class RegexPIIDetector(ModerationDetector):
     def __init__(
         self,
         extra_patterns: Iterable[tuple[str, str]] | None = None,
+        *,
+        prefer_rust: bool = True,
     ) -> None:
         compiled = list(_DEFAULT_REGEX_PATTERNS)
+        source_patterns: list[tuple[str, str]] = [
+            (category, pattern.pattern) for category, pattern in _DEFAULT_REGEX_PATTERNS
+        ]
         for category, pattern in extra_patterns or []:
             try:
                 compiled.append((category, re.compile(pattern)))
@@ -81,12 +92,29 @@ class RegexPIIDetector(ModerationDetector):
                 raise ValueError(
                     f"invalid regex for category {category!r}: {exc}"
                 ) from exc
+            source_patterns.append((category, pattern))
         self._patterns = compiled
+        self._rust_scanner = (
+            _build_rust_scanner(source_patterns) if prefer_rust else None
+        )
 
     def analyse(self, text: str) -> ModerationResult:
-        matches: list[ModerationMatch] = []
         if not text:
-            return ModerationResult(detector=self.name, matches=matches)
+            return ModerationResult(detector=self.name, matches=[])
+        if self._rust_scanner is not None:
+            raw = self._rust_scanner.scan(text)
+            rust_matches = [
+                ModerationMatch(
+                    detector=self.name,
+                    category=category,
+                    start=start,
+                    end=end,
+                    text=text,
+                )
+                for category, start, end in raw
+            ]
+            return ModerationResult(detector=self.name, matches=rust_matches)
+        matches: list[ModerationMatch] = []
         for category, pattern in self._patterns:
             for m in pattern.finditer(text):
                 matches.append(
@@ -99,6 +127,33 @@ class RegexPIIDetector(ModerationDetector):
                     )
                 )
         return ModerationResult(detector=self.name, matches=matches)
+
+    @property
+    def backend(self) -> str:
+        """Which path is active — ``"rust"`` or ``"python"``.
+
+        Useful for tests that want to assert the fast path is wired
+        up, and for logging that a given deployment is actually
+        exercising the accelerated scanner.
+        """
+        return "rust" if self._rust_scanner is not None else "python"
+
+
+def _build_rust_scanner(patterns: list[tuple[str, str]]) -> Any | None:
+    """Build a ``backfire_kernel.PiiScanner`` when the Rust extension
+    is importable. Returns ``None`` otherwise so the Python regex
+    path remains the authoritative fallback — this keeps the
+    detector operable on any machine, with or without the Rust
+    wheel installed.
+    """
+    try:
+        from backfire_kernel import PiiScanner as _PiiScanner
+    except ImportError:
+        return None
+    try:
+        return _PiiScanner(patterns)
+    except Exception:  # pragma: no cover — defensive
+        return None
 
 
 class PresidioPIIDetector(ModerationDetector):

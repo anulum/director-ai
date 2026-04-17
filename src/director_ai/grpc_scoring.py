@@ -78,7 +78,7 @@ class CoherenceScoringService(rpc.CoherenceScoringServicer):
 
     # Unary -----------------------------------------------------
 
-    def ScoreClaim(  # noqa: N802 — gRPC method names are PascalCase
+    def ScoreClaim(
         self,
         request: pb.ScoreClaimRequest,
         context: grpc.ServicerContext,
@@ -108,7 +108,7 @@ class CoherenceScoringService(rpc.CoherenceScoringServicer):
 
     # Streaming -------------------------------------------------
 
-    def ScoreStream(  # noqa: N802
+    def ScoreStream(
         self,
         request_iterator: Iterable[pb.ScoreTokenRequest],
         context: grpc.ServicerContext,
