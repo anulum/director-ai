@@ -149,6 +149,9 @@ moderation = [
     "presidio-analyzer>=2.2",
     "detoxify>=0.5",
 ]
+demo = [
+    "gradio>=4.0",
+]
 ingestion = [
     "pypdf>=3.0",
     "python-docx>=1.0",

@@ -1682,6 +1682,9 @@ colbert = [
 crewai = [
     { name = "crewai" },
 ]
+demo = [
+    { name = "gradio" },
+]
 dev = [
     { name = "bandit" },
     { name = "build" },
@@ -1864,6 +1867,7 @@ requires-dist = [
     { name = "faiss-cpu", marker = "extra == 'faiss'", specifier = ">=1.7" },
     { name = "fastapi", marker = "extra == 'dev'", specifier = ">=0.100" },
     { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.100" },
+    { name = "gradio", marker = "extra == 'demo'", specifier = ">=4.0" },
     { name = "gradio", marker = "extra == 'ui'", specifier = ">=4.0,<5" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = ">=1.60" },
     { name = "grpcio-tools", marker = "extra == 'grpc'", specifier = ">=1.60" },
@@ -1930,7 +1934,7 @@ requires-dist = [
     { name = "weasyprint", marker = "extra == 'reports'", specifier = ">=60" },
     { name = "weaviate-client", marker = "extra == 'weaviate'", specifier = ">=4.0" },
 ]
-provides-extras = ["nli", "vector", "openai", "anthropic", "langchain", "llamaindex", "server", "minicheck", "voice", "onnx", "tensorrt", "grpc", "finetune", "quantize", "pinecone", "weaviate", "qdrant", "faiss", "elasticsearch", "reranker", "embeddings", "embed", "nli-lite", "langgraph", "haystack", "crewai", "docs", "otel", "langfuse", "presidio", "toxicity", "moderation", "ingestion", "colbert", "rust", "enterprise", "ui", "reports", "autogen", "research", "train", "security", "dev"]
+provides-extras = ["nli", "vector", "openai", "anthropic", "langchain", "llamaindex", "server", "minicheck", "voice", "onnx", "tensorrt", "grpc", "finetune", "quantize", "pinecone", "weaviate", "qdrant", "faiss", "elasticsearch", "reranker", "embeddings", "embed", "nli-lite", "langgraph", "haystack", "crewai", "docs", "otel", "langfuse", "presidio", "toxicity", "moderation", "demo", "ingestion", "colbert", "rust", "enterprise", "ui", "reports", "autogen", "research", "train", "security", "dev"]
 
 [[package]]
 name = "dirtyjson"
