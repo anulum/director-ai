@@ -31,6 +31,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `gateway/go/proto/director/v1/`. `schemas/generate.sh`
   regenerator, hand-written `director_ai.proto.converters`
   adapters, and `make proto` / `make test-go` targets.
+- Go gateway skeleton (`gateway/go/`) — passthrough HTTP proxy in
+  front of any OpenAI-compatible upstream. Env-driven config,
+  constant-time API-key auth with audit fingerprint, per-key
+  token-bucket rate limit, JSONL audit sink matching the Python
+  audit record shape, SSE streaming via `http.Flusher`. Binary
+  entrypoint `cmd/director-gateway`, k6 load script under
+  `gateway/go/bench/`, 50 Go test cases, clean `go test -race`.
 
 ### Changed
 - `CoherenceAgent.__init__` and `_build_provider` accept `api_key=`
