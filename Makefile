@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 .DEFAULT_GOAL := help
-.PHONY: help test test-rust test-julia test-lean test-go test-all proto lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
+.PHONY: help test test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -17,6 +17,16 @@ julia-instantiate: ## Install Julia tuner dependencies
 test-julia: ## Run Julia threshold-tuner tests
 	julia --project=tools/julia_tuner -e 'using Pkg; Pkg.test()'
 
+test-wasm: ## Build + test the backfire-wasm edge runtime
+	cd backfire-kernel/crates/backfire-wasm && \
+		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-/media/anulum/724AA8E84AA8AA75/linux_data/rust-target} \
+		wasm-pack test --node
+
+wasm-build: ## Build the backfire-wasm web module (pkg/)
+	cd backfire-kernel/crates/backfire-wasm && \
+		CARGO_TARGET_DIR=$${CARGO_TARGET_DIR:-/media/anulum/724AA8E84AA8AA75/linux_data/rust-target} \
+		wasm-pack build --target web --release
+
 test-lean: ## Build Lean 4 formal models (HaltMonitor)
 	cd formal/HaltMonitor && lake build
 
@@ -32,7 +42,7 @@ grpc-scoring: ## Run the director.v1 CoherenceScoring gRPC server (port 50052)
 ab-bench: ## A/B benchmark: gateway vs gateway+scoring (needs k6 installed)
 	bash gateway/go/bench/ab_bench.sh
 
-test-all: test test-rust test-julia test-lean test-go ## Run Python + Rust + Julia + Lean + Go checks
+test-all: test test-rust test-julia test-lean test-go test-wasm ## Run Python + Rust + Julia + Lean + Go + WASM checks
 
 lint: ## Check style (ruff format + ruff check)
 	ruff format --check src/ tests/
