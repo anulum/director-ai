@@ -176,6 +176,16 @@ pip install "director-ai[ui]"                      # config wizard (Gradio web U
 pip install "director-ai[reports]"                 # PDF/HTML compliance reports
 ```
 
+For reproducible installs the repo ships a `uv.lock` at the root;
+`uv sync` installs the exact resolved versions.
+
+The MiniCheck backend is opt-in and not on PyPI — install it manually
+alongside any other extras:
+
+```bash
+pip install "minicheck @ git+https://github.com/Liyan06/MiniCheck.git"
+```
+
 ### 5-tier scoring backends
 
 | Tier | Backend | Accuracy | Latency | Install |

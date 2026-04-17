@@ -67,9 +67,12 @@ server = [
     "python-multipart>=0.0.7",
     "slowapi>=0.1.9",
 ]
-minicheck = [
-    "minicheck>=0.1",
-]
+# MiniCheck is not published on PyPI. Users who want the MiniCheck
+# backend install it manually:
+#   pip install "minicheck @ git+https://github.com/Liyan06/MiniCheck.git"
+# The extra is kept as a documentation anchor only — an empty list so
+# `pip install director-ai[minicheck]` does not fail.
+minicheck = []
 voice = [
     "elevenlabs>=1.0",
     "openai>=1.0",
