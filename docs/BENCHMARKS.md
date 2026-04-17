@@ -130,6 +130,30 @@ Performance characteristics for SwarmGuardian multi-agent monitoring.
 | Config | 2 | ~30 |
 | **Total** | **26+** | **500+** |
 
+## PII Regex Scanner — Python vs Rust
+
+The moderation package exposes ``RegexPIIDetector`` with an
+optional Rust fast-path backed by ``backfire_kernel.PiiScanner``.
+Rust uses ``regex::RegexSet`` to pre-filter non-matching patterns
+in a single pass, walking the input once regardless of pattern
+count.
+
+| corpus | size (B) | Python ms/call (median) | Rust ms/call (median) | speedup (×) |
+| --- | --- | --- | --- | --- |
+| `clean-1kb` | 1225 | 0.413 | 0.110 | 3.74 |
+| `clean-10kb` | 12250 | 2.959 | 0.145 | 20.44 |
+| `mixed-1kb` | 2152 | 0.724 | 0.213 | 3.40 |
+| `mixed-10kb` | 21530 | 5.826 | 0.493 | 11.82 |
+
+**Reproduce:** ``python -m benchmarks.pii_scanner_bench --rounds 500``.
+Raw data lands in ``benchmarks/results/pii_scanner_bench.json``.
+Measured on i5-11600K, Python 3.12.3, ``backfire_kernel`` release
+build. Clean corpora hit the ``RegexSet`` prefilter hard — Rust
+skips every pattern once it decides none can match — so the speedup
+is largest on benign text, which dominates production traffic.
+The mixed corpora show the worst case where every pattern hits and
+the scanner must actually walk.
+
 ---
 
 *Generated from verified benchmark runs. Numbers are from local evaluation
