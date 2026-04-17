@@ -201,6 +201,8 @@ nav:
       - Medical: cookbook/medical.md
       - Finance: cookbook/finance.md
       - Customer Support: cookbook/customer-support.md
+      - Multi-Agent Handoff Failures: cookbook/multi-agent-handoff-failures.md
+      - Long-Context RAG Drift: cookbook/long-context-rag-drift.md
       - Case Studies: cookbook/case-studies.md
   - Benchmarks: benchmarks.md
   - Tutorials: tutorials.md
