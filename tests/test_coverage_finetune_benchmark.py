@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Fine-tune Benchmark Coverage (STRONG)
+# Director-Class AI — Fine-tune Benchmark Coverage
 """Multi-angle coverage for fine-tune benchmark pipeline.
 
 Covers: threshold regression testing, model comparison, metric computation,

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Knowledge Store Tests (STRONG)
+# Director-Class AI — Knowledge Store Tests
 """Multi-angle tests for GroundTruthStore knowledge management.
 
 Covers: add/retrieve, demo facts, empty store, keyword search,

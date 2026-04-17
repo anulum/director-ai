@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""STRONG tests for ``director_ai.compliance.report_templates``.
+"""Tests for ``director_ai.compliance.report_templates``.
 
 Covers HTML and Markdown rendering for compliance, cost, and swarm
 reports with structure validation, content checks, and edge cases.

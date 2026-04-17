@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""STRONG tests for ``director_ai.middleware`` — API key + rate limiting.
+"""Tests for ``director_ai.middleware`` — API key + rate limiting.
 
 Covers: key validation (Bearer, X-API-Key, env, file), exempt paths,
 constant-time comparison, key hashing, rate limiting (token bucket,

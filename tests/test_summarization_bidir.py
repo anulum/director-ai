@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Summarization Bidirectional NLI Tests
 
-"""Multi-angle tests for bidirectional NLI summarization pipeline (STRONG)."""
+"""Multi-angle tests for bidirectional NLI summarization pipeline."""
 
 from __future__ import annotations
 

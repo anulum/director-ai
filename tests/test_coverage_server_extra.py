@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle coverage for server rate limiting and oversight (STRONG).
+"""Multi-angle coverage for server rate limiting and oversight.
 
 Covers: rate limiting, WebSocket oversight, config branches, pipeline
 integration with FastAPI server, and performance documentation.

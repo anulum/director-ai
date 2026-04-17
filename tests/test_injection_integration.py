@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Injection Detection Integration Tests (STRONG)
+# Director-Class AI — Injection Detection Integration Tests
 """Phase 2 integration tests: config wiring, scorer hook, server endpoint, guard."""
 
 from __future__ import annotations

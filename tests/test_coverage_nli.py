@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle coverage tests for NLI scorer pipeline (STRONG).
+"""Multi-angle coverage tests for NLI scorer pipeline.
 
 Covers: NLIScorer, OnnxDynamicBatcher, backend routing, heuristic fallback,
 batch scoring, chunked scoring, model loading, FactCG template, pipeline

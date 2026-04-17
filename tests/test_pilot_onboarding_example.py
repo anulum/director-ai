@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Pilot Onboarding Example Tests (STRONG)
+# Director-Class AI — Pilot Onboarding Example Tests
 """Multi-angle tests for examples/pilot_onboarding.py.
 
 Covers: demo store retrieval, argument parsing, NLI resolution logic,

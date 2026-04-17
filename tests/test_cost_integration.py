@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Tests for CostAnalyser integration with scorer
-"""STRONG multi-angle tests for CostAnalyser pipeline integration.
+"""Multi-angle tests for CostAnalyser pipeline integration.
 
 Covers: config field, build_scorer wiring, cost_callback in LLMJudge,
 CLI cost-report command, report generation, thread safety.

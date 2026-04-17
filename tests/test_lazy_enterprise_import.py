@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Enterprise Import Tests (STRONG)
+# Director-Class AI — Enterprise Import Tests
 """Multi-angle tests for enterprise module lazy loading.
 
 Covers: core import isolation (tenant/policy/audit not loaded eagerly),

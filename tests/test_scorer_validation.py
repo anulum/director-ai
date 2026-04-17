@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Scorer Parameter Validation Tests (STRONG)
+# Director-Class AI — Scorer Parameter Validation Tests
 """Multi-angle tests for CoherenceScorer parameter validation.
 
 Covers: threshold boundaries (below/above/NaN/valid), soft_limit validation,

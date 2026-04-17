@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Advanced Coherence Tests (STRONG)
+# Director-Class AI — Advanced Coherence Tests
 """Multi-angle tests for CoherenceAgent multi-turn and paradox handling.
 
 Covers: multi-turn state persistence, threshold enforcement, paradox

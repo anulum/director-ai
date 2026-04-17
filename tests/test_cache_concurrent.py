@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Cache Concurrent Stress Tests (STRONG)
+# Director-Class AI — Cache Concurrent Stress Tests
 """Multi-angle tests for ScoreCache thread safety and LRU correctness.
 
 Covers: concurrent put/get, concurrent invalidation, LRU eviction order,

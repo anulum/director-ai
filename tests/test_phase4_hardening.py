@@ -4,8 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Phase 4 Hardening Tests (STRONG)
-"""Multi-angle tests for Phase 4 hardening pipeline (STRONG).
+# Director-Class AI — Phase 4 Hardening Tests
+"""Multi-angle tests for Phase 4 hardening pipeline.
 
 Covers: H48 DOS-1 batch JSON size limit, H49 ERR-2 WS exception,
 H50 VAL-1 NaN/Inf clamp, H52 VAL-2 null prompt guard,

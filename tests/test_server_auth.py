@@ -4,8 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Server Auth/Rate Limit/Correlation ID Tests (STRONG)
-"""Multi-angle tests for server auth, rate limit, correlation pipeline (STRONG)."""
+# Director-Class AI — Server Auth/Rate Limit/Correlation ID Tests
+"""Multi-angle tests for server auth, rate limit, correlation pipeline."""
 
 from __future__ import annotations
 

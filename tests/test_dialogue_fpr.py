@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Dialogue FPR Profile Tests
 
-"""Multi-angle tests for dialogue FPR reduction pipeline (STRONG).
+"""Multi-angle tests for dialogue FPR reduction pipeline.
 
 Covers: automatic dialogue detection, bidirectional NLI scoring, task-type
 adaptive thresholds, dialogue-specific scorer config, FPR measurement,

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for code output verification pipeline (STRONG).
+"""Multi-angle tests for code output verification pipeline.
 
 Covers: syntax validation, runtime safety, output matching, sandboxing,
 timeout handling, pipeline integration, and performance documentation.

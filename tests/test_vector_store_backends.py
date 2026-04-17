@@ -4,8 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Vector Store Backend Tests (STRONG)
-"""Multi-angle tests for vector store backend pipeline (STRONG)."""
+# Director-Class AI — Vector Store Backend Tests
+"""Multi-angle tests for vector store backend pipeline."""
 
 from unittest.mock import MagicMock, patch
 

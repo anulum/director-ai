@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — MiniCheck NLI Backend Tests (STRONG)
+# Director-Class AI — MiniCheck NLI Backend Tests
 """Multi-angle tests for MiniCheck NLI backend.
 
 Covers: invalid backend guard, default backend, fallback to heuristic,

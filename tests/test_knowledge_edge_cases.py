@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Knowledge Store Edge Cases (STRONG)
+# Director-Class AI — Knowledge Store Edge Cases
 """Multi-angle edge case tests for GroundTruthStore.
 
 Covers: empty store, add/retrieve, duplicate handling, empty/null queries,

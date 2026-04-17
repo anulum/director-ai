@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Async Streaming Edge Case Tests
 
-"""Multi-angle tests for async streaming edge cases pipeline (STRONG)."""
+"""Multi-angle tests for async streaming edge cases pipeline."""
 
 from __future__ import annotations
 

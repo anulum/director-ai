@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Configuration Manager Tests (STRONG)
+# Director-Class AI — Configuration Manager Tests
 """Multi-angle tests for DirectorConfig pipeline configuration.
 
 Covers: defaults, profile loading, env var override, YAML/JSON config files,

@@ -4,8 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Anti-Regression Benchmark Gate Tests (STRONG)
-"""Multi-angle tests for fine-tune regression gate pipeline (STRONG)."""
+# Director-Class AI — Anti-Regression Benchmark Gate Tests
+"""Multi-angle tests for fine-tune regression gate pipeline."""
 
 from __future__ import annotations
 

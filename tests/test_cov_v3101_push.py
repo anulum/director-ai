@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-AI — Coverage Push Tests (v3.10.1)
 
-"""Multi-angle coverage push tests for v3.10.1 (STRONG).
+"""Multi-angle coverage push tests for v3.10.1.
 
 Covers: types, exceptions, stats, doc_chunker, doc_registry edge cases,
 CLI ingest paths, config profiles, pipeline integration, and performance

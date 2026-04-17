@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle coverage tests for CoherenceScorer pipeline (STRONG).
+"""Multi-angle coverage tests for CoherenceScorer pipeline.
 
 Covers: review, compute_divergence, factual divergence, evidence, cache,
 LLM judge, strict mode, weight validation, pipeline integration, and

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-AI — Coverage Push Module Tests v3.10.1 (STRONG)
+# Director-AI — Coverage Push Module Tests v3.10.1
 """Multi-angle coverage push tests for v3.10.1 modules.
 
 Covers: otel, compliance, voice guard, license, doc_chunker,

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — LLMGenerator Stream Fallback Tests (STRONG)
+# Director-Class AI — LLMGenerator Stream Fallback Tests
 """Multi-angle tests for LLMGenerator.stream_tokens fallback behaviour.
 
 Covers: fallback when httpx unavailable, token splitting, empty response,

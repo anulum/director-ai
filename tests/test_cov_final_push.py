@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle final coverage push (STRONG): rate-limit, WS oversight,
+"""Multi-angle final coverage push: rate-limit, WS oversight,
 halt_evidence, provider streams, agent scorer, CLI evaluate/export.
 """
 

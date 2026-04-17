@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""STRONG tests for ``director_ai.ui.config_wizard``.
+"""Tests for ``director_ai.ui.config_wizard``.
 
 Covers YAML generation, field formatting, overrides, completeness,
 and edge cases. Gradio launch is not tested (requires UI dep).

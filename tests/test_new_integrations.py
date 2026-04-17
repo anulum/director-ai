@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Multi-Framework Integration Tests (STRONG)
+# Director-Class AI — Multi-Framework Integration Tests
 """Multi-angle tests for LangGraph, Haystack, CrewAI integrations.
 
 Covers: LangGraph node approved/rejected, Haystack batch/empty/serialization,

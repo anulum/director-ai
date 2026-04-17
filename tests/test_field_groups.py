@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""STRONG tests for ``director_ai.ui._field_groups``.
+"""Tests for ``director_ai.ui._field_groups``.
 
 Covers field classification, widget inference, group completeness,
 introspection of DirectorConfig, and edge cases.

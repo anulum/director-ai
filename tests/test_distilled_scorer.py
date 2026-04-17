@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""STRONG tests for ``director_ai.core.scoring.distilled_scorer``.
+"""Tests for ``director_ai.core.scoring.distilled_scorer``.
 
 Covers construction, lazy loading, ONNX/PyTorch inference paths,
 softmax utility, batch scoring, and backend registry integration.

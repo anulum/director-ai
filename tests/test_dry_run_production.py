@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""STRONG tests for dry_run and production_mode config fields.
+"""Tests for dry_run and production_mode config fields.
 
 Covers dry_run scoring behaviour, production_mode validation,
 config wiring, and edge cases.

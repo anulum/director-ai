@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Layer C: Claim Coverage Tests
 
-"""Multi-angle tests for claim decomposition + coverage scoring Layer C (STRONG).
+"""Multi-angle tests for claim decomposition + coverage scoring Layer C.
 
 Covers NLIScorer.score_claim_coverage(), config wiring,
 scorer integration, and evidence propagation.

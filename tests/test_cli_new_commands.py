@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Tests for kb-health, wizard, and compliance HTML CLI commands
-"""STRONG multi-angle tests for new CLI subcommands.
+"""Multi-angle tests for new CLI subcommands.
 
 Covers: kb-health diagnostics, wizard (CLI + Gradio fallback),
 compliance --format html, arg parsing, error paths, integration.

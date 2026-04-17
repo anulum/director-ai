@@ -4,8 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Phase 3 Hardening Tests (STRONG)
-"""Multi-angle tests for Phase 3 hardening pipeline (STRONG).
+# Director-Class AI — Phase 3 Hardening Tests
+"""Multi-angle tests for Phase 3 hardening pipeline.
 
 Covers: H28 ROB-5 NLI assert, H29 CON-1 batch asyncio,
 H30 ROB-1 batch coherence guard, H34 SEC-3 actor truncation,

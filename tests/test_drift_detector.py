@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for statistical drift detection pipeline (STRONG).
+"""Multi-angle tests for statistical drift detection pipeline.
 
 Covers: z-score computation, severity classification, baseline tracking,
 window analysis, pipeline integration with compliance, and performance.

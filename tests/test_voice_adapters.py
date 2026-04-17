@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — TTS Adapter Tests
-"""Multi-angle tests for TTS adapter pipeline (STRONG).
+"""Multi-angle tests for TTS adapter pipeline.
 
 Covers: ElevenLabs, OpenAI, Deepgram adapters, async synthesis, close
 lifecycle, error handling, pipeline integration with voice_pipeline(),

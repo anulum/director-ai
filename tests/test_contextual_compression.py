@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""STRONG tests for ``director_ai.core.retrieval.contextual_compression``.
+"""Tests for ``director_ai.core.retrieval.contextual_compression``.
 
 Covers heuristic compression, LLM compression, metadata tracking,
 compression ratio, fallback, edge cases, and benchmarks.

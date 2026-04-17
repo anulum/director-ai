@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Tuner Tests (STRONG)
+# Director-Class AI — Tuner Tests
 """Multi-angle tests for threshold tuner pipeline.
 
 Covers: TuneResult structure, balanced accuracy, empty samples guard,

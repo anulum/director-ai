@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Chunked NLI Tests (STRONG)
+# Director-Class AI — Chunked NLI Tests
 """Multi-angle tests for chunked NLI scoring pipeline.
 
 Covers: sentence-level decomposition, per-chunk scoring, aggregation

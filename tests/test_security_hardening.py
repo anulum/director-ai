@@ -4,8 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Security Hardening Tests (STRONG)
-"""Multi-angle tests for security hardening pipeline (STRONG)."""
+# Director-Class AI — Security Hardening Tests
+"""Multi-angle tests for security hardening pipeline."""
 
 from director_ai.core.sanitizer import InputSanitizer
 

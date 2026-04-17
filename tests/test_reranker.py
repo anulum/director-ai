@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — RerankedBackend Tests (STRONG)
+# Director-Class AI — RerankedBackend Tests
 """Multi-angle tests for RerankedBackend retrieval pipeline.
 
 Covers: import error guard, delegation to base backend, reranking

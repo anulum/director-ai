@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — ReviewQueue Tests (STRONG)
+# Director-Class AI — ReviewQueue Tests
 """Multi-angle tests for async ReviewQueue batching pipeline.
 
 Covers: single submit, batch flush, concurrent submissions, timeout

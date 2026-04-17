@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Sharded NLI Tests (STRONG)
+# Director-Class AI — Sharded NLI Tests
 """Multi-angle tests for ShardedNLIScorer multi-device pipeline.
 
 Covers: empty devices guard, single/multi device, round-robin distribution,

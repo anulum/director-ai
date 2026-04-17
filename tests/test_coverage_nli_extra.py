@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle coverage for NLI minicheck and model loading (STRONG).
+"""Multi-angle coverage for NLI minicheck and model loading.
 
 Covers: minicheck backend, model loading branches, fallback paths,
 pipeline integration with CoherenceScorer, and performance documentation.

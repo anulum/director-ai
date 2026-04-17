@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — DeBERTa NLI Integration Tests
 
-"""Multi-angle integration tests for NLI model loading pipeline (STRONG).
+"""Multi-angle integration tests for NLI model loading pipeline.
 
 These require a network connection on first run (model is cached by
 HuggingFace). Mark with @slow so they're skipped in fast CI runs:

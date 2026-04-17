@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 
-# Director-Class AI — License Edge Case Tests (STRONG)
+# Director-Class AI — License Edge Case Tests
 """Multi-angle tests for license validation edge cases.
 
 Covers: special chars, very long keys, unicode keys, empty/binary/huge files,

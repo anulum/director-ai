@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for Phase 5 gem REST endpoints (STRONG).
+"""Multi-angle tests for Phase 5 gem REST endpoints.
 
 Covers: explainability, claim provenance, conformal prediction,
 feedback loop, adversarial, consensus, cost endpoints, pipeline

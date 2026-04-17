@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Accuracy Improvement Plan Tests (STRONG)
+# Director-Class AI — Accuracy Improvement Plan Tests
 """Multi-angle tests for accuracy improvement pipeline.
 
 Covers: task-type detection, adaptive thresholds, verified scorer,

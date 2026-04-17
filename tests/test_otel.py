@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — OpenTelemetry Integration Tests (STRONG)
+# Director-Class AI — OpenTelemetry Integration Tests
 """Multi-angle tests for OpenTelemetry observability pipeline.
 
 Covers: noop fallback, mock SDK setup, trace_review/trace_streaming spans,

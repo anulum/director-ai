@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — JSON Logging Tests (STRONG)
+# Director-Class AI — JSON Logging Tests
 """Multi-angle tests for JSON structured logging.
 
 Covers: JSON format validity, field presence (level, logger, msg, ts),

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — VectorGroundTruthStore Ingest Tests (STRONG)
+# Director-Class AI — VectorGroundTruthStore Ingest Tests
 """Multi-angle tests for document ingestion pipeline.
 
 Covers: text list ingestion, empty input, retrieval after ingest,

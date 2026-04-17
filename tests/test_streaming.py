@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Streaming Kernel Tests (STRONG)
+# Director-Class AI — Streaming Kernel Tests
 """Multi-angle tests for StreamingKernel real-time token gating.
 
 Covers: token streaming, hard_limit halt, window_avg halt, trend detection,

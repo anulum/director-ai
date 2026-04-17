@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — gRPC Server Coverage Tests (STRONG)
+# Director-Class AI — gRPC Server Coverage Tests
 """Multi-angle tests for grpc_server.py.
 
 Covers: import error handling, module availability check,

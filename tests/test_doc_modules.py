@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Document Module Tests (STRONG)
+# Director-Class AI — Document Module Tests
 """Multi-angle tests for document chunker, parser, registry pipeline.
 
 Covers: PDF/DOCX/HTML parsing, chunk sizing, overlap, metadata, registry

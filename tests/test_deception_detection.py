@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Deception Detection Tests (STRONG)
+# Director-Class AI — Deception Detection Tests
 """Multi-angle tests for CoherenceAgent deception resistance.
 
 Covers: truthful queries, forced deception attempts, injection attacks,

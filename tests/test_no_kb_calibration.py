@@ -6,7 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — No-KB Calibration & Cross-Turn Blending Tests
 
-"""Multi-angle tests for no-KB coherence rescaling pipeline (STRONG).
+"""Multi-angle tests for no-KB coherence rescaling pipeline.
 
 The no-KB calibration (scorer.py _heuristic_coherence) rescales coherence
 from [lo, hi] to [0, 1] when NLI is available but no KB context exists.

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""STRONG tests for ``director_ai.core.retrieval.query_decomposition``.
+"""Tests for ``director_ai.core.retrieval.query_decomposition``.
 
 Covers heuristic decomposition, LLM decomposition, RRF merge,
 single-intent passthrough, edge cases, and benchmarks.

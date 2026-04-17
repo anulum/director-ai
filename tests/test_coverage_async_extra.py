@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Async Streaming Halt Reason Tests (STRONG)
+# Director-Class AI — Async Streaming Halt Reason Tests
 """Multi-angle tests for AsyncStreamingKernel halt reason branches.
 
 Covers: hard_limit halt, window_avg halt, downward_trend halt,

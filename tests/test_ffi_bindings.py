@@ -6,12 +6,9 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — FFI Binding Tests (PyO3 boundary)
 
-"""Multi-angle tests for Rust FFI layer (backfire_kernel PyO3 bindings).
-
-STRONG: comprehensive boundary tests for all PyO3 exported types.
-
-Skipped when backfire_kernel is not installed (maturin build required).
-"""
+"""Multi-angle boundary tests for the Rust FFI layer (``backfire_kernel``
+PyO3 bindings). Skipped when ``backfire_kernel`` is not installed
+(``maturin`` build required)."""
 
 import math
 

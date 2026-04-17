@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — CrewAI Integration Tests (STRONG)
+# Director-Class AI — CrewAI Integration Tests
 """Multi-angle tests for CrewAI DirectorAITool integration.
 
 Covers: pipe separator, no-pipe fallback, async run, threshold
