@@ -19,8 +19,9 @@ class MultimodalClaim:
 
     ``image_bytes`` is the raw image payload. The
     :class:`ImageEncoder` Protocol owns the decoding —
-    :class:`StubImageEncoder` treats the bytes as opaque for
-    determinism; a real CLIP adapter would decode JPEG/PNG first.
+    :class:`HashBagImageEncoder` treats the bytes as opaque for
+    determinism; :class:`TorchCLIPImageEncoder` decodes JPEG/PNG
+    via Pillow before running the CLIP pipeline.
     ``text_claim`` is the claim that needs to be consistent with
     the image.
     """
