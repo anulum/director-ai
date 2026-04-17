@@ -14,6 +14,7 @@ end-to-end with mixed detectors."""
 
 from __future__ import annotations
 
+import importlib.util
 from dataclasses import dataclass
 from typing import Any
 
@@ -90,16 +91,12 @@ class TestRegexPII:
 
     def test_default_uses_rust_when_available(self):
         det = RegexPIIDetector()
-        try:
-            import backfire_kernel  # noqa: F401 — probe only
-        except ImportError:
+        if importlib.util.find_spec("backfire_kernel") is None:
             pytest.skip("backfire_kernel not installed — nothing to assert")
         assert det.backend == "rust"
 
     def test_rust_and_python_agree_on_categories(self):
-        try:
-            import backfire_kernel  # noqa: F401 — probe only
-        except ImportError:
+        if importlib.util.find_spec("backfire_kernel") is None:
             pytest.skip("backfire_kernel not installed — cannot compare")
         text = (
             "email a@b.co, card 4111-1111-1111-1111, "
