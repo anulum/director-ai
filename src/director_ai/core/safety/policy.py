@@ -37,7 +37,12 @@ YAML format::
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .moderation.detectors import ModerationDetector
 
 
 @dataclass(frozen=True)
@@ -67,6 +72,7 @@ class Policy:
     max_length: int = 0
     required_citations_pattern: str = ""
     required_citations_min: int = 0
+    moderation_detectors: list[ModerationDetector] = field(default_factory=list)
 
     _compiled_forbidden: list[re.Pattern] = field(
         default_factory=list,
@@ -169,4 +175,32 @@ class Policy:
                     ),
                 )
 
+        for detector in self.moderation_detectors:
+            result = detector.analyse(text)
+            for match in result.matches:
+                violations.append(
+                    Violation(
+                        rule=f"moderation:{detector.name}:{match.category}",
+                        detail=f"{match.start}-{match.end}",
+                    ),
+                )
+
         return violations
+
+    def with_moderation(
+        self,
+        detectors: Iterable[ModerationDetector],
+    ) -> Policy:
+        """Return a copy of the policy with the supplied moderation
+        detectors appended. The Policy dataclass is otherwise
+        immutable-by-convention; this helper avoids awkward
+        ``dataclasses.replace`` calls in application code."""
+        new = Policy(
+            forbidden=list(self.forbidden),
+            patterns=list(self.patterns),
+            max_length=self.max_length,
+            required_citations_pattern=self.required_citations_pattern,
+            required_citations_min=self.required_citations_min,
+            moderation_detectors=[*self.moderation_detectors, *detectors],
+        )
+        return new
