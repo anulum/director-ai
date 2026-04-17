@@ -4,15 +4,16 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — 30-Second Superiority Demo
-"""Three scoring modes on the same hallucinated answer.
+# Director-Class AI — 30-second scoring modes demo
+"""Three scoring modes against the same hallucinated answer.
 
-Shows why Director-AI catches errors that prompt-only and
-threshold-only approaches miss.
+Compares prompt-only, threshold-only, and KB-grounded verification on
+a shared fixture so the differences in catch rate are visible in one
+run.
 
 Usage::
 
-    python examples/superiority_demo.py
+    python examples/scoring_modes_demo.py
 """
 
 from __future__ import annotations
@@ -206,7 +207,7 @@ def run_mode_3_verified():
 
 def main():
     print("=" * 60)
-    print("  Director-AI — Superiority Demo")
+    print("  Director-AI — scoring modes demo")
     print("  Same 4 Q&A pairs, 3 hallucinated, 3 scoring modes")
     print("=" * 60)
     print()

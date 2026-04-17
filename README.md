@@ -89,6 +89,25 @@ Guard entire agent swarms — not just individual LLM calls:
 
 Meta-confidence estimation, online calibration from feedback, contradiction tracking across turns, agentic loop monitoring, adversarial robustness testing (25 patterns), EU AI Act audit trails, domain presets (medical/finance/legal/creative), cross-model consensus, conformal prediction intervals, token cost analyser, compliance report templates (HTML/Markdown), config wizard (Gradio UI + CLI).
 
+### Multi-language components (all optional)
+
+| Component | Path | Purpose |
+|-----------|------|---------|
+| **Rust `backfire-kernel`** | `backfire-kernel/` | 12 hot-path compute functions via PyO3 (9.4× geomean speedup) |
+| **Go gateway** | `gateway/go/` | High-concurrency HTTP front door with auth, rate limit, audit, optional scoring sidecar |
+| **`director.v1` wire schema** | `schemas/proto/` | Frozen protobuf messages shared by Python and Go |
+| **CoherenceScoring gRPC** | `src/director_ai/grpc_scoring.py` | `ScoreClaim` unary + `ScoreStream` bidi RPCs over `director.v1` |
+| **Julia threshold tuner** | `tools/julia_tuner/` | Offline bootstrap + Bayesian threshold analysis with uncertainty bands |
+| **Lean 4 formal proof** | `formal/HaltMonitor/` | Machine-checked guarantee that sub-threshold tokens cannot be emitted |
+
+Python stands on its own — every non-Python component is additive and
+toggled by an env var, flag, or optional dependency. See
+[`ARCHITECTURE.md`](ARCHITECTURE.md) for the full layout and
+[`gateway/go/README.md`](gateway/go/README.md),
+[`tools/julia_tuner/README.md`](tools/julia_tuner/README.md),
+[`formal/README.md`](formal/README.md),
+[`schemas/README.md`](schemas/README.md) for per-component details.
+
 Full documentation: [anulum.github.io/director-ai](https://anulum.github.io/director-ai)
 
 ---

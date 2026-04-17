@@ -5,7 +5,7 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — forge
-"""Forge: stacked NLI training techniques for accuracy superiority.
+"""Forge: stacked NLI training techniques for higher accuracy.
 
 Four independently toggleable techniques that compose:
 

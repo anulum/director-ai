@@ -324,8 +324,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   halts, drift, errors, KB failures).
 - **Latency matrix benchmark**: `benchmarks/latency_matrix.py` generates
   authoritative backend × batch size matrix with auto-detected hardware metadata.
-- **Superiority demo**: `examples/superiority_demo.py` runs three scoring modes
-  (threshold-only, KB-grounded, per-claim verified) on the same hallucinated data.
+- **Scoring modes demo**: `examples/scoring_modes_demo.py` runs three scoring
+  modes (threshold-only, KB-grounded, per-claim verified) on the same
+  hallucinated data.
 
 ### Fixed
 - **Streaming false-halt benchmark**: three bugs — callback double-accumulation

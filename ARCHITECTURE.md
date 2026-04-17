@@ -3,6 +3,14 @@
 Director-AI is a dual-entropy hallucination guardrail: NLI contradiction
 detection + RAG fact-checking with token-level streaming halt.
 
+Python is the primary runtime. Rust handles hot-path compute through
+`backfire-kernel` (PyO3). A Go gateway fronts the deployment when
+operators want a high-concurrency HTTP entry point, and calls back
+into the Python scorer over gRPC. A Julia analytics module runs
+offline on exported score logs. A Lean 4 proof artefact pins the
+halt-monitor safety contract. All language components are additive —
+the Python path stands on its own without any of them.
+
 ## Directory Map
 
 ```
@@ -100,7 +108,9 @@ director-ai/
 │   ├── server.py                  FastAPI REST server
 │   ├── _server_models.py          Pydantic request/response models
 │   ├── _server_helpers.py         Evidence serialisation helpers
-│   ├── grpc_server.py             gRPC server
+│   ├── grpc_server.py             legacy DirectorService gRPC (Python-only)
+│   ├── grpc_scoring.py            director.v1 CoherenceScoring gRPC
+│   ├── proto/                     generated director.v1 Python stubs
 │   ├── knowledge_api.py           Document ingestion API router
 │   └── proxy.py                   OpenAI-compatible guardrail proxy
 │
@@ -117,8 +127,34 @@ director-ai/
 │   └── rust_compute_bench.py      Rust vs Python benchmark (10 compute fns)
 ├── notebooks/                     16 Jupyter notebooks
 ├── docs-site/                     MkDocs documentation
-└── demo/                          HF Spaces Gradio demo
+├── demo/                          HF Spaces Gradio demo
+│
+├── schemas/
+│   ├── proto/director/v1/director.proto   wire schema (frozen v1)
+│   └── generate.sh                regenerates Python + Go stubs
+│
+├── gateway/go/                    Go gateway — HTTP front door
+│   ├── cmd/director-gateway/      binary entrypoint
+│   ├── internal/config,auth,ratelimit,proxy,audit,server,scoring/
+│   ├── proto/director/v1/         generated Go stubs
+│   └── bench/                     k6 load scripts + A/B bench
+│
+├── tools/julia_tuner/             Julia offline analytics
+│   └── src/DirectorThresholdTuner.jl   Bayesian + bootstrap threshold
+│
+└── formal/HaltMonitor/            Lean 4 safety proofs
+    └── HaltMonitor/{Core,Properties}.lean
 ```
+
+## Language roles
+
+| Language | Where | Purpose |
+|----------|-------|---------|
+| Python   | `src/director_ai/` | primary API, scoring, RAG, CLI, servers |
+| Rust     | `backfire-kernel/` | hot-path compute via PyO3 |
+| Go       | `gateway/go/` | concurrent HTTP front door with optional scoring sidecar |
+| Julia    | `tools/julia_tuner/` | offline threshold tuning with uncertainty bands |
+| Lean 4   | `formal/HaltMonitor/` | machine-checked proof that no sub-threshold token is emitted |
 
 ## Data Flow
 
@@ -176,7 +212,17 @@ LLM Provider ──► guard() / CoherenceAgent
 |--------|---------|
 | Python package | `pip install -e ".[dev]"` |
 | Rust backend | `cd backfire-kernel && cargo build --release` |
+| Go gateway | `cd gateway/go && go build ./cmd/director-gateway` |
+| Julia tuner deps | `make julia-instantiate` |
+| Lean proofs | `cd formal/HaltMonitor && lake build` |
 | Tests (Python) | `pytest tests/ -v` |
 | Tests (Rust) | `cd backfire-kernel && cargo test --workspace` |
+| Tests (Go) | `cd gateway/go && go test ./...` |
+| Tests (Julia) | `make test-julia` |
+| Tests (Lean) | `make test-lean` |
+| Tests (everything) | `make test-all` |
+| Regenerate proto stubs | `make proto` |
+| gRPC scoring server | `make grpc-scoring` |
 | Docs | `mkdocs serve` |
 | Benchmarks | `python -m benchmarks.run_all` |
+| A/B gateway bench | `make ab-bench` |
