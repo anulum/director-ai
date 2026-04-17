@@ -20,7 +20,7 @@ import logging
 from abc import ABC, abstractmethod
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
-import requests  # type: ignore[import-untyped]
+import requests
 
 logger = logging.getLogger("DirectorAI.Providers")
 

@@ -27,6 +27,8 @@ from __future__ import annotations
 import json
 import re
 
+from typing import Any
+
 from .types import FieldVerdict, StructuredVerificationResult
 
 __all__ = ["verify_json"]
@@ -54,9 +56,9 @@ def _extract_fields(data, prefix: str = "") -> list[tuple[str, object]]:
     return fields
 
 
-def _check_type(value, expected_type: str) -> bool:
+def _check_type(value: Any, expected_type: str) -> bool:
     """Check if a Python value matches a JSON Schema type string."""
-    type_map = {
+    type_map: dict[str, type | tuple[type, ...]] = {
         "string": str,
         "number": (int, float),
         "integer": int,
@@ -70,7 +72,7 @@ def _check_type(value, expected_type: str) -> bool:
         return True
     if expected_type in ("integer", "number") and isinstance(value, bool):
         return False
-    return isinstance(value, expected)  # type: ignore[arg-type]
+    return isinstance(value, expected)
 
 
 def _validate_schema(

@@ -28,19 +28,26 @@ Usage::
 
 from __future__ import annotations
 
+from typing import Any
+
 import re
 from dataclasses import dataclass
 
 __all__ = ["AdaptiveRouter", "RoutingDecision"]
 
-# Rust fast-path for pattern matching (backfire_kernel FFI)
-_RUST_AVAILABLE = False
+# Rust fast-path for pattern matching (backfire_kernel FFI). The
+# tuple pairing lets mypy infer the shared Optional type without a
+# per-branch suppression — one assignment, one declared type.
+_RUST_AVAILABLE: bool
+_rust_task_type: Any
 try:
-    from backfire_kernel import rust_detect_task_type as _rust_task_type
+    from backfire_kernel import rust_detect_task_type as _rust_task_type_imported
 
+    _rust_task_type = _rust_task_type_imported
     _RUST_AVAILABLE = True
 except ImportError:
-    _rust_task_type = None  # type: ignore[assignment]
+    _rust_task_type = None
+    _RUST_AVAILABLE = False
 
 # Task types that benefit from KB retrieval
 _RETRIEVAL_TYPES = frozenset({"rag", "fact_check", "qa"})

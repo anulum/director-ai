@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+from typing import Any
 
 __all__ = ["GroundTruthStore"]
 
@@ -45,8 +46,19 @@ class GroundTruthStore:
         store.facts.update(cls._DEMO_FACTS)
         return store
 
-    def add(self, key: str, value: str, tenant_id: str = "") -> None:
-        """Add or update a fact in the store."""
+    def add(
+        self,
+        key: str,
+        value: str,
+        metadata: dict[str, Any] | None = None,
+        tenant_id: str = "",
+    ) -> None:
+        """Add or update a fact in the store.
+
+        ``metadata`` is accepted for Liskov compatibility with
+        :class:`VectorGroundTruthStore.add` but ignored here — the
+        keyword store keeps no structured metadata."""
+        _ = metadata  # intentional no-op for LSP compat
         full_key = f"{tenant_id}:{key}" if tenant_id else key
         self.facts[full_key] = value
 
@@ -68,7 +80,7 @@ class GroundTruthStore:
         return [EvidenceChunk(text=context_str, distance=0.0, source="keyword")]
 
     def retrieve_context(
-        self, query: str, tenant_id: str = "", top_k: int = 0
+        self, query: str, top_k: int = 0, tenant_id: str = ""
     ) -> str | None:
         """Retrieve relevant facts matching *query*.
 

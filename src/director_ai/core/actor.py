@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from collections.abc import AsyncIterator
 
-import requests  # type: ignore[import-untyped]
+import requests
 
 CIRCUIT_BREAKER_THRESHOLD = 5  # consecutive failures before circuit opens
 LLM_DEFAULT_MAX_TOKENS = 128

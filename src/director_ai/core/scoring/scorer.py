@@ -14,6 +14,7 @@ import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import cast
 
 from ...enterprise.redactor import PIIRedactor
 from ..cache import ScoreCache
@@ -22,14 +23,14 @@ from ..otel import trace_review
 from ..types import CoherenceScore, EvidenceChunk, ScoringEvidence
 from ._llm_judge import LLMJudge
 from ._task_scoring import (
-    _DIALOGUE_TURN_RE,  # noqa: F401 — re-export for backward compat
+    _DIALOGUE_TURN_RE,
     detect_task_type,
     dialogue_factual_divergence,
     summarization_factual_divergence,
 )
 from .nli import NLIScorer, nli_available
 
-__all__ = ["CoherenceScorer"]
+__all__ = ["CoherenceScorer", "_DIALOGUE_TURN_RE"]
 
 # Heuristic divergence defaults (used when NLI model unavailable)
 DIVERGENCE_NEUTRAL = 0.5  # no signal → agnostic
@@ -165,6 +166,13 @@ class CoherenceScorer:
         else:
             self.use_nli = use_nli
 
+        # _nli is declared up-front so mypy does not narrow to the
+        # first branch's concrete type. ShardedNLIScorer is not a
+        # subclass but duck-types the full NLIScorer surface the
+        # callers reach into — the cast at the sharded assignment
+        # below documents that contract.
+        self._nli: NLIScorer | None = None
+
         # Rust/backfire backend: delegate to backfire_kernel FFI
         if scorer_backend in ("rust", "backfire"):
             try:
@@ -178,7 +186,6 @@ class CoherenceScorer:
                         else None
                     ),
                 )
-                self._nli = None  # type: ignore[assignment]
                 self.use_nli = False
             except (ImportError, AttributeError, OSError):
                 self._rust_scorer = None
@@ -193,16 +200,21 @@ class CoherenceScorer:
         elif self.use_nli and nli_devices and len(nli_devices) > 1:
             from .sharded_nli import ShardedNLIScorer
 
-            self._nli = ShardedNLIScorer(  # type: ignore[assignment]
-                devices=nli_devices,
-                use_model=True,
-                model_name=nli_model,
-                backend=nli_backend,
-                quantize_8bit=nli_quantize_8bit,
-                torch_dtype=nli_torch_dtype,
-                onnx_path=onnx_path,
-                onnx_batch_size=onnx_batch_size,
-                onnx_flush_timeout_ms=onnx_flush_timeout_ms,
+            # Duck-typed sharded variant — exposes the same surface
+            # as NLIScorer for the call sites that need it.
+            self._nli = cast(
+                NLIScorer,
+                ShardedNLIScorer(
+                    devices=nli_devices,
+                    use_model=True,
+                    model_name=nli_model,
+                    backend=nli_backend,
+                    quantize_8bit=nli_quantize_8bit,
+                    torch_dtype=nli_torch_dtype,
+                    onnx_path=onnx_path,
+                    onnx_batch_size=onnx_batch_size,
+                    onnx_flush_timeout_ms=onnx_flush_timeout_ms,
+                ),
             )
         elif self.use_nli:
             self._nli = NLIScorer(
@@ -218,8 +230,6 @@ class CoherenceScorer:
                 max_length=nli_max_length,
                 revision=nli_revision,
             )
-        else:
-            self._nli = None  # type: ignore[assignment]
         self._privacy_mode = privacy_mode
         self._redactor = PIIRedactor(enabled=privacy_mode)
         self._parallel_pool = ThreadPoolExecutor(max_workers=2)
@@ -299,13 +309,11 @@ class CoherenceScorer:
     def _judge_cache(self):
         return self._judge._judge_cache
 
-    @property
-    def _JUDGE_CACHE_MAX(self):  # noqa: N802
-        return self._judge._JUDGE_CACHE_MAX
-
-    @property
-    def _JUDGE_RETRY_MAX(self):  # noqa: N802
-        return self._judge._JUDGE_RETRY_MAX
+    # Names mirror the class-constant style on :class:`LLMJudge`
+    # so tests can reach them via ``scorer._JUDGE_CACHE_MAX``
+    # without knowing the internal judge object.
+    _JUDGE_CACHE_MAX = property(lambda self: self._judge._JUDGE_CACHE_MAX)
+    _JUDGE_RETRY_MAX = property(lambda self: self._judge._JUDGE_RETRY_MAX)
 
     @property
     def _llm_judge_model(self):
@@ -769,7 +777,7 @@ class CoherenceScorer:
         if not context:
             return DIVERGENCE_NEUTRAL, None
 
-        chunk_scores = None  # type: ignore[assignment]
+        retrieved_chunk_scores: list[float] | None = None
         prem_count = 1
         hyp_count = 1
         tok_count = 0
@@ -786,18 +794,21 @@ class CoherenceScorer:
                             overlap_ratio=self._chunk_overlap_ratio,
                         )
                     )
-                    chunk_scores = chunk_scores_list
+                    retrieved_chunk_scores = chunk_scores_list
                     hyp_count = len(chunk_scores_list)
                 else:
-                    nli_score, chunk_scores, prem_count, hyp_count = (
-                        self._nli._score_chunked_with_counts(
-                            context,
-                            text_output,
-                            inner_agg=fact_inner,
-                            outer_agg=fact_outer,
-                            premise_ratio=effective_premise_ratio,
-                            overlap_ratio=self._chunk_overlap_ratio,
-                        )
+                    (
+                        nli_score,
+                        retrieved_chunk_scores,
+                        prem_count,
+                        hyp_count,
+                    ) = self._nli._score_chunked_with_counts(
+                        context,
+                        text_output,
+                        inner_agg=fact_inner,
+                        outer_agg=fact_outer,
+                        premise_ratio=effective_premise_ratio,
+                        overlap_ratio=self._chunk_overlap_ratio,
                     )
             tok_count = self._nli.last_token_count
         elif self.strict_mode:
@@ -837,7 +848,7 @@ class CoherenceScorer:
             nli_premise=context,
             nli_hypothesis=text_output,
             nli_score=nli_score,
-            chunk_scores=chunk_scores,
+            chunk_scores=retrieved_chunk_scores,
             premise_chunk_count=prem_count,
             hypothesis_chunk_count=hyp_count,
             claim_coverage=claim_coverage,

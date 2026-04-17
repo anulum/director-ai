@@ -45,7 +45,7 @@ class SentenceTransformerBackend(VectorBackend):
         self._embeddings: list[Any] = []
         self._lock = threading.Lock()
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,
@@ -82,8 +82,8 @@ class SentenceTransformerBackend(VectorBackend):
 
         filtered_docs, filtered_embs = zip(*docs_and_embs, strict=True)
 
-        q_emb = self._model.encode(text, normalize_embeddings=True)
-        q_emb = _np.asarray(q_emb, dtype=_np.float32)  # type: ignore[assignment]
+        raw_q_emb = self._model.encode(text, normalize_embeddings=True)
+        q_emb = _np.asarray(raw_q_emb, dtype=_np.float32)
         similarities = [float(_np.dot(q_emb, e)) for e in filtered_embs]
         indices = sorted(
             range(len(similarities)),
@@ -148,7 +148,7 @@ class ChromaBackend(VectorBackend):
 
         self._collection = self._client.get_or_create_collection(**create_kwargs)
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,
@@ -168,14 +168,16 @@ class ChromaBackend(VectorBackend):
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
 
-        where: dict[str, str] | None = {"tenant_id": tenant_id} if tenant_id else None
+        where: dict[str, Any] | None = (
+            {"tenant_id": tenant_id} if tenant_id else None
+        )
         count = self._collection.count()
         if count == 0:
             return []
         results = self._collection.query(
             query_texts=[text],
             n_results=min(n_results, count),
-            where=where,  # type: ignore[arg-type]
+            where=where,
         )
         docs: list[dict[str, Any]] = []
         documents = results.get("documents")

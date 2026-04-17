@@ -13,6 +13,8 @@ Extracted from nli.py to reduce module size.
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
+from typing import Any
 import os
 from functools import lru_cache
 
@@ -271,10 +273,10 @@ class OnnxDynamicBatcher:
 
     def __init__(
         self,
-        onnx_scorer_fn,
+        onnx_scorer_fn: Callable[[list[tuple[str, str]]], list[float]],
         max_batch: int = 16,
         flush_timeout_ms: float = 10.0,
-        session=None,
+        session: Any = None,
     ) -> None:
         import threading
 
@@ -311,7 +313,7 @@ class OnnxDynamicBatcher:
             return []
         batch = self._buffer[:]
         self._buffer.clear()
-        return self._score_fn(batch)  # type: ignore[no-any-return]
+        return self._score_fn(batch)
 
     @property
     def uses_io_binding(self) -> bool:

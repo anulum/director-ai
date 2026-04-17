@@ -81,7 +81,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         logger.info("Ingested %d documents into vector backend.", len(texts))
         return len(texts)
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         key: str,
         value: str,
@@ -113,7 +113,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
                 raise ValueError(f"Failed to add to vector store: {e}") from e
 
-    def retrieve_context(  # type: ignore[override]
+    def retrieve_context(
         self,
         query: str,
         top_k: int = 3,

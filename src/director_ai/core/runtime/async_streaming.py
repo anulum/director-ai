@@ -30,6 +30,7 @@ __all__ = ["AsyncStreamingKernel"]
 import time
 from collections import deque
 from collections.abc import AsyncIterator, Awaitable, Callable
+from typing import cast
 
 from .kernel import HaltMonitor
 from .streaming import StreamSession, TokenEvent, _trend_drop
@@ -340,7 +341,7 @@ class AsyncStreamingKernel(HaltMonitor):
     @staticmethod
     async def _call_callback(callback: CoherenceCallback, token: str) -> float:
         """Call sync or async callback."""
-        result = callback(token)  # type: ignore[arg-type]
+        result: float | Awaitable[float] = callback(token)
         if asyncio.iscoroutine(result):
             return float(await result)
-        return float(result)  # type: ignore[arg-type]
+        return float(cast(float, result))

@@ -25,6 +25,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
+from typing import cast
 
 logger = logging.getLogger("DirectorAI.VerifiedScorer")
 
@@ -474,7 +475,7 @@ def _decompose_atomic(text: str) -> list[str]:
 
 def _entity_overlap(text_a: str, text_b: str) -> float:
     if _RUST_SIGNALS:
-        return rust_entity_overlap(text_a, text_b)  # type: ignore[no-any-return]
+        return float(rust_entity_overlap(text_a, text_b))
     ents_a = set(_ENTITY_RE.findall(text_a))
     ents_b = set(_ENTITY_RE.findall(text_b))
     if not ents_a and not ents_b:
@@ -488,7 +489,7 @@ def _entity_overlap(text_a: str, text_b: str) -> float:
 def _numerical_consistency(text_a: str, text_b: str) -> bool | None:
     """Check if numbers in text_a match numbers in text_b."""
     if _RUST_SIGNALS:
-        return rust_numerical_consistency(text_a, text_b)  # type: ignore[no-any-return]
+        return cast("bool | None", rust_numerical_consistency(text_a, text_b))
     nums_a = set(_NUM_RE.findall(text_a))
     nums_b = set(_NUM_RE.findall(text_b))
     if not nums_a and not nums_b:
@@ -501,7 +502,7 @@ def _numerical_consistency(text_a: str, text_b: str) -> bool | None:
 def _negation_flip(claim: str, source: str) -> bool:
     """Detect if claim negates something the source states positively, or vice versa."""
     if _RUST_SIGNALS:
-        return rust_negation_flip(claim, source)  # type: ignore[no-any-return]
+        return cast(bool, rust_negation_flip(claim, source))
     claim_words = set(claim.lower().split())
     source_words = set(source.lower().split())
     claim_has_neg = bool(claim_words & _NEG_WORDS)
@@ -577,7 +578,7 @@ def _traceability(claim: str, source: str) -> float:
     information not present in the source (potential fabrication).
     """
     if _RUST_SIGNALS:
-        return rust_traceability(claim, source)  # type: ignore[no-any-return]
+        return float(rust_traceability(claim, source))
     claim_words = set(claim.lower().split()) - _STOP_WORDS - _NEG_WORDS
     source_words = set(source.lower().split()) - _STOP_WORDS - _NEG_WORDS
     if not claim_words:

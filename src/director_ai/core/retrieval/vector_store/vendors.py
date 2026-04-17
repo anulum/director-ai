@@ -48,7 +48,7 @@ class PineconeBackend(VectorBackend):
         embed_fn: Any = None,
     ) -> None:
         try:
-            import pinecone  # type: ignore[import-untyped]
+            import pinecone
         except ImportError as e:
             raise ImportError(
                 "PineconeBackend requires pinecone. "
@@ -66,7 +66,7 @@ class PineconeBackend(VectorBackend):
         result: list[float] = self._embed_fn(text)
         return result
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,
@@ -134,7 +134,7 @@ class WeaviateBackend(VectorBackend):
         embed_fn: Any = None,
     ) -> None:
         try:
-            import weaviate  # type: ignore[import-untyped]
+            import weaviate
         except ImportError as e:
             raise ImportError(
                 "WeaviateBackend requires weaviate-client. "
@@ -146,7 +146,7 @@ class WeaviateBackend(VectorBackend):
         self._embed_fn = embed_fn
         self._count = 0
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,
@@ -229,7 +229,7 @@ class QdrantBackend(VectorBackend):
         vector_size: int = 384,
     ) -> None:
         try:
-            from qdrant_client import QdrantClient  # type: ignore[import-untyped]
+            from qdrant_client import QdrantClient
         except ImportError as e:
             raise ImportError(
                 "QdrantBackend requires qdrant-client. "
@@ -255,7 +255,7 @@ class QdrantBackend(VectorBackend):
                 ),
             )
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,
@@ -334,7 +334,7 @@ class FAISSBackend(VectorBackend):
         index_type: str = "flat",
     ) -> None:
         try:
-            import faiss  # type: ignore[import-untyped]
+            import faiss
         except ImportError as e:
             raise ImportError(
                 "FAISSBackend requires faiss-cpu or faiss-gpu. "
@@ -364,7 +364,7 @@ class FAISSBackend(VectorBackend):
         self._faiss.normalize_L2(vec)
         return vec
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,
@@ -428,7 +428,7 @@ class ElasticsearchBackend(VectorBackend):
         hybrid_weight: float = 0.5,
     ) -> None:
         try:
-            from elasticsearch import Elasticsearch  # type: ignore[import-untyped]
+            from elasticsearch import Elasticsearch
         except ImportError as e:
             raise ImportError(
                 "ElasticsearchBackend requires elasticsearch. "
@@ -465,7 +465,7 @@ class ElasticsearchBackend(VectorBackend):
             }
         self._client.indices.create(index=self._index, mappings=mappings)
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,

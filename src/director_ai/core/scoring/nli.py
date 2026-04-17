@@ -23,6 +23,7 @@ import logging
 import os
 import re
 from functools import lru_cache
+from typing import Any
 
 import numpy as np
 
@@ -39,14 +40,15 @@ try:
 except ImportError:
     _RUST_NLI = False
 from ._nli_export import (
-    OnnxDynamicBatcher,  # noqa: F401 — re-export
+    OnnxDynamicBatcher,
     _load_onnx_session,
-    export_onnx,  # noqa: F401 — re-export
-    export_tensorrt,  # noqa: F401 — re-export
+    export_onnx,
+    export_tensorrt,
 )
 
 __all__ = [
     "NLIScorer",
+    "OnnxDynamicBatcher",
     "export_onnx",
     "export_tensorrt",
     "nli_available",
@@ -267,13 +269,12 @@ def clear_model_cache() -> None:
 
 def nli_available() -> bool:
     """Check whether torch + transformers are importable."""
-    try:
-        import torch  # noqa: F401
-        import transformers  # noqa: F401
+    import importlib.util
 
-        return True
-    except ImportError:
-        return False
+    return (
+        importlib.util.find_spec("torch") is not None
+        and importlib.util.find_spec("transformers") is not None
+    )
 
 
 # ── Scorer â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
@@ -348,7 +349,7 @@ class NLIScorer:
         self._minicheck = None
         self._minicheck_loaded = False
         self._cache_dir = os.environ.get("HF_HOME")
-        self._lite_scorer = None
+        self._lite_scorer: Any = None
         self._onnx_batcher: OnnxDynamicBatcher | None = None
         self._last_token_count: int = 0
         self._cost_per_token: float = cost_per_token
@@ -1252,19 +1253,19 @@ class NLIScorer:
 
     # â"€â"€ Lite backend â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
-    def _ensure_lite(self):
+    def _ensure_lite(self) -> None:
         if self._lite_scorer is None:
             from .lite_scorer import LiteScorer
 
-            self._lite_scorer = LiteScorer()  # type: ignore[assignment]
+            self._lite_scorer = LiteScorer()
 
     def _lite_score(self, premise: str, hypothesis: str) -> float:
         self._ensure_lite()
-        return self._lite_scorer.score(premise, hypothesis)  # type: ignore[attr-defined, no-any-return]
+        return float(self._lite_scorer.score(premise, hypothesis))
 
     def _lite_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         self._ensure_lite()
-        return self._lite_scorer.score_batch(pairs)  # type: ignore[attr-defined, no-any-return]
+        return [float(v) for v in self._lite_scorer.score_batch(pairs)]
 
     # â"€â"€ Heuristic fallback â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 

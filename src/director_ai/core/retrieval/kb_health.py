@@ -181,7 +181,12 @@ class KBHealthCheck:
             if hasattr(self._store, "facts") and isinstance(self._store.facts, dict):
                 return len(self._store.facts)
             return 0
-        except Exception:  # noqa: BLE001 — intentional broad catch for diagnostic
+        except Exception:
+            # Health probes intentionally swallow every error and
+            # return a degraded count — the alternative is crashing
+            # the monitor on a backend glitch. logger.exception
+            # keeps the trace for operators.
+            logger.exception("KB document-count probe failed")
             return 0
 
     def _check_queryable(self) -> bool:
@@ -191,7 +196,8 @@ class KBHealthCheck:
                 self._store.retrieve_context("health check probe")
                 return True
             return False
-        except Exception:  # noqa: BLE001 — intentional broad catch for diagnostic
+        except Exception:
+            logger.exception("KB queryable probe failed")
             return False
 
     def _measure_query_latency(self) -> float:

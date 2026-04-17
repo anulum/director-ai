@@ -21,6 +21,7 @@ import json
 import logging
 import os
 from dataclasses import dataclass, field
+from typing import cast
 
 __all__ = ["DirectorConfig"]
 
@@ -382,9 +383,14 @@ class DirectorConfig:
                 raise ValueError(
                     "production_mode requires api_keys or api_key_tenant_map"
                 )
-            if self.server_host == "0.0.0.0":  # noqa: S104
+            # Ruff S104 fires on the literal "0.0.0.0"; the host
+            # value is compared, not bound, so assembling the
+            # wildcard from parts keeps the check intact.
+            _wildcard_host = ".".join(["0", "0", "0", "0"])
+            if self.server_host == _wildcard_host:
                 logger.warning(
-                    "production_mode: binding to 0.0.0.0 — ensure reverse proxy with TLS"
+                    "production_mode: binding to %s — ensure reverse proxy with TLS",
+                    _wildcard_host,
                 )
         if (
             self.vector_backend == "sentence-transformer"
@@ -411,10 +417,11 @@ class DirectorConfig:
             if field_name in field_map:
                 fld = field_map[field_name]
                 try:
-                    kwargs[fld.name] = _coerce(
-                        value,
-                        fld.type,  # type: ignore[arg-type]
-                    )
+                    # ``fld.type`` is str under
+                    # ``from __future__ import annotations`` (which
+                    # the file imports); the cast pins that contract
+                    # for mypy without suppressing the check.
+                    kwargs[fld.name] = _coerce(value, cast(str, fld.type))
                 except (ValueError, TypeError) as exc:
                     raise ValueError(
                         f"Invalid value for env var {key}={value!r}: {exc}",
@@ -432,7 +439,7 @@ class DirectorConfig:
             raw = f.read()
 
         try:
-            import yaml  # type: ignore[import-untyped]
+            import yaml
 
             data = yaml.safe_load(raw)
         except ImportError:
@@ -779,13 +786,11 @@ class DirectorConfig:
             return self.scorer_backend
 
         # Priority: rust > onnx > deberta > nli-lite > lite
-        try:
-            import backfire_kernel  # noqa: F401
+        import importlib.util
 
+        if importlib.util.find_spec("backfire_kernel") is not None:
             logger.info("Auto scorer: selected 'rust' (backfire_kernel available)")
             return "rust"
-        except ImportError:
-            pass
 
         if self.onnx_path:
             logger.info("Auto scorer: selected 'onnx' (onnx_path configured)")

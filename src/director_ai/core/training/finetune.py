@@ -38,6 +38,7 @@ import random
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 logger = logging.getLogger("DirectorAI.FineTune")
 
@@ -287,7 +288,13 @@ def _make_weighted_trainer_class(class_weights: list[float]):
     weight_tensor = torch.tensor(class_weights, dtype=torch.float32)
 
     class WeightedTrainer(Trainer):
-        def compute_loss(self, model, inputs, return_outputs=False, **kwargs):  # type: ignore[override]
+        def compute_loss(
+            self,
+            model: Any,
+            inputs: Any,
+            return_outputs: bool = False,
+            num_items_in_batch: Any = None,
+        ) -> Any:
             labels = inputs.pop("labels")
             outputs = model(**inputs)
             logits = outputs.logits
@@ -389,7 +396,7 @@ def finetune_nli(
         eval_strategy="steps" if eval_dataset else "no",
         eval_steps=config.eval_steps if eval_dataset else None,
         save_strategy=save_strat,
-        save_steps=float(config.eval_steps) if eval_dataset else None,  # type: ignore[arg-type]
+        save_steps=(config.eval_steps if eval_dataset else 0),
         save_total_limit=2,
         load_best_model_at_end=bool(eval_dataset),
         metric_for_best_model="balanced_accuracy" if eval_dataset else None,

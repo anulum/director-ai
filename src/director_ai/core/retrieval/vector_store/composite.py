@@ -190,7 +190,7 @@ class RerankedBackend(VectorBackend):
             ) from e
         self._reranker = CrossEncoder(reranker_model)
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,

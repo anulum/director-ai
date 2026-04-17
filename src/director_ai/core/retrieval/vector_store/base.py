@@ -75,7 +75,7 @@ def _load_vector_entry_points() -> None:
         from importlib.metadata import entry_points
 
         eps = entry_points()
-        group: list = (  # type: ignore[assignment]
+        group: Any = (
             eps.get("director_ai.vector_backends", [])
             if isinstance(eps, dict)
             else eps.select(group="director_ai.vector_backends")
@@ -100,7 +100,7 @@ class VectorBackend(ABC):
     """Protocol for vector database backends."""
 
     @abstractmethod
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,
@@ -163,7 +163,7 @@ class InMemoryBackend(VectorBackend):
         self._docs: list[dict[str, Any]] = []
         self._lock = threading.Lock()
 
-    def add(  # type: ignore[override]
+    def add(
         self,
         doc_id: str,
         text: str,

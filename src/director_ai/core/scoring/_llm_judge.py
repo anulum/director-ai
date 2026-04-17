@@ -327,36 +327,46 @@ class LLMJudge:
                 if self.provider == "openai":
                     import openai
 
-                    client = openai.OpenAI()
-                    result = client.chat.completions.create(
+                    openai_client = openai.OpenAI()
+                    openai_result = openai_client.chat.completions.create(
                         model=model,
                         messages=[{"role": "user", "content": judge_prompt}],
                         max_tokens=50,
                         response_format={"type": "json_object"},
                     )
-                    if self._cost_callback and result.usage:
+                    if self._cost_callback and openai_result.usage:
                         self._cost_callback(
                             model,
-                            result.usage.prompt_tokens,
-                            result.usage.completion_tokens,
+                            openai_result.usage.prompt_tokens,
+                            openai_result.usage.completion_tokens,
                         )
-                    return result.choices[0].message.content or ""
+                    return openai_result.choices[0].message.content or ""
                 if self.provider == "anthropic":
                     import anthropic
 
-                    client = anthropic.Anthropic()  # type: ignore[assignment]
-                    result = client.messages.create(  # type: ignore[attr-defined]
+                    anthropic_client = anthropic.Anthropic()
+                    anthropic_result = anthropic_client.messages.create(
                         model=model,
                         max_tokens=50,
                         messages=[{"role": "user", "content": judge_prompt}],
                     )
-                    if self._cost_callback and result.usage:
+                    if self._cost_callback and anthropic_result.usage:
                         self._cost_callback(
                             model,
-                            result.usage.input_tokens,
-                            result.usage.output_tokens,
+                            anthropic_result.usage.input_tokens,
+                            anthropic_result.usage.output_tokens,
                         )
-                    return result.content[0].text if result.content else ""
+                    first_block = (
+                        anthropic_result.content[0]
+                        if anthropic_result.content
+                        else None
+                    )
+                    return (
+                        first_block.text
+                        if first_block is not None
+                        and hasattr(first_block, "text")
+                        else ""
+                    )
                 return None
             except ImportError as exc:
                 logger.warning("LLM judge import failed: %s", exc)

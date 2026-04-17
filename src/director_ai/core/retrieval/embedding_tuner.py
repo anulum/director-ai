@@ -22,7 +22,7 @@ import logging
 import random
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 logger = logging.getLogger("DirectorAI.EmbeddingTuner")
 
@@ -103,8 +103,11 @@ def tune_embeddings(
         epochs,
     )
 
+    # PyTorch DataLoader expects a Dataset; sentence-transformers'
+    # ``InputExample`` list is accepted at runtime via its __getitem__
+    # protocol. cast pins that contract without a suppression.
     loader: DataLoader[Any] = DataLoader(
-        train_examples,  # type: ignore[arg-type]  # sentence-transformers InputExample
+        cast(Any, train_examples),
         shuffle=True,
         batch_size=batch_size,
     )

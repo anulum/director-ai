@@ -36,7 +36,7 @@ from .types import FieldVerdict, ToolCallResult
 
 __all__ = ["verify_tool_call"]
 
-_JSON_SCHEMA_TYPE_MAP = {
+_JSON_SCHEMA_TYPE_MAP: dict[str, type | tuple[type, ...]] = {
     "string": str,
     "number": (int, float),
     "integer": int,
@@ -117,7 +117,9 @@ def verify_tool_call(
                     expected_type = param_def.get("type")
                     if expected_type:
                         py_type = _JSON_SCHEMA_TYPE_MAP.get(expected_type)
-                        is_wrong = py_type and not isinstance(val, py_type)  # type: ignore[arg-type]
+                        is_wrong = py_type is not None and not isinstance(
+                            val, py_type
+                        )
                         if expected_type in ("integer", "number") and isinstance(
                             val, bool
                         ):

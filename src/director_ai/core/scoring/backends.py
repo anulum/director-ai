@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import abc
 import logging
+from typing import Any
 
 __all__ = [
     "ScorerBackend",
@@ -82,7 +83,7 @@ def _load_entry_points() -> None:
         from importlib.metadata import entry_points
 
         eps = entry_points()
-        group: list = (  # type: ignore[assignment]
+        group: Any = (
             eps.get("director_ai.backends", [])
             if isinstance(eps, dict)
             else eps.select(group="director_ai.backends")
@@ -260,13 +261,18 @@ class DistilledNLIBackendWrapper(ScorerBackend):
 # check at import time, will fail gracefully at score() time).
 register_backend("nli-lite", DistilledNLIBackendWrapper)
 
-try:
-    from backfire_kernel import BackfireConfig as _BkCfg  # noqa: F401
-    from backfire_kernel import RustCoherenceScorer as _RustScorer  # noqa: F401
+import importlib.util
 
-    register_backend("rust", RustBackend)
-    register_backend("backfire", RustBackend)
-except ImportError:  # pragma: no cover
-    pass
-except AttributeError as _attr_err:  # pragma: no cover
-    logger.warning("backfire_kernel found but broken: %s", _attr_err)
+if importlib.util.find_spec("backfire_kernel") is not None:
+    try:
+        # Availability probe — attribute access verifies the kernel
+        # ships the symbols the RustBackend needs. Both register
+        # calls are idempotent if the probe passes.
+        import backfire_kernel as _bk
+
+        _ = _bk.BackfireConfig
+        _ = _bk.RustCoherenceScorer
+        register_backend("rust", RustBackend)
+        register_backend("backfire", RustBackend)
+    except AttributeError as _attr_err:  # pragma: no cover
+        logger.warning("backfire_kernel found but broken: %s", _attr_err)

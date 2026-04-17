@@ -53,9 +53,10 @@ class FeedbackStore:
     def __init__(self, db_path: str | Path = "feedback.db"):
         self._db_path = str(db_path)
         self._lock = threading.Lock()
-        self._conn = sqlite3.connect(self._db_path, check_same_thread=False)
-        self._conn.execute("PRAGMA journal_mode=WAL")
-        self._conn.execute("""
+        conn = sqlite3.connect(self._db_path, check_same_thread=False)
+        self._conn: sqlite3.Connection | None = conn
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("""
             CREATE TABLE IF NOT EXISTS corrections (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 prompt TEXT NOT NULL,
@@ -67,7 +68,14 @@ class FeedbackStore:
                 timestamp REAL NOT NULL
             )
         """)
-        self._conn.commit()
+        conn.commit()
+
+    def _require_conn(self) -> sqlite3.Connection:
+        """Return the live connection. Raises :class:`RuntimeError`
+        when the store has already been closed."""
+        if self._conn is None:
+            raise RuntimeError("feedback store is closed")
+        return self._conn
 
     def report(
         self,
@@ -80,7 +88,7 @@ class FeedbackStore:
     ) -> None:
         """Record a human correction."""
         with self._lock:
-            self._conn.execute(
+            self._require_conn().execute(
                 """INSERT INTO corrections
                    (prompt, response, guardrail_score, guardrail_approved,
                     human_approved, domain, timestamp)
@@ -95,7 +103,7 @@ class FeedbackStore:
                     time.time(),
                 ),
             )
-            self._conn.commit()
+            self._require_conn().commit()
 
     def get_corrections(
         self,
@@ -113,7 +121,7 @@ class FeedbackStore:
             if limit > 0:
                 query += " LIMIT ?"
                 params.append(limit)
-            rows = self._conn.execute(query, params).fetchall()
+            rows = self._require_conn().execute(query, params).fetchall()
 
         return [
             Correction(
@@ -132,12 +140,12 @@ class FeedbackStore:
         """Count total corrections."""
         with self._lock:
             if domain is not None:
-                row = self._conn.execute(
+                row = self._require_conn().execute(
                     "SELECT COUNT(*) FROM corrections WHERE domain = ?",
                     (domain,),
                 ).fetchone()
             else:
-                row = self._conn.execute("SELECT COUNT(*) FROM corrections").fetchone()
+                row = self._require_conn().execute("SELECT COUNT(*) FROM corrections").fetchone()
             return row[0] if row else 0
 
     def get_disagreements(self, limit: int = 0) -> list[Correction]:
@@ -152,7 +160,7 @@ class FeedbackStore:
             if limit > 0:
                 query += " LIMIT ?"
                 params.append(limit)
-            rows = self._conn.execute(query, params).fetchall()
+            rows = self._require_conn().execute(query, params).fetchall()
 
         return [
             Correction(
@@ -185,4 +193,4 @@ class FeedbackStore:
         with self._lock:
             if self._conn is not None:
                 self._conn.close()
-                self._conn = None  # type: ignore[assignment]
+                self._conn = None

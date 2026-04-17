@@ -28,7 +28,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from concurrent.futures import TimeoutError as FutureTimeout
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, cast
 
 from ..exceptions import ValidationError
 from ..metrics import metrics
@@ -213,12 +213,12 @@ class BatchProcessor:
         try:
             with metrics.timer("review_duration_seconds"):
                 try:
-                    result = self._backend.process(  # type: ignore[attr-defined]
+                    result = self._backend.process(
                         prompt,
                         tenant_id=tenant_id,
                     )
                 except TypeError:
-                    result = self._backend.process(prompt)  # type: ignore[attr-defined]
+                    result = self._backend.process(prompt)
             metrics.inc("reviews_total")
             if result.halted:
                 metrics.inc("reviews_rejected")
@@ -226,7 +226,7 @@ class BatchProcessor:
                 metrics.inc("reviews_approved")
                 if result.coherence is not None:
                     metrics.observe("coherence_score", result.coherence.score)
-            return result  # type: ignore[no-any-return]
+            return cast(ReviewResult, result)
         finally:
             metrics.gauge_dec("active_requests")
 
@@ -260,7 +260,7 @@ class BatchProcessor:
             else:
                 metrics.inc("reviews_rejected")
             metrics.observe("coherence_score", score.score)
-            return approved, score  # type: ignore[no-any-return]
+            return cast(bool, approved), cast(CoherenceScore, score)
         finally:
             metrics.gauge_dec("active_requests")
 
