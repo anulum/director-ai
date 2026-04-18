@@ -185,7 +185,7 @@ enterprise = [
     "psycopg2-binary>=2.9",
 ]
 ui = [
-    "gradio>=4.0,<5",
+    "gradio>=4.0,<7",
 ]
 reports = [
     "weasyprint>=60",
