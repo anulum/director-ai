@@ -31,7 +31,6 @@ from __future__ import annotations
 import logging
 import os
 import threading
-from typing import cast
 
 logger = logging.getLogger("DirectorAI.Device")
 
@@ -73,11 +72,19 @@ def _capability(device_index: int) -> tuple[int, int] | None:
     try:
         import torch
 
-        # ``get_device_capability`` returns a tuple at runtime but
-        # torch does not ship strict type stubs; cast documents the
-        # narrowing at the FFI-ish boundary.
-        return cast("tuple[int, int]", torch.cuda.get_device_capability(device_index))
+        cap = torch.cuda.get_device_capability(device_index)
     except Exception:  # pragma: no cover — defensive
+        return None
+    # ``get_device_capability`` returns a two-tuple of ints at
+    # runtime but torch ships no strict stubs — and the unit
+    # tests mock ``torch`` with ``MagicMock`` so ``cap`` can be
+    # anything. Narrow defensively so the downstream
+    # ``cap >= min_cap`` comparison never sees a non-tuple.
+    if not (isinstance(cap, tuple) and len(cap) == 2):
+        return None
+    try:
+        return (int(cap[0]), int(cap[1]))
+    except (TypeError, ValueError):  # pragma: no cover — defensive
         return None
 
 
@@ -133,7 +140,10 @@ def _cuda_usable_for(device: str) -> bool:
         idx = int(device.split(":", 1)[1]) if ":" in device else 0
         if idx >= torch.cuda.device_count():
             return False
-        cap = cast("tuple[int, int]", torch.cuda.get_device_capability(idx))
+        raw = torch.cuda.get_device_capability(idx)
+        if not (isinstance(raw, tuple) and len(raw) == 2):
+            return False
+        cap = (int(raw[0]), int(raw[1]))
         return cap >= _minimum_capability()
     except Exception:  # pragma: no cover — defensive
         return False

@@ -228,7 +228,7 @@ pub fn rust_merkle_walk_path(leaf: Vec<u8>, index: usize, siblings: Vec<Vec<u8>>
     let mut node = leaf;
     let mut i = index;
     for sibling in siblings {
-        node = if i % 2 == 0 {
+        node = if i.is_multiple_of(2) {
             hash_node(&node, &sibling)
         } else {
             hash_node(&sibling, &node)
