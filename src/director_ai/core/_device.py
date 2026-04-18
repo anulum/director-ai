@@ -31,6 +31,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+from typing import cast
 
 logger = logging.getLogger("DirectorAI.Device")
 
@@ -72,7 +73,10 @@ def _capability(device_index: int) -> tuple[int, int] | None:
     try:
         import torch
 
-        return torch.cuda.get_device_capability(device_index)
+        # ``get_device_capability`` returns a tuple at runtime but
+        # torch does not ship strict type stubs; cast documents the
+        # narrowing at the FFI-ish boundary.
+        return cast("tuple[int, int]", torch.cuda.get_device_capability(device_index))
     except Exception:  # pragma: no cover — defensive
         return None
 
@@ -129,7 +133,7 @@ def _cuda_usable_for(device: str) -> bool:
         idx = int(device.split(":", 1)[1]) if ":" in device else 0
         if idx >= torch.cuda.device_count():
             return False
-        cap = torch.cuda.get_device_capability(idx)
+        cap = cast("tuple[int, int]", torch.cuda.get_device_capability(idx))
         return cap >= _minimum_capability()
     except Exception:  # pragma: no cover — defensive
         return False

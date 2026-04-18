@@ -139,4 +139,3 @@ func clientAddr(r *http.Request) string {
 	}
 	return host
 }
-

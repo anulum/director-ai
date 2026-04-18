@@ -50,11 +50,7 @@ pub fn rust_aabb_contains(
 /// Return True when ``point`` lies within a sphere of ``radius``
 /// centred at ``centre``.
 #[pyfunction]
-pub fn rust_sphere_contains(
-    centre: (f64, f64, f64),
-    radius: f64,
-    point: (f64, f64, f64),
-) -> bool {
+pub fn rust_sphere_contains(centre: (f64, f64, f64), radius: f64, point: (f64, f64, f64)) -> bool {
     let dx = centre.0 - point.0;
     let dy = centre.1 - point.1;
     let dz = centre.2 - point.2;
@@ -136,7 +132,11 @@ pub fn rust_two_link_ik(
 
     let cos_theta2 = ((r2 - l1 * l1 - l2 * l2) / (2.0 * l1 * l2)).clamp(-1.0, 1.0);
     let sin_theta2_abs = (1.0 - cos_theta2 * cos_theta2).max(0.0).sqrt();
-    let sin_theta2 = if elbow_up { sin_theta2_abs } else { -sin_theta2_abs };
+    let sin_theta2 = if elbow_up {
+        sin_theta2_abs
+    } else {
+        -sin_theta2_abs
+    };
     let theta2 = sin_theta2.atan2(cos_theta2);
     let k1 = l1 + l2 * cos_theta2;
     let k2 = l2 * sin_theta2;
@@ -159,7 +159,11 @@ fn next_level(level: &[Vec<u8>]) -> Vec<Vec<u8>> {
     let mut i = 0;
     while i < level.len() {
         let left = &level[i];
-        let right = if i + 1 < level.len() { &level[i + 1] } else { left };
+        let right = if i + 1 < level.len() {
+            &level[i + 1]
+        } else {
+            left
+        };
         out.push(hash_node(left, right));
         i += 2;
     }
@@ -189,10 +193,7 @@ pub fn rust_merkle_root(leaves: Vec<Vec<u8>>) -> PyResult<Vec<u8>> {
 /// sibling does not exist at an odd-tailed level, the node itself
 /// is returned (matches the Python reference's duplicate-last rule).
 #[pyfunction]
-pub fn rust_merkle_auth_path(
-    leaves: Vec<Vec<u8>>,
-    index: usize,
-) -> PyResult<Vec<Vec<u8>>> {
+pub fn rust_merkle_auth_path(leaves: Vec<Vec<u8>>, index: usize) -> PyResult<Vec<Vec<u8>>> {
     if leaves.is_empty() {
         return Err(PyValueError::new_err("leaves must be non-empty"));
     }
@@ -223,11 +224,7 @@ pub fn rust_merkle_auth_path(
 /// Walk a leaf up through the auth path and return the computed
 /// root. Bit-exact with the Python ``_walk_path`` reference.
 #[pyfunction]
-pub fn rust_merkle_walk_path(
-    leaf: Vec<u8>,
-    index: usize,
-    siblings: Vec<Vec<u8>>,
-) -> Vec<u8> {
+pub fn rust_merkle_walk_path(leaf: Vec<u8>, index: usize, siblings: Vec<Vec<u8>>) -> Vec<u8> {
     let mut node = leaf;
     let mut i = index;
     for sibling in siblings {

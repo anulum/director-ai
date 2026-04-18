@@ -27,7 +27,26 @@ from importlib.util import find_spec
 
 from ..otel import _get_tracer, _NoopSpan
 
-_OTEL_AVAILABLE = find_spec("opentelemetry.trace") is not None
+
+def _probe_otel_available() -> bool:
+    """Return True when ``opentelemetry.trace`` is importable.
+
+    ``find_spec("opentelemetry.trace")`` imports the parent
+    ``opentelemetry`` package as a side effect; when the parent is
+    not installed Python raises :class:`ModuleNotFoundError` instead
+    of returning ``None``. Probe the parent first, then the child,
+    so the tracing module can be imported on deployments that did
+    not install the ``[observability]`` extra.
+    """
+    if find_spec("opentelemetry") is None:
+        return False
+    try:
+        return find_spec("opentelemetry.trace") is not None
+    except ModuleNotFoundError:
+        return False
+
+
+_OTEL_AVAILABLE = _probe_otel_available()
 
 
 @contextmanager
