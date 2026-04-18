@@ -5,9 +5,200 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 2026-04-17
+## [Unreleased] — 2026-04-18
 
-### Added
+### Added — safety hooks (2026-04-17 / 2026-04-18)
+- `director_ai.core.cyber_physical` — pre-action physical-consistency
+  checks for robotic / autonomous agents. `Vec3`, `AABB`, `Sphere`
+  primitives, `SimpleKinematicModel` with analytical two-link IK,
+  four `PhysicalConstraint` classes (`SpatialConstraint`,
+  `WorkspaceConstraint`, `VelocityConstraint`, `TorqueConstraint`)
+  behind a runtime-checkable Protocol, and a `GroundingHook`
+  orchestrator that returns every violation (no short-circuit) plus
+  optional reachability rejection via `model.inverse()`. Lazy-
+  imported adapters for ROS 2 (`Ros2Adapter`), MuJoCo
+  (`MuJoCoAdapter`) and CARLA (`CarlaAdapter`).
+- `director_ai.core.containment` — HMAC-signed execution-scope
+  attestation and breakout detection. `RealityAnchor` dataclass with
+  sandbox / simulator / shadow / production literals,
+  `ContainmentAttestor` (HMAC-SHA256 mint + constant-time verify,
+  freshness window, future-timestamp reject, expected-scope
+  assertion), rule-based `BreakoutDetector` (production-host
+  matcher, anti-anchor prompt-injection phrase matcher, scope-
+  mismatch matcher), and a `ContainmentGuard` orchestrator returning
+  `allow` / `warn` / `block` verdicts with every finding attached.
+- `director_ai.core.zk_attestation` — cross-organisation agent
+  passports with HMAC Merkle commitment proofs.
+  `AttestationStatement` Protocol with four concrete claims
+  (`MinimumCoherence`, `MaximumHaltRate`, `DomainExperience`,
+  `NoBreakoutEvents`); `CommitmentBackend` that commits all samples,
+  derives a challenge deterministically from the commitment root
+  via HMAC-SHA256 PRF expansion, and opens a random subset whose
+  indices cannot be cherry-picked; `ZkSnarkBackend` Protocol for
+  plug-in groth16 / plonk adapters (arkworks / gnark / snarkjs);
+  `CrossOrgPassport`, `PassportIssuer` and `PassportVerifier`
+  composing the backends under an HMAC-signed header.
+- `CoherenceAgent` constructor gained four keyword-only optional
+  hooks: `containment_guard`, `containment_anchor`, `grounding_hook`
+  and `passport_verifier`. `process()` now checks every output
+  against the attached containment guard; `verify_physical_action`
+  and `verify_passport` helpers delegate to the attached modules.
+  All four default to `None` for bit-for-bit compatibility with
+  existing deployments.
+- `backfire_kernel.safety_hooks` — Rust acceleration for the safety
+  subpackages. Nine PyO3 functions: `rust_aabb_contains`,
+  `rust_sphere_contains`, `rust_sphere_intersects_sphere`,
+  `rust_sphere_intersects_aabb`, `rust_two_link_ik`,
+  `rust_merkle_root`, `rust_merkle_auth_path`,
+  `rust_merkle_walk_path`, `rust_derive_challenge_indices`. Python
+  dispatchers auto-route to Rust when the wheel is installed and
+  fall back to the pure-Python reference otherwise. Bit-exact
+  parity on geometry / Merkle and < 1e-12 ULP on the trigonometric
+  IK path.
+
+### Added — roadmap features (2026-04-15 / 2026-04-16)
+- **Agent Trajectory Simulator** (`core.trajectory`) — Monte-Carlo
+  pre-execution trajectory exploration via distilled actor + dual-
+  entropy scorer; conformal prediction for expected halt
+  probability.
+- **Predictive Prompt Risk Routing** (`core.routing`) — ultra-fast
+  input risk scoring, safe-model fallback on high risk, and a per-
+  session / per-tenant risk budget. Rust fast-path for the
+  heuristic layer plus a Go gateway middleware that consults the
+  scorer before dispatching.
+- **TraceSafe mid-trajectory oracle** (`core.trace_safe`) — real-
+  time spectral clustering of partial agent traces against
+  sanctioned safe / unsafe embeddings; halts divergent runs
+  before they conclude.
+- **Self-Generating Policy Compiler** (`core.policy_compiler`) —
+  LLM pipeline that turns a compliance document into Policy rules
+  and conformal thresholds, hot-swappable without restart.
+- **Causal Counterfactual Trajectory Verifier** (`core.causal_verifier`)
+  — DPLL-backed causal graph and what-if branching with a
+  conformal gate.
+- **Verifiable Neural-Symbolic Reasoning Chain** (`core.symbolic_chain`)
+  — symbolic trace extractor with a pluggable mini-prover
+  (stdlib DPLL shipped, Z3 / Lean adapters behind optional
+  dependencies).
+- **Ontological Consistency Oracle** (`core.ontology`) — category /
+  modal logic checks over a lightweight ontology graph with
+  conformal threshold integration.
+- **Irreversibility Impact Forecaster** (`core.irreversibility`) —
+  Monte-Carlo and causal-graph backed estimator of point-of-no-
+  return probability; builds on the counterfactual verifier and
+  `HaltMonitor`.
+- **Multimodal Hallucination Guard** (`core.multimodal_guard`) —
+  CLIP / hash-bag vision-NLI backend with temporal consistency for
+  streamed frames. `[multimodal]` extra.
+- **Self-Evolving Online Guardrail** (`core.self_evolving`) —
+  feedback store → synthetic adversarial → LoRA micro-fine-tune →
+  conformal threshold update, run as a background worker.
+- **Institutional Knowledge Activation Graph** (`core.knowledge_graph`)
+  — structured skill graph with policy-aware traversal, extending
+  the vector-store registry.
+- **Persistent Agent Identity + Behavioural Provenance**
+  (`core.agent_identity`) — cryptographically-signed agent
+  passport, behavioural fingerprint, and hijacking detection; HMAC
+  audit chain integration.
+- **Recursive Self-Referential MetaGuard** (`core.meta_guard`) —
+  `CoherenceScorer` and `HaltMonitor` applied to the agent's own
+  decisions, auto-adjusting thresholds on meta-drift.
+- **Evolutionary Defense Genome** (`core.defense_genome`) — darwinian
+  adversarial population store, evolution engine, and hot-swap
+  defense registry plugged into the online calibrator and feedback
+  store.
+- **Game-Theoretic Swarm Equilibrium Scorer** (`core.swarm_equilibrium`)
+  — Nash / Stackelberg micro-solver for inter-agent stability,
+  wired into the handoff scorer and review queue.
+- **Emergent Behaviour Oracle** (`core.emergence_oracle`) —
+  interaction-graph random walk + community detection to surface
+  dangerous swarm attractors from partial traces.
+- **Autopoietic Architecture Evolution** (`core.autopoietic`) —
+  meta-layer that spawns / tests / hot-swaps new scorer and actor
+  modules via code-gen behind a WASM sandbox.
+- **Multi-Scale Alignment Verifier** (`core.multi_scale_alignment`)
+  — hierarchical scorer across agent → swarm → organisation →
+  planetary value lattices with conformal scale-conflict detection.
+- **Provenance & Citation Integrity Layer** (`core.provenance`) —
+  HMAC chains and Merkle proofs on RAG facts, source credibility
+  scoring, and trust decay.
+- **Formal Verification Hooks** (`core.formal_verification`) — DPLL
+  SAT solver built-in with optional Z3 / Lean 4 backends behind
+  extras, cross-checked against the NLI + RAG signals.
+- **Federated Privacy-Preserving Guardrail Sharing**
+  (`core.federated_privacy`) — secure MPC / differential privacy
+  for anonymised failure pattern sharing across tenants.
+- **Continual Adversarial Evolution Engine** (`core.continual_adversarial`)
+  — auto-generated adversarial suites from real failures plus a
+  tiny adversary scorer distilled in parallel.
+- **Swarm Economic Risk Scorer** (`core.swarm_economics`) —
+  resource / token / Nash-bargaining model for inter-agent
+  economics with a tragedy-of-the-commons halt.
+- **Long-Horizon Sustainability Budget** (`core.sustainability`) —
+  multi-day conformal forecaster with carbon-aware throttling and
+  compute-exhaustion enforcement.
+
+### Added — platform & tooling
+- Julia threshold tuner (`tools/julia_tuner/`) — offline analytics
+  module that takes labelled scorer output and returns a point
+  threshold, a bootstrap 95% CI, and a Bayesian posterior (Turing.jl
+  NUTS). Python feeder at `tools/prepare_threshold_data.py`. New
+  `make test-julia` and `make julia-instantiate` targets.
+- Lean 4 formal model of the HaltMonitor threshold check
+  (`formal/HaltMonitor/`) with four machine-checked theorems: no
+  token whose coherence score falls below `hard_limit` can ever be
+  emitted. New `make test-lean` target plus `test-all` wiring.
+- Frozen `director.v1` wire schema in `schemas/proto/director/v1/`
+  — chat completion, coherence verdict, tenant, API key, and audit
+  messages plus `CoherenceScoring` and `ChatGateway` service
+  definitions. Generated Python stubs under
+  `src/director_ai/proto/director/v1/`, Go stubs under
+  `gateway/go/proto/director/v1/`. `schemas/generate.sh`
+  regenerator, hand-written `director_ai.proto.converters`
+  adapters, and `make proto` / `make test-go` targets.
+- Go gateway skeleton (`gateway/go/`) — passthrough HTTP proxy in
+  front of any OpenAI-compatible upstream. Env-driven config,
+  constant-time API-key auth with audit fingerprint, per-key
+  token-bucket rate limit, JSONL audit sink matching the Python
+  audit record shape, SSE streaming via `http.Flusher`. Binary
+  entrypoint `cmd/director-gateway`, k6 load script under
+  `gateway/go/bench/`, 50 Go test cases, clean `go test -race`.
+- `director.v1.CoherenceScoring` gRPC server
+  (`src/director_ai/grpc_scoring.py`) — wraps `CoherenceScorer`
+  with `ScoreClaim` (unary) and `ScoreStream` (bidirectional)
+  RPCs. New CLI: `python -m director_ai.grpc_scoring`.
+- Go scoring client (`gateway/go/internal/scoring/`) — dials the
+  Python gRPC server and adds an optional response middleware that
+  extracts the assistant message from chat-completion JSON, runs
+  `ScoreClaim` against it, stamps `X-Coherence-Score` /
+  `X-Coherence-Halted` headers and rewrites halted answers as 422
+  JSON. Enabled by `DIRECTOR_SCORING_ADDR`; per-request override
+  via `X-Coherence-Threshold`. Additional env:
+  `DIRECTOR_SCORING_TIMEOUT_MS`.
+- `bench/ab_bench.sh` — boots a mock upstream, runs two k6 scenarios
+  (gateway only, gateway + scoring sidecar), and records the k6
+  summaries for comparison. `make grpc-scoring` and `make ab-bench`
+  targets wire everything together.
+- Auto-KB ingestion plugins for S3, Notion and Google Drive —
+  pluggable source adapters that populate the vector store on a
+  schedule.
+- Per-token observability — OpenTelemetry child spans per token
+  plus a Langfuse adapter for hosted tracing.
+- WASM edge runtime — browser-deployable scorer subset behind
+  `make wasm`, tested end-to-end.
+- Interactive live streaming-halt demo (`demo/`) — Gradio app that
+  shows token-level halts in real time against a mock LLM.
+- Presidio-based PII detector and Detoxify-based toxicity detector
+  wired into the Policy engine with YAML configuration.
+- Cookbooks for multi-agent handoff failures, long-context RAG
+  drift, agent-trajectory preflight and streaming-halt flows
+  (`docs-site/cookbook/`).
+- PII scanner Python-vs-Rust benchmark (`benchmarks/pii_rust_vs_python.py`)
+  with measured wall-clock numbers.
+- Vector store split into a focused package (`core.retrieval.vector_store`)
+  with one backend per file, plus `uv.lock` for reproducible builds.
+
+### Added — earlier (2026-04-15)
 - `facts_root` parameter on `create_proxy_app` / `_load_facts` and
   `--facts-root` CLI flag to restrict proxy facts loading to a chosen
   directory (symlinks resolved).
@@ -63,6 +254,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API-key audit fingerprints in `server.py` and
   `middleware/api_key.py` now use the per-installation salt from
   `get_audit_salt()` instead of a hardcoded constant.
+- Training Dockerfile base image upgraded to
+  `pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime`, pinned by digest.
+  All Python dependencies now installed via
+  `pip install --require-hashes -r training/requirements-distil.txt`
+  (hashes generated through `pip-compile --generate-hashes`).
+- gRPC `DirectorServicer` class restructured to snake-case
+  implementation methods with PascalCase dispatch aliases so both
+  the gRPC binding protocol and naming linters pass without
+  suppressions.
+- `.gitignore` rule for `/training/` changed to `/training/*` so
+  `!` exceptions re-include children; all tracked training scripts
+  explicitly whitelisted.
+
+### Fixed
+- Dockerfile.distil previously pulled `torch==2.6.0` from PyTorch's
+  `cu121` index, which never published that version; the new
+  cuda-12.4 base ships torch 2.6 pre-installed and closes the
+  silently-broken install path.
+- All `# type: ignore` and `# noqa` suppressions removed from
+  `core/`, top-level `src/` and all new subpackages; problems
+  addressed structurally (Protocol + cast at FFI boundaries,
+  `importlib.util.find_spec` for optional-dependency probes,
+  snake-case methods + class-level aliases for gRPC dispatch).
+
+### Removed
+- `optimum[onnxruntime]` pin from the training image — the
+  distillation script does not import optimum; ONNX export runs in
+  a separate container downstream.
 
 ## [3.14.0] — 2026-04-14
 

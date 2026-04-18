@@ -89,11 +89,32 @@ Guard entire agent swarms — not just individual LLM calls:
 
 Meta-confidence estimation, online calibration from feedback, contradiction tracking across turns, agentic loop monitoring, adversarial robustness testing (25 patterns), EU AI Act audit trails, domain presets (medical/finance/legal/creative), cross-model consensus, conformal prediction intervals, token cost analyser, compliance report templates (HTML/Markdown), config wizard (Gradio UI + CLI).
 
+### Agent safety hooks
+
+Opt-in modules that plug into `CoherenceAgent` without changing
+existing behaviour — configured together or not at all.
+
+- **Cyber-physical grounding** (`core.cyber_physical`) — pre-action
+  AABB / sphere collision and two-link analytical IK; lazy-loaded
+  ROS 2 / MuJoCo / CARLA adapters.
+- **Simulation containment** (`core.containment`) — HMAC-signed
+  `RealityAnchor` binding a session to a `sandbox` / `simulator` /
+  `shadow` / `production` scope, with a rule-based breakout
+  detector (production-host calls, anti-anchor prompt injection,
+  scope mismatch).
+- **Cross-org passports** (`core.zk_attestation`) — `PassportIssuer`
+  and `PassportVerifier` with an HMAC Merkle commitment backend
+  plus a `ZkSnarkBackend` plug-in Protocol for real zero-knowledge
+  adapters.
+
+See the [API reference](docs-site/api/cyber-physical.md) pages for
+the full surface.
+
 ### Multi-language components (all optional)
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| **Rust `backfire-kernel`** | `backfire-kernel/` | 12 hot-path compute functions via PyO3 (9.4× geomean speedup) |
+| **Rust `backfire-kernel`** | `backfire-kernel/` | 28 hot-path compute functions via PyO3 — scorer / injection / safety-hook primitives with pure-Python fallbacks |
 | **Go gateway** | `gateway/go/` | High-concurrency HTTP front door with auth, rate limit, audit, optional scoring sidecar |
 | **`director.v1` wire schema** | `schemas/proto/` | Frozen protobuf messages shared by Python and Go |
 | **CoherenceScoring gRPC** | `src/director_ai/grpc_scoring.py` | `ScoreClaim` unary + `ScoreStream` bidi RPCs over `director.v1` |

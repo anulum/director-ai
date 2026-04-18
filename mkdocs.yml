@@ -186,6 +186,9 @@ nav:
       - REST Server: api/server.md
       - gRPC Server: api/grpc.md
       - CLI: api/cli.md
+      - Cyber-Physical Grounding: api/cyber-physical.md
+      - Containment & Reality Anchor: api/containment.md
+      - Cross-Org Passport: api/zk-attestation.md
       - Exceptions: api/exceptions.md
   - Deployment:
       - Production Guide: deployment/production.md

@@ -60,6 +60,34 @@ director-ai/
 │   │   │   ├── feedback_store.py  SQLite human correction store
 │   │   │   ├── online_calibrator.py  Threshold sweep + CIs
 │   │   │   └── conformal.py       Conformal prediction intervals
+│   │   ├── trajectory/             Monte-Carlo pre-execution simulator
+│   │   ├── routing/                Predictive prompt-risk routing
+│   │   ├── trace_safe/             Mid-trajectory safety oracle
+│   │   ├── policy_compiler/        Compliance-doc → Policy pipeline
+│   │   ├── causal_verifier/        Causal counterfactual verifier
+│   │   ├── symbolic_chain/         Neural-symbolic reasoning chain
+│   │   ├── ontology/               Ontological consistency oracle
+│   │   ├── irreversibility/        Point-of-no-return forecaster
+│   │   ├── multimodal_guard/       Vision-NLI hallucination guard
+│   │   ├── self_evolving/          Online LoRA micro-fine-tune worker
+│   │   ├── knowledge_graph/        Skill-graph with policy-aware walks
+│   │   ├── agent_identity/         Signed passport + behavioural fingerprint
+│   │   ├── meta_guard/             Self-referential scorer
+│   │   ├── defense_genome/         Evolutionary adversarial registry
+│   │   ├── swarm_equilibrium/      Nash / Stackelberg stability scorer
+│   │   ├── emergence_oracle/       Interaction-graph swarm forecaster
+│   │   ├── autopoietic/            Meta-layer module hot-swap
+│   │   ├── multi_scale_alignment/  Agent → swarm → org value lattice
+│   │   ├── provenance/             HMAC + Merkle citation integrity
+│   │   ├── formal_verification/    DPLL built-in + Z3 / Lean adapters
+│   │   ├── federated_privacy/      MPC / DP failure-pattern sharing
+│   │   ├── continual_adversarial/  Auto-generated adversarial suites
+│   │   ├── swarm_economics/        Inter-agent economic risk scorer
+│   │   ├── sustainability/         Multi-day budget + carbon throttle
+│   │   ├── cyber_physical/         Pre-action physical-grounding hook
+│   │   ├── containment/            HMAC reality anchor + breakout guard
+│   │   ├── zk_attestation/         Cross-org passports with Merkle proofs
+│   │   ├── observability/          Per-token OTEL + Langfuse tracing
 │   │
 │   ├── compliance/                 (v3.10.0 — EU AI Act Article 15)
 │   │   ├── audit_log.py           Scored interaction audit trail
