@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Cloud Build source upload filter
+#
+# Without this file, ``gcloud builds submit`` would fall back to
+# ``.gitignore`` — which covers most of the large dirs but misses
+# a few build artefacts that are under git-tracked parents. List
+# every heavy path here explicitly so the source tarball stays
+# small and Cloud Build submissions finish in seconds, not minutes.
+
+# Version control + CI state
+.git/
+.github/
+
+# Python virtual environments + caches
+.venv/
+venv/
+env/
+ENV/
+__pycache__/
+*.pyc
+*.pyo
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+
+# Rust build artefacts — these are the single largest thing
+# ``.gitignore`` misses. Cargo creates multi-GB target trees.
+**/target/
+**/Cargo.lock.bak
+
+# Node / bundler artefacts (demo directory)
+**/node_modules/
+**/dist/
+
+# MkDocs build output
+site/
+
+# Benchmark result JSON — regenerated on every run, no need to
+# ship prior results into the container image
+benchmarks/results/*
+!benchmarks/results/SCHEMA.md
+benchmarks/models/
+benchmarks/.cache/
+
+# HuggingFace / PyTorch model caches
+.cache/
+~/.cache/huggingface/
+ckpts/
+*.pt
+*.pth
+*.onnx
+*.safetensors
+*.bin
+
+# Local notebooks' checkpoint dirs
+.ipynb_checkpoints/
+
+# IDE + OS detritus
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*.swp
+
+# Session logs, internal docs, credentials — never enter a
+# container we might ship or share later
+.coordination/
+docs/internal/
+.claude/
+CLAUDE.md
+.agent_metadata.json
+
+# Training artefacts — ``training/output/`` alone is 45 GB,
+# ``training/data*/`` adds another ~8 GB of model checkpoints
+# and datasets that the container does NOT need. Mirror the
+# gitignore whitelist pattern: exclude everything, then re-add
+# just the files the build context actually requires.
+/training/*
+!/training/Dockerfile.distil
+!/training/Dockerfile.benchmarks
+!/training/distil_v5_cloud.py
+!/training/distil_factcg.py
+!/training/launch_cloud.sh
+!/training/run_vertex.sh
+!/training/requirements-distil.in
+!/training/requirements-distil.txt
+
+/models/
+MODELS/
+BACKUP/
+ARCHIVE/
+
+# backfire-kernel build dirs that are NOT in .gitignore —
+# cargo's target tree is the big one; dist/ holds compiled wheels.
+backfire-kernel/target/
+backfire-kernel/dist/
+backfire-kernel/**/*.rlib
+backfire-kernel/**/*.rmeta
+
+# Nohup + stray logs
+*.log
+nohup.out
+logs/
