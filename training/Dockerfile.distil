@@ -2,7 +2,13 @@
 # Director-AI — Distillation v5 cloud training container
 # For Vertex AI Custom Training Jobs
 
-FROM pytorch/pytorch:2.5.1-cuda12.1-cudnn9-runtime@sha256:831247999fbf7e08f61b3e39f6d77ee434f38f6f07f769d00db451e853878067
+# CUDA-12.4 base ships torch 2.6.0 pre-installed, which satisfies
+# CVE-2025-32434 (torch.load block lifted in ≥2.6). Previous
+# cuda12.1 base pulled torch 2.6.0 from PyPI — but PyTorch's
+# cu121 index never published a 2.6.0 wheel, so that path was
+# silently broken. Pinning the base by digest keeps the build
+# reproducible; re-pin when bumping to a newer torch.
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime@sha256:77f17f843507062875ce8be2a6f76aa6aa3df7f9ef1e31d9d7432f4b0f563dee
 
 WORKDIR /app
 
@@ -10,18 +16,14 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends git curl && \
     rm -rf /var/lib/apt/lists/*
 
-# Python deps — pinned for reproducibility (Scorecard PinnedDependenciesID)
-# Upgrade torch to 2.6+ (CVE-2025-32434 blocks torch.load on <2.6)
-RUN pip install --no-cache-dir torch==2.6.0 --index-url https://download.pytorch.org/whl/cu121
-RUN pip install --no-cache-dir \
-    transformers==4.51.3 \
-    datasets==3.6.0 \
-    scikit-learn==1.6.1 \
-    optimum[onnxruntime]==1.24.1 \
-    accelerate==1.7.0 \
-    huggingface-hub==0.32.4 \
-    google-cloud-storage==2.19.0 \
-    sentencepiece==0.2.0
+# Python deps — pinned by SHA-256 hash via pip-compile output.
+# Regenerate with:
+#     pip-compile --generate-hashes --allow-unsafe \
+#         --output-file=training/requirements-distil.txt \
+#         training/requirements-distil.in
+# Upgrade torch to 2.6+ (CVE-2025-32434 blocks torch.load on <2.6).
+COPY training/requirements-distil.txt training/requirements-distil.txt
+RUN pip install --no-cache-dir --require-hashes -r training/requirements-distil.txt
 
 # Copy project
 COPY pyproject.toml ./

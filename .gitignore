@@ -169,11 +169,26 @@ benchmarks/forge_ab_results.json
 # HuggingFace Model Cache & Training Artifacts
 # =====================================================================
 ckpts/
-/training/
+# Ignore everything under /training/ EXCEPT the whitelisted files
+# below. Pattern is ``/training/*`` (not ``/training/``) so the
+# directory itself is not excluded — required for ``!`` exceptions
+# to take effect on child paths.
+/training/*
+!/training/_upload_all.py
+!/training/build_judge_dataset.py
+!/training/data_pipeline.py
 !/training/distil_factcg.py
 !/training/distil_v5_cloud.py
 !/training/Dockerfile.distil
 !/training/launch_cloud.sh
+!/training/requirements-distil.in
+!/training/requirements-distil.txt
+!/training/run_vertex.sh
+!/training/train_cloud_large.py
+!/training/train_hallucination_detector.py
+!/training/train_judge.py
+!/training/upcloud_setup.sh
+!/training/upload_to_hub.py
 data/
 /models/
 !src/director_ai/models/

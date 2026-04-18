@@ -1,0 +1,19 @@
+# Direct dependencies for the distillation training container.
+# Transitive closure is resolved via ``pip-compile --generate-hashes``
+# into ``requirements-distil.txt``; the Dockerfile installs the
+# generated file with ``pip install --require-hashes`` so every
+# resolved package is locked by SHA-256.
+#
+# ``optimum[onnxruntime]`` is deliberately NOT pinned here even
+# though downstream export paths use it — the training script
+# (``distil_v5_cloud.py``) is pure PyTorch, so baking ONNX tooling
+# into the training image would only add attack surface without
+# a runtime caller.
+torch==2.6.0
+transformers==4.51.3
+datasets==3.6.0
+scikit-learn==1.6.1
+accelerate==1.7.0
+huggingface-hub==0.32.4
+google-cloud-storage==2.19.0
+sentencepiece==0.2.0
