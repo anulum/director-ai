@@ -160,7 +160,10 @@ logs/
 !src/director_ai/models/*.pkl
 !src/director_ai/core/models/*.pkl
 *.pickle
-benchmarks/results/
+benchmarks/results/*
+# The orchestrator schema doc lives under benchmarks/results/ so
+# every generated result is next to the contract it adheres to.
+!benchmarks/results/SCHEMA.md
 benchmarks/.cache/
 benchmarks/*.jsonl
 benchmarks/forge_ab_results.json

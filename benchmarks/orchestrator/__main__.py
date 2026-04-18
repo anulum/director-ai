@@ -4,13 +4,9 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# safety subpackage
+# Director-Class AI — ``python -m benchmarks.orchestrator`` shim
 
-from .injection import InjectionDetector
-from .sanitizer import InputSanitizer, SanitizeResult
+from benchmarks.orchestrator.cli import main
 
-__all__ = [
-    "InjectionDetector",
-    "InputSanitizer",
-    "SanitizeResult",
-]
+if __name__ == "__main__":
+    raise SystemExit(main())
