@@ -59,9 +59,7 @@ class SecretShare:
             raise ShareError("modulus must be positive")
         for v in self.values:
             if not 0 <= v < self.modulus:
-                raise ShareError(
-                    f"share {v} is outside [0, {self.modulus})"
-                )
+                raise ShareError(f"share {v} is outside [0, {self.modulus})")
 
     @property
     def party_count(self) -> int:
@@ -148,8 +146,7 @@ class SecureAggregator:
             )
         if share.modulus != self._modulus:
             raise ShareError(
-                f"share modulus {share.modulus} != aggregator modulus "
-                f"{self._modulus}"
+                f"share modulus {share.modulus} != aggregator modulus {self._modulus}"
             )
         for i, value in enumerate(share.values):
             self._accumulator[i] = (self._accumulator[i] + value) % self._modulus

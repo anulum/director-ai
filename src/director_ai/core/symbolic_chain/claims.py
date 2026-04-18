@@ -21,9 +21,7 @@ from typing import Literal
 
 ClaimRelationKind = Literal["implies", "contradicts", "equivalent"]
 
-_VALID_RELATIONS: frozenset[str] = frozenset(
-    ("implies", "contradicts", "equivalent")
-)
+_VALID_RELATIONS: frozenset[str] = frozenset(("implies", "contradicts", "equivalent"))
 
 
 @dataclass(frozen=True)

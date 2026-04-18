@@ -113,9 +113,7 @@ class CommitmentBackend:
         challenge subset."""
         if not samples:
             raise ValueError("samples must be non-empty")
-        commitment, leaves, blinds = commit_samples(
-            samples, key=self.key, rng=self.rng
-        )
+        commitment, leaves, blinds = commit_samples(samples, key=self.key, rng=self.rng)
         aggregate = sum(statement.evaluate_sample(s) for s in samples)
         indices = self._pick_challenge(
             seed_material=commitment.root.encode("utf-8"),

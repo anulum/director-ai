@@ -81,9 +81,7 @@ class TestValueLatticeScorer:
             values=ValueVector(weights={"safety": 1.0}),
         )
         high = scorer.score(Action(label="safe_action", impacts={"safety": 0.9}))
-        low = scorer.score(
-            Action(label="unsafe_action", impacts={"safety": -0.9})
-        )
+        low = scorer.score(Action(label="unsafe_action", impacts={"safety": -0.9}))
         assert high > 0.8
         assert low < 0.2
 
@@ -93,9 +91,7 @@ class TestValueLatticeScorer:
             values=ValueVector(weights={"safety": 1.0}),
         )
         # Action advances a value the scale does not track.
-        score = scorer.score(
-            Action(label="x", impacts={"autonomy": 1.0})
-        )
+        score = scorer.score(Action(label="x", impacts={"autonomy": 1.0}))
         # Affinity is zero → logistic(0) = 0.5.
         assert score == pytest.approx(0.5)
 
@@ -152,9 +148,7 @@ def _four_scorers() -> list[ScaleScorer]:
         ),
         ValueLatticeScorer(
             scale="planetary",
-            values=ValueVector(
-                weights={"sustainability": 0.8, "equity": 0.7}
-            ),
+            values=ValueVector(weights={"sustainability": 0.8, "equity": 0.7}),
         ),
     ]
 
@@ -181,9 +175,7 @@ class TestAligner:
         assert report.composite > 0.7
 
     def test_failing_scale_detected(self):
-        aligner = HierarchicalAligner(
-            scorers=_four_scorers(), allow_threshold=0.6
-        )
+        aligner = HierarchicalAligner(scorers=_four_scorers(), allow_threshold=0.6)
         action = Action(
             label="bad_at_org",
             impacts={
@@ -258,9 +250,7 @@ class TestAligner:
 
     def test_negative_weight_rejected(self):
         with pytest.raises(ValueError, match="non-negative"):
-            HierarchicalAligner(
-                scorers=_four_scorers(), weights={"agent": -0.1}
-            )
+            HierarchicalAligner(scorers=_four_scorers(), weights={"agent": -0.1})
 
     def test_zero_sum_weights_rejected(self):
         with pytest.raises(ValueError, match="positive"):
@@ -286,9 +276,15 @@ class TestConflictDetector:
     def test_calibrate_then_detect(self):
         # Calibration set: four aligned actions with small deltas.
         calibration = [
-            ScaleScoreTable(scores={"agent": 0.80, "swarm": 0.82, "org": 0.85, "planetary": 0.83}),
-            ScaleScoreTable(scores={"agent": 0.70, "swarm": 0.72, "org": 0.75, "planetary": 0.73}),
-            ScaleScoreTable(scores={"agent": 0.60, "swarm": 0.63, "org": 0.65, "planetary": 0.64}),
+            ScaleScoreTable(
+                scores={"agent": 0.80, "swarm": 0.82, "org": 0.85, "planetary": 0.83}
+            ),
+            ScaleScoreTable(
+                scores={"agent": 0.70, "swarm": 0.72, "org": 0.75, "planetary": 0.73}
+            ),
+            ScaleScoreTable(
+                scores={"agent": 0.60, "swarm": 0.63, "org": 0.65, "planetary": 0.64}
+            ),
         ]
         detector = ScaleConflictDetector(target_coverage=0.9)
         threshold = detector.calibrate(calibration)
@@ -320,9 +316,15 @@ class TestConflictDetector:
 
     def test_no_conflict_when_within_threshold(self):
         calibration = [
-            ScaleScoreTable(scores={"agent": 0.80, "swarm": 0.82, "org": 0.85, "planetary": 0.83}),
-            ScaleScoreTable(scores={"agent": 0.70, "swarm": 0.72, "org": 0.75, "planetary": 0.73}),
-            ScaleScoreTable(scores={"agent": 0.60, "swarm": 0.63, "org": 0.65, "planetary": 0.64}),
+            ScaleScoreTable(
+                scores={"agent": 0.80, "swarm": 0.82, "org": 0.85, "planetary": 0.83}
+            ),
+            ScaleScoreTable(
+                scores={"agent": 0.70, "swarm": 0.72, "org": 0.75, "planetary": 0.73}
+            ),
+            ScaleScoreTable(
+                scores={"agent": 0.60, "swarm": 0.63, "org": 0.65, "planetary": 0.64}
+            ),
         ]
         detector = ScaleConflictDetector(target_coverage=0.9)
         detector.calibrate(calibration)
@@ -333,8 +335,12 @@ class TestConflictDetector:
 
     def test_severe_flag(self):
         calibration = [
-            ScaleScoreTable(scores={"agent": 0.5, "swarm": 0.52, "org": 0.5, "planetary": 0.51}),
-            ScaleScoreTable(scores={"agent": 0.5, "swarm": 0.50, "org": 0.51, "planetary": 0.52}),
+            ScaleScoreTable(
+                scores={"agent": 0.5, "swarm": 0.52, "org": 0.5, "planetary": 0.51}
+            ),
+            ScaleScoreTable(
+                scores={"agent": 0.5, "swarm": 0.50, "org": 0.51, "planetary": 0.52}
+            ),
         ]
         detector = ScaleConflictDetector(target_coverage=0.9)
         detector.calibrate(calibration)

@@ -32,6 +32,7 @@ def _as_int(value: object) -> int:
     concrete type at each assert site."""
     return cast(int, value)
 
+
 # --- CausalGraph ----------------------------------------------------
 
 

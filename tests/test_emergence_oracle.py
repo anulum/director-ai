@@ -338,8 +338,18 @@ class TestEmergenceOracle:
         "kwargs,match",
         [
             ({"attractor_top_k": 0}, "attractor_top_k"),
-            ({"weight_attractor": -0.1, "weight_cycle": 0.5, "weight_imbalance": 0.6}, "non-negative"),
-            ({"weight_attractor": 0.9, "weight_cycle": 0.5, "weight_imbalance": 0.6}, "sum to 1"),
+            (
+                {
+                    "weight_attractor": -0.1,
+                    "weight_cycle": 0.5,
+                    "weight_imbalance": 0.6,
+                },
+                "non-negative",
+            ),
+            (
+                {"weight_attractor": 0.9, "weight_cycle": 0.5, "weight_imbalance": 0.6},
+                "sum to 1",
+            ),
         ],
     )
     def test_constructor_validation(self, kwargs: dict, match: str):

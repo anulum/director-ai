@@ -110,9 +110,7 @@ class TokenTraceEmitter:
     def register(self, callback: TokenTraceCallback) -> None:
         """Add a callback to the fan-out."""
         if not isinstance(callback, TokenTraceCallback):
-            raise TypeError(
-                f"{callback!r} must subclass TokenTraceCallback"
-            )
+            raise TypeError(f"{callback!r} must subclass TokenTraceCallback")
         self._callbacks.append(callback)
 
     def unregister(self, callback: TokenTraceCallback) -> None:
@@ -140,9 +138,7 @@ class TokenTraceEmitter:
                     "token trace callback %s raised %s", type(cb).__name__, exc
                 )
 
-    def end(
-        self, *, tenant_id: str, request_id: str, summary: dict[str, Any]
-    ) -> None:
+    def end(self, *, tenant_id: str, request_id: str, summary: dict[str, Any]) -> None:
         """Notify every callback that the session is over."""
         for cb in self._callbacks:
             try:
@@ -243,12 +239,8 @@ class LangfuseTokenCallback(TokenTraceCallback):
             return
         try:
             trace.update(
-                status_message=(
-                    "halted" if summary.get("halted") else "completed"
-                ),
+                status_message=("halted" if summary.get("halted") else "completed"),
                 metadata=summary,
             )
         except AttributeError:  # pragma: no cover — client shape drift
-            logger.debug(
-                "Langfuse trace object missing update(); skipping end update"
-            )
+            logger.debug("Langfuse trace object missing update(); skipping end update")

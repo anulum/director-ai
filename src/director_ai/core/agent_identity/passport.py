@@ -197,9 +197,7 @@ class PassportSigner:
             return False
         return True
 
-    def rotate(
-        self, *, new_active_key: bytes, new_active_key_id: str
-    ) -> None:
+    def rotate(self, *, new_active_key: bytes, new_active_key_id: str) -> None:
         """Promote a new key to active and move the previous one
         into the inactive set so outstanding passports signed
         under it still verify."""

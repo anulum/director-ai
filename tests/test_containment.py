@@ -250,9 +250,7 @@ class TestContainmentAttestor:
     def test_mint_rejects_unknown_scope(self):
         attestor = ContainmentAttestor(key=_SECRET, issuer="h")
         with pytest.raises(ValueError, match="unknown containment scope"):
-            attestor.mint(
-                session_id="s", scope=cast(ContainmentScope, "live")
-            )
+            attestor.mint(session_id="s", scope=cast(ContainmentScope, "live"))
 
     def test_canonical_payload_contains_fields(self):
         attestor = ContainmentAttestor(key=_SECRET, issuer="host-X")
@@ -283,9 +281,7 @@ class TestBreakoutDetector:
 
     def test_production_host_in_sandbox(self):
         det = BreakoutDetector()
-        findings = det.scan(
-            {"hostname": "api.openai.com"}, anchored_scope="sandbox"
-        )
+        findings = det.scan({"hostname": "api.openai.com"}, anchored_scope="sandbox")
         assert len(findings) == 1
         assert findings[0].category == "production_target"
         assert findings[0].severity == "high"
@@ -300,9 +296,7 @@ class TestBreakoutDetector:
 
     def test_production_host_in_production_scope_is_ok(self):
         det = BreakoutDetector()
-        findings = det.scan(
-            {"hostname": "api.openai.com"}, anchored_scope="production"
-        )
+        findings = det.scan({"hostname": "api.openai.com"}, anchored_scope="production")
         assert not any(f.category == "production_target" for f in findings)
 
     def test_anti_anchor_phrase_detection(self):
@@ -315,9 +309,7 @@ class TestBreakoutDetector:
 
     def test_anti_anchor_case_insensitive(self):
         det = BreakoutDetector()
-        findings = det.scan(
-            {"text": "IGNORE SANDBOX"}, anchored_scope="sandbox"
-        )
+        findings = det.scan({"text": "IGNORE SANDBOX"}, anchored_scope="sandbox")
         assert any(f.category == "anti_anchor_injection" for f in findings)
 
     def test_anti_anchor_runs_in_production_too(self):
@@ -338,16 +330,12 @@ class TestBreakoutDetector:
 
     def test_no_scope_mismatch_when_aligned(self):
         det = BreakoutDetector()
-        findings = det.scan(
-            {}, anchored_scope="sandbox", claimed_scope="sandbox"
-        )
+        findings = det.scan({}, anchored_scope="sandbox", claimed_scope="sandbox")
         assert not findings
 
     def test_custom_production_hosts(self):
         det = BreakoutDetector(production_hosts={"internal.billing"})
-        findings = det.scan(
-            {"hostname": "internal.billing"}, anchored_scope="sandbox"
-        )
+        findings = det.scan({"hostname": "internal.billing"}, anchored_scope="sandbox")
         assert any(f.category == "production_target" for f in findings)
 
     def test_custom_anti_anchor_phrases(self):
@@ -393,7 +381,11 @@ class TestBreakoutDetector:
             claimed_scope="production",
         )
         categories = {f.category for f in findings}
-        assert {"production_target", "anti_anchor_injection", "scope_mismatch"} <= categories
+        assert {
+            "production_target",
+            "anti_anchor_injection",
+            "scope_mismatch",
+        } <= categories
 
 
 # --- ContainmentGuard ------------------------------------------------
@@ -434,18 +426,14 @@ class TestContainmentGuard:
     def test_sandbox_production_host_blocks(self):
         guard, attestor = _guard()
         anchor = attestor.mint(session_id="s", scope="sandbox")
-        verdict = guard.check(
-            {"hostname": "api.openai.com"}, anchor
-        )
+        verdict = guard.check({"hostname": "api.openai.com"}, anchor)
         assert verdict.decision == "block"
         assert any(f.category == "production_target" for f in verdict.findings)
 
     def test_production_sanctioned_host_allowed(self):
         guard, attestor = _guard()
         anchor = attestor.mint(session_id="s", scope="production")
-        verdict = guard.check(
-            {"hostname": "api.openai.com"}, anchor
-        )
+        verdict = guard.check({"hostname": "api.openai.com"}, anchor)
         # Production scope downgrades the production_target finding,
         # nothing else is flagged, so it's allow.
         assert verdict.decision == "allow"
@@ -461,16 +449,12 @@ class TestContainmentGuard:
             anchor,
         )
         assert verdict.decision == "block"
-        assert any(
-            f.category == "anti_anchor_injection" for f in verdict.findings
-        )
+        assert any(f.category == "anti_anchor_injection" for f in verdict.findings)
 
     def test_scope_mismatch_blocks(self):
         guard, attestor = _guard()
         anchor = attestor.mint(session_id="s", scope="sandbox")
-        verdict = guard.check(
-            {"text": "routine"}, anchor, claimed_scope="production"
-        )
+        verdict = guard.check({"text": "routine"}, anchor, claimed_scope="production")
         assert verdict.decision == "block"
 
     def test_medium_severity_triggers_warn(self):
@@ -494,9 +478,7 @@ class TestContainmentGuard:
                 ]
 
         attestor = ContainmentAttestor(key=_SECRET, issuer="host://edge-11")
-        guard = ContainmentGuard(
-            attestor=attestor, detector=_MediumOnlyDetector()
-        )
+        guard = ContainmentGuard(attestor=attestor, detector=_MediumOnlyDetector())
         anchor = attestor.mint(session_id="s", scope="sandbox")
         verdict = guard.check({}, anchor)
         assert verdict.decision == "warn"

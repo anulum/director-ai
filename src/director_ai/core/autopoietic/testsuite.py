@@ -26,7 +26,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
-from .builder import BoundedSandbox, SandboxTimeout, Scorer
+from .builder import BoundedSandbox, SandboxTimeoutError, Scorer
 
 
 @dataclass(frozen=True)
@@ -95,7 +95,7 @@ class ModuleTestSuite:
         for sample in self._samples:
             try:
                 value = self._sandbox.run(scorer, sample.prompt)
-            except SandboxTimeout:
+            except SandboxTimeoutError:
                 timeouts += 1
                 continue
             except Exception:  # pragma: no cover — defensive
@@ -111,7 +111,9 @@ class ModuleTestSuite:
                 timed_out=timeouts,
                 exceptions=exceptions,
             )
-        mae = sum(abs(p - l) for p, l in zip(predictions, labels, strict=True)) / len(predictions)
+        mae = sum(
+            abs(p - lbl) for p, lbl in zip(predictions, labels, strict=True)
+        ) / len(predictions)
         rho = _spearman(predictions, labels)
         return SuiteResult(
             sample_count=len(self._samples),
@@ -136,10 +138,10 @@ def _spearman(a: Sequence[float], b: Sequence[float]) -> float:
     n = len(a)
     mean_a = sum(ranks_a) / n
     mean_b = sum(ranks_b) / n
-    cov = sum(
-        (x - mean_a) * (y - mean_b)
-        for x, y in zip(ranks_a, ranks_b, strict=True)
-    ) / n
+    cov = (
+        sum((x - mean_a) * (y - mean_b) for x, y in zip(ranks_a, ranks_b, strict=True))
+        / n
+    )
     var_a = sum((x - mean_a) ** 2 for x in ranks_a) / n
     var_b = sum((y - mean_b) ** 2 for y in ranks_b) / n
     denom = (var_a * var_b) ** 0.5

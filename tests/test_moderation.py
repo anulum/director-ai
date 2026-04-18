@@ -44,9 +44,7 @@ class TestRegexPII:
         assert any(m.category == "ssn" for m in res.matches)
 
     def test_iban_detected(self):
-        res = RegexPIIDetector().analyse(
-            "wire to CH9300762011623852957 by friday"
-        )
+        res = RegexPIIDetector().analyse("wire to CH9300762011623852957 by friday")
         assert any(m.category == "iban" for m in res.matches)
 
     def test_ipv4_detected(self):
@@ -98,10 +96,7 @@ class TestRegexPII:
     def test_rust_and_python_agree_on_categories(self):
         if importlib.util.find_spec("backfire_kernel") is None:
             pytest.skip("backfire_kernel not installed — cannot compare")
-        text = (
-            "email a@b.co, card 4111-1111-1111-1111, "
-            "ssn 123-45-6789, ip 10.0.0.1"
-        )
+        text = "email a@b.co, card 4111-1111-1111-1111, ssn 123-45-6789, ip 10.0.0.1"
         rust = RegexPIIDetector(prefer_rust=True)
         py = RegexPIIDetector(prefer_rust=False)
         rust_cats = sorted(m.category for m in rust.analyse(text).matches)
@@ -132,9 +127,7 @@ class _StubPresidio:
 
 class TestPresidio:
     def test_basic_match(self):
-        stub = _StubPresidio(
-            [_StubPresidioResult("PERSON", 5, 12, score=0.85)]
-        )
+        stub = _StubPresidio([_StubPresidioResult("PERSON", 5, 12, score=0.85)])
         det = PresidioPIIDetector(stub)
         res = det.analyse("hi   Sotek visits ANULUM")
         assert len(res.matches) == 1
@@ -142,17 +135,13 @@ class TestPresidio:
         assert res.matches[0].score == pytest.approx(0.85)
 
     def test_below_threshold_dropped(self):
-        stub = _StubPresidio(
-            [_StubPresidioResult("PERSON", 0, 5, score=0.3)]
-        )
+        stub = _StubPresidio([_StubPresidioResult("PERSON", 0, 5, score=0.3)])
         det = PresidioPIIDetector(stub, score_threshold=0.5)
         assert det.analyse("hello").matches == []
 
     def test_entities_filter_forwarded(self):
         stub = _StubPresidio([])
-        det = PresidioPIIDetector(
-            stub, entities=["PERSON", "LOCATION"], language="de"
-        )
+        det = PresidioPIIDetector(stub, entities=["PERSON", "LOCATION"], language="de")
         det.analyse("Text")
         assert stub.calls[0]["entities"] == ["PERSON", "LOCATION"]
         assert stub.calls[0]["language"] == "de"
@@ -179,9 +168,7 @@ class TestPresidio:
             PresidioPIIDetector(None)  # type: ignore[arg-type]
 
     def test_empty_input_short_circuits(self):
-        stub = _StubPresidio(
-            [_StubPresidioResult("PERSON", 0, 5, score=0.9)]
-        )
+        stub = _StubPresidio([_StubPresidioResult("PERSON", 0, 5, score=0.9)])
         det = PresidioPIIDetector(stub)
         assert det.analyse("").matches == []
         assert stub.calls == []
@@ -254,9 +241,7 @@ class TestDetoxify:
         assert "insult" not in cats
 
     def test_threshold_respected(self):
-        det = DetoxifyDetector(
-            _StubDetoxify({"toxicity": 0.55}), score_threshold=0.6
-        )
+        det = DetoxifyDetector(_StubDetoxify({"toxicity": 0.55}), score_threshold=0.6)
         assert det.analyse("x").matches == []
 
     def test_categories_filter(self):
@@ -278,9 +263,7 @@ class TestDetoxify:
         assert stub.calls == []
 
     def test_match_spans_full_text(self):
-        det = DetoxifyDetector(
-            _StubDetoxify({"toxicity": 0.9}), score_threshold=0.5
-        )
+        det = DetoxifyDetector(_StubDetoxify({"toxicity": 0.9}), score_threshold=0.5)
         res = det.analyse("abc def")
         assert res.matches[0].start == 0
         assert res.matches[0].end == len("abc def")

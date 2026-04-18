@@ -99,7 +99,9 @@ class KeywordToxicityDetector(ModerationDetector):
             pattern_str = rf"\b{re.escape(k)}\b"
             if not case_sensitive:
                 pattern_str = "(?i)" + pattern_str
-            self._keyword_patterns.append(("keyword", re.compile(rf"\b{re.escape(k)}\b", flags)))
+            self._keyword_patterns.append(
+                ("keyword", re.compile(rf"\b{re.escape(k)}\b", flags))
+            )
             source_patterns.append(("keyword", pattern_str))
         for category, patterns in _ATTACK_CATEGORIES.items():
             for pattern in patterns:
@@ -218,10 +220,7 @@ class DetoxifyDetector(ModerationDetector):
             return ModerationResult(detector=self.name, matches=[])
         matches: list[ModerationMatch] = []
         for category, raw in scores.items():
-            if (
-                self._categories is not None
-                and category not in self._categories
-            ):
+            if self._categories is not None and category not in self._categories:
                 continue
             try:
                 score = float(raw)

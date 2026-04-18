@@ -70,9 +70,7 @@ class AuditChain:
         clock: Callable[[], float] | None = None,
     ) -> None:
         if len(secret) < 32:
-            raise ValueError(
-                f"secret must be at least 32 bytes; got {len(secret)}"
-            )
+            raise ValueError(f"secret must be at least 32 bytes; got {len(secret)}")
         self._secret = secret
         self._clock = clock or time.time
         self._entries: list[AuditEntry] = []
@@ -83,9 +81,7 @@ class AuditChain:
         if not isinstance(event, Mapping):  # pragma: no cover — defensive
             raise TypeError("event must be a Mapping")
         with self._lock:
-            parent_hash = (
-                self._entries[-1].event_hash if self._entries else _ZERO_HASH
-            )
+            parent_hash = self._entries[-1].event_hash if self._entries else _ZERO_HASH
             entry = self._build_entry(
                 index=len(self._entries),
                 event=dict(event),
@@ -150,5 +146,3 @@ class AuditChain:
     def _hmac(self, parent_hash: str, event_hash: str) -> str:
         message = (parent_hash + event_hash).encode("utf-8")
         return hmac.new(self._secret, message, hashlib.sha256).hexdigest()
-
-

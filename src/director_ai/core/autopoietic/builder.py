@@ -32,7 +32,7 @@ class BuildError(ValueError):
     """Raised when a blueprint cannot be materialised."""
 
 
-class SandboxTimeout(TimeoutError):
+class SandboxTimeoutError(TimeoutError):
     """Raised when a sandboxed call exceeds the wall-clock limit."""
 
 
@@ -48,7 +48,9 @@ class ModuleBuilder:
             return self._build_ngram_overlap(blueprint)
         if blueprint.kind == "ensemble":
             return self._build_ensemble(blueprint)
-        raise BuildError(f"unknown blueprint kind {blueprint.kind!r}")  # pragma: no cover
+        raise BuildError(
+            f"unknown blueprint kind {blueprint.kind!r}"
+        )  # pragma: no cover
 
     def _build_length(self, blueprint: ModuleBlueprint) -> Scorer:
         saturation = float(blueprint.length_saturation)
@@ -117,7 +119,7 @@ class BoundedSandbox:
 
     Python's threading does not offer hard thread kill, but the
     sandbox runs the scorer on a daemon thread and returns
-    :class:`SandboxTimeout` if the thread does not finish in
+    :class:`SandboxTimeoutError` if the thread does not finish in
     ``timeout_seconds``. Generated scorers are pure Python
     composed from validated blueprints, so they always finish;
     the timeout guards against a blueprint family introduced
@@ -152,7 +154,7 @@ class BoundedSandbox:
         thread = threading.Thread(target=_target, daemon=True)
         thread.start()
         if not completed.wait(self._timeout):
-            raise SandboxTimeout(
+            raise SandboxTimeoutError(
                 f"scorer did not finish within {self._timeout:.3f} s"
             )
         if result.error is not None:

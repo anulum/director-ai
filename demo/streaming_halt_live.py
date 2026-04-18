@@ -63,8 +63,16 @@ SCENARIOS: dict[str, Scenario] = {
             "stream runs to completion; no halt banner fires."
         ),
         tokens=[
-            "Water", " boils", " at", " 100", " degrees",
-            " Celsius", " at", " sea", " level", ".",
+            "Water",
+            " boils",
+            " at",
+            " 100",
+            " degrees",
+            " Celsius",
+            " at",
+            " sea",
+            " level",
+            ".",
         ],
         scores=[0.92, 0.90, 0.88, 0.91, 0.93, 0.90, 0.88, 0.89, 0.90, 0.90],
     ),
@@ -76,12 +84,39 @@ SCENARIOS: dict[str, Scenario] = {
             "kernel halts the stream on that token."
         ),
         tokens=[
-            "Water", " boils", " at", " 100", " C.", " In",
-            " fact", ",", " negative", " forty", " C", " is",
-            " also", " correct", ".",
+            "Water",
+            " boils",
+            " at",
+            " 100",
+            " C.",
+            " In",
+            " fact",
+            ",",
+            " negative",
+            " forty",
+            " C",
+            " is",
+            " also",
+            " correct",
+            ".",
         ],
-        scores=[0.92, 0.90, 0.91, 0.89, 0.88, 0.85, 0.82, 0.79,
-                0.15, 0.10, 0.08, 0.05, 0.03, 0.03, 0.01],
+        scores=[
+            0.92,
+            0.90,
+            0.91,
+            0.89,
+            0.88,
+            0.85,
+            0.82,
+            0.79,
+            0.15,
+            0.10,
+            0.08,
+            0.05,
+            0.03,
+            0.03,
+            0.01,
+        ],
     ),
     "drift": Scenario(
         name="Gradual drift — trend halt",
@@ -91,13 +126,45 @@ SCENARIOS: dict[str, Scenario] = {
             "downward trend check fires mid-stream."
         ),
         tokens=[
-            "Paris", " is", " the", " capital", " of", " France",
-            " and", " also", " the", " largest", " city", " in",
-            " the", " European", " Union", " by", " far", ".",
+            "Paris",
+            " is",
+            " the",
+            " capital",
+            " of",
+            " France",
+            " and",
+            " also",
+            " the",
+            " largest",
+            " city",
+            " in",
+            " the",
+            " European",
+            " Union",
+            " by",
+            " far",
+            ".",
         ],
-        scores=[0.91, 0.90, 0.90, 0.89, 0.88, 0.89, 0.84, 0.80,
-                0.75, 0.66, 0.58, 0.50, 0.43, 0.38, 0.33, 0.28,
-                0.23, 0.18],
+        scores=[
+            0.91,
+            0.90,
+            0.90,
+            0.89,
+            0.88,
+            0.89,
+            0.84,
+            0.80,
+            0.75,
+            0.66,
+            0.58,
+            0.50,
+            0.43,
+            0.38,
+            0.33,
+            0.28,
+            0.23,
+            0.18,
+        ],
     ),
 }
 
@@ -136,9 +203,7 @@ class _QueueCallback(TokenTraceCallback):
             )
         )
 
-    def on_stream_end(
-        self, *, tenant_id: str, request_id: str, summary: dict
-    ) -> None:
+    def on_stream_end(self, *, tenant_id: str, request_id: str, summary: dict) -> None:
         self._queue.put(
             _LiveEvent(
                 index=-1,
@@ -162,9 +227,9 @@ class _QueueCallback(TokenTraceCallback):
 
 
 _SCORE_COLOURS = (
-    (0.70, "#dcfce7", "#166534"),   # green
-    (0.55, "#fef9c3", "#854d0e"),   # amber
-    (0.00, "#fecaca", "#991b1b"),   # red
+    (0.70, "#dcfce7", "#166534"),  # green
+    (0.55, "#fef9c3", "#854d0e"),  # amber
+    (0.00, "#fecaca", "#991b1b"),  # red
 )
 
 
@@ -319,11 +384,15 @@ def run_live_demo(scenario_key: str, speed_s: float) -> Iterator[tuple[str, str,
         last_coherence = event.coherence
         gauge_html = _gauge(last_coherence)
         if event.halted:
-            banner_html = _banner(True, event.halt_reason, {
-                "token_count": event.index + 1,
-                "avg_coherence": last_coherence,
-                "warning_count": 0,
-            })
+            banner_html = _banner(
+                True,
+                event.halt_reason,
+                {
+                    "token_count": event.index + 1,
+                    "avg_coherence": last_coherence,
+                    "warning_count": 0,
+                },
+            )
         yield _wrap_strip("".join(spans)), gauge_html, banner_html
 
     thread.join(timeout=1.0)

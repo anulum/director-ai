@@ -87,9 +87,7 @@ class InteractionGraph:
         return tuple(sorted(self._nodes))
 
     def edges(self) -> tuple[tuple[str, str, int], ...]:
-        return tuple(
-            (src, dst, weight) for (src, dst), weight in self._edges.items()
-        )
+        return tuple((src, dst, weight) for (src, dst), weight in self._edges.items())
 
     def edge_weight(self, source: str, target: str) -> int:
         return self._edges.get((source, target), 0)
@@ -134,10 +132,7 @@ class InteractionGraph:
         neighbour_list = sorted(neighbours)
         for i, u in enumerate(neighbour_list):
             for w in neighbour_list[i + 1 :]:
-                if (
-                    (u, w) in self._edges
-                    or (w, u) in self._edges
-                ):
+                if (u, w) in self._edges or (w, u) in self._edges:
                     triangles += 1
         return (2 * triangles) / (k * (k - 1))
 

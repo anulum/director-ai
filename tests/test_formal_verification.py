@@ -52,7 +52,9 @@ class TestFormula:
         assert "→" in str(f)
 
     def test_variables_collects_all(self):
-        f = And(Or(Variable("p"), Not(Variable("q"))), Iff(Variable("r"), Variable("s")))
+        f = And(
+            Or(Variable("p"), Not(Variable("q"))), Iff(Variable("r"), Variable("s"))
+        )
         assert variables(f) == frozenset({"p", "q", "r", "s"})
 
 
@@ -225,7 +227,9 @@ class TestReasoningVerifier:
         verifier = ReasoningVerifier()
         # (p → q), p, and ¬¬q are all simultaneously satisfiable.
         steps = [
-            ReasoningStep(label="premise-1", formula=Implies(Variable("p"), Variable("q"))),
+            ReasoningStep(
+                label="premise-1", formula=Implies(Variable("p"), Variable("q"))
+            ),
             ReasoningStep(label="premise-2", formula=Variable("p")),
             ReasoningStep(
                 label="conclusion",
@@ -266,9 +270,7 @@ class TestReasoningVerifier:
         backend = _AlwaysSat()
         assert isinstance(backend, VerifierBackend)
         verifier = ReasoningVerifier(backend=backend)
-        verdict = verifier.verify(
-            [ReasoningStep(label="x", formula=Variable("p"))]
-        )
+        verdict = verifier.verify([ReasoningStep(label="x", formula=Variable("p"))])
         assert verdict.backend == "always-sat"
         assert verdict.consistent
         assert verdict.model == {"marker": True}

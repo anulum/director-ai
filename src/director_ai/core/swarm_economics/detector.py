@@ -134,9 +134,7 @@ def _pressure(
         return 0.0
     if observed_rate <= threshold:
         # Linear ramp between sustainable and threshold.
-        return 0.5 * (observed_rate - sustainable_rate) / (
-            threshold - sustainable_rate
-        )
+        return 0.5 * (observed_rate - sustainable_rate) / (threshold - sustainable_rate)
     # Above threshold: climb from 0.5 toward 1.0 as the observed
     # rate doubles the threshold.
     excess = min(1.0, (observed_rate - threshold) / threshold)

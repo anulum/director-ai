@@ -178,9 +178,7 @@ class BreakoutDetector:
             )
         return findings
 
-    def _scan_anti_anchor(
-        self, event: Mapping[str, object]
-    ) -> list[BreakoutFinding]:
+    def _scan_anti_anchor(self, event: Mapping[str, object]) -> list[BreakoutFinding]:
         haystack = self._gather_text(event)
         if not haystack:
             return []

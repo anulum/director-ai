@@ -133,12 +133,11 @@ class ThresholdAdjuster:
 
     def _classify(self, analysis: MetaAnalysis) -> int:
         """Return +1 to tighten, -1 to loosen, 0 to hold."""
-        if analysis.page_hinkley_alarm:
-            if analysis.mean_score > 0.0:
-                # The Page-Hinkley alarm fires regardless of
-                # direction; compare the observed mean to the
-                # current warn threshold to decide.
-                return 1 if analysis.mean_score >= self._current.warn_threshold else -1
+        if analysis.page_hinkley_alarm and analysis.mean_score > 0.0:
+            # The Page-Hinkley alarm fires regardless of
+            # direction; compare the observed mean to the
+            # current warn threshold to decide.
+            return 1 if analysis.mean_score >= self._current.warn_threshold else -1
         if analysis.brier_alarm:
             # Narrow the band — direction +2 is the signal for a
             # centre squeeze.

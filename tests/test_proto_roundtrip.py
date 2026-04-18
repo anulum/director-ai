@@ -138,7 +138,9 @@ class TestChatCompletionShape:
             tenant_id="tenant-123",
             request_id="req-abc",
         )
-        req.messages.append(pb.ChatMessage(role=pb.ROLE_SYSTEM, content="You are an expert."))
+        req.messages.append(
+            pb.ChatMessage(role=pb.ROLE_SYSTEM, content="You are an expert.")
+        )
         req.messages.append(pb.ChatMessage(role=pb.ROLE_USER, content="What is 2+2?"))
         buf = req.SerializeToString()
         restored = pb.ChatCompletionRequest.FromString(buf)
@@ -153,9 +155,7 @@ class TestChatCompletionShape:
             id="resp-1",
             model="gpt-4o-mini",
             created_unix=1_700_000_000,
-            usage=pb.TokenUsage(
-                prompt_tokens=12, completion_tokens=4, total_tokens=16
-            ),
+            usage=pb.TokenUsage(prompt_tokens=12, completion_tokens=4, total_tokens=16),
             coherence=verdict_to_proto(score=0.91, halted=False, hard_limit=0.5),
         )
         resp.choices.append(

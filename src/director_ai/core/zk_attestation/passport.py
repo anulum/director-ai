@@ -157,9 +157,7 @@ class PassportIssuer:
         if self.default_backend is None:
             self.default_backend = CommitmentBackend(key=self.key)
         if not isinstance(self.default_backend, AttestationBackend):
-            raise TypeError(
-                "default_backend must implement AttestationBackend"
-            )
+            raise TypeError("default_backend must implement AttestationBackend")
 
     def issue(
         self,
@@ -186,9 +184,7 @@ class PassportIssuer:
             if backend is None:
                 backend_obj = self.default_backend
                 if not isinstance(backend_obj, AttestationBackend):
-                    raise TypeError(
-                        "default_backend must implement AttestationBackend"
-                    )
+                    raise TypeError("default_backend must implement AttestationBackend")
                 backend = backend_obj
             proof = backend.prove(statement, samples)
             entries.append(
@@ -247,9 +243,7 @@ class PassportVerifier:
             if not org:
                 raise ValueError("issuer_keys map contains empty org id")
             if len(key) < _MIN_KEY_LEN:
-                raise ValueError(
-                    f"issuer key for {org!r} must be at least 32 bytes"
-                )
+                raise ValueError(f"issuer key for {org!r} must be at least 32 bytes")
         if not self.backends:
             raise ValueError("backends must not be empty")
         for kind, backend in self.backends.items():

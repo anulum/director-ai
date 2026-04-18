@@ -91,9 +91,7 @@ class GoogleDrivePlugin(IngestionPlugin):
         self._query = query
         self._page_size = min(page_size, 1000)
         self._direct = frozenset(
-            direct_mime_types
-            if direct_mime_types is not None
-            else _DIRECT_MIME_TYPES
+            direct_mime_types if direct_mime_types is not None else _DIRECT_MIME_TYPES
         )
 
     @classmethod
@@ -159,10 +157,7 @@ class GoogleDrivePlugin(IngestionPlugin):
                 request = self._service.files().list(
                     q=q,
                     pageSize=self._page_size,
-                    fields=(
-                        "nextPageToken,"
-                        "files(id,name,mimeType,modifiedTime,size)"
-                    ),
+                    fields=("nextPageToken,files(id,name,mimeType,modifiedTime,size)"),
                     pageToken=page_token,
                 )
                 page = request.execute()

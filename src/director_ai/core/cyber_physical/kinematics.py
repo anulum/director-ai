@@ -81,9 +81,7 @@ class JointChain:
             raise ValueError("link_lengths must be non-empty")
         for length in self.link_lengths:
             if length <= 0:
-                raise ValueError(
-                    f"link_lengths must all be positive; got {length!r}"
-                )
+                raise ValueError(f"link_lengths must all be positive; got {length!r}")
 
     @property
     def reach(self) -> float:
@@ -128,8 +126,7 @@ class SimpleKinematicModel:
     def __post_init__(self) -> None:
         if self.branch not in {"elbow_up", "elbow_down"}:
             raise ValueError(
-                "branch must be 'elbow_up' or 'elbow_down'; "
-                f"got {self.branch!r}"
+                f"branch must be 'elbow_up' or 'elbow_down'; got {self.branch!r}"
             )
         if self.collision_margin < 0:
             raise ValueError("collision_margin must be non-negative")
@@ -151,9 +148,7 @@ class SimpleKinematicModel:
         x = self.chain.base.x
         y = self.chain.base.y
         cumulative = 0.0
-        for angle, length in zip(
-            joint_angles, self.chain.link_lengths, strict=True
-        ):
+        for angle, length in zip(joint_angles, self.chain.link_lengths, strict=True):
             cumulative += angle
             x += length * math.cos(cumulative)
             y += length * math.sin(cumulative)
@@ -191,9 +186,7 @@ class SimpleKinematicModel:
         distance = math.sqrt(dx * dx + dy * dy)
         if distance > l1 + l2 or distance < abs(l1 - l2):
             return None
-        cos_theta2 = (distance * distance - l1 * l1 - l2 * l2) / (
-            2.0 * l1 * l2
-        )
+        cos_theta2 = (distance * distance - l1 * l1 - l2 * l2) / (2.0 * l1 * l2)
         cos_theta2 = max(-1.0, min(1.0, cos_theta2))
         theta2 = math.acos(cos_theta2)
         if not elbow_up:

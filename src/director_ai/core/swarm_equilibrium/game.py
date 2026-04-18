@@ -70,13 +70,9 @@ class NormalFormGame:
             raise ValueError("duplicate player names")
         for player in self.players:
             if player not in self.strategies:
-                raise PayoffError(
-                    f"no strategies supplied for player {player!r}"
-                )
+                raise PayoffError(f"no strategies supplied for player {player!r}")
             if not self.strategies[player]:
-                raise PayoffError(
-                    f"player {player!r} has an empty strategy set"
-                )
+                raise PayoffError(f"player {player!r} has an empty strategy set")
         expected_size = 1
         for player in self.players:
             expected_size *= len(self.strategies[player])
@@ -93,8 +89,7 @@ class NormalFormGame:
             for choice, player in zip(profile.choices, self.players, strict=True):
                 if choice not in self.strategies[player]:
                     raise PayoffError(
-                        f"choice {choice!r} is not in player "
-                        f"{player!r}'s strategy set"
+                        f"choice {choice!r} is not in player {player!r}'s strategy set"
                     )
             if len(payoff_tuple) != len(self.players):
                 raise PayoffError(

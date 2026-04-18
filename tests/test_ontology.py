@@ -146,9 +146,7 @@ class TestOntologyChecker:
         mammal) must raise."""
         g = self._animal_graph()
         checker = OntologyChecker(graph=g)
-        violations = checker.check(
-            [Assertion("x", "sparrow"), Assertion("x", "dog")]
-        )
+        violations = checker.check([Assertion("x", "sparrow"), Assertion("x", "dog")])
         assert any(v.kind == "disjoint_conflict" for v in violations)
 
     def test_unknown_class_flagged_in_strict_mode(self):

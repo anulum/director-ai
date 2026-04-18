@@ -119,9 +119,7 @@ class DpllSolver:
             return dict(assignment)
         self._decisions += 1
         if self._decisions > self._max_decisions:
-            raise TimeoutError(
-                f"exceeded {self._max_decisions} DPLL decisions"
-            )
+            raise TimeoutError(f"exceeded {self._max_decisions} DPLL decisions")
         for polarity in (True, False):
             branch_assignment = dict(assignment)
             branch_assignment[branch_var] = polarity
@@ -178,9 +176,7 @@ def _find_pure(clauses: list[Clause]) -> Literal | None:
     return None
 
 
-def _pick_branch(
-    clauses: list[Clause], assignment: dict[str, bool]
-) -> str | None:
+def _pick_branch(clauses: list[Clause], assignment: dict[str, bool]) -> str | None:
     counter: Counter[str] = Counter()
     for clause in clauses:
         for literal in clause:

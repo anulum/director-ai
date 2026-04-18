@@ -83,9 +83,7 @@ class ProvenanceVerifier:
         self._credibility = credibility
         self._min_source_score = min_source_score
 
-    def verify(
-        self, facts: Sequence[CitationFact]
-    ) -> ProvenanceVerdict:
+    def verify(self, facts: Sequence[CitationFact]) -> ProvenanceVerdict:
         if not facts:
             raise ValueError("facts must be non-empty")
         verdicts: list[FactVerdict] = []
@@ -104,9 +102,8 @@ class ProvenanceVerifier:
                 fact=fact,
                 integrity_ok=integrity_ok,
                 source_score=score,
-                reason=reason or (
-                    "below minimum" if score < self._min_source_score else ""
-                ),
+                reason=reason
+                or ("below minimum" if score < self._min_source_score else ""),
             )
             verdicts.append(verdict)
             trust_sum += score

@@ -41,8 +41,7 @@ class TraceEmbedder(ABC):
     dim: int
 
     @abstractmethod
-    def embed(self, text: str) -> tuple[float, ...]:
-        ...  # pragma: no cover
+    def embed(self, text: str) -> tuple[float, ...]: ...  # pragma: no cover
 
 
 class HashBagEmbedder(TraceEmbedder):

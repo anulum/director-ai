@@ -48,9 +48,7 @@ class ScaleScoreTable:
 
     def ordered(self) -> tuple[tuple[AlignmentScale, float], ...]:
         return tuple(
-            (scale, self.scores[scale])
-            for scale in _ORDER
-            if scale in self.scores
+            (scale, self.scores[scale]) for scale in _ORDER if scale in self.scores
         )
 
 
@@ -101,9 +99,7 @@ class HierarchicalAligner:
         seen: dict[AlignmentScale, ScaleScorer] = {}
         for scorer in scorers:
             if scorer.scale in seen:
-                raise ValueError(
-                    f"duplicate scorer for scale {scorer.scale!r}"
-                )
+                raise ValueError(f"duplicate scorer for scale {scorer.scale!r}")
             seen[scorer.scale] = scorer
         self._scorers: dict[AlignmentScale, ScaleScorer] = seen
         self._weights = self._normalise_weights(weights)
@@ -119,24 +115,18 @@ class HierarchicalAligner:
             if scale not in self._scorers:
                 raise ValueError(f"weight for unknown scale {scale!r}")
             if weight < 0:
-                raise ValueError(
-                    f"weight for scale {scale!r} must be non-negative"
-                )
+                raise ValueError(f"weight for scale {scale!r} must be non-negative")
         total = sum(weights.get(scale, 0.0) for scale in self._scorers)
         if total <= 0:
             raise ValueError("weights must sum to a positive number")
-        return {
-            scale: weights.get(scale, 0.0) / total for scale in self._scorers
-        }
+        return {scale: weights.get(scale, 0.0) / total for scale in self._scorers}
 
     def evaluate(self, action: Action) -> AlignmentReport:
         scores: dict[AlignmentScale, float] = {}
         for scale, scorer in self._scorers.items():
             raw = float(scorer.score(action))
             scores[scale] = max(0.0, min(1.0, raw))
-        composite = sum(
-            scores[scale] * self._weights[scale] for scale in self._scorers
-        )
+        composite = sum(scores[scale] * self._weights[scale] for scale in self._scorers)
         failing = tuple(
             scale
             for scale in _ORDER

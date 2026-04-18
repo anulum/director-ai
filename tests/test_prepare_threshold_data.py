@@ -23,7 +23,9 @@ import pytest
 # ``tools/prepare_threshold_data.py`` is not an installed module,
 # so load it by path. ``importlib.util`` keeps imports at the top
 # of the file and avoids the ``sys.path.insert`` / E402 anti-pattern.
-_TOOLS_PATH = Path(__file__).resolve().parent.parent / "tools" / "prepare_threshold_data.py"
+_TOOLS_PATH = (
+    Path(__file__).resolve().parent.parent / "tools" / "prepare_threshold_data.py"
+)
 _spec = importlib.util.spec_from_file_location("prepare_threshold_data", _TOOLS_PATH)
 assert _spec is not None and _spec.loader is not None
 prepare_threshold_data = importlib.util.module_from_spec(_spec)
@@ -98,9 +100,11 @@ class TestIterRecords:
     def test_jsonl(self, tmp_path):
         p = tmp_path / "f.jsonl"
         p.write_text(
-            json.dumps({"score": 0.5, "label": True}) + "\n"
+            json.dumps({"score": 0.5, "label": True})
+            + "\n"
             + "\n"  # blank line
-            + json.dumps({"score": 0.1, "label": False}) + "\n",
+            + json.dumps({"score": 0.1, "label": False})
+            + "\n",
             encoding="utf-8",
         )
         rows = list(iter_records(p))
@@ -163,9 +167,7 @@ class TestNormalise:
     def test_copies_source_when_present(self):
         rows = [{"score": 0.5, "label": True, "dataset": "summ"}]
         result = list(
-            normalise(
-                rows, score_key="score", label_key="label", source_key="dataset"
-            )
+            normalise(rows, score_key="score", label_key="label", source_key="dataset")
         )
         assert result == [{"score": 0.5, "label": True, "source": "summ"}]
 
@@ -179,11 +181,7 @@ class TestNormalise:
     def test_raises_when_no_usable_records(self):
         rows = [{"score": None, "label": None}]
         with pytest.raises(ValueError, match="no usable records"):
-            list(
-                normalise(
-                    rows, score_key="score", label_key="label", source_key=None
-                )
-            )
+            list(normalise(rows, score_key="score", label_key="label", source_key=None))
 
 
 class TestWriteJsonl:

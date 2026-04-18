@@ -58,9 +58,7 @@ class SpatialConstraint:
         if not self.name:
             raise ValueError("SpatialConstraint.name must be non-empty")
         if not self.obstacles_aabb and not self.obstacles_sphere:
-            raise ValueError(
-                "SpatialConstraint needs at least one obstacle"
-            )
+            raise ValueError("SpatialConstraint needs at least one obstacle")
 
     def evaluate(
         self,

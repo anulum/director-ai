@@ -235,16 +235,12 @@ class TestNashSolver:
 
     def test_deviation_gain_zero_on_equilibrium(self):
         solver = NashSolver()
-        gain = solver.deviation_gain(
-            _prisoners_dilemma(), StrategyProfile(("D", "D"))
-        )
+        gain = solver.deviation_gain(_prisoners_dilemma(), StrategyProfile(("D", "D")))
         assert gain == pytest.approx(0.0)
 
     def test_deviation_gain_positive_off_equilibrium(self):
         solver = NashSolver()
-        gain = solver.deviation_gain(
-            _prisoners_dilemma(), StrategyProfile(("C", "C"))
-        )
+        gain = solver.deviation_gain(_prisoners_dilemma(), StrategyProfile(("C", "C")))
         # Either player can unilaterally defect for a +2 payoff gain
         # (3 → 5).
         assert gain == pytest.approx(2.0)
@@ -260,9 +256,7 @@ class TestNashSolver:
                 for z in ("0", "1"):
                     reward = 5.0 if x == y == z else 0.0
                     payoffs[StrategyProfile((x, y, z))] = (reward, reward, reward)
-        game = NormalFormGame(
-            players=players, strategies=strategies, payoffs=payoffs
-        )
+        game = NormalFormGame(players=players, strategies=strategies, payoffs=payoffs)
         pures = NashSolver().pure_equilibria(game)
         assert len(pures) == 2
         profile_set = {eq.profile for eq in pures}
@@ -300,9 +294,7 @@ class TestStackelbergSolver:
         players = ("a", "b", "c")
         strategies = {p: ("0",) for p in players}
         payoffs = {StrategyProfile(("0", "0", "0")): (0.0, 0.0, 0.0)}
-        game = NormalFormGame(
-            players=players, strategies=strategies, payoffs=payoffs
-        )
+        game = NormalFormGame(players=players, strategies=strategies, payoffs=payoffs)
         solver = StackelbergSolver()
         with pytest.raises(ValueError, match="two-player"):
             solver.solve(game, leader="a")

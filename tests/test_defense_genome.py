@@ -51,9 +51,7 @@ class TestGene:
 
 class TestAdversarialGenome:
     def test_render_preserves_determinism(self):
-        g = AdversarialGenome(
-            genes=(Gene("char_swap", 0), Gene("casing_flip", 0))
-        )
+        g = AdversarialGenome(genes=(Gene("char_swap", 0), Gene("casing_flip", 0)))
         a = g.render("hello world")
         b = g.render("hello world")
         assert a == b
@@ -99,9 +97,7 @@ class TestAdversarialGenome:
         assert "Rephrase" in out or "Translate" in out or "question" in out
 
     def test_multi_gene_composition(self):
-        g = AdversarialGenome(
-            genes=(Gene("marker_prefix", 0), Gene("casing_flip", 0))
-        )
+        g = AdversarialGenome(genes=(Gene("marker_prefix", 0), Gene("casing_flip", 0)))
         out = g.render("payload")
         assert out != "payload"
 
@@ -193,9 +189,7 @@ class TestPopulation:
 
     def test_empty_init_rejected(self):
         with pytest.raises(ValueError, match="members"):
-            GenomePopulation(
-                members=[], defense=_AlwaysSafe(), seed_prompt="x"
-            )
+            GenomePopulation(members=[], defense=_AlwaysSafe(), seed_prompt="x")
 
     def test_empty_seed_rejected(self):
         with pytest.raises(ValueError, match="seed_prompt"):
@@ -254,9 +248,7 @@ class TestEngine:
             seed=123,
         )
         trajectory = report.fitness_trajectory
-        for earlier, later in zip(
-            trajectory[:-1], trajectory[1:], strict=True
-        ):
+        for earlier, later in zip(trajectory[:-1], trajectory[1:], strict=True):
             assert later >= earlier - 1e-9
 
     def test_seed_reproducible(self):
@@ -375,9 +367,7 @@ class TestDefenseRegistry:
 
         def writer(base: int) -> None:
             for i in range(50):
-                reg.promote(
-                    defense=def_, version=base * 100 + i, label=f"w{base}-{i}"
-                )
+                reg.promote(defense=def_, version=base * 100 + i, label=f"w{base}-{i}")
 
         threads = [threading.Thread(target=writer, args=(b,)) for b in range(8)]
         for t in threads:

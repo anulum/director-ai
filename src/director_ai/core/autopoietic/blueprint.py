@@ -98,12 +98,12 @@ class ModuleBlueprint:
             )
         if self.kind == "length":
             if self.length_saturation <= 0:
-                raise ValueError(
-                    "length_saturation must be positive for kind 'length'"
-                )
+                raise ValueError("length_saturation must be positive for kind 'length'")
         elif self.kind == "marker_count":
             if not self.markers:
-                raise ValueError("kind 'marker_count' requires a non-empty markers tuple")
+                raise ValueError(
+                    "kind 'marker_count' requires a non-empty markers tuple"
+                )
             if self.expected_markers <= 0:
                 raise ValueError(
                     "expected_markers must be positive for kind 'marker_count'"
@@ -167,36 +167,27 @@ class ArchitectureMutation:
             return replace(blueprint, length_saturation=new_saturation)
         if self.kind == "rescale_markers":
             if blueprint.kind != "marker_count":
-                raise ValueError(
-                    "rescale_markers requires a 'marker_count' blueprint"
-                )
+                raise ValueError("rescale_markers requires a 'marker_count' blueprint")
             new_expected = max(1, blueprint.expected_markers + self.amount)
             return replace(blueprint, expected_markers=new_expected)
         if self.kind == "change_ngram":
             if blueprint.kind != "ngram_overlap":
-                raise ValueError(
-                    "change_ngram requires a 'ngram_overlap' blueprint"
-                )
+                raise ValueError("change_ngram requires a 'ngram_overlap' blueprint")
             if self.value <= 0:
                 raise ValueError("change_ngram requires a positive value")
             return replace(blueprint, ngram_size=self.value)
         if self.kind == "rebalance_ensemble":
             if blueprint.kind != "ensemble":
-                raise ValueError(
-                    "rebalance_ensemble requires an 'ensemble' blueprint"
-                )
+                raise ValueError("rebalance_ensemble requires an 'ensemble' blueprint")
             if not 0 <= self.index < len(blueprint.components):
                 raise ValueError(
-                    f"index {self.index} out of range "
-                    f"[0, {len(blueprint.components)})"
+                    f"index {self.index} out of range [0, {len(blueprint.components)})"
                 )
             return _rebalance(blueprint, self.index, self.delta)
         raise ValueError(f"unknown mutation kind {self.kind!r}")  # pragma: no cover
 
 
-def _rebalance(
-    blueprint: ModuleBlueprint, index: int, delta: float
-) -> ModuleBlueprint:
+def _rebalance(blueprint: ModuleBlueprint, index: int, delta: float) -> ModuleBlueprint:
     """Apply ``delta`` to the weight at ``index`` and
     redistribute the opposite sign evenly across the remaining
     components, clamping to ``[0, 1]`` everywhere."""

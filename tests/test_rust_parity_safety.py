@@ -48,11 +48,7 @@ def _py_aabb_contains(
     mx: tuple[float, float, float],
     p: tuple[float, float, float],
 ) -> bool:
-    return (
-        mn[0] <= p[0] <= mx[0]
-        and mn[1] <= p[1] <= mx[1]
-        and mn[2] <= p[2] <= mx[2]
-    )
+    return mn[0] <= p[0] <= mx[0] and mn[1] <= p[1] <= mx[1] and mn[2] <= p[2] <= mx[2]
 
 
 def _py_sphere_contains(
@@ -231,9 +227,7 @@ def _py_walk_path(leaf: bytes, index: int, siblings: list[bytes]) -> bytes:
     i = index
     for sibling in siblings:
         node = (
-            _py_hash_node(node, sibling)
-            if i % 2 == 0
-            else _py_hash_node(sibling, node)
+            _py_hash_node(node, sibling) if i % 2 == 0 else _py_hash_node(sibling, node)
         )
         i //= 2
     return node
@@ -261,9 +255,7 @@ class TestMerkleParity:
         root = rust_merkle_root(leaves)
         for idx in range(n):
             siblings = rust_merkle_auth_path(leaves, idx)
-            reconstructed = bytes(
-                rust_merkle_walk_path(leaves[idx], idx, siblings)
-            )
+            reconstructed = bytes(rust_merkle_walk_path(leaves[idx], idx, siblings))
             assert reconstructed == bytes(root)
 
     def test_empty_leaves_raises(self):

@@ -23,6 +23,7 @@ Usage::
 from __future__ import annotations
 
 import abc
+import importlib.util
 import logging
 from typing import Any
 
@@ -260,8 +261,6 @@ class DistilledNLIBackendWrapper(ScorerBackend):
 # nli-lite registered only when model is available (lazy — doesn't
 # check at import time, will fail gracefully at score() time).
 register_backend("nli-lite", DistilledNLIBackendWrapper)
-
-import importlib.util
 
 if importlib.util.find_spec("backfire_kernel") is not None:
     try:

@@ -53,8 +53,7 @@ def get_vector_backend(name: str) -> type[VectorBackend]:
     _load_vector_entry_points()
     if name not in _VECTOR_REGISTRY:
         raise KeyError(
-            f"Unknown vector backend {name!r}. "
-            f"Available: {list(_VECTOR_REGISTRY)}",
+            f"Unknown vector backend {name!r}. Available: {list(_VECTOR_REGISTRY)}",
         )
     return _VECTOR_REGISTRY[name]
 
@@ -212,4 +211,3 @@ class InMemoryBackend(VectorBackend):
     def count(self) -> int:
         with self._lock:
             return len(self._docs)
-

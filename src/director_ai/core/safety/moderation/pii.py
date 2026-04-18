@@ -42,9 +42,7 @@ _DEFAULT_REGEX_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ),
     (
         "iban",
-        re.compile(
-            r"\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}(?:[A-Z0-9]?){0,16}\b"
-        ),
+        re.compile(r"\b[A-Z]{2}\d{2}[A-Z0-9]{4}\d{7}(?:[A-Z0-9]?){0,16}\b"),
     ),
     (
         "passport",
@@ -52,8 +50,10 @@ _DEFAULT_REGEX_PATTERNS: list[tuple[str, re.Pattern[str]]] = [
     ),
     (
         "ipv4",
-        re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}"
-                   r"(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\b"),
+        re.compile(
+            r"\b(?:(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\.){3}"
+            r"(?:25[0-5]|2[0-4]\d|[01]?\d?\d)\b"
+        ),
     ),
 ]
 

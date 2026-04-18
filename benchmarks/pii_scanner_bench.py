@@ -53,17 +53,19 @@ def _synthetic_block(hits: int, seed: int) -> str:
     rng = random.Random(seed)
     parts: list[str] = []
     for _ in range(hits):
-        parts.extend([
-            _PLAIN,
-            f" user email alice.{rng.randint(0, 10_000)}@example.com",
-            _PLAIN,
-            f" card 4111-1111-1111-{rng.randint(1000, 9999)}",
-            _PLAIN,
-            f" ssn 123-45-{rng.randint(1000, 9999)}",
-            _PLAIN,
-            f" server {rng.randint(1, 254)}.{rng.randint(1, 254)}"
-            f".{rng.randint(1, 254)}.{rng.randint(1, 254)}",
-        ])
+        parts.extend(
+            [
+                _PLAIN,
+                f" user email alice.{rng.randint(0, 10_000)}@example.com",
+                _PLAIN,
+                f" card 4111-1111-1111-{rng.randint(1000, 9999)}",
+                _PLAIN,
+                f" ssn 123-45-{rng.randint(1000, 9999)}",
+                _PLAIN,
+                f" server {rng.randint(1, 254)}.{rng.randint(1, 254)}"
+                f".{rng.randint(1, 254)}.{rng.randint(1, 254)}",
+            ]
+        )
     return "".join(parts)
 
 

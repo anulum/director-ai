@@ -41,7 +41,9 @@ class _FakeClock:
 
 
 class TestComputeQuota:
-    def _quota(self, limit: float = 100.0, clock: _FakeClock | None = None) -> ComputeQuota:
+    def _quota(
+        self, limit: float = 100.0, clock: _FakeClock | None = None
+    ) -> ComputeQuota:
         return ComputeQuota(
             daily_limit=limit, window_days=7, clock=clock or _FakeClock()
         )
@@ -76,9 +78,7 @@ class TestComputeQuota:
 
     def test_window_trims_old_days(self):
         clock = _FakeClock(start=0.0)
-        quota = ComputeQuota(
-            daily_limit=10.0, window_days=3, clock=clock
-        )
+        quota = ComputeQuota(daily_limit=10.0, window_days=3, clock=clock)
         for day in range(5):
             clock.now = float(day * 86_400)
             quota.consume(tenant_id="t1", amount=1.0)
@@ -170,9 +170,7 @@ class TestCarbonTracker:
     def test_percentile(self):
         tracker = CarbonIntensityTracker()
         for i in range(10):
-            tracker.record(
-                CarbonReading(timestamp=float(i), intensity=float(i * 10))
-            )
+            tracker.record(CarbonReading(timestamp=float(i), intensity=float(i * 10)))
         # 40 is above 0, 10, 20, 30, 40 (5 readings) out of 10 → 0.5.
         assert tracker.percentile(40.0) == 0.5
 
@@ -193,9 +191,7 @@ class TestCarbonTracker:
     def test_window_eviction(self):
         tracker = CarbonIntensityTracker(window_size=3)
         for i in range(5):
-            tracker.record(
-                CarbonReading(timestamp=float(i), intensity=float(i))
-            )
+            tracker.record(CarbonReading(timestamp=float(i), intensity=float(i)))
         assert len(tracker.window()) == 3
 
     def test_reading_validation(self):
@@ -287,13 +283,16 @@ class TestBudget:
         *,
         daily_limit: float = 100.0,
         carbon_threshold: float = 400.0,
-    ) -> tuple[SustainabilityBudget, ComputeQuota, ConformalDemandForecaster, CarbonIntensityTracker]:
+    ) -> tuple[
+        SustainabilityBudget,
+        ComputeQuota,
+        ConformalDemandForecaster,
+        CarbonIntensityTracker,
+    ]:
         clock = _FakeClock()
         quota = ComputeQuota(daily_limit=daily_limit, clock=clock)
         fc = ConformalDemandForecaster(alpha=0.5, min_samples=2)
-        carbon = CarbonIntensityTracker(
-            fallback_intensity=100.0, clock=clock
-        )
+        carbon = CarbonIntensityTracker(fallback_intensity=100.0, clock=clock)
         budget = SustainabilityBudget(
             quota=quota,
             forecaster=fc,
@@ -369,9 +368,7 @@ class TestBudget:
         fc = ConformalDemandForecaster()
         carbon = CarbonIntensityTracker(clock=clock)
         with pytest.raises(ValueError, match=match):
-            SustainabilityBudget(
-                quota=quota, forecaster=fc, carbon=carbon, **kwargs
-            )
+            SustainabilityBudget(quota=quota, forecaster=fc, carbon=carbon, **kwargs)
 
     def test_empty_tenant_rejected(self):
         budget, *_ = self._budget()

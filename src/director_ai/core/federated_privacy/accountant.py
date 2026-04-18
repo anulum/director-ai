@@ -101,10 +101,7 @@ class PrivacyAccountant:
                     f"charging {entry.label!r} would push epsilon to "
                     f"{projected_epsilon:.4f} > {self._max_epsilon:.4f}"
                 )
-            if (
-                self._max_delta is not None
-                and projected_delta > self._max_delta
-            ):
+            if self._max_delta is not None and projected_delta > self._max_delta:
                 raise ValueError(
                     f"charging {entry.label!r} would push delta to "
                     f"{projected_delta:.4e} > {self._max_delta:.4e}"

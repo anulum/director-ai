@@ -634,4 +634,3 @@ class ColBERTBackend(VectorBackend):
     def count(self) -> int:
         with self._lock:
             return len(self._docs)
-

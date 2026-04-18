@@ -67,8 +67,7 @@ class MultimodalGuard:
     ) -> None:
         if encoder.dim != verifier.dim:
             raise ValueError(
-                f"encoder.dim={encoder.dim} does not match "
-                f"verifier.dim={verifier.dim}"
+                f"encoder.dim={encoder.dim} does not match verifier.dim={verifier.dim}"
             )
         if not 0.0 <= hallucination_threshold < consistency_threshold <= 1.0:
             raise ValueError(

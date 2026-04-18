@@ -109,10 +109,7 @@ def _decide(
 
     severities: set[str] = set()
     for finding in findings:
-        if (
-            scope_allows_real_effects(scope)
-            and finding.category == "production_target"
-        ):
+        if scope_allows_real_effects(scope) and finding.category == "production_target":
             # Sanctioned real traffic — don't block on it, but the
             # other detectors (anti-anchor injection, scope
             # mismatch) still apply.

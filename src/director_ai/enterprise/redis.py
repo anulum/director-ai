@@ -16,6 +16,9 @@ import logging
 import time
 from typing import Any
 
+from director_ai.core.cache import ScoreCache
+from director_ai.core.knowledge import GroundTruthStore
+
 # redis is optional — declare as Any so the except-branch
 # assignment does not conflict with mypy-inferred module type.
 redis: Any
@@ -25,9 +28,6 @@ try:
     redis = _redis_mod
 except ImportError:
     redis = None
-
-from director_ai.core.cache import ScoreCache
-from director_ai.core.knowledge import GroundTruthStore
 
 logger = logging.getLogger("DirectorAI.Enterprise.Redis")
 

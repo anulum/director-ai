@@ -76,8 +76,7 @@ class RealityAnchor:
             raise ValueError("nonce must be a 32-char hex string (128 bits)")
         if len(self.mac) != _MAC_LEN_HEX:
             raise ValueError(
-                f"mac must be {_MAC_LEN_HEX}-char hex (sha256); "
-                f"got {len(self.mac)}"
+                f"mac must be {_MAC_LEN_HEX}-char hex (sha256); got {len(self.mac)}"
             )
 
     @property
@@ -137,8 +136,7 @@ class ContainmentAttestor:
     def __post_init__(self) -> None:
         if len(self.key) < _MIN_KEY_LEN:
             raise ValueError(
-                f"HMAC key must be at least {_MIN_KEY_LEN} bytes "
-                f"(got {len(self.key)})"
+                f"HMAC key must be at least {_MIN_KEY_LEN} bytes (got {len(self.key)})"
             )
         if not self.issuer:
             raise ValueError("issuer must be non-empty")
@@ -159,9 +157,7 @@ class ContainmentAttestor:
             raise ValueError("session_id must be non-empty")
         validate_scope(scope)
         resolved_nonce = nonce if nonce is not None else secrets.token_hex(16)
-        resolved_time = (
-            created_at if created_at is not None else int(self._now())
-        )
+        resolved_time = created_at if created_at is not None else int(self._now())
         payload = _canonicalise(
             session_id, scope, self.issuer, resolved_time, resolved_nonce
         )
@@ -187,9 +183,7 @@ class ContainmentAttestor:
         (reject the action) or fail-open-with-alarm (log + continue,
         when the anchor was optional).
         """
-        expected_mac = hmac.new(
-            self.key, anchor.canonical_payload, sha256
-        ).hexdigest()
+        expected_mac = hmac.new(self.key, anchor.canonical_payload, sha256).hexdigest()
         if not hmac.compare_digest(expected_mac, anchor.mac):
             return AnchorVerification(valid=False, reason="mac_mismatch")
         if anchor.issuer != self.issuer:

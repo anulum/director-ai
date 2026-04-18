@@ -130,8 +130,7 @@ class SelfEvolver:
         )
         all_events = tuple(self._store.iter_all())
         synthesised = tuple(
-            FeedbackEvent(prompt=p, response="", label="unsafe")
-            for p in adversarial
+            FeedbackEvent(prompt=p, response="", label="unsafe") for p in adversarial
         )
         training_set = all_events + synthesised
 

@@ -111,16 +111,12 @@ class NashBargainingSolver:
         d_map = {d.agent_id: d.utility for d in disagreement}
         unknown = set(d_map) - set(ids)
         if unknown:
-            raise ValueError(
-                f"disagreement mentions unknown agents: {sorted(unknown)}"
-            )
+            raise ValueError(f"disagreement mentions unknown agents: {sorted(unknown)}")
         grid_size = int(budget / self._step)
         if grid_size <= 0:
             raise ValueError("step larger than budget — no grid points")
         best = _BestTracker()
-        for grid_alloc in _enumerate_partitions(
-            grid_size=grid_size, count=len(agents)
-        ):
+        for grid_alloc in _enumerate_partitions(grid_size=grid_size, count=len(agents)):
             product, allocation, utilities, total = self._score(
                 grid_alloc=grid_alloc, agents=agents, d_map=d_map
             )

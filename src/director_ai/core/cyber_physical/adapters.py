@@ -152,8 +152,7 @@ class MuJoCoAdapter:
             raise ImportError("mujoco required") from exc
         if len(joint_angles) != self.model.nq:
             raise ValueError(
-                f"joint_angles length {len(joint_angles)} != "
-                f"model.nq {self.model.nq}"
+                f"joint_angles length {len(joint_angles)} != model.nq {self.model.nq}"
             )
         for i, angle in enumerate(joint_angles):
             self.data.qpos[i] = angle
@@ -242,8 +241,7 @@ class CarlaAdapter:
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
         _ = target
         raise NotImplementedError(
-            "CarlaAdapter is for vehicle scenarios — there are no "
-            "joint angles to solve"
+            "CarlaAdapter is for vehicle scenarios — there are no joint angles to solve"
         )
 
     def collides_with(

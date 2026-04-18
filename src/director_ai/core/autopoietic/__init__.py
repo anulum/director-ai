@@ -43,7 +43,12 @@ from .blueprint import (
     EnsembleComponent,
     ModuleBlueprint,
 )
-from .builder import BoundedSandbox, BuildError, ModuleBuilder, SandboxTimeout
+from .builder import (
+    BoundedSandbox,
+    BuildError,
+    ModuleBuilder,
+    SandboxTimeoutError,
+)
 from .engine import AutopoieticEngine, EvolutionCycle, ModuleRegistry
 from .testsuite import ModuleTestSuite, ScoredSample, SuiteResult
 
@@ -59,7 +64,7 @@ __all__ = [
     "ModuleBuilder",
     "ModuleRegistry",
     "ModuleTestSuite",
-    "SandboxTimeout",
+    "SandboxTimeoutError",
     "ScoredSample",
     "SuiteResult",
 ]

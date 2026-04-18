@@ -158,9 +158,7 @@ class DecisionLog:
         whose timestamp is newer than ``now - since_seconds``.
         """
         if (last_n is None) == (since_seconds is None):
-            raise ValueError(
-                "exactly one of last_n / since_seconds must be supplied"
-            )
+            raise ValueError("exactly one of last_n / since_seconds must be supplied")
         with self._lock:
             snapshot = tuple(self._log)
         if last_n is not None:

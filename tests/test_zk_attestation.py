@@ -129,18 +129,19 @@ class TestDomainExperience:
 
     def test_evaluate_filters_by_domain(self):
         stmt = DomainExperience(name="ok", domain="finance", hours_min=1.0)
-        assert stmt.evaluate_sample(
-            {"domain": "finance", "duration_seconds": 3600}
-        ) == 3600.0
-        assert stmt.evaluate_sample(
-            {"domain": "medical", "duration_seconds": 3600}
-        ) == 0.0
+        assert (
+            stmt.evaluate_sample({"domain": "finance", "duration_seconds": 3600})
+            == 3600.0
+        )
+        assert (
+            stmt.evaluate_sample({"domain": "medical", "duration_seconds": 3600}) == 0.0
+        )
 
     def test_evaluate_ignores_negative_duration(self):
         stmt = DomainExperience(name="ok", domain="finance", hours_min=1.0)
-        assert stmt.evaluate_sample(
-            {"domain": "finance", "duration_seconds": -60}
-        ) == 0.0
+        assert (
+            stmt.evaluate_sample({"domain": "finance", "duration_seconds": -60}) == 0.0
+        )
 
     def test_accepts_when_hours_met(self):
         stmt = DomainExperience(name="ok", domain="finance", hours_min=1.0)
@@ -263,7 +264,9 @@ class TestMerkleCommitment:
 
         from director_ai.core.zk_attestation.commitment import _auth_path
 
-        forged_serialised = json.dumps(samples[1], sort_keys=True, separators=(",", ":"))
+        forged_serialised = json.dumps(
+            samples[1], sort_keys=True, separators=(",", ":")
+        )
         path_bytes = _auth_path(leaves, 0)
         forged = CommitmentProof(
             commitment=commitment,
@@ -352,9 +355,7 @@ class TestCommitmentBackend:
 
     def test_prove_verify_roundtrip(self):
         backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
-        samples = [
-            {"coherence": 0.95, "halted": False} for _ in range(16)
-        ]
+        samples = [{"coherence": 0.95, "halted": False} for _ in range(16)]
         stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=10)
         proof = backend.prove(stmt, samples)
         ok, reason = backend.verify(stmt, proof)
@@ -534,9 +535,7 @@ class TestPassport:
         verdict = verifier.verify(passport)
         assert verdict.signature_ok
         assert not verdict.accepted
-        assert verdict.failures == (
-            ("c", "statement_threshold_not_met"),
-        )
+        assert verdict.failures == (("c", "statement_threshold_not_met"),)
 
     def test_issuer_rejects_short_key(self):
         with pytest.raises(ValueError, match="HMAC key"):

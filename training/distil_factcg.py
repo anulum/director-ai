@@ -138,7 +138,6 @@ def phase_labels(args):
 
 def phase_train(args):
     """Phase 2: train student on soft labels."""
-    import os
 
     import torch
     from torch.utils.data import DataLoader, Dataset
@@ -226,7 +225,9 @@ def phase_train(args):
                 outputs.logits / args.temperature, dim=-1
             )
             teacher_probs = torch.softmax(soft_labels / args.temperature, dim=-1)
-            soft_loss = kl_loss(student_log_probs, teacher_probs) * (args.temperature**2)
+            soft_loss = kl_loss(student_log_probs, teacher_probs) * (
+                args.temperature**2
+            )
 
             # Hard label loss (cross-entropy from AggreFact ground truth)
             hard_targets = soft_labels.argmax(dim=-1)  # 0=supported, 1=contradicted
@@ -302,8 +303,18 @@ def main():
     p.add_argument("--epochs", type=int, default=3)
     p.add_argument("--lr", type=float, default=2e-5)
     p.add_argument("--temperature", type=float, default=3.0)
-    p.add_argument("--alpha", type=float, default=0.5, help="Soft/hard label blend (0=hard only, 1=soft only)")
-    p.add_argument("--student-model", type=str, default="", help="Student model path (local safetensors dir or HF ID)")
+    p.add_argument(
+        "--alpha",
+        type=float,
+        default=0.5,
+        help="Soft/hard label blend (0=hard only, 1=soft only)",
+    )
+    p.add_argument(
+        "--student-model",
+        type=str,
+        default="",
+        help="Student model path (local safetensors dir or HF ID)",
+    )
     p.add_argument("--quantise", action="store_true")
     args = p.parse_args()
 

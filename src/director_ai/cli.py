@@ -393,9 +393,7 @@ def _cmd_batch(args: list[str]) -> None:
                         {
                             "output": r.output,
                             "halted": r.halted,
-                            "coherence": (
-                                r.coherence.score if r.coherence else None
-                            ),
+                            "coherence": (r.coherence.score if r.coherence else None),
                         },
                     )
                     + "\n",

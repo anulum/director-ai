@@ -140,12 +140,20 @@ class FeedbackStore:
         """Count total corrections."""
         with self._lock:
             if domain is not None:
-                row = self._require_conn().execute(
-                    "SELECT COUNT(*) FROM corrections WHERE domain = ?",
-                    (domain,),
-                ).fetchone()
+                row = (
+                    self._require_conn()
+                    .execute(
+                        "SELECT COUNT(*) FROM corrections WHERE domain = ?",
+                        (domain,),
+                    )
+                    .fetchone()
+                )
             else:
-                row = self._require_conn().execute("SELECT COUNT(*) FROM corrections").fetchone()
+                row = (
+                    self._require_conn()
+                    .execute("SELECT COUNT(*) FROM corrections")
+                    .fetchone()
+                )
             return row[0] if row else 0
 
     def get_disagreements(self, limit: int = 0) -> list[Correction]:

@@ -194,9 +194,7 @@ class CoherenceAgent:
         if verdict.decision != "block":
             return result
 
-        reasons = "; ".join(
-            f"{f.category}:{f.severity}" for f in verdict.findings
-        )
+        reasons = "; ".join(f"{f.category}:{f.severity}" for f in verdict.findings)
         if verdict.anchor_reason:
             reasons = verdict.anchor_reason + (f"; {reasons}" if reasons else "")
         return ReviewResult(
@@ -211,24 +209,18 @@ class CoherenceAgent:
                 ),
                 evidence_chunks=[],
                 nli_scores=None,
-                suggested_action=(
-                    "Review the containment findings: " + reasons
-                ),
+                suggested_action=("Review the containment findings: " + reasons),
             ),
             fallback_used=result.fallback_used,
         )
 
-    def verify_physical_action(
-        self, action: PhysicalAction
-    ) -> GroundingVerdict:
+    def verify_physical_action(self, action: PhysicalAction) -> GroundingVerdict:
         """Screen a proposed physical action against the configured
         grounding hook. Raises :class:`RuntimeError` if no hook is
         configured — callers opt in explicitly.
         """
         if self.grounding_hook is None:
-            raise RuntimeError(
-                "grounding_hook not configured on this CoherenceAgent"
-            )
+            raise RuntimeError("grounding_hook not configured on this CoherenceAgent")
         return self.grounding_hook.evaluate(action)
 
     def verify_passport(self, passport: CrossOrgPassport) -> PassportVerdict:

@@ -34,7 +34,7 @@ Four pieces:
 """
 
 from .engine import EvolutionEngine, EvolutionReport, GenomePopulation
-from .genome import AdversarialGenome, GeneOperator, Gene
+from .genome import AdversarialGenome, Gene, GeneOperator
 from .registry import Defense, DefenseRegistry, DefenseSnapshot
 
 __all__ = [

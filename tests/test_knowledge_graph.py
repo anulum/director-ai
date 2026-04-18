@@ -189,9 +189,7 @@ class TestGraph:
     def test_shortest_path_picks_two_hop(self):
         g = self._graph()
         principal = Principal(role="u")
-        path = g.shortest_sanctioned_path(
-            source="a", target="c", principal=principal
-        )
+        path = g.shortest_sanctioned_path(source="a", target="c", principal=principal)
         # a -> b -> c (cost 2) beats a -> c (cost 3).
         assert [e.target for e in path] == ["b", "c"]
 
@@ -210,9 +208,7 @@ class TestGraph:
         g.add_edge(SkillEdge(source="a", target="c", action="invoke", weight=5))
         g.add_edge(SkillEdge(source="c", target="b", action="invoke"))
         principal = Principal(role="user")
-        path = g.shortest_sanctioned_path(
-            source="a", target="b", principal=principal
-        )
+        path = g.shortest_sanctioned_path(source="a", target="b", principal=principal)
         # The cheap a->b edge is admin-only; user must go a->c->b.
         assert [e.target for e in path] == ["c", "b"]
 

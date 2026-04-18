@@ -105,9 +105,7 @@ class RiskBudget:
         if allowance <= 0.0:
             raise ValueError(f"allowance must be positive; got {allowance}")
         if window_seconds <= 0.0:
-            raise ValueError(
-                f"window_seconds must be positive; got {window_seconds}"
-            )
+            raise ValueError(f"window_seconds must be positive; got {window_seconds}")
         self._allowance = float(allowance)
         self._window = float(window_seconds)
         self._clock = clock

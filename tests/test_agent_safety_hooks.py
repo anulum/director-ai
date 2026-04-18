@@ -52,9 +52,7 @@ def _agent(**extra):
 
 
 class TestContainmentWiring:
-    def _make_guard_and_anchor(
-        self, scope="sandbox"
-    ):
+    def _make_guard_and_anchor(self, scope="sandbox"):
         attestor = ContainmentAttestor(key=_KEY, issuer="host://unit")
         guard = ContainmentGuard(attestor=attestor, detector=BreakoutDetector())
         anchor = attestor.mint(session_id="sess-1", scope=scope)
@@ -173,9 +171,7 @@ class TestGroundingWiring:
         )
         verdict = agent.verify_physical_action(action)
         assert verdict.allowed is False
-        assert any(
-            v.constraint == "room" for v in verdict.violations
-        )
+        assert any(v.constraint == "room" for v in verdict.violations)
 
 
 # --- passport wiring -----------------------------------------------
@@ -189,8 +185,7 @@ class TestPassportWiring:
             backends={"commitment": CommitmentBackend(key=_KEY)},
         )
         samples = [
-            {"coherence": 0.95, "halted": False, "breakout": False}
-            for _ in range(32)
+            {"coherence": 0.95, "halted": False, "breakout": False} for _ in range(32)
         ]
         return issuer, verifier, samples
 

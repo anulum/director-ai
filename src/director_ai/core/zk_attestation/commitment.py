@@ -110,9 +110,7 @@ class CommitmentProof:
 
     def __post_init__(self) -> None:
         if self.total_samples != self.commitment.sample_count:
-            raise ValueError(
-                "total_samples must equal commitment.sample_count"
-            )
+            raise ValueError("total_samples must equal commitment.sample_count")
         if not self.opened:
             raise ValueError("opened must contain at least one index")
         for idx in self.opened:
@@ -148,9 +146,7 @@ def commit_samples(
         leaves.append(leaf)
 
     root = _merkle_root(leaves)
-    commitment = MerkleCommitment(
-        root=root.hex(), sample_count=len(samples)
-    )
+    commitment = MerkleCommitment(root=root.hex(), sample_count=len(samples))
     return commitment, leaves, blinds
 
 
@@ -306,17 +302,11 @@ def _auth_path(leaves: Sequence[bytes], index: int) -> list[bytes]:
 
 def _walk_path(leaf: bytes, index: int, siblings: Sequence[bytes]) -> bytes:
     if _RUST_MERKLE_AVAILABLE:
-        return bytes(
-            _rust_merkle_walk_path(leaf, index, [bytes(s) for s in siblings])
-        )
+        return bytes(_rust_merkle_walk_path(leaf, index, [bytes(s) for s in siblings]))
     node = leaf
     i = index
     for sibling in siblings:
-        node = (
-            _hash_node(node, sibling)
-            if i % 2 == 0
-            else _hash_node(sibling, node)
-        )
+        node = _hash_node(node, sibling) if i % 2 == 0 else _hash_node(sibling, node)
         i //= 2
     return node
 

@@ -117,9 +117,7 @@ class FailureStore:
         since_seconds: float | None = None,
     ) -> tuple[FailureEvent, ...]:
         if (last_n is None) == (since_seconds is None):
-            raise ValueError(
-                "exactly one of last_n / since_seconds must be supplied"
-            )
+            raise ValueError("exactly one of last_n / since_seconds must be supplied")
         with self._lock:
             snapshot = tuple(self._events)
         if last_n is not None:

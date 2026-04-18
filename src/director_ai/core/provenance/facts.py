@@ -76,4 +76,4 @@ def _canonical(source_id: str, content: str) -> bytes:
     """``source_id || 0x1f || content`` encoded UTF-8 — the unit
     separator rules out collisions between ``("ab", "cd")`` and
     ``("abc", "d")``."""
-    return f"{source_id}\x1f{content}".encode("utf-8")
+    return f"{source_id}\x1f{content}".encode()

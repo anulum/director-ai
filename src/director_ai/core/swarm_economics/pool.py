@@ -112,9 +112,7 @@ class ResourcePool:
         if initial_balance is None:
             initial_balance = capacity
         if initial_balance < 0 or initial_balance > capacity:
-            raise PoolError(
-                "initial_balance must be in [0, capacity]"
-            )
+            raise PoolError("initial_balance must be in [0, capacity]")
         self._capacity = capacity
         self._regen_rate = regeneration_rate
         self._balance = initial_balance
@@ -161,9 +159,7 @@ class ResourcePool:
         with self._lock:
             return tuple(self._ledger)
 
-    def recent(
-        self, *, since_seconds: float
-    ) -> tuple[ConsumptionRecord, ...]:
+    def recent(self, *, since_seconds: float) -> tuple[ConsumptionRecord, ...]:
         if since_seconds <= 0:
             raise PoolError("since_seconds must be positive")
         cutoff = float(self._clock()) - since_seconds
@@ -177,9 +173,7 @@ class ResourcePool:
         elapsed = max(0.0, now - self._last_refilled_at)
         if elapsed == 0.0:
             return
-        replenished = min(
-            self._capacity - self._balance, elapsed * self._regen_rate
-        )
+        replenished = min(self._capacity - self._balance, elapsed * self._regen_rate)
         self._balance = min(self._capacity, self._balance + replenished)
         self._last_refilled_at = now
 

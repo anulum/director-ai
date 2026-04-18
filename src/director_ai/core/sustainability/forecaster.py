@@ -95,9 +95,7 @@ class ConformalDemandForecaster:
                 self._residuals.append(abs(demand - self._ema))
             self._update_locked(demand)
 
-    def predict(
-        self, *, coverage: float = 0.9
-    ) -> PredictionInterval:
+    def predict(self, *, coverage: float = 0.9) -> PredictionInterval:
         """Return the next-day prediction interval.
 
         Raises :class:`ValueError` when no observations have been

@@ -192,6 +192,6 @@ def _standard_normal_quantile(p: float) -> float:
             (((((a[0] * r + a[1]) * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * q
         ) / (((((b[0] * r + b[1]) * r + b[2]) * r + b[3]) * r + b[4]) * r + 1.0)
     q = math.sqrt(-2.0 * math.log(1.0 - p))
-    return -(
-        ((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]
-    ) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0)
+    return -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]) / (
+        (((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0
+    )

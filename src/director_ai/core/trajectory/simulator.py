@@ -62,8 +62,9 @@ class VerdictProducer(Protocol):
     the protocol without modification.
     """
 
-    def review(self, prompt: str, action: str, tenant_id: str = "") -> tuple[bool, object]:
-        ...  # pragma: no cover
+    def review(
+        self, prompt: str, action: str, tenant_id: str = ""
+    ) -> tuple[bool, object]: ...  # pragma: no cover
 
 
 @dataclass(frozen=True)
@@ -202,15 +203,11 @@ class TrajectorySimulator:
                 try:
                     on_trajectory(result)
                 except Exception as exc:  # pragma: no cover — defensive
-                    logger.debug(
-                        "on_trajectory callback failed for #%d: %s", i, exc
-                    )
+                    logger.debug("on_trajectory callback failed for #%d: %s", i, exc)
 
         halt_rate = halts / float(self._n_simulations)
         mean = statistics.fmean(coherences) if coherences else 0.0
-        std = (
-            statistics.stdev(coherences) if len(coherences) >= 2 else 0.0
-        )
+        std = statistics.stdev(coherences) if len(coherences) >= 2 else 0.0
         ci_low, ci_high = _credible_interval(coherences, self._ci_level)
         action, reason = self._decide(halt_rate, mean)
         return PreflightVerdict(

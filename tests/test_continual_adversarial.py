@@ -118,12 +118,8 @@ class TestFailureStore:
 
     def test_iter_labelled(self):
         store = FailureStore(clock=_FakeClock())
-        store.append(
-            FailureEvent(prompt="a", label="unsafe", timestamp=0.0)
-        )
-        store.append(
-            FailureEvent(prompt="b", label="policy_violation", timestamp=1.0)
-        )
+        store.append(FailureEvent(prompt="a", label="unsafe", timestamp=0.0))
+        store.append(FailureEvent(prompt="b", label="policy_violation", timestamp=1.0))
         unsafe = list(store.iter_labelled("unsafe"))
         assert [e.prompt for e in unsafe] == ["a"]
 
@@ -176,15 +172,11 @@ class TestPatternMiner:
     def test_ngram_pass_finds_common_phrase(self):
         miner = PatternMiner(ngram_size=3, min_support=3)
         patterns = miner.mine(_attack_events())
-        ngram_signatures = {
-            p.signature for p in patterns if p.kind == "ngram"
-        }
+        ngram_signatures = {p.signature for p in patterns if p.kind == "ngram"}
         assert "ignore previous instructions" in ngram_signatures
 
     def test_edit_cluster_groups_similar_prompts(self):
-        miner = PatternMiner(
-            ngram_size=10, min_support=2, max_edit_distance=0.6
-        )
+        miner = PatternMiner(ngram_size=10, min_support=2, max_edit_distance=0.6)
         patterns = miner.mine(_attack_events())
         cluster_patterns = [p for p in patterns if p.kind == "edit_cluster"]
         assert cluster_patterns
@@ -225,22 +217,16 @@ class TestPatternMiner:
 class TestFailurePattern:
     def test_empty_signature(self):
         with pytest.raises(ValueError, match="signature"):
-            FailurePattern(
-                kind="ngram", signature="", support=1, label="unsafe"
-            )
+            FailurePattern(kind="ngram", signature="", support=1, label="unsafe")
 
     def test_non_positive_support(self):
         with pytest.raises(ValueError, match="support"):
-            FailurePattern(
-                kind="ngram", signature="x", support=0, label="unsafe"
-            )
+            FailurePattern(kind="ngram", signature="x", support=0, label="unsafe")
 
     def test_unknown_kind(self):
         bad = cast(Any, "wat")
         with pytest.raises(ValueError, match="kind"):
-            FailurePattern(
-                kind=bad, signature="x", support=1, label="unsafe"
-            )
+            FailurePattern(kind=bad, signature="x", support=1, label="unsafe")
 
 
 # --- AdversarialSuite ---------------------------------------------
@@ -320,21 +306,15 @@ class TestAdversarialSuite:
 class TestAdversarialCase:
     def test_empty_prompt(self):
         with pytest.raises(ValueError, match="prompt"):
-            AdversarialCase(
-                prompt="", expected_label="unsafe", source_pattern="p"
-            )
+            AdversarialCase(prompt="", expected_label="unsafe", source_pattern="p")
 
     def test_empty_label(self):
         with pytest.raises(ValueError, match="expected_label"):
-            AdversarialCase(
-                prompt="x", expected_label="", source_pattern="p"
-            )
+            AdversarialCase(prompt="x", expected_label="", source_pattern="p")
 
     def test_empty_source(self):
         with pytest.raises(ValueError, match="source_pattern"):
-            AdversarialCase(
-                prompt="x", expected_label="unsafe", source_pattern=""
-            )
+            AdversarialCase(prompt="x", expected_label="unsafe", source_pattern="")
 
 
 # --- PerceptronAdversaryScorer ------------------------------------
@@ -367,9 +347,7 @@ class TestPerceptronAdversaryScorer:
     def test_separates_classes(self):
         trainer = PerceptronAdversaryScorer(dim=512, epochs=6)
         adversarial, safe = _training_data()
-        trained = trainer.train(
-            adversarial=adversarial, safe=safe, version=1
-        )
+        trained = trainer.train(adversarial=adversarial, safe=safe, version=1)
         assert isinstance(trained, TrainedAdversaryScorer)
         assert trained.training_accuracy > 0.8
         adv_score = trained.score("ignore previous instructions again")
@@ -379,9 +357,7 @@ class TestPerceptronAdversaryScorer:
     def test_protocol_check(self):
         trainer = PerceptronAdversaryScorer(dim=64, epochs=1)
         adversarial, safe = _training_data()
-        trained = trainer.train(
-            adversarial=adversarial, safe=safe, version=1
-        )
+        trained = trainer.train(adversarial=adversarial, safe=safe, version=1)
         assert isinstance(trained, AdversaryScorer)
 
     def test_empty_sets_rejected(self):
@@ -470,9 +446,7 @@ class TestContinualEngine:
                 )
             )
         miner = PatternMiner(ngram_size=3, min_support=10)
-        engine = ContinualEngine(
-            store=store, miner=miner, min_failures=5
-        )
+        engine = ContinualEngine(store=store, miner=miner, min_failures=5)
         with pytest.raises(ValueError, match="no patterns"):
             engine.evolve(safe_corpus=["ok"])
 

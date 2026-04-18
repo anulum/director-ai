@@ -74,11 +74,7 @@ class Vec3:
     def clamp(self, low: Vec3, high: Vec3) -> Vec3:
         """Return a new vector with each component clamped into
         ``[low, high]``. Used by workspace bounding."""
-        if (
-            low.x > high.x
-            or low.y > high.y
-            or low.z > high.z
-        ):
+        if low.x > high.x or low.y > high.y or low.z > high.z:
             raise ValueError("low must be componentwise <= high")
         return Vec3(
             max(low.x, min(self.x, high.x)),
@@ -100,9 +96,7 @@ class AABB:
             or self.min_corner.y > self.max_corner.y
             or self.min_corner.z > self.max_corner.z
         ):
-            raise ValueError(
-                "AABB.min_corner must be componentwise <= max_corner"
-            )
+            raise ValueError("AABB.min_corner must be componentwise <= max_corner")
 
     def contains(self, point: Vec3) -> bool:
         if _RUST_GEOM_AVAILABLE:

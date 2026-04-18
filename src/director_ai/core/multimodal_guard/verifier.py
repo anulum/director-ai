@@ -157,9 +157,7 @@ class TorchCLIPCrossModalVerifier:
         tokens = self._tokenizer([text]).to(self._device)
         with torch.no_grad():
             text_embedding = self._model.encode_text(tokens)
-            text_embedding = text_embedding / text_embedding.norm(
-                dim=-1, keepdim=True
-            )
+            text_embedding = text_embedding / text_embedding.norm(dim=-1, keepdim=True)
         text_vec = tuple(float(x) for x in text_embedding[0].cpu().tolist())
         sim = _cosine(image_embedding, text_vec)
         # CLIP cosine is in [-1, 1]; rescale to [0, 1] so the band

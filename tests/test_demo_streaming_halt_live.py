@@ -73,7 +73,9 @@ class TestHelpers:
         assert "width:100%" in high
 
     def test_banner_halted_shows_reason(self):
-        html = demo._banner(True, "hard_limit", {"token_count": 5, "avg_coherence": 0.4})
+        html = demo._banner(
+            True, "hard_limit", {"token_count": 5, "avg_coherence": 0.4}
+        )
         assert "HALTED" in html
         assert "hard_limit" in html
 

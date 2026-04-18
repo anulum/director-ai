@@ -108,12 +108,13 @@ class TraversalPolicy:
         missing = self.required_permissions - principal.permissions
         if missing:
             return False, f"missing permissions: {sorted(missing)}"
-        if self.require_same_tenant:
-            if not principal.tenant_id or principal.tenant_id != edge_tenant_id:
-                return False, (
-                    f"tenant mismatch: principal {principal.tenant_id!r} "
-                    f"vs edge {edge_tenant_id!r}"
-                )
+        if self.require_same_tenant and (
+            not principal.tenant_id or principal.tenant_id != edge_tenant_id
+        ):
+            return False, (
+                f"tenant mismatch: principal {principal.tenant_id!r} "
+                f"vs edge {edge_tenant_id!r}"
+            )
         return True, "allowed"
 
     def merge(self, other: TraversalPolicy) -> TraversalPolicy:
@@ -137,9 +138,7 @@ class TraversalPolicy:
         )
 
 
-def _intersect_allow_all(
-    a: frozenset[str], b: frozenset[str]
-) -> frozenset[str]:
+def _intersect_allow_all(a: frozenset[str], b: frozenset[str]) -> frozenset[str]:
     """Semantic intersection where empty means 'any'. Both empty →
     empty; one empty → the other; both non-empty → set intersection.
     """

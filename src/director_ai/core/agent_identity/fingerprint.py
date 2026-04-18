@@ -43,9 +43,7 @@ class BehaviorObservation:
             if not name:
                 raise ValueError("feature names must be non-empty")
             if not math.isfinite(float(value)):
-                raise ValueError(
-                    f"feature {name!r} is not finite: {value!r}"
-                )
+                raise ValueError(f"feature {name!r} is not finite: {value!r}")
 
 
 @dataclass
@@ -169,15 +167,12 @@ class IdentityMonitor:
         if self.z_threshold <= 0:
             raise ValueError(f"z_threshold must be positive; got {self.z_threshold}")
 
-    def evaluate(
-        self, observation: BehaviorObservation
-    ) -> IdentityAnomaly | None:
+    def evaluate(self, observation: BehaviorObservation) -> IdentityAnomaly | None:
         worst: tuple[str, float] | None = None
         for name, raw in observation.features.items():
             z = self.fingerprint.z_score(name, float(raw))
-            if abs(z) > self.z_threshold:
-                if worst is None or abs(z) > abs(worst[1]):
-                    worst = (name, z)
+            if abs(z) > self.z_threshold and (worst is None or abs(z) > abs(worst[1])):
+                worst = (name, z)
         if worst is None:
             self.fingerprint.update(observation)
             return None

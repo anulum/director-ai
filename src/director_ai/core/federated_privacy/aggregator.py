@@ -189,15 +189,11 @@ class FederatedHistogram:
         self._lock = threading.Lock()
         self._contributions: dict[str, int] = {c: 0 for c in cat_tuple}
 
-    def submit(
-        self, *, tenant_id: str, category: str, count: int = 1
-    ) -> None:
+    def submit(self, *, tenant_id: str, category: str, count: int = 1) -> None:
         if not tenant_id:
             raise ValueError("tenant_id must be non-empty")
         if category not in self._contributions:
-            raise KeyError(
-                f"category {category!r} not in the histogram's set"
-            )
+            raise KeyError(f"category {category!r} not in the histogram's set")
         if count < 0:
             raise ValueError("count must be non-negative")
         with self._lock:
@@ -220,9 +216,7 @@ class FederatedHistogram:
             )
         noisy_counts: dict[str, float] = {}
         for category in self._categories:
-            noisy_counts[category] = self._mechanism.apply(
-                float(raw_counts[category])
-            )
+            noisy_counts[category] = self._mechanism.apply(float(raw_counts[category]))
         return HistogramRelease(
             raw_counts=raw_counts,
             noisy_counts=noisy_counts,

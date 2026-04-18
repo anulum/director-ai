@@ -99,9 +99,7 @@ class GroundingHook:
         for constraint in self._constraints:
             reason = constraint.evaluate(action, self._model)
             if reason is not None:
-                violations.append(
-                    Violation(constraint=constraint.name, reason=reason)
-                )
+                violations.append(Violation(constraint=constraint.name, reason=reason))
         return GroundingVerdict(
             action=action,
             allowed=not violations,

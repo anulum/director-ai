@@ -70,9 +70,7 @@ class ScaleConflictDetector:
     def threshold(self) -> float | None:
         return self._threshold
 
-    def calibrate(
-        self, calibration_tables: Sequence[ScaleScoreTable]
-    ) -> float:
+    def calibrate(self, calibration_tables: Sequence[ScaleScoreTable]) -> float:
         """Set the per-pair threshold from the calibration set and
         return it.
 
@@ -88,9 +86,7 @@ class ScaleConflictDetector:
                 for _, b in ordered[i + 1 :]:
                     deltas.append(abs(a - b))
         if len(deltas) < 2:
-            raise ValueError(
-                "calibration requires at least two pairwise deltas"
-            )
+            raise ValueError("calibration requires at least two pairwise deltas")
         sorted_deltas = sorted(deltas)
         n = len(sorted_deltas)
         q_index = min(max(int((self._target * (n + 1)) - 1), 0), n - 1)
@@ -98,9 +94,7 @@ class ScaleConflictDetector:
         self._threshold = threshold
         return threshold
 
-    def detect(
-        self, table: ScaleScoreTable
-    ) -> tuple[ScaleConflict, ...]:
+    def detect(self, table: ScaleScoreTable) -> tuple[ScaleConflict, ...]:
         """Return every scale pair whose absolute delta exceeds
         the calibrated threshold.
 

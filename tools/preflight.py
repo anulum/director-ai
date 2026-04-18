@@ -21,6 +21,11 @@ import sys
 SPDX_DIRS = ["src", "tests"]
 SPDX_EXTS = {".py"}
 SPDX_MARKER = "SPDX-License-Identifier"
+# Path fragments (relative to repo root) whose files are generated
+# by external tooling (protoc etc.) and therefore cannot be
+# hand-edited to carry our SPDX header. The ruff ``exclude`` list
+# in ``pyproject.toml`` covers the same set.
+SPDX_EXCLUDE_FRAGMENTS = ("src/director_ai/proto/",)
 
 GATES = [
     (
@@ -143,6 +148,9 @@ def check_spdx() -> bool:
             continue
         for p in root.rglob("*"):
             if p.suffix not in SPDX_EXTS or "__pycache__" in p.parts:
+                continue
+            posix = p.as_posix()
+            if any(fragment in posix for fragment in SPDX_EXCLUDE_FRAGMENTS):
                 continue
             try:
                 text = p.read_text(encoding="utf-8", errors="ignore")[:2048]

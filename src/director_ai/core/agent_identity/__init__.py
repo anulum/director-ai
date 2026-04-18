@@ -29,7 +29,7 @@ fingerprint so the guardrail can detect identity hijacking.
 """
 
 from .audit import AuditChain, AuditEntry
-from .fingerprint import BehaviorObservation, BehavioralFingerprint, IdentityMonitor
+from .fingerprint import BehavioralFingerprint, BehaviorObservation, IdentityMonitor
 from .passport import AgentPassport, PassportSigner, PassportVerificationError
 
 __all__ = [

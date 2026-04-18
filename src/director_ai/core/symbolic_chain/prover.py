@@ -107,12 +107,8 @@ class GraphProver:
         for a, b in implies:
             for c_source, c_target in contradicts:
                 if b == c_source:
-                    conflicts.append(
-                        (a, c_target, f"transitive via {b}")
-                    )
+                    conflicts.append((a, c_target, f"transitive via {b}"))
 
         if conflicts:
-            return ConsistencyReport(
-                status="inconsistent", conflicts=tuple(conflicts)
-            )
+            return ConsistencyReport(status="inconsistent", conflicts=tuple(conflicts))
         return ConsistencyReport(status="consistent")

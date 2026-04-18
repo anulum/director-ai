@@ -100,7 +100,9 @@ class MetaAnalyzer:
         min_window: int = 32,
     ) -> None:
         if not 0.0 <= reference_mean <= 1.0:
-            raise ValueError(f"reference_mean must be in [0, 1]; got {reference_mean!r}")
+            raise ValueError(
+                f"reference_mean must be in [0, 1]; got {reference_mean!r}"
+            )
         if ph_delta < 0:
             raise ValueError("ph_delta must be non-negative")
         if ph_threshold <= 0:
@@ -114,18 +116,14 @@ class MetaAnalyzer:
         if reference_action_rates is not None:
             total = sum(reference_action_rates.values())
             if not 0.999 <= total <= 1.001:
-                raise ValueError(
-                    f"reference_action_rates must sum to 1.0; got {total}"
-                )
+                raise ValueError(f"reference_action_rates must sum to 1.0; got {total}")
             for action, rate in reference_action_rates.items():
                 if action not in _ACTIONS:
                     raise ValueError(
                         f"unknown action {action!r} in reference_action_rates"
                     )
                 if not 0.0 <= rate <= 1.0:
-                    raise ValueError(
-                        f"action rate must be in [0, 1]; got {rate!r}"
-                    )
+                    raise ValueError(f"action rate must be in [0, 1]; got {rate!r}")
         if action_tolerance < 0:
             raise ValueError("action_tolerance must be non-negative")
         if min_window <= 0:

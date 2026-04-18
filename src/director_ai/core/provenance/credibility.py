@@ -35,13 +35,9 @@ class SourceScore:
 
     def __post_init__(self) -> None:
         if not 0.0 <= self.score <= 1.0:
-            raise ValueError(
-                f"score must be in [0, 1]; got {self.score!r}"
-            )
+            raise ValueError(f"score must be in [0, 1]; got {self.score!r}")
         if self.observation_count < 0:
-            raise ValueError(
-                "observation_count must be non-negative"
-            )
+            raise ValueError("observation_count must be non-negative")
 
 
 class SourceCredibility:
@@ -96,9 +92,7 @@ class SourceCredibility:
                     observation_count=1,
                 )
             else:
-                decay = _decay_weight(
-                    now - existing.last_updated, self._half_life
-                )
+                decay = _decay_weight(now - existing.last_updated, self._half_life)
                 # EMA: new = decay * old + (1 - decay) * signal —
                 # decay near 1 preserves old score; decay near 0
                 # replaces it.

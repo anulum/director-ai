@@ -64,13 +64,9 @@ class CnfConverter:
         if isinstance(formula, Not):
             return Not(self._remove_iff(formula.operand))
         if isinstance(formula, And):
-            return And(
-                self._remove_iff(formula.left), self._remove_iff(formula.right)
-            )
+            return And(self._remove_iff(formula.left), self._remove_iff(formula.right))
         if isinstance(formula, Or):
-            return Or(
-                self._remove_iff(formula.left), self._remove_iff(formula.right)
-            )
+            return Or(self._remove_iff(formula.left), self._remove_iff(formula.right))
         if isinstance(formula, Implies):
             return Implies(
                 self._remove_iff(formula.antecedent),
@@ -160,9 +156,7 @@ class CnfConverter:
                     self._distribute(Or(left, right.right)),
                 )
             return Or(left, right)
-        raise TypeError(
-            f"unexpected node {type(formula).__name__}"
-        )  # pragma: no cover
+        raise TypeError(f"unexpected node {type(formula).__name__}")  # pragma: no cover
 
     def _flatten(self, formula: Formula) -> tuple[Clause, ...]:
         if isinstance(formula, And):

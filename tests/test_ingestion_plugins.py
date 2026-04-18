@@ -170,9 +170,7 @@ class TestS3:
                 "IsTruncated": False,
             },
         ]
-        objs = {
-            k: {"ContentType": "text/plain", "_body": k.encode()} for k in "abc"
-        }
+        objs = {k: {"ContentType": "text/plain", "_body": k.encode()} for k in "abc"}
         fake = _FakeS3(pages, objs)
         docs = list(S3Plugin(fake, bucket="k").iter_documents())
         assert [d.source_id for d in docs] == ["a", "b", "c"]
@@ -232,7 +230,9 @@ class _FakeNotionDatabases:
     def __init__(self, pages: list[dict[str, Any]]) -> None:
         self._pages = pages
 
-    def query(self, *, database_id: str, start_cursor: str | None = None) -> dict[str, Any]:
+    def query(
+        self, *, database_id: str, start_cursor: str | None = None
+    ) -> dict[str, Any]:
         return {"results": self._pages, "has_more": False, "next_cursor": None}
 
 
@@ -241,7 +241,9 @@ class _FakeNotionSearch:
         self._pages = pages
         self.calls: list[dict[str, Any]] = []
 
-    def __call__(self, *, filter: dict[str, str], start_cursor: str | None = None) -> dict[str, Any]:
+    def __call__(
+        self, *, filter: dict[str, str], start_cursor: str | None = None
+    ) -> dict[str, Any]:
         self.calls.append({"filter": filter, "start_cursor": start_cursor})
         return {"results": self._pages, "has_more": False, "next_cursor": None}
 
@@ -271,9 +273,7 @@ class _FakeNotion:
     blocks: _FakeNotionBlocks = field(
         default_factory=lambda: _FakeNotionBlocks(_FakeNotionBlocksChildren({}))
     )
-    search: _FakeNotionSearch = field(
-        default_factory=lambda: _FakeNotionSearch([])
-    )
+    search: _FakeNotionSearch = field(default_factory=lambda: _FakeNotionSearch([]))
 
 
 def _text_block(
@@ -354,12 +354,10 @@ class TestNotion:
 
     def test_max_pages_cap(self):
         pages = [
-            {"id": f"p{i}", "properties": {}, "last_edited_time": ""}
-            for i in range(5)
+            {"id": f"p{i}", "properties": {}, "last_edited_time": ""} for i in range(5)
         ]
         blocks = {
-            f"p{i}": [_text_block(f"b{i}", "paragraph", f"body {i}")]
-            for i in range(5)
+            f"p{i}": [_text_block(f"b{i}", "paragraph", f"body {i}")] for i in range(5)
         }
         client = _FakeNotion(
             databases=_FakeNotionDatabases(pages),
@@ -468,9 +466,7 @@ class TestGoogleDrive:
             }
         ]
         endpoint = _FakeFilesEndpoint(pages, {}, native_exports={"doc": "doc text"})
-        docs = list(
-            GoogleDrivePlugin(_FakeDriveService(endpoint)).iter_documents()
-        )
+        docs = list(GoogleDrivePlugin(_FakeDriveService(endpoint)).iter_documents())
         assert docs[0].text == "doc text"
         assert endpoint.export_calls == [("doc", "text/plain")]
 
@@ -494,7 +490,9 @@ class TestGoogleDrive:
 
     def test_rejects_non_positive_page_size(self):
         with pytest.raises(ValueError, match="page_size"):
-            GoogleDrivePlugin(_FakeDriveService(_FakeFilesEndpoint([], {})), page_size=0)
+            GoogleDrivePlugin(
+                _FakeDriveService(_FakeFilesEndpoint([], {})), page_size=0
+            )
 
     def test_end_to_end_ingest(self):
         pages = [

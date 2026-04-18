@@ -131,22 +131,20 @@ class _FakeLangfuseTrace:
             {"name": name, "metadata": metadata, "start_time": start_time}
         )
 
-    def score(
-        self, name: str, value: float, comment: str | None = None
-    ) -> None:
+    def score(self, name: str, value: float, comment: str | None = None) -> None:
         self.scores.append({"name": name, "value": value, "comment": comment})
 
     def update(self, status_message: str, metadata: dict[str, Any]) -> None:
-        self.updates.append(
-            {"status_message": status_message, "metadata": metadata}
-        )
+        self.updates.append({"status_message": status_message, "metadata": metadata})
 
 
 class _FakeLangfuse:
     def __init__(self) -> None:
         self.created_traces: list[_FakeLangfuseTrace] = []
 
-    def trace(self, name: str, user_id: str, metadata: dict[str, Any]) -> _FakeLangfuseTrace:
+    def trace(
+        self, name: str, user_id: str, metadata: dict[str, Any]
+    ) -> _FakeLangfuseTrace:
         t = _FakeLangfuseTrace()
         t.name = name  # type: ignore[attr-defined]
         t.user_id = user_id  # type: ignore[attr-defined]
@@ -160,10 +158,24 @@ class TestLangfuseAdapter:
         lf = _FakeLangfuse()
         cb = LangfuseTokenCallback(lf)
         cb.on_token(
-            TokenTraceEvent(index=0, token="Paris", coherence=0.88, timestamp=1.0, tenant_id="t1", request_id="r1")
+            TokenTraceEvent(
+                index=0,
+                token="Paris",
+                coherence=0.88,
+                timestamp=1.0,
+                tenant_id="t1",
+                request_id="r1",
+            )
         )
         cb.on_token(
-            TokenTraceEvent(index=1, token=" is", coherence=0.86, timestamp=1.5, tenant_id="t1", request_id="r1")
+            TokenTraceEvent(
+                index=1,
+                token=" is",
+                coherence=0.86,
+                timestamp=1.5,
+                tenant_id="t1",
+                request_id="r1",
+            )
         )
         assert len(lf.created_traces) == 1
         trace = lf.created_traces[0]
@@ -187,10 +199,14 @@ class TestLangfuseAdapter:
         lf = _FakeLangfuse()
         cb = LangfuseTokenCallback(lf)
         cb.on_token(
-            TokenTraceEvent(index=0, token="a", coherence=0.9, timestamp=0.0, request_id="r1")
+            TokenTraceEvent(
+                index=0, token="a", coherence=0.9, timestamp=0.0, request_id="r1"
+            )
         )
         cb.on_token(
-            TokenTraceEvent(index=0, token="a", coherence=0.9, timestamp=0.0, request_id="r2")
+            TokenTraceEvent(
+                index=0, token="a", coherence=0.9, timestamp=0.0, request_id="r2"
+            )
         )
         assert len(lf.created_traces) == 2
 
@@ -198,7 +214,9 @@ class TestLangfuseAdapter:
         lf = _FakeLangfuse()
         cb = LangfuseTokenCallback(lf)
         cb.on_token(
-            TokenTraceEvent(index=0, token="a", coherence=0.9, timestamp=0.0, request_id="r1")
+            TokenTraceEvent(
+                index=0, token="a", coherence=0.9, timestamp=0.0, request_id="r1"
+            )
         )
         cb.on_stream_end(
             tenant_id="t",
@@ -209,7 +227,9 @@ class TestLangfuseAdapter:
         assert trace.updates[0]["status_message"] == "halted"
         # subsequent tokens on the same request spawn a new trace
         cb.on_token(
-            TokenTraceEvent(index=0, token="b", coherence=0.9, timestamp=0.0, request_id="r1")
+            TokenTraceEvent(
+                index=0, token="b", coherence=0.9, timestamp=0.0, request_id="r1"
+            )
         )
         assert len(lf.created_traces) == 2
 

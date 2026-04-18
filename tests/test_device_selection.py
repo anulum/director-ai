@@ -38,9 +38,11 @@ def _patch_cuda(
     monkeypatch.setattr(_device, "_visible_device_count", lambda: count)
 
     if capabilities is None:
+
         def cap(_idx: int):
             return None
     else:
+
         def cap(idx: int):
             return capabilities[idx] if 0 <= idx < len(capabilities) else None
 

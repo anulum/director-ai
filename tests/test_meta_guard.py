@@ -35,9 +35,7 @@ from director_ai.core.meta_guard import (
 
 class TestScoringDecision:
     def test_valid(self):
-        d = ScoringDecision(
-            prompt_hash="h", score=0.5, action="allow", timestamp=0.0
-        )
+        d = ScoringDecision(prompt_hash="h", score=0.5, action="allow", timestamp=0.0)
         assert d.ground_truth is None
 
     def test_empty_hash_rejected(self):
@@ -46,16 +44,12 @@ class TestScoringDecision:
 
     def test_score_out_of_range(self):
         with pytest.raises(ValueError, match="score"):
-            ScoringDecision(
-                prompt_hash="h", score=1.5, action="allow", timestamp=0.0
-            )
+            ScoringDecision(prompt_hash="h", score=1.5, action="allow", timestamp=0.0)
 
     def test_bad_action(self):
         bad = cast(Any, "ignore")
         with pytest.raises(ValueError, match="action"):
-            ScoringDecision(
-                prompt_hash="h", score=0.5, action=bad, timestamp=0.0
-            )
+            ScoringDecision(prompt_hash="h", score=0.5, action=bad, timestamp=0.0)
 
     def test_ground_truth_range(self):
         with pytest.raises(ValueError, match="ground_truth"):
@@ -230,17 +224,13 @@ class TestMetaAnalyzer:
         assert analysis.mean_score == pytest.approx(0.3)
 
     def test_upward_drift_triggers_page_hinkley(self):
-        analyzer = MetaAnalyzer(
-            reference_mean=0.2, ph_threshold=0.5, min_window=8
-        )
+        analyzer = MetaAnalyzer(reference_mean=0.2, ph_threshold=0.5, min_window=8)
         analysis = analyzer.analyse(_drift_window(64))
         assert analysis.page_hinkley_alarm
         assert analysis.page_hinkley_statistic > 0.5
 
     def test_downward_drift_triggers_page_hinkley(self):
-        analyzer = MetaAnalyzer(
-            reference_mean=0.8, ph_threshold=0.5, min_window=8
-        )
+        analyzer = MetaAnalyzer(reference_mean=0.8, ph_threshold=0.5, min_window=8)
         analysis = analyzer.analyse(_drift_window(64, pre=0.9, post=0.2, switch=32))
         assert analysis.page_hinkley_alarm
 

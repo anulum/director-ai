@@ -121,9 +121,7 @@ class ValueLatticeScorer:
         steepness: float = 4.0,
     ) -> None:
         if scale not in _VALID_SCALES:
-            raise ValueError(
-                f"scale must be one of {_VALID_SCALES}; got {scale!r}"
-            )
+            raise ValueError(f"scale must be one of {_VALID_SCALES}; got {scale!r}")
         if steepness <= 0:
             raise ValueError("steepness must be positive")
         self.scale: AlignmentScale = scale

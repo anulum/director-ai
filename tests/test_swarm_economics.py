@@ -14,6 +14,7 @@ composite under hot/cold scenarios."""
 
 from __future__ import annotations
 
+import contextlib
 import threading
 
 import pytest
@@ -85,9 +86,7 @@ class TestResourcePool:
 
     def test_zero_regeneration_stays_fixed(self):
         clock = _FakeClock(start=0.0)
-        pool = ResourcePool(
-            capacity=100.0, initial_balance=50.0, clock=clock
-        )
+        pool = ResourcePool(capacity=100.0, initial_balance=50.0, clock=clock)
         clock.now = 1e6
         assert pool.balance() == 50.0
 
@@ -151,10 +150,8 @@ class TestResourcePool:
 
         def writer(tag: str) -> None:
             for _ in range(100):
-                try:
+                with contextlib.suppress(PoolError):
                     pool.consume(agent_id=tag, amount=1.0)
-                except PoolError:
-                    pass
 
         threads = [threading.Thread(target=writer, args=(f"t{i}",)) for i in range(8)]
         for t in threads:
@@ -170,16 +167,12 @@ class TestResourcePool:
 
 class TestAgentState:
     def test_valid(self):
-        state = AgentEconomicState(
-            agent_id="a", credit_balance=5.0, valuation=2.0
-        )
+        state = AgentEconomicState(agent_id="a", credit_balance=5.0, valuation=2.0)
         assert state.valuation == 2.0
 
     def test_negative_credit(self):
         with pytest.raises(PoolError, match="credit_balance"):
-            AgentEconomicState(
-                agent_id="a", credit_balance=-1.0, valuation=1.0
-            )
+            AgentEconomicState(agent_id="a", credit_balance=-1.0, valuation=1.0)
 
     def test_empty_agent(self):
         with pytest.raises(PoolError, match="agent_id"):
@@ -226,9 +219,7 @@ class TestBargaining:
         # b has a high disagreement utility — the solution must
         # give b more to keep the surplus positive.
         disagreement = (DisagreementPoint(agent_id="b", utility=0.5),)
-        solution = solver.solve(
-            agents=agents, budget=1.0, disagreement=disagreement
-        )
+        solution = solver.solve(agents=agents, budget=1.0, disagreement=disagreement)
         assert solution.allocation["b"] >= solution.allocation["a"]
 
     def test_fairness_gap_zero_when_equal(self):
@@ -263,9 +254,7 @@ class TestBargaining:
         agents = _agents({"a": 1.0, "b": 1.0})
         disagreement = (DisagreementPoint(agent_id="ghost", utility=0.1),)
         with pytest.raises(ValueError, match="unknown agents"):
-            solver.solve(
-                agents=agents, budget=1.0, disagreement=disagreement
-            )
+            solver.solve(agents=agents, budget=1.0, disagreement=disagreement)
 
     def test_step_larger_than_budget(self):
         solver = NashBargainingSolver(step=2.0)
@@ -299,9 +288,7 @@ class TestBargaining:
 class TestTragedyDetector:
     def test_quiet_pool_returns_no_alarm(self):
         clock = _FakeClock(start=100.0)
-        pool = ResourcePool(
-            capacity=100.0, regeneration_rate=10.0, clock=clock
-        )
+        pool = ResourcePool(capacity=100.0, regeneration_rate=10.0, clock=clock)
         detector = TragedyDetector(
             pool=pool,
             window_seconds=60.0,
@@ -315,9 +302,7 @@ class TestTragedyDetector:
 
     def test_over_consumption_fires_after_grace(self):
         clock = _FakeClock(start=0.0)
-        pool = ResourcePool(
-            capacity=10_000.0, regeneration_rate=1.0, clock=clock
-        )
+        pool = ResourcePool(capacity=10_000.0, regeneration_rate=1.0, clock=clock)
         detector = TragedyDetector(
             pool=pool,
             window_seconds=60.0,
@@ -351,9 +336,7 @@ class TestTragedyDetector:
 
     def test_reset_clears_grace_clock(self):
         clock = _FakeClock(start=0.0)
-        pool = ResourcePool(
-            capacity=1000.0, regeneration_rate=1.0, clock=clock
-        )
+        pool = ResourcePool(capacity=1000.0, regeneration_rate=1.0, clock=clock)
         detector = TragedyDetector(
             pool=pool,
             window_seconds=10.0,
@@ -392,9 +375,7 @@ class TestTragedyDetector:
 class TestEconomicRiskScorer:
     def test_empty_pool_has_low_risk(self):
         clock = _FakeClock()
-        pool = ResourcePool(
-            capacity=100.0, regeneration_rate=5.0, clock=clock
-        )
+        pool = ResourcePool(capacity=100.0, regeneration_rate=5.0, clock=clock)
         detector = TragedyDetector(pool=pool, clock=clock)
         scorer = EconomicRiskScorer(pool=pool, detector=detector)
         verdict = scorer.score()
@@ -403,9 +384,7 @@ class TestEconomicRiskScorer:
 
     def test_exhausted_pool_raises_risk(self):
         clock = _FakeClock()
-        pool = ResourcePool(
-            capacity=100.0, initial_balance=5.0, clock=clock
-        )
+        pool = ResourcePool(capacity=100.0, initial_balance=5.0, clock=clock)
         detector = TragedyDetector(pool=pool, clock=clock)
         scorer = EconomicRiskScorer(
             pool=pool,
@@ -420,9 +399,7 @@ class TestEconomicRiskScorer:
 
     def test_bargaining_result_feeds_fairness(self):
         clock = _FakeClock()
-        pool = ResourcePool(
-            capacity=100.0, regeneration_rate=10.0, clock=clock
-        )
+        pool = ResourcePool(capacity=100.0, regeneration_rate=10.0, clock=clock)
         detector = TragedyDetector(pool=pool, clock=clock)
         scorer = EconomicRiskScorer(
             pool=pool,

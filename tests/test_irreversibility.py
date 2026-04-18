@@ -120,9 +120,7 @@ class TestForecaster:
         assert forecast.p_irreversible < 0.1
 
     def test_seed_is_deterministic(self):
-        f = IrreversibilityForecaster(
-            estimator=_AlwaysIrreversible(), n_samples=128
-        )
+        f = IrreversibilityForecaster(estimator=_AlwaysIrreversible(), n_samples=128)
         a = f.forecast(["delete"], seed=7)
         b = f.forecast(["delete"], seed=7)
         assert a == b
@@ -163,7 +161,9 @@ class TestForecaster:
         f = IrreversibilityForecaster(estimator=_AlwaysIrreversible())
         forecast = f.forecast(["delete"], seed=0)
         assert isinstance(forecast, Forecast)
-        assert 0.0 <= forecast.ci_low <= forecast.p_irreversible <= forecast.ci_high <= 1.0
+        assert (
+            0.0 <= forecast.ci_low <= forecast.p_irreversible <= forecast.ci_high <= 1.0
+        )
         assert forecast.crossed <= forecast.samples
 
     def test_default_estimator_runs(self):

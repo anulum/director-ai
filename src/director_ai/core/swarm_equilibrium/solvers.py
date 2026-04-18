@@ -23,7 +23,6 @@ under the induced follower response.
 
 from __future__ import annotations
 
-import itertools
 from dataclasses import dataclass, field
 
 from .game import NormalFormGame, StrategyProfile
@@ -71,9 +70,7 @@ class NashSolver:
             raise ValueError("eps must be non-negative")
         self._eps = eps
 
-    def pure_equilibria(
-        self, game: NormalFormGame
-    ) -> tuple[NashEquilibrium, ...]:
+    def pure_equilibria(self, game: NormalFormGame) -> tuple[NashEquilibrium, ...]:
         """Enumerate every pure-strategy Nash equilibrium."""
         equilibria: list[NashEquilibrium] = []
         for profile in game.profiles():
@@ -87,9 +84,7 @@ class NashSolver:
                 )
         return tuple(equilibria)
 
-    def mixed_equilibrium_2x2(
-        self, game: NormalFormGame
-    ) -> NashEquilibrium | None:
+    def mixed_equilibrium_2x2(self, game: NormalFormGame) -> NashEquilibrium | None:
         """Return the interior mixed-strategy Nash equilibrium of a
         2x2 two-player game, or ``None`` when the closed-form
         solution lies outside the simplex (i.e. a pure equilibrium
@@ -156,9 +151,7 @@ class NashSolver:
         mixed = self.mixed_equilibrium_2x2(game)
         return pures + ((mixed,) if mixed is not None else ())
 
-    def deviation_gain(
-        self, game: NormalFormGame, profile: StrategyProfile
-    ) -> float:
+    def deviation_gain(self, game: NormalFormGame, profile: StrategyProfile) -> float:
         """Largest unilateral payoff improvement any single player
         can achieve by deviating from ``profile``. Zero when
         ``profile`` is a Nash equilibrium.
@@ -176,9 +169,7 @@ class NashSolver:
                 worst_gain = max(worst_gain, gain)
         return worst_gain
 
-    def _is_pure_ne(
-        self, game: NormalFormGame, profile: StrategyProfile
-    ) -> bool:
+    def _is_pure_ne(self, game: NormalFormGame, profile: StrategyProfile) -> bool:
         for idx, player in enumerate(game.players):
             best = game.best_responses(profile, player)
             if profile.choices[idx] not in best:
@@ -194,9 +185,7 @@ class StackelbergSolver:
             raise ValueError("eps must be non-negative")
         self._eps = eps
 
-    def solve(
-        self, game: NormalFormGame, *, leader: str
-    ) -> NashEquilibrium:
+    def solve(self, game: NormalFormGame, *, leader: str) -> NashEquilibrium:
         """Return the subgame-perfect equilibrium with ``leader``
         moving first. The follower best-responds to the leader's
         commitment; the leader picks the commitment that

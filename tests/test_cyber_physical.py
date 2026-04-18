@@ -122,9 +122,7 @@ class TestSphere:
 
     def test_intersects_aabb(self):
         s = Sphere(centre=Vec3(0.0, 0.0, 0.0), radius=0.5)
-        inside = AABB(
-            min_corner=Vec3(-1.0, -1.0, -1.0), max_corner=Vec3(1.0, 1.0, 1.0)
-        )
+        inside = AABB(min_corner=Vec3(-1.0, -1.0, -1.0), max_corner=Vec3(1.0, 1.0, 1.0))
         away = AABB(min_corner=Vec3(5.0, 5.0, 5.0), max_corner=Vec3(6.0, 6.0, 6.0))
         assert s.intersects_aabb(inside)
         assert not s.intersects_aabb(away)
@@ -183,9 +181,7 @@ class TestSimpleKinematicModel:
 
     def test_inverse_long_chain_raises(self):
         model = SimpleKinematicModel(
-            chain=JointChain(
-                base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0, 1.0)
-            ),
+            chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0, 1.0)),
         )
         with pytest.raises(NotImplementedError):
             model.inverse(Vec3(1.0, 0.0, 0.0))
@@ -196,9 +192,7 @@ class TestSimpleKinematicModel:
             min_corner=Vec3(0.8, -0.2, -0.2), max_corner=Vec3(1.2, 0.2, 0.2)
         )
         assert model.collides_with(Vec3(1.0, 0.0, 0.0), obstacles_aabb=(obstacle,))
-        assert not model.collides_with(
-            Vec3(2.0, 2.0, 2.0), obstacles_aabb=(obstacle,)
-        )
+        assert not model.collides_with(Vec3(2.0, 2.0, 2.0), obstacles_aabb=(obstacle,))
 
     def test_collision_margin_expands_obstacles(self):
         model = SimpleKinematicModel(
@@ -211,16 +205,12 @@ class TestSimpleKinematicModel:
         # Without margin the end-effector at (1.0, 0, 0) is >0.4 away;
         # with margin 0.5 the obstacle expands to [1.0, -0.6, -0.6]..
         # [2.1, 0.6, 0.6] and the point is inside.
-        assert model.collides_with(
-            Vec3(1.0, 0.0, 0.0), obstacles_aabb=(obstacle,)
-        )
+        assert model.collides_with(Vec3(1.0, 0.0, 0.0), obstacles_aabb=(obstacle,))
 
     def test_collides_with_sphere(self):
         model = self._two_link()
         sphere = Sphere(centre=Vec3(1.0, 0.0, 0.0), radius=0.1)
-        assert model.collides_with(
-            Vec3(1.05, 0.0, 0.0), obstacles_sphere=(sphere,)
-        )
+        assert model.collides_with(Vec3(1.05, 0.0, 0.0), obstacles_sphere=(sphere,))
 
     def test_extra_obstacles_applied(self):
         sphere = Sphere(centre=Vec3(1.0, 0.0, 0.0), radius=0.1)
@@ -233,9 +223,7 @@ class TestSimpleKinematicModel:
     def test_bad_branch(self):
         with pytest.raises(ValueError, match="branch"):
             SimpleKinematicModel(
-                chain=JointChain(
-                    base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0)
-                ),
+                chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0)),
                 branch="diagonal",
             )
 
@@ -290,9 +278,7 @@ class TestConstraints:
                 min_corner=Vec3(-2.0, -2.0, -2.0), max_corner=Vec3(2.0, 2.0, 2.0)
             ),
         )
-        action = PhysicalAction(
-            actuator_id="arm", target_position=Vec3(1.0, 0.0, 0.0)
-        )
+        action = PhysicalAction(actuator_id="arm", target_position=Vec3(1.0, 0.0, 0.0))
         assert c.evaluate(action, self._model()) is None
 
     def test_workspace_rejects_outside(self):
@@ -302,21 +288,15 @@ class TestConstraints:
                 min_corner=Vec3(-1.0, -1.0, -1.0), max_corner=Vec3(1.0, 1.0, 1.0)
             ),
         )
-        action = PhysicalAction(
-            actuator_id="arm", target_position=Vec3(5.0, 0.0, 0.0)
-        )
+        action = PhysicalAction(actuator_id="arm", target_position=Vec3(5.0, 0.0, 0.0))
         reason = c.evaluate(action, self._model())
         assert reason is not None
         assert "outside" in reason
 
     def test_spatial_constraint(self):
-        box = AABB(
-            min_corner=Vec3(0.9, -0.1, -0.1), max_corner=Vec3(1.1, 0.1, 0.1)
-        )
+        box = AABB(min_corner=Vec3(0.9, -0.1, -0.1), max_corner=Vec3(1.1, 0.1, 0.1))
         c = SpatialConstraint(name="table_leg", obstacles_aabb=(box,))
-        action = PhysicalAction(
-            actuator_id="arm", target_position=Vec3(1.0, 0.0, 0.0)
-        )
+        action = PhysicalAction(actuator_id="arm", target_position=Vec3(1.0, 0.0, 0.0))
         assert c.evaluate(action, self._model()) is not None
 
     def test_spatial_no_obstacle(self):
@@ -465,6 +445,7 @@ class TestGroundingHook:
                 ],
             )
 
+
 # --- Adapters (lazy-import guards) ---------------------------------
 
 
@@ -484,12 +465,8 @@ class TestRos2Adapter:
         # caller-supplied obstacles, not the node.
         node = object()
         adapter = Ros2Adapter(node=node)
-        box = AABB(
-            min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0)
-        )
-        assert adapter.collides_with(
-            Vec3(0.5, 0.5, 0.5), obstacles_aabb=(box,)
-        )
+        box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
+        assert adapter.collides_with(Vec3(0.5, 0.5, 0.5), obstacles_aabb=(box,))
 
     def test_forward_raises(self):
         adapter = Ros2Adapter(node=object())
@@ -519,9 +496,7 @@ class TestMuJoCoAdapter:
 
         adapter = MuJoCoAdapter(model=object(), data=_Data())
         sphere = Sphere(centre=Vec3(0.0, 0.0, 0.0), radius=1.0)
-        assert adapter.collides_with(
-            Vec3(0.5, 0.0, 0.0), obstacles_sphere=(sphere,)
-        )
+        assert adapter.collides_with(Vec3(0.5, 0.0, 0.0), obstacles_sphere=(sphere,))
 
 
 class TestCarlaAdapter:
@@ -537,15 +512,13 @@ class TestCarlaAdapter:
 
     def test_from_carla_bad_port(self):
         if importlib.util.find_spec("carla") is None:
-            pytest.skip("carla not installed — the port guard fires after the lazy import")
+            pytest.skip(
+                "carla not installed — the port guard fires after the lazy import"
+            )
         with pytest.raises(ValueError, match="port"):
             CarlaAdapter.from_carla(port=0)
 
     def test_collides_with_user_obstacles(self):
         adapter = CarlaAdapter(client=object(), world=object())
-        box = AABB(
-            min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0)
-        )
-        assert adapter.collides_with(
-            Vec3(0.5, 0.5, 0.5), obstacles_aabb=(box,)
-        )
+        box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
+        assert adapter.collides_with(Vec3(0.5, 0.5, 0.5), obstacles_aabb=(box,))

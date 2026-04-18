@@ -13,10 +13,10 @@ Extracted from nli.py to reduce module size.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable
-from typing import Any
 import os
+from collections.abc import Callable
 from functools import lru_cache
+from typing import Any
 
 import numpy as np
 

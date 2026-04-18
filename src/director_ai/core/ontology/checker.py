@@ -22,7 +22,7 @@ Two failure modes:
 from __future__ import annotations
 
 from collections.abc import Iterable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Literal
 
 from .graph import OntologyGraph

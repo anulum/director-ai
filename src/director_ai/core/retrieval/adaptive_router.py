@@ -28,10 +28,9 @@ Usage::
 
 from __future__ import annotations
 
-from typing import Any
-
 import re
 from dataclasses import dataclass
+from typing import Any
 
 __all__ = ["AdaptiveRouter", "RoutingDecision"]
 

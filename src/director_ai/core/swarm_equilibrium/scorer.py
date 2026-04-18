@@ -93,9 +93,7 @@ class SwarmEquilibriumScorer:
         )
         stability = max(0.0, 1.0 - deviation / self._payoff_scale)
         stackelberg = (
-            self._stackelberg.solve(game, leader=leader)
-            if leader is not None
-            else None
+            self._stackelberg.solve(game, leader=leader) if leader is not None else None
         )
         return StabilityReport(
             observed=observed,
@@ -106,9 +104,7 @@ class SwarmEquilibriumScorer:
             stackelberg_profile=stackelberg,
         )
 
-    def mean_nash_payoff(
-        self, game: NormalFormGame, player: str
-    ) -> float:
+    def mean_nash_payoff(self, game: NormalFormGame, player: str) -> float:
         """Average Nash-equilibrium payoff for ``player`` across
         every pure equilibrium. Returns ``nan`` when no pure
         equilibrium exists so callers branch on

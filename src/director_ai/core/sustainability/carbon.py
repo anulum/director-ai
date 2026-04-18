@@ -111,6 +111,4 @@ class CarbonIntensityTracker:
         with self._lock:
             if not self._readings:
                 return self._fallback
-            return sum(r.intensity for r in self._readings) / len(
-                self._readings
-            )
+            return sum(r.intensity for r in self._readings) / len(self._readings)

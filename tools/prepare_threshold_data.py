@@ -88,9 +88,7 @@ def iter_records(path: Path) -> Iterator[dict[str, Any]]:
         elif isinstance(doc, dict) and isinstance(doc.get("records"), list):
             yield from doc["records"]
         else:
-            raise ValueError(
-                f"{path}: expected a list or a dict with 'records' key"
-            )
+            raise ValueError(f"{path}: expected a list or a dict with 'records' key")
     elif suffix == ".csv":
         with path.open(encoding="utf-8", newline="") as f:
             yield from csv.DictReader(f)

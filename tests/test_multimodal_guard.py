@@ -32,7 +32,6 @@ from director_ai.core.multimodal_guard import (
     TorchCLIPImageEncoder,
 )
 
-
 # --- MultimodalClaim ------------------------------------------------
 
 

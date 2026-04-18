@@ -92,9 +92,7 @@ class ContinualEngine:
     def suite(self) -> AdversarialSuite:
         return self._suite
 
-    def evolve(
-        self, *, safe_corpus: Sequence[str]
-    ) -> EvolveReport:
+    def evolve(self, *, safe_corpus: Sequence[str]) -> EvolveReport:
         """Run one cycle. ``safe_corpus`` is a list of prompts the
         guardrail believes are safe — they supply the negative
         class for the perceptron."""
@@ -108,9 +106,7 @@ class ContinualEngine:
         events = self._store.window(last_n=self._window)
         patterns = self._miner.mine(events)
         if not patterns:
-            raise ValueError(
-                "miner returned no patterns — try a lower min_support"
-            )
+            raise ValueError("miner returned no patterns — try a lower min_support")
         cases = self._cases_from_patterns(patterns, events)
         with self._lock:
             version_number = self._next_version
@@ -146,7 +142,11 @@ class ContinualEngine:
         cluster prototype. Pattern-to-case is 1-to-1."""
         cases: list[AdversarialCase] = []
         for pattern in patterns:
-            prompt = pattern.prototype if pattern.kind == "edit_cluster" else pattern.signature
+            prompt = (
+                pattern.prototype
+                if pattern.kind == "edit_cluster"
+                else pattern.signature
+            )
             cases.append(
                 AdversarialCase(
                     prompt=prompt,

@@ -129,9 +129,7 @@ class TestMiddlewareHashIntegration:
         from director_ai.middleware.api_key import _hash_key
 
         monkeypatch.setenv("DIRECTOR_AUDIT_SALT", "explicit-salt")
-        expected = hmac.new(
-            b"explicit-salt", b"sk-xyz", "sha512"
-        ).hexdigest()[:16]
+        expected = hmac.new(b"explicit-salt", b"sk-xyz", "sha512").hexdigest()[:16]
         assert _hash_key("sk-xyz") == expected
 
 

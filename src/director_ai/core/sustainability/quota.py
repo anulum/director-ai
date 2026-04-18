@@ -21,7 +21,7 @@ import threading
 import time
 from collections import deque
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 class QuotaError(ValueError):
@@ -97,9 +97,7 @@ class ComputeQuota:
             used = self._used_on_day_locked(tenant_id, today)
         return max(0.0, self._daily_limit - used)
 
-    def consume(
-        self, *, tenant_id: str, amount: float
-    ) -> DailyUsage:
+    def consume(self, *, tenant_id: str, amount: float) -> DailyUsage:
         """Atomically debit ``amount`` from ``tenant_id``'s daily
         bucket. Raises when the draw would cross the daily limit."""
         if not tenant_id:
@@ -119,9 +117,7 @@ class ComputeQuota:
                 )
             bucket = self._usage.setdefault(tenant_id, deque())
             self._append_bucket(bucket, today, amount)
-            return DailyUsage(
-                tenant_id=tenant_id, day=today, consumed=amount
-            )
+            return DailyUsage(tenant_id=tenant_id, day=today, consumed=amount)
 
     def usage_history(self, tenant_id: str) -> tuple[DailyUsage, ...]:
         """Return this tenant's usage as an ordered tuple oldest

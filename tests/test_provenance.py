@@ -167,9 +167,7 @@ class TestProvenanceChain:
         chain = ProvenanceChain(secret=b"s" * 32)
         chain.append(merkle_root="root-1")
         chain.append(merkle_root="root-2")
-        chain._entries[1] = dataclasses.replace(
-            chain._entries[1], parent_hash="0" * 64
-        )
+        chain._entries[1] = dataclasses.replace(chain._entries[1], parent_hash="0" * 64)
         ok, idx = chain.verify()
         assert not ok and idx == 1
 
@@ -218,9 +216,7 @@ class TestSourceCredibility:
 
     def test_score_decays_with_age(self):
         clock = _FakeClock(start=0.0)
-        cred = SourceCredibility(
-            half_life_seconds=10.0, prior=0.5, clock=clock
-        )
+        cred = SourceCredibility(half_life_seconds=10.0, prior=0.5, clock=clock)
         cred.observe("s", 1.0)
         stored = cred.score("s")
         clock.now = 10.0  # one half-life later
@@ -230,9 +226,7 @@ class TestSourceCredibility:
 
     def test_half_life_returns_halfway_point(self):
         clock = _FakeClock(start=0.0)
-        cred = SourceCredibility(
-            half_life_seconds=5.0, prior=0.0, clock=clock
-        )
+        cred = SourceCredibility(half_life_seconds=5.0, prior=0.0, clock=clock)
         cred.observe("s", 1.0)
         before = cred.score("s")  # at t=0, full stored score
         clock.now = 5.0
@@ -254,7 +248,9 @@ class TestSourceCredibility:
         with pytest.raises(ValueError, match="score"):
             SourceScore(source_id="s", score=1.5, last_updated=0.0, observation_count=0)
         with pytest.raises(ValueError, match="observation_count"):
-            SourceScore(source_id="s", score=0.5, last_updated=0.0, observation_count=-1)
+            SourceScore(
+                source_id="s", score=0.5, last_updated=0.0, observation_count=-1
+            )
 
     def test_constructor_validation(self):
         with pytest.raises(ValueError, match="half_life_seconds"):

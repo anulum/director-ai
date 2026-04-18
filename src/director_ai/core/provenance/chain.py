@@ -100,8 +100,8 @@ class ProvenanceChain:
 
 
 def _digest_entry(entry: ProvenanceEntry) -> str:
-    payload = f"{entry.index}|{entry.merkle_root}|{entry.parent_hash}|{entry.tag}".encode(
-        "utf-8"
+    payload = (
+        f"{entry.index}|{entry.merkle_root}|{entry.parent_hash}|{entry.tag}".encode()
     )
     return hashlib.sha256(payload).hexdigest()
 

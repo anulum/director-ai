@@ -24,8 +24,8 @@ from director_ai.core.agent_identity import (
     AgentPassport,
     AuditChain,
     AuditEntry,
-    BehaviorObservation,
     BehavioralFingerprint,
+    BehaviorObservation,
     IdentityMonitor,
     PassportSigner,
     PassportVerificationError,
@@ -369,9 +369,7 @@ class TestAuditChain:
     def test_tamper_tag_detected(self):
         chain = self._chain()
         chain.append({"kind": "a"})
-        chain._entries[0] = dataclasses.replace(
-            chain._entries[0], tag="0" * 64
-        )
+        chain._entries[0] = dataclasses.replace(chain._entries[0], tag="0" * 64)
         ok, idx = chain.verify()
         assert not ok and idx == 0
 
@@ -379,9 +377,7 @@ class TestAuditChain:
         chain = self._chain()
         chain.append({"kind": "a"})
         chain.append({"kind": "b"})
-        chain._entries[1] = dataclasses.replace(
-            chain._entries[1], parent_hash="0" * 64
-        )
+        chain._entries[1] = dataclasses.replace(chain._entries[1], parent_hash="0" * 64)
         ok, idx = chain.verify()
         assert not ok and idx == 1
 

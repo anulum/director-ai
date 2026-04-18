@@ -96,9 +96,7 @@ class CounterfactualVerifier:
         unsafe_results: list[CounterfactualBranch] = []
         for label, intervention in branches:
             values = intervention.apply(self._graph, inputs)
-            outcome: BranchOutcome = (
-                "safe" if self._invariant(values) else "unsafe"
-            )
+            outcome: BranchOutcome = "safe" if self._invariant(values) else "unsafe"
             branch = CounterfactualBranch(
                 label=label,
                 intervention=intervention,

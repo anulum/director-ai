@@ -168,9 +168,7 @@ class ChromaBackend(VectorBackend):
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
 
-        where: dict[str, Any] | None = (
-            {"tenant_id": tenant_id} if tenant_id else None
-        )
+        where: dict[str, Any] | None = {"tenant_id": tenant_id} if tenant_id else None
         count = self._collection.count()
         if count == 0:
             return []

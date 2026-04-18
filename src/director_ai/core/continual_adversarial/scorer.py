@@ -104,9 +104,9 @@ class PerceptronAdversaryScorer:
             raise ValueError("adversarial set must be non-empty")
         if not safe:
             raise ValueError("safe set must be non-empty")
-        labelled: list[tuple[str, int]] = [
-            (case.prompt, 1) for case in adversarial
-        ] + [(prompt, 0) for prompt in safe]
+        labelled: list[tuple[str, int]] = [(case.prompt, 1) for case in adversarial] + [
+            (prompt, 0) for prompt in safe
+        ]
         weights = [0.0] * self._dim
         bias = 0.0
         for _ in range(self._epochs):
@@ -119,9 +119,7 @@ class PerceptronAdversaryScorer:
                 error = float(target) - prediction
                 for i, f in enumerate(features):
                     if f != 0.0:
-                        weights[i] += self._lr * (
-                            error * f - self._l2 * weights[i]
-                        )
+                        weights[i] += self._lr * (error * f - self._l2 * weights[i])
                 bias += self._lr * error
         correct = 0
         for prompt, target in labelled:

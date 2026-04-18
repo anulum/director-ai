@@ -56,7 +56,9 @@ class TrainedGuardrail:
         """Return the probability that ``text`` is unsafe, in
         ``[0, 1]``."""
         features = _hash_bag(text, self.dim)
-        margin = self.bias + sum(w * f for w, f in zip(self.weights, features, strict=True))
+        margin = self.bias + sum(
+            w * f for w, f in zip(self.weights, features, strict=True)
+        )
         return 1.0 / (1.0 + math.exp(-margin))
 
 
@@ -128,7 +130,9 @@ class PerceptronGuardrailTrainer:
             for prompt, target_int in labelled:
                 target_float = float(target_int)
                 features = _hash_bag(prompt, self._dim)
-                margin = bias + sum(w * f for w, f in zip(weights, features, strict=True))
+                margin = bias + sum(
+                    w * f for w, f in zip(weights, features, strict=True)
+                )
                 prediction = 1.0 / (1.0 + math.exp(-margin))
                 error = target_float - prediction
                 for i, f in enumerate(features):
@@ -139,7 +143,8 @@ class PerceptronGuardrailTrainer:
         for prompt, target_int in labelled:
             target_float = float(target_int)
             margin = bias + sum(
-                w * f for w, f in zip(weights, _hash_bag(prompt, self._dim), strict=True)
+                w * f
+                for w, f in zip(weights, _hash_bag(prompt, self._dim), strict=True)
             )
             pred = 1.0 if margin >= 0.0 else 0.0
             if pred == target_float:
@@ -303,7 +308,11 @@ def _extract_classifier_weights(model: Any) -> dict[str, Any]:
     """Pull the final classification head weights + bias out of a
     PEFT-wrapped model so the TrainedGuardrail snapshot can
     survive process boundaries."""
-    head = model.base_model.classifier if hasattr(model, "base_model") else model.classifier
+    head = (
+        model.base_model.classifier
+        if hasattr(model, "base_model")
+        else model.classifier
+    )
     weight_tensor = head.weight.detach().cpu()
     bias_tensor = head.bias.detach().cpu()
     # Flatten the binary head into a single weight vector (weights

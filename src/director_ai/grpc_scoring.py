@@ -69,10 +69,14 @@ class CoherenceScoringService(rpc.CoherenceScoringServicer):
         use_nli: bool | None = False,
     ) -> None:
         self._store = store if store is not None else GroundTruthStore()
-        self._scorer = scorer if scorer is not None else CoherenceScorer(
-            threshold=threshold,
-            ground_truth_store=self._store,
-            use_nli=use_nli,
+        self._scorer = (
+            scorer
+            if scorer is not None
+            else CoherenceScorer(
+                threshold=threshold,
+                ground_truth_store=self._store,
+                use_nli=use_nli,
+            )
         )
         self._threshold = threshold
 
@@ -87,9 +91,7 @@ class CoherenceScoringService(rpc.CoherenceScoringServicer):
             context.abort(grpc.StatusCode.INVALID_ARGUMENT, "claim is required")
 
         self._push_documents(list(request.documents))
-        threshold = (
-            request.threshold if request.threshold > 0 else self._threshold
-        )
+        threshold = request.threshold if request.threshold > 0 else self._threshold
 
         start = time.perf_counter()
         approved, score = self._scorer.review(
@@ -202,7 +204,8 @@ def serve(
     server.start()
     logger.info(
         "CoherenceScoring gRPC server listening on %s (port %d)",
-        listen_addr, port,
+        listen_addr,
+        port,
     )
     if stop_event is not None:
         threading.Thread(

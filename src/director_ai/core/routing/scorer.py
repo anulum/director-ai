@@ -123,9 +123,7 @@ class PromptRiskScorer:
         self._injection = injection_detector
         self._weights = weights
         self._max_safe_length = max_safe_length
-        self._rust_scanner = (
-            _build_rust_marker_scanner() if prefer_rust else None
-        )
+        self._rust_scanner = _build_rust_marker_scanner() if prefer_rust else None
 
     def score(self, prompt: str) -> RiskComponents:
         """Return a :class:`RiskComponents` breakdown for ``prompt``.

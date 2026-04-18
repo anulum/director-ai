@@ -69,10 +69,8 @@ class TestLaplace:
         on 5 000 samples."""
         m = LaplaceMechanism(epsilon=2.0, sensitivity=1.0, seed=7)
         samples = [m.noise() for _ in range(5_000)]
-        expected_var = 2 * (m.scale ** 2)
-        assert statistics.pvariance(samples) == pytest.approx(
-            expected_var, rel=0.2
-        )
+        expected_var = 2 * (m.scale**2)
+        assert statistics.pvariance(samples) == pytest.approx(expected_var, rel=0.2)
 
 
 # --- GaussianMechanism --------------------------------------------
@@ -80,16 +78,12 @@ class TestLaplace:
 
 class TestGaussian:
     def test_sigma_formula(self):
-        m = GaussianMechanism(
-            epsilon=0.5, delta=1e-5, sensitivity=1.0, seed=0
-        )
+        m = GaussianMechanism(epsilon=0.5, delta=1e-5, sensitivity=1.0, seed=0)
         expected = math.sqrt(2.0 * math.log(1.25 / 1e-5)) / 0.5
         assert m.sigma == pytest.approx(expected)
 
     def test_zero_sensitivity_zero_sigma(self):
-        m = GaussianMechanism(
-            epsilon=0.5, delta=1e-5, sensitivity=0.0, seed=0
-        )
+        m = GaussianMechanism(epsilon=0.5, delta=1e-5, sensitivity=0.0, seed=0)
         assert m.sigma == 0.0
         assert m.noise() == 0.0
 
@@ -120,13 +114,9 @@ class TestAccountant:
 
     def test_delta_ceiling(self):
         acc = PrivacyAccountant(max_epsilon=10.0, max_delta=1e-5)
-        acc.charge(
-            AccountantEntry(label="q1", epsilon=0.1, delta=5e-6)
-        )
+        acc.charge(AccountantEntry(label="q1", epsilon=0.1, delta=5e-6))
         with pytest.raises(ValueError, match="delta"):
-            acc.charge(
-                AccountantEntry(label="q2", epsilon=0.1, delta=1e-5)
-            )
+            acc.charge(AccountantEntry(label="q2", epsilon=0.1, delta=1e-5))
 
     def test_negative_entries_rejected(self):
         acc = PrivacyAccountant(max_epsilon=10.0)
@@ -248,7 +238,7 @@ class TestSecretSharing:
     def test_split_many(self):
         shares = split_many([1, 2, 3], party_count=3, seed=0)
         assert len(shares) == 3
-        for share, expected in zip(shares, [1, 2, 3]):
+        for share, expected in zip(shares, [1, 2, 3], strict=False):
             assert reconstruct(share) == expected
 
     def test_split_many_empty(self):
@@ -267,9 +257,7 @@ class TestSecretSharing:
 class TestFederatedCounter:
     def test_submits_and_releases(self):
         acc = PrivacyAccountant(max_epsilon=5.0)
-        counter = FederatedCounter(
-            epsilon=0.5, sensitivity=1.0, accountant=acc, seed=0
-        )
+        counter = FederatedCounter(epsilon=0.5, sensitivity=1.0, accountant=acc, seed=0)
         counter.submit(tenant_id="t1", count=3)
         counter.submit(tenant_id="t2", count=7)
         release = counter.release()
@@ -340,9 +328,7 @@ class TestFederatedHistogram:
         assert acc.cumulative_epsilon() == pytest.approx(0.9)
 
     def test_unknown_category_rejected(self):
-        hist = FederatedHistogram(
-            categories=("a", "b"), epsilon=0.5, seed=0
-        )
+        hist = FederatedHistogram(categories=("a", "b"), epsilon=0.5, seed=0)
         with pytest.raises(KeyError, match="ghost"):
             hist.submit(tenant_id="t", category="ghost")
 

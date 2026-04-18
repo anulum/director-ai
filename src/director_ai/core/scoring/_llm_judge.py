@@ -363,8 +363,7 @@ class LLMJudge:
                     )
                     return (
                         first_block.text
-                        if first_block is not None
-                        and hasattr(first_block, "text")
+                        if first_block is not None and hasattr(first_block, "text")
                         else ""
                     )
                 return None

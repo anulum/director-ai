@@ -174,9 +174,7 @@ def get_field_groups() -> dict[str, list[dict]]:
             name=f.name,
             group=group,
             field_type=f.type if isinstance(f.type, type) else str,
-            default=(
-                f.default if f.default is not dataclasses.MISSING else None
-            ),
+            default=(f.default if f.default is not dataclasses.MISSING else None),
             widget=widget,
             description="",
         )

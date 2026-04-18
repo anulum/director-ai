@@ -106,7 +106,9 @@ class TestUnary:
         assert excinfo.value.code == grpc.StatusCode.INVALID_ARGUMENT
 
     def test_threshold_override_flows_through(self):
-        svc = CoherenceScoringService(scorer=FakeScorer(score=0.4, approved=True), threshold=0.3)
+        svc = CoherenceScoringService(
+            scorer=FakeScorer(score=0.4, approved=True), threshold=0.3
+        )
         req = pb.ScoreClaimRequest(claim="x", threshold=0.7)
         resp = svc.ScoreClaim(req, _ServicerContext())
         assert resp.verdict.hard_limit == pytest.approx(0.7)
@@ -186,8 +188,12 @@ class TestStreaming:
         doc = "France."
         reqs = [
             pb.ScoreTokenRequest(accumulated_text="a", next_token="b", documents=[doc]),
-            pb.ScoreTokenRequest(accumulated_text="ab", next_token="c", documents=[doc]),
-            pb.ScoreTokenRequest(accumulated_text="abc", next_token="d", documents=[doc]),
+            pb.ScoreTokenRequest(
+                accumulated_text="ab", next_token="c", documents=[doc]
+            ),
+            pb.ScoreTokenRequest(
+                accumulated_text="abc", next_token="d", documents=[doc]
+            ),
         ]
         list(svc.ScoreStream(iter(reqs), _ServicerContext()))
         assert store_pushes.count(doc) == 1

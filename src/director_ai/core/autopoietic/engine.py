@@ -23,7 +23,7 @@ restores the named historical entry.
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable, Sequence
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -80,8 +80,7 @@ class ModuleRegistry:
         with self._lock:
             if self._active is not None and version <= self._active.version:
                 raise ValueError(
-                    f"new version {version} must exceed "
-                    f"current {self._active.version}"
+                    f"new version {version} must exceed current {self._active.version}"
                 )
             if self._active is not None:
                 self._history.append(self._active)
@@ -244,17 +243,14 @@ class AutopoieticEngine:
             reports.append(self.cycle(sampler, seed=seed + i))
         return tuple(reports)
 
-    def _is_improvement(
-        self, candidate: SuiteResult, incumbent: SuiteResult
-    ) -> bool:
+    def _is_improvement(self, candidate: SuiteResult, incumbent: SuiteResult) -> bool:
         if self._metric == "mae":
             return (
                 incumbent.mean_absolute_error - candidate.mean_absolute_error
                 >= self._promotion_margin
             )
         return (
-            candidate.spearman_rank_correlation
-            - incumbent.spearman_rank_correlation
+            candidate.spearman_rank_correlation - incumbent.spearman_rank_correlation
             >= self._promotion_margin
         )
 

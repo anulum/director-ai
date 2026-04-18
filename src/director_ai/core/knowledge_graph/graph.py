@@ -84,7 +84,9 @@ class SkillEdge:
         if self.source == self.target:
             raise ValueError(f"SkillEdge self-loop on {self.source!r}")
         if self.weight < 0:
-            raise ValueError(f"SkillEdge.weight must be non-negative; got {self.weight!r}")
+            raise ValueError(
+                f"SkillEdge.weight must be non-negative; got {self.weight!r}"
+            )
 
 
 @dataclass

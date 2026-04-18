@@ -31,7 +31,7 @@ from director_ai.core.autopoietic import (
     ModuleBuilder,
     ModuleRegistry,
     ModuleTestSuite,
-    SandboxTimeout,
+    SandboxTimeoutError,
     ScoredSample,
     SuiteResult,
 )
@@ -131,17 +131,13 @@ class TestMutation:
         assert m.apply(bp).length_saturation == 1
 
     def test_bump_length_wrong_kind(self):
-        bp = ModuleBlueprint(
-            kind="marker_count", markers=("x",), expected_markers=1
-        )
+        bp = ModuleBlueprint(kind="marker_count", markers=("x",), expected_markers=1)
         m = ArchitectureMutation(kind="bump_length", amount=1)
         with pytest.raises(ValueError, match="bump_length"):
             m.apply(bp)
 
     def test_rescale_markers(self):
-        bp = ModuleBlueprint(
-            kind="marker_count", markers=("x",), expected_markers=3
-        )
+        bp = ModuleBlueprint(kind="marker_count", markers=("x",), expected_markers=3)
         m = ArchitectureMutation(kind="rescale_markers", amount=2)
         assert m.apply(bp).expected_markers == 5
 
@@ -189,9 +185,9 @@ class TestMutation:
             components=(EnsembleComponent(weight=1.0, blueprint=length),),
         )
         with pytest.raises(ValueError, match="out of range"):
-            ArchitectureMutation(
-                kind="rebalance_ensemble", index=5, delta=0.1
-            ).apply(bp)
+            ArchitectureMutation(kind="rebalance_ensemble", index=5, delta=0.1).apply(
+                bp
+            )
 
 
 # --- ModuleBuilder -------------------------------------------------
@@ -273,7 +269,7 @@ class TestSandbox:
             time.sleep(0.3)
             return 0.0
 
-        with pytest.raises(SandboxTimeout):
+        with pytest.raises(SandboxTimeoutError):
             sandbox.run(slow, "x")
 
     def test_negative_timeout_rejected(self):
@@ -356,10 +352,7 @@ class TestSpearman:
 
 
 def _toy_corpus() -> list[ScoredSample]:
-    return [
-        ScoredSample(prompt=f"length {i}", label=i / 10)
-        for i in range(1, 11)
-    ]
+    return [ScoredSample(prompt=f"length {i}", label=i / 10) for i in range(1, 11)]
 
 
 class TestRegistry:
@@ -500,15 +493,11 @@ class TestEngine:
 
     def test_metric_validation(self):
         with pytest.raises(ValueError, match="metric"):
-            AutopoieticEngine(
-                test_suite=self._suite(), metric=cast(Any, "bogus")
-            )
+            AutopoieticEngine(test_suite=self._suite(), metric=cast(Any, "bogus"))
 
     def test_negative_margin_rejected(self):
         with pytest.raises(ValueError, match="promotion_margin"):
-            AutopoieticEngine(
-                test_suite=self._suite(), promotion_margin=-0.1
-            )
+            AutopoieticEngine(test_suite=self._suite(), promotion_margin=-0.1)
 
 
 class TestBuildErrorExposed:

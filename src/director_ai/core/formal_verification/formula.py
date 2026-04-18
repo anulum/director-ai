@@ -96,4 +96,6 @@ def variables(formula: Formula) -> frozenset[str]:
         return variables(formula.antecedent) | variables(formula.consequent)
     if isinstance(formula, Iff):
         return variables(formula.left) | variables(formula.right)
-    raise TypeError(f"unknown formula type {type(formula).__name__}")  # pragma: no cover
+    raise TypeError(
+        f"unknown formula type {type(formula).__name__}"
+    )  # pragma: no cover

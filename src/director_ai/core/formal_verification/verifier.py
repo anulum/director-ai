@@ -136,9 +136,7 @@ class Z3Backend:
         try:
             import z3
         except ImportError as exc:  # pragma: no cover — covered by from_z3
-            raise ImportError(
-                "Z3Backend.solve requires the z3-solver package"
-            ) from exc
+            raise ImportError("Z3Backend.solve requires the z3-solver package") from exc
         self._solver.reset()
         self._solver.add(_formula_to_z3(formula, z3))
         result = self._solver.check()
@@ -177,9 +175,7 @@ def _formula_to_z3(formula: Formula, z3: Any) -> Any:
             _formula_to_z3(formula.consequent, z3),
         )
     if isinstance(formula, Iff):
-        return _formula_to_z3(formula.left, z3) == _formula_to_z3(
-            formula.right, z3
-        )
+        return _formula_to_z3(formula.left, z3) == _formula_to_z3(formula.right, z3)
     raise TypeError(
         f"unknown formula node {type(formula).__name__}"
     )  # pragma: no cover
@@ -236,9 +232,7 @@ def _formula_to_lean(formula: Formula) -> str:
             return f"({render(f.antecedent)} → {render(f.consequent)})"
         if isinstance(f, Iff):
             return f"({render(f.left)} ↔ {render(f.right)})"
-        raise TypeError(
-            f"unknown formula node {type(f).__name__}"
-        )  # pragma: no cover
+        raise TypeError(f"unknown formula node {type(f).__name__}")  # pragma: no cover
 
     body = render(formula)
     return f"def target : Prop := {body}"

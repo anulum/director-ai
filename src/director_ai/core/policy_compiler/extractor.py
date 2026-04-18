@@ -126,9 +126,9 @@ class RegexRuleExtractor:
         return _dedup(rules)
 
     def _hash(self, kind: str, value: str) -> str:
-        return hashlib.sha256(
-            f"{kind}|{value}|{self._source}".encode()
-        ).hexdigest()[:16]
+        return hashlib.sha256(f"{kind}|{value}|{self._source}".encode()).hexdigest()[
+            :16
+        ]
 
 
 def _dedup(rules: Iterable[CompiledRule]) -> list[CompiledRule]:

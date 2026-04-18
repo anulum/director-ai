@@ -108,10 +108,7 @@ class RandomWalkSpectrum:
             row = [0.0] * n
             out_w = out_weights[i]
             for j, dst in enumerate(nodes):
-                if i == j:
-                    stay = self._laziness
-                else:
-                    stay = 0.0
+                stay = self._laziness if i == j else 0.0
                 if out_w == 0:
                     follow = (1.0 - self._laziness) * uniform
                 else:
@@ -133,7 +130,9 @@ class RandomWalkSpectrum:
                 for i in range(n):
                     acc += distribution[i] * transition[i][j]
                 new_distribution[j] = acc
-            delta = sum(abs(a - b) for a, b in zip(distribution, new_distribution))
+            delta = sum(
+                abs(a - b) for a, b in zip(distribution, new_distribution, strict=False)
+            )
             if previous_delta > 0:
                 spectral_gap = max(0.0, 1.0 - delta / previous_delta)
             previous_delta = delta
@@ -224,10 +223,7 @@ class CommunityDetector:
                     label for label, count in tally.items() if count == max_count
                 ]
                 current = labels[node]
-                if current in winners:
-                    new_label = current
-                else:
-                    new_label = min(winners)
+                new_label = current if current in winners else min(winners)
                 if new_label != current:
                     labels[node] = new_label
                     changed = True

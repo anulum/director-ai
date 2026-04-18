@@ -81,9 +81,7 @@ class SustainabilityBudget:
         coverage: float = 0.9,
     ) -> None:
         if carbon_throttle_intensity < 0:
-            raise ValueError(
-                "carbon_throttle_intensity must be non-negative"
-            )
+            raise ValueError("carbon_throttle_intensity must be non-negative")
         if not 0.0 < coverage < 1.0:
             raise ValueError("coverage must be in (0, 1)")
         self._quota = quota
@@ -114,10 +112,7 @@ class SustainabilityBudget:
                 remaining_today=remaining,
                 forecast_upper=forecast.upper,
                 carbon_intensity=carbon_now,
-                detail=(
-                    f"amount {amount:.2f} > remaining_today "
-                    f"{remaining:.2f}"
-                ),
+                detail=(f"amount {amount:.2f} > remaining_today {remaining:.2f}"),
             )
         projected_today = self._projected_today_usage(tenant_id, amount)
         if projected_today > forecast.upper > 0:
@@ -132,10 +127,7 @@ class SustainabilityBudget:
                     f"forecast upper {forecast.upper:.2f}"
                 ),
             )
-        if (
-            carbon_now > self._carbon_threshold
-            and not allow_during_high_carbon
-        ):
+        if carbon_now > self._carbon_threshold and not allow_during_high_carbon:
             return BudgetVerdict(
                 allowed=False,
                 reason="high_carbon",
@@ -143,8 +135,7 @@ class SustainabilityBudget:
                 forecast_upper=forecast.upper,
                 carbon_intensity=carbon_now,
                 detail=(
-                    f"carbon {carbon_now:.1f} > threshold "
-                    f"{self._carbon_threshold:.1f}"
+                    f"carbon {carbon_now:.1f} > threshold {self._carbon_threshold:.1f}"
                 ),
             )
         try:
@@ -166,12 +157,8 @@ class SustainabilityBudget:
             carbon_intensity=carbon_now,
         )
 
-    def _projected_today_usage(
-        self, tenant_id: str, amount: float
-    ) -> float:
-        used_today = self._quota.daily_limit - self._quota.remaining_today(
-            tenant_id
-        )
+    def _projected_today_usage(self, tenant_id: str, amount: float) -> float:
+        used_today = self._quota.daily_limit - self._quota.remaining_today(tenant_id)
         return used_today + amount
 
     def _resolve_forecast(self) -> PredictionInterval:
