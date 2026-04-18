@@ -29,12 +29,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Rust toolchain for the backfire-kernel build. Pinned to a
-# specific version so the container is reproducible across rebuilds.
+# specific version so the container is reproducible across
+# rebuilds. 1.88.0 is the minimum floor: ``backfire-observers``
+# uses ``u32::is_multiple_of`` (stabilised in 1.87) and
+# ``backfire-ffi/safety_hooks.rs`` uses ``usize::is_multiple_of``.
 ENV RUSTUP_HOME=/opt/rustup \
     CARGO_HOME=/opt/cargo \
     PATH=/opt/cargo/bin:$PATH
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
-      | sh -s -- -y --default-toolchain 1.82.0 --profile minimal
+      | sh -s -- -y --default-toolchain 1.88.0 --profile minimal
 
 # Python deps — identical hash-pinned set used by the distillation
 # image (torch, transformers, datasets, scikit-learn, accelerate,
