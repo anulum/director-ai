@@ -194,3 +194,9 @@ MODELS/
 nohup.out
 # Auto-generated benchmark / analysis reports — never committed
 /reports/
+
+# Gemini Internal
+docs/internal/gemini/
+
+# Multi-agent coordination metadata (local audit snapshot, never committed)
+.agent_metadata.json
