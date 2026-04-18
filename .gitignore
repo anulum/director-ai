@@ -183,6 +183,7 @@ ckpts/
 !/training/distil_factcg.py
 !/training/distil_v5_cloud.py
 !/training/Dockerfile.distil
+!/training/Dockerfile.benchmarks
 !/training/launch_cloud.sh
 !/training/requirements-distil.in
 !/training/requirements-distil.txt

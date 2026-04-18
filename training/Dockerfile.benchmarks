@@ -1,0 +1,80 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI — Benchmark container for Vertex AI custom jobs
+# Built remotely via Cloud Build, never locally.
+#
+# The image ships:
+#   * director-ai source (installed editable from the build context)
+#   * Rust accelerator (maturin develop against
+#     backfire-kernel/crates/backfire-ffi)
+#   * hash-pinned deps from training/requirements-distil.txt
+#   * google-cloud-storage for GCS result export
+#
+# Entrypoint runs ``python -m benchmarks.orchestrator`` with
+# ``--runner vertex`` so the captured environment records the
+# cloud execution context; results land under /workspace/output
+# and the wrapper script uploads them to gs://<bucket>/<prefix>/.
+
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime@sha256:77f17f843507062875ce8be2a6f76aa6aa3df7f9ef1e31d9d7432f4b0f563dee
+
+WORKDIR /workspace
+
+# System deps for Rust build + git commit probe inside the
+# container (the orchestrator reads ``git rev-parse HEAD``).
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      git \
+      curl \
+      build-essential \
+      pkg-config \
+      libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Rust toolchain for the backfire-kernel build. Pinned to a
+# specific version so the container is reproducible across rebuilds.
+ENV RUSTUP_HOME=/opt/rustup \
+    CARGO_HOME=/opt/cargo \
+    PATH=/opt/cargo/bin:$PATH
+RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+      | sh -s -- -y --default-toolchain 1.82.0 --profile minimal
+
+# Python deps — identical hash-pinned set used by the distillation
+# image (torch, transformers, datasets, scikit-learn, accelerate,
+# huggingface-hub, google-cloud-storage, sentencepiece).
+# maturin is added explicitly for the Rust wheel build.
+COPY training/requirements-distil.txt training/requirements-distil.txt
+RUN pip install --no-cache-dir --require-hashes \
+      -r training/requirements-distil.txt \
+    && pip install --no-cache-dir maturin==1.12.6 pytest==9.0.2 \
+         hypothesis==6.151.10 pytest-cov==7.1.0
+
+# Copy source. Kept as late layers to maximise cache hits on the
+# pip layer when only source changes between image builds.
+COPY pyproject.toml ./
+COPY src/ src/
+COPY backfire-kernel/ backfire-kernel/
+COPY benchmarks/ benchmarks/
+COPY tests/ tests/
+COPY formal/ formal/
+COPY tools/ tools/
+COPY schemas/ schemas/
+
+# Build the Rust accelerator in-place so the orchestrator's Rust
+# parity and geometry cases exercise the bundled kernel instead
+# of the pure-Python fallback.
+RUN cd backfire-kernel/crates/backfire-ffi \
+    && maturin build --release --out /tmp/wheels \
+    && pip install --no-cache-dir --force-reinstall /tmp/wheels/*.whl \
+    && rm -rf /tmp/wheels
+
+# Install director-ai itself with --no-deps (dependencies already
+# satisfied above via the hash-pinned requirements file).
+RUN pip install --no-cache-dir --no-deps -e .
+
+# Orchestrator output directory — the wrapper script exports it
+# to GCS after the job returns.
+RUN mkdir -p /workspace/output
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    DIRECTOR_RUN_ENV=vertex
+
+ENTRYPOINT ["bash", "benchmarks/run_in_container.sh"]

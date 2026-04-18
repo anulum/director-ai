@@ -1,0 +1,67 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI — Cloud Build config for the benchmark container
+#
+# Invoked by benchmarks/run_vertex_benchmarks.sh:
+#   gcloud builds submit --config=benchmarks/cloudbuild.yaml \
+#     --substitutions=_IMAGE_TAG=$(git rev-parse --short HEAD) \
+#     .
+#
+# Produces a multi-tagged image under the gotm-director-ai
+# project's Artifact Registry (europe-west4). The tag is the
+# short git SHA by default; --substitutions can override.
+
+substitutions:
+  _REGION: europe-west4
+  _REPO: director-ai-training
+  _IMAGE_NAME: director-ai-benchmarks
+  _IMAGE_TAG: latest
+
+options:
+  # Cloud Build machine — the default n1-standard-1 is too small
+  # for the Rust accelerator + PyTorch wheel install. E2_HIGHCPU_8
+  # keeps the build under 15 min.
+  machineType: E2_HIGHCPU_8
+  # 60 minutes ceiling; the full build (incl. cargo + pip resolve)
+  # finishes in ~18 minutes on the HIGHCPU_8 pool when cache is cold.
+  diskSizeGb: 100
+  logging: CLOUD_LOGGING_ONLY
+
+timeout: 3600s
+
+steps:
+  # Pull the previous image (if any) to warm the layer cache and
+  # shave several minutes off cold builds.
+  - name: gcr.io/cloud-builders/docker
+    id: pull-cache
+    entrypoint: bash
+    args:
+      - -c
+      - |
+        docker pull ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:cache \
+          || echo "no cache image yet — cold build"
+
+  - name: gcr.io/cloud-builders/docker
+    id: build
+    args:
+      - build
+      - --file=training/Dockerfile.benchmarks
+      - --tag=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${_IMAGE_TAG}
+      - --tag=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:cache
+      - --cache-from=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:cache
+      - .
+
+  # Push cache tag explicitly — the ``images`` field at the
+  # bottom only pushes the SHA-tagged image; the :cache tag is
+  # separate so a cold build next time still benefits from the
+  # warm layers of this run.
+  - name: gcr.io/cloud-builders/docker
+    id: push-cache
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:cache
+
+# Cloud Build pushes ``images`` automatically after the last step
+# succeeds; this keeps one source of truth for the tagged image
+# instead of a separate docker-push step.
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPO}/${_IMAGE_NAME}:${_IMAGE_TAG}
