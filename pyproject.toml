@@ -284,6 +284,11 @@ ignore = ["E501"]
 # gRPC method names come from protoc as PascalCase; the
 # CoherenceScoring servicer overrides them exactly.
 "src/director_ai/grpc_scoring.py" = ["N802"]
+# Optional-dep test modules: ``pytest.importorskip`` has to run
+# before the real imports so the whole suite does not fail when
+# the [grpc] / protobuf extras are not installed on a CI runner.
+"tests/test_grpc_scoring.py" = ["E402"]
+"tests/test_proto_roundtrip.py" = ["E402"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

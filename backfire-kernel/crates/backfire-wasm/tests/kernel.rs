@@ -45,9 +45,7 @@ fn is_halted(session: &JsValue) -> bool {
 }
 
 fn halt_reason(session: &JsValue) -> String {
-    get(session, "halt_reason")
-        .as_string()
-        .unwrap_or_default()
+    get(session, "halt_reason").as_string().unwrap_or_default()
 }
 
 #[wasm_bindgen_test]

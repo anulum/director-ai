@@ -128,9 +128,7 @@ mod tests {
     #[test]
     fn multi_category_hits() {
         let scanner = PiiScanner::new(&builtin_patterns()).unwrap();
-        let results = scanner.scan(
-            "card 4111-1111-1111-1111 ssn 123-45-6789 email x@y.com",
-        );
+        let results = scanner.scan("card 4111-1111-1111-1111 ssn 123-45-6789 email x@y.com");
         let cats: std::collections::BTreeSet<_> =
             results.iter().map(|m| m.category.as_str()).collect();
         assert!(cats.contains("email"));

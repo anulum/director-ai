@@ -19,8 +19,15 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from typing import NamedTuple
 
-import grpc
 import pytest
+
+# ``grpc`` and the generated protobuf stubs are shipped under the
+# ``[grpc]`` extra; skip the entire module when the CI matrix did
+# not install them so ``pytest --collect-only`` does not fail the
+# whole suite on ImportError.
+grpc = pytest.importorskip("grpc")
+pb = pytest.importorskip("director_ai.proto.director.v1.director_pb2")
+rpc = pytest.importorskip("director_ai.proto.director.v1.director_pb2_grpc")
 
 from director_ai.grpc_scoring import (
     CoherenceScoringService,
@@ -28,8 +35,6 @@ from director_ai.grpc_scoring import (
     _score_to_verdict,
     serve,
 )
-from director_ai.proto.director.v1 import director_pb2 as pb
-from director_ai.proto.director.v1 import director_pb2_grpc as rpc
 
 
 class FakeScore(NamedTuple):

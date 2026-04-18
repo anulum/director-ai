@@ -15,13 +15,17 @@ from __future__ import annotations
 
 import pytest
 
+# ``google.protobuf`` ships under the ``[grpc]`` extra; skip when
+# the CI matrix did not install it.
+pytest.importorskip("google.protobuf")
+pb = pytest.importorskip("director_ai.proto.director.v1.director_pb2")
+
 from director_ai.proto.converters import (
     halt_reason_from_string,
     halt_reason_to_string,
     verdict_from_proto,
     verdict_to_proto,
 )
-from director_ai.proto.director.v1 import director_pb2 as pb
 
 
 class TestCoherenceVerdictRoundTrip:
