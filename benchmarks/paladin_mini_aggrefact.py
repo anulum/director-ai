@@ -8,7 +8,7 @@
 """Run Qualifire/context-grounding-paladin-mini as zero-shot judge on AggreFact 29 K.
 
 Paladin-mini is a Phi-3 3.8 B grounding-tuned classifier that the Qualifire team
-claims hits 79.31 % BA on AggreFact (per the 2026-04-11 Gemini Deep Research
+claims hits 79.31 % BA on AggreFact (per the 2026-04-11 deep-research
 audit). We reproduce it on the exact 29 320-sample lytang/LLM-AggreFact split
 we use for everything else, with the same uniform prompt our other LLM-as-judge
 benchmarks use, so the result is directly comparable.

@@ -505,7 +505,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `self.W_FACT`/`self.W_LOGIC` instead of hardcoded 0.4/0.6.
 - **43 documentation fixes** across docs-site (13 CRITICAL, 17 HIGH,
   12 MEDIUM, 3 LOW): fabricated API signatures, wrong defaults, stale
-  claims, non-existent fields. Verified by independent Gemini audit.
+  claims, non-existent fields. Verified by independent deep-research audit.
 - **Notebook fixes** (01, 03, 11, 12): NameError, nonexistent methods,
   wrong parameter defaults, stale profile tables.
 - ROADMAP: WASM Edge Runtime Done→Deferred, v2.8.0 ordering,
