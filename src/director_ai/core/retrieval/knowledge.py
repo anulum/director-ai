@@ -38,6 +38,7 @@ class GroundTruthStore:
     def __init__(self):
         self.logger = logging.getLogger("DirectorAI.GroundTruthStore")
         self.facts = {}
+        self._revision = 0
 
     @classmethod
     def with_demo_facts(cls) -> GroundTruthStore:
@@ -61,10 +62,23 @@ class GroundTruthStore:
         _ = metadata  # intentional no-op for LSP compat
         full_key = f"{tenant_id}:{key}" if tenant_id else key
         self.facts[full_key] = value
+        self._bump_revision()
 
     def add_fact(self, key: str, value: str, tenant_id: str = "") -> None:
         """Alias for add() — used by some callers."""
         self.add(key, value, tenant_id=tenant_id)
+
+    @property
+    def revision(self) -> int:
+        """Monotonic store revision used to scope score-cache entries."""
+        return self._revision
+
+    def _bump_revision(self) -> None:
+        self._revision += 1
+
+    def cache_scope(self, tenant_id: str = "") -> str:
+        """Return a stable cache scope for facts visible to a tenant."""
+        return f"{type(self).__name__}:tenant={tenant_id}:revision={self._revision}"
 
     def retrieve_context_with_chunks(
         self,

@@ -131,6 +131,20 @@ def select_torch_device(preferred: str | None = None) -> str:
     return "cpu"
 
 
+def release_torch_cuda() -> None:
+    """Release cached CUDA memory after short-lived model workloads."""
+    try:
+        import gc
+
+        gc.collect()
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+    except Exception:  # pragma: no cover — best-effort cleanup
+        return
+
+
 def _cuda_usable_for(device: str) -> bool:
     try:
         import torch

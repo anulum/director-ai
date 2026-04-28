@@ -168,7 +168,7 @@ class TestBatchSingleParity:
                 return [0.1, 0.5]
 
         class FakeStore:
-            def retrieve_context(self, prompt, tenant_id=""):
+            def retrieve_context(self, prompt, top_k=3, tenant_id=""):
                 return f"context for {prompt}"
 
         class FakeMetaClassifier:
@@ -243,6 +243,41 @@ class TestBatchSingleParity:
         assert captured[1]["threshold_override"] == pytest.approx(0.1)
         assert results[0][1].detected_task_type == "qa"
         assert results[1][1].detected_task_type == "summarization"
+
+    def test_parity_sensitive_features_use_sequential_review(self, monkeypatch):
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        scorer._adaptive_router = object()
+        items = [("Prompt A", "Response A"), ("Prompt B", "Response B")]
+        calls = []
+
+        class FakeNLI:
+            model_available = True
+
+            def score_batch(self, pairs):
+                raise AssertionError("coalesced path should not run")
+
+        def fake_review(prompt, action, tenant_id=""):
+            calls.append((prompt, action, tenant_id))
+            score = CoherenceScore(
+                score=0.9,
+                approved=True,
+                h_logical=0.1,
+                h_factual=0.1,
+                detected_task_type="default",
+            )
+            return True, score
+
+        scorer._nli = FakeNLI()
+        monkeypatch.setattr(scorer, "review", fake_review)
+
+        results = scorer.review_batch(items, tenant_id="tenant-a")
+
+        assert calls == [
+            ("Prompt A", "Response A", "tenant-a"),
+            ("Prompt B", "Response B", "tenant-a"),
+        ]
+        assert len(results) == 2
+        assert all(approved for approved, _score in results)
 
 
 # — BatchProcessor coalesced delegation —

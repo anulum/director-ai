@@ -18,9 +18,12 @@ from director_ai.core.finetune_benchmark import (
     _BASELINE_ACCURACY,
     _DEPLOY_THRESHOLD_PP,
     _REJECT_THRESHOLD_PP,
+    ModelBenchmarkReport,
+    ModelBenchmarkResult,
     RegressionReport,
     _load_benchmark_jsonl,
     benchmark_finetuned_model,
+    benchmark_model_candidates,
 )
 
 
@@ -214,9 +217,62 @@ class TestThresholdConstants:
         assert pytest.approx(0.758, abs=0.001) == _BASELINE_ACCURACY
 
 
+class TestModelBenchmarkSweep:
+    @patch("director_ai.core.finetune_benchmark._evaluate_model")
+    def test_sweep_selects_best_non_rejected_model(self, mock_eval, tmp_path):
+        general = _make_benchmark_file(tmp_path, "general.jsonl")
+        mock_eval.side_effect = [
+            {"balanced_accuracy": 0.74, "f1": 0.72},
+            {"balanced_accuracy": 0.80, "f1": 0.78},
+        ]
+        report = benchmark_model_candidates(
+            {
+                "factcg-deberta-v3-large": tmp_path / "factcg-model",
+                "roberta-large-mnli": tmp_path / "roberta-model",
+            },
+            general_path=general,
+            allow_experimental=True,
+        )
+        assert isinstance(report, ModelBenchmarkReport)
+        assert report.best_model_alias == "roberta-large-mnli"
+        assert len(report.results) == 2
+        assert all(
+            isinstance(result, ModelBenchmarkResult) for result in report.results
+        )
+
+    @patch("director_ai.core.finetune_benchmark._evaluate_model")
+    def test_sweep_records_rejected_candidates(self, mock_eval, tmp_path):
+        general = _make_benchmark_file(tmp_path, "general.jsonl")
+        mock_eval.return_value = {"balanced_accuracy": 0.60, "f1": 0.50}
+        report = benchmark_model_candidates(
+            {"factcg-deberta-v3-large": tmp_path / "factcg-model"},
+            general_path=general,
+        )
+        assert report.best_model_alias == ""
+        assert report.results[0].recommendation == "reject"
+
+    def test_sweep_rejects_unknown_without_experimental_flag(self, tmp_path):
+        report = benchmark_model_candidates(
+            {"org/custom-model": tmp_path / "custom-model"},
+        )
+        assert report.results[0].recommendation == "reject"
+        assert "stable fine-tune registry" in report.results[0].error
+
+    def test_sweep_requires_models(self):
+        with pytest.raises(ValueError, match="at least one model"):
+            benchmark_model_candidates({})
+
+
 class TestExports:
     def test_importable_from_core(self):
-        from director_ai.core import RegressionReport, benchmark_finetuned_model
+        from director_ai.core import (
+            ModelBenchmarkReport,
+            RegressionReport,
+            benchmark_finetuned_model,
+            benchmark_model_candidates,
+        )
 
         assert callable(benchmark_finetuned_model)
+        assert callable(benchmark_model_candidates)
         assert RegressionReport is not None
+        assert ModelBenchmarkReport is not None

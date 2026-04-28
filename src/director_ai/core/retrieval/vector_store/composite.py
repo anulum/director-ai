@@ -16,12 +16,15 @@ cross-encoder.
 
 from __future__ import annotations
 
+import logging
 import threading
 from typing import Any
 
 from .base import VectorBackend
 
 __all__ = ["HybridBackend", "RerankedBackend"]
+
+logger = logging.getLogger("DirectorAI.VectorStore")
 
 
 class HybridBackend(VectorBackend):
@@ -188,7 +191,20 @@ class RerankedBackend(VectorBackend):
                 "RerankedBackend requires sentence-transformers. "
                 "Install with: pip install director-ai[reranker]",
             ) from e
-        self._reranker = CrossEncoder(reranker_model)
+        from ..._device import release_torch_cuda, select_torch_device
+
+        device = select_torch_device()
+        try:
+            self._reranker = CrossEncoder(reranker_model, device=device)
+        except RuntimeError as exc:
+            if device == "cpu" or not _is_cuda_oom(exc):
+                raise
+            logger.warning(
+                "CUDA out of memory while loading reranker %s; retrying on CPU",
+                reranker_model,
+            )
+            release_torch_cuda()
+            self._reranker = CrossEncoder(reranker_model, device="cpu")
 
     def add(
         self,
@@ -222,3 +238,8 @@ class RerankedBackend(VectorBackend):
 
     def count(self) -> int:
         return self._base.count()
+
+
+def _is_cuda_oom(exc: RuntimeError) -> bool:
+    msg = str(exc).lower()
+    return "cuda out of memory" in msg or "torch.outofmemoryerror" in msg
