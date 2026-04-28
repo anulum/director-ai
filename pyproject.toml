@@ -44,7 +44,7 @@ dependencies = [
 
 [project.optional-dependencies]
 nli = [
-    "torch>=2.6,<2.7",
+    "torch>=2.6,<2.9",
     "transformers>=4.30,<5",
 ]
 vector = [
@@ -90,7 +90,7 @@ grpc = [
     "protobuf>=4.25",
 ]
 finetune = [
-    "torch>=2.6,<2.7",
+    "torch>=2.6,<2.9",
     "transformers>=4.30,<5",
     "datasets>=2.14",
     "accelerate>=0.21",
