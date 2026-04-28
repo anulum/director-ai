@@ -82,7 +82,7 @@ set -e
 python3 -m venv /opt/director-venv
 source /opt/director-venv/bin/activate
 pip install --upgrade pip==24.3.1
-pip install torch==2.5.1 transformers==4.48.1 datasets==3.2.0 scikit-learn==1.6.1 peft==0.14.0 bitsandbytes==0.45.1 accelerate==1.3.0
+pip install torch==2.8.0 transformers==5.7.0 datasets==3.6.0 scikit-learn==1.6.1 peft==0.14.0 bitsandbytes==0.45.1 accelerate==1.7.0
 pip install --no-deps -e /root/director-ai
 SETUP
 
