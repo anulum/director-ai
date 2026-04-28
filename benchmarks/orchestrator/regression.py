@@ -189,7 +189,7 @@ def _evaluate(
     current: MetricResult,
 ) -> RegressionFinding | None:
     if baseline.higher_is_better != current.higher_is_better:
-        # Direction mismatch means one of the runs mis-reported
+        # Direction mismatch means one of the runs incorrectly reported
         # the metric's polarity — refuse to compare rather than
         # silently conclude the wrong answer.
         return RegressionFinding(
