@@ -2,12 +2,9 @@
 # Director-AI — Distillation v5 cloud training container
 # For Vertex AI Custom Training Jobs
 
-# CUDA-12.4 base ships torch 2.6.0 pre-installed, which satisfies
-# CVE-2025-32434 (torch.load block lifted in ≥2.6). Previous
-# cuda12.1 base pulled torch 2.6.0 from PyPI — but PyTorch's
-# cu121 index never published a 2.6.0 wheel, so that path was
-# silently broken. Pinning the base by digest keeps the build
-# reproducible; re-pin when bumping to a newer torch.
+# CUDA-12.4 base is pinned by digest for reproducible system libraries.
+# The hash-pinned Python lock below upgrades torch to the patched runtime
+# version used by managed training jobs.
 FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime@sha256:77f17f843507062875ce8be2a6f76aa6aa3df7f9ef1e31d9d7432f4b0f563dee
 
 WORKDIR /app
@@ -21,7 +18,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends git curl && \
 #     pip-compile --generate-hashes --allow-unsafe \
 #         --output-file=training/requirements-distil.txt \
 #         training/requirements-distil.in
-# Upgrade torch to 2.6+ (CVE-2025-32434 blocks torch.load on <2.6).
+# Keep torch, transformers, and sentencepiece at patched floors.
 COPY training/requirements-distil.txt training/requirements-distil.txt
 RUN pip install --no-cache-dir --require-hashes -r training/requirements-distil.txt
 

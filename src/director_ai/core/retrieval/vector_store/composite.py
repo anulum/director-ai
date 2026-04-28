@@ -173,7 +173,7 @@ class RerankedBackend(VectorBackend):
     backend, then reranks with a cross-encoder model and returns the
     top ``n_results``.
 
-    Requires ``pip install sentence-transformers>=2.2``.
+    Requires ``pip install sentence-transformers>=4``.
     """
 
     def __init__(

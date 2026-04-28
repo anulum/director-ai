@@ -15,8 +15,8 @@ python3 -m venv /opt/director-train
 source /opt/director-train/bin/activate
 
 echo "=== [3/5] PyTorch + dependencies ==="
-pip install --quiet torch==2.5.1 --index-url https://download.pytorch.org/whl/cu121
-pip install --quiet transformers==4.48.1 datasets==3.2.0 accelerate==1.3.0 scikit-learn==1.6.1
+pip install --quiet torch==2.8.0
+pip install --quiet transformers==5.7.0 datasets==3.6.0 accelerate==1.7.0 scikit-learn==1.6.1
 
 echo "=== [4/5] Verify GPU ==="
 python3 -c "

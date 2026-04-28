@@ -40,8 +40,8 @@ RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
       | sh -s -- -y --default-toolchain 1.88.0 --profile minimal
 
 # Python deps — identical hash-pinned set used by the distillation
-# image (torch, transformers, datasets, scikit-learn, accelerate,
-# huggingface-hub, google-cloud-storage, sentencepiece).
+# image, including the patched torch, transformers, and sentencepiece
+# floors used by managed training jobs.
 # maturin is added explicitly for the Rust wheel build.
 COPY training/requirements-distil.txt training/requirements-distil.txt
 RUN pip install --no-cache-dir --require-hashes \

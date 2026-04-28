@@ -347,7 +347,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `contextual_compression_enabled`, `contextual_compression_strategy`,
   `multi_vector_enabled`, `multi_vector_representations`.
 - **3 new pip extras**: `[ui]` (Gradio), `[reports]` (WeasyPrint + Jinja2),
-  `[autogen]` (pyautogen).
+  `[autogen]` (reserved compatibility anchor; no dependency installed until
+  pyautogen has a patched diskcache path).
 - **CLI subcommands wired**: `director-ai kb-health` (KB diagnostics),
   `director-ai wizard` (config wizard), `director-ai cost-report` (token
   cost report in text/JSON/HTML), `director-ai compliance report --format html`
