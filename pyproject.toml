@@ -111,6 +111,9 @@ reranker = [
 embeddings = [
     "sentence-transformers>=2.2,<4",
 ]
+license = [
+    "polar-sdk==0.31.3",
+]
 embed = [
     "sentence-transformers>=2.2,<4",
 ]
@@ -203,6 +206,7 @@ train = [
 ]
 managed-training = [
     "google-cloud-aiplatform>=1.70",
+    "google-cloud-storage>=2.14",
 ]
 security = [
     "cyclonedx-bom>=4.0",

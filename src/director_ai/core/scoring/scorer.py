@@ -1154,6 +1154,16 @@ class CoherenceScorer:
 
     # â"€â"€ Composite scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
+    def _score_cache_scope(self, session=None, tenant_id: str = "") -> str:
+        """Build cache scope from conversation and mutable grounding state."""
+        scope_parts = []
+        if session is not None and len(session) > 0:
+            scope_parts.append(f"session:{session.context_text}")
+        store = self.ground_truth_store
+        if store is not None and hasattr(store, "cache_scope"):
+            scope_parts.append(f"store:{store.cache_scope(tenant_id=tenant_id)}")
+        return "\x1f".join(scope_parts)
+
     def compute_divergence(self, prompt, action):
         """Compute composite divergence (lower is better).
 
@@ -1200,9 +1210,7 @@ class CoherenceScorer:
                 span.set_attribute("coherence.backend", "rust")
                 return result
 
-            cache_scope = ""
-            if session is not None and len(session) > 0:
-                cache_scope = session.context_text
+            cache_scope = self._score_cache_scope(session=session, tenant_id=tenant_id)
 
             if self.cache:
                 cached = self.cache.get(
@@ -1360,6 +1368,8 @@ class CoherenceScorer:
         )
         if not nli_ok or len(items) < 2:
             return [self.review(p, a, tenant_id=tenant_id) for p, a in items]
+        if self._review_batch_requires_sequential(items):
+            return [self.review(p, a, tenant_id=tenant_id) for p, a in items]
 
         # Partition: batchable (standard path) vs fallback (dialogue etc.)
         batch_idx: list[int] = []
@@ -1396,6 +1406,7 @@ class CoherenceScorer:
             if self.ground_truth_store:
                 ctx = self.ground_truth_store.retrieve_context(
                     prompt,
+                    top_k=self._fact_retrieval_top_k,
                     tenant_id=tenant_id,
                 )
             else:
@@ -1459,6 +1470,37 @@ class CoherenceScorer:
             )
 
         return [r for r in results if r is not None]
+
+    def _review_batch_requires_sequential(
+        self,
+        items: list[tuple[str, str]],
+    ) -> bool:
+        """Return True when the coalesced path cannot match review() semantics."""
+        if self._adaptive_router is not None:
+            return True
+        if self._retrieval_abstention_threshold > 0:
+            return True
+        if self._judge.enabled:
+            return True
+        if self._confidence_weighted_agg:
+            return True
+        if (
+            self._fact_inner_agg != "max"
+            or self._fact_outer_agg != "max"
+            or self._logic_inner_agg != "max"
+            or self._logic_outer_agg != "max"
+        ):
+            return True
+        if self._rag_claim_decomposition and any(
+            len(action) > 100 for _prompt, action in items
+        ):
+            return True
+        if self.ground_truth_store is not None:
+            from ..retrieval.vector_store import VectorGroundTruthStore
+
+            if isinstance(self.ground_truth_store, VectorGroundTruthStore):
+                return True
+        return False
 
     # â"€â"€ Async API â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 

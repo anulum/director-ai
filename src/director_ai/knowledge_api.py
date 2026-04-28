@@ -15,11 +15,14 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 import uuid
 
 logger = logging.getLogger("DirectorAI.KnowledgeAPI")
 
 _MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
+_MAX_TOP_K = 50
+_SAFE_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
 _ALLOWED_EXTENSIONS = frozenset(
     {
         "pdf",
@@ -34,6 +37,24 @@ _ALLOWED_EXTENSIONS = frozenset(
         "xml",
     }
 )
+_GENERIC_CONTENT_TYPES = frozenset({"", "application/octet-stream"})
+_CONTENT_TYPES_BY_EXTENSION = {
+    "pdf": frozenset({"application/pdf"}),
+    "docx": frozenset(
+        {
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/zip",
+        }
+    ),
+    "html": frozenset({"text/html", "application/xhtml+xml"}),
+    "htm": frozenset({"text/html", "application/xhtml+xml"}),
+    "csv": frozenset({"text/csv", "application/csv", "application/vnd.ms-excel"}),
+    "txt": frozenset({"text/plain"}),
+    "md": frozenset({"text/markdown", "text/plain"}),
+    "markdown": frozenset({"text/markdown", "text/plain"}),
+    "json": frozenset({"application/json", "text/plain"}),
+    "xml": frozenset({"application/xml", "text/xml", "text/plain"}),
+}
 
 try:
     from fastapi import APIRouter, HTTPException, Request, UploadFile
@@ -54,9 +75,77 @@ if _FASTAPI_AVAILABLE:
 
 
 def _get_tenant(request: Request) -> str:
-    return getattr(request.state, "tenant_id", "") or request.headers.get(
+    tenant_id = getattr(request.state, "tenant_id", "") or request.headers.get(
         "X-Tenant-ID", ""
     )
+    return _validate_optional_identifier("tenant_id", tenant_id)
+
+
+def _validate_optional_identifier(name: str, value: str | None) -> str:
+    if value is None or value == "":
+        return ""
+    if not _SAFE_ID_RE.fullmatch(value):
+        raise HTTPException(
+            400,
+            f"{name} must be 1-128 chars: letters, numbers, dot, underscore, colon, dash",
+        )
+    return value
+
+
+def _validate_source(source: str) -> str:
+    clean = source.strip()
+    if not clean:
+        raise HTTPException(400, "source must be non-empty")
+    if any(ch in clean for ch in ("\x00", "\r", "\n")):
+        raise HTTPException(400, "source contains invalid control characters")
+    return clean
+
+
+def _validate_chunking(chunk_size: int, overlap: int) -> None:
+    if overlap >= chunk_size:
+        raise HTTPException(400, "overlap must be smaller than chunk_size")
+
+
+def _validate_content_length(raw_value: str | None) -> None:
+    if not raw_value:
+        return
+    try:
+        content_length = int(raw_value)
+    except ValueError as exc:
+        raise HTTPException(400, "invalid content-length header") from exc
+    if content_length < 0:
+        raise HTTPException(400, "invalid content-length header")
+    if content_length > _MAX_UPLOAD_BYTES:
+        raise HTTPException(
+            413, f"File exceeds {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit"
+        )
+
+
+def _file_extension(filename: str) -> str:
+    if "." not in filename:
+        return ""
+    return filename.rsplit(".", 1)[-1].lower()
+
+
+def _validate_upload_type(filename: str, content_type: str | None) -> str:
+    ext = _file_extension(filename)
+    if ext not in _ALLOWED_EXTENSIONS:
+        raise HTTPException(
+            415,
+            f"File type '.{ext}' not supported. Allowed: {sorted(_ALLOWED_EXTENSIONS)}",
+        )
+
+    clean_content_type = (content_type or "").split(";", 1)[0].strip().lower()
+    if clean_content_type in _GENERIC_CONTENT_TYPES:
+        return ext
+
+    allowed = _CONTENT_TYPES_BY_EXTENSION.get(ext, frozenset())
+    if allowed and clean_content_type not in allowed:
+        raise HTTPException(
+            415,
+            f"Content-Type {clean_content_type!r} does not match '.{ext}' upload",
+        )
+    return ext
 
 
 def _get_registry(request: Request):
@@ -123,23 +212,14 @@ def create_knowledge_router() -> APIRouter:
     async def upload_document(request: Request, file: UploadFile):
         """Upload a file, parse, chunk, embed, store."""
         # Early size check before reading body into memory
-        content_length = request.headers.get("content-length")
-        if content_length and int(content_length) > _MAX_UPLOAD_BYTES:
-            raise HTTPException(
-                413, f"File exceeds {_MAX_UPLOAD_BYTES // (1024 * 1024)} MB limit"
-            )
+        _validate_content_length(request.headers.get("content-length"))
 
         tenant_id = _get_tenant(request)
         registry = _get_registry(request)
         store = _get_store(request)
 
         filename = file.filename or "unknown.txt"
-        ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-        if ext not in _ALLOWED_EXTENSIONS:
-            raise HTTPException(
-                415,
-                f"File type ‘.{ext}’ not supported. Allowed: {sorted(_ALLOWED_EXTENSIONS)}",
-            )
+        _validate_upload_type(filename, file.content_type)
 
         content = await file.read()
         if len(content) > _MAX_UPLOAD_BYTES:
@@ -158,6 +238,7 @@ def create_knowledge_router() -> APIRouter:
             raise HTTPException(422, "Parsed file contains no text")
 
         doc_id = uuid.uuid4().hex
+        _validate_chunking(512, 64)
         loop = asyncio.get_running_loop()
         chunk_ids = await loop.run_in_executor(
             None,
@@ -187,7 +268,11 @@ def create_knowledge_router() -> APIRouter:
         registry = _get_registry(request)
         store = _get_store(request)
 
-        doc_id = body.doc_id or uuid.uuid4().hex
+        doc_id = (
+            _validate_optional_identifier("doc_id", body.doc_id) or uuid.uuid4().hex
+        )
+        source = _validate_source(body.source)
+        _validate_chunking(body.chunk_size, body.overlap)
 
         if registry.exists(doc_id):
             raise HTTPException(
@@ -205,7 +290,7 @@ def create_knowledge_router() -> APIRouter:
             body.chunk_size,
             body.overlap,
         )
-        record = registry.register(doc_id, body.source, tenant_id, chunk_ids)
+        record = registry.register(doc_id, source, tenant_id, chunk_ids)
 
         return {
             "doc_id": record.doc_id,
@@ -239,6 +324,7 @@ def create_knowledge_router() -> APIRouter:
     async def get_document(request: Request, doc_id: str):
         """Get metadata for a specific document."""
         tenant_id = _get_tenant(request)
+        doc_id = _validate_optional_identifier("doc_id", doc_id)
         registry = _get_registry(request)
         record = registry.get(doc_id, tenant_id)
         if record is None:
@@ -256,6 +342,7 @@ def create_knowledge_router() -> APIRouter:
     async def delete_document(request: Request, doc_id: str):
         """Delete a document and all its chunks."""
         tenant_id = _get_tenant(request)
+        doc_id = _validate_optional_identifier("doc_id", doc_id)
         registry = _get_registry(request)
         store = _get_store(request)
 
@@ -272,8 +359,11 @@ def create_knowledge_router() -> APIRouter:
     async def update_document(request: Request, doc_id: str, body: IngestRequest):
         """Replace a document's content — re-chunks and re-embeds."""
         tenant_id = _get_tenant(request)
+        doc_id = _validate_optional_identifier("doc_id", doc_id)
         registry = _get_registry(request)
         store = _get_store(request)
+        source = _validate_source(body.source)
+        _validate_chunking(body.chunk_size, body.overlap)
 
         record = registry.get(doc_id, tenant_id)
         if record is None:
@@ -292,18 +382,22 @@ def create_knowledge_router() -> APIRouter:
         )
 
         _delete_chunks(record, store)
-        registry.update(doc_id, new_chunk_ids)
+        record = registry.update(doc_id, new_chunk_ids, source=source)
 
         return {
             "doc_id": doc_id,
-            "source": body.source,
-            "chunk_count": len(new_chunk_ids),
+            "source": record.source,
+            "chunk_count": record.chunk_count,
         }
 
     @router.get("/search")
     async def search_knowledge(request: Request, query: str, top_k: int = 5):
         """Test retrieval quality — returns matching chunks."""
         tenant_id = _get_tenant(request)
+        if not query.strip():
+            raise HTTPException(400, "query must be non-empty")
+        if top_k < 1 or top_k > _MAX_TOP_K:
+            raise HTTPException(400, f"top_k must be between 1 and {_MAX_TOP_K}")
         store = _get_store(request)
 
         try:

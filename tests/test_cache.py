@@ -135,3 +135,37 @@ class TestScoreCache:
 
         assert score_a.score == 0.9
         assert score_b.score == 0.7
+
+    def test_scorer_cache_scope_changes_when_ground_truth_store_changes(
+        self, monkeypatch
+    ):
+        from director_ai.core.retrieval.knowledge import GroundTruthStore
+        from director_ai.core.scorer import CoherenceScorer
+
+        store = GroundTruthStore()
+        scorer = CoherenceScorer(
+            threshold=0.0,
+            use_nli=False,
+            cache_size=100,
+            ground_truth_store=store,
+        )
+        values = iter(
+            [
+                (0.1, 0.1, 0.9, None),
+                (0.2, 0.2, 0.7, None),
+            ]
+        )
+
+        def fake_heuristic(prompt, action, tenant_id=""):
+            return next(values)
+
+        monkeypatch.setattr(scorer, "_heuristic_coherence", fake_heuristic)
+
+        _, initial = scorer.review("prompt", "answer", tenant_id="tenant-a")
+        _, cached = scorer.review("prompt", "answer", tenant_id="tenant-a")
+        store.add("fact", "new grounding", tenant_id="tenant-a")
+        _, refreshed = scorer.review("prompt", "answer", tenant_id="tenant-a")
+
+        assert initial.score == 0.9
+        assert cached.score == 0.9
+        assert refreshed.score == 0.7

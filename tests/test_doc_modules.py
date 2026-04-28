@@ -13,6 +13,8 @@ lookup, pipeline integration with ingest CLI, and performance documentation.
 
 from __future__ import annotations
 
+import io
+
 import pytest
 
 from director_ai.core.doc_chunker import ChunkConfig, split
@@ -65,6 +67,34 @@ class TestParser:
         result = parse(b"name,age\nAlice,30\nBob,25", "data.csv")
         assert "Alice" in result
         assert "30" in result
+
+    def test_csv_preserves_quoted_cell_content(self):
+        result = parse(b'name,notes\nAlice,"alpha, beta"\n', "data.csv")
+        assert "Alice" in result
+        assert "alpha, beta" in result
+
+    def test_html_removes_non_content_regions(self):
+        result = parse(
+            b"<html><body><nav>menu</nav><p>Useful fact</p><script>x()</script></body></html>",
+            "page.html",
+        )
+        assert "Useful fact" in result
+        assert "menu" not in result
+        assert "x()" not in result
+
+    def test_docx_real_document(self):
+        from docx import Document
+
+        buffer = io.BytesIO()
+        document = Document()
+        document.add_paragraph("Contract clause one.")
+        document.add_paragraph("Contract clause two.")
+        document.save(buffer)
+
+        result = parse(buffer.getvalue(), "contract.docx")
+
+        assert "Contract clause one." in result
+        assert "Contract clause two." in result
 
     def test_unknown_extension(self):
         result = parse(b"some content", "file.xyz")
@@ -121,9 +151,10 @@ class TestRegistry:
     def test_update(self):
         reg = DocRegistry()
         reg.register("d1", "f.txt", "t1", ["c0"])
-        reg.update("d1", ["c0", "c1", "c2"])
+        reg.update("d1", ["c0", "c1", "c2"], source="g.txt")
         rec = reg.get("d1", "t1")
         assert rec.chunk_count == 3
+        assert rec.source == "g.txt"
 
     def test_duplicate_register_raises(self):
         reg = DocRegistry()

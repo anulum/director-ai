@@ -370,6 +370,7 @@ def finetune_nli(
     model = AutoModelForSequenceClassification.from_pretrained(
         config.base_model,
         num_labels=2,
+        ignore_mismatched_sizes=True,
     )
 
     is_factcg = "factcg" in config.base_model.lower()

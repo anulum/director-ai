@@ -192,6 +192,9 @@ class DirectorConfig:
     # EU AI Act compliance
     compliance_db_path: str = ""
 
+    # Human feedback for online calibration (empty = feedback API disabled)
+    feedback_db_path: str = ""
+
     # Tenant routing
     tenant_routing: bool = False
 

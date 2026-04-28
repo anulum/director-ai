@@ -171,21 +171,32 @@ def load_license() -> LicenseInfo:
     """Load license from environment or file.
 
     Checks in order:
-    1. DIRECTOR_LICENSE_KEY env var (syntax check only; does not activate)
-    2. DIRECTOR_LICENSE_FILE env var (path to signed JSON)
-    3. ~/.director-ai/license.json (default file location)
-    4. Falls back to community (AGPL) tier
+    1. DIRECTOR_LICENSE_KEY + DIRECTOR_AI_POLAR_ORG_ID via Polar validation
+    2. DIRECTOR_LICENSE_KEY env var (syntax check only; does not activate)
+    3. DIRECTOR_LICENSE_FILE env var (path to signed JSON)
+    4. ~/.director-ai/license.json (default file location)
+    5. Falls back to community (AGPL) tier
     """
     key = os.environ.get("DIRECTOR_LICENSE_KEY", "").strip()
     if key:
-        info = validate_key(key)
-        if info.valid:
+        polar_org_id = os.environ.get("DIRECTOR_AI_POLAR_ORG_ID", "").strip()
+        if polar_org_id:
+            from director_ai.core.polar_license import validate_polar_key
+
+            polar_info = validate_polar_key(key, polar_org_id)
+            if polar_info.valid:
+                logger.info("License: %s (Polar)", polar_info.message)
+                return polar_info
+            logger.warning("Polar license invalid: %s", polar_info.message)
+
+        key_info = validate_key(key)
+        if key_info.valid:
             logger.warning(
                 "Bare DIRECTOR_LICENSE_KEY is not sufficient; "
                 "provide DIRECTOR_LICENSE_FILE with a signed license.",
             )
         else:
-            logger.warning("License key invalid: %s", info.message)
+            logger.warning("License key invalid: %s", key_info.message)
 
     file_path = os.environ.get("DIRECTOR_LICENSE_FILE", "").strip()
     if file_path:

@@ -25,6 +25,7 @@ import contextvars
 import hmac
 import json as _json_mod
 import logging
+import threading
 import time
 import uuid
 from contextlib import asynccontextmanager
@@ -50,8 +51,11 @@ __all__ = [
     "ConsensusResponseItem",
     "DeletedResponse",
     "DriftResponse",
+    "FeedbackCalibrationResponse",
     "FeedbackLoopCheckRequest",
     "FeedbackLoopResponse",
+    "FeedbackRequest",
+    "FeedbackResponse",
     "FreshnessClaimResponse",
     "FreshnessResponse",
     "HealthResponse",
@@ -163,8 +167,11 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         ConsensusResponseItem,
         DeletedResponse,
         DriftResponse,
+        FeedbackCalibrationResponse,
         FeedbackLoopCheckRequest,
         FeedbackLoopResponse,
+        FeedbackRequest,
+        FeedbackResponse,
         FreshnessClaimResponse,
         FreshnessResponse,
         HealthResponse,
@@ -326,6 +333,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             app.state._state["compliance_drift"] = DriftDetector(c_log)
             logger.info("Compliance audit log: %s", cfg.compliance_db_path)
 
+        if cfg.feedback_db_path:
+            from .core.calibration.feedback_store import FeedbackStore
+
+            feedback_store = FeedbackStore(cfg.feedback_db_path)
+            app.state._state["feedback_store"] = feedback_store
+            logger.info("Feedback store: %s", cfg.feedback_db_path)
+
         if cfg.tenant_routing:
             app.state._state["tenant_router"] = TenantRouter()
             logger.info("Tenant routing enabled")
@@ -361,6 +375,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         c_log_shutdown = app.state._state.get("compliance_log")
         if c_log_shutdown is not None:
             c_log_shutdown.close()
+        feedback_shutdown = app.state._state.get("feedback_store")
+        if feedback_shutdown is not None:
+            feedback_shutdown.close()
 
     app = FastAPI(
         title="Director-Class AI",
@@ -764,6 +781,74 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             h_factual=score.h_factual,
             warning=score.warning,
             evidence=_evidence_to_dict(score.evidence),
+        )
+
+    @app.post("/v1/feedback", response_model=FeedbackResponse)
+    async def record_feedback(
+        req: FeedbackRequest,
+        request: Request,
+    ) -> FeedbackResponse:
+        """Record a human correction for online calibration."""
+        feedback_store = request.app.state._state.get("feedback_store")
+        if feedback_store is None:
+            raise HTTPException(503, "Feedback store not configured")
+
+        tenant_id = getattr(
+            request.state,
+            "tenant_id",
+            request.headers.get("X-Tenant-ID", ""),
+        )
+        feedback_store.report(
+            prompt=req.prompt,
+            response=req.response,
+            guardrail_approved=req.guardrail_approved,
+            human_approved=req.human_approved,
+            guardrail_score=req.guardrail_score,
+            domain=req.domain,
+            review_id=req.review_id,
+            tenant_id=tenant_id,
+        )
+        metrics.inc("feedback_reports_total")
+        if req.guardrail_approved != req.human_approved:
+            metrics.inc("feedback_disagreements_total")
+        return FeedbackResponse(
+            accepted=True,
+            correction_count=feedback_store.count(domain=req.domain or None),
+            disagreement=req.guardrail_approved != req.human_approved,
+            tenant_id=tenant_id,
+            review_id=req.review_id,
+        )
+
+    @app.get("/v1/feedback/calibration", response_model=FeedbackCalibrationResponse)
+    async def feedback_calibration(
+        request: Request,
+        domain: str = "",
+        min_corrections: int = 20,
+    ) -> FeedbackCalibrationResponse:
+        """Return current online calibration metrics from human feedback."""
+        if min_corrections < 1 or min_corrections > 100_000:
+            raise HTTPException(400, "min_corrections must be between 1 and 100000")
+        feedback_store = request.app.state._state.get("feedback_store")
+        if feedback_store is None:
+            raise HTTPException(503, "Feedback store not configured")
+
+        from .core.calibration.online_calibrator import OnlineCalibrator
+
+        calibrator = OnlineCalibrator(
+            feedback_store,
+            min_corrections=min_corrections,
+        )
+        report = calibrator.calibrate(domain=domain or None)
+        return FeedbackCalibrationResponse(
+            correction_count=report.correction_count,
+            optimal_threshold=report.optimal_threshold,
+            current_accuracy=report.current_accuracy,
+            tpr=report.tpr,
+            tnr=report.tnr,
+            fpr=report.fpr,
+            fnr=report.fnr,
+            fpr_ci=report.fpr_ci,
+            fnr_ci=report.fnr_ci,
         )
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Verified Review (sentence-level multi-signal) Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
@@ -1653,7 +1738,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         send_lock = asyncio.Lock()
         semaphore = asyncio.Semaphore(_WS_MAX_CONCURRENT)
-        active_tasks: dict[str, asyncio.Task] = {}
+        active_tasks: dict[str, tuple[asyncio.Task, threading.Event]] = {}
 
         async def _send(payload: dict) -> None:
             async with send_lock:
@@ -1688,7 +1773,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         window_size=getattr(cfg, "window_size", 5),
                         window_threshold=getattr(cfg, "window_threshold", 0.5),
                     )
-                    result = await agent.aprocess(prompt, tenant_id=ws_tenant_id)
+                    cancel_event = data["_cancel_event"]
+                    result = await agent.aprocess(
+                        prompt,
+                        tenant_id=ws_tenant_id,
+                        cancel_event=cancel_event,
+                    )
+                    if cancel_event.is_set():
+                        return
                     coherence = result.coherence.score if result.coherence else 0.0
                     halted = kernel.check_halt(coherence)
                     halt_reason = "hard_limit" if halted else None
@@ -1715,7 +1807,14 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 return
 
             try:
-                result = await agent.aprocess(prompt, tenant_id=ws_tenant_id)
+                cancel_event = data["_cancel_event"]
+                result = await agent.aprocess(
+                    prompt,
+                    tenant_id=ws_tenant_id,
+                    cancel_event=cancel_event,
+                )
+                if cancel_event.is_set():
+                    return
             except (RuntimeError, ValueError, TypeError, OSError) as exc:
                 logger.error("WebSocket agent.process() failed: %s", exc)
                 await _send(
@@ -1764,8 +1863,10 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 action = data.get("action", "")
                 if action == "cancel":
                     cancel_sid = data.get("session_id", "")
-                    task = active_tasks.get(cancel_sid)
-                    if task and not task.done():
+                    active = active_tasks.get(cancel_sid)
+                    if active:
+                        task, cancel_event = active
+                        cancel_event.set()
                         task.cancel()
                         active_tasks.pop(cancel_sid, None)
                     await _send({"session_id": cancel_sid, "type": "cancelled"})
@@ -1783,11 +1884,29 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     continue
 
                 session_id = data.get("session_id") or str(uuid.uuid4())
+                if session_id in active_tasks:
+                    await _send(
+                        {
+                            "session_id": session_id,
+                            "error": "session already active",
+                        },
+                    )
+                    continue
+                if len(active_tasks) >= _WS_MAX_CONCURRENT:
+                    await _send(
+                        {
+                            "session_id": session_id,
+                            "error": "too many active sessions",
+                        },
+                    )
+                    continue
+                data["_cancel_event"] = threading.Event()
                 task = asyncio.create_task(_run_session(session_id, data))
-                active_tasks[session_id] = task
+                active_tasks[session_id] = (task, data["_cancel_event"])
 
         except WebSocketDisconnect:
-            for task in active_tasks.values():
+            for task, cancel_event in active_tasks.values():
+                cancel_event.set()
                 task.cancel()
 
     return app

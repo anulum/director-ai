@@ -30,6 +30,7 @@ from __future__ import annotations
 import contextlib
 import json
 import logging
+import re
 import shutil
 import threading
 import time
@@ -40,7 +41,7 @@ from pathlib import Path
 logger = logging.getLogger("DirectorAI.FinetuneAPI")
 
 try:
-    from fastapi import APIRouter, HTTPException, UploadFile
+    from fastapi import APIRouter, HTTPException, Request, UploadFile
     from pydantic import BaseModel, Field
 
     _FASTAPI_AVAILABLE = True
@@ -50,6 +51,7 @@ except ImportError:
 _DEFAULT_MODELS_DIR = Path("./director-models")
 _MAX_UPLOAD_BYTES = 500 * 1024 * 1024  # 500 MB
 _MAX_CONCURRENT_JOBS = 4
+_SAFE_TENANT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
 
 
 # â”€â”€ Job state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -115,6 +117,63 @@ class _JobStore:
             return self._jobs.pop(job_id, None) is not None
 
 
+@dataclass
+class ManagedTrainingRecord:
+    job_id: str
+    backend: str
+    state: str
+    tenant_id: str
+    dry_run: bool
+    submitted_at: float
+    display_name: str
+    output_uri: str
+    console_uri: str = ""
+    error: str = ""
+
+
+class _ManagedJobStore:
+    """Thread-safe in-process ledger for managed training submissions."""
+
+    def __init__(self):
+        self._jobs: dict[str, ManagedTrainingRecord] = {}
+        self._lock = threading.Lock()
+
+    def add(self, record: ManagedTrainingRecord) -> None:
+        with self._lock:
+            self._jobs[record.job_id] = record
+
+    def get(self, tenant_id: str, job_id: str) -> ManagedTrainingRecord | None:
+        with self._lock:
+            record = self._jobs.get(job_id)
+        if record is None or record.tenant_id != tenant_id:
+            return None
+        return record
+
+    def list_for_tenant(self, tenant_id: str) -> list[ManagedTrainingRecord]:
+        with self._lock:
+            return [
+                record
+                for record in self._jobs.values()
+                if record.tenant_id == tenant_id
+            ]
+
+    def update_state(
+        self,
+        tenant_id: str,
+        job_id: str,
+        state: str,
+        *,
+        error: str = "",
+    ) -> ManagedTrainingRecord | None:
+        with self._lock:
+            record = self._jobs.get(job_id)
+            if record is None or record.tenant_id != tenant_id:
+                return None
+            record.state = state
+            record.error = error
+            return record
+
+
 # â”€â”€ Pydantic models â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 if _FASTAPI_AVAILABLE:
@@ -175,6 +234,10 @@ if _FASTAPI_AVAILABLE:
         service_account: str | None = None
         network: str | None = None
         suite: str = ""
+
+    class ManagedTrainingLookupRequest(BaseModel):
+        backend: str = "vertex"
+        job_id: str = Field(..., min_length=1, max_length=500)
 
     class ManagedModelBenchmarkRequest(BaseModel):
         model_artifacts: dict[str, str]
@@ -281,6 +344,34 @@ async def _read_upload_with_limit(file: UploadFile) -> bytes:
     return b"".join(chunks)
 
 
+def _tenant_from_request(request: Request) -> str:
+    tenant_id = request.headers.get("X-Tenant-ID", "")
+    if not tenant_id:
+        return ""
+    if not _SAFE_TENANT_RE.fullmatch(tenant_id):
+        raise HTTPException(
+            400,
+            "X-Tenant-ID must be 1-128 chars: letters, numbers, dot, "
+            "underscore, colon, dash",
+        )
+    return tenant_id
+
+
+def _managed_record_to_dict(record: ManagedTrainingRecord) -> dict:
+    return {
+        "job_id": record.job_id,
+        "backend": record.backend,
+        "state": record.state,
+        "tenant_id": record.tenant_id,
+        "dry_run": record.dry_run,
+        "submitted_at": record.submitted_at,
+        "display_name": record.display_name,
+        "output_uri": record.output_uri,
+        "console_uri": record.console_uri,
+        "error": record.error,
+    }
+
+
 def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
     """Create the fine-tuning API router.
 
@@ -305,6 +396,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         upload_dir.mkdir(parents=True, exist_ok=True)
 
     store = _JobStore()
+    managed_store = _ManagedJobStore()
     router = APIRouter(tags=["finetune"])
 
     @router.post("/validate")
@@ -414,7 +506,7 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
         }
 
     @router.post("/managed/submit")
-    async def submit_managed_training(req: ManagedTrainingRequest):
+    async def submit_managed_training(req: ManagedTrainingRequest, request: Request):
         """Submit or dry-run a managed training job."""
         from director_ai.core.training.jobs import (
             TrainingHardware,
@@ -467,14 +559,125 @@ def create_finetune_router(models_dir: Path | None = None) -> APIRouter:
             )
         except ValueError as exc:
             raise HTTPException(422, str(exc)) from exc
+        tenant_id = _tenant_from_request(request)
+        managed_store.add(
+            ManagedTrainingRecord(
+                job_id=submission.job_id,
+                backend=submission.backend,
+                state=submission.state,
+                tenant_id=tenant_id,
+                dry_run=submission.dry_run,
+                submitted_at=submission.submitted_at,
+                display_name=spec.display_name,
+                output_uri=spec.output_uri,
+                console_uri=submission.console_uri,
+            )
+        )
         return {
             "backend": submission.backend,
             "job_id": submission.job_id,
             "state": submission.state,
             "dry_run": submission.dry_run,
+            "tenant_id": tenant_id,
             "submitted_at": submission.submitted_at,
             "console_uri": submission.console_uri,
             "request": submission.request,
+        }
+
+    @router.get("/managed/jobs")
+    async def list_managed_training_jobs(request: Request):
+        """List managed training submissions for the current tenant."""
+        tenant_id = _tenant_from_request(request)
+        records = managed_store.list_for_tenant(tenant_id)
+        return {
+            "tenant_id": tenant_id,
+            "count": len(records),
+            "jobs": [_managed_record_to_dict(record) for record in records],
+        }
+
+    @router.post("/managed/status")
+    async def get_managed_training_status(
+        req: ManagedTrainingLookupRequest,
+        request: Request,
+    ):
+        """Return backend status for a managed training job."""
+        from director_ai.core.training.jobs import get_training_backend
+
+        tenant_id = _tenant_from_request(request)
+        record = managed_store.get(tenant_id, req.job_id)
+        if record is None:
+            raise HTTPException(404, "Managed training job not found")
+        if record.backend != req.backend:
+            raise HTTPException(409, f"Job was submitted to backend {record.backend!r}")
+        if record.dry_run:
+            return {
+                "backend": record.backend,
+                "job_id": record.job_id,
+                "state": record.state,
+                "metrics": {},
+                "artifact_uri": "",
+                "error": record.error,
+            }
+        try:
+            status = get_training_backend(req.backend).status(req.job_id)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(502, f"Training backend status failed: {exc}") from exc
+
+        managed_store.update_state(
+            tenant_id,
+            req.job_id,
+            status.state,
+            error=status.error,
+        )
+        return {
+            "backend": status.backend,
+            "job_id": status.job_id,
+            "state": status.state,
+            "metrics": status.metrics,
+            "artifact_uri": status.artifact_uri,
+            "error": status.error,
+        }
+
+    @router.post("/managed/cancel")
+    async def cancel_managed_training(
+        req: ManagedTrainingLookupRequest,
+        request: Request,
+    ):
+        """Cancel a managed training job owned by the current tenant."""
+        from director_ai.core.training.jobs import get_training_backend
+
+        tenant_id = _tenant_from_request(request)
+        record = managed_store.get(tenant_id, req.job_id)
+        if record is None:
+            raise HTTPException(404, "Managed training job not found")
+        if record.backend != req.backend:
+            raise HTTPException(409, f"Job was submitted to backend {record.backend!r}")
+        if record.dry_run:
+            raise HTTPException(
+                409, "Dry-run managed training jobs cannot be cancelled"
+            )
+        try:
+            status = get_training_backend(req.backend).cancel(req.job_id)
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(502, f"Training backend cancel failed: {exc}") from exc
+
+        managed_store.update_state(
+            tenant_id,
+            req.job_id,
+            status.state,
+            error=status.error,
+        )
+        return {
+            "backend": status.backend,
+            "job_id": status.job_id,
+            "state": status.state,
+            "metrics": status.metrics,
+            "artifact_uri": status.artifact_uri,
+            "error": status.error,
         }
 
     @router.get("/managed/models")

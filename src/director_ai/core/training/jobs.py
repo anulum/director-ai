@@ -38,6 +38,13 @@ _VALID_TASKS = ("finetune-nli", "suite")
 _DEFAULT_CONTAINER_IMAGE = "python:3.12-slim"
 _DEFAULT_VERTEX_REGION = "us-central1"
 _MAX_TIMEOUT_MINUTES = 24 * 60
+_VERTEX_ACCELERATOR_ALIASES = {
+    "NVIDIA_T4": "NVIDIA_TESLA_T4",
+    "NVIDIA_P4": "NVIDIA_TESLA_P4",
+    "NVIDIA_P100": "NVIDIA_TESLA_P100",
+    "NVIDIA_V100": "NVIDIA_TESLA_V100",
+    "NVIDIA_K80": "NVIDIA_TESLA_K80",
+}
 
 
 @dataclass(frozen=True)
@@ -292,10 +299,10 @@ class VertexTrainingBackend:
             job.submit(
                 service_account=spec.service_account,
                 network=spec.network,
-                sync=False,
+                timeout=spec.timeout_minutes * 60,
             )
             job_id = str(getattr(job, "resource_name", job_id))
-            console_uri = str(getattr(job, "gca_resource", "")) or console_uri
+            console_uri = _vertex_console_uri(spec.project, spec.region, job_id)
         return TrainingJobSubmission(
             backend=self.name,
             job_id=job_id,
@@ -388,11 +395,15 @@ def build_vertex_custom_job_request(spec: TrainingJobSpec) -> dict[str, Any]:
             **spec.labels,
         }
     )
-    container_args = spec.args or _container_finetune_args(spec)
+    container_command = spec.args or _vertex_finetune_command(spec)
+    executable = container_command[:1]
+    container_args = container_command[1:]
     container_env = [{"name": key, "value": value} for key, value in spec.env.items()]
     machine_spec: dict[str, Any] = {"machine_type": spec.hardware.machine_type}
     if spec.hardware.accelerator_count:
-        machine_spec["accelerator_type"] = spec.hardware.accelerator_type
+        machine_spec["accelerator_type"] = _vertex_accelerator_type(
+            spec.hardware.accelerator_type,
+        )
         machine_spec["accelerator_count"] = spec.hardware.accelerator_count
 
     return {
@@ -413,6 +424,7 @@ def build_vertex_custom_job_request(spec: TrainingJobSpec) -> dict[str, Any]:
                     },
                     "container_spec": {
                         "image_uri": spec.container_image_uri,
+                        "command": executable,
                         "args": container_args,
                         "env": container_env,
                     },
@@ -440,7 +452,37 @@ def submission_to_json(submission: TrainingJobSubmission) -> str:
     )
 
 
-def _container_finetune_args(spec: TrainingJobSpec) -> list[str]:
+def _vertex_finetune_command(spec: TrainingJobSpec) -> list[str]:
+    model_profile = spec.resolved_model_profile()
+    args = [
+        "python",
+        "-m",
+        "director_ai.core.training.vertex_runner",
+        "--train-uri",
+        spec.dataset_uri,
+        "--output-uri",
+        spec.output_uri,
+        "--epochs",
+        str(spec.epochs),
+        "--batch-size",
+        str(spec.batch_size),
+        "--lr",
+        str(spec.learning_rate),
+        "--base-model",
+        model_profile.model_id,
+    ]
+    if spec.eval_uri:
+        args.extend(["--eval-uri", spec.eval_uri])
+    return args
+
+
+def _local_command(spec: TrainingJobSpec) -> list[str]:
+    if spec.task_type == "suite":
+        return list(spec.args)
+    return _local_finetune_command(spec)
+
+
+def _local_finetune_command(spec: TrainingJobSpec) -> list[str]:
     model_profile = spec.resolved_model_profile()
     args = [
         "director-ai",
@@ -460,12 +502,6 @@ def _container_finetune_args(spec: TrainingJobSpec) -> list[str]:
     if spec.eval_uri:
         args.extend(["--eval", spec.eval_uri])
     return args
-
-
-def _local_command(spec: TrainingJobSpec) -> list[str]:
-    if spec.task_type == "suite":
-        return list(spec.args)
-    return _container_finetune_args(spec)
 
 
 def _run_local_job(spec: TrainingJobSpec) -> None:
@@ -495,6 +531,18 @@ def _run_local_job(spec: TrainingJobSpec) -> None:
 def _require_gcs_uri(name: str, uri: str) -> None:
     if not uri.startswith("gs://"):
         raise ValueError(f"{name} must be a gs:// URI for vertex backend")
+
+
+def _vertex_accelerator_type(accelerator_type: str) -> str:
+    return _VERTEX_ACCELERATOR_ALIASES.get(accelerator_type, accelerator_type)
+
+
+def _vertex_console_uri(project: str | None, region: str, job_id: str) -> str:
+    job_number = job_id.rsplit("/", 1)[-1]
+    return (
+        "https://console.cloud.google.com/ai/platform/locations/"
+        f"{region}/training/{job_number}?project={project}"
+    )
 
 
 def _looks_secret(key: str) -> bool:

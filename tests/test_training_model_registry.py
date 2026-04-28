@@ -32,8 +32,11 @@ class TestTrainingModelRegistry:
 
     def test_include_experimental_adds_candidates(self):
         stable_count = len(list_finetune_model_profiles())
-        all_count = len(list_finetune_model_profiles(include_experimental=True))
+        profiles = list_finetune_model_profiles(include_experimental=True)
+        all_count = len(profiles)
         assert all_count > stable_count
+        aliases = {profile.alias for profile in profiles}
+        assert {"deberta-v3-small", "distilroberta-base"} <= aliases
 
     def test_experimental_requires_explicit_flag(self):
         with pytest.raises(ValueError, match="experimental"):

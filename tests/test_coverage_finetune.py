@@ -517,7 +517,7 @@ class TestFinetuneNliBasic:
 
         tf_mod.AutoTokenizer.from_pretrained.assert_called_once_with("some/model")
         tf_mod.AutoModelForSequenceClassification.from_pretrained.assert_called_once_with(
-            "some/model", num_labels=2
+            "some/model", num_labels=2, ignore_mismatched_sizes=True
         )
 
     def test_model_saved_after_training(self, tmp_path, train_file):

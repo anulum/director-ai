@@ -94,6 +94,32 @@ _MODEL_PROFILES: tuple[TrainingModelProfile, ...] = (
         hardware_profile="single-l4-or-a100",
         notes="Legacy MNLI candidate for comparison sweeps; not production default.",
     ),
+    TrainingModelProfile(
+        alias="deberta-v3-small",
+        model_id="microsoft/deberta-v3-small",
+        status="experimental",
+        template="sequence-pair",
+        label_count=2,
+        baseline_accuracy=0.0,
+        default_max_length=512,
+        recommended_batch_size=8,
+        recommended_learning_rate=2e-5,
+        hardware_profile="single-t4",
+        notes="Smaller DeBERTa candidate for cheaper customer-managed jobs.",
+    ),
+    TrainingModelProfile(
+        alias="distilroberta-base",
+        model_id="distilroberta-base",
+        status="experimental",
+        template="sequence-pair",
+        label_count=2,
+        baseline_accuracy=0.0,
+        default_max_length=512,
+        recommended_batch_size=16,
+        recommended_learning_rate=2e-5,
+        hardware_profile="single-t4",
+        notes="Cheap smoke and low-latency baseline; must pass benchmark before activation.",
+    ),
 )
 
 _BY_ALIAS = {profile.alias: profile for profile in _MODEL_PROFILES}
