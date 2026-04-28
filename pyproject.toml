@@ -44,12 +44,12 @@ dependencies = [
 
 [project.optional-dependencies]
 nli = [
-    "torch>=2.6,<2.7",
-    "transformers>=4.30,<5",
+    "torch>=2.8,<3",
+    "transformers>=5.0.0rc3,<6",
 ]
 vector = [
     "chromadb>=0.4.0",
-    "sentence-transformers>=2.2,<4",
+    "sentence-transformers>=4,<6",
 ]
 openai = ["openai>=1.0"]
 anthropic = ["anthropic>=0.20"]
@@ -90,8 +90,8 @@ grpc = [
     "protobuf>=4.25",
 ]
 finetune = [
-    "torch>=2.6,<2.7",
-    "transformers>=4.30,<5",
+    "torch>=2.8,<3",
+    "transformers>=5.0.0rc3,<6",
     "datasets>=2.14",
     "accelerate>=0.21",
     "scikit-learn>=1.3",
@@ -106,20 +106,20 @@ qdrant = ["qdrant-client>=1.7"]
 faiss = ["faiss-cpu>=1.7"]
 elasticsearch = ["elasticsearch>=8.0,<9"]
 reranker = [
-    "sentence-transformers>=2.2,<4",
+    "sentence-transformers>=4,<6",
 ]
 embeddings = [
-    "sentence-transformers>=2.2,<4",
+    "sentence-transformers>=4,<6",
 ]
 license = [
     "polar-sdk==0.31.3",
 ]
 embed = [
-    "sentence-transformers>=2.2,<4",
+    "sentence-transformers>=4,<6",
 ]
 nli-lite = [
     "onnxruntime>=1.15,<2",
-    "transformers>=4.30",
+    "transformers>=5.0.0rc3,<6",
 ]
 langgraph = [
     "langgraph>=0.2",
@@ -135,6 +135,7 @@ docs = [
     "mkdocs-material>=9.5",
     "mkdocstrings[python]>=0.24",
     "mkdocs-jupyter>=0.25",
+    "nbconvert>=7.17.1",
 ]
 otel = [
     "opentelemetry-api>=1.20",
@@ -194,12 +195,13 @@ reports = [
     "weasyprint>=60",
     "jinja2>=3.1",
 ]
-autogen = [
-    "pyautogen>=0.2",
-]
+# pyautogen currently pulls diskcache<=5.6.3, which has no patched release for
+# GHSA-cw7p-q79f-m2v7. Keep the extra name stable but do not install the
+# vulnerable optional stack until upstream ships a safe dependency path.
+autogen = []
 research = []
 train = [
-    "transformers>=4.30",
+    "transformers>=5.0.0rc3,<6",
     "datasets>=2.14",
     "accelerate>=0.21",
     "peft>=0.6",
