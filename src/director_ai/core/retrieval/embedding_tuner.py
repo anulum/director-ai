@@ -13,7 +13,7 @@ chunks within the same document are positives, chunks from different
 documents are negatives. Trains for a few epochs to adapt the embedding
 space to the customer's terminology.
 
-Requires ``pip install sentence-transformers>=2.2``.
+Requires ``pip install sentence-transformers>=4``.
 """
 
 from __future__ import annotations

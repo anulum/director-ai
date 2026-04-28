@@ -39,7 +39,7 @@ source /opt/director-venv/bin/activate
 pip install --upgrade pip==24.3.1 setuptools==75.8.0 wheel==0.45.1 -q
 
 # PyTorch with CUDA
-pip install torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cu121 -q
+pip install torch==2.8.0 torchvision==0.23.0 -q
 
 # Project dependencies
 pip install -r gpu_deploy/requirements_modernbert.txt -q
@@ -86,7 +86,7 @@ python3 -c "
 import transformers, torch, datasets
 v = transformers.__version__
 major, minor = int(v.split('.')[0]), int(v.split('.')[1])
-assert major >= 5 or (major == 4 and minor >= 48), f'transformers >= 4.48 required, got {v}'
+assert major >= 5, f'transformers >= 5.0 required, got {v}'
 print(f'transformers {v}')
 print(f'torch {torch.__version__}')
 print(f'datasets {datasets.__version__}')

@@ -84,6 +84,6 @@ For reproducible exports:
 ```
 onnxruntime-gpu==1.19.2
 optimum==1.23.1
-torch>=2.2.0
-transformers>=4.40.0
+torch>=2.8.0
+transformers>=5.0.0rc3
 ```

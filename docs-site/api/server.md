@@ -150,6 +150,8 @@ The queue collects concurrent `/v1/review` requests and flushes them as a single
 Managed training endpoints submit customer-owned fine-tuning jobs through the
 same backend as the CLI. Scope requests with `X-Tenant-ID`; list, status, and
 cancel only return jobs submitted by the same tenant during the server process.
+Install the `managed-training` extra to include the Vertex AI SDK; the lock is
+kept at the patched `google-cloud-aiplatform>=1.133` floor.
 
 ```bash
 curl -X POST http://localhost:8080/v1/finetune/managed/submit \
