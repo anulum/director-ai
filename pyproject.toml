@@ -188,7 +188,7 @@ enterprise = [
     "psycopg2-binary>=2.9",
 ]
 ui = [
-    "gradio>=4.0,<5",
+    "gradio>=4.0,<7",
 ]
 reports = [
     "weasyprint>=60",
@@ -205,7 +205,7 @@ train = [
     "peft>=0.6",
 ]
 managed-training = [
-    "google-cloud-aiplatform>=1.70",
+    "google-cloud-aiplatform>=1.133",
     "google-cloud-storage>=2.14",
 ]
 security = [
@@ -317,8 +317,12 @@ source = ["src/director_ai"]
 branch = true
 omit = [
     "src/director_ai/grpc_server.py",       # requires [grpc] extras (grpcio)
+    "src/director_ai/grpc_scoring.py",      # requires [grpc] extras (grpcio)
     "src/director_ai/director_pb2.py",      # generated protobuf stubs
     "src/director_ai/director_pb2_grpc.py", # generated gRPC stubs
+    "src/director_ai/proto/converters.py",  # protobuf bridge covered in extras
+    "src/director_ai/proto/director/v1/director_pb2.py",
+    "src/director_ai/proto/director/v1/director_pb2_grpc.py",
     "src/director_ai/enterprise/*",         # requires [enterprise] extras (Redis)
     "src/director_ai/core/finetune.py",     # requires [nli] extras (torch)
     "src/director_ai/core/finetune_benchmark.py",
