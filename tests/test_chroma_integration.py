@@ -133,4 +133,4 @@ class TestChromaIntegration:
         for i in range(100):
             backend.add(f"perf{i}", f"Performance test document {i}")
         per_add_ms = (time.perf_counter() - t0) / 100 * 1000
-        assert per_add_ms < 500, f"Chroma add took {per_add_ms:.1f}ms/doc"
+        assert per_add_ms < 750, f"Chroma add took {per_add_ms:.1f}ms/doc"

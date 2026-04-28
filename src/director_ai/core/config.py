@@ -40,8 +40,7 @@ class DirectorConfig:
     nli_model : str — HuggingFace model ID for NLI.
     max_candidates : int — number of LLM candidates to generate.
     history_window : int — scorer rolling history size.
-    llm_provider : str — LLM backend: mock, openai, anthropic,
-        huggingface, or local.
+    llm_provider : str — LLM backend name.
     llm_api_url : str — API endpoint URL (for "local" provider).
     llm_api_key : str — API key (for cloud providers).
     llm_model : str — model name for cloud providers.
@@ -94,11 +93,11 @@ class DirectorConfig:
 
     # LLM-as-judge escalation
     # WARNING: when enabled, user prompts and responses are sent to the
-    # configured external LLM provider (OpenAI / Anthropic) for scoring.
+    # configured external LLM provider for scoring.
     # Do not enable in privacy-sensitive deployments without user consent.
     llm_judge_enabled: bool = False
     llm_judge_confidence_threshold: float = 0.3
-    llm_judge_provider: str = ""  # "openai", "anthropic", or "local"
+    llm_judge_provider: str = ""  # cloud or local judge backend name
     llm_judge_model: str = ""
     llm_judge_local_model: str = ""  # path to local judge checkpoint
     privacy_mode: bool = False
@@ -114,6 +113,13 @@ class DirectorConfig:
     vector_backend: str = "memory"
     embedding_model: str = "BAAI/bge-large-en-v1.5"
     embedding_model_revision: str = "d4aa6901d3a41ba39fb536a557fa166f842b0e09"
+    embedding_base_url: str = ""
+    embedding_api_key: str = ""
+    embedding_timeout_s: float = 10.0
+    embedding_vector_size: int = 384
+    remanentia_base_url: str = "http://127.0.0.1:8001"
+    remanentia_timeout_s: float = 5.0
+    remanentia_source: str = ""
     chroma_collection: str = "director_ai"
     chroma_persist_dir: str = ""
     hybrid_retrieval: bool = True  # BM25 + dense with Reciprocal Rank Fusion
@@ -185,6 +191,9 @@ class DirectorConfig:
 
     # EU AI Act compliance
     compliance_db_path: str = ""
+
+    # Human feedback for online calibration (empty = feedback API disabled)
+    feedback_db_path: str = ""
 
     # Tenant routing
     tenant_routing: bool = False
@@ -399,6 +408,25 @@ class DirectorConfig:
             raise ValueError(
                 "embedding_model must be set when vector_backend='sentence-transformer'",
             )
+        if self.vector_backend == "http-faiss":
+            if not self.embedding_base_url.strip():
+                raise ValueError(
+                    "embedding_base_url must be set when vector_backend='http-faiss'",
+                )
+            if not self.embedding_model.strip():
+                raise ValueError(
+                    "embedding_model must be set when vector_backend='http-faiss'",
+                )
+        if self.vector_backend == "remanentia" and not self.remanentia_base_url.strip():
+            raise ValueError(
+                "remanentia_base_url must be set when vector_backend='remanentia'",
+            )
+        if self.embedding_timeout_s <= 0:
+            raise ValueError("embedding_timeout_s must be > 0")
+        if self.embedding_vector_size < 1:
+            raise ValueError("embedding_vector_size must be >= 1")
+        if self.remanentia_timeout_s <= 0:
+            raise ValueError("remanentia_timeout_s must be > 0")
 
     @classmethod
     def from_env(cls, prefix: str = "DIRECTOR_") -> DirectorConfig:
@@ -681,6 +709,32 @@ class DirectorConfig:
                     "sentence-transformers not installed, falling back to memory",
                 )
                 backend = InMemoryBackend()
+        elif self.vector_backend == "http-faiss":
+            try:
+                from .retrieval.vector_store import FAISSBackend, HttpEmbeddingFunction
+
+                embed_fn = HttpEmbeddingFunction(
+                    base_url=self.embedding_base_url,
+                    model=self.embedding_model,
+                    api_key=self.embedding_api_key,
+                    timeout_s=self.embedding_timeout_s,
+                    vector_size=self.embedding_vector_size,
+                )
+                backend = FAISSBackend(
+                    embed_fn=embed_fn,
+                    vector_size=self.embedding_vector_size,
+                )
+            except ImportError:
+                logger.warning("faiss not installed, falling back to memory")
+                backend = InMemoryBackend()
+        elif self.vector_backend == "remanentia":
+            from .retrieval.vector_store import RemanentiaVectorBackend
+
+            backend = RemanentiaVectorBackend(
+                base_url=self.remanentia_base_url,
+                timeout_s=self.remanentia_timeout_s,
+                source=self.remanentia_source,
+            )
         else:
             # Try vector backend registry for third-party / unrecognized names
             try:
@@ -695,7 +749,9 @@ class DirectorConfig:
                 )
                 backend = InMemoryBackend()
 
-        if self.hybrid_retrieval:
+        local_decorators_enabled = self.vector_backend != "remanentia"
+
+        if self.hybrid_retrieval and local_decorators_enabled:
             try:
                 from .retrieval.vector_store import HybridBackend
 
@@ -704,7 +760,7 @@ class DirectorConfig:
             except ImportError:
                 logger.warning("HybridBackend unavailable, using dense-only retrieval")
 
-        if self.reranker_enabled:
+        if self.reranker_enabled and local_decorators_enabled:
             try:
                 from .retrieval.vector_store import RerankedBackend
 
@@ -914,6 +970,7 @@ class DirectorConfig:
     _REDACTED_FIELDS: frozenset[str] = frozenset(
         {
             "llm_api_key",
+            "embedding_api_key",
             "api_keys",
             "api_key_tenant_map",
             "audit_postgres_url",

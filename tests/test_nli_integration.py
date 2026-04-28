@@ -20,7 +20,7 @@ import pytest
 from director_ai.core.nli import NLIScorer
 
 # Skip if model can't load (no torch, no network, etc.)
-_scorer = NLIScorer(use_model=True)
+_scorer = NLIScorer(use_model=True, device="cpu")
 _model_ok = _scorer.model_available
 
 
@@ -32,7 +32,7 @@ class TestDeBERTaIntegration:
 
     @pytest.fixture(scope="class")
     def scorer(self):
-        return NLIScorer(use_model=True)
+        return NLIScorer(use_model=True, device="cpu")
 
     def test_model_loads(self, scorer):
         assert scorer.model_available

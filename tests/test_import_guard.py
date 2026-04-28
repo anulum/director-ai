@@ -38,7 +38,7 @@ CORE_MODULES = [
 
 def _top_level_imports(filepath: Path) -> set[str]:
     """Extract all top-level import names from a Python file."""
-    tree = ast.parse(filepath.read_text())
+    tree = ast.parse(filepath.read_text(encoding="utf-8"))
     imports = set()
     for node in ast.walk(tree):
         if isinstance(node, ast.Import) and node.col_offset == 0:

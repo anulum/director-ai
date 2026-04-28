@@ -264,6 +264,9 @@ def clear_model_cache() -> None:
     """Evict all cached NLI models to free GPU memory."""
     _load_nli_model.cache_clear()
     _load_onnx_session.cache_clear()
+    from .._device import release_torch_cuda
+
+    release_torch_cuda()
     logger.info("NLI model cache cleared")
 
 
@@ -591,7 +594,18 @@ class NLIScorer:
             return self._heuristic_score(premise, hypothesis)
         if not self._ensure_minicheck() or self._minicheck is None:
             return self._heuristic_score(premise, hypothesis)
-        result = self._minicheck.score(docs=[premise], claims=[hypothesis])
+        try:
+            result = self._minicheck.score(docs=[premise], claims=[hypothesis])
+        except (
+            RuntimeError,
+            OSError,
+            ValueError,
+            AttributeError,
+            NotImplementedError,
+        ) as e:
+            logger.warning("MiniCheck score failed: %s; using heuristic fallback", e)
+            self._minicheck = None
+            return self._heuristic_score(premise, hypothesis)
         # MiniCheck returns (pred_labels, max_probs, sentences, prob_arrays)
         if isinstance(result, tuple):
             _, max_probs, *_ = result
@@ -605,7 +619,20 @@ class NLIScorer:
             return [self._heuristic_score(p, h) for p, h in pairs]
         docs = [p for p, _ in pairs]
         claims = [h for _, h in pairs]
-        result = self._minicheck.score(docs=docs, claims=claims)
+        try:
+            result = self._minicheck.score(docs=docs, claims=claims)
+        except (
+            RuntimeError,
+            OSError,
+            ValueError,
+            AttributeError,
+            NotImplementedError,
+        ) as e:
+            logger.warning(
+                "MiniCheck batch score failed: %s; using heuristic fallback", e
+            )
+            self._minicheck = None
+            return [self._heuristic_score(p, h) for p, h in pairs]
         if isinstance(result, tuple):
             _, max_probs, *_ = result
             preds = max_probs

@@ -27,7 +27,15 @@ class TestFeedbackStoreBasic:
 
     def test_report_and_retrieve(self, tmp_path):
         store = FeedbackStore(tmp_path / "test.db")
-        store.report("What is X?", "X is Y.", True, False, 0.7)
+        store.report(
+            "What is X?",
+            "X is Y.",
+            True,
+            False,
+            0.7,
+            review_id="rev-1",
+            tenant_id="tenant-a",
+        )
         assert store.count() == 1
         corrections = store.get_corrections()
         assert len(corrections) == 1
@@ -35,6 +43,8 @@ class TestFeedbackStoreBasic:
         assert corrections[0].guardrail_approved is True
         assert corrections[0].human_approved is False
         assert corrections[0].guardrail_score == 0.7
+        assert corrections[0].review_id == "rev-1"
+        assert corrections[0].tenant_id == "tenant-a"
         store.close()
 
     def test_multiple_reports(self, tmp_path):
@@ -155,6 +165,13 @@ class TestFeedbackStorePerformanceDoc:
         store.report("q", "a", True, False, domain="test")
         data = store.export_training_data()
         assert len(data) == 1
-        for field in ["prompt", "response", "label", "domain"]:
+        for field in [
+            "prompt",
+            "response",
+            "label",
+            "domain",
+            "review_id",
+            "tenant_id",
+        ]:
             assert field in data[0], f"Missing: {field}"
         store.close()

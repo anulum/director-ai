@@ -30,7 +30,10 @@ def _make_reranked(base, top_k_multiplier=3):
     """Build RerankedBackend with mocked sentence-transformers import."""
     mock_st = MagicMock()
     mock_st.CrossEncoder.return_value = _MockCrossEncoder()
-    with patch.dict("sys.modules", {"sentence_transformers": mock_st}):
+    with (
+        patch.dict("os.environ", {"DIRECTOR_FORCE_CPU": "1"}),
+        patch.dict("sys.modules", {"sentence_transformers": mock_st}),
+    ):
         return RerankedBackend(base, top_k_multiplier=top_k_multiplier)
 
 

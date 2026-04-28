@@ -247,6 +247,7 @@ class TestSummarizationEvidenceAttribution:
             ["attr1"],
         )
         scorer._nli = mock_nli
+        scorer._minicheck_nli = None
 
         from director_ai.core.types import EvidenceChunk, ScoringEvidence
 
