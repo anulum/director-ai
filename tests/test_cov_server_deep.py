@@ -8,6 +8,9 @@
 
 from __future__ import annotations
 
+import asyncio
+import threading
+
 import pytest
 
 pytest.importorskip("fastapi", reason="fastapi not installed")
@@ -188,6 +191,94 @@ class TestWsAuthAndErrors:
             ws.send_json([1, 2, 3])
             data = ws.receive_json()
             assert "error" in data
+
+    def test_ws_streaming_oversight_returns_frame(self):
+        from starlette.testclient import TestClient
+
+        cfg = DirectorConfig(use_nli=False)
+        from director_ai.server import create_app
+
+        app = create_app(config=cfg)
+        with TestClient(app) as c, c.websocket_connect("/v1/stream") as ws:
+            ws.send_json(
+                {
+                    "session_id": "stream-oversight-regression",
+                    "prompt": "What is 2+2?",
+                    "streaming_oversight": True,
+                }
+            )
+            data = ws.receive_json()
+
+        assert data["session_id"] == "stream-oversight-regression"
+        assert data["type"] in {"result", "halt"}
+        assert "output" in data
+        assert "coherence" in data
+        assert "error" not in data
+
+    def test_ws_cancel_sets_processing_cancel_event(self):
+        from starlette.testclient import TestClient
+
+        cfg = DirectorConfig(use_nli=False)
+        from director_ai.server import create_app
+
+        class SlowAgent:
+            def __init__(self):
+                self.started = threading.Event()
+                self.cancel_event = None
+
+            async def aprocess(self, prompt, tenant_id="", cancel_event=None):
+                self.cancel_event = cancel_event
+                self.started.set()
+                while cancel_event is not None and not cancel_event.is_set():
+                    await asyncio.sleep(0.01)
+                raise RuntimeError("processing cancelled")
+
+        agent = SlowAgent()
+        app = create_app(config=cfg)
+        with TestClient(app) as c:
+            app.state._state["agent"] = agent
+            with c.websocket_connect("/v1/stream") as ws:
+                ws.send_json({"session_id": "cancel-me", "prompt": "slow work"})
+                assert agent.started.wait(1.0)
+                ws.send_json({"action": "cancel", "session_id": "cancel-me"})
+                data = ws.receive_json()
+
+        assert data == {"session_id": "cancel-me", "type": "cancelled"}
+        assert agent.cancel_event is not None
+        assert agent.cancel_event.is_set()
+
+    def test_ws_rejects_requests_above_active_limit(self, monkeypatch):
+        from starlette.testclient import TestClient
+
+        import director_ai.server as server_mod
+
+        monkeypatch.setattr(server_mod, "_WS_MAX_CONCURRENT", 1)
+        cfg = DirectorConfig(use_nli=False)
+
+        class SlowAgent:
+            def __init__(self):
+                self.started = threading.Event()
+
+            async def aprocess(self, prompt, tenant_id="", cancel_event=None):
+                self.started.set()
+                while cancel_event is not None and not cancel_event.is_set():
+                    await asyncio.sleep(0.01)
+                raise RuntimeError("processing cancelled")
+
+        agent = SlowAgent()
+        app = server_mod.create_app(config=cfg)
+        with TestClient(app) as c:
+            app.state._state["agent"] = agent
+            with c.websocket_connect("/v1/stream") as ws:
+                ws.send_json({"session_id": "first", "prompt": "slow work"})
+                assert agent.started.wait(1.0)
+                ws.send_json({"session_id": "second", "prompt": "queued work"})
+                data = ws.receive_json()
+                ws.send_json({"action": "cancel", "session_id": "first"})
+                ws.receive_json()
+
+        assert data["session_id"] == "second"
+        assert data["error"] == "too many active sessions"
 
 
 class TestSourceEndpoint:

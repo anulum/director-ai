@@ -60,6 +60,43 @@ class ReviewResponse(BaseModel):
     evidence: dict | None = None
 
 
+class FeedbackRequest(BaseModel):
+    prompt: str = Field(
+        ..., min_length=1, max_length=_MAX_PROMPT_CHARS, description="Original prompt"
+    )
+    response: str = Field(
+        ...,
+        min_length=1,
+        max_length=_MAX_RESPONSE_CHARS,
+        description="Reviewed response",
+    )
+    guardrail_approved: bool
+    human_approved: bool
+    guardrail_score: float = Field(0.0, ge=0.0, le=1.0)
+    domain: str = Field("", max_length=128)
+    review_id: str = Field("", max_length=128)
+
+
+class FeedbackResponse(BaseModel):
+    accepted: bool
+    correction_count: int
+    disagreement: bool
+    tenant_id: str = ""
+    review_id: str = ""
+
+
+class FeedbackCalibrationResponse(BaseModel):
+    correction_count: int
+    optimal_threshold: float | None
+    current_accuracy: float
+    tpr: float
+    tnr: float
+    fpr: float
+    fnr: float
+    fpr_ci: float
+    fnr_ci: float
+
+
 class ProcessResponse(BaseModel):
     output: str
     coherence: float | None

@@ -219,6 +219,25 @@ def test_source_disabled_returns_404():
     assert r.status_code == 404
 
 
+def test_bare_license_key_does_not_waive_agpl(monkeypatch, tmp_path):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv(
+        "DIRECTOR_LICENSE_KEY",
+        "DAI-PRO-550e8400-e29b-41d4-a716-446655440000",
+    )
+    monkeypatch.delenv("DIRECTOR_LICENSE_FILE", raising=False)
+
+    cfg = DirectorConfig(api_keys=[], llm_provider="mock", use_nli=False)
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        source = client.get("/v1/source")
+
+    assert source.status_code == 200
+    data = source.json()
+    assert data["license"] == "AGPL-3.0-or-later"
+    assert data["agpl_section"] == "13"
+
+
 def test_source_custom_repo_url():
     cfg = DirectorConfig(
         api_keys=[],

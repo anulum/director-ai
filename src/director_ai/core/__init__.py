@@ -94,8 +94,20 @@ from .scoring.verified_scorer import ClaimVerdict, VerificationResult, VerifiedS
 
 # --- Training ---
 from .training.finetune import FinetuneConfig, FinetuneResult, finetune_nli
-from .training.finetune_benchmark import RegressionReport, benchmark_finetuned_model
+from .training.finetune_benchmark import (
+    ModelBenchmarkReport,
+    ModelBenchmarkResult,
+    RegressionReport,
+    benchmark_finetuned_model,
+    benchmark_model_candidates,
+)
 from .training.finetune_validator import DataQualityReport, validate_finetune_data
+from .training.model_registry import (
+    TrainingModelProfile,
+    finetune_model_registry_to_dict,
+    list_finetune_model_profiles,
+    resolve_finetune_model,
+)
 from .training.tuner import TuneResult, tune
 from .types import (
     ClaimAttribution,
@@ -161,7 +173,10 @@ __all__ = [
     "DataQualityReport",
     "FinetuneConfig",
     "FinetuneResult",
+    "ModelBenchmarkReport",
+    "ModelBenchmarkResult",
     "RegressionReport",
+    "TrainingModelProfile",
     "TuneResult",
     # Types
     "ClaimAttribution",
@@ -182,18 +197,22 @@ __all__ = [
     "ScoreCache",
     # Functions
     "benchmark_finetuned_model",
+    "benchmark_model_candidates",
     "clear_model_cache",
     "export_onnx",
     "export_tensorrt",
     "finetune_nli",
+    "finetune_model_registry_to_dict",
     "tune",
     "get_backend",
     "get_vector_backend",
     "list_backends",
+    "list_finetune_model_profiles",
     "list_vector_backends",
     "nli_available",
     "register_backend",
     "register_vector_backend",
+    "resolve_finetune_model",
     "validate_finetune_data",
     # Calibration
     "CalibrationReport",

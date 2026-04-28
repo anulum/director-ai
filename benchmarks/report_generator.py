@@ -50,7 +50,7 @@ def load_json(path: Path) -> dict[str, Any] | None:
     if not path.is_file():
         return None
     try:
-        with open(path) as f:
+        with open(path, encoding="utf-8") as f:
             return json.load(f)
     except (json.JSONDecodeError, OSError):
         return None
@@ -256,7 +256,7 @@ def generate_report(
     lines.append("Co-Authored-By: Arcane Sapience <protoscience@anulum.li>")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
-    output_path.write_text("\n".join(lines))
+    output_path.write_text("\n".join(lines), encoding="utf-8")
     return output_path
 
 

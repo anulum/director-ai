@@ -100,6 +100,28 @@ class TestVectorGroundTruthStore:
         assert chunks[0].source == "keyword"
         assert "Tenant-scoped fallback fact" in chunks[0].text
 
+    def test_keyword_fallback_separates_explicit_tenants(self):
+        class EmptyBackend(InMemoryBackend):
+            def query(self, text, n_results=3, tenant_id=""):
+                return []
+
+        store = VectorGroundTruthStore(backend=EmptyBackend())
+        store.add_fact("secret", "Tenant A fallback fact", tenant_id="tenant_a")
+        store.add_fact("secret", "Tenant B fallback fact", tenant_id="tenant_b")
+
+        ctx_a = store.retrieve_context("secret", tenant_id="tenant_a")
+        ctx_b = store.retrieve_context("secret", tenant_id="tenant_b")
+        chunks_a = store.retrieve_context_with_chunks("secret", tenant_id="tenant_a")
+
+        assert ctx_a is not None
+        assert ctx_b is not None
+        assert "Tenant A" in ctx_a
+        assert "Tenant B" not in ctx_a
+        assert "Tenant B" in ctx_b
+        assert "Tenant A" not in ctx_b
+        assert len(chunks_a) == 1
+        assert "Tenant A" in chunks_a[0].text
+
     def test_tenant_id_stored(self):
         store = VectorGroundTruthStore(tenant_id="acme")
         assert store.tenant_id == "acme"

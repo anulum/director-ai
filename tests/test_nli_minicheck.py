@@ -130,7 +130,9 @@ class TestGetMinicheckScorer:
         from director_ai.core.scoring.scorer import CoherenceScorer
 
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
-        result = scorer._get_minicheck_scorer()
+        with patch("director_ai.core.scoring.scorer.NLIScorer") as mock_nli:
+            mock_nli.return_value._ensure_minicheck.return_value = False
+            result = scorer._get_minicheck_scorer()
         assert result is None
         assert scorer._minicheck_nli is None
 
@@ -138,12 +140,16 @@ class TestGetMinicheckScorer:
         from director_ai.core.scoring.scorer import CoherenceScorer
 
         scorer = CoherenceScorer(threshold=0.3, use_nli=False)
-        scorer._get_minicheck_scorer()
+        with patch("director_ai.core.scoring.scorer.NLIScorer") as mock_nli:
+            mock_nli.return_value._ensure_minicheck.return_value = False
+            scorer._get_minicheck_scorer()
+            mock_nli.reset_mock()
         assert hasattr(scorer, "_minicheck_nli")
         assert scorer._minicheck_nli is None
         # Second call returns cached None without retry
         result = scorer._get_minicheck_scorer()
         assert result is None
+        mock_nli.assert_not_called()
 
     def test_returns_cached_value_on_subsequent_calls(self):
         from director_ai.core.scoring.scorer import CoherenceScorer
