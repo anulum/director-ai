@@ -1649,14 +1649,17 @@ demo = [
 ]
 dev = [
     { name = "bandit" },
+    { name = "beautifulsoup4" },
     { name = "build" },
     { name = "fastapi" },
     { name = "httpx" },
     { name = "mypy" },
     { name = "pydantic" },
+    { name = "pypdf" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
+    { name = "python-docx" },
     { name = "python-multipart" },
     { name = "pyyaml" },
     { name = "ruff" },
@@ -1829,6 +1832,7 @@ requires-dist = [
     { name = "argon2-cffi", marker = "extra == 'enterprise'", specifier = ">=23.1" },
     { name = "backfire-kernel", marker = "extra == 'rust'", specifier = ">=0.1.0" },
     { name = "bandit", marker = "extra == 'dev'", specifier = ">=1.7" },
+    { name = "beautifulsoup4", marker = "extra == 'dev'", specifier = ">=4.12" },
     { name = "beautifulsoup4", marker = "extra == 'ingestion'", specifier = ">=4.12" },
     { name = "bitsandbytes", marker = "extra == 'quantize'", specifier = ">=0.41" },
     { name = "boto3", marker = "extra == 'auto-kb'", specifier = ">=1.26" },
@@ -1889,10 +1893,12 @@ requires-dist = [
     { name = "pydantic", marker = "extra == 'dev'", specifier = ">=2.0" },
     { name = "pydantic", marker = "extra == 'server'", specifier = ">=2.0" },
     { name = "pyjwt", marker = "extra == 'enterprise'", specifier = ">=2.8" },
+    { name = "pypdf", marker = "extra == 'dev'", specifier = ">=3.0" },
     { name = "pypdf", marker = "extra == 'ingestion'", specifier = ">=3.0" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=7.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.21" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=4.0" },
+    { name = "python-docx", marker = "extra == 'dev'", specifier = ">=1.0" },
     { name = "python-docx", marker = "extra == 'ingestion'", specifier = ">=1.0" },
     { name = "python-multipart", marker = "extra == 'dev'", specifier = ">=0.0.7" },
     { name = "python-multipart", marker = "extra == 'server'", specifier = ">=0.0.7" },
@@ -9099,7 +9105,7 @@ wheels = [
 
 [[package]]
 name = "weaviate-client"
-version = "4.20.5"
+version = "4.21.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "authlib" },
@@ -9109,9 +9115,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "validators" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/81/c8/aa47cfa0a2b1e260846eaf04ce4cc2ab1bb03f29d793e7b009bc3e3babc7/weaviate_client-4.20.5.tar.gz", hash = "sha256:c07c688f0e6b78723dfecbcfeebf897cefa75f1a89c63ebd84aab88c662e4394", size = 811866, upload-time = "2026-04-09T20:08:45.268Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/ec/a2/6729149edc0bd5884bd0436186f7823f925ec489d47c327a3e408e514494/weaviate_client-4.21.0.tar.gz", hash = "sha256:050243b07f80349bbbaa3d426ace38466a972a073eff5cff62708ae5e9287dbe", size = 838731, upload-time = "2026-04-23T10:37:11.283Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/58/ba/d55f1a665802f736436d09198afc0d00806a405aadb9977193a2f009cfcb/weaviate_client-4.20.5-py3-none-any.whl", hash = "sha256:3f508e3dc08257f85230f9d2ea0562443ed0715e7e89156f22b7e950d6c08cdb", size = 620766, upload-time = "2026-04-09T20:08:43.215Z" },
+    { url = "https://files.pythonhosted.org/packages/83/6b/5ae0aa935602f58fa2c2f5062c3faed8615a45df4b0406eb2d9deeeae73c/weaviate_client-4.21.0-py3-none-any.whl", hash = "sha256:82904bce3aae8f38a880e860195f4a17e6b55810708780f718132199030c8260", size = 639005, upload-time = "2026-04-23T10:37:09.668Z" },
 ]
 
 [[package]]
