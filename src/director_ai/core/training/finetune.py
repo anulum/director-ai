@@ -36,6 +36,7 @@ import json
 import logging
 import random
 from collections import Counter
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -343,6 +344,11 @@ def finetune_nli(
     except ImportError as exc:
         raise ImportError("pip install director-ai[finetune]") from exc
 
+    with suppress(ImportError, AttributeError):
+        from director_ai.core.scoring.nli import clear_model_cache
+
+        clear_model_cache()
+
     # Phase E: mix general data to prevent catastrophic forgetting
     n_general_mixed = 0
     if config.mix_general_data:
@@ -430,71 +436,81 @@ def finetune_nli(
         callbacks=callbacks or None,
     )
 
-    logger.info(
-        "Starting fine-tuning: %d train, %d eval, %d epochs",
-        len(train_rows),
-        len(eval_rows or []),
-        config.epochs,
-    )
-    train_result = trainer.train()
-
-    trainer.save_model(config.output_dir)
-    tokenizer.save_pretrained(config.output_dir)
-    logger.info("Model saved to %s", config.output_dir)
-
-    result = FinetuneResult(
-        output_dir=config.output_dir,
-        epochs_completed=config.epochs,
-        train_samples=len(train_rows),
-        eval_samples=len(eval_rows or []),
-        final_loss=train_result.training_loss,
-        mixed_general_samples=n_general_mixed,
-    )
-
-    if eval_dataset:
-        eval_metrics = trainer.evaluate()
-        result.eval_metrics = eval_metrics
-        result.best_balanced_accuracy = eval_metrics.get("eval_balanced_accuracy", 0.0)
+    try:
         logger.info(
-            "Best balanced accuracy: %.1f%%",
-            result.best_balanced_accuracy * 100,
+            "Starting fine-tuning: %d train, %d eval, %d epochs",
+            len(train_rows),
+            len(eval_rows or []),
+            config.epochs,
+        )
+        train_result = trainer.train()
+
+        trainer.save_model(config.output_dir)
+        tokenizer.save_pretrained(config.output_dir)
+        logger.info("Model saved to %s", config.output_dir)
+
+        result = FinetuneResult(
+            output_dir=config.output_dir,
+            epochs_completed=config.epochs,
+            train_samples=len(train_rows),
+            eval_samples=len(eval_rows or []),
+            final_loss=train_result.training_loss,
+            mixed_general_samples=n_general_mixed,
         )
 
-    # Phase E: auto-benchmark against baseline
-    if config.auto_benchmark:
-        try:
-            from director_ai.core.training.finetune_benchmark import (
-                benchmark_finetuned_model,
+        if eval_dataset:
+            eval_metrics = trainer.evaluate()
+            result.eval_metrics = eval_metrics
+            result.best_balanced_accuracy = eval_metrics.get(
+                "eval_balanced_accuracy",
+                0.0,
             )
-
-            report = benchmark_finetuned_model(
-                config.output_dir,
-                eval_path=eval_path,
-            )
-            result.regression_report = {
-                "recommendation": report.recommendation,
-                "general_accuracy": report.general_accuracy,
-                "domain_accuracy": report.domain_accuracy,
-                "regression_pp": report.regression_pp,
-            }
             logger.info(
-                "Anti-regression: %s (%.1fpp)",
-                report.recommendation,
-                report.regression_pp,
+                "Best balanced accuracy: %.1f%%",
+                result.best_balanced_accuracy * 100,
             )
-        except Exception as exc:
-            logger.warning("Auto-benchmark failed: %s", exc)
 
-    # Phase E: auto ONNX export
-    if config.auto_onnx_export:
-        try:
-            from director_ai.core.scoring.nli import export_onnx
+        # Phase E: auto-benchmark against baseline
+        if config.auto_benchmark:
+            try:
+                from director_ai.core.training.finetune_benchmark import (
+                    benchmark_finetuned_model,
+                )
 
-            onnx_dir = str(Path(config.output_dir) / "onnx")
-            export_onnx(config.output_dir, onnx_dir)
-            result.onnx_path = onnx_dir
-            logger.info("ONNX exported to %s", onnx_dir)
-        except Exception as exc:
-            logger.warning("ONNX export failed: %s", exc)
+                report = benchmark_finetuned_model(
+                    config.output_dir,
+                    eval_path=eval_path,
+                )
+                result.regression_report = {
+                    "recommendation": report.recommendation,
+                    "general_accuracy": report.general_accuracy,
+                    "domain_accuracy": report.domain_accuracy,
+                    "regression_pp": report.regression_pp,
+                }
+                logger.info(
+                    "Anti-regression: %s (%.1fpp)",
+                    report.recommendation,
+                    report.regression_pp,
+                )
+            except Exception as exc:
+                logger.warning("Auto-benchmark failed: %s", exc)
 
-    return result
+        # Phase E: auto ONNX export
+        if config.auto_onnx_export:
+            try:
+                from director_ai.core.scoring.nli import export_onnx
+
+                onnx_dir = str(Path(config.output_dir) / "onnx")
+                export_onnx(config.output_dir, onnx_dir)
+                result.onnx_path = onnx_dir
+                logger.info("ONNX exported to %s", onnx_dir)
+            except Exception as exc:
+                logger.warning("ONNX export failed: %s", exc)
+
+        return result
+    finally:
+        with suppress(Exception):
+            trainer.model.to("cpu")
+        from .._device import release_torch_cuda
+
+        release_torch_cuda()
