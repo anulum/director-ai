@@ -96,7 +96,7 @@ class TestProtoFile:
 
         proto = Path(__file__).parent.parent / "proto" / "director.proto"
         assert proto.exists()
-        content = proto.read_text()
+        content = proto.read_text(encoding="utf-8")
         assert "DirectorService" in content
         assert "ReviewRequest" in content
         assert "StreamTokens" in content
@@ -126,7 +126,7 @@ class TestGrpcPerformanceDoc:
 
         proto = Path(__file__).parent.parent / "proto" / "director.proto"
         if proto.exists():
-            content = proto.read_text()
+            content = proto.read_text(encoding="utf-8")
             for service in ["ReviewRequest", "ProcessRequest", "StreamTokens"]:
                 assert service in content, f"Proto missing: {service}"
 

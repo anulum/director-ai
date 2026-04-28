@@ -11,6 +11,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import threading
 from collections.abc import AsyncIterator
 from typing import TYPE_CHECKING
 
@@ -161,15 +162,33 @@ class CoherenceAgent:
 
     _ERROR_MARKERS = ("[Timeout]", "[Error]", "[ConnectionError]", "[Connection Error]")
 
-    def process(self, prompt: str, tenant_id: str = "") -> ReviewResult:
+    @staticmethod
+    def _raise_if_cancelled(cancel_event: threading.Event | None) -> None:
+        if cancel_event is not None and cancel_event.is_set():
+            raise RuntimeError("processing cancelled")
+
+    def process(
+        self,
+        prompt: str,
+        tenant_id: str = "",
+        cancel_event: threading.Event | None = None,
+    ) -> ReviewResult:
         """Process a prompt end-to-end and return the verified output."""
         if not isinstance(prompt, str) or not prompt.strip():
             raise ValueError("prompt must be a non-empty string")
 
         self.logger.debug("Processing prompt (%d chars)", len(prompt))
+        self._raise_if_cancelled(cancel_event)
         candidates = self.generator.generate_candidates(prompt)
+        self._raise_if_cancelled(cancel_event)
 
-        best, rejected, n = self._score_candidates(candidates, prompt, tenant_id)
+        best, rejected, n = self._score_candidates(
+            candidates,
+            prompt,
+            tenant_id,
+            cancel_event=cancel_event,
+        )
+        self._raise_if_cancelled(cancel_event)
 
         if best[0] is not None:
             result = self._emit_approved(best, n)
@@ -232,12 +251,13 @@ class CoherenceAgent:
             )
         return self.passport_verifier.verify(passport)
 
-    def _score_candidates(self, candidates, prompt, tenant_id):
+    def _score_candidates(self, candidates, prompt, tenant_id, cancel_event=None):
         """Score all candidates, return (best_approved, best_rejected, count)."""
         best = (None, None, -1.0)  # (text, score, coherence)
         rejected = (None, None, -1.0)
 
         for i, cand in enumerate(candidates):
+            self._raise_if_cancelled(cancel_event)
             text = cand["text"]
             if any(text.strip().startswith(m) for m in self._ERROR_MARKERS):
                 self.logger.warning(
@@ -343,10 +363,21 @@ class CoherenceAgent:
             )
         return None
 
-    async def aprocess(self, prompt: str, tenant_id: str = "") -> ReviewResult:
+    async def aprocess(
+        self,
+        prompt: str,
+        tenant_id: str = "",
+        cancel_event: threading.Event | None = None,
+    ) -> ReviewResult:
         """Async version of :meth:`process` via ``run_in_executor``."""
         loop = asyncio.get_running_loop()
-        return await loop.run_in_executor(None, self.process, prompt, tenant_id)
+        return await loop.run_in_executor(
+            None,
+            self.process,
+            prompt,
+            tenant_id,
+            cancel_event,
+        )
 
     async def stream(
         self,

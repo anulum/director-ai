@@ -320,14 +320,14 @@ class TestGenerateReport:
         ret = generate_report(results, out)
         assert ret == out
         assert out.exists()
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         assert text.startswith("# Director-AI — AggreFact & Compute Benchmark Summary")
 
     def test_contains_every_judge(self, tmp_path):
         results = self._setup_results_dir(tmp_path)
         out = tmp_path / "report.md"
         generate_report(results, out)
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         assert "FactCG-DeBERTa" in text
         assert "gemma-4-E4B-Q6.gguf" in text
         assert "75.58%" in text
@@ -337,7 +337,7 @@ class TestGenerateReport:
         results = self._setup_results_dir(tmp_path)
         out = tmp_path / "report.md"
         generate_report(results, out)
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         assert "sanitizer_score" in text
         assert "27.0×" in text
 
@@ -345,7 +345,7 @@ class TestGenerateReport:
         results = self._setup_results_dir(tmp_path)
         out = tmp_path / "report.md"
         generate_report(results, out)  # no leaderboard arg
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         assert "external comparison" in text  # the omission note
 
     def test_external_leaderboard_renders_when_provided(self, tmp_path):
@@ -353,7 +353,7 @@ class TestGenerateReport:
         leaderboard = self._setup_leaderboard(tmp_path)
         out = tmp_path / "report.md"
         generate_report(results, out, leaderboard_path=leaderboard)
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         assert "FaithLens 8B" in text
         assert "86.40%" in text
 
@@ -361,7 +361,7 @@ class TestGenerateReport:
         results = self._setup_results_dir(tmp_path)
         out = tmp_path / "report.md"
         generate_report(results, out)
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         assert "sentinel-judge analyser" in text  # the omission note
 
     def test_sentinel_renders_when_provided(self, tmp_path):
@@ -369,7 +369,7 @@ class TestGenerateReport:
         sentinel = self._setup_sentinel(tmp_path)
         out = tmp_path / "report.md"
         generate_report(results, out, sentinel_path=sentinel)
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         assert "Oracle (upper bound)" in text
         assert "86.00%" in text
 
@@ -389,7 +389,7 @@ class TestGenerateReport:
             leaderboard_path=leaderboard,
             sentinel_path=sentinel,
         )
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         banned = [
             "comprehensive",
             "Comprehensive",
@@ -413,7 +413,7 @@ class TestGenerateReport:
         results.mkdir()
         out = tmp_path / "report.md"
         generate_report(results, out)
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         assert "No AggreFact judge JSONs" in text
         assert "rust_compute_bench.json" in text  # missing-rust note
         # The header is still present.
@@ -425,7 +425,7 @@ class TestGenerateReport:
         (results / "factcg.json").write_text(json.dumps(_aggrefact_eval_v2()))
         out = tmp_path / "report.md"
         generate_report(results, out)
-        text = out.read_text()
+        text = out.read_text(encoding="utf-8")
         assert "9.4×" not in text  # used to be hardcoded — must not be
         assert "27×" not in text
         assert "21×" not in text

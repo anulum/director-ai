@@ -29,6 +29,13 @@ from .composite import HybridBackend as HybridBackend
 from .composite import RerankedBackend as RerankedBackend
 from .embedding import ChromaBackend as ChromaBackend
 from .embedding import SentenceTransformerBackend as SentenceTransformerBackend
+from .http_embedding import HttpEmbeddingConnectionError as HttpEmbeddingConnectionError
+from .http_embedding import HttpEmbeddingDimensionError as HttpEmbeddingDimensionError
+from .http_embedding import HttpEmbeddingError as HttpEmbeddingError
+from .http_embedding import HttpEmbeddingFunction as HttpEmbeddingFunction
+from .http_embedding import HttpEmbeddingResponseError as HttpEmbeddingResponseError
+from .remanentia import RemanentiaBackendError as RemanentiaBackendError
+from .remanentia import RemanentiaVectorBackend as RemanentiaVectorBackend
 from .store import VectorGroundTruthStore as VectorGroundTruthStore
 from .vendors import ColBERTBackend as ColBERTBackend
 from .vendors import ElasticsearchBackend as ElasticsearchBackend
@@ -44,10 +51,17 @@ __all__ = [
     "ElasticsearchBackend",
     "FAISSBackend",
     "HybridBackend",
+    "HttpEmbeddingConnectionError",
+    "HttpEmbeddingDimensionError",
+    "HttpEmbeddingError",
+    "HttpEmbeddingFunction",
+    "HttpEmbeddingResponseError",
     "InMemoryBackend",
     "PineconeBackend",
     "QdrantBackend",
     "RerankedBackend",
+    "RemanentiaBackendError",
+    "RemanentiaVectorBackend",
     "SentenceTransformerBackend",
     "VectorBackend",
     "VectorGroundTruthStore",
@@ -63,6 +77,7 @@ __all__ = [
 register_vector_backend("memory", InMemoryBackend)
 register_vector_backend("sentence-transformer", SentenceTransformerBackend)
 register_vector_backend("hybrid", HybridBackend)
+register_vector_backend("remanentia", RemanentiaVectorBackend)
 
 
 # Probe optional vendor packages via ``importlib.util.find_spec`` —

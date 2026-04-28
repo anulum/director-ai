@@ -56,7 +56,13 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | `GET` | `/v1/stats/hourly` | Hourly scoring breakdown |
 | `GET` | `/v1/dashboard` | Dashboard summary (stats + top tenants) |
 | `POST` | `/v1/finetune/start` | Start domain fine-tuning job |
-| `GET` | `/v1/finetune/status` | Check fine-tuning job status |
+| `GET` | `/v1/finetune/{job_id}` | Check local fine-tuning job status |
+| `POST` | `/v1/finetune/managed/submit` | Submit or dry-run managed training |
+| `GET` | `/v1/finetune/managed/jobs` | List managed training submissions for a tenant |
+| `POST` | `/v1/finetune/managed/status` | Refresh managed training backend status |
+| `POST` | `/v1/finetune/managed/cancel` | Cancel a live managed training job |
+| `GET` | `/v1/finetune/managed/models` | List selectable managed training base models |
+| `POST` | `/v1/finetune/managed/benchmark-models` | Anti-regression benchmark for trained artefacts |
 | `POST` | `/v1/verify/numeric` | Numeric consistency verification |
 | `POST` | `/v1/verify/reasoning` | Reasoning chain logic verification |
 | `POST` | `/v1/temporal-freshness` | Temporal freshness / staleness scoring |
@@ -138,6 +144,43 @@ director-ai serve
 ```
 
 The queue collects concurrent `/v1/review` requests and flushes them as a single `review_batch()` call, reducing GPU kernel launches from 2*N to 2 per flush window (when NLI is available).
+
+## Managed Training
+
+Managed training endpoints submit customer-owned fine-tuning jobs through the
+same backend as the CLI. Scope requests with `X-Tenant-ID`; list, status, and
+cancel only return jobs submitted by the same tenant during the server process.
+
+```bash
+curl -X POST http://localhost:8080/v1/finetune/managed/submit \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-ID: acme' \
+  -d '{
+    "backend": "vertex",
+    "dry_run": false,
+    "dataset_uri": "gs://bucket/train.jsonl",
+    "eval_uri": "gs://bucket/eval.jsonl",
+    "output_uri": "gs://bucket/managed-training/acme/run-001",
+    "project": "project-id",
+    "region": "europe-west4",
+    "container_image_uri": "region-docker.pkg.dev/project/repo/image:tag",
+    "base_model": "factcg-deberta-v3-large"
+  }'
+```
+
+Check or cancel a submitted job with the backend-neutral job id returned by
+submit:
+
+```bash
+curl -X POST http://localhost:8080/v1/finetune/managed/status \
+  -H 'Content-Type: application/json' \
+  -H 'X-Tenant-ID: acme' \
+  -d '{"backend": "vertex", "job_id": "projects/.../customJobs/..."}'
+```
+
+Experimental model choices require `allow_experimental_model: true`. Promotion
+still requires `/v1/finetune/managed/benchmark-models`; submitted or harvested
+training metrics alone are not an activation gate.
 
 ## Injection Detection
 

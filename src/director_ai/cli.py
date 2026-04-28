@@ -34,6 +34,7 @@ from ._cli_bench import (
     _cmd_validate_data,
 )
 from ._cli_ingest import _INGEST_MAX_FILE_SIZE, _cmd_ingest
+from ._cli_train import _cmd_train
 
 # Historical re-export — downstream tests and tooling reach for
 # ``director_ai.cli._INGEST_MAX_FILE_SIZE``. Listing it in
@@ -83,6 +84,7 @@ def main(argv: list[str] | None = None) -> None:
         "eval": _cmd_eval,
         "bench": _cmd_bench,
         "tune": _cmd_tune,
+        "train": _cmd_train,
         "finetune": _cmd_finetune,
         "validate-data": _cmd_validate_data,
         "export": _cmd_export,
@@ -128,6 +130,7 @@ def _print_help() -> None:
         "  eval [--dataset D]    Run NLI benchmark suite\n"
         "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
         "  tune <file.jsonl> [--output config.yaml]  Find optimal threshold\n"
+        "  train submit [options]  Submit or dry-run a managed training job\n"
         "  finetune <train.jsonl> [options]  Fine-tune NLI model on domain data\n"
         "  validate-data <file.jsonl>       Validate data before fine-tuning\n"
         "  serve [--port N] [--workers W]  Start the FastAPI server\n"

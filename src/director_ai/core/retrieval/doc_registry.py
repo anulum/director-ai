@@ -65,11 +65,18 @@ class DocRegistry:
         )
         return record
 
-    def update(self, doc_id: str, chunk_ids: list[str]) -> DocRecord:
+    def update(
+        self,
+        doc_id: str,
+        chunk_ids: list[str],
+        source: str | None = None,
+    ) -> DocRecord:
         with self._lock:
             record = self._docs.get(doc_id)
             if record is None:
                 raise KeyError(f"Document {doc_id!r} not found")
+            if source is not None:
+                record.source = source
             record.chunk_ids = list(chunk_ids)
             record.chunk_count = len(chunk_ids)
             record.updated_at = time.time()

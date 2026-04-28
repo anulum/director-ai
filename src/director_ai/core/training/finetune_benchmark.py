@@ -26,8 +26,17 @@ from __future__ import annotations
 
 import json
 import logging
+import time
+from collections.abc import Mapping
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
+
+from .model_registry import (
+    TrainingModelProfile,
+    resolve_finetune_model,
+)
 
 logger = logging.getLogger("DirectorAI.FinetuneBenchmark")
 
@@ -60,6 +69,148 @@ class RegressionReport:
             f"Regression: {self.regression_pp:+.1f}pp",
             f"Recommendation: {self.recommendation}",
         ]
+        return "\n".join(lines)
+
+
+@dataclass
+class ModelBenchmarkResult:
+    """Benchmark result for one model candidate in a model-selection sweep."""
+
+    requested_model: str
+    alias: str
+    model_id: str
+    model_path: str
+    status: str
+    template: str
+    label_count: int
+    baseline_accuracy: float
+    recommended_batch_size: int
+    domain_accuracy: float = 0.0
+    domain_f1: float = 0.0
+    general_accuracy: float = 0.0
+    general_f1: float = 0.0
+    regression_pp: float = 0.0
+    recommendation: str = "reject"
+    elapsed_seconds: float = 0.0
+    error: str = ""
+    details: dict[str, Any] = field(default_factory=dict)
+
+    @classmethod
+    def from_report(
+        cls,
+        *,
+        requested_model: str,
+        profile: TrainingModelProfile,
+        model_path: str | Path,
+        report: RegressionReport,
+        elapsed_seconds: float,
+    ) -> ModelBenchmarkResult:
+        return cls(
+            requested_model=requested_model,
+            alias=profile.alias,
+            model_id=profile.model_id,
+            model_path=str(model_path),
+            status=profile.status,
+            template=profile.template,
+            label_count=profile.label_count,
+            baseline_accuracy=report.baseline_accuracy,
+            recommended_batch_size=profile.recommended_batch_size,
+            domain_accuracy=report.domain_accuracy,
+            domain_f1=report.domain_f1,
+            general_accuracy=report.general_accuracy,
+            general_f1=report.general_f1,
+            regression_pp=report.regression_pp,
+            recommendation=report.recommendation,
+            elapsed_seconds=elapsed_seconds,
+            details=dict(report.details),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "requested_model": self.requested_model,
+            "alias": self.alias,
+            "model_id": self.model_id,
+            "model_path": self.model_path,
+            "status": self.status,
+            "template": self.template,
+            "label_count": self.label_count,
+            "baseline_accuracy": self.baseline_accuracy,
+            "recommended_batch_size": self.recommended_batch_size,
+            "domain_accuracy": self.domain_accuracy,
+            "domain_f1": self.domain_f1,
+            "general_accuracy": self.general_accuracy,
+            "general_f1": self.general_f1,
+            "regression_pp": self.regression_pp,
+            "recommendation": self.recommendation,
+            "elapsed_seconds": self.elapsed_seconds,
+            "error": self.error,
+            "details": self.details,
+        }
+
+
+@dataclass
+class ModelBenchmarkReport:
+    """Same-input benchmark sweep across model candidates."""
+
+    results: list[ModelBenchmarkResult]
+    general_path: str = ""
+    eval_path: str = ""
+    generated_at: float = field(default_factory=time.time)
+    seed: int = 42
+    best_model_alias: str = ""
+    best_model_id: str = ""
+    selection_policy: str = "deployable_highest_general_accuracy"
+
+    def __post_init__(self) -> None:
+        if not self.best_model_alias:
+            winner = self._select_winner()
+            if winner is not None:
+                self.best_model_alias = winner.alias
+                self.best_model_id = winner.model_id
+
+    def _select_winner(self) -> ModelBenchmarkResult | None:
+        candidates = [
+            result
+            for result in self.results
+            if not result.error and result.recommendation != "reject"
+        ]
+        if not candidates:
+            return None
+        return max(
+            candidates,
+            key=lambda result: (
+                result.general_accuracy,
+                result.domain_accuracy,
+                -result.elapsed_seconds,
+            ),
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "generated_at": self.generated_at,
+            "general_path": self.general_path,
+            "eval_path": self.eval_path,
+            "seed": self.seed,
+            "selection_policy": self.selection_policy,
+            "best_model_alias": self.best_model_alias,
+            "best_model_id": self.best_model_id,
+            "results": [result.to_dict() for result in self.results],
+        }
+
+    def summary(self) -> str:
+        lines = [
+            "Model benchmark sweep",
+            f"General data: {self.general_path or 'not provided'}",
+            f"Domain data: {self.eval_path or 'not provided'}",
+            f"Best model: {self.best_model_alias or 'none'}",
+        ]
+        for result in self.results:
+            suffix = f" error={result.error}" if result.error else ""
+            lines.append(
+                f"- {result.alias}: general={result.general_accuracy:.1%}, "
+                f"domain={result.domain_accuracy:.1%}, rec={result.recommendation}"
+                f"{suffix}",
+            )
         return "\n".join(lines)
 
 
@@ -104,7 +255,7 @@ def _evaluate_model(
     model = AutoModelForSequenceClassification.from_pretrained(str(model_path))
     model.eval()
 
-    from .._device import select_torch_device
+    from .._device import release_torch_cuda, select_torch_device
 
     device = torch.device(select_torch_device())
     model.to(device)
@@ -123,25 +274,30 @@ def _evaluate_model(
         ]
     labels = [s["label"] for s in samples]
 
-    all_preds: list[int] = []
-    for i in range(0, len(texts), batch_size):
-        batch_texts = texts[i : i + batch_size]
-        encodings = tokenizer(
-            batch_texts,
-            truncation=True,
-            padding=True,
-            max_length=512,
-            return_tensors="pt",
-        )
-        encodings = {k: v.to(device) for k, v in encodings.items()}
-        with torch.no_grad():
-            logits = model(**encodings).logits
-        preds = torch.argmax(logits, dim=-1).cpu().numpy()
-        all_preds.extend(int(p) for p in preds.flatten())
+    try:
+        all_preds: list[int] = []
+        for i in range(0, len(texts), batch_size):
+            batch_texts = texts[i : i + batch_size]
+            encodings = tokenizer(
+                batch_texts,
+                truncation=True,
+                padding=True,
+                max_length=512,
+                return_tensors="pt",
+            )
+            encodings = {k: v.to(device) for k, v in encodings.items()}
+            with torch.no_grad():
+                logits = model(**encodings).logits
+            preds = torch.argmax(logits, dim=-1).cpu().numpy()
+            all_preds.extend(int(p) for p in preds.flatten())
 
-    bal_acc = _balanced_accuracy(labels, all_preds)
-    f1 = _binary_f1_score(labels, all_preds)
-    return {"balanced_accuracy": bal_acc, "f1": f1}
+        bal_acc = _balanced_accuracy(labels, all_preds)
+        f1 = _binary_f1_score(labels, all_preds)
+        return {"balanced_accuracy": bal_acc, "f1": f1}
+    finally:
+        with suppress(Exception):
+            model.to("cpu")
+        release_torch_cuda()
 
 
 def benchmark_finetuned_model(
@@ -223,3 +379,73 @@ def benchmark_finetuned_model(
         report.recommendation,
     )
     return report
+
+
+def benchmark_model_candidates(
+    model_artifacts: Mapping[str, str | Path],
+    *,
+    general_path: str | Path | None = None,
+    eval_path: str | Path | None = None,
+    batch_size: int | None = None,
+    allow_experimental: bool = False,
+    seed: int = 42,
+) -> ModelBenchmarkReport:
+    """Benchmark already-trained model artifacts with identical inputs.
+
+    ``model_artifacts`` maps a registry alias or model id to the artifact path
+    produced by a fine-tune job. Unit tests can patch ``_evaluate_model``; live
+    runs use the same anti-regression benchmark gate as single-model activation.
+    """
+
+    if not model_artifacts:
+        raise ValueError("model_artifacts must contain at least one model")
+
+    results: list[ModelBenchmarkResult] = []
+    for requested_model, model_path in model_artifacts.items():
+        started = time.perf_counter()
+        try:
+            profile = resolve_finetune_model(
+                requested_model,
+                allow_experimental=allow_experimental,
+            )
+            baseline = profile.baseline_accuracy or _BASELINE_ACCURACY
+            report = benchmark_finetuned_model(
+                model_path,
+                general_path=general_path,
+                eval_path=eval_path,
+                baseline_accuracy=baseline,
+                batch_size=batch_size or profile.recommended_batch_size,
+            )
+            results.append(
+                ModelBenchmarkResult.from_report(
+                    requested_model=requested_model,
+                    profile=profile,
+                    model_path=model_path,
+                    report=report,
+                    elapsed_seconds=time.perf_counter() - started,
+                ),
+            )
+        except Exception as exc:
+            results.append(
+                ModelBenchmarkResult(
+                    requested_model=requested_model,
+                    alias=requested_model,
+                    model_id=requested_model,
+                    model_path=str(model_path),
+                    status="error",
+                    template="unknown",
+                    label_count=0,
+                    baseline_accuracy=0.0,
+                    recommended_batch_size=batch_size or 0,
+                    recommendation="reject",
+                    elapsed_seconds=time.perf_counter() - started,
+                    error=str(exc),
+                ),
+            )
+
+    return ModelBenchmarkReport(
+        results=results,
+        general_path=str(general_path or ""),
+        eval_path=str(eval_path or ""),
+        seed=seed,
+    )
