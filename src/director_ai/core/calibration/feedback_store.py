@@ -39,6 +39,8 @@ class Correction:
     human_approved: bool
     timestamp: float
     domain: str = ""
+    review_id: str = ""
+    tenant_id: str = ""
 
 
 class FeedbackStore:
@@ -59,15 +61,19 @@ class FeedbackStore:
         conn.execute("""
             CREATE TABLE IF NOT EXISTS corrections (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
+                review_id TEXT NOT NULL DEFAULT '',
                 prompt TEXT NOT NULL,
                 response TEXT NOT NULL,
                 guardrail_score REAL NOT NULL DEFAULT 0.0,
                 guardrail_approved INTEGER NOT NULL,
                 human_approved INTEGER NOT NULL,
                 domain TEXT NOT NULL DEFAULT '',
+                tenant_id TEXT NOT NULL DEFAULT '',
                 timestamp REAL NOT NULL
             )
         """)
+        _ensure_column(conn, "review_id", "TEXT NOT NULL DEFAULT ''")
+        _ensure_column(conn, "tenant_id", "TEXT NOT NULL DEFAULT ''")
         conn.commit()
 
     def _require_conn(self) -> sqlite3.Connection:
@@ -85,21 +91,25 @@ class FeedbackStore:
         human_approved: bool,
         guardrail_score: float = 0.0,
         domain: str = "",
+        review_id: str = "",
+        tenant_id: str = "",
     ) -> None:
         """Record a human correction."""
         with self._lock:
             self._require_conn().execute(
                 """INSERT INTO corrections
-                   (prompt, response, guardrail_score, guardrail_approved,
-                    human_approved, domain, timestamp)
-                   VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                   (review_id, prompt, response, guardrail_score, guardrail_approved,
+                    human_approved, domain, tenant_id, timestamp)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
+                    review_id,
                     prompt,
                     response,
                     guardrail_score,
                     int(guardrail_approved),
                     int(human_approved),
                     domain,
+                    tenant_id,
                     time.time(),
                 ),
             )
@@ -112,7 +122,11 @@ class FeedbackStore:
     ) -> list[Correction]:
         """Retrieve corrections, optionally filtered by domain."""
         with self._lock:
-            query = "SELECT prompt, response, guardrail_score, guardrail_approved, human_approved, timestamp, domain FROM corrections"
+            query = (
+                "SELECT prompt, response, guardrail_score, guardrail_approved, "
+                "human_approved, timestamp, domain, review_id, tenant_id "
+                "FROM corrections"
+            )
             params: list = []
             if domain is not None:
                 query += " WHERE domain = ?"
@@ -132,6 +146,8 @@ class FeedbackStore:
                 human_approved=bool(r[4]),
                 timestamp=r[5],
                 domain=r[6],
+                review_id=r[7],
+                tenant_id=r[8],
             )
             for r in rows
         ]
@@ -160,7 +176,7 @@ class FeedbackStore:
         """Get only corrections where guardrail and human disagree."""
         with self._lock:
             query = """SELECT prompt, response, guardrail_score, guardrail_approved,
-                              human_approved, timestamp, domain
+                              human_approved, timestamp, domain, review_id, tenant_id
                        FROM corrections
                        WHERE guardrail_approved != human_approved
                        ORDER BY timestamp DESC"""
@@ -179,6 +195,8 @@ class FeedbackStore:
                 human_approved=bool(r[4]),
                 timestamp=r[5],
                 domain=r[6],
+                review_id=r[7],
+                tenant_id=r[8],
             )
             for r in rows
         ]
@@ -192,6 +210,8 @@ class FeedbackStore:
                 "response": c.response,
                 "label": 1 if c.human_approved else 0,
                 "domain": c.domain,
+                "review_id": c.review_id,
+                "tenant_id": c.tenant_id,
             }
             for c in corrections
         ]
@@ -202,3 +222,9 @@ class FeedbackStore:
             if self._conn is not None:
                 self._conn.close()
                 self._conn = None
+
+
+def _ensure_column(conn: sqlite3.Connection, name: str, ddl: str) -> None:
+    columns = {row[1] for row in conn.execute("PRAGMA table_info(corrections)")}
+    if name not in columns:
+        conn.execute(f"ALTER TABLE corrections ADD COLUMN {name} {ddl}")

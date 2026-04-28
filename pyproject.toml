@@ -44,7 +44,7 @@ dependencies = [
 
 [project.optional-dependencies]
 nli = [
-    "torch>=2.0,<3",
+    "torch>=2.6,<2.7",
     "transformers>=4.30,<5",
 ]
 vector = [
@@ -90,7 +90,7 @@ grpc = [
     "protobuf>=4.25",
 ]
 finetune = [
-    "torch>=2.0,<3",
+    "torch>=2.6,<2.7",
     "transformers>=4.30,<5",
     "datasets>=2.14",
     "accelerate>=0.21",
@@ -110,6 +110,9 @@ reranker = [
 ]
 embeddings = [
     "sentence-transformers>=2.2,<4",
+]
+license = [
+    "polar-sdk==0.31.3",
 ]
 embed = [
     "sentence-transformers>=2.2,<4",
@@ -200,6 +203,10 @@ train = [
     "datasets>=2.14",
     "accelerate>=0.21",
     "peft>=0.6",
+]
+managed-training = [
+    "google-cloud-aiplatform>=1.70",
+    "google-cloud-storage>=2.14",
 ]
 security = [
     "cyclonedx-bom>=4.0",

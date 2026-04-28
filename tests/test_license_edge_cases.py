@@ -37,6 +37,12 @@ def test_key_unicode():
     assert not info.valid
 
 
+def test_audit_bypass_key_string_rejected():
+    info = validate_key("DAI-PRO-anything")
+    assert not info.valid
+    assert "UUID" in info.message
+
+
 def test_file_empty(tmp_path):
     p = tmp_path / "empty.json"
     p.write_text("")

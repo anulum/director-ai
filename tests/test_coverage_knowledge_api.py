@@ -127,6 +127,52 @@ class TestGetTenant:
         req = _make_request()
         assert _get_tenant(req) == ""
 
+    def test_rejects_invalid_header_tenant(self):
+        from fastapi import HTTPException
+
+        from director_ai.knowledge_api import _get_tenant
+
+        req = _make_request(tenant_header="../other")
+        with pytest.raises(HTTPException) as exc_info:
+            _get_tenant(req)
+        assert exc_info.value.status_code == 400
+
+
+# ---------------------------------------------------------------------------
+# upload type validation
+# ---------------------------------------------------------------------------
+
+
+class TestUploadTypeValidation:
+    def test_rejects_missing_extension(self):
+        from fastapi import HTTPException
+
+        from director_ai.knowledge_api import _validate_upload_type
+
+        with pytest.raises(HTTPException) as exc_info:
+            _validate_upload_type("README", "text/plain")
+        assert exc_info.value.status_code == 415
+
+    def test_rejects_mismatched_content_type(self):
+        from fastapi import HTTPException
+
+        from director_ai.knowledge_api import _validate_upload_type
+
+        with pytest.raises(HTTPException) as exc_info:
+            _validate_upload_type("report.pdf", "text/plain; charset=utf-8")
+        assert exc_info.value.status_code == 415
+        assert "does not match" in str(exc_info.value.detail)
+
+    def test_allows_generic_content_type(self):
+        from director_ai.knowledge_api import _validate_upload_type
+
+        assert _validate_upload_type("report.pdf", "application/octet-stream") == "pdf"
+
+    def test_allows_known_markdown_content_type(self):
+        from director_ai.knowledge_api import _validate_upload_type
+
+        assert _validate_upload_type("notes.md", "text/markdown") == "md"
+
 
 # ---------------------------------------------------------------------------
 # _get_registry
@@ -333,6 +379,18 @@ class TestUploadEndpoint:
         )
         assert resp.status_code == 413
 
+    def test_400_from_invalid_content_length_header(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        client = TestClient(app)
+        resp = client.post(
+            "/v1/knowledge/upload",
+            files={"file": ("test.txt", b"hi", "text/plain")},
+            headers={"content-length": "not-an-int"},
+        )
+        assert resp.status_code == 400
+
     def test_503_no_registry(self):
         from fastapi.testclient import TestClient
 
@@ -366,6 +424,17 @@ class TestUploadEndpoint:
         )
         assert resp.status_code == 415
 
+    def test_415_content_type_mismatch(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        client = TestClient(app)
+        resp = client.post(
+            "/v1/knowledge/upload",
+            files={"file": ("paper.pdf", b"not really a pdf", "text/plain")},
+        )
+        assert resp.status_code == 415
+
     def test_413_from_body_size(self):
         # Call the upload endpoint directly with a fake request + UploadFile that returns
         # oversized content, bypassing the content-length header check.
@@ -381,6 +450,7 @@ class TestUploadEndpoint:
         req = _make_request(registry=reg, scorer=scorer)
         file_mock = MagicMock()
         file_mock.filename = "test.txt"
+        file_mock.content_type = "text/plain"
         big_content = b"x" * (50 * 1024 * 1024 + 1)
         file_mock.read = AsyncMock(return_value=big_content)
 
@@ -516,6 +586,39 @@ class TestIngestEndpoint:
         assert resp.status_code == 201
         assert resp.json()["doc_id"] == "custom"
 
+    def test_rejects_invalid_doc_id(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        client = TestClient(app)
+        resp = client.post(
+            "/v1/knowledge/ingest",
+            json={"text": "hello", "doc_id": "../private"},
+        )
+        assert resp.status_code == 400
+
+    def test_rejects_source_control_characters(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        client = TestClient(app)
+        resp = client.post(
+            "/v1/knowledge/ingest",
+            json={"text": "hello", "source": "bad\nsource"},
+        )
+        assert resp.status_code == 400
+
+    def test_rejects_overlap_not_smaller_than_chunk_size(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        client = TestClient(app)
+        resp = client.post(
+            "/v1/knowledge/ingest",
+            json={"text": "hello", "chunk_size": 128, "overlap": 128},
+        )
+        assert resp.status_code == 400
+
     def test_503_no_scorer(self):
         from fastapi.testclient import TestClient
 
@@ -604,6 +707,14 @@ class TestGetDocument:
         assert "updated_at" in data
         assert "tenant_id" in data
 
+    def test_400_invalid_doc_id(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        client = TestClient(app)
+        resp = client.get("/v1/knowledge/documents/bad$id")
+        assert resp.status_code == 400
+
 
 # ---------------------------------------------------------------------------
 # DELETE /documents/{doc_id}
@@ -663,17 +774,26 @@ class TestUpdateDocument:
         backend_mock = MagicMock()
         store.backend = backend_mock
         rec = _fake_record(doc_id="d4", chunk_ids=["d4:chunk:0"])
+        updated = _fake_record(
+            doc_id="d4",
+            source="policy_v3",
+            chunk_ids=["d4:chunk:0"],
+        )
         reg.get.return_value = rec
+        reg.update.return_value = updated
         store.facts["d4:chunk:0"] = "old text"
         client = TestClient(app)
         resp = client.put(
             "/v1/knowledge/documents/d4",
-            json={"text": "updated content for document d4"},
+            json={"text": "updated content for document d4", "source": "policy_v3"},
         )
         assert resp.status_code == 200
         data = resp.json()
         assert data["doc_id"] == "d4"
+        assert data["source"] == "policy_v3"
         assert "chunk_count" in data
+        reg.update.assert_called_once()
+        assert reg.update.call_args.kwargs["source"] == "policy_v3"
 
 
 # ---------------------------------------------------------------------------
@@ -690,6 +810,22 @@ class TestSearchEndpoint:
         resp = client.get("/v1/knowledge/search?query=nothing")
         assert resp.status_code == 200
         assert resp.json()["results"] == []
+
+    def test_rejects_empty_query(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        client = TestClient(app)
+        resp = client.get("/v1/knowledge/search?query=%20%20")
+        assert resp.status_code == 400
+
+    def test_rejects_excessive_top_k(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        client = TestClient(app)
+        resp = client.get("/v1/knowledge/search?query=nothing&top_k=1000")
+        assert resp.status_code == 400
 
     def test_returns_results(self):
         from fastapi.testclient import TestClient

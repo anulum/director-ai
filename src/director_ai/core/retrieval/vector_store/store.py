@@ -78,6 +78,8 @@ class VectorGroundTruthStore(GroundTruthStore):
                 text=text,
                 metadata=metadata,
             )
+        if texts:
+            self._bump_revision()
         logger.info("Ingested %d documents into vector backend.", len(texts))
         return len(texts)
 
@@ -102,6 +104,7 @@ class VectorGroundTruthStore(GroundTruthStore):
             metrics.inc("knowledge_adds_total")
             try:
                 self.backend.add(doc_id=doc_id, text=combined_text, metadata=meta)
+                self._bump_revision()
                 duration = time.monotonic() - start_time
                 metrics.observe("knowledge_add_duration_seconds", duration)
                 span.set_attribute("vector.doc_id", doc_id)

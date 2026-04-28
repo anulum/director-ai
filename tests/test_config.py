@@ -185,6 +185,11 @@ class TestEnvLoading:
         cfg = DirectorConfig.from_env(prefix="DAI_")
         assert cfg.coherence_threshold == 0.9
 
+    def test_feedback_db_path_from_env(self, monkeypatch):
+        monkeypatch.setenv("DIRECTOR_FEEDBACK_DB_PATH", "/tmp/director-feedback.db")
+        cfg = DirectorConfig.from_env()
+        assert cfg.feedback_db_path == "/tmp/director-feedback.db"
+
 
 class TestYamlLoading:
     """Tests for from_yaml()."""
