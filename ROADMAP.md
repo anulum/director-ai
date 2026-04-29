@@ -312,7 +312,7 @@ Last updated: 2026-04-29
 - [x] Reconcile `ARCHITECTURE.md` with Rust acceleration, `CoherenceAgent`
   containment, physical-grounding, and passport-verification wiring details
   already listed in the changelog.
-- [ ] Add a short user-facing hook decision table that answers which default,
+- [x] Add a short user-facing hook decision table that answers which default,
   opt-in, and research hooks a new scientific deployment should enable first.
 
 ### Presets, Tuning, and Configuration UX (Planned)

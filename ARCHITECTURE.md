@@ -220,6 +220,21 @@ lighter profile:
 | Evidence | `HaltEvidence`, `HaltTraceAttribution`, counterfactual halt diagnostics, top-K contradictory chunks, scorer metadata | Carry machine-readable reason data, trace attribution, single-fact diagnostics, and halt margins into API responses, logs, and OpenTelemetry spans. |
 | Audit | `AuditLogger`, hashed prompt metadata, tenant ids | Persist tenant-safe records for review and compliance reporting. |
 
+### Scientific deployment hook decision table
+
+Start with the default halt path, then add only the hooks that match the
+deployment risk. Research modules stay disabled until there is a named test
+packet and rollback path for that deployment.
+
+| Deployment need | Enable first | Add when needed | Keep disabled until |
+|-----------------|--------------|-----------------|---------------------|
+| Factual RAG or paper QA | `CoherenceScorer`, `[nli]`, `GroundTruthStore` or `VectorGroundTruthStore`, `HaltMonitor` | `InjectionDetector`, structured verifiers, audit logging | Physical hooks, passports, and experimental modules |
+| Public API or proxy | Default halt path, `InputSanitizer`, `AuditLogger`, tenant ids | `InjectionDetector`, OpenTelemetry spans, review queue | Cross-org passports and physical adapters |
+| Multi-agent tool workflow | Default halt path, structured verifiers, trace attribution | `ContainmentGuard`, `RealityAnchor`, `PassportVerifier` for hand-off | Self-evolving, swarm, and autopoietic research modules |
+| Lab automation or robotics | Default halt path plus dry physical-action review outside the live actuator path | `GroundingHook` after per-tenant budgets, adapter isolation, and action replay tests | Blocking real-world actions without the high-risk physical flag and external test packet |
+| Cross-organisation hand-off | Default halt path plus signed audit records | `PassportVerifier` with pinned issuer keys and Merkle proof checks | zk proof backends until fuzzing and cross-language contract tests pass |
+| Research evaluation | Default halt path with fixed datasets and repeatable seeds | `director_ai.experimental` hooks one at a time | Any hook without a rollback plan or validation card |
+
 ### Opt-in runtime hooks
 
 These hooks are implemented and tested, but they are inert until passed to the
