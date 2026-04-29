@@ -342,7 +342,7 @@
 
 ### Security Follow-Ups (Planned)
 - [x] Add signed knowledge-base entries plus strict write ACLs for ingestion APIs.
-- [ ] Document public exposure rules for unauthenticated health, readiness, source,
+- [x] Document public exposure rules for unauthenticated health, readiness, source,
   and metrics endpoints.
 - [ ] Add stricter CORS examples for public reverse-proxy deployments.
 - [ ] Run an external security test focused on streaming paths and tenant isolation.

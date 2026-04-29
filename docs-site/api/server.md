@@ -76,6 +76,9 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | `GET` | `/v1/compliance/drift` | Statistical drift detection |
 | `GET` | `/v1/compliance/dashboard` | Compliance metrics (24h/7d/30d) |
 
+Operational endpoint exposure rules are documented in
+[Public Endpoint Exposure](../deployment/public-endpoints.md).
+
 ## Review Request
 
 ```bash

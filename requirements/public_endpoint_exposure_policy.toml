@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - public endpoint exposure policy
+
+id = "public-endpoint-exposure"
+status = "active"
+deployment_doc = "docs-site/deployment/public-endpoints.md"
+server_module = "src/director_ai/server.py"
+config_module = "src/director_ai/core/config.py"
+
+[[endpoints]]
+path = "/v1/health"
+method = "GET"
+default_auth = "exempt"
+purpose = "Liveness probe for load balancers and local supervisors."
+internet_policy = "Private load-balancer probe, private network, or localhost tunnel only"
+allowed_payload = "Version, mode, profile, NLI loaded flag, uptime, and licence class."
+operator_control = "Restrict at the reverse proxy when exposed beyond a trusted network."
+
+[[endpoints]]
+path = "/v1/ready"
+method = "GET"
+default_auth = "exempt"
+purpose = "Readiness probe for scheduler and load-balancer routing."
+internet_policy = "Private readiness checks only"
+allowed_payload = "Ready flag and scorer load failure reason."
+operator_control = "Restrict at the reverse proxy when exposed beyond a trusted network."
+
+[[endpoints]]
+path = "/v1/source"
+method = "GET"
+default_auth = "exempt"
+purpose = "AGPL Section 13 source offer for network users."
+internet_policy = "Publish only where the service must offer network source access"
+allowed_payload = "Licence class, version, repository URL, clone instruction, and AGPL section."
+operator_control = "Set source_endpoint_enabled=false only where the licence and deployment model permit it."
+
+[[endpoints]]
+path = "/v1/metrics"
+method = "GET"
+default_auth = "protected_when_credentials_configured"
+purpose = "JSON counters, histograms, and gauges for local diagnostics."
+internet_policy = "Private observability plane only"
+allowed_payload = "Runtime metrics names, labels, counters, histograms, and gauges."
+operator_control = "Configure server credentials and private scrape routing."
+
+[[endpoints]]
+path = "/v1/metrics/prometheus"
+method = "GET"
+default_auth = "protected_when_credentials_configured"
+purpose = "Prometheus text exposition format."
+internet_policy = "Unauthenticated only on a private scrape network"
+allowed_payload = "Prometheus metric families and labelled samples."
+operator_control = "Keep metrics_require_auth=true unless Prometheus reaches the service on a private path."
+
+[defaults]
+metrics_require_auth = true
+source_endpoint_enabled = true
+cors_origins = "empty list by default; set explicit origins for browsers"
+production_mode = "requires stricter deployment posture when enabled"
