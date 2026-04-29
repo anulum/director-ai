@@ -404,7 +404,7 @@ Last updated: 2026-04-29
   simulator dependency isolation.
 - [x] Add timing-parity tests for Rust and Python containment verification paths
   so missing Rust wheels do not weaken the side-channel story.
-- [ ] Add property-based fuzzing for Merkle commitments, passport verification,
+- [x] Add property-based fuzzing for Merkle commitments, passport verification,
   and attestation failure cases before cross-organisation hand-off is promoted.
 - [ ] Add pinned dependency guidance and sandbox notes for zk proof backends,
   simulation libraries, and physical adapters.
