@@ -106,9 +106,7 @@ class ModelBenchmarkResult:
         elapsed_seconds: float,
     ) -> ModelBenchmarkResult:
         alias = (
-            requested_model
-            if profile.alias == "custom-experimental"
-            else profile.alias
+            requested_model if profile.alias == "custom-experimental" else profile.alias
         )
         return cls(
             requested_model=requested_model,
