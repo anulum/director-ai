@@ -50,15 +50,21 @@ python -c 'import torch; print("torch", torch.__version__, "cuda", torch.cuda.is
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
 echo ""
 
-echo "=== orchestrator run ==="
-python -m benchmarks.orchestrator \
-    --runner vertex \
-    --output-dir "${OUTPUT_DIR}" \
-    --report-name run_report.json \
-    --verbose \
-    "${EXTRA_ARGS[@]}"
+if [[ "${DIRECTOR_MODEL_BENCHMARK:-}" == "1" ]]; then
+    echo "=== managed model-choice benchmark ==="
+    python -m training.vertex_model_benchmark --output-dir "${OUTPUT_DIR}"
+    ORCHESTRATOR_EXIT=$?
+else
+    echo "=== orchestrator run ==="
+    python -m benchmarks.orchestrator \
+        --runner vertex \
+        --output-dir "${OUTPUT_DIR}" \
+        --report-name run_report.json \
+        --verbose \
+        "${EXTRA_ARGS[@]}"
 
-ORCHESTRATOR_EXIT=$?
+    ORCHESTRATOR_EXIT=$?
+fi
 
 if [[ -n "${DIRECTOR_BENCH_BUCKET:-}" && -n "${DIRECTOR_BENCH_PREFIX:-}" ]]; then
     DEST="${DIRECTOR_BENCH_BUCKET}/${DIRECTOR_BENCH_PREFIX}"

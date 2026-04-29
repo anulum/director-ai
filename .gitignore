@@ -177,6 +177,7 @@ ckpts/
 # directory itself is not excluded — required for ``!`` exceptions
 # to take effect on child paths.
 /training/*
+!/training/__init__.py
 !/training/_upload_all.py
 !/training/build_judge_dataset.py
 !/training/data_pipeline.py
@@ -193,6 +194,7 @@ ckpts/
 !/training/train_judge.py
 !/training/upcloud_setup.sh
 !/training/upload_to_hub.py
+!/training/vertex_model_benchmark.py
 data/
 /models/
 !src/director_ai/models/

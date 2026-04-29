@@ -55,6 +55,7 @@ COPY pyproject.toml ./
 COPY src/ src/
 COPY backfire-kernel/ backfire-kernel/
 COPY benchmarks/ benchmarks/
+COPY training/ training/
 COPY tests/ tests/
 COPY formal/ formal/
 COPY tools/ tools/
