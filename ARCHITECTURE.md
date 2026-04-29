@@ -241,7 +241,16 @@ or deployment-specific configuration:
 
 These modules are not default halt coverage. Treat them as research or
 advanced integration points until a roadmap item promotes them into one of the
-layers above:
+layers above. Public access goes through `director_ai.experimental`, which
+requires either `DIRECTOR_AI_ENABLE_EXPERIMENTAL_HOOKS=1` or an explicit
+`enable_experimental_hooks()` call before loading a hook:
+
+```python
+from director_ai import experimental
+
+experimental.enable_experimental_hooks()
+trajectory = experimental.load_hook("trajectory")
+```
 
 | Area | Modules |
 |------|---------|

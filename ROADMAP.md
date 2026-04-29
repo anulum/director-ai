@@ -281,7 +281,7 @@
 - [x] Consolidate overlapping safety modules into fewer named responsibilities,
   with a deprecation map for duplicate meta-guard, self-evolution,
   counterfactual, provenance, and attestation paths.
-- [ ] Move disabled research hooks behind an explicit experimental namespace or
+- [x] Move disabled research hooks behind an explicit experimental namespace or
   feature flag so users do not mistake exploratory modules for default coverage.
 
 ### Presets, Tuning, and Configuration UX (Planned)

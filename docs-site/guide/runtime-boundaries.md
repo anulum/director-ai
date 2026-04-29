@@ -52,6 +52,31 @@ Enable these only when the deployment needs the specific capability.
 For package extras and common combinations, use the
 [advanced backend matrix](../installation.md#advanced-backend-matrix).
 
+## Research Hook Boundary
+
+Research hooks are not part of the supported default path. Load them through
+the explicit namespace and gate:
+
+```python
+from director_ai import experimental
+
+experimental.enable_experimental_hooks()
+trajectory = experimental.load_hook("trajectory")
+```
+
+Non-interactive deployments may use:
+
+```bash
+export DIRECTOR_AI_ENABLE_EXPERIMENTAL_HOOKS=1
+```
+
+This boundary covers trajectory simulation, trace-safe checks, causal
+verification, irreversibility forecasting, symbolic and ontology checks,
+multimodal guards, self-monitoring/adaptation modules, swarm risk modules,
+provenance/privacy research backends, and sustainability policy modules. Direct
+`director_ai.core.<module>` imports remain for compatibility and internal tests,
+but new public examples should use `director_ai.experimental`.
+
 ## Contributor Boundary
 
 Good first issues and routine fixes should stay in the Python-only surface:
