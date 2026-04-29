@@ -30,6 +30,9 @@ Required tracks:
 - `streaming_interception`
 - `multi_tenant_isolation`
 - `knowledge_ingestion`
+- `physical_hooks`
+- `attestation`
+- `cross_language_trust_boundary`
 
 ## Evidence Directory
 
@@ -42,6 +45,9 @@ The tester returns one directory named `security-validation/` with:
 | `websocket_frames.jsonl` | Accepted, rejected, halted, and cancelled stream frames |
 | `tenant_matrix.csv` | Tenant, surface, action, expected status, and actual status |
 | `ingestion_matrix.csv` | Tenant, case, expected status, and actual status |
+| `physical_matrix.csv` | Tenant, case, expected decision, and actual decision |
+| `attestation_matrix.csv` | Issuer, case, expected status, and actual status |
+| `contract_matrix.csv` | Boundary, case, expected status, and actual status |
 | `findings.jsonl` | Finding severity, surface, reproduction, and evidence path |
 | `summary.md` | Per-track pass/fail summary and target commit |
 
@@ -59,6 +65,7 @@ The validator rejects the evidence when:
 - JSON, JSONL, or CSV files do not parse;
 - required WebSocket frame classes are absent;
 - matrix files have missing columns or no rows;
+- physical, attestation, or cross-language evidence matrices are absent;
 - finding records reference missing evidence paths;
 - summary text omits a required track id or target commit;
 - returned files contain unredacted bearer, cookie, or credential-header markers.

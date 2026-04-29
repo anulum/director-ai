@@ -60,6 +60,21 @@ def _valid_evidence(root: Path) -> None:
         "tenant,case,expected_status,actual_status\ntenant-a,valid text,200,200\n",
         encoding="utf-8",
     )
+    (root / "physical_matrix.csv").write_text(
+        "tenant,case,expected_decision,actual_decision\n"
+        "tenant-a,budget exhausted,block,block\n",
+        encoding="utf-8",
+    )
+    (root / "attestation_matrix.csv").write_text(
+        "issuer,case,expected_status,actual_status\n"
+        "issuer-a,tampered passport,rejected,rejected\n",
+        encoding="utf-8",
+    )
+    (root / "contract_matrix.csv").write_text(
+        "boundary,case,expected_status,actual_status\n"
+        "python-proto,safety event roundtrip,pass,pass\n",
+        encoding="utf-8",
+    )
     (root / "evidence.txt").write_text("redacted replay", encoding="utf-8")
     (root / "findings.jsonl").write_text(
         json.dumps(
@@ -76,7 +91,10 @@ def _valid_evidence(root: Path) -> None:
         "target_commit: abc1234\n"
         "- streaming_interception: pass\n"
         "- multi_tenant_isolation: pass\n"
-        "- knowledge_ingestion: pass\n",
+        "- knowledge_ingestion: pass\n"
+        "- physical_hooks: pass\n"
+        "- attestation: pass\n"
+        "- cross_language_trust_boundary: pass\n",
         encoding="utf-8",
     )
 

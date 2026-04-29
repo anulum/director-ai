@@ -28,12 +28,18 @@ def test_external_security_packet_tracks_required_surfaces():
         "streaming_interception",
         "multi_tenant_isolation",
         "knowledge_ingestion",
+        "physical_hooks",
+        "attestation",
+        "cross_language_trust_boundary",
     }
     assert "/v1/stream" in tracks["streaming_interception"]["surfaces"]
     assert (
         "/v1/tenants/{tenant_id}/facts" in tracks["multi_tenant_isolation"]["surfaces"]
     )
     assert "/v1/knowledge/ingest" in tracks["knowledge_ingestion"]["surfaces"]
+    assert "GroundingHook.evaluate" in tracks["physical_hooks"]["surfaces"]
+    assert "PassportVerifier" in tracks["attestation"]["surfaces"]
+    assert "director.v1 protobuf" in tracks["cross_language_trust_boundary"]["surfaces"]
 
 
 def test_external_security_packet_paths_exist():
@@ -64,16 +70,22 @@ def test_external_security_packet_required_outputs():
         "security-validation/websocket_frames.jsonl",
         "security-validation/tenant_matrix.csv",
         "security-validation/ingestion_matrix.csv",
+        "security-validation/physical_matrix.csv",
+        "security-validation/attestation_matrix.csv",
+        "security-validation/contract_matrix.csv",
         "security-validation/findings.jsonl",
         "security-validation/summary.md",
     } <= outputs
 
     acceptance = packet["acceptance"]
-    assert acceptance["minimum_tracks"] == 3
+    assert acceptance["minimum_tracks"] == 6
     assert acceptance["require_raw_http_transcripts"]
     assert acceptance["require_websocket_frame_log"]
     assert acceptance["require_tenant_matrix"]
     assert acceptance["require_ingestion_matrix"]
+    assert acceptance["require_physical_matrix"]
+    assert acceptance["require_attestation_matrix"]
+    assert acceptance["require_contract_matrix"]
 
 
 def test_external_security_doc_contains_required_sections():
@@ -87,6 +99,9 @@ def test_external_security_doc_contains_required_sections():
         "## Streaming Interception Checks",
         "## Multi-Tenant Isolation Checks",
         "## Knowledge-Base Ingestion Checks",
+        "## Physical Hook Checks",
+        "## Attestation Checks",
+        "## Cross-Language Trust Boundary Checks",
         "## Required Outputs",
         "## Report Rules",
     ]:
@@ -97,3 +112,6 @@ def test_external_security_doc_contains_required_sections():
     assert "## Completion Rule" in runbook
     assert "streaming_interception" in runbook
     assert "multi_tenant_isolation" in runbook
+    assert "physical_hooks" in runbook
+    assert "attestation" in runbook
+    assert "cross_language_trust_boundary" in runbook

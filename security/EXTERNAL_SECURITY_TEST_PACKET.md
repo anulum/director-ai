@@ -11,7 +11,8 @@ Contact: www.anulum.li | protoscience@anulum.li
 
 This packet gives an independent tester a bounded plan for Director-AI
 security testing around streaming interception, multi-tenant isolation, and
-knowledge-base ingestion.
+knowledge-base ingestion, physical hooks, attestation, and cross-language trust
+boundaries.
 
 Machine-readable packet:
 `security/external_security_test_packet.toml`
@@ -32,6 +33,9 @@ Evidence validator:
 | `streaming_interception` | `/v1/stream` WebSocket | `server.py`, `StreamingKernel`, `AsyncStreamingKernel` | `test_server_ws_mux.py`, `test_cov_server_deep.py`, `test_coverage_streaming.py`, `test_async_streaming.py` |
 | `multi_tenant_isolation` | tenant REST and gRPC routing | `server.py`, `grpc_server.py`, `TenantRouter` | `test_server_tenant.py`, `test_server_ws_mux.py`, `test_enterprise_modules.py`, `test_audit.py` |
 | `knowledge_ingestion` | `/v1/knowledge/*` routes | `knowledge_api.py`, document registry, ingestion plugins | `test_coverage_knowledge_api.py`, `test_knowledge_edge_cases.py`, `test_cli_ingest_formats.py` |
+| `physical_hooks` | cyber-physical action screening | `CoherenceAgent.verify_physical_action`, `GroundingHook`, `TenantPhysicalBudget` | `test_agent_safety_hooks.py`, `test_cyber_physical.py`, `test_cyber_physical_halt_contract.py`, `test_physical_budget.py` |
+| `attestation` | Merkle commitments and passports | `MerkleCommitment`, `PassportIssuer`, `PassportVerifier` | `test_zk_attestation.py`, `test_agent_safety_hooks.py` |
+| `cross_language_trust_boundary` | Python, Rust, Go, and protobuf boundaries | `director.proto`, Python converters, Go generated bindings, Rust FFI | `test_cross_language_contracts.py`, `test_proto_roundtrip.py`, `test_rust_parity_safety.py` |
 
 ## Streaming Interception Checks
 
@@ -87,6 +91,63 @@ Required evidence:
 - update/delete trace;
 - metadata redaction sample.
 
+## Physical Hook Checks
+
+The tester should verify:
+
+1. Constraint failures stay advisory unless explicit blocking is enabled.
+2. Budget exhaustion blocks in advisory mode before solver or simulator calls.
+3. Malformed physical action payloads are rejected before adapter calls.
+4. Missing ROS 2, MuJoCo, or CARLA runtimes fail closed with documented install
+   guidance.
+5. Concurrent physical checks keep halt state bound to the tenant and session.
+
+Required evidence:
+
+- physical action matrix;
+- budget exhaustion trace;
+- adapter failure sample;
+- concurrent physical sample.
+
+## Attestation Checks
+
+The tester should verify:
+
+1. Merkle openings reject wrong keys, swapped leaves, and aggregate inflation.
+2. Passport verification rejects unknown issuers and altered message
+   authentication codes.
+3. Missing attestation backends return explicit failure reasons.
+4. Verifier output does not expose raw samples outside the opened evidence set.
+5. Cross-organisation hand-off evidence names issuer, subject, statement, and
+   tested backend.
+
+Required evidence:
+
+- attestation matrix;
+- tamper rejection sample;
+- passport verdict sample;
+- opened evidence redaction sample.
+
+## Cross-Language Trust Boundary Checks
+
+The tester should verify:
+
+1. Python and Go protobuf bindings round-trip verdicts and safety events with
+   deterministic bytes.
+2. Rust FFI rejects non-finite scores and preserves unit-interval clamp
+   semantics.
+3. Unknown or future enum values degrade to explicit policy failures.
+4. Tenant ids and request ids survive Python, protobuf, and Go gateway
+   boundaries.
+5. Boundary tests include malformed payloads and oversized attribute maps.
+
+Required evidence:
+
+- contract matrix;
+- protobuf round-trip sample;
+- Rust FFI rejection sample;
+- Go gateway boundary sample.
+
 ## Required Outputs
 
 | Output path | Contents |
@@ -96,6 +157,9 @@ Required evidence:
 | `security-validation/websocket_frames.jsonl` | Accepted, rejected, halted, and cancelled stream frames |
 | `security-validation/tenant_matrix.csv` | Tenant read, write, list, stream, and gRPC access matrix |
 | `security-validation/ingestion_matrix.csv` | Accepted and rejected ingestion payload cases |
+| `security-validation/physical_matrix.csv` | Physical action, budget, adapter, and tenant-isolation cases |
+| `security-validation/attestation_matrix.csv` | Merkle opening, passport, issuer, and backend cases |
+| `security-validation/contract_matrix.csv` | Python, Rust, Go, and protobuf boundary cases |
 | `security-validation/findings.jsonl` | Finding severity, surface, reproduction, and evidence path |
 | `security-validation/summary.md` | Pass/fail summary per track, residual risk, and fixes |
 

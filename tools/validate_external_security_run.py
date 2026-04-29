@@ -158,6 +158,18 @@ def validate_run(root: Path) -> list[str]:
             root / "ingestion_matrix.csv",
             {"tenant", "case", "expected_status", "actual_status"},
         )
+        _assert_csv_columns(
+            root / "physical_matrix.csv",
+            {"tenant", "case", "expected_decision", "actual_decision"},
+        )
+        _assert_csv_columns(
+            root / "attestation_matrix.csv",
+            {"issuer", "case", "expected_status", "actual_status"},
+        )
+        _assert_csv_columns(
+            root / "contract_matrix.csv",
+            {"boundary", "case", "expected_status", "actual_status"},
+        )
         _validate_findings(root)
         _validate_summary(root, packet)
         for path in root.rglob("*"):

@@ -16,12 +16,15 @@ contact = "director.class.ai@anulum.li"
 run_status = "not_run"
 
 [acceptance]
-minimum_tracks = 3
+minimum_tracks = 6
 require_environment_fingerprint = true
 require_raw_http_transcripts = true
 require_websocket_frame_log = true
 require_tenant_matrix = true
 require_ingestion_matrix = true
+require_physical_matrix = true
+require_attestation_matrix = true
+require_contract_matrix = true
 require_redaction_review = true
 
 [[test_tracks]]
@@ -122,6 +125,109 @@ required_evidence = [
   "metadata_redaction_sample",
 ]
 
+[[test_tracks]]
+id = "physical_hooks"
+purpose = "Exercise cyber-physical hook decisions, physical budget exhaustion, warn-only defaults, blocking deployment flags, and malformed physical action payloads."
+surfaces = [
+  "CoherenceAgent.verify_physical_action",
+  "GroundingHook.evaluate",
+  "TenantPhysicalBudget",
+  "cyber_physical adapters",
+]
+source_files = [
+  "src/director_ai/core/agent.py",
+  "src/director_ai/core/cyber_physical/hook.py",
+  "src/director_ai/core/cyber_physical/budget.py",
+  "src/director_ai/core/cyber_physical/adapters.py",
+]
+existing_regression_tests = [
+  "tests/test_agent_safety_hooks.py",
+  "tests/test_cyber_physical.py",
+  "tests/test_cyber_physical_halt_contract.py",
+  "tests/test_physical_budget.py",
+]
+required_checks = [
+  "Physical constraint failures remain advisory unless the explicit blocking flag is enabled.",
+  "Budget exhaustion blocks in default advisory mode before solver or simulator calls execute.",
+  "Malformed action payloads are rejected without invoking adapter code.",
+  "Missing ROS 2, MuJoCo, or CARLA runtimes fail closed with documented install guidance.",
+  "Concurrent physical checks do not leak halt state across tenants or sessions.",
+]
+required_evidence = [
+  "physical_action_matrix",
+  "budget_exhaustion_trace",
+  "adapter_failure_sample",
+  "concurrent_physical_sample",
+]
+
+[[test_tracks]]
+id = "attestation"
+purpose = "Exercise Merkle commitments, cross-organisation passports, issuer allowlists, tamper rejection, replay handling, and missing proof backend paths."
+surfaces = [
+  "MerkleCommitment",
+  "CommitmentBackend",
+  "PassportIssuer",
+  "PassportVerifier",
+  "CoherenceAgent.verify_passport",
+]
+source_files = [
+  "src/director_ai/core/zk_attestation/commitment.py",
+  "src/director_ai/core/zk_attestation/backends.py",
+  "src/director_ai/core/zk_attestation/passport.py",
+  "src/director_ai/core/agent.py",
+]
+existing_regression_tests = [
+  "tests/test_zk_attestation.py",
+  "tests/test_agent_safety_hooks.py",
+]
+required_checks = [
+  "Merkle openings reject wrong keys, swapped leaves, and aggregate inflation.",
+  "Passport verification rejects unknown issuers and altered message authentication codes.",
+  "Missing attestation backends produce explicit failure reasons instead of trusted fallback decisions.",
+  "Verifier output never exposes raw samples beyond the opened evidence set.",
+  "Cross-organisation hand-off evidence includes issuer, subject, statement, and tested backend.",
+]
+required_evidence = [
+  "attestation_matrix",
+  "tamper_rejection_sample",
+  "passport_verdict_sample",
+  "opened_evidence_redaction_sample",
+]
+
+[[test_tracks]]
+id = "cross_language_trust_boundary"
+purpose = "Exercise Python, Rust, Go, and protobuf boundaries for schema drift, unknown enum values, score clamping, deterministic serialisation, and safety event parity."
+surfaces = [
+  "director.v1 protobuf",
+  "Python proto converters",
+  "Go gateway proto bindings",
+  "Rust kernel FFI",
+]
+source_files = [
+  "schemas/proto/director/v1/director.proto",
+  "src/director_ai/proto/converters.py",
+  "gateway/go/proto/director/v1/director.pb.go",
+  "backfire-kernel/crates/backfire-ffi/src/safety_hooks.rs",
+]
+existing_regression_tests = [
+  "tests/test_cross_language_contracts.py",
+  "tests/test_proto_roundtrip.py",
+  "tests/test_rust_parity_safety.py",
+]
+required_checks = [
+  "Python and Go protobuf bindings round-trip verdicts and safety events with deterministic bytes.",
+  "Rust FFI rejects non-finite scores and preserves unit-interval clamp semantics.",
+  "Unknown or future enum values degrade to explicit policy failures instead of silent allow decisions.",
+  "Tenant ids and request ids survive Python, proto, and Go gateway boundaries.",
+  "Boundary tests include malformed payloads and oversized attribute maps.",
+]
+required_evidence = [
+  "contract_matrix",
+  "proto_roundtrip_sample",
+  "rust_ffi_rejection_sample",
+  "go_gateway_boundary_sample",
+]
+
 [[required_outputs]]
 path = "security-validation/environment.json"
 description = "Runtime, package, server config, and enabled optional extras fingerprint."
@@ -141,6 +247,18 @@ description = "Tenant A/B read, write, list, stream, and gRPC access matrix."
 [[required_outputs]]
 path = "security-validation/ingestion_matrix.csv"
 description = "Accepted and rejected ingestion payload cases."
+
+[[required_outputs]]
+path = "security-validation/physical_matrix.csv"
+description = "Physical action, budget, adapter, and tenant-isolation cases."
+
+[[required_outputs]]
+path = "security-validation/attestation_matrix.csv"
+description = "Merkle opening, passport, issuer, and backend cases."
+
+[[required_outputs]]
+path = "security-validation/contract_matrix.csv"
+description = "Python, Rust, Go, and protobuf boundary cases."
 
 [[required_outputs]]
 path = "security-validation/findings.jsonl"

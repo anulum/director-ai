@@ -397,7 +397,7 @@ Last updated: 2026-04-29
   `[physical]` extra with pinned dependency guidance and isolation notes.
 - [x] Add per-tenant budgets for inverse-kinematics solving, simulation checks,
   and physical action validation to prevent denial-of-service payloads.
-- [ ] Extend the external security test packet to cover physical hooks,
+- [x] Extend the external security test packet to cover physical hooks,
   attestation, and cross-language trust-boundary failures.
 - [ ] Document physical-action residual risks in `SECURITY.md`, including
   hardware damage, malformed action payloads, expensive solver payloads, and
