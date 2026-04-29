@@ -12,6 +12,10 @@ schema_version = "1.0.0"
 path = "benchmarks/CACHE_SCHEMA.md"
 result_schema = "benchmarks/results/SCHEMA.md"
 
+[external_validation]
+packet = "benchmarks/EXTERNAL_VALIDATION_PACKET.md"
+manifest = "benchmarks/external_validation_packet.toml"
+
 [[benchmark_mode_cards]]
 id = "heuristic_streaming_false_halt"
 mode_family = "heuristic"
@@ -57,6 +61,21 @@ result_files = [
 ]
 metrics = ["per_dataset_thresholds", "per_dataset_mean_balanced_accuracy"]
 claim_boundary = "Threshold-tuned replay; do not describe as model retraining or default runtime behaviour."
+
+[[benchmark_mode_cards]]
+id = "pure_nli_halueval_e2e"
+mode_family = "pure_nli"
+claim_scope = "End-to-end NLI guardrail scoring on HaluEval traces"
+public_metric = "46.7% catch rate with 56.9% precision on 300 traces"
+public_tables = ["benchmark_report_e2e_halueval"]
+datasets = ["halueval"]
+runner_files = ["benchmarks/e2e_eval.py"]
+commands = [
+  "python -m benchmarks.e2e_eval --nli --max-samples 100 --threshold 0.35 --soft-limit 0.45 --output-json benchmarks/results/e2e_guardrail.json",
+]
+result_files = ["benchmarks/results/e2e_guardrail.json"]
+metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency_ms"]
+claim_boundary = "Pure end-to-end NLI guardrail mode; not an AggreFact leaderboard claim and not judge-assisted."
 
 [[benchmark_mode_cards]]
 id = "hybrid_remote_judge_halueval"

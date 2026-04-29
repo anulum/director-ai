@@ -319,7 +319,7 @@
   reproduction commands for every public accuracy table.
 - [x] Add benchmark cards that separate pure NLI, hybrid judge, heuristic, and
   tuned-threshold modes so catch-rate claims cannot blur backend choices.
-- [ ] Prepare an external validation packet for a third-party accuracy benchmark.
+- [x] Prepare an external validation packet for a third-party accuracy benchmark.
 - [ ] Prepare an external security test packet focused on streaming interception,
   multi-tenant isolation, and knowledge-base ingestion.
 

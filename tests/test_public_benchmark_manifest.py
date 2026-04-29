@@ -13,10 +13,15 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "benchmarks" / "public_accuracy_manifest.toml"
+EXTERNAL_PACKET = ROOT / "benchmarks" / "external_validation_packet.toml"
 
 
 def _manifest() -> dict:
     return tomllib.loads(MANIFEST.read_text(encoding="utf-8"))
+
+
+def _external_packet() -> dict:
+    return tomllib.loads(EXTERNAL_PACKET.read_text(encoding="utf-8"))
 
 
 def test_public_manifest_has_required_tables():
@@ -100,3 +105,52 @@ def test_reproduction_docs_reference_manifest_and_cache_schema():
     assert "readme_aggrefact_leaderboard" in doc
     assert "Benchmark Mode Cards" in doc
     assert "hybrid_remote_judge_halueval" in doc
+    assert "benchmarks/EXTERNAL_VALIDATION_PACKET.md" in doc
+
+
+def test_external_validation_packet_is_linked_and_complete():
+    manifest = _manifest()
+    packet = _external_packet()
+
+    assert (ROOT / manifest["external_validation"]["packet"]).exists()
+    assert (ROOT / manifest["external_validation"]["manifest"]).exists()
+    assert (ROOT / packet["packet_doc"]).exists()
+    assert packet["public_manifest"] == "benchmarks/public_accuracy_manifest.toml"
+    assert packet["acceptance"]["minimum_reproducible_tasks"] >= 3
+
+    mode_cards = {card["id"] for card in manifest["benchmark_mode_cards"]}
+    dataset_ids = {dataset["id"] for dataset in manifest["datasets"]}
+    required_outputs = {output["path"] for output in packet["required_outputs"]}
+
+    assert {
+        "validation/environment.json",
+        "validation/raw_results/",
+        "validation/metric_recalculation.md",
+        "validation/failure_cases.jsonl",
+        "validation/summary.md",
+    } <= required_outputs
+
+    for task in packet["benchmark_tasks"]:
+        assert task["mode_card"] in mode_cards
+        assert task["dataset"] in dataset_ids
+        assert (ROOT / task["runner"]).exists()
+        assert (ROOT / task["expected_result"]).exists()
+        assert task["command"]
+        assert task["primary_metrics"]
+        assert task["claim_boundary"]
+
+
+def test_external_validation_doc_contains_required_sections():
+    doc = (ROOT / "benchmarks" / "EXTERNAL_VALIDATION_PACKET.md").read_text(
+        encoding="utf-8"
+    )
+
+    for heading in [
+        "## Validation Scope",
+        "## Required Environment Record",
+        "## Commands",
+        "## Required Report Outputs",
+        "## Claim Boundary Rules",
+        "## Auditor Questions",
+    ]:
+        assert heading in doc

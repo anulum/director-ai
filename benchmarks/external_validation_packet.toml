@@ -1,0 +1,98 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - external accuracy validation packet
+
+schema_version = "1.0.0"
+packet_id = "director-ai-accuracy-validation-2026-04"
+packet_doc = "benchmarks/EXTERNAL_VALIDATION_PACKET.md"
+public_manifest = "benchmarks/public_accuracy_manifest.toml"
+cache_schema = "benchmarks/CACHE_SCHEMA.md"
+result_schema = "benchmarks/results/SCHEMA.md"
+contact = "director.class.ai@anulum.li"
+
+[acceptance]
+minimum_reproducible_tasks = 3
+require_raw_outputs = true
+require_environment_fingerprint = true
+require_metric_formula_notes = true
+require_failure_case_sample = true
+require_claim_boundary_check = true
+
+[[benchmark_tasks]]
+id = "aggrefact_global_factcg"
+mode_card = "pure_nli_aggrefact_global"
+purpose = "Verify the default FactCG global-threshold factual-consistency claim."
+dataset = "llm_aggrefact"
+runner = "benchmarks/aggrefact_eval.py"
+command = "python -m benchmarks.aggrefact_eval --model yaxili96/FactCG-DeBERTa-v3-Large --threshold 0.46 --save-scores benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json"
+expected_result = "benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json"
+primary_metrics = ["avg_balanced_accuracy_pct", "threshold", "total_samples"]
+claim_boundary = "Default pure-NLI benchmark only; do not mix with tuned-threshold replay or judge modes."
+
+[[benchmark_tasks]]
+id = "aggrefact_tuned_threshold_replay"
+mode_card = "tuned_threshold_aggrefact"
+purpose = "Verify that tuned-threshold claims are cache replay claims, not a separate trained model."
+dataset = "llm_aggrefact"
+runner = "benchmarks/aggrefact_eval.py"
+command = "python -m benchmarks.aggrefact_eval --load-scores benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json --sweep"
+expected_result = "benchmarks/results/aggrefact_sweep_lr_low.json"
+primary_metrics = ["per_dataset_mean_balanced_accuracy", "per_dataset_thresholds"]
+claim_boundary = "Threshold replay only; report apart from default global-threshold rows."
+
+[[benchmark_tasks]]
+id = "halueval_nli_e2e"
+mode_card = "pure_nli_halueval_e2e"
+purpose = "Verify end-to-end guardrail metrics with NLI enabled on HaluEval traces."
+dataset = "halueval"
+runner = "benchmarks/e2e_eval.py"
+command = "python -m benchmarks.e2e_eval --nli --max-samples 100 --threshold 0.35 --soft-limit 0.45 --output-json benchmarks/results/e2e_guardrail.json"
+expected_result = "benchmarks/results/e2e_guardrail.json"
+primary_metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency_ms"]
+claim_boundary = "HaluEval end-to-end guardrail claim; not an AggreFact leaderboard claim."
+
+[[benchmark_tasks]]
+id = "local_judge_halueval"
+mode_card = "local_judge_halueval"
+purpose = "Verify local borderline-case judge metrics when the trained local judge is available."
+dataset = "halueval"
+runner = "benchmarks/run_judge_benchmark.py"
+command = "python benchmarks/run_judge_benchmark.py --samples 1000"
+expected_result = "benchmarks/results/judge_bench_local_judge_1000.json"
+primary_metrics = ["catch_rate", "false_positive_rate", "precision", "f1"]
+claim_boundary = "Local judge mode; report apart from remote-judge and pure-NLI rows."
+
+[[benchmark_tasks]]
+id = "streaming_false_halt_heuristic"
+mode_card = "heuristic_streaming_false_halt"
+purpose = "Verify the heuristic streaming false-halt rate on known-good passages."
+dataset = "streaming_good_passages"
+runner = "benchmarks/streaming_false_halt_bench.py"
+command = "python -m benchmarks.streaming_false_halt_bench"
+expected_result = "benchmarks/results/streaming_false_halt_heuristic.json"
+primary_metrics = ["false_halt_rate", "avg_coherence", "avg_latency_ms"]
+claim_boundary = "False-halt rate only; not a hallucination catch-rate claim."
+
+[[required_outputs]]
+path = "validation/environment.json"
+description = "Hardware, OS, Python, package, GPU, model, and dataset fingerprint."
+
+[[required_outputs]]
+path = "validation/raw_results/"
+description = "Unedited JSON outputs from every runner."
+
+[[required_outputs]]
+path = "validation/metric_recalculation.md"
+description = "Independent metric recomputation notes from raw TP/FP/TN/FN or labels."
+
+[[required_outputs]]
+path = "validation/failure_cases.jsonl"
+description = "Representative disagreements, false positives, and false negatives."
+
+[[required_outputs]]
+path = "validation/summary.md"
+description = "Pass/fail table for each public claim and each benchmark mode card."

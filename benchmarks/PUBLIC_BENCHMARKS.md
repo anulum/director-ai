@@ -26,6 +26,9 @@ The JSON result shape for orchestrated runs remains documented in
 `benchmarks/results/SCHEMA.md`. Cache files used by direct benchmark
 runners are documented in `benchmarks/CACHE_SCHEMA.md`.
 
+External accuracy review packet:
+`benchmarks/EXTERNAL_VALIDATION_PACKET.md`.
+
 ## Datasets
 
 | Dataset id | Source | Access | Local cache |
@@ -58,6 +61,7 @@ pure NLI result.
 | `heuristic_streaming_false_halt` | heuristic | 4.4% false-halt rate | False-halt rate only; not a hallucination catch-rate claim. |
 | `pure_nli_aggrefact_global` | pure NLI | 75.8% per-dataset mean BA | Global-threshold FactCG result; separate from tuned thresholds. |
 | `tuned_threshold_aggrefact` | tuned-threshold NLI | 77.76% per-dataset mean BA | Threshold replay only; not default runtime behaviour. |
+| `pure_nli_halueval_e2e` | pure NLI | 46.7% catch, 56.9% precision | End-to-end HaluEval guardrail mode; not an AggreFact row. |
 | `hybrid_remote_judge_halueval` | hybrid judge | 90.7% catch, 64.0% FPR | Judge-assisted HaluEval mode; never merge with pure NLI. |
 | `local_judge_halueval` | local judge | 93.80% catch, 66.33% FPR | Local classifier mode; report apart from remote-judge rows. |
 
