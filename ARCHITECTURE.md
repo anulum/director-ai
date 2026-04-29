@@ -1,5 +1,7 @@
 # Architecture
 
+Last updated: 2026-04-29
+
 Director-AI is a dual-entropy hallucination guardrail: NLI contradiction
 detection + RAG fact-checking with token-level streaming halt.
 
@@ -10,6 +12,19 @@ into the Python scorer over gRPC. A Julia analytics module runs
 offline on exported score logs. A Lean 4 proof artefact pins the
 halt-monitor safety contract. All language components are additive —
 the Python path stands on its own without any of them.
+
+## Shipped Today - 2026-04-29
+
+- The Safety Surface Map is now the public boundary between default halt
+  coverage, opt-in runtime hooks, advanced runtime paths, and disabled research
+  modules.
+- `CoherenceAgent` hook wiring now covers containment guards, containment
+  anchors, physical-grounding hooks, and passport verifiers as optional
+  constructor inputs.
+- Rust acceleration for safety primitives is documented as an optional
+  `backfire-kernel` path with pure-Python fallback.
+- Roadmap status now separates completed simplification work from planned
+  physical, attestation, and Rust-extraction hardening.
 
 ## Directory Map
 
@@ -220,6 +235,17 @@ agent, selected through configuration, or installed through the matching extra:
 | `PassportVerifier` | `CoherenceAgent(passport_verifier=...)` | Verify cross-org attestation bundles before agent hand-off. |
 | Structured verifiers | `verify_json`, `verify_tool_call`, `verify_code`, `verify_numeric`, `verify_reasoning_chain` | Validate structured outputs on explicit request. |
 | Observability callbacks | tracing config or callback list | Emit token traces and spans without changing halt decisions. |
+
+### CoherenceAgent hook wiring
+
+`CoherenceAgent` remains usable without optional hooks. When a deployment
+passes hook instances explicitly, the agent wires them as follows:
+
+| Hook input | Runtime effect |
+|------------|----------------|
+| `containment_guard` + `containment_anchor` | Check each completed output against the anchored execution scope before returning it. |
+| `grounding_hook` | Validate proposed physical actions against kinematic and constraint checks through `verify_physical_action`. |
+| `passport_verifier` | Validate cross-organisation passport bundles through `verify_passport` before agent hand-off. |
 
 ### Advanced runtime surface
 

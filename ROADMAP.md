@@ -1,5 +1,21 @@
 # Roadmap
 
+Last updated: 2026-04-29
+
+## Shipped Today - 2026-04-29
+
+- Quickstart and onboarding work is marked complete for the default Docker
+  Compose path, Python-only support path, `director-ai doctor`, starter
+  profiles, and the configuration wizard.
+- Safety surface simplification is marked complete for the public Safety
+  Surface Map, experimental namespace boundary, and consolidation map.
+- Benchmark transparency work is marked complete for raw runners, benchmark
+  cards, external validation packets, nightly live red-team workflow, and the
+  monthly adversarial validation update.
+- Security follow-up planning now includes physical-action residual risks,
+  attestation fuzzing, timing-parity checks, and standalone Rust-kernel
+  extraction execution.
+
 ## v2.8.0
 
 ### Done
@@ -286,14 +302,14 @@
   feature flag so users do not mistake exploratory modules for default coverage.
 
 ### Documentation Synchronisation (Planned)
-- [ ] Add a visible last-updated banner to `ROADMAP.md` and `ARCHITECTURE.md`
+- [x] Add a visible last-updated banner to `ROADMAP.md` and `ARCHITECTURE.md`
   after each fast release burst.
-- [ ] Add a "shipped today" section to `ROADMAP.md` and `ARCHITECTURE.md` that
+- [x] Add a "shipped today" section to `ROADMAP.md` and `ARCHITECTURE.md` that
   is refreshed from the current changelog and recent commits.
 - [ ] Add a docs-sync checklist to release preparation so `ROADMAP.md`,
   `ARCHITECTURE.md`, `CHANGELOG.md`, `SECURITY.md`, and `VALIDATION.md` cannot
   drift after safety-hook or benchmark changes.
-- [ ] Reconcile `ARCHITECTURE.md` with Rust acceleration, `CoherenceAgent`
+- [x] Reconcile `ARCHITECTURE.md` with Rust acceleration, `CoherenceAgent`
   containment, physical-grounding, and passport-verification wiring details
   already listed in the changelog.
 - [ ] Add a short user-facing hook decision table that answers which default,
