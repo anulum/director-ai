@@ -10,6 +10,7 @@ import httpx
 import pytest
 from httpx import ASGITransport
 
+from director_ai.core.config import DirectorConfig
 from director_ai.proxy import create_proxy_app
 
 
@@ -45,6 +46,29 @@ async def test_proxy_health():
     data = resp.json()
     assert data["status"] == "ok"
     assert data["threshold"] == 0.7
+
+
+@pytest.mark.asyncio
+async def test_proxy_builds_from_director_config(tmp_path):
+    facts = tmp_path / "facts.txt"
+    facts.write_text("sky: blue\n", encoding="utf-8")
+    config = DirectorConfig(
+        mode="auto",
+        use_nli=False,
+        scorer_backend="lite",
+        vector_backend="memory",
+    )
+    app = create_proxy_app(
+        threshold=0.4,
+        facts_path=str(facts),
+        facts_root=str(tmp_path),
+        config=config,
+    )
+    transport = ASGITransport(app=app)
+    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+        resp = await client.get("/health")
+    assert resp.status_code == 200
+    assert resp.json()["threshold"] == 0.4
 
 
 @pytest.mark.asyncio

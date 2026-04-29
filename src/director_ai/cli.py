@@ -22,7 +22,10 @@ Usage::
 from __future__ import annotations
 
 import json
+import shutil
+import subprocess  # nosec B404 - explicit --run executes fixed docker compose argv.
 import sys
+from pathlib import Path
 
 # CLI subcommands extracted to reduce module size
 from ._cli_bench import (
@@ -122,7 +125,7 @@ def _print_help() -> None:
         "\n"
         "Commands:\n"
         "  version               Show version info\n"
-        "  quickstart [--profile P]  Scaffold a working project\n"
+        "  quickstart [--profile P] [--run]  Scaffold a working project\n"
         "  review <prompt> <resp> Review a prompt/response pair\n"
         "  process <prompt>      Process a prompt through the full pipeline\n"
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
@@ -134,7 +137,7 @@ def _print_help() -> None:
         "  finetune <train.jsonl> [options]  Fine-tune NLI model on domain data\n"
         "  validate-data <file.jsonl>       Validate data before fine-tuning\n"
         "  serve [--port N] [--workers W]  Start the FastAPI server\n"
-        "  proxy [--port N] [--facts F]   OpenAI-compatible guardrail proxy\n"
+        "  proxy [--port N] [--facts F]   Chat-completions guardrail proxy\n"
         "  export [--format F]   Export model to ONNX/TensorRT\n"
         "  stress-test [options] Benchmark streaming kernel throughput\n"
         "  doctor                Check runtime dependencies and readiness\n"
@@ -159,57 +162,39 @@ def _cmd_version(args: list[str]) -> None:
 
 
 _VALID_PROFILES = (
+    "fast",
+    "lite",
+    "rules",
+    "embed",
+    "thorough",
+    "research",
     "medical",
     "finance",
     "legal",
     "creative",
     "customer_support",
     "summarization",
-    "fast",
-    "thorough",
-    "research",
-    "lite",
 )
 
 
-def _cmd_quickstart(args: list[str]) -> None:
-    """Scaffold a working director-ai project in one command."""
-    from pathlib import Path
-
-    from director_ai.core.config import DirectorConfig
-
-    profile = "fast"
-    i = 0
-    while i < len(args):
-        if args[i] == "--profile" and i + 1 < len(args):
-            profile = args[i + 1]
-            i += 2
-        else:
-            i += 1
-
-    if profile not in _VALID_PROFILES:
-        print(f"Unknown profile '{profile}'. Choose from: {', '.join(_VALID_PROFILES)}")
-        sys.exit(1)
-
-    out_dir = Path("director_guard")
-    if out_dir.exists():
-        print(f"Error: {out_dir}/ already exists. Remove it or use a new dir.")
-        sys.exit(1)
-
-    cfg = DirectorConfig.from_profile(profile)
-    out_dir.mkdir()
-
-    # config.yaml
+def _write_quickstart_config(
+    out_dir: Path,
+    profile: str,
+    coherence_threshold: float,
+    hard_limit: float,
+    use_nli: bool,
+) -> None:
     (out_dir / "config.yaml").write_text(
-        f"# Director-AI configuration — profile: {profile}\n"
-        f"coherence_threshold: {cfg.coherence_threshold}\n"
-        f"hard_limit: {cfg.hard_limit}\n"
-        f"use_nli: {str(cfg.use_nli).lower()}\n"
+        f"# Director-AI configuration - profile: {profile}\n"
+        f"coherence_threshold: {coherence_threshold}\n"
+        f"hard_limit: {hard_limit}\n"
+        f"use_nli: {str(use_nli).lower()}\n"
         f"profile: {profile}\n",
         encoding="utf-8",
     )
 
-    # facts.txt
+
+def _write_quickstart_facts(out_dir: Path) -> None:
     (out_dir / "facts.txt").write_text(
         "The sky is blue due to Rayleigh scattering.\n"
         "Water boils at 100 degrees Celsius at sea level.\n"
@@ -217,9 +202,10 @@ def _cmd_quickstart(args: list[str]) -> None:
         encoding="utf-8",
     )
 
-    # guard.py
+
+def _write_quickstart_guard(out_dir: Path) -> None:
     (out_dir / "guard.py").write_text(
-        '"""Minimal Director-AI guard — run: python guard.py"""\n'
+        '"""Minimal Director-AI guard - run: python guard.py"""\n'
         "from pathlib import Path\n"
         "\n"
         "from director_ai.core import CoherenceScorer, GroundTruthStore\n"
@@ -247,7 +233,145 @@ def _cmd_quickstart(args: list[str]) -> None:
         encoding="utf-8",
     )
 
-    # README.md
+
+def _write_quickstart_env(out_dir: Path, profile: str, threshold: float) -> None:
+    env_text = (
+        f"DIRECTOR_QUICKSTART_PROFILE={profile}\n"
+        f"DIRECTOR_COHERENCE_THRESHOLD={threshold}\n"
+        "DIRECTOR_HARD_LIMIT=0.2\n"
+        "DIRECTOR_SOFT_LIMIT=0.35\n"
+        "DIRECTOR_MODE=auto\n"
+        "DIRECTOR_USE_NLI=false\n"
+        "DIRECTOR_SCORER_BACKEND=auto\n"
+        "DIRECTOR_VECTOR_BACKEND=chroma\n"
+        "DIRECTOR_CHROMA_PERSIST_DIR=/data/chroma\n"
+        "DIRECTOR_CHROMA_COLLECTION=director_quickstart\n"
+        "DIRECTOR_METRICS_ENABLED=true\n"
+        "DIRECTOR_LOG_LEVEL=INFO\n"
+        "DIRECTOR_SERVER_HOST=0.0.0.0\n"
+        "DIRECTOR_SERVER_PORT=8000\n"
+    )
+    (out_dir / ".env").write_text(env_text, encoding="utf-8")
+
+
+def _quickstart_proxy_service(threshold: float) -> str:
+    return (
+        "  director-proxy:\n"
+        "    image: python:3.12.11-slim\n"
+        "    working_dir: /app\n"
+        "    ports:\n"
+        '      - "8080:8080"\n'
+        "    volumes:\n"
+        "      - ./facts.txt:/app/facts.txt:ro\n"
+        "    command:\n"
+        "      - /bin/sh\n"
+        "      - -lc\n"
+        "      - >-\n"
+        "        pip install --no-cache-dir 'director-ai[server]'\n"
+        "        && director-ai proxy --port 8080 --facts /app/facts.txt\n"
+        f"        --facts-root /app --threshold {threshold} --on-fail reject\n"
+    )
+
+
+def _quickstart_api_service() -> str:
+    return (
+        "  director-api:\n"
+        "    image: python:3.12.11-slim\n"
+        "    working_dir: /app\n"
+        "    ports:\n"
+        '      - "8000:8000"\n'
+        "    env_file: .env\n"
+        "    volumes:\n"
+        "      - ./facts.txt:/app/facts.txt:ro\n"
+        "      - ./chroma:/data/chroma\n"
+        "    command:\n"
+        "      - /bin/sh\n"
+        "      - -lc\n"
+        "      - >-\n"
+        "        pip install --no-cache-dir 'director-ai[server,vector]'\n"
+        "        && director-ai ingest /app/facts.txt --persist /data/chroma\n"
+        "        && director-ai serve --host 0.0.0.0 --port 8000\n"
+    )
+
+
+def _quickstart_onnx_service(threshold: float) -> str:
+    return (
+        "  director-proxy-onnx:\n"
+        '    profiles: ["onnx"]\n'
+        "    image: python:3.12.11-slim\n"
+        "    working_dir: /app\n"
+        "    ports:\n"
+        '      - "8081:8080"\n'
+        "    env_file: .env\n"
+        "    environment:\n"
+        '      DIRECTOR_USE_NLI: "true"\n'
+        "      DIRECTOR_SCORER_BACKEND: onnx\n"
+        "      DIRECTOR_ONNX_PATH: /models/factcg-onnx\n"
+        "    volumes:\n"
+        "      - ./facts.txt:/app/facts.txt:ro\n"
+        "      - ./chroma:/data/chroma\n"
+        "      - ./models/factcg-onnx:/models/factcg-onnx:ro\n"
+        "    command:\n"
+        "      - /bin/sh\n"
+        "      - -lc\n"
+        "      - >-\n"
+        "        pip install --no-cache-dir 'director-ai[server,vector,nli,onnx]'\n"
+        "        && director-ai proxy --port 8080 --facts /app/facts.txt\n"
+        f"        --facts-root /app --threshold {threshold} --on-fail reject --config-env\n"
+    )
+
+
+def _write_quickstart_compose(out_dir: Path, threshold: float) -> None:
+    (out_dir / "chroma").mkdir()
+    onnx_dir = out_dir / "models" / "factcg-onnx"
+    onnx_dir.mkdir(parents=True)
+    (onnx_dir / "README.md").write_text(
+        "# FactCG ONNX Model Directory\n"
+        "\n"
+        "Place the exported ONNX model files here before running:\n"
+        "\n"
+        "```bash\n"
+        "docker compose --profile onnx up director-proxy-onnx\n"
+        "```\n",
+        encoding="utf-8",
+    )
+    (out_dir / "docker-compose.yml").write_text(
+        "services:\n"
+        f"{_quickstart_proxy_service(threshold)}"
+        f"{_quickstart_api_service()}"
+        f"{_quickstart_onnx_service(threshold)}",
+        encoding="utf-8",
+    )
+
+
+def _write_quickstart_readme(
+    out_dir: Path,
+    profile: str,
+    include_compose: bool,
+) -> None:
+    compose_block = ""
+    if include_compose:
+        compose_block = (
+            "\n"
+            "## Docker Compose\n"
+            "\n"
+            "```bash\n"
+            "docker compose up\n"
+            "curl http://localhost:8080/health\n"
+            "curl http://localhost:8000/v1/health\n"
+            "```\n"
+            "\n"
+            "`director-proxy` exposes the chat guard on port 8080.\n"
+            "`director-api` exposes the FastAPI service on port 8000 with\n"
+            "local Chroma persistence in `./chroma`.\n"
+            "\n"
+            "For FactCG ONNX, put exported model files in\n"
+            "`models/factcg-onnx/` and run:\n"
+            "\n"
+            "```bash\n"
+            "docker compose --profile onnx up director-proxy-onnx\n"
+            "```\n"
+        )
     (out_dir / "README.md").write_text(
         f"# Director-AI Guard (profile: {profile})\n"
         "\n"
@@ -257,11 +381,83 @@ def _cmd_quickstart(args: list[str]) -> None:
         "```\n"
         "\n"
         "Edit `facts.txt` to add your own knowledge base.\n"
-        "Edit `config.yaml` to tune thresholds.\n",
+        "Edit `config.yaml` to tune thresholds.\n"
+        f"{compose_block}",
         encoding="utf-8",
     )
 
-    print(f"Created {out_dir}/ — run: python {out_dir}/guard.py")
+
+def _run_quickstart_compose(out_dir: Path) -> None:
+    docker = shutil.which("docker")
+    if docker is None:
+        print("Error: docker compose is required for --run.")
+        sys.exit(1)
+    try:
+        subprocess.run(  # nosec B603 - fixed argv, no shell, new quickstart cwd.
+            [docker, "compose", "up"],
+            cwd=out_dir,
+            check=True,
+        )
+    except FileNotFoundError:
+        print("Error: docker compose is required for --run.")
+        sys.exit(1)
+    except subprocess.CalledProcessError as exc:
+        print(f"Error: docker compose failed with exit code {exc.returncode}.")
+        sys.exit(exc.returncode)
+
+
+def _cmd_quickstart(args: list[str]) -> None:
+    """Scaffold a working director-ai project in one command."""
+    from director_ai.core.config import DirectorConfig
+
+    profile = "fast"
+    include_compose = True
+    run_compose = False
+    i = 0
+    while i < len(args):
+        if args[i] == "--profile" and i + 1 < len(args):
+            profile = args[i + 1]
+            i += 2
+        elif args[i] == "--no-compose":
+            include_compose = False
+            i += 1
+        elif args[i] == "--run":
+            run_compose = True
+            i += 1
+        else:
+            i += 1
+
+    if profile not in _VALID_PROFILES:
+        print(f"Unknown profile '{profile}'. Choose from: {', '.join(_VALID_PROFILES)}")
+        sys.exit(1)
+
+    out_dir = Path("director_guard")
+    if out_dir.exists():
+        print(f"Error: {out_dir}/ already exists. Remove it or use a new dir.")
+        sys.exit(1)
+
+    cfg = DirectorConfig.from_profile(profile)
+    out_dir.mkdir()
+
+    _write_quickstart_config(
+        out_dir,
+        profile,
+        cfg.coherence_threshold,
+        cfg.hard_limit,
+        cfg.use_nli,
+    )
+    _write_quickstart_facts(out_dir)
+    _write_quickstart_guard(out_dir)
+    if include_compose:
+        _write_quickstart_env(out_dir, profile, cfg.coherence_threshold)
+        _write_quickstart_compose(out_dir, cfg.coherence_threshold)
+    _write_quickstart_readme(out_dir, profile, include_compose)
+
+    print(f"Created {out_dir}/ - run: python {out_dir}/guard.py")
+    if include_compose:
+        print(f"Compose quickstart: cd {out_dir} && docker compose up")
+    if run_compose:
+        _run_quickstart_compose(out_dir)
 
 
 def _cmd_review(args: list[str]) -> None:

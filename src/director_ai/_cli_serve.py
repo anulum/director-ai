@@ -133,6 +133,7 @@ def _cmd_proxy(args: list[str]) -> None:
     api_keys: list[str] = []
     allow_http = False
     audit_db: str | None = None
+    config_env = False
 
     i = 0
     while i < len(args):
@@ -166,6 +167,9 @@ def _cmd_proxy(args: list[str]) -> None:
         elif args[i] == "--audit-db" and i + 1 < len(args):
             audit_db = args[i + 1]
             i += 2
+        elif args[i] == "--config-env":
+            config_env = True
+            i += 1
         else:
             i += 1
 
@@ -177,6 +181,12 @@ def _cmd_proxy(args: list[str]) -> None:
 
     from director_ai.proxy import create_proxy_app
 
+    config = None
+    if config_env:
+        from director_ai.core.config import DirectorConfig
+
+        config = DirectorConfig.from_env()
+
     app = create_proxy_app(
         threshold=threshold,
         facts_path=facts_path,
@@ -186,6 +196,7 @@ def _cmd_proxy(args: list[str]) -> None:
         api_keys=api_keys or None,
         allow_http_upstream=allow_http,
         audit_db=audit_db,
+        config=config,
     )
 
     print(

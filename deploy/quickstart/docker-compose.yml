@@ -1,15 +1,15 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
-# Director-AI Quickstart — 2-minute setup
+# Director-AI Quickstart - 2-minute setup
 #
 # Usage:
 #   cd deploy/quickstart
 #   docker compose up
 #
-# Then point your OpenAI client at http://localhost:8080/v1
-# Every response is scored against kb.txt — hallucinations are rejected.
+# Then point your chat client at http://localhost:8080/v1
+# Every response is scored against kb.txt; hallucinations are rejected.
 #
 # Test:
-#   curl http://localhost:8080/v1/health
+#   curl http://localhost:8080/health
 #   curl -X POST http://localhost:8080/v1/score \
 #     -H "Content-Type: application/json" \
 #     -d '{"prompt": "What is the refund policy?", "response": "We offer lifetime refunds."}'
@@ -27,7 +27,7 @@ services:
     environment:
       - DIRECTOR_LOG_LEVEL=INFO
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/v1/health')"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')"]
       interval: 15s
       timeout: 5s
       retries: 3

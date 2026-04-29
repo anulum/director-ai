@@ -38,6 +38,7 @@ def create_proxy_app(
     api_keys: list[str] | None = None,
     allow_http_upstream: bool = False,
     audit_db: str | None = None,
+    config=None,
     _transport=None,
 ):
     """Build a FastAPI app that proxies OpenAI requests with scoring.
@@ -69,6 +70,9 @@ def create_proxy_app(
         Allow non-HTTPS upstream URLs. Default ``False`` rejects them.
     audit_db : str | None
         Path to SQLite compliance audit database. None disables audit logging.
+    config
+        Optional DirectorConfig. When provided, the proxy builds the configured
+        store and scorer instead of the minimal in-memory scorer.
 
     """
     from contextlib import asynccontextmanager
@@ -88,15 +92,25 @@ def create_proxy_app(
             )
         _log.warning("Non-HTTPS upstream: %s", upstream_url)
 
-    store = GroundTruthStore()
-    if facts_path:
-        _load_facts(store, facts_path, facts_root=facts_root)
+    if config is None:
+        store = GroundTruthStore()
+        if facts_path:
+            _load_facts(store, facts_path, facts_root=facts_root)
+        scorer = CoherenceScorer(
+            threshold=threshold,
+            ground_truth_store=store,
+            use_nli=use_nli,
+        )
+    else:
+        from dataclasses import replace
 
-    scorer = CoherenceScorer(
-        threshold=threshold,
-        ground_truth_store=store,
-        use_nli=use_nli,
-    )
+        cfg = replace(config, coherence_threshold=threshold)
+        if use_nli is not None:
+            cfg = replace(cfg, use_nli=use_nli)
+        store = cfg.build_store()
+        if facts_path:
+            _load_facts(store, facts_path, facts_root=facts_root)
+        scorer = cfg.build_scorer(store=store)
 
     audit_log = None
     if audit_db:

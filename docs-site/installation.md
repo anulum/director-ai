@@ -8,6 +8,25 @@ pip install director-ai
 
 Includes: coherence scorer, streaming kernel, safety kernel, ground truth store, heuristic scoring.
 
+## Supported Default Path
+
+For new users and contributors, the supported default is Python-only:
+
+```bash
+pip install director-ai[server,vector]
+director-ai quickstart --run
+director-ai doctor
+```
+
+This path keeps setup to the Python package, FastAPI service, local Chroma
+persistence, and the CLI. Rust acceleration, the Go gateway, Julia tuning,
+Lean verification, TensorRT, and WASM are advanced optional paths. They should
+not be required for the base install, quickstart, or first contributor tasks.
+
+Run `director-ai doctor` after enabling optional extras. It reports the active
+runtime stack and warns when environment settings request optional components
+that are not installed.
+
 ## Optional Extras
 
 | Extra | Command | Adds |

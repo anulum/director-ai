@@ -1,13 +1,18 @@
 # Domain Presets
 
 `DirectorConfig.from_profile(name)` loads a preset parameter set for common use cases.
-These are starting points based on domain heuristics, not validated against domain-specific benchmarks.
+These are starting points, not a substitute for calibration on your own
+evaluation set. Domain profiles should be treated as a starting config until
+`director-ai tune` has measured the expected false-halt and miss rates.
 
 ## Profile Reference
 
 | Profile | Threshold | Hard Limit | Soft Limit | NLI | Reranker | W_Logic | W_Fact |
 |---------|-----------|------------|------------|-----|----------|---------|--------|
 | `fast` | 0.50 | default | default | no | no | default | default |
+| `lite` | 0.50 | default | default | no | no | default | default |
+| `rules` | 0.50 | default | default | no | no | default | default |
+| `embed` | 0.60 | default | default | no | no | default | default |
 | `thorough` | 0.60 | default | default | yes | no | default | default |
 | `research` | 0.70 | default | default | yes | no | default | default |
 | `medical` | 0.30 | 0.20 | 0.35 | yes | yes | 0.5 | 0.5 |
@@ -15,12 +20,23 @@ These are starting points based on domain heuristics, not validated against doma
 | `legal` | 0.30 | 0.20 | 0.35 | yes | no | 0.6 | 0.4 |
 | `creative` | 0.40 | 0.30 | 0.45 | no | no | 0.7 | 0.3 |
 | `customer_support` | 0.55 | 0.40 | 0.60 | no | no | 0.5 | 0.5 |
+| `summarization` | 0.15 | 0.08 | 0.25 | yes | no | 0.0 | 1.0 |
 
 "default" means the field inherits the `DirectorConfig` dataclass default (hard_limit=0.5, soft_limit=0.6, w_logic/w_fact=0.0 which defers to `CoherenceScorer` class defaults).
 
 ## Profile Rationale
 
 **fast** — Heuristic scoring only, no model loading. Sub-millisecond latency for dev loops and high-throughput pipelines where approximate filtering is acceptable.
+
+**lite** — Lite scorer backend with no heavyweight NLI dependency. Use for
+offline trials and latency-sensitive routing where approximate scores are
+acceptable.
+
+**rules** — Rules-only scorer. Use when deployments need deterministic local
+checks and no model downloads.
+
+**embed** — Embedding scorer backend. Use when semantic similarity is the
+primary signal and a full NLI model is not available.
 
 **thorough** — Adds NLI inference (FactCG-DeBERTa) to catch logical contradictions that heuristics miss. Standard production baseline.
 
@@ -30,11 +46,15 @@ These are starting points based on domain heuristics, not validated against doma
 
 **finance** — Fact-weighted (0.6) because numerical claims and regulatory data dominate. Reranker sharpens retrieval against financial KB documents. NLI-only eval on FinanceBench (150 clean samples, 2026-03-20): FPR=100%, precision=0% — all clean responses were flagged. **These thresholds need KB grounding or recalibration before production use.**
 
-**legal** — Logic-weighted (0.6) because legal reasoning chains (statute + precedent + application) matter more than isolated facts. No reranker; legal KBs tend to be smaller and well-structured. **Not validated** — CUAD benchmark OOM on 6GB VRAM. No domain-specific artifact exists.
+**legal** — Logic-weighted (0.6) because legal reasoning chains (statute + precedent + application) matter more than isolated facts. No reranker; legal KBs tend to be smaller and well-structured. **Not validated** — CUAD benchmark OOM on 6GB VRAM. No domain-specific artefact exists.
 
 **creative** — Permissive thresholds (0.40/0.30/0.45) allow divergent generation. NLI disabled to avoid penalising metaphor and fiction. Logic-weighted (0.7) because internal narrative consistency matters more than factual grounding.
 
 **customer_support** — Moderate thresholds balance helpfulness with accuracy. NLI disabled for latency (support bots need fast responses). Equal weights suit mixed queries (policy facts + troubleshooting logic).
+
+**summarization** — Fact-only weighting with prompt-as-premise scoring,
+trimmed-mean aggregation, and claim coverage enabled. Use for source-grounded
+summaries, then tune on your own clean and adversarial samples.
 
 ## Usage
 
@@ -48,6 +68,18 @@ Load via CLI:
 
 ```bash
 director-ai quickstart --profile medical
+```
+
+Generate the Docker Compose quickstart and start it immediately:
+
+```bash
+director-ai quickstart --profile customer_support --run
+```
+
+Tune against a labelled evaluation set before production:
+
+```bash
+director-ai tune my_eval.jsonl --output tuned_config.yaml
 ```
 
 Load via environment variable:

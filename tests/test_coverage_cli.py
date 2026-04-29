@@ -300,6 +300,12 @@ class TestCliDoctor:
         out = capsys.readouterr().out
         assert "director-ai" in out
 
+    def test_doctor_output_includes_runtime_stack(self, capsys):
+        main(["doctor"])
+        out = capsys.readouterr().out
+        assert "Runtime stack:" in out
+        assert "Python-only core" in out
+
 
 class TestCliStressTest:
     def test_stress_test_default(self, capsys):

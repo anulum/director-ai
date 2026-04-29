@@ -256,3 +256,108 @@
 - ModernBERT-large (8192 tokens) as alternate NLI backend — only path to >78% BA
 - Stripe Checkout page + HMAC-SHA256 license key generation
 - B608 ChromaDB parameterised filters (low priority, no user input reaches these)
+
+## v3.15.0
+
+### Product Simplification and Onboarding (Planned)
+- [x] Make `director-ai quickstart` scaffold a default Docker Compose path with:
+  - guarded chat proxy on port 8080
+  - FastAPI service on port 8000
+  - local Chroma persistence under `./chroma`
+  - FactCG ONNX service hidden behind `docker compose --profile onnx`
+- [ ] Move non-Python runtime paths into clearly opt-in documentation sections:
+  Rust kernel, Go gateway, Julia threshold tuner, Lean proofs, and WASM.
+- [x] Document the Python-only supported path and add `director-ai doctor`
+  runtime-stack audit output.
+- [ ] Collapse setup docs into one recommended path first, then an advanced backend matrix.
+- [ ] Add a "minimal support surface" policy: default Python + FastAPI + local Chroma,
+  with every other runtime enabled only by explicit extra, flag, or Compose profile.
+- [ ] Evaluate extracting the Rust kernel and formal proof artefacts into a
+  separately versioned package/repository so core users do not inherit that
+  build surface.
+
+### Presets, Tuning, and Configuration UX (Planned)
+- [ ] Add profile metadata that states validation status, expected false-halt risk,
+  required dependencies, and intended workload for each preset.
+- [ ] Extend `director-ai tune --dataset <eval.jsonl>` output so it can write a
+  ready-to-use profile overlay, not just threshold and weight suggestions.
+- [ ] Make the Gradio UI from the `[ui]` extra the primary configuration wizard:
+  profile selection, threshold tuning, facts ingestion, and calibration feedback.
+- [ ] Add calibrated starter presets for support, summarisation, RAG QA, finance,
+  legal, medical, creative drafting, and low-latency edge/offline use.
+- [ ] Add YAML starter presets for STEM fact-heavy workflows, code generation,
+  multi-agent swarm supervision, voice agents, and high-stakes medical review.
+- [ ] Extend tuner output with a confidence report explaining selected thresholds,
+  trade-offs, and counterfactual examples near the decision boundary.
+
+### Agent-Native Observability (Planned)
+- [ ] Add trace-level halt attribution: fact source, retrieval path, scorer path,
+  token offset, threshold, and causal contribution.
+- [ ] Add `CounterfactualVerifier` support for "what single fact change would
+  have prevented this halt?" diagnostics.
+- [ ] Export counterfactual and halt-cause fields as OpenTelemetry attributes.
+- [ ] Extend the UI with a visual trace explorer for agent, swarm, and streaming
+  halt events.
+
+### Benchmark Transparency and External Validation (Planned)
+- [ ] Publish raw benchmark runners, dataset manifests, cache schema, and
+  reproduction commands for every public accuracy table.
+- [ ] Add benchmark cards that separate pure NLI, hybrid judge, heuristic, and
+  tuned-threshold modes so catch-rate claims cannot blur backend choices.
+- [ ] Prepare an external validation packet for a third-party accuracy benchmark.
+- [ ] Prepare an external security test packet focused on streaming interception,
+  multi-tenant isolation, and knowledge-base ingestion.
+
+### Dependency and Deployment Realism (Planned)
+- [ ] Tighten optional dependency locks with uv for `[nli]`, `[onnx]`, `[vector]`,
+  `[ui]`, `[server]`, and enterprise extras.
+- [ ] Ship prebuilt ONNX artefact guidance and wheel coverage for common CPU/GPU
+  deployment targets.
+- [ ] Prioritise the deferred WASM runtime for edge/offline users who cannot run
+  Python services.
+- [ ] Add supply-chain notes for torch, transformers, ONNX Runtime, Chroma, and
+  other heavy optional dependencies.
+
+### Security Follow-Ups (Planned)
+- [ ] Add signed knowledge-base entries plus strict write ACLs for ingestion APIs.
+- [ ] Document public exposure rules for unauthenticated health, readiness, source,
+  and metrics endpoints.
+- [ ] Add stricter CORS examples for public reverse-proxy deployments.
+- [ ] Run an external security test focused on streaming paths and tenant isolation.
+- [ ] Add cross-language contract tests for Python, Rust, Go, and proto boundaries
+  using property-based inputs.
+- [ ] Add a nightly live red-team workflow against current jailbreak/evasion
+  datasets and the full scorer pyramid.
+- [ ] Publish a monthly public adversarial validation update in `VALIDATION.md`.
+
+### Knowledge-Base Governance (Planned)
+- [ ] Add semantic versioning for `VectorGroundTruthStore` facts and derived
+  vector chunks.
+- [ ] Add fact retraction and replacement records so stale or retracted sources
+  can invalidate dependent chunks without full manual rebuilds.
+- [ ] Add Merkle roots for KB snapshots and expose them through audit records.
+- [ ] Combine temporal freshness with external citation/status signals for
+  scientific and high-stakes domains.
+
+### Future Differentiators (Planned)
+- [ ] Prototype native inference-server hooks for vLLM, TGI, and llama.cpp so the
+  guard can intervene before unsafe tokens are sampled.
+- [ ] Design a human-reviewed self-improving guard loop from calibration feedback
+  into LoRA fine-tuning jobs.
+- [ ] Plan multi-modal hallucination checks for generated image, audio, and video
+  outputs using caption/metadata grounding.
+- [ ] Draft an open Director Safety Protocol for guard signals shared across agent
+  frameworks.
+- [ ] Add conflict-aware knowledge-base checks that detect contradictory user facts
+  before they enter retrieval.
+- [ ] Package the halt/interlock kernel as a standalone library for users who bring
+  their own scorer.
+- [ ] Add verifier backends for formal math and code outputs through theorem
+  prover integrations.
+- [ ] Design federated, privacy-preserving sharing of anonymised guard signals.
+- [ ] Add sustainability scoring for token cost, energy estimates, and budget
+  halts.
+- [ ] Promote the recursive guard-of-the-guard layer into a guarded production
+  option with drift and evasion checks.
+- [ ] Publish a structured Director Safety Event schema for uniform halt telemetry
+  across inference servers and downstream tools.

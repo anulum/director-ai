@@ -6,6 +6,7 @@
 |--------|---------|------|
 | **pip install** | `pip install director-ai` | 30 seconds |
 | **CLI scaffold** | `director-ai quickstart --profile medical` | 1 minute |
+| **CLI Compose** | `director-ai quickstart --run` | 2 minutes |
 | **Colab notebook** | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | 5 minutes |
 | **Docker** | `docker build -t director-ai . && docker run -p 8080:8080 director-ai` | 5 minutes |
 | **HF Spaces** | [Try demo](https://huggingface.co/spaces/anulum/director-ai-guardrail) (may be sleeping) | 0 minutes |
@@ -35,7 +36,23 @@ cd director_guard
 python guard.py
 ```
 
-Creates `director_guard/` with `config.yaml`, `facts.txt`, `guard.py`, and `README.md`.
+Creates `director_guard/` with `config.yaml`, `facts.txt`, `guard.py`,
+`README.md`, Docker Compose, local Chroma persistence, and an opt-in FactCG
+ONNX profile.
+
+Run the default proxy and FastAPI services:
+
+```bash
+director-ai quickstart --run
+```
+
+Run the ONNX service after placing exported model files in
+`director_guard/models/factcg-onnx/`:
+
+```bash
+cd director_guard
+docker compose --profile onnx up director-proxy-onnx
+```
 
 ## Score a Response
 

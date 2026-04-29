@@ -12,9 +12,11 @@ error handling, pipeline integration, and performance documentation.
 """
 
 import json
+import subprocess
 import sys
 import tempfile
 import types
+from pathlib import Path
 
 import pytest
 
@@ -138,6 +140,33 @@ class TestQuickstartCommand:
         assert (d / "facts.txt").is_file()
         assert (d / "guard.py").is_file()
         assert (d / "README.md").is_file()
+        assert (d / ".env").is_file()
+        assert (d / "docker-compose.yml").is_file()
+        assert (d / "chroma").is_dir()
+        assert (d / "models" / "factcg-onnx" / "README.md").is_file()
+
+    def test_quickstart_compose_has_default_and_onnx_paths(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        monkeypatch.chdir(tmp_path)
+        main(["quickstart", "--profile", "lite"])
+        d = tmp_path / "director_guard"
+        compose_text = (d / "docker-compose.yml").read_text()
+        env_text = (d / ".env").read_text()
+        assert "director-proxy:" in compose_text
+        assert "director-api:" in compose_text
+        assert "director-proxy-onnx:" in compose_text
+        assert "director-ai[server,vector]" in compose_text
+        assert "director-ai[server,vector,nli,onnx]" in compose_text
+        assert (
+            "director-ai ingest /app/facts.txt --persist /data/chroma" in compose_text
+        )
+        assert "--config-env" in compose_text
+        assert "DIRECTOR_VECTOR_BACKEND=chroma" in env_text
+        assert "DIRECTOR_CHROMA_PERSIST_DIR=/data/chroma" in env_text
+        assert "DIRECTOR_ONNX_PATH" not in env_text
 
     def test_quickstart_with_profile(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
@@ -157,6 +186,38 @@ class TestQuickstartCommand:
         monkeypatch.chdir(tmp_path)
         with pytest.raises(SystemExit) as exc_info:
             main(["quickstart", "--profile", "nonexistent"])
+        assert exc_info.value.code == 1
+
+    def test_quickstart_no_compose(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+        main(["quickstart", "--no-compose"])
+        d = tmp_path / "director_guard"
+        assert not (d / "docker-compose.yml").exists()
+        assert not (d / ".env").exists()
+        assert "Docker Compose" not in (d / "README.md").read_text()
+
+    def test_quickstart_run_invokes_docker_compose(self, tmp_path, monkeypatch):
+        calls: list[tuple[list[str], object, bool]] = []
+
+        def fake_run(command, cwd=None, check=False):
+            calls.append((command, cwd, check))
+            return subprocess.CompletedProcess(command, 0)
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("director_ai.cli.shutil.which", lambda name: name)
+        monkeypatch.setattr("director_ai.cli.subprocess.run", fake_run)
+        main(["quickstart", "--run"])
+        assert calls == [(["docker", "compose", "up"], Path("director_guard"), True)]
+
+    def test_quickstart_run_requires_docker_compose(self, tmp_path, monkeypatch):
+        def fake_run(command, cwd=None, check=False):
+            raise FileNotFoundError
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("director_ai.cli.shutil.which", lambda _name: None)
+        monkeypatch.setattr("director_ai.cli.subprocess.run", fake_run)
+        with pytest.raises(SystemExit) as exc_info:
+            main(["quickstart", "--run"])
         assert exc_info.value.code == 1
 
 

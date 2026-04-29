@@ -1,6 +1,18 @@
-# Quickstart — Director-AI Proxy in 2 Minutes
+# Quickstart - Director-AI Proxy in 2 Minutes
 
 ## Setup
+
+Recommended:
+
+```bash
+director-ai quickstart --run
+```
+
+This creates `director_guard/` with a facts file, local config, a
+standalone Python guard, Docker Compose, Chroma persistence, and an
+optional FactCG ONNX profile.
+
+Manual repo-local path:
 
 ```bash
 cd deploy/quickstart
@@ -15,7 +27,7 @@ Hallucinations are rejected (HTTP 422).
 
 ```bash
 # Health check
-curl http://localhost:8080/v1/health
+curl http://localhost:8080/health
 
 # Score a response
 curl -X POST http://localhost:8080/v1/score \
@@ -26,22 +38,42 @@ curl -X POST http://localhost:8080/v1/score \
   }'
 ```
 
-## Use as OpenAI Proxy
+## Use as Chat Proxy
 
-Point any OpenAI-compatible client at the proxy:
+Point any chat-completions-compatible client at the proxy:
 
 ```python
-from openai import OpenAI
+from provider_sdk import Client
 
-client = OpenAI(base_url="http://localhost:8080/v1")
+client = Client(base_url="http://localhost:8080/v1")
 response = client.chat.completions.create(
-    model="gpt-4o-mini",
+    model="local-model",
     messages=[{"role": "user", "content": "What is the refund policy?"}],
 )
 ```
 
-Set `OPENAI_API_KEY` in the environment or pass `--upstream-url` to point at
-a different LLM backend (vLLM, Ollama, etc.).
+Set the provider API key in the environment or pass `--upstream-url` to point
+at a different LLM backend such as vLLM, Ollama, or llama.cpp.
+
+## Generated Compose Path
+
+The CLI-generated quickstart runs two default services:
+
+| Service | Port | Purpose |
+|---------|------|---------|
+| `director-proxy` | 8080 | Guarded chat proxy with `facts.txt` |
+| `director-api` | 8000 | FastAPI service with local Chroma persistence |
+
+The ONNX scorer is opt-in:
+
+```bash
+cd director_guard
+docker compose --profile onnx up director-proxy-onnx
+```
+
+Place exported FactCG ONNX files in `models/factcg-onnx/` before enabling
+that profile. Keeping it behind a profile makes the default path usable on
+CPU-only machines without installing the heavy NLI stack.
 
 ## Knowledge Base
 
@@ -54,5 +86,5 @@ facts on startup. Restart `docker compose` after changes.
 |------|---------|-------------|
 | `--threshold` | 0.3 | Minimum coherence score (0.0–1.0) |
 | `--on-fail` | reject | `reject` (HTTP 422) or `warn` (pass with headers) |
-| `--upstream-url` | OpenAI | LLM backend URL |
+| `--upstream-url` | Provider default | LLM backend URL |
 | `--facts` | — | Path to knowledge base file |

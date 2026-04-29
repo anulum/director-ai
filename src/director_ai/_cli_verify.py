@@ -16,6 +16,82 @@ import json
 import sys
 
 
+def _check_optional_module(module_name: str) -> tuple[bool, str]:
+    import importlib
+    import importlib.util
+
+    if importlib.util.find_spec(module_name) is None:
+        return False, "not installed"
+    try:
+        module = importlib.import_module(module_name)
+    except Exception as exc:
+        return False, f"import failed: {exc}"
+    return True, str(getattr(module, "__version__", "installed"))
+
+
+def _stack_status() -> list[tuple[str, bool, str]]:
+    import importlib.util
+    import shutil
+
+    return [
+        ("Python-only core", True, "supported default"),
+        (
+            "Rust kernel",
+            importlib.util.find_spec("backfire_kernel") is not None,
+            "optional backfire_kernel",
+        ),
+        (
+            "Docker Compose",
+            shutil.which("docker") is not None,
+            "optional quickstart runtime",
+        ),
+        (
+            "Go gateway",
+            shutil.which("director-ai-gateway") is not None,
+            "optional advanced gateway",
+        ),
+        (
+            "Julia tuner",
+            shutil.which("julia") is not None,
+            "optional research tuner",
+        ),
+        (
+            "Lean verifier",
+            shutil.which("lean") is not None or shutil.which("lake") is not None,
+            "optional formal verifier",
+        ),
+    ]
+
+
+def _stack_warnings(checks: list[tuple[str, bool, str]]) -> list[str]:
+    from director_ai.core.config import DirectorConfig
+
+    available = {name: ok for name, ok, _ in checks}
+    warnings: list[str] = []
+    try:
+        cfg = DirectorConfig.from_env()
+    except ValueError as exc:
+        return [f"Invalid DIRECTOR_* configuration: {exc}"]
+
+    deps = {
+        "torch": _check_optional_module("torch")[0],
+        "transformers": _check_optional_module("transformers")[0],
+        "onnxruntime": _check_optional_module("onnxruntime")[0],
+        "chromadb": _check_optional_module("chromadb")[0],
+    }
+    if cfg.use_nli and not (deps["torch"] and deps["transformers"]):
+        warnings.append("DIRECTOR_USE_NLI=true but torch/transformers are missing.")
+    if cfg.scorer_backend == "onnx" and not deps["onnxruntime"]:
+        warnings.append("DIRECTOR_SCORER_BACKEND=onnx but onnxruntime is missing.")
+    if cfg.scorer_backend == "onnx" and not cfg.onnx_path:
+        warnings.append("DIRECTOR_SCORER_BACKEND=onnx but DIRECTOR_ONNX_PATH is empty.")
+    if cfg.scorer_backend == "rust" and not available["Rust kernel"]:
+        warnings.append("DIRECTOR_SCORER_BACKEND=rust but backfire_kernel is missing.")
+    if cfg.vector_backend == "chroma" and not deps["chromadb"]:
+        warnings.append("DIRECTOR_VECTOR_BACKEND=chroma but chromadb is missing.")
+    return warnings
+
+
 def _cmd_doctor(args: list[str]) -> None:
     """Check runtime dependencies and print readiness summary."""
     import platform
@@ -30,21 +106,16 @@ def _cmd_doctor(args: list[str]) -> None:
     checks.append(("Python >= 3.11", py_ok, py_ver))
 
     # torch
-    try:
+    torch_ok, torch_detail = _check_optional_module("torch")
+    if torch_ok:
         import torch
 
-        cuda = torch.cuda.is_available()
-        checks.append(("torch", True, f"{torch.__version__} (CUDA: {cuda})"))
-    except ImportError:
-        checks.append(("torch", False, "not installed"))
+        torch_detail = f"{torch.__version__} (CUDA: {torch.cuda.is_available()})"
+    checks.append(("torch", torch_ok, torch_detail))
 
     # transformers
-    try:
-        import transformers
-
-        checks.append(("transformers", True, transformers.__version__))
-    except ImportError:
-        checks.append(("transformers", False, "not installed"))
+    transformers_ok, transformers_detail = _check_optional_module("transformers")
+    checks.append(("transformers", transformers_ok, transformers_detail))
 
     # NLI model availability
     try:
@@ -57,55 +128,48 @@ def _cmd_doctor(args: list[str]) -> None:
         checks.append(("NLI model ready", False, str(exc)))
 
     # onnxruntime
-    try:
+    onnx_ok, onnx_detail = _check_optional_module("onnxruntime")
+    if onnx_ok:
         import onnxruntime as ort
 
         provs = ort.get_available_providers()
-        checks.append(("onnxruntime", True, f"{ort.__version__} ({', '.join(provs)})"))
-    except ImportError:
-        checks.append(("onnxruntime", False, "not installed"))
+        onnx_detail = f"{ort.__version__} ({', '.join(provs)})"
+    checks.append(("onnxruntime", onnx_ok, onnx_detail))
 
     # chromadb
-    try:
-        import chromadb
-
-        checks.append(("chromadb", True, chromadb.__version__))
-    except ImportError:
-        checks.append(("chromadb", False, "not installed"))
+    chroma_ok, chroma_detail = _check_optional_module("chromadb")
+    checks.append(("chromadb", chroma_ok, chroma_detail))
 
     # sentence_transformers
-    try:
-        import sentence_transformers
-
-        ver = sentence_transformers.__version__
-        checks.append(("sentence-transformers", True, ver))
-    except ImportError:
-        checks.append(("sentence-transformers", False, "not installed"))
+    st_ok, st_detail = _check_optional_module("sentence_transformers")
+    checks.append(("sentence-transformers", st_ok, st_detail))
 
     # slowapi
-    try:
-        import slowapi
-
-        checks.append(("slowapi", True, getattr(slowapi, "__version__", "installed")))
-    except ImportError:
-        checks.append(("slowapi", False, "not installed"))
+    slowapi_ok, slowapi_detail = _check_optional_module("slowapi")
+    checks.append(("slowapi", slowapi_ok, slowapi_detail))
 
     # grpcio
-    try:
-        import grpc
-
-        checks.append(("grpcio", True, grpc.__version__))
-    except ImportError:
-        checks.append(("grpcio", False, "not installed"))
+    grpc_ok, grpc_detail = _check_optional_module("grpc")
+    checks.append(("grpcio", grpc_ok, grpc_detail))
 
     passed = sum(1 for _, ok, _ in checks if ok)
     total = len(checks)
+    stack = _stack_status()
+    warnings = _stack_warnings(stack)
 
     print(f"director-ai {director_ai.__version__} — dependency check\n")
     for name, ok, detail in checks:
         mark = "+" if ok else "-"
         print(f"  [{mark}] {name}: {detail}")
     print(f"\n{passed}/{total} checks passed")
+    print("\nRuntime stack:")
+    for name, ok, detail in stack:
+        mark = "+" if ok else "-"
+        print(f"  [{mark}] {name}: {detail}")
+    if warnings:
+        print("\nWarnings:")
+        for warning in warnings:
+            print(f"  - {warning}")
 
 
 def _cmd_license(args: list[str]) -> None:
