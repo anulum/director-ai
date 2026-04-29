@@ -1,0 +1,44 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — optional extra lock policy
+
+[policy]
+lock_file = "uv.lock"
+lock_command = "uv lock"
+sync_command = "uv sync --locked"
+checked_extras = ["enterprise", "nli", "onnx", "server", "ui", "vector"]
+upper_bound_required = true
+
+[[extras]]
+name = "enterprise"
+packages = ["argon2-cffi", "psycopg2-binary", "pyjwt", "redis"]
+notes = "Account, tenant, and store backends stay within known major lines."
+
+[[extras]]
+name = "nli"
+packages = ["torch", "transformers"]
+notes = "Heavy scorer backend keeps major caps for model API churn."
+
+[[extras]]
+name = "onnx"
+packages = ["onnxruntime"]
+notes = "ONNX Runtime stays within one major line for graph runtime parity."
+
+[[extras]]
+name = "server"
+packages = ["fastapi", "httpx", "pydantic", "python-multipart", "slowapi", "uvicorn"]
+notes = "HTTP boundary packages keep major caps for ASGI and schema stability."
+
+[[extras]]
+name = "ui"
+packages = ["gradio"]
+notes = "Wizard UI stays within the current major range."
+
+[[extras]]
+name = "vector"
+packages = ["chromadb", "sentence-transformers"]
+notes = "Vector store and embedding scorer stay within known major lines."

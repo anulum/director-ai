@@ -324,7 +324,7 @@
   multi-tenant isolation, and knowledge-base ingestion.
 
 ### Dependency and Deployment Realism (Planned)
-- [ ] Tighten optional dependency locks with uv for `[nli]`, `[onnx]`, `[vector]`,
+- [x] Tighten optional dependency locks with uv for `[nli]`, `[onnx]`, `[vector]`,
   `[ui]`, `[server]`, and enterprise extras.
 - [ ] Ship prebuilt ONNX artefact guidance and wheel coverage for common CPU/GPU
   deployment targets.

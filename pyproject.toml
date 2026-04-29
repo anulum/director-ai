@@ -48,7 +48,7 @@ nli = [
     "transformers>=5.0.0rc3,<6",
 ]
 vector = [
-    "chromadb>=0.4.0",
+    "chromadb>=0.4.0,<2",
     "sentence-transformers>=4,<6",
 ]
 openai = ["openai>=1.0"]
@@ -60,12 +60,12 @@ llamaindex = [
     "llama-index-core>=0.10",
 ]
 server = [
-    "fastapi>=0.100",
-    "uvicorn>=0.23",
-    "pydantic>=2.0",
-    "httpx>=0.27",
-    "python-multipart>=0.0.7",
-    "slowapi>=0.1.9",
+    "fastapi>=0.100,<1",
+    "uvicorn>=0.23,<1",
+    "pydantic>=2.0,<3",
+    "httpx>=0.27,<1",
+    "python-multipart>=0.0.7,<1",
+    "slowapi>=0.1.9,<1",
 ]
 # MiniCheck is not published on PyPI. Users who want the MiniCheck
 # backend install it manually:
@@ -183,10 +183,10 @@ colbert = [
 ]
 rust = ["backfire-kernel>=0.1.0"]
 enterprise = [
-    "redis>=4.5",
-    "pyjwt>=2.8",
-    "argon2-cffi>=23.1",
-    "psycopg2-binary>=2.9",
+    "redis>=4.5,<8",
+    "pyjwt>=2.8,<3",
+    "argon2-cffi>=23.1,<26",
+    "psycopg2-binary>=2.9,<3",
 ]
 ui = [
     "gradio>=4.0,<7",

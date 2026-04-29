@@ -199,6 +199,8 @@ pip install "director-ai[reports]"                 # PDF/HTML compliance reports
 
 For reproducible installs the repo ships a `uv.lock` at the root;
 `uv sync` installs the exact resolved versions.
+Heavy optional extras use the policy in
+`requirements/OPTIONAL_EXTRA_LOCKS.md`.
 
 The MiniCheck backend is opt-in and not on PyPI — install it manually
 alongside any other extras:
