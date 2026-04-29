@@ -19,6 +19,12 @@ Machine-readable packet:
 Policy reference:
 `SECURITY.md`
 
+Execution gate:
+`security/EXTERNAL_SECURITY_TEST_RUNBOOK.md`
+
+Evidence validator:
+`tools/validate_external_security_run.py`
+
 ## Test Scope
 
 | Track id | Surface | Primary code paths | Existing regression tests |

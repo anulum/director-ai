@@ -40,7 +40,10 @@ def test_external_security_packet_paths_exist():
     packet = _packet()
 
     assert (ROOT / packet["packet_doc"]).exists()
+    assert (ROOT / packet["runbook_doc"]).exists()
+    assert (ROOT / packet["evidence_validator"]).exists()
     assert (ROOT / packet["policy_doc"]).exists()
+    assert packet["run_status"] == "not_run"
 
     for track in packet["test_tracks"]:
         for source_file in track["source_files"]:
@@ -75,6 +78,9 @@ def test_external_security_packet_required_outputs():
 
 def test_external_security_doc_contains_required_sections():
     doc = PACKET_DOC.read_text(encoding="utf-8")
+    runbook = (ROOT / "security" / "EXTERNAL_SECURITY_TEST_RUNBOOK.md").read_text(
+        encoding="utf-8"
+    )
 
     for heading in [
         "## Test Scope",
@@ -87,3 +93,7 @@ def test_external_security_doc_contains_required_sections():
         assert heading in doc
 
     assert "security/external_security_test_packet.toml" in doc
+    assert "tools/validate_external_security_run.py" in doc
+    assert "## Completion Rule" in runbook
+    assert "streaming_interception" in runbook
+    assert "multi_tenant_isolation" in runbook

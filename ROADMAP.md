@@ -345,7 +345,8 @@
 - [x] Document public exposure rules for unauthenticated health, readiness, source,
   and metrics endpoints.
 - [x] Add stricter CORS examples for public reverse-proxy deployments.
-- [ ] Run an external security test focused on streaming paths and tenant isolation.
+- [ ] Run an external security test focused on streaming paths and tenant isolation
+  (execution gate and evidence validator are ready; independent report pending).
 - [ ] Add cross-language contract tests for Python, Rust, Go, and proto boundaries
   using property-based inputs.
 - [ ] Add a nightly live red-team workflow against current jailbreak/evasion

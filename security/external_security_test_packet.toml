@@ -9,8 +9,11 @@
 schema_version = "1.0.0"
 packet_id = "director-ai-security-test-2026-04"
 packet_doc = "security/EXTERNAL_SECURITY_TEST_PACKET.md"
+runbook_doc = "security/EXTERNAL_SECURITY_TEST_RUNBOOK.md"
+evidence_validator = "tools/validate_external_security_run.py"
 policy_doc = "SECURITY.md"
 contact = "director.class.ai@anulum.li"
+run_status = "not_run"
 
 [acceptance]
 minimum_tracks = 3

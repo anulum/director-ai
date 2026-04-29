@@ -65,6 +65,8 @@ Director-AI is licensed under GNU AGPL v3. Key obligations:
 
 External security test packet:
 [`security/EXTERNAL_SECURITY_TEST_PACKET.md`](security/EXTERNAL_SECURITY_TEST_PACKET.md).
+Execution gate:
+[`security/EXTERNAL_SECURITY_TEST_RUNBOOK.md`](security/EXTERNAL_SECURITY_TEST_RUNBOOK.md).
 
 ## Residual Risks (documented for transparency)
 
