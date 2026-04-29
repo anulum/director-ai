@@ -281,7 +281,7 @@
   required dependencies, and intended workload for each preset.
 - [x] Extend `director-ai tune --dataset <eval.jsonl>` output so it can write a
   ready-to-use profile overlay, not just threshold and weight suggestions.
-- [ ] Make the Gradio UI from the `[ui]` extra the primary configuration wizard:
+- [x] Make the Gradio UI from the `[ui]` extra the primary configuration wizard:
   profile selection, threshold tuning, facts ingestion, and calibration feedback.
 - [ ] Add calibrated starter presets for support, summarisation, RAG QA, finance,
   legal, medical, creative drafting, and low-latency edge/offline use.

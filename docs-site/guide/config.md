@@ -1,5 +1,29 @@
 # Configuration
 
+## Configuration Wizard
+
+Use the wizard as the primary setup path when choosing profiles, preparing a
+facts file, or collecting calibration feedback:
+
+```bash
+director-ai wizard
+```
+
+The `[ui]` extra enables the Gradio interface:
+
+```bash
+pip install director-ai[ui]
+```
+
+The wizard includes profile selection, threshold and weight controls,
+`facts.txt` preparation, calibration feedback JSONL generation, and an advanced
+field editor for the full `DirectorConfig` surface. Use CLI mode when Gradio is
+not available:
+
+```bash
+director-ai wizard --cli --output config.yaml
+```
+
 `DirectorConfig` is a dataclass with environment variable, YAML file, and named profile loaders. All fields have sensible defaults.
 
 ## Loading

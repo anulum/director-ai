@@ -16,7 +16,11 @@ import yaml
 
 from director_ai.ui.config_wizard import (
     _format_yaml_field,
+    calibration_feedback_jsonl,
+    generate_profile_yaml,
     generate_yaml,
+    normalise_facts_text,
+    profile_summary,
 )
 
 # ── YAML field formatting ──────────────────────────────────────────────
@@ -110,6 +114,48 @@ class TestGenerateYaml:
         assert len(lines) == len(set(lines)), (
             f"Duplicates: {[x for x in lines if lines.count(x) > 1]}"
         )
+
+
+class TestProfileWizard:
+    def test_profile_summary_includes_metadata(self):
+        summary = profile_summary("medical")
+        assert "**medical**" in summary
+        assert "Required extras" in summary
+        assert "nli" in summary
+
+    def test_generate_profile_yaml_applies_profile_defaults(self):
+        result = generate_profile_yaml(
+            "customer_support",
+            {"coherence_threshold": 0.52},
+        )
+        parsed = yaml.safe_load(
+            "\n".join(
+                ln for ln in result.split("\n") if ln.strip() and not ln.startswith("#")
+            ),
+        )
+        assert parsed["profile"] == "customer_support"
+        assert parsed["coherence_threshold"] == 0.52
+        assert parsed["hard_limit"] == 0.4
+        assert parsed["w_logic"] == 0.5
+
+    def test_normalise_facts_text(self):
+        content, count = normalise_facts_text(" one fact \n\n second fact\n")
+        assert content == "one fact\nsecond fact\n"
+        assert count == 2
+
+    def test_calibration_feedback_jsonl(self):
+        row = calibration_feedback_jsonl(
+            "prompt",
+            "response",
+            guardrail_approved=False,
+            human_approved=True,
+            domain="support",
+        )
+        parsed = yaml.safe_load(row)
+        assert parsed["prompt"] == "prompt"
+        assert parsed["guardrail_approved"] is False
+        assert parsed["human_approved"] is True
+        assert parsed["domain"] == "support"
 
 
 # ── Edge cases ──────────────────────────────────────────────────────────
