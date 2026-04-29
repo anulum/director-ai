@@ -306,7 +306,7 @@
 - [x] Export counterfactual and halt-cause fields as OpenTelemetry attributes.
 - [x] Extend the UI with a visual trace explorer for agent, swarm, and streaming
   halt events.
-- [ ] Freeze a structured `SafetyEvent` schema as the single halt-reason record
+- [x] Freeze a structured `SafetyEvent` schema as the single halt-reason record
   emitted by streaming, containment, attestation, ontology, trajectory, and
   cyber-physical hooks.
 - [ ] Wire every safety hook to emit `SafetyEvent` records with hook id, evidence

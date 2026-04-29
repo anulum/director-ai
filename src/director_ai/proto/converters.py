@@ -19,11 +19,16 @@ from __future__ import annotations
 
 from typing import Any, cast
 
+from director_ai.core.safety_event import SAFETY_EVENT_SCHEMA_VERSION, SafetyEvent
 from director_ai.proto.director.v1 import director_pb2 as pb
 
 __all__ = [
     "halt_reason_from_string",
     "halt_reason_to_string",
+    "policy_decision_from_string",
+    "policy_decision_to_string",
+    "safety_event_from_proto",
+    "safety_event_to_proto",
     "verdict_to_proto",
     "verdict_from_proto",
 ]
@@ -52,6 +57,21 @@ _STRING_BY_HALT_REASON: dict[int, str] = {
     pb.HALT_REASON_CALLBACK_TIMEOUT: "callback_timeout",
 }
 
+_POLICY_DECISION_BY_STRING: dict[str, int] = {
+    "allow": pb.POLICY_DECISION_ALLOW,
+    "warn": pb.POLICY_DECISION_WARN,
+    "halt": pb.POLICY_DECISION_HALT,
+    "block": pb.POLICY_DECISION_BLOCK,
+}
+
+_STRING_BY_POLICY_DECISION: dict[int, str] = {
+    pb.POLICY_DECISION_UNSPECIFIED: "unspecified",
+    pb.POLICY_DECISION_ALLOW: "allow",
+    pb.POLICY_DECISION_WARN: "warn",
+    pb.POLICY_DECISION_HALT: "halt",
+    pb.POLICY_DECISION_BLOCK: "block",
+}
+
 
 def halt_reason_from_string(value: str | None) -> int:
     """Map a Python halt-reason string to the generated enum.
@@ -68,6 +88,19 @@ def halt_reason_from_string(value: str | None) -> int:
 def halt_reason_to_string(value: int) -> str:
     """Inverse of :func:`halt_reason_from_string`."""
     return _STRING_BY_HALT_REASON.get(value, "unspecified")
+
+
+def policy_decision_from_string(value: str | None) -> int:
+    """Map a policy decision string to the generated enum."""
+    if value is None:
+        return pb.POLICY_DECISION_UNSPECIFIED
+    key = value.strip().lower()
+    return _POLICY_DECISION_BY_STRING.get(key, pb.POLICY_DECISION_UNSPECIFIED)
+
+
+def policy_decision_to_string(value: int) -> str:
+    """Inverse of :func:`policy_decision_from_string`."""
+    return _STRING_BY_POLICY_DECISION.get(value, "unspecified")
 
 
 def verdict_to_proto(
@@ -126,4 +159,51 @@ def verdict_from_proto(verdict: pb.CoherenceVerdict) -> dict[str, Any]:
             for s in verdict.sources
         ],
         "message": verdict.message,
+    }
+
+
+def safety_event_to_proto(event: SafetyEvent) -> pb.SafetyEvent:
+    """Build a protobuf SafetyEvent from the native dataclass."""
+    proto_event = pb.SafetyEvent(
+        schema_version=event.schema_version,
+        event_id=event.event_id,
+        timestamp=event.timestamp,
+        request_id=event.request_id,
+        tenant_id=event.tenant_id,
+        hook_id=event.hook_id,
+        hook_scope=event.hook_scope,
+        policy_decision=cast(
+            "pb.PolicyDecision",
+            policy_decision_from_string(event.policy_decision),
+        ),
+        halt_reason=cast("pb.HaltReason", halt_reason_from_string(event.halt_reason)),
+        threshold=float(event.threshold or 0.0),
+        observed_score=float(event.observed_score or 0.0),
+        latency_ms=int(event.latency_ms or 0),
+        tenant_safe_explanation=event.tenant_safe_explanation,
+    )
+    proto_event.evidence_refs.extend(event.evidence_refs)
+    proto_event.attributes.update(event.attributes)
+    return proto_event
+
+
+def safety_event_from_proto(event: pb.SafetyEvent) -> dict[str, Any]:
+    """Convert protobuf SafetyEvent into a plain dict."""
+    schema_version = event.schema_version or SAFETY_EVENT_SCHEMA_VERSION
+    return {
+        "schema_version": schema_version,
+        "event_id": event.event_id,
+        "timestamp": event.timestamp,
+        "request_id": event.request_id,
+        "tenant_id": event.tenant_id,
+        "hook_id": event.hook_id,
+        "hook_scope": event.hook_scope,
+        "policy_decision": policy_decision_to_string(event.policy_decision),
+        "halt_reason": halt_reason_to_string(event.halt_reason),
+        "threshold": event.threshold,
+        "observed_score": event.observed_score,
+        "latency_ms": event.latency_ms,
+        "evidence_refs": list(event.evidence_refs),
+        "tenant_safe_explanation": event.tenant_safe_explanation,
+        "attributes": dict(event.attributes),
     }

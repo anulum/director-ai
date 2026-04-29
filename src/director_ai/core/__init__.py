@@ -68,6 +68,7 @@ from .runtime.streaming import StreamingKernel, StreamSession, TokenEvent
 # --- Safety ---
 from .safety.injection import InjectionDetector
 from .safety.sanitizer import InputSanitizer, SanitizeResult
+from .safety_event import SafetyEvent, new_safety_event_id, utc_timestamp
 from .scoring.backends import (
     ScorerBackend,
     get_backend,
@@ -164,6 +165,7 @@ __all__ = [
     "BatchResult",
     "HaltMonitor",
     "ReviewQueue",
+    "SafetyEvent",
     "SafetyKernel",
     "StreamSession",
     "StreamingKernel",
@@ -221,6 +223,8 @@ __all__ = [
     "register_vector_backend",
     "resolve_finetune_model",
     "validate_finetune_data",
+    "new_safety_event_id",
+    "utc_timestamp",
     # Calibration
     "CalibrationReport",
     "ConformalPredictor",

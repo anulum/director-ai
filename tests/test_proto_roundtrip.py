@@ -20,9 +20,14 @@ import pytest
 pytest.importorskip("google.protobuf")
 pb = pytest.importorskip("director_ai.proto.director.v1.director_pb2")
 
+from director_ai.core.safety_event import SafetyEvent
 from director_ai.proto.converters import (
     halt_reason_from_string,
     halt_reason_to_string,
+    policy_decision_from_string,
+    policy_decision_to_string,
+    safety_event_from_proto,
+    safety_event_to_proto,
     verdict_from_proto,
     verdict_to_proto,
 )
@@ -130,6 +135,92 @@ class TestHaltReasonMapping:
 
     def test_unknown_enum_code_is_unspecified(self):
         assert halt_reason_to_string(9999) == "unspecified"
+
+
+class TestPolicyDecisionMapping:
+    @pytest.mark.parametrize(
+        "text,expected",
+        [
+            ("allow", pb.POLICY_DECISION_ALLOW),
+            ("warn", pb.POLICY_DECISION_WARN),
+            ("halt", pb.POLICY_DECISION_HALT),
+            ("block", pb.POLICY_DECISION_BLOCK),
+        ],
+    )
+    def test_known_strings(self, text, expected):
+        assert policy_decision_from_string(text) == expected
+
+    def test_unknown_string_is_unspecified(self):
+        assert policy_decision_from_string("defer") == pb.POLICY_DECISION_UNSPECIFIED
+
+    def test_inverse_symmetry(self):
+        for code in [
+            pb.POLICY_DECISION_ALLOW,
+            pb.POLICY_DECISION_WARN,
+            pb.POLICY_DECISION_HALT,
+            pb.POLICY_DECISION_BLOCK,
+        ]:
+            assert policy_decision_from_string(policy_decision_to_string(code)) == code
+
+
+class TestSafetyEventRoundTrip:
+    def test_construct_serialise_round_trip(self):
+        event = SafetyEvent(
+            event_id="sevt-1",
+            timestamp="2026-04-29T12:00:00Z",
+            request_id="req-1",
+            tenant_id="tenant-1",
+            hook_id="streaming.kernel",
+            hook_scope="streaming",
+            policy_decision="halt",
+            halt_reason="coherence_below_threshold",
+            threshold=0.5,
+            observed_score=0.31,
+            latency_ms=7.0,
+            evidence_refs=("kb://fact#1",),
+            tenant_safe_explanation="Review grounding evidence.",
+            attributes={"token_offset": "4"},
+        )
+
+        proto_event = safety_event_to_proto(event)
+        restored = pb.SafetyEvent.FromString(proto_event.SerializeToString())
+        payload = safety_event_from_proto(restored)
+
+        assert payload["event_id"] == "sevt-1"
+        assert payload["hook_id"] == "streaming.kernel"
+        assert payload["policy_decision"] == "halt"
+        assert payload["halt_reason"] == "coherence_below_threshold"
+        assert payload["threshold"] == pytest.approx(0.5)
+        assert payload["observed_score"] == pytest.approx(0.31)
+        assert payload["latency_ms"] == 7
+        assert payload["evidence_refs"] == ["kb://fact#1"]
+        assert payload["attributes"]["token_offset"] == "4"
+
+    def test_audit_record_carries_event(self):
+        event = SafetyEvent(
+            event_id="sevt-2",
+            timestamp="2026-04-29T12:00:00Z",
+            hook_id="containment.guard",
+            hook_scope="containment",
+            policy_decision="block",
+            halt_reason="policy",
+            tenant_safe_explanation="Review containment findings.",
+        )
+
+        rec = pb.AuditRecord(
+            timestamp="2026-04-29T12:00:00Z",
+            request_id="req-2",
+            tenant_id="tenant-2",
+            query_hash="abc123",
+            response_length=0,
+            verdict=verdict_to_proto(score=0.0, halted=True, halt_reason="policy"),
+        )
+        rec.safety_events.append(safety_event_to_proto(event))
+        restored = pb.AuditRecord.FromString(rec.SerializeToString())
+
+        assert len(restored.safety_events) == 1
+        assert restored.safety_events[0].hook_scope == "containment"
+        assert restored.safety_events[0].policy_decision == pb.POLICY_DECISION_BLOCK
 
 
 class TestChatCompletionShape:

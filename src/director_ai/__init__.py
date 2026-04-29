@@ -78,6 +78,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "RerankedBackend": (".core", "RerankedBackend"),
     "ReviewQueue": (".core", "ReviewQueue"),
     "ReviewResult": (".core", "ReviewResult"),
+    "SafetyEvent": (".core", "SafetyEvent"),
     "SafetyKernel": (".core", "SafetyKernel"),
     "SanitizeResult": (".core", "SanitizeResult"),
     "ScoreCache": (".core", "ScoreCache"),
@@ -110,6 +111,8 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "register_vector_backend": (".core", "register_vector_backend"),
     "tune": (".core", "tune"),
     "validate_finetune_data": (".core", "validate_finetune_data"),
+    "new_safety_event_id": (".core", "new_safety_event_id"),
+    "utc_timestamp": (".core", "utc_timestamp"),
     # Exceptions
     "CoherenceError": (".core.exceptions", "CoherenceError"),
     "DependencyError": (".core.exceptions", "DependencyError"),

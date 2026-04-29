@@ -26,6 +26,14 @@ class HaltReason(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     HALT_REASON_TOTAL_TIMEOUT: _ClassVar[HaltReason]
     HALT_REASON_CALLBACK_TIMEOUT: _ClassVar[HaltReason]
 
+class PolicyDecision(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
+    __slots__ = ()
+    POLICY_DECISION_UNSPECIFIED: _ClassVar[PolicyDecision]
+    POLICY_DECISION_ALLOW: _ClassVar[PolicyDecision]
+    POLICY_DECISION_WARN: _ClassVar[PolicyDecision]
+    POLICY_DECISION_HALT: _ClassVar[PolicyDecision]
+    POLICY_DECISION_BLOCK: _ClassVar[PolicyDecision]
+
 class TenantTier(int, metaclass=_enum_type_wrapper.EnumTypeWrapper):
     __slots__ = ()
     TENANT_TIER_UNSPECIFIED: _ClassVar[TenantTier]
@@ -47,6 +55,11 @@ HALT_REASON_POLICY_VIOLATION: HaltReason
 HALT_REASON_TOKEN_TIMEOUT: HaltReason
 HALT_REASON_TOTAL_TIMEOUT: HaltReason
 HALT_REASON_CALLBACK_TIMEOUT: HaltReason
+POLICY_DECISION_UNSPECIFIED: PolicyDecision
+POLICY_DECISION_ALLOW: PolicyDecision
+POLICY_DECISION_WARN: PolicyDecision
+POLICY_DECISION_HALT: PolicyDecision
+POLICY_DECISION_BLOCK: PolicyDecision
 TENANT_TIER_UNSPECIFIED: TenantTier
 TENANT_TIER_INDIE: TenantTier
 TENANT_TIER_PRO: TenantTier
@@ -150,6 +163,47 @@ class CoherenceVerdict(_message.Message):
     message: str
     def __init__(self, score: _Optional[float] = ..., halted: bool = ..., halt_reason: _Optional[_Union[HaltReason, str]] = ..., hard_limit: _Optional[float] = ..., score_lower: _Optional[float] = ..., score_upper: _Optional[float] = ..., sources: _Optional[_Iterable[_Union[GroundingSource, _Mapping]]] = ..., message: _Optional[str] = ...) -> None: ...
 
+class SafetyEvent(_message.Message):
+    __slots__ = ("schema_version", "event_id", "timestamp", "request_id", "tenant_id", "hook_id", "hook_scope", "policy_decision", "halt_reason", "threshold", "observed_score", "latency_ms", "evidence_refs", "tenant_safe_explanation", "attributes")
+    class AttributesEntry(_message.Message):
+        __slots__ = ("key", "value")
+        KEY_FIELD_NUMBER: _ClassVar[int]
+        VALUE_FIELD_NUMBER: _ClassVar[int]
+        key: str
+        value: str
+        def __init__(self, key: _Optional[str] = ..., value: _Optional[str] = ...) -> None: ...
+    SCHEMA_VERSION_FIELD_NUMBER: _ClassVar[int]
+    EVENT_ID_FIELD_NUMBER: _ClassVar[int]
+    TIMESTAMP_FIELD_NUMBER: _ClassVar[int]
+    REQUEST_ID_FIELD_NUMBER: _ClassVar[int]
+    TENANT_ID_FIELD_NUMBER: _ClassVar[int]
+    HOOK_ID_FIELD_NUMBER: _ClassVar[int]
+    HOOK_SCOPE_FIELD_NUMBER: _ClassVar[int]
+    POLICY_DECISION_FIELD_NUMBER: _ClassVar[int]
+    HALT_REASON_FIELD_NUMBER: _ClassVar[int]
+    THRESHOLD_FIELD_NUMBER: _ClassVar[int]
+    OBSERVED_SCORE_FIELD_NUMBER: _ClassVar[int]
+    LATENCY_MS_FIELD_NUMBER: _ClassVar[int]
+    EVIDENCE_REFS_FIELD_NUMBER: _ClassVar[int]
+    TENANT_SAFE_EXPLANATION_FIELD_NUMBER: _ClassVar[int]
+    ATTRIBUTES_FIELD_NUMBER: _ClassVar[int]
+    schema_version: str
+    event_id: str
+    timestamp: str
+    request_id: str
+    tenant_id: str
+    hook_id: str
+    hook_scope: str
+    policy_decision: PolicyDecision
+    halt_reason: HaltReason
+    threshold: float
+    observed_score: float
+    latency_ms: int
+    evidence_refs: _containers.RepeatedScalarFieldContainer[str]
+    tenant_safe_explanation: str
+    attributes: _containers.ScalarMap[str, str]
+    def __init__(self, schema_version: _Optional[str] = ..., event_id: _Optional[str] = ..., timestamp: _Optional[str] = ..., request_id: _Optional[str] = ..., tenant_id: _Optional[str] = ..., hook_id: _Optional[str] = ..., hook_scope: _Optional[str] = ..., policy_decision: _Optional[_Union[PolicyDecision, str]] = ..., halt_reason: _Optional[_Union[HaltReason, str]] = ..., threshold: _Optional[float] = ..., observed_score: _Optional[float] = ..., latency_ms: _Optional[int] = ..., evidence_refs: _Optional[_Iterable[str]] = ..., tenant_safe_explanation: _Optional[str] = ..., attributes: _Optional[_Mapping[str, str]] = ...) -> None: ...
+
 class ScoreClaimRequest(_message.Message):
     __slots__ = ("claim", "documents", "tenant_id", "request_id", "threshold")
     CLAIM_FIELD_NUMBER: _ClassVar[int]
@@ -236,6 +290,7 @@ class AuditRecord(_message.Message):
     POLICY_VIOLATIONS_FIELD_NUMBER: _ClassVar[int]
     LATENCY_MS_FIELD_NUMBER: _ClassVar[int]
     MODEL_FIELD_NUMBER: _ClassVar[int]
+    SAFETY_EVENTS_FIELD_NUMBER: _ClassVar[int]
     timestamp: str
     request_id: str
     tenant_id: str
@@ -246,4 +301,5 @@ class AuditRecord(_message.Message):
     policy_violations: _containers.RepeatedScalarFieldContainer[str]
     latency_ms: int
     model: str
+    safety_events: _containers.RepeatedCompositeFieldContainer[SafetyEvent]
     def __init__(self, timestamp: _Optional[str] = ..., request_id: _Optional[str] = ..., tenant_id: _Optional[str] = ..., api_key_fingerprint: _Optional[str] = ..., query_hash: _Optional[str] = ..., response_length: _Optional[int] = ..., verdict: _Optional[_Union[CoherenceVerdict, _Mapping]] = ..., policy_violations: _Optional[_Iterable[str]] = ..., latency_ms: _Optional[int] = ..., model: _Optional[str] = ...) -> None: ...

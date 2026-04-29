@@ -99,6 +99,14 @@ enum HaltReason {
   HALT_REASON_CALLBACK_TIMEOUT = 7;
 }
 
+enum PolicyDecision {
+  POLICY_DECISION_UNSPECIFIED = 0;
+  POLICY_DECISION_ALLOW = 1;
+  POLICY_DECISION_WARN = 2;
+  POLICY_DECISION_HALT = 3;
+  POLICY_DECISION_BLOCK = 4;
+}
+
 // One line of scorer output for a claim-document pair. Ground-truth
 // sources that survive grounding are listed; full source text is
 // not duplicated — a reference is enough at the wire boundary.
@@ -126,6 +134,28 @@ message CoherenceVerdict {
   // Free-form human string for logging and UI hover. Machine
   // consumers should branch on `halt_reason`, not parse this.
   string message = 8;
+}
+
+// Tenant-safe halt or policy decision emitted by any safety hook.
+// The event carries references and short explanations only; raw
+// prompts, model output, and raw evidence text stay outside the wire
+// event.
+message SafetyEvent {
+  string schema_version = 1;
+  string event_id = 2;
+  string timestamp = 3;
+  string request_id = 4;
+  string tenant_id = 5;
+  string hook_id = 6;
+  string hook_scope = 7;
+  PolicyDecision policy_decision = 8;
+  HaltReason halt_reason = 9;
+  float threshold = 10;
+  float observed_score = 11;
+  int64 latency_ms = 12;
+  repeated string evidence_refs = 13;
+  string tenant_safe_explanation = 14;
+  map<string, string> attributes = 15;
 }
 
 // Single-shot scoring RPC input. Kept flat so clients can batch
@@ -228,6 +258,8 @@ message AuditRecord {
   // Model name actually routed to (may differ from requested model
   // when the gateway falls back). Empty on pure heuristic scoring.
   string model = 10;
+  // Safety hook decisions attached to this audit row.
+  repeated SafetyEvent safety_events = 11;
 }
 
 // ---------------------------------------------------------------

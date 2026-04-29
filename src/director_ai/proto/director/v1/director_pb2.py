@@ -24,7 +24,7 @@ _sym_db = _symbol_database.Default()
 
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1a\x64irector/v1/director.proto\x12\x0b\x64irector.v1\"M\n\x0b\x43hatMessage\x12\x1f\n\x04role\x18\x01 \x01(\x0e\x32\x11.director.v1.Role\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\"\xb2\x01\n\x15\x43hatCompletionRequest\x12\r\n\x05model\x18\x01 \x01(\t\x12*\n\x08messages\x18\x02 \x03(\x0b\x32\x18.director.v1.ChatMessage\x12\x13\n\x0btemperature\x18\x03 \x01(\x02\x12\x12\n\nmax_tokens\x18\x04 \x01(\x05\x12\x0e\n\x06stream\x18\x05 \x01(\x08\x12\x11\n\ttenant_id\x18\x06 \x01(\t\x12\x12\n\nrequest_id\x18\x07 \x01(\t\"t\n\nChatChoice\x12\r\n\x05index\x18\x01 \x01(\x05\x12)\n\x07message\x18\x02 \x01(\x0b\x32\x18.director.v1.ChatMessage\x12\x15\n\rdelta_content\x18\x03 \x01(\t\x12\x15\n\rfinish_reason\x18\x04 \x01(\t\"T\n\nTokenUsage\x12\x15\n\rprompt_tokens\x18\x01 \x01(\x05\x12\x19\n\x11\x63ompletion_tokens\x18\x02 \x01(\x05\x12\x14\n\x0ctotal_tokens\x18\x03 \x01(\x05\"\xcd\x01\n\x16\x43hatCompletionResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05model\x18\x02 \x01(\t\x12\x14\n\x0c\x63reated_unix\x18\x03 \x01(\x03\x12(\n\x07\x63hoices\x18\x04 \x03(\x0b\x32\x17.director.v1.ChatChoice\x12&\n\x05usage\x18\x05 \x01(\x0b\x32\x17.director.v1.TokenUsage\x12\x30\n\tcoherence\x18\x06 \x01(\x0b\x32\x1d.director.v1.CoherenceVerdict\"M\n\x0fGroundingSource\x12\x11\n\tsource_id\x18\x01 \x01(\t\x12\x12\n\nsimilarity\x18\x02 \x01(\x02\x12\x13\n\x0bnli_support\x18\x03 \x01(\x02\"\xdd\x01\n\x10\x43oherenceVerdict\x12\r\n\x05score\x18\x01 \x01(\x02\x12\x0e\n\x06halted\x18\x02 \x01(\x08\x12,\n\x0bhalt_reason\x18\x03 \x01(\x0e\x32\x17.director.v1.HaltReason\x12\x12\n\nhard_limit\x18\x04 \x01(\x02\x12\x13\n\x0bscore_lower\x18\x05 \x01(\x02\x12\x13\n\x0bscore_upper\x18\x06 \x01(\x02\x12-\n\x07sources\x18\x07 \x03(\x0b\x32\x1c.director.v1.GroundingSource\x12\x0f\n\x07message\x18\x08 \x01(\t\"o\n\x11ScoreClaimRequest\x12\r\n\x05\x63laim\x18\x01 \x01(\t\x12\x11\n\tdocuments\x18\x02 \x03(\t\x12\x11\n\ttenant_id\x18\x03 \x01(\t\x12\x12\n\nrequest_id\x18\x04 \x01(\t\x12\x11\n\tthreshold\x18\x05 \x01(\x02\"X\n\x12ScoreClaimResponse\x12.\n\x07verdict\x18\x01 \x01(\x0b\x32\x1d.director.v1.CoherenceVerdict\x12\x12\n\nlatency_ms\x18\x02 \x01(\x03\"{\n\x11ScoreTokenRequest\x12\x11\n\ttenant_id\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\t\x12\x18\n\x10\x61\x63\x63umulated_text\x18\x03 \x01(\t\x12\x12\n\nnext_token\x18\x04 \x01(\t\x12\x11\n\tdocuments\x18\x05 \x03(\t\"D\n\x12ScoreTokenResponse\x12.\n\x07verdict\x18\x01 \x01(\x0b\x32\x1d.director.v1.CoherenceVerdict\"\xb2\x01\n\x06Tenant\x12\x11\n\ttenant_id\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12%\n\x04tier\x18\x03 \x01(\x0e\x32\x17.director.v1.TenantTier\x12\x14\n\x0c\x63reated_unix\x18\x04 \x01(\x03\x12\x11\n\trpm_limit\x18\x05 \x01(\x05\x12\x11\n\trpd_limit\x18\x06 \x01(\x05\x12\x1c\n\x14\x61pi_key_fingerprints\x18\x07 \x03(\t\"t\n\x0e\x41PIKeyMetadata\x12\x13\n\x0b\x66ingerprint\x18\x01 \x01(\t\x12\x11\n\ttenant_id\x18\x02 \x01(\t\x12\x13\n\x0bissued_unix\x18\x03 \x01(\x03\x12\x14\n\x0c\x65xpires_unix\x18\x04 \x01(\x03\x12\x0f\n\x07revoked\x18\x05 \x01(\x08\"\xff\x01\n\x0b\x41uditRecord\x12\x11\n\ttimestamp\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\t\x12\x11\n\ttenant_id\x18\x03 \x01(\t\x12\x1b\n\x13\x61pi_key_fingerprint\x18\x04 \x01(\t\x12\x12\n\nquery_hash\x18\x05 \x01(\t\x12\x17\n\x0fresponse_length\x18\x06 \x01(\x05\x12.\n\x07verdict\x18\x07 \x01(\x0b\x32\x1d.director.v1.CoherenceVerdict\x12\x19\n\x11policy_violations\x18\x08 \x03(\t\x12\x12\n\nlatency_ms\x18\t \x01(\x03\x12\r\n\x05model\x18\n \x01(\t*_\n\x04Role\x12\x14\n\x10ROLE_UNSPECIFIED\x10\x00\x12\x0f\n\x0bROLE_SYSTEM\x10\x01\x12\r\n\tROLE_USER\x10\x02\x12\x12\n\x0eROLE_ASSISTANT\x10\x03\x12\r\n\tROLE_TOOL\x10\x04*\x90\x02\n\nHaltReason\x12\x1b\n\x17HALT_REASON_UNSPECIFIED\x10\x00\x12\x14\n\x10HALT_REASON_NONE\x10\x01\x12)\n%HALT_REASON_COHERENCE_BELOW_THRESHOLD\x10\x02\x12\"\n\x1eHALT_REASON_INJECTION_DETECTED\x10\x03\x12 \n\x1cHALT_REASON_POLICY_VIOLATION\x10\x04\x12\x1d\n\x19HALT_REASON_TOKEN_TIMEOUT\x10\x05\x12\x1d\n\x19HALT_REASON_TOTAL_TIMEOUT\x10\x06\x12 \n\x1cHALT_REASON_CALLBACK_TIMEOUT\x10\x07*\xae\x01\n\nTenantTier\x12\x1b\n\x17TENANT_TIER_UNSPECIFIED\x10\x00\x12\x15\n\x11TENANT_TIER_INDIE\x10\x01\x12\x13\n\x0fTENANT_TIER_PRO\x10\x02\x12\x19\n\x15TENANT_TIER_PERPETUAL\x10\x03\x12 \n\x1cTENANT_TIER_ENTERPRISE_PILOT\x10\x04\x12\x1a\n\x16TENANT_TIER_ENTERPRISE\x10\x05\x32\xb5\x01\n\x10\x43oherenceScoring\x12M\n\nScoreClaim\x12\x1e.director.v1.ScoreClaimRequest\x1a\x1f.director.v1.ScoreClaimResponse\x12R\n\x0bScoreStream\x12\x1e.director.v1.ScoreTokenRequest\x1a\x1f.director.v1.ScoreTokenResponse(\x01\x30\x01\x32\xcb\x01\n\x0b\x43hatGateway\x12Y\n\x0e\x43hatCompletion\x12\".director.v1.ChatCompletionRequest\x1a#.director.v1.ChatCompletionResponse\x12\x61\n\x14\x43hatCompletionStream\x12\".director.v1.ChatCompletionRequest\x1a#.director.v1.ChatCompletionResponse0\x01\x42j\n\x15li.anulum.director.v1P\x01ZAgithub.com/anulum/director-ai/gateway/proto/directorv1;directorv1\xaa\x02\x0b\x44irector.V1b\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1a\x64irector/v1/director.proto\x12\x0b\x64irector.v1\"M\n\x0b\x43hatMessage\x12\x1f\n\x04role\x18\x01 \x01(\x0e\x32\x11.director.v1.Role\x12\x0f\n\x07\x63ontent\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\"\xb2\x01\n\x15\x43hatCompletionRequest\x12\r\n\x05model\x18\x01 \x01(\t\x12*\n\x08messages\x18\x02 \x03(\x0b\x32\x18.director.v1.ChatMessage\x12\x13\n\x0btemperature\x18\x03 \x01(\x02\x12\x12\n\nmax_tokens\x18\x04 \x01(\x05\x12\x0e\n\x06stream\x18\x05 \x01(\x08\x12\x11\n\ttenant_id\x18\x06 \x01(\t\x12\x12\n\nrequest_id\x18\x07 \x01(\t\"t\n\nChatChoice\x12\r\n\x05index\x18\x01 \x01(\x05\x12)\n\x07message\x18\x02 \x01(\x0b\x32\x18.director.v1.ChatMessage\x12\x15\n\rdelta_content\x18\x03 \x01(\t\x12\x15\n\rfinish_reason\x18\x04 \x01(\t\"T\n\nTokenUsage\x12\x15\n\rprompt_tokens\x18\x01 \x01(\x05\x12\x19\n\x11\x63ompletion_tokens\x18\x02 \x01(\x05\x12\x14\n\x0ctotal_tokens\x18\x03 \x01(\x05\"\xcd\x01\n\x16\x43hatCompletionResponse\x12\n\n\x02id\x18\x01 \x01(\t\x12\r\n\x05model\x18\x02 \x01(\t\x12\x14\n\x0c\x63reated_unix\x18\x03 \x01(\x03\x12(\n\x07\x63hoices\x18\x04 \x03(\x0b\x32\x17.director.v1.ChatChoice\x12&\n\x05usage\x18\x05 \x01(\x0b\x32\x17.director.v1.TokenUsage\x12\x30\n\tcoherence\x18\x06 \x01(\x0b\x32\x1d.director.v1.CoherenceVerdict\"M\n\x0fGroundingSource\x12\x11\n\tsource_id\x18\x01 \x01(\t\x12\x12\n\nsimilarity\x18\x02 \x01(\x02\x12\x13\n\x0bnli_support\x18\x03 \x01(\x02\"\xdd\x01\n\x10\x43oherenceVerdict\x12\r\n\x05score\x18\x01 \x01(\x02\x12\x0e\n\x06halted\x18\x02 \x01(\x08\x12,\n\x0bhalt_reason\x18\x03 \x01(\x0e\x32\x17.director.v1.HaltReason\x12\x12\n\nhard_limit\x18\x04 \x01(\x02\x12\x13\n\x0bscore_lower\x18\x05 \x01(\x02\x12\x13\n\x0bscore_upper\x18\x06 \x01(\x02\x12-\n\x07sources\x18\x07 \x03(\x0b\x32\x1c.director.v1.GroundingSource\x12\x0f\n\x07message\x18\x08 \x01(\t\"\xe2\x03\n\x0bSafetyEvent\x12\x16\n\x0eschema_version\x18\x01 \x01(\t\x12\x10\n\x08\x65vent_id\x18\x02 \x01(\t\x12\x11\n\ttimestamp\x18\x03 \x01(\t\x12\x12\n\nrequest_id\x18\x04 \x01(\t\x12\x11\n\ttenant_id\x18\x05 \x01(\t\x12\x0f\n\x07hook_id\x18\x06 \x01(\t\x12\x12\n\nhook_scope\x18\x07 \x01(\t\x12\x34\n\x0fpolicy_decision\x18\x08 \x01(\x0e\x32\x1b.director.v1.PolicyDecision\x12,\n\x0bhalt_reason\x18\t \x01(\x0e\x32\x17.director.v1.HaltReason\x12\x11\n\tthreshold\x18\n \x01(\x02\x12\x16\n\x0eobserved_score\x18\x0b \x01(\x02\x12\x12\n\nlatency_ms\x18\x0c \x01(\x03\x12\x15\n\revidence_refs\x18\r \x03(\t\x12\x1f\n\x17tenant_safe_explanation\x18\x0e \x01(\t\x12<\n\nattributes\x18\x0f \x03(\x0b\x32(.director.v1.SafetyEvent.AttributesEntry\x1a\x31\n\x0f\x41ttributesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"o\n\x11ScoreClaimRequest\x12\r\n\x05\x63laim\x18\x01 \x01(\t\x12\x11\n\tdocuments\x18\x02 \x03(\t\x12\x11\n\ttenant_id\x18\x03 \x01(\t\x12\x12\n\nrequest_id\x18\x04 \x01(\t\x12\x11\n\tthreshold\x18\x05 \x01(\x02\"X\n\x12ScoreClaimResponse\x12.\n\x07verdict\x18\x01 \x01(\x0b\x32\x1d.director.v1.CoherenceVerdict\x12\x12\n\nlatency_ms\x18\x02 \x01(\x03\"{\n\x11ScoreTokenRequest\x12\x11\n\ttenant_id\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\t\x12\x18\n\x10\x61\x63\x63umulated_text\x18\x03 \x01(\t\x12\x12\n\nnext_token\x18\x04 \x01(\t\x12\x11\n\tdocuments\x18\x05 \x03(\t\"D\n\x12ScoreTokenResponse\x12.\n\x07verdict\x18\x01 \x01(\x0b\x32\x1d.director.v1.CoherenceVerdict\"\xb2\x01\n\x06Tenant\x12\x11\n\ttenant_id\x18\x01 \x01(\t\x12\x14\n\x0c\x64isplay_name\x18\x02 \x01(\t\x12%\n\x04tier\x18\x03 \x01(\x0e\x32\x17.director.v1.TenantTier\x12\x14\n\x0c\x63reated_unix\x18\x04 \x01(\x03\x12\x11\n\trpm_limit\x18\x05 \x01(\x05\x12\x11\n\trpd_limit\x18\x06 \x01(\x05\x12\x1c\n\x14\x61pi_key_fingerprints\x18\x07 \x03(\t\"t\n\x0e\x41PIKeyMetadata\x12\x13\n\x0b\x66ingerprint\x18\x01 \x01(\t\x12\x11\n\ttenant_id\x18\x02 \x01(\t\x12\x13\n\x0bissued_unix\x18\x03 \x01(\x03\x12\x14\n\x0c\x65xpires_unix\x18\x04 \x01(\x03\x12\x0f\n\x07revoked\x18\x05 \x01(\x08\"\xb0\x02\n\x0b\x41uditRecord\x12\x11\n\ttimestamp\x18\x01 \x01(\t\x12\x12\n\nrequest_id\x18\x02 \x01(\t\x12\x11\n\ttenant_id\x18\x03 \x01(\t\x12\x1b\n\x13\x61pi_key_fingerprint\x18\x04 \x01(\t\x12\x12\n\nquery_hash\x18\x05 \x01(\t\x12\x17\n\x0fresponse_length\x18\x06 \x01(\x05\x12.\n\x07verdict\x18\x07 \x01(\x0b\x32\x1d.director.v1.CoherenceVerdict\x12\x19\n\x11policy_violations\x18\x08 \x03(\t\x12\x12\n\nlatency_ms\x18\t \x01(\x03\x12\r\n\x05model\x18\n \x01(\t\x12/\n\rsafety_events\x18\x0b \x03(\x0b\x32\x18.director.v1.SafetyEvent*_\n\x04Role\x12\x14\n\x10ROLE_UNSPECIFIED\x10\x00\x12\x0f\n\x0bROLE_SYSTEM\x10\x01\x12\r\n\tROLE_USER\x10\x02\x12\x12\n\x0eROLE_ASSISTANT\x10\x03\x12\r\n\tROLE_TOOL\x10\x04*\x90\x02\n\nHaltReason\x12\x1b\n\x17HALT_REASON_UNSPECIFIED\x10\x00\x12\x14\n\x10HALT_REASON_NONE\x10\x01\x12)\n%HALT_REASON_COHERENCE_BELOW_THRESHOLD\x10\x02\x12\"\n\x1eHALT_REASON_INJECTION_DETECTED\x10\x03\x12 \n\x1cHALT_REASON_POLICY_VIOLATION\x10\x04\x12\x1d\n\x19HALT_REASON_TOKEN_TIMEOUT\x10\x05\x12\x1d\n\x19HALT_REASON_TOTAL_TIMEOUT\x10\x06\x12 \n\x1cHALT_REASON_CALLBACK_TIMEOUT\x10\x07*\x9b\x01\n\x0ePolicyDecision\x12\x1f\n\x1bPOLICY_DECISION_UNSPECIFIED\x10\x00\x12\x19\n\x15POLICY_DECISION_ALLOW\x10\x01\x12\x18\n\x14POLICY_DECISION_WARN\x10\x02\x12\x18\n\x14POLICY_DECISION_HALT\x10\x03\x12\x19\n\x15POLICY_DECISION_BLOCK\x10\x04*\xae\x01\n\nTenantTier\x12\x1b\n\x17TENANT_TIER_UNSPECIFIED\x10\x00\x12\x15\n\x11TENANT_TIER_INDIE\x10\x01\x12\x13\n\x0fTENANT_TIER_PRO\x10\x02\x12\x19\n\x15TENANT_TIER_PERPETUAL\x10\x03\x12 \n\x1cTENANT_TIER_ENTERPRISE_PILOT\x10\x04\x12\x1a\n\x16TENANT_TIER_ENTERPRISE\x10\x05\x32\xb5\x01\n\x10\x43oherenceScoring\x12M\n\nScoreClaim\x12\x1e.director.v1.ScoreClaimRequest\x1a\x1f.director.v1.ScoreClaimResponse\x12R\n\x0bScoreStream\x12\x1e.director.v1.ScoreTokenRequest\x1a\x1f.director.v1.ScoreTokenResponse(\x01\x30\x01\x32\xcb\x01\n\x0b\x43hatGateway\x12Y\n\x0e\x43hatCompletion\x12\".director.v1.ChatCompletionRequest\x1a#.director.v1.ChatCompletionResponse\x12\x61\n\x14\x43hatCompletionStream\x12\".director.v1.ChatCompletionRequest\x1a#.director.v1.ChatCompletionResponse0\x01\x42j\n\x15li.anulum.director.v1P\x01ZAgithub.com/anulum/director-ai/gateway/proto/directorv1;directorv1\xaa\x02\x0b\x44irector.V1b\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -32,12 +32,16 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'director.v1.director_pb2', 
 if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n\025li.anulum.director.v1P\001ZAgithub.com/anulum/director-ai/gateway/proto/directorv1;directorv1\252\002\013Director.V1'
-  _globals['_ROLE']._serialized_start=1973
-  _globals['_ROLE']._serialized_end=2068
-  _globals['_HALTREASON']._serialized_start=2071
-  _globals['_HALTREASON']._serialized_end=2343
-  _globals['_TENANTTIER']._serialized_start=2346
-  _globals['_TENANTTIER']._serialized_end=2520
+  _globals['_SAFETYEVENT_ATTRIBUTESENTRY']._loaded_options = None
+  _globals['_SAFETYEVENT_ATTRIBUTESENTRY']._serialized_options = b'8\001'
+  _globals['_ROLE']._serialized_start=2507
+  _globals['_ROLE']._serialized_end=2602
+  _globals['_HALTREASON']._serialized_start=2605
+  _globals['_HALTREASON']._serialized_end=2877
+  _globals['_POLICYDECISION']._serialized_start=2880
+  _globals['_POLICYDECISION']._serialized_end=3035
+  _globals['_TENANTTIER']._serialized_start=3038
+  _globals['_TENANTTIER']._serialized_end=3212
   _globals['_CHATMESSAGE']._serialized_start=43
   _globals['_CHATMESSAGE']._serialized_end=120
   _globals['_CHATCOMPLETIONREQUEST']._serialized_start=123
@@ -52,22 +56,26 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_GROUNDINGSOURCE']._serialized_end=792
   _globals['_COHERENCEVERDICT']._serialized_start=795
   _globals['_COHERENCEVERDICT']._serialized_end=1016
-  _globals['_SCORECLAIMREQUEST']._serialized_start=1018
-  _globals['_SCORECLAIMREQUEST']._serialized_end=1129
-  _globals['_SCORECLAIMRESPONSE']._serialized_start=1131
-  _globals['_SCORECLAIMRESPONSE']._serialized_end=1219
-  _globals['_SCORETOKENREQUEST']._serialized_start=1221
-  _globals['_SCORETOKENREQUEST']._serialized_end=1344
-  _globals['_SCORETOKENRESPONSE']._serialized_start=1346
-  _globals['_SCORETOKENRESPONSE']._serialized_end=1414
-  _globals['_TENANT']._serialized_start=1417
-  _globals['_TENANT']._serialized_end=1595
-  _globals['_APIKEYMETADATA']._serialized_start=1597
-  _globals['_APIKEYMETADATA']._serialized_end=1713
-  _globals['_AUDITRECORD']._serialized_start=1716
-  _globals['_AUDITRECORD']._serialized_end=1971
-  _globals['_COHERENCESCORING']._serialized_start=2523
-  _globals['_COHERENCESCORING']._serialized_end=2704
-  _globals['_CHATGATEWAY']._serialized_start=2707
-  _globals['_CHATGATEWAY']._serialized_end=2910
+  _globals['_SAFETYEVENT']._serialized_start=1019
+  _globals['_SAFETYEVENT']._serialized_end=1501
+  _globals['_SAFETYEVENT_ATTRIBUTESENTRY']._serialized_start=1452
+  _globals['_SAFETYEVENT_ATTRIBUTESENTRY']._serialized_end=1501
+  _globals['_SCORECLAIMREQUEST']._serialized_start=1503
+  _globals['_SCORECLAIMREQUEST']._serialized_end=1614
+  _globals['_SCORECLAIMRESPONSE']._serialized_start=1616
+  _globals['_SCORECLAIMRESPONSE']._serialized_end=1704
+  _globals['_SCORETOKENREQUEST']._serialized_start=1706
+  _globals['_SCORETOKENREQUEST']._serialized_end=1829
+  _globals['_SCORETOKENRESPONSE']._serialized_start=1831
+  _globals['_SCORETOKENRESPONSE']._serialized_end=1899
+  _globals['_TENANT']._serialized_start=1902
+  _globals['_TENANT']._serialized_end=2080
+  _globals['_APIKEYMETADATA']._serialized_start=2082
+  _globals['_APIKEYMETADATA']._serialized_end=2198
+  _globals['_AUDITRECORD']._serialized_start=2201
+  _globals['_AUDITRECORD']._serialized_end=2505
+  _globals['_COHERENCESCORING']._serialized_start=3215
+  _globals['_COHERENCESCORING']._serialized_end=3396
+  _globals['_CHATGATEWAY']._serialized_start=3399
+  _globals['_CHATGATEWAY']._serialized_end=3602
 # @@protoc_insertion_point(module_scope)

@@ -141,6 +141,44 @@ Trace coordinates for the halt decision.
 | `threshold` | `float \| None` | Limit that was crossed |
 | `causal_contribution` | `float` | Absolute margin beyond the limit |
 
+## SafetyEvent {: #safetyevent }
+
+Tenant-safe halt or policy decision emitted by a runtime hook. The schema is
+shared by streaming, containment, attestation, ontology, trajectory, and
+cyber-physical paths so audit logs and trace tooling can read one record shape.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `schema_version` | `str` | Frozen schema id, currently `director.safety_event.v1` |
+| `event_id` | `str` | Opaque event id |
+| `timestamp` | `str` | RFC-3339 UTC timestamp |
+| `request_id` | `str` | Request correlation id, if available |
+| `tenant_id` | `str` | Tenant id, if available |
+| `hook_id` | `str` | Stable hook id such as `streaming.kernel` |
+| `hook_scope` | `str` | One of `streaming`, `containment`, `attestation`, `ontology`, `trajectory`, `cyber_physical`, `swarm`, or `agent` |
+| `policy_decision` | `str` | One of `allow`, `warn`, `halt`, or `block` |
+| `halt_reason` | `str` | Machine-readable reason |
+| `threshold` | `float \| None` | Decision threshold, when relevant |
+| `observed_score` | `float \| None` | Score that drove the decision, when relevant |
+| `latency_ms` | `float \| None` | Hook latency |
+| `evidence_refs` | `tuple[str, ...]` | Evidence identifiers only; no raw fact text |
+| `tenant_safe_explanation` | `str` | Short operator-facing explanation safe for tenant logs |
+| `trace_attribution` | `HaltTraceAttribution \| None` | Trace coordinates for halt decisions |
+| `attributes` | `dict[str, str]` | Additive string metadata for hook-specific fields |
+
+```python
+from director_ai.core.safety_event import SafetyEvent
+
+event = SafetyEvent.from_halt_evidence(
+    evidence,
+    hook_id="streaming.kernel",
+    request_id="req-123",
+    tenant_id="tenant-1",
+)
+
+payload = event.to_dict()
+```
+
 ## CounterfactualHaltDiagnostic {: #counterfactualhaltdiagnostic }
 
 Answer to "what single fact change would have prevented this halt?"
