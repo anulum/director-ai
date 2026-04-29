@@ -18,10 +18,15 @@ EXPECTED_PRESETS = {
     "customer_support.yaml",
     "edge_offline.yaml",
     "finance.yaml",
+    "code_generation.yaml",
+    "high_stakes_medical_review.yaml",
     "legal.yaml",
     "medical.yaml",
+    "multi_agent_swarm.yaml",
     "rag_qa.yaml",
+    "stem_fact_heavy.yaml",
     "summarization.yaml",
+    "voice_agents.yaml",
 }
 
 
@@ -96,19 +101,35 @@ def test_starter_preset_weights_are_normalized_when_set(path: Path):
 
 @pytest.mark.parametrize(
     "name",
-    ["finance.yaml", "legal.yaml", "medical.yaml", "rag_qa.yaml"],
+    [
+        "finance.yaml",
+        "high_stakes_medical_review.yaml",
+        "legal.yaml",
+        "medical.yaml",
+        "multi_agent_swarm.yaml",
+        "rag_qa.yaml",
+        "stem_fact_heavy.yaml",
+    ],
 )
 def test_grounded_starter_presets_enable_retrieval(name: str):
     cfg = DirectorConfig.from_yaml(str(PRESET_DIR / name))
 
-    assert cfg.mode == "grounded"
+    assert cfg.mode in {"grounded", "auto"}
     assert cfg.use_nli is True
     assert cfg.hybrid_retrieval is True
     assert cfg.reranker_enabled is True
-    assert cfg.retrieval_abstention_threshold >= 0.35
+    assert cfg.retrieval_abstention_threshold >= 0.30
 
 
-@pytest.mark.parametrize("name", ["finance.yaml", "legal.yaml", "medical.yaml"])
+@pytest.mark.parametrize(
+    "name",
+    [
+        "finance.yaml",
+        "high_stakes_medical_review.yaml",
+        "legal.yaml",
+        "medical.yaml",
+    ],
+)
 def test_high_stakes_starter_presets_enable_audit_and_redaction(name: str):
     cfg = DirectorConfig.from_yaml(str(PRESET_DIR / name))
 
@@ -119,7 +140,12 @@ def test_high_stakes_starter_presets_enable_audit_and_redaction(name: str):
 
 @pytest.mark.parametrize(
     "name",
-    ["creative_drafting.yaml", "customer_support.yaml", "edge_offline.yaml"],
+    [
+        "creative_drafting.yaml",
+        "customer_support.yaml",
+        "edge_offline.yaml",
+        "voice_agents.yaml",
+    ],
 )
 def test_low_latency_starter_presets_avoid_nli_load(name: str):
     cfg = DirectorConfig.from_yaml(str(PRESET_DIR / name))

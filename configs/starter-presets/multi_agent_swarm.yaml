@@ -1,0 +1,29 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI starter preset: multi-agent swarm supervision.
+# Emphasizes observability and review queue batching for repeated agent turns.
+profile: multi_agent_swarm
+mode: auto
+coherence_threshold: 0.60
+hard_limit: 0.42
+soft_limit: 0.68
+use_nli: true
+scorer_backend: hybrid
+llm_judge_enabled: true
+llm_judge_provider: local
+hybrid_retrieval: true
+reranker_enabled: true
+retrieval_abstention_threshold: 0.32
+adaptive_retrieval_enabled: true
+query_decomposition_enabled: true
+contextual_compression_enabled: true
+review_queue_enabled: true
+review_queue_max_batch: 32
+review_queue_flush_timeout_ms: 10.0
+w_logic: 0.55
+w_fact: 0.45
+sanitize_inputs: true
+injection_detection_enabled: true
+injection_threshold: 0.72
+metrics_enabled: true
+otel_enabled: true
+log_json: true

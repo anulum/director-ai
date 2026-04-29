@@ -285,7 +285,7 @@
   profile selection, threshold tuning, facts ingestion, and calibration feedback.
 - [x] Add calibrated starter presets for support, summarisation, RAG QA, finance,
   legal, medical, creative drafting, and low-latency edge/offline use.
-- [ ] Add YAML starter presets for STEM fact-heavy workflows, code generation,
+- [x] Add YAML starter presets for STEM fact-heavy workflows, code generation,
   multi-agent swarm supervision, voice agents, and high-stakes medical review.
 - [ ] Extend tuner output with a confidence report explaining selected thresholds,
   trade-offs, and counterfactual examples near the decision boundary.

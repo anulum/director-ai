@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI starter preset: STEM fact-heavy workflows.
+# Use with curated papers, lab notes, or technical references in the vector store.
+profile: stem_fact_heavy
+mode: grounded
+coherence_threshold: 0.35
+hard_limit: 0.22
+soft_limit: 0.42
+use_nli: true
+scorer_backend: hybrid
+llm_judge_enabled: true
+llm_judge_provider: local
+vector_backend: chroma
+hybrid_retrieval: true
+reranker_enabled: true
+reranker_top_k_multiplier: 5
+retrieval_abstention_threshold: 0.40
+parent_child_enabled: true
+adaptive_retrieval_enabled: true
+query_decomposition_enabled: true
+contextual_compression_enabled: true
+w_logic: 0.45
+w_fact: 0.55
+nli_fact_retrieval_top_k: 8
+nli_claim_coverage_enabled: true
+nli_claim_support_threshold: 0.72
+adaptive_threshold_enabled: true
+threshold_fact_check: 0.56
+threshold_rag: 0.78
+metrics_enabled: true
+otel_enabled: true

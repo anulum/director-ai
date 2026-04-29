@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI starter preset: voice agents and low-latency dialogue.
+# Keeps heavyweight scoring off by default for real-time conversational turns.
+profile: voice_agents
+mode: auto
+coherence_threshold: 0.50
+hard_limit: 0.35
+soft_limit: 0.58
+use_nli: false
+scorer_backend: lite
+max_candidates: 1
+hybrid_retrieval: false
+reranker_enabled: false
+w_logic: 0.55
+w_fact: 0.45
+sanitize_inputs: true
+injection_detection_enabled: true
+injection_threshold: 0.78
+adaptive_threshold_enabled: true
+threshold_dialogue: 0.68
+rate_limit_rpm: 180
+metrics_enabled: true
+metrics_require_auth: true
+otel_enabled: true

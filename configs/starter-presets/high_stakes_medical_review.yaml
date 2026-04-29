@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI starter preset: high-stakes medical review.
+# Requires curated KB grounding, audit retention, and local calibration.
+profile: high_stakes_medical_review
+mode: grounded
+coherence_threshold: 0.30
+hard_limit: 0.18
+soft_limit: 0.34
+use_nli: true
+scorer_backend: hybrid
+llm_judge_enabled: true
+llm_judge_provider: local
+vector_backend: chroma
+hybrid_retrieval: true
+reranker_enabled: true
+reranker_top_k_multiplier: 6
+retrieval_abstention_threshold: 0.45
+parent_child_enabled: true
+adaptive_retrieval_enabled: true
+query_decomposition_enabled: true
+contextual_compression_enabled: true
+w_logic: 0.45
+w_fact: 0.55
+nli_fact_retrieval_top_k: 10
+nli_claim_coverage_enabled: true
+nli_claim_support_threshold: 0.80
+nli_claim_coverage_alpha: 0.5
+adaptive_threshold_enabled: true
+threshold_fact_check: 0.56
+threshold_rag: 0.78
+redact_pii: true
+audit_log_path: ~/.director-ai/audit-high-stakes-medical.jsonl
+metrics_enabled: true
+otel_enabled: true
