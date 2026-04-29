@@ -320,7 +320,7 @@
 - [x] Add benchmark cards that separate pure NLI, hybrid judge, heuristic, and
   tuned-threshold modes so catch-rate claims cannot blur backend choices.
 - [x] Prepare an external validation packet for a third-party accuracy benchmark.
-- [ ] Prepare an external security test packet focused on streaming interception,
+- [x] Prepare an external security test packet focused on streaming interception,
   multi-tenant isolation, and knowledge-base ingestion.
 
 ### Dependency and Deployment Realism (Planned)

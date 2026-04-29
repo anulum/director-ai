@@ -1,0 +1,148 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - external security test packet
+
+schema_version = "1.0.0"
+packet_id = "director-ai-security-test-2026-04"
+packet_doc = "security/EXTERNAL_SECURITY_TEST_PACKET.md"
+policy_doc = "SECURITY.md"
+contact = "director.class.ai@anulum.li"
+
+[acceptance]
+minimum_tracks = 3
+require_environment_fingerprint = true
+require_raw_http_transcripts = true
+require_websocket_frame_log = true
+require_tenant_matrix = true
+require_ingestion_matrix = true
+require_redaction_review = true
+
+[[test_tracks]]
+id = "streaming_interception"
+purpose = "Exercise streamed response oversight, WebSocket auth failure paths, tenant mismatch handling, halt frames, and cancellation frames."
+surfaces = ["/v1/stream", "StreamingKernel", "AsyncStreamingKernel"]
+source_files = [
+  "src/director_ai/server.py",
+  "src/director_ai/core/runtime/streaming.py",
+  "src/director_ai/core/async_streaming.py",
+]
+existing_regression_tests = [
+  "tests/test_server_ws_mux.py",
+  "tests/test_cov_server_deep.py",
+  "tests/test_coverage_streaming.py",
+  "tests/test_async_streaming.py",
+]
+required_checks = [
+  "WebSocket without a valid key closes before accepting application frames when keys are configured.",
+  "Tenant mismatch closes with a policy code when key-to-tenant binding is configured.",
+  "Streaming oversight emits a halt frame when coherence falls below the hard limit.",
+  "Concurrent sessions cannot leak frames across session ids.",
+  "Cancellation stops a session without emitting later result frames.",
+]
+required_evidence = [
+  "websocket_handshake_matrix",
+  "frame_log",
+  "halt_event_sample",
+  "cancellation_sample",
+]
+
+[[test_tracks]]
+id = "multi_tenant_isolation"
+purpose = "Exercise tenant-bound routing, fact writes, vector fact writes, list visibility, REST review calls, gRPC metadata routing, and audit tenant fields."
+surfaces = [
+  "/v1/tenants",
+  "/v1/tenants/{tenant_id}/facts",
+  "/v1/tenants/{tenant_id}/vector-facts",
+  "grpc metadata x-tenant-id",
+]
+source_files = [
+  "src/director_ai/server.py",
+  "src/director_ai/grpc_server.py",
+  "src/director_ai/core/tenant.py",
+  "src/director_ai/core/retrieval/knowledge.py",
+]
+existing_regression_tests = [
+  "tests/test_server_tenant.py",
+  "tests/test_server_ws_mux.py",
+  "tests/test_enterprise_modules.py",
+  "tests/test_audit.py",
+]
+required_checks = [
+  "Tenant A cannot list tenant B documents or facts through bound REST keys.",
+  "Tenant A cannot write tenant B facts through bound REST keys.",
+  "Vector stores are distinct per tenant and backend type.",
+  "gRPC tenant metadata does not override key-to-tenant binding.",
+  "Audit rows carry tenant id without raw prompt text.",
+]
+required_evidence = [
+  "tenant_access_matrix",
+  "cross_tenant_write_attempts",
+  "vector_store_partition_sample",
+  "audit_redaction_sample",
+]
+
+[[test_tracks]]
+id = "knowledge_ingestion"
+purpose = "Exercise text and file ingestion, document metadata boundaries, retrieval scoping, update/delete paths, size limits, content-type checks, and source sanitisation."
+surfaces = [
+  "/v1/knowledge/ingest",
+  "/v1/knowledge/upload",
+  "/v1/knowledge/documents",
+  "/v1/knowledge/search",
+]
+source_files = [
+  "src/director_ai/knowledge_api.py",
+  "src/director_ai/core/retrieval/doc_registry.py",
+  "src/director_ai/core/retrieval/ingestion/base.py",
+  "src/director_ai/core/retrieval/doc_parser.py",
+]
+existing_regression_tests = [
+  "tests/test_coverage_knowledge_api.py",
+  "tests/test_knowledge_edge_cases.py",
+  "tests/test_cli_ingest_formats.py",
+]
+required_checks = [
+  "Invalid tenant ids, document ids, sources, file types, and content length values are rejected.",
+  "Tenant A search does not return tenant B chunks.",
+  "Document replacement removes stale chunks before writing replacements.",
+  "Delete removes document metadata and all reachable chunks.",
+  "Ingestion metadata does not store credentials from plugin clients.",
+]
+required_evidence = [
+  "ingestion_rejection_matrix",
+  "tenant_scoped_search_sample",
+  "update_delete_trace",
+  "metadata_redaction_sample",
+]
+
+[[required_outputs]]
+path = "security-validation/environment.json"
+description = "Runtime, package, server config, and enabled optional extras fingerprint."
+
+[[required_outputs]]
+path = "security-validation/http_transcripts/"
+description = "HTTP requests and responses with credentials redacted."
+
+[[required_outputs]]
+path = "security-validation/websocket_frames.jsonl"
+description = "Ordered WebSocket frames for accepted, rejected, halted, and cancelled streams."
+
+[[required_outputs]]
+path = "security-validation/tenant_matrix.csv"
+description = "Tenant A/B read, write, list, stream, and gRPC access matrix."
+
+[[required_outputs]]
+path = "security-validation/ingestion_matrix.csv"
+description = "Accepted and rejected ingestion payload cases."
+
+[[required_outputs]]
+path = "security-validation/findings.jsonl"
+description = "One finding per line with severity, surface, reproduction, and evidence path."
+
+[[required_outputs]]
+path = "security-validation/summary.md"
+description = "Pass/fail summary for each track, residual risk, and recommended fixes."

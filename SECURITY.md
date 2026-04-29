@@ -63,6 +63,9 @@ Director-AI is licensed under GNU AGPL v3. Key obligations:
 - No third-party security audit.
 - Heuristic scorer (without NLI model) is deterministic and trivially bypassed.
 
+External security test packet:
+[`security/EXTERNAL_SECURITY_TEST_PACKET.md`](security/EXTERNAL_SECURITY_TEST_PACKET.md).
+
 ## Residual Risks (documented for transparency)
 
 ### Regex-based injection detection (Stage 1) bypass
