@@ -331,7 +331,7 @@
   deployment targets.
 - [x] Prioritise the deferred WASM runtime for edge/offline users who cannot run
   Python services.
-- [ ] Add supply-chain notes for torch, transformers, ONNX Runtime, Chroma, and
+- [x] Add supply-chain notes for torch, transformers, ONNX Runtime, Chroma, and
   other heavy optional dependencies.
 - [ ] Add a tested airgap install example for the full safety stack, including
   local wheelhouse, pinned model revisions, ONNX artefacts, and optional Rust

@@ -38,3 +38,6 @@ uv sync --locked --extra server
 
 Do not widen these extras to open-ended major ranges without updating this
 policy and the lockfile in the same change.
+
+Supply-chain controls for heavy optional packages live in
+`requirements/heavy_optional_dependency_policy.toml`.

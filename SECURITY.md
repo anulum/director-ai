@@ -128,3 +128,7 @@ code at model-load time.
 ``use_model=False`` fallback available. SBOM generation in release
 pipeline. Sigstore signing of published packages. Consider airgapped
 deployment for highest-security environments.
+
+Deployment notes for torch, transformers, ONNX Runtime, Chroma, and other
+heavy optional packages live in
+``docs-site/deployment/supply-chain.md``.
