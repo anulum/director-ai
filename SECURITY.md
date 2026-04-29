@@ -134,3 +134,29 @@ deployment for highest-security environments.
 Deployment notes for torch, transformers, ONNX Runtime, Chroma, and other
 heavy optional packages live in
 ``docs-site/deployment/supply-chain.md``.
+
+### Physical-action residual risks
+
+Cyber-physical hooks can screen proposed actions before they reach a robot,
+simulator, or actuator gateway, but they do not make unsafe hardware safe by
+themselves. Residual risks include:
+
+- **Hardware damage**: a caller can still request a physically unsafe move if
+  the deployment has incomplete constraints, stale world state, or incorrect
+  actuator calibration.
+- **Malformed action payloads**: invalid coordinates, oversized vectors, or
+  unexpected actuator ids can stress adapters if callers bypass
+  ``PhysicalAction`` validation.
+- **Expensive solver payloads**: repeated inverse-kinematics or collision checks
+  can exhaust simulator or robotics runtimes without per-tenant budgets.
+- **Simulator dependency isolation**: ROS 2, MuJoCo, CARLA, and similar stacks
+  bring large native dependency surfaces and should not run in the default web
+  API process.
+
+**Mitigation**: Physical hooks are warn-only by default. Blocking real-world
+actions requires both ``physical_action_mode="block"`` and
+``allow_physical_action_blocking=True``. Use ``TenantPhysicalBudget`` to cap
+action validation, inverse-kinematics, and simulation checks per tenant. Install
+simulator stacks only in an isolated ``director-ai[physical]`` runtime, keep
+hardware drivers behind a local gateway, and require an external emergency stop
+outside Director-AI for live robots or machinery.

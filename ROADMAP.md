@@ -399,7 +399,7 @@ Last updated: 2026-04-29
   and physical action validation to prevent denial-of-service payloads.
 - [x] Extend the external security test packet to cover physical hooks,
   attestation, and cross-language trust-boundary failures.
-- [ ] Document physical-action residual risks in `SECURITY.md`, including
+- [x] Document physical-action residual risks in `SECURITY.md`, including
   hardware damage, malformed action payloads, expensive solver payloads, and
   simulator dependency isolation.
 - [ ] Add timing-parity tests for Rust and Python containment verification paths
