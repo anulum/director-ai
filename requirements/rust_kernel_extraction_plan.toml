@@ -1,0 +1,124 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Rust kernel extraction plan
+
+id = "rust-kernel-extraction"
+status = "planned"
+workspace = "backfire-kernel"
+python_extra = "rust"
+python_module = "backfire_kernel"
+wheel_workflow = ".github/workflows/wheels.yml"
+proof_root = "formal/HaltMonitor"
+proof_manifest = "formal/HaltMonitor/proof_manifest.toml"
+execution_doc = "docs-site/deployment/rust-kernel-extraction.md"
+evaluation_doc = "docs-site/guide/runtime-extraction-evaluation.md"
+
+[versioning]
+crate_policy = "semver"
+first_external_minor = "0.2"
+python_supported_range = ">=0.1,<0.2"
+breakage_rule = "Breaking Rust API changes require a new minor release until the first stable release, then a new major release."
+python_rule = "director-ai keeps the Python fallback importable and pins an explicit supported backfire-kernel range."
+
+[[crates]]
+name = "backfire-types"
+path = "backfire-kernel/crates/backfire-types"
+surface = "public"
+role = "Shared config, score, stream, and result types."
+api_contract = "No field removal without version bump and fixture update."
+
+[[crates]]
+name = "backfire-core"
+path = "backfire-kernel/crates/backfire-core"
+surface = "public"
+role = "Halt, streaming, scoring, and in-memory knowledge primitives."
+api_contract = "Python parity fixtures must pass for halt and score semantics."
+
+[[crates]]
+name = "backfire-ffi"
+path = "backfire-kernel/crates/backfire-ffi"
+surface = "python-wheel"
+role = "PyO3 boundary that exports the backfire_kernel module."
+api_contract = "Wheel import must never be required by the default Python path."
+
+[[crates]]
+name = "backfire-wasm"
+path = "backfire-kernel/crates/backfire-wasm"
+surface = "wasm-artefact"
+role = "WASM halt runtime for browser, Worker, and offline hosts."
+api_contract = "WASM halt semantics follow the same fixture set as backfire-core."
+
+[[crates]]
+name = "backfire-physics"
+path = "backfire-kernel/crates/backfire-physics"
+surface = "advanced"
+role = "Physical and phase-dynamics primitives."
+api_contract = "Kept outside default user install and gated by advanced runtime CI."
+
+[[crates]]
+name = "backfire-observers"
+path = "backfire-kernel/crates/backfire-observers"
+surface = "advanced"
+role = "Observer and controller primitives."
+api_contract = "Kept outside default user install and gated by advanced runtime CI."
+
+[[crates]]
+name = "backfire-ssgf"
+path = "backfire-kernel/crates/backfire-ssgf"
+surface = "advanced"
+role = "Stochastic geometry primitives."
+api_contract = "Kept outside default user install and gated by advanced runtime CI."
+
+[[phases]]
+id = "p0-contract-freeze"
+goal = "Freeze crate, wheel, proof, and fixture boundaries inside the current repository."
+exit_gate = "Plan, docs, proof manifest, and plan tests pass."
+
+[[phases]]
+id = "p1-crate-split-readiness"
+goal = "Move public interfaces behind stable Rust modules and shared fixtures."
+exit_gate = "Python and Rust contract tests pass without default-path Rust imports."
+
+[[phases]]
+id = "p2-release-ci-cutover"
+goal = "Run wheel, WASM, and source-package jobs as advanced runtime release CI."
+exit_gate = "Linux, macOS, Windows, source package, and WASM artefact jobs pass from tags."
+
+[[phases]]
+id = "p3-repo-extraction"
+goal = "Move the Rust workspace and formal artefacts only after two releases with stable fixtures."
+exit_gate = "director-ai pins the external package range and the Python fallback passes alone."
+
+[[gates]]
+id = "rust-workspace"
+command = "cargo test --workspace"
+scope = "Rust workspace"
+
+[[gates]]
+id = "ffi-check"
+command = "cargo check -p backfire-ffi"
+scope = "PyO3 wheel boundary"
+
+[[gates]]
+id = "wheel-build"
+command = "maturin build --release -m backfire-kernel/crates/backfire-ffi/Cargo.toml"
+scope = "Python wheel"
+
+[[gates]]
+id = "python-ffi"
+command = "pytest tests/test_ffi_bindings.py"
+scope = "Python optional Rust path"
+
+[[gates]]
+id = "docs"
+command = "mkdocs build --strict"
+scope = "Deployment documentation"
+
+[[gates]]
+id = "proof-manifest"
+command = "pytest tests/test_rust_kernel_extraction_plan.py"
+scope = "Plan and proof boundary"

@@ -197,6 +197,7 @@ nav:
       - Docker: deployment/docker.md
       - ONNX Artefacts: deployment/onnx-artefacts.md
       - WASM Runtime: deployment/wasm-runtime.md
+      - Rust Kernel Extraction: deployment/rust-kernel-extraction.md
       - Supply Chain: deployment/supply-chain.md
       - Airgap Install: deployment/airgap.md
       - Metrics: deployment/metrics.md

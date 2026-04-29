@@ -336,7 +336,7 @@
 - [x] Add a tested airgap install example for the full safety stack, including
   local wheelhouse, pinned model revisions, ONNX artefacts, and optional Rust
   kernel wheels.
-- [ ] Convert the Rust kernel extraction decision into an execution plan:
+- [x] Convert the Rust kernel extraction decision into an execution plan:
   standalone crate API, versioning policy, Python wheel contract, proof artefact
   boundary, and release CI.
 

@@ -87,3 +87,7 @@ split. The next engineering item is cross-language contract testing. Once the
 contract is stable, the Rust kernel and formal proof artefacts can move to a
 separately versioned package/repository without weakening the "just works"
 Python path.
+
+The execution plan is tracked in
+[Rust Kernel Extraction](../deployment/rust-kernel-extraction.md) and
+`requirements/rust_kernel_extraction_plan.toml`.
