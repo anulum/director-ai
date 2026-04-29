@@ -157,6 +157,61 @@ func (HaltReason) EnumDescriptor() ([]byte, []int) {
 	return file_director_v1_director_proto_rawDescGZIP(), []int{1}
 }
 
+type PolicyDecision int32
+
+const (
+	PolicyDecision_POLICY_DECISION_UNSPECIFIED PolicyDecision = 0
+	PolicyDecision_POLICY_DECISION_ALLOW       PolicyDecision = 1
+	PolicyDecision_POLICY_DECISION_WARN        PolicyDecision = 2
+	PolicyDecision_POLICY_DECISION_HALT        PolicyDecision = 3
+	PolicyDecision_POLICY_DECISION_BLOCK       PolicyDecision = 4
+)
+
+// Enum value maps for PolicyDecision.
+var (
+	PolicyDecision_name = map[int32]string{
+		0: "POLICY_DECISION_UNSPECIFIED",
+		1: "POLICY_DECISION_ALLOW",
+		2: "POLICY_DECISION_WARN",
+		3: "POLICY_DECISION_HALT",
+		4: "POLICY_DECISION_BLOCK",
+	}
+	PolicyDecision_value = map[string]int32{
+		"POLICY_DECISION_UNSPECIFIED": 0,
+		"POLICY_DECISION_ALLOW":       1,
+		"POLICY_DECISION_WARN":        2,
+		"POLICY_DECISION_HALT":        3,
+		"POLICY_DECISION_BLOCK":       4,
+	}
+)
+
+func (x PolicyDecision) Enum() *PolicyDecision {
+	p := new(PolicyDecision)
+	*p = x
+	return p
+}
+
+func (x PolicyDecision) String() string {
+	return protoimpl.X.EnumStringOf(x.Descriptor(), protoreflect.EnumNumber(x))
+}
+
+func (PolicyDecision) Descriptor() protoreflect.EnumDescriptor {
+	return file_director_v1_director_proto_enumTypes[2].Descriptor()
+}
+
+func (PolicyDecision) Type() protoreflect.EnumType {
+	return &file_director_v1_director_proto_enumTypes[2]
+}
+
+func (x PolicyDecision) Number() protoreflect.EnumNumber {
+	return protoreflect.EnumNumber(x)
+}
+
+// Deprecated: Use PolicyDecision.Descriptor instead.
+func (PolicyDecision) EnumDescriptor() ([]byte, []int) {
+	return file_director_v1_director_proto_rawDescGZIP(), []int{2}
+}
+
 type TenantTier int32
 
 const (
@@ -199,11 +254,11 @@ func (x TenantTier) String() string {
 }
 
 func (TenantTier) Descriptor() protoreflect.EnumDescriptor {
-	return file_director_v1_director_proto_enumTypes[2].Descriptor()
+	return file_director_v1_director_proto_enumTypes[3].Descriptor()
 }
 
 func (TenantTier) Type() protoreflect.EnumType {
-	return &file_director_v1_director_proto_enumTypes[2]
+	return &file_director_v1_director_proto_enumTypes[3]
 }
 
 func (x TenantTier) Number() protoreflect.EnumNumber {
@@ -212,7 +267,7 @@ func (x TenantTier) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use TenantTier.Descriptor instead.
 func (TenantTier) EnumDescriptor() ([]byte, []int) {
-	return file_director_v1_director_proto_rawDescGZIP(), []int{2}
+	return file_director_v1_director_proto_rawDescGZIP(), []int{3}
 }
 
 type ChatMessage struct {
@@ -761,6 +816,166 @@ func (x *CoherenceVerdict) GetMessage() string {
 	return ""
 }
 
+// Tenant-safe halt or policy decision emitted by any safety hook.
+// The event carries references and short explanations only; raw
+// prompts, model output, and raw evidence text stay outside the wire
+// event.
+type SafetyEvent struct {
+	state                 protoimpl.MessageState `protogen:"open.v1"`
+	SchemaVersion         string                 `protobuf:"bytes,1,opt,name=schema_version,json=schemaVersion,proto3" json:"schema_version,omitempty"`
+	EventId               string                 `protobuf:"bytes,2,opt,name=event_id,json=eventId,proto3" json:"event_id,omitempty"`
+	Timestamp             string                 `protobuf:"bytes,3,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
+	RequestId             string                 `protobuf:"bytes,4,opt,name=request_id,json=requestId,proto3" json:"request_id,omitempty"`
+	TenantId              string                 `protobuf:"bytes,5,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+	HookId                string                 `protobuf:"bytes,6,opt,name=hook_id,json=hookId,proto3" json:"hook_id,omitempty"`
+	HookScope             string                 `protobuf:"bytes,7,opt,name=hook_scope,json=hookScope,proto3" json:"hook_scope,omitempty"`
+	PolicyDecision        PolicyDecision         `protobuf:"varint,8,opt,name=policy_decision,json=policyDecision,proto3,enum=director.v1.PolicyDecision" json:"policy_decision,omitempty"`
+	HaltReason            HaltReason             `protobuf:"varint,9,opt,name=halt_reason,json=haltReason,proto3,enum=director.v1.HaltReason" json:"halt_reason,omitempty"`
+	Threshold             float32                `protobuf:"fixed32,10,opt,name=threshold,proto3" json:"threshold,omitempty"`
+	ObservedScore         float32                `protobuf:"fixed32,11,opt,name=observed_score,json=observedScore,proto3" json:"observed_score,omitempty"`
+	LatencyMs             int64                  `protobuf:"varint,12,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
+	EvidenceRefs          []string               `protobuf:"bytes,13,rep,name=evidence_refs,json=evidenceRefs,proto3" json:"evidence_refs,omitempty"`
+	TenantSafeExplanation string                 `protobuf:"bytes,14,opt,name=tenant_safe_explanation,json=tenantSafeExplanation,proto3" json:"tenant_safe_explanation,omitempty"`
+	Attributes            map[string]string      `protobuf:"bytes,15,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	unknownFields         protoimpl.UnknownFields
+	sizeCache             protoimpl.SizeCache
+}
+
+func (x *SafetyEvent) Reset() {
+	*x = SafetyEvent{}
+	mi := &file_director_v1_director_proto_msgTypes[7]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *SafetyEvent) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*SafetyEvent) ProtoMessage() {}
+
+func (x *SafetyEvent) ProtoReflect() protoreflect.Message {
+	mi := &file_director_v1_director_proto_msgTypes[7]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use SafetyEvent.ProtoReflect.Descriptor instead.
+func (*SafetyEvent) Descriptor() ([]byte, []int) {
+	return file_director_v1_director_proto_rawDescGZIP(), []int{7}
+}
+
+func (x *SafetyEvent) GetSchemaVersion() string {
+	if x != nil {
+		return x.SchemaVersion
+	}
+	return ""
+}
+
+func (x *SafetyEvent) GetEventId() string {
+	if x != nil {
+		return x.EventId
+	}
+	return ""
+}
+
+func (x *SafetyEvent) GetTimestamp() string {
+	if x != nil {
+		return x.Timestamp
+	}
+	return ""
+}
+
+func (x *SafetyEvent) GetRequestId() string {
+	if x != nil {
+		return x.RequestId
+	}
+	return ""
+}
+
+func (x *SafetyEvent) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+func (x *SafetyEvent) GetHookId() string {
+	if x != nil {
+		return x.HookId
+	}
+	return ""
+}
+
+func (x *SafetyEvent) GetHookScope() string {
+	if x != nil {
+		return x.HookScope
+	}
+	return ""
+}
+
+func (x *SafetyEvent) GetPolicyDecision() PolicyDecision {
+	if x != nil {
+		return x.PolicyDecision
+	}
+	return PolicyDecision_POLICY_DECISION_UNSPECIFIED
+}
+
+func (x *SafetyEvent) GetHaltReason() HaltReason {
+	if x != nil {
+		return x.HaltReason
+	}
+	return HaltReason_HALT_REASON_UNSPECIFIED
+}
+
+func (x *SafetyEvent) GetThreshold() float32 {
+	if x != nil {
+		return x.Threshold
+	}
+	return 0
+}
+
+func (x *SafetyEvent) GetObservedScore() float32 {
+	if x != nil {
+		return x.ObservedScore
+	}
+	return 0
+}
+
+func (x *SafetyEvent) GetLatencyMs() int64 {
+	if x != nil {
+		return x.LatencyMs
+	}
+	return 0
+}
+
+func (x *SafetyEvent) GetEvidenceRefs() []string {
+	if x != nil {
+		return x.EvidenceRefs
+	}
+	return nil
+}
+
+func (x *SafetyEvent) GetTenantSafeExplanation() string {
+	if x != nil {
+		return x.TenantSafeExplanation
+	}
+	return ""
+}
+
+func (x *SafetyEvent) GetAttributes() map[string]string {
+	if x != nil {
+		return x.Attributes
+	}
+	return nil
+}
+
 // Single-shot scoring RPC input. Kept flat so clients can batch
 // claims without nesting.
 type ScoreClaimRequest struct {
@@ -777,7 +992,7 @@ type ScoreClaimRequest struct {
 
 func (x *ScoreClaimRequest) Reset() {
 	*x = ScoreClaimRequest{}
-	mi := &file_director_v1_director_proto_msgTypes[7]
+	mi := &file_director_v1_director_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -789,7 +1004,7 @@ func (x *ScoreClaimRequest) String() string {
 func (*ScoreClaimRequest) ProtoMessage() {}
 
 func (x *ScoreClaimRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_director_v1_director_proto_msgTypes[7]
+	mi := &file_director_v1_director_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -802,7 +1017,7 @@ func (x *ScoreClaimRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScoreClaimRequest.ProtoReflect.Descriptor instead.
 func (*ScoreClaimRequest) Descriptor() ([]byte, []int) {
-	return file_director_v1_director_proto_rawDescGZIP(), []int{7}
+	return file_director_v1_director_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ScoreClaimRequest) GetClaim() string {
@@ -851,7 +1066,7 @@ type ScoreClaimResponse struct {
 
 func (x *ScoreClaimResponse) Reset() {
 	*x = ScoreClaimResponse{}
-	mi := &file_director_v1_director_proto_msgTypes[8]
+	mi := &file_director_v1_director_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -863,7 +1078,7 @@ func (x *ScoreClaimResponse) String() string {
 func (*ScoreClaimResponse) ProtoMessage() {}
 
 func (x *ScoreClaimResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_director_v1_director_proto_msgTypes[8]
+	mi := &file_director_v1_director_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -876,7 +1091,7 @@ func (x *ScoreClaimResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScoreClaimResponse.ProtoReflect.Descriptor instead.
 func (*ScoreClaimResponse) Descriptor() ([]byte, []int) {
-	return file_director_v1_director_proto_rawDescGZIP(), []int{8}
+	return file_director_v1_director_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ScoreClaimResponse) GetVerdict() *CoherenceVerdict {
@@ -914,7 +1129,7 @@ type ScoreTokenRequest struct {
 
 func (x *ScoreTokenRequest) Reset() {
 	*x = ScoreTokenRequest{}
-	mi := &file_director_v1_director_proto_msgTypes[9]
+	mi := &file_director_v1_director_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -926,7 +1141,7 @@ func (x *ScoreTokenRequest) String() string {
 func (*ScoreTokenRequest) ProtoMessage() {}
 
 func (x *ScoreTokenRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_director_v1_director_proto_msgTypes[9]
+	mi := &file_director_v1_director_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -939,7 +1154,7 @@ func (x *ScoreTokenRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScoreTokenRequest.ProtoReflect.Descriptor instead.
 func (*ScoreTokenRequest) Descriptor() ([]byte, []int) {
-	return file_director_v1_director_proto_rawDescGZIP(), []int{9}
+	return file_director_v1_director_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ScoreTokenRequest) GetTenantId() string {
@@ -986,7 +1201,7 @@ type ScoreTokenResponse struct {
 
 func (x *ScoreTokenResponse) Reset() {
 	*x = ScoreTokenResponse{}
-	mi := &file_director_v1_director_proto_msgTypes[10]
+	mi := &file_director_v1_director_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -998,7 +1213,7 @@ func (x *ScoreTokenResponse) String() string {
 func (*ScoreTokenResponse) ProtoMessage() {}
 
 func (x *ScoreTokenResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_director_v1_director_proto_msgTypes[10]
+	mi := &file_director_v1_director_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1011,7 +1226,7 @@ func (x *ScoreTokenResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ScoreTokenResponse.ProtoReflect.Descriptor instead.
 func (*ScoreTokenResponse) Descriptor() ([]byte, []int) {
-	return file_director_v1_director_proto_rawDescGZIP(), []int{10}
+	return file_director_v1_director_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ScoreTokenResponse) GetVerdict() *CoherenceVerdict {
@@ -1041,7 +1256,7 @@ type Tenant struct {
 
 func (x *Tenant) Reset() {
 	*x = Tenant{}
-	mi := &file_director_v1_director_proto_msgTypes[11]
+	mi := &file_director_v1_director_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1053,7 +1268,7 @@ func (x *Tenant) String() string {
 func (*Tenant) ProtoMessage() {}
 
 func (x *Tenant) ProtoReflect() protoreflect.Message {
-	mi := &file_director_v1_director_proto_msgTypes[11]
+	mi := &file_director_v1_director_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1066,7 +1281,7 @@ func (x *Tenant) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Tenant.ProtoReflect.Descriptor instead.
 func (*Tenant) Descriptor() ([]byte, []int) {
-	return file_director_v1_director_proto_rawDescGZIP(), []int{11}
+	return file_director_v1_director_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *Tenant) GetTenantId() string {
@@ -1134,7 +1349,7 @@ type APIKeyMetadata struct {
 
 func (x *APIKeyMetadata) Reset() {
 	*x = APIKeyMetadata{}
-	mi := &file_director_v1_director_proto_msgTypes[12]
+	mi := &file_director_v1_director_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1146,7 +1361,7 @@ func (x *APIKeyMetadata) String() string {
 func (*APIKeyMetadata) ProtoMessage() {}
 
 func (x *APIKeyMetadata) ProtoReflect() protoreflect.Message {
-	mi := &file_director_v1_director_proto_msgTypes[12]
+	mi := &file_director_v1_director_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1159,7 +1374,7 @@ func (x *APIKeyMetadata) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use APIKeyMetadata.ProtoReflect.Descriptor instead.
 func (*APIKeyMetadata) Descriptor() ([]byte, []int) {
-	return file_director_v1_director_proto_rawDescGZIP(), []int{12}
+	return file_director_v1_director_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *APIKeyMetadata) GetFingerprint() string {
@@ -1217,14 +1432,16 @@ type AuditRecord struct {
 	LatencyMs int64 `protobuf:"varint,9,opt,name=latency_ms,json=latencyMs,proto3" json:"latency_ms,omitempty"`
 	// Model name actually routed to (may differ from requested model
 	// when the gateway falls back). Empty on pure heuristic scoring.
-	Model         string `protobuf:"bytes,10,opt,name=model,proto3" json:"model,omitempty"`
+	Model string `protobuf:"bytes,10,opt,name=model,proto3" json:"model,omitempty"`
+	// Safety hook decisions attached to this audit row.
+	SafetyEvents  []*SafetyEvent `protobuf:"bytes,11,rep,name=safety_events,json=safetyEvents,proto3" json:"safety_events,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *AuditRecord) Reset() {
 	*x = AuditRecord{}
-	mi := &file_director_v1_director_proto_msgTypes[13]
+	mi := &file_director_v1_director_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1236,7 +1453,7 @@ func (x *AuditRecord) String() string {
 func (*AuditRecord) ProtoMessage() {}
 
 func (x *AuditRecord) ProtoReflect() protoreflect.Message {
-	mi := &file_director_v1_director_proto_msgTypes[13]
+	mi := &file_director_v1_director_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1249,7 +1466,7 @@ func (x *AuditRecord) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AuditRecord.ProtoReflect.Descriptor instead.
 func (*AuditRecord) Descriptor() ([]byte, []int) {
-	return file_director_v1_director_proto_rawDescGZIP(), []int{13}
+	return file_director_v1_director_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AuditRecord) GetTimestamp() string {
@@ -1322,6 +1539,13 @@ func (x *AuditRecord) GetModel() string {
 	return ""
 }
 
+func (x *AuditRecord) GetSafetyEvents() []*SafetyEvent {
+	if x != nil {
+		return x.SafetyEvents
+	}
+	return nil
+}
+
 var File_director_v1_director_proto protoreflect.FileDescriptor
 
 const file_director_v1_director_proto_rawDesc = "" +
@@ -1378,7 +1602,33 @@ const file_director_v1_director_proto_rawDesc = "" +
 	"\vscore_upper\x18\x06 \x01(\x02R\n" +
 	"scoreUpper\x126\n" +
 	"\asources\x18\a \x03(\v2\x1c.director.v1.GroundingSourceR\asources\x12\x18\n" +
-	"\amessage\x18\b \x01(\tR\amessage\"\xa1\x01\n" +
+	"\amessage\x18\b \x01(\tR\amessage\"\xab\x05\n" +
+	"\vSafetyEvent\x12%\n" +
+	"\x0eschema_version\x18\x01 \x01(\tR\rschemaVersion\x12\x19\n" +
+	"\bevent_id\x18\x02 \x01(\tR\aeventId\x12\x1c\n" +
+	"\ttimestamp\x18\x03 \x01(\tR\ttimestamp\x12\x1d\n" +
+	"\n" +
+	"request_id\x18\x04 \x01(\tR\trequestId\x12\x1b\n" +
+	"\ttenant_id\x18\x05 \x01(\tR\btenantId\x12\x17\n" +
+	"\ahook_id\x18\x06 \x01(\tR\x06hookId\x12\x1d\n" +
+	"\n" +
+	"hook_scope\x18\a \x01(\tR\thookScope\x12D\n" +
+	"\x0fpolicy_decision\x18\b \x01(\x0e2\x1b.director.v1.PolicyDecisionR\x0epolicyDecision\x128\n" +
+	"\vhalt_reason\x18\t \x01(\x0e2\x17.director.v1.HaltReasonR\n" +
+	"haltReason\x12\x1c\n" +
+	"\tthreshold\x18\n" +
+	" \x01(\x02R\tthreshold\x12%\n" +
+	"\x0eobserved_score\x18\v \x01(\x02R\robservedScore\x12\x1d\n" +
+	"\n" +
+	"latency_ms\x18\f \x01(\x03R\tlatencyMs\x12#\n" +
+	"\revidence_refs\x18\r \x03(\tR\fevidenceRefs\x126\n" +
+	"\x17tenant_safe_explanation\x18\x0e \x01(\tR\x15tenantSafeExplanation\x12H\n" +
+	"\n" +
+	"attributes\x18\x0f \x03(\v2(.director.v1.SafetyEvent.AttributesEntryR\n" +
+	"attributes\x1a=\n" +
+	"\x0fAttributesEntry\x12\x10\n" +
+	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
+	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\xa1\x01\n" +
 	"\x11ScoreClaimRequest\x12\x14\n" +
 	"\x05claim\x18\x01 \x01(\tR\x05claim\x12\x1c\n" +
 	"\tdocuments\x18\x02 \x03(\tR\tdocuments\x12\x1b\n" +
@@ -1414,7 +1664,7 @@ const file_director_v1_director_proto_rawDesc = "" +
 	"\vissued_unix\x18\x03 \x01(\x03R\n" +
 	"issuedUnix\x12!\n" +
 	"\fexpires_unix\x18\x04 \x01(\x03R\vexpiresUnix\x12\x18\n" +
-	"\arevoked\x18\x05 \x01(\bR\arevoked\"\xfa\x02\n" +
+	"\arevoked\x18\x05 \x01(\bR\arevoked\"\xb9\x03\n" +
 	"\vAuditRecord\x12\x1c\n" +
 	"\ttimestamp\x18\x01 \x01(\tR\ttimestamp\x12\x1d\n" +
 	"\n" +
@@ -1429,7 +1679,8 @@ const file_director_v1_director_proto_rawDesc = "" +
 	"\n" +
 	"latency_ms\x18\t \x01(\x03R\tlatencyMs\x12\x14\n" +
 	"\x05model\x18\n" +
-	" \x01(\tR\x05model*_\n" +
+	" \x01(\tR\x05model\x12=\n" +
+	"\rsafety_events\x18\v \x03(\v2\x18.director.v1.SafetyEventR\fsafetyEvents*_\n" +
 	"\x04Role\x12\x14\n" +
 	"\x10ROLE_UNSPECIFIED\x10\x00\x12\x0f\n" +
 	"\vROLE_SYSTEM\x10\x01\x12\r\n" +
@@ -1445,7 +1696,13 @@ const file_director_v1_director_proto_rawDesc = "" +
 	"\x1cHALT_REASON_POLICY_VIOLATION\x10\x04\x12\x1d\n" +
 	"\x19HALT_REASON_TOKEN_TIMEOUT\x10\x05\x12\x1d\n" +
 	"\x19HALT_REASON_TOTAL_TIMEOUT\x10\x06\x12 \n" +
-	"\x1cHALT_REASON_CALLBACK_TIMEOUT\x10\a*\xae\x01\n" +
+	"\x1cHALT_REASON_CALLBACK_TIMEOUT\x10\a*\x9b\x01\n" +
+	"\x0ePolicyDecision\x12\x1f\n" +
+	"\x1bPOLICY_DECISION_UNSPECIFIED\x10\x00\x12\x19\n" +
+	"\x15POLICY_DECISION_ALLOW\x10\x01\x12\x18\n" +
+	"\x14POLICY_DECISION_WARN\x10\x02\x12\x18\n" +
+	"\x14POLICY_DECISION_HALT\x10\x03\x12\x19\n" +
+	"\x15POLICY_DECISION_BLOCK\x10\x04*\xae\x01\n" +
 	"\n" +
 	"TenantTier\x12\x1b\n" +
 	"\x17TENANT_TIER_UNSPECIFIED\x10\x00\x12\x15\n" +
@@ -1475,53 +1732,60 @@ func file_director_v1_director_proto_rawDescGZIP() []byte {
 	return file_director_v1_director_proto_rawDescData
 }
 
-var file_director_v1_director_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_director_v1_director_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_director_v1_director_proto_enumTypes = make([]protoimpl.EnumInfo, 4)
+var file_director_v1_director_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
 var file_director_v1_director_proto_goTypes = []any{
 	(Role)(0),                      // 0: director.v1.Role
 	(HaltReason)(0),                // 1: director.v1.HaltReason
-	(TenantTier)(0),                // 2: director.v1.TenantTier
-	(*ChatMessage)(nil),            // 3: director.v1.ChatMessage
-	(*ChatCompletionRequest)(nil),  // 4: director.v1.ChatCompletionRequest
-	(*ChatChoice)(nil),             // 5: director.v1.ChatChoice
-	(*TokenUsage)(nil),             // 6: director.v1.TokenUsage
-	(*ChatCompletionResponse)(nil), // 7: director.v1.ChatCompletionResponse
-	(*GroundingSource)(nil),        // 8: director.v1.GroundingSource
-	(*CoherenceVerdict)(nil),       // 9: director.v1.CoherenceVerdict
-	(*ScoreClaimRequest)(nil),      // 10: director.v1.ScoreClaimRequest
-	(*ScoreClaimResponse)(nil),     // 11: director.v1.ScoreClaimResponse
-	(*ScoreTokenRequest)(nil),      // 12: director.v1.ScoreTokenRequest
-	(*ScoreTokenResponse)(nil),     // 13: director.v1.ScoreTokenResponse
-	(*Tenant)(nil),                 // 14: director.v1.Tenant
-	(*APIKeyMetadata)(nil),         // 15: director.v1.APIKeyMetadata
-	(*AuditRecord)(nil),            // 16: director.v1.AuditRecord
+	(PolicyDecision)(0),            // 2: director.v1.PolicyDecision
+	(TenantTier)(0),                // 3: director.v1.TenantTier
+	(*ChatMessage)(nil),            // 4: director.v1.ChatMessage
+	(*ChatCompletionRequest)(nil),  // 5: director.v1.ChatCompletionRequest
+	(*ChatChoice)(nil),             // 6: director.v1.ChatChoice
+	(*TokenUsage)(nil),             // 7: director.v1.TokenUsage
+	(*ChatCompletionResponse)(nil), // 8: director.v1.ChatCompletionResponse
+	(*GroundingSource)(nil),        // 9: director.v1.GroundingSource
+	(*CoherenceVerdict)(nil),       // 10: director.v1.CoherenceVerdict
+	(*SafetyEvent)(nil),            // 11: director.v1.SafetyEvent
+	(*ScoreClaimRequest)(nil),      // 12: director.v1.ScoreClaimRequest
+	(*ScoreClaimResponse)(nil),     // 13: director.v1.ScoreClaimResponse
+	(*ScoreTokenRequest)(nil),      // 14: director.v1.ScoreTokenRequest
+	(*ScoreTokenResponse)(nil),     // 15: director.v1.ScoreTokenResponse
+	(*Tenant)(nil),                 // 16: director.v1.Tenant
+	(*APIKeyMetadata)(nil),         // 17: director.v1.APIKeyMetadata
+	(*AuditRecord)(nil),            // 18: director.v1.AuditRecord
+	nil,                            // 19: director.v1.SafetyEvent.AttributesEntry
 }
 var file_director_v1_director_proto_depIdxs = []int32{
 	0,  // 0: director.v1.ChatMessage.role:type_name -> director.v1.Role
-	3,  // 1: director.v1.ChatCompletionRequest.messages:type_name -> director.v1.ChatMessage
-	3,  // 2: director.v1.ChatChoice.message:type_name -> director.v1.ChatMessage
-	5,  // 3: director.v1.ChatCompletionResponse.choices:type_name -> director.v1.ChatChoice
-	6,  // 4: director.v1.ChatCompletionResponse.usage:type_name -> director.v1.TokenUsage
-	9,  // 5: director.v1.ChatCompletionResponse.coherence:type_name -> director.v1.CoherenceVerdict
+	4,  // 1: director.v1.ChatCompletionRequest.messages:type_name -> director.v1.ChatMessage
+	4,  // 2: director.v1.ChatChoice.message:type_name -> director.v1.ChatMessage
+	6,  // 3: director.v1.ChatCompletionResponse.choices:type_name -> director.v1.ChatChoice
+	7,  // 4: director.v1.ChatCompletionResponse.usage:type_name -> director.v1.TokenUsage
+	10, // 5: director.v1.ChatCompletionResponse.coherence:type_name -> director.v1.CoherenceVerdict
 	1,  // 6: director.v1.CoherenceVerdict.halt_reason:type_name -> director.v1.HaltReason
-	8,  // 7: director.v1.CoherenceVerdict.sources:type_name -> director.v1.GroundingSource
-	9,  // 8: director.v1.ScoreClaimResponse.verdict:type_name -> director.v1.CoherenceVerdict
-	9,  // 9: director.v1.ScoreTokenResponse.verdict:type_name -> director.v1.CoherenceVerdict
-	2,  // 10: director.v1.Tenant.tier:type_name -> director.v1.TenantTier
-	9,  // 11: director.v1.AuditRecord.verdict:type_name -> director.v1.CoherenceVerdict
-	10, // 12: director.v1.CoherenceScoring.ScoreClaim:input_type -> director.v1.ScoreClaimRequest
-	12, // 13: director.v1.CoherenceScoring.ScoreStream:input_type -> director.v1.ScoreTokenRequest
-	4,  // 14: director.v1.ChatGateway.ChatCompletion:input_type -> director.v1.ChatCompletionRequest
-	4,  // 15: director.v1.ChatGateway.ChatCompletionStream:input_type -> director.v1.ChatCompletionRequest
-	11, // 16: director.v1.CoherenceScoring.ScoreClaim:output_type -> director.v1.ScoreClaimResponse
-	13, // 17: director.v1.CoherenceScoring.ScoreStream:output_type -> director.v1.ScoreTokenResponse
-	7,  // 18: director.v1.ChatGateway.ChatCompletion:output_type -> director.v1.ChatCompletionResponse
-	7,  // 19: director.v1.ChatGateway.ChatCompletionStream:output_type -> director.v1.ChatCompletionResponse
-	16, // [16:20] is the sub-list for method output_type
-	12, // [12:16] is the sub-list for method input_type
-	12, // [12:12] is the sub-list for extension type_name
-	12, // [12:12] is the sub-list for extension extendee
-	0,  // [0:12] is the sub-list for field type_name
+	9,  // 7: director.v1.CoherenceVerdict.sources:type_name -> director.v1.GroundingSource
+	2,  // 8: director.v1.SafetyEvent.policy_decision:type_name -> director.v1.PolicyDecision
+	1,  // 9: director.v1.SafetyEvent.halt_reason:type_name -> director.v1.HaltReason
+	19, // 10: director.v1.SafetyEvent.attributes:type_name -> director.v1.SafetyEvent.AttributesEntry
+	10, // 11: director.v1.ScoreClaimResponse.verdict:type_name -> director.v1.CoherenceVerdict
+	10, // 12: director.v1.ScoreTokenResponse.verdict:type_name -> director.v1.CoherenceVerdict
+	3,  // 13: director.v1.Tenant.tier:type_name -> director.v1.TenantTier
+	10, // 14: director.v1.AuditRecord.verdict:type_name -> director.v1.CoherenceVerdict
+	11, // 15: director.v1.AuditRecord.safety_events:type_name -> director.v1.SafetyEvent
+	12, // 16: director.v1.CoherenceScoring.ScoreClaim:input_type -> director.v1.ScoreClaimRequest
+	14, // 17: director.v1.CoherenceScoring.ScoreStream:input_type -> director.v1.ScoreTokenRequest
+	5,  // 18: director.v1.ChatGateway.ChatCompletion:input_type -> director.v1.ChatCompletionRequest
+	5,  // 19: director.v1.ChatGateway.ChatCompletionStream:input_type -> director.v1.ChatCompletionRequest
+	13, // 20: director.v1.CoherenceScoring.ScoreClaim:output_type -> director.v1.ScoreClaimResponse
+	15, // 21: director.v1.CoherenceScoring.ScoreStream:output_type -> director.v1.ScoreTokenResponse
+	8,  // 22: director.v1.ChatGateway.ChatCompletion:output_type -> director.v1.ChatCompletionResponse
+	8,  // 23: director.v1.ChatGateway.ChatCompletionStream:output_type -> director.v1.ChatCompletionResponse
+	20, // [20:24] is the sub-list for method output_type
+	16, // [16:20] is the sub-list for method input_type
+	16, // [16:16] is the sub-list for extension type_name
+	16, // [16:16] is the sub-list for extension extendee
+	0,  // [0:16] is the sub-list for field type_name
 }
 
 func init() { file_director_v1_director_proto_init() }
@@ -1534,8 +1798,8 @@ func file_director_v1_director_proto_init() {
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_director_v1_director_proto_rawDesc), len(file_director_v1_director_proto_rawDesc)),
-			NumEnums:      3,
-			NumMessages:   14,
+			NumEnums:      4,
+			NumMessages:   16,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

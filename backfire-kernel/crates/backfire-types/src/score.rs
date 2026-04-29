@@ -305,4 +305,49 @@ mod tests {
         assert_eq!(event.coherence, 0.85);
         assert!(!event.halted);
     }
+
+    fn generated_unit(seed: &mut u64) -> f64 {
+        *seed = seed.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1);
+        ((*seed >> 11) as f64) / ((1_u64 << 53) as f64)
+    }
+
+    fn generated_range(seed: &mut u64, lo: f64, hi: f64) -> f64 {
+        lo + (hi - lo) * generated_unit(seed)
+    }
+
+    #[test]
+    fn test_clamp_score_generated_values_stay_in_bounds() {
+        let mut seed = 0xD1_23_EC_70_29_u64;
+        for _ in 0..512 {
+            let lo = generated_range(&mut seed, -50.0, 0.0);
+            let hi = generated_range(&mut seed, 0.0, 50.0);
+            let value = generated_range(&mut seed, -100.0, 100.0);
+            let got = clamp_score(value, lo, hi);
+            assert!(got >= lo, "value {value} clamped below {lo}: {got}");
+            assert!(got <= hi, "value {value} clamped above {hi}: {got}");
+            if value >= lo && value <= hi {
+                assert!((got - value).abs() < 1e-12);
+            }
+        }
+    }
+
+    #[test]
+    fn test_stream_session_generated_halt_prefix_contract() {
+        let mut seed = 0x5A_FE_71_EC_70_u64;
+        for case_id in 0..128 {
+            let token_count = 1 + (generated_unit(&mut seed) * 24.0) as usize;
+            let halt_index = (generated_unit(&mut seed) * token_count as f64) as usize;
+            let tokens: Vec<String> = (0..token_count)
+                .map(|index| format!("t{case_id}_{index};"))
+                .collect();
+            let expected = tokens[..halt_index].join("");
+            let session = StreamSession {
+                tokens,
+                halted: true,
+                halt_index: halt_index as i32,
+                ..Default::default()
+            };
+            assert_eq!(session.output(), expected);
+        }
+    }
 }
