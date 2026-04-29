@@ -202,7 +202,7 @@ lighter profile:
 | Input filtering | `InputSanitizer`, regex injection checks, PII detectors when enabled by policy | Reject or redact unsafe input before generation/scoring. |
 | Factual scoring | `CoherenceScorer`, `NLIScorer` when `[nli]` is installed, `GroundTruthStore`, `VectorGroundTruthStore` | Score logical and factual consistency against configured facts. |
 | Interlock | `HaltMonitor`, `StreamingKernel` | Stop output when the coherence floor, window average, or trend rule fails. |
-| Evidence | `HaltEvidence`, top-K contradictory chunks, scorer metadata | Carry machine-readable reason data into API responses and logs. |
+| Evidence | `HaltEvidence`, `HaltTraceAttribution`, top-K contradictory chunks, scorer metadata | Carry machine-readable reason data, trace attribution, and halt margins into API responses and logs. |
 | Audit | `AuditLogger`, hashed prompt metadata, tenant ids | Persist tenant-safe records for review and compliance reporting. |
 
 ### Opt-in runtime hooks

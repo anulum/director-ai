@@ -80,6 +80,36 @@ class TestHaltEvidenceToDict:
         result = _halt_evidence_to_dict(ev)
         assert result["reason"] == "hard_limit"
         assert len(result["evidence_chunks"]) == 1
+        assert result["trace_attribution"] is None
+
+    def test_halt_evidence_serialises_trace_attribution(self):
+        from director_ai.server import _halt_evidence_to_dict
+
+        trace = SimpleNamespace(
+            fact_source="keyword",
+            retrieval_path="scorer.review.evidence.chunks",
+            scorer_path="director_ai.core.scoring.scorer.CoherenceScorer.review",
+            token_offset=7,
+            threshold=0.5,
+            causal_contribution=0.2,
+        )
+        ev = SimpleNamespace(
+            reason="window_avg",
+            last_score=0.3,
+            evidence_chunks=[],
+            nli_scores=None,
+            suggested_action="review",
+            trace_attribution=trace,
+        )
+        result = _halt_evidence_to_dict(ev)
+        assert result["trace_attribution"] == {
+            "fact_source": "keyword",
+            "retrieval_path": "scorer.review.evidence.chunks",
+            "scorer_path": "director_ai.core.scoring.scorer.CoherenceScorer.review",
+            "token_offset": 7,
+            "threshold": 0.5,
+            "causal_contribution": 0.2,
+        }
 
 
 # â”€â”€ Server: CORS allow origins â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

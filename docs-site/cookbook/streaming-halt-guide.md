@@ -149,9 +149,11 @@ ends. The `.events` list has one `TokenEvent` per emitted token
 including its coherence, timestamp, and any halt evidence; the
 `halt_evidence_structured` attribute (when a `CoherenceScorer` is
 passed in) lists the top-K contradicting source chunks with their
-NLI scores. This is the artefact to hand to an incident reviewer —
-it shows *which* token failed and *which* source document
-contradicted it.
+NLI scores. It also carries trace attribution: fact source,
+retrieval path, scorer path, token offset, threshold, and the halt
+margin. This is the artefact to hand to an incident reviewer — it
+shows *which* token failed and *which* source document contradicted
+it.
 
 ## Operating notes
 

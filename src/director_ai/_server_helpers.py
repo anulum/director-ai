@@ -14,6 +14,17 @@ def halt_evidence_to_dict(halt_ev) -> dict | None:
     """Convert HaltEvidence to JSON-safe dict."""
     if halt_ev is None:
         return None
+    trace = getattr(halt_ev, "trace_attribution", None)
+    trace_dict = None
+    if trace is not None:
+        trace_dict = {
+            "fact_source": trace.fact_source,
+            "retrieval_path": trace.retrieval_path,
+            "scorer_path": trace.scorer_path,
+            "token_offset": trace.token_offset,
+            "threshold": trace.threshold,
+            "causal_contribution": trace.causal_contribution,
+        }
     return {
         "reason": halt_ev.reason,
         "last_score": halt_ev.last_score,
@@ -23,6 +34,7 @@ def halt_evidence_to_dict(halt_ev) -> dict | None:
         ],
         "nli_scores": halt_ev.nli_scores,
         "suggested_action": halt_ev.suggested_action,
+        "trace_attribution": trace_dict,
     }
 
 

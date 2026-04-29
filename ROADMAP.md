@@ -299,7 +299,7 @@
   trade-offs, and counterfactual examples near the decision boundary.
 
 ### Agent-Native Observability (Planned)
-- [ ] Add trace-level halt attribution: fact source, retrieval path, scorer path,
+- [x] Add trace-level halt attribution: fact source, retrieval path, scorer path,
   token offset, threshold, and causal contribution.
 - [ ] Add `CounterfactualVerifier` support for "what single fact change would
   have prevented this halt?" diagnostics.

@@ -39,12 +39,21 @@ class TestHaltWithScorer:
             iter(["bad", "output"]),
             always_low,
             scorer=scorer,
+            prompt="sky",
         )
         assert session.halted
         assert session.halt_evidence_structured is not None
         assert isinstance(session.halt_evidence_structured, HaltEvidence)
         assert session.halt_evidence_structured.reason
         assert session.halt_evidence_structured.suggested_action
+        trace = session.halt_evidence_structured.trace_attribution
+        assert trace is not None
+        assert trace.fact_source == "keyword"
+        assert trace.retrieval_path == "scorer.review.evidence.chunks"
+        assert trace.scorer_path.endswith("CoherenceScorer.review")
+        assert trace.token_offset == 0
+        assert trace.threshold == pytest.approx(0.99)
+        assert trace.causal_contribution == pytest.approx(0.69)
 
     def test_halt_without_scorer_no_structured(self):
         kernel = StreamingKernel(hard_limit=0.99)
@@ -141,6 +150,7 @@ class TestHaltEvidencePerformanceDoc:
         assert hasattr(ev, "last_score")
         assert hasattr(ev, "evidence_chunks")
         assert hasattr(ev, "suggested_action")
+        assert hasattr(ev, "trace_attribution")
 
     def test_halt_evidence_chain_complete(self):
         """Full pipeline: StreamingKernel → halt → scorer → evidence → action."""

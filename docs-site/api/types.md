@@ -112,15 +112,31 @@ Structured halt reason with evidence chunks.
 | `evidence_chunks` | `list[EvidenceChunk]` | Contradicting chunks |
 | `nli_scores` | `list[float] \| None` | NLI scores at halt point |
 | `suggested_action` | `str` | Recommended action (e.g., "retry with KB context") |
+| `trace_attribution` | `HaltTraceAttribution \| None` | Fact source, retrieval path, scorer path, token offset, threshold, and halt-margin data |
 
 ```python
 if session.halt_evidence_structured:
     ev = session.halt_evidence_structured
     print(f"Reason: {ev.reason}")
     print(f"Score: {ev.last_score:.3f}")
+    if ev.trace_attribution:
+        print(f"Token: {ev.trace_attribution.token_offset}")
     for chunk in ev.evidence_chunks:
         print(f"  {chunk.text[:80]} (distance={chunk.distance:.3f})")
 ```
+
+## HaltTraceAttribution {: #halttraceattribution }
+
+Trace coordinates for the halt decision.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fact_source` | `str` | Source label from the contradicting evidence chunks |
+| `retrieval_path` | `str` | Retrieval path used to gather evidence for the halt |
+| `scorer_path` | `str` | Scorer method that produced the structured review |
+| `token_offset` | `int` | Token index where the halt condition triggered |
+| `threshold` | `float \| None` | Limit that was crossed |
+| `causal_contribution` | `float` | Absolute margin beyond the limit |
 
 ---
 

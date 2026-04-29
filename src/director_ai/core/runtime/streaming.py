@@ -20,6 +20,7 @@ from __future__ import annotations
 import logging
 import time
 from collections import deque
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -30,7 +31,7 @@ from ..observability.callbacks import (
 )
 from ..observability.tracing import trace_token
 from ..otel import trace_streaming
-from ..types import HaltEvidence
+from ..types import EvidenceChunk, HaltEvidence, HaltTraceAttribution
 from .kernel import HaltMonitor
 
 try:
@@ -219,6 +220,44 @@ class StreamingKernel(HaltMonitor):
             return "Response quality degrading; rephrase the prompt."
         return "Review the generated output for factual accuracy."
 
+    @staticmethod
+    def _scorer_path(scorer: object) -> str:
+        scorer_type = type(scorer)
+        return f"{scorer_type.__module__}.{scorer_type.__qualname__}.review"
+
+    @staticmethod
+    def _fact_source(chunks: Sequence[EvidenceChunk]) -> str:
+        sources: list[str] = []
+        for chunk in chunks:
+            source = chunk.source.strip()
+            if source and source not in sources:
+                sources.append(source)
+        return ",".join(sources)
+
+    @staticmethod
+    def _retrieval_path(chunks: Sequence[EvidenceChunk]) -> str:
+        if chunks:
+            return "scorer.review.evidence.chunks"
+        return "scorer.review.no_chunks"
+
+    def _trace_metrics(
+        self,
+        reason: str,
+        event: TokenEvent,
+        history: list[float],
+        window: deque[float],
+    ) -> tuple[float | None, float]:
+        if "hard_limit" in reason:
+            return self.hard_limit, max(0.0, self.hard_limit - event.coherence)
+        if "window_avg" in reason:
+            avg = sum(window) / len(window) if window else event.coherence
+            return self.window_threshold, max(0.0, self.window_threshold - avg)
+        if "downward_trend" in reason:
+            recent = history[-self.trend_window :]
+            drop = _trend_drop(recent)
+            return self.trend_threshold, max(0.0, drop - self.trend_threshold)
+        return None, 0.0
+
     def stream_tokens(
         self,
         token_generator,
@@ -305,19 +344,37 @@ class StreamingKernel(HaltMonitor):
             if scorer is not None:
                 accumulated = "".join(session.tokens)
                 _, cs = scorer.review(prompt, accumulated)
-                chunks = []
-                nli_scores = None
+                chunks: list[EvidenceChunk] = []
+                nli_scores: list[float] | None = None
                 if cs.evidence and cs.evidence.chunks:
                     sorted_chunks = sorted(cs.evidence.chunks, key=lambda c: c.distance)
                     chunks = sorted_chunks[:top_k]
                     if cs.evidence.chunk_scores:  # pragma: no branch
                         nli_scores = cs.evidence.chunk_scores[:top_k]
+                threshold, contribution = self._trace_metrics(
+                    reason,
+                    event,
+                    session.coherence_history,
+                    window,
+                )
                 structured = HaltEvidence(
                     reason=reason,
                     last_score=cs.score,
                     evidence_chunks=chunks,
                     nli_scores=nli_scores,
                     suggested_action=self._suggested_action(reason),
+                    trace_attribution=HaltTraceAttribution(
+                        fact_source=self._fact_source(chunks),
+                        retrieval_path=self._retrieval_path(chunks),
+                        scorer_path=self._scorer_path(scorer),
+                        token_offset=(
+                            session.halt_index
+                            if session.halt_index >= 0
+                            else event.index
+                        ),
+                        threshold=threshold,
+                        causal_contribution=contribution,
+                    ),
                 )
                 event.halt_evidence = structured
                 session.halt_evidence_structured = structured

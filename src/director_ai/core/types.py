@@ -17,6 +17,7 @@ __all__ = [
     "CoherenceScore",
     "EvidenceChunk",
     "HaltEvidence",
+    "HaltTraceAttribution",
     "InjectedClaim",
     "InjectionResult",
     "ReviewResult",
@@ -224,6 +225,18 @@ class InjectionResult:
 
 
 @dataclass
+class HaltTraceAttribution:
+    """Trace coordinates for a halt decision."""
+
+    fact_source: str = ""
+    retrieval_path: str = ""
+    scorer_path: str = ""
+    token_offset: int = -1
+    threshold: float | None = None
+    causal_contribution: float = 0.0
+
+
+@dataclass
 class HaltEvidence:
     """Structured evidence returned when the agent halts."""
 
@@ -232,6 +245,7 @@ class HaltEvidence:
     evidence_chunks: list[EvidenceChunk]
     nli_scores: list[float] | None = None
     suggested_action: str = ""
+    trace_attribution: HaltTraceAttribution | None = None
 
 
 @dataclass
