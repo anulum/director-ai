@@ -47,7 +47,8 @@ COPY training/requirements-distil.txt training/requirements-distil.txt
 RUN pip install --no-cache-dir --require-hashes \
       -r training/requirements-distil.txt \
     && pip install --no-cache-dir maturin==1.12.6 pytest==9.0.2 \
-         hypothesis==6.151.10 pytest-cov==7.1.0
+         hypothesis==6.151.10 pytest-cov==7.1.0 \
+    && pip uninstall -y torchvision
 
 # Copy source. Kept as late layers to maximise cache hits on the
 # pip layer when only source changes between image builds.

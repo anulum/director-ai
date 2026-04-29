@@ -20,7 +20,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends git curl && \
 #         training/requirements-distil.in
 # Keep torch, transformers, and sentencepiece at patched floors.
 COPY training/requirements-distil.txt training/requirements-distil.txt
-RUN pip install --no-cache-dir --require-hashes -r training/requirements-distil.txt
+RUN pip install --no-cache-dir --require-hashes -r training/requirements-distil.txt \
+    && pip uninstall -y torchvision
 
 # Copy project
 COPY pyproject.toml ./
