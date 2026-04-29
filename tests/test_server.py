@@ -142,6 +142,24 @@ class TestConfig:
         assert "config" in data
         assert "coherence_threshold" in data["config"]
 
+    def test_scorer_models_endpoint(self, client):
+        resp = client.get("/v1/scorer/models")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        aliases = {model["alias"] for model in data["models"]}
+        assert "balanced-default" in aliases
+        assert "distilroberta-fast" not in aliases
+        assert data["current"]["nli_model"]
+
+    def test_scorer_models_endpoint_can_include_domain_only(self, client):
+        resp = client.get("/v1/scorer/models?include_domain_only=true")
+        assert resp.status_code == 200
+        data = resp.json()
+
+        aliases = {model["alias"] for model in data["models"]}
+        assert "distilroberta-fast" in aliases
+
 
 class TestStats:
     """Stats endpoint tests."""

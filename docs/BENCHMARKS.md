@@ -156,6 +156,33 @@ the scanner must actually walk.
 
 ---
 
+## Runtime Scorer Model Choices
+
+Runtime scorer choices are separate from managed-training base models. Training
+base models define what can be fine-tuned; runtime scorer choices define what a
+deployment may offer for live NLI scoring after the Vertex benchmark gate.
+
+Final Vertex report:
+
+```text
+gs://gotm-director-ai-training/managed-training/benchmarks/20260429T1409-e9859f8-full-e1-20260429-alias/model_benchmark_report.json
+```
+
+| Alias | Runtime source | Status | BA | F1 | Regression | Recommendation |
+| --- | --- | --- | ---: | ---: | ---: | --- |
+| `balanced-default` | managed FactCG DeBERTa v3 large artefact | stable | 0.752 | 0.7916 | -0.6 pp | deploy |
+| `deberta-small` | managed DeBERTa v3 small artefact | stable | 0.747 | 0.7843 | -1.1 pp | deploy |
+| `deberta-large-nli` | managed DeBERTa v3 large NLI artefact | stable | 0.740 | 0.7822 | -1.8 pp | deploy |
+| `distilroberta-fast` | managed DistilRoBERTa artefact | domain only | 0.719 | 0.7604 | -3.9 pp | deploy domain only |
+| `roberta-mnli-legacy` | managed RoBERTa MNLI artefact | domain only | 0.706 | 0.7529 | -5.2 pp | deploy domain only |
+
+Stable options are exposed by default through `GET /v1/scorer/models`.
+Domain-only choices require `DIRECTOR_ALLOW_DOMAIN_ONLY_SCORER_MODEL=true`.
+Custom model IDs or paths require `DIRECTOR_ALLOW_CUSTOM_SCORER_MODEL=true`
+and should pass the Vertex benchmark gate before production use.
+
+---
+
 *Generated from verified benchmark runs. Numbers are from local evaluation
 on the mining rig (i5-11600K, GTX 1060 6GB / 5x RX 6600 XT 8GB).
 AggreFact results are on the full 29,320-sample LLM-AggreFact benchmark.*

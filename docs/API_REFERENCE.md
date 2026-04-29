@@ -395,6 +395,34 @@ Requires `pip install director-ai[llamaindex]`.
 
 ---
 
+## FastAPI Endpoints
+
+### `GET /v1/scorer/models`
+
+Returns runtime scorer models that can be offered for live scoring. Stable
+choices are returned by default. Add `include_domain_only=true` to include
+benchmarked domain-only choices that require explicit operator opt-in.
+
+Response fields:
+
+| Field | Description |
+|-------|-------------|
+| `current.scorer_model` | Configured scorer alias, when set |
+| `current.nli_model` | Resolved runtime model source |
+| `current.nli_model_artifact_uri` | Managed artefact URI, when present |
+| `models[]` | Benchmarked scorer choices with BA, F1, regression, and recommendation |
+
+Configuration:
+
+| Variable | Description |
+|----------|-------------|
+| `DIRECTOR_SCORER_MODEL` | Benchmarked alias, model ID, or custom model path |
+| `DIRECTOR_ALLOW_DOMAIN_ONLY_SCORER_MODEL` | Required for domain-only aliases |
+| `DIRECTOR_ALLOW_CUSTOM_SCORER_MODEL` | Required for arbitrary custom models |
+| `DIRECTOR_MODEL_CACHE_DIR` | Optional cache root for managed scorer artefacts |
+
+---
+
 ## CLI
 
 ```bash

@@ -77,7 +77,11 @@ class DirectorConfig:
     hard_limit: float = 0.5
     soft_limit: float = 0.6
     use_nli: bool = False
+    scorer_model: str = ""
+    allow_domain_only_scorer_model: bool = False
+    allow_custom_scorer_model: bool = False
     nli_model: str = "yaxili96/FactCG-DeBERTa-v3-Large"
+    nli_model_artifact_uri: str = ""
     nli_model_revision: str = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
     nli_max_length: int = 512  # >512 for long-context models (Longformer, BigBird)
     max_candidates: int = 3
@@ -375,6 +379,18 @@ class DirectorConfig:
             )
         if self.reranker_enabled and not self.reranker_model.strip():
             raise ValueError("reranker_model must be set when reranker_enabled=True")
+        if self.scorer_model:
+            from .scoring.model_choices import resolve_scorer_model_choice
+
+            choice = resolve_scorer_model_choice(
+                self.scorer_model,
+                allow_domain_only=self.allow_domain_only_scorer_model,
+                allow_custom=self.allow_custom_scorer_model,
+            )
+            object.__setattr__(self, "nli_model", choice.runtime_model)
+            object.__setattr__(self, "nli_model_artifact_uri", choice.artifact_uri)
+            object.__setattr__(self, "nli_model_revision", choice.revision)
+            object.__setattr__(self, "nli_max_length", choice.max_length)
 
         # Hardened mode: enforce all safety features
         if self.hardened:

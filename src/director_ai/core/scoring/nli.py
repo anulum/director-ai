@@ -19,10 +19,12 @@ single forward pass (3-5x latency reduction on chunked inputs).
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 import re
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -72,6 +74,14 @@ MODEL_REGISTRY: dict[str, str] = {
     "lytang/MiniCheck-DeBERTa-v3-Large": "2f2d01a54fa022a7ffadb76260e1ea8bc88c82bb",
 }
 
+_SKIP_ARTIFACT_FILENAMES = {
+    "optimizer.pt",
+    "rng_state.pth",
+    "scheduler.pt",
+    "trainer_state.json",
+    "training_args.bin",
+}
+
 
 def _resolve_revision(model_name: str, revision: str | None = None) -> str | None:
     """Return an explicit revision SHA for *model_name*, or *None* if unknown.
@@ -81,6 +91,77 @@ def _resolve_revision(model_name: str, revision: str | None = None) -> str | Non
     if revision is not None:
         return revision
     return MODEL_REGISTRY.get(model_name)
+
+
+def _split_gs_uri(uri: str) -> tuple[str, str]:
+    """Split a ``gs://bucket/prefix`` URI into bucket and prefix."""
+    if not uri.startswith("gs://"):
+        raise ValueError(f"not a GCS URI: {uri!r}")
+    bucket_and_prefix = uri[5:]
+    bucket, sep, prefix = bucket_and_prefix.partition("/")
+    if not bucket or not sep or not prefix.strip("/"):
+        raise ValueError(f"GCS URI must include bucket and prefix: {uri!r}")
+    return bucket, prefix.strip("/")
+
+
+def _safe_cache_name(uri: str) -> str:
+    slug = re.sub(r"[^A-Za-z0-9._-]+", "-", uri[5:] if uri.startswith("gs://") else uri)
+    slug = slug.strip("-")[:80] or "model"
+    digest = hashlib.sha256(uri.encode("utf-8")).hexdigest()[:16]
+    return f"{slug}-{digest}"
+
+
+def _should_skip_artifact(rel_path: str) -> bool:
+    parts = Path(rel_path).parts
+    if any(part.startswith("checkpoint-") for part in parts):
+        return True
+    return Path(rel_path).name in _SKIP_ARTIFACT_FILENAMES
+
+
+def _download_gcs_model_artifact(uri: str) -> str:
+    """Download a managed scorer artefact to a local Transformers cache."""
+    try:
+        from google.cloud import storage
+    except ImportError as exc:
+        raise RuntimeError(
+            "loading managed scorer artefacts requires google-cloud-storage; "
+            "install director-ai[managed-training]",
+        ) from exc
+
+    bucket_name, prefix = _split_gs_uri(uri)
+    cache_root = Path(
+        os.environ.get("DIRECTOR_MODEL_CACHE_DIR")
+        or os.environ.get("HF_HOME")
+        or "~/.cache/huggingface",
+    ).expanduser()
+    target_dir = cache_root / "director-ai-scorers" / _safe_cache_name(uri)
+    marker = target_dir / ".director-ai-complete"
+    if marker.exists():
+        return str(target_dir)
+
+    client = storage.Client()
+    bucket = client.bucket(bucket_name)
+    downloaded = 0
+    target_dir.mkdir(parents=True, exist_ok=True)
+    for blob in client.list_blobs(bucket, prefix=f"{prefix}/"):
+        rel_path = blob.name[len(prefix) :].lstrip("/")
+        if not rel_path or _should_skip_artifact(rel_path):
+            continue
+        out_path = target_dir / rel_path
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        blob.download_to_filename(str(out_path))
+        downloaded += 1
+
+    if downloaded == 0:
+        raise FileNotFoundError(f"no model artefact files found at {uri}")
+    marker.write_text(f"{uri}\n", encoding="utf-8")
+    return str(target_dir)
+
+
+def _resolve_model_source(model_name: str) -> str:
+    if model_name.startswith("gs://"):
+        return _download_gcs_model_artifact(model_name)
+    return model_name
 
 
 # FactCG instruction template (NAACL 2025, derenlei/FactCG)
@@ -208,7 +289,12 @@ def _load_nli_model(
             if device.startswith("cuda"):
                 logger.info("auto-selected GPU device %s", device)
 
-        rev = _resolve_revision(model_name, revision)
+        model_source = _resolve_model_source(model_name)
+        rev = (
+            None
+            if model_source != model_name
+            else _resolve_revision(model_name, revision)
+        )
         logger.info(
             "Loading NLI model: %s (device=%s, revision=%s)",
             model_name,
@@ -216,7 +302,7 @@ def _load_nli_model(
             rev[:12] if rev else "latest",
         )
         tokenizer = AutoTokenizer.from_pretrained(
-            model_name, use_fast=False, revision=rev
+            model_source, use_fast=False, revision=rev
         )
 
         load_kwargs: dict = {}
@@ -244,7 +330,7 @@ def _load_nli_model(
 
         load_kwargs.setdefault("low_cpu_mem_usage", False)
         model = AutoModelForSequenceClassification.from_pretrained(
-            model_name,
+            model_source,
             revision=rev,
             **load_kwargs,
         )

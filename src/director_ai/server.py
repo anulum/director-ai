@@ -1285,6 +1285,21 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     async def get_config():
         return ConfigResponse(config=cfg.to_dict())
 
+    @app.get("/v1/scorer/models")
+    async def list_scorer_models(include_domain_only: bool = False):
+        from .core.scoring.model_choices import scorer_model_choices_to_dict
+
+        return {
+            "current": {
+                "scorer_model": cfg.scorer_model,
+                "nli_model": cfg.nli_model,
+                "nli_model_artifact_uri": cfg.nli_model_artifact_uri,
+            },
+            "models": scorer_model_choices_to_dict(
+                include_domain_only=include_domain_only,
+            ),
+        }
+
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Stats / Dashboard Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     def _prometheus_summary() -> dict:
