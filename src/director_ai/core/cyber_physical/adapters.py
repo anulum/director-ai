@@ -75,7 +75,8 @@ class Ros2Adapter:
         except ImportError as exc:
             raise ImportError(
                 "Ros2Adapter.from_ros2 requires rclpy. "
-                "Install ROS 2 and: pip install director-ai[ros2]"
+                "Install ROS 2 in an isolated runtime; keep this "
+                "adapter behind director-ai[physical]."
             ) from exc
         if not rclpy.ok():
             rclpy.init()
@@ -137,7 +138,7 @@ class MuJoCoAdapter:
         except ImportError as exc:
             raise ImportError(
                 "MuJoCoAdapter.from_mjcf requires mujoco. "
-                "Install with: pip install director-ai[mujoco]"
+                "Install with: pip install director-ai[physical]"
             ) from exc
         if not mjcf_path:
             raise ValueError("mjcf_path must be non-empty")
@@ -220,7 +221,8 @@ class CarlaAdapter:
         except ImportError as exc:
             raise ImportError(
                 "CarlaAdapter.from_carla requires carla. "
-                "Install with: pip install director-ai[carla]"
+                "Install CARLA in an isolated runtime; keep this "
+                "adapter behind director-ai[physical]."
             ) from exc
         if port <= 0:
             raise ValueError("port must be positive")

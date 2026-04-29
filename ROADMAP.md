@@ -393,7 +393,7 @@ Last updated: 2026-04-29
 - [x] Make physical hooks warn-only by default and require an explicit
   high-risk physical deployment flag before any blocking real-world action path
   is enabled.
-- [ ] Put ROS 2, MuJoCo, CARLA, and similar adapters behind a separate
+- [x] Put ROS 2, MuJoCo, CARLA, and similar adapters behind a separate
   `[physical]` extra with pinned dependency guidance and isolation notes.
 - [ ] Add per-tenant budgets for inverse-kinematics solving, simulation checks,
   and physical action validation to prevent denial-of-service payloads.

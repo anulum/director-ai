@@ -6,6 +6,12 @@ and actuator limits before the action executes. Dependency-free by
 default; lazy-loaded adapters for ROS 2 / MuJoCo / CARLA when those
 stacks are present.
 
+The base install does not install simulator SDKs. Use
+`pip install director-ai[physical]` for the pinned MuJoCo Python
+wheel. ROS 2 (`rclpy`) and CARLA are installed through their vendor
+or distribution channels, then run behind the same isolated physical
+runtime boundary.
+
 ## Quick start
 
 ```python
@@ -102,23 +108,26 @@ vector skip the reachability check, since the joint vector already
 fixes the posture.
 
 Each verdict carries `safety_event`, a tenant-safe `SafetyEvent` with
-the `cyber_physical.grounding` hook id, the allow/block decision,
-constraint references, and a bounded operator explanation.
+the `cyber_physical.grounding` hook id, policy decision, constraint
+references, and a bounded operator explanation.
 
 ## Heavy-dependency adapters
 
 All three are constructed via a `from_*` classmethod that imports the
-heavy dependency lazily — the subpackage imports cleanly on
+heavy dependency lazily, so the subpackage imports cleanly on
 deployments that do not install them.
 
 - `Ros2Adapter.from_ros2(node)` — rclpy node-driven, collision from
-  caller-supplied obstacles. Forward / inverse kinematics are
-  deployment-specific and raise `NotImplementedError`.
+  caller-supplied obstacles. ROS 2 stays outside PyPI and must be
+  installed through the target distribution in the isolated physical
+  runtime. Forward / inverse kinematics are deployment-specific and
+  raise `NotImplementedError`.
 - `MuJoCoAdapter.from_mjcf(path)` — mjcf model loading,
   `mj_forward` + `site_xpos` for forward kinematics, live `data.ncon`
-  contact count for collisions.
+  contact count for collisions. Install via `director-ai[physical]`.
 - `CarlaAdapter.from_carla(port=2000)` — vehicle-class scenarios with
-  spawn-filtered collision.
+  spawn-filtered collision. Install CARLA from the simulator vendor
+  into the isolated physical runtime.
 
 ## CoherenceAgent wiring
 
@@ -133,6 +142,9 @@ verdict = agent.verify_physical_action(action)
 
 Calling `verify_physical_action` with no hook configured raises
 `RuntimeError` so callers cannot silently skip the check.
+`CoherenceAgent` treats physical failures as warnings by default.
+Blocking requires both `physical_action_mode="block"` and
+`allow_physical_action_blocking=True`.
 
 ## Rust acceleration
 

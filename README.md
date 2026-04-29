@@ -195,12 +195,15 @@ pip install director-ai                            # rule-based + heuristic (zer
 pip install "director-ai[nli,vector,server]"       # production stack with RAG + REST API
 pip install "director-ai[ui]"                      # config wizard (Gradio web UI)
 pip install "director-ai[reports]"                 # PDF/HTML compliance reports
+pip install "director-ai[physical]"                # MuJoCo physical adapter runtime
 ```
 
 For reproducible installs the repo ships a `uv.lock` at the root;
 `uv sync` installs the exact resolved versions.
 Heavy optional extras use the policy in
 `requirements/OPTIONAL_EXTRA_LOCKS.md`.
+ROS 2 and CARLA are vendor/distribution installs; keep them in the same
+isolated runtime as `[physical]`, not in the default quickstart environment.
 
 The MiniCheck backend is opt-in and not on PyPI — install it manually
 alongside any other extras:

@@ -89,6 +89,9 @@ grpc = [
     "grpcio-tools>=1.60",
     "protobuf>=4.25",
 ]
+physical = [
+    "mujoco>=3.2,<4",
+]
 finetune = [
     "torch>=2.8,<3",
     "transformers>=5.0.0rc3,<6",
