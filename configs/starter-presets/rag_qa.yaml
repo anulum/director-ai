@@ -1,0 +1,30 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI starter preset: retrieval-grounded question answering.
+# Requires a populated vector store or external retrieval backend.
+profile: rag_qa
+mode: grounded
+coherence_threshold: 0.52
+hard_limit: 0.32
+soft_limit: 0.58
+use_nli: true
+scorer_backend: hybrid
+llm_judge_enabled: true
+llm_judge_provider: local
+vector_backend: chroma
+hybrid_retrieval: true
+reranker_enabled: true
+reranker_top_k_multiplier: 4
+retrieval_abstention_threshold: 0.35
+parent_child_enabled: true
+adaptive_retrieval_enabled: true
+hyde_enabled: true
+query_decomposition_enabled: true
+contextual_compression_enabled: true
+w_logic: 0.35
+w_fact: 0.65
+nli_fact_retrieval_top_k: 6
+nli_qa_premise_ratio: 0.7
+threshold_rag: 0.78
+threshold_qa: 0.69
+metrics_enabled: true
+otel_enabled: true

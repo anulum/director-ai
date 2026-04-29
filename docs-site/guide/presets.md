@@ -45,6 +45,35 @@ expected false-halt risk, and required dependency extras.
 | `customer_support` | Policy bots and troubleshooting assistants | latency-first starter preset | medium; depends on policy KB coverage | none |
 | `summarization` | Source-grounded summaries | validated with summarization FPR diagnostics | low after claim coverage; tune per corpus | `nli` |
 
+## Starter YAML Presets
+
+The built-in profiles above are compact runtime defaults. The repository also
+ships fuller starter YAML files in `configs/starter-presets/` for teams that
+want a ready-to-edit deployment config:
+
+| File | Workload | Starting stance |
+|------|----------|-----------------|
+| `customer_support.yaml` | Policy and troubleshooting assistants | latency-first, injection checks on, retrieval disabled by default |
+| `summarization.yaml` | Source-grounded summaries | fact-only NLI, prompt-as-premise, claim coverage |
+| `rag_qa.yaml` | Retrieval-grounded QA | grounded mode, reranker, HyDE, decomposition, compression |
+| `finance.yaml` | Numeric and regulatory claims | high-stakes grounded mode, audit path, PII redaction |
+| `legal.yaml` | Legal drafting and review | logic-weighted grounded mode, audit path, PII redaction |
+| `medical.yaml` | Biomedical or clinical fact review | high-stakes grounded mode, stricter claim support |
+| `creative_drafting.yaml` | Fiction and exploratory drafting | permissive lite scoring with basic injection checks |
+| `edge_offline.yaml` | Offline or constrained edge runtime | rules backend, no vector or heavyweight model path |
+
+Load a starter preset directly when you want the full YAML surface:
+
+```python
+from director_ai import DirectorConfig
+
+config = DirectorConfig.from_yaml("configs/starter-presets/rag_qa.yaml")
+```
+
+Grounded presets assume a populated vector store. They intentionally omit
+production enforcement, auth key lists, cloud endpoints, and sensitive values;
+add those in an ignored deployment overlay after local validation.
+
 ## Profile Rationale
 
 **fast** — Heuristic scoring only, no model loading. Sub-millisecond latency for dev loops and high-throughput pipelines where approximate filtering is acceptable.

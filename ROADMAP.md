@@ -283,7 +283,7 @@
   ready-to-use profile overlay, not just threshold and weight suggestions.
 - [x] Make the Gradio UI from the `[ui]` extra the primary configuration wizard:
   profile selection, threshold tuning, facts ingestion, and calibration feedback.
-- [ ] Add calibrated starter presets for support, summarisation, RAG QA, finance,
+- [x] Add calibrated starter presets for support, summarisation, RAG QA, finance,
   legal, medical, creative drafting, and low-latency edge/offline use.
 - [ ] Add YAML starter presets for STEM fact-heavy workflows, code generation,
   multi-agent swarm supervision, voice agents, and high-stakes medical review.

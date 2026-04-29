@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI starter preset: legal drafting and review.
+# Not independently validated; tune against local clean and adversarial examples.
+profile: legal
+mode: grounded
+coherence_threshold: 0.30
+hard_limit: 0.20
+soft_limit: 0.35
+use_nli: true
+scorer_backend: hybrid
+llm_judge_enabled: true
+llm_judge_provider: local
+vector_backend: chroma
+hybrid_retrieval: true
+reranker_enabled: true
+retrieval_abstention_threshold: 0.38
+w_logic: 0.6
+w_fact: 0.4
+nli_fact_retrieval_top_k: 6
+nli_claim_coverage_enabled: true
+nli_claim_support_threshold: 0.7
+adaptive_threshold_enabled: true
+threshold_fact_check: 0.56
+threshold_rag: 0.78
+redact_pii: true
+audit_log_path: ~/.director-ai/audit-legal.jsonl
+metrics_enabled: true
+otel_enabled: true

@@ -1,0 +1,27 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI starter preset: source-grounded summarization.
+# Uses the v3.6 claim coverage path; still tune on local clean summaries.
+profile: summarization
+mode: general
+coherence_threshold: 0.15
+hard_limit: 0.08
+soft_limit: 0.25
+use_nli: true
+scorer_backend: hybrid
+llm_judge_enabled: true
+llm_judge_provider: local
+reranker_enabled: false
+w_logic: 0.0
+w_fact: 1.0
+nli_fact_inner_agg: min
+nli_fact_outer_agg: trimmed_mean
+nli_logic_inner_agg: min
+nli_logic_outer_agg: mean
+nli_premise_ratio: 0.85
+nli_fact_retrieval_top_k: 8
+nli_use_prompt_as_premise: true
+nli_summarization_baseline: 0.20
+nli_claim_coverage_enabled: true
+nli_claim_support_threshold: 0.6
+nli_claim_coverage_alpha: 0.4
+adaptive_threshold_enabled: true

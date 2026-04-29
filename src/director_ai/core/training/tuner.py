@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from typing import Protocol, cast
 
 from ..scoring.scorer import CoherenceScorer
 
@@ -16,6 +17,17 @@ __all__ = ["TuneResult", "format_profile_overlay", "tune"]
 
 DEFAULT_THRESHOLDS = [round(0.30 + i * 0.05, 2) for i in range(13)]  # 0.30..0.90
 DEFAULT_WEIGHT_PAIRS = [(0.6, 0.4), (0.5, 0.5), (0.4, 0.6)]
+
+
+class _TuneResultLike(Protocol):
+    threshold: float
+    w_logic: float
+    w_fact: float
+    balanced_accuracy: float
+    precision: float
+    recall: float
+    f1: float
+    samples: int
 
 
 @dataclass
@@ -59,14 +71,24 @@ class TuneResult:
 
 
 def format_profile_overlay(
-    result: TuneResult,
+    result: object,
     *,
     profile: str = "tuned",
     base_profile: str = "",
 ) -> str:
     """Render a deterministic YAML profile overlay for CLI output."""
-    overlay = result.to_profile_overlay(profile=profile, base_profile=base_profile)
+    overlay = _to_profile_overlay(
+        result,
+        profile=profile,
+        base_profile=base_profile,
+    )
     extra = overlay.pop("extra")
+    result_like = cast("_TuneResultLike", result)
+    samples = int(result_like.samples)
+    balanced_accuracy = float(result_like.balanced_accuracy)
+    precision = float(result_like.precision)
+    recall = float(result_like.recall)
+    f1 = float(result_like.f1)
     lines = [
         "# Director-AI tuned profile overlay",
         "# Load with DirectorConfig.from_yaml(...) or merge over a base profile.",
@@ -75,11 +97,11 @@ def format_profile_overlay(
         lines.append(f"# Base profile: {base_profile}")
     lines.extend(
         [
-            f"# Samples: {result.samples}",
-            f"# Balanced accuracy: {result.balanced_accuracy:.4f}",
-            f"# Precision: {result.precision:.4f}",
-            f"# Recall: {result.recall:.4f}",
-            f"# F1: {result.f1:.4f}",
+            f"# Samples: {samples}",
+            f"# Balanced accuracy: {balanced_accuracy:.4f}",
+            f"# Precision: {precision:.4f}",
+            f"# Recall: {recall:.4f}",
+            f"# F1: {f1:.4f}",
         ],
     )
     for key, value in overlay.items():
@@ -90,6 +112,46 @@ def format_profile_overlay(
         lines.append(f"  {key}: {_yaml_scalar(value)}")
     lines.append("")
     return "\n".join(lines)
+
+
+def _to_profile_overlay(
+    result: object,
+    *,
+    profile: str,
+    base_profile: str,
+) -> dict[str, object]:
+    to_overlay = getattr(result, "to_profile_overlay", None)
+    if callable(to_overlay):
+        return cast(
+            "dict[str, object]",
+            to_overlay(profile=profile, base_profile=base_profile),
+        )
+
+    result_like = cast("_TuneResultLike", result)
+    threshold = float(result_like.threshold)
+    balanced_accuracy = float(result_like.balanced_accuracy)
+    precision = float(result_like.precision)
+    recall = float(result_like.recall)
+    f1 = float(result_like.f1)
+    samples = int(result_like.samples)
+    extra = {
+        "tune_samples": str(samples),
+        "tune_balanced_accuracy": f"{balanced_accuracy:.4f}",
+        "tune_precision": f"{precision:.4f}",
+        "tune_recall": f"{recall:.4f}",
+        "tune_f1": f"{f1:.4f}",
+    }
+    if base_profile:
+        extra["tuned_from_profile"] = base_profile
+    return {
+        "profile": profile,
+        "coherence_threshold": threshold,
+        "hard_limit": max(0.0, round(threshold - 0.10, 4)),
+        "soft_limit": min(1.0, round(threshold + 0.10, 4)),
+        "w_logic": float(result_like.w_logic),
+        "w_fact": float(result_like.w_fact),
+        "extra": extra,
+    }
 
 
 def tune(

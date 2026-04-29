@@ -1,0 +1,24 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI starter preset: customer support.
+# Calibrate with director-ai tune before strict production enforcement.
+profile: customer_support
+mode: auto
+coherence_threshold: 0.55
+hard_limit: 0.40
+soft_limit: 0.60
+use_nli: false
+scorer_backend: lite
+max_candidates: 1
+hybrid_retrieval: false
+reranker_enabled: false
+retrieval_abstention_threshold: 0.25
+w_logic: 0.5
+w_fact: 0.5
+sanitize_inputs: true
+injection_detection_enabled: true
+injection_threshold: 0.72
+rate_limit_rpm: 120
+metrics_enabled: true
+metrics_require_auth: true
+otel_enabled: true
+log_json: true

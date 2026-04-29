@@ -1,0 +1,21 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-AI starter preset: creative drafting and fiction.
+# Keeps semantic guardrails permissive while preserving basic safety checks.
+profile: creative
+mode: auto
+coherence_threshold: 0.40
+hard_limit: 0.30
+soft_limit: 0.45
+use_nli: false
+scorer_backend: lite
+max_candidates: 3
+hybrid_retrieval: false
+reranker_enabled: false
+w_logic: 0.7
+w_fact: 0.3
+sanitize_inputs: true
+injection_detection_enabled: true
+injection_threshold: 0.78
+adaptive_threshold_enabled: true
+metrics_enabled: true
+metrics_require_auth: true
