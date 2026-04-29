@@ -16,6 +16,7 @@ factory that wires the recommended hybrid (BM25 + dense) recipe.
 
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 from ...metrics import metrics
@@ -55,9 +56,36 @@ class VectorGroundTruthStore(GroundTruthStore):
         super().__init__()
         self.backend = backend if backend is not None else InMemoryBackend()
         self.tenant_id = tenant_id
+        self._version_records: dict[str, dict[str, str]] = {}
 
     def _resolved_tenant_id(self, tenant_id: str = "") -> str:
         return tenant_id or self.tenant_id
+
+    def fact_version(self, key: str, tenant_id: str = "") -> str | None:
+        """Return the semantic version currently recorded for *key*."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        record = self._version_records.get(self._version_key(key, tenant_id))
+        return record["version"] if record else None
+
+    def fact_version_record(
+        self,
+        key: str,
+        tenant_id: str = "",
+    ) -> dict[str, str] | None:
+        """Return version metadata for *key* without exposing mutable state."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        record = self._version_records.get(self._version_key(key, tenant_id))
+        return dict(record) if record else None
+
+    def version_manifest(self, tenant_id: str = "") -> dict[str, dict[str, str]]:
+        """Return version records visible to *tenant_id*."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        manifest: dict[str, dict[str, str]] = {}
+        for key, record in self._version_records.items():
+            if tenant_id and record.get("tenant_id", "") != tenant_id:
+                continue
+            manifest[key] = dict(record)
+        return manifest
 
     def add_fact(
         self,
@@ -76,14 +104,26 @@ class VectorGroundTruthStore(GroundTruthStore):
         """Bulk-add plain text documents into the vector backend."""
         tenant_id = self._resolved_tenant_id(tenant_id)
         for i, text in enumerate(texts):
-            metadata = {"source": "ingest"}
+            doc_id = f"ingest_{i}_{tenant_id}"
+            metadata = {
+                "source": "ingest",
+                **self._build_version_metadata(
+                    key=doc_id,
+                    value=text,
+                    tenant_id=tenant_id,
+                    record_kind="derived_chunk",
+                    requested_bump="patch",
+                    chunk_index=i,
+                ),
+            }
             if tenant_id:
                 metadata["tenant_id"] = tenant_id
             self.backend.add(
-                doc_id=f"ingest_{i}_{tenant_id}",
+                doc_id=doc_id,
                 text=text,
                 metadata=metadata,
             )
+            self._commit_version_metadata(doc_id, metadata, tenant_id)
         if texts:
             self._bump_revision()
         logger.info("Ingested %d documents into vector backend.", len(texts))
@@ -101,7 +141,21 @@ class VectorGroundTruthStore(GroundTruthStore):
         tenant_id = self._resolved_tenant_id(tenant_id)
         doc_id = f"{tenant_id}::{key}" if tenant_id else key
         combined_text = f"{key}: {value}"
-        meta = {**(metadata or {}), "key": key, "value": value}
+        incoming = dict(metadata or {})
+        requested_bump = str(incoming.pop("kb_version_bump", "patch"))
+        meta = {
+            **incoming,
+            "key": key,
+            "value": value,
+            **self._build_version_metadata(
+                key=key,
+                value=value,
+                tenant_id=tenant_id,
+                record_kind="fact",
+                requested_bump=requested_bump,
+                chunk_index=0,
+            ),
+        }
         if tenant_id:
             meta["tenant_id"] = tenant_id
 
@@ -110,6 +164,7 @@ class VectorGroundTruthStore(GroundTruthStore):
             metrics.inc("knowledge_adds_total")
             try:
                 self.backend.add(doc_id=doc_id, text=combined_text, metadata=meta)
+                self._commit_version_metadata(key, meta, tenant_id)
                 self._bump_revision()
                 duration = time.monotonic() - start_time
                 metrics.observe("knowledge_add_duration_seconds", duration)
@@ -121,6 +176,81 @@ class VectorGroundTruthStore(GroundTruthStore):
                 span.set_attribute("error.message", str(e))
 
                 raise ValueError(f"Failed to add to vector store: {e}") from e
+
+    def _build_version_metadata(
+        self,
+        *,
+        key: str,
+        value: str,
+        tenant_id: str,
+        record_kind: str,
+        requested_bump: str,
+        chunk_index: int,
+    ) -> dict[str, str]:
+        version_key = self._version_key(key, tenant_id)
+        previous = self._version_records.get(version_key)
+        content_hash = self._content_hash(value)
+        if previous is None:
+            version = "1.0.0"
+            previous_hash = ""
+        elif previous["content_hash"] == content_hash:
+            version = previous["version"]
+            previous_hash = previous.get("previous_hash", "")
+        else:
+            version = self._next_semver(previous["version"], requested_bump)
+            previous_hash = previous["content_hash"]
+
+        return {
+            "kb_version": version,
+            "kb_chunk_version": version,
+            "kb_content_hash": content_hash,
+            "kb_previous_hash": previous_hash,
+            "kb_record_kind": record_kind,
+            "kb_source_key": key,
+            "kb_chunk_index": str(chunk_index),
+        }
+
+    def _commit_version_metadata(
+        self,
+        key: str,
+        metadata: dict[str, Any],
+        tenant_id: str,
+    ) -> None:
+        version_key = self._version_key(key, tenant_id)
+        self._version_records[version_key] = {
+            "key": key,
+            "tenant_id": tenant_id,
+            "version": str(metadata["kb_version"]),
+            "chunk_version": str(metadata["kb_chunk_version"]),
+            "content_hash": str(metadata["kb_content_hash"]),
+            "previous_hash": str(metadata["kb_previous_hash"]),
+            "record_kind": str(metadata["kb_record_kind"]),
+            "chunk_index": str(metadata["kb_chunk_index"]),
+        }
+
+    @staticmethod
+    def _version_key(key: str, tenant_id: str) -> str:
+        return f"{tenant_id}::{key}" if tenant_id else key
+
+    @staticmethod
+    def _content_hash(value: str) -> str:
+        return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _next_semver(current: str, requested_bump: str) -> str:
+        parts = current.split(".")
+        if len(parts) != 3:
+            raise ValueError(f"invalid semantic version {current!r}")
+        major, minor, patch = (int(part) for part in parts)
+        match requested_bump:
+            case "major":
+                return f"{major + 1}.0.0"
+            case "minor":
+                return f"{major}.{minor + 1}.0"
+            case "patch":
+                return f"{major}.{minor}.{patch + 1}"
+            case _:
+                raise ValueError("kb_version_bump must be major, minor, or patch")
 
     def retrieve_context(
         self,

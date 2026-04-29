@@ -410,7 +410,7 @@ Last updated: 2026-04-29
   simulation libraries, and physical adapters.
 
 ### Knowledge-Base Governance (Planned)
-- [ ] Add semantic versioning for `VectorGroundTruthStore` facts and derived
+- [x] Add semantic versioning for `VectorGroundTruthStore` facts and derived
   vector chunks.
 - [ ] Add fact retraction and replacement records so stale or retracted sources
   can invalidate dependent chunks without full manual rebuilds.

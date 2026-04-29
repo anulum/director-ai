@@ -130,6 +130,78 @@ class TestVectorGroundTruthStore:
         store = VectorGroundTruthStore()
         assert store.tenant_id == ""
 
+    def test_fact_versions_start_at_semantic_one(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("gravity", "9.81 m/s^2")
+
+        record = store.fact_version_record("gravity")
+
+        assert store.fact_version("gravity") == "1.0.0"
+        assert record is not None
+        assert record["version"] == "1.0.0"
+        assert record["record_kind"] == "fact"
+        assert record["previous_hash"] == ""
+
+    def test_fact_replacement_bumps_patch_version(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("policy", "refunds in 30 days")
+        first = store.fact_version_record("policy")
+        store.add_fact("policy", "refunds in 45 days")
+        second = store.fact_version_record("policy")
+
+        assert first is not None
+        assert second is not None
+        assert second["version"] == "1.0.1"
+        assert second["previous_hash"] == first["content_hash"]
+
+    def test_fact_replacement_can_bump_minor_version(self):
+        store = VectorGroundTruthStore()
+        store.add("policy", "refunds in 30 days")
+        store.add(
+            "policy",
+            "refunds in 45 days",
+            metadata={"kb_version_bump": "minor"},
+        )
+
+        assert store.fact_version("policy") == "1.1.0"
+
+    def test_versions_are_tenant_scoped(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("policy", "tenant a value", tenant_id="tenant_a")
+        store.add_fact("policy", "tenant b value", tenant_id="tenant_b")
+        store.add_fact("policy", "tenant a replacement", tenant_id="tenant_a")
+
+        manifest_a = store.version_manifest("tenant_a")
+        manifest_b = store.version_manifest("tenant_b")
+
+        assert store.fact_version("policy", tenant_id="tenant_a") == "1.0.1"
+        assert store.fact_version("policy", tenant_id="tenant_b") == "1.0.0"
+        assert set(manifest_a) == {"tenant_a::policy"}
+        assert set(manifest_b) == {"tenant_b::policy"}
+
+    def test_ingest_stamps_derived_chunk_versions(self):
+        store = VectorGroundTruthStore()
+        store.ingest(["alpha chunk", "beta chunk"])
+
+        manifest = store.version_manifest()
+        results = store.backend.query("alpha", n_results=1)
+
+        assert manifest["ingest_0_"]["record_kind"] == "derived_chunk"
+        assert manifest["ingest_0_"]["version"] == "1.0.0"
+        assert results[0]["metadata"]["kb_chunk_version"] == "1.0.0"
+        assert results[0]["metadata"]["kb_record_kind"] == "derived_chunk"
+
+    def test_invalid_version_bump_rejected(self):
+        store = VectorGroundTruthStore()
+        store.add("policy", "refunds in 30 days")
+
+        with pytest.raises(ValueError, match="kb_version_bump"):
+            store.add(
+                "policy",
+                "refunds in 45 days",
+                metadata={"kb_version_bump": "calendar"},
+            )
+
 
 @pytest.mark.consumer
 class TestVectorRegistry:

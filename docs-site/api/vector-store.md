@@ -33,13 +33,40 @@ scorer = CoherenceScorer(
 
 ## Methods
 
+### add()
+
+```python
+store.add(
+    key="refund-policy",
+    value="Refunds are available within 30 days.",
+    metadata={"kb_version_bump": "patch"},  # patch, minor, or major
+)
+```
+
+Facts start at `1.0.0`. Replacing a fact with different content bumps the patch
+version by default. Pass `kb_version_bump="minor"` or `"major"` in metadata when
+the source change is a larger schema or policy change. The vector metadata is
+stamped with:
+
+- `kb_version`
+- `kb_chunk_version`
+- `kb_content_hash`
+- `kb_previous_hash`
+- `kb_record_kind`
+- `kb_source_key`
+- `kb_chunk_index`
+
+Use `fact_version(key)`, `fact_version_record(key)`, or `version_manifest()` to
+inspect the in-process version ledger.
+
 ### ingest()
 
 ```python
 store.ingest(documents: list[str]) -> None
 ```
 
-Add documents to the store. Each document is embedded and indexed.
+Add documents to the store. Each document is embedded and indexed as a derived
+vector chunk with `kb_record_kind="derived_chunk"` and a semantic chunk version.
 
 ### retrieve_context()
 
