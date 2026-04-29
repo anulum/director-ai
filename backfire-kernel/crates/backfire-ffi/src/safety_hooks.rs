@@ -27,6 +27,7 @@ use sha2::{Digest, Sha256};
 type HmacSha256 = Hmac<Sha256>;
 
 const NODE_SEP: u8 = 0x01;
+const HMAC_SHA256_HEX_LEN: usize = 64;
 
 // ─── geometry ────────────────────────────────────────────────────────
 
@@ -292,6 +293,59 @@ pub fn rust_derive_challenge_indices(
     Ok(indices)
 }
 
+// ─── containment anchor MAC verification ────────────────────────────
+
+fn decode_hex_sha256(value: &str) -> Option<[u8; 32]> {
+    if value.len() != HMAC_SHA256_HEX_LEN {
+        return None;
+    }
+    let mut out = [0_u8; 32];
+    let bytes = value.as_bytes();
+    for index in 0..32 {
+        let high = hex_nibble(bytes[index * 2])?;
+        let low = hex_nibble(bytes[index * 2 + 1])?;
+        out[index] = (high << 4) | low;
+    }
+    Some(out)
+}
+
+fn hex_nibble(value: u8) -> Option<u8> {
+    match value {
+        b'0'..=b'9' => Some(value - b'0'),
+        b'a'..=b'f' => Some(value - b'a' + 10),
+        b'A'..=b'F' => Some(value - b'A' + 10),
+        _ => None,
+    }
+}
+
+fn fixed_eq_32(left: &[u8; 32], right: &[u8; 32]) -> bool {
+    let diff = left
+        .iter()
+        .zip(right.iter())
+        .fold(0_u8, |acc, (a, b)| acc | (a ^ b));
+    diff == 0
+}
+
+/// Verify a containment reality-anchor MAC with a fixed-length byte
+/// comparison. The Python fallback uses ``hmac.compare_digest``.
+#[pyfunction]
+pub fn rust_verify_reality_anchor_mac(
+    key: Vec<u8>,
+    canonical_payload: Vec<u8>,
+    mac_hex: &str,
+) -> PyResult<bool> {
+    let Some(provided) = decode_hex_sha256(mac_hex) else {
+        return Ok(false);
+    };
+    let mut mac = HmacSha256::new_from_slice(&key)
+        .map_err(|e| PyValueError::new_err(format!("HMAC init failed: {e}")))?;
+    mac.update(&canonical_payload);
+    let expected = mac.finalize().into_bytes();
+    let mut expected_arr = [0_u8; 32];
+    expected_arr.copy_from_slice(&expected);
+    Ok(fixed_eq_32(&expected_arr, &provided))
+}
+
 // ─── module registration ────────────────────────────────────────────
 
 pub fn register(m: &Bound<'_, PyModule>) -> PyResult<()> {
@@ -304,5 +358,6 @@ pub fn register(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_merkle_auth_path, m)?)?;
     m.add_function(wrap_pyfunction!(rust_merkle_walk_path, m)?)?;
     m.add_function(wrap_pyfunction!(rust_derive_challenge_indices, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_verify_reality_anchor_mac, m)?)?;
     Ok(())
 }

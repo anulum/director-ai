@@ -32,6 +32,14 @@ from hashlib import sha256
 
 from .scope import ContainmentScope, validate_scope
 
+try:
+    from backfire_kernel import rust_verify_reality_anchor_mac as _rust_anchor_mac
+
+    _RUST_ANCHOR_MAC_AVAILABLE = True
+except ImportError:  # pragma: no cover - optional accelerator
+    _rust_anchor_mac = None
+    _RUST_ANCHOR_MAC_AVAILABLE = False
+
 _MIN_KEY_LEN = 32
 _MAC_LEN_HEX = 64  # sha256 digest in hex
 
@@ -183,8 +191,7 @@ class ContainmentAttestor:
         (reject the action) or fail-open-with-alarm (log + continue,
         when the anchor was optional).
         """
-        expected_mac = hmac.new(self.key, anchor.canonical_payload, sha256).hexdigest()
-        if not hmac.compare_digest(expected_mac, anchor.mac):
+        if not _verify_anchor_mac(self.key, anchor.canonical_payload, anchor.mac):
             return AnchorVerification(valid=False, reason="mac_mismatch")
         if anchor.issuer != self.issuer:
             return AnchorVerification(valid=False, reason="issuer_mismatch")
@@ -246,3 +253,10 @@ def _canonicalise(
 
 def _escape(field_value: str) -> str:
     return field_value.replace("\\", "\\\\").replace("|", "\\|")
+
+
+def _verify_anchor_mac(key: bytes, payload: bytes, mac_hex: str) -> bool:
+    if _rust_anchor_mac is not None:
+        return bool(_rust_anchor_mac(key, payload, mac_hex))
+    expected_mac = hmac.new(key, payload, sha256).hexdigest()
+    return hmac.compare_digest(expected_mac, mac_hex)

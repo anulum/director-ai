@@ -402,7 +402,7 @@ Last updated: 2026-04-29
 - [x] Document physical-action residual risks in `SECURITY.md`, including
   hardware damage, malformed action payloads, expensive solver payloads, and
   simulator dependency isolation.
-- [ ] Add timing-parity tests for Rust and Python containment verification paths
+- [x] Add timing-parity tests for Rust and Python containment verification paths
   so missing Rust wheels do not weaken the side-channel story.
 - [ ] Add property-based fuzzing for Merkle commitments, passport verification,
   and attestation failure cases before cross-organisation hand-off is promoted.
