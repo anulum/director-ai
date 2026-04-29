@@ -107,19 +107,16 @@ if os.environ.get("EVAL_URI"):
     )
 
 config = {
-    "displayName": os.environ["JOB_NAME"],
-    "jobSpec": {
-        "workerPoolSpecs": [
-            {
-                "machineSpec": machine_spec,
-                "replicaCount": 1,
-                "containerSpec": {
-                    "imageUri": os.environ["IMAGE_URI"],
-                    "env": env,
-                },
-            }
-        ]
-    },
+    "workerPoolSpecs": [
+        {
+            "machineSpec": machine_spec,
+            "replicaCount": 1,
+            "containerSpec": {
+                "imageUri": os.environ["IMAGE_URI"],
+                "env": env,
+            },
+        }
+    ]
 }
 with open(os.environ["CONFIG_FILE"], "w", encoding="utf-8") as fh:
     json.dump(config, fh)
