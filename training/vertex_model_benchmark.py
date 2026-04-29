@@ -14,8 +14,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-
-from google.cloud import storage
+from typing import Any
 
 from director_ai.core.training.finetune_benchmark import benchmark_model_candidates
 
@@ -27,6 +26,17 @@ _SKIP_FILENAMES = {
     "trainer_state.json",
     "training_args.bin",
 }
+
+
+def _storage_client() -> Any:
+    try:
+        from google.cloud import storage
+    except ImportError as exc:
+        raise RuntimeError(
+            "Vertex model benchmarking requires google-cloud-storage; "
+            "install director-ai[managed-training]",
+        ) from exc
+    return storage.Client()
 
 
 def _parse_model_specs(raw: str) -> dict[str, str]:
@@ -65,7 +75,7 @@ def _split_gs_uri(uri: str) -> tuple[str, str]:
     return bucket, blob.strip("/")
 
 
-def _download_file(client: storage.Client, uri: str, dest: Path) -> Path:
+def _download_file(client: Any, uri: str, dest: Path) -> Path:
     bucket_name, blob_name = _split_gs_uri(uri)
     dest.parent.mkdir(parents=True, exist_ok=True)
     client.bucket(bucket_name).blob(blob_name).download_to_filename(str(dest))
@@ -79,7 +89,7 @@ def _should_skip_artifact(rel: str) -> bool:
     return Path(rel).name in _SKIP_FILENAMES
 
 
-def _download_artifact(client: storage.Client, uri: str, dest: Path) -> Path:
+def _download_artifact(client: Any, uri: str, dest: Path) -> Path:
     """Download a model artefact prefix, excluding trainer-only checkpoints."""
 
     if not uri.startswith("gs://"):
@@ -143,7 +153,7 @@ def main(argv: list[str] | None = None) -> int:
     work_dir = Path("/workspace/model-benchmark-inputs")
     work_dir.mkdir(parents=True, exist_ok=True)
 
-    client = storage.Client()
+    client = _storage_client()
     models = _parse_model_specs(os.environ.get("DIRECTOR_MODEL_BENCHMARK_MODELS", ""))
     local_models = {
         alias: str(_download_artifact(client, uri, work_dir / "models" / alias))
