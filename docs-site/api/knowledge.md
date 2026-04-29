@@ -6,6 +6,20 @@ Upload, manage, and search customer documents for grounded hallucination detecti
 
 All endpoints are tenant-scoped via `X-Tenant-ID` header.
 
+Write endpoints (`POST`, `PUT`, `DELETE`) can require an authenticated,
+tenant-bound credential:
+
+```yaml
+production_mode: true
+knowledge_write_require_auth: true
+knowledge_write_require_tenant_binding: true
+```
+
+For signed KB writes, configure HMAC keys and send either body fields
+(`signature`, `signature_key_id`) for JSON requests or headers
+(`X-KB-Signature`, `X-KB-Key-ID`) for file uploads. Sign the canonical payload
+defined by `director_ai.core.kb_write_security.canonical_kb_payload`.
+
 ### Upload File
 
 ```bash

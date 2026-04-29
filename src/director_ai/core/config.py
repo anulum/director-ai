@@ -261,6 +261,12 @@ class DirectorConfig:
     # When set, X-Tenant-ID header is validated against this map.
     api_key_tenant_map: str = ""
 
+    # Knowledge-base write controls
+    knowledge_write_require_auth: bool = False
+    knowledge_write_require_tenant_binding: bool = True
+    knowledge_write_require_signature: bool = False
+    knowledge_write_hmac_keys: str = ""
+
     # Stats backend: "prometheus" (default, in-memory) or "sqlite" (persistent)
     stats_backend: str = "prometheus"
     stats_db_path: str = "~/.director-ai/stats.db"
@@ -427,6 +433,7 @@ class DirectorConfig:
 
         # Production mode enforcements
         if self.production_mode:
+            object.__setattr__(self, "knowledge_write_require_auth", True)
             if not self.api_keys and not self.api_key_tenant_map:
                 raise ValueError(
                     "production_mode requires api_keys or api_key_tenant_map"
@@ -440,6 +447,13 @@ class DirectorConfig:
                     "production_mode: binding to %s — ensure reverse proxy with TLS",
                     _wildcard_host,
                 )
+        if (
+            self.knowledge_write_require_signature
+            and not self.knowledge_write_hmac_keys
+        ):
+            raise ValueError(
+                "knowledge_write_require_signature requires knowledge_write_hmac_keys",
+            )
         if (
             self.vector_backend == "sentence-transformer"
             and not self.embedding_model.strip()
@@ -1027,6 +1041,7 @@ class DirectorConfig:
             "embedding_api_key",
             "api_keys",
             "api_key_tenant_map",
+            "knowledge_write_hmac_keys",
             "audit_postgres_url",
             "redis_url",
         },

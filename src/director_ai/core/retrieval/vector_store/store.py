@@ -59,12 +59,18 @@ class VectorGroundTruthStore(GroundTruthStore):
     def _resolved_tenant_id(self, tenant_id: str = "") -> str:
         return tenant_id or self.tenant_id
 
-    def add_fact(self, key: str, value: str, tenant_id: str = "") -> None:
+    def add_fact(
+        self,
+        key: str,
+        value: str,
+        tenant_id: str = "",
+        metadata: dict[str, Any] | None = None,
+    ) -> None:
         """Alias for add() — also populates parent keyword store."""
         tenant_id = self._resolved_tenant_id(tenant_id)
         fact_key = f"{tenant_id}:{key}" if tenant_id else key
         self.facts[fact_key] = value
-        self.add(key, value, tenant_id=tenant_id)
+        self.add(key, value, metadata=metadata, tenant_id=tenant_id)
 
     def ingest(self, texts: list[str], tenant_id: str = "") -> int:
         """Bulk-add plain text documents into the vector backend."""

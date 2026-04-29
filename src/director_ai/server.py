@@ -32,6 +32,13 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from .core.config import DirectorConfig
+from .core.kb_write_security import (
+    KBWriteAccessError,
+    canonical_kb_payload,
+    check_kb_write_access,
+    parse_hmac_keys,
+    verify_kb_payload_signature,
+)
 from .core.metrics import metrics
 
 __all__ = [
@@ -416,6 +423,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "X-API-Key",
             "X-Request-ID",
             "X-Tenant-ID",
+            "X-KB-Key-ID",
+            "X-KB-Signature",
         ],
     )
 
@@ -531,6 +540,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         headers={"X-Request-ID": request_id},
                     )
                 request.state.tenant_id = bound_tenant
+                request.state.kb_write_key_ok = True
+                request.state.kb_tenant_binding_ok = True
             else:
                 # No key→tenant map: accept header but log for audit.
                 # Tenant isolation without key binding is advisory only.
@@ -540,9 +551,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                         "Unbound tenant claim: %s (api_key=%s)", claimed, api_key_hash
                     )
                 request.state.tenant_id = claimed
+                request.state.kb_write_key_ok = True
+                request.state.kb_tenant_binding_ok = False
         else:
             # No API keys configured — tenant from header is untrusted
             request.state.tenant_id = request.headers.get("X-Tenant-ID", "")
+            request.state.kb_write_key_ok = False
+            request.state.kb_tenant_binding_ok = False
 
         request.state.api_key_hash = api_key_hash
 
@@ -1194,12 +1209,64 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if bound and bound != tenant_id:
             raise HTTPException(403, "API key not authorized for this tenant")
 
+    def _enforce_kb_write_access(request: Request, tenant_id: str) -> None:
+        try:
+            check_kb_write_access(
+                require_auth=cfg.knowledge_write_require_auth,
+                require_tenant_binding=cfg.knowledge_write_require_tenant_binding,
+                authenticated=bool(getattr(request.state, "kb_write_key_ok", False)),
+                tenant_binding_enforced=bool(
+                    getattr(request.state, "kb_tenant_binding_ok", False)
+                ),
+                bound_tenant=getattr(request.state, "tenant_id", ""),
+                requested_tenant=tenant_id,
+            )
+        except KBWriteAccessError as exc:
+            raise HTTPException(exc.status_code, exc.detail) from exc
+
+    def _kb_signature_metadata(
+        request: Request,
+        canonical_payload: str,
+        signature: str,
+        key_id: str,
+    ) -> dict[str, object]:
+        clean_signature = signature.strip()
+        clean_key_id = key_id.strip()
+        if not clean_signature:
+            if cfg.knowledge_write_require_signature:
+                raise HTTPException(403, "Knowledge-base write signature required")
+            return {}
+        if not verify_kb_payload_signature(
+            canonical_payload,
+            clean_signature,
+            parse_hmac_keys(cfg.knowledge_write_hmac_keys),
+            clean_key_id,
+        ):
+            raise HTTPException(403, "Invalid knowledge-base write signature")
+        return {
+            "kb_signature": clean_signature,
+            "kb_signature_key_id": clean_key_id,
+            "kb_signature_verified": True,
+        }
+
     @app.post("/v1/tenants/{tenant_id}/facts", response_model=StatusResponse)
     async def add_tenant_fact(request: Request, tenant_id: str, req: TenantFactRequest):
         router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
         _enforce_tenant_binding(request, tenant_id)
+        _enforce_kb_write_access(request, tenant_id)
+        _kb_signature_metadata(
+            request,
+            canonical_kb_payload(
+                kind="tenant_fact",
+                tenant_id=tenant_id,
+                key=req.key,
+                value=req.value,
+            ),
+            req.signature,
+            req.signature_key_id,
+        )
         router.add_fact(tenant_id, req.key, req.value)
         return {"status": "ok", "tenant_id": tenant_id, "key": req.key}
 
@@ -1213,11 +1280,23 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
         _enforce_tenant_binding(request, tenant_id)
+        _enforce_kb_write_access(request, tenant_id)
+        sig_meta = _kb_signature_metadata(
+            request,
+            canonical_kb_payload(
+                kind="tenant_vector_fact",
+                tenant_id=tenant_id,
+                key=req.key,
+                value=req.value,
+            ),
+            req.signature,
+            req.signature_key_id,
+        )
         try:
             store = router.get_vector_store(tenant_id, backend_type=req.backend_type)
         except (ValueError, KeyError) as exc:
             raise HTTPException(400, f"Invalid backend_type: {exc}") from exc
-        store.add_fact(req.key, req.value)
+        store.add_fact(req.key, req.value, metadata=sig_meta)
         return {
             "status": "ok",
             "tenant_id": tenant_id,

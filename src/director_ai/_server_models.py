@@ -358,12 +358,16 @@ class ConfigResponse(BaseModel):
 class TenantFactRequest(BaseModel):
     key: str = Field(..., min_length=1)
     value: str = Field(..., min_length=1)
+    signature: str = Field("", max_length=256)
+    signature_key_id: str = Field("", max_length=128)
 
 
 class TenantVectorFactRequest(BaseModel):
     key: str = Field(..., min_length=1)
     value: str = Field(..., min_length=1)
     backend_type: str = Field("memory", description="Vector backend type")
+    signature: str = Field("", max_length=256)
+    signature_key_id: str = Field("", max_length=128)
 
 
 class TenantInfo(BaseModel):

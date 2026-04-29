@@ -18,6 +18,14 @@ import logging
 import re
 import uuid
 
+from .core.kb_write_security import (
+    KBWriteAccessError,
+    canonical_kb_payload,
+    check_kb_write_access,
+    parse_hmac_keys,
+    verify_kb_payload_signature,
+)
+
 logger = logging.getLogger("DirectorAI.KnowledgeAPI")
 
 _MAX_UPLOAD_BYTES = 50 * 1024 * 1024  # 50 MB
@@ -72,6 +80,8 @@ if _FASTAPI_AVAILABLE:
         doc_id: str | None = None
         chunk_size: int = Field(512, ge=64, le=4096)
         overlap: int = Field(64, ge=0, le=512)
+        signature: str = Field("", max_length=256)
+        signature_key_id: str = Field("", max_length=128)
 
 
 def _get_tenant(request: Request) -> str:
@@ -171,8 +181,69 @@ def _get_store(request: Request):
     return store
 
 
+def _get_config(request: Request):
+    return getattr(request.app.state, "config", None) or request.app.state._state.get(
+        "config"
+    )
+
+
+def _require_write_access(request: Request, tenant_id: str) -> None:
+    cfg = _get_config(request)
+    require_auth = bool(getattr(cfg, "knowledge_write_require_auth", False))
+    require_binding = bool(getattr(cfg, "knowledge_write_require_tenant_binding", True))
+    try:
+        check_kb_write_access(
+            require_auth=require_auth,
+            require_tenant_binding=require_binding,
+            authenticated=bool(getattr(request.state, "kb_write_key_ok", False)),
+            tenant_binding_enforced=bool(
+                getattr(request.state, "kb_tenant_binding_ok", False)
+            ),
+            bound_tenant=getattr(request.state, "tenant_id", ""),
+            requested_tenant=tenant_id,
+        )
+    except KBWriteAccessError as exc:
+        raise HTTPException(exc.status_code, exc.detail) from exc
+
+
+def _signature_metadata(
+    request: Request,
+    canonical_payload: str,
+    signature: str = "",
+    key_id: str = "",
+) -> dict[str, object]:
+    cfg = _get_config(request)
+    require_signature = bool(getattr(cfg, "knowledge_write_require_signature", False))
+    keys = parse_hmac_keys(str(getattr(cfg, "knowledge_write_hmac_keys", "")))
+
+    clean_signature = signature.strip()
+    clean_key_id = _validate_optional_identifier("signature_key_id", key_id.strip())
+    if not clean_signature:
+        if require_signature:
+            raise HTTPException(403, "Knowledge-base write signature required")
+        return {}
+    if not verify_kb_payload_signature(
+        canonical_payload,
+        clean_signature,
+        keys,
+        clean_key_id,
+    ):
+        raise HTTPException(403, "Invalid knowledge-base write signature")
+    return {
+        "kb_signature": clean_signature,
+        "kb_signature_key_id": clean_key_id,
+        "kb_signature_verified": True,
+    }
+
+
 def _chunk_and_store(
-    text: str, doc_id: str, tenant_id: str, store, chunk_size: int, overlap: int
+    text: str,
+    doc_id: str,
+    tenant_id: str,
+    store,
+    chunk_size: int,
+    overlap: int,
+    signature_metadata: dict[str, object] | None = None,
 ) -> list[str]:
     from .core.retrieval.doc_chunker import ChunkConfig, split
 
@@ -183,7 +254,11 @@ def _chunk_and_store(
         store.backend.add(
             doc_id=cid,
             text=chunk_text,
-            metadata={"doc_id": doc_id, "tenant_id": tenant_id},
+            metadata={
+                "doc_id": doc_id,
+                "tenant_id": tenant_id,
+                **(signature_metadata or {}),
+            },
         )
 
     return chunk_ids
@@ -215,6 +290,7 @@ def create_knowledge_router() -> APIRouter:
         _validate_content_length(request.headers.get("content-length"))
 
         tenant_id = _get_tenant(request)
+        _require_write_access(request, tenant_id)
         registry = _get_registry(request)
         store = _get_store(request)
 
@@ -238,6 +314,18 @@ def create_knowledge_router() -> APIRouter:
             raise HTTPException(422, "Parsed file contains no text")
 
         doc_id = uuid.uuid4().hex
+        sig_meta = _signature_metadata(
+            request,
+            canonical_kb_payload(
+                kind="upload",
+                tenant_id=tenant_id,
+                doc_id=doc_id,
+                source=file.filename or "upload",
+                content=content,
+            ),
+            request.headers.get("X-KB-Signature", ""),
+            request.headers.get("X-KB-Key-ID", ""),
+        )
         _validate_chunking(512, 64)
         loop = asyncio.get_running_loop()
         chunk_ids = await loop.run_in_executor(
@@ -249,6 +337,7 @@ def create_knowledge_router() -> APIRouter:
             store,
             512,
             64,
+            sig_meta,
         )
         record = registry.register(
             doc_id, file.filename or "upload", tenant_id, chunk_ids
@@ -265,6 +354,7 @@ def create_knowledge_router() -> APIRouter:
     async def ingest_text(request: Request, body: IngestRequest):
         """Ingest raw text â†’ chunk â†’ embed â†’ store."""
         tenant_id = _get_tenant(request)
+        _require_write_access(request, tenant_id)
         registry = _get_registry(request)
         store = _get_store(request)
 
@@ -273,6 +363,18 @@ def create_knowledge_router() -> APIRouter:
         )
         source = _validate_source(body.source)
         _validate_chunking(body.chunk_size, body.overlap)
+        sig_meta = _signature_metadata(
+            request,
+            canonical_kb_payload(
+                kind="ingest",
+                tenant_id=tenant_id,
+                doc_id=doc_id,
+                source=source,
+                text=body.text,
+            ),
+            body.signature,
+            body.signature_key_id,
+        )
 
         if registry.exists(doc_id):
             raise HTTPException(
@@ -289,6 +391,7 @@ def create_knowledge_router() -> APIRouter:
             store,
             body.chunk_size,
             body.overlap,
+            sig_meta,
         )
         record = registry.register(doc_id, source, tenant_id, chunk_ids)
 
@@ -342,6 +445,7 @@ def create_knowledge_router() -> APIRouter:
     async def delete_document(request: Request, doc_id: str):
         """Delete a document and all its chunks."""
         tenant_id = _get_tenant(request)
+        _require_write_access(request, tenant_id)
         doc_id = _validate_optional_identifier("doc_id", doc_id)
         registry = _get_registry(request)
         store = _get_store(request)
@@ -359,11 +463,24 @@ def create_knowledge_router() -> APIRouter:
     async def update_document(request: Request, doc_id: str, body: IngestRequest):
         """Replace a document's content — re-chunks and re-embeds."""
         tenant_id = _get_tenant(request)
+        _require_write_access(request, tenant_id)
         doc_id = _validate_optional_identifier("doc_id", doc_id)
         registry = _get_registry(request)
         store = _get_store(request)
         source = _validate_source(body.source)
         _validate_chunking(body.chunk_size, body.overlap)
+        sig_meta = _signature_metadata(
+            request,
+            canonical_kb_payload(
+                kind="update",
+                tenant_id=tenant_id,
+                doc_id=doc_id,
+                source=source,
+                text=body.text,
+            ),
+            body.signature,
+            body.signature_key_id,
+        )
 
         record = registry.get(doc_id, tenant_id)
         if record is None:
@@ -379,6 +496,7 @@ def create_knowledge_router() -> APIRouter:
             store,
             body.chunk_size,
             body.overlap,
+            sig_meta,
         )
 
         _delete_chunks(record, store)
@@ -427,6 +545,7 @@ def create_knowledge_router() -> APIRouter:
         re-ingest documents to use the improved embeddings.
         """
         tenant_id = _get_tenant(request)
+        _require_write_access(request, tenant_id)
         registry = _get_registry(request)
         docs = registry.list_for_tenant(tenant_id)
 
