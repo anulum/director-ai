@@ -45,6 +45,12 @@ risk = "native-gpu-runtime"
 controls = ["upper-bound", "uv-lock", "runtime-isolation", "audit", "fallback"]
 
 [[packages]]
+name = "mujoco"
+extra = "physical"
+risk = "native-simulation-runtime"
+controls = ["upper-bound", "uv-lock", "runtime-isolation", "audit", "fallback"]
+
+[[packages]]
 name = "chromadb"
 extra = "vector"
 risk = "local-store"
@@ -73,3 +79,33 @@ name = "optimum-onnx"
 requirements = "requirements/docker-gpu-export.txt"
 risk = "export-model-loader"
 controls = ["hash-pin", "isolated-build-stage"]
+
+[[external_runtime]]
+name = "rclpy"
+source = "ROS 2 distribution"
+risk = "robotics-middleware"
+controls = ["runtime-isolation", "audit", "fallback"]
+
+[[external_runtime]]
+name = "carla"
+source = "CARLA vendor package"
+risk = "native-simulation-runtime"
+controls = ["runtime-isolation", "audit", "fallback"]
+
+[[external_runtime]]
+name = "arkworks"
+source = "operator-supplied zk adapter"
+risk = "proof-backend"
+controls = ["runtime-isolation", "audit", "fallback"]
+
+[[external_runtime]]
+name = "gnark"
+source = "operator-supplied zk adapter"
+risk = "proof-backend"
+controls = ["runtime-isolation", "audit", "fallback"]
+
+[[external_runtime]]
+name = "snarkjs"
+source = "operator-supplied zk adapter"
+risk = "proof-backend"
+controls = ["runtime-isolation", "audit", "fallback"]

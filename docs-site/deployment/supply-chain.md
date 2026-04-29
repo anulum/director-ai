@@ -39,9 +39,33 @@ controls.
 | `transformers` | `[nli]` | model-loader | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `onnxruntime` | `[onnx]` | native-runtime | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `onnxruntime-gpu` | `[tensorrt]` | native-gpu-runtime | upper-bound, uv-lock, runtime-isolation, audit, fallback |
+| `mujoco` | `[physical]` | native-simulation-runtime | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `chromadb` | `[vector]` | local-store | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `sentence-transformers` | `[vector]` | embedding-model-loader | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `gradio` | `[ui]` | web-ui | upper-bound, uv-lock, runtime-isolation, audit |
+
+## External Runtimes
+
+Some supported adapters are installed outside PyPI. Keep them out of the base
+API image and run them behind a selected boundary:
+
+| Runtime | Source | Risk class | Required controls |
+|---------|--------|------------|-------------------|
+| `rclpy` | ROS 2 distribution | robotics-middleware | runtime-isolation, audit, fallback |
+| `carla` | CARLA vendor package | native-simulation-runtime | runtime-isolation, audit, fallback |
+| `arkworks` | operator-supplied zk adapter | proof-backend | runtime-isolation, audit, fallback |
+| `gnark` | operator-supplied zk adapter | proof-backend | runtime-isolation, audit, fallback |
+| `snarkjs` | operator-supplied zk adapter | proof-backend | runtime-isolation, audit, fallback |
+
+For proof adapters, pin the prover, verifier, circuit artefacts, and proving
+key by immutable release or digest in the adapter service manifest. Treat a
+circuit change as a protocol migration: reject passports made under an
+unknown circuit id and keep the commitment backend available as a fallback.
+
+For physical adapters, pin the simulator package, world assets, robot model
+files, and driver container together. Run the simulator or robotics bridge in
+its own service account, cap CPU and memory, and expose only the local action
+gateway needed by `GroundingHook`.
 
 ## Export-Only Tooling
 
@@ -64,6 +88,7 @@ Start with the Python-only path, then add one heavy extra at a time:
 uv sync --locked --extra server --extra vector
 uv sync --locked --extra nli
 uv sync --locked --extra onnx
+uv sync --locked --extra physical
 ```
 
 For GPU serving, use a separate image or venv so native runtime drift does not

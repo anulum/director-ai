@@ -18,7 +18,7 @@ DOC_PATH = ROOT / "requirements" / "OPTIONAL_EXTRA_LOCKS.md"
 PYPROJECT_PATH = ROOT / "pyproject.toml"
 LOCK_PATH = ROOT / "uv.lock"
 
-EXPECTED_EXTRAS = {"enterprise", "nli", "onnx", "server", "ui", "vector"}
+EXPECTED_EXTRAS = {"enterprise", "nli", "onnx", "physical", "server", "ui", "vector"}
 
 
 def _load_toml(path: Path) -> dict:

@@ -12,6 +12,19 @@ wheel. ROS 2 (`rclpy`) and CARLA are installed through their vendor
 or distribution channels, then run behind the same isolated physical
 runtime boundary.
 
+Dependency boundary:
+
+- Install `[physical]` with `uv sync --locked --extra physical` when working
+  from the repository.
+- Keep ROS 2 and CARLA in vendor-managed images or venvs; do not add them to
+  the base package.
+- Pin simulator assets, robot description files, and driver images alongside
+  the adapter version.
+- Run adapters behind a local action gateway with CPU, memory, and request
+  limits.
+- Keep `physical_action_mode="warn"` until the deployment has an external stop
+  path and calibrated tenant budgets.
+
 ## Quick start
 
 ```python

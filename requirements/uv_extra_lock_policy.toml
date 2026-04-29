@@ -10,7 +10,7 @@
 lock_file = "uv.lock"
 lock_command = "uv lock"
 sync_command = "uv sync --locked"
-checked_extras = ["enterprise", "nli", "onnx", "server", "ui", "vector"]
+checked_extras = ["enterprise", "nli", "onnx", "physical", "server", "ui", "vector"]
 upper_bound_required = true
 
 [[extras]]
@@ -27,6 +27,11 @@ notes = "Heavy scorer backend keeps major caps for model API churn."
 name = "onnx"
 packages = ["onnxruntime"]
 notes = "ONNX Runtime stays within one major line for graph runtime parity."
+
+[[extras]]
+name = "physical"
+packages = ["mujoco"]
+notes = "Local simulation adapter stays within one major line and runs outside the default API process."
 
 [[extras]]
 name = "server"

@@ -204,6 +204,9 @@ Heavy optional extras use the policy in
 `requirements/OPTIONAL_EXTRA_LOCKS.md`.
 ROS 2 and CARLA are vendor/distribution installs; keep them in the same
 isolated runtime as `[physical]`, not in the default quickstart environment.
+ZK prover adapters are also isolated operator runtimes: pin the prover,
+verifier, circuit artefacts, and proving key by immutable release or digest,
+and keep `CommitmentBackend` enabled as the fallback.
 
 The MiniCheck backend is opt-in and not on PyPI — install it manually
 alongside any other extras:

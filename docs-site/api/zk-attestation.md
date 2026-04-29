@@ -108,6 +108,25 @@ header. The header escapes `|` and `\` in the free-text fields so a
 statement whose name contains the delimiter cannot collide with a
 different passport layout.
 
+## Proof backend dependency boundary
+
+`CommitmentBackend` is the supported in-package backend and has no heavy proof
+runtime. Real groth16 / plonk adapters must live behind `ZkSnarkBackend` and be
+installed in a selected adapter runtime, not the default API process.
+
+Recommended boundary:
+
+- Pin the prover, verifier, circuit artefacts, and proving key by immutable
+  release or digest.
+- Include a circuit id in each adapter proof and reject passports with unknown
+  ids.
+- Run prover work in a separate process or service with CPU, memory, and wall
+  clock limits.
+- Keep `CommitmentBackend` enabled as the fallback acceptance path during
+  adapter rollout.
+- Do not let adapter errors skip passport verification; return a failed
+  `PassportVerdict` with the backend reason.
+
 ## `PassportIssuer`
 
 - `issue(agent_id, samples, statements, backends=None)` proves every
