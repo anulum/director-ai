@@ -3,6 +3,10 @@
 Version: 3.11.0
 Date: 2026-03-27
 
+Reproduction index: [`PUBLIC_BENCHMARKS.md`](PUBLIC_BENCHMARKS.md)
+with machine-readable manifest
+[`public_accuracy_manifest.toml`](public_accuracy_manifest.toml).
+
 ## Hardware
 
 All latency numbers measured on:

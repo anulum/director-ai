@@ -315,7 +315,7 @@
   streaming, swarm, and physical-precheck paths.
 
 ### Benchmark Transparency and External Validation (Planned)
-- [ ] Publish raw benchmark runners, dataset manifests, cache schema, and
+- [x] Publish raw benchmark runners, dataset manifests, cache schema, and
   reproduction commands for every public accuracy table.
 - [ ] Add benchmark cards that separate pure NLI, hybrid judge, heuristic, and
   tuned-threshold modes so catch-rate claims cannot blur backend choices.

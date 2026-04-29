@@ -285,6 +285,8 @@ Full results: [`benchmarks/results/rust_compute_bench.json`](benchmarks/results/
 
 Heuristic-only (no NLI): p99 < 0.5 ms on all platforms.
 Raw data: [`benchmarks/results/`](benchmarks/results/).
+Reproduction manifest:
+[`benchmarks/PUBLIC_BENCHMARKS.md`](benchmarks/PUBLIC_BENCHMARKS.md).
 
 ---
 

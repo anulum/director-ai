@@ -1,0 +1,183 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# © Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# © Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - public benchmark manifest
+
+schema_version = "1.0.0"
+
+[cache_schema]
+path = "benchmarks/CACHE_SCHEMA.md"
+result_schema = "benchmarks/results/SCHEMA.md"
+
+[[datasets]]
+id = "llm_aggrefact"
+name = "LLM-AggreFact"
+source = "lytang/LLM-AggreFact"
+split = "test"
+access = "gated; requires HF_TOKEN or prior local dataset login"
+local_cache = []
+size_note = "29,320 labelled examples across 11 subsets in the full test split"
+label_fields = ["doc", "claim", "label", "dataset"]
+
+[[datasets]]
+id = "halueval"
+name = "HaluEval"
+source = "pminervini/HaluEval"
+split = "qa, summarization, dialogue task files"
+access = "public parquet downloads"
+local_cache = [
+  "benchmarks/.cache/halueval_qa.parquet",
+  "benchmarks/.cache/halueval_summarization.parquet",
+  "benchmarks/.cache/halueval_dialogue.parquet",
+]
+size_note = "paired right/hallucinated responses per task"
+label_fields = ["right_*", "hallucinated_*"]
+
+[[datasets]]
+id = "truthfulqa"
+name = "TruthfulQA"
+source = "TruthfulQA.csv cache"
+split = "local cache"
+access = "public CSV mirrored into benchmark cache"
+local_cache = ["benchmarks/.cache/TruthfulQA.csv"]
+size_note = "truthfulness benchmark cache used by legacy runs"
+label_fields = ["question", "best_answer", "incorrect_answers"]
+
+[[datasets]]
+id = "streaming_good_passages"
+name = "Streaming known-good passages"
+source = "benchmarks/streaming_false_halt_bench.py"
+split = "in-repo fixture list"
+access = "tracked source fixture"
+local_cache = []
+size_note = "known-good factual passages for false-halt measurement"
+label_fields = ["id", "facts", "passage"]
+
+[[datasets]]
+id = "latency_fixture_pairs"
+name = "Latency fixture pairs"
+source = "benchmarks/latency_bench.py"
+split = "in-repo fixture list"
+access = "tracked source fixture"
+local_cache = []
+size_note = "fixed premise/claim pairs for backend latency runs"
+label_fields = ["premise", "claim"]
+
+[[public_accuracy_tables]]
+id = "readme_scoring_pyramid"
+title = "README five-tier scoring pyramid"
+public_file = "README.md"
+runner_files = [
+  "benchmarks/aggrefact_eval.py",
+  "benchmarks/latency_bench.py",
+  "benchmarks/streaming_false_halt_bench.py",
+]
+commands = [
+  "python -m benchmarks.aggrefact_eval --model yaxili96/FactCG-DeBERTa-v3-Large --threshold 0.46",
+  "python -m benchmarks.latency_bench --nli --onnx --iterations 30 --warmup 5",
+  "python -m benchmarks.streaming_false_halt_bench",
+]
+datasets = ["llm_aggrefact", "latency_fixture_pairs", "streaming_good_passages"]
+cache_files = []
+result_files = [
+  "benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json",
+  "benchmarks/results/latency_gtx1060.json",
+  "benchmarks/results/streaming_false_halt_heuristic.json",
+]
+metrics = ["balanced_accuracy", "median_latency_ms", "false_halt_rate"]
+notes = "Tier rows combine accuracy and latency artefacts; approximate rows are previews and must stay labelled as such."
+
+[[public_accuracy_tables]]
+id = "readme_aggrefact_leaderboard"
+title = "README LLM-AggreFact 29,320-sample table"
+public_file = "README.md"
+runner_files = ["benchmarks/aggrefact_eval.py"]
+commands = [
+  "python -m benchmarks.aggrefact_eval --model yaxili96/FactCG-DeBERTa-v3-Large --threshold 0.46 --save-scores benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json",
+  "python -m benchmarks.aggrefact_eval --load-scores benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json --sweep",
+]
+datasets = ["llm_aggrefact"]
+cache_files = ["benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json"]
+result_files = ["benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json"]
+metrics = [
+  "per_dataset_mean_balanced_accuracy_at_global_threshold",
+  "sample_pooled_balanced_accuracy_at_global_threshold",
+  "per_dataset_thresholds",
+]
+notes = "Leaderboard metric is per-dataset mean balanced accuracy, not sample-pooled balanced accuracy."
+
+[[public_accuracy_tables]]
+id = "readme_routed_local_judge"
+title = "README routed local judge AggreFact alternative"
+public_file = "README.md"
+runner_files = ["benchmarks/gemma_aggrefact_routed.py"]
+commands = [
+  "python benchmarks/gemma_aggrefact_routed.py --model /path/to/local-judge.gguf --max-samples 29320 --output benchmarks/results/gemma_e4b_q6_routed.json",
+]
+datasets = ["llm_aggrefact"]
+cache_files = []
+result_files = ["benchmarks/results/gemma_e4b_q6_routed.json"]
+metrics = ["global_balanced_accuracy", "per_dataset", "per_family", "p50_latency_ms"]
+notes = "Requires a local GGUF model path supplied by the operator."
+
+[[public_accuracy_tables]]
+id = "benchmark_report_e2e_halueval"
+title = "Benchmark report end-to-end HaluEval guardrail table"
+public_file = "benchmarks/BENCHMARK_REPORT.md"
+runner_files = ["benchmarks/e2e_eval.py", "benchmarks/halueval_eval.py"]
+commands = [
+  "python -m benchmarks.e2e_eval --nli --max-samples 100 --threshold 0.35 --soft-limit 0.45 --output-json benchmarks/results/e2e_guardrail.json",
+  "python -m benchmarks.halueval_eval 100",
+]
+datasets = ["halueval"]
+cache_files = [
+  "benchmarks/.cache/halueval_qa.parquet",
+  "benchmarks/.cache/halueval_summarization.parquet",
+  "benchmarks/.cache/halueval_dialogue.parquet",
+]
+result_files = ["benchmarks/results/e2e_guardrail.json", "benchmarks/.cache/halueval_results.json"]
+metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency_ms"]
+notes = "The raw task cache is downloaded on first run and then reused."
+
+[[public_accuracy_tables]]
+id = "benchmark_report_local_judge"
+title = "Benchmark report local judge comparison tables"
+public_file = "benchmarks/BENCHMARK_REPORT.md"
+runner_files = ["benchmarks/run_judge_benchmark.py"]
+commands = [
+  "python -m benchmarks.run_judge_benchmark --samples 1000 --latency-iters 200",
+]
+datasets = ["halueval"]
+cache_files = [
+  "benchmarks/.cache/halueval_qa.parquet",
+  "benchmarks/.cache/halueval_summarization.parquet",
+  "benchmarks/.cache/halueval_dialogue.parquet",
+]
+result_files = [
+  "benchmarks/results/judge_bench_summary_1000.json",
+  "benchmarks/results/judge_bench_nli_only_1000.json",
+  "benchmarks/results/judge_bench_local_judge_1000.json",
+]
+metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "median_latency_ms"]
+notes = "Local judge rows depend on the trained local judge directory referenced by the runner."
+
+[[public_accuracy_tables]]
+id = "benchmark_report_streaming_false_halt"
+title = "Benchmark report streaming false-halt row"
+public_file = "benchmarks/BENCHMARK_REPORT.md"
+runner_files = ["benchmarks/streaming_false_halt_bench.py"]
+commands = [
+  "python -m benchmarks.streaming_false_halt_bench",
+  "python -m benchmarks.streaming_false_halt_bench --nli",
+]
+datasets = ["streaming_good_passages"]
+cache_files = []
+result_files = [
+  "benchmarks/results/streaming_false_halt_heuristic.json",
+  "benchmarks/results/streaming_false_halt_nli.json",
+]
+metrics = ["false_halt_rate", "avg_coherence", "avg_latency_ms"]
+notes = "The NLI result file is produced only when the optional NLI stack is installed."
