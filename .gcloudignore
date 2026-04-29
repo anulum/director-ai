@@ -77,6 +77,7 @@ CLAUDE.md
 # gitignore whitelist pattern: exclude everything, then re-add
 # just the files the build context actually requires.
 /training/*
+!/training/__init__.py
 !/training/Dockerfile.distil
 !/training/Dockerfile.benchmarks
 !/training/distil_v5_cloud.py
@@ -85,6 +86,7 @@ CLAUDE.md
 !/training/run_vertex.sh
 !/training/requirements-distil.in
 !/training/requirements-distil.txt
+!/training/vertex_model_benchmark.py
 
 /models/
 MODELS/
