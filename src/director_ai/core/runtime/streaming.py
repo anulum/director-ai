@@ -259,6 +259,36 @@ class StreamingKernel(HaltMonitor):
             return self.trend_threshold, max(0.0, drop - self.trend_threshold)
         return None, 0.0
 
+    @staticmethod
+    def _set_halt_otel_attributes(span: object, evidence: HaltEvidence | None) -> None:
+        setter = getattr(span, "set_attribute", None)
+        if setter is None or evidence is None:
+            return
+        trace = evidence.trace_attribution
+        if trace is not None:
+            setter("stream.halt_cause.fact_source", trace.fact_source)
+            setter("stream.halt_cause.retrieval_path", trace.retrieval_path)
+            setter("stream.halt_cause.scorer_path", trace.scorer_path)
+            setter("stream.halt_cause.token_offset", trace.token_offset)
+            if trace.threshold is not None:
+                setter("stream.halt_cause.threshold", trace.threshold)
+            setter("stream.halt_cause.margin", trace.causal_contribution)
+        diagnostic = evidence.counterfactual_diagnostic
+        setter("stream.counterfactual.available", diagnostic is not None)
+        if diagnostic is None:
+            return
+        setter("stream.counterfactual.observed_score", diagnostic.observed_score)
+        setter("stream.counterfactual.threshold", diagnostic.threshold)
+        setter("stream.counterfactual.candidate_count", len(diagnostic.candidates))
+        best = diagnostic.best_change
+        if best is not None:
+            setter("stream.counterfactual.best_fact_source", best.fact_source)
+            setter(
+                "stream.counterfactual.required_score_delta",
+                best.required_score_delta,
+            )
+            setter("stream.counterfactual.prevented_halt", best.prevented_halt)
+
     def stream_tokens(
         self,
         token_generator,
@@ -316,6 +346,8 @@ class StreamingKernel(HaltMonitor):
                     setter("token.halted", bool(event.halted))
                     if halt_reason:
                         setter("token.halt_reason", halt_reason)
+                    if event.halt_evidence is not None:
+                        self._set_halt_otel_attributes(span, event.halt_evidence)
                     if event.warning:
                         setter("token.warning", True)
             if emitter.enabled:
@@ -520,6 +552,7 @@ class StreamingKernel(HaltMonitor):
             span.set_attribute("stream.halt_reason", session.halt_reason)
             span.set_attribute("stream.token_count", session.token_count)
             span.set_attribute("stream.warning_count", session.warning_count)
+            self._set_halt_otel_attributes(span, session.halt_evidence_structured)
             if session.coherence_history:
                 span.set_attribute("stream.avg_coherence", session.avg_coherence)
 

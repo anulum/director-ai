@@ -108,6 +108,10 @@ Tracks the complete state of a streaming oversight session.
 | `events` | `list[TokenEvent]` | Full event trace |
 | `debug_log` | `list[dict]` | Debug snapshots (when `streaming_debug=True`) |
 
+OpenTelemetry streaming spans include `stream.halt_cause.*` and
+`stream.counterfactual.*` attributes when structured halt evidence is
+available.
+
 ---
 
 ## TokenEvent {: #tokenevent }

@@ -161,6 +161,48 @@ class TestOtelSpanEnrichment:
         finally:
             otel_mod._tracer = None
 
+    def test_streaming_span_has_halt_cause_and_counterfactual(self):
+        import director_ai.core.otel as otel_mod
+        from director_ai.core import CoherenceScorer, GroundTruthStore, StreamingKernel
+
+        mock_span = MagicMock()
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_span)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.return_value = mock_cm
+
+        otel_mod._tracer = mock_tracer
+        try:
+            store = GroundTruthStore()
+            store.add("sky", "The sky is blue")
+            scorer = CoherenceScorer(
+                threshold=0.5,
+                ground_truth_store=store,
+                use_nli=False,
+            )
+            kernel = StreamingKernel(hard_limit=0.99)
+            kernel.stream_tokens(
+                ["bad"],
+                lambda _: 0.3,
+                scorer=scorer,
+                prompt="sky",
+            )
+            attrs = {
+                call.args[0]: call.args[1]
+                for call in mock_span.set_attribute.call_args_list
+            }
+            assert attrs["stream.halt_cause.fact_source"] == "keyword"
+            assert attrs["stream.halt_cause.token_offset"] == 0
+            assert attrs["stream.halt_cause.threshold"] == 0.99
+            assert attrs["stream.halt_cause.margin"] == 0.69
+            assert attrs["stream.counterfactual.available"] is True
+            assert attrs["stream.counterfactual.best_fact_source"] == "keyword"
+            assert attrs["stream.counterfactual.required_score_delta"] == 0.69
+            assert attrs["stream.counterfactual.prevented_halt"] is True
+        finally:
+            otel_mod._tracer = None
+
 
 class TestOtelPerformanceDoc:
     """Document OTel pipeline performance characteristics."""

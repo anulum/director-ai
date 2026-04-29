@@ -218,6 +218,11 @@ if session.halt_evidence_structured:
 
 Each `TokenEvent` on halt also carries a `halt_evidence` field with the same `HaltEvidence` object. Its `trace_attribution` field records the fact source, retrieval path, scorer path, token offset, threshold, and halt margin. Its `counterfactual_diagnostic` field answers which single retrieved fact branch would have prevented the halt.
 
+When OpenTelemetry is enabled, the same halt fields are exported as
+`stream.halt_cause.*` and `stream.counterfactual.*` attributes on
+streaming spans. Raw token text and raw fact text are not written to
+spans.
+
 ## StreamSession Properties
 
 | Property | Type | Description |

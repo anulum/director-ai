@@ -303,7 +303,7 @@
   token offset, threshold, and causal contribution.
 - [x] Add `CounterfactualVerifier` support for "what single fact change would
   have prevented this halt?" diagnostics.
-- [ ] Export counterfactual and halt-cause fields as OpenTelemetry attributes.
+- [x] Export counterfactual and halt-cause fields as OpenTelemetry attributes.
 - [ ] Extend the UI with a visual trace explorer for agent, swarm, and streaming
   halt events.
 - [ ] Freeze a structured `SafetyEvent` schema as the single halt-reason record
