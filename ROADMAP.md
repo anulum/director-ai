@@ -285,6 +285,20 @@
 - [x] Move disabled research hooks behind an explicit experimental namespace or
   feature flag so users do not mistake exploratory modules for default coverage.
 
+### Documentation Synchronisation (Planned)
+- [ ] Add a visible last-updated banner to `ROADMAP.md` and `ARCHITECTURE.md`
+  after each fast release burst.
+- [ ] Add a "shipped today" section to `ROADMAP.md` and `ARCHITECTURE.md` that
+  is refreshed from the current changelog and recent commits.
+- [ ] Add a docs-sync checklist to release preparation so `ROADMAP.md`,
+  `ARCHITECTURE.md`, `CHANGELOG.md`, `SECURITY.md`, and `VALIDATION.md` cannot
+  drift after safety-hook or benchmark changes.
+- [ ] Reconcile `ARCHITECTURE.md` with Rust acceleration, `CoherenceAgent`
+  containment, physical-grounding, and passport-verification wiring details
+  already listed in the changelog.
+- [ ] Add a short user-facing hook decision table that answers which default,
+  opt-in, and research hooks a new scientific deployment should enable first.
+
 ### Presets, Tuning, and Configuration UX (Planned)
 - [x] Add profile metadata that states validation status, expected false-halt risk,
   required dependencies, and intended workload for each preset.
@@ -339,6 +353,11 @@
 - [x] Convert the Rust kernel extraction decision into an execution plan:
   standalone crate API, versioning policy, Python wheel contract, proof artefact
   boundary, and release CI.
+- [ ] Execute the standalone `backfire-kernel` crate extraction with independent
+  versioning, release notes, crate CI, Python wheel contract tests, and proof
+  artefact boundaries.
+- [ ] Add a contributor path that lets Python-only changes run without Rust, Go,
+  Julia, Lean, or WASM toolchains installed.
 
 ### Security Follow-Ups (Planned)
 - [x] Add signed knowledge-base entries plus strict write ACLs for ingestion APIs.
@@ -364,6 +383,15 @@
   and physical action validation to prevent denial-of-service payloads.
 - [ ] Extend the external security test packet to cover physical hooks,
   attestation, and cross-language trust-boundary failures.
+- [ ] Document physical-action residual risks in `SECURITY.md`, including
+  hardware damage, malformed action payloads, expensive solver payloads, and
+  simulator dependency isolation.
+- [ ] Add timing-parity tests for Rust and Python containment verification paths
+  so missing Rust wheels do not weaken the side-channel story.
+- [ ] Add property-based fuzzing for Merkle commitments, passport verification,
+  and attestation failure cases before cross-organisation hand-off is promoted.
+- [ ] Add pinned dependency guidance and sandbox notes for zk proof backends,
+  simulation libraries, and physical adapters.
 
 ### Knowledge-Base Governance (Planned)
 - [ ] Add semantic versioning for `VectorGroundTruthStore` facts and derived
@@ -373,6 +401,8 @@
 - [ ] Add Merkle roots for KB snapshots and expose them through audit records.
 - [ ] Combine temporal freshness with external citation/status signals for
   scientific and high-stakes domains.
+- [ ] Add automatic conflict reports when a new fact contradicts an existing
+  signed fact, passport claim, or retraction record.
 
 ### Future Differentiators (Planned)
 - [ ] Prototype native inference-server hooks for vLLM, TGI, and llama.cpp so the
@@ -406,3 +436,8 @@
   into one reviewed defence-update pipeline.
 - [ ] Publish the Director safety telemetry schema as an independent
   interoperability specification for inference servers and agent frameworks.
+- [ ] Add a reviewed no-go policy that makes irreversibility forecasts block
+  high-risk actions above a calibrated conformal threshold.
+- [ ] Design a closed-loop physical grounding evaluator that compares perception
+  state, claimed state, and post-action state across camera, IMU, and simulator
+  feeds.
