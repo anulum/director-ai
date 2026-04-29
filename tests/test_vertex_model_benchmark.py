@@ -15,6 +15,12 @@ from pathlib import Path
 
 import pytest
 
+from director_ai.core.training.finetune_benchmark import (
+    ModelBenchmarkResult,
+    RegressionReport,
+)
+from director_ai.core.training.model_registry import TrainingModelProfile
+
 _MODULE_PATH = (
     Path(__file__).resolve().parents[1] / "training" / "vertex_model_benchmark.py"
 )
@@ -59,3 +65,29 @@ def test_deployable_model_artifacts_are_kept() -> None:
     assert not _should_skip_artifact("model.safetensors")
     assert not _should_skip_artifact("tokenizer.json")
     assert not _should_skip_artifact("config.json")
+
+
+def test_custom_model_result_uses_requested_alias() -> None:
+    profile = TrainingModelProfile(
+        alias="custom-experimental",
+        model_id="customer/model-a",
+        status="experimental",
+        template="sequence-pair",
+        label_count=2,
+        baseline_accuracy=0.0,
+        default_max_length=512,
+        recommended_batch_size=8,
+        recommended_learning_rate=1e-5,
+        hardware_profile="benchmark-required",
+    )
+
+    result = ModelBenchmarkResult.from_report(
+        requested_model="customer-model-a",
+        profile=profile,
+        model_path="/tmp/customer-model-a",
+        report=RegressionReport(general_accuracy=0.7),
+        elapsed_seconds=1.0,
+    )
+
+    assert result.alias == "customer-model-a"
+    assert result.model_id == "customer/model-a"

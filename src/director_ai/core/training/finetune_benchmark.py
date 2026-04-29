@@ -105,9 +105,14 @@ class ModelBenchmarkResult:
         report: RegressionReport,
         elapsed_seconds: float,
     ) -> ModelBenchmarkResult:
+        alias = (
+            requested_model
+            if profile.alias == "custom-experimental"
+            else profile.alias
+        )
         return cls(
             requested_model=requested_model,
-            alias=profile.alias,
+            alias=alias,
             model_id=profile.model_id,
             model_path=str(model_path),
             status=profile.status,
