@@ -198,6 +198,7 @@ nav:
       - ONNX Artefacts: deployment/onnx-artefacts.md
       - WASM Runtime: deployment/wasm-runtime.md
       - Supply Chain: deployment/supply-chain.md
+      - Airgap Install: deployment/airgap.md
       - Metrics: deployment/metrics.md
       - Monitoring: deployment/monitoring.md
       - Production Checklist: deployment/checklist.md

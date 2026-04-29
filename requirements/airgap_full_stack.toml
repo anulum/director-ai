@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — airgap full-stack manifest
+
+[policy]
+doc = "docs-site/deployment/airgap.md"
+script = "scripts/airgap_full_stack_example.sh"
+lock_file = "uv.lock"
+wheelhouse = "wheelhouse/"
+model_root = "models/"
+onnx_dir = "models/factcg-onnx/"
+rust_wheel_dir = "wheelhouse/rust/"
+install_extras = ["server", "vector", "nli", "onnx", "ui"]
+optional_packages = ["backfire-kernel"]
+
+[[models]]
+key = "nli"
+name = "yaxili96/FactCG-DeBERTa-v3-Large"
+revision = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
+local_dir = "models/hf/yaxili96/FactCG-DeBERTa-v3-Large"
+
+[[models]]
+key = "embedding"
+name = "BAAI/bge-large-en-v1.5"
+revision = "d4aa6901d3a41ba39fb536a557fa166f842b0e09"
+local_dir = "models/hf/BAAI/bge-large-en-v1.5"
+
+[[models]]
+key = "reranker"
+name = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+revision = "c5ee24cb16019beea0893ab7796b1df96625c6b8"
+local_dir = "models/hf/cross-encoder/ms-marco-MiniLM-L-6-v2"
+
+[onnx]
+required_files = [
+    "model.onnx",
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+]
+
+[checks]
+commands = [
+    "python -m pip install --no-index --find-links wheelhouse 'director-ai[server,vector,nli,onnx,ui]'",
+    "python -m pip install --no-index --find-links wheelhouse/rust backfire-kernel",
+    "director-ai doctor",
+]
