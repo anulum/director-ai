@@ -64,34 +64,43 @@ experimental path.
 | `managed-full-e1-20260428` | 5 | T4 / `n1-standard-8` | 5 models × full 29,420-row train split × 1 epoch | `gs://gotm-director-ai-training/managed-training/sweeps/managed-full-e1-20260428/` |
 | `managed-label-strategy-retry-20260428` | 3 | T4 / `n1-standard-8` | Retry failed balanced 1,000-row label-strategy jobs | `gs://gotm-director-ai-training/managed-training/sweeps/managed-label-strategy-retry-20260428/` |
 
-All 45 jobs were accepted by Vertex AI. The first post-submit status check
-reported 2 `RUNNING` jobs and 43 `PENDING` jobs. Later same-session checks
-reported 12 `SUCCEEDED`, 2 `RUNNING`, and 31 `PENDING`, then 22 `SUCCEEDED`,
-2 `RUNNING`, 20 `PENDING`, and 1 `FAILED` at `2026-04-28T19:30:11+02:00`.
-A later refresh reported 32 `SUCCEEDED`, 2 `RUNNING`, 8 `PENDING`, and
-3 `FAILED` at `2026-04-28T23:08:01+02:00`.
+All 45 original jobs were accepted by Vertex AI. Final status on
+2026-04-29: the 30 size/epoch-budget jobs succeeded, the 5 full-data
+jobs succeeded, and 6 of 10 original label-strategy jobs succeeded by
+Vertex job state. The 3 balanced label-strategy failures were retried on
+T4 hardware and all 3 retry jobs succeeded. The hard-negative DeBERTa
+v3-large NLI job ended as `FAILED` in Vertex but wrote a usable
+`training_result.json`; the hard-negative FactCG job ended as `FAILED`
+and did not write a harvested result.
 
-Failed jobs:
+Failed original label-strategy jobs:
 
 | Job | Ended | Note |
 |---|---|---|
 | `director-ai-managed-sweep-balanced1000-deberta-v3-large-nli-e1-b1` | `2026-04-28T17:07:03Z` | Vertex AI reported insufficient resources in `europe-west4`; retry candidate |
 | `director-ai-managed-sweep-balanced1000-deberta-v3-small-e1-b1` | `2026-04-28T17:47:19Z` | Vertex AI internal retryable error |
 | `director-ai-managed-sweep-balanced1000-distilroberta-base-e1-b1` | `2026-04-28T19:20:21Z` | Vertex AI reported insufficient resources in `europe-west4`; retry candidate |
-
-Running jobs at the same refresh were
-`director-ai-managed-sweep-naturalfull-factcg-deberta-v3-large-e1-b1` and
-`director-ai-managed-sweep-naturalfull-deberta-v3-large-nli-e1-b1`.
+| `director-ai-managed-sweep-hardneg1000-deberta-v3-large-nli-e1-b1` | `2026-04-28T21:45:04Z` | Vertex job failed after writing `training_result.json`; harvested metric retained |
+| `director-ai-managed-sweep-hardneg1000-factcg-deberta-v3-large-e1-b1` | `2026-04-28T21:45:09Z` | Vertex job failed and no harvested result was present |
 
 A narrow retry sweep for the three failed balanced scenarios was submitted at
-`2026-04-28T23:12:48+02:00` on T4 hardware. The three retry CustomJobs were
-accepted and initially reported `JOB_STATE_PENDING`:
+`2026-04-28T23:12:48+02:00` on T4 hardware. The three retry CustomJobs
+succeeded:
 
 | Scenario | Job id |
 |---|---|
 | `balanced1000-deberta-v3-large-nli-e1-b1` | `projects/533499266196/locations/europe-west4/customJobs/9096172697733300224` |
 | `balanced1000-deberta-v3-small-e1-b1` | `projects/533499266196/locations/europe-west4/customJobs/6484084913858412544` |
 | `balanced1000-distilroberta-base-e1-b1` | `projects/533499266196/locations/europe-west4/customJobs/4750199057320771584` |
+
+Harvested result counts:
+
+| Prefix | Harvested results | Best scenario | Best BA |
+|---|---:|---|---:|
+| `managed-size-budget-20260428` | 30 | `natural1000-deberta-v3-large-nli-e3-b1` | `0.759` |
+| `managed-label-strategy-20260428` | 6 | `hardneg1000-deberta-v3-large-nli-e1-b1` | `0.738` |
+| `managed-label-strategy-retry-20260428` | 3 | `balanced1000-deberta-v3-large-nli-e1-b1` | `0.752` |
+| `managed-full-e1-20260428` | 5 | `naturalfull-deberta-v3-large-nli-e1-b1` | `0.800` |
 
 ## Re-run commands
 
@@ -207,7 +216,15 @@ directories for dry-run or downloaded artifacts:
 director-ai train harvest --prefix-uri ./managed-training/sweeps/smoke
 ```
 
-Then compare trained artefacts with:
+Then compare trained artefacts on Vertex AI with:
+
+```bash
+MODEL_SPECS='{"naturalfull-deberta-v3-large-nli":"gs://gotm-director-ai-training/managed-training/sweeps/managed-full-e1-20260428/naturalfull-deberta-v3-large-nli-e1-b1"}' \
+GENERAL_URI='gs://gotm-director-ai-training/labels/sweeps/20260428/managed_eval_1000_20260428.jsonl' \
+benchmarks/run_vertex_model_benchmark.sh --suffix full-e1-YYYYMMDD
+```
+
+The local CLI can still compare downloaded artefacts for debugging:
 
 ```bash
 director-ai train benchmark-models \
@@ -221,55 +238,67 @@ current stable model.
 
 ## Current completed metrics
 
-The refresh at `2026-04-28T23:08:01+02:00` harvested 30 completed
-`size-budget` scenarios, 2 completed `label-strategy` scenarios, and no
-completed `full-e1` scenarios. Balanced accuracy is measured on the shared
-1,000-row eval set.
+The 2026-04-29 harvest contains 44 result artefacts across the original and
+retry sweeps. Balanced accuracy is measured on the shared 1,000-row eval set.
+The full-data DeBERTa v3-large NLI run is the training-eval winner. The
+separate Vertex model-choice anti-regression benchmark below selects the
+full-data FactCG artefact as the best deployable candidate on the same
+1,000-row general benchmark gate.
 
-| Scenario | Balanced accuracy |
-|---|---:|
-| `size-budget/natural1000-deberta-v3-large-nli-e3-b1` | `0.759` |
-| `label-strategy/balanced1000-roberta-large-mnli-e1-b1` | `0.733` |
-| `size-budget/natural500-deberta-v3-large-nli-e3-b1` | `0.729` |
-| `size-budget/natural1000-roberta-large-mnli-e3-b1` | `0.720` |
-| `size-budget/natural1000-factcg-deberta-v3-large-e3-b1` | `0.716` |
-| `label-strategy/balanced1000-factcg-deberta-v3-large-e1-b1` | `0.714` |
-| `size-budget/natural500-factcg-deberta-v3-large-e3-b1` | `0.712` |
-| `size-budget/natural500-factcg-deberta-v3-large-e1-b1` | `0.708` |
-| `size-budget/natural1000-deberta-v3-large-nli-e1-b1` | `0.707` |
-| `size-budget/natural1000-factcg-deberta-v3-large-e1-b1` | `0.705` |
-| `size-budget/natural500-roberta-large-mnli-e3-b1` | `0.697` |
-| `size-budget/natural100-factcg-deberta-v3-large-e3-b1` | `0.694` |
-| `size-budget/natural1000-roberta-large-mnli-e1-b1` | `0.671` |
-| `size-budget/natural500-deberta-v3-large-nli-e1-b1` | `0.668` |
-| `size-budget/natural1000-distilroberta-base-e3-b1` | `0.661` |
-| `size-budget/natural1000-deberta-v3-small-e3-b1` | `0.658` |
-| `size-budget/natural100-deberta-v3-large-nli-e3-b1` | `0.652` |
-| `size-budget/natural500-distilroberta-base-e3-b1` | `0.621` |
-| `size-budget/natural500-deberta-v3-small-e3-b1` | `0.574` |
-| `size-budget/natural100-factcg-deberta-v3-large-e1-b1` | `0.570` |
-| `size-budget/natural500-roberta-large-mnli-e1-b1` | `0.560` |
-| `size-budget/natural100-roberta-large-mnli-e3-b1` | `0.525` |
-| `size-budget/natural100-roberta-large-mnli-e1-b1` | `0.502` |
-| `size-budget/natural100-deberta-v3-large-nli-e1-b1` | `0.500` |
-| `size-budget/natural100-deberta-v3-small-e1-b1` | `0.500` |
-| `size-budget/natural100-deberta-v3-small-e3-b1` | `0.500` |
-| `size-budget/natural100-distilroberta-base-e1-b1` | `0.500` |
-| `size-budget/natural100-distilroberta-base-e3-b1` | `0.500` |
-| `size-budget/natural500-deberta-v3-small-e1-b1` | `0.500` |
-| `size-budget/natural500-distilroberta-base-e1-b1` | `0.500` |
+| Rank | Sweep | Scenario | Train rows | Epochs | BA | F1 | Final loss |
+|---:|---|---|---:|---:|---:|---:|---:|
+| 1 | full-e1 | `naturalfull-deberta-v3-large-nli-e1-b1` | 29,420 | 1 | `0.800` | `0.8291` | `0.6987` |
+| 2 | full-e1 | `naturalfull-roberta-large-mnli-e1-b1` | 29,420 | 1 | `0.765` | `0.7889` | `0.8625` |
+| 3 | size-budget | `natural1000-deberta-v3-large-nli-e3-b1` | 1,000 | 3 | `0.759` | `0.7895` | `0.5315` |
+| 4 | label-strategy retry | `balanced1000-deberta-v3-large-nli-e1-b1` | 1,000 | 1 | `0.752` | `0.7578` | `1.0907` |
+| 5 | full-e1 | `naturalfull-deberta-v3-small-e1-b1` | 29,420 | 1 | `0.752` | `0.7888` | `0.8070` |
+| 6 | full-e1 | `naturalfull-factcg-deberta-v3-large-e1-b1` | 29,420 | 1 | `0.752` | `0.7916` | `0.7530` |
+| 7 | label-strategy | `hardneg1000-deberta-v3-large-nli-e1-b1` | 1,000 | 1 | `0.738` | `0.7189` | `1.0325` |
+| 8 | label-strategy | `balanced1000-roberta-large-mnli-e1-b1` | 1,000 | 1 | `0.733` | `0.7488` | `1.1784` |
+| 9 | size-budget | `natural500-deberta-v3-large-nli-e3-b1` | 500 | 3 | `0.729` | `0.7713` | `0.5420` |
+| 10 | full-e1 | `naturalfull-distilroberta-base-e1-b1` | 29,420 | 1 | `0.722` | `0.7574` | `0.8418` |
 
-Current best candidates:
+## Vertex model-choice benchmark
 
-| Rank | Scenario | Balanced accuracy | F1 | Final loss |
-|---:|---|---:|---:|---:|
-| 1 | `size-budget/natural1000-deberta-v3-large-nli-e3-b1` | `0.759` | `0.790` | `0.532` |
-| 2 | `label-strategy/balanced1000-roberta-large-mnli-e1-b1` | `0.733` | `0.749` | `1.178` |
-| 3 | `size-budget/natural500-deberta-v3-large-nli-e3-b1` | `0.729` | `0.771` | `0.542` |
-| 4 | `size-budget/natural1000-roberta-large-mnli-e3-b1` | `0.720` | `0.761` | `0.636` |
-| 5 | `size-budget/natural1000-factcg-deberta-v3-large-e3-b1` | `0.716` | `0.763` | `0.608` |
+The first full-data Vertex model-choice benchmark attempt used image
+`director-ai-benchmarks:81e2a2e` and wrote:
 
-Do not promote from this snapshot alone. The current best candidate is
-`size-budget/natural1000-deberta-v3-large-nli-e3-b1`, but promotion remains
-blocked until the running full-data jobs finish and the candidate passes the
-anti-regression benchmark against the current stable model.
+```text
+gs://gotm-director-ai-training/managed-training/benchmarks/20260429T1300-81e2a2e-full-e1-20260429/model_benchmark_report.json
+```
+
+That CustomJob succeeded as infrastructure, but every model result was an
+import error. A diagnostic Vertex job showed the root cause was an
+incompatible inherited `torchvision` package in the PyTorch base image:
+`operator torchvision::nms does not exist`. The benchmark and distillation
+Dockerfiles now uninstall inherited `torchvision` after the hash-pinned
+dependency install.
+
+Two corrected Vertex runs followed:
+
+| Image | Job id | Status | Result |
+|---|---|---|---|
+| `director-ai-benchmarks:83aac35` | `3857430799938748416` | succeeded | Valid scores, but custom artefact aliases collapsed to `custom-experimental` in the summary |
+| `director-ai-benchmarks:e9859f8` | `7361231310032994304` | succeeded | Final clean report with readable artefact aliases |
+
+The final report is stored at:
+
+```text
+gs://gotm-director-ai-training/managed-training/benchmarks/20260429T1409-e9859f8-full-e1-20260429-alias/model_benchmark_report.json
+```
+
+Final Vertex anti-regression results:
+
+| Rank | Artefact alias | General BA | General F1 | Regression pp | Recommendation |
+|---:|---|---:|---:|---:|---|
+| 1 | `naturalfull-factcg-deberta-v3-large` | `0.752` | `0.7916` | `-0.6` | `deploy` |
+| 2 | `naturalfull-deberta-v3-small` | `0.747` | `0.7843` | `-1.1` | `deploy` |
+| 3 | `naturalfull-deberta-v3-large-nli` | `0.740` | `0.7822` | `-1.8` | `deploy` |
+| 4 | `naturalfull-distilroberta-base` | `0.719` | `0.7604` | `-3.9` | `deploy_domain_only` |
+| 5 | `naturalfull-roberta-large-mnli` | `0.706` | `0.7529` | `-5.2` | `deploy_domain_only` |
+
+Promotion decision from these runs: do not promote the experimental DeBERTa
+v3-large NLI full-data artefact as the default scorer despite its `0.800`
+training-eval BA. The anti-regression gate chooses the full-data FactCG
+artefact as the best deployable candidate (`0.752` general BA, `-0.6pp`
+against the `0.758` baseline).

@@ -119,8 +119,22 @@ models, dataset sizes, label strategies, epoch budgets, and hardware profiles.
 The current managed sweep record is documented in
 `benchmarks/MANAGED_TRAINING_SWEEPS.md`.
 
+Use `benchmarks/run_vertex_model_benchmark.sh` for the managed-training
+model-choice anti-regression benchmark. It builds the same benchmark image,
+downloads the selected GCS model artefacts inside Vertex AI, runs
+`director-ai train benchmark-models` equivalent logic in the container, and
+uploads `model_benchmark_report.json` plus a Markdown summary:
+
+```bash
+MODEL_SPECS='{"winner":"gs://gotm-director-ai-training/managed-training/sweeps/managed-full-e1-20260428/naturalfull-deberta-v3-large-nli-e1-b1"}' \
+GENERAL_URI='gs://gotm-director-ai-training/labels/sweeps/20260428/managed_eval_1000_20260428.jsonl' \
+benchmarks/run_vertex_model_benchmark.sh --suffix full-e1
+```
+
 For the first model-choice benchmark record, see
 `docs/internal/managed_training_model_choice_2026-04-28.md`.
+For the completed 2026-04-29 managed sweep and final Vertex anti-regression
+report path, see `benchmarks/MANAGED_TRAINING_SWEEPS.md`.
 
 Initial same-data smoke results on 2026-04-28:
 
@@ -181,6 +195,7 @@ historical versions.
 | `custom_model_training_nvidia_*_gpus` quota exceeded | Vertex CustomJob quota missing for that accelerator | Use T4/L4 or request Vertex CustomJob quota increase. |
 | CUDA OOM early in fine-tuning | Batch size too high for model/GPU | Use `--batch-size 1` for large DeBERTa/RoBERTa smoke runs on T4. |
 | Repeated `huggingface/tokenizers` fork warnings | Tokenizer parallelism was initialised before dataloader workers forked | Current runner sets `TOKENIZERS_PARALLELISM=false`; rebuild the image before expecting this in Vertex logs. |
+| Text model import fails with `operator torchvision::nms does not exist` | The PyTorch base image carried an incompatible inherited `torchvision` package, and Transformers imported optional vision helpers before loading text model classes | Rebuild from an image whose Dockerfile uninstalls inherited `torchvision` after the pinned dependency install; confirm the replacement benchmark is run on Vertex AI before promoting any model. |
 | `DIRECTOR_BENCH_BASELINE` download fails | Incorrect GCS path or no read-access | Path is `gs://…` not a bare name; container SA needs `storage.objectViewer`. |
 | Orchestrator reports dataset size 0 | Accuracy cases not yet wired | Expected on the default suite; add `--only` with cases that accept datasets. |
 | Rust parity case says 0 tests collected | Wheel built against wrong Python | Cloud Build uses Python from the base image; confirm `pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime` digest matches in `Dockerfile.benchmarks`. |
