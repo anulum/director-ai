@@ -1,0 +1,64 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - nightly live red-team workflow
+
+name: Nightly Live Red Team
+
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+    inputs:
+      max_cases_per_source:
+        description: "Maximum rows loaded from each public data source"
+        required: false
+        default: "60"
+      min_detection_rate:
+        description: "Minimum accepted rate across available tiers"
+        required: false
+        default: "0.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  live-red-team:
+    name: Current Dataset Red Team
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
+        with:
+          python-version: "3.12"
+
+      - name: Install test runtime
+        run: |
+          pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          pip install --no-deps -e .
+
+      - name: Run live red-team suite
+        run: |
+          MAX_CASES="${{ github.event.inputs.max_cases_per_source }}"
+          MIN_RATE="${{ github.event.inputs.min_detection_rate }}"
+          : "${MAX_CASES:=60}"
+          : "${MIN_RATE:=0.0}"
+          python tools/live_red_team.py \
+            --output reports/live-red-team/report.json \
+            --max-cases-per-source "${MAX_CASES}" \
+            --min-detection-rate "${MIN_RATE}" \
+            --tiers all
+
+      - name: Upload live red-team report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: live-red-team-report
+          path: reports/live-red-team/report.json

@@ -349,7 +349,7 @@
   (execution gate and evidence validator are ready; independent report pending).
 - [x] Add cross-language contract tests for Python, Rust, Go, and proto boundaries
   using property-based inputs.
-- [ ] Add a nightly live red-team workflow against current jailbreak/evasion
+- [x] Add a nightly live red-team workflow against current jailbreak/evasion
   datasets and the full scorer pyramid.
 - [ ] Publish a monthly public adversarial validation update in `VALIDATION.md`.
 - [ ] Add async contract tests and property-based fuzzing for the
