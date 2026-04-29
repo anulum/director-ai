@@ -278,7 +278,7 @@
 - [x] Add a public Safety Surface Map to `ARCHITECTURE.md` that separates
   default streaming/HaltMonitor hooks from opt-in advanced hooks and disabled
   research modules.
-- [ ] Consolidate overlapping safety modules into fewer named responsibilities,
+- [x] Consolidate overlapping safety modules into fewer named responsibilities,
   with a deprecation map for duplicate meta-guard, self-evolution,
   counterfactual, provenance, and attestation paths.
 - [ ] Move disabled research hooks behind an explicit experimental namespace or

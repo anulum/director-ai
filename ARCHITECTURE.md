@@ -252,6 +252,26 @@ layers above:
 | Provenance and privacy | `agent_identity`, `provenance`, `formal_verification`, `federated_privacy`, `zk_attestation` research backends |
 | Resource policy | `sustainability` |
 
+## Responsibility Consolidation Map
+
+This map is the public ownership boundary for overlapping safety modules. It
+does not remove imports or change runtime behaviour. It tells contributors
+which module should own new APIs, and which surfaces should be folded into that
+owner before they are promoted out of the research layer.
+
+| Named responsibility | Canonical owner | Overlapping modules | Deprecation direction |
+|----------------------|-----------------|---------------------|-----------------------|
+| Runtime halt and stream interlock | `runtime.kernel`, `runtime.streaming`, `runtime.async_streaming` | `kernel.py` compatibility aliases, trace-safe stop decisions | Keep `HaltMonitor`/`StreamingKernel` as the only default halt API. Other modules may emit risk signals, not independent halt contracts. |
+| Halt evidence and trace attribution | `types.HaltEvidence`, `observability`, future `SafetyEvent` schema | ad hoc evidence fields in streaming, containment, attestation, trajectory, ontology | Fold all hook-specific explanations into `SafetyEvent` and attach it to `HaltEvidence`; do not add new per-hook evidence formats. |
+| Counterfactual diagnostics | `causal_verifier` | trace-safe oracle diagnostics, CoherenceAgent counterfactual helpers, ontology contradiction explanations | Keep graph/intervention logic in `causal_verifier`; other modules should call it or emit inputs for it. |
+| Adaptive defence updates | `continual_adversarial` plus `defense_genome` registry | `self_evolving`, `meta_guard`, `autopoietic` | Treat `meta_guard` as monitor-only and `self_evolving` as a gated trainer. New defence changes should flow through a reviewed registry/update pipeline. |
+| Provenance and signed facts | `provenance` | `agent_identity`, `zk_attestation`, KB Merkle snapshots | `provenance` owns fact/citation integrity. `agent_identity` owns public passports. `zk_attestation` remains an advanced proof backend behind those APIs. |
+| Cross-org agent hand-off | `agent_identity` | `zk_attestation.passport`, provenance chains, federated privacy summaries | Public hand-off APIs should be passport-centred; direct proof-backend APIs remain advanced integration points. |
+| Pre-action physical risk | `cyber_physical` | `trajectory`, `irreversibility`, `containment` | `cyber_physical` owns kinematic checks. `trajectory` and `irreversibility` provide risk inputs. `containment` owns scope anchoring, not physical simulation. |
+| Multi-agent and organisation-level risk | `multi_scale_alignment` | `swarm_equilibrium`, `emergence_oracle`, `swarm_economics` | Promote a single future swarm-risk report; keep game, emergence, and economic scorers as internal contributors. |
+| Multimodal factual grounding | `multimodal_guard` | `symbolic_chain`, `ontology`, knowledge-graph checks | `multimodal_guard` owns media claim extraction and verification. Symbolic and ontology modules provide optional consistency checks. |
+| Resource and sustainability policy | `sustainability` | routing budgets, review queue backpressure, tenant quotas | Keep carbon, cost, and long-horizon budget policy in `sustainability`; operational throttles report into it. |
+
 ## Data Flow
 
 ```
