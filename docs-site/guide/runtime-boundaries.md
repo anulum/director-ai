@@ -47,7 +47,7 @@ Enable these only when the deployment needs the specific capability.
 | Go gateway | Dedicated gateway/risk-router deployment is required | gateway binary or container | Enterprise/research deployment path |
 | Julia tuner | Research threshold sweeps are required | Julia scripts | Research path, not onboarding |
 | Lean verifier | Formal proof checks are required | Lean backend | Research/formal-verification path |
-| WASM | Browser or edge halt checks are required | WASM package | Deferred edge/offline path |
+| WASM | Browser or edge halt checks are required | `make wasm-build` / `backfire-wasm` | Prioritised edge/offline path; host supplies scores |
 
 For package extras and common combinations, use the
 [advanced backend matrix](../installation.md#advanced-backend-matrix).
@@ -100,7 +100,7 @@ Production operators should choose one runtime stack per deployment:
 | Local NLI scoring | Python + FastAPI + Chroma + ONNX |
 | GPU throughput | Python + ONNX/TensorRT container |
 | Gateway risk routing | Python API + Go gateway |
-| Browser/edge halt checks | WASM once the runtime is published |
+| Browser/edge halt checks | WASM halt kernel + host-owned scorer |
 | Formal proof checks | Python verifier + Lean backend |
 
 Run `director-ai doctor` after setting `DIRECTOR_*` environment variables. It
@@ -115,4 +115,5 @@ example `DIRECTOR_SCORER_BACKEND=onnx` without `onnxruntime` or an ONNX path.
 - [Runtime Extraction Evaluation](runtime-extraction-evaluation.md)
 - [Rust FFI](rust-ffi.md)
 - [Rust Acceleration](rust-acceleration.md)
+- [WASM Runtime](../deployment/wasm-runtime.md)
 - [Streaming Halt WASM Notes](../cookbook/streaming-halt-guide.md)

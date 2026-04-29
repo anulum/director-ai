@@ -103,10 +103,11 @@
 - `RedisGroundTruthStore.retrieve_context()` implementation with Redis Vector Search (RediSearch)
 - Redis connection pooling, TTL management, batch `add_many()`/`retrieve_batch()`
 
-### WASM Edge Runtime (Deferred)
-- CI pipeline: `wasm-pack build` in wheels.yml, publish `.wasm` + JS glue to npm
-- Browser integration tutorial (vanilla JS + webpack example)
-- Benchmark script exists (`benchmarks/wasm_overhead_bench.py`) but no production WASM code ships
+### WASM Edge Runtime (Prioritised)
+- CI pipeline builds `backfire-wasm` and uploads `.wasm` + JS glue artefacts
+- Browser and Worker deployment guide lives in `docs-site/deployment/wasm-runtime.md`
+- Release priority and host target matrix live in `requirements/wasm_release_plan.toml`
+- Benchmark script remains `benchmarks/wasm_overhead_bench.py`
 
 ### Rust Backend (Done)
 - PyO3 0.23 → 0.24 upgrade (unblocks Python 3.14 wheels)
@@ -328,7 +329,7 @@
   `[ui]`, `[server]`, and enterprise extras.
 - [x] Ship prebuilt ONNX artefact guidance and wheel coverage for common CPU/GPU
   deployment targets.
-- [ ] Prioritise the deferred WASM runtime for edge/offline users who cannot run
+- [x] Prioritise the deferred WASM runtime for edge/offline users who cannot run
   Python services.
 - [ ] Add supply-chain notes for torch, transformers, ONNX Runtime, Chroma, and
   other heavy optional dependencies.

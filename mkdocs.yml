@@ -196,6 +196,7 @@ nav:
       - Production Guide: deployment/production.md
       - Docker: deployment/docker.md
       - ONNX Artefacts: deployment/onnx-artefacts.md
+      - WASM Runtime: deployment/wasm-runtime.md
       - Metrics: deployment/metrics.md
       - Monitoring: deployment/monitoring.md
       - Production Checklist: deployment/checklist.md

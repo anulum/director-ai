@@ -142,6 +142,9 @@ cd backfire-kernel/crates/backfire-wasm/example
 python3 -m http.server 8000
 ```
 
+The prioritised release plan and supported host targets live in
+[WASM Runtime](../deployment/wasm-runtime.md).
+
 ## Audit and forensics
 
 `StreamSession` carries the full token trace after the stream

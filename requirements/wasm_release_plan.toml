@@ -1,0 +1,63 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — WASM runtime release plan
+
+[policy]
+crate = "backfire-kernel/crates/backfire-wasm"
+doc = "docs-site/deployment/wasm-runtime.md"
+workflow = ".github/workflows/wheels.yml"
+make_targets = ["test-wasm", "wasm-build"]
+package_name = "backfire-wasm"
+scope = "halt decision only; host supplies one coherence score per token"
+
+[[phases]]
+id = "p0-local-artefact"
+status = "active"
+goal = "Ship browser and Worker artefacts from CI for offline trials."
+required_gates = ["wasm-pack build", "wasm-pack test --node", "browser example"]
+
+[[phases]]
+id = "p1-package-publish"
+status = "next"
+goal = "Publish JS glue plus .wasm as an operator-triggered package release."
+required_gates = ["package metadata", "release checksum", "example import test"]
+
+[[phases]]
+id = "p2-edge-scoring-bridge"
+status = "later"
+goal = "Document host scoring bridges for browser and Worker runtimes."
+required_gates = ["score input contract", "worker example", "latency note"]
+
+[[targets]]
+id = "browser-worker"
+runtime = "Browser Web Worker"
+target = "web"
+priority = "p0"
+
+[[targets]]
+id = "service-worker"
+runtime = "Service Worker"
+target = "web"
+priority = "p0"
+
+[[targets]]
+id = "node-edge"
+runtime = "Node edge process"
+target = "nodejs"
+priority = "p1"
+
+[[targets]]
+id = "worker-runtime"
+runtime = "Worker runtime"
+target = "web"
+priority = "p1"
+
+[[targets]]
+id = "wasmtime-host"
+runtime = "Wasmtime host"
+target = "wasm32-unknown-unknown"
+priority = "p2"
