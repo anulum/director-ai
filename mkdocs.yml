@@ -125,6 +125,7 @@ nav:
       - Quickstart: quickstart.md
       - Installation: installation.md
       - Runtime Boundaries: guide/runtime-boundaries.md
+      - Runtime Extraction Evaluation: guide/runtime-extraction-evaluation.md
       - Why Director-AI: guide/why-director-ai.md
       - vs Prompt Engineering: guide/vs-prompt-engineering.md
   - User Guide:

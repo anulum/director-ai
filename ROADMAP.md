@@ -272,7 +272,7 @@
 - [x] Collapse setup docs into one recommended path first, then an advanced backend matrix.
 - [x] Add a "minimal support surface" policy: default Python + FastAPI + local Chroma,
   with every other runtime enabled only by explicit extra, flag, or Compose profile.
-- [ ] Evaluate extracting the Rust kernel and formal proof artefacts into a
+- [x] Evaluate extracting the Rust kernel and formal proof artefacts into a
   separately versioned package/repository so core users do not inherit that
   build surface.
 

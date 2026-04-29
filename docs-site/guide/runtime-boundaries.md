@@ -87,6 +87,7 @@ example `DIRECTOR_SCORER_BACKEND=onnx` without `onnxruntime` or an ONNX path.
 - [Installation](../installation.md)
 - [Quickstart](../quickstart.md)
 - [Docker Deployment](../deployment/docker.md)
+- [Runtime Extraction Evaluation](runtime-extraction-evaluation.md)
 - [Rust FFI](rust-ffi.md)
 - [Rust Acceleration](rust-acceleration.md)
 - [Streaming Halt WASM Notes](../cookbook/streaming-halt-guide.md)
