@@ -351,7 +351,7 @@
   using property-based inputs.
 - [x] Add a nightly live red-team workflow against current jailbreak/evasion
   datasets and the full scorer pyramid.
-- [ ] Publish a monthly public adversarial validation update in `VALIDATION.md`.
+- [x] Publish a monthly public adversarial validation update in `VALIDATION.md`.
 - [ ] Add async contract tests and property-based fuzzing for the
   cyber-physical -> HaltMonitor path, including streaming races and cancelled
   actions.

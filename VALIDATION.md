@@ -57,6 +57,46 @@ All gates must pass before merge.
 
 Run: `python -m benchmarks.run_all`.
 
+## Monthly Adversarial Validation - 2026-04-29
+
+This update uses `tools/live_red_team.py` against current public behaviour
+datasets. Reports store counts, timings, source names, and short fingerprints;
+they do not store raw prompt text.
+
+Command:
+
+```bash
+python tools/live_red_team.py \
+  --output /tmp/director-live-red-team-monthly.json \
+  --max-cases-per-source 10 \
+  --tiers input-sanitizer,output-injection,tier1-heuristic,tier2-rules \
+  --timeout-s 20
+```
+
+Dataset sample:
+
+| Source | Rows |
+|--------|-----:|
+| AdvBench harmful behaviours | 10 |
+| HarmBench text test | 10 |
+| JailbreakBench harmful behaviours | 10 |
+
+Fast-tier result:
+
+| Tier | Cases | Detected | Missed | Detection rate | Median latency |
+|------|------:|---------:|-------:|---------------:|---------------:|
+| input-sanitizer | 30 | 0 | 30 | 0.0% | 0.007 ms |
+| output-injection | 30 | 0 | 30 | 0.0% | 0.035 ms |
+| tier1-heuristic | 30 | 3 | 27 | 10.0% | 0.091 ms |
+| tier2-rules | 30 | 30 | 0 | 100.0% | 0.038 ms |
+
+Scope notes:
+
+- This is a fast-tier live-fetch sample, not a claim for the heavy NLI tiers.
+- The nightly workflow exercises the full scorer pyramid when optional
+  dependencies are present.
+- The first external security test is still pending an independent report.
+
 ## Regeneration
 
 ```bash
