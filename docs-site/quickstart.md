@@ -1,23 +1,31 @@
 # Quickstart
 
-## Choose Your Path
+## Recommended Path
 
-| Method | Command | Time |
-|--------|---------|------|
-| **pip install** | `pip install director-ai` | 30 seconds |
-| **CLI scaffold** | `director-ai quickstart --profile medical` | 1 minute |
-| **CLI Compose** | `director-ai quickstart --run` | 2 minutes |
-| **Colab notebook** | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | 5 minutes |
-| **Docker** | `docker build -t director-ai . && docker run -p 8080:8080 director-ai` | 5 minutes |
-| **HF Spaces** | [Try demo](https://huggingface.co/spaces/anulum/director-ai-guardrail) (may be sleeping) | 0 minutes |
+Start with the Python service and local Chroma path:
+
+```bash
+pip install director-ai[server,vector]
+director-ai quickstart --run
+director-ai doctor
+```
+
+This starts the default proxy on port 8080, the FastAPI service on port 8000,
+and local Chroma persistence under `./director_guard/chroma`.
+
+## Other Entry Points
+
+| Method | Command | Use When |
+|--------|---------|----------|
+| **CLI scaffold** | `director-ai quickstart --profile medical` | You want editable local files before running services |
+| **Base package** | `pip install director-ai` | You only need the in-process Python guard API |
+| **Colab notebook** | [![Open in Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | You want a notebook walkthrough |
+| **Docker image** | `docker build -t director-ai . && docker run -p 8080:8080 director-ai` | You are validating the packaged container |
+| **HF Spaces** | [Try demo](https://huggingface.co/spaces/anulum/director-ai-guardrail) (may be sleeping) | You only want to inspect the demo |
 
 ## Installation
 
-```bash
-pip install director-ai
-```
-
-Choose your scoring tier:
+For the smallest in-process install:
 
 ```bash
 pip install director-ai                # rules engine + heuristic (zero ML, <1ms)
@@ -25,6 +33,9 @@ pip install director-ai[embed]         # + embedding scorer (~65% BA, 3ms CPU)
 pip install director-ai[nli]           # + FactCG NLI (75.6% BA, 14.6ms GPU) — recommended
 pip install director-ai[nli,server]    # + REST API server for production
 ```
+
+For backend choices beyond the default, use the
+[advanced backend matrix](installation.md#advanced-backend-matrix).
 
 ## CLI Quickstart
 

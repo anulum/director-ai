@@ -49,6 +49,9 @@ Enable these only when the deployment needs the specific capability.
 | Lean verifier | Formal proof checks are required | Lean backend | Research/formal-verification path |
 | WASM | Browser or edge halt checks are required | WASM package | Deferred edge/offline path |
 
+For package extras and common combinations, use the
+[advanced backend matrix](../installation.md#advanced-backend-matrix).
+
 ## Contributor Boundary
 
 Good first issues and routine fixes should stay in the Python-only surface:

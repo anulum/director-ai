@@ -30,7 +30,33 @@ that are not installed.
 See [Runtime Boundaries](guide/runtime-boundaries.md) for the supported default
 path and the advanced runtime boundary.
 
-## Optional Extras
+## Recommended Setup
+
+Use the default path for first local runs, first production trials, and first
+contributor tasks:
+
+```bash
+pip install director-ai[server,vector]
+director-ai quickstart --run
+director-ai doctor
+```
+
+That gives one supported path before choosing specialized backends:
+
+| Layer | Default Choice | Why |
+|-------|----------------|-----|
+| Runtime | Python package | Smallest supported surface |
+| API | FastAPI service | Local and production-compatible HTTP path |
+| Proxy | Generated quickstart proxy | Standard guarded-chat entry point |
+| Retrieval | Local Chroma | Persistent facts without external services |
+| Diagnostics | `director-ai doctor` | Checks optional runtime drift |
+
+## Advanced Backend Matrix
+
+Pick an advanced backend only when its capability is required. The base install
+and quickstart must remain usable without these extras.
+
+### Scoring and Inference
 
 | Extra | Command | Adds |
 |-------|---------|------|
@@ -38,10 +64,20 @@ path and the advanced runtime boundary.
 | `embed` | `pip install director-ai[embed]` | Embedding cosine-similarity scorer (~65% BA, 3ms CPU) |
 | `nli-lite` | `pip install director-ai[nli-lite]` | Distilled NLI (~70% BA, 5ms CPU, ONNX) |
 | `minicheck` | `pip install director-ai[minicheck]` | MiniCheck alternative |
-| `vector` | `pip install director-ai[vector]` | ChromaDB vector store |
-| `embeddings` | `pip install director-ai[embeddings]` | sentence-transformers (bge-large) |
 | `onnx` | `pip install director-ai[onnx]` | ONNX Runtime inference (14.6ms/pair GPU, portable CPU fallback) |
 | `quantize` | `pip install director-ai[quantize]` | bitsandbytes 8-bit quantization |
+
+### Retrieval and Knowledge Base
+
+| Extra | Command | Adds |
+|-------|---------|------|
+| `vector` | `pip install director-ai[vector]` | ChromaDB vector store |
+| `embeddings` | `pip install director-ai[embeddings]` | sentence-transformers (bge-large) |
+
+### Provider and Agent Integrations
+
+| Extra | Command | Adds |
+|-------|---------|------|
 | `openai` | `pip install director-ai[openai]` | OpenAI SDK guard |
 | `anthropic` | `pip install director-ai[anthropic]` | Anthropic SDK guard |
 | `langchain` | `pip install director-ai[langchain]` | LangChain integration |
@@ -49,6 +85,11 @@ path and the advanced runtime boundary.
 | `langgraph` | `pip install director-ai[langgraph]` | LangGraph integration |
 | `haystack` | `pip install director-ai[haystack]` | Haystack integration |
 | `crewai` | `pip install director-ai[crewai]` | CrewAI integration |
+
+### Operations, Training, and Development
+
+| Extra | Command | Adds |
+|-------|---------|------|
 | `finetune` | `pip install director-ai[finetune]` | Domain-specific NLI fine-tuning (torch, transformers, datasets) |
 | `grpc` | `pip install director-ai[grpc]` | gRPC server (grpcio, protobuf) |
 | `server` | `pip install director-ai[server]` | FastAPI server |
@@ -57,13 +98,17 @@ path and the advanced runtime boundary.
 | `docs` | `pip install director-ai[docs]` | MkDocs documentation tools |
 | `dev` | `pip install director-ai[dev]` | pytest, ruff, mypy, sphinx |
 
-## Recommended Production Setup
+## Production Presets
 
 ```bash
 pip install director-ai[nli,vector,embeddings,openai]
 ```
 
 FactCG NLI (75.6% per-dataset mean BA, 14.6ms/pair ONNX GPU batch), ChromaDB + bge-large embeddings, OpenAI SDK interception.
+
+For managed service deployments, start from the recommended setup first and add
+provider, NLI, or observability extras only after `director-ai doctor` reports
+the base stack as healthy.
 
 ## GPU Acceleration
 
