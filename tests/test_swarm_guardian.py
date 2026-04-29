@@ -86,6 +86,9 @@ class TestHandoffScoring:
         )
         assert isinstance(result, HandoffResult)
         assert result.score < 0.5  # good overlap → low hallucination
+        assert result.safety_event is not None
+        assert result.safety_event.policy_decision == "allow"
+        assert result.safety_event.hook_scope == "swarm"
 
     def test_hallucinated_message(self):
         g = SwarmGuardian()
@@ -94,6 +97,8 @@ class TestHandoffScoring:
             "r1", "s1", "completely unrelated gibberish xyz", "Paris France capital"
         )
         assert result.score > 0.5  # no overlap → high hallucination
+        assert result.safety_event is not None
+        assert result.safety_event.policy_decision == "halt"
 
     def test_no_context_neutral(self):
         g = SwarmGuardian()
@@ -106,6 +111,8 @@ class TestHandoffScoring:
         result = g.score_handoff("ghost", "s1", "msg", "ctx")
         assert not result.should_halt
         assert "not registered" in result.reasons[0]
+        assert result.safety_event is not None
+        assert result.safety_event.evidence_refs == ("swarm:ghost->s1",)
 
     def test_handoff_count_incremented(self):
         g = SwarmGuardian()
@@ -136,6 +143,8 @@ class TestQuarantine:
         result = g.score_handoff("r1", "s1", "msg", "ctx")
         assert result.should_halt
         assert "quarantined" in result.reasons[0]
+        assert result.safety_event is not None
+        assert result.safety_event.policy_decision == "halt"
 
     def test_quarantine_nonexistent(self):
         g = SwarmGuardian()

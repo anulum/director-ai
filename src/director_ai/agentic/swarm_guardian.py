@@ -46,6 +46,7 @@ from dataclasses import dataclass, field
 
 from director_ai.agentic.agent_profile import AgentProfile
 from director_ai.agentic.loop_monitor import LoopMonitor
+from director_ai.core.safety_event import SafetyEvent
 
 logger = logging.getLogger("DirectorAI.SwarmGuardian")
 
@@ -61,6 +62,7 @@ class HandoffResult:
     score: float  # 0 = fully grounded, 1 = hallucinated
     should_halt: bool
     reasons: list[str] = field(default_factory=list)
+    safety_event: SafetyEvent | None = None
 
 
 @dataclass
@@ -134,7 +136,7 @@ class SwarmGuardian:
                 profile.role,
                 profile.coherence_threshold,
             )
-            return profile.agent_id
+            return str(profile.agent_id)
 
     def unregister_agent(self, agent_id: str) -> None:
         """Remove an agent from the swarm."""
@@ -171,21 +173,42 @@ class SwarmGuardian:
         with self._lock:
             src = self._agents.get(from_agent)
             if src is None:
+                safety_event = _handoff_safety_event(
+                    from_agent=from_agent,
+                    to_agent=to_agent,
+                    score=0.5,
+                    threshold=self._threshold,
+                    should_halt=False,
+                    reasons=("source agent not registered",),
+                )
                 return HandoffResult(
                     from_agent=from_agent,
                     to_agent=to_agent,
                     score=0.5,
                     should_halt=False,
                     reasons=["source agent not registered"],
+                    safety_event=safety_event,
                 )
 
             if src.quarantined:
+                quarantine_reasons = (
+                    f"source agent quarantined: {src.quarantine_reason}",
+                )
+                safety_event = _handoff_safety_event(
+                    from_agent=from_agent,
+                    to_agent=to_agent,
+                    score=1.0,
+                    threshold=1.0 - src.profile.coherence_threshold,
+                    should_halt=True,
+                    reasons=quarantine_reasons,
+                )
                 return HandoffResult(
                     from_agent=from_agent,
                     to_agent=to_agent,
                     score=1.0,
                     should_halt=True,
-                    reasons=[f"source agent quarantined: {src.quarantine_reason}"],
+                    reasons=list(quarantine_reasons),
+                    safety_event=safety_event,
                 )
 
             # Track dependency
@@ -212,6 +235,14 @@ class SwarmGuardian:
             score=score,
             should_halt=should_halt,
             reasons=reasons,
+            safety_event=_handoff_safety_event(
+                from_agent=from_agent,
+                to_agent=to_agent,
+                score=score,
+                threshold=1.0 - threshold,
+                should_halt=should_halt,
+                reasons=tuple(reasons),
+            ),
         )
 
     def quarantine_agent(self, agent_id: str, reason: str) -> list[str]:
@@ -290,3 +321,31 @@ class SwarmGuardian:
         coverage = overlap / len(msg_words) if msg_words else 0.0
         # Invert: high coverage = low hallucination score
         return max(0.0, min(1.0, 1.0 - coverage))
+
+
+def _handoff_safety_event(
+    *,
+    from_agent: str,
+    to_agent: str,
+    score: float,
+    threshold: float,
+    should_halt: bool,
+    reasons: tuple[str, ...],
+) -> SafetyEvent:
+    return SafetyEvent.from_policy_decision(
+        hook_id="swarm.guardian.handoff",
+        hook_scope="swarm",
+        policy_decision="halt" if should_halt else "allow",
+        halt_reason="swarm_handoff_halt" if should_halt else "swarm_handoff_allow",
+        threshold=max(0.0, min(1.0, threshold)),
+        observed_score=max(0.0, min(1.0, score)),
+        tenant_safe_explanation=(
+            reasons[0] if reasons else "Swarm handoff passed the guardian check."
+        ),
+        evidence_refs=(f"swarm:{from_agent}->{to_agent}",),
+        attributes={
+            "from_agent": from_agent,
+            "to_agent": to_agent,
+            "reason_count": str(len(reasons)),
+        },
+    )

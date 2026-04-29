@@ -285,9 +285,12 @@ def _trace_row(index: int, event: dict[str, Any]) -> list[Any]:
 
 
 def _trace_scope(event: dict[str, Any]) -> str:
-    explicit = _first_present(event, ("scope", "source", "_scope_hint"), "")
+    explicit = _first_present(event, ("hook_scope", "scope", "source"), "")
     if explicit:
         return str(explicit)
+    scope_hint = _first_present(event, ("_scope_hint",), "")
+    if scope_hint and scope_hint != "safety":
+        return str(scope_hint)
     event_type = str(_first_present(event, ("event_type", "type", "name"), ""))
     if "swarm" in event_type:
         return "swarm"
@@ -368,7 +371,8 @@ def _trace_halted(document: Any, events: list[dict[str, Any]]) -> bool:
     if isinstance(document, dict) and bool(document.get("halted")):
         return True
     return any(
-        bool(event.get("halted")) or _trace_state(event) == "halted" for event in events
+        bool(event.get("halted")) or _trace_state(event) in {"halted", "halt", "block"}
+        for event in events
     )
 
 

@@ -84,9 +84,9 @@ the same hallucination survived one handoff and was caught later.
 ## Framework adapters
 
 `director_ai.integrations` ships adapters that plug the handoff scorer
-into LangGraph, CrewAI, OpenAI Swarm, and AutoGen without changing
-their agent APIs. The adapter wraps every edge/hand-off callback and
-raises a framework-native exception on halt.
+into common agent frameworks without changing their agent APIs. The
+adapter wraps every edge/hand-off callback and raises a framework-native
+exception on halt.
 
 ```python
 from director_ai.integrations.langgraph import DirectorLangGraphGuard
@@ -108,6 +108,9 @@ Repository locations:
 * `HandoffScorer` defaults to `threshold = min(sender.threshold,
   receiver.threshold)`. Override per edge when the receiver has a
   higher confidence requirement (e.g. legal writer vs draft writer).
+* `SwarmGuardian.score_handoff` returns `HandoffResult.safety_event`,
+  using the `swarm.guardian.handoff` hook id for trace explorers and
+  tenant-safe audit logs.
 * `SwarmGuardian.on_halt` accepts a callback; wire it to your incident
   channel so a cascade halt pages a human.
 * If the same agent trips halts every run, the fix is almost always

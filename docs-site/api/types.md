@@ -190,6 +190,7 @@ Runtime hook verdicts now carry this schema directly:
 | Attestation | `PassportVerdict.safety_event` |
 | Ontology | `OntologyViolation.safety_event` |
 | Trajectory | `PreflightVerdict.safety_event` |
+| Swarm | `HandoffResult.safety_event` |
 
 ## CounterfactualHaltDiagnostic {: #counterfactualhaltdiagnostic }
 

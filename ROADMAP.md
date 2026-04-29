@@ -18,7 +18,7 @@
 - CLI multi-worker config propagation (`--workers`)
 - ONNX batch config wiring end-to-end (`onnx_path` in DirectorConfig)
 - Prompt content removed from logs — HMAC audit hashing
-- `guard()` duck-type detection for OpenAI/Anthropic SDK interceptor
+- `guard()` duck-type detection for provider SDK interceptors
 - `strict_mode` reject in `CoherenceScorer.review()`
 - Domain profiles: medical, finance, legal, creative, customer_support, summarization
 - Discord bot + CI/release webhook automation
@@ -128,9 +128,9 @@
 - Implement `BatchProcessor.process_batch_async()` — docstring-advertised method missing
 
 ### Async Correctness (Done)
-- Add `__aiter__` to Bedrock/Gemini/Cohere guarded stream wrappers (parity with OpenAI/Anthropic)
+- Add `__aiter__` to cloud-provider guarded stream wrappers
 - Add `async aadd()`/`aquery()` defaults on `VectorBackend` ABC for non-blocking server use
-- Parallelize `AnthropicProvider`/`HuggingFaceProvider` multi-candidate requests
+- Parallelize hosted-provider multi-candidate requests
 
 ### API Consistency (Done)
 - Add `LiteScorer.review()` returning `(bool, CoherenceScore)` to match `CoherenceScorer` interface
@@ -311,7 +311,7 @@
   cyber-physical hooks.
 - [x] Wire every safety hook to emit `SafetyEvent` records with hook id, evidence
   reference, policy decision, threshold, latency, and tenant-safe explanation.
-- [ ] Add trace tests proving multi-hook halt attribution remains stable across
+- [x] Add trace tests proving multi-hook halt attribution remains stable across
   streaming, swarm, and physical-precheck paths.
 
 ### Benchmark Transparency and External Validation (Planned)
