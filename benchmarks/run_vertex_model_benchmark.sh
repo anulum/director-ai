@@ -128,6 +128,7 @@ PY
 gcloud ai custom-jobs create \
     --project="${PROJECT}" \
     --region="${REGION}" \
+    --display-name="${JOB_NAME}" \
     --config="${CONFIG_FILE}"
 
 echo "Submitted ${JOB_NAME}"
