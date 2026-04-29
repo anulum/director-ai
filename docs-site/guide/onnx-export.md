@@ -14,7 +14,11 @@ export_onnx(
 ```
 
 This uses [Optimum](https://huggingface.co/docs/optimum) to convert the
-PyTorch model + tokenizer to ONNX format. Requires `pip install optimum[onnxruntime]`.
+PyTorch model + tokenizer to ONNX format. The export-only wheels are pinned in
+`requirements/docker-gpu-export.txt`.
+
+For deployable directory layout and wheel target coverage, see
+[ONNX Artefacts](../deployment/onnx-artefacts.md).
 
 ## Use the ONNX model
 

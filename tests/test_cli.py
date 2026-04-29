@@ -144,6 +144,9 @@ class TestQuickstartCommand:
         assert (d / "docker-compose.yml").is_file()
         assert (d / "chroma").is_dir()
         assert (d / "models" / "factcg-onnx" / "README.md").is_file()
+        onnx_readme = (d / "models" / "factcg-onnx" / "README.md").read_text()
+        assert "director-ai export --format onnx" in onnx_readme
+        assert "model.onnx" in onnx_readme
 
     def test_quickstart_compose_has_default_and_onnx_paths(
         self,

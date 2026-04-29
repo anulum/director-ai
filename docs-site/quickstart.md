@@ -65,6 +65,9 @@ cd director_guard
 docker compose --profile onnx up director-proxy-onnx
 ```
 
+See [ONNX Artefacts](deployment/onnx-artefacts.md) for export commands and
+CPU/GPU wheel targets.
+
 Rust, Go, Julia, Lean, TensorRT, and WASM paths are optional advanced
 runtimes. Start with the Python-only quickstart unless one of those runtimes is
 explicitly needed. See [Runtime Boundaries](guide/runtime-boundaries.md).

@@ -1,0 +1,59 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI — ONNX wheel target matrix
+
+[policy]
+doc = "docs-site/deployment/onnx-artefacts.md"
+quickstart_model_dir = "models/factcg-onnx"
+export_requirements = "requirements/docker-gpu-export.txt"
+required_files = [
+    "model.onnx",
+    "config.json",
+    "tokenizer.json",
+    "tokenizer_config.json",
+    "special_tokens_map.json",
+]
+
+[[targets]]
+id = "linux-cpu-x86_64"
+platform = "Linux x86_64"
+extra = "onnx"
+package = "onnxruntime"
+provider = "CPUExecutionProvider"
+status = "covered"
+
+[[targets]]
+id = "linux-nvidia-cuda-x86_64"
+platform = "Linux x86_64 with NVIDIA driver"
+extra = "tensorrt"
+package = "onnxruntime-gpu"
+provider = "CUDAExecutionProvider"
+status = "covered"
+
+[[targets]]
+id = "linux-nvidia-tensorrt-x86_64"
+platform = "Linux x86_64 with NVIDIA TensorRT libraries"
+extra = "tensorrt"
+package = "onnxruntime-gpu"
+provider = "TensorrtExecutionProvider"
+status = "covered with system TensorRT libraries"
+
+[[targets]]
+id = "macos-cpu-arm64"
+platform = "macOS arm64"
+extra = "onnx"
+package = "onnxruntime"
+provider = "CPUExecutionProvider"
+status = "covered"
+
+[[targets]]
+id = "windows-cpu-amd64"
+platform = "Windows amd64"
+extra = "onnx"
+package = "onnxruntime"
+provider = "CPUExecutionProvider"
+status = "covered"

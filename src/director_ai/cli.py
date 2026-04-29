@@ -331,6 +331,13 @@ def _write_quickstart_compose(out_dir: Path, threshold: float) -> None:
         "Place the exported ONNX model files here before running:\n"
         "\n"
         "```bash\n"
+        "director-ai export --format onnx --output models/factcg-onnx\n"
+        "```\n"
+        "\n"
+        "Expected files: `model.onnx`, `config.json`, `tokenizer.json`, "
+        "`tokenizer_config.json`, and `special_tokens_map.json`.\n"
+        "\n"
+        "```bash\n"
         "docker compose --profile onnx up director-proxy-onnx\n"
         "```\n",
         encoding="utf-8",

@@ -326,7 +326,7 @@
 ### Dependency and Deployment Realism (Planned)
 - [x] Tighten optional dependency locks with uv for `[nli]`, `[onnx]`, `[vector]`,
   `[ui]`, `[server]`, and enterprise extras.
-- [ ] Ship prebuilt ONNX artefact guidance and wheel coverage for common CPU/GPU
+- [x] Ship prebuilt ONNX artefact guidance and wheel coverage for common CPU/GPU
   deployment targets.
 - [ ] Prioritise the deferred WASM runtime for edge/offline users who cannot run
   Python services.
