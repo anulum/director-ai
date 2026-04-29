@@ -301,7 +301,7 @@
 ### Agent-Native Observability (Planned)
 - [x] Add trace-level halt attribution: fact source, retrieval path, scorer path,
   token offset, threshold, and causal contribution.
-- [ ] Add `CounterfactualVerifier` support for "what single fact change would
+- [x] Add `CounterfactualVerifier` support for "what single fact change would
   have prevented this halt?" diagnostics.
 - [ ] Export counterfactual and halt-cause fields as OpenTelemetry attributes.
 - [ ] Extend the UI with a visual trace explorer for agent, swarm, and streaming

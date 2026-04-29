@@ -45,6 +45,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`ReviewResult`](types.md#reviewresult) | `director_ai.core.types` | Agent review output |
 | [`ScoringEvidence`](types.md#scoringevidence) | `director_ai.core.types` | Retrieved chunks + NLI details |
 | [`HaltEvidence`](types.md#haltevidence) | `director_ai.core.types` | Structured halt reason with evidence |
+| [`CounterfactualHaltDiagnostic`](types.md#counterfactualhaltdiagnostic) | `director_ai.core.types` | Single-fact halt diagnostic |
 | [`TokenEvent`](streaming.md#tokenevent) | `director_ai.core.runtime.streaming` | Per-token stream event |
 | [`StreamSession`](streaming.md#streamsession) | `director_ai.core.runtime.streaming` | Complete stream session state |
 

@@ -113,6 +113,7 @@ Structured halt reason with evidence chunks.
 | `nli_scores` | `list[float] \| None` | NLI scores at halt point |
 | `suggested_action` | `str` | Recommended action (e.g., "retry with KB context") |
 | `trace_attribution` | `HaltTraceAttribution \| None` | Fact source, retrieval path, scorer path, token offset, threshold, and halt-margin data |
+| `counterfactual_diagnostic` | `CounterfactualHaltDiagnostic \| None` | Single-fact change diagnostic for the halt |
 
 ```python
 if session.halt_evidence_structured:
@@ -121,6 +122,8 @@ if session.halt_evidence_structured:
     print(f"Score: {ev.last_score:.3f}")
     if ev.trace_attribution:
         print(f"Token: {ev.trace_attribution.token_offset}")
+    if ev.counterfactual_diagnostic and ev.counterfactual_diagnostic.best_change:
+        print(ev.counterfactual_diagnostic.best_change.fact_source)
     for chunk in ev.evidence_chunks:
         print(f"  {chunk.text[:80]} (distance={chunk.distance:.3f})")
 ```
@@ -137,6 +140,30 @@ Trace coordinates for the halt decision.
 | `token_offset` | `int` | Token index where the halt condition triggered |
 | `threshold` | `float \| None` | Limit that was crossed |
 | `causal_contribution` | `float` | Absolute margin beyond the limit |
+
+## CounterfactualHaltDiagnostic {: #counterfactualhaltdiagnostic }
+
+Answer to "what single fact change would have prevented this halt?"
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `question` | `str` | Diagnostic question that was answered |
+| `observed_score` | `float` | Stream score at the halt point |
+| `threshold` | `float` | Halt threshold used by the counterfactual graph |
+| `best_change` | `CounterfactualFactChange \| None` | First single-fact branch that prevents the halt |
+| `candidates` | `list[CounterfactualFactChange]` | Candidate single-fact branches |
+
+## CounterfactualFactChange {: #counterfactualfactchange }
+
+Candidate single-fact intervention.
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `fact_source` | `str` | Source label for the fact branch |
+| `original_fact` | `str` | Retrieved fact text at halt time |
+| `proposed_fact` | `str` | Proposed replacement fact from the generated claim |
+| `required_score_delta` | `float` | Minimum score increase needed to prevent the halt |
+| `prevented_halt` | `bool` | Whether this branch satisfies the halt invariant |
 
 ---
 
@@ -190,3 +217,9 @@ Per-claim injection attribution from `InjectionDetector`.
 ::: director_ai.core.types.ClaimAttribution
 
 ::: director_ai.core.types.HaltEvidence
+
+::: director_ai.core.types.HaltTraceAttribution
+
+::: director_ai.core.types.CounterfactualHaltDiagnostic
+
+::: director_ai.core.types.CounterfactualFactChange

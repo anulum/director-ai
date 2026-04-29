@@ -15,6 +15,8 @@ from dataclasses import dataclass
 __all__ = [
     "ClaimAttribution",
     "CoherenceScore",
+    "CounterfactualFactChange",
+    "CounterfactualHaltDiagnostic",
     "EvidenceChunk",
     "HaltEvidence",
     "HaltTraceAttribution",
@@ -225,6 +227,28 @@ class InjectionResult:
 
 
 @dataclass
+class CounterfactualFactChange:
+    """Single fact change that could prevent a halt."""
+
+    fact_source: str
+    original_fact: str
+    proposed_fact: str
+    required_score_delta: float
+    prevented_halt: bool
+
+
+@dataclass
+class CounterfactualHaltDiagnostic:
+    """Counterfactual answer for a halted stream."""
+
+    question: str
+    observed_score: float
+    threshold: float
+    best_change: CounterfactualFactChange | None
+    candidates: list[CounterfactualFactChange]
+
+
+@dataclass
 class HaltTraceAttribution:
     """Trace coordinates for a halt decision."""
 
@@ -246,6 +270,7 @@ class HaltEvidence:
     nli_scores: list[float] | None = None
     suggested_action: str = ""
     trace_attribution: HaltTraceAttribution | None = None
+    counterfactual_diagnostic: CounterfactualHaltDiagnostic | None = None
 
 
 @dataclass

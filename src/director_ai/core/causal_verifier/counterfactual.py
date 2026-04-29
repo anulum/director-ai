@@ -23,12 +23,24 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal
 
+from ..types import (
+    CounterfactualFactChange,
+    CounterfactualHaltDiagnostic,
+    EvidenceChunk,
+)
 from .graph import CausalGraph
 from .intervention import Intervention
 
 SafetyInvariant = Callable[[Mapping[str, object]], bool]
 
 BranchOutcome = Literal["safe", "unsafe"]
+
+
+def _clip(text: str, limit: int = 500) -> str:
+    stripped = text.strip()
+    if len(stripped) <= limit:
+        return stripped
+    return f"{stripped[: limit - 3]}..."
 
 
 @dataclass(frozen=True)
@@ -112,4 +124,78 @@ class CounterfactualVerifier:
             total=len(results),
             safe=sum(1 for b in results if b.outcome == "safe"),
             unsafe_branches=tuple(unsafe_results),
+        )
+
+    @classmethod
+    def explain_halt_fact_change(
+        cls,
+        *,
+        observed_score: float,
+        threshold: float,
+        evidence_chunks: Iterable[EvidenceChunk],
+        proposed_fact: str,
+    ) -> CounterfactualHaltDiagnostic:
+        """Answer which single retrieved fact change would prevent a halt."""
+        chunks = tuple(evidence_chunks)
+        required_delta = max(0.0, threshold - observed_score)
+        clipped_proposal = _clip(proposed_fact)
+        question = "what single fact change would have prevented this halt?"
+        if not chunks:
+            return CounterfactualHaltDiagnostic(
+                question=question,
+                observed_score=observed_score,
+                threshold=threshold,
+                best_change=None,
+                candidates=[],
+            )
+
+        graph = CausalGraph()
+        graph.add("observed_score", lambda _: observed_score)
+        graph.add("score_delta", lambda _: 0.0)
+        graph.add(
+            "adjusted_score",
+            lambda p: min(
+                1.0,
+                float(p["observed_score"]) + float(p["score_delta"]),
+            ),
+            parents=("observed_score", "score_delta"),
+        )
+        graph.add(
+            "halted",
+            lambda p: float(p["adjusted_score"]) < threshold,
+            parents=("adjusted_score",),
+        )
+        verifier = cls(
+            graph,
+            safety_invariant=lambda values: not bool(values["halted"]),
+        )
+        branches = [
+            (
+                f"fact:{index}:{chunk.source or 'unknown'}",
+                Intervention({"score_delta": required_delta}),
+            )
+            for index, chunk in enumerate(chunks)
+        ]
+        verdict = verifier.verify(inputs={}, branches=branches)
+        unsafe_labels = {branch.label for branch in verdict.unsafe_branches}
+        candidates = [
+            CounterfactualFactChange(
+                fact_source=chunk.source,
+                original_fact=_clip(chunk.text),
+                proposed_fact=clipped_proposal,
+                required_score_delta=required_delta,
+                prevented_halt=label not in unsafe_labels,
+            )
+            for (label, _), chunk in zip(branches, chunks, strict=True)
+        ]
+        best_change = next(
+            (candidate for candidate in candidates if candidate.prevented_halt),
+            None,
+        )
+        return CounterfactualHaltDiagnostic(
+            question=question,
+            observed_score=observed_score,
+            threshold=threshold,
+            best_change=best_change,
+            candidates=candidates,
         )

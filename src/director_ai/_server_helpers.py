@@ -25,6 +25,19 @@ def halt_evidence_to_dict(halt_ev) -> dict | None:
             "threshold": trace.threshold,
             "causal_contribution": trace.causal_contribution,
         }
+    counterfactual = getattr(halt_ev, "counterfactual_diagnostic", None)
+    counterfactual_dict = None
+    if counterfactual is not None:
+        counterfactual_dict = {
+            "question": counterfactual.question,
+            "observed_score": counterfactual.observed_score,
+            "threshold": counterfactual.threshold,
+            "best_change": _fact_change_to_dict(counterfactual.best_change),
+            "candidates": [
+                _fact_change_to_dict(candidate)
+                for candidate in counterfactual.candidates
+            ],
+        }
     return {
         "reason": halt_ev.reason,
         "last_score": halt_ev.last_score,
@@ -35,6 +48,19 @@ def halt_evidence_to_dict(halt_ev) -> dict | None:
         "nli_scores": halt_ev.nli_scores,
         "suggested_action": halt_ev.suggested_action,
         "trace_attribution": trace_dict,
+        "counterfactual_diagnostic": counterfactual_dict,
+    }
+
+
+def _fact_change_to_dict(change) -> dict | None:
+    if change is None:
+        return None
+    return {
+        "fact_source": change.fact_source,
+        "original_fact": change.original_fact,
+        "proposed_fact": change.proposed_fact,
+        "required_score_delta": change.required_score_delta,
+        "prevented_halt": change.prevented_halt,
     }
 
 

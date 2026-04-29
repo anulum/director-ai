@@ -81,6 +81,7 @@ class TestHaltEvidenceToDict:
         assert result["reason"] == "hard_limit"
         assert len(result["evidence_chunks"]) == 1
         assert result["trace_attribution"] is None
+        assert result["counterfactual_diagnostic"] is None
 
     def test_halt_evidence_serialises_trace_attribution(self):
         from director_ai.server import _halt_evidence_to_dict
@@ -109,6 +110,41 @@ class TestHaltEvidenceToDict:
             "token_offset": 7,
             "threshold": 0.5,
             "causal_contribution": 0.2,
+        }
+
+    def test_halt_evidence_serialises_counterfactual_diagnostic(self):
+        from director_ai.server import _halt_evidence_to_dict
+
+        change = SimpleNamespace(
+            fact_source="paper-1",
+            original_fact="A failed.",
+            proposed_fact="A succeeded.",
+            required_score_delta=0.2,
+            prevented_halt=True,
+        )
+        diagnostic = SimpleNamespace(
+            question="what single fact change would have prevented this halt?",
+            observed_score=0.3,
+            threshold=0.5,
+            best_change=change,
+            candidates=[change],
+        )
+        ev = SimpleNamespace(
+            reason="hard_limit",
+            last_score=0.3,
+            evidence_chunks=[],
+            nli_scores=None,
+            suggested_action="review",
+            trace_attribution=None,
+            counterfactual_diagnostic=diagnostic,
+        )
+        result = _halt_evidence_to_dict(ev)
+        assert result["counterfactual_diagnostic"]["best_change"] == {
+            "fact_source": "paper-1",
+            "original_fact": "A failed.",
+            "proposed_fact": "A succeeded.",
+            "required_score_delta": 0.2,
+            "prevented_halt": True,
         }
 
 

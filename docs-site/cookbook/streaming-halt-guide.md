@@ -151,9 +151,11 @@ including its coherence, timestamp, and any halt evidence; the
 passed in) lists the top-K contradicting source chunks with their
 NLI scores. It also carries trace attribution: fact source,
 retrieval path, scorer path, token offset, threshold, and the halt
-margin. This is the artefact to hand to an incident reviewer — it
-shows *which* token failed and *which* source document contradicted
-it.
+margin. A counterfactual diagnostic then tests each retrieved fact as
+a single intervention and reports which branch would have prevented
+the halt. This is the artefact to hand to an incident reviewer — it
+shows *which* token failed, *which* source document contradicted it,
+and which fact branch explains the halt boundary.
 
 ## Operating notes
 

@@ -54,6 +54,12 @@ class TestHaltWithScorer:
         assert trace.token_offset == 0
         assert trace.threshold == pytest.approx(0.99)
         assert trace.causal_contribution == pytest.approx(0.69)
+        diagnostic = session.halt_evidence_structured.counterfactual_diagnostic
+        assert diagnostic is not None
+        assert diagnostic.best_change is not None
+        assert diagnostic.best_change.fact_source == "keyword"
+        assert diagnostic.best_change.prevented_halt is True
+        assert diagnostic.best_change.required_score_delta == pytest.approx(0.69)
 
     def test_halt_without_scorer_no_structured(self):
         kernel = StreamingKernel(hard_limit=0.99)
@@ -151,6 +157,7 @@ class TestHaltEvidencePerformanceDoc:
         assert hasattr(ev, "evidence_chunks")
         assert hasattr(ev, "suggested_action")
         assert hasattr(ev, "trace_attribution")
+        assert hasattr(ev, "counterfactual_diagnostic")
 
     def test_halt_evidence_chain_complete(self):
         """Full pipeline: StreamingKernel → halt → scorer → evidence → action."""

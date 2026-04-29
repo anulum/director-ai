@@ -208,11 +208,15 @@ if session.halt_evidence_structured:
         trace = ev.trace_attribution
         print(f"Token: {trace.token_offset}")
         print(f"Path: {trace.scorer_path}")
+    if ev.counterfactual_diagnostic and ev.counterfactual_diagnostic.best_change:
+        change = ev.counterfactual_diagnostic.best_change
+        print(f"Fact source: {change.fact_source}")
+        print(f"Required delta: {change.required_score_delta:.3f}")
     for chunk in ev.evidence_chunks:
         print(f"  - {chunk.text[:80]} (distance={chunk.distance:.3f})")
 ```
 
-Each `TokenEvent` on halt also carries a `halt_evidence` field with the same `HaltEvidence` object. Its `trace_attribution` field records the fact source, retrieval path, scorer path, token offset, threshold, and halt margin.
+Each `TokenEvent` on halt also carries a `halt_evidence` field with the same `HaltEvidence` object. Its `trace_attribution` field records the fact source, retrieval path, scorer path, token offset, threshold, and halt margin. Its `counterfactual_diagnostic` field answers which single retrieved fact branch would have prevented the halt.
 
 ## StreamSession Properties
 

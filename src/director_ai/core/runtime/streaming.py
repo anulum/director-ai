@@ -24,6 +24,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+from ..causal_verifier import CounterfactualVerifier
 from ..observability.callbacks import (
     TokenTraceCallback,
     TokenTraceEmitter,
@@ -357,6 +358,20 @@ class StreamingKernel(HaltMonitor):
                     session.coherence_history,
                     window,
                 )
+                counterfactual = (
+                    CounterfactualVerifier.explain_halt_fact_change(
+                        observed_score=event.coherence,
+                        threshold=threshold,
+                        evidence_chunks=chunks,
+                        proposed_fact=(
+                            cs.evidence.nli_hypothesis
+                            if cs.evidence is not None
+                            else accumulated
+                        ),
+                    )
+                    if threshold is not None
+                    else None
+                )
                 structured = HaltEvidence(
                     reason=reason,
                     last_score=cs.score,
@@ -375,6 +390,7 @@ class StreamingKernel(HaltMonitor):
                         threshold=threshold,
                         causal_contribution=contribution,
                     ),
+                    counterfactual_diagnostic=counterfactual,
                 )
                 event.halt_evidence = structured
                 session.halt_evidence_structured = structured

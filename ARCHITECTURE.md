@@ -202,7 +202,7 @@ lighter profile:
 | Input filtering | `InputSanitizer`, regex injection checks, PII detectors when enabled by policy | Reject or redact unsafe input before generation/scoring. |
 | Factual scoring | `CoherenceScorer`, `NLIScorer` when `[nli]` is installed, `GroundTruthStore`, `VectorGroundTruthStore` | Score logical and factual consistency against configured facts. |
 | Interlock | `HaltMonitor`, `StreamingKernel` | Stop output when the coherence floor, window average, or trend rule fails. |
-| Evidence | `HaltEvidence`, `HaltTraceAttribution`, top-K contradictory chunks, scorer metadata | Carry machine-readable reason data, trace attribution, and halt margins into API responses and logs. |
+| Evidence | `HaltEvidence`, `HaltTraceAttribution`, counterfactual halt diagnostics, top-K contradictory chunks, scorer metadata | Carry machine-readable reason data, trace attribution, single-fact diagnostics, and halt margins into API responses and logs. |
 | Audit | `AuditLogger`, hashed prompt metadata, tenant ids | Persist tenant-safe records for review and compliance reporting. |
 
 ### Opt-in runtime hooks
@@ -272,7 +272,7 @@ owner before they are promoted out of the research layer.
 |----------------------|-----------------|---------------------|-----------------------|
 | Runtime halt and stream interlock | `runtime.kernel`, `runtime.streaming`, `runtime.async_streaming` | `kernel.py` compatibility aliases, trace-safe stop decisions | Keep `HaltMonitor`/`StreamingKernel` as the only default halt API. Other modules may emit risk signals, not independent halt contracts. |
 | Halt evidence and trace attribution | `types.HaltEvidence`, `observability`, future `SafetyEvent` schema | ad hoc evidence fields in streaming, containment, attestation, trajectory, ontology | Fold all hook-specific explanations into `SafetyEvent` and attach it to `HaltEvidence`; do not add new per-hook evidence formats. |
-| Counterfactual diagnostics | `causal_verifier` | trace-safe oracle diagnostics, CoherenceAgent counterfactual helpers, ontology contradiction explanations | Keep graph/intervention logic in `causal_verifier`; other modules should call it or emit inputs for it. |
+| Counterfactual diagnostics | `causal_verifier`, `types.CounterfactualHaltDiagnostic` | trace-safe oracle diagnostics, CoherenceAgent counterfactual helpers, ontology contradiction explanations | Keep graph/intervention logic in `causal_verifier`; other modules should call it or emit inputs for it. |
 | Adaptive defence updates | `continual_adversarial` plus `defense_genome` registry | `self_evolving`, `meta_guard`, `autopoietic` | Treat `meta_guard` as monitor-only and `self_evolving` as a gated trainer. New defence changes should flow through a reviewed registry/update pipeline. |
 | Provenance and signed facts | `provenance` | `agent_identity`, `zk_attestation`, KB Merkle snapshots | `provenance` owns fact/citation integrity. `agent_identity` owns public passports. `zk_attestation` remains an advanced proof backend behind those APIs. |
 | Cross-org agent hand-off | `agent_identity` | `zk_attestation.passport`, provenance chains, federated privacy summaries | Public hand-off APIs should be passport-centred; direct proof-backend APIs remain advanced integration points. |

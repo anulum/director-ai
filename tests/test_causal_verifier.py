@@ -24,6 +24,7 @@ from director_ai.core.causal_verifier import (
     GraphCycleError,
     Intervention,
 )
+from director_ai.core.types import EvidenceChunk
 
 
 def _as_int(value: object) -> int:
@@ -221,3 +222,37 @@ class TestCounterfactualVerifier:
         assert unsafe_branch.values["blast_radius"] == 5
         assert unsafe_branch.values["action"] == "deploy"
         assert unsafe_branch.outcome == "unsafe"
+
+    def test_halt_fact_change_diagnostic_identifies_single_change(self):
+        diagnostic = CounterfactualVerifier.explain_halt_fact_change(
+            observed_score=0.3,
+            threshold=0.5,
+            evidence_chunks=[
+                EvidenceChunk(
+                    text="The source fact says treatment A failed.",
+                    distance=0.0,
+                    source="paper-1",
+                ),
+            ],
+            proposed_fact="The source fact says treatment A succeeded.",
+        )
+
+        assert diagnostic.question
+        assert diagnostic.observed_score == 0.3
+        assert diagnostic.threshold == 0.5
+        assert len(diagnostic.candidates) == 1
+        assert diagnostic.best_change is not None
+        assert diagnostic.best_change.fact_source == "paper-1"
+        assert diagnostic.best_change.required_score_delta == pytest.approx(0.2)
+        assert diagnostic.best_change.prevented_halt is True
+
+    def test_halt_fact_change_diagnostic_handles_missing_facts(self):
+        diagnostic = CounterfactualVerifier.explain_halt_fact_change(
+            observed_score=0.3,
+            threshold=0.5,
+            evidence_chunks=[],
+            proposed_fact="unavailable",
+        )
+
+        assert diagnostic.best_change is None
+        assert diagnostic.candidates == []
