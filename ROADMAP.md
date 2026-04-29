@@ -306,7 +306,7 @@ Last updated: 2026-04-29
   after each fast release burst.
 - [x] Add a "shipped today" section to `ROADMAP.md` and `ARCHITECTURE.md` that
   is refreshed from the current changelog and recent commits.
-- [ ] Add a docs-sync checklist to release preparation so `ROADMAP.md`,
+- [x] Add a docs-sync checklist to release preparation so `ROADMAP.md`,
   `ARCHITECTURE.md`, `CHANGELOG.md`, `SECURITY.md`, and `VALIDATION.md` cannot
   drift after safety-hook or benchmark changes.
 - [x] Reconcile `ARCHITECTURE.md` with Rust acceleration, `CoherenceAgent`

@@ -135,6 +135,24 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] Set `cache_size: 1024` for repeated queries
 - [ ] For high throughput: `director-ai stress-test --rps 100`
 
+### Release documentation sync
+
+Run this checklist whenever a release candidate changes safety hooks,
+benchmarks, public defaults, or deployment boundaries:
+
+- [ ] `CHANGELOG.md` names the changed runtime surface, public default, or
+  benchmark runner.
+- [ ] `ROADMAP.md` marks only shipped work as complete and keeps open external
+  audit or validation work unchecked.
+- [ ] `ARCHITECTURE.md` matches current module ownership, hook wiring, optional
+  runtime boundaries, and Rust acceleration paths.
+- [ ] `SECURITY.md` covers any new residual risk, public endpoint exposure,
+  dependency surface, or tenant boundary.
+- [ ] `VALIDATION.md` includes the latest public benchmark or adversarial
+  validation update when public claims changed.
+- [ ] `docs-site/` pages that link to those files still point at the same source
+  of truth.
+
 ---
 
 ## 5. Cost Estimation
