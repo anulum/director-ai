@@ -75,6 +75,8 @@ class TestContainmentWiring:
         agent = _agent(containment_guard=guard, containment_anchor=anchor)
         result = agent.process("Paris is the capital of France.")
         assert not result.output.startswith("[CONTAINMENT-BLOCK]")
+        assert result.safety_events[-1].hook_scope == "containment"
+        assert result.safety_events[-1].policy_decision == "allow"
 
     def test_injection_in_output_blocks(self):
         # Manipulate the guard's detector so any output is blocked —
@@ -104,6 +106,8 @@ class TestContainmentWiring:
         assert result.halt_evidence is not None
         assert result.halt_evidence.reason == "containment_block"
         assert "policy:high" in result.halt_evidence.suggested_action
+        assert result.safety_events[-1].hook_id == "containment.guard"
+        assert result.safety_events[-1].policy_decision == "block"
 
     def test_bad_anchor_blocks(self):
         guard, anchor = self._make_guard_and_anchor()
@@ -160,6 +164,8 @@ class TestGroundingWiring:
         )
         verdict = agent.verify_physical_action(action)
         assert verdict.allowed is True
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.policy_decision == "allow"
 
     def test_out_of_workspace_action_rejected(self):
         agent = _agent(grounding_hook=self._make_hook())
@@ -172,6 +178,9 @@ class TestGroundingWiring:
         verdict = agent.verify_physical_action(action)
         assert verdict.allowed is False
         assert any(v.constraint == "room" for v in verdict.violations)
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.policy_decision == "block"
+        assert "physical:room" in verdict.safety_event.evidence_refs
 
 
 # --- passport wiring -----------------------------------------------
@@ -211,6 +220,8 @@ class TestPassportWiring:
         )
         verdict = agent.verify_passport(passport)
         assert verdict.accepted is True
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.policy_decision == "allow"
 
     def test_tampered_passport_rejected(self):
         issuer, verifier, samples = self._setup()
@@ -230,3 +241,6 @@ class TestPassportWiring:
         verdict = agent.verify_passport(tampered)
         assert verdict.accepted is False
         assert verdict.signature_ok is False
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.hook_scope == "attestation"
+        assert verdict.safety_event.policy_decision == "block"

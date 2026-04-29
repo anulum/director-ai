@@ -101,6 +101,10 @@ reachability rejection if the kinematic model's `inverse()` returns
 vector skip the reachability check, since the joint vector already
 fixes the posture.
 
+Each verdict carries `safety_event`, a tenant-safe `SafetyEvent` with
+the `cyber_physical.grounding` hook id, the allow/block decision,
+constraint references, and a bounded operator explanation.
+
 ## Heavy-dependency adapters
 
 All three are constructed via a `from_*` classmethod that imports the

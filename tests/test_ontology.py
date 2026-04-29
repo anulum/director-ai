@@ -139,6 +139,9 @@ class TestOntologyChecker:
         assert v.kind == "disjoint_conflict"
         assert v.subject == "chimera"
         assert set(v.classes) == {"sparrow", "dog"}
+        assert v.safety_event is not None
+        assert v.safety_event.hook_scope == "ontology"
+        assert v.safety_event.policy_decision == "block"
 
     def test_inherited_disjoint_conflict(self):
         """sparrow is_a bird, which is disjoint from mammal — any
@@ -154,6 +157,8 @@ class TestOntologyChecker:
         checker = OntologyChecker(graph=g, strict=True)
         violations = checker.check([Assertion("x", "alien")])
         assert any(v.kind == "unknown_class" for v in violations)
+        assert violations[0].safety_event is not None
+        assert violations[0].safety_event.halt_reason == "unknown_class"
 
     def test_unknown_class_tolerated_in_lenient_mode(self):
         g = self._animal_graph()

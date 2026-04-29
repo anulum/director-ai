@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -134,6 +135,43 @@ class SafetyEvent:
                 evidence.suggested_action or "Review the safety decision."
             ),
             trace_attribution=trace,
+            attributes=attributes or {},
+        )
+
+    @classmethod
+    def from_policy_decision(
+        cls,
+        *,
+        hook_id: str,
+        hook_scope: str,
+        policy_decision: str,
+        halt_reason: str,
+        tenant_safe_explanation: str,
+        event_id: str | None = None,
+        timestamp: str | None = None,
+        request_id: str = "",
+        tenant_id: str = "",
+        threshold: float | None = None,
+        observed_score: float | None = None,
+        latency_ms: float | None = None,
+        evidence_refs: Sequence[str] = (),
+        attributes: dict[str, str] | None = None,
+    ) -> SafetyEvent:
+        """Build a tenant-safe event from a hook policy decision."""
+        return cls(
+            event_id=event_id or new_safety_event_id(),
+            timestamp=timestamp or utc_timestamp(),
+            request_id=request_id,
+            tenant_id=tenant_id,
+            hook_id=hook_id,
+            hook_scope=hook_scope,
+            policy_decision=policy_decision,
+            halt_reason=halt_reason,
+            threshold=threshold,
+            observed_score=observed_score,
+            latency_ms=latency_ms,
+            evidence_refs=tuple(evidence_refs),
+            tenant_safe_explanation=tenant_safe_explanation,
             attributes=attributes or {},
         )
 

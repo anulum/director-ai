@@ -444,10 +444,10 @@ director-ai config --profile fast      # show/set configuration
 | `CoherenceScore` | `score`, `h_logical`, `h_factual`, `evidence`, `warning` | Composite coherence result |
 | `EvidenceChunk` | `text`, `distance`, `source` | Single RAG retrieval result |
 | `ScoringEvidence` | `chunks`, `nli_premise`, `nli_hypothesis`, `nli_score` | Full evidence bundle |
-| `ReviewResult` | `output`, `halted`, `coherence`, `candidates_evaluated`, `fallback_used` | Pipeline output |
+| `ReviewResult` | `output`, `halted`, `coherence`, `candidates_evaluated`, `fallback_used`, `safety_events` | Pipeline output |
 | `HallucinationError` | `query`, `response`, `score` | Exception raised by `guard()` |
-| `TokenEvent` | `token`, `index`, `coherence`, `halted`, `warning` | Single streaming event |
-| `StreamSession` | `tokens`, `events`, `halted`, `halt_reason`, `output` | Streaming session |
+| `TokenEvent` | `token`, `index`, `coherence`, `halted`, `warning`, `safety_event` | Single streaming event |
+| `StreamSession` | `tokens`, `events`, `halted`, `halt_reason`, `output`, `safety_events` | Streaming session |
 | `SanitizeResult` | `blocked`, `reason`, `pattern` | Sanitizer check result |
 | `Violation` | `rule`, `detail` | Policy violation |
 | `AuditEntry` | `timestamp`, `query_hash`, `approved`, `score`, ... | Audit record |

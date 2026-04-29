@@ -32,6 +32,7 @@ from ..observability.callbacks import (
 )
 from ..observability.tracing import trace_token
 from ..otel import trace_streaming
+from ..safety_event import SafetyEvent
 from ..types import EvidenceChunk, HaltEvidence, HaltTraceAttribution
 from .kernel import HaltMonitor
 
@@ -81,6 +82,7 @@ class TokenEvent:
     warning: bool = False
     evidence: str | None = None
     halt_evidence: HaltEvidence | None = None
+    safety_event: SafetyEvent | None = None
     debug_info: dict | None = None
 
 
@@ -97,6 +99,7 @@ class StreamSession:
     halt_reason: str = ""
     halt_evidence: str | None = None
     halt_evidence_structured: HaltEvidence | None = None
+    safety_events: list[SafetyEvent] = field(default_factory=list)
     start_time: float = 0.0
     end_time: float = 0.0
     warning_count: int = 0
@@ -348,6 +351,13 @@ class StreamingKernel(HaltMonitor):
                         setter("token.halt_reason", halt_reason)
                     if event.halt_evidence is not None:
                         self._set_halt_otel_attributes(span, event.halt_evidence)
+                    if event.safety_event is not None:
+                        setter("safety.event_id", event.safety_event.event_id)
+                        setter("safety.hook_id", event.safety_event.hook_id)
+                        setter(
+                            "safety.policy_decision",
+                            event.safety_event.policy_decision,
+                        )
                     if event.warning:
                         setter("token.warning", True)
             if emitter.enabled:
@@ -426,6 +436,33 @@ class StreamingKernel(HaltMonitor):
                 )
                 event.halt_evidence = structured
                 session.halt_evidence_structured = structured
+                event.safety_event = SafetyEvent.from_halt_evidence(
+                    structured,
+                    hook_id="streaming.kernel",
+                    request_id=request_id,
+                    tenant_id=tenant_id,
+                    attributes={"token_offset": str(event.index)},
+                )
+            if event.safety_event is None:
+                threshold, _ = self._trace_metrics(
+                    reason,
+                    event,
+                    session.coherence_history,
+                    window,
+                )
+                event.safety_event = SafetyEvent.from_policy_decision(
+                    hook_id="streaming.kernel",
+                    hook_scope="streaming",
+                    policy_decision="halt",
+                    halt_reason=reason,
+                    threshold=threshold,
+                    observed_score=event.coherence,
+                    request_id=request_id,
+                    tenant_id=tenant_id,
+                    tenant_safe_explanation=self._suggested_action(reason),
+                    attributes={"token_offset": str(event.index)},
+                )
+            session.safety_events.append(event.safety_event)
 
         def _is_sentence_boundary(tok: str) -> bool:
             stripped = tok.rstrip()

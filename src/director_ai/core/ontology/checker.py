@@ -25,6 +25,7 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
 
+from ..safety_event import SafetyEvent
 from .graph import OntologyGraph
 
 ViolationKind = Literal["unknown_class", "disjoint_conflict"]
@@ -40,6 +41,7 @@ class OntologyViolation:
     subject: str
     classes: tuple[str, ...]
     detail: str
+    safety_event: SafetyEvent | None = None
 
 
 @dataclass(frozen=True)
@@ -90,6 +92,11 @@ class OntologyChecker:
                             subject=a.individual,
                             classes=(a.class_name,),
                             detail=f"class {a.class_name!r} not in ontology",
+                            safety_event=_event_for_violation(
+                                "unknown_class",
+                                a.individual,
+                                (a.class_name,),
+                            ),
                         )
                     )
 
@@ -123,6 +130,11 @@ class OntologyChecker:
                                 f"{cls_a!r} is-a {conflict[0]!r} which is "
                                 f"disjoint from {conflict[1]!r} (ancestor of {cls_b!r})"
                             ),
+                            safety_event=_event_for_violation(
+                                "disjoint_conflict",
+                                subject,
+                                (cls_a, cls_b),
+                            ),
                         )
                     )
         return tuple(violations)
@@ -142,3 +154,23 @@ def _find_conflict(
             if anc_b in forbidden:
                 return (anc_a, anc_b)
     return None
+
+
+def _event_for_violation(
+    kind: ViolationKind,
+    subject: str,
+    classes: tuple[str, ...],
+) -> SafetyEvent:
+    return SafetyEvent.from_policy_decision(
+        hook_id="ontology.checker",
+        hook_scope="ontology",
+        policy_decision="block",
+        halt_reason=kind,
+        observed_score=0.0,
+        tenant_safe_explanation=f"Ontology check rejected {kind}.",
+        evidence_refs=(f"ontology:{subject}:{kind}",),
+        attributes={
+            "subject": subject,
+            "classes": ",".join(classes),
+        },
+    )

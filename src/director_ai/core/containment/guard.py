@@ -22,6 +22,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
+from ..safety_event import SafetyEvent
 from .anchor import ContainmentAttestor, RealityAnchor
 from .detector import BreakoutDetector, BreakoutFinding
 from .scope import ContainmentScope, scope_allows_real_effects
@@ -41,6 +42,7 @@ class ContainmentVerdict:
     decision: str
     findings: tuple[BreakoutFinding, ...]
     anchor_reason: str = ""
+    safety_event: SafetyEvent | None = None
 
     @property
     def allowed(self) -> bool:
@@ -76,10 +78,16 @@ class ContainmentGuard:
         """Return the verdict for a single proposed action."""
         verification = self.attestor.verify(anchor)
         if not verification.valid:
+            safety_event = _event_for_verdict(
+                decision="block",
+                findings=(),
+                anchor_reason=verification.reason,
+            )
             return ContainmentVerdict(
                 decision="block",
                 findings=(),
                 anchor_reason=verification.reason,
+                safety_event=safety_event,
             )
 
         findings = tuple(
@@ -91,7 +99,11 @@ class ContainmentGuard:
         )
 
         decision = _decide(anchor.scope, findings)
-        return ContainmentVerdict(decision=decision, findings=findings)
+        return ContainmentVerdict(
+            decision=decision,
+            findings=findings,
+            safety_event=_event_for_verdict(decision=decision, findings=findings),
+        )
 
 
 def _decide(
@@ -121,3 +133,37 @@ def _decide(
     if "medium" in severities:
         return "warn"
     return "allow"
+
+
+def _event_for_verdict(
+    *,
+    decision: str,
+    findings: tuple[BreakoutFinding, ...],
+    anchor_reason: str = "",
+) -> SafetyEvent:
+    refs = tuple(
+        f"containment:{finding.category}:{finding.severity}" for finding in findings
+    )
+    if decision == "allow":
+        reason = "containment_allow"
+        explanation = "Containment guard allowed the action."
+    elif decision == "warn":
+        reason = "containment_warn"
+        explanation = f"Containment guard flagged {len(findings)} finding(s)."
+    else:
+        reason = "containment_block"
+        explanation = "Containment guard blocked the action."
+    if anchor_reason:
+        refs = ("containment:anchor", *refs)
+    return SafetyEvent.from_policy_decision(
+        hook_id="containment.guard",
+        hook_scope="containment",
+        policy_decision=decision,
+        halt_reason=reason,
+        tenant_safe_explanation=explanation,
+        evidence_refs=refs,
+        attributes={
+            "anchor_reason": anchor_reason,
+            "finding_count": str(len(findings)),
+        },
+    )

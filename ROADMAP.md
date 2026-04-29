@@ -309,7 +309,7 @@
 - [x] Freeze a structured `SafetyEvent` schema as the single halt-reason record
   emitted by streaming, containment, attestation, ontology, trajectory, and
   cyber-physical hooks.
-- [ ] Wire every safety hook to emit `SafetyEvent` records with hook id, evidence
+- [x] Wire every safety hook to emit `SafetyEvent` records with hook id, evidence
   reference, policy decision, threshold, latency, and tenant-safe explanation.
 - [ ] Add trace tests proving multi-hook halt attribution remains stable across
   streaming, swarm, and physical-precheck paths.

@@ -211,11 +211,16 @@ class CoherenceAgent:
             return result
         verdict = guard.check({"text": result.output, "prompt": prompt}, anchor)
         if verdict.decision != "block":
+            if verdict.safety_event is not None:
+                result.safety_events = (*result.safety_events, verdict.safety_event)
             return result
 
         reasons = "; ".join(f"{f.category}:{f.severity}" for f in verdict.findings)
         if verdict.anchor_reason:
             reasons = verdict.anchor_reason + (f"; {reasons}" if reasons else "")
+        safety_events = result.safety_events + (
+            (verdict.safety_event,) if verdict.safety_event is not None else ()
+        )
         return ReviewResult(
             output="[CONTAINMENT-BLOCK]: Output suppressed by containment guard.",
             coherence=result.coherence,
@@ -231,6 +236,7 @@ class CoherenceAgent:
                 suggested_action=("Review the containment findings: " + reasons),
             ),
             fallback_used=result.fallback_used,
+            safety_events=safety_events,
         )
 
     def verify_physical_action(self, action: PhysicalAction) -> GroundingVerdict:

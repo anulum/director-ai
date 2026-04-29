@@ -105,7 +105,9 @@ applies the decision matrix:
    finding is `"block"`, medium is `"warn"`, clean is `"allow"`.
 
 The `ContainmentVerdict` exposes `decision`, `findings` and
-`anchor_reason` so the caller can log every branch distinctly.
+`anchor_reason` so the caller can log every branch distinctly. It also
+carries `safety_event`, a tenant-safe `SafetyEvent` with the hook id,
+policy decision, evidence references, and operator explanation.
 
 ## CoherenceAgent wiring
 
@@ -122,4 +124,5 @@ The two kwargs are enforced together — configuring one without the
 other raises `ValueError`. Once wired, every call to `agent.process`
 runs the output text through the guard before returning; a block
 verdict converts the `ReviewResult` into a halted one whose
-`halt_evidence.suggested_action` lists the findings.
+`halt_evidence.suggested_action` lists the findings. The same
+containment event is appended to `ReviewResult.safety_events`.

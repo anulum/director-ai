@@ -81,6 +81,25 @@ class TestSafetyEventSchema:
         assert payload["trace_attribution"]["token_offset"] == 3
         assert payload["latency_ms"] == 12.4
 
+    def test_from_policy_decision(self):
+        event = SafetyEvent.from_policy_decision(
+            hook_id="containment.guard",
+            hook_scope="containment",
+            policy_decision="block",
+            halt_reason="containment_block",
+            tenant_safe_explanation="Containment guard blocked the action.",
+            event_id="sevt_policy",
+            timestamp="2026-04-29T12:00:00Z",
+            threshold=0.7,
+            observed_score=0.2,
+            evidence_refs=("containment:policy:high",),
+            attributes={"finding_count": "1"},
+        )
+
+        assert event.event_id == "sevt_policy"
+        assert event.evidence_refs == ("containment:policy:high",)
+        assert event.attributes["finding_count"] == "1"
+
     @pytest.mark.parametrize(
         "field,value",
         [

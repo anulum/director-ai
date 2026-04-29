@@ -128,7 +128,9 @@ different passport layout.
 - `verify(passport)` returns a `PassportVerdict` with `accepted`,
   `signature_ok`, and `failures: tuple[(statement_name, reason), ...]`
   so the receiving org can distinguish cryptographic rejection from
-  behavioural non-conformance.
+  behavioural non-conformance. The verdict also includes
+  `safety_event`, using the `zk_attestation.passport` hook id and
+  tenant-safe failure references.
 
 ## CoherenceAgent wiring
 

@@ -49,6 +49,7 @@ Return type from `CoherenceAgent.process()`.
 | `candidates_evaluated` | `int` | Number of candidates generated |
 | `fallback_used` | `bool` | Whether a fallback was activated |
 | `halt_evidence` | `HaltEvidence \| None` | Structured halt reason |
+| `safety_events` | `tuple[SafetyEvent, ...]` | Tenant-safe hook decisions emitted during review |
 
 ---
 
@@ -178,6 +179,17 @@ event = SafetyEvent.from_halt_evidence(
 
 payload = event.to_dict()
 ```
+
+Runtime hook verdicts now carry this schema directly:
+
+| Hook | Event field |
+|------|-------------|
+| Streaming | `TokenEvent.safety_event`, `StreamSession.safety_events` |
+| Containment | `ContainmentVerdict.safety_event`, plus `ReviewResult.safety_events` when attached to `CoherenceAgent` |
+| Cyber-physical | `GroundingVerdict.safety_event` |
+| Attestation | `PassportVerdict.safety_event` |
+| Ontology | `OntologyViolation.safety_event` |
+| Trajectory | `PreflightVerdict.safety_event` |
 
 ## CounterfactualHaltDiagnostic {: #counterfactualhaltdiagnostic }
 

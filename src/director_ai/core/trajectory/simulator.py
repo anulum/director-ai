@@ -31,9 +31,12 @@ from __future__ import annotations
 import logging
 import math
 import statistics
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Literal, Protocol
+
+from ..safety_event import SafetyEvent
 
 logger = logging.getLogger("DirectorAI.Trajectory")
 
@@ -95,6 +98,7 @@ class PreflightVerdict:
     recommended: Action
     reason: str
     trajectories: tuple[TrajectoryResult, ...] = field(default_factory=tuple)
+    safety_event: SafetyEvent | None = None
 
     @property
     def min_coherence(self) -> float:
@@ -177,6 +181,7 @@ class TrajectorySimulator:
         for live observability sinks that want to stream
         intermediate results without waiting for the aggregate.
         """
+        start = time.monotonic()
         trajectories: list[TrajectoryResult] = []
         coherences: list[float] = []
         halts = 0
@@ -210,6 +215,7 @@ class TrajectorySimulator:
         std = statistics.stdev(coherences) if len(coherences) >= 2 else 0.0
         ci_low, ci_high = _credible_interval(coherences, self._ci_level)
         action, reason = self._decide(halt_rate, mean)
+        latency_ms = (time.monotonic() - start) * 1000.0
         return PreflightVerdict(
             n_simulations=self._n_simulations,
             halt_rate=halt_rate,
@@ -220,6 +226,16 @@ class TrajectorySimulator:
             recommended=action,
             reason=reason,
             trajectories=tuple(trajectories),
+            safety_event=_event_for_verdict(
+                action=action,
+                reason=reason,
+                halt_rate=halt_rate,
+                mean=mean,
+                halt_threshold=self._halt_rate_halt,
+                warn_threshold=self._halt_rate_warn,
+                latency_ms=latency_ms,
+                trajectories=tuple(trajectories),
+            ),
         )
 
     def _decide(self, halt_rate: float, mean: float) -> tuple[Action, str]:
@@ -259,4 +275,36 @@ def _credible_interval(samples: list[float], level: float) -> tuple[float, float
     return (
         ordered[max(0, min(n - 1, math.floor(lo * n)))],
         ordered[max(0, min(n - 1, math.ceil(hi * n) - 1))],
+    )
+
+
+def _event_for_verdict(
+    *,
+    action: Action,
+    reason: str,
+    halt_rate: float,
+    mean: float,
+    halt_threshold: float,
+    warn_threshold: float,
+    latency_ms: float,
+    trajectories: tuple[TrajectoryResult, ...],
+) -> SafetyEvent:
+    decision = "allow" if action == "proceed" else action
+    threshold = halt_threshold if action == "halt" else warn_threshold
+    failed = tuple(t for t in trajectories if not t.approved)
+    return SafetyEvent.from_policy_decision(
+        hook_id="trajectory.preflight",
+        hook_scope="trajectory",
+        policy_decision=decision,
+        halt_reason=f"trajectory_{action}",
+        threshold=threshold,
+        observed_score=max(0.0, min(1.0, 1.0 - halt_rate)),
+        latency_ms=latency_ms,
+        tenant_safe_explanation=reason,
+        evidence_refs=tuple(f"trajectory:{t.trajectory_id}" for t in failed),
+        attributes={
+            "halt_rate": f"{halt_rate:.6f}",
+            "mean_coherence": f"{mean:.6f}",
+            "n_simulations": str(len(trajectories)),
+        },
     )

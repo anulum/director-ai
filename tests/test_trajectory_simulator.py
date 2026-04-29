@@ -134,6 +134,8 @@ class TestProceedBand:
         assert verdict.min_coherence == pytest.approx(0.9)
         assert verdict.max_coherence == pytest.approx(0.9)
         assert "halt_rate=" in verdict.reason
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.policy_decision == "allow"
 
 
 class TestWarnBand:
@@ -150,6 +152,8 @@ class TestWarnBand:
         assert verdict.recommended == "warn"
         assert verdict.halt_rate == pytest.approx(0.25)
         assert "warn_threshold" in verdict.reason
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.policy_decision == "warn"
 
 
 class TestHaltBand:
@@ -164,6 +168,9 @@ class TestHaltBand:
         assert verdict.recommended == "halt"
         assert verdict.halt_rate == pytest.approx(0.75)
         assert "halt_threshold" in verdict.reason
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.policy_decision == "halt"
+        assert "trajectory:0" in verdict.safety_event.evidence_refs
 
 
 class TestDeterminism:

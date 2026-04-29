@@ -64,6 +64,7 @@ simulator = TrajectorySimulator(
 
 verdict = simulator.preflight("What is the capital of France?")
 print(verdict.recommended)  # "proceed" / "warn" / "halt"
+print(verdict.safety_event.policy_decision)
 print(f"halt_rate={verdict.halt_rate:.2f} mean_coh={verdict.mean_coherence:.3f}")
 for t in verdict.trajectories:
     print(f"  traj {t.trajectory_id}: coh={t.final_coherence:.3f} ok={t.approved}")
@@ -81,6 +82,10 @@ The thresholds are configurable per deployment. Medical and
 financial domains typically tighten both bounds (`warn=0.10`,
 `halt=0.25`) so marginal prompts get NLI scoring; creative or
 chat domains widen them (`warn=0.40`, `halt=0.70`).
+
+`PreflightVerdict.safety_event` records the same action band as an
+allow/warn/halt decision with the `trajectory.preflight` hook id,
+halt-rate threshold, latency, and failed trajectory references.
 
 ## Observing individual draws
 

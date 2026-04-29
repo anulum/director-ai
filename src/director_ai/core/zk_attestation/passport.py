@@ -31,6 +31,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from hashlib import sha256
 
+from ..safety_event import SafetyEvent
 from .backends import AttestationBackend, CommitmentBackend
 from .statements import AttestationStatement, HistorySample
 
@@ -111,6 +112,7 @@ class PassportVerdict:
     accepted: bool
     signature_ok: bool
     failures: tuple[tuple[str, str], ...]
+    safety_event: SafetyEvent | None = None
 
     def summary(self) -> str:
         if self.accepted:
@@ -257,17 +259,23 @@ class PassportVerifier:
     def verify(self, passport: CrossOrgPassport) -> PassportVerdict:
         key = self.issuer_keys.get(passport.issuing_org)
         if key is None:
+            failure_tuple: tuple[tuple[str, str], ...] = (
+                ("_passport", "unknown_issuing_org"),
+            )
             return PassportVerdict(
                 accepted=False,
                 signature_ok=False,
-                failures=(("_passport", "unknown_issuing_org"),),
+                failures=failure_tuple,
+                safety_event=_event_for_verdict(False, False, failure_tuple),
             )
         expected = hmac.new(key, passport.canonical_header, sha256).hexdigest()
         if not hmac.compare_digest(expected, passport.mac):
+            failure_tuple = (("_passport", "mac_mismatch"),)
             return PassportVerdict(
                 accepted=False,
                 signature_ok=False,
-                failures=(("_passport", "mac_mismatch"),),
+                failures=failure_tuple,
+                safety_event=_event_for_verdict(False, False, failure_tuple),
             )
 
         failures: list[tuple[str, str]] = []
@@ -282,10 +290,13 @@ class PassportVerifier:
             if not ok:
                 failures.append((entry.statement.name, reason))
 
+        accepted = not failures
+        failure_tuple = tuple(failures)
         return PassportVerdict(
-            accepted=not failures,
+            accepted=accepted,
             signature_ok=True,
-            failures=tuple(failures),
+            failures=failure_tuple,
+            safety_event=_event_for_verdict(accepted, True, failure_tuple),
         )
 
 
@@ -315,3 +326,29 @@ def _canonical_header(
 
 def _escape(value: str) -> str:
     return value.replace("\\", "\\\\").replace("|", "\\|")
+
+
+def _event_for_verdict(
+    accepted: bool,
+    signature_ok: bool,
+    failures: tuple[tuple[str, str], ...],
+) -> SafetyEvent:
+    return SafetyEvent.from_policy_decision(
+        hook_id="zk_attestation.passport",
+        hook_scope="attestation",
+        policy_decision="allow" if accepted else "block",
+        halt_reason="attestation_passed" if accepted else "attestation_failed",
+        observed_score=1.0 if accepted else 0.0,
+        tenant_safe_explanation=(
+            "Attestation passport accepted."
+            if accepted
+            else f"Attestation passport rejected with {len(failures)} failure(s)."
+        ),
+        evidence_refs=tuple(
+            f"attestation:{name}:{reason}" for name, reason in failures
+        ),
+        attributes={
+            "signature_ok": str(signature_ok).lower(),
+            "failure_count": str(len(failures)),
+        },
+    )

@@ -16,6 +16,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+from ..safety_event import SafetyEvent
 from .constraints import PhysicalConstraint
 from .kinematics import KinematicModel, PhysicalAction
 
@@ -35,6 +36,7 @@ class GroundingVerdict:
     action: PhysicalAction
     allowed: bool
     violations: tuple[Violation, ...] = field(default_factory=tuple)
+    safety_event: SafetyEvent | None = None
 
     @property
     def any_violation(self) -> bool:
@@ -100,10 +102,12 @@ class GroundingHook:
             reason = constraint.evaluate(action, self._model)
             if reason is not None:
                 violations.append(Violation(constraint=constraint.name, reason=reason))
+        allowed = not violations
         return GroundingVerdict(
             action=action,
-            allowed=not violations,
+            allowed=allowed,
             violations=tuple(violations),
+            safety_event=_event_for_verdict(allowed, tuple(violations)),
         )
 
     @property
@@ -113,3 +117,24 @@ class GroundingHook:
     @property
     def constraints(self) -> tuple[PhysicalConstraint, ...]:
         return self._constraints
+
+
+def _event_for_verdict(allowed: bool, violations: tuple[Violation, ...]) -> SafetyEvent:
+    return SafetyEvent.from_policy_decision(
+        hook_id="cyber_physical.grounding",
+        hook_scope="cyber_physical",
+        policy_decision="allow" if allowed else "block",
+        halt_reason=(
+            "physical_action_allow" if allowed else "physical_constraint_violation"
+        ),
+        observed_score=1.0 if allowed else 0.0,
+        tenant_safe_explanation=(
+            "Physical action allowed."
+            if allowed
+            else f"Physical action blocked by {len(violations)} constraint(s)."
+        ),
+        evidence_refs=tuple(
+            f"physical:{violation.constraint}" for violation in violations
+        ),
+        attributes={"violation_count": str(len(violations))},
+    )

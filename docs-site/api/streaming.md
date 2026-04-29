@@ -103,6 +103,7 @@ Tracks the complete state of a streaming oversight session.
 | `halt_index` | `int` | Token index where halt occurred (-1 if none) |
 | `halt_reason` | `str` | Which mechanism triggered halt |
 | `halt_evidence_structured` | `HaltEvidence \| None` | Structured evidence with chunks |
+| `safety_events` | `list[SafetyEvent]` | Tenant-safe halt event records |
 | `token_count` | `int` | Total tokens processed |
 | `warning_count` | `int` | Tokens in soft warning zone |
 | `events` | `list[TokenEvent]` | Full event trace |
@@ -127,6 +128,7 @@ A single token event in the stream.
 | `halted` | `bool` | Whether this token triggered halt |
 | `warning` | `bool` | Whether this token is in warning zone |
 | `halt_evidence` | `HaltEvidence \| None` | Evidence if halt triggered |
+| `safety_event` | `SafetyEvent \| None` | Tenant-safe event if this token triggered halt |
 
 ---
 

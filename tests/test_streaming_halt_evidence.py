@@ -43,6 +43,10 @@ class TestHaltWithScorer:
         )
         assert session.halted
         assert session.halt_evidence_structured is not None
+        assert len(session.safety_events) == 1
+        assert session.safety_events[0].hook_scope == "streaming"
+        assert session.safety_events[0].policy_decision == "halt"
+        assert session.events[-1].safety_event is session.safety_events[0]
         assert isinstance(session.halt_evidence_structured, HaltEvidence)
         assert session.halt_evidence_structured.reason
         assert session.halt_evidence_structured.suggested_action
@@ -70,6 +74,9 @@ class TestHaltWithScorer:
         session = kernel.stream_tokens(iter(["bad"]), always_low)
         assert session.halted
         assert session.halt_evidence_structured is None
+        assert len(session.safety_events) == 1
+        assert session.safety_events[0].hook_id == "streaming.kernel"
+        assert session.safety_events[0].tenant_safe_explanation
 
 
 class TestHaltEventField:

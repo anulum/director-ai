@@ -11,6 +11,10 @@ from __future__ import annotations
 import logging
 import math
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .safety_event import SafetyEvent
 
 __all__ = [
     "ClaimAttribution",
@@ -283,3 +287,4 @@ class ReviewResult:
     candidates_evaluated: int  # Number of candidates scored
     fallback_used: bool = False
     halt_evidence: HaltEvidence | None = None
+    safety_events: tuple[SafetyEvent, ...] = ()
