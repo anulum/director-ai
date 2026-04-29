@@ -198,7 +198,7 @@ class TestGroundingFeatureMatrix:
         assert verdict.allowed is True
         assert verdict.violations == ()
 
-    def test_failure_surfaces_violation_details(self):
+    def test_failure_surfaces_warning_details(self):
         agent = _fresh_agent(grounding_hook=_make_hook(workspace_bounds=2.0))
         action = PhysicalAction(
             actuator_id="arm",
@@ -207,8 +207,27 @@ class TestGroundingFeatureMatrix:
             torque_magnitude=0.5,
         )
         verdict = agent.verify_physical_action(action)
-        assert verdict.allowed is False
+        assert verdict.allowed is True
         assert any(v.constraint == "cell" for v in verdict.violations)
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.policy_decision == "warn"
+
+    def test_blocking_failure_requires_explicit_flag(self):
+        agent = _fresh_agent(
+            grounding_hook=_make_hook(workspace_bounds=2.0),
+            physical_action_mode="block",
+            allow_physical_action_blocking=True,
+        )
+        action = PhysicalAction(
+            actuator_id="arm",
+            target_position=Vec3(1000.0, 0.0, 0.0),
+            velocity_magnitude=0.1,
+            torque_magnitude=0.5,
+        )
+        verdict = agent.verify_physical_action(action)
+        assert verdict.allowed is False
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.policy_decision == "block"
 
 
 # ─── passport feature matrix ──────────────────────────────────────

@@ -154,6 +154,20 @@ class TestGroundingWiring:
         with pytest.raises(RuntimeError, match="grounding_hook"):
             agent.verify_physical_action(action)
 
+    def test_blocking_mode_requires_explicit_flag(self):
+        with pytest.raises(ValueError, match="allow_physical_action_blocking"):
+            _agent(
+                grounding_hook=self._make_hook(),
+                physical_action_mode="block",
+            )
+
+    def test_bad_physical_mode_rejected(self):
+        with pytest.raises(ValueError, match="physical_action_mode"):
+            _agent(
+                grounding_hook=self._make_hook(),
+                physical_action_mode="halt",
+            )
+
     def test_allowed_action_returns_allow(self):
         agent = _agent(grounding_hook=self._make_hook())
         action = PhysicalAction(
@@ -167,7 +181,7 @@ class TestGroundingWiring:
         assert verdict.safety_event is not None
         assert verdict.safety_event.policy_decision == "allow"
 
-    def test_out_of_workspace_action_rejected(self):
+    def test_out_of_workspace_action_warns_by_default(self):
         agent = _agent(grounding_hook=self._make_hook())
         action = PhysicalAction(
             actuator_id="arm",
@@ -176,11 +190,29 @@ class TestGroundingWiring:
             torque_magnitude=0.5,
         )
         verdict = agent.verify_physical_action(action)
-        assert verdict.allowed is False
+        assert verdict.allowed is True
         assert any(v.constraint == "room" for v in verdict.violations)
         assert verdict.safety_event is not None
-        assert verdict.safety_event.policy_decision == "block"
+        assert verdict.safety_event.policy_decision == "warn"
         assert "physical:room" in verdict.safety_event.evidence_refs
+        assert verdict.safety_event.attributes["enforcement"] == "warn_only"
+
+    def test_out_of_workspace_action_blocks_with_explicit_flag(self):
+        agent = _agent(
+            grounding_hook=self._make_hook(),
+            physical_action_mode="block",
+            allow_physical_action_blocking=True,
+        )
+        action = PhysicalAction(
+            actuator_id="arm",
+            target_position=Vec3(1000.0, 0.0, 0.0),
+            velocity_magnitude=0.1,
+            torque_magnitude=0.5,
+        )
+        verdict = agent.verify_physical_action(action)
+        assert verdict.allowed is False
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.policy_decision == "block"
 
 
 # --- passport wiring -----------------------------------------------

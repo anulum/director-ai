@@ -390,7 +390,7 @@ Last updated: 2026-04-29
 - [x] Add async contract tests and property-based fuzzing for the
   cyber-physical -> HaltMonitor path, including streaming races and cancelled
   actions.
-- [ ] Make physical hooks warn-only by default and require an explicit
+- [x] Make physical hooks warn-only by default and require an explicit
   high-risk physical deployment flag before any blocking real-world action path
   is enabled.
 - [ ] Put ROS 2, MuJoCo, CARLA, and similar adapters behind a separate

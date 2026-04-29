@@ -72,6 +72,8 @@ class CoherenceAgent:
         containment_anchor: RealityAnchor | None = None,
         grounding_hook: GroundingHook | None = None,
         passport_verifier: PassportVerifier | None = None,
+        physical_action_mode: str = "warn",
+        allow_physical_action_blocking: bool = False,
     ):
         self.logger = logging.getLogger("CoherenceAgent")
         self.fallback = fallback
@@ -84,6 +86,13 @@ class CoherenceAgent:
             raise ValueError(
                 "containment_guard and containment_anchor must be "
                 "configured together (both or neither)"
+            )
+        if physical_action_mode not in {"warn", "block"}:
+            raise ValueError("physical_action_mode must be 'warn' or 'block'")
+        if physical_action_mode == "block" and not allow_physical_action_blocking:
+            raise ValueError(
+                "physical_action_mode='block' requires "
+                "allow_physical_action_blocking=True"
             )
 
         if provider:
@@ -113,6 +122,8 @@ class CoherenceAgent:
         self.containment_anchor = containment_anchor
         self.grounding_hook = grounding_hook
         self.passport_verifier = passport_verifier
+        self.physical_action_mode = physical_action_mode
+        self.allow_physical_action_blocking = allow_physical_action_blocking
 
     def _build_scorer(self, use_nli):
         """Construct scorer, preferring Rust backend when installed."""
@@ -246,7 +257,50 @@ class CoherenceAgent:
         """
         if self.grounding_hook is None:
             raise RuntimeError("grounding_hook not configured on this CoherenceAgent")
-        return self.grounding_hook.evaluate(action)
+        verdict = self.grounding_hook.evaluate(action)
+        if verdict.allowed or self.physical_action_mode == "block":
+            return verdict
+        return self._warn_only_grounding_verdict(verdict)
+
+    @staticmethod
+    def _warn_only_grounding_verdict(
+        verdict: GroundingVerdict,
+    ) -> GroundingVerdict:
+        """Convert a physical block verdict into an advisory verdict."""
+        from .cyber_physical import GroundingVerdict
+        from .safety_event import SafetyEvent
+
+        event = verdict.safety_event
+        evidence_refs = (
+            event.evidence_refs
+            if event is not None
+            else tuple(f"physical:{v.constraint}" for v in verdict.violations)
+        )
+        attributes = dict(event.attributes) if event is not None else {}
+        attributes["enforcement"] = "warn_only"
+        attributes["source_policy_decision"] = (
+            event.policy_decision if event is not None else "block"
+        )
+        return GroundingVerdict(
+            action=verdict.action,
+            allowed=True,
+            violations=verdict.violations,
+            safety_event=SafetyEvent.from_policy_decision(
+                hook_id="cyber_physical.grounding",
+                hook_scope="cyber_physical",
+                policy_decision="warn",
+                halt_reason="physical_constraint_warning",
+                observed_score=(
+                    event.observed_score if event is not None else 0.0
+                ),
+                tenant_safe_explanation=(
+                    "Physical action has constraint warnings; blocking requires "
+                    "the explicit physical action blocking flag."
+                ),
+                evidence_refs=evidence_refs,
+                attributes=attributes,
+            ),
+        )
 
     def verify_passport(self, passport: CrossOrgPassport) -> PassportVerdict:
         """Run the configured passport verifier against *passport*.
