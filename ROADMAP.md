@@ -275,6 +275,14 @@
 - [x] Evaluate extracting the Rust kernel and formal proof artefacts into a
   separately versioned package/repository so core users do not inherit that
   build surface.
+- [ ] Add a public Safety Surface Map to `ARCHITECTURE.md` that separates
+  default streaming/HaltMonitor hooks from opt-in advanced hooks and disabled
+  research modules.
+- [ ] Consolidate overlapping safety modules into fewer named responsibilities,
+  with a deprecation map for duplicate meta-guard, self-evolution,
+  counterfactual, provenance, and attestation paths.
+- [ ] Move disabled research hooks behind an explicit experimental namespace or
+  feature flag so users do not mistake exploratory modules for default coverage.
 
 ### Presets, Tuning, and Configuration UX (Planned)
 - [x] Add profile metadata that states validation status, expected false-halt risk,
@@ -298,6 +306,13 @@
 - [ ] Export counterfactual and halt-cause fields as OpenTelemetry attributes.
 - [ ] Extend the UI with a visual trace explorer for agent, swarm, and streaming
   halt events.
+- [ ] Freeze a structured `SafetyEvent` schema as the single halt-reason record
+  emitted by streaming, containment, attestation, ontology, trajectory, and
+  cyber-physical hooks.
+- [ ] Wire every safety hook to emit `SafetyEvent` records with hook id, evidence
+  reference, policy decision, threshold, latency, and tenant-safe explanation.
+- [ ] Add trace tests proving multi-hook halt attribution remains stable across
+  streaming, swarm, and physical-precheck paths.
 
 ### Benchmark Transparency and External Validation (Planned)
 - [ ] Publish raw benchmark runners, dataset manifests, cache schema, and
@@ -317,6 +332,12 @@
   Python services.
 - [ ] Add supply-chain notes for torch, transformers, ONNX Runtime, Chroma, and
   other heavy optional dependencies.
+- [ ] Add a tested airgap install example for the full safety stack, including
+  local wheelhouse, pinned model revisions, ONNX artefacts, and optional Rust
+  kernel wheels.
+- [ ] Convert the Rust kernel extraction decision into an execution plan:
+  standalone crate API, versioning policy, Python wheel contract, proof artefact
+  boundary, and release CI.
 
 ### Security Follow-Ups (Planned)
 - [ ] Add signed knowledge-base entries plus strict write ACLs for ingestion APIs.
@@ -329,6 +350,18 @@
 - [ ] Add a nightly live red-team workflow against current jailbreak/evasion
   datasets and the full scorer pyramid.
 - [ ] Publish a monthly public adversarial validation update in `VALIDATION.md`.
+- [ ] Add async contract tests and property-based fuzzing for the
+  cyber-physical -> HaltMonitor path, including streaming races and cancelled
+  actions.
+- [ ] Make physical hooks warn-only by default and require an explicit
+  high-risk physical deployment flag before any blocking real-world action path
+  is enabled.
+- [ ] Put ROS 2, MuJoCo, CARLA, and similar adapters behind a separate
+  `[physical]` extra with pinned dependency guidance and isolation notes.
+- [ ] Add per-tenant budgets for inverse-kinematics solving, simulation checks,
+  and physical action validation to prevent denial-of-service payloads.
+- [ ] Extend the external security test packet to cover physical hooks,
+  attestation, and cross-language trust-boundary failures.
 
 ### Knowledge-Base Governance (Planned)
 - [ ] Add semantic versioning for `VectorGroundTruthStore` facts and derived
@@ -361,3 +394,13 @@
   option with drift and evasion checks.
 - [ ] Publish a structured Director Safety Event schema for uniform halt telemetry
   across inference servers and downstream tools.
+- [ ] Add a live physical-world grounding loop that compares sensor-fusion state
+  with claimed state before and after high-risk actions.
+- [ ] Design an agent passport registry for verifiable coherence history across
+  organisational hand-offs.
+- [ ] Promote irreversibility forecasting into the default policy path for actions
+  above a calibrated risk threshold.
+- [ ] Unify defence registry, self-evolution, and continual adversarial testing
+  into one reviewed defence-update pipeline.
+- [ ] Publish the Director safety telemetry schema as an independent
+  interoperability specification for inference servers and agent frameworks.
