@@ -132,7 +132,7 @@ def _print_help() -> None:
         "  ingest <file>         Ingest documents (txt/md/pdf/docx/html/csv)\n"
         "  eval [--dataset D]    Run NLI benchmark suite\n"
         "  bench [--dataset D] [--seed N] [--output F]  Run regression benchmarks\n"
-        "  tune <file.jsonl> [--output config.yaml]  Find optimal threshold\n"
+        "  tune <file.jsonl>|--dataset D [--output config.yaml]  Tune profile overlay\n"
         "  train submit [options]  Submit or dry-run a managed training job\n"
         "  finetune <train.jsonl> [options]  Fine-tune NLI model on domain data\n"
         "  validate-data <file.jsonl>       Validate data before fine-tuning\n"

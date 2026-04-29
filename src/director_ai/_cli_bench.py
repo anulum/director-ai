@@ -235,17 +235,41 @@ def _cmd_tune(args: list[str]) -> None:
     ``{"prompt": str, "response": str, "label": bool}``.
     """
     if not args:
-        print("Usage: director-ai tune <labeled.jsonl> [--output config.yaml]")
+        print(
+            "Usage: director-ai tune <labeled.jsonl>|--dataset <eval.jsonl> "
+            "[--profile P] [--output config.yaml]",
+        )
         sys.exit(1)
 
     import os
 
-    input_file = args[0]
+    input_file = ""
     output_file = None
-    if "--output" in args:
-        idx = args.index("--output")
-        if idx + 1 < len(args):  # pragma: no branch
-            output_file = args[idx + 1]
+    profile = "tuned"
+    base_profile = ""
+
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg == "--dataset" and i + 1 < len(args):
+            input_file = args[i + 1]
+            i += 2
+        elif arg == "--output" and i + 1 < len(args):
+            output_file = args[i + 1]
+            i += 2
+        elif arg == "--profile" and i + 1 < len(args):
+            base_profile = args[i + 1]
+            profile = f"{base_profile}_tuned"
+            i += 2
+        elif not arg.startswith("-") and not input_file:
+            input_file = arg
+            i += 1
+        else:
+            i += 1
+
+    if not input_file:
+        print("Error: missing dataset file")
+        sys.exit(1)
 
     if not os.path.isfile(input_file):
         print(f"Error: file not found: {input_file}")
@@ -271,7 +295,7 @@ def _cmd_tune(args: list[str]) -> None:
         print("Error: no valid samples found")
         sys.exit(1)
 
-    from director_ai.core.training.tuner import tune
+    from director_ai.core.training.tuner import format_profile_overlay, tune
 
     result = tune(samples)
 
@@ -286,11 +310,13 @@ def _cmd_tune(args: list[str]) -> None:
     if output_file:
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(
-                f"coherence_threshold: {result.threshold}\n"
-                f"w_logic: {result.w_logic}\n"
-                f"w_fact: {result.w_fact}\n",
+                format_profile_overlay(
+                    result,
+                    profile=profile,
+                    base_profile=base_profile,
+                ),
             )
-        print(f"Config written to {output_file}")
+        print(f"Profile overlay written to {output_file}")
 
 
 def _cmd_finetune(args: list[str]) -> None:

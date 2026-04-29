@@ -100,7 +100,7 @@ director-ai quickstart --profile customer_support --run
 Tune against a labelled evaluation set before production:
 
 ```bash
-director-ai tune my_eval.jsonl --output tuned_config.yaml
+director-ai tune --dataset my_eval.jsonl --profile medical --output medical_tuned.yaml
 ```
 
 Load via environment variable:

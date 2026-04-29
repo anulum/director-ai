@@ -19,7 +19,7 @@ import tempfile
 
 import pytest
 
-from director_ai.core.tuner import TuneResult, tune
+from director_ai.core.tuner import TuneResult, format_profile_overlay, tune
 
 
 def _synthetic_samples():
@@ -63,6 +63,39 @@ class TestTuner:
         )
         assert result.threshold == 0.5
         assert result.w_logic == 0.6
+
+    def test_result_profile_overlay(self):
+        result = tune(
+            _synthetic_samples(),
+            thresholds=[0.5],
+            weight_pairs=[(0.6, 0.4)],
+        )
+        overlay = result.to_profile_overlay(
+            profile="medical_tuned",
+            base_profile="medical",
+        )
+        assert overlay["profile"] == "medical_tuned"
+        assert overlay["coherence_threshold"] == 0.5
+        assert overlay["hard_limit"] == 0.4
+        assert overlay["soft_limit"] == 0.6
+        assert overlay["w_logic"] == 0.6
+        assert overlay["w_fact"] == 0.4
+        assert overlay["extra"]["tuned_from_profile"] == "medical"
+
+    def test_format_profile_overlay_yaml(self):
+        result = tune(
+            _synthetic_samples(),
+            thresholds=[0.5],
+            weight_pairs=[(0.6, 0.4)],
+        )
+        content = format_profile_overlay(
+            result,
+            profile="finance_tuned",
+            base_profile="finance",
+        )
+        assert 'profile: "finance_tuned"' in content
+        assert "coherence_threshold: 0.5" in content
+        assert 'tuned_from_profile: "finance"' in content
 
 
 class TestTuneCLI:
@@ -108,6 +141,36 @@ class TestTuneCLI:
         with open(outpath, encoding="utf-8") as f:
             content = f.read()
         assert "coherence_threshold" in content
+        assert "hard_limit" in content
+        assert "extra:" in content
+
+    def test_cli_dataset_profile_overlay(self):
+        from director_ai.cli import main
+
+        samples = _synthetic_samples()
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=".jsonl",
+            delete=False,
+            encoding="utf-8",
+        ) as f:
+            for s in samples:
+                f.write(json.dumps(s) + "\n")
+            inpath = f.name
+
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            suffix=".yaml",
+            delete=False,
+            encoding="utf-8",
+        ) as out:
+            outpath = out.name
+
+        main(["tune", "--dataset", inpath, "--profile", "medical", "--output", outpath])
+        with open(outpath, encoding="utf-8") as f:
+            content = f.read()
+        assert 'profile: "medical_tuned"' in content
+        assert 'tuned_from_profile: "medical"' in content
 
     def test_cli_empty_file(self):
         from director_ai.cli import main

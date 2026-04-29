@@ -279,7 +279,7 @@
 ### Presets, Tuning, and Configuration UX (Planned)
 - [x] Add profile metadata that states validation status, expected false-halt risk,
   required dependencies, and intended workload for each preset.
-- [ ] Extend `director-ai tune --dataset <eval.jsonl>` output so it can write a
+- [x] Extend `director-ai tune --dataset <eval.jsonl>` output so it can write a
   ready-to-use profile overlay, not just threshold and weight suggestions.
 - [ ] Make the Gradio UI from the `[ui]` extra the primary configuration wizard:
   profile selection, threshold tuning, facts ingestion, and calibration feedback.

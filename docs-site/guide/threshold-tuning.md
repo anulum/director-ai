@@ -172,7 +172,19 @@ for t in thresholds:
     print(f"  threshold={t:.1f}  P={precision:.2f}  R={recall:.2f}  F1={f1:.2f}")
 ```
 
-Or use the CLI: `director-ai bench --dataset e2e` for an automated sweep.
+Or write a ready-to-use profile overlay from a labelled JSONL file:
+
+```bash
+director-ai tune --dataset my_eval.jsonl --profile medical --output medical_tuned.yaml
+```
+
+The output includes `coherence_threshold`, `hard_limit`, `soft_limit`,
+`w_logic`, `w_fact`, and an `extra` block with the tuning metrics and base
+profile. Load it with `DirectorConfig.from_yaml(...)` or merge it over
+`DirectorConfig.from_profile("medical")`.
+
+Use `director-ai bench --dataset e2e` when you need the built-in regression
+benchmark sweep instead of a customer-specific overlay.
 
 ## Domain Recommendation Table
 
