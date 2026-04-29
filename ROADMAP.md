@@ -265,12 +265,12 @@
   - FastAPI service on port 8000
   - local Chroma persistence under `./chroma`
   - FactCG ONNX service hidden behind `docker compose --profile onnx`
-- [ ] Move non-Python runtime paths into clearly opt-in documentation sections:
+- [x] Move non-Python runtime paths into clearly opt-in documentation sections:
   Rust kernel, Go gateway, Julia threshold tuner, Lean proofs, and WASM.
 - [x] Document the Python-only supported path and add `director-ai doctor`
   runtime-stack audit output.
 - [ ] Collapse setup docs into one recommended path first, then an advanced backend matrix.
-- [ ] Add a "minimal support surface" policy: default Python + FastAPI + local Chroma,
+- [x] Add a "minimal support surface" policy: default Python + FastAPI + local Chroma,
   with every other runtime enabled only by explicit extra, flag, or Compose profile.
 - [ ] Evaluate extracting the Rust kernel and formal proof artefacts into a
   separately versioned package/repository so core users do not inherit that

@@ -27,6 +27,9 @@ Run `director-ai doctor` after enabling optional extras. It reports the active
 runtime stack and warns when environment settings request optional components
 that are not installed.
 
+See [Runtime Boundaries](guide/runtime-boundaries.md) for the supported default
+path and the advanced runtime boundary.
+
 ## Optional Extras
 
 | Extra | Command | Adds |

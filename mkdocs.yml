@@ -124,6 +124,7 @@ nav:
   - Getting Started:
       - Quickstart: quickstart.md
       - Installation: installation.md
+      - Runtime Boundaries: guide/runtime-boundaries.md
       - Why Director-AI: guide/why-director-ai.md
       - vs Prompt Engineering: guide/vs-prompt-engineering.md
   - User Guide:
