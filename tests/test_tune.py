@@ -19,7 +19,14 @@ import tempfile
 
 import pytest
 
-from director_ai.core.tuner import TuneResult, format_profile_overlay, tune
+from director_ai.core.tuner import (
+    BoundaryExample,
+    ThresholdCandidate,
+    TuneResult,
+    format_confidence_report,
+    format_profile_overlay,
+    tune,
+)
 
 
 def _synthetic_samples():
@@ -81,6 +88,9 @@ class TestTuner:
         assert overlay["w_logic"] == 0.6
         assert overlay["w_fact"] == 0.4
         assert overlay["extra"]["tuned_from_profile"] == "medical"
+        assert overlay["extra"]["tune_confidence_level"] in {"low", "medium", "high"}
+        assert "tune_confusion_matrix" in overlay["extra"]
+        assert "tune_tradeoff_summary" in overlay["extra"]
 
     def test_format_profile_overlay_yaml(self):
         result = tune(
@@ -96,10 +106,32 @@ class TestTuner:
         assert 'profile: "finance_tuned"' in content
         assert "coherence_threshold: 0.5" in content
         assert 'tuned_from_profile: "finance"' in content
+        assert "# Confidence report:" in content
+        assert "tune_confidence_level" in content
+
+    def test_confidence_report_contains_tradeoffs_and_boundary_examples(self):
+        result = tune(
+            _synthetic_samples(),
+            thresholds=[0.45, 0.5, 0.55],
+            weight_pairs=[(0.6, 0.4), (0.5, 0.5)],
+        )
+        report = format_confidence_report(result)
+
+        assert result.confidence_level in {"low", "medium", "high"}
+        assert result.selection_margin >= 0.0
+        assert result.positive_samples == 5
+        assert result.negative_samples == 5
+        assert result.evaluated_candidates
+        assert isinstance(result.evaluated_candidates[0], ThresholdCandidate)
+        assert result.boundary_examples
+        assert isinstance(result.boundary_examples[0], BoundaryExample)
+        assert "Trade-off" in report
+        assert "Boundary examples" in report
+        assert "flip_threshold" in report
 
 
 class TestTuneCLI:
-    def test_cli_runs(self):
+    def test_cli_runs(self, capsys):
         from director_ai.cli import main
 
         samples = _synthetic_samples()
@@ -114,6 +146,9 @@ class TestTuneCLI:
             path = f.name
 
         main(["tune", path])
+        captured = capsys.readouterr()
+        assert "Confidence report" in captured.out
+        assert "Selected threshold" in captured.out
 
     def test_cli_output_file(self):
         from director_ai.cli import main

@@ -295,7 +295,11 @@ def _cmd_tune(args: list[str]) -> None:
         print("Error: no valid samples found")
         sys.exit(1)
 
-    from director_ai.core.training.tuner import format_profile_overlay, tune
+    from director_ai.core.training.tuner import (
+        format_confidence_report,
+        format_profile_overlay,
+        tune,
+    )
 
     result = tune(samples)
 
@@ -306,6 +310,7 @@ def _cmd_tune(args: list[str]) -> None:
     print(f"Recall:         {result.recall:.4f}")
     print(f"F1:             {result.f1:.4f}")
     print(f"Samples:        {result.samples}")
+    print(format_confidence_report(result))
 
     if output_file:
         with open(output_file, "w", encoding="utf-8") as f:

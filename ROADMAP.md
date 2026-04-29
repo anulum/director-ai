@@ -287,7 +287,7 @@
   legal, medical, creative drafting, and low-latency edge/offline use.
 - [x] Add YAML starter presets for STEM fact-heavy workflows, code generation,
   multi-agent swarm supervision, voice agents, and high-stakes medical review.
-- [ ] Extend tuner output with a confidence report explaining selected thresholds,
+- [x] Extend tuner output with a confidence report explaining selected thresholds,
   trade-offs, and counterfactual examples near the decision boundary.
 
 ### Agent-Native Observability (Planned)

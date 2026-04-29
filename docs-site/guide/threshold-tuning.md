@@ -183,6 +183,18 @@ The output includes `coherence_threshold`, `hard_limit`, `soft_limit`,
 profile. Load it with `DirectorConfig.from_yaml(...)` or merge it over
 `DirectorConfig.from_profile("medical")`.
 
+The tuner also prints and embeds a confidence report. It records:
+
+- the selected threshold and weight pair
+- the balanced-accuracy margin over the next-best candidate
+- class balance and the selected confusion matrix
+- false-positive and false-negative trade-offs for the top candidate thresholds
+- boundary examples with the score that would flip each decision
+
+Treat a `low` confidence level as a warning to add more labelled examples,
+rebalance the dataset, or inspect the boundary examples before enforcing the
+overlay in production.
+
 Use `director-ai bench --dataset e2e` when you need the built-in regression
 benchmark sweep instead of a customer-specific overlay.
 

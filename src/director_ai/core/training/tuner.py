@@ -8,15 +8,24 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Protocol, cast
 
 from ..scoring.scorer import CoherenceScorer
 
-__all__ = ["TuneResult", "format_profile_overlay", "tune"]
+__all__ = [
+    "BoundaryExample",
+    "ThresholdCandidate",
+    "TuneResult",
+    "format_confidence_report",
+    "format_profile_overlay",
+    "tune",
+]
 
 DEFAULT_THRESHOLDS = [round(0.30 + i * 0.05, 2) for i in range(13)]  # 0.30..0.90
 DEFAULT_WEIGHT_PAIRS = [(0.6, 0.4), (0.5, 0.5), (0.4, 0.6)]
+_REPORT_CANDIDATE_LIMIT = 5
+_REPORT_EXAMPLE_LIMIT = 3
 
 
 class _TuneResultLike(Protocol):
@@ -30,6 +39,48 @@ class _TuneResultLike(Protocol):
     samples: int
 
 
+@dataclass(frozen=True)
+class ThresholdCandidate:
+    """Metrics for one evaluated threshold and weight pair."""
+
+    threshold: float
+    w_logic: float
+    w_fact: float
+    balanced_accuracy: float
+    precision: float
+    recall: float
+    f1: float
+    false_positive_rate: float
+    false_negative_rate: float
+    tp: int
+    fp: int
+    tn: int
+    fn: int
+
+
+@dataclass(frozen=True)
+class BoundaryExample:
+    """Sample closest to the selected decision boundary."""
+
+    sample_index: int
+    score: float
+    label: bool
+    predicted: bool
+    margin: float
+    counterfactual_threshold: float
+    prompt_excerpt: str
+    response_excerpt: str
+
+
+@dataclass(frozen=True)
+class _ScoredSample:
+    sample_index: int
+    score: float
+    label: bool
+    prompt: str
+    response: str
+
+
 @dataclass
 class TuneResult:
     threshold: float
@@ -40,6 +91,17 @@ class TuneResult:
     recall: float
     f1: float
     samples: int
+    tp: int = 0
+    fp: int = 0
+    tn: int = 0
+    fn: int = 0
+    positive_samples: int = 0
+    negative_samples: int = 0
+    selection_margin: float = 0.0
+    confidence_level: str = "low"
+    tradeoff_summary: str = ""
+    evaluated_candidates: tuple[ThresholdCandidate, ...] = ()
+    boundary_examples: tuple[BoundaryExample, ...] = ()
 
     def to_profile_overlay(
         self,
@@ -56,7 +118,21 @@ class TuneResult:
             "tune_precision": f"{self.precision:.4f}",
             "tune_recall": f"{self.recall:.4f}",
             "tune_f1": f"{self.f1:.4f}",
+            "tune_confidence_level": self.confidence_level,
+            "tune_selection_margin": f"{self.selection_margin:.4f}",
+            "tune_confusion_matrix": (
+                f"tp={self.tp},fp={self.fp},tn={self.tn},fn={self.fn}"
+            ),
+            "tune_class_balance": (
+                f"positive={self.positive_samples},negative={self.negative_samples}"
+            ),
+            "tune_tradeoff_summary": self.tradeoff_summary,
         }
+        if self.boundary_examples:
+            extra["tune_boundary_examples"] = "; ".join(
+                _format_boundary_example(example)
+                for example in self.boundary_examples[:_REPORT_EXAMPLE_LIMIT]
+            )
         if base_profile:
             extra["tuned_from_profile"] = base_profile
         return {
@@ -95,6 +171,9 @@ def format_profile_overlay(
     ]
     if base_profile:
         lines.append(f"# Base profile: {base_profile}")
+    report = format_confidence_report(result)
+    if report:
+        lines.extend(f"# {line}" if line else "#" for line in report.splitlines())
     lines.extend(
         [
             f"# Samples: {samples}",
@@ -111,6 +190,63 @@ def format_profile_overlay(
     for key, value in extra.items():
         lines.append(f"  {key}: {_yaml_scalar(value)}")
     lines.append("")
+    return "\n".join(lines)
+
+
+def format_confidence_report(result: object) -> str:
+    """Render selected-threshold diagnostics for CLI and YAML comments."""
+    result_like = cast("_TuneResultLike", result)
+    confidence_level = str(getattr(result, "confidence_level", "low"))
+    selection_margin = float(getattr(result, "selection_margin", 0.0))
+    tradeoff_summary = str(getattr(result, "tradeoff_summary", ""))
+    tp = int(getattr(result, "tp", 0))
+    fp = int(getattr(result, "fp", 0))
+    tn = int(getattr(result, "tn", 0))
+    fn = int(getattr(result, "fn", 0))
+    positive = int(getattr(result, "positive_samples", 0))
+    negative = int(getattr(result, "negative_samples", 0))
+    candidates = tuple(
+        cast(
+            "tuple[ThresholdCandidate, ...]",
+            getattr(result, "evaluated_candidates", ()),
+        )
+    )
+    examples = tuple(
+        cast("tuple[BoundaryExample, ...]", getattr(result, "boundary_examples", ()))
+    )
+
+    lines = [
+        "Confidence report:",
+        (
+            f"- Selected threshold {result_like.threshold:.4f} with "
+            f"w_logic={result_like.w_logic:.2f}, w_fact={result_like.w_fact:.2f}."
+        ),
+        (
+            f"- Confidence level: {confidence_level} "
+            f"(selection margin {selection_margin:.4f} BA)."
+        ),
+        f"- Class balance: {positive} approved / {negative} rejected labels.",
+        f"- Confusion matrix at selection: TP={tp}, FP={fp}, TN={tn}, FN={fn}.",
+    ]
+    if tradeoff_summary:
+        lines.append(f"- Trade-off: {tradeoff_summary}")
+    if candidates:
+        lines.append("- Top candidate thresholds:")
+        for candidate in candidates[:_REPORT_CANDIDATE_LIMIT]:
+            lines.append(
+                "  "
+                f"t={candidate.threshold:.4f}, "
+                f"w=({candidate.w_logic:.2f},{candidate.w_fact:.2f}), "
+                f"BA={candidate.balanced_accuracy:.4f}, "
+                f"P={candidate.precision:.4f}, "
+                f"R={candidate.recall:.4f}, "
+                f"FPR={candidate.false_positive_rate:.4f}, "
+                f"FNR={candidate.false_negative_rate:.4f}"
+            )
+    if examples:
+        lines.append("- Boundary examples:")
+        for example in examples[:_REPORT_EXAMPLE_LIMIT]:
+            lines.append(f"  {_format_boundary_example(example)}")
     return "\n".join(lines)
 
 
@@ -140,7 +276,12 @@ def _to_profile_overlay(
         "tune_precision": f"{precision:.4f}",
         "tune_recall": f"{recall:.4f}",
         "tune_f1": f"{f1:.4f}",
+        "tune_confidence_level": str(getattr(result, "confidence_level", "low")),
+        "tune_selection_margin": f"{float(getattr(result, 'selection_margin', 0.0)):.4f}",
     }
+    tradeoff_summary = str(getattr(result, "tradeoff_summary", ""))
+    if tradeoff_summary:
+        extra["tune_tradeoff_summary"] = tradeoff_summary
     if base_profile:
         extra["tuned_from_profile"] = base_profile
     return {
@@ -173,6 +314,8 @@ def tune(
     weight_pairs = weight_pairs or DEFAULT_WEIGHT_PAIRS
 
     best: TuneResult | None = None
+    best_samples: list[_ScoredSample] = []
+    evaluated: list[ThresholdCandidate] = []
 
     for wl, wf in weight_pairs:
         scorer = CoherenceScorer(
@@ -182,51 +325,216 @@ def tune(
             w_logic=wl,
             w_fact=wf,
         )
-        scores = []
-        for s in samples:
+        scores: list[_ScoredSample] = []
+        for sample_index, s in enumerate(samples):
             _, cs = scorer.review(s["prompt"], s["response"])
-            scores.append((cs.score, s["label"]))
+            scores.append(
+                _ScoredSample(
+                    sample_index=sample_index,
+                    score=cs.score,
+                    label=bool(s["label"]),
+                    prompt=str(s["prompt"]),
+                    response=str(s["response"]),
+                ),
+            )
 
         for thr in thresholds:
-            tp = fp = tn = fn = 0
-            for score_val, label in scores:
-                predicted = score_val >= thr
-                if label and predicted:
-                    tp += 1
-                elif label and not predicted:
-                    fn += 1
-                elif not label and predicted:
-                    fp += 1
-                else:
-                    tn += 1
-
-            tpr = tp / (tp + fn) if (tp + fn) > 0 else 0.0
-            tnr = tn / (tn + fp) if (tn + fp) > 0 else 0.0
-            ba = (tpr + tnr) / 2.0
-            precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
-            recall = tpr
-            f1 = (
-                2 * precision * recall / (precision + recall)
-                if (precision + recall) > 0
-                else 0.0
-            )
+            candidate = _evaluate_candidate(thr, wl, wf, scores)
+            evaluated.append(candidate)
 
             result = TuneResult(
                 threshold=thr,
                 w_logic=wl,
                 w_fact=wf,
-                balanced_accuracy=round(ba, 4),
-                precision=round(precision, 4),
-                recall=round(recall, 4),
-                f1=round(f1, 4),
+                balanced_accuracy=candidate.balanced_accuracy,
+                precision=candidate.precision,
+                recall=candidate.recall,
+                f1=candidate.f1,
                 samples=len(samples),
+                tp=candidate.tp,
+                fp=candidate.fp,
+                tn=candidate.tn,
+                fn=candidate.fn,
             )
-            if best is None or ba > best.balanced_accuracy:
+            if best is None or candidate.balanced_accuracy > best.balanced_accuracy:
                 best = result
+                best_samples = scores
 
     if best is None:
         raise ValueError("No valid tuning result — check that samples is non-empty")
-    return best
+
+    positives = sum(1 for s in best_samples if s.label)
+    negatives = len(best_samples) - positives
+    ranked_candidates = tuple(_rank_candidates(evaluated))
+    selection_margin = _selection_margin(best, ranked_candidates)
+    confidence_level = _confidence_level(
+        samples=len(samples),
+        positives=positives,
+        negatives=negatives,
+        selection_margin=selection_margin,
+    )
+    return replace(
+        best,
+        positive_samples=positives,
+        negative_samples=negatives,
+        selection_margin=selection_margin,
+        confidence_level=confidence_level,
+        tradeoff_summary=_tradeoff_summary(best),
+        evaluated_candidates=ranked_candidates,
+        boundary_examples=tuple(_boundary_examples(best.threshold, best_samples)),
+    )
+
+
+def _evaluate_candidate(
+    threshold: float,
+    w_logic: float,
+    w_fact: float,
+    scores: list[_ScoredSample],
+) -> ThresholdCandidate:
+    tp = fp = tn = fn = 0
+    for scored in scores:
+        predicted = scored.score >= threshold
+        if scored.label and predicted:
+            tp += 1
+        elif scored.label and not predicted:
+            fn += 1
+        elif not scored.label and predicted:
+            fp += 1
+        else:
+            tn += 1
+
+    tpr = tp / (tp + fn) if (tp + fn) > 0 else 0.0
+    tnr = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+    precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
+    recall = tpr
+    f1 = (
+        2 * precision * recall / (precision + recall)
+        if (precision + recall) > 0
+        else 0.0
+    )
+    false_positive_rate = fp / (fp + tn) if (fp + tn) > 0 else 0.0
+    false_negative_rate = fn / (fn + tp) if (fn + tp) > 0 else 0.0
+    return ThresholdCandidate(
+        threshold=threshold,
+        w_logic=w_logic,
+        w_fact=w_fact,
+        balanced_accuracy=round((tpr + tnr) / 2.0, 4),
+        precision=round(precision, 4),
+        recall=round(recall, 4),
+        f1=round(f1, 4),
+        false_positive_rate=round(false_positive_rate, 4),
+        false_negative_rate=round(false_negative_rate, 4),
+        tp=tp,
+        fp=fp,
+        tn=tn,
+        fn=fn,
+    )
+
+
+def _rank_candidates(
+    candidates: list[ThresholdCandidate],
+) -> list[ThresholdCandidate]:
+    return sorted(
+        candidates,
+        key=lambda c: (
+            c.balanced_accuracy,
+            c.f1,
+            -abs(c.false_positive_rate - c.false_negative_rate),
+            -c.threshold,
+        ),
+        reverse=True,
+    )
+
+
+def _selection_margin(
+    best: TuneResult,
+    ranked_candidates: tuple[ThresholdCandidate, ...],
+) -> float:
+    alternatives = [
+        c
+        for c in ranked_candidates
+        if not (
+            c.threshold == best.threshold
+            and c.w_logic == best.w_logic
+            and c.w_fact == best.w_fact
+        )
+    ]
+    if not alternatives:
+        return best.balanced_accuracy
+    return round(best.balanced_accuracy - alternatives[0].balanced_accuracy, 4)
+
+
+def _confidence_level(
+    *,
+    samples: int,
+    positives: int,
+    negatives: int,
+    selection_margin: float,
+) -> str:
+    minority_ratio = min(positives, negatives) / samples if samples else 0.0
+    if samples >= 50 and minority_ratio >= 0.2 and selection_margin >= 0.05:
+        return "high"
+    if samples >= 20 and minority_ratio >= 0.15 and selection_margin >= 0.02:
+        return "medium"
+    return "low"
+
+
+def _tradeoff_summary(result: TuneResult) -> str:
+    false_positive_rate = (
+        result.fp / (result.fp + result.tn) if (result.fp + result.tn) > 0 else 0.0
+    )
+    false_negative_rate = (
+        result.fn / (result.fn + result.tp) if (result.fn + result.tp) > 0 else 0.0
+    )
+    if false_positive_rate > false_negative_rate + 0.05:
+        return "selected threshold favours catching misses but may reject more clean responses"
+    if false_negative_rate > false_positive_rate + 0.05:
+        return "selected threshold favours fewer clean-response rejections but may miss more bad responses"
+    return (
+        "selected threshold balances clean-response rejections and missed bad responses"
+    )
+
+
+def _boundary_examples(
+    threshold: float,
+    scores: list[_ScoredSample],
+) -> list[BoundaryExample]:
+    examples = []
+    for scored in sorted(scores, key=lambda s: abs(s.score - threshold)):
+        margin = round(scored.score - threshold, 4)
+        examples.append(
+            BoundaryExample(
+                sample_index=scored.sample_index,
+                score=round(scored.score, 4),
+                label=scored.label,
+                predicted=scored.score >= threshold,
+                margin=margin,
+                counterfactual_threshold=round(scored.score, 4),
+                prompt_excerpt=_excerpt(scored.prompt),
+                response_excerpt=_excerpt(scored.response),
+            )
+        )
+        if len(examples) >= _REPORT_EXAMPLE_LIMIT:
+            break
+    return examples
+
+
+def _excerpt(text: str, limit: int = 80) -> str:
+    one_line = " ".join(text.split())
+    if len(one_line) <= limit:
+        return one_line
+    return one_line[: limit - 3] + "..."
+
+
+def _format_boundary_example(example: BoundaryExample) -> str:
+    verdict = "approved" if example.predicted else "rejected"
+    expected = "approved" if example.label else "rejected"
+    return (
+        f"sample {example.sample_index}: score={example.score:.4f}, "
+        f"margin={example.margin:.4f}, predicted={verdict}, expected={expected}, "
+        f"flip_threshold={example.counterfactual_threshold:.4f}, "
+        f"prompt={example.prompt_excerpt!r}, response={example.response_excerpt!r}"
+    )
 
 
 def _yaml_scalar(value: object) -> str:
