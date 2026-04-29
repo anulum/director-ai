@@ -223,6 +223,42 @@ When OpenTelemetry is enabled, the same halt fields are exported as
 streaming spans. Raw token text and raw fact text are not written to
 spans.
 
+## Trace Explorer
+
+The `[ui]` extra includes a Trace Explorer tab in the Gradio wizard.
+Paste JSON from a `StreamSession`, agent trace, swarm trace, or halt
+evidence payload to render a timeline with scope, event type, halt
+state, score, hook, reason, attribution, and counterfactual detail.
+
+```python
+import json
+
+from director_ai.ui.config_wizard import build_trace_explorer
+
+summary, rows, detail = build_trace_explorer(
+    json.dumps(
+        {
+            "halted": True,
+            "halt_reason": "hard_limit",
+            "events": [
+                {"index": 0, "token": "The", "coherence": 0.92},
+                {
+                    "index": 1,
+                    "token": " claim",
+                    "coherence": 0.31,
+                    "halted": True,
+                    "halt_reason": "hard_limit",
+                },
+            ],
+        },
+    ),
+)
+```
+
+The pure helper returns Markdown summary text, table rows for the UI,
+and a JSON detail object. This keeps trace rendering testable without
+launching Gradio.
+
 ## StreamSession Properties
 
 | Property | Type | Description |

@@ -12,10 +12,13 @@ and edge cases. Gradio launch is not tested (requires UI dep).
 
 from __future__ import annotations
 
+import json
+
 import yaml
 
 from director_ai.ui.config_wizard import (
     _format_yaml_field,
+    build_trace_explorer,
     calibration_feedback_jsonl,
     generate_profile_yaml,
     generate_yaml,
@@ -156,6 +159,105 @@ class TestProfileWizard:
         assert parsed["guardrail_approved"] is False
         assert parsed["human_approved"] is True
         assert parsed["domain"] == "support"
+
+
+class TestTraceExplorer:
+    def test_streaming_trace_halt_summary(self):
+        payload = {
+            "halted": True,
+            "halt_reason": "hard_limit",
+            "events": [
+                {"index": 0, "token": "A", "coherence": 0.91},
+                {
+                    "index": 1,
+                    "token": " claim",
+                    "coherence": 0.31,
+                    "halted": True,
+                    "halt_reason": "hard_limit",
+                    "halt_evidence": {
+                        "trace_attribution": {
+                            "token_offset": 1,
+                            "retrieval_path": "vector",
+                            "scorer_path": "factcg",
+                        },
+                    },
+                },
+            ],
+        }
+
+        summary, rows, detail = build_trace_explorer(json.dumps(payload))
+
+        assert "Events: 2" in summary
+        assert "Halted: yes" in summary
+        assert "hard_limit" in summary
+        assert rows[1][1] == "streaming"
+        assert rows[1][3] == "halted"
+        assert rows[1][4] == "0.310"
+        assert "scorer=factcg" in rows[1][7]
+        assert detail["halted"] is True
+
+    def test_agent_and_swarm_trace_rows(self):
+        payload = {
+            "agent_events": [
+                {
+                    "event_type": "agent_policy",
+                    "agent_id": "planner",
+                    "decision": "passed",
+                    "score": 0.82,
+                },
+            ],
+            "swarm_events": [
+                {
+                    "event_type": "swarm_equilibrium",
+                    "policy_decision": "halted",
+                    "hook_id": "swarm_guard",
+                    "reason": "unstable quorum",
+                },
+            ],
+        }
+
+        _summary, rows, detail = build_trace_explorer(json.dumps(payload))
+
+        assert rows[0][1] == "agent"
+        assert rows[1][1] == "swarm"
+        assert rows[1][3] == "halted"
+        assert rows[1][5] == "swarm_guard"
+        assert detail["scopes"] == ["agent", "swarm"]
+
+    def test_counterfactual_detail(self):
+        payload = {
+            "halt_evidence_structured": {
+                "reason": "window_average",
+                "last_score": 0.44,
+                "trace_attribution": {
+                    "fact_source": "kb://physics",
+                    "retrieval_path": "hybrid",
+                    "scorer_path": "factcg",
+                    "token_offset": 12,
+                },
+                "counterfactual_diagnostic": {
+                    "best_change": {
+                        "fact_source": "kb://physics",
+                        "required_score_delta": 0.08,
+                    },
+                },
+            },
+        }
+
+        summary, rows, detail = build_trace_explorer(json.dumps(payload))
+
+        assert "Counterfactual" in summary
+        assert "kb://physics" in summary
+        assert rows[0][1] == "streaming"
+        assert "delta=0.08" in rows[0][7]
+        assert detail["counterfactual"]["required_score_delta"] == 0.08
+
+    def test_invalid_json_reports_position(self):
+        summary, rows, detail = build_trace_explorer("{")
+
+        assert "Invalid JSON" in summary
+        assert rows == []
+        assert detail["line"] == 1
 
 
 # ── Edge cases ──────────────────────────────────────────────────────────

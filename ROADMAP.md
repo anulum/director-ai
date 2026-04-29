@@ -304,7 +304,7 @@
 - [x] Add `CounterfactualVerifier` support for "what single fact change would
   have prevented this halt?" diagnostics.
 - [x] Export counterfactual and halt-cause fields as OpenTelemetry attributes.
-- [ ] Extend the UI with a visual trace explorer for agent, swarm, and streaming
+- [x] Extend the UI with a visual trace explorer for agent, swarm, and streaming
   halt events.
 - [ ] Freeze a structured `SafetyEvent` schema as the single halt-reason record
   emitted by streaming, containment, attestation, ontology, trajectory, and
