@@ -7,6 +7,10 @@ evaluation set. Domain profiles should be treated as a starting config until
 
 ## Profile Reference
 
+Each built-in profile has runtime metadata available through
+`DirectorConfig.profile_metadata(name)`: intended workload, validation status,
+expected false-halt risk, and required dependency extras.
+
 | Profile | Threshold | Hard Limit | Soft Limit | NLI | Reranker | W_Logic | W_Fact |
 |---------|-----------|------------|------------|-----|----------|---------|--------|
 | `fast` | 0.50 | default | default | no | no | default | default |
@@ -23,6 +27,23 @@ evaluation set. Domain profiles should be treated as a starting config until
 | `summarization` | 0.15 | 0.08 | 0.25 | yes | no | 0.0 | 1.0 |
 
 "default" means the field inherits the `DirectorConfig` dataclass default (hard_limit=0.5, soft_limit=0.6, w_logic/w_fact=0.0 which defers to `CoherenceScorer` class defaults).
+
+## Profile Metadata
+
+| Profile | Intended Workload | Validation Status | False-Halt Risk | Required Extras |
+|---------|-------------------|-------------------|-----------------|-----------------|
+| `fast` | Development loops and heuristic screening | smoke-tested heuristic baseline | low for obvious checks, unknown for factual QA | none |
+| `lite` | Offline approximate local scoring | smoke-tested lite scorer baseline | medium without calibration | none |
+| `rules` | Deterministic local checks | deterministic baseline | low for exact rules, high for semantic hallucinations | none |
+| `embed` | Semantic similarity screening | benchmarked approximate scorer | medium; tune per corpus | `embed` |
+| `thorough` | General production baseline | standard validated baseline | medium until tuned | `nli` |
+| `research` | Academic precision-heavy review | experimental high-threshold baseline | high by design | `nli` |
+| `medical` | Biomedical fact-heavy review with curated KB | limited PubMedQA validation; requires KB grounding | very high without KB and calibration | `nli`, `vector` |
+| `finance` | Financial and regulatory KB review | limited FinanceBench validation; requires recalibration | very high without KB and calibration | `nli`, `vector` |
+| `legal` | Legal reasoning over curated KBs | not independently validated | unknown; treat as high until tuned | `nli` |
+| `creative` | Drafting, fiction, and non-factual generation | heuristic permissive preset | low for creative drift, high for factual safety | none |
+| `customer_support` | Policy bots and troubleshooting assistants | latency-first starter preset | medium; depends on policy KB coverage | none |
+| `summarization` | Source-grounded summaries | validated with summarization FPR diagnostics | low after claim coverage; tune per corpus | `nli` |
 
 ## Profile Rationale
 

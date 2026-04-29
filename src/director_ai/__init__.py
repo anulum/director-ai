@@ -69,6 +69,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "MockGenerator": (".core", "MockGenerator"),
     "NLIScorer": (".core", "NLIScorer"),
     "PineconeBackend": (".core", "PineconeBackend"),
+    "ProfileMetadata": (".core", "ProfileMetadata"),
     "QdrantBackend": (".core", "QdrantBackend"),
     "RegressionReport": (".core", "RegressionReport"),
     "RerankedBackend": (".core", "RerankedBackend"),

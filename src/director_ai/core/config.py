@@ -23,9 +23,32 @@ import os
 from dataclasses import dataclass, field
 from typing import cast
 
-__all__ = ["DirectorConfig"]
+__all__ = ["DirectorConfig", "ProfileMetadata"]
 
 logger = logging.getLogger("DirectorAI.Config")
+
+
+@dataclass(frozen=True)
+class ProfileMetadata:
+    """Operator-facing metadata for a built-in configuration profile."""
+
+    name: str
+    intended_workload: str
+    validation_status: str
+    expected_false_halt_risk: str
+    required_dependencies: tuple[str, ...] = ()
+    notes: str = ""
+
+    def to_dict(self) -> dict[str, object]:
+        """Serialize profile metadata for CLIs, APIs, and docs tooling."""
+        return {
+            "name": self.name,
+            "intended_workload": self.intended_workload,
+            "validation_status": self.validation_status,
+            "expected_false_halt_risk": self.expected_false_halt_risk,
+            "required_dependencies": list(self.required_dependencies),
+            "notes": self.notes,
+        }
 
 
 @dataclass
@@ -660,6 +683,21 @@ class DirectorConfig:
             object.__setattr__(cfg, key, value)
         return cfg
 
+    @classmethod
+    def profile_metadata(cls, name: str) -> ProfileMetadata:
+        """Return validation and dependency metadata for a built-in profile."""
+        try:
+            return _PROFILE_METADATA[name]
+        except KeyError as exc:
+            raise ValueError(
+                f"Unknown profile '{name}'. Choose from: {list(_PROFILE_METADATA)}",
+            ) from exc
+
+    @classmethod
+    def list_profile_metadata(cls) -> tuple[ProfileMetadata, ...]:
+        """Return metadata for all built-in profiles in display order."""
+        return tuple(_PROFILE_METADATA.values())
+
     def configure_logging(self) -> None:
         """Apply log_level and log_json settings to the DirectorAI logger hierarchy."""
         root = logging.getLogger("DirectorAI")
@@ -1023,6 +1061,106 @@ class _JsonFormatter(logging.Formatter):
         if request_id:
             entry["request_id"] = request_id
         return _json.dumps(entry)
+
+
+_PROFILE_METADATA: dict[str, ProfileMetadata] = {
+    "fast": ProfileMetadata(
+        name="fast",
+        intended_workload="Development loops and high-throughput heuristic screening.",
+        validation_status="smoke-tested heuristic baseline",
+        expected_false_halt_risk="low for obvious policy checks, unknown for factual QA",
+        required_dependencies=(),
+        notes="No model loading; use for latency-first trials.",
+    ),
+    "lite": ProfileMetadata(
+        name="lite",
+        intended_workload="Offline and edge-like trials with approximate local scoring.",
+        validation_status="smoke-tested lite scorer baseline",
+        expected_false_halt_risk="medium without domain calibration",
+        required_dependencies=(),
+        notes="Uses the lite scorer backend without heavyweight NLI dependencies.",
+    ),
+    "rules": ProfileMetadata(
+        name="rules",
+        intended_workload="Deterministic local checks where model downloads are not allowed.",
+        validation_status="deterministic baseline",
+        expected_false_halt_risk="low for exact rules, high for semantic hallucinations",
+        required_dependencies=(),
+        notes="Rules-only; does not catch paraphrased contradictions reliably.",
+    ),
+    "embed": ProfileMetadata(
+        name="embed",
+        intended_workload="Semantic similarity screening when full NLI is unavailable.",
+        validation_status="benchmarked approximate scorer",
+        expected_false_halt_risk="medium; tune thresholds for each corpus",
+        required_dependencies=("embed",),
+        notes="Requires an embedding scorer dependency path.",
+    ),
+    "thorough": ProfileMetadata(
+        name="thorough",
+        intended_workload="General production baseline with NLI and local judge escalation.",
+        validation_status="standard validated baseline",
+        expected_false_halt_risk="medium until tuned on customer data",
+        required_dependencies=("nli",),
+        notes="Use `director-ai tune` before strict production enforcement.",
+    ),
+    "research": ProfileMetadata(
+        name="research",
+        intended_workload="Academic and analytical workloads that prefer precision.",
+        validation_status="experimental high-threshold baseline",
+        expected_false_halt_risk="high by design",
+        required_dependencies=("nli",),
+        notes="Higher threshold intentionally rejects more borderline responses.",
+    ),
+    "medical": ProfileMetadata(
+        name="medical",
+        intended_workload="Clinical or biomedical fact-heavy review with curated KB.",
+        validation_status="limited PubMedQA validation; requires KB grounding",
+        expected_false_halt_risk="very high without KB grounding and calibration",
+        required_dependencies=("nli", "vector"),
+        notes="Do not deploy strictly until tuned on local clean and adversarial samples.",
+    ),
+    "finance": ProfileMetadata(
+        name="finance",
+        intended_workload="Financial claims, numeric facts, and regulatory KB review.",
+        validation_status="limited FinanceBench validation; requires recalibration",
+        expected_false_halt_risk="very high without KB grounding and calibration",
+        required_dependencies=("nli", "vector"),
+        notes="Use with retrieval and domain-specific clean-response calibration.",
+    ),
+    "legal": ProfileMetadata(
+        name="legal",
+        intended_workload="Legal reasoning chains over small curated KBs.",
+        validation_status="not independently validated",
+        expected_false_halt_risk="unknown; treat as high until tuned",
+        required_dependencies=("nli",),
+        notes="Thresholds are aligned with other high-stakes profiles pending eval.",
+    ),
+    "creative": ProfileMetadata(
+        name="creative",
+        intended_workload="Drafting, fiction, style exploration, and non-factual generation.",
+        validation_status="heuristic permissive preset",
+        expected_false_halt_risk="low for creative drift, high for factual safety",
+        required_dependencies=(),
+        notes="NLI is disabled to avoid penalising metaphor and divergent writing.",
+    ),
+    "customer_support": ProfileMetadata(
+        name="customer_support",
+        intended_workload="Policy support bots and troubleshooting assistants.",
+        validation_status="latency-first starter preset",
+        expected_false_halt_risk="medium; depends on policy KB coverage",
+        required_dependencies=(),
+        notes="Add vector retrieval when support policy facts are available.",
+    ),
+    "summarization": ProfileMetadata(
+        name="summarization",
+        intended_workload="Source-grounded summaries and extractive synthesis.",
+        validation_status="validated with summarization FPR diagnostics",
+        expected_false_halt_risk="low after v3.6 claim coverage, still tune per corpus",
+        required_dependencies=("nli",),
+        notes="Uses prompt-as-premise scoring, trimmed mean aggregation, and claim coverage.",
+    ),
+}
 
 
 def _coerce(value: str, type_hint: str) -> object:

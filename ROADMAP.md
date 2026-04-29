@@ -277,7 +277,7 @@
   build surface.
 
 ### Presets, Tuning, and Configuration UX (Planned)
-- [ ] Add profile metadata that states validation status, expected false-halt risk,
+- [x] Add profile metadata that states validation status, expected false-halt risk,
   required dependencies, and intended workload for each preset.
 - [ ] Extend `director-ai tune --dataset <eval.jsonl>` output so it can write a
   ready-to-use profile overlay, not just threshold and weight suggestions.

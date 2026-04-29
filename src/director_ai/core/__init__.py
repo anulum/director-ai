@@ -31,7 +31,7 @@ from .cache import ScoreCache
 from .calibration.conformal import ConformalPredictor, PredictionInterval
 from .calibration.feedback_store import FeedbackStore
 from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
-from .config import DirectorConfig
+from .config import DirectorConfig, ProfileMetadata
 
 # --- Retrieval ---
 from .retrieval.knowledge import GroundTruthStore
@@ -194,6 +194,7 @@ __all__ = [
     "DirectorConfig",
     "LLMGenerator",
     "MockGenerator",
+    "ProfileMetadata",
     "ScoreCache",
     # Functions
     "benchmark_finetuned_model",

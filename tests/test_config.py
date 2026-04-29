@@ -118,6 +118,45 @@ class TestProfileLoading:
         assert cfg.w_logic == pytest.approx(wl)
         assert cfg.w_fact == pytest.approx(wf)
 
+    def test_profile_metadata_contains_operational_fields(self):
+        meta = DirectorConfig.profile_metadata("medical")
+
+        assert meta.name == "medical"
+        assert meta.required_dependencies == ("nli", "vector")
+        assert "medical" in meta.intended_workload.lower()
+        assert meta.validation_status
+        assert meta.expected_false_halt_risk
+
+    def test_profile_metadata_serializes_dependencies_as_list(self):
+        data = DirectorConfig.profile_metadata("summarization").to_dict()
+
+        assert data["name"] == "summarization"
+        assert data["required_dependencies"] == ["nli"]
+        assert data["validation_status"]
+
+    def test_list_profile_metadata_matches_builtin_profiles(self):
+        names = {meta.name for meta in DirectorConfig.list_profile_metadata()}
+
+        for name in (
+            "fast",
+            "lite",
+            "rules",
+            "embed",
+            "thorough",
+            "research",
+            "medical",
+            "finance",
+            "legal",
+            "creative",
+            "customer_support",
+            "summarization",
+        ):
+            assert name in names
+
+    def test_unknown_profile_metadata_raises(self):
+        with pytest.raises(ValueError, match="Unknown profile"):
+            DirectorConfig.profile_metadata("nonexistent")
+
 
 class TestSummarizationAggregation:
     def test_summarization_profile_uses_min_inner_trimmed_mean_outer(self):
