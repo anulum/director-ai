@@ -34,6 +34,11 @@ list of violations.
 """
 
 from .adapters import CarlaAdapter, MuJoCoAdapter, Ros2Adapter
+from .budget import (
+    PhysicalBudgetExceededError,
+    PhysicalBudgetLimits,
+    TenantPhysicalBudget,
+)
 from .constraints import (
     PhysicalConstraint,
     SpatialConstraint,
@@ -59,12 +64,15 @@ __all__ = [
     "KinematicModel",
     "MuJoCoAdapter",
     "PhysicalAction",
+    "PhysicalBudgetExceededError",
+    "PhysicalBudgetLimits",
     "PhysicalConstraint",
     "Ros2Adapter",
     "SimpleKinematicModel",
     "SpatialConstraint",
     "Sphere",
     "TorqueConstraint",
+    "TenantPhysicalBudget",
     "Vec3",
     "VelocityConstraint",
     "Violation",

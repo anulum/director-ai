@@ -395,7 +395,7 @@ Last updated: 2026-04-29
   is enabled.
 - [x] Put ROS 2, MuJoCo, CARLA, and similar adapters behind a separate
   `[physical]` extra with pinned dependency guidance and isolation notes.
-- [ ] Add per-tenant budgets for inverse-kinematics solving, simulation checks,
+- [x] Add per-tenant budgets for inverse-kinematics solving, simulation checks,
   and physical action validation to prevent denial-of-service payloads.
 - [ ] Extend the external security test packet to cover physical hooks,
   attestation, and cross-language trust-boundary failures.

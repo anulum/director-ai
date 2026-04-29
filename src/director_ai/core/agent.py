@@ -39,6 +39,11 @@ _PROVIDER_ENV_KEYS = {
 }
 
 
+def _physical_budget_exhausted(verdict: GroundingVerdict) -> bool:
+    event = getattr(verdict, "safety_event", None)
+    return event is not None and event.halt_reason == "physical_budget_exceeded"
+
+
 class CoherenceAgent:
     """Integrated coherence-verification agent.
 
@@ -250,14 +255,21 @@ class CoherenceAgent:
             safety_events=safety_events,
         )
 
-    def verify_physical_action(self, action: PhysicalAction) -> GroundingVerdict:
+    def verify_physical_action(
+        self,
+        action: PhysicalAction,
+        *,
+        tenant_id: str = "",
+    ) -> GroundingVerdict:
         """Screen a proposed physical action against the configured
         grounding hook. Raises :class:`RuntimeError` if no hook is
         configured — callers opt in explicitly.
         """
         if self.grounding_hook is None:
             raise RuntimeError("grounding_hook not configured on this CoherenceAgent")
-        verdict = self.grounding_hook.evaluate(action)
+        verdict = self.grounding_hook.evaluate(action, tenant_id=tenant_id)
+        if _physical_budget_exhausted(verdict):
+            return verdict
         if verdict.allowed or self.physical_action_mode == "block":
             return verdict
         return self._warn_only_grounding_verdict(verdict)

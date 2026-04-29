@@ -17,6 +17,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from ..safety_event import SafetyEvent
+from .budget import PhysicalBudgetExceededError, TenantPhysicalBudget
 from .constraints import PhysicalConstraint
 from .kinematics import KinematicModel, PhysicalAction
 
@@ -69,6 +70,7 @@ class GroundingHook:
         model: KinematicModel,
         constraints: Sequence[PhysicalConstraint],
         reject_on_unreachable: bool = True,
+        budget: TenantPhysicalBudget | None = None,
     ) -> None:
         if not constraints:
             raise ValueError("constraints must be non-empty")
@@ -78,10 +80,30 @@ class GroundingHook:
         self._model = model
         self._constraints = tuple(constraints)
         self._reject_on_unreachable = reject_on_unreachable
+        self._budget = budget
 
-    def evaluate(self, action: PhysicalAction) -> GroundingVerdict:
+    def evaluate(
+        self,
+        action: PhysicalAction,
+        *,
+        tenant_id: str = "",
+    ) -> GroundingVerdict:
         violations: list[Violation] = []
+        budget_verdict = self._consume_budget(
+            action,
+            tenant_id=tenant_id,
+            counter="action_validations",
+        )
+        if budget_verdict is not None:
+            return budget_verdict
         if self._reject_on_unreachable and not action.joint_angles:
+            budget_verdict = self._consume_budget(
+                action,
+                tenant_id=tenant_id,
+                counter="inverse_kinematics",
+            )
+            if budget_verdict is not None:
+                return budget_verdict
             try:
                 solution = self._model.inverse(action.target_position)
             except NotImplementedError:
@@ -99,6 +121,14 @@ class GroundingHook:
                     )
                 )
         for constraint in self._constraints:
+            if _constraint_counter(constraint) == "simulation_checks":
+                budget_verdict = self._consume_budget(
+                    action,
+                    tenant_id=tenant_id,
+                    counter="simulation_checks",
+                )
+                if budget_verdict is not None:
+                    return budget_verdict
             reason = constraint.evaluate(action, self._model)
             if reason is not None:
                 violations.append(Violation(constraint=constraint.name, reason=reason))
@@ -107,7 +137,11 @@ class GroundingHook:
             action=action,
             allowed=allowed,
             violations=tuple(violations),
-            safety_event=_event_for_verdict(allowed, tuple(violations)),
+            safety_event=_event_for_verdict(
+                allowed,
+                tuple(violations),
+                tenant_id=tenant_id,
+            ),
         )
 
     @property
@@ -118,12 +152,33 @@ class GroundingHook:
     def constraints(self) -> tuple[PhysicalConstraint, ...]:
         return self._constraints
 
+    def _consume_budget(
+        self,
+        action: PhysicalAction,
+        *,
+        tenant_id: str,
+        counter: str,
+    ) -> GroundingVerdict | None:
+        if self._budget is None:
+            return None
+        try:
+            self._budget.consume(tenant_id, counter)
+        except PhysicalBudgetExceededError as exc:
+            return _event_for_budget_exhaustion(action, exc)
+        return None
 
-def _event_for_verdict(allowed: bool, violations: tuple[Violation, ...]) -> SafetyEvent:
+
+def _event_for_verdict(
+    allowed: bool,
+    violations: tuple[Violation, ...],
+    *,
+    tenant_id: str = "",
+) -> SafetyEvent:
     return SafetyEvent.from_policy_decision(
         hook_id="cyber_physical.grounding",
         hook_scope="cyber_physical",
         policy_decision="allow" if allowed else "block",
+        tenant_id=tenant_id,
         halt_reason=(
             "physical_action_allow" if allowed else "physical_constraint_violation"
         ),
@@ -138,3 +193,41 @@ def _event_for_verdict(allowed: bool, violations: tuple[Violation, ...]) -> Safe
         ),
         attributes={"violation_count": str(len(violations))},
     )
+
+
+def _event_for_budget_exhaustion(
+    action: PhysicalAction,
+    exc: PhysicalBudgetExceededError,
+) -> GroundingVerdict:
+    violation = Violation(
+        constraint=f"budget:{exc.counter}",
+        reason=str(exc),
+    )
+    return GroundingVerdict(
+        action=action,
+        allowed=False,
+        violations=(violation,),
+        safety_event=SafetyEvent.from_policy_decision(
+            hook_id="cyber_physical.grounding",
+            hook_scope="cyber_physical",
+            policy_decision="block",
+            halt_reason="physical_budget_exceeded",
+            tenant_id=exc.tenant_id,
+            observed_score=0.0,
+            tenant_safe_explanation=(
+                "Physical action blocked because the tenant budget was exhausted."
+            ),
+            evidence_refs=(f"physical_budget:{exc.counter}",),
+            attributes={
+                "budget_counter": exc.counter,
+                "budget_limit": str(exc.limit),
+                "budget_window_seconds": f"{exc.window_seconds:.3f}",
+            },
+        ),
+    )
+
+
+def _constraint_counter(constraint: PhysicalConstraint) -> str:
+    if constraint.__class__.__name__ == "SpatialConstraint":
+        return "simulation_checks"
+    return "action_validations"

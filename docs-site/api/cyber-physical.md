@@ -146,6 +146,36 @@ Calling `verify_physical_action` with no hook configured raises
 Blocking requires both `physical_action_mode="block"` and
 `allow_physical_action_blocking=True`.
 
+## Tenant budgets
+
+Use `TenantPhysicalBudget` on `GroundingHook` to cap expensive physical
+checks per tenant:
+
+```python
+from director_ai.core.cyber_physical import (
+    PhysicalBudgetLimits,
+    TenantPhysicalBudget,
+)
+
+budget = TenantPhysicalBudget(
+    PhysicalBudgetLimits(
+        window_seconds=60.0,
+        max_action_validations=120,
+        max_inverse_kinematics=30,
+        max_simulation_checks=60,
+    )
+)
+hook = GroundingHook(model=model, constraints=constraints, budget=budget)
+```
+
+The hook consumes one action-validation unit for every proposed action,
+one inverse-kinematics unit before calling `model.inverse`, and one
+simulation-check unit before spatial constraints call `model.collides_with`.
+Budget exhaustion blocks before the expensive operation is called. This
+budget block is not converted into warn-only mode, so it still prevents
+tenant payloads from exhausting physical runtimes when
+`CoherenceAgent` uses the default advisory physical policy.
+
 ## Rust acceleration
 
 When `backfire_kernel` is installed, `AABB.contains`, `Sphere.contains`
