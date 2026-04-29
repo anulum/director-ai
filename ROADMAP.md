@@ -387,7 +387,7 @@ Last updated: 2026-04-29
 - [x] Add a nightly live red-team workflow against current jailbreak/evasion
   datasets and the full scorer pyramid.
 - [x] Publish a monthly public adversarial validation update in `VALIDATION.md`.
-- [ ] Add async contract tests and property-based fuzzing for the
+- [x] Add async contract tests and property-based fuzzing for the
   cyber-physical -> HaltMonitor path, including streaming races and cancelled
   actions.
 - [ ] Make physical hooks warn-only by default and require an explicit
