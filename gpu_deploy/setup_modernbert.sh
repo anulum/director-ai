@@ -39,6 +39,7 @@ source /opt/director-venv/bin/activate
 pip install --upgrade pip==24.3.1 setuptools==75.8.0 wheel==0.45.1 -q
 
 # PyTorch with CUDA
+# nosemgrep: PinnedDependenciesID -- pinned versions without hashes in one-shot GPU bootstrap.
 pip install torch==2.8.0 torchvision==0.23.0 -q
 
 # Project dependencies

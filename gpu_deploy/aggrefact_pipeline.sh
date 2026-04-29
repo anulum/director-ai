@@ -14,6 +14,7 @@ log "=== GPU ==="
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader | tee -a "$R/run.log"
 
 log "=== DEPS ==="
+# nosemgrep: PinnedDependenciesID -- pinned versions without hashes in one-shot GPU bootstrap.
 pip install -q torch==2.8.0 transformers==5.7.0 datasets==3.6.0 scikit-learn==1.6.1 nltk==3.9.1 accelerate==1.7.0 2>&1 | tail -3
 
 log "=== UNPACK CODE ==="

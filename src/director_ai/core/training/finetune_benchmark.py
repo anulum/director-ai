@@ -218,8 +218,11 @@ class ModelBenchmarkReport:
 
 
 def _load_benchmark_jsonl(path: str | Path) -> list[dict]:
+    path_obj = Path(path).expanduser().resolve(strict=True)
+    if not path_obj.is_file():
+        raise FileNotFoundError(f"benchmark data path is not a file: {path_obj}")
     rows = []
-    with open(path, encoding="utf-8") as f:
+    with path_obj.open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if not line:

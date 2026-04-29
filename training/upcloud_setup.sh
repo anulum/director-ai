@@ -15,7 +15,9 @@ python3 -m venv /opt/director-train
 source /opt/director-train/bin/activate
 
 echo "=== [3/5] PyTorch + dependencies ==="
+# nosemgrep: PinnedDependenciesID -- pinned versions without hashes in one-shot GPU bootstrap.
 pip install --quiet torch==2.8.0
+# nosemgrep: PinnedDependenciesID -- pinned versions without hashes in one-shot GPU bootstrap.
 pip install --quiet transformers==5.7.0 datasets==3.6.0 accelerate==1.7.0 scikit-learn==1.6.1
 
 echo "=== [4/5] Verify GPU ==="

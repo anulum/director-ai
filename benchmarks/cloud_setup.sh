@@ -15,7 +15,9 @@ python3 -m venv /opt/director-bench
 source /opt/director-bench/bin/activate
 
 echo "=== [3/6] PyTorch + dependencies ==="
+# nosemgrep: PinnedDependenciesID -- pinned versions without hashes in one-shot GPU bootstrap.
 pip install --quiet torch==2.8.0
+# nosemgrep: PinnedDependenciesID -- pinned versions without hashes in one-shot GPU bootstrap.
 pip install --quiet transformers==5.7.0 datasets==3.6.0 accelerate==1.7.0 scikit-learn==1.6.1
 pip install --quiet sentence-transformers==4.0.2 chromadb==0.6.3
 pip install --quiet openai==1.68.2 anthropic==0.49.0 requests==2.32.3 numpy==2.2.3
