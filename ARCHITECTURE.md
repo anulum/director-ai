@@ -184,6 +184,74 @@ director-ai/
 | Julia    | `tools/julia_tuner/` | offline threshold tuning with uncertainty bands |
 | Lean 4   | `formal/HaltMonitor/` | machine-checked proof that no sub-threshold token is emitted |
 
+## Safety Surface Map
+
+The safety surface is intentionally split into default, opt-in, advanced, and
+research-only layers. A module listed in the tree above is not automatically
+part of the default halt path; it must appear in the default layer below or be
+configured explicitly by the caller.
+
+### Default halt path
+
+These components are active in the normal Python path used by `guard()`,
+`CoherenceAgent`, the FastAPI server, and the proxy unless the caller chooses a
+lighter profile:
+
+| Layer | Components | Default responsibility |
+|-------|------------|------------------------|
+| Input filtering | `InputSanitizer`, regex injection checks, PII detectors when enabled by policy | Reject or redact unsafe input before generation/scoring. |
+| Factual scoring | `CoherenceScorer`, `NLIScorer` when `[nli]` is installed, `GroundTruthStore`, `VectorGroundTruthStore` | Score logical and factual consistency against configured facts. |
+| Interlock | `HaltMonitor`, `StreamingKernel` | Stop output when the coherence floor, window average, or trend rule fails. |
+| Evidence | `HaltEvidence`, top-K contradictory chunks, scorer metadata | Carry machine-readable reason data into API responses and logs. |
+| Audit | `AuditLogger`, hashed prompt metadata, tenant ids | Persist tenant-safe records for review and compliance reporting. |
+
+### Opt-in runtime hooks
+
+These hooks are implemented and tested, but they are inert until passed to the
+agent, selected through configuration, or installed through the matching extra:
+
+| Hook | Activation boundary | Role |
+|------|---------------------|------|
+| `InjectionDetector` | Stage 2 detector selected in policy/config | NLI-based intent-drift detection after regex filtering. |
+| `ReviewQueue` | Continuous batching config | Coalesce scorer calls for higher-throughput services. |
+| `AsyncStreamingKernel` | Async voice or streaming integration | Async token oversight with timeout and cancellation handling. |
+| `ContainmentGuard` + `RealityAnchor` | `CoherenceAgent(containment_guard=..., containment_anchor=...)` | Verify anchored execution scope and block breakout findings. |
+| `GroundingHook` | `CoherenceAgent(grounding_hook=...)` | Check a proposed physical action against kinematics and constraints. |
+| `PassportVerifier` | `CoherenceAgent(passport_verifier=...)` | Verify cross-org attestation bundles before agent hand-off. |
+| Structured verifiers | `verify_json`, `verify_tool_call`, `verify_code`, `verify_numeric`, `verify_reasoning_chain` | Validate structured outputs on explicit request. |
+| Observability callbacks | tracing config or callback list | Emit token traces and spans without changing halt decisions. |
+
+### Advanced runtime surface
+
+These paths are operationally useful but outside the default support surface.
+They must be enabled through extras, Compose profiles, separate build commands,
+or deployment-specific configuration:
+
+| Surface | Boundary |
+|---------|----------|
+| Rust `backfire-kernel` | `[rust]`, `maturin`, or packaged wheel; Python fallback remains valid. |
+| Go gateway | Separate `gateway/go` build and gRPC scoring sidecar. |
+| Julia tuner | Offline score-log analytics only. |
+| Lean proof artefacts | Separate `lake build`; proof surface does not run in the Python API. |
+| ONNX/TensorRT | `[onnx]`/GPU deployment paths and exported model artefacts. |
+| Voice adapters | `[voice]` plus provider-specific credentials and TTS/STT packages. |
+| Vector DB vendors | `[vector]` plus selected backend dependency and deployment config. |
+
+### Research modules disabled by default
+
+These modules are not default halt coverage. Treat them as research or
+advanced integration points until a roadmap item promotes them into one of the
+layers above:
+
+| Area | Modules |
+|------|---------|
+| Pre-action simulation | `trajectory`, `trace_safe`, `causal_verifier`, `irreversibility` |
+| Semantic consistency | `symbolic_chain`, `ontology`, `multimodal_guard`, `knowledge_graph` |
+| Self-monitoring and adaptation | `meta_guard`, `self_evolving`, `defense_genome`, `continual_adversarial`, `autopoietic` |
+| Swarm and organisation-level checks | `swarm_equilibrium`, `emergence_oracle`, `multi_scale_alignment`, `swarm_economics` |
+| Provenance and privacy | `agent_identity`, `provenance`, `formal_verification`, `federated_privacy`, `zk_attestation` research backends |
+| Resource policy | `sustainability` |
+
 ## Data Flow
 
 ```

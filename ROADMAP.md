@@ -275,7 +275,7 @@
 - [x] Evaluate extracting the Rust kernel and formal proof artefacts into a
   separately versioned package/repository so core users do not inherit that
   build surface.
-- [ ] Add a public Safety Surface Map to `ARCHITECTURE.md` that separates
+- [x] Add a public Safety Surface Map to `ARCHITECTURE.md` that separates
   default streaming/HaltMonitor hooks from opt-in advanced hooks and disabled
   research modules.
 - [ ] Consolidate overlapping safety modules into fewer named responsibilities,
