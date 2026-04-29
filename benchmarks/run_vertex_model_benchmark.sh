@@ -43,7 +43,7 @@ if [[ -z "${MODEL_SPECS}" || -z "${GENERAL_URI}" ]]; then
     exit 2
 fi
 
-COMMIT_SHA="$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')"
+COMMIT_SHA="${IMAGE_TAG:-$(git rev-parse --short HEAD 2>/dev/null || echo 'unknown')}"
 TIMESTAMP="$(date +%Y%m%dT%H%M)"
 RUN_ID="${TIMESTAMP}-${COMMIT_SHA}${DISPLAY_SUFFIX}"
 RUN_PREFIX="managed-training/benchmarks/${RUN_ID}"
@@ -67,26 +67,68 @@ if [[ "${SKIP_BUILD}" -eq 0 ]]; then
         .
 fi
 
-WORKER_POOL_SPEC="machine-type=${MACHINE_TYPE},replica-count=1,container-image-uri=${IMAGE_URI}"
-if [[ -n "${ACCELERATOR}" ]]; then
-    WORKER_POOL_SPEC="${WORKER_POOL_SPEC},accelerator-type=${ACCELERATOR},accelerator-count=${ACCELERATOR_COUNT}"
-fi
-WORKER_POOL_SPEC+=",env=DIRECTOR_MODEL_BENCHMARK=1"
-WORKER_POOL_SPEC+=",env=DIRECTOR_BENCH_BUCKET=${BUCKET}"
-WORKER_POOL_SPEC+=",env=DIRECTOR_BENCH_PREFIX=${RUN_PREFIX}"
-WORKER_POOL_SPEC+=",env=DIRECTOR_MODEL_BENCHMARK_MODELS=${MODEL_SPECS}"
-WORKER_POOL_SPEC+=",env=DIRECTOR_MODEL_BENCHMARK_GENERAL_URI=${GENERAL_URI}"
-if [[ -n "${EVAL_URI}" ]]; then
-    WORKER_POOL_SPEC+=",env=DIRECTOR_MODEL_BENCHMARK_EVAL_URI=${EVAL_URI}"
-fi
-WORKER_POOL_SPEC+=",env=DIRECTOR_MODEL_BENCHMARK_BATCH_SIZE=${BATCH_SIZE}"
-
 JOB_NAME="model-bench-${RUN_ID}"
+CONFIG_FILE="$(mktemp)"
+export JOB_NAME MACHINE_TYPE ACCELERATOR ACCELERATOR_COUNT IMAGE_URI
+export BUCKET RUN_PREFIX MODEL_SPECS GENERAL_URI EVAL_URI BATCH_SIZE CONFIG_FILE
+python - <<'PY'
+import json
+import os
+
+machine_spec = {"machineType": os.environ["MACHINE_TYPE"]}
+accelerator = os.environ.get("ACCELERATOR", "")
+if accelerator:
+    machine_spec["acceleratorType"] = accelerator
+    machine_spec["acceleratorCount"] = int(os.environ["ACCELERATOR_COUNT"])
+
+env = [
+    {"name": "DIRECTOR_MODEL_BENCHMARK", "value": "1"},
+    {"name": "DIRECTOR_BENCH_BUCKET", "value": os.environ["BUCKET"]},
+    {"name": "DIRECTOR_BENCH_PREFIX", "value": os.environ["RUN_PREFIX"]},
+    {
+        "name": "DIRECTOR_MODEL_BENCHMARK_MODELS",
+        "value": os.environ["MODEL_SPECS"],
+    },
+    {
+        "name": "DIRECTOR_MODEL_BENCHMARK_GENERAL_URI",
+        "value": os.environ["GENERAL_URI"],
+    },
+    {
+        "name": "DIRECTOR_MODEL_BENCHMARK_BATCH_SIZE",
+        "value": os.environ["BATCH_SIZE"],
+    },
+]
+if os.environ.get("EVAL_URI"):
+    env.append(
+        {
+            "name": "DIRECTOR_MODEL_BENCHMARK_EVAL_URI",
+            "value": os.environ["EVAL_URI"],
+        }
+    )
+
+config = {
+    "displayName": os.environ["JOB_NAME"],
+    "jobSpec": {
+        "workerPoolSpecs": [
+            {
+                "machineSpec": machine_spec,
+                "replicaCount": 1,
+                "containerSpec": {
+                    "imageUri": os.environ["IMAGE_URI"],
+                    "env": env,
+                },
+            }
+        ]
+    },
+}
+with open(os.environ["CONFIG_FILE"], "w", encoding="utf-8") as fh:
+    json.dump(config, fh)
+PY
+
 gcloud ai custom-jobs create \
     --project="${PROJECT}" \
     --region="${REGION}" \
-    --display-name="${JOB_NAME}" \
-    --worker-pool-spec="${WORKER_POOL_SPEC}"
+    --config="${CONFIG_FILE}"
 
 echo "Submitted ${JOB_NAME}"
 echo "Monitor:"
