@@ -12,6 +12,83 @@ schema_version = "1.0.0"
 path = "benchmarks/CACHE_SCHEMA.md"
 result_schema = "benchmarks/results/SCHEMA.md"
 
+[[benchmark_mode_cards]]
+id = "heuristic_streaming_false_halt"
+mode_family = "heuristic"
+claim_scope = "Streaming false-halt rate for known-good passages"
+public_metric = "4.4% false-halt rate"
+public_tables = ["readme_scoring_pyramid", "benchmark_report_streaming_false_halt"]
+datasets = ["streaming_good_passages"]
+runner_files = ["benchmarks/streaming_false_halt_bench.py"]
+commands = ["python -m benchmarks.streaming_false_halt_bench"]
+result_files = ["benchmarks/results/streaming_false_halt_heuristic.json"]
+metrics = ["false_halt_rate", "avg_coherence", "avg_latency_ms"]
+claim_boundary = "False-halt rate only; do not present as hallucination catch rate."
+
+[[benchmark_mode_cards]]
+id = "pure_nli_aggrefact_global"
+mode_family = "pure_nli"
+claim_scope = "Global-threshold FactCG factual-consistency scoring"
+public_metric = "75.8% per-dataset mean balanced accuracy"
+public_tables = ["readme_aggrefact_leaderboard"]
+datasets = ["llm_aggrefact"]
+runner_files = ["benchmarks/aggrefact_eval.py"]
+commands = [
+  "python -m benchmarks.aggrefact_eval --model yaxili96/FactCG-DeBERTa-v3-Large --threshold 0.46",
+]
+result_files = ["benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json"]
+metrics = ["avg_balanced_accuracy_pct", "threshold", "latency_ms_avg"]
+claim_boundary = "Global-threshold NLI; do not compare directly with tuned-threshold or judge-assisted catch-rate rows."
+
+[[benchmark_mode_cards]]
+id = "tuned_threshold_aggrefact"
+mode_family = "tuned_threshold_nli"
+claim_scope = "Per-dataset threshold replay on cached FactCG scores"
+public_metric = "77.76% per-dataset mean balanced accuracy"
+public_tables = ["readme_aggrefact_leaderboard"]
+datasets = ["llm_aggrefact"]
+runner_files = ["benchmarks/aggrefact_eval.py"]
+commands = [
+  "python -m benchmarks.aggrefact_eval --load-scores benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json --sweep",
+]
+result_files = [
+  "benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json",
+  "benchmarks/results/aggrefact_sweep_lr_low.json",
+]
+metrics = ["per_dataset_thresholds", "per_dataset_mean_balanced_accuracy"]
+claim_boundary = "Threshold-tuned replay; do not describe as model retraining or default runtime behaviour."
+
+[[benchmark_mode_cards]]
+id = "hybrid_remote_judge_halueval"
+mode_family = "hybrid_judge"
+claim_scope = "NLI plus remote judge on HaluEval traces"
+public_metric = "90.7% catch rate with 64.0% FPR on 600 traces"
+public_tables = ["benchmark_report_e2e_halueval"]
+datasets = ["halueval"]
+runner_files = ["benchmarks/e2e_eval.py"]
+commands = [
+  "python -m benchmarks.e2e_eval --nli --scorer-backend hybrid --llm-judge-provider <provider> --llm-judge-model <model>",
+]
+result_files = []
+metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency"]
+claim_boundary = "Judge-assisted mode; never merge this catch-rate claim into pure NLI or heuristic cards."
+
+[[benchmark_mode_cards]]
+id = "local_judge_halueval"
+mode_family = "local_judge"
+claim_scope = "NLI plus local borderline-case classifier on HaluEval traces"
+public_metric = "93.80% catch rate with 66.33% FPR on 6000 reviews"
+public_tables = ["benchmark_report_local_judge"]
+datasets = ["halueval"]
+runner_files = ["benchmarks/run_judge_benchmark.py"]
+commands = ["python benchmarks/run_judge_benchmark.py --samples 1000"]
+result_files = [
+  "benchmarks/results/judge_bench_summary_1000.json",
+  "benchmarks/results/judge_bench_local_judge_1000.json",
+]
+metrics = ["catch_rate", "false_positive_rate", "precision", "f1"]
+claim_boundary = "Local judge mode; report separately from remote-judge and pure-NLI rows."
+
 [[datasets]]
 id = "llm_aggrefact"
 name = "LLM-AggreFact"

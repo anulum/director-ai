@@ -65,9 +65,38 @@ def test_public_manifest_dataset_links_are_valid():
             assert (ROOT / cache_path).exists(), cache_path
 
 
+def test_public_manifest_mode_cards_keep_backend_claims_separate():
+    data = _manifest()
+    table_ids = {table["id"] for table in data["public_accuracy_tables"]}
+    dataset_ids = {dataset["id"] for dataset in data["datasets"]}
+    mode_cards = data["benchmark_mode_cards"]
+
+    assert {card["mode_family"] for card in mode_cards} == {
+        "heuristic",
+        "pure_nli",
+        "tuned_threshold_nli",
+        "hybrid_judge",
+        "local_judge",
+    }
+
+    for card in mode_cards:
+        assert card["claim_boundary"]
+        assert card["public_metric"]
+        for table_id in card["public_tables"]:
+            assert table_id in table_ids
+        for dataset_id in card["datasets"]:
+            assert dataset_id in dataset_ids
+        for runner in card["runner_files"]:
+            assert (ROOT / runner).exists()
+        for result_path in card["result_files"]:
+            assert (ROOT / result_path).exists(), result_path
+
+
 def test_reproduction_docs_reference_manifest_and_cache_schema():
     doc = (ROOT / "benchmarks" / "PUBLIC_BENCHMARKS.md").read_text(encoding="utf-8")
 
     assert "benchmarks/public_accuracy_manifest.toml" in doc
     assert "benchmarks/CACHE_SCHEMA.md" in doc
     assert "readme_aggrefact_leaderboard" in doc
+    assert "Benchmark Mode Cards" in doc
+    assert "hybrid_remote_judge_halueval" in doc

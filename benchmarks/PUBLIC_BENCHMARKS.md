@@ -47,6 +47,20 @@ runners are documented in `benchmarks/CACHE_SCHEMA.md`.
 | `benchmark_report_local_judge` | `benchmarks/BENCHMARK_REPORT.md` | `run_judge_benchmark.py` | `benchmarks/results/judge_bench_summary_1000.json` |
 | `benchmark_report_streaming_false_halt` | `benchmarks/BENCHMARK_REPORT.md` | `streaming_false_halt_bench.py` | `benchmarks/results/streaming_false_halt_heuristic.json` |
 
+## Benchmark Mode Cards
+
+These cards define which public numbers may be compared. A catch-rate card is
+not interchangeable with an accuracy card, and a judge-assisted card is not a
+pure NLI result.
+
+| Card id | Mode family | Public metric | Boundary |
+|---|---|---|---|
+| `heuristic_streaming_false_halt` | heuristic | 4.4% false-halt rate | False-halt rate only; not a hallucination catch-rate claim. |
+| `pure_nli_aggrefact_global` | pure NLI | 75.8% per-dataset mean BA | Global-threshold FactCG result; separate from tuned thresholds. |
+| `tuned_threshold_aggrefact` | tuned-threshold NLI | 77.76% per-dataset mean BA | Threshold replay only; not default runtime behaviour. |
+| `hybrid_remote_judge_halueval` | hybrid judge | 90.7% catch, 64.0% FPR | Judge-assisted HaluEval mode; never merge with pure NLI. |
+| `local_judge_halueval` | local judge | 93.80% catch, 66.33% FPR | Local classifier mode; report apart from remote-judge rows. |
+
 ## Reproduction Commands
 
 AggreFact default:
