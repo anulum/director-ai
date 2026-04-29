@@ -32,6 +32,7 @@ The default unauthenticated set is `/v1/health`, `/v1/ready`, and `/v1/source`. 
 | `production_mode` | `false` | Enables the stricter deployment posture expected for paid or public services. |
 
 When server credentials are configured, all other REST endpoints require the caller credential unless explicitly listed above.
+For browser-facing reverse-proxy examples, see [CORS Reverse Proxy](cors-reverse-proxy.md).
 
 ## Reverse Proxy Rules
 

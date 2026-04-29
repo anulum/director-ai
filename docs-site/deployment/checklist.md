@@ -32,5 +32,5 @@ Before deploying Director-AI to production, verify each item:
 
 - [ ] Audit dependencies: `pip-audit --strict`
 - [ ] Run SAST: `bandit -r src/director_ai/`
-- [ ] Review CORS origins — default `*` is unsafe for production
-- [ ] Ensure `llm_api_key` and `api_keys` are not logged or exposed in responses
+- [ ] Review CORS origins — default is empty; public browser deployments need exact `https://` origins
+- [ ] Ensure caller credentials are not logged or exposed in responses

@@ -232,9 +232,9 @@ Before going live, verify each item:
 - [ ] **Score caching** — set `cache_size` and `cache_ttl` to reduce NLI inference load
 - [ ] **Audit logging** — set `audit_log_path="audit.jsonl"` to enable `AuditLogger`
 - [ ] **Prometheus scraping** — configure your monitoring to scrape `/v1/metrics/prometheus`
-- [ ] **CORS origins** — set `cors_origins` to your domain (not `*`)
+- [ ] **CORS origins** — set `cors_origins` to exact browser origins and mirror them in the reverse proxy
 - [ ] **Rate limiting** — set `rate_limit_rpm=60` (or appropriate limit) to prevent abuse
-- [ ] **API key auth** — set `api_keys=["your-key"]` to require `X-API-Key` header
+- [ ] **Caller credentials** — configure the server credential list and require `X-API-Key`
 - [ ] **Correlation IDs** — `X-Request-ID` headers are automatic; log them for tracing
 - [ ] **Tenant isolation** — set `tenant_routing=True` if serving multiple customers
 - [ ] **Regression test** — run `python -m benchmarks.regression_suite` and confirm all assertions pass

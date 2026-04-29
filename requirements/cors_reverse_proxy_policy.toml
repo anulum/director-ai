@@ -1,0 +1,52 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - CORS reverse proxy policy
+
+id = "cors-reverse-proxy"
+status = "active"
+deployment_doc = "docs-site/deployment/cors-reverse-proxy.md"
+server_module = "src/director_ai/server.py"
+config_module = "src/director_ai/core/config.py"
+
+[application]
+setting = "cors_origins"
+default = ""
+example = "https://app.example.com,https://admin.example.com"
+rule = "List exact browser origins only; keep empty for non-browser clients."
+
+[headers]
+allow_methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+allow_headers = [
+  "Authorization",
+  "Content-Type",
+  "X-API-Key",
+  "X-Request-ID",
+  "X-Tenant-ID",
+  "X-KB-Key-ID",
+  "X-KB-Signature",
+]
+allow_credentials = false
+
+[[examples]]
+name = "nginx"
+file = "docs-site/deployment/cors-reverse-proxy.md"
+rule = "Use a map with exact origins and return 403 for browser origins outside the map."
+
+[[examples]]
+name = "traefik"
+file = "docs-site/deployment/cors-reverse-proxy.md"
+rule = "Use accessControlAllowOriginList with exact browser origins."
+
+[[examples]]
+name = "ingress nginx"
+file = "docs-site/deployment/cors-reverse-proxy.md"
+rule = "Use cors-allow-origin with an exact comma-separated allowlist."
+
+[forbidden]
+wildcard_origin = "*"
+reflected_origin_without_allowlist = "$http_origin without exact map"
+null_origin = "null"

@@ -133,7 +133,9 @@ Returns 429 when exceeded. Install `pip install director-ai[server]` for Redis-b
 DIRECTOR_CORS_ORIGINS=https://example.com,https://app.example.com director-ai serve
 ```
 
-Default is empty (no CORS). Do not use `*` in production.
+Default is empty, so browser CORS is disabled until exact origins are set.
+Reverse-proxy examples are documented in
+[CORS Reverse Proxy](../deployment/cors-reverse-proxy.md).
 
 ## Continuous Batching (ReviewQueue)
 
