@@ -1,12 +1,15 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 .DEFAULT_GOAL := help
-.PHONY: help test test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
+.PHONY: help test python-only-check test-rust test-julia test-lean test-go test-wasm test-all proto wasm-build lint fmt docs docs-build bench clean build preflight preflight-fast bandit sast install-hooks docker-build docker-run backup julia-instantiate grpc-scoring ab-bench
 
 help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 test: ## Run Python tests with coverage
 	pytest tests/ -v --cov=director_ai --cov-report=term --cov-fail-under=90
+
+python-only-check: ## Run contributor checks without optional runtime toolchains
+	python tools/python_only_check.py
 
 test-rust: ## Run Rust tests (backfire-kernel)
 	cd backfire-kernel && cargo test --workspace

@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-04-29
+Last updated: 2026-04-30
 
 ## Shipped Today - 2026-04-29
 
@@ -345,6 +345,23 @@ Last updated: 2026-04-29
 - [x] Add trace tests proving multi-hook halt attribution remains stable across
   streaming, swarm, and physical-precheck paths.
 
+### Halt Recovery and Structured Stream Resilience (Planned)
+- [ ] Ship a lightweight safety operations dashboard that surfaces per-tenant
+  halt rate, false-positive rate, top contradiction sources, and recent evidence
+  samples.
+- [ ] Export a Prometheus and Grafana mixin for halt-rate, false-positive-rate,
+  stale-knowledge, and feedback-retuning alerts.
+- [ ] Add a one-click retune action in the UI that rebuilds threshold guidance
+  from recent labelled feedback.
+- [ ] Publish a halt recovery patterns cookbook covering KB refresh, threshold
+  rollback, human review routing, and temporary policy fallback.
+- [ ] Add configurable `partial_output_on_halt` handling for JSON, tool-call, and
+  reasoning-chain streams.
+- [ ] Emit the last valid structured chunk plus a `halted_at` marker so downstream
+  parsers can recover cleanly from mid-stream halts.
+- [ ] Add structured-stream recovery tests for JSON objects, arrays, tool calls,
+  nested tool arguments, and reasoning-chain envelopes.
+
 ### Benchmark Transparency and External Validation (Planned)
 - [x] Publish raw benchmark runners, dataset manifests, cache schema, and
   reproduction commands for every public accuracy table.
@@ -372,7 +389,7 @@ Last updated: 2026-04-29
 - [x] Execute the standalone `backfire-kernel` crate extraction with independent
   versioning, release notes, crate CI, Python wheel contract tests, and proof
   artefact boundaries.
-- [ ] Add a contributor path that lets Python-only changes run without Rust, Go,
+- [x] Add a contributor path that lets Python-only changes run without Rust, Go,
   Julia, Lean, or WASM toolchains installed.
 
 ### Security Follow-Ups (Planned)
@@ -408,6 +425,13 @@ Last updated: 2026-04-29
   and attestation failure cases before cross-organisation hand-off is promoted.
 - [x] Add pinned dependency guidance and sandbox notes for zk proof backends,
   simulation libraries, and physical adapters.
+- [ ] Add timing side-channel fuzz tests for ReviewQueue batching so coherence
+  score latency cannot be inferred from batch size or tenant mix.
+- [ ] Document that `meta_guard`, `self_evolving`, `continual_adversarial`, and
+  similar experimental hooks must not be enabled for live deployments without
+  isolation and human review.
+- [ ] Extend the nightly red-team workflow with property-based tests across the
+  experimental surface and the cross-language contract suite.
 
 ### Knowledge-Base Governance (Planned)
 - [x] Add semantic versioning for `VectorGroundTruthStore` facts and derived
@@ -425,6 +449,16 @@ Last updated: 2026-04-29
   guard can intervene before unsafe tokens are sampled.
 - [ ] Design a human-reviewed self-improving guard loop from calibration feedback
   into LoRA fine-tuning jobs.
+- [ ] Prototype predictive pre-halt intervention through native inference hooks
+  that bias next-token candidates away from low-coherence continuations before
+  sampling.
+- [ ] Add an automatic correction loop that proposes a grounded continuation after
+  a halt, with user or operator approval before release.
+- [ ] Add a cross-verifier consensus engine for critical domains that combines
+  NLI, policy rules, temporal checks, numeric checks, and domain-specific
+  symbolic validators into one calibrated confidence interval.
+- [ ] Build a synthetic data and self-distillation pipeline that turns reviewed
+  halt feedback into hard negatives and periodic domain-adapted training jobs.
 - [ ] Plan multi-modal hallucination checks for generated image, audio, and video
   outputs using caption/metadata grounding.
 - [ ] Draft an open Director Safety Protocol for guard signals shared across agent
@@ -438,6 +472,8 @@ Last updated: 2026-04-29
 - [ ] Design federated, privacy-preserving sharing of anonymised guard signals.
 - [ ] Add sustainability scoring for token cost, energy estimates, and budget
   halts.
+- [ ] Extend sustainability scoring with real hardware profiles, projected energy,
+  projected currency cost, and budget-halt policy controls.
 - [ ] Promote the recursive guard-of-the-guard layer into a guarded production
   option with drift and evasion checks.
 - [ ] Publish a structured Director Safety Event schema for uniform halt telemetry

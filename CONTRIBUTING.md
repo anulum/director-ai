@@ -15,11 +15,28 @@ make install-hooks
 pytest tests/ -v
 ```
 
+## Python-Only Contributor Path
+
+For documentation, Python core, server, CLI, and test changes that do not touch
+optional runtime surfaces, use:
+
+```bash
+pip install -e ".[dev]"
+make python-only-check
+```
+
+This path does not require Rust, Go, Julia, Lean, or WASM toolchains. It runs
+the fast Python preflight plus a focused smoke suite that covers import,
+configuration, backend fallback, and this contributor-path contract. Optional
+runtime work still uses the dedicated targets: `make test-rust`,
+`make test-go`, `make test-julia`, `make test-lean`, or `make test-wasm`.
+
 ## Makefile Targets
 
 | Target | Command | Description |
 |--------|---------|-------------|
 | `make test` | `pytest tests/ -v --cov=director_ai --cov-fail-under=90` | Run tests with coverage (90% gate) |
+| `make python-only-check` | `python tools/python_only_check.py` | Run contributor checks without optional runtime toolchains |
 | `make test-rust` | `cargo test` in backfire-kernel | Run Rust tests |
 | `make test-all` | test + test-rust | Both suites |
 | `make lint` | `ruff format --check` + `ruff check` | Check style |

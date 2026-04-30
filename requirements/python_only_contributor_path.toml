@@ -1,0 +1,32 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Python-only contributor path
+
+id = "python-only-contributor-path"
+status = "active"
+make_target = "python-only-check"
+runner = "tools/python_only_check.py"
+roadmap_item = "Add a contributor path that lets Python-only changes run without Rust, Go, Julia, Lean, or WASM toolchains installed."
+
+blocked_toolchains = [
+  "cargo",
+  "go",
+  "julia",
+  "lake",
+  "lean",
+  "wasm-pack",
+]
+
+[[gates]]
+id = "preflight-fast"
+command = "python tools/preflight.py --no-tests"
+scope = "Python lint, security, version, and SPDX checks."
+
+[[gates]]
+id = "pytest-python-smoke"
+command = "python -m pytest tests/test_consumer_api.py tests/test_config.py tests/test_backends.py tests/test_python_only_contributor_path.py -q"
+scope = "Focused Python smoke tests that do not require optional runtime toolchains."
