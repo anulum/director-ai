@@ -23,6 +23,8 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    exclude-paths:
+      - "requirements/**"
     open-pull-requests-limit: 0
     labels:
       - "dependencies"
