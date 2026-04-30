@@ -43,6 +43,13 @@ def _clip(text: str, limit: int = 500) -> str:
     return f"{stripped[: limit - 3]}..."
 
 
+def _counterfactual_float(values: Mapping[str, object], key: str) -> float:
+    value = values[key]
+    if isinstance(value, str | int | float):
+        return float(value)
+    raise TypeError(f"causal value {key!r} is not numeric")
+
+
 @dataclass(frozen=True)
 class CounterfactualBranch:
     """One what-if branch and its verdict."""
@@ -156,13 +163,14 @@ class CounterfactualVerifier:
             "adjusted_score",
             lambda p: min(
                 1.0,
-                float(p["observed_score"]) + float(p["score_delta"]),
+                _counterfactual_float(p, "observed_score")
+                + _counterfactual_float(p, "score_delta"),
             ),
             parents=("observed_score", "score_delta"),
         )
         graph.add(
             "halted",
-            lambda p: float(p["adjusted_score"]) < threshold,
+            lambda p: _counterfactual_float(p, "adjusted_score") < threshold,
             parents=("adjusted_score",),
         )
         verifier = cls(

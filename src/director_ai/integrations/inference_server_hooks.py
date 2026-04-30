@@ -217,7 +217,7 @@ def _event_attributes(
     request: InferenceHookRequest,
     token_id: int | None,
 ) -> dict[str, str]:
-    attributes = {"server": request.server}
+    attributes: dict[str, str] = {"server": str(request.server)}
     if token_id is not None:
         attributes["token_id"] = str(token_id)
     attributes.update(request.metadata)

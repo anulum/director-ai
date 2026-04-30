@@ -52,7 +52,7 @@ The command prints tenant halt rates, top contradiction sources, recent evidence
 and the retune command:
 
 ```bash
-director-ai tune --dataset recent_feedback.jsonl --output director-ai-retuned.yaml
+director-ai tune --dataset recent_feedback.jsonl --output director-ai-tuned.yaml
 ```
 
 ## Alert Thresholds

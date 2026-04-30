@@ -84,7 +84,7 @@ def build_safety_dashboard(
     summary = _summary_markdown(records, errors, tenant_rows)
     command = (
         "director-ai tune --dataset recent_feedback.jsonl "
-        "--output director-ai-retuned.yaml"
+        "--output director-ai-tuned.yaml"
     )
     return summary, tenant_rows, source_rows, evidence_rows, command
 
