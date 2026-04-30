@@ -72,6 +72,37 @@ director-ai safety-dashboard \
   --false-positive-alert-threshold 0.10
 ```
 
+## Prometheus And Grafana Mixin
+
+The deployable safety-operations mixin lives under `deploy/observability/`:
+
+- `safety-ops-prometheus-rules.yml`
+- `safety-ops-grafana-dashboard.json`
+
+Load the rules from Prometheus:
+
+```yaml
+rule_files:
+  - safety-ops-prometheus-rules.yml
+```
+
+Import `safety-ops-grafana-dashboard.json` into Grafana and select the same
+Prometheus data source that scrapes `/v1/metrics/prometheus`.
+
+The mixin uses these metric families:
+
+| Metric | Purpose |
+|--------|---------|
+| `director_ai_halts_total` | Halt-rate numerator |
+| `director_ai_reviews_total` | Halt-rate denominator |
+| `director_ai_feedback_total{outcome="false_positive"}` | False-positive feedback |
+| `director_ai_kb_stale_sources` | Stale source count |
+| `director_ai_retune_recommended` | Retune recommendation state |
+| `director_ai_retune_recommendations_total` | Retune recommendation count |
+
+The alert rules include safe denominator guards for low-traffic services, so a
+single halt during startup does not divide by zero.
+
 ## Input Shape
 
 Each event should be one tenant-safe JSON object per line. Native

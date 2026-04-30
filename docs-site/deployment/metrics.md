@@ -13,6 +13,8 @@ All metrics use the `director_ai_` prefix.
 | `reviews_approved` | — | Reviews that passed coherence threshold |
 | `reviews_rejected` | — | Reviews that failed coherence threshold |
 | `halts_total` | `reason` | Safety kernel halt events |
+| `feedback_total` | `outcome` | Human feedback events used for calibration and false-positive tracking |
+| `retune_recommendations_total` | none | Retune recommendations emitted by safety operations |
 | `http_requests_total` | `method`, `endpoint`, `status` | HTTP requests by method/endpoint/status |
 
 ### Histograms
@@ -35,6 +37,8 @@ All metrics use the `director_ai_` prefix.
 |--------|-------------|
 | `active_requests` | In-flight requests |
 | `nli_model_loaded` | 1 if NLI model is loaded |
+| `kb_stale_sources` | Knowledge sources that need refresh or review |
+| `retune_recommended` | 1 when recent feedback indicates retuning is due |
 
 ## Prometheus Endpoint
 
@@ -103,9 +107,13 @@ from director_ai.core.metrics import metrics
 
 metrics.inc("reviews_total")
 metrics.inc("halts_total", label="hard_limit")
+metrics.inc_labeled("feedback_total", {"outcome": "false_positive"})
+metrics.inc("retune_recommendations_total")
 metrics.inc_labeled("http_requests_total", {"method": "GET", "status": "200"})
 metrics.observe("coherence_score", 0.87)
 metrics.gauge_set("nli_model_loaded", 1.0)
+metrics.gauge_set("kb_stale_sources", 2)
+metrics.gauge_set("retune_recommended", 1)
 
 with metrics.timer("review_duration_seconds"):
     approved, score = scorer.review(query, response)

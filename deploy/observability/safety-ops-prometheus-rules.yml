@@ -1,0 +1,66 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - safety operations Prometheus rules
+
+groups:
+  - name: director-ai-safety-ops
+    interval: 30s
+    rules:
+      - alert: DirectorHighHaltRate
+        expr: |
+          (
+            sum by (job, instance) (rate(director_ai_halts_total[5m]))
+            /
+            clamp_min(sum by (job, instance) (rate(director_ai_reviews_total[5m])), 0.001)
+          ) > 0.15
+        for: 5m
+        labels:
+          severity: warning
+          area: safety-ops
+        annotations:
+          summary: "Director-AI halt rate is above 15%"
+          description: "Review recent SafetyEvent evidence, stale KB sources, and threshold changes for {{ $labels.instance }}."
+
+      - alert: DirectorFalsePositiveRateHigh
+        expr: |
+          (
+            sum by (job, instance) (rate(director_ai_feedback_total{outcome="false_positive"}[30m]))
+            /
+            clamp_min(sum by (job, instance) (rate(director_ai_halts_total[30m])), 0.001)
+          ) > 0.05
+        for: 10m
+        labels:
+          severity: warning
+          area: safety-ops
+        annotations:
+          summary: "Director-AI false-positive feedback is above 5%"
+          description: "Route recent false positives to review and retune from labelled feedback for {{ $labels.instance }}."
+
+      - alert: DirectorStaleKnowledgeSources
+        expr: director_ai_kb_stale_sources > 0
+        for: 15m
+        labels:
+          severity: warning
+          area: knowledge-base
+        annotations:
+          summary: "Director-AI has stale knowledge sources"
+          description: "Refresh or retract stale sources before relaxing halt thresholds on {{ $labels.instance }}."
+
+      - alert: DirectorFeedbackRetuneDue
+        expr: |
+          (
+            sum by (job, instance) (increase(director_ai_feedback_total{outcome=~"false_positive|false_negative"}[6h])) >= 25
+          )
+          or
+          (director_ai_retune_recommended > 0)
+        for: 15m
+        labels:
+          severity: info
+          area: calibration
+        annotations:
+          summary: "Director-AI retune pass is due"
+          description: "Run director-ai tune on recent labelled feedback and review the generated profile overlay."

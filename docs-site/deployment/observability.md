@@ -2,11 +2,15 @@
 
 *Added in v3.11.0*
 
-Pre-built Grafana dashboard and Prometheus alert rules at `deploy/observability/`.
+Pre-built Grafana dashboards and Prometheus alert rules live at
+`deploy/observability/`.
 
 ## Grafana Dashboard
 
 Import `deploy/observability/grafana-dashboard.json` into Grafana.
+
+For halt operations, import
+`deploy/observability/safety-ops-grafana-dashboard.json`.
 
 ### Panels (9)
 
@@ -25,6 +29,9 @@ Import `deploy/observability/grafana-dashboard.json` into Grafana.
 ## Prometheus Alerts
 
 Add `deploy/observability/prometheus-alerts.yml` to your Prometheus configuration.
+
+For halt-rate, false-positive-rate, stale-knowledge, and retune alerts, also add
+`deploy/observability/safety-ops-prometheus-rules.yml`.
 
 ### Alert Rules (6)
 
@@ -53,3 +60,16 @@ director-ai serve --port 8080
 1. Add your Prometheus as a data source
 2. Import → Upload JSON → select `grafana-dashboard.json`
 3. Select the Prometheus data source
+
+## Safety Operations Mixin
+
+The safety operations mixin tracks:
+
+- halt rate: `director_ai_halts_total / director_ai_reviews_total`
+- false-positive feedback rate: `director_ai_feedback_total{outcome="false_positive"} / director_ai_halts_total`
+- stale knowledge: `director_ai_kb_stale_sources`
+- retune guidance: `director_ai_retune_recommended` and
+  `director_ai_retune_recommendations_total`
+
+It pairs with `director-ai safety-dashboard` for recent evidence review and
+labelled-feedback retuning.

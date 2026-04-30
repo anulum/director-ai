@@ -140,6 +140,8 @@ class MetricsCollector:
         "reviews_approved": "Reviews that passed coherence threshold",
         "reviews_rejected": "Reviews that failed coherence threshold",
         "halts_total": "Safety kernel halt events",
+        "feedback_total": "Human feedback events by outcome",
+        "retune_recommendations_total": "Retune recommendations emitted by safety operations",
         "http_requests_total": "HTTP requests by method/endpoint/status",
         "coherence_score": "Coherence score distribution",
         "review_duration_seconds": "End-to-end review latency",
@@ -152,6 +154,8 @@ class MetricsCollector:
         "http_request_duration_seconds": "HTTP request duration",
         "active_requests": "In-flight requests",
         "nli_model_loaded": "1 if NLI model is loaded",
+        "kb_stale_sources": "Knowledge sources that need refresh or review",
+        "retune_recommended": "1 when recent feedback indicates retuning is due",
     }
 
     def __init__(self, enabled: bool = True) -> None:
@@ -162,6 +166,8 @@ class MetricsCollector:
             "reviews_approved": _Counter(),
             "reviews_rejected": _Counter(),
             "halts_total": _Counter(),
+            "feedback_total": _Counter(),
+            "retune_recommendations_total": _Counter(),
         }
         self._histograms: dict[str, _Histogram] = {
             "coherence_score": _Histogram(buckets=COHERENCE_SCORE_BUCKETS),
@@ -180,6 +186,8 @@ class MetricsCollector:
         self._gauges: dict[str, _Gauge] = {
             "active_requests": _Gauge(),
             "nli_model_loaded": _Gauge(),
+            "kb_stale_sources": _Gauge(),
+            "retune_recommended": _Gauge(),
         }
 
     def inc(self, name: str, amount: float = 1.0, label: str = "") -> None:

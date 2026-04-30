@@ -1,0 +1,102 @@
+{
+  "__spdx": [
+    "SPDX-License-Identifier: AGPL-3.0-or-later",
+    "Commercial licence available",
+    "Concepts 1996-2026 Miroslav Sotek. All rights reserved.",
+    "Code 2020-2026 Miroslav Sotek. All rights reserved.",
+    "ORCID: 0009-0009-3560-0851",
+    "Contact: www.anulum.li | protoscience@anulum.li",
+    "Director-Class AI - safety operations dashboard"
+  ],
+  "annotations": {"list": []},
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 0,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "title": "Halt rate by instance",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "sum by (instance) (rate(director_ai_halts_total[5m])) / clamp_min(sum by (instance) (rate(director_ai_reviews_total[5m])), 0.001)",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "title": "False-positive feedback rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "sum by (instance) (rate(director_ai_feedback_total{outcome=\"false_positive\"}[30m])) / clamp_min(sum by (instance) (rate(director_ai_halts_total[30m])), 0.001)",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    },
+    {
+      "title": "Halts by reason",
+      "type": "barchart",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "sum by (reason) (increase(director_ai_halts_total[1h]))",
+          "legendFormat": "{{reason}}"
+        }
+      ]
+    },
+    {
+      "title": "Stale knowledge sources",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 8},
+      "targets": [
+        {
+          "expr": "sum(director_ai_kb_stale_sources)",
+          "legendFormat": "sources"
+        }
+      ]
+    },
+    {
+      "title": "Retune recommended",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 8},
+      "targets": [
+        {
+          "expr": "max(director_ai_retune_recommended)",
+          "legendFormat": "recommended"
+        }
+      ]
+    },
+    {
+      "title": "Feedback outcomes",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "targets": [
+        {
+          "expr": "sum by (outcome) (rate(director_ai_feedback_total[30m]))",
+          "legendFormat": "{{outcome}}"
+        }
+      ]
+    },
+    {
+      "title": "Retune recommendations",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "targets": [
+        {
+          "expr": "sum by (instance) (increase(director_ai_retune_recommendations_total[6h]))",
+          "legendFormat": "{{instance}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": ["director-ai", "safety-ops", "halt-rate"],
+  "templating": {"list": []},
+  "time": {"from": "now-6h", "to": "now"},
+  "title": "Director-AI Safety Operations",
+  "uid": "director-ai-safety-ops"
+}

@@ -349,7 +349,7 @@ Last updated: 2026-04-30
 - [x] Ship a lightweight safety operations dashboard that surfaces per-tenant
   halt rate, false-positive rate, top contradiction sources, and recent evidence
   samples.
-- [ ] Export a Prometheus and Grafana mixin for halt-rate, false-positive-rate,
+- [x] Export a Prometheus and Grafana mixin for halt-rate, false-positive-rate,
   stale-knowledge, and feedback-retuning alerts.
 - [ ] Add a one-click retune action in the UI that rebuilds threshold guidance
   from recent labelled feedback.
