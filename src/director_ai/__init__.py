@@ -124,6 +124,26 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "PhysicsError": (".core.exceptions", "PhysicsError"),
     "ValidationError": (".core.exceptions", "ValidationError"),
     # Integrations
+    "InferenceHookDecision": (
+        ".integrations.inference_server_hooks",
+        "InferenceHookDecision",
+    ),
+    "InferenceHookRequest": (
+        ".integrations.inference_server_hooks",
+        "InferenceHookRequest",
+    ),
+    "InferenceServerHook": (
+        ".integrations.inference_server_hooks",
+        "InferenceServerHook",
+    ),
+    "InferenceServerHookPolicy": (
+        ".integrations.inference_server_hooks",
+        "InferenceServerHookPolicy",
+    ),
+    "build_inference_server_hook": (
+        ".integrations.inference_server_hooks",
+        "build_inference_server_hook",
+    ),
     "get_score": (".integrations.sdk_guard", "get_score"),
     "guard": (".integrations.sdk_guard", "guard"),
     "score": (".integrations.sdk_guard", "score"),

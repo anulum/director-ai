@@ -130,6 +130,7 @@ director-ai/
 │   │
 │   ├── integrations/
 │   │   ├── sdk_guard.py           guard() — 5 SDK shapes
+│   │   ├── inference_server_hooks.py  vLLM/TGI/llama.cpp pre-sampling hook
 │   │   ├── voice.py               VoiceGuard — sync token filter for TTS
 │   │   ├── langchain.py           LangChain Runnable
 │   │   ├── llamaindex.py          LlamaIndex NodePostprocessor
@@ -245,6 +246,7 @@ agent, selected through configuration, or installed through the matching extra:
 | `InjectionDetector` | Stage 2 detector selected in policy/config | NLI-based intent-drift detection after regex filtering. |
 | `ReviewQueue` | Continuous batching config | Coalesce scorer calls for higher-throughput services. |
 | `AsyncStreamingKernel` | Async voice or streaming integration | Async token oversight with timeout and cancellation handling. |
+| `InferenceServerHook` | vLLM, TGI, or llama.cpp adapter calls `check()` before accepting a candidate token | Mask or reject a candidate token and emit one `SafetyEvent` with `hook_scope="inference_server"`. |
 | `ContainmentGuard` + `RealityAnchor` | `CoherenceAgent(containment_guard=..., containment_anchor=...)` | Verify anchored execution scope and block breakout findings. |
 | `GroundingHook` | `CoherenceAgent(grounding_hook=...)` | Check a proposed physical action against kinematics and constraints. |
 | `PassportVerifier` | `CoherenceAgent(passport_verifier=...)` | Verify cross-org attestation bundles before agent hand-off. |

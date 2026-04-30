@@ -110,6 +110,48 @@ kernel = AsyncStreamingKernel(
 session = await kernel.stream_to_session(async_token_gen, coherence_fn)
 ```
 
+## Pre-Sampling Inference Server Hooks
+
+`InferenceServerHook` is the adapter boundary for vLLM, TGI, and
+llama.cpp deployments that want a decision before a candidate token is
+accepted. The hook is stdlib-only; server packages call `check()` from
+their own logits or token-filter callback and then apply the returned
+payload.
+
+```python
+from director_ai import InferenceHookRequest, build_inference_server_hook
+
+
+def coherence_fn(text: str) -> float:
+    return scorer.review(prompt, text).score
+
+
+hook = build_inference_server_hook(
+    "vllm",
+    coherence_fn,
+    hard_limit=0.4,
+)
+
+decision = hook.check(
+    InferenceHookRequest(
+        server="vllm",
+        accumulated_text="The measured value is ",
+        candidate_token="grounded",
+        token_id=42,
+        request_id="req-123",
+    ),
+    logits=[0.0] * 100,
+)
+
+if not decision.allow:
+    emit(decision.safety_event.to_dict())
+    apply_server_payload(decision.server_payload)
+```
+
+On a halt, the hook returns masked logits when logits are supplied, the
+server-specific action payload, blocked token ids when known, and a
+tenant-safe `SafetyEvent` with `hook_scope="inference_server"`.
+
 ## Threshold Tuning by Domain
 
 | Domain | hard_limit | window_threshold | trend_threshold | window_size | Rationale |

@@ -36,6 +36,7 @@ _SCOPES = frozenset(
         "ontology",
         "trajectory",
         "cyber_physical",
+        "inference_server",
         "swarm",
         "agent",
     },

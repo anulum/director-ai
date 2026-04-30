@@ -421,7 +421,7 @@ Last updated: 2026-04-29
   signed fact, passport claim, or retraction record.
 
 ### Future Differentiators (Planned)
-- [ ] Prototype native inference-server hooks for vLLM, TGI, and llama.cpp so the
+- [x] Prototype native inference-server hooks for vLLM, TGI, and llama.cpp so the
   guard can intervene before unsafe tokens are sampled.
 - [ ] Design a human-reviewed self-improving guard loop from calibration feedback
   into LoRA fine-tuning jobs.

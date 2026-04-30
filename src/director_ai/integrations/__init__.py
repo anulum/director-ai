@@ -16,6 +16,13 @@ Usage::
     agent = CoherenceAgent(generator=provider)
 """
 
+from .inference_server_hooks import (
+    InferenceHookDecision,
+    InferenceHookRequest,
+    InferenceServerHook,
+    InferenceServerHookPolicy,
+    build_inference_server_hook,
+)
 from .providers import (
     AnthropicProvider,
     HuggingFaceProvider,
@@ -27,9 +34,14 @@ from .providers import (
 __all__ = [
     "AnthropicProvider",
     "HuggingFaceProvider",
+    "InferenceHookDecision",
+    "InferenceHookRequest",
+    "InferenceServerHook",
+    "InferenceServerHookPolicy",
     "LLMProvider",
     "LocalProvider",
     "OpenAIProvider",
+    "build_inference_server_hook",
 ]
 
 # Ecosystem integrations — import directly from submodules:

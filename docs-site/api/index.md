@@ -20,6 +20,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`CoherenceScorer`](scorer.md) | `director_ai.core.scoring.scorer` | Dual-entropy coherence scoring engine |
 | [`StreamingKernel`](streaming.md) | `director_ai.core.runtime.streaming` | Token-level streaming halt |
 | [`AsyncStreamingKernel`](streaming.md#async) | `director_ai.core.runtime.async_streaming` | Async variant of StreamingKernel |
+| [`InferenceServerHook`](../guide/streaming.md#pre-sampling-inference-server-hooks) | `director_ai.integrations.inference_server_hooks` | Server-neutral pre-sampling hook for vLLM, TGI, and llama.cpp |
 | [`CoherenceAgent`](agent.md) | `director_ai.core.agent` | Orchestrator: generator + scorer + kernel |
 | [`BatchProcessor`](batch.md) | `director_ai.core.runtime.batch` | Concurrent batch scoring |
 
@@ -131,6 +132,7 @@ See [Compliance Reporting Guide](../guide/compliance-reporting.md).
 # Top-level convenience imports
 from director_ai import guard, score, get_score
 from director_ai import CoherenceScorer, StreamingKernel, CoherenceAgent
+from director_ai import InferenceHookRequest, build_inference_server_hook
 
 # v3.10.0: Structured verification (stdlib only, no torch)
 from director_ai import verify_json, verify_tool_call, verify_code
