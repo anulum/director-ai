@@ -281,6 +281,66 @@ class TestVectorGroundTruthStore:
         with pytest.raises(KeyError, match="cannot replace unknown fact"):
             store.replace_fact("missing", "new value")
 
+    def test_empty_kb_snapshot_root_is_deterministic(self):
+        store = VectorGroundTruthStore()
+
+        root_a = store.kb_snapshot_root()
+        root_b = VectorGroundTruthStore().kb_snapshot_root()
+
+        assert root_a == root_b
+        assert len(root_a) == 64
+
+    def test_kb_snapshot_root_is_independent_of_insert_order(self):
+        left = VectorGroundTruthStore()
+        right = VectorGroundTruthStore()
+
+        left.add_fact("alpha", "first value")
+        left.add_fact("beta", "second value")
+        right.add_fact("beta", "second value")
+        right.add_fact("alpha", "first value")
+
+        assert left.kb_snapshot_records() == right.kb_snapshot_records()
+        assert left.kb_snapshot_root() == right.kb_snapshot_root()
+
+    def test_kb_snapshot_root_changes_for_retraction_and_replacement(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("policy", "refunds in 30 days")
+        initial = store.kb_snapshot_root()
+
+        store.replace_fact("policy", "refunds in 45 days", reason="policy update")
+        replaced = store.kb_snapshot_root()
+        store.retract_fact("policy", reason="source withdrawn")
+        retracted = store.kb_snapshot_root()
+
+        assert replaced != initial
+        assert retracted != replaced
+
+    def test_kb_snapshot_root_is_tenant_scoped(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("policy", "tenant a value", tenant_id="tenant_a")
+        store.add_fact("policy", "tenant b value", tenant_id="tenant_b")
+
+        root_a = store.kb_snapshot_root("tenant_a")
+        root_b = store.kb_snapshot_root("tenant_b")
+        records_a = store.kb_snapshot_records("tenant_a")
+
+        assert root_a != root_b
+        assert {record["tenant_id"] for record in records_a} == {"tenant_a"}
+
+    def test_kb_snapshot_audit_record_reports_root_and_counts(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("policy", "refunds in 30 days")
+        store.replace_fact("policy", "refunds in 45 days", reason="policy update")
+
+        record = store.kb_snapshot_audit_record()
+
+        assert record["event"] == "kb_snapshot"
+        assert record["record_count"] == 1
+        assert record["replacement_count"] == 1
+        assert record["retraction_count"] == 0
+        assert record["revision"] == store.revision
+        assert record["merkle_root"] == store.kb_snapshot_root()
+
 
 @pytest.mark.consumer
 class TestVectorRegistry:

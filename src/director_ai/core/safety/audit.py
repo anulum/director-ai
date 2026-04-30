@@ -52,6 +52,11 @@ class AuditEntry:
     tenant_id: str = ""
     halt_reason: str = ""
     latency_ms: float = 0.0
+    kb_snapshot_root: str = ""
+    kb_snapshot_revision: int = 0
+    kb_snapshot_record_count: int = 0
+    kb_snapshot_retraction_count: int = 0
+    kb_snapshot_replacement_count: int = 0
 
     def to_json(self) -> str:
         return json.dumps(asdict(self), separators=(",", ":"))
@@ -105,8 +110,10 @@ class AuditLogger:
         tenant_id: str = "",
         halt_reason: str = "",
         latency_ms: float = 0.0,
+        kb_snapshot: dict[str, Any] | None = None,
     ) -> AuditEntry:
         """Record a review decision."""
+        snapshot = kb_snapshot or {}
         entry = AuditEntry(
             timestamp=datetime.datetime.now(datetime.UTC).strftime(
                 "%Y-%m-%dT%H:%M:%SZ"
@@ -125,6 +132,17 @@ class AuditLogger:
             tenant_id=tenant_id,
             halt_reason=halt_reason,
             latency_ms=round(latency_ms, 2),
+            kb_snapshot_root=str(snapshot.get("merkle_root", "")),
+            kb_snapshot_revision=self._snapshot_int(snapshot, "revision"),
+            kb_snapshot_record_count=self._snapshot_int(snapshot, "record_count"),
+            kb_snapshot_retraction_count=self._snapshot_int(
+                snapshot,
+                "retraction_count",
+            ),
+            kb_snapshot_replacement_count=self._snapshot_int(
+                snapshot,
+                "replacement_count",
+            ),
         )
         line = entry.to_json()
         self._logger.info(line)
@@ -141,3 +159,11 @@ class AuditLogger:
                 )
 
         return entry
+
+    @staticmethod
+    def _snapshot_int(snapshot: dict[str, Any], key: str) -> int:
+        value = snapshot.get(key, 0)
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 0

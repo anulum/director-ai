@@ -41,6 +41,8 @@ class TestAuditEntry:
         assert entry.tenant_id == ""
         assert entry.halt_reason == ""
         assert entry.latency_ms == 0.0
+        assert entry.kb_snapshot_root == ""
+        assert entry.kb_snapshot_record_count == 0
 
 
 class TestAuditLoggerLoggingOnly:
@@ -76,6 +78,29 @@ class TestAuditLoggerLoggingOnly:
             score=0.123456789,
         )
         assert entry.score == 0.1235
+
+    def test_kb_snapshot_fields_recorded(self):
+        logger = AuditLogger()
+        entry = logger.log_review(
+            query="q",
+            response="r",
+            approved=True,
+            score=1.0,
+            kb_snapshot={
+                "merkle_root": "a" * 64,
+                "revision": "3",
+                "record_count": "2",
+                "retraction_count": 1,
+                "replacement_count": 1,
+            },
+        )
+
+        data = json.loads(entry.to_json())
+        assert data["kb_snapshot_root"] == "a" * 64
+        assert data["kb_snapshot_revision"] == 3
+        assert data["kb_snapshot_record_count"] == 2
+        assert data["kb_snapshot_retraction_count"] == 1
+        assert data["kb_snapshot_replacement_count"] == 1
 
 
 class TestAuditLoggerFileSink:

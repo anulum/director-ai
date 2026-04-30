@@ -98,6 +98,25 @@ class TestPostgresAuditSinkWrite:
         assert json.loads(row["policy_violations"]) == ["v1", "v2"]
         assert row["halt_reason"] == "threshold"
 
+    def test_write_preserves_kb_snapshot_fields(self):
+        sink = PostgresAuditSink("sqlite://")
+        entry = _make_entry(
+            kb_snapshot_root="b" * 64,
+            kb_snapshot_revision=7,
+            kb_snapshot_record_count=5,
+            kb_snapshot_retraction_count=2,
+            kb_snapshot_replacement_count=1,
+        )
+
+        sink.write(entry)
+        row = sink.query()[0]
+
+        assert row["kb_snapshot_root"] == "b" * 64
+        assert row["kb_snapshot_revision"] == 7
+        assert row["kb_snapshot_record_count"] == 5
+        assert row["kb_snapshot_retraction_count"] == 2
+        assert row["kb_snapshot_replacement_count"] == 1
+
 
 class TestPostgresAuditSinkQuery:
     def test_query_by_tenant(self):

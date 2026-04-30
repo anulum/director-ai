@@ -21,7 +21,7 @@ from ..core.safety.audit import AuditEntry
 
 logger = logging.getLogger("DirectorAI.Audit.PG")
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 _COLUMNS = (
     "timestamp",
@@ -35,6 +35,11 @@ _COLUMNS = (
     "tenant_id",
     "halt_reason",
     "latency_ms",
+    "kb_snapshot_root",
+    "kb_snapshot_revision",
+    "kb_snapshot_record_count",
+    "kb_snapshot_retraction_count",
+    "kb_snapshot_replacement_count",
 )
 
 
@@ -122,6 +127,8 @@ class PostgresAuditSink:
                     self._apply_v1(cur)
                 if current < 2:
                     self._apply_v2(cur)
+                if current < 3:
+                    self._apply_v3(cur)
                 self._conn.commit()
             except Exception as e:
                 self._conn.rollback()
@@ -184,6 +191,19 @@ class PostgresAuditSink:
         )
         self._set_version(cur, 2)
 
+    def _apply_v3(self, cur: Any) -> None:
+        for column, definition in (
+            ("kb_snapshot_root", "VARCHAR(64) NOT NULL DEFAULT ''"),
+            ("kb_snapshot_revision", "INT NOT NULL DEFAULT 0"),
+            ("kb_snapshot_record_count", "INT NOT NULL DEFAULT 0"),
+            ("kb_snapshot_retraction_count", "INT NOT NULL DEFAULT 0"),
+            ("kb_snapshot_replacement_count", "INT NOT NULL DEFAULT 0"),
+        ):
+            cur.execute(
+                f"ALTER TABLE {self.table_name} ADD COLUMN {column} {definition}",
+            )
+        self._set_version(cur, 3)
+
     # â”€â”€ Write â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     def write(self, entry: AuditEntry) -> None:
@@ -206,6 +226,11 @@ class PostgresAuditSink:
             entry.tenant_id,
             entry.halt_reason,
             entry.latency_ms,
+            entry.kb_snapshot_root,
+            entry.kb_snapshot_revision,
+            entry.kb_snapshot_record_count,
+            entry.kb_snapshot_retraction_count,
+            entry.kb_snapshot_replacement_count,
         )
         try:
             cur = conn.cursor()
@@ -251,6 +276,11 @@ class PostgresAuditSink:
                 e.tenant_id,
                 e.halt_reason,
                 e.latency_ms,
+                e.kb_snapshot_root,
+                e.kb_snapshot_revision,
+                e.kb_snapshot_record_count,
+                e.kb_snapshot_retraction_count,
+                e.kb_snapshot_replacement_count,
             )
             for e in entries
         ]

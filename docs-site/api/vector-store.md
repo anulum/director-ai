@@ -85,6 +85,33 @@ Replacement records preserve the superseded version and content hash while the
 new value is indexed under the same key. Use `replacement_records()` to inspect
 the event log.
 
+### kb_snapshot_root()
+
+```python
+root = store.kb_snapshot_root(tenant_id="acme")
+audit_payload = store.kb_snapshot_audit_record(tenant_id="acme")
+```
+
+`kb_snapshot_root()` returns a deterministic SHA-256 Merkle root over the
+tenant-visible KB version ledger. Leaves are sorted by tenant, key, record
+kind, and chunk index, so the same KB state produces the same root regardless
+of ingestion order. Retractions and replacements update the root because the
+snapshot includes status, current content hash, previous hash, and semantic
+version fields.
+
+`kb_snapshot_audit_record()` returns a compact payload with:
+
+- `event`
+- `tenant_id`
+- `revision`
+- `record_count`
+- `retraction_count`
+- `replacement_count`
+- `merkle_root`
+
+Pass this payload to `AuditLogger.log_review(kb_snapshot=audit_payload)` when a
+review decision must carry the KB state it was grounded against.
+
 ### ingest()
 
 ```python

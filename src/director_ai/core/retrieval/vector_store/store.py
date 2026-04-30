@@ -17,6 +17,7 @@ factory that wires the recommended hybrid (BM25 + dense) recipe.
 from __future__ import annotations
 
 import hashlib
+import json
 from typing import Any
 
 from ...metrics import metrics
@@ -106,6 +107,58 @@ class VectorGroundTruthStore(GroundTruthStore):
             for record in self._replacement_records
             if not tenant_id or record.get("tenant_id", "") == tenant_id
         ]
+
+    def kb_snapshot_records(self, tenant_id: str = "") -> list[dict[str, str]]:
+        """Return canonical KB snapshot records visible to *tenant_id*."""
+        records = []
+        for record in self.version_manifest(tenant_id).values():
+            snapshot_record = {
+                "key": record.get("key", ""),
+                "tenant_id": record.get("tenant_id", ""),
+                "version": record.get("version", ""),
+                "chunk_version": record.get("chunk_version", ""),
+                "content_hash": record.get("content_hash", ""),
+                "previous_hash": record.get("previous_hash", ""),
+                "record_kind": record.get("record_kind", ""),
+                "chunk_index": record.get("chunk_index", ""),
+                "status": record.get("status", "active"),
+                "retraction_reason": record.get("retraction_reason", ""),
+                "replacement_reason": record.get("replacement_reason", ""),
+            }
+            records.append(snapshot_record)
+        return sorted(
+            records,
+            key=lambda item: (
+                item["tenant_id"],
+                item["key"],
+                item["record_kind"],
+                item["chunk_index"],
+            ),
+        )
+
+    def kb_snapshot_root(self, tenant_id: str = "") -> str:
+        """Return a deterministic Merkle root for the current KB snapshot."""
+        leaves = [
+            self._snapshot_leaf(record)
+            for record in self.kb_snapshot_records(tenant_id)
+        ]
+        return self._merkle_root_hex(leaves)
+
+    def kb_snapshot_audit_record(self, tenant_id: str = "") -> dict[str, str | int]:
+        """Return a compact audit payload for the current KB snapshot."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        records = self.kb_snapshot_records(tenant_id)
+        return {
+            "event": "kb_snapshot",
+            "tenant_id": tenant_id,
+            "revision": self.revision,
+            "record_count": len(records),
+            "retraction_count": len(self.retraction_records(tenant_id)),
+            "replacement_count": len(self.replacement_records(tenant_id)),
+            "merkle_root": self._merkle_root_hex(
+                [self._snapshot_leaf(record) for record in records]
+            ),
+        }
 
     def retract_fact(
         self,
@@ -317,6 +370,29 @@ class VectorGroundTruthStore(GroundTruthStore):
     @staticmethod
     def _content_hash(value: str) -> str:
         return hashlib.sha256(value.encode("utf-8")).hexdigest()
+
+    @staticmethod
+    def _snapshot_leaf(record: dict[str, str]) -> bytes:
+        payload = json.dumps(record, sort_keys=True, separators=(",", ":")).encode(
+            "utf-8"
+        )
+        return hashlib.sha256(b"director-ai/kb-snapshot/v1/leaf\x00" + payload).digest()
+
+    @staticmethod
+    def _merkle_root_hex(leaves: list[bytes]) -> str:
+        if not leaves:
+            return hashlib.sha256(b"director-ai/kb-snapshot/v1/empty").hexdigest()
+        level = list(leaves)
+        while len(level) > 1:
+            if len(level) % 2 == 1:
+                level.append(level[-1])
+            level = [
+                hashlib.sha256(
+                    b"director-ai/kb-snapshot/v1/node\x00" + level[i] + level[i + 1]
+                ).digest()
+                for i in range(0, len(level), 2)
+            ]
+        return level[0].hex()
 
     @staticmethod
     def _next_semver(current: str, requested_bump: str) -> str:
