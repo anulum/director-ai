@@ -380,6 +380,7 @@ LLM Provider ──► guard() / CoherenceAgent
 |--------|---------|
 | Python package | `pip install -e ".[dev]"` |
 | Rust backend | `cd backfire-kernel && cargo build --release` |
+| Rust package CI | `backfire-kernel/ci/advanced_runtime_ci.sh` |
 | Go gateway | `cd gateway/go && go build ./cmd/director-gateway` |
 | Julia tuner deps | `make julia-instantiate` |
 | Lean proofs | `cd formal/HaltMonitor && lake build` |

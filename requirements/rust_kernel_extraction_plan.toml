@@ -7,20 +7,24 @@
 # Director-Class AI - Rust kernel extraction plan
 
 id = "rust-kernel-extraction"
-status = "planned"
+status = "executed"
 workspace = "backfire-kernel"
 python_extra = "rust"
 python_module = "backfire_kernel"
 wheel_workflow = ".github/workflows/wheels.yml"
 proof_root = "formal/HaltMonitor"
 proof_manifest = "formal/HaltMonitor/proof_manifest.toml"
+release_contract = "requirements/backfire_kernel_release.toml"
+release_notes = "backfire-kernel/RELEASE_NOTES.md"
+crate_ci = "backfire-kernel/ci/advanced_runtime_ci.sh"
 execution_doc = "docs-site/deployment/rust-kernel-extraction.md"
 evaluation_doc = "docs-site/guide/runtime-extraction-evaluation.md"
 
 [versioning]
 crate_policy = "semver"
+current_version = "0.1.1"
 first_external_minor = "0.2"
-python_supported_range = ">=0.1,<0.2"
+python_supported_range = ">=0.1.1,<0.2"
 breakage_rule = "Breaking Rust API changes require a new minor release until the first stable release, then a new major release."
 python_rule = "director-ai keeps the Python fallback importable and pins an explicit supported backfire-kernel range."
 
@@ -97,6 +101,11 @@ exit_gate = "director-ai pins the external package range and the Python fallback
 id = "rust-workspace"
 command = "cargo test --workspace"
 scope = "Rust workspace"
+
+[[gates]]
+id = "crate-ci"
+command = "backfire-kernel/ci/advanced_runtime_ci.sh"
+scope = "Standalone crate CI"
 
 [[gates]]
 id = "ffi-check"

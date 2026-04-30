@@ -1297,6 +1297,7 @@ fn rust_lite_score_batch(pairs: Vec<(String, String)>) -> Vec<f64> {
 
 #[pymodule]
 fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
+    m.add("__version__", env!("CARGO_PKG_VERSION"))?;
     // Core safety gate
     m.add_class::<PyBackfireConfig>()?;
     m.add_class::<PyCoherenceScore>()?;

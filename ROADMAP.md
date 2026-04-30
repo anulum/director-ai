@@ -369,7 +369,7 @@ Last updated: 2026-04-29
 - [x] Convert the Rust kernel extraction decision into an execution plan:
   standalone crate API, versioning policy, Python wheel contract, proof artefact
   boundary, and release CI.
-- [ ] Execute the standalone `backfire-kernel` crate extraction with independent
+- [x] Execute the standalone `backfire-kernel` crate extraction with independent
   versioning, release notes, crate CI, Python wheel contract tests, and proof
   artefact boundaries.
 - [ ] Add a contributor path that lets Python-only changes run without Rust, Go,

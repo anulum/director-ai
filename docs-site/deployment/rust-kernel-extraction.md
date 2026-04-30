@@ -18,6 +18,17 @@ contracts are fixed by tests.
 The tracked source for this plan is
 `requirements/rust_kernel_extraction_plan.toml`.
 
+## Execution Status
+
+The v3.15 extraction boundary is active. The release contract is tracked in
+`requirements/backfire_kernel_release.toml`; release notes live in
+`backfire-kernel/RELEASE_NOTES.md`; and the standalone crate CI entrypoint is
+`backfire-kernel/ci/advanced_runtime_ci.sh`.
+
+The current extracted package version is `0.1.1`. `director-ai[rust]` accepts
+`backfire-kernel>=0.1.1,<0.2`, while the default Python path stays independent
+of the Rust wheel.
+
 ## Boundary
 
 | Surface | Path | Contract |
@@ -47,7 +58,7 @@ changes require a new minor version. After that point, breaking API changes
 require a new major version.
 
 `director-ai` pins an explicit supported `backfire-kernel` range for
-`director-ai[rust]`. The planned first external range is `>=0.1,<0.2`. The
+`director-ai[rust]`. The first active external range is `>=0.1.1,<0.2`. The
 Python fallback remains the supported default path and must pass without the
 Rust package installed.
 
@@ -84,6 +95,7 @@ and contract fixtures; it is not part of the first-run path.
 | Gate | Command | Scope |
 |------|---------|-------|
 | Rust workspace | `cargo test --workspace` | Rust crates |
+| Standalone crate CI | `backfire-kernel/ci/advanced_runtime_ci.sh` | Format, FFI check, workspace tests, optional wheel build |
 | PyO3 boundary | `cargo check -p backfire-ffi` | Wheel boundary |
 | Wheel build | `maturin build --release -m backfire-kernel/crates/backfire-ffi/Cargo.toml` | Python wheel |
 | Python optional path | `pytest tests/test_ffi_bindings.py` | Optional Rust path |

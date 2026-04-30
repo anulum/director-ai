@@ -83,10 +83,11 @@ contracts must be stable:
 ## Outcome
 
 The extraction is worthwhile, but the first implementation step is not a repo
-split. The next engineering item is cross-language contract testing. Once the
-contract is stable, the Rust kernel and formal proof artefacts can move to a
-separately versioned package/repository without weakening the "just works"
-Python path.
+split. The active v3.15 boundary now has aligned crate and wheel versioning,
+release notes, a release contract, a standalone crate CI entrypoint, and Python
+tests that pin the wheel contract. Once two releases pass with this contract,
+the Rust kernel and formal proof artefacts can move to a separately versioned
+package/repository without weakening the "just works" Python path.
 
 The execution plan is tracked in
 [Rust Kernel Extraction](../deployment/rust-kernel-extraction.md) and

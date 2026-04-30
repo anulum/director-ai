@@ -1,0 +1,58 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Backfire kernel release contract
+
+id = "backfire-kernel-release"
+status = "active"
+workspace = "backfire-kernel"
+current_version = "0.1.1"
+python_supported_range = ">=0.1.1,<0.2"
+release_notes = "backfire-kernel/RELEASE_NOTES.md"
+crate_ci = "backfire-kernel/ci/advanced_runtime_ci.sh"
+wheel_workflow = ".github/workflows/wheels.yml"
+proof_manifest = "formal/HaltMonitor/proof_manifest.toml"
+
+[version_sources]
+workspace_manifest = "backfire-kernel/Cargo.toml"
+python_wheel_manifest = "backfire-kernel/crates/backfire-ffi/pyproject.toml"
+python_extra_manifest = "pyproject.toml"
+
+[[wheel_symbols]]
+name = "__version__"
+role = "Expose the Rust crate version through the Python module."
+
+[[wheel_symbols]]
+name = "RustSafetyKernel"
+role = "Token halt contract."
+
+[[wheel_symbols]]
+name = "RustStreamingKernel"
+role = "Streaming halt contract."
+
+[[wheel_symbols]]
+name = "RustCoherenceScorer"
+role = "Scoring contract."
+
+[[wheel_symbols]]
+name = "RustBM25"
+role = "Sparse retrieval contract."
+
+[[crate_ci_steps]]
+id = "format"
+command = "cargo fmt --all -- --check"
+
+[[crate_ci_steps]]
+id = "ffi-check"
+command = "cargo check -p backfire-ffi"
+
+[[crate_ci_steps]]
+id = "workspace-tests"
+command = "cargo test --workspace"
+
+[[crate_ci_steps]]
+id = "wheel-contract"
+command = "BACKFIRE_KERNEL_BUILD_WHEEL=1 backfire-kernel/ci/advanced_runtime_ci.sh"

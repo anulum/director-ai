@@ -43,10 +43,13 @@ def test_python_extra_and_wheel_workflow_are_bound_to_plan() -> None:
     plan = _load_toml(PLAN_PATH)
     pyproject = _read("pyproject.toml")
     workflow = _read(".github/workflows/wheels.yml")
+    versioning = plan["versioning"]
 
     assert plan["python_extra"] == "rust"
     assert plan["python_module"] == "backfire_kernel"
-    assert 'rust = ["backfire-kernel>=0.1.0"]' in pyproject
+    assert isinstance(versioning, dict)
+    supported_range = versioning["python_supported_range"]
+    assert f'rust = ["backfire-kernel{supported_range}"]' in pyproject
     assert "backfire-kernel/crates/backfire-ffi" in workflow
     assert "PyO3/maturin-action" in workflow
     assert "backfire-kernel/crates/backfire-wasm" in workflow
