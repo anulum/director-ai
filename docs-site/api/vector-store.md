@@ -107,10 +107,40 @@ version fields.
 - `record_count`
 - `retraction_count`
 - `replacement_count`
+- `conflict_count`
 - `merkle_root`
 
 Pass this payload to `AuditLogger.log_review(kb_snapshot=audit_payload)` when a
 review decision must carry the KB state it was grounded against.
+
+### conflict_reports()
+
+```python
+store.add_fact(
+    "signed-dose",
+    "Dose is 5 mg.",
+    metadata={
+        "claim_id": "dose-claim",
+        "signed_fact_id": "signed-1",
+        "claim_source": "signed_fact",
+    },
+)
+
+store.add_fact(
+    "incoming-dose",
+    "Dose is 10 mg.",
+    metadata={"claim_id": "dose-claim"},
+)
+
+reports = store.conflict_reports()
+```
+
+`conflict_reports()` returns tenant-scoped records created during fact writes
+when a new fact overlaps a retracted ledger entry, differs from a protected
+signed fact, differs from a passport claim, or declares an explicit
+`contradicts` relation. Reports are advisory: ingestion continues, retrieval
+still uses the active version ledger, and callers can route reports to review
+queues or audit sinks.
 
 ### freshness_status_signals()
 

@@ -417,7 +417,7 @@ Last updated: 2026-04-29
 - [x] Add Merkle roots for KB snapshots and expose them through audit records.
 - [x] Combine temporal freshness with external citation/status signals for
   scientific and high-stakes domains.
-- [ ] Add automatic conflict reports when a new fact contradicts an existing
+- [x] Add automatic conflict reports when a new fact contradicts an existing
   signed fact, passport claim, or retraction record.
 
 ### Future Differentiators (Planned)

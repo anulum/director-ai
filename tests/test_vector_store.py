@@ -338,6 +338,7 @@ class TestVectorGroundTruthStore:
         assert record["record_count"] == 1
         assert record["replacement_count"] == 1
         assert record["retraction_count"] == 0
+        assert record["conflict_count"] == 0
         assert record["revision"] == store.revision
         assert record["merkle_root"] == store.kb_snapshot_root()
 
@@ -384,6 +385,91 @@ class TestVectorGroundTruthStore:
 
         assert len(signals) == 1
         assert signals[0]["source_id"] == "paper-a"
+
+    def test_conflict_report_for_retracted_fact_key(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("paper-a", "withdrawn result")
+        store.retract_fact("paper-a", reason="withdrawn source")
+
+        store.add_fact("paper-a", "new result")
+        reports = store.conflict_reports()
+
+        assert len(reports) == 1
+        assert reports[0]["conflict_type"] == "retraction_record"
+        assert reports[0]["key"] == "paper-a"
+        assert reports[0]["existing_key"] == "paper-a"
+
+    def test_conflict_report_for_signed_fact_claim(self):
+        store = VectorGroundTruthStore()
+        store.add_fact(
+            "signed-dose",
+            "Dose is 5 mg.",
+            metadata={
+                "claim_id": "dose-claim",
+                "signed_fact_id": "signed-1",
+                "claim_source": "signed_fact",
+            },
+        )
+
+        store.add_fact(
+            "incoming-dose",
+            "Dose is 10 mg.",
+            metadata={"claim_id": "dose-claim"},
+        )
+        report = store.conflict_reports(key="incoming-dose")[0]
+
+        assert report["conflict_type"] == "signed_fact"
+        assert report["signed_fact_id"] == "signed-1"
+        assert report["claim_id"] == "dose-claim"
+
+    def test_conflict_report_for_passport_claim(self):
+        store = VectorGroundTruthStore()
+        store.add_fact(
+            "passport-scope",
+            "Agent may read corpus A.",
+            metadata={
+                "claim_id": "scope-claim",
+                "passport_claim_id": "passport-1",
+                "claim_source": "passport_claim",
+            },
+        )
+
+        store.add_fact(
+            "incoming-scope",
+            "Agent may write corpus A.",
+            metadata={"claim_id": "scope-claim"},
+        )
+        report = store.conflict_reports(key="incoming-scope")[0]
+
+        assert report["conflict_type"] == "passport_claim"
+        assert report["passport_claim_id"] == "passport-1"
+        assert report["claim_id"] == "scope-claim"
+
+    def test_conflict_report_for_explicit_relation(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("basis", "The permit is active.")
+
+        store.add_fact(
+            "incoming",
+            "The permit is inactive.",
+            metadata={"contradicts": "basis"},
+        )
+        report = store.conflict_reports(key="incoming")[0]
+
+        assert report["conflict_type"] == "explicit_relation"
+        assert report["existing_key"] == "basis"
+        assert report["reason"] == "new fact declares a contradiction target"
+
+    def test_conflict_reports_are_tenant_scoped(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("paper", "old value", tenant_id="tenant_a")
+        store.retract_fact("paper", tenant_id="tenant_a")
+
+        store.add_fact("paper", "new value", tenant_id="tenant_a")
+        store.add_fact("paper", "other value", tenant_id="tenant_b")
+
+        assert len(store.conflict_reports("tenant_a")) == 1
+        assert store.conflict_reports("tenant_b") == []
 
 
 @pytest.mark.consumer

@@ -60,6 +60,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         self._version_records: dict[str, dict[str, str]] = {}
         self._retraction_records: list[dict[str, str]] = []
         self._replacement_records: list[dict[str, str]] = []
+        self._conflict_records: list[dict[str, str]] = []
 
     def _resolved_tenant_id(self, tenant_id: str = "") -> str:
         return tenant_id or self.tenant_id
@@ -108,6 +109,22 @@ class VectorGroundTruthStore(GroundTruthStore):
             if not tenant_id or record.get("tenant_id", "") == tenant_id
         ]
 
+    def conflict_reports(
+        self,
+        tenant_id: str = "",
+        key: str | None = None,
+    ) -> list[dict[str, str]]:
+        """Return KB conflict reports visible to *tenant_id*."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        reports = []
+        for record in self._conflict_records:
+            if tenant_id and record.get("tenant_id", "") != tenant_id:
+                continue
+            if key is not None and record.get("key") != key:
+                continue
+            reports.append(dict(record))
+        return reports
+
     def kb_snapshot_records(self, tenant_id: str = "") -> list[dict[str, str]]:
         """Return canonical KB snapshot records visible to *tenant_id*."""
         records = []
@@ -131,6 +148,10 @@ class VectorGroundTruthStore(GroundTruthStore):
                 "citation_status": record.get("citation_status", ""),
                 "status_source": record.get("status_source", ""),
                 "status_observed_at": record.get("status_observed_at", ""),
+                "claim_id": record.get("claim_id", ""),
+                "claim_source": record.get("claim_source", ""),
+                "signed_fact_id": record.get("signed_fact_id", ""),
+                "passport_claim_id": record.get("passport_claim_id", ""),
             }
             records.append(snapshot_record)
         return sorted(
@@ -162,6 +183,7 @@ class VectorGroundTruthStore(GroundTruthStore):
             "record_count": len(records),
             "retraction_count": len(self.retraction_records(tenant_id)),
             "replacement_count": len(self.replacement_records(tenant_id)),
+            "conflict_count": len(self.conflict_reports(tenant_id)),
             "merkle_root": self._merkle_root_hex(
                 [self._snapshot_leaf(record) for record in records]
             ),
@@ -221,6 +243,11 @@ class VectorGroundTruthStore(GroundTruthStore):
             "content_hash": record["content_hash"],
             "reason": reason,
             "event": "retracted",
+            "source_id": record.get("source_id", ""),
+            "external_id": record.get("external_id", ""),
+            "claim_id": record.get("claim_id", ""),
+            "signed_fact_id": record.get("signed_fact_id", ""),
+            "passport_claim_id": record.get("passport_claim_id", ""),
         }
         record["status"] = "retracted"
         record["retraction_reason"] = reason
@@ -331,6 +358,7 @@ class VectorGroundTruthStore(GroundTruthStore):
                 chunk_index=0,
             ),
         }
+        meta.update(self._normalised_claim_metadata(meta))
         if tenant_id:
             meta["tenant_id"] = tenant_id
 
@@ -338,8 +366,10 @@ class VectorGroundTruthStore(GroundTruthStore):
             start_time = time.monotonic()
             metrics.inc("knowledge_adds_total")
             try:
+                conflicts = self._build_conflict_reports(key, meta, tenant_id)
                 self.backend.add(doc_id=doc_id, text=combined_text, metadata=meta)
                 self._commit_version_metadata(key, meta, tenant_id)
+                self._conflict_records.extend(conflicts)
                 self._bump_revision()
                 duration = time.monotonic() - start_time
                 metrics.observe("knowledge_add_duration_seconds", duration)
@@ -426,7 +456,229 @@ class VectorGroundTruthStore(GroundTruthStore):
                     metadata.get("status_observed_at", ""),
                 )
             ),
+            "claim_id": str(metadata.get("kb_claim_id", metadata.get("claim_id", ""))),
+            "claim_source": str(
+                metadata.get("kb_claim_source", metadata.get("claim_source", ""))
+            ),
+            "signed_fact_id": str(
+                metadata.get("kb_signed_fact_id", metadata.get("signed_fact_id", ""))
+            ),
+            "passport_claim_id": str(
+                metadata.get(
+                    "kb_passport_claim_id",
+                    metadata.get("passport_claim_id", ""),
+                )
+            ),
         }
+
+    @staticmethod
+    def _normalised_claim_metadata(metadata: dict[str, Any]) -> dict[str, str]:
+        return {
+            "claim_id": str(metadata.get("kb_claim_id", metadata.get("claim_id", ""))),
+            "claim_source": str(
+                metadata.get("kb_claim_source", metadata.get("claim_source", ""))
+            ),
+            "signed_fact_id": str(
+                metadata.get("kb_signed_fact_id", metadata.get("signed_fact_id", ""))
+            ),
+            "passport_claim_id": str(
+                metadata.get(
+                    "kb_passport_claim_id",
+                    metadata.get("passport_claim_id", ""),
+                )
+            ),
+        }
+
+    def _build_conflict_reports(
+        self,
+        key: str,
+        metadata: dict[str, Any],
+        tenant_id: str,
+    ) -> list[dict[str, str]]:
+        reports: list[dict[str, str]] = []
+        reports.extend(self._retraction_conflicts(key, metadata, tenant_id))
+        reports.extend(self._protected_claim_conflicts(key, metadata, tenant_id))
+        reports.extend(self._explicit_conflicts(key, metadata, tenant_id))
+        return self._dedupe_conflicts(reports)
+
+    def _retraction_conflicts(
+        self,
+        key: str,
+        metadata: dict[str, Any],
+        tenant_id: str,
+    ) -> list[dict[str, str]]:
+        incoming_refs = self._record_refs(key, metadata)
+        reports = []
+        for event in self.retraction_records(tenant_id):
+            event_refs = self._record_refs(event.get("key", ""), event)
+            if incoming_refs.isdisjoint(event_refs):
+                continue
+            reports.append(
+                self._conflict_record(
+                    key=key,
+                    tenant_id=tenant_id,
+                    conflict_type="retraction_record",
+                    existing=event,
+                    incoming=metadata,
+                    reason="new fact overlaps a retracted ledger entry",
+                )
+            )
+        return reports
+
+    def _protected_claim_conflicts(
+        self,
+        key: str,
+        metadata: dict[str, Any],
+        tenant_id: str,
+    ) -> list[dict[str, str]]:
+        incoming_hash = str(metadata["kb_content_hash"])
+        incoming_refs = self._record_refs(key, metadata)
+        reports = []
+        for record in self.version_manifest(tenant_id).values():
+            if record.get("content_hash") == incoming_hash:
+                continue
+            existing_refs = self._record_refs(record.get("key", ""), record)
+            shared_refs = incoming_refs & existing_refs
+            if not shared_refs:
+                continue
+            conflict_type = self._protected_conflict_type(record, metadata)
+            if conflict_type == "":
+                continue
+            reports.append(
+                self._conflict_record(
+                    key=key,
+                    tenant_id=tenant_id,
+                    conflict_type=conflict_type,
+                    existing=record,
+                    incoming=metadata,
+                    reason="new fact differs from protected claim state",
+                )
+            )
+        return reports
+
+    def _explicit_conflicts(
+        self,
+        key: str,
+        metadata: dict[str, Any],
+        tenant_id: str,
+    ) -> list[dict[str, str]]:
+        targets = self._metadata_list(metadata.get("contradicts", ()))
+        if not targets:
+            return []
+        reports = []
+        for record in self.version_manifest(tenant_id).values():
+            record_refs = self._record_refs(record.get("key", ""), record)
+            if record_refs.isdisjoint(targets):
+                continue
+            reports.append(
+                self._conflict_record(
+                    key=key,
+                    tenant_id=tenant_id,
+                    conflict_type=self._protected_conflict_type(record, metadata)
+                    or "explicit_relation",
+                    existing=record,
+                    incoming=metadata,
+                    reason="new fact declares a contradiction target",
+                )
+            )
+        return reports
+
+    @staticmethod
+    def _protected_conflict_type(
+        existing: dict[str, Any],
+        incoming: dict[str, Any],
+    ) -> str:
+        source = str(
+            existing.get("claim_source", "") or incoming.get("claim_source", "")
+        )
+        if existing.get("signed_fact_id") or incoming.get("signed_fact_id"):
+            return "signed_fact"
+        if existing.get("passport_claim_id") or incoming.get("passport_claim_id"):
+            return "passport_claim"
+        if source == "signed_fact":
+            return "signed_fact"
+        if source == "passport_claim":
+            return "passport_claim"
+        return ""
+
+    @classmethod
+    def _conflict_record(
+        cls,
+        *,
+        key: str,
+        tenant_id: str,
+        conflict_type: str,
+        existing: dict[str, Any],
+        incoming: dict[str, Any],
+        reason: str,
+    ) -> dict[str, str]:
+        return {
+            "event": "kb_conflict",
+            "key": key,
+            "tenant_id": tenant_id,
+            "conflict_type": conflict_type,
+            "existing_key": str(existing.get("key", "")),
+            "existing_version": str(existing.get("version", "")),
+            "existing_hash": str(existing.get("content_hash", "")),
+            "incoming_hash": str(incoming.get("kb_content_hash", "")),
+            "claim_id": str(incoming.get("claim_id") or existing.get("claim_id", "")),
+            "signed_fact_id": str(
+                incoming.get("signed_fact_id") or existing.get("signed_fact_id", "")
+            ),
+            "passport_claim_id": str(
+                incoming.get("passport_claim_id")
+                or existing.get("passport_claim_id", "")
+            ),
+            "reference": cls._first_ref(existing),
+            "reason": reason,
+        }
+
+    @classmethod
+    def _record_refs(cls, key: str, record: dict[str, Any]) -> set[str]:
+        refs = {key}
+        for field in (
+            "source_id",
+            "external_id",
+            "claim_id",
+            "signed_fact_id",
+            "passport_claim_id",
+        ):
+            value = str(record.get(field, "")).strip()
+            if value:
+                refs.add(value)
+        return refs - {""}
+
+    @classmethod
+    def _first_ref(cls, record: dict[str, Any]) -> str:
+        refs = sorted(cls._record_refs(str(record.get("key", "")), record))
+        return refs[0] if refs else ""
+
+    @staticmethod
+    def _metadata_list(value: Any) -> set[str]:
+        if value in (None, ""):
+            return set()
+        if isinstance(value, str):
+            return {item.strip() for item in value.split(",") if item.strip()}
+        if isinstance(value, list | tuple | set):
+            return {str(item).strip() for item in value if str(item).strip()}
+        return {str(value).strip()}
+
+    @staticmethod
+    def _dedupe_conflicts(records: list[dict[str, str]]) -> list[dict[str, str]]:
+        seen: set[tuple[str, str, str, str]] = set()
+        out: list[dict[str, str]] = []
+        for record in records:
+            marker = (
+                record["conflict_type"],
+                record["key"],
+                record["existing_key"],
+                record["reference"],
+            )
+            if marker in seen:
+                continue
+            seen.add(marker)
+            out.append(record)
+        return out
 
     @staticmethod
     def _version_key(key: str, tenant_id: str) -> str:
