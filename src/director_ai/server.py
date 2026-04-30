@@ -65,6 +65,7 @@ __all__ = [
     "FeedbackResponse",
     "FreshnessClaimResponse",
     "FreshnessResponse",
+    "FreshnessStatusResponse",
     "HealthResponse",
     "HourlyDataPoint",
     "HourlyResponse",
@@ -181,6 +182,7 @@ if _FASTAPI_AVAILABLE:  # pragma: no branch
         FeedbackResponse,
         FreshnessClaimResponse,
         FreshnessResponse,
+        FreshnessStatusResponse,
         HealthResponse,
         HourlyDataPoint,
         HourlyResponse,
@@ -1632,12 +1634,26 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     claim_type=c.claim_type,
                     staleness_risk=c.staleness_risk,
                     reason=c.reason,
+                    source_id=c.source_id,
+                    external_status=c.external_status,
                 )
                 for c in result.claims
             ],
+            citation_statuses=[
+                FreshnessStatusResponse(
+                    source_id=v.source_id,
+                    status=v.status,
+                    risk=v.risk,
+                    reason=v.reason,
+                    status_source=v.status_source,
+                )
+                for v in result.citation_status_verdicts
+            ],
             overall_staleness_risk=result.overall_staleness_risk,
+            external_status_risk=result.external_status_risk,
             has_temporal_claims=result.has_temporal_claims,
             stale_claim_count=len(result.stale_claims),
+            risky_status_count=len(result.risky_statuses),
         )
 
     @app.post("/v1/consensus", response_model=ConsensusResponse)

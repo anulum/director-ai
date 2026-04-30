@@ -94,6 +94,32 @@ for claim in result.claims:
 
 **Claim types:** `position`, `statistic`, `record`, `current_reference`
 
+External citation feeds can add source status and source age risk:
+
+```python
+from director_ai import CitationStatusSignal, score_temporal_freshness
+
+result = score_temporal_freshness(
+    "Trial X reported a 12 percent response rate.",
+    citation_statuses=[
+        CitationStatusSignal(
+            source_id="doi:10.example/paper",
+            status="retracted",
+            status_source="publisher-feed",
+        )
+    ],
+    domain="medical",
+)
+
+print(result.external_status_risk)    # 1.0
+print(result.overall_staleness_risk)  # 1.0
+```
+
+Supported status values include `active`, `updated`, `corrected`,
+`superseded`, `stale`, `withdrawn`, and `retracted`. Domain hints such as
+`medical`, `finance`, `legal`, and `scientific` shorten the age window for
+source timestamps unless `max_age_days` is already lower.
+
 ### REST API
 
 ```bash
@@ -106,9 +132,12 @@ Response:
 ```json
 {
   "claims": [{"text": "CEO of Apple is Tim Cook", "claim_type": "position", "staleness_risk": 0.8, "reason": "..."}],
+  "citation_statuses": [],
   "overall_staleness_risk": 0.8,
+  "external_status_risk": 0.0,
   "has_temporal_claims": true,
-  "stale_claim_count": 1
+  "stale_claim_count": 1,
+  "risky_status_count": 0
 }
 ```
 

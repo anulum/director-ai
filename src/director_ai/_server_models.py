@@ -213,13 +213,26 @@ class FreshnessClaimResponse(BaseModel):
     claim_type: str
     staleness_risk: float
     reason: str
+    source_id: str = ""
+    external_status: str = ""
+
+
+class FreshnessStatusResponse(BaseModel):
+    source_id: str
+    status: str
+    risk: float
+    reason: str
+    status_source: str = ""
 
 
 class FreshnessResponse(BaseModel):
     claims: list[FreshnessClaimResponse]
+    citation_statuses: list[FreshnessStatusResponse] = Field(default_factory=list)
     overall_staleness_risk: float
+    external_status_risk: float = 0.0
     has_temporal_claims: bool
     stale_claim_count: int
+    risky_status_count: int = 0
 
 
 class ConsensusResponseItem(BaseModel):

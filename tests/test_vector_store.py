@@ -341,6 +341,50 @@ class TestVectorGroundTruthStore:
         assert record["revision"] == store.revision
         assert record["merkle_root"] == store.kb_snapshot_root()
 
+    def test_freshness_status_signals_from_metadata(self):
+        store = VectorGroundTruthStore()
+        store.add_fact(
+            "paper-a",
+            "trial result changed",
+            metadata={
+                "external_id": "doi:10.example/paper-a",
+                "source_timestamp": "1700000000",
+                "updated_timestamp": "1710000000",
+                "citation_status": "superseded",
+                "status_source": "publisher-feed",
+                "status_observed_at": "1720000000",
+            },
+            tenant_id="lab",
+        )
+
+        signals = store.freshness_status_signals("lab")
+
+        assert signals == [
+            {
+                "source_id": "doi:10.example/paper-a",
+                "status": "superseded",
+                "status_source": "publisher-feed",
+                "published_at": 1700000000.0,
+                "updated_at": 1710000000.0,
+                "observed_at": 1720000000.0,
+            }
+        ]
+
+    def test_freshness_status_signal_can_filter_key(self):
+        store = VectorGroundTruthStore()
+        store.add_fact(
+            "paper-a",
+            "old result",
+            metadata={"citation_status": "superseded"},
+            tenant_id="lab",
+        )
+        store.add_fact("paper-b", "stable result", tenant_id="lab")
+
+        signals = store.freshness_status_signals("lab", key="paper-a")
+
+        assert len(signals) == 1
+        assert signals[0]["source_id"] == "paper-a"
+
 
 @pytest.mark.consumer
 class TestVectorRegistry:

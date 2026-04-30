@@ -112,6 +112,28 @@ version fields.
 Pass this payload to `AuditLogger.log_review(kb_snapshot=audit_payload)` when a
 review decision must carry the KB state it was grounded against.
 
+### freshness_status_signals()
+
+```python
+store.add_fact(
+    "trial-paper",
+    "Trial X reported a 12 percent response rate.",
+    metadata={
+        "external_id": "doi:10.example/trial-paper",
+        "source_timestamp": "1710000000",
+        "citation_status": "active",
+        "status_source": "publisher-feed",
+    },
+)
+
+signals = store.freshness_status_signals()
+```
+
+Use `freshness_status_signals()` to pass KB source age and external citation
+status metadata into `score_temporal_freshness(citation_statuses=signals)`.
+The method emits tenant-scoped dictionaries with `source_id`, `status`,
+`status_source`, and any available timestamp fields.
+
 ### ingest()
 
 ```python

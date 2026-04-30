@@ -90,7 +90,11 @@ from .scoring.nli import (
 )
 from .scoring.scorer import CoherenceScorer
 from .scoring.sharded_nli import ShardedNLIScorer
-from .scoring.temporal_freshness import score_temporal_freshness
+from .scoring.temporal_freshness import (
+    CitationStatusSignal,
+    CitationStatusVerdict,
+    score_temporal_freshness,
+)
 from .scoring.verified_scorer import ClaimVerdict, VerificationResult, VerifiedScorer
 
 # --- Training ---
@@ -244,6 +248,8 @@ __all__ = [
     "verify_tool_call",
     # Scoring (Phase 5)
     "ConsensusScorer",
+    "CitationStatusSignal",
+    "CitationStatusVerdict",
     "compute_meta_confidence",
     "score_temporal_freshness",
     # Runtime (Phase 5)

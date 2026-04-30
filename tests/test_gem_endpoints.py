@@ -157,11 +157,16 @@ class TestTemporalFreshness:
         assert "overall_staleness_risk" in data
         assert "has_temporal_claims" in data
         assert "stale_claim_count" in data
+        assert data["citation_statuses"] == []
+        assert data["external_status_risk"] == 0.0
+        assert data["risky_status_count"] == 0
         for claim in data["claims"]:
             assert "text" in claim
             assert "claim_type" in claim
             assert "staleness_risk" in claim
             assert "reason" in claim
+            assert "source_id" in claim
+            assert "external_status" in claim
 
     def test_empty_text_rejected(self, client):
         resp = client.post("/v1/temporal-freshness", json={"text": ""})

@@ -183,6 +183,14 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         ".core.scoring.temporal_freshness",
         "score_temporal_freshness",
     ),
+    "CitationStatusSignal": (
+        ".core.scoring.temporal_freshness",
+        "CitationStatusSignal",
+    ),
+    "CitationStatusVerdict": (
+        ".core.scoring.temporal_freshness",
+        "CitationStatusVerdict",
+    ),
     # Reasoning chain verification (Phase 5)
     "verify_reasoning_chain": (
         ".core.verification.reasoning_verifier",

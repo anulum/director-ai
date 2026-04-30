@@ -124,6 +124,13 @@ class VectorGroundTruthStore(GroundTruthStore):
                 "status": record.get("status", "active"),
                 "retraction_reason": record.get("retraction_reason", ""),
                 "replacement_reason": record.get("replacement_reason", ""),
+                "source_id": record.get("source_id", ""),
+                "external_id": record.get("external_id", ""),
+                "source_timestamp": record.get("source_timestamp", ""),
+                "updated_timestamp": record.get("updated_timestamp", ""),
+                "citation_status": record.get("citation_status", ""),
+                "status_source": record.get("status_source", ""),
+                "status_observed_at": record.get("status_observed_at", ""),
             }
             records.append(snapshot_record)
         return sorted(
@@ -159,6 +166,39 @@ class VectorGroundTruthStore(GroundTruthStore):
                 [self._snapshot_leaf(record) for record in records]
             ),
         }
+
+    def freshness_status_signals(
+        self,
+        tenant_id: str = "",
+        key: str | None = None,
+    ) -> list[dict[str, str | float]]:
+        """Return citation status signals for temporal freshness scoring."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        signals: list[dict[str, str | float]] = []
+        for record in self.version_manifest(tenant_id).values():
+            if key is not None and record.get("key") != key:
+                continue
+            status = record.get("citation_status", "")
+            published_at = record.get("source_timestamp", "")
+            updated_at = record.get("updated_timestamp", "")
+            if not status and not published_at and not updated_at:
+                continue
+            signal: dict[str, str | float] = {
+                "source_id": record.get("external_id")
+                or record.get("source_id")
+                or record.get("key", ""),
+                "status": status or "active",
+                "status_source": record.get("status_source", ""),
+            }
+            if published_at:
+                signal["published_at"] = float(published_at)
+            if updated_at:
+                signal["updated_at"] = float(updated_at)
+            observed_at = record.get("status_observed_at", "")
+            if observed_at:
+                signal["observed_at"] = float(observed_at)
+            signals.append(signal)
+        return signals
 
     def retract_fact(
         self,
@@ -361,6 +401,31 @@ class VectorGroundTruthStore(GroundTruthStore):
             "previous_hash": str(metadata["kb_previous_hash"]),
             "record_kind": str(metadata["kb_record_kind"]),
             "chunk_index": str(metadata["kb_chunk_index"]),
+            "source_id": str(metadata.get("source_id", "")),
+            "external_id": str(metadata.get("external_id", "")),
+            "source_timestamp": str(
+                metadata.get(
+                    "kb_source_timestamp", metadata.get("source_timestamp", "")
+                )
+            ),
+            "updated_timestamp": str(
+                metadata.get(
+                    "kb_updated_timestamp",
+                    metadata.get("updated_timestamp", ""),
+                )
+            ),
+            "citation_status": str(
+                metadata.get("kb_citation_status", metadata.get("citation_status", ""))
+            ),
+            "status_source": str(
+                metadata.get("kb_status_source", metadata.get("status_source", ""))
+            ),
+            "status_observed_at": str(
+                metadata.get(
+                    "kb_status_observed_at",
+                    metadata.get("status_observed_at", ""),
+                )
+            ),
         }
 
     @staticmethod

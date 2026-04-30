@@ -10,7 +10,10 @@ from __future__ import annotations
 
 import time
 
-from director_ai.core.scoring.temporal_freshness import score_temporal_freshness
+from director_ai.core.scoring.temporal_freshness import (
+    CitationStatusSignal,
+    score_temporal_freshness,
+)
 
 
 class TestPositionDetection:
@@ -97,3 +100,74 @@ class TestCleanText:
         )
         assert not result.has_temporal_claims
         assert result.overall_staleness_risk == 0.0
+
+
+class TestExternalCitationStatus:
+    def test_retracted_source_sets_external_risk(self):
+        result = score_temporal_freshness(
+            "Trial X reported a 12 percent response rate.",
+            citation_statuses=[
+                CitationStatusSignal(
+                    source_id="doi:10.example/withdrawn",
+                    status="retracted",
+                    status_source="publisher-feed",
+                )
+            ],
+        )
+
+        assert result.external_status_risk == 1.0
+        assert result.overall_staleness_risk == 1.0
+        assert result.risky_statuses[0].status == "retracted"
+
+    def test_mapping_status_signal_is_supported(self):
+        old_source = time.time() - 400 * 86400
+
+        result = score_temporal_freshness(
+            "The population estimate is 12 million.",
+            citation_statuses=[
+                {
+                    "source_id": "dataset:population",
+                    "status": "active",
+                    "published_at": old_source,
+                }
+            ],
+            max_age_days=180,
+        )
+
+        assert result.citation_status_verdicts[0].source_id == "dataset:population"
+        assert result.external_status_risk == 0.5
+        assert result.overall_staleness_risk >= result.external_status_risk
+
+    def test_high_stakes_domain_shortens_age_window(self):
+        old_source = time.time() - 60 * 86400
+        neutral = score_temporal_freshness(
+            "The current guideline recommends follow-up testing.",
+            citation_statuses=[
+                {
+                    "source_id": "guideline:one",
+                    "status": "active",
+                    "published_at": old_source,
+                }
+            ],
+        )
+        medical = score_temporal_freshness(
+            "The current guideline recommends follow-up testing.",
+            citation_statuses=[
+                {
+                    "source_id": "guideline:one",
+                    "status": "active",
+                    "published_at": old_source,
+                }
+            ],
+            domain="medical",
+        )
+
+        assert medical.external_status_risk > neutral.external_status_risk
+
+    def test_invalid_age_window_is_rejected(self):
+        try:
+            score_temporal_freshness("current claim", max_age_days=0)
+        except ValueError as exc:
+            assert "max_age_days" in str(exc)
+        else:
+            raise AssertionError("expected ValueError")
