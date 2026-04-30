@@ -233,7 +233,10 @@ class StreamingKernel(HaltMonitor):
     def _fact_source(chunks: Sequence[EvidenceChunk]) -> str:
         sources: list[str] = []
         for chunk in chunks:
-            source = chunk.source.strip()
+            source_value = getattr(chunk, "source", "")
+            if not isinstance(source_value, str):
+                continue
+            source = source_value.strip()
             if source and source not in sources:
                 sources.append(source)
         return ",".join(sources)

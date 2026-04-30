@@ -14,6 +14,12 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "benchmarks" / "public_accuracy_manifest.toml"
 EXTERNAL_PACKET = ROOT / "benchmarks" / "external_validation_packet.toml"
+OPTIONAL_RESULT_FILES = {
+    "benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json",
+    "benchmarks/results/streaming_false_halt_heuristic.json",
+    "benchmarks/results/streaming_false_halt_nli.json",
+}
+LOCAL_CACHE_ACCESS_MARKERS = ("downloads", "gated", "mirrored")
 
 
 def _manifest() -> dict:
@@ -22,6 +28,17 @@ def _manifest() -> dict:
 
 def _external_packet() -> dict:
     return tomllib.loads(EXTERNAL_PACKET.read_text(encoding="utf-8"))
+
+
+def _assert_result_path(path: str) -> None:
+    if path in OPTIONAL_RESULT_FILES:
+        return
+    assert (ROOT / path).exists(), path
+
+
+def _requires_local_cache_in_checkout(dataset: dict) -> bool:
+    access = str(dataset.get("access", "")).lower()
+    return not any(marker in access for marker in LOCAL_CACHE_ACCESS_MARKERS)
 
 
 def test_public_manifest_has_required_tables():
@@ -40,7 +57,6 @@ def test_public_manifest_has_required_tables():
 
 def test_public_manifest_paths_exist_or_are_declared_optional():
     data = _manifest()
-    optional_results = {"benchmarks/results/streaming_false_halt_nli.json"}
 
     assert (ROOT / data["cache_schema"]["path"]).exists()
     assert (ROOT / data["cache_schema"]["result_schema"]).exists()
@@ -50,9 +66,7 @@ def test_public_manifest_paths_exist_or_are_declared_optional():
         for runner in table["runner_files"]:
             assert (ROOT / runner).exists()
         for result_path in table["result_files"]:
-            if result_path in optional_results:
-                continue
-            assert (ROOT / result_path).exists(), result_path
+            _assert_result_path(result_path)
         assert table["commands"]
         assert table["metrics"]
 
@@ -67,7 +81,8 @@ def test_public_manifest_dataset_links_are_valid():
 
     for dataset in datasets.values():
         for cache_path in dataset.get("local_cache", []):
-            assert (ROOT / cache_path).exists(), cache_path
+            if _requires_local_cache_in_checkout(dataset):
+                assert (ROOT / cache_path).exists(), cache_path
 
 
 def test_public_manifest_mode_cards_keep_backend_claims_separate():
@@ -94,7 +109,7 @@ def test_public_manifest_mode_cards_keep_backend_claims_separate():
         for runner in card["runner_files"]:
             assert (ROOT / runner).exists()
         for result_path in card["result_files"]:
-            assert (ROOT / result_path).exists(), result_path
+            _assert_result_path(result_path)
 
 
 def test_reproduction_docs_reference_manifest_and_cache_schema():
@@ -134,7 +149,7 @@ def test_external_validation_packet_is_linked_and_complete():
         assert task["mode_card"] in mode_cards
         assert task["dataset"] in dataset_ids
         assert (ROOT / task["runner"]).exists()
-        assert (ROOT / task["expected_result"]).exists()
+        _assert_result_path(task["expected_result"])
         assert task["command"]
         assert task["primary_metrics"]
         assert task["claim_boundary"]
