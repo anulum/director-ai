@@ -202,6 +202,85 @@ class TestVectorGroundTruthStore:
                 metadata={"kb_version_bump": "calendar"},
             )
 
+    def test_retract_fact_records_event_and_blocks_retrieval(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("policy", "refunds in 30 days")
+
+        event = store.retract_fact("policy", reason="source withdrawn")
+        context = store.retrieve_context("policy")
+        chunks = store.retrieve_context_with_chunks("policy")
+        records = store.retraction_records()
+        version = store.fact_version_record("policy")
+
+        assert event["event"] == "retracted"
+        assert records == [event]
+        assert version is not None
+        assert version["status"] == "retracted"
+        assert context is None
+        assert chunks == []
+
+    def test_retraction_is_tenant_scoped(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("policy", "tenant a value", tenant_id="tenant_a")
+        store.add_fact("policy", "tenant b value", tenant_id="tenant_b")
+
+        store.retract_fact("policy", tenant_id="tenant_a", reason="old source")
+
+        ctx_a = store.retrieve_context("policy", tenant_id="tenant_a")
+        ctx_b = store.retrieve_context("policy", tenant_id="tenant_b")
+        records_b = store.retraction_records("tenant_b")
+
+        assert ctx_a is None
+        assert ctx_b is not None
+        assert "tenant b value" in ctx_b
+        assert records_b == []
+
+    def test_replace_fact_records_superseded_hash(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("policy", "refunds in 30 days")
+        before = store.fact_version_record("policy")
+
+        event = store.replace_fact(
+            "policy",
+            "refunds in 45 days",
+            reason="policy update",
+        )
+        after = store.fact_version_record("policy")
+        context = store.retrieve_context("policy")
+
+        assert before is not None
+        assert after is not None
+        assert event["event"] == "replaced"
+        assert event["from_hash"] == before["content_hash"]
+        assert event["to_hash"] == after["content_hash"]
+        assert event["to_version"] == "1.0.1"
+        assert context is not None
+        assert "45 days" in context
+        assert "30 days" not in context
+
+    def test_retract_derived_chunk_blocks_vector_result(self):
+        store = VectorGroundTruthStore()
+        store.ingest(["alpha chunk"])
+
+        store.retract_fact("ingest_0_", reason="source withdrawn")
+        context = store.retrieve_context("alpha")
+        chunks = store.retrieve_context_with_chunks("alpha")
+
+        assert context is None
+        assert chunks == []
+
+    def test_retract_unknown_fact_raises_key_error(self):
+        store = VectorGroundTruthStore()
+
+        with pytest.raises(KeyError, match="cannot retract unknown fact"):
+            store.retract_fact("missing")
+
+    def test_replace_unknown_fact_raises_key_error(self):
+        store = VectorGroundTruthStore()
+
+        with pytest.raises(KeyError, match="cannot replace unknown fact"):
+            store.replace_fact("missing", "new value")
+
 
 @pytest.mark.consumer
 class TestVectorRegistry:

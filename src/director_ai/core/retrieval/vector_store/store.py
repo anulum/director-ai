@@ -57,6 +57,8 @@ class VectorGroundTruthStore(GroundTruthStore):
         self.backend = backend if backend is not None else InMemoryBackend()
         self.tenant_id = tenant_id
         self._version_records: dict[str, dict[str, str]] = {}
+        self._retraction_records: list[dict[str, str]] = []
+        self._replacement_records: list[dict[str, str]] = []
 
     def _resolved_tenant_id(self, tenant_id: str = "") -> str:
         return tenant_id or self.tenant_id
@@ -86,6 +88,86 @@ class VectorGroundTruthStore(GroundTruthStore):
                 continue
             manifest[key] = dict(record)
         return manifest
+
+    def retraction_records(self, tenant_id: str = "") -> list[dict[str, str]]:
+        """Return fact and chunk retraction events visible to *tenant_id*."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        return [
+            dict(record)
+            for record in self._retraction_records
+            if not tenant_id or record.get("tenant_id", "") == tenant_id
+        ]
+
+    def replacement_records(self, tenant_id: str = "") -> list[dict[str, str]]:
+        """Return fact replacement events visible to *tenant_id*."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        return [
+            dict(record)
+            for record in self._replacement_records
+            if not tenant_id or record.get("tenant_id", "") == tenant_id
+        ]
+
+    def retract_fact(
+        self,
+        key: str,
+        *,
+        tenant_id: str = "",
+        reason: str = "",
+    ) -> dict[str, str]:
+        """Mark a fact or derived chunk source as unusable for retrieval."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        version_key = self._version_key(key, tenant_id)
+        record = self._version_records.get(version_key)
+        if record is None:
+            raise KeyError(f"cannot retract unknown fact {key!r}")
+
+        event = {
+            "key": key,
+            "tenant_id": tenant_id,
+            "version": record["version"],
+            "content_hash": record["content_hash"],
+            "reason": reason,
+            "event": "retracted",
+        }
+        record["status"] = "retracted"
+        record["retraction_reason"] = reason
+        self._retraction_records.append(dict(event))
+        fact_key = f"{tenant_id}:{key}" if tenant_id else key
+        self.facts.pop(fact_key, None)
+        self._bump_revision()
+        return event
+
+    def replace_fact(
+        self,
+        key: str,
+        value: str,
+        *,
+        tenant_id: str = "",
+        reason: str = "",
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, str]:
+        """Add a replacement value and record the superseded hash."""
+        tenant_id = self._resolved_tenant_id(tenant_id)
+        version_key = self._version_key(key, tenant_id)
+        previous = self._version_records.get(version_key)
+        if previous is None:
+            raise KeyError(f"cannot replace unknown fact {key!r}")
+
+        self.add(key, value, metadata=metadata, tenant_id=tenant_id)
+        current = self._version_records[version_key]
+        event = {
+            "key": key,
+            "tenant_id": tenant_id,
+            "from_version": previous["version"],
+            "to_version": current["version"],
+            "from_hash": previous["content_hash"],
+            "to_hash": current["content_hash"],
+            "reason": reason,
+            "event": "replaced",
+        }
+        self._replacement_records.append(dict(event))
+        current["replacement_reason"] = reason
+        return event
 
     def add_fact(
         self,
@@ -282,7 +364,14 @@ class VectorGroundTruthStore(GroundTruthStore):
                 span.set_attribute("vector.tenant_id", tenant_id)
 
                 if results:
-                    texts = [r["text"] for r in results]
+                    active_results = self._active_results(results, tenant_id)
+                    texts = [r["text"] for r in active_results]
+                    if not texts:
+                        return super().retrieve_context(
+                            query,
+                            tenant_id=tenant_id,
+                            top_k=top_k,
+                        )
                     duration = time.monotonic() - start_time
                     metrics.observe("knowledge_query_duration_seconds", duration)
                     return "; ".join(texts)
@@ -372,7 +461,7 @@ class VectorGroundTruthStore(GroundTruthStore):
                     # Backend doesn't accept tenant_id
                     results = self.backend.query(query, n_results=top_k)
                 chunks = []
-                for r in results:
+                for r in self._active_results(results, tenant_id):
                     chunks.append(
                         EvidenceChunk(
                             text=r["text"],
@@ -393,3 +482,30 @@ class VectorGroundTruthStore(GroundTruthStore):
                 span.set_attribute("error", True)
                 span.set_attribute("error.message", str(e))
                 raise ValueError(f"Failed to query vector store: {e}") from e
+
+    def _active_results(
+        self,
+        results: list[dict[str, Any]],
+        tenant_id: str,
+    ) -> list[dict[str, Any]]:
+        active: list[dict[str, Any]] = []
+        for result in results:
+            metadata = result.get("metadata", {})
+            if not isinstance(metadata, dict):
+                active.append(result)
+                continue
+            source_key = str(metadata.get("kb_source_key", result.get("id", "")))
+            result_tenant = str(metadata.get("tenant_id", tenant_id))
+            version_key = self._version_key(source_key, result_tenant)
+            record = self._version_records.get(version_key)
+            if record is not None and record.get("status") == "retracted":
+                continue
+            result_hash = str(metadata.get("kb_content_hash", ""))
+            if (
+                record is not None
+                and result_hash
+                and result_hash != record["content_hash"]
+            ):
+                continue
+            active.append(result)
+        return active

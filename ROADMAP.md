@@ -412,7 +412,7 @@ Last updated: 2026-04-29
 ### Knowledge-Base Governance (Planned)
 - [x] Add semantic versioning for `VectorGroundTruthStore` facts and derived
   vector chunks.
-- [ ] Add fact retraction and replacement records so stale or retracted sources
+- [x] Add fact retraction and replacement records so stale or retracted sources
   can invalidate dependent chunks without full manual rebuilds.
 - [ ] Add Merkle roots for KB snapshots and expose them through audit records.
 - [ ] Combine temporal freshness with external citation/status signals for

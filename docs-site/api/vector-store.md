@@ -59,6 +59,32 @@ stamped with:
 Use `fact_version(key)`, `fact_version_record(key)`, or `version_manifest()` to
 inspect the in-process version ledger.
 
+### retract_fact()
+
+```python
+store.retract_fact("refund-policy", reason="source withdrawn")
+```
+
+Retraction records mark a fact or derived chunk source as unusable for retrieval
+without deleting backend rows. `retrieve_context()` and
+`retrieve_context_with_chunks()` filter matching vector results and keyword
+fallback facts after retraction. Use `retraction_records()` to inspect the
+event log.
+
+### replace_fact()
+
+```python
+store.replace_fact(
+    "refund-policy",
+    "Refunds are available within 45 days.",
+    reason="policy update",
+)
+```
+
+Replacement records preserve the superseded version and content hash while the
+new value is indexed under the same key. Use `replacement_records()` to inspect
+the event log.
+
 ### ingest()
 
 ```python
