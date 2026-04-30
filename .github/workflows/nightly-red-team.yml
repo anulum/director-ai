@@ -44,6 +44,7 @@ jobs:
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
           pip install --no-deps -e .
+          pip install -e ".[embed,nli,nli-lite]"
 
       - name: Run live red-team suite
         run: |
