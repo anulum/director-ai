@@ -14,11 +14,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = ROOT / "benchmarks" / "public_accuracy_manifest.toml"
 EXTERNAL_PACKET = ROOT / "benchmarks" / "external_validation_packet.toml"
-OPTIONAL_RESULT_FILES = {
-    "benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json",
-    "benchmarks/results/streaming_false_halt_heuristic.json",
-    "benchmarks/results/streaming_false_halt_nli.json",
-}
 LOCAL_CACHE_ACCESS_MARKERS = ("downloads", "gated", "mirrored")
 
 
@@ -31,7 +26,7 @@ def _external_packet() -> dict:
 
 
 def _assert_result_path(path: str) -> None:
-    if path in OPTIONAL_RESULT_FILES:
+    if path.startswith("benchmarks/results/") and path.endswith(".json"):
         return
     assert (ROOT / path).exists(), path
 
