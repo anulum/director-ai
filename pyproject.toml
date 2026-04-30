@@ -87,7 +87,7 @@ tensorrt = [
 grpc = [
     "grpcio>=1.60",
     "grpcio-tools>=1.60",
-    "protobuf>=4.25",
+    "protobuf>=4.25,<7",
 ]
 physical = [
     "mujoco>=3.2,<4",
@@ -226,6 +226,7 @@ dev = [
     "types-requests>=2.31",
     "types-PyYAML>=6.0",
     "hypothesis>=6.0",
+    "protobuf>=4.25,<7",
     "bandit>=1.7",
     "pyyaml>=6.0",
     "build>=1.0",

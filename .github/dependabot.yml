@@ -27,13 +27,3 @@ updates:
     labels:
       - "dependencies"
       - "python"
-
-  - package-ecosystem: "pip"
-    directory: "/requirements"
-    schedule:
-      interval: "weekly"
-      day: "monday"
-    open-pull-requests-limit: 0
-    labels:
-      - "dependencies"
-      - "python"
