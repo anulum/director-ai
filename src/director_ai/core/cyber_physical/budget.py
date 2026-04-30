@@ -22,9 +22,7 @@ __all__ = [
 ]
 
 
-_COUNTERS = frozenset(
-    {"action_validations", "inverse_kinematics", "simulation_checks"}
-)
+_COUNTERS = frozenset({"action_validations", "inverse_kinematics", "simulation_checks"})
 
 
 @dataclass(frozen=True)

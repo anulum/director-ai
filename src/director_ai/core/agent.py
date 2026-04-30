@@ -302,9 +302,7 @@ class CoherenceAgent:
                 hook_scope="cyber_physical",
                 policy_decision="warn",
                 halt_reason="physical_constraint_warning",
-                observed_score=(
-                    event.observed_score if event is not None else 0.0
-                ),
+                observed_score=(event.observed_score if event is not None else 0.0),
                 tenant_safe_explanation=(
                     "Physical action has constraint warnings; blocking requires "
                     "the explicit physical action blocking flag."
