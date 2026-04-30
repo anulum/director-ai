@@ -23,6 +23,10 @@ def _anchor_mac(key: bytes, payload: bytes) -> str:
     return hmac.new(key, payload, sha256).hexdigest()
 
 
+def _flip_hex_digit(value: str) -> str:
+    return "1" if value == "0" else "0"
+
+
 def test_python_fallback_uses_fixed_length_compare_digest(monkeypatch) -> None:
     attestor = ContainmentAttestor(
         key=KEY,
@@ -52,8 +56,8 @@ def test_rust_and_python_mac_paths_make_same_decisions(monkeypatch) -> None:
     anchor = attestor.mint(session_id="session", scope="sandbox")
     mac_cases = [
         anchor.mac,
-        "0" + anchor.mac[1:],
-        anchor.mac[:-1] + "0",
+        _flip_hex_digit(anchor.mac[0]) + anchor.mac[1:],
+        anchor.mac[:-1] + _flip_hex_digit(anchor.mac[-1]),
         "0" * 10,
     ]
 
