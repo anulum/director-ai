@@ -346,7 +346,7 @@ Last updated: 2026-04-30
   streaming, swarm, and physical-precheck paths.
 
 ### Halt Recovery and Structured Stream Resilience (Planned)
-- [ ] Ship a lightweight safety operations dashboard that surfaces per-tenant
+- [x] Ship a lightweight safety operations dashboard that surfaces per-tenant
   halt rate, false-positive rate, top contradiction sources, and recent evidence
   samples.
 - [ ] Export a Prometheus and Grafana mixin for halt-rate, false-positive-rate,

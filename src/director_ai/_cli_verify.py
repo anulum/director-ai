@@ -552,6 +552,76 @@ def _cmd_wizard(args: list[str]) -> None:
                 print(f"\nConfig written to {output_path}")
 
 
+def _cmd_safety_dashboard(args: list[str]) -> None:
+    """Launch or render the safety operations dashboard."""
+    port = 7861
+    share = "--share" in args
+    text_mode = "--text" in args
+    events_path = None
+    feedback_path = None
+    halt_threshold = 0.15
+    false_positive_threshold = 0.05
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--port" and i + 1 < len(args):
+            port = int(args[i + 1])
+            i += 2
+        elif args[i] == "--events" and i + 1 < len(args):
+            events_path = args[i + 1]
+            i += 2
+        elif args[i] == "--feedback" and i + 1 < len(args):
+            feedback_path = args[i + 1]
+            i += 2
+        elif args[i] == "--halt-alert-threshold" and i + 1 < len(args):
+            halt_threshold = float(args[i + 1])
+            i += 2
+        elif args[i] == "--false-positive-alert-threshold" and i + 1 < len(args):
+            false_positive_threshold = float(args[i + 1])
+            i += 2
+        else:
+            i += 1
+
+    if text_mode or events_path or feedback_path:
+        from pathlib import Path
+
+        from director_ai.ui.safety_dashboard import build_safety_dashboard
+
+        events_jsonl = (
+            Path(events_path).read_text(encoding="utf-8") if events_path else ""
+        )
+        feedback_jsonl = (
+            Path(feedback_path).read_text(encoding="utf-8") if feedback_path else ""
+        )
+        summary, tenants, sources, evidence, command = build_safety_dashboard(
+            events_jsonl,
+            feedback_jsonl,
+            halt_threshold,
+            false_positive_threshold,
+        )
+        print(summary)
+        print("\nTenant halt rates:")
+        for row in tenants:
+            print("  " + " | ".join(str(value) for value in row))
+        print("\nTop contradiction sources:")
+        for row in sources:
+            print("  " + " | ".join(str(value) for value in row))
+        print("\nRecent halt evidence:")
+        for row in evidence:
+            print("  " + " | ".join(str(value) for value in row))
+        print(f"\nRetune: {command}")
+        return
+
+    from director_ai.ui.safety_dashboard import launch_safety_dashboard
+
+    try:
+        launch_safety_dashboard(port=port, share=share)
+    except ImportError:
+        print(
+            "Gradio not installed. Use --text or install with: pip install director-ai[ui]"
+        )
+
+
 def _cmd_cost_report(args: list[str]) -> None:
     """Show token cost report from the running scorer's CostAnalyser."""
     fmt = "text"

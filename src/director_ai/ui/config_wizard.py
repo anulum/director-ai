@@ -36,12 +36,19 @@ from typing import Any
 
 from director_ai.core.config import DirectorConfig
 from director_ai.ui._field_groups import FIELD_GROUPS, get_field_groups
+from director_ai.ui.safety_dashboard import (
+    EVIDENCE_COLUMNS,
+    SOURCE_COLUMNS,
+    TENANT_COLUMNS,
+    build_safety_dashboard,
+)
 
 logger = logging.getLogger("DirectorAI.ConfigWizard")
 
 __all__ = [
     "calibration_feedback_jsonl",
     "build_trace_explorer",
+    "build_safety_dashboard",
     "generate_profile_yaml",
     "generate_yaml",
     "launch_cli",
@@ -575,6 +582,55 @@ def launch_gradio(port: int = 7860, share: bool = False) -> None:
                 fn=build_trace_explorer,
                 inputs=trace_input,
                 outputs=[trace_summary, trace_table, trace_detail],
+            )
+
+        with gr.Tab("Safety Ops"):
+            safety_events = gr.Textbox(label="SafetyEvent JSONL", lines=12)
+            safety_feedback = gr.Textbox(label="Feedback JSONL", lines=8)
+            halt_alert = gr.Slider(
+                label="Halt-rate alert threshold",
+                minimum=0.0,
+                maximum=1.0,
+                value=0.15,
+                step=0.01,
+            )
+            false_positive_alert = gr.Slider(
+                label="False-positive alert threshold",
+                minimum=0.0,
+                maximum=1.0,
+                value=0.05,
+                step=0.01,
+            )
+            safety_summary = gr.Markdown()
+            tenant_table = gr.Dataframe(
+                headers=TENANT_COLUMNS,
+                label="Tenant halt rates",
+            )
+            source_table = gr.Dataframe(
+                headers=SOURCE_COLUMNS,
+                label="Contradiction sources",
+            )
+            evidence_table = gr.Dataframe(
+                headers=EVIDENCE_COLUMNS,
+                label="Recent halt evidence",
+            )
+            retune_command = gr.Code(label="Retune command", language="shell")
+            safety_btn = gr.Button("Render Safety Dashboard", variant="primary")
+            safety_btn.click(
+                fn=build_safety_dashboard,
+                inputs=[
+                    safety_events,
+                    safety_feedback,
+                    halt_alert,
+                    false_positive_alert,
+                ],
+                outputs=[
+                    safety_summary,
+                    tenant_table,
+                    source_table,
+                    evidence_table,
+                    retune_command,
+                ],
             )
 
         with gr.Tab("Advanced"):

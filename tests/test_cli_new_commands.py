@@ -187,6 +187,36 @@ class TestWizardCLI:
         mock_cli.assert_called_once()
 
 
+class TestSafetyDashboardCLI:
+    """Tests for 'director-ai safety-dashboard' subcommand."""
+
+    def test_safety_dashboard_in_help(self, capsys):
+        main([])
+        captured = capsys.readouterr()
+        assert "safety-dashboard" in captured.out
+
+    @patch("director_ai.ui.safety_dashboard.launch_safety_dashboard")
+    def test_safety_dashboard_launches_gradio(self, mock_launch):
+        main(["safety-dashboard", "--port", "9091", "--share"])
+        mock_launch.assert_called_once_with(port=9091, share=True)
+
+    def test_safety_dashboard_text_mode_reads_events(self, tmp_path, capsys):
+        events = tmp_path / "events.jsonl"
+        events.write_text(
+            '{"tenant_id":"tenant-a","policy_decision":"halt",'
+            '"halt_reason":"contradiction","evidence_refs":["kb://physics"]}\n',
+            encoding="utf-8",
+        )
+
+        main(["safety-dashboard", "--text", "--events", str(events)])
+        captured = capsys.readouterr()
+
+        assert "Safety Operations" in captured.out
+        assert "tenant-a" in captured.out
+        assert "kb://physics" in captured.out
+        assert "director-ai tune" in captured.out
+
+
 # ── compliance --format html ─────────────────────────────────────────
 
 

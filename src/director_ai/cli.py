@@ -54,6 +54,7 @@ from ._cli_verify import (
     _cmd_doctor,
     _cmd_kb_health,
     _cmd_license,
+    _cmd_safety_dashboard,
     _cmd_temporal_freshness,
     _cmd_verify_numeric,
     _cmd_verify_reasoning,
@@ -106,6 +107,7 @@ def main(argv: list[str] | None = None) -> None:
         "adversarial-test": _cmd_adversarial_test,
         "kb-health": _cmd_kb_health,
         "wizard": _cmd_wizard,
+        "safety-dashboard": _cmd_safety_dashboard,
         "cost-report": _cmd_cost_report,
     }
 
@@ -145,6 +147,7 @@ def _print_help() -> None:
         "  compliance <sub>      EU AI Act compliance (report, status, drift)\n"
         "  kb-health [options]   Knowledge base health diagnostics\n"
         "  wizard [--cli]        Interactive configuration wizard\n"
+        "  safety-dashboard [--text] [--events F]  Halt-rate operations view\n"
         "  cost-report [--format F]  Token cost report (text|json|html)\n",
     )
 

@@ -203,6 +203,7 @@ nav:
       - Supply Chain: deployment/supply-chain.md
       - Airgap Install: deployment/airgap.md
       - Metrics: deployment/metrics.md
+      - Safety Dashboard: deployment/safety-dashboard.md
       - Monitoring: deployment/monitoring.md
       - Production Checklist: deployment/checklist.md
       - Operational Runbooks: deployment/runbooks.md
