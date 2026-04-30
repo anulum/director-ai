@@ -26,7 +26,9 @@ def _external_packet() -> dict:
 
 
 def _assert_result_path(path: str) -> None:
-    if path.startswith("benchmarks/results/") and path.endswith(".json"):
+    if path.startswith(("benchmarks/results/", "benchmarks/.cache/")) and path.endswith(
+        ".json"
+    ):
         return
     assert (ROOT / path).exists(), path
 
