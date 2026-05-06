@@ -357,7 +357,7 @@ Last updated: 2026-04-30
   samples.
 - [x] Export a Prometheus and Grafana mixin for halt-rate, false-positive-rate,
   stale-knowledge, and feedback-retuning alerts.
-- [ ] Add a one-click retune action in the UI that rebuilds threshold guidance
+- [x] Add a one-click retune action in the UI that rebuilds threshold guidance
   from recent labelled feedback.
 - [ ] Publish a halt recovery patterns cookbook covering KB refresh, threshold
   rollback, human review routing, and temporary policy fallback.

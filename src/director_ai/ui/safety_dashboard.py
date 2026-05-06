@@ -40,6 +40,7 @@ EVIDENCE_COLUMNS = [
     "source",
     "action",
 ]
+RETUNE_MIN_FEEDBACK_SAMPLES = 4
 
 
 @dataclass(frozen=True)
@@ -89,6 +90,59 @@ def build_safety_dashboard(
     return summary, tenant_rows, source_rows, evidence_rows, command
 
 
+def build_retune_guidance(
+    feedback_jsonl: str,
+    profile: str = "tuned",
+    base_profile: str = "",
+    min_samples: int = RETUNE_MIN_FEEDBACK_SAMPLES,
+) -> tuple[str, str]:
+    """Build a tuned profile overlay from recent labelled feedback JSONL."""
+
+    samples, errors = _feedback_tune_samples(feedback_jsonl)
+    if len(samples) < min_samples:
+        lines = [
+            "### Retune Guidance",
+            f"- Labelled samples: {len(samples)}",
+            f"- Required samples: {min_samples}",
+            "- Status: collect more labelled feedback with prompt, response, and human verdict.",
+        ]
+        if errors:
+            lines.append("- Parse warnings: " + "; ".join(errors[:5]))
+        return "\n".join(lines), ""
+
+    from director_ai.core.training.tuner import format_profile_overlay, tune
+
+    result = tune(samples)
+    labels = [bool(sample["label"]) for sample in samples]
+    positives = sum(1 for label in labels if label)
+    negatives = len(labels) - positives
+    overlay_profile = profile.strip() or (
+        f"{base_profile.strip()}_tuned" if base_profile.strip() else "tuned"
+    )
+    overlay = format_profile_overlay(
+        result,
+        profile=overlay_profile,
+        base_profile=base_profile.strip(),
+    )
+
+    lines = [
+        "### Retune Guidance",
+        f"- Labelled samples: {len(samples)}",
+        f"- Approved labels: {positives}",
+        f"- Rejected labels: {negatives}",
+        f"- Selected threshold: {result.threshold:.4f}",
+        f"- Balanced accuracy: {result.balanced_accuracy:.4f}",
+        f"- Confidence: {result.confidence_level}",
+    ]
+    if positives == 0 or negatives == 0:
+        lines.append(
+            "- Warning: only one label class present; treat this overlay as provisional."
+        )
+    if errors:
+        lines.append("- Parse warnings: " + "; ".join(errors[:5]))
+    return "\n".join(lines), overlay
+
+
 def parse_dashboard_records(
     events_jsonl: str,
     feedback_jsonl: str = "",
@@ -107,6 +161,58 @@ def parse_dashboard_records(
             records.append(record)
 
     return records, errors
+
+
+def _feedback_tune_samples(feedback_jsonl: str) -> tuple[list[dict], list[str]]:
+    samples: list[dict] = []
+    errors: list[str] = []
+
+    for line_no, item in _jsonl_items(feedback_jsonl, label="feedback", errors=errors):
+        sample = _feedback_tune_sample(item)
+        if sample is None:
+            errors.append(
+                "feedback:"
+                f"{line_no}: expected prompt, response, and human_approved or label"
+            )
+            continue
+        samples.append(sample)
+
+    return samples, errors
+
+
+def _feedback_tune_sample(item: dict[str, Any]) -> dict[str, Any] | None:
+    prompt = _first(item, "prompt", "input", "query", default="")
+    response = _first(item, "response", "output", "completion", default="")
+    label = _feedback_label(item)
+    if not prompt or not response or label is None:
+        return None
+    return {"prompt": str(prompt), "response": str(response), "label": label}
+
+
+def _feedback_label(item: dict[str, Any]) -> bool | None:
+    human_approved = item.get("human_approved")
+    if human_approved is not None:
+        return _truthy(human_approved)
+
+    label = item.get("label")
+    if isinstance(label, bool):
+        return label
+    if isinstance(label, int | float):
+        return bool(label)
+    if isinstance(label, str):
+        normalised = label.strip().lower()
+        if normalised in {"approved", "approve", "accepted", "correct", "true", "1"}:
+            return True
+        if normalised in {
+            "rejected",
+            "reject",
+            "blocked",
+            "incorrect",
+            "false",
+            "0",
+        }:
+            return False
+    return None
 
 
 def launch_safety_dashboard(port: int = 7861, share: bool = False) -> None:

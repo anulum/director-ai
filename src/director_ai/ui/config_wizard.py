@@ -40,6 +40,7 @@ from director_ai.ui.safety_dashboard import (
     EVIDENCE_COLUMNS,
     SOURCE_COLUMNS,
     TENANT_COLUMNS,
+    build_retune_guidance,
     build_safety_dashboard,
 )
 
@@ -615,7 +616,12 @@ def launch_gradio(port: int = 7860, share: bool = False) -> None:
                 label="Recent halt evidence",
             )
             retune_command = gr.Code(label="Retune command", language="shell")
+            retune_profile = gr.Textbox(label="Tuned profile name", value="tuned")
+            retune_base_profile = gr.Textbox(label="Base profile", value="")
+            retune_summary = gr.Markdown()
+            retune_overlay = gr.Code(label="Tuned profile overlay", language="yaml")
             safety_btn = gr.Button("Render Safety Dashboard", variant="primary")
+            retune_btn = gr.Button("Retune from Feedback")
             safety_btn.click(
                 fn=build_safety_dashboard,
                 inputs=[
@@ -631,6 +637,11 @@ def launch_gradio(port: int = 7860, share: bool = False) -> None:
                     evidence_table,
                     retune_command,
                 ],
+            )
+            retune_btn.click(
+                fn=build_retune_guidance,
+                inputs=[safety_feedback, retune_profile, retune_base_profile],
+                outputs=[retune_summary, retune_overlay],
             )
 
         with gr.Tab("Advanced"):

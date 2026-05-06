@@ -21,6 +21,8 @@ false-positive halts:
 - top contradiction sources across recent halts
 - recent halt evidence with score, reason, source, and suggested operator action
 - a ready-to-run retune command for recent labelled feedback
+- a one-click retune action in the wizard that turns labelled feedback into a
+  tuned profile overlay with threshold guidance and confidence notes
 
 ## Launch The UI
 
@@ -35,7 +37,8 @@ director-ai wizard
 ```
 
 Open the **Safety Ops** tab, paste `SafetyEvent` JSONL, paste optional feedback
-JSONL, and render the tables.
+JSONL, and render the tables. Use **Retune from Feedback** when the feedback
+rows include `prompt`, `response`, and a human verdict.
 
 ## Text Mode
 
@@ -120,3 +123,13 @@ Feedback rows can use the calibration format:
 
 Rows where the guard rejected an answer but the human accepted it count as
 false positives for the tenant.
+
+Rows used for one-click retuning also need the reviewed prompt and response:
+
+```json
+{"prompt":"What is the refund window?","response":"Refunds are available for 30 days.","guardrail_approved":true,"human_approved":true,"domain":"support"}
+```
+
+The UI requires at least four labelled rows before it emits an overlay. Mixed
+approved and rejected examples produce stronger threshold guidance; single-class
+feedback is allowed but marked provisional.

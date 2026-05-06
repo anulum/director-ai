@@ -14,6 +14,7 @@ from director_ai.ui.safety_dashboard import (
     EVIDENCE_COLUMNS,
     SOURCE_COLUMNS,
     TENANT_COLUMNS,
+    build_retune_guidance,
     build_safety_dashboard,
     parse_dashboard_records,
 )
@@ -141,3 +142,47 @@ class TestSafetyDashboard:
         assert sources == []
         assert evidence == []
         assert command.startswith("director-ai tune")
+
+    def test_retune_guidance_builds_profile_overlay_from_feedback(self):
+        feedback = "".join(
+            _line(
+                {
+                    "prompt": f"approved {idx}",
+                    "response": "The sky is blue.",
+                    "human_approved": True,
+                },
+            )
+            for idx in range(4)
+        ) + "".join(
+            _line(
+                {
+                    "prompt": f"rejected {idx}",
+                    "response": "Dolphins can fly.",
+                    "human_approved": False,
+                },
+            )
+            for idx in range(4)
+        )
+
+        summary, overlay = build_retune_guidance(
+            feedback,
+            profile="support_tuned",
+            base_profile="customer_support",
+            min_samples=4,
+        )
+
+        assert "Labelled samples: 8" in summary
+        assert "Selected threshold" in summary
+        assert 'profile: "support_tuned"' in overlay
+        assert 'tuned_from_profile: "customer_support"' in overlay
+        assert "coherence_threshold" in overlay
+
+    def test_retune_guidance_requires_labelled_prompt_response_rows(self):
+        summary, overlay = build_retune_guidance(
+            _line({"event_id": "missing-fields", "human_approved": True}),
+            min_samples=2,
+        )
+
+        assert "Required samples: 2" in summary
+        assert "Parse warnings" in summary
+        assert overlay == ""

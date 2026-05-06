@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased] — 2026-04-18
 
+### Added — safety operations retuning (2026-05-06)
+- The Gradio wizard Safety Ops tab now includes a one-click retune action
+  that converts recent labelled feedback JSONL into a tuned profile overlay.
+  The retune helper emits threshold guidance, balanced-accuracy and confidence
+  notes, and validates that each feedback row includes prompt, response, and a
+  human verdict before tuning.
+
 ### Added — safety hooks (2026-04-17 / 2026-04-18)
 - `director_ai.core.cyber_physical` — pre-action physical-consistency
   checks for robotic / autonomous agents. `Vec3`, `AABB`, `Sphere`
