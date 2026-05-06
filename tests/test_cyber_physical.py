@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import importlib.util
 import math
+import sys
+import types
 
 import pytest
 
@@ -460,6 +462,42 @@ class TestRos2Adapter:
         with pytest.raises(ImportError, match="ros2"):
             Ros2Adapter.from_ros2()
 
+    def test_from_ros2_initialises_runtime_and_preserves_topics(self, monkeypatch):
+        calls: dict[str, object] = {"init": 0}
+
+        class FakeNode:
+            def __init__(self, name):
+                self.name = name
+
+        fake_rclpy = types.ModuleType("rclpy")
+        fake_rclpy.ok = lambda: False
+
+        def init():
+            calls["init"] += 1
+
+        fake_rclpy.init = init
+        fake_rclpy_node = types.ModuleType("rclpy.node")
+        fake_rclpy_node.Node = FakeNode
+        monkeypatch.setitem(sys.modules, "rclpy", fake_rclpy)
+        monkeypatch.setitem(sys.modules, "rclpy.node", fake_rclpy_node)
+
+        adapter = Ros2Adapter.from_ros2(
+            node_name="director_test_node",
+            joint_positions_topic="/robot/joint_states",
+            collision_topic="/planning/collisions",
+        )
+
+        assert calls["init"] == 1
+        assert adapter.node.name == "director_test_node"
+        assert adapter.joint_positions_topic == "/robot/joint_states"
+        assert adapter.collision_topic == "/planning/collisions"
+
+    def test_direct_ctor_rejects_empty_topics(self):
+        with pytest.raises(ValueError, match="joint_positions_topic"):
+            Ros2Adapter(node=object(), joint_positions_topic="")
+        with pytest.raises(ValueError, match="collision_topic"):
+            Ros2Adapter(node=object(), collision_topic="")
+
     def test_collides_with(self):
         # Sentinel node — Ros2Adapter's collides_with only uses
         # caller-supplied obstacles, not the node.
@@ -467,6 +505,11 @@ class TestRos2Adapter:
         adapter = Ros2Adapter(node=node)
         box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
         assert adapter.collides_with(Vec3(0.5, 0.5, 0.5), obstacles_aabb=(box,))
+
+        sphere = Sphere(centre=Vec3(2.0, 2.0, 2.0), radius=0.25)
+        assert not adapter.collides_with(
+            Vec3(5.0, 5.0, 5.0), obstacles_sphere=(sphere,)
+        )
 
     def test_forward_raises(self):
         adapter = Ros2Adapter(node=object())
@@ -490,6 +533,90 @@ class TestMuJoCoAdapter:
         with pytest.raises(ImportError, match="mujoco"):
             MuJoCoAdapter.from_mjcf("/tmp/ghost.xml")
 
+    def test_from_mjcf_loads_model_and_data_with_fake_runtime(self, monkeypatch):
+        calls: dict[str, object] = {}
+
+        class FakeModel:
+            @classmethod
+            def from_xml_path(cls, path):
+                calls["path"] = path
+                return cls()
+
+        class FakeData:
+            def __init__(self, model):
+                calls["data_model"] = model
+
+        fake_mujoco = types.ModuleType("mujoco")
+        fake_mujoco.MjModel = FakeModel
+        fake_mujoco.MjData = FakeData
+        monkeypatch.setitem(sys.modules, "mujoco", fake_mujoco)
+
+        adapter = MuJoCoAdapter.from_mjcf("/models/arm.xml")
+
+        assert calls["path"] == "/models/arm.xml"
+        assert calls["data_model"] is adapter.model
+        assert isinstance(adapter.data, FakeData)
+
+    def test_from_mjcf_rejects_empty_path_after_runtime_import(self, monkeypatch):
+        fake_mujoco = types.ModuleType("mujoco")
+        fake_mujoco.MjModel = object
+        fake_mujoco.MjData = object
+        monkeypatch.setitem(sys.modules, "mujoco", fake_mujoco)
+
+        with pytest.raises(ValueError, match="mjcf_path"):
+            MuJoCoAdapter.from_mjcf("")
+
+    def test_forward_writes_qpos_and_reads_end_effector_site(self, monkeypatch):
+        calls: dict[str, object] = {}
+
+        class FakeSite:
+            id = 1
+
+        class FakeModel:
+            nq = 2
+
+            def site(self, name):
+                calls["site_name"] = name
+                return FakeSite()
+
+        class FakeData:
+            def __init__(self):
+                self.qpos = [0.0, 0.0]
+                self.site_xpos = [
+                    [0.0, 0.0, 0.0],
+                    [0.25, 0.5, 0.75],
+                ]
+                self.ncon = 0
+
+        def mj_forward(model, data):
+            calls["forward_model"] = model
+            calls["forward_qpos"] = tuple(data.qpos)
+
+        fake_mujoco = types.ModuleType("mujoco")
+        fake_mujoco.mj_forward = mj_forward
+        monkeypatch.setitem(sys.modules, "mujoco", fake_mujoco)
+        model = FakeModel()
+        data = FakeData()
+
+        result = MuJoCoAdapter(model=model, data=data).forward([0.1, 0.2])
+
+        assert calls == {
+            "forward_model": model,
+            "forward_qpos": (0.1, 0.2),
+            "site_name": "end_effector",
+        }
+        assert result == Vec3(0.25, 0.5, 0.75)
+
+    def test_forward_rejects_wrong_joint_count(self, monkeypatch):
+        fake_mujoco = types.ModuleType("mujoco")
+        fake_mujoco.mj_forward = lambda model, data: None
+        monkeypatch.setitem(sys.modules, "mujoco", fake_mujoco)
+        model = types.SimpleNamespace(nq=2)
+        data = types.SimpleNamespace(qpos=[0.0, 0.0], site_xpos=[[0.0, 0.0, 0.0]])
+
+        with pytest.raises(ValueError, match="joint_angles length"):
+            MuJoCoAdapter(model=model, data=data).forward([0.1])
+
     def test_collides_with_user_obstacles(self):
         class _Data:
             ncon = 0
@@ -497,6 +624,25 @@ class TestMuJoCoAdapter:
         adapter = MuJoCoAdapter(model=object(), data=_Data())
         sphere = Sphere(centre=Vec3(0.0, 0.0, 0.0), radius=1.0)
         assert adapter.collides_with(Vec3(0.5, 0.0, 0.0), obstacles_sphere=(sphere,))
+
+        box = AABB(min_corner=Vec3(2.0, 2.0, 2.0), max_corner=Vec3(3.0, 3.0, 3.0))
+        assert adapter.collides_with(Vec3(2.5, 2.5, 2.5), obstacles_aabb=(box,))
+        assert not adapter.collides_with(
+            Vec3(9.0, 9.0, 9.0),
+            obstacles_aabb=(box,),
+            obstacles_sphere=(sphere,),
+        )
+
+    def test_collides_with_reports_live_mujoco_contacts(self):
+        adapter = MuJoCoAdapter(model=object(), data=types.SimpleNamespace(ncon=2))
+
+        assert adapter.collides_with(Vec3(5.0, 5.0, 5.0))
+
+    def test_inverse_is_deployment_specific(self):
+        adapter = MuJoCoAdapter(model=object(), data=types.SimpleNamespace(ncon=0))
+
+        with pytest.raises(NotImplementedError, match="deployment-specific"):
+            adapter.inverse(Vec3(0.0, 0.0, 0.0))
 
 
 class TestCarlaAdapter:
@@ -510,6 +656,38 @@ class TestCarlaAdapter:
         with pytest.raises(ImportError, match="carla"):
             CarlaAdapter.from_carla()
 
+    def test_from_carla_connects_client_sets_timeout_and_world(self, monkeypatch):
+        calls: dict[str, object] = {}
+
+        class FakeClient:
+            def __init__(self, host, port):
+                calls["host"] = host
+                calls["port"] = port
+
+            def set_timeout(self, timeout):
+                calls["timeout"] = timeout
+
+            def get_world(self):
+                return "world-snapshot"
+
+        fake_carla = types.ModuleType("carla")
+        fake_carla.Client = FakeClient
+        monkeypatch.setitem(sys.modules, "carla", fake_carla)
+
+        adapter = CarlaAdapter.from_carla(
+            host="simulator.internal",
+            port=3000,
+            timeout_seconds=2.5,
+        )
+
+        assert calls == {
+            "host": "simulator.internal",
+            "port": 3000,
+            "timeout": 2.5,
+        }
+        assert isinstance(adapter.client, FakeClient)
+        assert adapter.world == "world-snapshot"
+
     def test_from_carla_bad_port(self):
         if importlib.util.find_spec("carla") is None:
             pytest.skip(
@@ -518,7 +696,29 @@ class TestCarlaAdapter:
         with pytest.raises(ValueError, match="port"):
             CarlaAdapter.from_carla(port=0)
 
+    def test_from_carla_validates_port_and_timeout_after_runtime_import(
+        self, monkeypatch
+    ):
+        fake_carla = types.ModuleType("carla")
+        fake_carla.Client = object
+        monkeypatch.setitem(sys.modules, "carla", fake_carla)
+
+        with pytest.raises(ValueError, match="port"):
+            CarlaAdapter.from_carla(port=0)
+        with pytest.raises(ValueError, match="timeout_seconds"):
+            CarlaAdapter.from_carla(timeout_seconds=0)
+
     def test_collides_with_user_obstacles(self):
         adapter = CarlaAdapter(client=object(), world=object())
         box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
         assert adapter.collides_with(Vec3(0.5, 0.5, 0.5), obstacles_aabb=(box,))
+
+    def test_collides_with_user_sphere_and_motion_methods_are_explicit(self):
+        adapter = CarlaAdapter(client=object(), world=object())
+        sphere = Sphere(centre=Vec3(1.0, 1.0, 1.0), radius=0.5)
+
+        assert adapter.collides_with(Vec3(1.25, 1.0, 1.0), obstacles_sphere=(sphere,))
+        with pytest.raises(NotImplementedError, match="vehicle scenarios"):
+            adapter.forward([0.0])
+        with pytest.raises(NotImplementedError, match="joint angles"):
+            adapter.inverse(Vec3(1.0, 1.0, 1.0))

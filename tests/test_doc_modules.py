@@ -14,12 +14,16 @@ lookup, pipeline integration with ingest CLI, and performance documentation.
 from __future__ import annotations
 
 import io
+import sys
+import types
 
+import numpy as np
 import pytest
 
 from director_ai.core.doc_chunker import ChunkConfig, split
 from director_ai.core.doc_parser import parse
 from director_ai.core.doc_registry import DocRegistry
+from director_ai.core.retrieval import doc_chunker
 
 
 class TestChunker:
@@ -54,6 +58,104 @@ class TestChunker:
         text = "A" * 1000
         chunks = split(text, ChunkConfig(chunk_size=100, overlap=10))
         assert len(chunks) >= 5
+
+    def test_sentence_semantic_mode_falls_back_without_embedding_backend(
+        self, monkeypatch
+    ):
+        """Semantic chunking must degrade to deterministic recursive splitting.
+
+        This covers enterprise ingestion environments where the embedding extra
+        is not installed but the caller still requests semantic chunking.
+        """
+        monkeypatch.setattr(doc_chunker, "_embed_sentences", lambda sentences: None)
+        text = (
+            "The refund policy allows returns within thirty days. "
+            "Invoices must include the tenant identifier. "
+            "A sensor should halt when torque exceeds the configured limit."
+        )
+
+        chunks = split(text, ChunkConfig(chunk_size=70, overlap=0, semantic=True))
+
+        assert len(chunks) >= 2
+        assert "refund policy" in chunks[0]
+        assert any("sensor should halt" in chunk for chunk in chunks)
+
+    def test_semantic_mode_splits_on_embedding_topic_shift(self, monkeypatch):
+        """Low cosine similarity between neighbouring sentences creates chunks."""
+        embeddings = np.array(
+            [
+                [1.0, 0.0],
+                [0.99, 0.01],
+                [0.0, 1.0],
+                [0.01, 0.99],
+            ],
+            dtype=float,
+        )
+        monkeypatch.setattr(
+            doc_chunker, "_embed_sentences", lambda sentences: embeddings
+        )
+        text = (
+            "Contract liability is capped at the monthly fee. "
+            "Indemnity follows the service terms. "
+            "The robot arm must stop before the keep-out zone. "
+            "Torque checks run before every motion plan."
+        )
+
+        chunks = split(text, ChunkConfig(chunk_size=120, semantic=True))
+
+        assert chunks == [
+            "Contract liability is capped at the monthly fee. Indemnity follows the service terms.",
+            "The robot arm must stop before the keep-out zone. Torque checks run before every motion plan.",
+        ]
+
+    def test_semantic_mode_recursively_splits_large_topic_group(self, monkeypatch):
+        embeddings = np.array([[1.0, 0.0], [0.99, 0.01]], dtype=float)
+        monkeypatch.setattr(
+            doc_chunker, "_embed_sentences", lambda sentences: embeddings
+        )
+        text = (
+            "Alpha " * 30
+            + "must remain traceable. "
+            + "Beta " * 30
+            + "must also remain traceable."
+        )
+
+        chunks = split(text, ChunkConfig(chunk_size=80, overlap=0, semantic=True))
+
+        assert len(chunks) > 2
+        assert all(len(chunk) <= 80 for chunk in chunks)
+
+    def test_embed_sentences_uses_sentence_transformer_without_progress(
+        self, monkeypatch
+    ):
+        calls: dict[str, object] = {}
+
+        class FakeSentenceTransformer:
+            def __init__(self, model_name):
+                calls["model_name"] = model_name
+
+            def encode(self, sentences, *, show_progress_bar):
+                calls["sentences"] = list(sentences)
+                calls["show_progress_bar"] = show_progress_bar
+                return np.array([[1.0, 0.0], [0.0, 1.0]], dtype=float)
+
+        fake_module = types.ModuleType("sentence_transformers")
+        fake_module.SentenceTransformer = FakeSentenceTransformer
+        monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+
+        result = doc_chunker._embed_sentences(["Alpha.", "Beta."])
+
+        assert calls == {
+            "model_name": "all-MiniLM-L6-v2",
+            "sentences": ["Alpha.", "Beta."],
+            "show_progress_bar": False,
+        }
+        np.testing.assert_allclose(result, [[1.0, 0.0], [0.0, 1.0]])
+
+    def test_embed_sentences_returns_none_when_backend_missing(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "sentence_transformers", None)
+
+        assert doc_chunker._embed_sentences(["Alpha."]) is None
 
 
 class TestParser:

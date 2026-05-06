@@ -8,10 +8,21 @@
 
 from __future__ import annotations
 
+from datetime import datetime
+
+import pytest
+
+import director_ai.core.verification.numeric_verifier as numeric_verifier
 from director_ai.core.verification.numeric_verifier import (
     NumericVerificationResult,
     verify_numeric,
 )
+
+
+@pytest.fixture(autouse=True)
+def force_python_numeric_fallback(monkeypatch):
+    """Exercise stdlib verification logic unless a test opts into Rust mapping."""
+    monkeypatch.setattr(numeric_verifier, "_RUST_NUMERIC", False)
 
 
 class TestPercentageArithmetic:
@@ -31,6 +42,12 @@ class TestPercentageArithmetic:
         text = "Sales decreased 25% from $100 to $75."
         result = verify_numeric(text)
         assert result.error_count == 0
+
+    def test_zero_baseline_percentage_does_not_divide_by_zero(self):
+        text = "Revenue increased 20% from $0 to $10."
+        result = verify_numeric(text)
+        assert result.valid
+        assert not any(i.issue_type == "arithmetic" for i in result.issues)
 
 
 class TestDateLogic:
@@ -97,6 +114,20 @@ class TestMagnitude:
         mag_issues = [i for i in result.issues if i.issue_type == "magnitude"]
         assert len(mag_issues) == 0
 
+    def test_earth_population_million_unit_is_normalised_to_billion(self):
+        text = "Earth's population is 800 million people."
+        result = verify_numeric(text)
+        issue = next(i for i in result.issues if i.issue_type == "magnitude")
+        assert "earth_population" in issue.description
+        assert "0.8 million" in issue.description
+
+    def test_speed_of_light_magnitude_warning(self):
+        text = "The speed of light is 30 km/s in vacuum."
+        result = verify_numeric(text)
+        issue = next(i for i in result.issues if i.issue_type == "magnitude")
+        assert "speed_of_light_km" in issue.description
+        assert issue.severity == "warning"
+
 
 class TestInternalConsistency:
     def test_inconsistent_totals(self):
@@ -109,6 +140,11 @@ class TestInternalConsistency:
         result = verify_numeric(text)
         internal_issues = [i for i in result.issues if i.issue_type == "internal"]
         assert len(internal_issues) == 0
+
+    def test_small_total_variance_within_tolerance(self):
+        text = "The total of 100 units shipped. A total of 100.5 units was reconciled."
+        result = verify_numeric(text)
+        assert not any(i.issue_type == "internal" for i in result.issues)
 
 
 class TestCleanText:
@@ -130,3 +166,49 @@ class TestResultStructure:
         assert result.error_count == 0
         assert result.warning_count == 0
         assert result.valid
+
+
+class TestRustNumericAdapter:
+    def test_rust_numeric_result_is_mapped_to_python_dataclasses(self, monkeypatch):
+        calls = []
+
+        def fake_rust_verify_numeric(text, current_year):
+            calls.append((text, current_year))
+            return (
+                2,
+                [
+                    (
+                        "probability",
+                        "Probability 150% exceeds 100%",
+                        "error",
+                        "150% probability",
+                    ),
+                    (
+                        "date_logic",
+                        "Year 2099 is in the far future",
+                        "warning",
+                        "2099",
+                    ),
+                ],
+                False,
+            )
+
+        monkeypatch.setattr(numeric_verifier, "_RUST_NUMERIC", True)
+        monkeypatch.setattr(
+            numeric_verifier,
+            "rust_verify_numeric",
+            fake_rust_verify_numeric,
+            raising=False,
+        )
+
+        result = verify_numeric("There is a 150% probability in 2099.")
+
+        assert calls == [("There is a 150% probability in 2099.", datetime.now().year)]
+        assert result.claims_found == 2
+        assert result.valid is False
+        assert result.error_count == 1
+        assert result.warning_count == 1
+        assert [issue.issue_type for issue in result.issues] == [
+            "probability",
+            "date_logic",
+        ]
