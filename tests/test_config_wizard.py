@@ -13,6 +13,8 @@ and edge cases. Gradio launch is not tested (requires UI dep).
 from __future__ import annotations
 
 import json
+import sys
+import types
 
 import yaml
 
@@ -22,6 +24,8 @@ from director_ai.ui.config_wizard import (
     calibration_feedback_jsonl,
     generate_profile_yaml,
     generate_yaml,
+    launch_cli,
+    launch_gradio,
     normalise_facts_text,
     profile_summary,
 )
@@ -141,6 +145,60 @@ class TestProfileWizard:
         assert parsed["hard_limit"] == 0.4
         assert parsed["w_logic"] == 0.5
 
+    def test_launch_gradio_wires_retune_action(self, monkeypatch):
+        fake = _FakeGradio()
+        monkeypatch.setitem(sys.modules, "gradio", fake.module)
+
+        launch_gradio(port=7870, share=False)
+
+        labels = [component.label for component in fake.components]
+        assert "Tuned profile name" in labels
+        assert "Base profile" in labels
+        assert "Tuned profile overlay" in labels
+        assert "Retune from Feedback" in labels
+        assert fake.launch_kwargs == {"server_port": 7870, "share": False}
+
+        retune_clicks = [
+            click
+            for click in fake.clicks
+            if getattr(click["fn"], "__name__", "") == "build_retune_guidance"
+        ]
+        assert len(retune_clicks) == 1
+        click = retune_clicks[0]
+        assert [component.label for component in click["inputs"]] == [
+            "Feedback JSONL",
+            "Tuned profile name",
+            "Base profile",
+        ]
+        assert [component.label for component in click["outputs"]] == [
+            "",
+            "Tuned profile overlay",
+        ]
+
+        config_clicks = [
+            click
+            for click in fake.clicks
+            if click["component"].label == "Generate Config"
+        ]
+        assert len(config_clicks) == 1
+        generated = config_clicks[0]["fn"](
+            coherence_threshold=0.72,
+            use_nli=None,
+            scorer_backend="rules",
+        )
+        assert "coherence_threshold: 0.72" in generated
+        assert "scorer_backend: rules" in generated
+
+    def test_launch_gradio_reports_missing_dependency(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "gradio", None)
+
+        try:
+            launch_gradio()
+        except ImportError as exc:
+            assert "director-ai[ui]" in str(exc)
+        else:
+            raise AssertionError("launch_gradio should require Gradio")
+
     def test_normalise_facts_text(self):
         content, count = normalise_facts_text(" one fact \n\n second fact\n")
         assert content == "one fact\nsecond fact\n"
@@ -160,8 +218,107 @@ class TestProfileWizard:
         assert parsed["human_approved"] is True
         assert parsed["domain"] == "support"
 
+    def test_launch_cli_accepts_defaults(self, monkeypatch, capsys):
+        responses = iter([""] * 10)
+        monkeypatch.setattr("builtins.input", lambda _prompt: next(responses))
+
+        result = launch_cli()
+
+        output = capsys.readouterr().out
+        assert "Director-AI Configuration Wizard" in output
+        assert "Generated configuration" in output
+        assert "# Director-AI Configuration" in result
+        assert "coherence_threshold: 0.6" in result
+        assert "use_nli: false" in result
+
+    def test_launch_cli_casts_entered_values(self, monkeypatch):
+        responses = iter(
+            [
+                "0.73",
+                "no",
+                "rules",
+                "false",
+                "yes",
+                "1",
+                "true",
+                "false",
+                "y",
+                "0",
+            ],
+        )
+        monkeypatch.setattr("builtins.input", lambda _prompt: next(responses))
+
+        result = launch_cli()
+
+        parsed = yaml.safe_load(
+            "\n".join(
+                ln for ln in result.split("\n") if ln.strip() and not ln.startswith("#")
+            ),
+        )
+        assert parsed["coherence_threshold"] == 0.73
+        assert parsed["use_nli"] is False
+        assert parsed["scorer_backend"] == "rules"
+        assert parsed["hybrid_retrieval"] is False
+        assert parsed["reranker_enabled"] is True
+        assert parsed["parent_child_enabled"] is True
+        assert parsed["adaptive_retrieval_enabled"] is True
+        assert parsed["hyde_enabled"] is False
+        assert parsed["injection_detection_enabled"] is True
+        assert parsed["multi_vector_enabled"] is False
+
 
 class TestTraceExplorer:
+    def test_empty_trace_reports_operator_prompt(self):
+        summary, rows, detail = build_trace_explorer("   ")
+
+        assert "Paste a streaming" in summary
+        assert rows == []
+        assert detail == {"error": "empty input"}
+
+    def test_scalar_and_list_traces_are_normalised(self):
+        scalar_summary, scalar_rows, scalar_detail = build_trace_explorer('"token"')
+        list_summary, list_rows, _list_detail = build_trace_explorer(
+            json.dumps(["raw event", {"scope": "manual", "warning": True}]),
+        )
+
+        assert "Events: 1" in scalar_summary
+        assert scalar_rows[0][1] == "trace"
+        assert scalar_rows[0][7] == "token"
+        assert scalar_detail["halted"] is False
+        assert "Events: 2" in list_summary
+        assert list_rows[0][2] == "value"
+        assert list_rows[1][1] == "manual"
+        assert list_rows[1][3] == "warning"
+
+    def test_trace_root_event_and_nested_reason(self):
+        payload = {
+            "halted": False,
+            "halt_reason": "",
+            "halt_evidence": {"suggested_action": "review source"},
+        }
+
+        summary, rows, detail = build_trace_explorer(json.dumps(payload))
+
+        assert "Events: 1" in summary
+        assert rows[0][1] == "streaming"
+        assert rows[0][6] == "review source"
+        assert detail["halted"] is False
+
+    def test_trace_root_attribution_and_counterfactual_defaults(self):
+        payload = {
+            "trace_attribution": {"token_offset": 3},
+            "counterfactual_diagnostic": {"required_score_delta": 0.2},
+            "events": [{"event_type": "audit"}],
+        }
+
+        summary, rows, detail = build_trace_explorer(json.dumps(payload))
+
+        assert "unknown scorer at token 3" in summary
+        assert "unknown fact needs delta 0.2" in summary
+        assert rows[0][1] == "streaming"
+        assert detail["trace_attribution"] == {"token_offset": 3}
+        assert detail["counterfactual"] == {"required_score_delta": 0.2}
+
     def test_streaming_trace_halt_summary(self):
         payload = {
             "halted": True,
@@ -258,6 +415,82 @@ class TestTraceExplorer:
         assert "Invalid JSON" in summary
         assert rows == []
         assert detail["line"] == 1
+
+
+class _FakeComponent:
+    def __init__(self, owner, *args, **kwargs):
+        self.owner = owner
+        self.args = args
+        self.kwargs = kwargs
+        self.label = str(kwargs.get("label") or (args[0] if args else ""))
+        owner.components.append(self)
+
+    def click(self, *, fn, inputs=None, outputs=None):
+        self.owner.clicks.append(
+            {
+                "component": self,
+                "fn": fn,
+                "inputs": _component_list(inputs),
+                "outputs": _component_list(outputs),
+            },
+        )
+
+    def change(self, *, fn, inputs=None, outputs=None):
+        self.owner.changes.append(
+            {
+                "component": self,
+                "fn": fn,
+                "inputs": _component_list(inputs),
+                "outputs": _component_list(outputs),
+            },
+        )
+
+
+def _component_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list | tuple):
+        return list(value)
+    return [value]
+
+
+class _FakeContext:
+    def __init__(self, owner, **kwargs):
+        self.owner = owner
+        self.kwargs = kwargs
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+    def launch(self, **kwargs):
+        self.owner.launch_kwargs = kwargs
+
+
+class _FakeGradio:
+    def __init__(self):
+        self.components = []
+        self.clicks = []
+        self.changes = []
+        self.launch_kwargs = {}
+        self.module = types.SimpleNamespace(
+            Accordion=lambda *args, **kwargs: _FakeContext(self, **kwargs),
+            Blocks=lambda *args, **kwargs: _FakeContext(self, **kwargs),
+            Button=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+            Checkbox=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+            Code=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+            Dataframe=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+            Dropdown=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+            JSON=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+            Markdown=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+            Number=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+            Row=lambda *args, **kwargs: _FakeContext(self, **kwargs),
+            Slider=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+            Tab=lambda *args, **kwargs: _FakeContext(self, **kwargs),
+            Textbox=lambda *args, **kwargs: _FakeComponent(self, *args, **kwargs),
+        )
 
 
 # ── Edge cases ──────────────────────────────────────────────────────────
