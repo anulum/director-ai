@@ -180,6 +180,45 @@ class TestSimpleKinematicModel:
     def test_inverse_unreachable_returns_none(self):
         model = self._two_link()
         assert model.inverse(Vec3(10.0, 0.0, 0.0)) is None
+        unequal_links = SimpleKinematicModel(
+            chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 0.25))
+        )
+        assert unequal_links.inverse(Vec3(0.1, 0.0, 0.0)) is None
+
+    def test_inverse_uses_rust_accelerator_when_available(self, monkeypatch):
+        calls: list[
+            tuple[float, float, tuple[float, float], tuple[float, float], bool]
+        ] = []
+
+        def fake_rust_two_link_ik(l1, l2, base, target, elbow_up):
+            calls.append((l1, l2, base, target, elbow_up))
+            return (0.25, 0.5)
+
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.kinematics._RUST_IK_AVAILABLE", True
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.kinematics._rust_two_link_ik",
+            fake_rust_two_link_ik,
+        )
+        model = SimpleKinematicModel(
+            chain=JointChain(base=Vec3(0.5, 0.25, 0.0), link_lengths=(1.2, 0.8)),
+            branch="elbow_down",
+        )
+
+        assert model.inverse(Vec3(1.5, 0.75, 0.0)) == (0.25, 0.5)
+        assert calls == [(1.2, 0.8, (0.5, 0.25), (1.5, 0.75), False)]
+
+    def test_inverse_preserves_rust_unreachable_result(self, monkeypatch):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.kinematics._RUST_IK_AVAILABLE", True
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.kinematics._rust_two_link_ik",
+            lambda *args: None,
+        )
+
+        assert self._two_link().inverse(Vec3(5.0, 5.0, 0.0)) is None
 
     def test_inverse_long_chain_raises(self):
         model = SimpleKinematicModel(
@@ -222,12 +261,46 @@ class TestSimpleKinematicModel:
         )
         assert model.collides_with(Vec3(1.0, 0.0, 0.0))
 
+    def test_end_effector_radius_and_extra_aabb_are_part_of_collision_envelope(self):
+        obstacle = AABB(
+            min_corner=Vec3(1.4, -0.1, -0.1),
+            max_corner=Vec3(1.6, 0.1, 0.1),
+        )
+        model = SimpleKinematicModel(
+            chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0)),
+            end_effector_radius=0.5,
+            extra_obstacles_aabb=(obstacle,),
+        )
+
+        assert model.collides_with(Vec3(1.0, 0.0, 0.0))
+
     def test_bad_branch(self):
         with pytest.raises(ValueError, match="branch"):
             SimpleKinematicModel(
                 chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0)),
                 branch="diagonal",
             )
+
+    def test_joint_chain_and_model_parameter_guards(self):
+        with pytest.raises(ValueError, match="link_lengths"):
+            JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=())
+        with pytest.raises(ValueError, match="positive"):
+            JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 0.0))
+        with pytest.raises(ValueError, match="collision_margin"):
+            SimpleKinematicModel(
+                chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0)),
+                collision_margin=-0.1,
+            )
+        with pytest.raises(ValueError, match="end_effector_radius"):
+            SimpleKinematicModel(
+                chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0)),
+                end_effector_radius=-0.1,
+            )
+
+    def test_kinematic_model_protocol_recognises_runtime_implementations(self):
+        from director_ai.core.cyber_physical.kinematics import KinematicModel
+
+        assert isinstance(self._two_link(), KinematicModel)
 
 
 # --- PhysicalAction -------------------------------------------------

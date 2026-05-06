@@ -11,11 +11,14 @@
 from __future__ import annotations
 
 import json
+import sys
+import types
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+import director_ai.core.training.results as training_results
 from director_ai.cli import main
 from director_ai.core.training.jobs import (
     LocalTrainingBackend,
@@ -615,6 +618,155 @@ class TestManagedTrainingResults:
         assert report.best.scenario == "natural500/model-b"
         assert report.results[0].best_balanced_accuracy == 0.73
         assert report.results[1].artifact_uri == str(first)
+
+    def test_harvest_empty_local_prefix_returns_empty_report(self, tmp_path):
+        empty_sweep = tmp_path / "empty-sweep"
+        empty_sweep.mkdir()
+
+        report = harvest_training_results(str(empty_sweep))
+
+        assert report.to_dict() == {
+            "prefix_uri": str(empty_sweep),
+            "result_count": 0,
+            "best": None,
+            "results": [],
+        }
+
+    def test_harvest_local_rejects_missing_prefix_and_file_prefix(self, tmp_path):
+        with pytest.raises(FileNotFoundError, match="training result prefix"):
+            harvest_training_results(str(tmp_path / "missing"))
+
+        file_prefix = tmp_path / "not-a-directory"
+        file_prefix.write_text("{}", encoding="utf-8")
+        with pytest.raises(ValueError, match="must be a directory"):
+            harvest_training_results(str(file_prefix))
+
+    def test_harvest_local_rejects_invalid_and_non_object_result_json(self, tmp_path):
+        invalid = tmp_path / "invalid" / "scenario"
+        invalid.mkdir(parents=True)
+        (invalid / "training_result.json").write_text("{not-json", encoding="utf-8")
+        with pytest.raises(ValueError, match="invalid training result JSON"):
+            harvest_training_results(str(tmp_path / "invalid"))
+
+        non_object = tmp_path / "non-object" / "scenario"
+        non_object.mkdir(parents=True)
+        (non_object / "training_result.json").write_text("[1, 2]", encoding="utf-8")
+        with pytest.raises(ValueError, match="must be an object"):
+            harvest_training_results(str(tmp_path / "non-object"))
+
+    def test_root_level_local_result_uses_parent_name_as_scenario(self, tmp_path):
+        sweep = tmp_path / "sweep"
+        sweep.mkdir()
+        (sweep / "training_result.json").write_text(
+            json.dumps(
+                {
+                    "best_balanced_accuracy": "0.65",
+                    "final_loss": "0.4",
+                    "epochs_completed": "2",
+                    "train_samples": "30",
+                    "eval_samples": "10",
+                    "eval_metrics": {"balanced_accuracy": 0.65},
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        report = harvest_training_results(str(sweep))
+
+        assert report.result_count == 1
+        assert report.best is not None
+        assert report.best.scenario == "sweep"
+        assert report.best.artifact_uri == str(sweep)
+        assert report.best.raw["best_balanced_accuracy"] == "0.65"
+        assert report.best.to_dict()["eval_metrics"] == {"balanced_accuracy": 0.65}
+
+    def test_harvest_gcs_results_filters_blobs_and_sorts_records(self, monkeypatch):
+        class FakeBlob:
+            def __init__(self, name, payload):
+                self.name = name
+                self._payload = payload
+
+            def download_as_text(self):
+                return json.dumps(self._payload)
+
+        class FakeClient:
+            def __init__(self):
+                self.bucket_names: list[str] = []
+                self.list_prefixes: list[str] = []
+
+            def bucket(self, name):
+                self.bucket_names.append(name)
+                return f"bucket:{name}"
+
+            def list_blobs(self, bucket, *, prefix):
+                self.list_prefixes.append(prefix)
+                assert bucket == "bucket:director-artifacts"
+                return [
+                    FakeBlob(
+                        "runs/sweep-a/training_result.json",
+                        {"best_balanced_accuracy": 0.7},
+                    ),
+                    FakeBlob(
+                        "runs/sweep-b/training_result.json",
+                        {"best_balanced_accuracy": 0.9},
+                    ),
+                    FakeBlob("runs/sweep-b/metrics.json", {"ignored": True}),
+                ]
+
+        fake_client = FakeClient()
+        monkeypatch.setattr(training_results, "_storage_client", lambda: fake_client)
+
+        report = harvest_training_results("gs://director-artifacts/runs")
+
+        assert fake_client.bucket_names == ["director-artifacts"]
+        assert fake_client.list_prefixes == ["runs/"]
+        assert report.prefix_uri == "gs://director-artifacts/runs"
+        assert [record.scenario for record in report.results] == ["sweep-b", "sweep-a"]
+        assert report.best is not None
+        assert (
+            report.best.result_uri
+            == "gs://director-artifacts/runs/sweep-b/training_result.json"
+        )
+        assert report.best.artifact_uri == "gs://director-artifacts/runs/sweep-b"
+
+    def test_gcs_uri_helpers_validate_scheme_and_scenario_fallback(self):
+        assert training_results._is_gcs_uri("gs://bucket/path")
+        assert not training_results._is_gcs_uri("/tmp/path")
+        assert training_results._split_gcs_uri("gs://bucket/path/to/results") == (
+            "bucket",
+            "path/to/results",
+        )
+        with pytest.raises(ValueError, match="invalid GCS URI"):
+            training_results._split_gcs_uri("https://bucket/path")
+
+        assert (
+            training_results._scenario_from_gcs_blob(
+                "scenario-alone/training_result.json", ""
+            )
+            == "scenario-alone"
+        )
+
+    def test_storage_client_imports_google_storage_client(self, monkeypatch):
+        calls: list[str] = []
+
+        class FakeClient:
+            def __init__(self):
+                calls.append("constructed")
+
+        storage_module = types.ModuleType("google.cloud.storage")
+        storage_module.Client = FakeClient
+        cloud_module = types.ModuleType("google.cloud")
+        cloud_module.storage = storage_module
+        google_module = types.ModuleType("google")
+        google_module.cloud = cloud_module
+        monkeypatch.setitem(sys.modules, "google", google_module)
+        monkeypatch.setitem(sys.modules, "google.cloud", cloud_module)
+        monkeypatch.setitem(sys.modules, "google.cloud.storage", storage_module)
+
+        client = training_results._storage_client()
+
+        assert isinstance(client, FakeClient)
+        assert calls == ["constructed"]
 
 
 class TestManagedTrainingAPI:

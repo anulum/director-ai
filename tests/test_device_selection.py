@@ -14,6 +14,8 @@ PyTorch build and runs identically on CPU-only boxes."""
 from __future__ import annotations
 
 import logging
+import sys
+import types
 
 import pytest
 
@@ -116,3 +118,86 @@ class TestSelectDevice:
         for raw in ("1", "true", "True", "yes", "YES"):
             monkeypatch.setenv("DIRECTOR_FORCE_CPU", raw)
             assert select_torch_device() == "cpu"
+
+    def test_minimum_capability_parses_installed_torch_arches(self, monkeypatch):
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            get_arch_list=lambda: ["compute_90", "sm_86", "sm_70", "sm_bad"]
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        assert _device._minimum_capability() == (7, 0)
+
+    def test_raw_capability_probe_normalises_valid_tuples(self, monkeypatch):
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            get_device_capability=lambda idx: ("8", 6)
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        assert _device._capability(0) == (8, 6)
+
+    def test_raw_capability_probe_rejects_unusable_shapes(self, monkeypatch):
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            get_device_capability=lambda idx: ("bad", 6)
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        assert _device._capability(0) is None
+        fake_torch.cuda.get_device_capability = lambda idx: (8, 6, 0)
+        assert _device._capability(0) is None
+
+    def test_visible_device_count_uses_cuda_availability_and_count(self, monkeypatch):
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=lambda: True,
+            device_count=lambda: "2",
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        assert _device._visible_device_count() == 2
+        fake_torch.cuda.is_available = lambda: False
+        assert _device._visible_device_count() == 0
+
+    def test_cuda_usable_for_default_and_indexed_devices(self, monkeypatch):
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=lambda: True,
+            device_count=lambda: 2,
+            get_device_capability=lambda idx: [(8, 0), (6, 1)][idx],
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+        monkeypatch.setattr(_device, "_minimum_capability", lambda: (7, 0))
+
+        assert _device._cuda_usable_for("cuda")
+        assert not _device._cuda_usable_for("cuda:1")
+        assert not _device._cuda_usable_for("cuda:9")
+
+    def test_cuda_usable_for_rejects_bad_capability_and_parse_errors(self, monkeypatch):
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=lambda: True,
+            device_count=lambda: 2,
+            get_device_capability=lambda idx: ("bad", 0),
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        assert not _device._cuda_usable_for("cuda:0")
+        assert not _device._cuda_usable_for("cuda:bad")
+
+    def test_release_torch_cuda_collects_and_empties_available_cache(self, monkeypatch):
+        calls: list[str] = []
+        fake_gc = types.ModuleType("gc")
+        fake_gc.collect = lambda: calls.append("collect")
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=lambda: True,
+            empty_cache=lambda: calls.append("empty_cache"),
+        )
+        monkeypatch.setitem(sys.modules, "gc", fake_gc)
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        _device.release_torch_cuda()
+
+        assert calls == ["collect", "empty_cache"]
