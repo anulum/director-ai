@@ -200,6 +200,7 @@ class TestSimpleKinematicModel:
         monkeypatch.setattr(
             "director_ai.core.cyber_physical.kinematics._rust_two_link_ik",
             fake_rust_two_link_ik,
+            raising=False,
         )
         model = SimpleKinematicModel(
             chain=JointChain(base=Vec3(0.5, 0.25, 0.0), link_lengths=(1.2, 0.8)),
@@ -216,6 +217,7 @@ class TestSimpleKinematicModel:
         monkeypatch.setattr(
             "director_ai.core.cyber_physical.kinematics._rust_two_link_ik",
             lambda *args: None,
+            raising=False,
         )
 
         assert self._two_link().inverse(Vec3(5.0, 5.0, 0.0)) is None
