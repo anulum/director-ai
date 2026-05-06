@@ -8,6 +8,7 @@
 
 import tomllib
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from director_ai.core.config import DirectorConfig
 
@@ -31,6 +32,11 @@ def _flatten_strings(value: object) -> list[str]:
     if isinstance(value, dict):
         return [item for entry in value.values() for item in _flatten_strings(entry)]
     return []
+
+
+def _origin_tuple(value: str) -> tuple[str, str]:
+    parsed = urlsplit(value)
+    return parsed.scheme, parsed.netloc
 
 
 def test_cors_policy_matches_application_defaults() -> None:
@@ -87,5 +93,13 @@ def test_cors_examples_do_not_use_origin_wildcards() -> None:
     assert "'*'" not in doc
     assert "*;" not in doc
     assert all(value.strip() != "*" for value in strings)
-    assert "https://app.example.com" in doc
-    assert "https://admin.example.com" in doc
+    expected_origins = {
+        _origin_tuple(origin.strip())
+        for origin in str(policy["application"]["example"]).split(",")
+    }
+    documented_origins = {
+        _origin_tuple(value.strip('"` ,;'))
+        for value in doc.split()
+        if value.startswith("https://")
+    }
+    assert expected_origins <= documented_origins

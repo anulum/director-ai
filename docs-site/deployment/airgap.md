@@ -62,8 +62,11 @@ models/factcg-onnx/
   special_tokens_map.json
 ```
 
-Transfer `wheelhouse/`, `models/`, `requirements/airgap_full_stack.toml`, and
-`scripts/airgap_full_stack_example.sh` to the target host.
+Transfer `wheelhouse/`, `models/`, `uv.lock`,
+`requirements/airgap_full_stack.toml`, and
+`scripts/airgap_full_stack_example.sh` to the target host. The target host must
+already have `uv` available; keep the `uv` binary in the same offline operations
+tool bundle used to build the wheelhouse.
 
 ## Install On The Airgapped Host
 
@@ -76,8 +79,8 @@ bash scripts/airgap_full_stack_example.sh
 The script performs:
 
 ```bash
-python -m pip install --no-index --find-links wheelhouse 'director-ai[server,vector,nli,onnx,ui]'
-python -m pip install --no-index --find-links wheelhouse/rust backfire-kernel
+UV_OFFLINE=1 uv sync --locked --offline --active --extra server --extra vector --extra nli --extra onnx --extra ui
+uv pip install --offline --find-links wheelhouse/rust backfire-kernel==0.1.0
 director-ai doctor
 ```
 

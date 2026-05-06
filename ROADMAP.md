@@ -15,6 +15,9 @@ Last updated: 2026-04-30
 - Security follow-up planning now includes physical-action residual risks,
   attestation fuzzing, timing-parity checks, and standalone Rust-kernel
   extraction execution.
+- Internal repository hygiene now records the GitHub Actions history audit,
+  root-cause classification, evidence preservation, safe run purge, and
+  post-purge all-green verification process for CI repair bursts.
 
 ## v2.8.0
 
@@ -309,6 +312,9 @@ Last updated: 2026-04-30
 - [x] Add a docs-sync checklist to release preparation so `ROADMAP.md`,
   `ARCHITECTURE.md`, `CHANGELOG.md`, `SECURITY.md`, and `VALIDATION.md` cannot
   drift after safety-hook or benchmark changes.
+- [x] Add an internal repository hygiene checklist for deep GitHub Actions
+  history audit, safe failed-run purge, evidence preservation, and post-purge
+  all-green verification before new roadmap work starts after CI repair bursts.
 - [x] Reconcile `ARCHITECTURE.md` with Rust acceleration, `CoherenceAgent`
   containment, physical-grounding, and passport-verification wiring details
   already listed in the changelog.

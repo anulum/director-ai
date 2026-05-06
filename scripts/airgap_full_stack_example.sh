@@ -19,11 +19,15 @@ python -m venv "${VENV_DIR}"
 # shellcheck disable=SC1091
 . "${VENV_DIR}/bin/activate"
 
-python -m pip install --no-index --find-links "${WHEELHOUSE}" \
-  "director-ai[server,vector,nli,onnx,ui]"
+UV_OFFLINE=1 uv sync --locked --offline --active \
+  --extra server \
+  --extra vector \
+  --extra nli \
+  --extra onnx \
+  --extra ui
 
 if [ -d "${RUST_WHEELHOUSE}" ]; then
-  python -m pip install --no-index --find-links "${RUST_WHEELHOUSE}" backfire-kernel
+  uv pip install --offline --find-links "${RUST_WHEELHOUSE}" backfire-kernel==0.1.0
 fi
 
 export HF_HUB_OFFLINE=1

@@ -184,7 +184,7 @@ auto-kb = [
 colbert = [
     "ragatouille>=0.0.8",
 ]
-rust = ["backfire-kernel>=0.1.1,<0.2"]
+rust = ["backfire-kernel>=0.1.0,<0.2"]
 enterprise = [
     "redis>=4.5,<8",
     "pyjwt>=2.8,<3",

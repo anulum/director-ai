@@ -40,11 +40,13 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+        with:
+          version: "0.11.3"
+
       - name: Install test runtime
         run: |
-          pip install --require-hashes --no-deps -r requirements/ci-dev.txt
-          pip install --no-deps -e .
-          pip install -e ".[embed,nli,nli-lite]"
+          uv sync --locked --extra embed --extra nli --extra nli-lite --extra dev
 
       - name: Run live red-team suite
         run: |
@@ -52,7 +54,8 @@ jobs:
           MIN_RATE="${{ github.event.inputs.min_detection_rate }}"
           : "${MAX_CASES:=60}"
           : "${MIN_RATE:=0.0}"
-          python tools/live_red_team.py \
+          uv run --locked --extra embed --extra nli --extra nli-lite --extra dev \
+            python tools/live_red_team.py \
             --output reports/live-red-team/report.json \
             --max-cases-per-source "${MAX_CASES}" \
             --min-detection-rate "${MIN_RATE}" \
