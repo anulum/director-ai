@@ -117,6 +117,10 @@ class VectorBackend(ABC):
     @abstractmethod
     def count(self) -> int: ...  # pragma: no cover
 
+    def delete(self, doc_ids: list[str]) -> int:
+        """Delete documents by id when a backend supports mutation."""
+        raise NotImplementedError(f"{type(self).__name__} does not support delete")
+
     async def aadd(
         self,
         doc_id: str,
@@ -211,3 +215,12 @@ class InMemoryBackend(VectorBackend):
     def count(self) -> int:
         with self._lock:
             return len(self._docs)
+
+    def delete(self, doc_ids: list[str]) -> int:
+        targets = set(doc_ids)
+        if not targets:
+            return 0
+        with self._lock:
+            before = len(self._docs)
+            self._docs = [doc for doc in self._docs if doc["id"] not in targets]
+            return before - len(self._docs)

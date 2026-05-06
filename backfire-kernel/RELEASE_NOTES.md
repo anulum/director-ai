@@ -18,7 +18,7 @@ Director-Class AI - Backfire kernel release notes
 - Added a release contract at `requirements/backfire_kernel_release.toml`.
 - Added the standalone advanced runtime CI entrypoint at
   `backfire-kernel/ci/advanced_runtime_ci.sh`.
-- Kept `director-ai[rust]` pinned to the supported `>=0.1.1,<0.2` wheel range.
+- Kept `director-ai[rust]` pinned to the supported `>=0.1.0,<0.2` Python wheel range while the Rust workspace version remains `0.1.1`.
 
 ## 0.1.0 - 2026-04-12
 

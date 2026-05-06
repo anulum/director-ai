@@ -269,6 +269,18 @@ class TestVectorGroundTruthStore:
         assert context is None
         assert chunks == []
 
+    def test_in_memory_backend_delete_removes_requested_documents(self):
+        backend = InMemoryBackend()
+        backend.add("doc-a", "alpha beta")
+        backend.add("doc-b", "gamma delta")
+
+        removed = backend.delete(["doc-a", "missing"])
+
+        assert removed == 1
+        assert backend.count() == 1
+        assert backend.query("alpha") == []
+        assert backend.query("gamma")[0]["id"] == "doc-b"
+
     def test_retract_unknown_fact_raises_key_error(self):
         store = VectorGroundTruthStore()
 

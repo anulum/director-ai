@@ -408,7 +408,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     try:
         from .knowledge_api import create_knowledge_router
 
-        app.include_router(create_knowledge_router(), prefix="/v1/knowledge")
+        knowledge_router = create_knowledge_router()
+        app.include_router(knowledge_router, prefix="/v1/knowledge")
+        app.include_router(knowledge_router, prefix="/api/v1/knowledge")
     except ImportError:
         pass
 

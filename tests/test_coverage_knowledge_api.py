@@ -286,6 +286,38 @@ class TestChunkAndStore:
         _chunk_and_store("text", "doc", "t1", store, 512, 64)
         backend_mock.add.assert_called_once()
 
+    def test_chunks_are_available_for_incremental_tuning(self):
+        from director_ai.knowledge_api import _chunk_and_store
+
+        store = _make_vector_store()
+        ids = _chunk_and_store(
+            "first sentence. second sentence.",
+            "doc",
+            "t1",
+            store,
+            20,
+            0,
+        )
+
+        assert ids
+        assert all(cid in store.facts for cid in ids)
+
+    def test_custom_chunk_id_prefix_prevents_update_id_collision(self):
+        from director_ai.knowledge_api import _chunk_and_store
+
+        store = _make_vector_store()
+        ids = _chunk_and_store(
+            "replacement text",
+            "doc",
+            "t1",
+            store,
+            512,
+            64,
+            chunk_id_prefix="doc:rev:abc123",
+        )
+
+        assert ids == ["doc:rev:abc123:chunk:0"]
+
 
 # ---------------------------------------------------------------------------
 # _delete_chunks
@@ -340,6 +372,19 @@ class TestDeleteChunks:
         store.backend.delete.side_effect = AttributeError
         record = _fake_record(chunk_ids=["z"])
         _delete_chunks(record, store)
+        assert "z" not in store.facts
+
+    def test_tolerates_not_implemented_error(self):
+        from director_ai.knowledge_api import _delete_chunks
+
+        store = _make_vector_store(facts={"z": "val"})
+        store.backend = MagicMock()
+        store.backend.delete.side_effect = NotImplementedError
+        record = _fake_record(chunk_ids=["z"])
+
+        removed = _delete_chunks(record, store)
+
+        assert removed == 0
         assert "z" not in store.facts
 
 
@@ -794,6 +839,26 @@ class TestUpdateDocument:
         assert "chunk_count" in data
         reg.update.assert_called_once()
         assert reg.update.call_args.kwargs["source"] == "policy_v3"
+        new_ids = reg.update.call_args.args[1]
+        assert new_ids
+        assert all(":rev:" in cid for cid in new_ids)
+        backend_mock.delete.assert_called_once_with(["d4:chunk:0"])
+
+
+class TestKnowledgeApiEnterpriseAlias:
+    def test_server_mounts_api_v1_knowledge_ingest_alias(self):
+        from director_ai.core.config import DirectorConfig
+        from director_ai.server import create_app
+
+        app = create_app(DirectorConfig(mode="grounded", vector_backend="memory"))
+        paths = {
+            getattr(route, "path", "")
+            for route in app.routes
+            if "POST" in getattr(route, "methods", set())
+        }
+
+        assert "/v1/knowledge/ingest" in paths
+        assert "/api/v1/knowledge/ingest" in paths
 
 
 # ---------------------------------------------------------------------------

@@ -25,8 +25,8 @@ The v3.15 extraction boundary is active. The release contract is tracked in
 `backfire-kernel/RELEASE_NOTES.md`; and the standalone crate CI entrypoint is
 `backfire-kernel/ci/advanced_runtime_ci.sh`.
 
-The current extracted package version is `0.1.1`. `director-ai[rust]` accepts
-`backfire-kernel>=0.1.1,<0.2`, while the default Python path stays independent
+The current extracted Rust workspace version is `0.1.1`. `director-ai[rust]` accepts
+`backfire-kernel>=0.1.0,<0.2`, while the default Python path stays independent
 of the Rust wheel.
 
 ## Boundary
@@ -58,7 +58,7 @@ changes require a new minor version. After that point, breaking API changes
 require a new major version.
 
 `director-ai` pins an explicit supported `backfire-kernel` range for
-`director-ai[rust]`. The first active external range is `>=0.1.1,<0.2`. The
+`director-ai[rust]`. The first active external range is `>=0.1.0,<0.2`. The
 Python fallback remains the supported default path and must pass without the
 Rust package installed.
 

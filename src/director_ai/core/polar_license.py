@@ -17,6 +17,7 @@ import requests
 from director_ai.core.license import TIERS, LicenseInfo
 
 POLAR_VALIDATE_URL = "https://api.polar.sh/v1/customer-portal/license-keys/validate"
+POLAR_SERVER_VALIDATE_URL = "https://api.polar.sh/v1/license-keys/validate"
 POLAR_DEFAULT_TIMEOUT_SECONDS = 5.0
 
 
@@ -45,6 +46,14 @@ def validate_polar_key(
     if activation_id:
         request_body["activation_id"] = activation_id
 
+    benefit_id = os.environ.get("DIRECTOR_AI_POLAR_BENEFIT_ID", "").strip()
+    if benefit_id:
+        request_body["benefit_id"] = benefit_id
+
+    customer_id = os.environ.get("DIRECTOR_AI_POLAR_CUSTOMER_ID", "").strip()
+    if customer_id:
+        request_body["customer_id"] = customer_id
+
     increment_usage = os.environ.get("DIRECTOR_AI_POLAR_INCREMENT_USAGE", "").strip()
     if increment_usage:
         try:
@@ -52,9 +61,14 @@ def validate_polar_key(
         except ValueError:
             return LicenseInfo(message="DIRECTOR_AI_POLAR_INCREMENT_USAGE must be int")
 
-    url = endpoint or os.environ.get("DIRECTOR_AI_POLAR_VALIDATE_URL", "").strip()
-    if not url:
-        url = POLAR_VALIDATE_URL
+    conditions_info = _conditions_from_env()
+    if not conditions_info.valid:
+        return LicenseInfo(message=conditions_info.message)
+    if conditions_info.conditions:
+        request_body["conditions"] = conditions_info.conditions
+
+    url = endpoint or _validate_url_from_env()
+    headers = _auth_headers(url)
 
     timeout = (
         float(timeout_seconds)
@@ -63,7 +77,15 @@ def validate_polar_key(
     )
 
     try:
-        response = requests.post(url, json=request_body, timeout=timeout)
+        if headers:
+            response = requests.post(
+                url,
+                json=request_body,
+                timeout=timeout,
+                headers=headers,
+            )
+        else:
+            response = requests.post(url, json=request_body, timeout=timeout)
     except requests.RequestException as exc:
         return LicenseInfo(message=f"Polar validation unavailable: {exc}")
 
@@ -95,6 +117,86 @@ def _env_timeout_seconds() -> float:
     except ValueError:
         return POLAR_DEFAULT_TIMEOUT_SECONDS
     return max(0.1, timeout)
+
+
+def _validate_url_from_env() -> str:
+    explicit = os.environ.get("DIRECTOR_AI_POLAR_VALIDATE_URL", "").strip()
+    if explicit:
+        return explicit
+    if _polar_access_token():
+        return POLAR_SERVER_VALIDATE_URL
+    return POLAR_VALIDATE_URL
+
+
+def _polar_access_token() -> str:
+    return (
+        os.environ.get("DIRECTOR_AI_POLAR_ACCESS_TOKEN", "").strip()
+        or os.environ.get("POLAR_ACCESS_TOKEN", "").strip()
+    )
+
+
+def _auth_headers(url: str) -> dict[str, str]:
+    token = _polar_access_token()
+    if not token:
+        return {}
+    if url.rstrip("/") == POLAR_VALIDATE_URL.rstrip("/"):
+        return {}
+    return {"Authorization": f"Bearer {token}"}
+
+
+class _ConditionsInfo:
+    def __init__(
+        self,
+        *,
+        valid: bool,
+        conditions: dict[str, object] | None = None,
+        message: str = "",
+    ) -> None:
+        self.valid = valid
+        self.conditions = conditions or {}
+        self.message = message
+
+
+def _conditions_from_env() -> _ConditionsInfo:
+    raw = os.environ.get("DIRECTOR_AI_POLAR_CONDITIONS", "").strip()
+    if not raw:
+        return _ConditionsInfo(valid=True)
+    import json
+
+    try:
+        parsed = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        return _ConditionsInfo(
+            valid=False,
+            message=f"DIRECTOR_AI_POLAR_CONDITIONS must be JSON: {exc}",
+        )
+    if not isinstance(parsed, dict):
+        return _ConditionsInfo(
+            valid=False,
+            message="DIRECTOR_AI_POLAR_CONDITIONS must be a JSON object",
+        )
+    if len(parsed) > 50:
+        return _ConditionsInfo(
+            valid=False,
+            message="DIRECTOR_AI_POLAR_CONDITIONS supports at most 50 entries",
+        )
+    for key, value in parsed.items():
+        if not isinstance(key, str) or len(key) > 40:
+            return _ConditionsInfo(
+                valid=False,
+                message="Polar condition keys must be strings up to 40 characters",
+            )
+        if not isinstance(value, str | int | float | bool):
+            return _ConditionsInfo(
+                valid=False,
+                message="Polar condition values must be scalar JSON values",
+            )
+        if isinstance(value, str) and len(value) > 500:
+            return _ConditionsInfo(
+                valid=False,
+                message="Polar string condition values must be up to 500 characters",
+            )
+    return _ConditionsInfo(valid=True, conditions=parsed)
 
 
 def _license_info_from_payload(key: str, payload: dict[str, Any]) -> LicenseInfo:

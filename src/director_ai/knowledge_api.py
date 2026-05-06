@@ -244,11 +244,13 @@ def _chunk_and_store(
     chunk_size: int,
     overlap: int,
     signature_metadata: dict[str, object] | None = None,
+    chunk_id_prefix: str | None = None,
 ) -> list[str]:
     from .core.retrieval.doc_chunker import ChunkConfig, split
 
     chunks = split(text, ChunkConfig(chunk_size=chunk_size, overlap=overlap))
-    chunk_ids = [f"{doc_id}:chunk:{i}" for i in range(len(chunks))]
+    prefix = chunk_id_prefix or doc_id
+    chunk_ids = [f"{prefix}:chunk:{i}" for i in range(len(chunks))]
 
     for cid, chunk_text in zip(chunk_ids, chunks, strict=True):
         store.backend.add(
@@ -260,6 +262,7 @@ def _chunk_and_store(
                 **(signature_metadata or {}),
             },
         )
+        store.facts[cid] = chunk_text
 
     return chunk_ids
 
@@ -268,9 +271,9 @@ def _delete_chunks(record, store) -> int:
     removed = 0
     for cid in record.chunk_ids:
         try:
-            store.backend.delete([cid])
-            removed += 1
-        except (AttributeError, TypeError):
+            delete_count = store.backend.delete([cid])
+            removed += delete_count if isinstance(delete_count, int) else 1
+        except (AttributeError, NotImplementedError, TypeError):
             pass
         store.facts.pop(cid, None)
     return removed
@@ -487,6 +490,7 @@ def create_knowledge_router() -> APIRouter:
             raise HTTPException(404, "Document not found")
 
         loop = asyncio.get_running_loop()
+        chunk_id_prefix = f"{doc_id}:rev:{uuid.uuid4().hex[:12]}"
         new_chunk_ids = await loop.run_in_executor(
             None,
             _chunk_and_store,
@@ -497,6 +501,7 @@ def create_knowledge_router() -> APIRouter:
             body.chunk_size,
             body.overlap,
             sig_meta,
+            chunk_id_prefix,
         )
 
         _delete_chunks(record, store)
