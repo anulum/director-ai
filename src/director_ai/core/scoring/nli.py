@@ -41,6 +41,22 @@ try:
     _RUST_NLI = True
 except ImportError:
     _RUST_NLI = False
+
+    def rust_softmax(_flat: list[float], _cols: int) -> list[float]:
+        raise RuntimeError("backfire_kernel rust_softmax is unavailable")
+
+    def rust_probs_to_divergence(
+        _flat: list[float],
+        _ncols: int,
+        _contradiction_idx: int,
+        _neutral_idx: int,
+    ) -> list[float]:
+        raise RuntimeError("backfire_kernel rust_probs_to_divergence is unavailable")
+
+    def rust_probs_to_confidence(_flat: list[float], _ncols: int) -> list[float]:
+        raise RuntimeError("backfire_kernel rust_probs_to_confidence is unavailable")
+
+
 from ._nli_export import (
     OnnxDynamicBatcher,
     _load_onnx_session,
