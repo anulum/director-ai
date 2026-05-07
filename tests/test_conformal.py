@@ -22,6 +22,31 @@ from director_ai.core.calibration.conformal import (
 )
 
 
+class FeedbackEntry:
+    def __init__(
+        self,
+        *,
+        score: float,
+        human_label: bool | None = None,
+        approved: bool | None = None,
+        human_override: bool | None = None,
+    ):
+        self.score = score
+        self.human_label = human_label
+        if approved is not None:
+            self.approved = approved
+        if approved is not None or human_override is not None:
+            self.human_override = human_override
+
+
+class FeedbackStore:
+    def __init__(self, entries):
+        self._entries = entries
+
+    def query(self):
+        return list(self._entries)
+
+
 class TestConformalPredictor:
     def test_uncalibrated_returns_full_interval(self):
         cp = ConformalPredictor()
@@ -78,6 +103,65 @@ class TestConformalPredictor:
         pi = cp.predict(0.7)
         assert not pi.is_reliable
         assert pi.calibration_size == 10
+
+    def test_empty_calibration_keeps_full_unreliable_interval(self):
+        cp = ConformalPredictor(min_samples=1)
+        cp.calibrate([], [])
+        pi = cp.predict(0.8)
+        assert pi.point_estimate == pytest.approx(0.2)
+        assert pi.lower == 0.0
+        assert pi.upper == 1.0
+        assert pi.calibration_size == 0
+        assert not pi.is_reliable
+
+    def test_score_to_probability_clamps_out_of_range_scores(self):
+        assert ConformalPredictor._score_to_prob(-0.4) == 1.0
+        assert ConformalPredictor._score_to_prob(1.4) == 0.0
+
+    def test_calibrate_from_feedback_uses_human_labels_as_correctness(self):
+        cp = ConformalPredictor(coverage=0.8, min_samples=2)
+        store = FeedbackStore(
+            [
+                FeedbackEntry(score=0.92, human_label=True),
+                FeedbackEntry(score=0.18, human_label=False),
+            ]
+        )
+
+        cp.calibrate_from_feedback(store)
+        pi = cp.predict(0.9)
+
+        assert pi.calibration_size == 2
+        assert pi.is_reliable
+        assert pi.point_estimate == pytest.approx(0.1)
+        assert pi.upper < 0.3
+
+    def test_calibrate_from_feedback_supports_legacy_override_entries(self):
+        cp = ConformalPredictor(coverage=0.8, min_samples=2)
+        store = FeedbackStore(
+            [
+                FeedbackEntry(score=0.9, human_label=None, approved=True),
+                FeedbackEntry(
+                    score=0.85,
+                    human_label=None,
+                    approved=True,
+                    human_override=False,
+                ),
+                FeedbackEntry(
+                    score=0.2,
+                    human_label=None,
+                    approved=False,
+                    human_override=False,
+                ),
+                FeedbackEntry(score=0.5, human_label=None),
+            ]
+        )
+
+        cp.calibrate_from_feedback(store)
+        pi = cp.predict(0.5)
+
+        assert pi.calibration_size == 2
+        assert pi.is_reliable
+        assert pi.lower <= pi.point_estimate <= pi.upper
 
 
 class TestConformalValidation:

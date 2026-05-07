@@ -102,6 +102,45 @@ class TestAuditLoggerLoggingOnly:
         assert data["kb_snapshot_retraction_count"] == 1
         assert data["kb_snapshot_replacement_count"] == 1
 
+    def test_explicit_hmac_secret_makes_query_hashes_stable(self):
+        logger_a = AuditLogger(hmac_secret="tenant-secret")
+        logger_b = AuditLogger(hmac_secret="tenant-secret")
+
+        entry_a = logger_a.log_review(
+            query="sensitive tenant query",
+            response="r",
+            approved=True,
+            score=0.99,
+        )
+        entry_b = logger_b.log_review(
+            query="sensitive tenant query",
+            response="r",
+            approved=True,
+            score=0.99,
+        )
+
+        assert entry_a.query_hash == entry_b.query_hash
+
+    def test_malformed_snapshot_counters_fall_back_to_zero(self):
+        logger = AuditLogger(hmac_secret="stable")
+        entry = logger.log_review(
+            query="q",
+            response="r",
+            approved=True,
+            score=1.0,
+            kb_snapshot={
+                "revision": None,
+                "record_count": "not-an-int",
+                "retraction_count": object(),
+                "replacement_count": 4,
+            },
+        )
+
+        assert entry.kb_snapshot_revision == 0
+        assert entry.kb_snapshot_record_count == 0
+        assert entry.kb_snapshot_retraction_count == 0
+        assert entry.kb_snapshot_replacement_count == 4
+
 
 class TestAuditLoggerFileSink:
     def test_writes_jsonl(self, tmp_path):
@@ -168,6 +207,29 @@ class TestAuditLoggerFileSink:
         assert data["halt_reason"] == "coherence"
         assert len(data["policy_violations"]) == 2
 
+    def test_external_sinks_receive_written_entry(self, tmp_path):
+        class RecordingSink:
+            def __init__(self):
+                self.entries = []
+
+            def write(self, entry):
+                self.entries.append(entry)
+
+        path = tmp_path / "audit.jsonl"
+        sink = RecordingSink()
+        logger = AuditLogger(path=path, hmac_secret="stable")
+        logger.add_sink(sink)
+
+        entry = logger.log_review(
+            query="q",
+            response="audited",
+            approved=True,
+            score=0.88,
+        )
+
+        assert sink.entries == [entry]
+        assert json.loads(path.read_text(encoding="utf-8"))["response_length"] == 7
+
 
 class TestAuditLoggerErrorPaths:
     def test_unwritable_path_raises(self, tmp_path):
@@ -193,3 +255,21 @@ class TestAuditLoggerErrorPaths:
             entry = logger.log_review(query="q", response="r", approved=True, score=0.9)
         assert entry.approved is True
         assert any("approved" in r.message for r in caplog.records)
+
+    def test_sink_failure_is_logged_without_blocking_audit(self, caplog):
+        import logging
+
+        class FailingSink:
+            def write(self, entry):
+                raise RuntimeError(f"refuse {entry.query_hash}")
+
+        logger = AuditLogger(logger_name="TestAuditSink", hmac_secret="stable")
+        logger.add_sink(FailingSink())
+
+        with caplog.at_level(logging.ERROR, logger="TestAuditSink"):
+            entry = logger.log_review(
+                query="q", response="r", approved=False, score=0.1
+            )
+
+        assert entry.approved is False
+        assert any("FailingSink.write() failed" in r.message for r in caplog.records)

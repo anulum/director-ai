@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import pytest
 
+from director_ai.integrations.voice import VoiceToken
+from director_ai.voice import pipeline as pipeline_module
 from director_ai.voice.adapters import TTSAdapter
 from director_ai.voice.pipeline import voice_pipeline
 
@@ -33,6 +35,29 @@ class RecordingAdapter(TTSAdapter):
 
     async def close(self):
         self.closed = True
+
+
+class FlushRecordingAdapter(RecordingAdapter):
+    def __init__(self):
+        super().__init__()
+        self.flushed = False
+
+    async def flush(self):
+        self.flushed = True
+        yield b"flush"
+
+
+class ScriptedGuard:
+    tokens: list[VoiceToken] = []
+
+    def __init__(self, **kwargs):
+        self.kwargs = kwargs
+
+    async def feed_stream(self, token_source):
+        for _item in token_source:
+            pass
+        for token in self.tokens:
+            yield token
 
 
 class TestVoicePipelineNormal:
@@ -112,6 +137,52 @@ class TestVoicePipelineNormal:
         assert len(audio) > 0
         assert tts.closed
 
+    async def test_rejected_guard_tokens_are_not_synthesised(self, monkeypatch):
+        class RejectThenApproveGuard(ScriptedGuard):
+            tokens = [
+                VoiceToken("unsafe ", 0, approved=False, coherence=0.1),
+                VoiceToken("Safe.", 1, approved=True, coherence=1.0),
+            ]
+
+        monkeypatch.setattr(pipeline_module, "AsyncVoiceGuard", RejectThenApproveGuard)
+        tts = FlushRecordingAdapter()
+
+        audio = [
+            chunk
+            async for chunk in voice_pipeline(
+                iter(["ignored"]),
+                tts,
+                sentence_buffer=True,
+            )
+        ]
+
+        assert tts.texts == ["Safe."]
+        assert audio == [b"audio:Safe.", b"flush"]
+        assert tts.flushed
+        assert tts.closed
+
+    async def test_unfinished_sentence_is_flushed_at_stream_end(self, monkeypatch):
+        class TrailingTextGuard(ScriptedGuard):
+            tokens = [
+                VoiceToken("Trailing approved text", 0, approved=True, coherence=1.0)
+            ]
+
+        monkeypatch.setattr(pipeline_module, "AsyncVoiceGuard", TrailingTextGuard)
+        tts = FlushRecordingAdapter()
+
+        audio = [
+            chunk
+            async for chunk in voice_pipeline(
+                iter(["ignored"]),
+                tts,
+                sentence_buffer=True,
+            )
+        ]
+
+        assert tts.texts == ["Trailing approved text"]
+        assert audio == [b"audio:Trailing approved text", b"flush"]
+        assert tts.closed
+
 
 class TestVoicePipelineHalt:
     async def test_halt_produces_recovery_audio(self):
@@ -175,6 +246,37 @@ class TestVoicePipelineHalt:
             )
         ]
         assert len(halt_tokens) == 1
+
+    async def test_halt_flushes_approved_token_without_recovery(self, monkeypatch):
+        class ApprovedHaltGuard(ScriptedGuard):
+            tokens = [
+                VoiceToken(
+                    "Final approved sentence.",
+                    0,
+                    approved=True,
+                    coherence=0.2,
+                    halted=True,
+                    halt_reason="threshold",
+                    recovery_text="",
+                )
+            ]
+
+        monkeypatch.setattr(pipeline_module, "AsyncVoiceGuard", ApprovedHaltGuard)
+        tts = FlushRecordingAdapter()
+
+        audio = [
+            chunk
+            async for chunk in voice_pipeline(
+                iter(["ignored"]),
+                tts,
+                on_halt=None,
+            )
+        ]
+
+        assert tts.texts == ["Final approved sentence."]
+        assert audio == [b"audio:Final approved sentence.", b"flush"]
+        assert tts.flushed
+        assert tts.closed
 
 
 class TestVoicePipelineEmpty:
