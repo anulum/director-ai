@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..verification.json_verifier import verify_json
+from ..verification.reasoning_verifier import verify_reasoning_chain
 from ..verification.tool_call_verifier import verify_tool_call
 
 __all__ = [
@@ -79,6 +80,8 @@ class StructuredRecoveryState:
             self._update_json(text)
         if self.config.kind == "tool_call":
             self._update_tool_call(text)
+        if self.config.kind == "reasoning_chain":
+            self._update_reasoning_chain(text)
 
     def finalise(self, halted_at: int) -> StructuredRecoveryResult:
         return StructuredRecoveryResult(
@@ -165,6 +168,38 @@ class StructuredRecoveryState:
         self.last_valid_metadata = {
             "function_name": function_name,
             "argument_count": len(arguments),
+        }
+
+    def _update_reasoning_chain(self, text: str) -> None:
+        payload = text
+        try:
+            data = json.loads(text)
+        except (json.JSONDecodeError, TypeError):
+            data = None
+        if isinstance(data, dict) and isinstance(data.get("steps"), list):
+            steps = data["steps"]
+            if not all(isinstance(step, str) and step.strip() for step in steps):
+                self._remember_error("reasoning_chain:invalid_steps")
+                return
+            payload = "\n".join(
+                f"{index + 1}. {step}" for index, step in enumerate(steps)
+            )
+        result = verify_reasoning_chain(
+            payload,
+            score_fn=self.config.score_fn,
+            support_threshold=self.config.reasoning_support_threshold,
+        )
+        if result.steps_found < 2 or not result.chain_valid:
+            self._remember_error("reasoning_chain:invalid")
+            return
+        self.last_valid_output = (
+            json.dumps(data, separators=(",", ":"), sort_keys=True)
+            if data is not None
+            else text
+        )
+        self.last_valid_metadata = {
+            "steps_found": result.steps_found,
+            "issues_found": result.issues_found,
         }
 
     @staticmethod

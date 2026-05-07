@@ -148,3 +148,41 @@ def test_tool_call_unknown_function_keeps_previous_valid_checkpoint() -> None:
     assert result.valid is True
     assert "book_flight" in result.last_valid_output
     assert any("tool_call" in error for error in result.errors)
+
+
+def test_reasoning_chain_recovery_keeps_last_valid_envelope() -> None:
+    state = StructuredRecoveryState(
+        StructuredRecoveryConfig(
+            kind="reasoning_chain",
+            reasoning_support_threshold=0.8,
+        )
+    )
+    state.update(
+        '{"steps":["The sky is blue","Therefore the sky has a visible colour"]}'
+    )
+    state.update('{"steps":["The sky is blue","Therefore')
+
+    result = state.finalise(halted_at=7)
+
+    assert result.valid is True
+    assert result.last_valid_output == (
+        '{"steps":["The sky is blue","Therefore the sky has a visible colour"]}'
+    )
+    assert result.metadata["steps_found"] >= 2
+
+
+def test_reasoning_chain_invalid_update_keeps_previous_checkpoint() -> None:
+    state = StructuredRecoveryState(
+        StructuredRecoveryConfig(
+            kind="reasoning_chain",
+            reasoning_support_threshold=0.8,
+        )
+    )
+    state.update('{"steps":["A implies B","Therefore B follows from A"]}')
+    state.update('{"steps":["A implies B"]}')
+
+    result = state.finalise(halted_at=4)
+
+    assert result.valid is True
+    assert "Therefore B follows" in result.last_valid_output
+    assert any("reasoning" in error for error in result.errors)
