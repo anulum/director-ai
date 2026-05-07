@@ -118,6 +118,23 @@ class TestAccountant:
         with pytest.raises(ValueError, match="delta"):
             acc.charge(AccountantEntry(label="q2", epsilon=0.1, delta=1e-5))
 
+    def test_cumulative_delta_and_entries_snapshot(self):
+        acc = PrivacyAccountant(max_epsilon=10.0)
+        first = AccountantEntry(
+            label="q1",
+            epsilon=0.1,
+            delta=2e-6,
+            sensitivity=1.0,
+            metadata={"tenant": "a"},
+        )
+        second = AccountantEntry(label="q2", epsilon=0.2, delta=3e-6)
+
+        acc.charge(first)
+        acc.charge(second)
+
+        assert acc.cumulative_delta() == pytest.approx(5e-6)
+        assert acc.entries() == (first, second)
+
     def test_negative_entries_rejected(self):
         acc = PrivacyAccountant(max_epsilon=10.0)
         with pytest.raises(ValueError, match="non-negative"):
@@ -147,6 +164,35 @@ class TestAccountant:
         # gives a tighter bound at small ε_0.
         basic = 0.1 * 100
         assert bound < basic
+
+    def test_advanced_bound_empty_and_zero_epsilon(self):
+        acc = PrivacyAccountant(max_epsilon=1.0, mode="advanced")
+
+        assert acc.epsilon_advanced(target_delta=1e-6) == 0.0
+
+        acc.charge(AccountantEntry(label="public-stat", epsilon=0.0, delta=0.0))
+        assert acc.cumulative_epsilon() == 0.0
+        assert acc.epsilon_advanced(target_delta=1e-6) == 0.0
+
+    def test_advanced_mode_homogeneous_projection_uses_delta_cap(self):
+        acc = PrivacyAccountant(max_epsilon=10.0, max_delta=1e-4, mode="advanced")
+        acc.charge(AccountantEntry(label="q1", epsilon=0.01, delta=1e-6))
+        acc.charge(AccountantEntry(label="q2", epsilon=0.01, delta=1e-6))
+
+        advanced = acc.cumulative_epsilon()
+        expected = math.sqrt(2.0 * 2 * math.log(1.0 / 5e-5)) * 0.01 + 2 * 0.01 * (
+            math.exp(0.01) - 1.0
+        )
+
+        assert advanced == pytest.approx(expected)
+        assert advanced > 0.02
+
+    def test_advanced_mode_heterogeneous_projection_falls_back_to_basic_sum(self):
+        acc = PrivacyAccountant(max_epsilon=10.0, mode="advanced")
+        acc.charge(AccountantEntry(label="q1", epsilon=0.1, delta=0.0))
+        acc.charge(AccountantEntry(label="q2", epsilon=0.2, delta=0.0))
+
+        assert acc.cumulative_epsilon() == pytest.approx(0.3)
 
     def test_target_delta_validation(self):
         acc = PrivacyAccountant(max_epsilon=10.0)

@@ -1,0 +1,322 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# © Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+# © Code 2020–2026 Miroslav Šotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+"""Focused serve/proxy CLI path tests."""
+
+from __future__ import annotations
+
+import sys
+from types import ModuleType, SimpleNamespace
+
+import pytest
+
+from director_ai import _cli_serve
+
+
+class FakeDirectorConfig:
+    from_env_calls = 0
+    from_profile_calls: list[str] = []
+
+    def __init__(self, **kwargs):
+        self.profile = kwargs.pop("profile", "default")
+        self.mode = kwargs.pop("mode", "general")
+        self.server_host = kwargs.pop("server_host", "")
+        self.server_port = kwargs.pop("server_port", 0)
+        self.cors_origins = kwargs.pop("cors_origins", "")
+        for key, value in kwargs.items():
+            setattr(self, key, value)
+
+    @classmethod
+    def from_env(cls):
+        cls.from_env_calls += 1
+        return cls(profile="env-profile")
+
+    @classmethod
+    def from_profile(cls, profile):
+        cls.from_profile_calls.append(profile)
+        return cls(profile=profile)
+
+
+def _install_fake_config(monkeypatch):
+    FakeDirectorConfig.from_env_calls = 0
+    FakeDirectorConfig.from_profile_calls = []
+    fake_config = ModuleType("director_ai.core.config")
+    fake_config.DirectorConfig = FakeDirectorConfig
+    monkeypatch.setitem(sys.modules, "director_ai.core.config", fake_config)
+
+
+def test_serve_rejects_invalid_mode(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_serve._cmd_serve(["--mode", "unsafe"])
+
+    assert exc_info.value.code == 1
+    assert "general" in capsys.readouterr().out
+
+
+def test_serve_http_applies_mode_cors_and_single_worker(monkeypatch, capsys):
+    _install_fake_config(monkeypatch)
+    uvicorn_calls: list[dict[str, object]] = []
+    created_configs: list[FakeDirectorConfig] = []
+    fake_uvicorn = ModuleType("uvicorn")
+    fake_uvicorn.run = lambda app, **kwargs: uvicorn_calls.append(
+        {"app": app, **kwargs},
+    )
+    fake_server = ModuleType("director_ai.server")
+
+    def fake_create_app(config):
+        created_configs.append(config)
+        return {"profile": config.profile, "mode": config.mode}
+
+    fake_server.create_app = fake_create_app
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+    monkeypatch.setitem(sys.modules, "director_ai.server", fake_server)
+
+    _cli_serve._cmd_serve(
+        [
+            "--mode",
+            "grounded",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            "9099",
+            "--cors-origins",
+            "https://console.example",
+        ],
+    )
+
+    assert FakeDirectorConfig.from_env_calls == 1
+    config = created_configs[0]
+    assert config.mode == "grounded"
+    assert config.server_host == "127.0.0.1"
+    assert config.server_port == 9099
+    assert config.cors_origins == "https://console.example"
+    assert uvicorn_calls == [
+        {
+            "app": {"profile": "env-profile", "mode": "grounded"},
+            "host": "127.0.0.1",
+            "port": 9099,
+        },
+    ]
+    assert "env-profile" in capsys.readouterr().out
+
+
+def test_serve_multi_worker_sets_environment_and_factory_target(monkeypatch):
+    _install_fake_config(monkeypatch)
+    calls: list[dict[str, object]] = []
+    fake_uvicorn = ModuleType("uvicorn")
+    fake_uvicorn.run = lambda app, **kwargs: calls.append({"app": app, **kwargs})
+    fake_server = ModuleType("director_ai.server")
+    fake_server.create_app = lambda config: {"config": config}
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+    monkeypatch.setitem(sys.modules, "director_ai.server", fake_server)
+    monkeypatch.delenv("DIRECTOR_PROFILE", raising=False)
+
+    _cli_serve._cmd_serve(
+        [
+            "--profile",
+            "fast",
+            "--host",
+            "localhost",
+            "--port",
+            "9100",
+            "--workers",
+            "3",
+        ],
+    )
+
+    assert FakeDirectorConfig.from_profile_calls == ["fast"]
+    assert calls == [
+        {
+            "app": "director_ai.server:create_app",
+            "factory": True,
+            "host": "localhost",
+            "port": 9100,
+            "workers": 3,
+        },
+    ]
+    assert sys.modules["os"].environ["DIRECTOR_PROFILE"] == "fast"
+    assert sys.modules["os"].environ["DIRECTOR_SERVER_HOST"] == "localhost"
+    assert sys.modules["os"].environ["DIRECTOR_SERVER_PORT"] == "9100"
+
+
+def test_serve_grpc_starts_and_waits(monkeypatch, capsys):
+    _install_fake_config(monkeypatch)
+    events: list[str] = []
+    fake_grpc = ModuleType("director_ai.grpc_server")
+
+    class FakeServer:
+        def start(self):
+            events.append("start")
+
+        def wait_for_termination(self):
+            events.append("wait")
+
+    fake_grpc.create_grpc_server = lambda config, max_workers, port: (
+        events.append(f"{config.profile}:{max_workers}:{port}") or FakeServer()
+    )
+    monkeypatch.setitem(sys.modules, "director_ai.grpc_server", fake_grpc)
+
+    _cli_serve._cmd_serve(["--transport", "grpc", "--workers", "2", "--port", "50051"])
+
+    assert events == ["env-profile:2:50051", "start", "wait"]
+    assert "gRPC server" in capsys.readouterr().out
+
+
+def test_proxy_rejects_unknown_failure_mode(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_serve._cmd_proxy(["--on-fail", "panic"])
+
+    assert exc_info.value.code == 1
+    assert "reject" in capsys.readouterr().out
+
+
+def test_proxy_builds_app_from_flags_and_config_env(monkeypatch, capsys):
+    _install_fake_config(monkeypatch)
+    proxy_calls: list[dict[str, object]] = []
+    uvicorn_calls: list[dict[str, object]] = []
+    fake_uvicorn = ModuleType("uvicorn")
+    fake_uvicorn.run = lambda app, **kwargs: uvicorn_calls.append(
+        {"app": app, **kwargs},
+    )
+    fake_proxy = ModuleType("director_ai.proxy")
+    fake_proxy.create_proxy_app = lambda **kwargs: (
+        proxy_calls.append(kwargs)
+        or {
+            "proxy": True,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+    monkeypatch.setitem(sys.modules, "director_ai.proxy", fake_proxy)
+
+    _cli_serve._cmd_proxy(
+        [
+            "--port",
+            "8088",
+            "--threshold",
+            "0.42",
+            "--facts",
+            "facts.jsonl",
+            "--facts-root",
+            "/kb",
+            "--upstream-url",
+            "http://upstream.local",
+            "--on-fail",
+            "warn",
+            "--api-keys",
+            "k1, k2 ,,",
+            "--allow-http-upstream",
+            "--audit-db",
+            "audit.sqlite",
+            "--config-env",
+        ],
+    )
+
+    assert proxy_calls == [
+        {
+            "threshold": 0.42,
+            "facts_path": "facts.jsonl",
+            "facts_root": "/kb",
+            "upstream_url": "http://upstream.local",
+            "on_fail": "warn",
+            "api_keys": ["k1", "k2"],
+            "allow_http_upstream": True,
+            "audit_db": "audit.sqlite",
+            "config": proxy_calls[0]["config"],
+        },
+    ]
+    assert isinstance(proxy_calls[0]["config"], FakeDirectorConfig)
+    assert uvicorn_calls == [
+        {"app": {"proxy": True}, "host": "0.0.0.0", "port": 8088},
+    ]
+    out = capsys.readouterr().out
+    assert "http://upstream.local" in out
+    assert "threshold=0.42" in out
+
+
+def test_proxy_defaults_do_not_load_environment_config(monkeypatch):
+    _install_fake_config(monkeypatch)
+    proxy_calls: list[dict[str, object]] = []
+    fake_uvicorn = ModuleType("uvicorn")
+    fake_uvicorn.run = lambda *_args, **_kwargs: None
+    fake_proxy = ModuleType("director_ai.proxy")
+    fake_proxy.create_proxy_app = lambda **kwargs: (
+        proxy_calls.append(kwargs)
+        or {
+            "proxy": True,
+        }
+    )
+    monkeypatch.setitem(sys.modules, "uvicorn", fake_uvicorn)
+    monkeypatch.setitem(sys.modules, "director_ai.proxy", fake_proxy)
+
+    _cli_serve._cmd_proxy(["--ignored-token"])
+
+    assert FakeDirectorConfig.from_env_calls == 0
+    assert proxy_calls[0]["config"] is None
+    assert proxy_calls[0]["api_keys"] is None
+    assert proxy_calls[0]["on_fail"] == "reject"
+
+
+def test_stress_test_json_uses_streaming_kernel_and_reports_halts(
+    monkeypatch,
+    capsys,
+):
+    calls: list[list[str]] = []
+    fake_streaming = ModuleType("director_ai.core.runtime.streaming")
+
+    class FakeStreamingKernel:
+        def stream_tokens(self, tokens, coherence_cb):
+            calls.append(tokens)
+            score = coherence_cb(tokens[0])
+            return SimpleNamespace(
+                halted=len(calls) == 1 and score > 0,
+                token_count=len(tokens),
+            )
+
+    fake_streaming.StreamingKernel = FakeStreamingKernel
+    monkeypatch.setitem(
+        sys.modules, "director_ai.core.runtime.streaming", fake_streaming
+    )
+
+    _cli_serve._cmd_stress_test(
+        [
+            "--streams",
+            "2",
+            "--tokens-per-stream",
+            "3",
+            "--concurrency",
+            "1",
+            "--json",
+            "--ignored-token",
+        ],
+    )
+
+    assert calls == [["tok0", "tok1", "tok2"], ["tok0", "tok1", "tok2"]]
+    out = capsys.readouterr().out
+    assert '"streams": 2' in out
+    assert '"tokens_per_stream": 3' in out
+    assert '"halt_rate": 0.5' in out
+
+
+def test_stress_test_text_report(monkeypatch, capsys):
+    fake_streaming = ModuleType("director_ai.core.runtime.streaming")
+
+    class FakeStreamingKernel:
+        def stream_tokens(self, tokens, _coherence_cb):
+            return SimpleNamespace(halted=False, token_count=len(tokens))
+
+    fake_streaming.StreamingKernel = FakeStreamingKernel
+    monkeypatch.setitem(
+        sys.modules, "director_ai.core.runtime.streaming", fake_streaming
+    )
+
+    _cli_serve._cmd_stress_test(
+        ["--streams", "1", "--tokens-per-stream", "2", "--concurrency", "1"],
+    )
+
+    out = capsys.readouterr().out
+    assert "Streams:     1" in out
+    assert "Halt rate:   0.00%" in out
+    assert "Latency p95:" in out

@@ -13,6 +13,7 @@ no-op path when the tracer is absent."""
 
 from __future__ import annotations
 
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -23,6 +24,7 @@ from director_ai.core.observability import (
     TokenTraceEmitter,
     TokenTraceEvent,
     trace_token,
+    tracing,
 )
 from director_ai.core.runtime.streaming import StreamingKernel
 
@@ -246,6 +248,106 @@ class TestTraceToken:
         with trace_token(0, token="t") as span:
             # either a real span or _NoopSpan — both support set_attribute
             span.set_attribute("x.y", 1)
+
+    def test_context_manager_yields_noop_without_tracer(self, monkeypatch):
+        monkeypatch.setattr(tracing, "_get_tracer", lambda: None)
+
+        with tracing.trace_token(0, token="t") as span:
+            assert span.__class__.__name__ == "_NoopSpan"
+            span.set_attribute("x.y", 1)
+
+    def test_probe_handles_missing_parent_package(self, monkeypatch):
+        monkeypatch.setattr(tracing, "find_spec", lambda name: None)
+
+        assert tracing._probe_otel_available() is False
+
+    def test_probe_handles_missing_trace_child(self, monkeypatch):
+        def fake_find_spec(name: str):
+            if name == "opentelemetry":
+                return object()
+            raise ModuleNotFoundError(name)
+
+        monkeypatch.setattr(tracing, "find_spec", fake_find_spec)
+
+        assert tracing._probe_otel_available() is False
+
+    def test_trace_token_sets_safe_span_attributes(self, monkeypatch):
+        class _Span:
+            def __init__(self) -> None:
+                self.attributes = {}
+
+            def set_attribute(self, key: str, value: object) -> None:
+                self.attributes[key] = value
+
+        class _SpanContext:
+            def __init__(self) -> None:
+                self.span = _Span()
+
+            def __enter__(self):
+                return self.span
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        class _Tracer:
+            def __init__(self) -> None:
+                self.context = _SpanContext()
+
+            def start_as_current_span(self, name: str):
+                assert name == "director_ai.stream.token"
+                return self.context
+
+        tracer = _Tracer()
+        monkeypatch.setattr(tracing, "_get_tracer", lambda: tracer)
+
+        with tracing.trace_token(
+            7,
+            token="redacted",
+            tenant_id="tenant-a",
+            request_id="request-1",
+        ) as span:
+            assert span is tracer.context.span
+
+        assert tracer.context.span.attributes == {
+            "token.index": 7,
+            "tenant.id": "tenant-a",
+            "request.id": "request-1",
+            "token.length": 8,
+        }
+
+    def test_trace_token_with_minimal_metadata_sets_only_index(self, monkeypatch):
+        class _Span:
+            def __init__(self) -> None:
+                self.attributes = {}
+
+            def set_attribute(self, key: str, value: object) -> None:
+                self.attributes[key] = value
+
+        class _SpanContext:
+            def __init__(self) -> None:
+                self.span = _Span()
+
+            def __enter__(self):
+                return self.span
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        tracer = SimpleNamespace(
+            context=_SpanContext(),
+            start_as_current_span=lambda name: tracer.context,
+        )
+        monkeypatch.setattr(tracing, "_get_tracer", lambda: tracer)
+
+        with tracing.trace_token(3):
+            pass
+
+        assert tracer.context.span.attributes == {"token.index": 3}
+
+    def test_is_otel_available_returns_cached_probe_flag(self, monkeypatch):
+        monkeypatch.setattr(tracing, "_OTEL_AVAILABLE", True)
+
+        assert tracing.is_otel_available() is True
 
 
 # --- StreamingKernel integration -------------------------------------

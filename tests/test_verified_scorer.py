@@ -9,8 +9,10 @@
 
 from __future__ import annotations
 
+import director_ai.core.scoring.verified_scorer as verified_mod
 from director_ai.core.verified_scorer import (
     VerifiedScorer,
+    _decompose_atomic,
     _entity_overlap,
     _negation_flip,
     _numerical_consistency,
@@ -181,3 +183,147 @@ class TestVerifiedScorer:
             "Paris is the capital of France. London is the capital of the UK.",
         )
         assert 0.0 <= r.coverage <= 1.0
+
+    def test_atomic_mode_decomposes_compound_claims(self):
+        vs = VerifiedScorer()
+        r = vs.verify(
+            "Paris is the capital of France and Berlin is the capital of Germany.",
+            "Paris is the capital of France. Berlin is the capital of Germany.",
+            atomic=True,
+        )
+        assert [claim.is_atomic for claim in r.claims] == [True, True]
+        assert [claim.claim for claim in r.claims] == [
+            "Paris is the capital of France",
+            "Berlin is the capital of Germany.",
+        ]
+
+    def test_short_claims_are_ignored_after_sentence_split(self):
+        vs = VerifiedScorer()
+        r = vs.verify("Too short.", "The source has enough words.")
+        assert r.approved
+        assert r.overall_score == 1.0
+        assert r.claims == []
+
+    def test_nli_backed_matching_uses_lowest_divergence(self):
+        class FakeNLI:
+            model_available = True
+
+            def score_batch(self, pairs):
+                assert pairs == [
+                    ("The ocean is blue.", "The sky is blue."),
+                    ("The sky is blue.", "The sky is blue."),
+                ]
+                return [0.8, 0.05]
+
+        vs = VerifiedScorer(nli_scorer=FakeNLI())
+
+        assert vs._find_best_match(
+            "The sky is blue.",
+            ["The ocean is blue.", "The sky is blue."],
+        ) == (1, 0.05)
+        spans = vs._find_top_k_matches(
+            "The sky is blue.",
+            ["The ocean is blue.", "The sky is blue."],
+            k=1,
+        )
+        assert spans[0].index == 1
+        assert spans[0].nli_divergence == 0.05
+
+    def test_fallback_best_match_uses_word_overlap(self):
+        vs = VerifiedScorer()
+        best_idx, divergence = vs._find_best_match(
+            "Alpha beta gamma",
+            ["Delta epsilon zeta.", "Alpha beta gamma delta."],
+        )
+        assert best_idx == 1
+        assert 0.0 <= divergence < 0.5
+
+    def test_multi_signal_verdict_entity_contradiction(self):
+        verdict, confidence = VerifiedScorer()._multi_signal_verdict(
+            nli_div=0.5,
+            entity_score=0.1,
+            num_match=None,
+            neg_flip=True,
+            traceability=0.8,
+        )
+        assert verdict == "contradicted"
+        assert confidence >= 0.5
+
+    def test_multi_signal_verdict_fabrication_ratio_path(self):
+        verdict, confidence = VerifiedScorer()._multi_signal_verdict(
+            nli_div=0.5,
+            entity_score=0.0,
+            num_match=None,
+            neg_flip=False,
+            traceability=0.18,
+        )
+        assert verdict == "fabricated"
+        assert confidence > 0.8
+
+    def test_multi_signal_verdict_numeric_support(self):
+        verdict, confidence = VerifiedScorer()._multi_signal_verdict(
+            nli_div=0.1,
+            entity_score=0.0,
+            num_match=True,
+            neg_flip=False,
+            traceability=0.6,
+        )
+        assert verdict == "supported"
+        assert confidence >= 0.5
+
+
+class TestAtomicDecomposition:
+    def test_short_continuation_is_attached_to_previous_claim(self):
+        assert _decompose_atomic(
+            "Alpha beta gamma delta and too short. Echo zeta eta theta.",
+        ) == ["Alpha beta gamma delta too short.", "Echo zeta eta theta."]
+
+
+class TestSignalImplementations:
+    def test_python_signal_fallback_paths(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", False)
+
+        assert _entity_overlap("Paris France", "Paris France") == 1.0
+        assert _entity_overlap("Paris France", "Berlin Germany") == 0.0
+        assert _numerical_consistency("value 42", "value 42") is True
+        assert _numerical_consistency("value 42", "value 43") is False
+        assert _numerical_consistency("value 42", "no number here") is None
+        assert _numerical_consistency("no number here", "also no number") is None
+        assert _negation_flip(
+            "The service does not support offline mode",
+            "The service supports offline mode",
+        )
+        assert _traceability("and the to", "irrelevant source") == 1.0
+        assert _traceability("Alpha Beta", "Alpha Gamma") == 0.5
+
+    def test_rust_signal_delegation_paths(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_entity_overlap",
+            lambda text_a, text_b: 0.25 if text_a and text_b else 0.0,
+            raising=False,
+        )
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_numerical_consistency",
+            lambda text_a, text_b: "42" in text_a and "42" in text_b,
+            raising=False,
+        )
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_negation_flip",
+            lambda claim, source: claim != source,
+            raising=False,
+        )
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_traceability",
+            lambda claim, source: 0.75 if claim in source else 0.0,
+            raising=False,
+        )
+
+        assert _entity_overlap("a", "b") == 0.25
+        assert _numerical_consistency("42", "42") is True
+        assert _negation_flip("not same", "same")
+        assert _traceability("claim", "source claim") == 0.75
