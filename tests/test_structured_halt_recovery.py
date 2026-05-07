@@ -94,3 +94,57 @@ def test_json_schema_rejection_does_not_replace_previous_checkpoint() -> None:
     assert result.valid is True
     assert result.last_valid_output == '{"status":"ok"}'
     assert any("schema" in error for error in result.errors)
+
+
+TOOL_MANIFEST = {
+    "book_flight": {
+        "parameters": {
+            "route": {"type": "object"},
+            "passengers": {"type": "integer"},
+        },
+        "returns": "booking confirmation",
+    },
+}
+
+
+def test_tool_call_recovery_preserves_nested_arguments() -> None:
+    state = StructuredRecoveryState(
+        StructuredRecoveryConfig(
+            kind="tool_call",
+            tool_manifest=TOOL_MANIFEST,
+        )
+    )
+    state.update(
+        '{"function_name":"book_flight","arguments":{"route":{"from":"ZRH",'
+        '"to":"PRG"},"passengers":2}}'
+    )
+    state.update('{"function_name":"book_flight","arguments":{"route":')
+
+    result = state.finalise(halted_at=5)
+
+    assert result.valid is True
+    assert result.last_valid_output == (
+        '{"arguments":{"passengers":2,"route":{"from":"ZRH","to":"PRG"}},'
+        '"function_name":"book_flight"}'
+    )
+    assert result.metadata["function_name"] == "book_flight"
+
+
+def test_tool_call_unknown_function_keeps_previous_valid_checkpoint() -> None:
+    state = StructuredRecoveryState(
+        StructuredRecoveryConfig(
+            kind="tool_call",
+            tool_manifest=TOOL_MANIFEST,
+        )
+    )
+    state.update(
+        '{"function_name":"book_flight","arguments":{"route":{"from":"ZRH",'
+        '"to":"PRG"},"passengers":2}}'
+    )
+    state.update('{"function_name":"wire_money","arguments":{"amount":1000}}')
+
+    result = state.finalise(halted_at=6)
+
+    assert result.valid is True
+    assert "book_flight" in result.last_valid_output
+    assert any("tool_call" in error for error in result.errors)

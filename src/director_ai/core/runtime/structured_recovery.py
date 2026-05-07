@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 from ..verification.json_verifier import verify_json
+from ..verification.tool_call_verifier import verify_tool_call
 
 __all__ = [
     "StructuredRecoveryConfig",
@@ -76,6 +77,8 @@ class StructuredRecoveryState:
         self.raw_partial = text
         if self.config.kind == "json":
             self._update_json(text)
+        if self.config.kind == "tool_call":
+            self._update_tool_call(text)
 
     def finalise(self, halted_at: int) -> StructuredRecoveryResult:
         return StructuredRecoveryResult(
@@ -118,6 +121,51 @@ class StructuredRecoveryState:
     def _remember_error(self, message: str) -> None:
         if not self.errors or self.errors[-1] != message:
             self.errors.append(message)
+
+    def _update_tool_call(self, text: str) -> None:
+        try:
+            data = json.loads(text)
+        except (json.JSONDecodeError, TypeError) as exc:
+            detail = exc.msg if isinstance(exc, json.JSONDecodeError) else str(exc)
+            self._remember_error(f"tool_call_parse:{detail}")
+            return
+        if not isinstance(data, dict):
+            self._remember_error("tool_call:envelope_not_object")
+            return
+        function_name = data.get("function_name")
+        arguments = data.get("arguments")
+        if not isinstance(function_name, str) or not isinstance(arguments, dict):
+            self._remember_error("tool_call:missing_function_name_or_arguments")
+            return
+        verdict = verify_tool_call(
+            function_name=function_name,
+            arguments=arguments,
+            claimed_result=str(data.get("claimed_result", "")),
+            manifest=self.config.tool_manifest,
+            execution_log=(
+                list(self.config.execution_log)
+                if self.config.execution_log is not None
+                else None
+            ),
+            score_fn=self.config.score_fn,
+        )
+        if (
+            not verdict.function_exists
+            or not verdict.arguments_valid
+            or not verdict.result_plausible
+            or verdict.fabrication_suspected
+        ):
+            self._remember_error(f"tool_call:invalid:{verdict.reason}")
+            return
+        self.last_valid_output = json.dumps(
+            data,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        self.last_valid_metadata = {
+            "function_name": function_name,
+            "argument_count": len(arguments),
+        }
 
     @staticmethod
     def _json_root_name(data: object) -> str:
