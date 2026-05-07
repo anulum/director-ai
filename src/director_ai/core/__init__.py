@@ -64,6 +64,10 @@ from .runtime.kernel import HaltMonitor, SafetyKernel
 from .runtime.review_queue import ReviewQueue
 from .runtime.session import ConversationSession, Turn
 from .runtime.streaming import StreamingKernel, StreamSession, TokenEvent
+from .runtime.structured_recovery import (
+    StructuredRecoveryConfig,
+    StructuredRecoveryResult,
+)
 
 # --- Safety ---
 from .safety.injection import InjectionDetector
@@ -173,6 +177,8 @@ __all__ = [
     "SafetyKernel",
     "StreamSession",
     "StreamingKernel",
+    "StructuredRecoveryConfig",
+    "StructuredRecoveryResult",
     "TokenEvent",
     # Safety
     "InjectionDetector",

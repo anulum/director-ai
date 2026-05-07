@@ -251,3 +251,21 @@ def test_unconfigured_streaming_recovery_preserves_plain_text_behaviour() -> Non
     assert kernel.stream_output(["Bad "], lambda _text: 0.2).startswith(
         "[KERNEL INTERRUPT:"
     )
+
+
+def test_structured_recovery_types_are_public_core_exports() -> None:
+    from director_ai.core import StructuredRecoveryConfig as CoreConfig
+    from director_ai.core import StructuredRecoveryResult as CoreResult
+
+    assert CoreConfig(kind="json").kind == "json"
+    assert CoreResult(kind="json", policy="redacted", halted_at=1).halted_at == 1
+
+
+def test_structured_recovery_types_are_lazy_package_exports() -> None:
+    from director_ai import StructuredRecoveryConfig as PackageConfig
+    from director_ai import StructuredRecoveryResult as PackageResult
+
+    assert PackageConfig(kind="json").policy == "last_valid"
+    assert (
+        PackageResult(kind="json", policy="redacted", halted_at=1).policy == "redacted"
+    )

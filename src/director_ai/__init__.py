@@ -88,6 +88,8 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "ShardedNLIScorer": (".core", "ShardedNLIScorer"),
     "StreamingKernel": (".core", "StreamingKernel"),
     "StreamSession": (".core", "StreamSession"),
+    "StructuredRecoveryConfig": (".core", "StructuredRecoveryConfig"),
+    "StructuredRecoveryResult": (".core", "StructuredRecoveryResult"),
     "TokenEvent": (".core", "TokenEvent"),
     "TuneResult": (".core", "TuneResult"),
     "Turn": (".core", "Turn"),
