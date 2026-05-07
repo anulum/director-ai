@@ -116,6 +116,14 @@ class TestNormalFormGame:
                 payoffs={StrategyProfile(("x", "bogus")): (1.0, 1.0)},
             )
 
+    def test_profile_arity_must_match_player_count(self):
+        with pytest.raises(PayoffError, match="player count"):
+            NormalFormGame(
+                players=("a", "b"),
+                strategies={"a": ("x",), "b": ("p",)},
+                payoffs={StrategyProfile(("x",)): (1.0, 1.0)},
+            )
+
     def test_non_finite_payoff_rejected(self):
         with pytest.raises(PayoffError, match="finite"):
             NormalFormGame(

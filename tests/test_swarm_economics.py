@@ -334,6 +334,24 @@ class TestTragedyDetector:
         # With regeneration_rate == 0 any draw yields pressure 1.0.
         assert signal.pressure == 1.0
 
+    def test_pressure_ramps_between_sustainable_rate_and_grace_threshold(self):
+        clock = _FakeClock(start=0.0)
+        pool = ResourcePool(capacity=10_000.0, regeneration_rate=1.0, clock=clock)
+        detector = TragedyDetector(
+            pool=pool,
+            window_seconds=60.0,
+            grace_seconds=10.0,
+            grace_factor=1.5,
+            clock=clock,
+        )
+        pool.consume(agent_id="balanced", amount=67.5)
+
+        signal = detector.check()
+
+        assert not signal.firing
+        assert signal.observed_rate == pytest.approx(1.125)
+        assert signal.pressure == pytest.approx(0.125)
+
     def test_reset_clears_grace_clock(self):
         clock = _FakeClock(start=0.0)
         pool = ResourcePool(capacity=1000.0, regeneration_rate=1.0, clock=clock)

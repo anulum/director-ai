@@ -69,6 +69,11 @@ class TestComputeQuota:
         # t2 still has full budget.
         assert quota.remaining_today("t2") == 10.0
 
+    def test_remaining_today_rejects_empty_tenant(self):
+        quota = self._quota(limit=10.0)
+        with pytest.raises(QuotaError, match="tenant_id"):
+            quota.remaining_today("")
+
     def test_day_resets_on_new_day(self):
         clock = _FakeClock(start=0.0)
         quota = self._quota(limit=10.0, clock=clock)
@@ -101,6 +106,13 @@ class TestComputeQuota:
         quota.consume(tenant_id="t1", amount=10.0)
         quota.reset("t1")
         assert quota.remaining_today("t1") == 10.0
+
+    def test_reset_unknown_tenant_is_noop(self):
+        quota = self._quota(limit=10.0)
+        quota.consume(tenant_id="t1", amount=4.0)
+        quota.reset("missing")
+        assert quota.remaining_today("t1") == 6.0
+        assert quota.usage_history("t1") == (DailyUsage("t1", 0, 4.0),)
 
     def test_reset_all(self):
         quota = self._quota(limit=10.0)
@@ -187,6 +199,10 @@ class TestCarbonTracker:
             ]
         )
         assert tracker.mean() == 150.0
+
+    def test_mean_empty_returns_fallback(self):
+        tracker = CarbonIntensityTracker(fallback_intensity=450.0)
+        assert tracker.mean() == 450.0
 
     def test_window_eviction(self):
         tracker = CarbonIntensityTracker(window_size=3)
@@ -346,6 +362,26 @@ class TestBudget:
         verdict = budget.allow(tenant_id="t1", amount=50.0)
         assert not verdict.allowed
         assert verdict.reason == "forecast_headroom"
+
+    def test_quota_race_during_consume_returns_quota_verdict(self):
+        class RacingQuota(ComputeQuota):
+            def consume(self, *, tenant_id: str, amount: float) -> DailyUsage:
+                raise QuotaError("daily quota was consumed concurrently")
+
+        clock = _FakeClock()
+        quota = RacingQuota(daily_limit=10.0, clock=clock)
+        budget = SustainabilityBudget(
+            quota=quota,
+            forecaster=ConformalDemandForecaster(),
+            carbon=CarbonIntensityTracker(fallback_intensity=100.0, clock=clock),
+        )
+
+        verdict = budget.allow(tenant_id="t1", amount=1.0)
+
+        assert not verdict.allowed
+        assert verdict.reason == "quota_exceeded"
+        assert verdict.remaining_today == 10.0
+        assert "concurrently" in verdict.detail
 
     def test_allows_even_without_forecast(self):
         """When the forecaster has not observed anything the budget
