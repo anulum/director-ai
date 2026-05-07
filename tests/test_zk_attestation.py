@@ -436,9 +436,24 @@ class TestMerkleCommitment:
             return root
 
         monkeypatch.setattr(commitment_mod, "_RUST_MERKLE_AVAILABLE", True)
-        monkeypatch.setattr(commitment_mod, "_rust_merkle_root", fake_root)
-        monkeypatch.setattr(commitment_mod, "_rust_merkle_auth_path", fake_auth_path)
-        monkeypatch.setattr(commitment_mod, "_rust_merkle_walk_path", fake_walk_path)
+        monkeypatch.setattr(
+            commitment_mod,
+            "_rust_merkle_root",
+            fake_root,
+            raising=False,
+        )
+        monkeypatch.setattr(
+            commitment_mod,
+            "_rust_merkle_auth_path",
+            fake_auth_path,
+            raising=False,
+        )
+        monkeypatch.setattr(
+            commitment_mod,
+            "_rust_merkle_walk_path",
+            fake_walk_path,
+            raising=False,
+        )
 
         samples = [{"coherence": 0.88}, {"coherence": 0.92}]
         commitment, leaves, blinds = commit_samples(
@@ -712,6 +727,7 @@ class TestCommitmentBackend:
             backends_mod,
             "_rust_derive_challenge_indices",
             fake_challenge,
+            raising=False,
         )
 
         assert CommitmentBackend._pick_challenge(b"root-b", 5, 2) == [2, 0]
