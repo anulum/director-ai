@@ -10,6 +10,7 @@
 
 from __future__ import annotations
 
+import builtins
 import json
 import sys
 import types
@@ -37,7 +38,13 @@ from director_ai.core.training.sweeps import (
     TrainingDatasetSplit,
     build_training_sweep_plan,
 )
-from director_ai.core.training.vertex_runner import _split_gcs_uri
+from director_ai.core.training.vertex_runner import (
+    _materialise_uri,
+    _publish_dir,
+    _publish_file,
+    _split_gcs_uri,
+    _storage_client,
+)
 from director_ai.core.training.vertex_runner import main as vertex_runner_main
 
 
@@ -267,6 +274,152 @@ class TestVertexRunner:
     def test_rejects_malformed_gcs_uri(self):
         with pytest.raises(ValueError, match="invalid GCS URI"):
             _split_gcs_uri("gs://bucket")
+
+    def test_rejects_non_gcs_uri_in_gcs_splitter(self):
+        with pytest.raises(ValueError, match="invalid GCS URI"):
+            _split_gcs_uri("https://storage.local/bucket/object")
+
+    def test_materialise_gcs_downloads_to_destination(self, tmp_path, monkeypatch):
+        calls = []
+
+        class _Blob:
+            def __init__(self, bucket: str, name: str) -> None:
+                self.bucket = bucket
+                self.name = name
+
+            def download_to_filename(self, filename: str) -> None:
+                calls.append(("download", self.bucket, self.name, filename))
+
+        class _Bucket:
+            def __init__(self, name: str) -> None:
+                self.name = name
+
+            def blob(self, name: str) -> _Blob:
+                return _Blob(self.name, name)
+
+        fake_client = SimpleNamespace(bucket=lambda name: _Bucket(name))
+        monkeypatch.setattr(
+            "director_ai.core.training.vertex_runner._storage_client",
+            lambda: fake_client,
+        )
+
+        destination = tmp_path / "nested" / "train.jsonl"
+
+        assert _materialise_uri("gs://training-data/path/train.jsonl", destination) == (
+            destination
+        )
+        assert calls == [
+            ("download", "training-data", "path/train.jsonl", str(destination))
+        ]
+        assert destination.parent.exists()
+
+    def test_publish_file_uploads_gcs_object(self, tmp_path, monkeypatch):
+        calls = []
+        source = tmp_path / "training_result.json"
+        source.write_text('{"ok": true}', encoding="utf-8")
+
+        class _Blob:
+            def __init__(self, bucket: str, name: str) -> None:
+                self.bucket = bucket
+                self.name = name
+
+            def upload_from_filename(self, filename: str) -> None:
+                calls.append(("upload", self.bucket, self.name, filename))
+
+        class _Bucket:
+            def __init__(self, name: str) -> None:
+                self.name = name
+
+            def blob(self, name: str) -> _Blob:
+                return _Blob(self.name, name)
+
+        monkeypatch.setattr(
+            "director_ai.core.training.vertex_runner._storage_client",
+            lambda: SimpleNamespace(bucket=lambda name: _Bucket(name)),
+        )
+
+        _publish_file(source, "gs://training-output/job/training_result.json")
+
+        assert calls == [
+            (
+                "upload",
+                "training-output",
+                "job/training_result.json",
+                str(source),
+            )
+        ]
+
+    def test_publish_dir_uploads_only_files_to_gcs_prefix(self, tmp_path, monkeypatch):
+        calls = []
+        model_dir = tmp_path / "model"
+        (model_dir / "nested").mkdir(parents=True)
+        (model_dir / "config.json").write_text("{}", encoding="utf-8")
+        (model_dir / "nested" / "weights.bin").write_bytes(b"weights")
+
+        class _Blob:
+            def __init__(self, name: str) -> None:
+                self.name = name
+
+            def upload_from_filename(self, filename: str) -> None:
+                calls.append((self.name, filename))
+
+        class _Bucket:
+            def blob(self, name: str) -> _Blob:
+                return _Blob(name)
+
+        monkeypatch.setattr(
+            "director_ai.core.training.vertex_runner._storage_client",
+            lambda: SimpleNamespace(bucket=lambda name: _Bucket()),
+        )
+
+        _publish_dir(model_dir, "gs://training-output/job/model/")
+
+        assert calls == [
+            ("job/model/config.json", str(model_dir / "config.json")),
+            ("job/model/nested/weights.bin", str(model_dir / "nested" / "weights.bin")),
+        ]
+
+    def test_publish_dir_replaces_existing_local_destination(self, tmp_path):
+        model_dir = tmp_path / "model"
+        model_dir.mkdir()
+        (model_dir / "config.json").write_text("new", encoding="utf-8")
+        destination = tmp_path / "published"
+        destination.mkdir()
+        (destination / "stale.txt").write_text("old", encoding="utf-8")
+
+        _publish_dir(model_dir, str(destination))
+
+        assert not (destination / "stale.txt").exists()
+        assert (destination / "config.json").read_text(encoding="utf-8") == "new"
+
+    def test_storage_client_uses_google_storage_client(self, monkeypatch):
+        class _Client:
+            pass
+
+        storage_module = types.ModuleType("google.cloud.storage")
+        storage_module.Client = _Client
+        cloud_module = types.ModuleType("google.cloud")
+        cloud_module.storage = storage_module
+        google_module = types.ModuleType("google")
+        google_module.cloud = cloud_module
+        monkeypatch.setitem(sys.modules, "google", google_module)
+        monkeypatch.setitem(sys.modules, "google.cloud", cloud_module)
+        monkeypatch.setitem(sys.modules, "google.cloud.storage", storage_module)
+
+        assert isinstance(_storage_client(), _Client)
+
+    def test_storage_client_import_error_mentions_required_package(self, monkeypatch):
+        real_import = builtins.__import__
+
+        def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "google.cloud.storage":
+                raise ImportError("missing storage client")
+            return real_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr(builtins, "__import__", guarded_import)
+
+        with pytest.raises(ImportError, match="google-cloud-storage"):
+            _storage_client()
 
     def test_local_smoke_runner_publishes_result(self, tmp_path):
         train = tmp_path / "train.jsonl"

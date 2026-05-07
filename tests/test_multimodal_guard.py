@@ -16,6 +16,8 @@ from __future__ import annotations
 
 import importlib.util
 import math
+import sys
+from types import ModuleType, SimpleNamespace
 
 import pytest
 
@@ -31,6 +33,8 @@ from director_ai.core.multimodal_guard import (
     TorchCLIPCrossModalVerifier,
     TorchCLIPImageEncoder,
 )
+from director_ai.core.multimodal_guard.encoders import _normalise
+from director_ai.core.multimodal_guard.verifier import _cosine
 
 # --- MultimodalClaim ------------------------------------------------
 
@@ -88,6 +92,9 @@ class TestHashBagImageEncoder:
         b = HashBagImageEncoder(dim=256).encode(b"payload-b")
         assert a != b
 
+    def test_zero_vector_normalise_is_stable(self):
+        assert _normalise((0.0, 0.0, 0.0)) == (0.0, 0.0, 0.0)
+
 
 # --- TorchCLIPImageEncoder import guard -----------------------------
 
@@ -109,6 +116,113 @@ class TestTorchCLIPImageEncoderGuard:
             TorchCLIPImageEncoder(model=object(), preprocess=None, dim=512)
         with pytest.raises(ValueError, match="dim"):
             TorchCLIPImageEncoder(model=object(), preprocess=object(), dim=0)
+
+    def test_from_pretrained_uses_open_clip_model_metadata(self, monkeypatch):
+        calls = []
+
+        class _Model:
+            visual = SimpleNamespace(output_dim=3)
+
+            def to(self, device: str):
+                calls.append(("to", device))
+                return self
+
+            def eval(self):
+                calls.append(("eval", None))
+                return self
+
+        def create_model_and_transforms(model_name: str, pretrained: str):
+            calls.append(("load", model_name, pretrained))
+            return _Model(), None, "preprocess"
+
+        monkeypatch.setitem(
+            sys.modules,
+            "open_clip",
+            SimpleNamespace(create_model_and_transforms=create_model_and_transforms),
+        )
+        monkeypatch.setitem(sys.modules, "torch", SimpleNamespace())
+
+        encoder = TorchCLIPImageEncoder.from_pretrained(
+            "local-clip", "local-weights", device="cuda:0"
+        )
+
+        assert encoder.dim == 3
+        assert calls == [
+            ("load", "local-clip", "local-weights"),
+            ("to", "cuda:0"),
+            ("eval", None),
+        ]
+
+    def test_encode_normalises_model_embedding(self, monkeypatch):
+        class _Image:
+            def convert(self, mode: str):
+                assert mode == "RGB"
+                return self
+
+        image_module = ModuleType("PIL.Image")
+        image_module.open = lambda stream: _Image()
+        pil_module = ModuleType("PIL")
+        pil_module.Image = image_module
+        monkeypatch.setitem(sys.modules, "PIL", pil_module)
+        monkeypatch.setitem(sys.modules, "PIL.Image", image_module)
+
+        class _InputTensor:
+            def unsqueeze(self, dim: int):
+                assert dim == 0
+                return self
+
+            def to(self, device: str):
+                assert device == "cpu"
+                return self
+
+        class _Row:
+            def cpu(self):
+                return self
+
+            def tolist(self):
+                return [0.6, 0.8]
+
+        class _Embedding:
+            def norm(self, *, dim: int, keepdim: bool):
+                assert dim == -1
+                assert keepdim is True
+                return 5.0
+
+            def __truediv__(self, other):
+                assert other == 5.0
+                return self
+
+            def __getitem__(self, index: int):
+                assert index == 0
+                return _Row()
+
+        class _Model:
+            def encode_image(self, tensor):
+                assert isinstance(tensor, _InputTensor)
+                return _Embedding()
+
+        class _NoGrad:
+            def __enter__(self):
+                return None
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(no_grad=_NoGrad))
+
+        encoder = TorchCLIPImageEncoder(
+            model=_Model(), preprocess=lambda image: _InputTensor(), dim=2
+        )
+
+        assert encoder.encode(b"image bytes") == (0.6, 0.8)
+
+    def test_encode_rejects_empty_payload_before_optional_imports(self):
+        encoder = TorchCLIPImageEncoder(
+            model=object(), preprocess=lambda image: image, dim=2
+        )
+
+        with pytest.raises(ValueError, match="image_bytes"):
+            encoder.encode(b"")
 
 
 # --- HashBagCrossModalVerifier --------------------------------------
@@ -166,6 +280,9 @@ class TestHashBagCrossModalVerifier:
         sim = ver.verify(enc.encode(b"payload"), "arbitrary text")
         assert 0.0 <= sim <= 1.0
 
+    def test_cosine_rejects_length_mismatch(self):
+        assert _cosine((1.0, 0.0), (1.0,)) == 0.0
+
 
 # --- TorchCLIPCrossModalVerifier import guard -----------------------
 
@@ -184,6 +301,109 @@ class TestTorchCLIPVerifierGuard:
             TorchCLIPCrossModalVerifier(model=object(), tokenizer=None, dim=512)
         with pytest.raises(ValueError, match="dim"):
             TorchCLIPCrossModalVerifier(model=object(), tokenizer=object(), dim=0)
+
+    def test_from_pretrained_shares_open_clip_tokenizer(self, monkeypatch):
+        calls = []
+
+        class _Model:
+            visual = SimpleNamespace(output_dim=4)
+
+            def to(self, device: str):
+                calls.append(("to", device))
+                return self
+
+            def eval(self):
+                calls.append(("eval", None))
+                return self
+
+        def create_model_and_transforms(model_name: str, pretrained: str):
+            calls.append(("load", model_name, pretrained))
+            return _Model(), None, None
+
+        def get_tokenizer(model_name: str):
+            calls.append(("tokenizer", model_name))
+            return "tokenizer"
+
+        monkeypatch.setitem(
+            sys.modules,
+            "open_clip",
+            SimpleNamespace(
+                create_model_and_transforms=create_model_and_transforms,
+                get_tokenizer=get_tokenizer,
+            ),
+        )
+
+        verifier = TorchCLIPCrossModalVerifier.from_pretrained(
+            "local-clip", "local-weights", device="cuda:0"
+        )
+
+        assert verifier.dim == 4
+        assert calls == [
+            ("load", "local-clip", "local-weights"),
+            ("to", "cuda:0"),
+            ("eval", None),
+            ("tokenizer", "local-clip"),
+        ]
+
+    def test_verify_rescales_clip_cosine(self, monkeypatch):
+        class _TokenBatch:
+            def to(self, device: str):
+                assert device == "cpu"
+                return self
+
+        class _Row:
+            def cpu(self):
+                return self
+
+            def tolist(self):
+                return [1.0, 0.0]
+
+        class _Embedding:
+            def norm(self, *, dim: int, keepdim: bool):
+                assert dim == -1
+                assert keepdim is True
+                return 1.0
+
+            def __truediv__(self, other):
+                assert other == 1.0
+                return self
+
+            def __getitem__(self, index: int):
+                assert index == 0
+                return _Row()
+
+        class _Model:
+            def encode_text(self, tokens):
+                assert isinstance(tokens, _TokenBatch)
+                return _Embedding()
+
+        class _NoGrad:
+            def __enter__(self):
+                return None
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        monkeypatch.setitem(sys.modules, "torch", SimpleNamespace(no_grad=_NoGrad))
+        verifier = TorchCLIPCrossModalVerifier(
+            model=_Model(),
+            tokenizer=lambda texts: _TokenBatch(),
+            dim=2,
+        )
+
+        assert verifier.verify((-1.0, 0.0), "opposite vector") == 0.0
+        assert verifier.verify((1.0, 0.0), "same vector") == 1.0
+
+    def test_verify_validates_inputs_before_optional_import(self):
+        verifier = TorchCLIPCrossModalVerifier(
+            model=object(),
+            tokenizer=lambda texts: texts,
+            dim=2,
+        )
+
+        with pytest.raises(ValueError, match="dim"):
+            verifier.verify((1.0,), "caption")
+        assert verifier.verify((1.0, 0.0), "   ") == 0.0
 
 
 # --- MultimodalGuard ------------------------------------------------
