@@ -16,6 +16,8 @@ backend adapters."""
 from __future__ import annotations
 
 import importlib.util
+import sys
+from types import SimpleNamespace
 
 import pytest
 
@@ -290,6 +292,96 @@ class TestZ3Backend:
         with pytest.raises(ImportError, match="formal"):
             Z3Backend.from_z3()
 
+    def test_from_z3_builds_backend_with_imported_solver(self, monkeypatch):
+        class _Solver:
+            pass
+
+        monkeypatch.setitem(sys.modules, "z3", SimpleNamespace(Solver=_Solver))
+
+        backend = Z3Backend.from_z3()
+
+        assert backend.name == "z3"
+        assert isinstance(backend._solver, _Solver)
+
+    def test_solve_maps_formula_and_returns_z3_model(self, monkeypatch):
+        sat_marker = object()
+        added = []
+
+        class _Decl:
+            def __init__(self, name: str) -> None:
+                self._name = name
+
+            def name(self) -> str:
+                return self._name
+
+        class _Model:
+            def __init__(self) -> None:
+                self._decl = _Decl("p")
+
+            def decls(self):
+                return [self._decl]
+
+            def __getitem__(self, decl):
+                assert decl.name() == "p"
+                return True
+
+        class _Solver:
+            def reset(self) -> None:
+                added.clear()
+
+            def add(self, expression) -> None:
+                added.append(expression)
+
+            def check(self):
+                return sat_marker
+
+            def model(self):
+                return _Model()
+
+        fake_z3 = SimpleNamespace(
+            sat=sat_marker,
+            Bool=lambda name: ("bool", name),
+            Not=lambda value: ("not", value),
+            And=lambda left, right: ("and", left, right),
+            Or=lambda left, right: ("or", left, right),
+            Implies=lambda left, right: ("implies", left, right),
+        )
+        monkeypatch.setitem(sys.modules, "z3", fake_z3)
+        formula = Iff(
+            Implies(
+                And(Variable("p"), Not(Variable("q"))),
+                Or(Variable("r"), Variable("s")),
+            ),
+            Variable("t"),
+        )
+
+        solution = Z3Backend(z3_solver=_Solver()).solve(formula)
+
+        assert solution.satisfiable
+        assert solution.model == {"p": True}
+        assert added
+
+    def test_solve_returns_unsat_when_z3_does_not_report_sat(self, monkeypatch):
+        sat_marker = object()
+
+        class _Solver:
+            def reset(self) -> None:
+                pass
+
+            def add(self, expression) -> None:
+                assert expression == ("bool", "p")
+
+            def check(self):
+                return object()
+
+        fake_z3 = SimpleNamespace(sat=sat_marker, Bool=lambda name: ("bool", name))
+        monkeypatch.setitem(sys.modules, "z3", fake_z3)
+
+        solution = Z3Backend(z3_solver=_Solver()).solve(Variable("p"))
+
+        assert not solution.satisfiable
+        assert solution.model == {}
+
 
 class TestLeanBackend:
     def test_runner_required(self):
@@ -309,6 +401,26 @@ class TestLeanBackend:
         solution = backend.solve(And(Variable("p"), Not(Variable("q"))))
         assert solution.satisfiable
         assert solution.model == {"p": True, "q": False}
+
+    def test_runner_receives_full_boolean_formula_rendering(self):
+        captured = []
+
+        def fake_runner(source: str):
+            captured.append(source)
+            return {"sat": False}
+
+        backend = LeanBackend(runner=fake_runner)
+        solution = backend.solve(
+            Iff(
+                Implies(Variable("p"), Or(Variable("q"), Variable("r"))),
+                Variable("s"),
+            )
+        )
+
+        assert not solution.satisfiable
+        assert "→" in captured[0]
+        assert "∨" in captured[0]
+        assert "↔" in captured[0]
 
     def test_runner_must_return_dict(self):
         def bad_runner(source: str):

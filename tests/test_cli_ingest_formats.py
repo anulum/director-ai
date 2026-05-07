@@ -326,6 +326,28 @@ class TestDocParserDirect:
         ):
             parse(b"not a real PDF", "doc.pdf")
 
+    def test_parse_pdf_extracts_non_empty_pages(self, monkeypatch):
+        import sys
+        from types import SimpleNamespace
+
+        from director_ai.core.retrieval.doc_parser import parse
+
+        class _Page:
+            def __init__(self, text: str) -> None:
+                self._text = text
+
+            def extract_text(self) -> str:
+                return self._text
+
+        class _PdfReader:
+            def __init__(self, stream) -> None:
+                assert stream.read() == b"pdf bytes"
+                self.pages = [_Page("first page"), _Page(""), _Page("second page")]
+
+        monkeypatch.setitem(sys.modules, "pypdf", SimpleNamespace(PdfReader=_PdfReader))
+
+        assert parse(b"pdf bytes", "brief.pdf") == "first page\n\nsecond page"
+
     def test_parse_docx_missing_dep(self):
         import builtins
 
@@ -343,6 +365,31 @@ class TestDocParserDirect:
             pytest.raises(ImportError, match="python-docx required for DOCX parsing"),
         ):
             parse(b"not a real DOCX", "doc.docx")
+
+    def test_parse_docx_uses_paragraph_text(self, monkeypatch):
+        import sys
+        from types import SimpleNamespace
+
+        from director_ai.core.retrieval.doc_parser import parse
+
+        class _Paragraph:
+            def __init__(self, text: str) -> None:
+                self.text = text
+
+        class _Document:
+            def __init__(self, stream) -> None:
+                assert stream.read() == b"docx bytes"
+                self.paragraphs = [
+                    _Paragraph("First paragraph"),
+                    _Paragraph("   "),
+                    _Paragraph("Second paragraph"),
+                ]
+
+        monkeypatch.setitem(sys.modules, "docx", SimpleNamespace(Document=_Document))
+
+        assert parse(b"docx bytes", "brief.docx") == (
+            "First paragraph\n\nSecond paragraph"
+        )
 
 
 class TestDocParserShim:

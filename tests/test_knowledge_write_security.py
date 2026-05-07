@@ -11,7 +11,9 @@ from unittest.mock import MagicMock
 
 from director_ai.core.config import DirectorConfig
 from director_ai.core.kb_write_security import (
+    KBWriteAccessError,
     canonical_kb_payload,
+    check_kb_write_access,
     parse_hmac_keys,
     sign_kb_payload,
     verify_kb_payload_signature,
@@ -80,6 +82,19 @@ def test_canonical_payload_hashes_written_text() -> None:
     assert "text_sha256" in payload
 
 
+def test_canonical_payload_hashes_uploaded_content() -> None:
+    payload = canonical_kb_payload(
+        kind="ingest_file",
+        tenant_id="acme",
+        doc_id="doc1",
+        source="policy.pdf",
+        content=b"private binary bytes",
+    )
+
+    assert "private binary bytes" not in payload
+    assert "content_sha256" in payload
+
+
 def test_hmac_signature_verifies_selected_key() -> None:
     keys = parse_hmac_keys('{"main":"writer-key","old":"retired"}')
     payload = canonical_kb_payload(kind="tenant_fact", tenant_id="acme", key="k")
@@ -87,6 +102,85 @@ def test_hmac_signature_verifies_selected_key() -> None:
 
     assert verify_kb_payload_signature(payload, signature, keys, "main")
     assert not verify_kb_payload_signature(payload, signature, keys, "old")
+
+
+def test_hmac_key_parser_accepts_env_style_lists() -> None:
+    keys = parse_hmac_keys("main=writer-key, , legacy = retired , bare-secret")
+
+    assert keys == {
+        "main": "writer-key",
+        "legacy": "retired",
+        "k3": "bare-secret",
+    }
+
+
+def test_hmac_key_parser_ignores_empty_input() -> None:
+    assert parse_hmac_keys("   ") == {}
+
+
+def test_signature_verifier_rejects_missing_or_unknown_key() -> None:
+    payload = canonical_kb_payload(kind="tenant_fact", tenant_id="acme", key="k")
+    signature = sign_kb_payload(payload, "writer-key")
+
+    assert not verify_kb_payload_signature(payload, "", {"main": "writer-key"})
+    assert not verify_kb_payload_signature(payload, signature, {})
+    assert not verify_kb_payload_signature(
+        payload, signature, {"main": "writer-key"}, "missing"
+    )
+
+
+def test_signature_verifier_accepts_sha256_prefixed_signature() -> None:
+    payload = canonical_kb_payload(kind="tenant_fact", tenant_id="acme", key="k")
+    signature = sign_kb_payload(payload, "writer-key")
+
+    assert verify_kb_payload_signature(
+        payload, f"sha256={signature}", {"main": "writer-key"}
+    )
+
+
+def test_write_access_allows_public_write_when_auth_not_required() -> None:
+    check_kb_write_access(
+        require_auth=False,
+        require_tenant_binding=True,
+        authenticated=False,
+        tenant_binding_enforced=False,
+        bound_tenant="other",
+        requested_tenant="acme",
+    )
+
+
+def test_write_access_rejects_wrong_bound_tenant() -> None:
+    try:
+        check_kb_write_access(
+            require_auth=True,
+            require_tenant_binding=True,
+            authenticated=True,
+            tenant_binding_enforced=True,
+            bound_tenant="other",
+            requested_tenant="acme",
+        )
+    except KBWriteAccessError as exc:
+        assert exc.status_code == 403
+        assert "tenant" in exc.detail
+    else:
+        raise AssertionError("tenant mismatch should deny KB write")
+
+
+def test_write_access_requires_bound_tenant_for_tenant_write() -> None:
+    try:
+        check_kb_write_access(
+            require_auth=True,
+            require_tenant_binding=True,
+            authenticated=True,
+            tenant_binding_enforced=False,
+            bound_tenant="",
+            requested_tenant="acme",
+        )
+    except KBWriteAccessError as exc:
+        assert exc.status_code == 403
+        assert "bound credential" in exc.detail
+    else:
+        raise AssertionError("unbound tenant write should be denied")
 
 
 def test_production_mode_enforces_kb_write_auth() -> None:
