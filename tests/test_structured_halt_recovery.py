@@ -15,6 +15,7 @@ from director_ai.core.runtime.structured_recovery import (
     StructuredRecoveryResult,
     StructuredRecoveryState,
 )
+from director_ai.core.streaming import StreamingKernel
 
 
 def test_structured_recovery_config_accepts_supported_kinds_and_policies() -> None:
@@ -186,3 +187,67 @@ def test_reasoning_chain_invalid_update_keeps_previous_checkpoint() -> None:
     assert result.valid is True
     assert "Therefore B follows" in result.last_valid_output
     assert any("reasoning" in error for error in result.errors)
+
+
+def test_streaming_json_recovery_attaches_last_valid_output_on_halt() -> None:
+    kernel = StreamingKernel(hard_limit=0.5)
+    config = StructuredRecoveryConfig(kind="json")
+    scores = iter([0.8, 0.8, 0.2])
+
+    session = kernel.stream_tokens(
+        ['{"status":"ok"}', '{"status":', '"unsafe"'],
+        lambda _text: next(scores),
+        structured_recovery=config,
+    )
+
+    assert session.halted is True
+    assert session.structured_recovery is not None
+    assert session.structured_recovery.halted_at == session.halt_index
+    assert session.structured_recovery.last_valid_output == '{"status":"ok"}'
+
+
+def test_streaming_redacted_policy_suppresses_partial_payload_on_halt() -> None:
+    kernel = StreamingKernel(hard_limit=0.5)
+    config = StructuredRecoveryConfig(kind="json", policy="redacted")
+
+    session = kernel.stream_tokens(
+        ['{"status":"ok"}', '{"status":'],
+        lambda text: 0.2 if text.endswith('{"status":') else 0.8,
+        structured_recovery=config,
+    )
+
+    assert session.structured_recovery is not None
+    assert session.structured_recovery.last_valid_output == ""
+    assert session.structured_recovery.raw_partial == ""
+    assert session.structured_recovery.valid is False
+
+
+def test_streaming_raw_partial_policy_marks_payload_invalid() -> None:
+    kernel = StreamingKernel(hard_limit=0.5)
+    config = StructuredRecoveryConfig(kind="json", policy="raw_partial")
+
+    session = kernel.stream_tokens(
+        ['{"status":"ok"}', '{"status":'],
+        lambda text: 0.2 if text.endswith('{"status":') else 0.8,
+        structured_recovery=config,
+    )
+
+    assert session.structured_recovery is not None
+    assert session.structured_recovery.last_valid_output == ""
+    assert session.structured_recovery.raw_partial.endswith('{"status":')
+    assert session.structured_recovery.valid is False
+
+
+def test_unconfigured_streaming_recovery_preserves_plain_text_behaviour() -> None:
+    kernel = StreamingKernel(hard_limit=0.5)
+    session = kernel.stream_tokens(
+        ["Good ", "Bad "],
+        lambda text: 0.2 if "Bad" in text else 0.8,
+    )
+
+    assert session.halted is True
+    assert session.structured_recovery is None
+    assert session.output == "Good "
+    assert kernel.stream_output(["Bad "], lambda _text: 0.2).startswith(
+        "[KERNEL INTERRUPT:"
+    )

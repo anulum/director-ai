@@ -35,6 +35,11 @@ from ..otel import trace_streaming
 from ..safety_event import SafetyEvent
 from ..types import EvidenceChunk, HaltEvidence, HaltTraceAttribution
 from .kernel import HaltMonitor
+from .structured_recovery import (
+    StructuredRecoveryConfig,
+    StructuredRecoveryResult,
+    StructuredRecoveryState,
+)
 
 try:
     from backfire_kernel import rust_trend_drop as _rust_trend_drop
@@ -99,6 +104,7 @@ class StreamSession:
     halt_reason: str = ""
     halt_evidence: str | None = None
     halt_evidence_structured: HaltEvidence | None = None
+    structured_recovery: StructuredRecoveryResult | None = None
     safety_events: list[SafetyEvent] = field(default_factory=list)
     start_time: float = 0.0
     end_time: float = 0.0
@@ -306,6 +312,7 @@ class StreamingKernel(HaltMonitor):
         trace_callbacks: list[TokenTraceCallback] | None = None,
         tenant_id: str = "",
         request_id: str = "",
+        structured_recovery: StructuredRecoveryConfig | None = None,
     ) -> StreamSession:
         """Process tokens one by one with sliding window oversight.
 
@@ -335,6 +342,11 @@ class StreamingKernel(HaltMonitor):
         _soft_halt_pending = False
         _soft_halt_reason = ""
         _soft_halt_extra_tokens = 0
+        recovery_state = (
+            StructuredRecoveryState(structured_recovery)
+            if structured_recovery is not None
+            else None
+        )
 
         emitter = TokenTraceEmitter(trace_callbacks)
 
@@ -383,6 +395,10 @@ class StreamingKernel(HaltMonitor):
             if session.halt_index < 0:
                 session.halt_index = event.index
             session.halt_reason = reason
+            if recovery_state is not None:
+                session.structured_recovery = recovery_state.finalise(
+                    halted_at=session.halt_index,
+                )
             if evidence_callback:
                 ev = evidence_callback("".join(session.tokens))
                 event.evidence = ev
@@ -509,6 +525,8 @@ class StreamingKernel(HaltMonitor):
             )
 
             session.tokens.append(token)
+            if recovery_state is not None:
+                recovery_state.update("".join(session.tokens))
             session.coherence_history.append(score)
             window.append(score)
 
