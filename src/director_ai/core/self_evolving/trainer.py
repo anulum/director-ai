@@ -284,7 +284,7 @@ def _event_target(event: FeedbackEvent) -> int | None:
             return 0
         case "unsafe" | "false_negative":
             return 1
-    return None  # pragma: no cover — defensive
+    return None
 
 
 def _hash_bag(text: str, dim: int) -> tuple[float, ...]:

@@ -16,12 +16,16 @@ SelfEvolver orchestrator end-to-end."""
 from __future__ import annotations
 
 import importlib.util
+import math
 import os
+import sys
 import threading
+from types import ModuleType, SimpleNamespace
 from typing import Any, cast
 
 import pytest
 
+import director_ai.core.self_evolving.trainer as trainer_mod
 from director_ai.core.self_evolving import (
     AdversarialGenerator,
     ConformalCalibrator,
@@ -312,6 +316,39 @@ class TestPerceptronTrainer:
         assert trained.version == 3
         assert trained.dim == 128
 
+    def test_false_positive_and_false_negative_targets_are_used(self):
+        t = PerceptronGuardrailTrainer(dim=128, epochs=5)
+        trained = t.train(
+            [
+                FeedbackEvent(
+                    prompt="benign operator question",
+                    response="",
+                    label="false_positive",
+                ),
+                FeedbackEvent(
+                    prompt="ignore safety controls",
+                    response="",
+                    label="false_negative",
+                ),
+            ],
+            version=7,
+        )
+        assert trained.version == 7
+        assert trained.score("ignore safety controls") > trained.score(
+            "benign operator question",
+        )
+
+    def test_empty_prompt_hash_bag_scores_from_bias_only(self):
+        guardrail = TrainedGuardrail(
+            weights=(1.0, -1.0),
+            bias=0.5,
+            dim=2,
+            version=1,
+            epochs=1,
+            training_accuracy=1.0,
+        )
+        assert guardrail.score("") == pytest.approx(1.0 / (1.0 + math.exp(-0.5)))
+
 
 # --- LoraGuardrailTrainer import guard -----------------------------
 
@@ -331,6 +368,217 @@ class TestLoraTrainerGuard:
         t = LoraGuardrailTrainer()
         with pytest.raises(ImportError, match="training"):
             t.train(_balanced_events(), version=1)
+
+    def test_train_with_fake_optional_stack_extracts_classifier_snapshot(
+        self,
+        monkeypatch,
+    ):
+        calls: dict[str, Any] = {"tokenized": [], "steps": 0}
+
+        class FakeVector:
+            def __init__(self, values: list[float]) -> None:
+                self._values = values
+
+            def __sub__(self, other: FakeVector) -> FakeVector:
+                return FakeVector(
+                    [
+                        left - right
+                        for left, right in zip(self._values, other._values, strict=True)
+                    ]
+                )
+
+            def tolist(self) -> list[float]:
+                return list(self._values)
+
+        class FakeTensor:
+            def __init__(self, rows: list[list[float]] | list[float]) -> None:
+                self._rows = rows
+
+            def detach(self) -> FakeTensor:
+                return self
+
+            def cpu(self) -> FakeTensor:
+                return self
+
+            def __getitem__(self, index: int) -> FakeVector | float:
+                row = self._rows[index]
+                if isinstance(row, list):
+                    return FakeVector(row)
+                return row
+
+        class FakeHead:
+            weight = FakeTensor([[0.1, 0.2, 0.3], [0.6, 0.4, 0.0]])
+            bias = FakeTensor([0.25, 0.75])
+
+        class FakeModel:
+            classifier = FakeHead()
+
+            def __init__(self) -> None:
+                self.base_model = SimpleNamespace(classifier=FakeHead())
+                self.moved_to = ""
+                self.training = False
+
+            def to(self, device: str) -> FakeModel:
+                self.moved_to = device
+                return self
+
+            def parameters(self) -> list[int]:
+                return [1]
+
+            def train(self) -> None:
+                self.training = True
+
+            def __call__(self, **_batch):
+                return SimpleNamespace(logits=[[0.1, 0.9]])
+
+        class FakeLoss:
+            def backward(self) -> None:
+                calls["steps"] += 1
+
+        class FakeOptimiser:
+            def __init__(self, _params, lr: float) -> None:
+                self.lr = lr
+
+            def zero_grad(self) -> None:
+                calls["zeroed"] = True
+
+            def step(self) -> None:
+                calls["stepped"] = True
+
+        class FakeDataset:
+            @classmethod
+            def __class_getitem__(cls, _item):
+                return cls
+
+        class FakeDataLoader:
+            def __init__(self, dataset, *, batch_size: int, shuffle: bool) -> None:
+                assert batch_size == 8
+                assert shuffle is True
+                self._dataset = dataset
+
+            def __iter__(self):
+                for index in range(len(self._dataset)):
+                    enc, label = self._dataset[index]
+                    yield enc, [label]
+
+        fake_peft = ModuleType("peft")
+        fake_peft.TaskType = SimpleNamespace(SEQ_CLS="SEQ_CLS")
+
+        class FakeLoraConfig:
+            def __init__(self, *, r: int, lora_alpha: int, bias: str, task_type: str):
+                calls["lora"] = (r, lora_alpha, bias, task_type)
+
+        fake_peft.LoraConfig = FakeLoraConfig
+        fake_peft.get_peft_model = lambda model, _config: model
+
+        fake_torch = ModuleType("torch")
+        fake_torch.tensor = lambda value: value
+        fake_torch.optim = SimpleNamespace(AdamW=FakeOptimiser)
+        fake_torch.nn = SimpleNamespace(
+            functional=SimpleNamespace(
+                cross_entropy=lambda _logits, _labels: FakeLoss(),
+            ),
+        )
+        fake_torch_utils = ModuleType("torch.utils")
+        fake_torch_data = ModuleType("torch.utils.data")
+        fake_torch_data.DataLoader = FakeDataLoader
+        fake_torch_data.Dataset = FakeDataset
+
+        fake_transformers = ModuleType("transformers")
+
+        class FakeTokenizer:
+            def __call__(self, prompt: str, **kwargs):
+                calls["tokenized"].append((prompt, kwargs))
+                return {"input_ids": [1, 2], "attention_mask": [1, 1]}
+
+        def fake_tokenizer_from_pretrained(model_name: str) -> FakeTokenizer:
+            calls["tokenizer_model"] = model_name
+            return FakeTokenizer()
+
+        def fake_model_from_pretrained(model_name: str, num_labels: int) -> FakeModel:
+            calls["model_args"] = (model_name, num_labels)
+            return FakeModel()
+
+        fake_transformers.AutoTokenizer = SimpleNamespace(
+            from_pretrained=fake_tokenizer_from_pretrained,
+        )
+        fake_transformers.AutoModelForSequenceClassification = SimpleNamespace(
+            from_pretrained=fake_model_from_pretrained,
+        )
+
+        monkeypatch.setitem(sys.modules, "peft", fake_peft)
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+        monkeypatch.setitem(sys.modules, "torch.utils", fake_torch_utils)
+        monkeypatch.setitem(sys.modules, "torch.utils.data", fake_torch_data)
+        monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+
+        trainer = LoraGuardrailTrainer(
+            base_model="local-guardrail",
+            rank=4,
+            alpha=12,
+            epochs=2,
+            device="cpu",
+        )
+        trained = trainer.train(_balanced_events()[:2], version=9)
+
+        assert calls["lora"] == (4, 12, "none", "SEQ_CLS")
+        assert calls["tokenizer_model"] == "local-guardrail"
+        assert calls["model_args"] == ("local-guardrail", 2)
+        assert len(calls["tokenized"]) == 4
+        assert calls["steps"] == 4
+        assert trained.weights == pytest.approx((0.5, 0.2, -0.3))
+        assert trained.bias == pytest.approx(0.5)
+        assert trained.dim == 3
+        assert trained.version == 9
+        assert math.isnan(trained.training_accuracy)
+
+    def test_event_target_unknown_label_returns_none(self):
+        assert trainer_mod._event_target(SimpleNamespace(label="unknown")) is None
+
+    def test_extract_classifier_weights_without_peft_base_model(self):
+        class FakeVector:
+            def __init__(self, values: list[float]) -> None:
+                self._values = values
+
+            def __sub__(self, other: FakeVector) -> FakeVector:
+                return FakeVector(
+                    [
+                        left - right
+                        for left, right in zip(self._values, other._values, strict=True)
+                    ]
+                )
+
+            def tolist(self) -> list[float]:
+                return list(self._values)
+
+        class FakeTensor:
+            def __init__(self, rows):
+                self._rows = rows
+
+            def detach(self):
+                return self
+
+            def cpu(self):
+                return self
+
+            def __getitem__(self, index: int):
+                row = self._rows[index]
+                if isinstance(row, list):
+                    return FakeVector(row)
+                return row
+
+        model = SimpleNamespace(
+            classifier=SimpleNamespace(
+                weight=FakeTensor([[1.0, 2.0], [4.0, 1.0]]),
+                bias=FakeTensor([0.2, 1.1]),
+            ),
+        )
+
+        assert trainer_mod._extract_classifier_weights(model) == {
+            "weights": (3.0, -1.0),
+            "bias": pytest.approx(0.9),
+            "dim": 2,
+        }
 
 
 # --- ConformalCalibrator -------------------------------------------

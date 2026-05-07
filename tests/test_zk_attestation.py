@@ -16,11 +16,15 @@ reproducibility."""
 
 from __future__ import annotations
 
+import hashlib
+import hmac
 from dataclasses import dataclass
 from typing import Any, cast
 
 import pytest
 
+import director_ai.core.zk_attestation.backends as backends_mod
+import director_ai.core.zk_attestation.commitment as commitment_mod
 from director_ai.core.zk_attestation import (
     AttestationBackend,
     CommitmentBackend,
@@ -319,6 +323,20 @@ class TestMerkleCommitment:
                 commitment=commitment,
             )
 
+    def test_open_rejects_length_mismatch(self):
+        samples = [{"coherence": 0.9}, {"coherence": 0.8}]
+        commitment, leaves, blinds = commit_samples(samples, key=_KEY_A)
+
+        with pytest.raises(ValueError, match="length mismatch"):
+            open_indices(
+                indices=[0],
+                samples=samples,
+                leaves=leaves[:1],
+                blinds=blinds,
+                aggregate=1.7,
+                commitment=commitment,
+            )
+
     def test_commitment_rejects_wrong_root_length(self):
         with pytest.raises(ValueError, match="root"):
             MerkleCommitment(root="abc", sample_count=1)
@@ -326,6 +344,33 @@ class TestMerkleCommitment:
     def test_commitment_rejects_non_positive_count(self):
         with pytest.raises(ValueError, match="sample_count"):
             MerkleCommitment(root="a" * 64, sample_count=0)
+
+    def test_proof_rejects_total_sample_mismatch(self):
+        with pytest.raises(ValueError, match="total_samples"):
+            CommitmentProof(
+                commitment=MerkleCommitment(root="a" * 64, sample_count=2),
+                opened={0: ("00", "{}", [])},
+                aggregate=0.0,
+                total_samples=1,
+            )
+
+    def test_proof_rejects_empty_opened_set(self):
+        with pytest.raises(ValueError, match="opened"):
+            CommitmentProof(
+                commitment=MerkleCommitment(root="a" * 64, sample_count=1),
+                opened={},
+                aggregate=0.0,
+                total_samples=1,
+            )
+
+    def test_proof_rejects_opened_index_out_of_range(self):
+        with pytest.raises(ValueError, match="opened index 1"):
+            CommitmentProof(
+                commitment=MerkleCommitment(root="a" * 64, sample_count=1),
+                opened={1: ("00", "{}", [])},
+                aggregate=0.0,
+                total_samples=1,
+            )
 
     def test_deterministic_rng_produces_stable_root(self):
         samples = [{"coherence": 0.9, "i": i} for i in range(6)]
@@ -339,6 +384,152 @@ class TestMerkleCommitment:
         samples = [{"x": 1}]
         with pytest.raises(ValueError, match="token_bytes"):
             commit_samples(samples, key=_KEY_A, rng="not-an-rng")
+
+    def test_python_merkle_fallback_verifies_odd_tail_roundtrip(self, monkeypatch):
+        monkeypatch.setattr(commitment_mod, "_RUST_MERKLE_AVAILABLE", False)
+        samples = [{"coherence": 0.91, "i": i} for i in range(7)]
+        commitment, leaves, blinds = commit_samples(
+            samples,
+            key=_KEY_A,
+            rng=_DeterministicRng(seed=11),
+        )
+        stmt = MinimumCoherence(name="c", threshold=0.8, samples_min=1)
+        proof = open_indices(
+            indices=[0, 3, 6],
+            samples=samples,
+            leaves=leaves,
+            blinds=blinds,
+            aggregate=sum(stmt.evaluate_sample(s) for s in samples),
+            commitment=commitment,
+        )
+
+        ok, reason = verify_opening(
+            proof,
+            key=_KEY_A,
+            per_sample_evaluator=stmt.evaluate_sample,
+        )
+
+        assert ok, reason
+
+    def test_rust_merkle_accelerator_delegates_root_path_and_walk(
+        self,
+        monkeypatch,
+    ):
+        calls: list[str] = []
+        root = b"R" * 32
+
+        def fake_root(leaves: list[bytes]) -> bytes:
+            calls.append(f"root:{len(leaves)}")
+            return root
+
+        def fake_auth_path(leaves: list[bytes], index: int) -> list[bytes]:
+            calls.append(f"path:{len(leaves)}:{index}")
+            return [b"S" * 32, b"T" * 32]
+
+        def fake_walk_path(
+            leaf: bytes,
+            index: int,
+            siblings: list[bytes],
+        ) -> bytes:
+            del leaf
+            calls.append(f"walk:{index}:{len(siblings)}")
+            return root
+
+        monkeypatch.setattr(commitment_mod, "_RUST_MERKLE_AVAILABLE", True)
+        monkeypatch.setattr(commitment_mod, "_rust_merkle_root", fake_root)
+        monkeypatch.setattr(commitment_mod, "_rust_merkle_auth_path", fake_auth_path)
+        monkeypatch.setattr(commitment_mod, "_rust_merkle_walk_path", fake_walk_path)
+
+        samples = [{"coherence": 0.88}, {"coherence": 0.92}]
+        commitment, leaves, blinds = commit_samples(
+            samples,
+            key=_KEY_A,
+            rng=_DeterministicRng(seed=19),
+        )
+        proof = open_indices(
+            indices=[1],
+            samples=samples,
+            leaves=leaves,
+            blinds=blinds,
+            aggregate=1.8,
+            commitment=commitment,
+        )
+        ok, reason = verify_opening(
+            proof,
+            key=_KEY_A,
+            per_sample_evaluator=lambda sample: cast(float, sample["coherence"]),
+        )
+
+        assert ok, reason
+        assert commitment.root == root.hex()
+        assert calls == ["root:2", "path:2:1", "walk:1:2"]
+
+    def test_verify_rejects_short_key_and_bad_evaluator_without_opening(self):
+        proof = self._single_leaf_proof(serialised='{"coherence":0.8}', aggregate=0.8)
+
+        assert verify_opening(
+            proof,
+            key=b"short",
+            per_sample_evaluator=lambda sample: 1.0,
+        ) == (False, "hmac_key_too_short")
+        assert verify_opening(
+            proof,
+            key=_KEY_A,
+            per_sample_evaluator=object(),
+        ) == (False, "evaluator_not_callable")
+
+    def test_verify_rejects_malformed_json_after_merkle_reconstruction(self):
+        proof = self._single_leaf_proof(serialised="{not-json", aggregate=0.0)
+
+        ok, reason = verify_opening(
+            proof,
+            key=_KEY_A,
+            per_sample_evaluator=lambda sample: 0.0,
+        )
+
+        assert not ok
+        assert reason == "malformed_sample_at_0"
+
+    def test_verify_rejects_non_dict_json_sample(self):
+        proof = self._single_leaf_proof(
+            serialised='["not", "a", "dict"]', aggregate=0.0
+        )
+
+        ok, reason = verify_opening(
+            proof,
+            key=_KEY_A,
+            per_sample_evaluator=lambda sample: 0.0,
+        )
+
+        assert not ok
+        assert reason == "non_dict_sample_at_0"
+
+    def test_verify_rejects_non_numeric_evaluator_result(self):
+        proof = self._single_leaf_proof(serialised='{"coherence":0.8}', aggregate=0.8)
+
+        ok, reason = verify_opening(
+            proof,
+            key=_KEY_A,
+            per_sample_evaluator=lambda sample: sample,
+        )
+
+        assert not ok
+        assert reason == "evaluator_non_numeric_at_0"
+
+    @staticmethod
+    def _single_leaf_proof(serialised: str, aggregate: float) -> CommitmentProof:
+        blind = b"B" * 16
+        leaf = hmac.new(
+            _KEY_A,
+            blind + serialised.encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        return CommitmentProof(
+            commitment=MerkleCommitment(root=leaf.hex(), sample_count=1),
+            opened={0: (blind.hex(), serialised, [])},
+            aggregate=aggregate,
+            total_samples=1,
+        )
 
 
 # --- CommitmentBackend ---------------------------------------------
@@ -422,6 +613,124 @@ class TestCommitmentBackend:
         )
         ok, _ = backend.verify(stmt, tampered)
         assert not ok
+
+    def test_valid_opening_for_wrong_challenge_index_rejected(self):
+        backend = CommitmentBackend(key=_KEY_A, challenge_size=2)
+        samples = [{"coherence": 0.95, "i": i} for i in range(8)]
+        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=1)
+        commitment, leaves, blinds = commit_samples(
+            samples,
+            key=_KEY_A,
+            rng=_DeterministicRng(seed=23),
+        )
+        expected = set(
+            backend._pick_challenge(
+                seed_material=commitment.root.encode("utf-8"),
+                sample_count=len(samples),
+                challenge_size=1,
+            )
+        )
+        wrong_idx = next(i for i in range(len(samples)) if i not in expected)
+        proof = open_indices(
+            indices=[wrong_idx],
+            samples=samples,
+            leaves=leaves,
+            blinds=blinds,
+            aggregate=sum(stmt.evaluate_sample(s) for s in samples),
+            commitment=commitment,
+        )
+
+        ok, reason = backend.verify(stmt, proof)
+
+        assert not ok
+        assert reason == "challenge_indices_do_not_match_root_derivation"
+
+    def test_corrupt_proof_with_more_openings_than_population_rejected(self):
+        backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
+        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=1)
+        base = self._single_leaf_proof_for_backend(serialised='{"coherence":0.95}')
+        corrupt = object.__new__(CommitmentProof)
+        object.__setattr__(corrupt, "commitment", base.commitment)
+        object.__setattr__(
+            corrupt,
+            "opened",
+            {
+                0: next(iter(base.opened.values())),
+                1: next(iter(base.opened.values())),
+            },
+        )
+        object.__setattr__(corrupt, "aggregate", 1.9)
+        object.__setattr__(corrupt, "total_samples", 1)
+
+        ok, reason = backend.verify(stmt, corrupt)
+
+        assert not ok
+        assert reason == "opened_larger_than_committed_population"
+
+    def test_prove_rejects_empty_samples_before_commitment(self):
+        backend = CommitmentBackend(key=_KEY_A, challenge_size=4)
+        stmt = MinimumCoherence(name="c", threshold=0.9, samples_min=1)
+
+        with pytest.raises(ValueError, match="samples"):
+            backend.prove(stmt, [])
+
+    def test_python_challenge_fallback_derives_distinct_stable_indices(
+        self,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(backends_mod, "_RUST_CHALLENGE_AVAILABLE", False)
+
+        first = CommitmentBackend._pick_challenge(
+            seed_material=b"root-a",
+            sample_count=23,
+            challenge_size=8,
+        )
+        second = CommitmentBackend._pick_challenge(
+            seed_material=b"root-a",
+            sample_count=23,
+            challenge_size=8,
+        )
+
+        assert first == second
+        assert len(first) == 8
+        assert len(set(first)) == 8
+        assert all(0 <= idx < 23 for idx in first)
+
+    def test_rust_challenge_accelerator_is_used(self, monkeypatch):
+        calls: list[tuple[bytes, int, int]] = []
+
+        def fake_challenge(
+            seed_material: bytes,
+            sample_count: int,
+            challenge_size: int,
+        ) -> list[int]:
+            calls.append((seed_material, sample_count, challenge_size))
+            return [2, 0]
+
+        monkeypatch.setattr(backends_mod, "_RUST_CHALLENGE_AVAILABLE", True)
+        monkeypatch.setattr(
+            backends_mod,
+            "_rust_derive_challenge_indices",
+            fake_challenge,
+        )
+
+        assert CommitmentBackend._pick_challenge(b"root-b", 5, 2) == [2, 0]
+        assert calls == [(b"root-b", 5, 2)]
+
+    @staticmethod
+    def _single_leaf_proof_for_backend(serialised: str) -> CommitmentProof:
+        blind = b"C" * 16
+        leaf = hmac.new(
+            _KEY_A,
+            blind + serialised.encode("utf-8"),
+            hashlib.sha256,
+        ).digest()
+        return CommitmentProof(
+            commitment=MerkleCommitment(root=leaf.hex(), sample_count=1),
+            opened={0: (blind.hex(), serialised, [])},
+            aggregate=1.0,
+            total_samples=1,
+        )
 
 
 # --- Passport issue / verify ---------------------------------------
