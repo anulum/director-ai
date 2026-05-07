@@ -10,9 +10,12 @@
 
 from __future__ import annotations
 
+import json
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Any
+
+from ..verification.json_verifier import verify_json
 
 __all__ = [
     "StructuredRecoveryConfig",
@@ -71,6 +74,8 @@ class StructuredRecoveryState:
 
     def update(self, text: str) -> None:
         self.raw_partial = text
+        if self.config.kind == "json":
+            self._update_json(text)
 
     def finalise(self, halted_at: int) -> StructuredRecoveryResult:
         return StructuredRecoveryResult(
@@ -85,3 +90,39 @@ class StructuredRecoveryState:
             errors=list(self.errors),
             metadata=dict(self.last_valid_metadata),
         )
+
+    def _update_json(self, text: str) -> None:
+        try:
+            data = json.loads(text)
+        except (json.JSONDecodeError, TypeError) as exc:
+            detail = exc.msg if isinstance(exc, json.JSONDecodeError) else str(exc)
+            self._remember_error(f"json_parse:{detail}")
+            return
+        verdict = verify_json(text, schema=self.config.json_schema)
+        if not verdict.valid_json:
+            self._remember_error(f"json_parse:{verdict.parse_error}")
+            return
+        if verdict.schema_valid is False or verdict.error_count:
+            self._remember_error("json_schema:invalid")
+            return
+        self.last_valid_output = json.dumps(
+            data,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+        self.last_valid_metadata = {
+            "json_root": self._json_root_name(data),
+            "field_errors": 0,
+        }
+
+    def _remember_error(self, message: str) -> None:
+        if not self.errors or self.errors[-1] != message:
+            self.errors.append(message)
+
+    @staticmethod
+    def _json_root_name(data: object) -> str:
+        if isinstance(data, dict):
+            return "object"
+        if isinstance(data, list):
+            return "array"
+        return type(data).__name__
