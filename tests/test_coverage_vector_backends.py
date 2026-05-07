@@ -8,7 +8,9 @@
 
 from __future__ import annotations
 
+import importlib
 import sys
+from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -16,6 +18,65 @@ import pytest
 from director_ai.core.vector_store import (
     VectorGroundTruthStore,
 )
+
+
+class TestVectorStorePackageRegistration:
+    def test_optional_vendor_registration_branches(self, monkeypatch):
+        import director_ai.core.retrieval.vector_store as vector_store_pkg
+
+        original_find_spec = importlib.util.find_spec
+        optional_names = {
+            "chromadb",
+            "pinecone",
+            "weaviate",
+            "qdrant_client",
+            "faiss",
+            "elasticsearch",
+        }
+        optional_registry_names = {
+            "chroma",
+            "pinecone",
+            "weaviate",
+            "qdrant",
+            "faiss",
+            "elasticsearch",
+        }
+        for name in optional_registry_names:
+            vector_store_pkg._VECTOR_REGISTRY.pop(name, None)
+
+        def no_optional_specs(name):
+            if name in optional_names:
+                return None
+            return original_find_spec(name)
+
+        monkeypatch.setattr(importlib.util, "find_spec", no_optional_specs)
+        reloaded = importlib.reload(vector_store_pkg)
+        registry_without_optional = reloaded._VECTOR_REGISTRY
+
+        assert "memory" in registry_without_optional
+        assert "sentence-transformer" in registry_without_optional
+        assert "hybrid" in registry_without_optional
+        assert "remanentia" in registry_without_optional
+        assert "colbert" in registry_without_optional
+        assert all(
+            name not in registry_without_optional for name in optional_registry_names
+        )
+
+        def available_optional_specs(name):
+            if name in optional_names:
+                return SimpleNamespace(name=name)
+            return original_find_spec(name)
+
+        monkeypatch.setattr(importlib.util, "find_spec", available_optional_specs)
+        reloaded = importlib.reload(reloaded)
+        registry_with_optional = reloaded._VECTOR_REGISTRY
+
+        assert registry_with_optional["chroma"] is reloaded.ChromaBackend
+        assert registry_with_optional["pinecone"] is reloaded.PineconeBackend
+        assert registry_with_optional["weaviate"] is reloaded.WeaviateBackend
+        assert registry_with_optional["qdrant"] is reloaded.QdrantBackend
+        assert registry_with_optional["faiss"] is reloaded.FAISSBackend
+        assert registry_with_optional["elasticsearch"] is reloaded.ElasticsearchBackend
 
 
 class TestSentenceTransformerBackend:

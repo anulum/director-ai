@@ -55,6 +55,7 @@ class TestOntologyGraph:
         g.add_disjoint("bird", "mammal")
         assert "mammal" in g.declared_disjoint("bird")
         assert "bird" in g.declared_disjoint("mammal")
+        assert g.disjoint_pairs() == frozenset({("bird", "mammal"), ("mammal", "bird")})
 
     def test_self_disjoint_rejected(self):
         g = OntologyGraph()
@@ -68,6 +69,14 @@ class TestOntologyGraph:
         g.add_is_a("c", "d")
         assert g.ancestors("a") == frozenset({"b", "c", "d"})
 
+    def test_ancestors_deduplicates_diamond_inheritance(self):
+        g = OntologyGraph()
+        g.add_is_a("bat", "mammal")
+        g.add_is_a("bat", "flying_animal")
+        g.add_is_a("mammal", "animal")
+        g.add_is_a("flying_animal", "animal")
+        assert g.ancestors("bat") == frozenset({"mammal", "flying_animal", "animal"})
+
     def test_part_of_records(self):
         g = OntologyGraph()
         g.add_part_of("engine", "car")
@@ -76,6 +85,11 @@ class TestOntologyGraph:
         # it yet — the test pins the storage contract.
         assert "car" not in g.parents("engine")
         assert "engine" in g.classes()
+
+    def test_self_part_of_rejected(self):
+        g = OntologyGraph()
+        with pytest.raises(ValueError, match="self part_of"):
+            g.add_part_of("engine", "engine")
 
     def test_empty_name_rejected(self):
         g = OntologyGraph()

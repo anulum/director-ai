@@ -10,7 +10,12 @@ from __future__ import annotations
 
 import pytest
 
-from director_ai.core.safety_event import SAFETY_EVENT_SCHEMA_VERSION, SafetyEvent
+from director_ai.core.safety_event import (
+    SAFETY_EVENT_SCHEMA_VERSION,
+    SafetyEvent,
+    new_safety_event_id,
+    utc_timestamp,
+)
 from director_ai.core.types import EvidenceChunk, HaltEvidence, HaltTraceAttribution
 
 
@@ -29,6 +34,15 @@ def _event(**overrides):
 
 
 class TestSafetyEventSchema:
+    def test_generated_ids_and_timestamps_are_wire_safe(self):
+        event_id = new_safety_event_id()
+        timestamp = utc_timestamp()
+
+        assert event_id.startswith("sevt_")
+        assert len(event_id) == len("sevt_") + 32
+        assert timestamp.endswith("Z")
+        assert "+00:00" not in timestamp
+
     def test_minimal_event_to_dict(self):
         event = _event(threshold=0.5, observed_score=0.31)
 
@@ -81,6 +95,28 @@ class TestSafetyEventSchema:
         assert payload["trace_attribution"]["token_offset"] == 3
         assert payload["latency_ms"] == 12.4
 
+    def test_from_halt_evidence_uses_chunk_index_fallback_ref_and_default_action(self):
+        evidence = HaltEvidence(
+            reason="coherence_below_threshold",
+            last_score=0.31,
+            evidence_chunks=[
+                EvidenceChunk(text="raw text", distance=0.2, source=""),
+            ],
+            suggested_action="",
+            trace_attribution=None,
+        )
+
+        event = SafetyEvent.from_halt_evidence(
+            evidence,
+            hook_id="streaming.kernel",
+            event_id="sevt_halt",
+            timestamp="2026-04-29T12:00:00Z",
+        )
+
+        assert event.evidence_refs == ("chunk:0",)
+        assert event.tenant_safe_explanation == "Review the safety decision."
+        assert event.threshold is None
+
     def test_from_policy_decision(self):
         event = SafetyEvent.from_policy_decision(
             hook_id="containment.guard",
@@ -113,6 +149,32 @@ class TestSafetyEventSchema:
     def test_invalid_values_raise(self, field, value):
         with pytest.raises(ValueError):
             _event(**{field: value})
+
+    @pytest.mark.parametrize(
+        ("field", "value", "message"),
+        [
+            ("schema_version", "v0", "schema_version"),
+            ("event_id", " ", "event_id"),
+            ("timestamp", "", "timestamp"),
+            ("hook_id", "", "hook_id"),
+            ("halt_reason", "", "halt_reason"),
+            ("tenant_safe_explanation", "", "tenant_safe_explanation"),
+        ],
+    )
+    def test_required_identity_and_explanation_fields_raise(
+        self, field, value, message
+    ):
+        with pytest.raises(ValueError, match=message):
+            _event(**{field: value})
+
+    def test_evidence_refs_and_attributes_are_normalised_to_immutable_wire_values(self):
+        event = _event(
+            evidence_refs=["ref-a", "ref-b"],
+            attributes={"count": 2, "approved": True},
+        )
+
+        assert event.evidence_refs == ("ref-a", "ref-b")
+        assert event.attributes == {"count": "2", "approved": "True"}
 
     def test_lazy_import_export(self):
         from director_ai import SafetyEvent as RootSafetyEvent

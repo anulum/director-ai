@@ -7,10 +7,13 @@
 # Director-Class AI — Vector Store Tests
 """Multi-angle tests for vector store pipeline."""
 
+from unittest.mock import patch
+
 import pytest
 
 from director_ai.core.vector_store import (
     _VECTOR_REGISTRY,
+    HybridBackend,
     InMemoryBackend,
     VectorBackend,
     VectorGroundTruthStore,
@@ -190,6 +193,70 @@ class TestVectorGroundTruthStore:
         assert manifest["ingest_0_"]["version"] == "1.0.0"
         assert results[0]["metadata"]["kb_chunk_version"] == "1.0.0"
         assert results[0]["metadata"]["kb_record_kind"] == "derived_chunk"
+
+    def test_ingest_propagates_tenant_metadata_and_empty_batch_is_noop(self):
+        class CapturingBackend:
+            def __init__(self):
+                self.added = []
+
+            def add(self, doc_id, text, metadata=None):
+                self.added.append((doc_id, text, dict(metadata or {})))
+
+            def query(self, text, n_results=3, tenant_id=""):
+                return []
+
+            def count(self):
+                return len(self.added)
+
+        backend = CapturingBackend()
+        store = VectorGroundTruthStore(backend=backend, tenant_id="tenant-a")
+        revision_before = store.revision
+
+        assert store.ingest([]) == 0
+        assert store.revision == revision_before
+        assert store.ingest(["tenant-specific SOP"]) == 1
+
+        doc_id, text, metadata = backend.added[0]
+        assert doc_id == "ingest_0_tenant-a"
+        assert text == "tenant-specific SOP"
+        assert metadata["tenant_id"] == "tenant-a"
+        assert metadata["kb_record_kind"] == "derived_chunk"
+        assert set(store.version_manifest("tenant-a")) == {
+            "tenant-a::ingest_0_tenant-a"
+        }
+
+    def test_add_wraps_backend_failure_and_preserves_revision(self):
+        class FailingBackend:
+            def add(self, doc_id, text, metadata=None):
+                raise RuntimeError("vector service unavailable")
+
+            def query(self, text, n_results=3, tenant_id=""):
+                return []
+
+            def count(self):
+                return 0
+
+        store = VectorGroundTruthStore(backend=FailingBackend())
+        revision_before = store.revision
+
+        with pytest.raises(ValueError, match="Failed to add to vector store"):
+            store.add("policy", "refunds in 30 days")
+
+        assert store.revision == revision_before
+        assert store.version_manifest() == {}
+
+    def test_readding_identical_fact_preserves_version_and_previous_hash(self):
+        store = VectorGroundTruthStore()
+        store.add("policy", "refunds in 30 days")
+        first = store.fact_version_record("policy")
+
+        store.add("policy", "refunds in 30 days")
+        second = store.fact_version_record("policy")
+
+        assert first is not None
+        assert second is not None
+        assert second["version"] == first["version"]
+        assert second["previous_hash"] == first["previous_hash"]
 
     def test_invalid_version_bump_rejected(self):
         store = VectorGroundTruthStore()
@@ -398,6 +465,12 @@ class TestVectorGroundTruthStore:
         assert len(signals) == 1
         assert signals[0]["source_id"] == "paper-a"
 
+    def test_freshness_status_signals_ignore_records_without_temporal_metadata(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("paper-a", "stable result without citation feed metadata")
+
+        assert store.freshness_status_signals() == []
+
     def test_conflict_report_for_retracted_fact_key(self):
         store = VectorGroundTruthStore()
         store.add_fact("paper-a", "withdrawn result")
@@ -482,6 +555,139 @@ class TestVectorGroundTruthStore:
 
         assert len(store.conflict_reports("tenant_a")) == 1
         assert store.conflict_reports("tenant_b") == []
+        assert store.conflict_reports("tenant_a", key="other-paper") == []
+
+    def test_conflict_helpers_ignore_unrelated_refs_and_dedupe_duplicate_reports(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("withdrawn-a", "withdrawn result")
+        store.retract_fact("withdrawn-a", reason="source withdrawn")
+        store.add_fact(
+            "signed-dose",
+            "Dose is 5 mg.",
+            metadata={"claim_id": "dose", "signed_fact_id": "signed-1"},
+        )
+
+        store.add_fact("unrelated", "No overlapping protected references.")
+        assert store.conflict_reports(key="unrelated") == []
+
+        store.add_fact(
+            "unrelated-explicit",
+            "Declares contradiction against a source not in this KB.",
+            metadata={"contradicts": "external-only"},
+        )
+        assert store.conflict_reports(key="unrelated-explicit") == []
+
+        first = store._conflict_record(
+            key="incoming",
+            tenant_id="",
+            conflict_type="signed_fact",
+            existing={"key": "signed-dose", "claim_id": "dose"},
+            incoming={"kb_content_hash": "incoming-hash", "claim_id": "dose"},
+            reason="duplicate synthetic input",
+        )
+        duplicate = dict(first)
+        unique = dict(first, reference="signed-1")
+
+        assert store._dedupe_conflicts([first, duplicate, unique]) == [first, unique]
+
+    def test_conflict_type_accepts_claim_source_without_explicit_ids(self):
+        assert (
+            VectorGroundTruthStore._protected_conflict_type(
+                {"claim_source": "signed_fact"},
+                {},
+            )
+            == "signed_fact"
+        )
+        assert (
+            VectorGroundTruthStore._protected_conflict_type(
+                {},
+                {"claim_source": "passport_claim"},
+            )
+            == "passport_claim"
+        )
+        assert VectorGroundTruthStore._protected_conflict_type({}, {}) == ""
+
+    def test_metadata_list_accepts_blank_scalar_and_collection_values(self):
+        assert VectorGroundTruthStore._metadata_list(None) == set()
+        assert VectorGroundTruthStore._metadata_list("") == set()
+        assert VectorGroundTruthStore._metadata_list("a, b,,") == {"a", "b"}
+        assert VectorGroundTruthStore._metadata_list(["a", " ", 7]) == {"a", "7"}
+        assert VectorGroundTruthStore._metadata_list(42) == {"42"}
+
+    def test_merkle_root_duplicates_odd_leaf_and_semver_major_validation(self):
+        leaves = [b"a" * 32, b"b" * 32, b"c" * 32]
+        root = VectorGroundTruthStore._merkle_root_hex(leaves)
+
+        assert len(root) == 64
+        assert VectorGroundTruthStore._next_semver("1.2.3", "major") == "2.0.0"
+        with pytest.raises(ValueError, match="invalid semantic version"):
+            VectorGroundTruthStore._next_semver("1.2", "patch")
+
+    def test_legacy_backend_query_signature_is_supported_for_context_and_chunks(self):
+        class LegacyBackend:
+            def add(self, doc_id, text, metadata=None):
+                pass
+
+            def query(self, text, n_results=3):
+                assert text == "legacy query"
+                return [
+                    {
+                        "id": "legacy-doc",
+                        "text": "Legacy backend context",
+                        "distance": 0.25,
+                        "metadata": {},
+                    }
+                ]
+
+            def count(self):
+                return 1
+
+        store = VectorGroundTruthStore(backend=LegacyBackend(), tenant_id="tenant-a")
+
+        context = store.retrieve_context("legacy query")
+        chunks = store.retrieve_context_with_chunks("legacy query")
+
+        assert context == "Legacy backend context"
+        assert len(chunks) == 1
+        assert chunks[0].text == "Legacy backend context"
+        assert chunks[0].distance == pytest.approx(0.25)
+        assert chunks[0].source == "vector:legacy-doc"
+
+    def test_query_errors_are_wrapped_for_context_and_chunks(self):
+        class BrokenQueryBackend:
+            def add(self, doc_id, text, metadata=None):
+                pass
+
+            def query(self, text, n_results=3, tenant_id=""):
+                raise RuntimeError("index offline")
+
+            def count(self):
+                return 0
+
+        store = VectorGroundTruthStore(backend=BrokenQueryBackend())
+
+        with pytest.raises(ValueError, match="Failed to query vector store"):
+            store.retrieve_context("policy")
+        with pytest.raises(ValueError, match="Failed to query vector store"):
+            store.retrieve_context_with_chunks("policy")
+
+    def test_grounded_factory_falls_back_when_dense_backend_is_unavailable(self):
+        with patch(
+            "director_ai.core.retrieval.vector_store.store.SentenceTransformerBackend",
+            side_effect=RuntimeError("missing sentence-transformers"),
+        ):
+            dense_store = VectorGroundTruthStore.grounded(use_hybrid=False)
+            hybrid_store = VectorGroundTruthStore.grounded(use_hybrid=True, rrf_k=12)
+
+        assert isinstance(dense_store.backend, InMemoryBackend)
+        assert isinstance(hybrid_store.backend, HybridBackend)
+        assert hybrid_store.backend._rrf_k == 12
+
+    def test_active_results_keep_backend_rows_without_metadata(self):
+        store = VectorGroundTruthStore()
+        rows = [{"id": "raw", "text": "raw backend row", "metadata": "not a dict"}]
+
+        assert store._active_results(rows, tenant_id="tenant-a") == rows
 
 
 @pytest.mark.consumer

@@ -15,6 +15,7 @@ under concurrent writers."""
 from __future__ import annotations
 
 import threading
+from types import SimpleNamespace
 from typing import Any, cast
 
 import pytest
@@ -152,6 +153,83 @@ class TestPolicyCompiler:
         bundle = c.compile(["Maximum 50 characters."])
         policy = bundle.to_policy()
         assert policy.max_length == 50
+
+    def test_to_policy_preserves_pattern_rule_contract(self):
+        bundle = PolicyBundle(
+            version=1,
+            rules=(
+                CompiledRule(
+                    id="pattern-ssn",
+                    kind="pattern",
+                    value=r"SSN:\s*\d{3}-\d{2}-\d{4}",
+                    name="ssn",
+                    action="redact",
+                ),
+            ),
+        )
+
+        policy = bundle.to_policy()
+
+        assert policy.patterns == [
+            {
+                "name": "ssn",
+                "regex": r"SSN:\s*\d{3}-\d{2}-\d{4}",
+                "action": "redact",
+            }
+        ]
+
+    def test_to_policy_uses_largest_valid_numeric_limits(self):
+        bundle = PolicyBundle(
+            version=1,
+            rules=(
+                CompiledRule(
+                    id="max-bad",
+                    kind="max_length",
+                    value="not-an-int",
+                    name="bad-max",
+                ),
+                CompiledRule(id="max-small", kind="max_length", value="50", name="m1"),
+                CompiledRule(id="max-large", kind="max_length", value="120", name="m2"),
+                CompiledRule(
+                    id="cite-bad",
+                    kind="required_citations",
+                    value="many",
+                    name="bad-cites",
+                ),
+                CompiledRule(
+                    id="cite-small",
+                    kind="required_citations",
+                    value="1",
+                    name="c1",
+                ),
+                CompiledRule(
+                    id="cite-large",
+                    kind="required_citations",
+                    value="3",
+                    name="c2",
+                ),
+            ),
+        )
+
+        policy = bundle.to_policy()
+
+        assert policy.max_length == 120
+        assert policy.required_citations_min == 3
+        assert policy.required_citations_pattern == r"\[\d+\]"
+
+    def test_to_policy_ignores_unknown_runtime_rule_shape(self):
+        unknown_rule = SimpleNamespace(kind="unsupported", value="x", name="legacy")
+        bundle = PolicyBundle(
+            version=1,
+            rules=cast(tuple[CompiledRule, ...], (unknown_rule,)),
+        )
+
+        policy = bundle.to_policy()
+
+        assert policy.forbidden == []
+        assert policy.patterns == []
+        assert policy.max_length == 0
+        assert policy.required_citations_min == 0
 
     def test_calibrate_sets_threshold(self):
         c = PolicyCompiler()

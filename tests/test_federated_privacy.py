@@ -95,6 +95,38 @@ class TestGaussian:
         with pytest.raises(ValueError, match="delta"):
             GaussianMechanism(epsilon=0.5, delta=0.0, sensitivity=1.0)
 
+    def test_sensitivity_must_be_non_negative(self):
+        with pytest.raises(ValueError, match="sensitivity"):
+            GaussianMechanism(epsilon=0.5, delta=1e-5, sensitivity=-0.1)
+
+    def test_properties_and_apply_use_calibrated_gaussian_noise(self):
+        m = GaussianMechanism(epsilon=0.5, delta=1e-5, sensitivity=1.0, seed=123)
+
+        assert m.epsilon == pytest.approx(0.5)
+        assert m.delta == pytest.approx(1e-5)
+        assert m.sensitivity == pytest.approx(1.0)
+        assert m.apply(10.0) != 10.0
+
+    def test_laplace_apply_and_sign_direction_are_deterministic_with_seed(self):
+        m = LaplaceMechanism(epsilon=1.0, sensitivity=1.0, seed=3)
+
+        released = m.apply(5.0)
+
+        assert released != 5.0
+        assert isinstance(released, float)
+
+    def test_laplace_midpoint_rng_draw_releases_original_value(self):
+        class MidpointRng:
+            def uniform(self, low, high):
+                assert (low, high) == (-0.5, 0.5)
+                return 0.0
+
+        m = LaplaceMechanism(epsilon=1.0, sensitivity=1.0, seed=3)
+        m._rng = MidpointRng()
+
+        assert m.noise() == 0.0
+        assert m.apply(7.0) == 7.0
+
 
 # --- PrivacyAccountant --------------------------------------------
 

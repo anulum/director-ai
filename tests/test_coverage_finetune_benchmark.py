@@ -19,7 +19,10 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+import director_ai.core.training.finetune_benchmark as bench_mod
 from director_ai.core.training.finetune_benchmark import (
+    ModelBenchmarkReport,
+    ModelBenchmarkResult,
     RegressionReport,
     _evaluate_model,
     _load_benchmark_jsonl,
@@ -119,6 +122,120 @@ def test_load_skips_row_missing_label(tmp_path):
     )
     rows = _load_benchmark_jsonl(f)
     assert len(rows) == 0
+
+
+def test_load_rejects_directory_paths(tmp_path):
+    with pytest.raises(FileNotFoundError, match="benchmark data path is not a file"):
+        _load_benchmark_jsonl(tmp_path)
+
+
+# ---------------------------------------------------------------------------
+# ModelBenchmarkResult / ModelBenchmarkReport public payloads
+# ---------------------------------------------------------------------------
+
+
+def test_model_benchmark_result_to_dict_preserves_operational_fields():
+    result = ModelBenchmarkResult(
+        requested_model="factcg-deberta-v3-large",
+        alias="factcg-deberta-v3-large",
+        model_id="manueldeprada/FactCG-DeBERTa-v3-Large",
+        model_path="/models/factcg",
+        status="stable",
+        template="factcg",
+        label_count=2,
+        baseline_accuracy=0.758,
+        recommended_batch_size=24,
+        domain_accuracy=0.91,
+        domain_f1=0.88,
+        general_accuracy=0.79,
+        general_f1=0.77,
+        regression_pp=3.2,
+        recommendation="deploy",
+        elapsed_seconds=12.5,
+        error="",
+        details={"general_samples": 1000, "domain_samples": 120},
+    )
+
+    payload = result.to_dict()
+
+    assert payload == {
+        "requested_model": "factcg-deberta-v3-large",
+        "alias": "factcg-deberta-v3-large",
+        "model_id": "manueldeprada/FactCG-DeBERTa-v3-Large",
+        "model_path": "/models/factcg",
+        "status": "stable",
+        "template": "factcg",
+        "label_count": 2,
+        "baseline_accuracy": 0.758,
+        "recommended_batch_size": 24,
+        "domain_accuracy": 0.91,
+        "domain_f1": 0.88,
+        "general_accuracy": 0.79,
+        "general_f1": 0.77,
+        "regression_pp": 3.2,
+        "recommendation": "deploy",
+        "elapsed_seconds": 12.5,
+        "error": "",
+        "details": {"general_samples": 1000, "domain_samples": 120},
+    }
+
+
+def test_model_benchmark_report_keeps_manual_winner_and_summarizes_errors():
+    rejected = ModelBenchmarkResult(
+        requested_model="unstable-model",
+        alias="unstable-model",
+        model_id="unstable-model",
+        model_path="/models/unstable",
+        status="error",
+        template="unknown",
+        label_count=0,
+        baseline_accuracy=0.0,
+        recommended_batch_size=0,
+        recommendation="reject",
+        error="missing tokenizer",
+    )
+    deployable = ModelBenchmarkResult(
+        requested_model="factcg-deberta-v3-large",
+        alias="factcg-deberta-v3-large",
+        model_id="manueldeprada/FactCG-DeBERTa-v3-Large",
+        model_path="/models/factcg",
+        status="stable",
+        template="factcg",
+        label_count=2,
+        baseline_accuracy=0.758,
+        recommended_batch_size=24,
+        general_accuracy=0.82,
+        domain_accuracy=0.90,
+        recommendation="deploy",
+    )
+    report = ModelBenchmarkReport(
+        results=[rejected, deployable],
+        general_path="/data/general.jsonl",
+        eval_path="/data/domain.jsonl",
+        generated_at=123.0,
+        seed=7,
+        best_model_alias="manually-approved",
+        best_model_id="manual/model",
+        selection_policy="operator_override",
+    )
+
+    payload = report.to_dict()
+    summary = report.summary()
+
+    assert payload["best_model_alias"] == "manually-approved"
+    assert payload["best_model_id"] == "manual/model"
+    assert payload["selection_policy"] == "operator_override"
+    assert payload["results"][0]["error"] == "missing tokenizer"
+    assert "General data: /data/general.jsonl" in summary
+    assert "Domain data: /data/domain.jsonl" in summary
+    assert "Best model: manually-approved" in summary
+    assert (
+        "- unstable-model: general=0.0%, domain=0.0%, rec=reject error=missing tokenizer"
+        in summary
+    )
+    assert (
+        "- factcg-deberta-v3-large: general=82.0%, domain=90.0%, rec=deploy" in summary
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -292,24 +409,29 @@ def test_benchmark_general_path_none_pkg_file_exists(mock_eval, tmp_path):
     mock_eval.return_value = {"balanced_accuracy": 0.76, "f1": 0.75}
 
     bench_data = _bench_rows(50)
-    bench_file = tmp_path / "aggrefact_benchmark_1k.jsonl"
+    package_root = tmp_path / "director_ai" / "core"
+    training_dir = package_root / "training"
+    data_dir = package_root / "data"
+    training_dir.mkdir(parents=True)
+    data_dir.mkdir()
+    monkeypatch_target = training_dir / "finetune_benchmark.py"
+    monkeypatch_target.write_text("# synthetic module location\n", encoding="utf-8")
+    bench_file = data_dir / "aggrefact_benchmark_1k.jsonl"
     _write_jsonl(bench_file, bench_data)
 
-    with patch(
-        "director_ai.core.training.finetune_benchmark.Path",
-        wraps=Path,
+    with patch.object(
+        bench_mod,
+        "__file__",
+        str(monkeypatch_target),
     ):
-
-        class FakePath(type(Path())):
-            pass
-
         report = benchmark_finetuned_model(
             "/fake/model",
-            general_path=bench_file,
+            general_path=None,
             baseline_accuracy=0.758,
         )
 
     assert report.general_accuracy == pytest.approx(0.76)
+    assert report.details["general_samples"] == 50
     assert report.recommendation == "deploy"
 
 

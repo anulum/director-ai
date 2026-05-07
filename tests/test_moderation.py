@@ -15,6 +15,8 @@ end-to-end with mixed detectors."""
 from __future__ import annotations
 
 import importlib.util
+import sys
+import types
 from dataclasses import dataclass
 from typing import Any
 
@@ -198,6 +200,46 @@ class TestKeywordToxicity:
         res = det.analyse("this contains bad_token_xyz and nothing else")
         assert any(m.category == "keyword" for m in res.matches)
 
+    def test_extra_keywords_are_deduplicated_and_blank_keywords_are_ignored(self):
+        det = KeywordToxicityDetector(
+            extra_keywords=["policy_breach", "POLICY_BREACH", ""],
+            prefer_rust=False,
+        )
+
+        res = det.analyse("policy_breach must be blocked")
+
+        assert [m.category for m in res.matches].count("keyword") == 1
+        assert det.backend == "python"
+
+    def test_extra_pattern_uses_case_insensitive_python_path(self):
+        det = KeywordToxicityDetector(
+            extra_patterns=[("custom_attack", r"custom\s+attack")],
+            prefer_rust=False,
+        )
+
+        res = det.analyse("This contains a CUSTOM ATTACK phrase.")
+
+        assert [(m.category, m.text[m.start : m.end]) for m in res.matches] == [
+            ("custom_attack", "CUSTOM ATTACK")
+        ]
+
+    def test_rust_scanner_results_are_mapped_to_moderation_matches(self):
+        class Scanner:
+            def scan(self, text):
+                assert text == "unsafe text"
+                return [("threat", 0, 6)]
+
+        det = KeywordToxicityDetector(prefer_rust=False)
+        det._rust_scanner = Scanner()
+
+        res = det.analyse("unsafe text")
+
+        assert det.backend == "rust"
+        assert len(res.matches) == 1
+        assert res.matches[0].category == "threat"
+        assert res.matches[0].start == 0
+        assert res.matches[0].end == 6
+
     def test_case_insensitive_default(self):
         det = KeywordToxicityDetector()
         assert det.analyse("I WILL KILL YOU").flagged
@@ -267,6 +309,59 @@ class TestDetoxify:
         res = det.analyse("abc def")
         assert res.matches[0].start == 0
         assert res.matches[0].end == len("abc def")
+
+    def test_classifier_exception_returns_empty_result(self):
+        class BrokenClassifier:
+            def predict(self, text):
+                raise RuntimeError("model unavailable")
+
+        det = DetoxifyDetector(BrokenClassifier())
+
+        assert det.analyse("text that would otherwise need scoring").matches == []
+
+    def test_non_numeric_scores_are_ignored_without_blocking_other_categories(self):
+        det = DetoxifyDetector(
+            _StubDetoxify({"toxicity": "bad-score", "threat": 0.91}),
+            score_threshold=0.5,
+        )
+
+        res = det.analyse("threatening text")
+
+        assert [m.category for m in res.matches] == ["threat"]
+
+    def test_from_default_model_wraps_detoxify_classifier(self, monkeypatch):
+        calls = []
+
+        class FakeDetoxify:
+            def __init__(self, model_type):
+                calls.append(model_type)
+
+            def predict(self, text):
+                return {"toxicity": 0.7}
+
+        module = types.ModuleType("detoxify")
+        module.Detoxify = FakeDetoxify
+        monkeypatch.setitem(sys.modules, "detoxify", module)
+
+        det = DetoxifyDetector.from_default_model("unbiased", score_threshold=0.6)
+
+        assert calls == ["unbiased"]
+        assert det.analyse("unsafe").flagged is True
+
+    def test_from_default_model_reports_missing_optional_dependency(self, monkeypatch):
+        monkeypatch.delitem(sys.modules, "detoxify", raising=False)
+
+        real_import = __import__
+
+        def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "detoxify":
+                raise ImportError("missing detoxify")
+            return real_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr("builtins.__import__", guarded_import)
+
+        with pytest.raises(ImportError, match="director-ai\\[toxicity\\]"):
+            DetoxifyDetector.from_default_model()
 
 
 # --- Policy integration ----------------------------------------------

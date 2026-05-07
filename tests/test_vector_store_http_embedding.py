@@ -20,6 +20,7 @@ from typing import Any, ClassVar
 import pytest
 
 from director_ai.core.config import DirectorConfig
+from director_ai.core.retrieval.vector_store.http_embedding import _embedding_path
 from director_ai.core.vector_store import (
     FAISSBackend,
     HttpEmbeddingConnectionError,
@@ -334,6 +335,57 @@ def test_invalid_scheme_rejected() -> None:
         )
 
 
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"base_url": "   ", "model": "embedding-model"}, "base_url must be set"),
+        ({"base_url": "http://127.0.0.1", "model": "   "}, "model must be set"),
+        ({"base_url": "http://127.0.0.1", "model": "m", "timeout_s": 0}, "timeout_s"),
+        (
+            {"base_url": "http://127.0.0.1", "model": "m", "vector_size": 0},
+            "vector_size",
+        ),
+        ({"base_url": "http:///missing", "model": "m"}, "include a host"),
+        (
+            {"base_url": "http://127.0.0.1?debug=1", "model": "m"},
+            "must not include params",
+        ),
+        (
+            {
+                "base_url": "http://127.0.0.1",
+                "model": "m",
+                "endpoint_path": "v1/embeddings",
+            },
+            "endpoint_path",
+        ),
+    ],
+)
+def test_constructor_rejects_invalid_configuration(kwargs, message) -> None:
+    with pytest.raises(ValueError, match=message):
+        HttpEmbeddingFunction(**kwargs)
+
+
+def test_empty_batch_and_tuple_call_do_not_contact_endpoint() -> None:
+    with _EmbeddingServer({"data": []}) as server:
+        embed = HttpEmbeddingFunction(base_url=server.url, model="embedding-model")
+
+        assert embed.embed_many([]) == []
+        assert embed(()) == []
+
+    assert server.requests == []
+
+
+def test_non_string_batch_input_is_rejected_before_network() -> None:
+    with _EmbeddingServer({"data": []}) as server:
+        embed = HttpEmbeddingFunction(base_url=server.url, model="embedding-model")
+        mixed_inputs: Any = ["ok", 3]
+
+        with pytest.raises(TypeError, match="all embedding inputs"):
+            embed.embed_many(mixed_inputs)
+
+    assert server.requests == []
+
+
 def test_from_env_reads_public_configuration_names(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -346,6 +398,65 @@ def test_from_env_reads_public_configuration_names(
         vector = embed("hello")
 
     assert vector == pytest.approx([0.0, 1.0])
+
+
+def test_from_env_reads_api_key_timeout_and_empty_vector_size(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    with _EmbeddingServer({"data": [{"embedding": [5.0, 0.0]}]}) as server:
+        monkeypatch.setenv("DIRECTOR_AI_EMBEDDING_BASE_URL", server.url)
+        monkeypatch.setenv("DIRECTOR_AI_EMBEDDING_MODEL", "embedding-model")
+        monkeypatch.setenv("DIRECTOR_AI_EMBEDDING_API_KEY", "token")
+        monkeypatch.setenv("DIRECTOR_AI_EMBEDDING_TIMEOUT_S", "1.5")
+        monkeypatch.setenv("DIRECTOR_AI_EMBEDDING_VECTOR_SIZE", "")
+
+        embed = HttpEmbeddingFunction.from_env()
+        vector = embed("hello")
+
+    assert vector == pytest.approx([1.0, 0.0])
+    assert server.headers[0]["Authorization"] == "Bearer token"
+
+
+@pytest.mark.parametrize(
+    ("payload", "message"),
+    [
+        (["not", "object"], "response must be an object"),
+        ({"data": [{"embedding": "not-a-list"}]}, "embedding must be a list"),
+        ({"embeddings": [[1.0], "bad"]}, "embeddings must be a list of lists"),
+        ({"vectors": [[1.0]]}, "must contain data or embeddings"),
+        ({"data": [{"embedding": [True, 1.0]}]}, "values must be numeric"),
+        ({"data": [{"embedding": ["x", 1.0]}]}, "values must be numeric"),
+        ({"data": [{"embedding": [0.0, 0.0]}]}, "norm must be non-zero"),
+    ],
+)
+def test_malformed_embedding_payloads_are_rejected(payload, message) -> None:
+    with _EmbeddingServer(payload) as server:
+        embed = HttpEmbeddingFunction(base_url=server.url, model="embedding-model")
+
+        with pytest.raises(HttpEmbeddingResponseError, match=message):
+            embed("hello")
+
+
+def test_normalize_false_returns_raw_vector_without_unit_scaling() -> None:
+    with _EmbeddingServer({"data": [{"embedding": [3, 4]}]}) as server:
+        embed = HttpEmbeddingFunction(
+            base_url=server.url,
+            model="embedding-model",
+            vector_size=2,
+            normalize=False,
+        )
+
+        assert embed("hello") == [3.0, 4.0]
+
+
+def test_embedding_path_normalizes_base_and_endpoint_combinations() -> None:
+    assert _embedding_path("", "/") == "/"
+    assert _embedding_path("", "/v1/embeddings/") == "/v1/embeddings"
+    assert _embedding_path("/v1", "/v1") == "/v1"
+    assert _embedding_path("/api", "/api/v1/embeddings") == "/api/v1/embeddings"
+    assert _embedding_path("/api", "/v1/embeddings") == "/api/v1/embeddings"
+    with pytest.raises(ValueError, match="endpoint_path"):
+        _embedding_path("/api", "v1/embeddings")
 
 
 def test_director_config_redacts_embedding_api_key() -> None:

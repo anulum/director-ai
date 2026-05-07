@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+import pytest
+
 from director_ai.core.agent import CoherenceAgent
 from director_ai.core.cyber_physical import (
     AABB,
@@ -24,6 +26,7 @@ from director_ai.core.cyber_physical import (
     Vec3,
     VelocityConstraint,
 )
+from director_ai.core.cyber_physical.budget import PhysicalBudgetExceededError
 
 
 class CountingModel(SimpleKinematicModel):
@@ -176,3 +179,81 @@ def test_agent_warn_mode_keeps_budget_exhaustion_blocking() -> None:
     assert not verdict.allowed
     assert verdict.safety_event is not None
     assert verdict.safety_event.policy_decision == "block"
+
+
+def test_budget_limits_validate_window_and_counter_values() -> None:
+    with pytest.raises(ValueError, match="window_seconds must be positive"):
+        PhysicalBudgetLimits(window_seconds=0.0)
+
+    for field_name in (
+        "max_action_validations",
+        "max_inverse_kinematics",
+        "max_simulation_checks",
+    ):
+        with pytest.raises(ValueError, match=f"{field_name} must be non-negative"):
+            PhysicalBudgetLimits(**{field_name: -1})
+
+
+def test_limit_for_maps_known_counters_and_rejects_unknown() -> None:
+    limits = PhysicalBudgetLimits(
+        max_action_validations=3,
+        max_inverse_kinematics=4,
+        max_simulation_checks=5,
+    )
+
+    assert limits.limit_for("action_validations") == 3
+    assert limits.limit_for("inverse_kinematics") == 4
+    assert limits.limit_for("simulation_checks") == 5
+    with pytest.raises(ValueError, match="unknown physical budget counter 'camera'"):
+        limits.limit_for("camera")
+
+
+def test_direct_budget_consume_tracks_default_tenant_and_snapshots() -> None:
+    budget = TenantPhysicalBudget(
+        PhysicalBudgetLimits(
+            max_action_validations=2,
+            max_inverse_kinematics=1,
+            max_simulation_checks=1,
+        )
+    )
+
+    assert budget.snapshot("") == {
+        "action_validations": 0,
+        "inverse_kinematics": 0,
+        "simulation_checks": 0,
+    }
+
+    budget.consume("", "action_validations")
+    budget.consume("", "inverse_kinematics")
+
+    assert budget.snapshot("") == {
+        "action_validations": 1,
+        "inverse_kinematics": 1,
+        "simulation_checks": 0,
+    }
+
+
+def test_direct_budget_rejects_unknown_counter_and_reports_exhaustion() -> None:
+    budget = TenantPhysicalBudget(
+        PhysicalBudgetLimits(
+            window_seconds=2.5,
+            max_action_validations=1,
+            max_inverse_kinematics=1,
+            max_simulation_checks=1,
+        )
+    )
+
+    with pytest.raises(ValueError, match="unknown physical budget counter 'camera'"):
+        budget.consume("tenant-a", "camera")
+
+    budget.consume("tenant-a", "action_validations")
+    with pytest.raises(PhysicalBudgetExceededError) as exc_info:
+        budget.consume("tenant-a", "action_validations")
+
+    error = exc_info.value
+    assert error.tenant_id == "tenant-a"
+    assert error.counter == "action_validations"
+    assert error.limit == 1
+    assert str(error) == (
+        "physical budget exceeded for action_validations: limit 1 per 2.500s window"
+    )

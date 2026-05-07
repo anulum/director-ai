@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import os
 import sys
+import types
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -32,8 +34,16 @@ except ImportError:
 
 from director_ai.core.scoring.nli import (
     NLIScorer,
+    _download_gcs_model_artifact,
     _probs_to_confidence,
+    _probs_to_divergence,
     _resolve_label_indices,
+    _resolve_model_source,
+    _resolve_revision,
+    _safe_cache_name,
+    _should_skip_artifact,
+    _softmax_np,
+    _split_gs_uri,
     clear_model_cache,
     export_onnx,
     export_tensorrt,
@@ -41,6 +51,154 @@ from director_ai.core.scoring.nli import (
 )
 
 # ── _resolve_label_indices ────────────────────────────────────────────────────
+
+
+class TestManagedModelArtifactHelpers:
+    def test_revision_resolution_and_gcs_uri_validation(self):
+        assert _resolve_revision("model", revision="explicit") == "explicit"
+        assert _resolve_revision("unknown/model") is None
+        assert _split_gs_uri("gs://bucket/path/to/model") == ("bucket", "path/to/model")
+
+        for uri in ("https://bucket/path", "gs://", "gs://bucket", "gs://bucket/"):
+            with pytest.raises(ValueError):
+                _split_gs_uri(uri)
+
+    def test_safe_cache_name_and_artifact_skip_rules(self):
+        cache_name = _safe_cache_name("gs://bucket/path with spaces/model")
+
+        assert cache_name.startswith("bucket-path-with-spaces-model-")
+        assert len(cache_name.rsplit("-", 1)[-1]) == 16
+        assert _safe_cache_name("!!!").startswith("model-")
+        assert _should_skip_artifact("checkpoint-42/pytorch_model.bin") is True
+        assert _should_skip_artifact("nested/trainer_state.json") is True
+        assert _should_skip_artifact("config.json") is False
+
+    def _install_fake_storage(self, monkeypatch, blobs):
+        downloads = []
+
+        class Blob:
+            def __init__(self, name, payload=b"model"):
+                self.name = name
+                self.payload = payload
+
+            def download_to_filename(self, filename):
+                downloads.append((self.name, filename))
+                Path(filename).write_bytes(self.payload)
+
+        fake_blobs = [Blob(name, payload) for name, payload in blobs]
+
+        class Client:
+            def bucket(self, name):
+                return SimpleNamespace(name=name)
+
+            def list_blobs(self, bucket, *, prefix):
+                assert bucket.name == "models"
+                assert prefix == "nli/"
+                return fake_blobs
+
+        storage_module = types.ModuleType("google.cloud.storage")
+        storage_module.Client = Client
+        cloud_module = types.ModuleType("google.cloud")
+        cloud_module.storage = storage_module
+        google_module = types.ModuleType("google")
+        google_module.cloud = cloud_module
+        monkeypatch.setitem(sys.modules, "google", google_module)
+        monkeypatch.setitem(sys.modules, "google.cloud", cloud_module)
+        monkeypatch.setitem(sys.modules, "google.cloud.storage", storage_module)
+        return downloads
+
+    def test_download_gcs_model_artifact_uses_marker_cache_and_skips_training_files(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv("DIRECTOR_MODEL_CACHE_DIR", str(tmp_path / "cache"))
+        downloads = self._install_fake_storage(
+            monkeypatch,
+            [
+                ("nli/", b""),
+                ("nli/checkpoint-1/pytorch_model.bin", b"skip"),
+                ("nli/trainer_state.json", b"skip"),
+                ("nli/config.json", b"{}"),
+                ("nli/nested/model.safetensors", b"weights"),
+            ],
+        )
+
+        target = Path(_download_gcs_model_artifact("gs://models/nli"))
+        cached = Path(_download_gcs_model_artifact("gs://models/nli"))
+
+        assert target == cached
+        assert (target / ".director-ai-complete").read_text(encoding="utf-8") == (
+            "gs://models/nli\n"
+        )
+        assert (target / "config.json").read_bytes() == b"{}"
+        assert (target / "nested" / "model.safetensors").read_bytes() == b"weights"
+        assert [name for name, _ in downloads] == [
+            "nli/config.json",
+            "nli/nested/model.safetensors",
+        ]
+        assert _resolve_model_source("gs://models/nli") == str(target)
+        assert _resolve_model_source("local/model") == "local/model"
+
+    def test_download_gcs_model_artifact_reports_missing_package(self, monkeypatch):
+        real_import = builtins_import = __import__
+
+        def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "google.cloud" and fromlist == ("storage",):
+                raise ImportError("missing storage")
+            return real_import(name, globals, locals, fromlist, level)
+
+        with (
+            patch("builtins.__import__", side_effect=guarded_import),
+            pytest.raises(RuntimeError, match="google-cloud-storage"),
+        ):
+            _download_gcs_model_artifact("gs://models/nli")
+
+        assert builtins_import is real_import
+
+    def test_download_gcs_model_artifact_rejects_empty_prefix(
+        self, tmp_path, monkeypatch
+    ):
+        monkeypatch.setenv("DIRECTOR_MODEL_CACHE_DIR", str(tmp_path / "cache"))
+        self._install_fake_storage(monkeypatch, [("nli/checkpoint-1/model.bin", b"x")])
+
+        with pytest.raises(FileNotFoundError, match="no model artefact files"):
+            _download_gcs_model_artifact("gs://models/nli")
+
+
+class TestRustAcceleratedMathBranches:
+    def test_rust_softmax_divergence_and_confidence_are_used(self, monkeypatch):
+        import director_ai.core.scoring.nli as nli_mod
+
+        softmax_calls = []
+        divergence_calls = []
+        confidence_calls = []
+
+        def fake_softmax(flat, cols):
+            softmax_calls.append((flat, cols))
+            rows = len(flat) // cols
+            return [1.0 / cols for _ in range(rows * cols)]
+
+        def fake_divergence(flat, ncols, ci, ni):
+            divergence_calls.append((len(flat), ncols, ci, ni))
+            return [0.2 for _ in range(len(flat) // ncols)]
+
+        def fake_confidence(flat, ncols):
+            confidence_calls.append((len(flat), ncols))
+            return [0.8 for _ in range(len(flat) // ncols)]
+
+        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(nli_mod, "rust_softmax", fake_softmax)
+        monkeypatch.setattr(nli_mod, "rust_probs_to_divergence", fake_divergence)
+        monkeypatch.setattr(nli_mod, "rust_probs_to_confidence", fake_confidence)
+
+        logits = np.arange(120, dtype=np.float64).reshape(40, 3)
+        probs = np.full((10, 3), 1 / 3, dtype=np.float64)
+
+        assert _softmax_np(logits).shape == (40, 3)
+        assert _probs_to_divergence(probs, (0, 1)) == [0.2] * 10
+        assert _probs_to_confidence(probs) == [0.8] * 10
+        assert softmax_calls[0][1] == 3
+        assert divergence_calls == [(30, 3, 0, 1)]
+        assert confidence_calls == [(30, 3)]
 
 
 class TestResolveLabelIndices:
@@ -430,6 +588,72 @@ class TestLoraAdapterLoading:
 
         assert scorer._model is mock_merged
 
+    def test_ensure_model_does_not_load_lora_when_model_load_fails(self):
+        scorer = NLIScorer(
+            use_model=True, backend="deberta", lora_adapter_path="/fake/lora"
+        )
+
+        with (
+            patch(
+                "director_ai.core.scoring.nli._load_nli_model",
+                return_value=(None, None),
+            ),
+            patch.object(scorer, "_load_lora_adapter") as mock_lora,
+        ):
+            assert scorer._ensure_model() is False
+
+        mock_lora.assert_not_called()
+
+    def test_ensure_model_without_lora_resolves_labels_only(self):
+        scorer = NLIScorer(use_model=True, backend="deberta")
+        mock_model = MagicMock()
+        mock_model.config = SimpleNamespace(
+            id2label={0: "entailment", 1: "neutral", 2: "contradiction"}
+        )
+
+        with (
+            patch(
+                "director_ai.core.scoring.nli._load_nli_model",
+                return_value=(MagicMock(), mock_model),
+            ),
+            patch.object(scorer, "_load_lora_adapter") as mock_lora,
+        ):
+            assert scorer._ensure_model() is True
+
+        assert scorer._label_indices == (2, 1)
+        mock_lora.assert_not_called()
+
+    def test_load_nli_model_logs_cuda_auto_selection(self):
+        mock_torch = MagicMock()
+        mock_torch.float16 = "fp16"
+        mock_torch.bfloat16 = "bf16"
+        mock_torch.float32 = "fp32"
+        mock_transformers = MagicMock()
+        tok = MagicMock()
+        model = MagicMock()
+        model.to.return_value = model
+        mock_transformers.AutoTokenizer.from_pretrained.return_value = tok
+        mock_transformers.AutoModelForSequenceClassification.from_pretrained.return_value = model
+
+        with (
+            patch.dict(
+                sys.modules,
+                {"torch": mock_torch, "transformers": mock_transformers},
+            ),
+            patch(
+                "director_ai.core._device.select_torch_device",
+                return_value="cuda:0",
+            ),
+        ):
+            from director_ai.core.scoring.nli import _load_nli_model
+
+            _load_nli_model.cache_clear()
+            tokenizer, loaded_model = _load_nli_model("cuda-model")
+
+        assert tokenizer is tok
+        assert loaded_model is model
+        model.to.assert_called_once_with("cuda:0")
+
 
 # ── _model_score 2-class and 3-class label-index branches ────────────────────
 
@@ -524,6 +748,87 @@ class TestBuildChunksOverlap:
         # overlap_ratio close to 1 → stride=1, lots of chunks
         chunks = scorer._build_chunks_overlap(sentences, budget=10, overlap_ratio=0.9)
         assert len(chunks) >= len(sentences)
+
+    def test_build_chunks_overlap_zero_budget_keeps_progress(self):
+        scorer = NLIScorer(use_model=False)
+
+        chunks = scorer._build_chunks_overlap(
+            ["Long sentence.", "Next."], budget=0, overlap_ratio=0.5
+        )
+
+        assert chunks == ["Long sentence.", "Next."]
+
+
+class TestMiniCheckRuntimeBranches:
+    def test_minicheck_init_failure_clears_backend(self, monkeypatch):
+        minicheck_module = types.ModuleType("minicheck")
+
+        class MiniCheck:
+            def __init__(self, *args, **kwargs):
+                raise AttributeError("bad model")
+
+        minicheck_module.MiniCheck = MiniCheck
+        monkeypatch.setitem(sys.modules, "minicheck", minicheck_module)
+
+        scorer = NLIScorer(use_model=True, backend="minicheck")
+
+        assert scorer._ensure_minicheck() is False
+        assert scorer._minicheck is None
+
+    def test_minicheck_score_runtime_error_falls_back_and_clears_backend(self):
+        scorer = NLIScorer(use_model=True, backend="minicheck")
+        scorer._minicheck_loaded = True
+        scorer._minicheck = SimpleNamespace(
+            score=MagicMock(side_effect=RuntimeError("model failed"))
+        )
+
+        result = scorer._minicheck_score("the sky is blue", "the sky is blue")
+
+        assert 0.0 <= result <= 1.0
+        assert scorer._minicheck is None
+
+    def test_minicheck_batch_runtime_error_falls_back_and_clears_backend(self):
+        scorer = NLIScorer(use_model=True, backend="minicheck")
+        scorer._minicheck_loaded = True
+        scorer._minicheck = SimpleNamespace(
+            score=MagicMock(side_effect=NotImplementedError("batch unsupported"))
+        )
+
+        result = scorer._minicheck_score_batch([("a", "a"), ("a", "b")])
+
+        assert len(result) == 2
+        assert all(0.0 <= score <= 1.0 for score in result)
+        assert scorer._minicheck is None
+
+    def test_minicheck_batch_tuple_result_uses_max_probs(self):
+        scorer = NLIScorer(use_model=True, backend="minicheck")
+        scorer._minicheck_loaded = True
+        scorer._minicheck = SimpleNamespace(
+            score=MagicMock(return_value=(["yes", "no"], [0.9, 0.25], [], []))
+        )
+
+        assert scorer._minicheck_score_batch([("a", "a"), ("a", "b")]) == [
+            pytest.approx(0.1),
+            pytest.approx(0.75),
+        ]
+
+    def test_minicheck_score_non_tuple_result(self):
+        scorer = NLIScorer(use_model=True, backend="minicheck")
+        scorer._minicheck_loaded = True
+        scorer._minicheck = SimpleNamespace(score=MagicMock(return_value=[0.3]))
+
+        assert scorer._minicheck_score("a", "b") == pytest.approx(0.7)
+
+
+class TestLiteLazyBranch:
+    def test_ensure_lite_reuses_existing_scorer(self):
+        scorer = NLIScorer(use_model=False, backend="lite")
+
+        scorer._ensure_lite()
+        first = scorer._lite_scorer
+        scorer._ensure_lite()
+
+        assert scorer._lite_scorer is first
 
 
 # ── score_batch_with_confidence ───────────────────────────────────────────────

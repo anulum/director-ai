@@ -20,6 +20,8 @@ from director_ai.core.otel import (
     setup_otel,
     trace_review,
     trace_streaming,
+    trace_vector_add,
+    trace_vector_query,
 )
 
 
@@ -45,6 +47,19 @@ class TestOtelNoopFallback:
             with trace_streaming() as span:
                 span.set_attribute("stream.halted", False)
             assert isinstance(span, _NoopSpan)
+
+    def test_vector_spans_noop_when_otel_unavailable(self):
+        import director_ai.core.otel as otel_mod
+
+        otel_mod._tracer = None
+        with patch.object(otel_mod, "_OTEL_AVAILABLE", False):
+            with trace_vector_query() as query_span:
+                query_span.set_attribute("vector.backend", "memory")
+            with trace_vector_add() as add_span:
+                add_span.set_attribute("vector.doc_id", "doc-1")
+
+        assert isinstance(query_span, _NoopSpan)
+        assert isinstance(add_span, _NoopSpan)
 
 
 class TestOtelWithMock:
@@ -110,6 +125,75 @@ class TestOtelWithMock:
         with patch.object(otel_mod, "_OTEL_AVAILABLE", False):
             setup_otel()
         assert otel_mod._tracer is None
+
+    def test_lazy_get_tracer_initializes_once(self):
+        import director_ai.core.otel as otel_mod
+
+        first_tracer = MagicMock()
+        otel_mod._tracer = None
+        try:
+            with (
+                patch.object(otel_mod, "_OTEL_AVAILABLE", True),
+                patch.object(otel_mod, "trace", create=True) as mock_trace,
+            ):
+                mock_trace.get_tracer.return_value = first_tracer
+                assert otel_mod._get_tracer() is first_tracer
+                assert otel_mod._get_tracer() is first_tracer
+        finally:
+            otel_mod._tracer = None
+
+        mock_trace.get_tracer.assert_called_once_with("director-ai")
+
+    def test_lazy_get_tracer_respects_tracer_set_while_waiting_for_lock(self):
+        import director_ai.core.otel as otel_mod
+
+        concurrent_tracer = MagicMock()
+
+        class SetTracerLock:
+            def __enter__(self):
+                otel_mod._tracer = concurrent_tracer
+
+            def __exit__(self, exc_type, exc, traceback):
+                return False
+
+        otel_mod._tracer = None
+        try:
+            with (
+                patch.object(otel_mod, "_OTEL_AVAILABLE", True),
+                patch.object(otel_mod, "_tracer_lock", SetTracerLock()),
+                patch.object(otel_mod, "trace", create=True) as mock_trace,
+            ):
+                assert otel_mod._get_tracer() is concurrent_tracer
+        finally:
+            otel_mod._tracer = None
+
+        mock_trace.get_tracer.assert_not_called()
+
+    def test_vector_query_and_add_create_named_spans(self):
+        import director_ai.core.otel as otel_mod
+
+        mock_span = MagicMock()
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_span)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.return_value = mock_cm
+
+        otel_mod._tracer = mock_tracer
+        try:
+            with trace_vector_query() as query_span:
+                query_span.set_attribute("vector.backend", "memory")
+            with trace_vector_add() as add_span:
+                add_span.set_attribute("vector.doc_id", "doc-1")
+        finally:
+            otel_mod._tracer = None
+
+        mock_tracer.start_as_current_span.assert_any_call("director_ai.vector_query")
+        mock_tracer.start_as_current_span.assert_any_call("director_ai.vector_add")
+        assert mock_span.set_attribute.call_args_list == [
+            (("vector.backend", "memory"),),
+            (("vector.doc_id", "doc-1"),),
+        ]
 
 
 class TestOtelSpanEnrichment:

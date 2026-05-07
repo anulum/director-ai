@@ -18,6 +18,7 @@ from __future__ import annotations
 import importlib.util
 import sys
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
@@ -39,6 +40,7 @@ from director_ai.core.formal_verification import (
     VerifierBackend,
     Z3Backend,
 )
+from director_ai.core.formal_verification.dpll import _pick_branch, _reduce_clauses
 from director_ai.core.formal_verification.formula import variables
 
 # --- Formula AST ---------------------------------------------------
@@ -53,11 +55,30 @@ class TestFormula:
         f = Implies(Variable("p"), Variable("q"))
         assert "→" in str(f)
 
+    def test_operator_string_rendering_is_structural(self):
+        p = Variable("p")
+        q = Variable("q")
+
+        assert str(Not(p)) == "¬p"
+        assert str(Not(And(p, q))) == "¬(p ∧ q)"
+        assert str(And(p, q)) == "(p ∧ q)"
+        assert str(Or(p, q)) == "(p ∨ q)"
+        assert str(Iff(p, q)) == "(p ↔ q)"
+
     def test_variables_collects_all(self):
         f = And(
             Or(Variable("p"), Not(Variable("q"))), Iff(Variable("r"), Variable("s"))
         )
         assert variables(f) == frozenset({"p", "q", "r", "s"})
+
+    def test_variables_collects_implication_sides(self):
+        f = Implies(Variable("premise"), Not(Variable("conclusion")))
+        assert variables(f) == frozenset({"premise", "conclusion"})
+
+    def test_variables_rejects_unknown_formula_node(self):
+        invalid_formula: Any = object()
+        with pytest.raises(TypeError, match="unknown formula type object"):
+            variables(invalid_formula)
 
 
 # --- CnfConverter --------------------------------------------------
@@ -68,6 +89,14 @@ def _names(clauses: tuple[tuple[Literal, ...], ...]) -> list[set[tuple[str, bool
 
 
 class TestCnf:
+    def test_literal_string_and_negation_are_structural(self):
+        literal = Literal("p", True)
+        negated = literal.negate()
+
+        assert str(literal) == "p"
+        assert str(negated) == "¬p"
+        assert negated == Literal("p", False)
+
     def test_variable_becomes_singleton(self):
         clauses = CnfConverter().convert(Variable("p"))
         assert _names(clauses) == [{("p", True)}]
@@ -108,6 +137,16 @@ class TestCnf:
         clause_sets = _names(clauses)
         assert {("p", True), ("q", True)} in clause_sets
         assert {("p", True), ("r", True)} in clause_sets
+
+    def test_distribution_when_left_side_is_conjunction(self):
+        """(p ∧ q) ∨ r becomes (p ∨ r) ∧ (q ∨ r)."""
+        clauses = CnfConverter().convert(
+            Or(And(Variable("p"), Variable("q")), Variable("r"))
+        )
+        clause_sets = _names(clauses)
+
+        assert {("p", True), ("r", True)} in clause_sets
+        assert {("q", True), ("r", True)} in clause_sets
 
 
 # --- DpllSolver ----------------------------------------------------
@@ -179,6 +218,91 @@ class TestDpll:
         )
         result = DpllSolver().solve(clauses)
         assert not result.satisfiable
+
+    def test_branching_unsat_exhausts_both_polarities(self):
+        """XOR(p, q) plus equivalence(p, q) is UNSAT and requires branching."""
+        clauses = (
+            (Literal("p", True), Literal("q", True)),
+            (Literal("p", False), Literal("q", False)),
+            (Literal("p", True), Literal("q", False)),
+            (Literal("p", False), Literal("q", True)),
+        )
+
+        result = DpllSolver().solve(clauses)
+
+        assert not result.satisfiable
+        assert result.decisions >= 1
+
+    def test_branching_sat_uses_second_polarity_when_first_branch_conflicts(self):
+        """p=False is the only satisfying branch without initial unit clauses."""
+        clauses = (
+            (Literal("p", True), Literal("q", True)),
+            (Literal("p", False), Literal("q", True)),
+            (Literal("p", False), Literal("q", False)),
+        )
+
+        result = DpllSolver().solve(clauses)
+
+        assert result.satisfiable
+        assert result.model["p"] is False
+        assert result.model["q"] is True
+
+    def test_private_reduction_helpers_cover_conflict_and_assigned_branch_filter(self):
+        clauses = [
+            (Literal("p", True),),
+            (Literal("p", True), Literal("q", True)),
+        ]
+
+        assert _reduce_clauses(clauses, {"p": False}) is None
+        assert _pick_branch(clauses, {"p": True, "q": False}) is None
+
+    def test_unit_conflict_with_existing_assignment_returns_unsat(self):
+        solver = DpllSolver()
+        clauses = [
+            (Literal("p", True), Literal("q", True)),
+            (Literal("q", False),),
+        ]
+
+        assert solver._dpll(clauses, {"p": False, "q": True}) is None
+
+    def test_defensive_unit_conflict_guard_catches_reduction_contract_drift(
+        self,
+        monkeypatch,
+    ):
+        import director_ai.core.formal_verification.dpll as dpll_mod
+
+        solver = DpllSolver()
+        solver._decisions = 0
+        solver._propagations = 0
+
+        monkeypatch.setattr(
+            dpll_mod,
+            "_reduce_clauses",
+            lambda clauses, assignment: [(Literal("p", False),)],
+        )
+
+        assert solver._dpll([], {"p": True}) is None
+
+    def test_defensive_no_branch_variable_guard_preserves_current_assignment(
+        self,
+        monkeypatch,
+    ):
+        import director_ai.core.formal_verification.dpll as dpll_mod
+
+        solver = DpllSolver()
+        solver._decisions = 0
+        solver._propagations = 0
+
+        monkeypatch.setattr(
+            dpll_mod,
+            "_reduce_clauses",
+            lambda clauses, assignment: [(Literal("p", True), Literal("q", True))],
+        )
+        monkeypatch.setattr(dpll_mod, "_find_unit", lambda clauses: None)
+        monkeypatch.setattr(dpll_mod, "_find_pure", lambda clauses: None)
+        monkeypatch.setattr(dpll_mod, "_pick_branch", lambda clauses, assignment: None)
+
+        assert solver._dpll([], {"p": True, "q": False}) == {"p": True, "q": False}
 
     def test_decision_cap(self):
         """Pigeonhole PHP(n+1, n) is exponentially hard for basic

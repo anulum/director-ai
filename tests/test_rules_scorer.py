@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 
+import director_ai.core.scoring.rules_scorer as rules_mod
 from director_ai.core.scoring.rules_scorer import (
     ContentWordDivergenceRule,
     ContradictionKeywordRule,
@@ -21,6 +22,8 @@ from director_ai.core.scoring.rules_scorer import (
     LengthRatioRule,
     NegationFlipRule,
     NumericConsistencyRule,
+    Rule,
+    RuleResult,
     RulesBackend,
     SourceAttributionRule,
     WordOverlapRule,
@@ -48,6 +51,20 @@ class TestEntityGroundingRule:
         grounded = self.rule.check("Paris is nice.", "Paris is nice.")
         assert grounded.score >= r.score
 
+    def test_python_path_reports_partial_and_missing_entity_grounding(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
+        rule = EntityGroundingRule()
+
+        partial = rule.check("Paris is in France.", "Paris and Berlin are cities.")
+        grounded = rule.check("Paris is in France.", "Paris is in France.")
+        no_entities = rule.check("Paris is in France.", "it is grounded.")
+
+        assert 0.0 < partial.score < grounded.score
+        assert "Berlin" in partial.reason
+        assert no_entities.score == 1.0
+
 
 # ── NumericConsistencyRule ──────────────────────────────────────────────
 
@@ -71,6 +88,19 @@ class TestNumericConsistencyRule:
         r = self.rule.check("Accuracy is 75%.", "Accuracy is 90%.")
         assert r.score < 1.0
 
+    def test_python_path_reports_partial_numeric_grounding(self, monkeypatch):
+        monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
+        rule = NumericConsistencyRule()
+
+        r = rule.check(
+            "Dose is 5 mg and duration is 10 days.", "Dose is 5 for 20 days."
+        )
+        no_numbers = rule.check("Dose is five milligrams.", "Dose is five milligrams.")
+
+        assert r.score == 0.5
+        assert "20" in r.reason
+        assert no_numbers.score == 1.0
+
 
 # ── NegationFlipRule ────────────────────────────────────────────────────
 
@@ -90,6 +120,18 @@ class TestNegationFlipRule:
         r = self.rule.check("It is not cold.", "It is not cold.")
         assert r.score == 1.0
 
+    def test_python_path_detects_hypothesis_only_negation(self, monkeypatch):
+        monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
+
+        r = NegationFlipRule().check("The control passed.", "The control did not pass.")
+        aligned = NegationFlipRule().check(
+            "The control did not pass.", "It did not pass."
+        )
+
+        assert r.score == 0.3
+        assert r.reason == "negation mismatch"
+        assert aligned.score == 1.0
+
 
 # ── LengthRatioRule ────────────────────────────────────────────────────
 
@@ -104,6 +146,12 @@ class TestLengthRatioRule:
     def test_very_long_response(self):
         r = self.rule.check("Short.", "This is a very long response " * 10)
         assert r.score < 0.5
+
+    def test_medium_length_expansion_receives_soft_penalty(self):
+        r = self.rule.check("Short premise.", "one two three four five six seven eight")
+
+        assert r.score == 0.6
+        assert "4.0" in r.reason
 
 
 # ── WordOverlapRule ─────────────────────────────────────────────────────
@@ -123,6 +171,23 @@ class TestWordOverlapRule:
     def test_partial_overlap(self):
         r = self.rule.check("The cat sat on the mat.", "The cat jumped off the mat.")
         assert 0.3 < r.score < 0.9
+
+    def test_python_path_empty_content_words_returns_uncertain_score(self, monkeypatch):
+        monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
+
+        r = WordOverlapRule().check("the and of", "the and of")
+
+        assert r.score == 0.5
+
+    def test_python_path_scores_partial_and_zero_word_overlap(self, monkeypatch):
+        monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", False)
+        rule = WordOverlapRule()
+
+        partial = rule.check("alpha beta gamma", "alpha beta delta")
+        none = rule.check("alpha beta", "gamma delta")
+
+        assert 0.0 < partial.score < 1.0
+        assert none.score == 0.0
 
 
 # ── ContradictionKeywordRule ────────────────────────────────────────────
@@ -216,6 +281,19 @@ class TestRulesBackend:
         b = RulesBackend(rules=[])
         assert b.score("a", "b") == 0.5
 
+    def test_zero_weight_rules_return_neutral_score(self):
+        class ZeroWeightRule(Rule):
+            name = "zero_weight"
+            weight = 0.0
+
+            def check(self, premise: str, hypothesis: str) -> RuleResult:
+                return RuleResult(self.name, 0.0, "would fail if weighted")
+
+        b = RulesBackend(rules=[ZeroWeightRule()])
+
+        assert b.score("premise", "hypothesis") == 0.5
+        assert b.score_detailed("premise", "hypothesis")[0] == 0.5
+
     def test_score_detailed(self):
         b = RulesBackend()
         agg, details = b.score_detailed("Sky is blue.", "Sky is green.")
@@ -244,6 +322,18 @@ class TestLoadRulesFromFile:
         assert "numeric_consistency" in names
         wo = next(r for r in rules if r.name == "word_overlap")
         assert wo.weight == 2.0
+
+    def test_backend_can_load_rules_file_directly(self, tmp_path):
+        cfg = {
+            "numeric_consistency": {"enabled": True, "weight": 3.0},
+        }
+        p = tmp_path / "rules.json"
+        p.write_text(json.dumps(cfg), encoding="utf-8")
+
+        backend = RulesBackend(rules_file=str(p))
+
+        assert [rule.name for rule in backend._rules] == ["numeric_consistency"]
+        assert backend._rules[0].weight == 3.0
 
     def test_unknown_rule_ignored(self, tmp_path):
         cfg = {"nonexistent_rule": {"enabled": True}}

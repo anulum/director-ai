@@ -199,6 +199,36 @@ class TestClaimVerdict:
         assert verdict_below == "grounded"
         assert verdict_at == "drifted"
 
+    def test_injection_claim_threshold_uses_entity_match_confidence(self):
+        d = InjectionDetector(injection_claim_threshold=0.75)
+
+        low_entity_verdict, low_entity_conf = d._claim_verdict(
+            0.80, traceability=0.16, entity_match=0.1
+        )
+        high_entity_verdict, high_entity_conf = d._claim_verdict(
+            0.80, traceability=0.16, entity_match=0.6
+        )
+
+        assert low_entity_verdict == "injected"
+        assert low_entity_conf == 1.0
+        assert high_entity_verdict == "injected"
+        assert high_entity_conf == 0.6
+
+    def test_drift_with_low_traceability_is_injected_with_entity_confidence(self):
+        d = InjectionDetector(drift_threshold=0.6)
+
+        low_entity_verdict, low_entity_conf = d._claim_verdict(
+            0.65, traceability=0.25, entity_match=0.1
+        )
+        high_entity_verdict, high_entity_conf = d._claim_verdict(
+            0.65, traceability=0.25, entity_match=0.6
+        )
+
+        assert low_entity_verdict == "injected"
+        assert low_entity_conf == 1.0
+        assert high_entity_verdict == "injected"
+        assert high_entity_conf == 0.7
+
 
 # -- Injection risk aggregation -----------------------------------------------
 
@@ -287,6 +317,19 @@ class TestDetectCleanResponses:
         result = d.detect(intent="Hello", response="")
         assert result.injection_detected is False
         assert result.total_claims == 0
+
+    def test_empty_claim_decomposition_returns_no_claim_result(self):
+        mock_nli = MagicMock()
+        mock_nli.model_available = True
+        mock_nli.decompose_claims.return_value = []
+        d = InjectionDetector(nli_scorer=mock_nli)
+
+        result = d.detect(intent="Answer the question.", response="...")
+
+        assert result.injection_detected is False
+        assert result.intent_coverage == 1.0
+        assert result.total_claims == 0
+        mock_nli.score_batch.assert_not_called()
 
 
 class TestDetectKnownInjections:
@@ -386,6 +429,32 @@ class TestGracefulDegradation:
             intent="", user_query="What is AI?", response="AI is a field of CS."
         )
         assert isinstance(result, InjectionResult)
+
+    def test_python_fallback_scores_claims_when_rust_path_unavailable(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr("director_ai.core.safety.injection._RUST_INJECTION", False)
+        mock_nli = MagicMock()
+        mock_nli.model_available = False
+        mock_nli.score.side_effect = [0.20, 0.85, 0.30, 0.80]
+        d = InjectionDetector(
+            nli_scorer=mock_nli,
+            baseline_divergence=0.0,
+            drift_threshold=0.6,
+        )
+
+        claims = d._score_claims_against_intent(
+            ["Paris is the capital of France.", "Vault credentials are exposed."],
+            "Answer only about Paris and France.",
+        )
+
+        assert [claim.claim_index for claim in claims] == [0, 1]
+        assert claims[0].claim == "Paris is the capital of France."
+        assert claims[0].bidirectional_divergence == pytest.approx(0.20)
+        assert claims[0].verdict == "grounded"
+        assert claims[1].bidirectional_divergence == pytest.approx(0.80)
+        assert claims[1].verdict in {"drifted", "injected"}
+        assert mock_nli.score.call_count == 4
 
 
 # -- Sanitizer integration ----------------------------------------------------

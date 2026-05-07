@@ -155,6 +155,14 @@ class TestSchemaValidation:
         r = verify_json('"nope"', schema=schema)
         assert r.schema_valid is False
 
+    def test_unknown_schema_type_is_treated_as_permissive_extension(self):
+        schema = {"type": "vendor-extension"}
+
+        r = verify_json('"opaque"', schema=schema)
+
+        assert r.valid_json is True
+        assert r.schema_valid is True
+
 
 class TestValueGrounding:
     def test_grounded_value(self):
@@ -187,6 +195,50 @@ class TestValueGrounding:
         )
         assert r.error_count == 0
 
+    def test_nested_object_and_array_values_are_grounded_by_path(self):
+        claims = []
+
+        def score_fn(claim):
+            claims.append(claim)
+            return 0.8 if "items[2]" in claim else 0.1
+
+        r = verify_json(
+            '{"order": {"status": "shipped"}, "items": ["book", ["nested item"], "unknown item"]}',
+            score_fn=score_fn,
+        )
+
+        assert claims == [
+            "order.status is shipped",
+            "items[0] is book",
+            "items[1][0] is nested item",
+            "items[2] is unknown item",
+        ]
+        assert any(
+            v.path == "items[2]" and v.verdict == "invalid_value"
+            for v in r.field_verdicts
+        )
+
+    def test_empty_root_array_has_no_fields_to_ground(self):
+        r = verify_json("[]", score_fn=lambda claim: 0.9)
+
+        assert r.valid_json is True
+        assert r.error_count == 0
+
+    def test_scalar_root_has_no_nested_fields_to_ground(self):
+        r = verify_json('"plain scalar"', score_fn=lambda claim: 0.9)
+
+        assert r.valid_json is True
+        assert r.error_count == 0
+
+    def test_score_function_failure_leaves_field_without_grounding_error(self):
+        def score_fn(claim):
+            raise RuntimeError("grounding service unavailable")
+
+        r = verify_json('{"status": "pending"}', score_fn=score_fn)
+
+        assert r.valid_json is True
+        assert r.error_count == 0
+
 
 class TestCombined:
     def test_schema_plus_grounding(self):
@@ -205,3 +257,19 @@ class TestCombined:
         status_verdicts = [v for v in r.field_verdicts if v.path == "status"]
         assert len(status_verdicts) == 1
         assert status_verdicts[0].verdict == "invalid_value"
+
+    def test_schema_field_remains_valid_when_grounding_accepts_existing_verdict(self):
+        schema = {
+            "type": "object",
+            "properties": {"status": {"type": "string"}},
+        }
+
+        r = verify_json(
+            '{"status": "shipped"}',
+            schema=schema,
+            score_fn=lambda claim: 0.1,
+        )
+
+        assert r.schema_valid is True
+        assert r.error_count == 0
+        assert r.field_verdicts[0].verdict == "valid"

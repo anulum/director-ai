@@ -15,6 +15,8 @@ googleapiclient imports required."""
 
 from __future__ import annotations
 
+import sys
+import types
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -288,6 +290,35 @@ def _text_block(
 
 
 class TestNotion:
+    def test_from_token_requires_optional_client_package(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "notion_client", None)
+
+        with pytest.raises(ImportError, match="ingestion-notion"):
+            NotionPlugin.from_token("secret")
+
+    def test_from_token_constructs_stock_client_with_kwargs(self, monkeypatch):
+        captured = {}
+
+        class Client:
+            def __init__(self, *, auth):
+                captured["auth"] = auth
+
+        module = types.ModuleType("notion_client")
+        module.Client = Client
+        monkeypatch.setitem(sys.modules, "notion_client", module)
+
+        plugin = NotionPlugin.from_token(
+            "secret",
+            database_ids=["db-1"],
+            include_block_types=["paragraph"],
+            max_pages=1,
+        )
+
+        assert captured["auth"] == "secret"
+        assert plugin._database_ids == ["db-1"]
+        assert plugin._block_types == frozenset({"paragraph"})
+        assert plugin._max_pages == 1
+
     def test_database_query_walks_pages_and_blocks(self):
         page_id = "page-1"
         pages = [
@@ -317,6 +348,32 @@ class TestNotion:
         assert "Header two" in docs[0].text
         assert docs[0].metadata["title"] == "Hello"
 
+    def test_iter_documents_skips_missing_ids_and_empty_pages_and_records_created(self):
+        pages = [
+            {"properties": {}},
+            {"id": "empty", "properties": {}},
+            {
+                "id": "full",
+                "properties": {
+                    "Legacy": "not-a-property-object",
+                    "Status": {"type": "select", "select": {"name": "Ready"}},
+                    "Name": {"type": "title", "title": [{"plain_text": "Created"}]},
+                },
+                "created_time": "2026-04-02T00:00:00Z",
+            },
+        ]
+        blocks = {"full": [_text_block("b", "paragraph", "body")]}
+        client = _FakeNotion(
+            databases=_FakeNotionDatabases(pages),
+            blocks=_FakeNotionBlocks(_FakeNotionBlocksChildren(blocks)),
+        )
+
+        docs = list(NotionPlugin(client, database_ids=["db"]).iter_documents())
+
+        assert [doc.source_id for doc in docs] == ["full"]
+        assert docs[0].metadata["created_time"] == "2026-04-02T00:00:00Z"
+        assert docs[0].metadata["title"] == "Created"
+
     def test_nested_blocks_are_followed(self):
         page_id = "page-1"
         pages = [{"id": page_id, "properties": {}, "last_edited_time": ""}]
@@ -336,6 +393,27 @@ class TestNotion:
         docs = list(plugin.iter_documents())
         assert "parent text" in docs[0].text
         assert "child text" in docs[0].text
+
+    def test_child_marker_without_id_is_not_recursed(self):
+        page_id = "page-1"
+        pages = [{"id": page_id, "properties": {}}]
+        blocks = {
+            page_id: [
+                {
+                    "type": "toggle",
+                    "has_children": True,
+                    "toggle": {"rich_text": [{"plain_text": "parent"}]},
+                }
+            ],
+        }
+        client = _FakeNotion(
+            databases=_FakeNotionDatabases(pages),
+            blocks=_FakeNotionBlocks(_FakeNotionBlocksChildren(blocks)),
+        )
+
+        docs = list(NotionPlugin(client, database_ids=["db"]).iter_documents())
+
+        assert docs[0].text == "parent"
 
     def test_search_used_when_no_database_ids(self):
         pages = [{"id": "p", "properties": {}, "last_edited_time": ""}]
@@ -366,6 +444,103 @@ class TestNotion:
         plugin = NotionPlugin(client, database_ids=["db"], max_pages=2)
         docs = list(plugin.iter_documents())
         assert len(docs) == 2
+
+    def test_database_and_block_pagination_uses_next_cursor(self):
+        class PaginatedDatabases:
+            def __init__(self):
+                self.cursors = []
+
+            def query(self, *, database_id: str, start_cursor: str | None = None):
+                self.cursors.append(start_cursor)
+                if start_cursor is None:
+                    return {
+                        "results": [{"id": "page-1", "properties": {}}],
+                        "has_more": True,
+                        "next_cursor": "page-2",
+                    }
+                return {
+                    "results": [{"id": "page-2", "properties": {}}],
+                    "has_more": False,
+                    "next_cursor": None,
+                }
+
+        class PaginatedChildren:
+            def __init__(self):
+                self.cursors = []
+
+            def list(self, *, block_id: str, start_cursor: str | None = None):
+                self.cursors.append((block_id, start_cursor))
+                if start_cursor is None:
+                    return {
+                        "results": [_text_block(f"{block_id}-a", "paragraph", "a")],
+                        "has_more": True,
+                        "next_cursor": "next-block",
+                    }
+                return {
+                    "results": [_text_block(f"{block_id}-b", "paragraph", "b")],
+                    "has_more": False,
+                    "next_cursor": None,
+                }
+
+        databases = PaginatedDatabases()
+        children = PaginatedChildren()
+        client = _FakeNotion(
+            databases=databases,
+            blocks=_FakeNotionBlocks(children),
+        )
+
+        docs = list(NotionPlugin(client, database_ids=["db"]).iter_documents())
+
+        assert [doc.source_id for doc in docs] == ["page-1", "page-2"]
+        assert all(doc.text == "a\nb" for doc in docs)
+        assert databases.cursors == [None, "page-2"]
+        assert children.cursors == [
+            ("page-1", None),
+            ("page-1", "next-block"),
+            ("page-2", None),
+            ("page-2", "next-block"),
+        ]
+
+    def test_pagination_stops_when_has_more_without_cursor(self):
+        class NoCursorSearch:
+            def __call__(self, *, filter: dict[str, str], start_cursor: str | None):
+                return {
+                    "results": [{"id": "p", "properties": {}}],
+                    "has_more": True,
+                    "next_cursor": None,
+                }
+
+        client = _FakeNotion(
+            search=NoCursorSearch(),
+            blocks=_FakeNotionBlocks(
+                _FakeNotionBlocksChildren(
+                    {"p": [_text_block("b", "paragraph", "body")]}
+                )
+            ),
+        )
+
+        docs = list(NotionPlugin(client).iter_documents())
+
+        assert [doc.source_id for doc in docs] == ["p"]
+
+    def test_block_text_uses_allowlist_and_handles_missing_payloads(self):
+        plugin = NotionPlugin(_FakeNotion(), include_block_types=["paragraph", "code"])
+
+        assert plugin._block_text({"type": "divider", "divider": {}}) == []
+        assert plugin._block_text({"type": "paragraph", "paragraph": {}}) == []
+        assert plugin._block_text({"type": "code", "code": None}) == []
+        assert plugin._block_text(
+            {
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": [
+                        {"plain_text": "a"},
+                        {},
+                        {"plain_text": "b"},
+                    ]
+                },
+            }
+        ) == ["a", "", "b"]
 
     def test_rejects_none_client(self):
         with pytest.raises(ValueError, match="client is required"):

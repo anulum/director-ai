@@ -84,6 +84,17 @@ class TestAABB:
         assert box.contains(Vec3(0.5, 0.5, 0.5))
         assert not box.contains(Vec3(2.0, 0.5, 0.5))
 
+    def test_python_contains_checks_all_axes(self, monkeypatch):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._RUST_GEOM_AVAILABLE",
+            False,
+        )
+        box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
+
+        assert box.contains(Vec3(0.5, 0.5, 0.5))
+        assert not box.contains(Vec3(0.5, 2.0, 0.5))
+        assert not box.contains(Vec3(0.5, 0.5, 2.0))
+
     def test_intersects(self):
         a = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
         b = AABB(min_corner=Vec3(0.5, 0.5, 0.5), max_corner=Vec3(2.0, 2.0, 2.0))
@@ -128,6 +139,25 @@ class TestSphere:
         away = AABB(min_corner=Vec3(5.0, 5.0, 5.0), max_corner=Vec3(6.0, 6.0, 6.0))
         assert s.intersects_aabb(inside)
         assert not s.intersects_aabb(away)
+
+    def test_python_sphere_geometry_boundaries(self, monkeypatch):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._RUST_GEOM_AVAILABLE",
+            False,
+        )
+        sphere = Sphere(centre=Vec3(0.0, 0.0, 0.0), radius=1.0)
+        touching = Sphere(centre=Vec3(2.0, 0.0, 0.0), radius=1.0)
+        separated = Sphere(centre=Vec3(2.1, 0.0, 0.0), radius=1.0)
+        tangent_box = AABB(
+            min_corner=Vec3(1.0, -0.1, -0.1),
+            max_corner=Vec3(1.5, 0.1, 0.1),
+        )
+
+        assert sphere.contains(Vec3(1.0, 0.0, 0.0))
+        assert not sphere.contains(Vec3(1.1, 0.0, 0.0))
+        assert sphere.intersects(touching)
+        assert not sphere.intersects(separated)
+        assert sphere.intersects_aabb(tangent_box)
 
     def test_negative_radius(self):
         with pytest.raises(ValueError, match="radius"):
@@ -299,6 +329,48 @@ class TestSimpleKinematicModel:
                 end_effector_radius=-0.1,
             )
 
+    def test_joint_chain_reach_sums_positive_links(self):
+        chain = JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(0.25, 0.5, 1.25))
+
+        assert chain.reach == pytest.approx(2.0)
+
+    def test_python_inverse_path_reaches_target_for_both_branches(self, monkeypatch):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.kinematics._RUST_IK_AVAILABLE",
+            False,
+        )
+        target = Vec3(1.0, 1.0, 0.0)
+        up = self._two_link()
+        down = SimpleKinematicModel(
+            chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0)),
+            branch="elbow_down",
+        )
+
+        up_solution = up.inverse(target)
+        down_solution = down.inverse(target)
+
+        assert up_solution is not None
+        assert down_solution is not None
+        assert up_solution[1] == pytest.approx(-down_solution[1])
+        assert up.forward(up_solution).distance(target) < 1e-9
+        assert down.forward(down_solution).distance(target) < 1e-9
+
+    def test_python_inverse_path_rejects_outer_and_inner_unreachable_targets(
+        self,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.kinematics._RUST_IK_AVAILABLE",
+            False,
+        )
+        outer = self._two_link()
+        inner = SimpleKinematicModel(
+            chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 0.25)),
+        )
+
+        assert outer.inverse(Vec3(2.1, 0.0, 0.0)) is None
+        assert inner.inverse(Vec3(0.5, 0.0, 0.0)) is None
+
     def test_kinematic_model_protocol_recognises_runtime_implementations(self):
         from director_ai.core.cyber_physical.kinematics import KinematicModel
 
@@ -376,6 +448,29 @@ class TestConstraints:
         action = PhysicalAction(actuator_id="arm", target_position=Vec3(1.0, 0.0, 0.0))
         assert c.evaluate(action, self._model()) is not None
 
+    def test_spatial_constraint_allows_clear_target(self):
+        box = AABB(min_corner=Vec3(4.0, 4.0, 4.0), max_corner=Vec3(5.0, 5.0, 5.0))
+        c = SpatialConstraint(name="remote_fixture", obstacles_aabb=(box,))
+        action = PhysicalAction(actuator_id="arm", target_position=Vec3(1.0, 0.0, 0.0))
+
+        assert c.evaluate(action, self._model()) is None
+
+    def test_constraint_names_must_be_non_empty(self):
+        box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
+        envelope = AABB(
+            min_corner=Vec3(-1.0, -1.0, -1.0),
+            max_corner=Vec3(1.0, 1.0, 1.0),
+        )
+
+        with pytest.raises(ValueError, match="SpatialConstraint.name"):
+            SpatialConstraint(name="", obstacles_aabb=(box,))
+        with pytest.raises(ValueError, match="WorkspaceConstraint.name"):
+            WorkspaceConstraint(name="", envelope=envelope)
+        with pytest.raises(ValueError, match="VelocityConstraint.name"):
+            VelocityConstraint(name="", max_velocity=1.0)
+        with pytest.raises(ValueError, match="TorqueConstraint.name"):
+            TorqueConstraint(name="", max_torque=1.0)
+
     def test_spatial_no_obstacle(self):
         with pytest.raises(ValueError, match="obstacle"):
             SpatialConstraint(name="empty")
@@ -410,6 +505,16 @@ class TestConstraints:
         reason = c.evaluate(action, self._model())
         assert reason is not None
         assert "torque" in reason
+
+    def test_torque_allows_within_limit(self):
+        c = TorqueConstraint(name="motor", max_torque=5.0)
+        action = PhysicalAction(
+            actuator_id="arm",
+            target_position=Vec3(1.0, 0.0, 0.0),
+            torque_magnitude=4.5,
+        )
+
+        assert c.evaluate(action, self._model()) is None
 
     def test_negative_velocity_constraint_rejected(self):
         with pytest.raises(ValueError, match="max_velocity"):

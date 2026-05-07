@@ -36,11 +36,13 @@ def _license_env(monkeypatch):
     monkeypatch.delenv("DIRECTOR_LICENSE_FILE", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_ORG_ID", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_ACCESS_TOKEN", raising=False)
+    monkeypatch.delenv("POLAR_ACCESS_TOKEN", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_ACTIVATION_ID", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_BENEFIT_ID", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_CONDITIONS", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_CUSTOMER_ID", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_INCREMENT_USAGE", raising=False)
+    monkeypatch.delenv("DIRECTOR_AI_POLAR_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_VALIDATE_URL", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_DEFAULT_TIER", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_BENEFIT_TIERS", raising=False)
@@ -252,3 +254,330 @@ def test_polar_missing_org_is_rejected(monkeypatch):
     assert not info.valid
     assert "ORG_ID" in info.message
     assert post.called is False
+
+
+def test_polar_blank_key_is_rejected_before_network(monkeypatch):
+    post = SimpleNamespace(called=False)
+
+    def fake_post(*args, **kwargs):
+        post.called = True
+        return _Response(200, {"status": "granted"})
+
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    info = validate_polar_key("  ", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert not info.valid
+    assert "No Polar license key" in info.message
+    assert post.called is False
+
+
+def test_polar_increment_usage_must_be_integer(monkeypatch):
+    post = SimpleNamespace(called=False)
+
+    def fake_post(*args, **kwargs):
+        post.called = True
+        return _Response(200, {"status": "granted"})
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_INCREMENT_USAGE", "one")
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    info = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert not info.valid
+    assert "INCREMENT_USAGE must be int" in info.message
+    assert post.called is False
+
+
+def test_polar_http_statuses_return_actionable_messages(monkeypatch):
+    responses = iter(
+        [
+            _Response(404, {}),
+            _Response(422, {}),
+            _Response(500, {}),
+        ]
+    )
+    monkeypatch.setattr(
+        "director_ai.core.polar_license.requests.post",
+        lambda *args, **kwargs: next(responses),
+    )
+
+    missing = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+    rejected = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+    failed = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert missing.message == "Polar license key not found"
+    assert rejected.message == "Polar license validation request rejected"
+    assert failed.message == "Polar validation failed with HTTP 500"
+
+
+def test_polar_invalid_payload_shape_is_rejected(monkeypatch):
+    monkeypatch.setattr(
+        "director_ai.core.polar_license.requests.post",
+        lambda *args, **kwargs: _Response(200, ["granted"]),
+    )
+
+    info = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert not info.valid
+    assert info.message == "Polar validation returned invalid payload"
+
+
+def test_polar_network_request_exception_is_reported(monkeypatch):
+    def raise_connection_error(*args, **kwargs):
+        raise requests.ConnectionError("offline")
+
+    monkeypatch.setattr(
+        "director_ai.core.polar_license.requests.post",
+        raise_connection_error,
+    )
+
+    info = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert not info.valid
+    assert "Polar validation unavailable: offline" in info.message
+
+
+@pytest.mark.parametrize(
+    ("conditions", "message"),
+    [
+        ("{", "must be JSON"),
+        (json.dumps({f"k{i}": i for i in range(51)}), "at most 50 entries"),
+        (json.dumps({"x" * 41: 1}), "keys must be strings up to 40 characters"),
+        (json.dumps({"nested": {"bad": True}}), "values must be scalar"),
+        (json.dumps({"long": "x" * 501}), "string condition values"),
+    ],
+)
+def test_polar_condition_validation_rejects_bad_policy_inputs(
+    monkeypatch, conditions, message
+):
+    post = SimpleNamespace(called=False)
+
+    def fake_post(*args, **kwargs):
+        post.called = True
+        return _Response(200, {"status": "granted"})
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_CONDITIONS", conditions)
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    info = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert not info.valid
+    assert message in info.message
+    assert post.called is False
+
+
+def test_polar_timeout_env_and_explicit_endpoint_without_auth_header(monkeypatch):
+    captured = {}
+
+    def fake_post(url, *, json, timeout):
+        captured["url"] = url
+        captured["json"] = json
+        captured["timeout"] = timeout
+        return _Response(
+            200,
+            {
+                "status": "granted",
+                "expires_at": "",
+                "metadata": {"license_tier": "pro"},
+            },
+        )
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_ACCESS_TOKEN", "ignored-for-portal")
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_TIMEOUT_SECONDS", "0.01")
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    info = validate_polar_key(
+        "polar-key",
+        "550e8400-e29b-41d4-a716-446655440000",
+        endpoint="https://api.polar.sh/v1/customer-portal/license-keys/validate/",
+    )
+
+    assert info.valid
+    assert info.tier == "pro"
+    assert captured["timeout"] == 0.1
+    assert captured["url"].endswith("/validate/")
+
+
+def test_polar_invalid_timeout_env_falls_back_to_default(monkeypatch):
+    captured = {}
+
+    def fake_post(url, *, json, timeout):
+        captured["timeout"] = timeout
+        return _Response(
+            200,
+            {"status": "granted", "metadata": {"director_ai_tier": "indie"}},
+        )
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_TIMEOUT_SECONDS", "slow")
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    info = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert info.valid
+    assert captured["timeout"] == 5.0
+
+
+def test_polar_explicit_validate_url_and_legacy_token_use_server_auth(monkeypatch):
+    captured = {}
+
+    def fake_post(url, *, json, timeout, headers):
+        captured["url"] = url
+        captured["headers"] = headers
+        return _Response(
+            200,
+            {"status": "granted", "metadata": {"director_ai_tier": "pro"}},
+        )
+
+    monkeypatch.setenv("POLAR_ACCESS_TOKEN", "legacy-token")
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_VALIDATE_URL", "https://polar.internal/keys")
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    info = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert info.valid
+    assert captured == {
+        "url": "https://polar.internal/keys",
+        "headers": {"Authorization": "Bearer legacy-token"},
+    }
+
+
+def test_polar_expired_and_malformed_expiry_are_invalid(monkeypatch):
+    responses = iter(
+        [
+            _Response(
+                200,
+                {
+                    "status": "granted",
+                    "expires_at": "2000-01-01T00:00:00",
+                    "metadata": {"director_ai_tier": "pro"},
+                },
+            ),
+            _Response(
+                200,
+                {
+                    "status": "granted",
+                    "expires_at": "not-a-date",
+                    "metadata": {"director_ai_tier": "pro"},
+                },
+            ),
+        ]
+    )
+    monkeypatch.setattr(
+        "director_ai.core.polar_license.requests.post",
+        lambda *args, **kwargs: next(responses),
+    )
+
+    expired = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+    malformed = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert not expired.valid
+    assert "expired on 2000-01-01T00:00:00" in expired.message
+    assert not malformed.valid
+    assert "expired on not-a-date" in malformed.message
+
+
+def test_polar_unknown_tier_is_rejected(monkeypatch):
+    monkeypatch.setattr(
+        "director_ai.core.polar_license.requests.post",
+        lambda *args, **kwargs: _Response(
+            200,
+            {
+                "status": "granted",
+                "metadata": {"tier": "galactic"},
+            },
+        ),
+    )
+
+    info = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert not info.valid
+    assert info.message == "Unknown Polar license tier: galactic"
+
+
+def test_polar_tier_resolution_uses_customer_metadata_key_prefix_and_default(
+    monkeypatch,
+):
+    responses = iter(
+        [
+            _Response(
+                200,
+                {
+                    "status": "granted",
+                    "customer": {"metadata": {"license_tier": "enterprise"}},
+                    "limit_activations": "unlimited",
+                },
+            ),
+            _Response(200, {"status": "granted"}),
+            _Response(200, {"status": "granted"}),
+        ]
+    )
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_DEFAULT_TIER", "pro")
+    monkeypatch.setattr(
+        "director_ai.core.polar_license.requests.post",
+        lambda *args, **kwargs: next(responses),
+    )
+
+    customer_metadata = validate_polar_key(
+        "polar-key", "550e8400-e29b-41d4-a716-446655440000"
+    )
+    key_prefix = validate_polar_key(
+        "DAI-INDIE-abc123", "550e8400-e29b-41d4-a716-446655440000"
+    )
+    default = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert customer_metadata.valid
+    assert customer_metadata.tier == "enterprise"
+    assert customer_metadata.deployments == 0
+    assert key_prefix.valid
+    assert key_prefix.tier == "indie"
+    assert default.valid
+    assert default.tier == "pro"
+
+
+def test_polar_benefit_map_skips_blank_and_malformed_entries(monkeypatch):
+    monkeypatch.setenv(
+        "DIRECTOR_AI_POLAR_BENEFIT_TIERS",
+        " , malformed, ignored:indie, benefit-pro:pro",
+    )
+    monkeypatch.setattr(
+        "director_ai.core.polar_license.requests.post",
+        lambda *args, **kwargs: _Response(
+            200,
+            {
+                "status": "granted",
+                "benefit_id": "benefit-pro",
+            },
+        ),
+    )
+
+    info = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert info.valid
+    assert info.tier == "pro"
+
+
+def test_polar_benefit_map_falls_back_when_unconfigured_or_unmatched(monkeypatch):
+    responses = iter(
+        [
+            _Response(200, {"status": "granted", "benefit_id": "benefit-pro"}),
+            _Response(200, {"status": "granted", "benefit_id": "benefit-pro"}),
+        ]
+    )
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_DEFAULT_TIER", "enterprise")
+    monkeypatch.setattr(
+        "director_ai.core.polar_license.requests.post",
+        lambda *args, **kwargs: next(responses),
+    )
+
+    unconfigured = validate_polar_key(
+        "polar-key", "550e8400-e29b-41d4-a716-446655440000"
+    )
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_BENEFIT_TIERS", "other=pro")
+    unmatched = validate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+
+    assert unconfigured.valid
+    assert unconfigured.tier == "enterprise"
+    assert unmatched.valid
+    assert unmatched.tier == "enterprise"

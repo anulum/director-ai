@@ -27,6 +27,35 @@ from director_ai.core.meta_classifier import (
 )
 
 
+class _IdentityScaler:
+    def transform(self, x):
+        self.last_x = x
+        return x
+
+
+class _DeterministicClassifier:
+    def __init__(self, *, probabilities, prediction=1):
+        self.probabilities = np.array(probabilities, dtype=float)
+        self.prediction = prediction
+        self.last_proba_x = None
+        self.last_predict_x = None
+
+    def predict_proba(self, x):
+        self.last_proba_x = x
+        return np.array([self.probabilities], dtype=float)
+
+    def predict(self, x):
+        self.last_predict_x = x
+        return np.array([self.prediction])
+
+
+def _write_bundle(tmp_path, bundle):
+    path = tmp_path / "meta_bundle.pkl"
+    with open(path, "wb") as f:
+        pickle.dump(bundle, f)
+    return str(path)
+
+
 class TestExtractFeatures:
     def test_all_keys_present(self):
         feat = extract_features("The sky is blue.", "Blue sky.", 0.8, 0.9)
@@ -152,6 +181,148 @@ def _make_dataset_type_bundle(tmp_path):
 
 
 class TestDatasetTypeClassifier:
+    def test_invalid_bundle_rejected_with_path_context(self, tmp_path):
+        path = _write_bundle(tmp_path, {"scaler": _IdentityScaler()})
+
+        with pytest.raises(ValueError, match="missing 'classifier' key") as exc_info:
+            DatasetTypeClassifier(path)
+
+        assert path in str(exc_info.value)
+
+    def test_binary_predict_uses_configured_feature_columns_and_probability(
+        self,
+        tmp_path,
+    ):
+        scaler = _IdentityScaler()
+        classifier = _DeterministicClassifier(probabilities=[0.25, 0.75], prediction=1)
+        path = _write_bundle(
+            tmp_path,
+            {
+                "classifier": classifier,
+                "scaler": scaler,
+                "feature_cols": ["nli_score", "confidence", "chunk_count"],
+            },
+        )
+
+        runtime = DatasetTypeClassifier(path)
+        supported, probability = runtime.predict(
+            "Alice verified the claim.",
+            "Alice verified the claim?",
+            nli_score=0.91,
+            confidence=0.84,
+            chunk_count=3,
+        )
+
+        assert supported is True
+        assert probability == pytest.approx(0.75)
+        assert runtime._scaler.last_x.tolist() == [[0.91, 0.84, 3]]
+        assert runtime._clf.last_proba_x.tolist() == [[0.91, 0.84, 3]]
+        assert runtime._clf.last_predict_x.tolist() == [[0.91, 0.84, 3]]
+
+    def test_binary_predict_returns_false_for_negative_prediction(self, tmp_path):
+        path = _write_bundle(
+            tmp_path,
+            {
+                "classifier": _DeterministicClassifier(
+                    probabilities=[0.8, 0.2],
+                    prediction=0,
+                ),
+                "scaler": _IdentityScaler(),
+                "feature_cols": ["nli_score", "confidence"],
+                "mode": "binary",
+            },
+        )
+
+        supported, probability = DatasetTypeClassifier(path).predict(
+            "The answer is unsupported.",
+            "The answer is supported.",
+            nli_score=0.2,
+            confidence=0.6,
+        )
+
+        assert supported is False
+        assert probability == pytest.approx(0.2)
+
+    def test_dataset_threshold_returns_named_threshold_and_confidence(self, tmp_path):
+        path = _write_bundle(
+            tmp_path,
+            {
+                "classifier": _DeterministicClassifier(
+                    probabilities=[0.1, 0.7, 0.2],
+                    prediction=1,
+                ),
+                "scaler": _IdentityScaler(),
+                "feature_cols": ["premise_len", "hypothesis_len"],
+                "mode": "dataset_type",
+                "label_names": ["fact", "legal", "medical"],
+                "dataset_thresholds": {"legal": 0.62, "medical": 0.58},
+                "confidence_gate": 0.5,
+            },
+        )
+
+        threshold, confidence = DatasetTypeClassifier(path).predict_threshold(
+            "A" * 40,
+            "B" * 10,
+        )
+
+        assert threshold == pytest.approx(0.62)
+        assert confidence == pytest.approx(0.7)
+
+    def test_dataset_threshold_without_label_names_falls_back_with_confidence(
+        self,
+        tmp_path,
+    ):
+        path = _write_bundle(
+            tmp_path,
+            {
+                "classifier": _DeterministicClassifier(
+                    probabilities=[0.6, 0.4],
+                    prediction=0,
+                ),
+                "scaler": _IdentityScaler(),
+                "feature_cols": ["premise_len", "hypothesis_len"],
+                "mode": "dataset_type",
+                "dataset_thresholds": {"fact": 0.7},
+                "confidence_gate": 0.5,
+            },
+        )
+
+        threshold, confidence = DatasetTypeClassifier(path).predict_threshold(
+            "premise",
+            "hypothesis",
+        )
+
+        assert threshold is None
+        assert confidence == pytest.approx(0.6)
+
+    def test_dataset_threshold_missing_dataset_name_returns_none_with_confidence(
+        self,
+        tmp_path,
+    ):
+        path = _write_bundle(
+            tmp_path,
+            {
+                "classifier": _DeterministicClassifier(
+                    probabilities=[0.2, 0.8],
+                    prediction=1,
+                ),
+                "scaler": _IdentityScaler(),
+                "feature_cols": ["premise_len", "hypothesis_len"],
+                "mode": "dataset_type",
+                "label_names": ["known", "unknown"],
+                "dataset_thresholds": {"known": 0.7},
+                "confidence_gate": 0.5,
+            },
+        )
+
+        threshold, confidence = DatasetTypeClassifier(path).predict_threshold(
+            "premise",
+            "hypothesis",
+        )
+
+        assert threshold is None
+        assert confidence == pytest.approx(0.8)
+
     def test_binary_predict(self, tmp_path):
         path = _make_binary_bundle(tmp_path)
         clf = DatasetTypeClassifier(path)
