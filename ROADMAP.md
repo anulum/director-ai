@@ -359,13 +359,13 @@ Last updated: 2026-04-30
   stale-knowledge, and feedback-retuning alerts.
 - [x] Add a one-click retune action in the UI that rebuilds threshold guidance
   from recent labelled feedback.
-- [ ] Publish a halt recovery patterns cookbook covering KB refresh, threshold
+- [x] Publish a halt recovery patterns cookbook covering KB refresh, threshold
   rollback, human review routing, and temporary policy fallback.
-- [ ] Add configurable `partial_output_on_halt` handling for JSON, tool-call, and
+- [x] Add configurable `partial_output_on_halt` handling for JSON, tool-call, and
   reasoning-chain streams.
-- [ ] Emit the last valid structured chunk plus a `halted_at` marker so downstream
+- [x] Emit the last valid structured chunk plus a `halted_at` marker so downstream
   parsers can recover cleanly from mid-stream halts.
-- [ ] Add structured-stream recovery tests for JSON objects, arrays, tool calls,
+- [x] Add structured-stream recovery tests for JSON objects, arrays, tool calls,
   nested tool arguments, and reasoning-chain envelopes.
 
 ### Benchmark Transparency and External Validation (Planned)
