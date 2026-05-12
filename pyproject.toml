@@ -94,6 +94,9 @@ grpc = [
 physical = [
     "mujoco>=3.2,<4",
 ]
+formal = [
+    "z3-solver>=4.12,<5",
+]
 finetune = [
     "torch>=2.8,<3",
     "transformers>=5.0.0rc3,<6",

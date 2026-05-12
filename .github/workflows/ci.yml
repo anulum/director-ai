@@ -116,6 +116,10 @@ jobs:
         extras:
           - "dev,server"
           - "dev,grpc"
+          - "dev,faiss"
+          - "dev,rust"
+          - "dev,formal"
+          - "dev,finetune,train,managed-training"
           - "dev,openai,anthropic"
           - "dev,langchain"
           - "dev,llamaindex"
@@ -137,28 +141,109 @@ jobs:
         run: python -c "import director_ai; assert director_ai.__version__"
 
       - name: Extras-specific import check
+        env:
+          EXTRAS: ${{ matrix.extras }}
         run: |
-          if echo "${{ matrix.extras }}" | grep -q "server"; then
-            python -c "from director_ai.server import create_app; print('server OK')"
-          fi
-          if echo "${{ matrix.extras }}" | grep -q "grpc"; then
-            python -c "from director_ai.grpc_server import create_grpc_server; print('grpc OK')"
-          fi
-          if echo "${{ matrix.extras }}" | grep -q "openai"; then
-            python -c "import openai; print('openai OK')"
-          fi
-          if echo "${{ matrix.extras }}" | grep -q "anthropic"; then
-            python -c "import anthropic; print('anthropic OK')"
-          fi
-          if echo "${{ matrix.extras }}" | grep -q "langchain"; then
-            python -c "import langchain_core; print('langchain OK')"
-          fi
-          if echo "${{ matrix.extras }}" | grep -q "llamaindex"; then
-            python -c "import llama_index.core; print('llamaindex OK')"
-          fi
-          if echo "${{ matrix.extras }}" | grep -q "voice"; then
-            python -c "from director_ai.voice import AsyncVoiceGuard, TTSAdapter; print('voice OK')"
-          fi
+          python - <<'PY'
+          import importlib
+          import os
+
+          extras = set(os.environ["EXTRAS"].split(","))
+
+          if "server" in extras:
+              from director_ai.server import create_app
+
+              assert create_app
+              print("server OK")
+          if "grpc" in extras:
+              from director_ai.grpc_server import create_grpc_server
+
+              assert create_grpc_server
+              print("grpc OK")
+          if "faiss" in extras:
+              import faiss
+              from director_ai.core.retrieval.vector_store import FAISSBackend
+
+              assert faiss
+              assert FAISSBackend
+              print("faiss OK")
+          if "rust" in extras:
+              import backfire_kernel
+              from director_ai.core.scoring.backends import RustBackend
+
+              assert backfire_kernel
+              RustBackend()
+              print("rust OK")
+          if "formal" in extras:
+              import z3
+              from director_ai.core.formal_verification import (
+                  ReasoningStep,
+                  ReasoningVerifier,
+                  Variable,
+                  Z3Backend,
+              )
+
+              assert z3
+              ReasoningVerifier(backend=Z3Backend.from_z3()).verify(
+                  [ReasoningStep("p", Variable("p"))]
+              )
+              print("formal OK")
+          if "finetune" in extras:
+              import accelerate
+              import datasets
+              import sklearn
+              import torch
+              import transformers
+              from director_ai.core.training.finetune import FinetuneConfig
+
+              assert accelerate and datasets and sklearn and torch and transformers
+              assert FinetuneConfig
+              print("finetune OK")
+          if "train" in extras:
+              import accelerate
+              import datasets
+              import peft
+              import transformers
+              from director_ai.core.training.finetune_benchmark import (
+                  benchmark_finetuned_model,
+              )
+
+              assert accelerate and datasets and peft and transformers
+              assert benchmark_finetuned_model
+              print("train OK")
+          if "managed-training" in extras:
+              importlib.import_module("google.cloud.aiplatform")
+              importlib.import_module("google.cloud.storage")
+              from director_ai.core.training.jobs import TrainingJobSpec
+
+              assert TrainingJobSpec
+              print("managed-training OK")
+          if "openai" in extras:
+              import openai
+
+              assert openai
+              print("openai OK")
+          if "anthropic" in extras:
+              import anthropic
+
+              assert anthropic
+              print("anthropic OK")
+          if "langchain" in extras:
+              import langchain_core
+
+              assert langchain_core
+              print("langchain OK")
+          if "llamaindex" in extras:
+              import llama_index.core
+
+              assert llama_index.core
+              print("llamaindex OK")
+          if "voice" in extras:
+              from director_ai.voice import AsyncVoiceGuard, TTSAdapter
+
+              assert AsyncVoiceGuard and TTSAdapter
+              print("voice OK")
+          PY
 
       - name: Run tests with coverage
         run: |
