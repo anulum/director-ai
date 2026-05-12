@@ -75,6 +75,7 @@ class TestProductionMode:
         cfg = DirectorConfig(
             production_mode=True,
             api_keys='["sk-test"]',
+            llm_api_url="https://llm.internal.example/v1",
         )
         assert cfg.production_mode is True
 
@@ -82,6 +83,7 @@ class TestProductionMode:
         cfg = DirectorConfig(
             production_mode=True,
             api_key_tenant_map='{"sk-test": "tenant1"}',
+            llm_api_url="https://llm.internal.example/v1",
         )
         assert cfg.production_mode is True
 
@@ -90,6 +92,7 @@ class TestProductionMode:
 
         os.environ["DIRECTOR_PRODUCTION_MODE"] = "true"
         os.environ["DIRECTOR_API_KEYS"] = '["sk-env"]'
+        os.environ["DIRECTOR_LLM_API_URL"] = "https://llm.internal.example/v1"
         try:
             cfg = DirectorConfig.from_env()
             assert cfg.production_mode is True
@@ -98,6 +101,7 @@ class TestProductionMode:
         finally:
             os.environ.pop("DIRECTOR_PRODUCTION_MODE", None)
             os.environ.pop("DIRECTOR_API_KEYS", None)
+            os.environ.pop("DIRECTOR_LLM_API_URL", None)
 
 
 # ── Combined ───────────────────────────────────────────────────────────
@@ -110,6 +114,7 @@ class TestCombined:
             dry_run=True,
             production_mode=True,
             api_keys='["sk-test"]',
+            llm_api_url="https://llm.internal.example/v1",
         )
         assert cfg.dry_run is True
         assert cfg.production_mode is True

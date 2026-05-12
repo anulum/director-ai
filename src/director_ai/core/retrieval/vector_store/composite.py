@@ -194,6 +194,7 @@ class RerankedBackend(VectorBackend):
         self,
         base: VectorBackend,
         reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
+        reranker_revision: str | None = None,
         top_k_multiplier: int = 3,
     ) -> None:
         if base is None:
@@ -218,7 +219,11 @@ class RerankedBackend(VectorBackend):
 
         device = select_torch_device()
         try:
-            self._reranker = CrossEncoder(reranker_model, device=device)
+            self._reranker = CrossEncoder(
+                reranker_model,
+                device=device,
+                revision=reranker_revision,
+            )
         except RuntimeError as exc:
             if device == "cpu" or not _is_cuda_oom(exc):
                 raise
@@ -227,7 +232,11 @@ class RerankedBackend(VectorBackend):
                 reranker_model,
             )
             release_torch_cuda()
-            self._reranker = CrossEncoder(reranker_model, device="cpu")
+            self._reranker = CrossEncoder(
+                reranker_model,
+                device="cpu",
+                revision=reranker_revision,
+            )
 
     def add(
         self,

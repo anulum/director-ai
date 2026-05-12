@@ -60,7 +60,11 @@ class TestLocalJudgeInit:
                 llm_judge_provider="local",
                 llm_judge_model="some/model",
             )
-            mock_init.assert_called_once_with("some/model", None)
+            mock_init.assert_called_once_with(
+                "some/model",
+                None,
+                model_revision=None,
+            )
 
 
 # ── Lines 285-287: close() and __del__() ─────────────────────────────────────

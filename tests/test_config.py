@@ -328,6 +328,48 @@ class TestBuildStore:
         cfg = DirectorConfig(reranker_enabled=True)
         store = cfg.build_store()
         assert isinstance(store.backend, RerankedBackend)
+        mock_module.CrossEncoder.assert_called_once_with(
+            cfg.reranker_model,
+            device="cpu",
+            revision=cfg.reranker_model_revision,
+        )
+
+    def test_build_store_skips_unavailable_reranker_outside_production(
+        self, monkeypatch
+    ):
+        from unittest.mock import MagicMock
+
+        mock_module = MagicMock()
+        mock_module.CrossEncoder = MagicMock(side_effect=FileNotFoundError("missing"))
+        monkeypatch.setitem(
+            __import__("sys").modules,
+            "sentence_transformers",
+            mock_module,
+        )
+
+        cfg = DirectorConfig(reranker_enabled=True, production_mode=False)
+        store = cfg.build_store()
+        assert store.backend.__class__.__name__ != "RerankedBackend"
+
+    def test_build_store_fails_unavailable_reranker_in_production(self, monkeypatch):
+        from unittest.mock import MagicMock
+
+        mock_module = MagicMock()
+        mock_module.CrossEncoder = MagicMock(side_effect=FileNotFoundError("missing"))
+        monkeypatch.setitem(
+            __import__("sys").modules,
+            "sentence_transformers",
+            mock_module,
+        )
+
+        cfg = DirectorConfig(
+            reranker_enabled=True,
+            production_mode=True,
+            api_keys=("test-key",),
+            llm_api_url="https://llm.internal.example/v1",
+        )
+        with pytest.raises(RuntimeError, match="reranker model could not load"):
+            cfg.build_store()
 
     def test_build_store_sentence_transformer_backend(self, monkeypatch):
         from unittest.mock import MagicMock

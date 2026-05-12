@@ -30,6 +30,33 @@ class TestDirectorAITool:
         result = tool._run("The sky is blue.")
         assert "Coherence:" in result
 
+    def test_run_without_pipe_scores_claim_as_query_context(self, monkeypatch):
+        tool = DirectorAITool(use_nli=False)
+        seen: dict[str, str] = {}
+
+        def fake_review(query: str, claim: str):
+            seen["query"] = query
+            seen["claim"] = claim
+            return True, type(
+                "Score",
+                (),
+                {
+                    "warning": False,
+                    "score": 1.0,
+                    "h_logical": 0.0,
+                    "h_factual": 0.0,
+                },
+            )()
+
+        monkeypatch.setattr(tool.scorer, "review", fake_review)
+        result = tool._run("The sky is blue.")
+
+        assert "APPROVED" in result
+        assert seen == {
+            "query": "The sky is blue.",
+            "claim": "The sky is blue.",
+        }
+
     def test_run_rejected(self):
         tool = DirectorAITool(
             facts={"sky color": "The sky is blue."},

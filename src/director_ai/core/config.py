@@ -842,11 +842,16 @@ class DirectorConfig:
                 backend = RerankedBackend(
                     base=backend,
                     reranker_model=self.reranker_model,
+                    reranker_revision=self.reranker_model_revision or None,
                     top_k_multiplier=self.reranker_top_k_multiplier,
                 )
                 logger.info("Cross-encoder reranker enabled: %s", self.reranker_model)
-            except ImportError:
-                logger.warning("sentence-transformers not installed, skipping reranker")
+            except (ImportError, OSError) as exc:
+                if self.production_mode or self.hardened:
+                    raise RuntimeError(
+                        "reranker_enabled=True but the reranker model could not load",
+                    ) from exc
+                logger.warning("Reranker unavailable, skipping reranker: %s", exc)
 
         if self.parent_child_enabled:
             from .retrieval.parent_child import ParentChildBackend

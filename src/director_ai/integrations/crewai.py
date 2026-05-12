@@ -62,8 +62,8 @@ class DirectorAITool:
         if "|" in input_text:
             query, claim = input_text.split("|", 1)
         else:
-            query = ""
             claim = input_text
+            query = claim
 
         approved, cs = self.scorer.review(query.strip(), claim.strip())
 
