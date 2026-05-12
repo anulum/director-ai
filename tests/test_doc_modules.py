@@ -176,6 +176,19 @@ class TestChunker:
 
 
 class TestParser:
+    @pytest.mark.parametrize(
+        ("content", "filename", "message"),
+        [
+            ("not bytes", "test.txt", "content"),
+            (b"content", "", "filename"),
+            (b"content", "   ", "filename"),
+            (b"content", None, "filename"),
+        ],
+    )
+    def test_parse_rejects_invalid_inputs(self, content, filename, message):
+        with pytest.raises(ValueError, match=message):
+            parse(content, filename)
+
     def test_txt(self):
         assert parse(b"Hello world", "test.txt") == "Hello world"
 

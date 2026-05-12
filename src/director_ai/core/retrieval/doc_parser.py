@@ -24,7 +24,17 @@ logger = logging.getLogger("DirectorAI.DocParser")
 
 def parse(content: bytes, filename: str) -> str:
     """Parse file content to plain text based on filename extension."""
-    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if not isinstance(content, bytes):
+        raise ValueError("content must be bytes")
+    if not isinstance(filename, str) or not filename.strip():
+        raise ValueError("filename must be a non-empty string")
+
+    normalized_filename = filename.strip()
+    ext = (
+        normalized_filename.rsplit(".", 1)[-1].lower()
+        if "." in normalized_filename
+        else ""
+    )
     parser = _PARSERS.get(ext, _parse_text)
     return parser(content)
 
