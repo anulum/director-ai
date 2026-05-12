@@ -131,24 +131,28 @@ jobs:
         with:
           python-version: "3.12"
 
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6
+
       - name: Install with extras
         run: |
-          pip install --require-hashes --no-deps -r requirements/ci-dev.txt
-          pip install --no-deps -e .
-          pip install -e ".[${{ matrix.extras }}]"
+          IFS=, read -ra EXTRA_NAMES <<< "${{ matrix.extras }}"
+          UV_EXTRAS=()
+          for extra in "${EXTRA_NAMES[@]}"; do
+            UV_EXTRAS+=(--extra "$extra")
+          done
+          uv sync --locked "${UV_EXTRAS[@]}"
           if [[ ",${{ matrix.extras }}," == *",rust,"* ]]; then
-            python -m pip install --upgrade maturin
-            python -m pip install --force-reinstall ./backfire-kernel/crates/backfire-ffi
+            uv pip install --python .venv/bin/python --force-reinstall ./backfire-kernel/crates/backfire-ffi
           fi
 
       - name: Import smoke test
-        run: python -c "import director_ai; assert director_ai.__version__"
+        run: uv run python -c "import director_ai; assert director_ai.__version__"
 
       - name: Extras-specific import check
         env:
           EXTRAS: ${{ matrix.extras }}
         run: |
-          python - <<'PY'
+          uv run python - <<'PY'
           import importlib
           import os
 
@@ -251,7 +255,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest tests/ -v --tb=short \
+          uv run pytest tests/ -v --tb=short \
             --cov=director_ai \
             --cov-report=term-missing \
             --cov-report=xml \
