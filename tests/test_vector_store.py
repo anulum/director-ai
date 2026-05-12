@@ -45,6 +45,13 @@ class TestInMemoryBackend:
         results = backend.query("anything")
         assert results == []
 
+    @pytest.mark.parametrize("n_results", [-1, 1.5, True])
+    def test_query_rejects_invalid_n_results(self, n_results):
+        backend = InMemoryBackend()
+        backend.add("doc1", "The sky is blue")
+        with pytest.raises(ValueError, match="n_results"):
+            backend.query("sky", n_results=n_results)
+
 
 @pytest.mark.consumer
 class TestVectorGroundTruthStore:

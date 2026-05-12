@@ -181,6 +181,13 @@ class InMemoryBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        if not isinstance(n_results, int) or isinstance(n_results, bool):
+            raise ValueError("n_results must be an integer")
+        if n_results < 0:
+            raise ValueError("n_results must be non-negative")
+        if n_results == 0:
+            return []
+
         with self._lock:
             snapshot = list(self._docs)
 
