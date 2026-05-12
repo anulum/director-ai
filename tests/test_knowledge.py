@@ -14,6 +14,8 @@ CoherenceScorer, and performance documentation.
 
 from __future__ import annotations
 
+import pytest
+
 from director_ai.core.knowledge import GroundTruthStore
 
 
@@ -95,3 +97,28 @@ class TestGroundTruthStore:
         result = store.retrieve_context("secret", tenant_id="acme")
         assert result is not None
         assert "tenant-only fact" in result
+
+    @pytest.mark.parametrize(
+        ("key", "value", "message"),
+        [
+            ("", "value", "key"),
+            ("   ", "value", "key"),
+            ("key", "", "value"),
+            ("key", "   ", "value"),
+        ],
+    )
+    def test_add_rejects_empty_fact_fields(self, key, value, message):
+        store = GroundTruthStore()
+        with pytest.raises(ValueError, match=message):
+            store.add(key, value)
+
+    @pytest.mark.parametrize("query", ["", "   "])
+    def test_retrieve_rejects_empty_query(self, query):
+        store = GroundTruthStore.with_demo_facts()
+        with pytest.raises(ValueError, match="query"):
+            store.retrieve_context(query)
+
+    def test_retrieve_rejects_negative_top_k(self):
+        store = GroundTruthStore.with_demo_facts()
+        with pytest.raises(ValueError, match="top_k"):
+            store.retrieve_context("sky", top_k=-1)

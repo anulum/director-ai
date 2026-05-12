@@ -33,8 +33,6 @@ class TestEmptyStore:
         "query",
         [
             "anything",
-            "",
-            "   ",
             "🎉",
             "a" * 10000,
         ],
@@ -43,6 +41,12 @@ class TestEmptyStore:
         store = GroundTruthStore()
         result = store.retrieve_context(query)
         assert result == "" or result is None
+
+    @pytest.mark.parametrize("query", ["", "   "])
+    def test_empty_store_rejects_empty_queries(self, query):
+        store = GroundTruthStore()
+        with pytest.raises(ValueError, match="query"):
+            store.retrieve_context(query)
 
 
 # ── Add and retrieve ───────────────────────────────────────────────
@@ -99,8 +103,8 @@ class TestEdgeCaseInputs:
     def test_empty_query(self):
         store = GroundTruthStore()
         store.add_fact("test", "test value")
-        result = store.retrieve_context("")
-        assert result is None or isinstance(result, str)
+        with pytest.raises(ValueError, match="query"):
+            store.retrieve_context("")
 
     def test_very_long_fact(self):
         store = GroundTruthStore()
@@ -123,10 +127,8 @@ class TestEdgeCaseInputs:
 
     def test_empty_fact_value(self):
         store = GroundTruthStore()
-        store.add_fact("empty", "")
-        # Should not crash
-        result = store.retrieve_context("empty")
-        assert result is None or isinstance(result, str)
+        with pytest.raises(ValueError, match="value"):
+            store.add_fact("empty", "")
 
 
 # ── Pipeline integration ──────────────────────────────────────────

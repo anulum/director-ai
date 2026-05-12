@@ -60,6 +60,9 @@ class GroundTruthStore:
         :class:`VectorGroundTruthStore.add` but ignored here — the
         keyword store keeps no structured metadata."""
         _ = metadata  # intentional no-op for LSP compat
+        key = _require_non_empty_string("key", key)
+        value = _require_non_empty_string("value", value)
+        tenant_id = tenant_id.strip()
         full_key = f"{tenant_id}:{key}" if tenant_id else key
         self.facts[full_key] = value
         self._bump_revision()
@@ -101,6 +104,10 @@ class GroundTruthStore:
         Returns a semicolon-separated context string, or ``None`` if
         no relevant facts are found.
         """
+        query = _require_non_empty_string("query", query)
+        tenant_id = tenant_id.strip()
+        if top_k < 0:
+            raise ValueError(f"top_k must be >= 0; got {top_k!r}")
         if not self.facts:
             self.logger.info(
                 "GroundTruthStore is empty — add facts via .add() "
@@ -136,3 +143,9 @@ class GroundTruthStore:
             return retrieved
 
         return None
+
+
+def _require_non_empty_string(name: str, value: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} must be a non-empty string")
+    return value.strip()
