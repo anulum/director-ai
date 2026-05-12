@@ -1395,6 +1395,11 @@ class CoherenceScorer:
         assert self._nli is not None  # guarded by nli_ok check above
         logic_pairs = [(items[i][0], items[i][1]) for i in batch_idx]
         h_logics = self._nli.score_batch(logic_pairs)
+        if len(h_logics) != len(logic_pairs):
+            raise RuntimeError(
+                "logical NLI batch returned "
+                f"{len(h_logics)} scores for {len(logic_pairs)} pairs",
+            )
 
         # Factual: retrieve KB context per item, batch NLI where possible
         h_facts: list[float] = []
@@ -1414,7 +1419,7 @@ class CoherenceScorer:
             if ctx and self._nli:
                 fact_pairs.append((ctx, items[i][1]))
                 fact_pair_map.append(pos)
-                h_facts.append(0.0)  # placeholder
+                h_facts.append(DIVERGENCE_NEUTRAL)
                 evidences.append(None)
             else:
                 h_facts.append(DIVERGENCE_NEUTRAL)
@@ -1422,6 +1427,11 @@ class CoherenceScorer:
 
         if fact_pairs:
             fact_scores = self._nli.score_batch(fact_pairs)
+            if len(fact_scores) != len(fact_pairs):
+                raise RuntimeError(
+                    "factual NLI batch returned "
+                    f"{len(fact_scores)} scores for {len(fact_pairs)} pairs",
+                )
             for j, fs in enumerate(fact_scores):
                 h_facts[fact_pair_map[j]] = fs
 

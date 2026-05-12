@@ -59,6 +59,10 @@ class TestDirectorConfig:
         d = cfg.to_dict()
         assert d["llm_api_key"] == ""
 
+    def test_production_mode_rejects_mock_llm_provider(self):
+        with pytest.raises(ValueError, match="production_mode requires a real LLM"):
+            DirectorConfig(production_mode=True, api_keys={"tenant-api-key"})
+
 
 class TestProfileLoading:
     """Tests for from_profile()."""

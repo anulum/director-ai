@@ -16,6 +16,53 @@ from director_ai.core import CoherenceScorer
 from director_ai.core.nli import NLIScorer
 
 
+class TestReviewBatchContracts:
+    def test_rejects_short_logical_batch(self):
+        from unittest.mock import MagicMock
+
+        import pytest
+
+        scorer = CoherenceScorer(threshold=0.5, use_nli=True)
+        mock_nli = MagicMock()
+        mock_nli.model_available = True
+        mock_nli.score_batch.return_value = [0.1]
+        scorer._nli = mock_nli
+
+        with pytest.raises(RuntimeError, match="logical NLI batch"):
+            scorer.review_batch(
+                [
+                    ("prompt one", "answer one"),
+                    ("prompt two", "answer two"),
+                ],
+            )
+
+    def test_rejects_short_factual_batch_instead_of_using_placeholder_score(self):
+        from unittest.mock import MagicMock
+
+        import pytest
+
+        scorer = CoherenceScorer(threshold=0.5, use_nli=True)
+        mock_nli = MagicMock()
+        mock_nli.model_available = True
+        mock_nli.score_batch.side_effect = [
+            [0.1, 0.1],
+            [0.2],
+        ]
+        scorer._nli = mock_nli
+
+        mock_store = MagicMock()
+        mock_store.retrieve_context.return_value = "verified context"
+        scorer.ground_truth_store = mock_store
+
+        with pytest.raises(RuntimeError, match="factual NLI batch"):
+            scorer.review_batch(
+                [
+                    ("prompt one", "grounded answer one"),
+                    ("prompt two", "grounded answer two"),
+                ],
+            )
+
+
 class TestScorerBackendForwarding:
     def test_default_backend_is_deberta(self):
         scorer = CoherenceScorer(threshold=0.5, use_nli=False)

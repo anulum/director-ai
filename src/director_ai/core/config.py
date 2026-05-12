@@ -438,6 +438,12 @@ class DirectorConfig:
                 raise ValueError(
                     "production_mode requires api_keys or api_key_tenant_map"
                 )
+            if not self.llm_api_url.strip() and self.llm_provider in {"", "mock"}:
+                raise ValueError(
+                    "production_mode requires a real LLM provider or llm_api_url"
+                )
+            if self.llm_provider == "local" and not self.llm_api_url.strip():
+                raise ValueError("production_mode local LLM requires llm_api_url")
             # Ruff S104 fires on the literal "0.0.0.0"; the host
             # value is compared, not bound, so assembling the
             # wildcard from parts keeps the check intact.
