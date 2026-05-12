@@ -37,6 +37,23 @@ def _make_backend(generator=None, **kwargs) -> HyDEBackend:
 
 
 class TestConstruction:
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"base": None}, "base"),
+            ({"generator": object()}, "generator"),
+            ({"template": ""}, "template"),
+            ({"template": "Question only"}, "template"),
+            ({"fallback_to_raw": "yes"}, "fallback_to_raw"),
+            ({"cache_ttl": -1.0}, "cache_ttl"),
+        ],
+    )
+    def test_rejects_invalid_constructor_values(self, kwargs, message):
+        base = kwargs.pop("base", InMemoryBackend())
+
+        with pytest.raises(ValueError, match=message):
+            HyDEBackend(base, **kwargs)
+
     def test_default_template(self):
         b = _make_backend()
         assert "{query}" in b._template

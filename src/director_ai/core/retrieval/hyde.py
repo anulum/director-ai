@@ -83,11 +83,25 @@ class HyDEBackend(VectorBackend):
         fallback_to_raw: bool = True,
         cache_ttl: float = 300.0,
     ) -> None:
+        if base is None:
+            raise ValueError("base backend is required")
+        if generator is not None and not callable(generator):
+            raise ValueError("generator must be callable")
+        if not isinstance(template, str) or not template.strip():
+            raise ValueError("template must be a non-empty string")
+        if "{query}" not in template:
+            raise ValueError("template must contain the {query} placeholder")
+        if not isinstance(fallback_to_raw, bool):
+            raise ValueError("fallback_to_raw must be a boolean")
+        if not isinstance(cache_ttl, int | float) or isinstance(cache_ttl, bool):
+            raise ValueError("cache_ttl must be numeric")
+        if cache_ttl < 0:
+            raise ValueError("cache_ttl must be non-negative")
         self._base = base
         self._generator = generator
-        self._template = template
+        self._template = template.strip()
         self._fallback_to_raw = fallback_to_raw
-        self._cache_ttl = cache_ttl
+        self._cache_ttl = float(cache_ttl)
         self._cache: dict[str, tuple[str, float]] = {}
 
     def add(
