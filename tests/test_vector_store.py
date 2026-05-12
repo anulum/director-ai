@@ -180,6 +180,18 @@ class TestVectorGroundTruthStore:
         with pytest.raises(ValueError, match="top_k"):
             store.retrieve_context("sky", top_k=-1)
 
+    @pytest.mark.parametrize("top_k", [1.5, True])
+    def test_retrieve_context_rejects_non_integer_top_k(self, top_k):
+        store = VectorGroundTruthStore()
+        store.add_fact("sky", "blue")
+        with pytest.raises(ValueError, match="top_k"):
+            store.retrieve_context("sky", top_k=top_k)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="top_k"):
+            store.retrieve_context_with_chunks(
+                "sky",
+                top_k=top_k,  # type: ignore[arg-type]
+            )
+
     def test_ingest_rejects_blank_documents(self):
         store = VectorGroundTruthStore()
         with pytest.raises(ValueError, match="texts"):

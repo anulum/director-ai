@@ -42,6 +42,14 @@ def _is_vector_backend_like(backend: object) -> bool:
     )
 
 
+def _require_non_negative_top_k(top_k: int) -> int:
+    if not isinstance(top_k, int) or isinstance(top_k, bool):
+        raise ValueError("top_k must be an integer")
+    if top_k < 0:
+        raise ValueError(f"top_k must be >= 0; got {top_k!r}")
+    return top_k
+
+
 class VectorGroundTruthStore(GroundTruthStore):
     """Ground truth store with vector-based semantic retrieval.
 
@@ -761,8 +769,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
         tenant_id = self._resolved_tenant_id(tenant_id)
         query = _require_non_empty_string("query", query)
-        if top_k < 0:
-            raise ValueError(f"top_k must be >= 0; got {top_k!r}")
+        top_k = _require_non_negative_top_k(top_k)
         with trace_vector_query() as span:
             start_time = time.monotonic()
             metrics.inc("knowledge_queries_total")
@@ -865,8 +872,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
         tenant_id = self._resolved_tenant_id(tenant_id)
         query = _require_non_empty_string("query", query)
-        if top_k < 0:
-            raise ValueError(f"top_k must be >= 0; got {top_k!r}")
+        top_k = _require_non_negative_top_k(top_k)
         with trace_vector_query() as span:
             start_time = time.monotonic()
             try:
