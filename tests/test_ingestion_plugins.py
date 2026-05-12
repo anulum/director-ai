@@ -388,6 +388,30 @@ class TestNotion:
         assert plugin._block_types == frozenset({"paragraph"})
         assert plugin._max_pages == 1
 
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"database_ids": ["db-1", ""]}, "database_ids"),
+            ({"include_block_types": []}, "include_block_types"),
+            ({"include_block_types": ["paragraph", " "]}, "include_block_types"),
+            ({"max_pages": 0}, "max_pages"),
+            ({"max_pages": -1}, "max_pages"),
+        ],
+    )
+    def test_rejects_invalid_optional_configuration(self, kwargs, message):
+        with pytest.raises(ValueError, match=message):
+            NotionPlugin(_FakeNotion(), **kwargs)
+
+    def test_normalizes_database_ids_and_block_types(self):
+        plugin = NotionPlugin(
+            _FakeNotion(),
+            database_ids=[" db-1 "],
+            include_block_types=[" paragraph "],
+        )
+
+        assert plugin._database_ids == ["db-1"]
+        assert plugin._block_types == frozenset({"paragraph"})
+
     def test_database_query_walks_pages_and_blocks(self):
         page_id = "page-1"
         pages = [

@@ -47,6 +47,18 @@ _TEXT_BLOCK_TYPES: frozenset[str] = frozenset(
 )
 
 
+def _normalize_optional_strings(
+    values: Iterable[str] | None,
+    field_name: str,
+) -> list[str]:
+    if values is None:
+        return []
+    normalized = list(values)
+    if any(not isinstance(value, str) or not value.strip() for value in normalized):
+        raise ValueError(f"{field_name} must contain non-empty strings")
+    return [value.strip() for value in normalized]
+
+
 class NotionPlugin(IngestionPlugin):
     """Notion workspace adapter.
 
@@ -77,10 +89,20 @@ class NotionPlugin(IngestionPlugin):
     ) -> None:
         if client is None:
             raise ValueError("client is required")
+        normalized_database_ids = _normalize_optional_strings(
+            database_ids, "database_ids"
+        )
+        normalized_block_types = _normalize_optional_strings(
+            include_block_types, "include_block_types"
+        )
+        if include_block_types is not None and not normalized_block_types:
+            raise ValueError("include_block_types must contain non-empty strings")
+        if max_pages is not None and max_pages <= 0:
+            raise ValueError("max_pages must be positive when provided")
         self._client = client
-        self._database_ids = list(database_ids) if database_ids else []
+        self._database_ids = normalized_database_ids
         self._block_types = frozenset(
-            include_block_types
+            normalized_block_types
             if include_block_types is not None
             else _TEXT_BLOCK_TYPES
         )
