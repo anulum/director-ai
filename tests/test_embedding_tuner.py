@@ -155,11 +155,16 @@ def _install_fake_training_stack(monkeypatch):
     sentence_transformers.losses = types.SimpleNamespace(
         CosineSimilarityLoss=FakeCosineSimilarityLoss
     )
+    sentence_transformers_losses = types.ModuleType("sentence_transformers.losses")
+    sentence_transformers_losses.CosineSimilarityLoss = FakeCosineSimilarityLoss
     torch = types.ModuleType("torch")
     torch_utils = types.ModuleType("torch.utils")
     torch_utils_data = types.ModuleType("torch.utils.data")
     torch_utils_data.DataLoader = FakeDataLoader
     monkeypatch.setitem(sys.modules, "sentence_transformers", sentence_transformers)
+    monkeypatch.setitem(
+        sys.modules, "sentence_transformers.losses", sentence_transformers_losses
+    )
     monkeypatch.setitem(sys.modules, "torch", torch)
     monkeypatch.setitem(sys.modules, "torch.utils", torch_utils)
     monkeypatch.setitem(sys.modules, "torch.utils.data", torch_utils_data)

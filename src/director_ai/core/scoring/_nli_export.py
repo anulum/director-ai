@@ -123,13 +123,13 @@ def export_onnx(
     ``NLIScorer(backend="onnx", onnx_path=<returned_dir>)``.
 
     """
+    if quantize not in {None, "int8", "fp16"}:
+        raise ValueError("quantize must be one of: None, 'int8', 'fp16'")
+
     import torch
     from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
     from .nli import _resolve_revision
-
-    if quantize not in {None, "int8", "fp16"}:
-        raise ValueError("quantize must be one of: None, 'int8', 'fp16'")
 
     rev = _resolve_revision(model_name, revision)
     output_path = Path(output_dir)

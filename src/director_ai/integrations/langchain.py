@@ -106,8 +106,8 @@ class DirectorAIGuard:
             query = input.get("query", input.get("input", ""))
             response = input.get("response", input.get("output", ""))
         else:
-            query = kwargs.get("query", "")
             response = str(input)
+            query = kwargs.get("query", response)
         return self.check(str(query), str(response))
 
     async def ainvoke(self, input: Any, **kwargs) -> dict[str, Any]:
@@ -116,6 +116,6 @@ class DirectorAIGuard:
             query = input.get("query", input.get("input", ""))
             response = input.get("response", input.get("output", ""))
         else:
-            query = kwargs.get("query", "")
             response = str(input)
+            query = kwargs.get("query", response)
         return await self.acheck(str(query), str(response))

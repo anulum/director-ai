@@ -107,7 +107,13 @@ class TestExportOnnx:
         )
         fake_torch.nn = SimpleNamespace(Module=object)
         fake_torch.onnx = SimpleNamespace(export=MagicMock())
+        fake_transformers = ModuleType("transformers")
+        fake_transformers.AutoTokenizer = SimpleNamespace(from_pretrained=MagicMock())
+        fake_transformers.AutoModelForSequenceClassification = SimpleNamespace(
+            from_pretrained=MagicMock()
+        )
         monkeypatch.setitem(sys.modules, "torch", fake_torch)
+        monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
 
         model = MagicMock()
         model.config.save_pretrained = MagicMock()
@@ -118,12 +124,14 @@ class TestExportOnnx:
         }
 
         with (
-            patch(
-                "transformers.AutoTokenizer.from_pretrained",
+            patch.object(
+                fake_transformers.AutoTokenizer,
+                "from_pretrained",
                 return_value=tokenizer,
             ) as tok_from_pretrained,
-            patch(
-                "transformers.AutoModelForSequenceClassification.from_pretrained",
+            patch.object(
+                fake_transformers.AutoModelForSequenceClassification,
+                "from_pretrained",
                 return_value=model,
             ) as model_from_pretrained,
         ):

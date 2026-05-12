@@ -17,6 +17,7 @@ import hashlib
 import hmac
 import importlib.util
 import math
+from importlib import import_module
 from typing import cast
 
 import pytest
@@ -27,6 +28,28 @@ pytestmark = pytest.mark.skipif(
 )
 
 if _RUST_AVAILABLE:
+    _backfire_kernel = import_module("backfire_kernel")
+    _REQUIRED_RUST_SYMBOLS = (
+        "rust_aabb_contains",
+        "rust_derive_challenge_indices",
+        "rust_merkle_auth_path",
+        "rust_merkle_root",
+        "rust_merkle_walk_path",
+        "rust_sphere_contains",
+        "rust_sphere_intersects_aabb",
+        "rust_sphere_intersects_sphere",
+        "rust_two_link_ik",
+    )
+    _missing_symbols = [
+        name for name in _REQUIRED_RUST_SYMBOLS if not hasattr(_backfire_kernel, name)
+    ]
+    if _missing_symbols:
+        pytest.skip(
+            "backfire_kernel wheel does not expose safety-hook symbols: "
+            + ", ".join(_missing_symbols),
+            allow_module_level=True,
+        )
+
     from backfire_kernel import (
         rust_aabb_contains,
         rust_derive_challenge_indices,

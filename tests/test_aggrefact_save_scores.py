@@ -17,14 +17,14 @@ import pytest
 
 pytest.importorskip("sklearn", reason="sklearn required for aggrefact_eval")
 
-sys.path.append(str(Path(__file__).parent.parent / "benchmarks"))
+sys.path.append(str(Path(__file__).parent.parent))
 
-from aggrefact_eval import score_and_save  # noqa: E402
+from benchmarks.aggrefact_eval import score_and_save  # noqa: E402
 
 
 class TestAggrefactSaveScores(unittest.TestCase):
-    @patch("aggrefact_eval._BinaryNLIPredictor")
-    @patch("aggrefact_eval._load_aggrefact")
+    @patch("benchmarks.aggrefact_eval._BinaryNLIPredictor")
+    @patch("benchmarks.aggrefact_eval._load_aggrefact")
     def test_score_and_save_includes_latencies(self, mock_load, mock_predictor_cls):
         # Setup mock dataset
         mock_load.return_value = [

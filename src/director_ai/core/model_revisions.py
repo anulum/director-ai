@@ -10,7 +10,6 @@
 from __future__ import annotations
 
 import re
-from pathlib import Path
 
 DEFAULT_NLI_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 DEFAULT_NLI_MODEL_REVISION = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
@@ -38,9 +37,7 @@ def _is_explicit_local_reference(model_name: str) -> bool:
         return False
     if value.startswith(_EXPLICIT_PATH_PREFIXES):
         return True
-    if _URI_SCHEME_RE.match(value):
-        return True
-    return Path(value).exists()
+    return bool(_URI_SCHEME_RE.match(value))
 
 
 def _requires_remote_revision(model_name: str) -> bool:

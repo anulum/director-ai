@@ -200,6 +200,7 @@ class TestSummarizationFactualDivergence:
         mock_nli = MagicMock()
         mock_nli.model_available = True
         mock_nli.score_chunked.return_value = (0.3, [])
+        mock_nli._score_chunked_with_counts.return_value = (0.3, [], 1, 0)
         mock_nli.score_claim_coverage_with_attribution.return_value = (
             0.8,
             [0.2, 0.3],
@@ -223,6 +224,7 @@ class TestSummarizationFactualDivergence:
         mock_nli = MagicMock()
         mock_nli.model_available = True
         mock_nli.score_chunked.return_value = (0.3, [])
+        mock_nli._score_chunked_with_counts.return_value = (0.3, [], 1, 0)
         scorer._nli = mock_nli
         scorer._claim_coverage_enabled = False
 
@@ -244,6 +246,7 @@ class TestSummarizationEvidenceAttribution:
         mock_nli = MagicMock()
         mock_nli.model_available = True
         mock_nli.score_chunked.return_value = (0.3, [])
+        mock_nli._score_chunked_with_counts.return_value = (0.3, [], 1, 0)
         mock_nli.score_claim_coverage_with_attribution.return_value = (
             0.7,
             [0.1, 0.2],

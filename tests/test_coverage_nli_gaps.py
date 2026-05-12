@@ -18,8 +18,9 @@ from __future__ import annotations
 import os
 import sys
 import types
+from contextlib import nullcontext
 from pathlib import Path
-from types import SimpleNamespace
+from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -305,31 +306,47 @@ def test_nli_available_returns_bool():
 
 
 class TestExportOnnx:
-    def _make_native_export_mocks(self):
-        import torch
-
+    def _make_native_export_mocks(self, monkeypatch):
+        fake_torch = ModuleType("torch")
+        fake_torch.long = object()
+        fake_torch.no_grad = MagicMock(return_value=nullcontext())
+        fake_torch.ones = MagicMock(
+            side_effect=lambda shape, dtype=None: {"shape": shape, "dtype": dtype},
+        )
+        fake_torch.nn = SimpleNamespace(Module=object)
+        fake_torch.onnx = SimpleNamespace(export=MagicMock())
+        fake_transformers = ModuleType("transformers")
+        fake_transformers.AutoTokenizer = SimpleNamespace(from_pretrained=MagicMock())
+        fake_transformers.AutoModelForSequenceClassification = SimpleNamespace(
+            from_pretrained=MagicMock()
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+        monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
         mock_model = MagicMock()
         mock_model.config.save_pretrained = MagicMock()
         mock_tokenizer = MagicMock()
         mock_tokenizer.return_value = {
-            "input_ids": torch.ones((1, 4), dtype=torch.long),
-            "attention_mask": torch.ones((1, 4), dtype=torch.long),
+            "input_ids": fake_torch.ones((1, 4), dtype=fake_torch.long),
+            "attention_mask": fake_torch.ones((1, 4), dtype=fake_torch.long),
         }
-        return mock_model, mock_tokenizer
+        return fake_torch, fake_transformers, mock_model, mock_tokenizer
 
-    def test_export_no_quantize(self, tmp_path):
-        mock_model, mock_tokenizer = self._make_native_export_mocks()
+    def test_export_no_quantize(self, tmp_path, monkeypatch):
+        fake_torch, fake_transformers, mock_model, mock_tokenizer = (
+            self._make_native_export_mocks(monkeypatch)
+        )
         out = str(tmp_path / "onnx_out")
         with (
-            patch(
-                "transformers.AutoTokenizer.from_pretrained",
+            patch.object(
+                fake_transformers.AutoTokenizer,
+                "from_pretrained",
                 return_value=mock_tokenizer,
             ),
-            patch(
-                "transformers.AutoModelForSequenceClassification.from_pretrained",
+            patch.object(
+                fake_transformers.AutoModelForSequenceClassification,
+                "from_pretrained",
                 return_value=mock_model,
             ),
-            patch("torch.onnx.export") as mock_export,
         ):
             result = export_onnx(
                 model_name="test/model",
@@ -338,10 +355,12 @@ class TestExportOnnx:
                 revision="verified-export-revision",
             )
         assert result == out
-        mock_export.assert_called_once()
+        fake_torch.onnx.export.assert_called_once()
 
-    def test_export_int8(self, tmp_path):
-        mock_model, mock_tokenizer = self._make_native_export_mocks()
+    def test_export_int8(self, tmp_path, monkeypatch):
+        fake_torch, fake_transformers, mock_model, mock_tokenizer = (
+            self._make_native_export_mocks(monkeypatch)
+        )
         out = str(tmp_path / "onnx_int8")
 
         mock_ort_quant = MagicMock()
@@ -349,15 +368,16 @@ class TestExportOnnx:
         mock_ort_quant.quantization.quantize_dynamic = MagicMock()
 
         with (
-            patch(
-                "transformers.AutoTokenizer.from_pretrained",
+            patch.object(
+                fake_transformers.AutoTokenizer,
+                "from_pretrained",
                 return_value=mock_tokenizer,
             ),
-            patch(
-                "transformers.AutoModelForSequenceClassification.from_pretrained",
+            patch.object(
+                fake_transformers.AutoModelForSequenceClassification,
+                "from_pretrained",
                 return_value=mock_model,
             ),
-            patch("torch.onnx.export"),
             patch.dict(
                 sys.modules,
                 {
@@ -373,9 +393,12 @@ class TestExportOnnx:
                 revision="verified-export-revision",
             )
         assert result == out
+        fake_torch.onnx.export.assert_called_once()
 
-    def test_export_fp16(self, tmp_path):
-        mock_model, mock_tokenizer = self._make_native_export_mocks()
+    def test_export_fp16(self, tmp_path, monkeypatch):
+        fake_torch, fake_transformers, mock_model, mock_tokenizer = (
+            self._make_native_export_mocks(monkeypatch)
+        )
         out = str(tmp_path / "onnx_fp16")
 
         mock_onnx_mod = MagicMock()
@@ -386,15 +409,16 @@ class TestExportOnnx:
         mock_ort_transformers.float16 = mock_float16
 
         with (
-            patch(
-                "transformers.AutoTokenizer.from_pretrained",
+            patch.object(
+                fake_transformers.AutoTokenizer,
+                "from_pretrained",
                 return_value=mock_tokenizer,
             ),
-            patch(
-                "transformers.AutoModelForSequenceClassification.from_pretrained",
+            patch.object(
+                fake_transformers.AutoModelForSequenceClassification,
+                "from_pretrained",
                 return_value=mock_model,
             ),
-            patch("torch.onnx.export"),
             patch.dict(
                 sys.modules,
                 {
@@ -410,6 +434,7 @@ class TestExportOnnx:
                 revision="verified-export-revision",
             )
         assert result == out
+        fake_torch.onnx.export.assert_called_once()
 
 
 # ── export_tensorrt ───────────────────────────────────────────────────────────

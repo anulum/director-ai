@@ -136,6 +136,10 @@ jobs:
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
           pip install --no-deps -e .
           pip install -e ".[${{ matrix.extras }}]"
+          if [[ ",${{ matrix.extras }}," == *",rust,"* ]]; then
+            python -m pip install --upgrade maturin
+            python -m pip install --force-reinstall ./backfire-kernel/crates/backfire-ffi
+          fi
 
       - name: Import smoke test
         run: python -c "import director_ai; assert director_ai.__version__"
