@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock
 
+import pytest
+
 from director_ai.core.retrieval.query_decomposition import (
     QueryDecompositionBackend,
     _heuristic_decompose,
@@ -75,6 +77,24 @@ class TestHeuristicDecompose:
 
 
 class TestConstruction:
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"base": None}, "base"),
+            ({"strategy": ""}, "strategy"),
+            ({"strategy": "unknown"}, "strategy"),
+            ({"strategy": "llm"}, "generator"),
+            ({"strategy": "llm", "generator": object()}, "generator"),
+            ({"rrf_k": 0}, "rrf_k"),
+            ({"max_sub_queries": 0}, "max_sub_queries"),
+        ],
+    )
+    def test_rejects_invalid_constructor_values(self, kwargs, message):
+        base = kwargs.pop("base", InMemoryBackend())
+
+        with pytest.raises(ValueError, match=message):
+            QueryDecompositionBackend(base, **kwargs)
+
     def test_default_strategy(self):
         b = _make_backend()
         assert b._strategy == "heuristic"

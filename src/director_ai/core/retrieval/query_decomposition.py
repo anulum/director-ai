@@ -96,6 +96,20 @@ class QueryDecompositionBackend(VectorBackend):
         rrf_k: int = 60,
         max_sub_queries: int = 5,
     ) -> None:
+        if base is None:
+            raise ValueError("base backend is required")
+        if strategy not in {"heuristic", "llm"}:
+            raise ValueError("strategy must be 'heuristic' or 'llm'")
+        if strategy == "llm" and not callable(generator):
+            raise ValueError("generator must be callable for llm strategy")
+        if not isinstance(rrf_k, int) or isinstance(rrf_k, bool):
+            raise ValueError("rrf_k must be an integer")
+        if rrf_k < 1:
+            raise ValueError("rrf_k must be at least 1")
+        if not isinstance(max_sub_queries, int) or isinstance(max_sub_queries, bool):
+            raise ValueError("max_sub_queries must be an integer")
+        if max_sub_queries < 1:
+            raise ValueError("max_sub_queries must be at least 1")
         self._base = base
         self._strategy = strategy
         self._generator = generator
