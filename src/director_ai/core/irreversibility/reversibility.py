@@ -9,10 +9,10 @@
 """Per-action reversibility scoring.
 
 The Protocol is the stable boundary; everything else is one
-implementation. :class:`RuleReversibility` matches a handful of
-common keywords against an action description. It is deliberately
-narrow so callers treat it as a bootstrap floor — real deployments
-are expected to drop in a classifier or a causal-graph-backed
+implementation. :class:`RuleReversibility` matches configurable
+critical-action phrases against an action description and fails
+fast on ambiguous marker configuration. Deployments that require
+learned or causal-graph-backed semantics can drop in another
 estimator on the same Protocol.
 """
 
@@ -80,13 +80,13 @@ _DEFAULT_REVERSIBLE_MARKERS: tuple[str, ...] = (
 
 
 class RuleReversibility:
-    """Keyword-based stub estimator.
+    """Deterministic phrase-based reversibility estimator.
 
     Parameters
     ----------
     irreversible_markers :
         Phrases that drive the score toward 0. Defaults to a short
-        bootstrap list.
+        production baseline list.
     reversible_markers :
         Phrases that drive the score toward 1.
     baseline :
@@ -103,8 +103,16 @@ class RuleReversibility:
     ) -> None:
         if not 0.0 <= baseline <= 1.0:
             raise ValueError(f"baseline must be in [0, 1]; got {baseline!r}")
-        self._irreversible = tuple(m.lower() for m in irreversible_markers)
-        self._reversible = tuple(m.lower() for m in reversible_markers)
+        self._irreversible = _normalise_markers(
+            "irreversible_markers", irreversible_markers
+        )
+        self._reversible = _normalise_markers("reversible_markers", reversible_markers)
+        overlap = set(self._irreversible).intersection(self._reversible)
+        if overlap:
+            joined = ", ".join(sorted(overlap))
+            raise ValueError(
+                f"irreversible_markers and reversible_markers overlap: {joined}"
+            )
         self._baseline = baseline
 
     def score(
@@ -135,3 +143,12 @@ class RuleReversibility:
                 reason="both reversible and irreversible markers matched",
             )
         return ReversibilityScore(score=self._baseline, reason="no markers matched")
+
+
+def _normalise_markers(name: str, markers: Iterable[str]) -> tuple[str, ...]:
+    normalised = tuple(marker.strip().lower() for marker in markers)
+    if not normalised:
+        raise ValueError(f"{name} must contain at least one marker")
+    if any(not marker for marker in normalised):
+        raise ValueError(f"{name} must not contain blank markers")
+    return normalised

@@ -92,7 +92,7 @@ class IrreversibilityForecaster:
         """Run Monte-Carlo over ``actions``.
 
         Independent-action sampling: each action is scored once (the
-        estimator is deterministic on the stub implementation), and
+        estimator is deterministic for the shipped rule-based implementation), and
         the cumulative reversibility of the sequence is the product
         of per-action reversibilities. Each Monte-Carlo draw then
         compares a uniform sample against that cumulative product

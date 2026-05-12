@@ -80,6 +80,23 @@ class TestRuleReversibility:
         with pytest.raises(ValueError, match="baseline"):
             RuleReversibility(baseline=1.5)
 
+    def test_empty_marker_sets_rejected(self):
+        with pytest.raises(ValueError, match="irreversible_markers"):
+            RuleReversibility(irreversible_markers=())
+        with pytest.raises(ValueError, match="reversible_markers"):
+            RuleReversibility(reversible_markers=())
+
+    def test_blank_markers_rejected(self):
+        with pytest.raises(ValueError, match="blank"):
+            RuleReversibility(irreversible_markers=("delete", " "))
+
+    def test_overlapping_markers_rejected(self):
+        with pytest.raises(ValueError, match="overlap"):
+            RuleReversibility(
+                irreversible_markers=("delete", "publish"),
+                reversible_markers=("preview", "delete"),
+            )
+
     def test_context_accepted(self):
         est = RuleReversibility()
         s = est.score("preview change", context={"tenant_id": "t1"})
@@ -93,14 +110,14 @@ class _AlwaysIrreversible:
     def score(
         self, action: str, *, context: Mapping[str, object] | None = None
     ) -> ReversibilityScore:
-        return ReversibilityScore(score=0.01, reason="stub irreversible")
+        return ReversibilityScore(score=0.01, reason="test irreversible")
 
 
 class _AlwaysReversible:
     def score(
         self, action: str, *, context: Mapping[str, object] | None = None
     ) -> ReversibilityScore:
-        return ReversibilityScore(score=0.99, reason="stub reversible")
+        return ReversibilityScore(score=0.99, reason="test reversible")
 
 
 class TestForecaster:
