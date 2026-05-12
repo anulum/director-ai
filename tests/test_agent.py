@@ -33,6 +33,10 @@ class TestConstruction:
         agent = CoherenceAgent(llm_api_url="http://localhost:8080/completion")
         assert agent.generator.__class__.__name__ == "LLMGenerator"
 
+    def test_production_mode_requires_real_generator(self):
+        with pytest.raises(ValueError, match="production_mode"):
+            CoherenceAgent(production_mode=True)
+
     def test_provider_and_url_mutually_exclusive(self):
         with pytest.raises(ValueError, match="mutually exclusive"):
             CoherenceAgent(llm_api_url="http://x", provider="openai")

@@ -48,7 +48,7 @@ class CoherenceAgent:
     """Integrated coherence-verification agent.
 
     Orchestrates:
-    - **Generator**: Candidate response generation (mock or real LLM).
+    - **Generator**: Candidate response generation (test or real LLM).
     - **Scorer**: Weighted NLI divergence scoring.
     - **Ground Truth Store**: RAG-based fact retrieval.
     - **Safety Kernel**: Output interlock.
@@ -59,6 +59,7 @@ class CoherenceAgent:
     use_nli : bool | None — enable NLI model scoring.
     provider : str | None — "openai" or "anthropic". Reads API key from env.
         Mutually exclusive with llm_api_url.
+    production_mode : bool — require an explicit real LLM generator.
 
     """
 
@@ -70,6 +71,7 @@ class CoherenceAgent:
         fallback=None,
         disclaimer_prefix="[Unverified] ",
         api_key=None,
+        production_mode: bool = False,
         *,
         _scorer=None,
         _store=None,
@@ -86,6 +88,11 @@ class CoherenceAgent:
 
         if provider and llm_api_url:
             raise ValueError("provider and llm_api_url are mutually exclusive")
+        if production_mode and not (provider or llm_api_url):
+            raise ValueError(
+                "production_mode requires provider or llm_api_url; "
+                "refusing to use MockGenerator"
+            )
 
         if (containment_guard is None) != (containment_anchor is None):
             raise ValueError(
@@ -108,7 +115,7 @@ class CoherenceAgent:
             self.logger.info("Connected to LLM at %s", llm_api_url)
         else:
             self.generator = MockGenerator()
-            self.logger.info("Using Mock Generator (Simulation Mode)")
+            self.logger.info("Using MockGenerator for test/demo mode")
             if use_nli is None:
                 use_nli = False
 

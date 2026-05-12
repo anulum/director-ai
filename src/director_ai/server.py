@@ -277,7 +277,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         store = cfg.build_store()
         scorer = cfg.build_scorer(store=store)
-        agent_kwargs: dict = {"_scorer": scorer, "_store": store}
+        agent_kwargs: dict = {
+            "_scorer": scorer,
+            "_store": store,
+            "production_mode": cfg.production_mode,
+        }
         if cfg.llm_provider == "local":
             agent_kwargs["llm_api_url"] = cfg.llm_api_url
         elif cfg.llm_provider in ("openai", "anthropic"):
