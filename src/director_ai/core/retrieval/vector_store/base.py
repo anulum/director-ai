@@ -180,8 +180,16 @@ class InMemoryBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        if not isinstance(doc_id, str) or not doc_id.strip():
+            raise ValueError("doc_id must be a non-empty string")
+        if not isinstance(text, str):
+            raise ValueError("text must be a string")
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("metadata must be a dictionary")
         with self._lock:
-            self._docs.append({"id": doc_id, "text": text, "metadata": metadata or {}})
+            self._docs.append(
+                {"id": doc_id.strip(), "text": text, "metadata": dict(metadata or {})},
+            )
 
     def query(
         self,

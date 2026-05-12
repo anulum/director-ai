@@ -31,6 +31,27 @@ class TestInMemoryBackend:
         backend.add("doc1", "The sky is blue")
         assert backend.count() == 1
 
+    @pytest.mark.parametrize(
+        ("doc_id", "text", "metadata", "message"),
+        [
+            ("", "text", None, "doc_id"),
+            ("   ", "text", None, "doc_id"),
+            (123, "text", None, "doc_id"),
+            ("doc1", 123, None, "text"),
+            ("doc1", "text", "bad", "metadata"),
+        ],
+    )
+    def test_add_rejects_invalid_document_fields(
+        self,
+        doc_id,
+        text,
+        metadata,
+        message,
+    ):
+        backend = InMemoryBackend()
+        with pytest.raises(ValueError, match=message):
+            backend.add(doc_id, text, metadata)  # type: ignore[arg-type]
+
     def test_query_returns_relevant(self):
         backend = InMemoryBackend()
         backend.add("doc1", "The sky is blue")
