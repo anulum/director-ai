@@ -752,6 +752,38 @@ class TestGoogleDrive:
         assert "modifiedTime > '2026-01-01'" in q
         assert "trashed = false" in q
 
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"folder_id": ""}, "folder_id"),
+            ({"folder_id": object()}, "folder_id"),
+            ({"query": ""}, "query"),
+            ({"query": object()}, "query"),
+            ({"direct_mime_types": []}, "direct_mime_types"),
+            ({"direct_mime_types": ["text/plain", ""]}, "direct_mime_types"),
+        ],
+    )
+    def test_rejects_invalid_optional_configuration(self, kwargs, message):
+        with pytest.raises(ValueError, match=message):
+            GoogleDrivePlugin(_FakeDriveService(_FakeFilesEndpoint([], {})), **kwargs)
+
+    def test_folder_query_and_mime_types_are_normalized(self):
+        pages = [{"files": [], "nextPageToken": None}]
+        endpoint = _FakeFilesEndpoint(pages, {})
+        plugin = GoogleDrivePlugin(
+            _FakeDriveService(endpoint),
+            folder_id=" folder-1 ",
+            query=" name contains 'report' ",
+            direct_mime_types=[" text/plain "],
+        )
+
+        list(plugin.iter_documents())
+
+        q = endpoint.list_calls[0]["q"]
+        assert "'folder-1' in parents" in q
+        assert "(name contains 'report')" in q
+        assert plugin._direct == frozenset({"text/plain"})
+
     def test_rejects_none_service(self):
         with pytest.raises(ValueError, match="service is required"):
             GoogleDrivePlugin(None)  # type: ignore[arg-type]

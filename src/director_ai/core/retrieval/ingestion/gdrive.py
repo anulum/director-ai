@@ -84,14 +84,26 @@ class GoogleDrivePlugin(IngestionPlugin):
     ) -> None:
         if service is None:
             raise ValueError("service is required")
+        folder_id = _normalize_optional_string(folder_id, "folder_id")
+        query = _normalize_optional_string(query, "query")
         if page_size <= 0:
             raise ValueError(f"page_size must be positive; got {page_size}")
+        direct_mime_type_values = (
+            _DIRECT_MIME_TYPES
+            if direct_mime_types is None
+            else frozenset(direct_mime_types)
+        )
+        if not direct_mime_type_values or any(
+            not isinstance(mime_type, str) or not mime_type.strip()
+            for mime_type in direct_mime_type_values
+        ):
+            raise ValueError("direct_mime_types must be non-empty strings")
         self._service = service
         self._folder_id = folder_id
         self._query = query
         self._page_size = min(page_size, 1000)
         self._direct = frozenset(
-            direct_mime_types if direct_mime_types is not None else _DIRECT_MIME_TYPES
+            mime_type.strip() for mime_type in direct_mime_type_values
         )
 
     @classmethod
@@ -202,3 +214,11 @@ def _decode(payload: Any) -> str:
         except UnicodeDecodeError:
             return payload.decode("utf-8", errors="replace")
     return str(payload)
+
+
+def _normalize_optional_string(value: str | None, field_name: str) -> str | None:
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be a non-empty string when provided")
+    return value.strip()
