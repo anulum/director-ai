@@ -23,7 +23,11 @@ class TestHardenedMode:
         assert cfg.hardened is False
 
     def test_enables_all_safety(self):
-        cfg = DirectorConfig(hardened=True, api_keys='["sk-test"]')
+        cfg = DirectorConfig(
+            hardened=True,
+            api_keys='["sk-test"]',
+            llm_api_url="https://llm.internal.example/v1",
+        )
         assert cfg.production_mode is True
         assert cfg.use_nli is True
         assert cfg.injection_detection_enabled is True
@@ -37,7 +41,11 @@ class TestHardenedMode:
             DirectorConfig(hardened=True)
 
     def test_hardened_with_api_keys(self):
-        cfg = DirectorConfig(hardened=True, api_keys='["sk-test"]')
+        cfg = DirectorConfig(
+            hardened=True,
+            api_keys='["sk-test"]',
+            llm_api_url="https://llm.internal.example/v1",
+        )
         assert cfg.hardened is True
 
 

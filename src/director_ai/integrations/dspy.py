@@ -77,7 +77,8 @@ def coherence_check(
         ground_truth_store=gt,
         use_nli=use_nli,
     )
-    approved, cs = scorer.review(prompt, response)
+    prompt_context = prompt.strip() or response
+    approved, cs = scorer.review(prompt_context, response)
     return {
         "approved": approved,
         "score": cs.score,
@@ -113,6 +114,7 @@ def director_assert(
         ground_truth_store=gt,
         use_nli=use_nli,
     )
-    approved, cs = scorer.review(prompt, response)
+    prompt_context = prompt.strip() or response
+    approved, cs = scorer.review(prompt_context, response)
     if not approved:
-        raise HallucinationError(prompt, response, cs)
+        raise HallucinationError(prompt_context, response, cs)

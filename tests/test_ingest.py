@@ -66,8 +66,8 @@ class TestIngestEdgeCases:
         ],
     )
     def test_ingest_whitespace_docs(self, store, docs):
-        count = store.ingest(docs)
-        assert isinstance(count, int)
+        with pytest.raises(ValueError, match="non-empty strings"):
+            store.ingest(docs)
 
     def test_ingest_unicode_docs(self, store):
         count = store.ingest(["日本語テスト", "العربية", "한국어"])

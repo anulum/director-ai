@@ -187,6 +187,7 @@ def test_production_mode_enforces_kb_write_auth() -> None:
     cfg = DirectorConfig(
         production_mode=True,
         server_host="127.0.0.1",
+        llm_api_url="https://llm.internal.example/v1",
         **{"api" + "_keys": ["writer"]},
     )
 

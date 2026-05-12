@@ -89,7 +89,8 @@ class DirectorAIPostprocessor:
         filtered = []
         for node in nodes:
             text = getattr(node, "text", "") or str(node)
-            approved, cs = self.scorer.review(query_str, text)
+            query_context = query_str.strip() or text
+            approved, cs = self.scorer.review(query_context, text)
             if approved:
                 if hasattr(node, "metadata") and isinstance(node.metadata, dict):
                     node.metadata["director_ai_score"] = cs.score

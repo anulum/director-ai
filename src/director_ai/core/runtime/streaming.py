@@ -405,7 +405,8 @@ class StreamingKernel(HaltMonitor):
                 session.halt_evidence = ev
             if scorer is not None:
                 accumulated = "".join(session.tokens)
-                _, cs = scorer.review(prompt, accumulated)
+                prompt_context = prompt.strip() or accumulated
+                _, cs = scorer.review(prompt_context, accumulated)
                 chunks: list[EvidenceChunk] = []
                 nli_scores: list[float] | None = None
                 if cs.evidence and cs.evidence.chunks:

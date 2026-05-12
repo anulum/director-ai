@@ -24,6 +24,7 @@ from typing import Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.exceptions import HallucinationError
+from director_ai.core.types import CoherenceScore
 
 
 def director_ai_node(
@@ -60,8 +61,20 @@ def director_ai_node(
 
     def _node(state: dict[str, Any]) -> dict[str, Any]:
         query = state.get(query_key, "")
-        response = state.get(response_key, "")
-        approved, cs = scorer.review(str(query), str(response))
+        response = state.get(response_key, _latest_message_content(state))
+        response_text = str(response)
+        query_text = str(query).strip() or response_text
+        if not query_text.strip() and not response_text.strip():
+            cs = CoherenceScore(
+                score=0.0,
+                approved=False,
+                h_logical=1.0,
+                h_factual=1.0,
+                warning=True,
+            )
+            approved = False
+        else:
+            approved, cs = scorer.review(query_text, response_text)
 
         state["director_ai_score"] = cs.score
         state["director_ai_approved"] = approved
@@ -70,15 +83,27 @@ def director_ai_node(
 
         if not approved:
             if on_fail == "raise":
-                raise HallucinationError(str(query), str(response), cs)
+                raise HallucinationError(query_text, response_text, cs)
             if on_fail == "rewrite":
-                ctx = gts.retrieve_context(str(query))
+                ctx = gts.retrieve_context(query_text)
                 if ctx:
                     state[response_key] = f"Based on verified sources: {ctx}"
                     state["director_ai_rewritten"] = True
         return state
 
     return _node
+
+
+def _latest_message_content(state: dict[str, Any]) -> str:
+    messages = state.get("messages")
+    if not isinstance(messages, list) or not messages:
+        return ""
+    last = messages[-1]
+    if isinstance(last, dict):
+        content = last.get("content", "")
+    else:
+        content = getattr(last, "content", "")
+    return str(content)
 
 
 def director_ai_conditional_edge(
