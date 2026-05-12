@@ -307,6 +307,8 @@ class VectorGroundTruthStore(GroundTruthStore):
     def ingest(self, texts: list[str], tenant_id: str = "") -> int:
         """Bulk-add plain text documents into the vector backend."""
         tenant_id = self._resolved_tenant_id(tenant_id)
+        if not isinstance(texts, list):
+            raise ValueError("texts must be a list of non-empty strings")
         if any(not isinstance(text, str) or not text.strip() for text in texts):
             raise ValueError("texts must contain only non-empty strings")
         for i, text in enumerate(texts):

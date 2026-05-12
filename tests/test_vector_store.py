@@ -173,6 +173,12 @@ class TestVectorGroundTruthStore:
         with pytest.raises(ValueError, match="texts"):
             store.ingest(["valid", " "])
 
+    @pytest.mark.parametrize("texts", ["document", ("document",), {"document"}])
+    def test_ingest_rejects_non_list_inputs(self, texts):
+        store = VectorGroundTruthStore()
+        with pytest.raises(ValueError, match="texts"):
+            store.ingest(texts)  # type: ignore[arg-type]
+
     def test_retrieve_custom_fact(self):
         store = VectorGroundTruthStore()
         store.add_fact("planck constant", "6.626e-34 JÂ·s")
