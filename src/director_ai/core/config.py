@@ -127,6 +127,7 @@ class DirectorConfig:
     llm_judge_provider: str = ""  # cloud or local judge backend name
     llm_judge_model: str = ""
     llm_judge_local_model: str = ""  # path to local judge checkpoint
+    llm_judge_model_revision: str = ""
     privacy_mode: bool = False
 
     # Scorer backend: "deberta", "onnx", "minicheck", "hybrid", "lite", "rust"
@@ -958,6 +959,7 @@ class DirectorConfig:
             "llm_judge_confidence_threshold": self.llm_judge_confidence_threshold,
             "llm_judge_provider": self.llm_judge_provider,
             "llm_judge_model": judge_model,
+            "llm_judge_model_revision": self.llm_judge_model_revision or None,
             "privacy_mode": self.privacy_mode,
             "ground_truth_store": store,
             "onnx_batch_size": self.onnx_batch_size,

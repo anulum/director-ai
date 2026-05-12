@@ -29,6 +29,7 @@ _FACTCG_TEMPLATE = (
 )
 
 _DEFAULT_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
+_LOCAL_ARTIFACT_REVISION = "local-artifact"
 
 logger = logging.getLogger("DirectorAI.NLI")
 
@@ -45,7 +46,11 @@ def _load_onnx_session(
 
         if not os.path.isdir(onnx_path):
             raise FileNotFoundError(f"Not a directory: {onnx_path}")
-        tokenizer = AutoTokenizer.from_pretrained(onnx_path)
+        tokenizer = AutoTokenizer.from_pretrained(
+            onnx_path,
+            revision=_LOCAL_ARTIFACT_REVISION,
+            local_files_only=True,
+        )
 
         # Prefer quantized model on CPU
         quantized = os.path.join(onnx_path, "model_quantized.onnx")
@@ -279,7 +284,11 @@ def export_tensorrt(
     # Warmup pass to trigger engine compilation
     from transformers import AutoTokenizer
 
-    tokenizer = AutoTokenizer.from_pretrained(onnx_dir)
+    tokenizer = AutoTokenizer.from_pretrained(
+        onnx_dir,
+        revision=_LOCAL_ARTIFACT_REVISION,
+        local_files_only=True,
+    )
     dummy_pairs = [
         ("The sky is blue due to Rayleigh scattering.", "The sky is blue."),
     ] * warmup_pairs

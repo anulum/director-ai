@@ -41,6 +41,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..model_revisions import resolve_model_revision
+
 logger = logging.getLogger("DirectorAI.FineTune")
 
 _DEFAULT_BASE_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
@@ -58,6 +60,7 @@ class FinetuneConfig:
     """Fine-tuning hyperparameters."""
 
     base_model: str = _DEFAULT_BASE_MODEL
+    base_model_revision: str | None = None
     output_dir: str = "./director-finetuned"
     epochs: int = 3
     batch_size: int = 16
@@ -333,6 +336,11 @@ def finetune_nli(
 
     eval_rows = _load_jsonl(eval_path) if eval_path else None
 
+    base_model_revision = resolve_model_revision(
+        config.base_model,
+        config.base_model_revision,
+    )
+
     try:
         from transformers import (
             AutoModelForSequenceClassification,
@@ -365,12 +373,20 @@ def finetune_nli(
         class_weights = _compute_class_weights(train_rows)
         logger.info("Class weights: %s", class_weights)
 
-    logger.info("Base model: %s", config.base_model)
-    tokenizer = AutoTokenizer.from_pretrained(config.base_model)
+    logger.info(
+        "Base model: %s (revision=%s)",
+        config.base_model,
+        base_model_revision[:12] if base_model_revision else "local",
+    )
+    tokenizer = AutoTokenizer.from_pretrained(
+        config.base_model,
+        revision=base_model_revision,
+    )
     model = AutoModelForSequenceClassification.from_pretrained(
         config.base_model,
         num_labels=2,
         ignore_mismatched_sizes=True,
+        revision=base_model_revision,
     )
 
     is_factcg = "factcg" in config.base_model.lower()

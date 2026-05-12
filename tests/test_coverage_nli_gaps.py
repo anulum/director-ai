@@ -56,7 +56,8 @@ from director_ai.core.scoring.nli import (
 class TestManagedModelArtifactHelpers:
     def test_revision_resolution_and_gcs_uri_validation(self):
         assert _resolve_revision("model", revision="explicit") == "explicit"
-        assert _resolve_revision("unknown/model") is None
+        with pytest.raises(ValueError, match="requires an explicit immutable revision"):
+            _resolve_revision("unknown/model")
         assert _split_gs_uri("gs://bucket/path/to/model") == ("bucket", "path/to/model")
 
         for uri in ("https://bucket/path", "gs://", "gs://bucket", "gs://bucket/"):
@@ -330,7 +331,12 @@ class TestExportOnnx:
             ),
             patch("torch.onnx.export") as mock_export,
         ):
-            result = export_onnx(model_name="test/model", output_dir=out, quantize=None)
+            result = export_onnx(
+                model_name="test/model",
+                output_dir=out,
+                quantize=None,
+                revision="verified-export-revision",
+            )
         assert result == out
         mock_export.assert_called_once()
 
@@ -361,7 +367,10 @@ class TestExportOnnx:
             ),
         ):
             result = export_onnx(
-                model_name="test/model", output_dir=out, quantize="int8"
+                model_name="test/model",
+                output_dir=out,
+                quantize="int8",
+                revision="verified-export-revision",
             )
         assert result == out
 
@@ -395,7 +404,10 @@ class TestExportOnnx:
             ),
         ):
             result = export_onnx(
-                model_name="test/model", output_dir=out, quantize="fp16"
+                model_name="test/model",
+                output_dir=out,
+                quantize="fp16",
+                revision="verified-export-revision",
             )
         assert result == out
 

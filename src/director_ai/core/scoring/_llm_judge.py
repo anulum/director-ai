@@ -18,6 +18,7 @@ import logging
 import time
 
 from ..metrics import metrics
+from ..model_revisions import resolve_model_revision
 
 # LLM-as-judge blending constants
 LLM_JUDGE_AGREE_DIVERGENCE = 0.2
@@ -47,6 +48,8 @@ class LLMJudge:
         ``"openai"``, ``"anthropic"``, or ``"local"``.
     model : str
         Model ID (HuggingFace path for local, API model name otherwise).
+    model_revision : str | None
+        Immutable revision for local remote-model loads.
     confidence_threshold : float
         NLI margin below which to escalate (default 0.3).
     device : str | None
@@ -69,6 +72,7 @@ class LLMJudge:
         self,
         provider: str = "",
         model: str = "",
+        model_revision: str | None = None,
         confidence_threshold: float = 0.3,
         device: str | None = None,
         privacy_mode: bool = False,
@@ -77,6 +81,7 @@ class LLMJudge:
     ) -> None:
         self.provider = provider
         self.model = model
+        self.model_revision = model_revision
         self.confidence_threshold = confidence_threshold
         self._judge_cache: dict[int, float] = {}
         self._privacy_mode = privacy_mode
@@ -97,7 +102,7 @@ class LLMJudge:
         }
 
         if provider == "local" and model:
-            self._init_local_judge(model, device)
+            self._init_local_judge(model, device, model_revision=model_revision)
 
     # -- Local judge initialisation ----------------------------------------
 
@@ -105,25 +110,31 @@ class LLMJudge:
         self,
         model_path: str,
         device: str | None = None,
+        *,
+        model_revision: str | None = None,
     ) -> None:  # pragma: no cover
         """Load local DeBERTa-base judge model for borderline escalation."""
+        resolved_revision = resolve_model_revision(model_path, model_revision)
         try:
             from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
             self._local_judge_tokenizer = AutoTokenizer.from_pretrained(
                 model_path,
                 use_fast=False,
+                revision=resolved_revision,
             )
             self._local_judge_model = (
                 AutoModelForSequenceClassification.from_pretrained(
                     model_path,
                     low_cpu_mem_usage=False,
+                    revision=resolved_revision,
                 )
             )
             from .._device import select_torch_device
 
             self._local_judge_device = select_torch_device(device)
-            assert self._local_judge_model is not None
+            if self._local_judge_model is None:
+                raise RuntimeError("local judge model loader returned None")
             self._local_judge_model.to(self._local_judge_device)
             self._local_judge_model.eval()
             logger.info(
@@ -217,7 +228,8 @@ class LLMJudge:
         )
         tokenizer = self._local_judge_tokenizer
         model = self._local_judge_model
-        assert tokenizer is not None and model is not None
+        if tokenizer is None or model is None:
+            return nli_score
         inputs = tokenizer(
             judge_input,
             return_tensors="pt",

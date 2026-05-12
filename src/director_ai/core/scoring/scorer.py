@@ -104,6 +104,7 @@ class CoherenceScorer:
         llm_judge_confidence_threshold=0.3,
         llm_judge_provider="",
         llm_judge_model="",
+        llm_judge_model_revision=None,
         scorer_backend="deberta",
         onnx_path=None,
         nli_devices=None,
@@ -267,6 +268,7 @@ class CoherenceScorer:
             if (llm_judge_enabled or scorer_backend == "hybrid")
             else "",
             model=llm_judge_model,
+            model_revision=llm_judge_model_revision,
             confidence_threshold=llm_judge_confidence_threshold,
             device=nli_device,
             privacy_mode=privacy_mode,

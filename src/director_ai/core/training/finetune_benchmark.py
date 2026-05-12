@@ -33,6 +33,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..model_revisions import resolve_model_revision
 from .model_registry import (
     TrainingModelProfile,
     resolve_finetune_model,
@@ -251,14 +252,20 @@ def _evaluate_model(
     """Run a model on samples and return balanced_accuracy + f1."""
     from .finetune import _balanced_accuracy, _binary_f1_score
 
+    model_source = str(model_path)
+    model_revision = resolve_model_revision(model_source)
+
     try:
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
     except ImportError as exc:
         raise ImportError("pip install director-ai[finetune]") from exc
 
-    tokenizer = AutoTokenizer.from_pretrained(str(model_path))
-    model = AutoModelForSequenceClassification.from_pretrained(str(model_path))
+    tokenizer = AutoTokenizer.from_pretrained(model_source, revision=model_revision)
+    model = AutoModelForSequenceClassification.from_pretrained(
+        model_source,
+        revision=model_revision,
+    )
     model.eval()
 
     from .._device import release_torch_cuda, select_torch_device

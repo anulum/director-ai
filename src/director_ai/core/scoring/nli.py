@@ -30,6 +30,12 @@ from typing import Any
 import numpy as np
 
 from ..metrics import metrics
+from ..model_revisions import (
+    DEFAULT_NLI_MODEL,
+    DEFAULT_NLI_MODEL_REVISION,
+    MODEL_REVISION_REGISTRY,
+    resolve_model_revision,
+)
 
 try:
     from backfire_kernel import (
@@ -77,18 +83,15 @@ _DEFAULT_COST_PER_TOKEN = 1e-5
 
 logger = logging.getLogger("DirectorAI.NLI")
 
-_DEFAULT_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
-_DEFAULT_MODEL_REVISION = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
+_DEFAULT_MODEL = DEFAULT_NLI_MODEL
+_DEFAULT_MODEL_REVISION = DEFAULT_NLI_MODEL_REVISION
 _RECOMMENDED_MODEL = "lytang/MiniCheck-DeBERTa-L"
 
 #: Pinned revisions for all known HuggingFace Hub models used in
 #: production. Prevents supply-chain drift when upstream pushes a
 #: new commit.  Update SHAs deliberately after verifying the new
 #: revision against the AggreFact benchmark.
-MODEL_REGISTRY: dict[str, str] = {
-    _DEFAULT_MODEL: _DEFAULT_MODEL_REVISION,
-    "lytang/MiniCheck-DeBERTa-v3-Large": "2f2d01a54fa022a7ffadb76260e1ea8bc88c82bb",
-}
+MODEL_REGISTRY: dict[str, str] = MODEL_REVISION_REGISTRY
 
 _SKIP_ARTIFACT_FILENAMES = {
     "optimizer.pt",
@@ -100,13 +103,11 @@ _SKIP_ARTIFACT_FILENAMES = {
 
 
 def _resolve_revision(model_name: str, revision: str | None = None) -> str | None:
-    """Return an explicit revision SHA for *model_name*, or *None* if unknown.
+    """Return an immutable revision SHA for *model_name*.
 
     If *revision* is already set by the caller, it takes precedence.
     """
-    if revision is not None:
-        return revision
-    return MODEL_REGISTRY.get(model_name)
+    return resolve_model_revision(model_name, revision)
 
 
 def _split_gs_uri(uri: str) -> tuple[str, str]:

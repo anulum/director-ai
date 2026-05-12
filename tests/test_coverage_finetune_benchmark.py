@@ -324,8 +324,21 @@ def test_evaluate_model_non_factcg():
         with patch("torch.cuda.is_available", return_value=False):
             result = _evaluate_model("/some/model", samples, batch_size=48)
 
+    mock_transformers.AutoTokenizer.from_pretrained.assert_called_once_with(
+        "/some/model",
+        revision=None,
+    )
+    mock_transformers.AutoModelForSequenceClassification.from_pretrained.assert_called_once_with(
+        "/some/model",
+        revision=None,
+    )
     assert "balanced_accuracy" in result
     assert "f1" in result
+
+
+def test_evaluate_model_rejects_unpinned_remote() -> None:
+    with pytest.raises(ValueError, match="requires an explicit immutable revision"):
+        _evaluate_model("unverified-org/unverified-model", [], batch_size=48)
 
 
 @pytest.mark.skipif(not _HAS_TORCH, reason="torch not installed")

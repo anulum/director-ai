@@ -27,6 +27,7 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
+from ..model_revisions import resolve_model_revision
 from .feedback import FeedbackEvent
 
 # FNV-1a parameters (shared with the multimodal hash-bag family).
@@ -179,6 +180,7 @@ class LoraGuardrailTrainer:
         self,
         *,
         base_model: str = "distilbert-base-uncased",
+        base_model_revision: str | None = None,
         rank: int = 8,
         alpha: int = 16,
         epochs: int = 1,
@@ -191,6 +193,7 @@ class LoraGuardrailTrainer:
         if epochs <= 0:
             raise ValueError(f"epochs must be positive; got {epochs!r}")
         self._base_model = base_model
+        self._base_model_revision = base_model_revision
         self._rank = rank
         self._alpha = alpha
         self._epochs = epochs
@@ -222,9 +225,18 @@ class LoraGuardrailTrainer:
                 "LoraGuardrailTrainer.train requires peft, torch, and "
                 "transformers. Install with: pip install director-ai[training]",
             ) from exc
-        tokenizer = AutoTokenizer.from_pretrained(self._base_model)
+        base_model_revision = resolve_model_revision(
+            self._base_model,
+            self._base_model_revision,
+        )
+        tokenizer = AutoTokenizer.from_pretrained(
+            self._base_model,
+            revision=base_model_revision,
+        )
         model = AutoModelForSequenceClassification.from_pretrained(
-            self._base_model, num_labels=2
+            self._base_model,
+            num_labels=2,
+            revision=base_model_revision,
         )
         lora_config = peft.LoraConfig(
             r=self._rank,

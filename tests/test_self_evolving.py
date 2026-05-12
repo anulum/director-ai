@@ -491,12 +491,16 @@ class TestLoraTrainerGuard:
                 calls["tokenized"].append((prompt, kwargs))
                 return {"input_ids": [1, 2], "attention_mask": [1, 1]}
 
-        def fake_tokenizer_from_pretrained(model_name: str) -> FakeTokenizer:
-            calls["tokenizer_model"] = model_name
+        def fake_tokenizer_from_pretrained(
+            model_name: str, *, revision: str | None = None
+        ) -> FakeTokenizer:
+            calls["tokenizer_model"] = (model_name, revision)
             return FakeTokenizer()
 
-        def fake_model_from_pretrained(model_name: str, num_labels: int) -> FakeModel:
-            calls["model_args"] = (model_name, num_labels)
+        def fake_model_from_pretrained(
+            model_name: str, num_labels: int, *, revision: str | None = None
+        ) -> FakeModel:
+            calls["model_args"] = (model_name, num_labels, revision)
             return FakeModel()
 
         fake_transformers.AutoTokenizer = SimpleNamespace(
@@ -514,6 +518,7 @@ class TestLoraTrainerGuard:
 
         trainer = LoraGuardrailTrainer(
             base_model="local-guardrail",
+            base_model_revision="verified-guardrail-revision",
             rank=4,
             alpha=12,
             epochs=2,
@@ -522,8 +527,15 @@ class TestLoraTrainerGuard:
         trained = trainer.train(_balanced_events()[:2], version=9)
 
         assert calls["lora"] == (4, 12, "none", "SEQ_CLS")
-        assert calls["tokenizer_model"] == "local-guardrail"
-        assert calls["model_args"] == ("local-guardrail", 2)
+        assert calls["tokenizer_model"] == (
+            "local-guardrail",
+            "verified-guardrail-revision",
+        )
+        assert calls["model_args"] == (
+            "local-guardrail",
+            2,
+            "verified-guardrail-revision",
+        )
         assert len(calls["tokenized"]) == 4
         assert calls["steps"] == 4
         assert trained.weights == pytest.approx((0.5, 0.2, -0.3))

@@ -475,6 +475,7 @@ class TestFinetuneNliBasic:
 
         cfg = FinetuneConfig(
             base_model="some/non-factcg-model",
+            base_model_revision="verified-test-revision",
             output_dir=str(tmp_path / "out"),
             epochs=1,
         )
@@ -492,6 +493,7 @@ class TestFinetuneNliBasic:
 
         cfg = FinetuneConfig(
             base_model="some/non-factcg-model",
+            base_model_revision="verified-test-revision",
             output_dir=str(tmp_path / "out"),
             epochs=1,
         )
@@ -511,20 +513,42 @@ class TestFinetuneNliBasic:
         from director_ai.core.training.finetune import FinetuneConfig
 
         cfg = FinetuneConfig(
-            base_model="some/model", output_dir=str(tmp_path / "out"), epochs=1
+            base_model="some/model",
+            base_model_revision="verified-training-revision",
+            output_dir=str(tmp_path / "out"),
+            epochs=1,
         )
         _, tf_mod = _run_finetune_mocked(train_file, config=cfg)
 
-        tf_mod.AutoTokenizer.from_pretrained.assert_called_once_with("some/model")
-        tf_mod.AutoModelForSequenceClassification.from_pretrained.assert_called_once_with(
-            "some/model", num_labels=2, ignore_mismatched_sizes=True
+        tf_mod.AutoTokenizer.from_pretrained.assert_called_once_with(
+            "some/model",
+            revision="verified-training-revision",
         )
+        tf_mod.AutoModelForSequenceClassification.from_pretrained.assert_called_once_with(
+            "some/model",
+            num_labels=2,
+            ignore_mismatched_sizes=True,
+            revision="verified-training-revision",
+        )
+
+    def test_unpinned_remote_model_rejected(self, tmp_path, train_file):
+        from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
+
+        cfg = FinetuneConfig(
+            base_model="some/model",
+            output_dir=str(tmp_path / "out"),
+            epochs=1,
+        )
+
+        with pytest.raises(ValueError, match="requires an explicit immutable revision"):
+            finetune_nli(train_file, config=cfg)
 
     def test_model_saved_after_training(self, tmp_path, train_file):
         from director_ai.core.training.finetune import FinetuneConfig
 
         cfg = FinetuneConfig(
             base_model="some/model",
+            base_model_revision="verified-training-revision",
             output_dir=str(tmp_path / "out"),
             epochs=1,
         )
