@@ -20,7 +20,7 @@ from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Iterator
+from collections.abc import Iterable, Iterator, Mapping
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
@@ -47,6 +47,18 @@ class IngestedDocument:
     source: str
     source_id: str
     metadata: dict[str, Any] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        for field_name in ("key", "source", "source_id"):
+            value = getattr(self, field_name)
+            if not isinstance(value, str) or not value.strip():
+                raise ValueError(f"{field_name} must be a non-empty string")
+            object.__setattr__(self, field_name, value.strip())
+        if not isinstance(self.text, str):
+            raise ValueError("text must be a string")
+        if not isinstance(self.metadata, Mapping):
+            raise ValueError("metadata must be a mapping")
+        object.__setattr__(self, "metadata", dict(self.metadata))
 
 
 class IngestionPlugin(ABC):
@@ -96,6 +108,8 @@ class IngestionPlugin(ABC):
         ``max_documents`` caps the run — useful for smoke tests and
         for bounded budget ingestion against very large sources.
         """
+        if max_documents is not None and max_documents <= 0:
+            raise ValueError("max_documents must be positive when provided")
         written = 0
         for doc in self.iter_documents():
             prepared = self._prepare_document(doc)

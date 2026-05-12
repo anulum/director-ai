@@ -59,6 +59,42 @@ class _FixedPlugin(IngestionPlugin):
 
 
 class TestBase:
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"key": "", "text": "hello", "source": "x", "source_id": "1"}, "key"),
+            ({"key": "k", "text": None, "source": "x", "source_id": "1"}, "text"),
+            ({"key": "k", "text": "hello", "source": "", "source_id": "1"}, "source"),
+            (
+                {"key": "k", "text": "hello", "source": "x", "source_id": ""},
+                "source_id",
+            ),
+            (
+                {
+                    "key": "k",
+                    "text": "hello",
+                    "source": "x",
+                    "source_id": "1",
+                    "metadata": [],
+                },
+                "metadata",
+            ),
+        ],
+    )
+    def test_ingested_document_rejects_invalid_values(self, kwargs, message):
+        with pytest.raises(ValueError, match=message):
+            IngestedDocument(**kwargs)
+
+    def test_ingested_document_copies_metadata(self):
+        metadata = {"tenant": "t1"}
+
+        doc = IngestedDocument(
+            key="k", text="hello", source="x", source_id="1", metadata=metadata
+        )
+        metadata["tenant"] = "changed"
+
+        assert doc.metadata == {"tenant": "t1"}
+
     def test_ingest_skips_empty_text(self):
         docs = [
             IngestedDocument(key="a", text="hello", source="x", source_id="1"),
@@ -81,6 +117,13 @@ class TestBase:
         store = _RecordingStore()
         _FixedPlugin(docs).ingest(store, max_documents=2)
         assert len(store.records) == 2
+
+    @pytest.mark.parametrize("max_documents", [0, -1])
+    def test_ingest_rejects_non_positive_max_documents(self, max_documents):
+        docs = [IngestedDocument(key="k", text="t", source="x", source_id="1")]
+
+        with pytest.raises(ValueError, match="max_documents"):
+            _FixedPlugin(docs).ingest(_RecordingStore(), max_documents=max_documents)
 
     def test_chunks_batches_correctly(self):
         assert list(chunks(range(7), 3)) == [[0, 1, 2], [3, 4, 5], [6]]
