@@ -42,6 +42,7 @@ _VECTOR_EP_LOADED = False
 
 def register_vector_backend(name: str, cls: type[VectorBackend]) -> None:
     """Register a vector backend class under *name*."""
+    name = _normalise_backend_name(name)
     if not (isinstance(cls, type) and issubclass(cls, VectorBackend)):
         raise TypeError(f"{cls!r} must be a VectorBackend subclass")
     _VECTOR_REGISTRY[name] = cls
@@ -50,6 +51,7 @@ def register_vector_backend(name: str, cls: type[VectorBackend]) -> None:
 
 def get_vector_backend(name: str) -> type[VectorBackend]:
     """Look up a registered vector backend by name."""
+    name = _normalise_backend_name(name)
     _load_vector_entry_points()
     if name not in _VECTOR_REGISTRY:
         raise KeyError(
@@ -62,6 +64,12 @@ def list_vector_backends() -> dict[str, type[VectorBackend]]:
     """Return all registered vector backends."""
     _load_vector_entry_points()
     return dict(_VECTOR_REGISTRY)
+
+
+def _normalise_backend_name(name: str) -> str:
+    if not isinstance(name, str) or not name.strip():
+        raise ValueError("backend name must be a non-empty string")
+    return name.strip()
 
 
 def _load_vector_entry_points() -> None:

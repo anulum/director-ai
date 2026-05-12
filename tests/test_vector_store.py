@@ -794,6 +794,16 @@ class TestVectorRegistry:
         with pytest.raises(TypeError, match="VectorBackend subclass"):
             register_vector_backend("bad", str)  # type: ignore[arg-type]
 
+    @pytest.mark.parametrize("name", ["", "   ", 123])
+    def test_register_rejects_invalid_names(self, name):
+        with pytest.raises(ValueError, match="backend name"):
+            register_vector_backend(name, InMemoryBackend)  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize("name", ["", "   ", 123])
+    def test_get_rejects_invalid_names(self, name):
+        with pytest.raises(ValueError, match="backend name"):
+            get_vector_backend(name)  # type: ignore[arg-type]
+
 
 @pytest.mark.enterprise
 class TestTenantVectorIsolation:
