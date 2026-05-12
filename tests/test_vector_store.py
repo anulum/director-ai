@@ -150,6 +150,11 @@ class TestVectorGroundTruthStore:
         with pytest.raises(ValueError, match=message):
             store.add_fact(key, value)
 
+    def test_add_fact_rejects_invalid_metadata(self):
+        store = VectorGroundTruthStore()
+        with pytest.raises(ValueError, match="metadata"):
+            store.add_fact("sky", "blue", metadata="bad")  # type: ignore[arg-type]
+
     @pytest.mark.parametrize("query", ["", "   "])
     def test_retrieve_context_rejects_empty_query(self, query):
         store = VectorGroundTruthStore()

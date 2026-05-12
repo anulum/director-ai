@@ -347,6 +347,8 @@ class VectorGroundTruthStore(GroundTruthStore):
         tenant_id = self._resolved_tenant_id(tenant_id)
         key = _require_non_empty_string("key", key)
         value = _require_non_empty_string("value", value)
+        if metadata is not None and not isinstance(metadata, dict):
+            raise ValueError("metadata must be a dictionary")
         doc_id = f"{tenant_id}::{key}" if tenant_id else key
         combined_text = f"{key}: {value}"
         incoming = dict(metadata or {})
