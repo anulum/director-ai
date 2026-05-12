@@ -126,6 +126,33 @@ class TestSentenceTransformerBackend:
         be._lock = threading.Lock()
         assert be.query("test") == []
 
+    def test_delete_keeps_embeddings_aligned(self):
+        import threading
+
+        import numpy as np
+
+        from director_ai.core import vector_store
+
+        be = vector_store.SentenceTransformerBackend.__new__(
+            vector_store.SentenceTransformerBackend,
+        )
+        be._model = MagicMock()
+        be._docs = [
+            {"id": "d1", "text": "alpha", "metadata": {}},
+            {"id": "d2", "text": "beta", "metadata": {}},
+        ]
+        be._embeddings = [
+            np.asarray([1.0, 0.0], dtype=np.float32),
+            np.asarray([0.0, 1.0], dtype=np.float32),
+        ]
+        be._lock = threading.Lock()
+
+        removed = be.delete(["d1", "missing"])
+
+        assert removed == 1
+        assert [doc["id"] for doc in be._docs] == ["d2"]
+        assert len(be._embeddings) == 1
+
 
 class TestChromaBackend:
     def test_import_error(self, monkeypatch):
@@ -160,6 +187,19 @@ class TestChromaBackend:
         assert results[0]["text"] == "text1"
 
         assert be.count() == 1
+
+    def test_delete_delegates_to_collection_and_returns_removed_count(self):
+        from director_ai.core import vector_store
+
+        mock_collection = MagicMock()
+        mock_collection.count.side_effect = [3, 1]
+        be = vector_store.ChromaBackend.__new__(vector_store.ChromaBackend)
+        be._collection = mock_collection
+
+        removed = be.delete(["d1", "d2"])
+
+        assert removed == 2
+        mock_collection.delete.assert_called_once_with(ids=["d1", "d2"])
 
     def test_persist_directory(self):
         from director_ai.core import vector_store

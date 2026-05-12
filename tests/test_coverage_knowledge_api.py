@@ -337,25 +337,27 @@ class TestDeleteChunks:
         assert "c0" not in store.facts
         assert "c1" not in store.facts
 
-    def test_tolerates_attribute_error(self):
+    def test_raises_attribute_error_without_mutating_facts(self):
         from director_ai.knowledge_api import _delete_chunks
 
-        store = _make_vector_store()
+        store = _make_vector_store(facts={"x:chunk:0": "text"})
         store.backend = MagicMock()
-        store.backend.delete.side_effect = AttributeError
+        store.backend.delete.side_effect = AttributeError("delete unavailable")
         record = _fake_record(chunk_ids=["x:chunk:0"])
-        removed = _delete_chunks(record, store)
-        assert removed == 0
+        with pytest.raises(RuntimeError, match="Unable to delete chunk"):
+            _delete_chunks(record, store)
+        assert "x:chunk:0" in store.facts
 
-    def test_tolerates_type_error(self):
+    def test_raises_type_error_without_mutating_facts(self):
         from director_ai.knowledge_api import _delete_chunks
 
-        store = _make_vector_store()
+        store = _make_vector_store(facts={"x:chunk:0": "text"})
         store.backend = MagicMock()
-        store.backend.delete.side_effect = TypeError
+        store.backend.delete.side_effect = TypeError("bad signature")
         record = _fake_record(chunk_ids=["x:chunk:0"])
-        removed = _delete_chunks(record, store)
-        assert removed == 0
+        with pytest.raises(RuntimeError, match="Unable to delete chunk"):
+            _delete_chunks(record, store)
+        assert "x:chunk:0" in store.facts
 
     def test_empty_chunk_ids(self):
         from director_ai.knowledge_api import _delete_chunks
@@ -364,28 +366,45 @@ class TestDeleteChunks:
         removed = _delete_chunks(_fake_record(chunk_ids=[]), store)
         assert removed == 0
 
-    def test_facts_popped_even_when_backend_raises(self):
+    def test_partial_backend_delete_failure_preserves_remaining_facts(self):
+        from director_ai.knowledge_api import _delete_chunks
+
+        store = _make_vector_store(facts={"z0": "val", "z1": "val"})
+        store.backend = MagicMock()
+        store.backend.delete.side_effect = [1, RuntimeError("backend unavailable")]
+        record = _fake_record(chunk_ids=["z0", "z1"])
+
+        with pytest.raises(RuntimeError, match="Unable to delete chunk"):
+            _delete_chunks(record, store)
+
+        assert "z0" not in store.facts
+        assert "z1" in store.facts
+
+    def test_raises_not_implemented_error_without_mutating_facts(self):
         from director_ai.knowledge_api import _delete_chunks
 
         store = _make_vector_store(facts={"z": "val"})
         store.backend = MagicMock()
-        store.backend.delete.side_effect = AttributeError
+        store.backend.delete.side_effect = NotImplementedError("delete unsupported")
         record = _fake_record(chunk_ids=["z"])
-        _delete_chunks(record, store)
-        assert "z" not in store.facts
 
-    def test_tolerates_not_implemented_error(self):
+        with pytest.raises(RuntimeError, match="Unable to delete chunk"):
+            _delete_chunks(record, store)
+
+        assert "z" in store.facts
+
+    def test_zero_delete_count_is_failure_for_existing_chunk(self):
         from director_ai.knowledge_api import _delete_chunks
 
         store = _make_vector_store(facts={"z": "val"})
         store.backend = MagicMock()
-        store.backend.delete.side_effect = NotImplementedError
+        store.backend.delete.return_value = 0
         record = _fake_record(chunk_ids=["z"])
 
-        removed = _delete_chunks(record, store)
+        with pytest.raises(RuntimeError, match="reported 0 deletions"):
+            _delete_chunks(record, store)
 
-        assert removed == 0
-        assert "z" not in store.facts
+        assert "z" in store.facts
 
 
 # ---------------------------------------------------------------------------
@@ -793,6 +812,24 @@ class TestDeleteDocument:
         assert data["deleted"] == "d3"
         assert data["chunks_removed"] == 2
 
+    def test_backend_delete_failure_keeps_registry_record(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        store.backend = MagicMock()
+        store.backend.delete.side_effect = RuntimeError("backend unavailable")
+        rec = _fake_record(doc_id="d3", chunk_ids=["d3:c0"])
+        reg.get.return_value = rec
+        store.facts["d3:c0"] = "t0"
+        client = TestClient(app)
+
+        resp = client.delete("/v1/knowledge/documents/d3")
+
+        assert resp.status_code == 503
+        assert "Unable to delete document chunks" in resp.json()["detail"]
+        reg.delete.assert_not_called()
+        assert "d3:c0" in store.facts
+
 
 # ---------------------------------------------------------------------------
 # PUT /documents/{doc_id}
@@ -843,6 +880,30 @@ class TestUpdateDocument:
         assert new_ids
         assert all(":rev:" in cid for cid in new_ids)
         backend_mock.delete.assert_called_once_with(["d4:chunk:0"])
+
+    def test_update_delete_failure_keeps_registry_and_removes_new_chunks(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        backend_mock = MagicMock()
+        backend_mock.delete.side_effect = RuntimeError("backend unavailable")
+        store.backend = backend_mock
+        rec = _fake_record(doc_id="d4", chunk_ids=["d4:chunk:0"])
+        reg.get.return_value = rec
+        store.facts["d4:chunk:0"] = "old text"
+        client = TestClient(app)
+
+        resp = client.put(
+            "/v1/knowledge/documents/d4",
+            json={"text": "updated content for document d4", "source": "policy_v3"},
+        )
+
+        assert resp.status_code == 503
+        assert "Unable to replace document chunks" in resp.json()["detail"]
+        reg.update.assert_not_called()
+        assert "d4:chunk:0" in store.facts
+        new_fact_ids = [cid for cid in store.facts if ":rev:" in cid]
+        assert new_fact_ids == []
 
 
 class TestKnowledgeApiEnterpriseAlias:

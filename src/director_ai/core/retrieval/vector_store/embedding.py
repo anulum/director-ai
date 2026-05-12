@@ -105,6 +105,28 @@ class SentenceTransformerBackend(VectorBackend):
         with self._lock:
             return len(self._docs)
 
+    def delete(self, doc_ids: list[str]) -> int:
+        if not isinstance(doc_ids, list):
+            raise ValueError("doc_ids must be a list of non-empty strings")
+        if any(not isinstance(doc_id, str) or not doc_id.strip() for doc_id in doc_ids):
+            raise ValueError("doc_ids must contain only non-empty strings")
+        targets = set(doc_ids)
+        if not targets:
+            return 0
+        with self._lock:
+            kept_docs: list[dict[str, Any]] = []
+            kept_embeddings: list[Any] = []
+            removed = 0
+            for doc, embedding in zip(self._docs, self._embeddings, strict=True):
+                if doc["id"] in targets:
+                    removed += 1
+                    continue
+                kept_docs.append(doc)
+                kept_embeddings.append(embedding)
+            self._docs = kept_docs
+            self._embeddings = kept_embeddings
+            return removed
+
 
 class ChromaBackend(VectorBackend):
     """ChromaDB backend for production vector search.
@@ -199,3 +221,15 @@ class ChromaBackend(VectorBackend):
 
     def count(self) -> int:
         return int(self._collection.count())
+
+    def delete(self, doc_ids: list[str]) -> int:
+        if not isinstance(doc_ids, list):
+            raise ValueError("doc_ids must be a list of non-empty strings")
+        if any(not isinstance(doc_id, str) or not doc_id.strip() for doc_id in doc_ids):
+            raise ValueError("doc_ids must contain only non-empty strings")
+        if not doc_ids:
+            return 0
+        before = self.count()
+        self._collection.delete(ids=doc_ids)
+        after = self.count()
+        return max(before - after, 0)

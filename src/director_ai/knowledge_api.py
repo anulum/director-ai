@@ -272,9 +272,16 @@ def _delete_chunks(record, store) -> int:
     for cid in record.chunk_ids:
         try:
             delete_count = store.backend.delete([cid])
-            removed += delete_count if isinstance(delete_count, int) else 1
-        except (AttributeError, NotImplementedError, TypeError):
-            pass
+        except Exception as exc:
+            raise RuntimeError(f"Unable to delete chunk {cid!r}") from exc
+        if isinstance(delete_count, int):
+            if delete_count != 1:
+                raise RuntimeError(
+                    f"Backend reported {delete_count} deletions for chunk {cid!r}",
+                )
+            removed += delete_count
+        else:
+            removed += 1
         store.facts.pop(cid, None)
     return removed
 
@@ -457,7 +464,11 @@ def create_knowledge_router() -> APIRouter:
         if record is None:
             raise HTTPException(404, "Document not found")
 
-        removed = _delete_chunks(record, store)
+        try:
+            removed = _delete_chunks(record, store)
+        except RuntimeError as exc:
+            logger.exception("Failed deleting knowledge document chunks: %s", doc_id)
+            raise HTTPException(503, "Unable to delete document chunks") from exc
         registry.delete(doc_id)
 
         return {"deleted": doc_id, "chunks_removed": removed}
@@ -489,6 +500,12 @@ def create_knowledge_router() -> APIRouter:
         if record is None:
             raise HTTPException(404, "Document not found")
 
+        try:
+            _delete_chunks(record, store)
+        except RuntimeError as exc:
+            logger.exception("Failed replacing knowledge document chunks: %s", doc_id)
+            raise HTTPException(503, "Unable to replace document chunks") from exc
+
         loop = asyncio.get_running_loop()
         chunk_id_prefix = f"{doc_id}:rev:{uuid.uuid4().hex[:12]}"
         new_chunk_ids = await loop.run_in_executor(
@@ -503,8 +520,6 @@ def create_knowledge_router() -> APIRouter:
             sig_meta,
             chunk_id_prefix,
         )
-
-        _delete_chunks(record, store)
         record = registry.update(doc_id, new_chunk_ids, source=source)
 
         return {
