@@ -15,10 +15,12 @@ integration via CoherenceScorer, and performance documentation.
 
 from __future__ import annotations
 
+import sys
+from contextlib import nullcontext
+from types import ModuleType, SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import pytest
-import torch
 
 from director_ai.core.nli import NLIScorer, export_onnx
 
@@ -96,13 +98,23 @@ class TestExportOnnx:
         with pytest.raises(ValueError, match="quantize"):
             export_onnx(output_dir=str(tmp_path), quantize="nf4")
 
-    def test_export_uses_torch_onnx_not_legacy_exporter(self, tmp_path):
+    def test_export_uses_torch_onnx_not_legacy_exporter(self, tmp_path, monkeypatch):
+        fake_torch = ModuleType("torch")
+        fake_torch.long = object()
+        fake_torch.no_grad = MagicMock(return_value=nullcontext())
+        fake_torch.ones = MagicMock(
+            side_effect=lambda shape, dtype=None: {"shape": shape, "dtype": dtype},
+        )
+        fake_torch.nn = SimpleNamespace(Module=object)
+        fake_torch.onnx = SimpleNamespace(export=MagicMock())
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
         model = MagicMock()
         model.config.save_pretrained = MagicMock()
         tokenizer = MagicMock()
         tokenizer.return_value = {
-            "input_ids": torch.ones((1, 4), dtype=torch.long),
-            "attention_mask": torch.ones((1, 4), dtype=torch.long),
+            "input_ids": fake_torch.ones((1, 4), dtype=fake_torch.long),
+            "attention_mask": fake_torch.ones((1, 4), dtype=fake_torch.long),
         }
 
         with (
@@ -114,7 +126,6 @@ class TestExportOnnx:
                 "transformers.AutoModelForSequenceClassification.from_pretrained",
                 return_value=model,
             ) as model_from_pretrained,
-            patch("torch.onnx.export") as torch_export,
         ):
             result = export_onnx(
                 model_name="test/model",
@@ -125,8 +136,8 @@ class TestExportOnnx:
         assert result == str(tmp_path)
         tok_from_pretrained.assert_called_once_with("test/model", revision="abc123")
         model_from_pretrained.assert_called_once_with("test/model", revision="abc123")
-        torch_export.assert_called_once()
-        _, _, exported_path = torch_export.call_args.args
+        fake_torch.onnx.export.assert_called_once()
+        _, _, exported_path = fake_torch.onnx.export.call_args.args
         assert exported_path.endswith("model.onnx")
 
 

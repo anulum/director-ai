@@ -21,6 +21,7 @@ from __future__ import annotations
 import logging
 import random
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
 from typing import Any, cast
 
@@ -65,12 +66,13 @@ def tune_embeddings(
     TuneResult with model path and training metrics.
     """
     try:
-        from sentence_transformers import InputExample, SentenceTransformer, losses
+        from sentence_transformers import InputExample, SentenceTransformer
         from torch.utils.data import DataLoader
     except ImportError as e:
         raise ImportError(
             "sentence-transformers required. Install: pip install director-ai[embeddings]"
         ) from e
+    losses = import_module("sentence_transformers.losses")
 
     random.seed(seed)
     model = SentenceTransformer(base_model)

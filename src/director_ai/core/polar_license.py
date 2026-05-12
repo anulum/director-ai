@@ -269,7 +269,7 @@ def deactivate_polar_key(
     if not org_id:
         return PolarOperationResult(False, "DIRECTOR_AI_POLAR_ORG_ID not configured")
 
-    request_body = {
+    request_body: dict[str, object] = {
         "key": clean_key,
         "organization_id": org_id,
         "activation_id": clean_activation,
@@ -304,11 +304,13 @@ def create_polar_customer_portal_session(
     if bool(customer_id) == bool(customer_external_id):
         raise ValueError("provide exactly one of customer_id or customer_external_id")
 
-    request_body = (
-        {"customer_id": customer_id.strip()}
-        if customer_id
-        else {"external_customer_id": customer_external_id.strip()}
-    )
+    request_body: dict[str, object]
+    if customer_id:
+        request_body = {"customer_id": customer_id.strip()}
+    elif customer_external_id:
+        request_body = {"external_customer_id": customer_external_id.strip()}
+    else:
+        raise ValueError("provide exactly one of customer_id or customer_external_id")
     if not next(iter(request_body.values())):
         raise ValueError("Polar customer identifier must be non-empty")
 

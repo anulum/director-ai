@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import time
+from typing import Any
 
 from ..metrics import metrics
 from ..model_revisions import resolve_model_revision
@@ -88,8 +89,8 @@ class LLMJudge:
         self._cost_callback = cost_callback
 
         # Local DeBERTa-base judge model
-        self._local_judge_model = None
-        self._local_judge_tokenizer = None
+        self._local_judge_model: Any | None = None
+        self._local_judge_tokenizer: Any | None = None
         self._local_judge_device = "cpu"
 
         # Per-task-type escalation thresholds

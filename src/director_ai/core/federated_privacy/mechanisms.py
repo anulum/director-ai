@@ -183,7 +183,11 @@ def _signum(value: float) -> float:
     return 0.0
 
 
-def _rng_from_seed(seed: int | None, *, allow_insecure_seed: bool):
+def _rng_from_seed(
+    seed: int | None,
+    *,
+    allow_insecure_seed: bool,
+) -> random.Random:
     if seed is None:
         return random.SystemRandom()
     if not allow_insecure_seed:

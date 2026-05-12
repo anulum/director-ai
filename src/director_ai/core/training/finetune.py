@@ -39,7 +39,7 @@ from collections import Counter
 from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from ..model_revisions import resolve_model_revision
 
@@ -431,7 +431,7 @@ def finetune_nli(
     )
 
     # Phase E: early stopping callback
-    callbacks = []
+    callbacks: list[Any] = []
     if config.early_stopping_patience > 0 and eval_dataset:
         callbacks.append(
             EarlyStoppingCallback(
@@ -527,7 +527,9 @@ def finetune_nli(
         return result
     finally:
         with suppress(Exception):
-            trainer.model.to("cpu")
+            trained_model = trainer.model
+            if trained_model is not None:
+                cast(Any, trained_model).to("cpu")
         from .._device import release_torch_cuda
 
         release_torch_cuda()
