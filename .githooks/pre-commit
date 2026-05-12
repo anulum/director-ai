@@ -1,0 +1,31 @@
+#!/usr/bin/env sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# (c) Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Local Pre-commit Exposure Guard
+# BEGIN enterprise-trust local pre-commit exposure guard
+set -eu
+
+blocked_patterns='(^|/)(\.coordination|docs/internal|04_ARCANE_SAPIENCE|ARCHIVE|BACKUP|MODELS)(/|$)|(^|/)\.env($|\.)|(^|/)\.coverage($|\.)|(^|/)coverage\.xml$|(^|/).*\.(pem|key|log)$|(^|/)id_(rsa|ed25519)$|(^|/)(credentials?|secrets?|tokens?)(/|$|[._-])'
+allowed_patterns='(^|/)discord-bot/\.env\.example$|(^|/)src/.*/secret_sharing\.py$|(^|/)benchmarks/models/.*/tokenizer(_config)?\.json$'
+
+blocked=''
+for path in $(git diff --cached --name-only); do
+  if printf '%s\n' "$path" | grep -E "$blocked_patterns" >/dev/null; then
+    if ! printf '%s\n' "$path" | grep -E "$allowed_patterns" >/dev/null; then
+      blocked="${blocked}
+${path}"
+    fi
+  fi
+done
+
+if [ -n "$blocked" ]; then
+  printf '%s\n' "ERROR: enterprise-trust blocked staged internal or sensitive paths:" >&2
+  printf '%s\n' "$blocked" >&2
+  printf '%s\n' "Move internal artefacts to ignored internal storage or get explicit remediation approval." >&2
+  exit 1
+fi
+# END enterprise-trust local pre-commit exposure guard
