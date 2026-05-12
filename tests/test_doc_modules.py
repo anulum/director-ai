@@ -27,6 +27,23 @@ from director_ai.core.retrieval import doc_chunker
 
 
 class TestChunker:
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"chunk_size": 0}, "chunk_size"),
+            ({"chunk_size": -1}, "chunk_size"),
+            ({"chunk_size": 8, "overlap": -1}, "overlap"),
+            ({"chunk_size": 8, "overlap": 8}, "overlap"),
+            ({"separators": ()}, "separators"),
+            ({"separators": ("\n", object())}, "separators"),
+            ({"similarity_threshold": -0.01}, "similarity_threshold"),
+            ({"similarity_threshold": 1.01}, "similarity_threshold"),
+        ],
+    )
+    def test_chunk_config_rejects_invalid_values(self, kwargs, message):
+        with pytest.raises(ValueError, match=message):
+            ChunkConfig(**kwargs)
+
     def test_empty(self):
         assert split("") == []
 

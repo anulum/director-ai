@@ -27,6 +27,28 @@ class ChunkConfig:
     semantic: bool = False
     similarity_threshold: float = 0.3
 
+    def __post_init__(self) -> None:
+        if not isinstance(self.chunk_size, int) or isinstance(self.chunk_size, bool):
+            raise ValueError("chunk_size must be an integer")
+        if self.chunk_size < 1:
+            raise ValueError("chunk_size must be at least 1")
+        if not isinstance(self.overlap, int) or isinstance(self.overlap, bool):
+            raise ValueError("overlap must be an integer")
+        if self.overlap < 0:
+            raise ValueError("overlap must be non-negative")
+        if self.overlap >= self.chunk_size:
+            raise ValueError("overlap must be smaller than chunk_size")
+        if not isinstance(self.separators, tuple) or not self.separators:
+            raise ValueError("separators must be a non-empty tuple")
+        if any(not isinstance(separator, str) for separator in self.separators):
+            raise ValueError("separators must contain only strings")
+        if not isinstance(self.similarity_threshold, int | float) or isinstance(
+            self.similarity_threshold, bool
+        ):
+            raise ValueError("similarity_threshold must be numeric")
+        if not 0.0 <= float(self.similarity_threshold) <= 1.0:
+            raise ValueError("similarity_threshold must be between 0.0 and 1.0")
+
 
 _SENT_RE = re.compile(r"(?<=[.!?])\s+")
 
