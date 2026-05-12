@@ -45,9 +45,12 @@ class LaplaceMechanism:
         Upper bound on how much a single individual can change
         the query value. Must be non-negative.
     seed :
-        Optional integer seed for the internal RNG so CI runs
-        are reproducible. Without a seed the mechanism reads
-        from the system entropy pool every call.
+        Optional deterministic seed for tests and simulations only.
+        Production code should leave this unset so the mechanism
+        reads from the system entropy pool every call.
+    allow_insecure_seed :
+        Must be ``True`` when ``seed`` is supplied. This keeps
+        deterministic test RNG separate from production privacy RNG.
     """
 
     def __init__(
@@ -56,6 +59,7 @@ class LaplaceMechanism:
         epsilon: float,
         sensitivity: float,
         seed: int | None = None,
+        allow_insecure_seed: bool = False,
     ) -> None:
         if epsilon <= 0:
             raise ValueError("epsilon must be positive")
@@ -64,7 +68,7 @@ class LaplaceMechanism:
         self._params = _MechanismParams(
             epsilon=epsilon, delta=0.0, sensitivity=sensitivity
         )
-        self._rng = random.Random(seed) if seed is not None else random.SystemRandom()
+        self._rng = _rng_from_seed(seed, allow_insecure_seed=allow_insecure_seed)
 
     @property
     def epsilon(self) -> float:
@@ -112,7 +116,10 @@ class GaussianMechanism:
     sensitivity :
         L2 sensitivity of the query. Non-negative.
     seed :
-        Optional RNG seed.
+        Optional deterministic seed for tests and simulations only.
+    allow_insecure_seed :
+        Must be ``True`` when ``seed`` is supplied. Production
+        defaults use system entropy.
     """
 
     def __init__(
@@ -122,6 +129,7 @@ class GaussianMechanism:
         delta: float,
         sensitivity: float,
         seed: int | None = None,
+        allow_insecure_seed: bool = False,
     ) -> None:
         if not 0.0 < epsilon < 1.0:
             raise ValueError("epsilon must be in (0, 1)")
@@ -132,7 +140,7 @@ class GaussianMechanism:
         self._params = _MechanismParams(
             epsilon=epsilon, delta=delta, sensitivity=sensitivity
         )
-        self._rng = random.Random(seed) if seed is not None else random.SystemRandom()
+        self._rng = _rng_from_seed(seed, allow_insecure_seed=allow_insecure_seed)
 
     @property
     def epsilon(self) -> float:
@@ -173,3 +181,14 @@ def _signum(value: float) -> float:
     if value < 0:
         return -1.0
     return 0.0
+
+
+def _rng_from_seed(seed: int | None, *, allow_insecure_seed: bool):
+    if seed is None:
+        return random.SystemRandom()
+    if not allow_insecure_seed:
+        raise ValueError(
+            "seed requires allow_insecure_seed=True; production privacy "
+            "mechanisms must use system entropy",
+        )
+    return random.Random(seed)  # nosec B311

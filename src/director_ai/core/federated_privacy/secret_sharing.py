@@ -82,18 +82,20 @@ def split(
     party_count: int,
     modulus: int = DEFAULT_MODULUS,
     seed: int | None = None,
+    allow_insecure_seed: bool = False,
 ) -> SecretShare:
     """Split ``secret`` into ``party_count`` additive shares
     modulo ``modulus``.
 
-    ``seed`` makes the split reproducible (for tests); production
-    code should let the system RNG fire for every call.
+    ``seed`` makes the split reproducible only when
+    ``allow_insecure_seed=True``. Production code should leave
+    ``seed`` unset so the system RNG fires for every call.
     """
     if party_count < 2:
         raise ShareError("party_count must be at least 2")
     if modulus <= 0:
         raise ShareError("modulus must be positive")
-    rng = random.Random(seed) if seed is not None else random.SystemRandom()
+    rng = _rng_from_seed(seed, allow_insecure_seed=allow_insecure_seed)
     return _split_with_rng(secret, party_count=party_count, modulus=modulus, rng=rng)
 
 
@@ -202,13 +204,14 @@ def split_many(
     party_count: int,
     modulus: int = DEFAULT_MODULUS,
     seed: int | None = None,
+    allow_insecure_seed: bool = False,
 ) -> tuple[SecretShare, ...]:
     """Convenience helper: split a whole list of secrets with
     independent seeds so the per-secret shares are uncorrelated.
     Returns one :class:`SecretShare` per secret."""
     if not secrets:
         raise ShareError("secrets must be non-empty")
-    rng = random.Random(seed) if seed is not None else random.SystemRandom()
+    rng = _rng_from_seed(seed, allow_insecure_seed=allow_insecure_seed)
     out: list[SecretShare] = []
     for secret in secrets:
         out.append(
@@ -220,3 +223,14 @@ def split_many(
             )
         )
     return tuple(out)
+
+
+def _rng_from_seed(seed: int | None, *, allow_insecure_seed: bool) -> _RandRange:
+    if seed is None:
+        return random.SystemRandom()
+    if not allow_insecure_seed:
+        raise ShareError(
+            "seed requires allow_insecure_seed=True; production secret sharing "
+            "must use system entropy",
+        )
+    return random.Random(seed)  # nosec B311

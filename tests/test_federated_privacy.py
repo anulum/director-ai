@@ -43,11 +43,21 @@ from director_ai.core.federated_privacy.secret_sharing import (
 
 class TestLaplace:
     def test_scale_is_sensitivity_over_epsilon(self):
-        m = LaplaceMechanism(epsilon=0.5, sensitivity=2.0, seed=0)
+        m = LaplaceMechanism(
+            epsilon=0.5,
+            sensitivity=2.0,
+            seed=0,
+            allow_insecure_seed=True,
+        )
         assert m.scale == pytest.approx(4.0)
 
     def test_zero_sensitivity_produces_zero_scale(self):
-        m = LaplaceMechanism(epsilon=0.5, sensitivity=0.0, seed=0)
+        m = LaplaceMechanism(
+            epsilon=0.5,
+            sensitivity=0.0,
+            seed=0,
+            allow_insecure_seed=True,
+        )
         assert m.scale == 0.0
         assert m.noise() == 0.0
 
@@ -60,17 +70,31 @@ class TestLaplace:
             LaplaceMechanism(epsilon=1.0, sensitivity=-0.5)
 
     def test_noise_has_mean_near_zero(self):
-        m = LaplaceMechanism(epsilon=1.0, sensitivity=1.0, seed=42)
+        m = LaplaceMechanism(
+            epsilon=1.0,
+            sensitivity=1.0,
+            seed=42,
+            allow_insecure_seed=True,
+        )
         samples = [m.noise() for _ in range(5_000)]
         assert abs(statistics.mean(samples)) < 0.1
 
     def test_noise_variance_matches_laplace(self):
         """Laplace(0, b) has variance 2 b^2. We tolerate 20% error
         on 5 000 samples."""
-        m = LaplaceMechanism(epsilon=2.0, sensitivity=1.0, seed=7)
+        m = LaplaceMechanism(
+            epsilon=2.0,
+            sensitivity=1.0,
+            seed=7,
+            allow_insecure_seed=True,
+        )
         samples = [m.noise() for _ in range(5_000)]
         expected_var = 2 * (m.scale**2)
         assert statistics.pvariance(samples) == pytest.approx(expected_var, rel=0.2)
+
+    def test_seed_requires_explicit_insecure_test_mode(self):
+        with pytest.raises(ValueError, match="allow_insecure_seed"):
+            LaplaceMechanism(epsilon=1.0, sensitivity=1.0, seed=42)
 
 
 # --- GaussianMechanism --------------------------------------------
@@ -78,12 +102,24 @@ class TestLaplace:
 
 class TestGaussian:
     def test_sigma_formula(self):
-        m = GaussianMechanism(epsilon=0.5, delta=1e-5, sensitivity=1.0, seed=0)
+        m = GaussianMechanism(
+            epsilon=0.5,
+            delta=1e-5,
+            sensitivity=1.0,
+            seed=0,
+            allow_insecure_seed=True,
+        )
         expected = math.sqrt(2.0 * math.log(1.25 / 1e-5)) / 0.5
         assert m.sigma == pytest.approx(expected)
 
     def test_zero_sensitivity_zero_sigma(self):
-        m = GaussianMechanism(epsilon=0.5, delta=1e-5, sensitivity=0.0, seed=0)
+        m = GaussianMechanism(
+            epsilon=0.5,
+            delta=1e-5,
+            sensitivity=0.0,
+            seed=0,
+            allow_insecure_seed=True,
+        )
         assert m.sigma == 0.0
         assert m.noise() == 0.0
 
@@ -100,15 +136,35 @@ class TestGaussian:
             GaussianMechanism(epsilon=0.5, delta=1e-5, sensitivity=-0.1)
 
     def test_properties_and_apply_use_calibrated_gaussian_noise(self):
-        m = GaussianMechanism(epsilon=0.5, delta=1e-5, sensitivity=1.0, seed=123)
+        m = GaussianMechanism(
+            epsilon=0.5,
+            delta=1e-5,
+            sensitivity=1.0,
+            seed=123,
+            allow_insecure_seed=True,
+        )
 
         assert m.epsilon == pytest.approx(0.5)
         assert m.delta == pytest.approx(1e-5)
         assert m.sensitivity == pytest.approx(1.0)
         assert m.apply(10.0) != 10.0
 
+    def test_gaussian_seed_requires_explicit_insecure_test_mode(self):
+        with pytest.raises(ValueError, match="allow_insecure_seed"):
+            GaussianMechanism(
+                epsilon=0.5,
+                delta=1e-5,
+                sensitivity=1.0,
+                seed=42,
+            )
+
     def test_laplace_apply_and_sign_direction_are_deterministic_with_seed(self):
-        m = LaplaceMechanism(epsilon=1.0, sensitivity=1.0, seed=3)
+        m = LaplaceMechanism(
+            epsilon=1.0,
+            sensitivity=1.0,
+            seed=3,
+            allow_insecure_seed=True,
+        )
 
         released = m.apply(5.0)
 
@@ -121,7 +177,12 @@ class TestGaussian:
                 assert (low, high) == (-0.5, 0.5)
                 return 0.0
 
-        m = LaplaceMechanism(epsilon=1.0, sensitivity=1.0, seed=3)
+        m = LaplaceMechanism(
+            epsilon=1.0,
+            sensitivity=1.0,
+            seed=3,
+            allow_insecure_seed=True,
+        )
         m._rng = MidpointRng()
 
         assert m.noise() == 0.0
@@ -247,23 +308,29 @@ class TestAccountant:
 
 class TestSecretSharing:
     def test_reconstruct_roundtrip(self):
-        share = split(42, party_count=3, seed=0)
+        share = split(42, party_count=3, seed=0, allow_insecure_seed=True)
         assert reconstruct(share) == 42
 
     def test_share_has_correct_party_count(self):
-        share = split(7, party_count=5, seed=1)
+        share = split(7, party_count=5, seed=1, allow_insecure_seed=True)
         assert share.party_count == 5
 
     def test_share_values_bounded(self):
-        share = split(100, party_count=4, seed=2, modulus=1000)
+        share = split(
+            100,
+            party_count=4,
+            seed=2,
+            modulus=1000,
+            allow_insecure_seed=True,
+        )
         for v in share.values:
             assert 0 <= v < 1000
 
     def test_aggregator_sums_secrets(self):
         aggregator = SecureAggregator(party_count=3)
-        s1 = split(10, party_count=3, seed=1)
-        s2 = split(20, party_count=3, seed=2)
-        s3 = split(15, party_count=3, seed=3)
+        s1 = split(10, party_count=3, seed=1, allow_insecure_seed=True)
+        s2 = split(20, party_count=3, seed=2, allow_insecure_seed=True)
+        s3 = split(15, party_count=3, seed=3, allow_insecure_seed=True)
         aggregator.submit(s1)
         aggregator.submit(s2)
         aggregator.submit(s3)
@@ -272,13 +339,19 @@ class TestSecretSharing:
 
     def test_aggregator_rejects_mismatched_party_count(self):
         aggregator = SecureAggregator(party_count=3)
-        mismatched = split(10, party_count=4, seed=1)
+        mismatched = split(10, party_count=4, seed=1, allow_insecure_seed=True)
         with pytest.raises(ShareError, match="parties"):
             aggregator.submit(mismatched)
 
     def test_aggregator_rejects_mismatched_modulus(self):
         aggregator = SecureAggregator(party_count=3, modulus=1_000_003)
-        other_modulus = split(10, party_count=3, seed=1, modulus=999_983)
+        other_modulus = split(
+            10,
+            party_count=3,
+            seed=1,
+            modulus=999_983,
+            allow_insecure_seed=True,
+        )
         with pytest.raises(ShareError, match="modulus"):
             aggregator.submit(other_modulus)
 
@@ -289,7 +362,7 @@ class TestSecretSharing:
 
     def test_aggregator_reset(self):
         aggregator = SecureAggregator(party_count=2)
-        aggregator.submit(split(5, party_count=2, seed=0))
+        aggregator.submit(split(5, party_count=2, seed=0, allow_insecure_seed=True))
         aggregator.reset()
         assert aggregator.submissions == 0
         with pytest.raises(ShareError):
@@ -314,7 +387,12 @@ class TestSecretSharing:
             SecretShare(values=(1, 1 << 200), modulus=DEFAULT_MODULUS)
 
     def test_split_many(self):
-        shares = split_many([1, 2, 3], party_count=3, seed=0)
+        shares = split_many(
+            [1, 2, 3],
+            party_count=3,
+            seed=0,
+            allow_insecure_seed=True,
+        )
         assert len(shares) == 3
         for share, expected in zip(shares, [1, 2, 3], strict=False):
             assert reconstruct(share) == expected
@@ -348,9 +426,15 @@ class TestSecretSharing:
             split_many([], party_count=3)
 
     def test_reproducible_with_seed(self):
-        a = split(123, party_count=5, seed=777)
-        b = split(123, party_count=5, seed=777)
+        a = split(123, party_count=5, seed=777, allow_insecure_seed=True)
+        b = split(123, party_count=5, seed=777, allow_insecure_seed=True)
         assert a.values == b.values
+
+    def test_secret_sharing_seed_requires_explicit_insecure_test_mode(self):
+        with pytest.raises(ShareError, match="allow_insecure_seed"):
+            split(123, party_count=5, seed=777)
+        with pytest.raises(ShareError, match="allow_insecure_seed"):
+            split_many([1, 2], party_count=3, seed=777)
 
 
 # --- FederatedCounter ---------------------------------------------
@@ -359,7 +443,13 @@ class TestSecretSharing:
 class TestFederatedCounter:
     def test_submits_and_releases(self):
         acc = PrivacyAccountant(max_epsilon=5.0)
-        counter = FederatedCounter(epsilon=0.5, sensitivity=1.0, accountant=acc, seed=0)
+        counter = FederatedCounter(
+            epsilon=0.5,
+            sensitivity=1.0,
+            accountant=acc,
+            seed=0,
+            allow_insecure_seed=True,
+        )
         counter.submit(tenant_id="t1", count=3)
         counter.submit(tenant_id="t2", count=7)
         release = counter.release()
@@ -368,7 +458,7 @@ class TestFederatedCounter:
         assert acc.cumulative_epsilon() == pytest.approx(0.5)
 
     def test_release_resets_state(self):
-        counter = FederatedCounter(epsilon=0.5, seed=0)
+        counter = FederatedCounter(epsilon=0.5, seed=0, allow_insecure_seed=True)
         counter.submit(tenant_id="t1", count=1)
         counter.release()
         second = counter.release()
@@ -376,12 +466,17 @@ class TestFederatedCounter:
 
     def test_budget_guard(self):
         acc = PrivacyAccountant(max_epsilon=0.4)
-        counter = FederatedCounter(epsilon=0.5, accountant=acc, seed=0)
+        counter = FederatedCounter(
+            epsilon=0.5,
+            accountant=acc,
+            seed=0,
+            allow_insecure_seed=True,
+        )
         with pytest.raises(ValueError, match="epsilon"):
             counter.release()
 
     def test_bad_tenant_or_count(self):
-        counter = FederatedCounter(epsilon=0.5, seed=0)
+        counter = FederatedCounter(epsilon=0.5, seed=0, allow_insecure_seed=True)
         with pytest.raises(ValueError, match="tenant_id"):
             counter.submit(tenant_id="", count=1)
         with pytest.raises(ValueError, match="count"):
@@ -391,8 +486,12 @@ class TestFederatedCounter:
         with pytest.raises(ValueError, match="label"):
             FederatedCounter(epsilon=0.5, label="")
 
+    def test_counter_seed_requires_explicit_insecure_test_mode(self):
+        with pytest.raises(ValueError, match="allow_insecure_seed"):
+            FederatedCounter(epsilon=0.5, seed=0)
+
     def test_concurrent_submits(self):
-        counter = FederatedCounter(epsilon=0.5, seed=0)
+        counter = FederatedCounter(epsilon=0.5, seed=0, allow_insecure_seed=True)
 
         def writer(tag: str) -> None:
             for _ in range(100):
@@ -418,6 +517,7 @@ class TestFederatedHistogram:
             epsilon=0.9,
             accountant=acc,
             seed=0,
+            allow_insecure_seed=True,
         )
         hist.submit(tenant_id="t1", category="spam", count=3)
         hist.submit(tenant_id="t2", category="phishing", count=1)
@@ -430,7 +530,12 @@ class TestFederatedHistogram:
         assert acc.cumulative_epsilon() == pytest.approx(0.9)
 
     def test_unknown_category_rejected(self):
-        hist = FederatedHistogram(categories=("a", "b"), epsilon=0.5, seed=0)
+        hist = FederatedHistogram(
+            categories=("a", "b"),
+            epsilon=0.5,
+            seed=0,
+            allow_insecure_seed=True,
+        )
         with pytest.raises(KeyError, match="ghost"):
             hist.submit(tenant_id="t", category="ghost")
 
@@ -450,12 +555,21 @@ class TestFederatedHistogram:
         with pytest.raises(ValueError, match="epsilon"):
             FederatedHistogram(categories=("a",), epsilon=0.0)
 
+    def test_histogram_seed_requires_explicit_insecure_test_mode(self):
+        with pytest.raises(ValueError, match="allow_insecure_seed"):
+            FederatedHistogram(categories=("a",), epsilon=0.5, seed=0)
+
     def test_empty_label(self):
         with pytest.raises(ValueError, match="label"):
             FederatedHistogram(categories=("a",), epsilon=0.5, label="")
 
     def test_bad_submit(self):
-        hist = FederatedHistogram(categories=("a",), epsilon=0.5, seed=0)
+        hist = FederatedHistogram(
+            categories=("a",),
+            epsilon=0.5,
+            seed=0,
+            allow_insecure_seed=True,
+        )
         with pytest.raises(ValueError, match="tenant_id"):
             hist.submit(tenant_id="", category="a")
         with pytest.raises(ValueError, match="count"):

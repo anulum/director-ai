@@ -60,7 +60,9 @@ class FederatedCounter:
         Caller-chosen tag recorded on the accountant entry. Default
         ``"counter"``.
     seed :
-        Optional RNG seed for the Laplace mechanism.
+        Optional deterministic RNG seed for tests and simulations only.
+    allow_insecure_seed :
+        Must be ``True`` when ``seed`` is supplied.
     """
 
     def __init__(
@@ -71,11 +73,15 @@ class FederatedCounter:
         accountant: PrivacyAccountant | None = None,
         label: str = "counter",
         seed: int | None = None,
+        allow_insecure_seed: bool = False,
     ) -> None:
         if not label:
             raise ValueError("label must be non-empty")
         self._mechanism = LaplaceMechanism(
-            epsilon=epsilon, sensitivity=sensitivity, seed=seed
+            epsilon=epsilon,
+            sensitivity=sensitivity,
+            seed=seed,
+            allow_insecure_seed=allow_insecure_seed,
         )
         self._accountant = accountant
         self._label = label
@@ -153,7 +159,9 @@ class FederatedHistogram:
     label :
         Accountant tag. Default ``"histogram"``.
     seed :
-        Optional RNG seed for the Laplace mechanism.
+        Optional deterministic RNG seed for tests and simulations only.
+    allow_insecure_seed :
+        Must be ``True`` when ``seed`` is supplied.
     """
 
     def __init__(
@@ -165,6 +173,7 @@ class FederatedHistogram:
         accountant: PrivacyAccountant | None = None,
         label: str = "histogram",
         seed: int | None = None,
+        allow_insecure_seed: bool = False,
     ) -> None:
         cat_tuple = tuple(categories)
         if not cat_tuple:
@@ -182,7 +191,10 @@ class FederatedHistogram:
         self._total_epsilon = epsilon
         per_cat = epsilon / len(cat_tuple)
         self._mechanism = LaplaceMechanism(
-            epsilon=per_cat, sensitivity=sensitivity, seed=seed
+            epsilon=per_cat,
+            sensitivity=sensitivity,
+            seed=seed,
+            allow_insecure_seed=allow_insecure_seed,
         )
         self._accountant = accountant
         self._label = label
