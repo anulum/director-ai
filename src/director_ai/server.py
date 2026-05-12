@@ -401,14 +401,20 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         lifespan=lifespan,
     )
     app.state.config = cfg
+    app.state.router_mounts = {}
 
     # Fine-tuning API router (Phase C)
     try:
         from .finetune_api import create_finetune_router
 
         app.include_router(create_finetune_router(), prefix="/v1/finetune")
-    except ImportError:
-        pass
+        app.state.router_mounts["finetune"] = "mounted"
+    except ImportError as exc:
+        app.state.router_mounts["finetune"] = f"unavailable:{exc}"
+        if cfg.production_mode:
+            raise RuntimeError(
+                "production_mode requires the fine-tuning API router to load"
+            ) from exc
 
     # Knowledge ingestion API
     try:
@@ -417,8 +423,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         knowledge_router = create_knowledge_router()
         app.include_router(knowledge_router, prefix="/v1/knowledge")
         app.include_router(knowledge_router, prefix="/api/v1/knowledge")
-    except ImportError:
-        pass
+        app.state.router_mounts["knowledge"] = "mounted"
+    except ImportError as exc:
+        app.state.router_mounts["knowledge"] = f"unavailable:{exc}"
+        if cfg.production_mode:
+            raise RuntimeError(
+                "production_mode requires the knowledge API router to load"
+            ) from exc
 
     _origins = [o.strip() for o in cfg.cors_origins.split(",") if o.strip()]
     if len(_origins) > 100:
@@ -612,6 +623,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             profile=cfg.profile,
             nli_loaded=cfg.use_nli,
             uptime_seconds=time.monotonic() - _start_time,
+            routers=dict(request.app.state.router_mounts),
         )
         return {**resp.model_dump(), **extra}
 

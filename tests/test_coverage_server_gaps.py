@@ -15,6 +15,7 @@ pipeline integration, and performance documentation.
 from __future__ import annotations
 
 import json
+import sys
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -64,6 +65,29 @@ class TestSlowApiUnavailable:
         with patch("director_ai.server._SLOWAPI_AVAILABLE", False):
             cfg = _cfg(rate_limit_rpm=10, rate_limit_strict=True)
             with pytest.raises(ImportError, match="slowapi"):
+                create_app(config=cfg)
+
+
+class TestOptionalRouterVisibility:
+    def test_health_reports_unavailable_optional_router(self):
+        with patch.dict(sys.modules, {"director_ai.finetune_api": None}):
+            cfg = _cfg()
+            with _make_client(cfg) as c:
+                resp = c.get("/v1/health")
+
+        assert resp.status_code == 200
+        routers = resp.json()["routers"]
+        assert routers["finetune"].startswith("unavailable:")
+        assert routers["knowledge"] == "mounted"
+
+    def test_production_mode_fails_when_optional_router_unavailable(self):
+        cfg = _cfg(
+            production_mode=True,
+            api_keys=["writer"],
+            llm_api_url="https://llm.internal.example/v1",
+        )
+        with patch.dict(sys.modules, {"director_ai.knowledge_api": None}):
+            with pytest.raises(RuntimeError, match="knowledge API router"):
                 create_app(config=cfg)
 
 
