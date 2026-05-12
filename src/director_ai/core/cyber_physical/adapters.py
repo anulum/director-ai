@@ -23,7 +23,7 @@ simulator lifecycle (e.g. inside a test harness that shares one
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -52,6 +52,8 @@ class Ros2Adapter:
     node: Any
     joint_positions_topic: str = "/joint_states"
     collision_topic: str = "/collision_objects"
+    forward_kinematics: Callable[[Sequence[float]], Vec3] | None = None
+    inverse_kinematics: Callable[[Vec3], tuple[float, ...] | None] | None = None
 
     def __post_init__(self) -> None:
         if self.node is None:
@@ -87,18 +89,25 @@ class Ros2Adapter:
         )
 
     def forward(self, joint_angles: Sequence[float]) -> Vec3:
-        _ = joint_angles
-        raise NotImplementedError(
-            "Ros2Adapter.forward delegates to the robot's own FK "
-            "service; wire moveit_msgs/GetPositionFK in your deployment"
-        )
+        if self.forward_kinematics is None:
+            raise RuntimeError(
+                "Ros2Adapter.forward requires a configured FK callable "
+                "backed by moveit_msgs/GetPositionFK or an equivalent "
+                "robot-state service"
+            )
+        return self.forward_kinematics(joint_angles)
 
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
-        _ = target
-        raise NotImplementedError(
-            "Ros2Adapter.inverse delegates to moveit_msgs/GetPositionIK "
-            "in the live ROS graph"
-        )
+        if self.inverse_kinematics is None:
+            raise RuntimeError(
+                "Ros2Adapter.inverse requires a configured IK callable "
+                "backed by moveit_msgs/GetPositionIK or an equivalent "
+                "robot-state service"
+            )
+        result = self.inverse_kinematics(target)
+        if result is None:
+            return None
+        return tuple(float(angle) for angle in result)
 
     def collides_with(
         self,
@@ -126,6 +135,7 @@ class MuJoCoAdapter:
 
     model: Any
     data: Any
+    inverse_solver: Callable[[Any, Any, Vec3], Sequence[float] | None] | None = None
 
     def __post_init__(self) -> None:
         if self.model is None or self.data is None:
@@ -167,12 +177,15 @@ class MuJoCoAdapter:
         )
 
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
-        _ = target
-        raise NotImplementedError(
-            "MuJoCoAdapter.inverse is deployment-specific — wire a "
-            "numerical IK solver over MjData or Pinocchio in your "
-            "codebase"
-        )
+        if self.inverse_solver is None:
+            raise RuntimeError(
+                "MuJoCoAdapter.inverse requires a configured inverse_solver "
+                "that owns the deployment-specific numerical IK policy"
+            )
+        result = self.inverse_solver(self.model, self.data, target)
+        if result is None:
+            return None
+        return tuple(float(angle) for angle in result)
 
     def collides_with(
         self,
@@ -234,16 +247,16 @@ class CarlaAdapter:
 
     def forward(self, joint_angles: Sequence[float]) -> Vec3:
         _ = joint_angles
-        raise NotImplementedError(
-            "CarlaAdapter is for vehicle scenarios — there are no "
-            "joint angles to forward-kinematise; use vehicle-level "
-            "target poses instead"
+        raise RuntimeError(
+            "CarlaAdapter does not support joint-space forward kinematics; "
+            "CARLA controls vehicle poses rather than robot joints"
         )
 
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
         _ = target
-        raise NotImplementedError(
-            "CarlaAdapter is for vehicle scenarios — there are no joint angles to solve"
+        raise RuntimeError(
+            "CarlaAdapter does not support joint-space inverse kinematics; "
+            "use CARLA vehicle controls or route planning instead"
         )
 
     def collides_with(

@@ -693,13 +693,37 @@ class TestRos2Adapter:
 
     def test_forward_raises(self):
         adapter = Ros2Adapter(node=object())
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError, match="configured FK callable"):
             adapter.forward([0.0])
 
     def test_inverse_raises(self):
         adapter = Ros2Adapter(node=object())
-        with pytest.raises(NotImplementedError):
+        with pytest.raises(RuntimeError, match="configured IK callable"):
             adapter.inverse(Vec3(0.0, 0.0, 0.0))
+
+    def test_forward_and_inverse_delegate_to_configured_services(self):
+        calls: dict[str, object] = {}
+
+        def fk(joints):
+            calls["fk_joints"] = tuple(joints)
+            return Vec3(0.25, 0.5, 0.75)
+
+        def ik(target):
+            calls["ik_target"] = target
+            return (0.1, 0.2)
+
+        adapter = Ros2Adapter(
+            node=object(),
+            forward_kinematics=fk,
+            inverse_kinematics=ik,
+        )
+
+        assert adapter.forward([1.0, 2.0]) == Vec3(0.25, 0.5, 0.75)
+        assert adapter.inverse(Vec3(1.0, 2.0, 3.0)) == (0.1, 0.2)
+        assert calls == {
+            "fk_joints": (1.0, 2.0),
+            "ik_target": Vec3(1.0, 2.0, 3.0),
+        }
 
 
 class TestMuJoCoAdapter:
@@ -821,8 +845,37 @@ class TestMuJoCoAdapter:
     def test_inverse_is_deployment_specific(self):
         adapter = MuJoCoAdapter(model=object(), data=types.SimpleNamespace(ncon=0))
 
-        with pytest.raises(NotImplementedError, match="deployment-specific"):
+        with pytest.raises(RuntimeError, match="configured inverse_solver"):
             adapter.inverse(Vec3(0.0, 0.0, 0.0))
+
+    def test_inverse_delegates_to_configured_solver(self):
+        model = object()
+        data = types.SimpleNamespace(ncon=0)
+        calls: dict[str, object] = {}
+
+        def solver(model_arg, data_arg, target):
+            calls["model"] = model_arg
+            calls["data"] = data_arg
+            calls["target"] = target
+            return [0.1, 0.2, 0.3]
+
+        adapter = MuJoCoAdapter(model=model, data=data, inverse_solver=solver)
+
+        assert adapter.inverse(Vec3(1.0, 2.0, 3.0)) == (0.1, 0.2, 0.3)
+        assert calls == {
+            "model": model,
+            "data": data,
+            "target": Vec3(1.0, 2.0, 3.0),
+        }
+
+    def test_inverse_preserves_solver_unreachable_result(self):
+        adapter = MuJoCoAdapter(
+            model=object(),
+            data=types.SimpleNamespace(ncon=0),
+            inverse_solver=lambda *_args: None,
+        )
+
+        assert adapter.inverse(Vec3(99.0, 0.0, 0.0)) is None
 
 
 class TestCarlaAdapter:
@@ -898,7 +951,7 @@ class TestCarlaAdapter:
         sphere = Sphere(centre=Vec3(1.0, 1.0, 1.0), radius=0.5)
 
         assert adapter.collides_with(Vec3(1.25, 1.0, 1.0), obstacles_sphere=(sphere,))
-        with pytest.raises(NotImplementedError, match="vehicle scenarios"):
+        with pytest.raises(RuntimeError, match="does not support joint-space"):
             adapter.forward([0.0])
-        with pytest.raises(NotImplementedError, match="joint angles"):
+        with pytest.raises(RuntimeError, match="does not support joint-space"):
             adapter.inverse(Vec3(1.0, 1.0, 1.0))
