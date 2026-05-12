@@ -33,6 +33,7 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -73,9 +74,10 @@ class DistilledNLIBackend:
         self._use_onnx = use_onnx
         self._device = device
         self._max_length = max_length
-        self._tokeniser = None
-        self._session = None  # ONNX session
-        self._model = None  # PyTorch model
+        self._tokeniser: Any | None = None
+        self._session: Any | None = None  # ONNX session
+        self._model: Any | None = None  # PyTorch model
+        self._torch: Any | None = None
         self._ready = False
 
     def _ensure_loaded(self) -> None:
@@ -148,14 +150,16 @@ class DistilledNLIBackend:
             self._model_path,
             revision=DEFAULT_DISTILLED_REVISION,
         )
-        assert self._model is not None
+        if self._model is None:
+            raise RuntimeError("Distilled NLI model did not load")
         self._model.to(self._device).eval()
         self._torch = torch
         logger.info("Distilled NLI loaded (PyTorch): %s", self._model_path)
 
     def _infer(self, premise: str, hypothesis: str) -> float:
         """Run inference, return P(entailment) in [0, 1]."""
-        assert self._tokeniser is not None  # guaranteed by _ensure_loaded
+        if self._tokeniser is None:
+            raise RuntimeError("Distilled NLI tokeniser not loaded")
         inputs = self._tokeniser(
             premise,
             hypothesis,
@@ -175,6 +179,8 @@ class DistilledNLIBackend:
             logits = self._session.run(None, ort_inputs)[0]
             probs = _softmax(logits[0])
         else:
+            if self._model is None or self._torch is None:
+                raise RuntimeError("Distilled NLI PyTorch model not loaded")
             # PyTorch path
             with self._torch.no_grad():
                 pt_inputs = {k: v.to(self._device) for k, v in inputs.items()}

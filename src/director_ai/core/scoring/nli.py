@@ -532,7 +532,8 @@ class NLIScorer:
             from peft import PeftModel
 
             logger.info("Loading LoRA adapter: %s", adapter_path)
-            assert self._model is not None  # guaranteed by caller
+            if self._model is None:
+                raise RuntimeError("Cannot load LoRA adapter before base NLI model")
             peft_model = PeftModel.from_pretrained(self._model, adapter_path)
             merged = peft_model.merge_and_unload()
             merged.eval()
@@ -671,7 +672,8 @@ class NLIScorer:
                 device = select_torch_device()
                 inf.model.to(device).eval()
                 inf.softmax = torch.nn.Softmax(dim=-1)
-                assert self._minicheck is not None  # narrowing for mypy
+                if self._minicheck is None:
+                    raise RuntimeError("MiniCheck wrapper not initialised") from None
                 self._minicheck.model = inf
 
             logger.info("MiniCheck backend loaded.")

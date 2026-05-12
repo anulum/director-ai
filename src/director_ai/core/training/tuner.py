@@ -186,7 +186,8 @@ def format_profile_overlay(
     for key, value in overlay.items():
         lines.append(f"{key}: {_yaml_scalar(value)}")
     lines.append("extra:")
-    assert isinstance(extra, dict)
+    if not isinstance(extra, dict):
+        raise TypeError("training report extra metadata must be a mapping")
     for key, value in extra.items():
         lines.append(f"  {key}: {_yaml_scalar(value)}")
     lines.append("")

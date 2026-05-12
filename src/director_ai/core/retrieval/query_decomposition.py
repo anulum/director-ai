@@ -162,7 +162,10 @@ class QueryDecompositionBackend(VectorBackend):
 
     def _llm_decompose(self, query: str) -> list[str]:
         """Use LLM to generate focused sub-queries."""
-        assert self._generator is not None
+        if self._generator is None:
+            raise RuntimeError(
+                "LLM query decomposition requires a configured generator"
+            )
         prompt = (
             "Break the following question into independent sub-questions.\n"
             "Return one sub-question per line. Do not number them.\n"

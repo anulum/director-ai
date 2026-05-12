@@ -167,7 +167,8 @@ class ContextualCompressionBackend(VectorBackend):
 
     def _llm_compress(self, query: str, text: str) -> str:
         """Use LLM to extract query-relevant sentences."""
-        assert self._generator is not None
+        if self._generator is None:
+            raise RuntimeError("LLM compression requires a configured generator")
         prompt = (
             "Extract only the sentences from the passage that are "
             "relevant to answering the question. Return just those "
