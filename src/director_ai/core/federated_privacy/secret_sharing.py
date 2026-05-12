@@ -26,6 +26,7 @@ from __future__ import annotations
 import random
 from collections.abc import Sequence
 from dataclasses import dataclass, field
+from typing import Protocol
 
 # A 128-bit safe-prime-ish modulus large enough for real
 # accumulator values without overflow; the exact bit-width is
@@ -37,6 +38,15 @@ DEFAULT_MODULUS = (1 << 127) - 1
 class ShareError(ValueError):
     """Raised when a share structure is malformed (mismatched
     party count, negative shares, or aggregate inconsistency)."""
+
+
+class _RandRange(Protocol):
+    def randrange(
+        self,
+        start: int,
+        stop: int | None = None,
+        step: int = 1,
+    ) -> int: ...
 
 
 @dataclass(frozen=True)
@@ -84,6 +94,20 @@ def split(
     if modulus <= 0:
         raise ShareError("modulus must be positive")
     rng = random.Random(seed) if seed is not None else random.SystemRandom()
+    return _split_with_rng(secret, party_count=party_count, modulus=modulus, rng=rng)
+
+
+def _split_with_rng(
+    secret: int,
+    *,
+    party_count: int,
+    modulus: int,
+    rng: _RandRange,
+) -> SecretShare:
+    if party_count < 2:
+        raise ShareError("party_count must be at least 2")
+    if modulus <= 0:
+        raise ShareError("modulus must be positive")
     mod_secret = secret % modulus
     shares: list[int] = []
     running = 0
@@ -187,13 +211,12 @@ def split_many(
     rng = random.Random(seed) if seed is not None else random.SystemRandom()
     out: list[SecretShare] = []
     for secret in secrets:
-        child_seed = rng.randrange(1 << 31)
         out.append(
-            split(
+            _split_with_rng(
                 secret,
                 party_count=party_count,
                 modulus=modulus,
-                seed=child_seed,
+                rng=rng,
             )
         )
     return tuple(out)

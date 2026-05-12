@@ -319,6 +319,30 @@ class TestSecretSharing:
         for share, expected in zip(shares, [1, 2, 3], strict=False):
             assert reconstruct(share) == expected
 
+    def test_split_many_unseeded_does_not_downgrade_to_deterministic_rng(
+        self,
+        monkeypatch,
+    ):
+        import director_ai.core.federated_privacy.secret_sharing as module
+
+        class FakeSystemRandom:
+            def __init__(self):
+                self._next = 0
+
+            def randrange(self, modulus):
+                self._next += 1
+                return self._next % modulus
+
+        def forbidden_random(_seed):
+            raise AssertionError("production split_many must not seed random.Random")
+
+        monkeypatch.setattr(module.random, "SystemRandom", FakeSystemRandom)
+        monkeypatch.setattr(module.random, "Random", forbidden_random)
+
+        shares = split_many([1, 2, 3], party_count=3)
+
+        assert [reconstruct(share) for share in shares] == [1, 2, 3]
+
     def test_split_many_empty(self):
         with pytest.raises(ShareError, match="secrets"):
             split_many([], party_count=3)
