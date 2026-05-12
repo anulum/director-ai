@@ -12,6 +12,8 @@ error recovery, result aggregation, empty batch, parametrised batch
 sizes, pipeline integration with CoherenceAgent, and performance.
 """
 
+import asyncio
+
 import pytest
 
 from director_ai.core.agent import CoherenceAgent
@@ -111,6 +113,24 @@ class TestBatchValidation:
         agent = CoherenceAgent()
         with pytest.raises(ValueError, match="item_timeout"):
             BatchProcessor(agent, item_timeout=-1.0)
+
+    def test_process_batch_async_rejects_invalid_concurrency_override(self):
+        agent = CoherenceAgent()
+        proc = BatchProcessor(agent, max_concurrency=1)
+        with pytest.raises(ValueError, match="max_concurrency"):
+            asyncio.run(proc.process_batch_async(["prompt"], max_concurrency=0))
+
+    def test_review_batch_async_rejects_invalid_concurrency_override(self):
+        store = GroundTruthStore()
+        scorer = CoherenceScorer(threshold=0.6, ground_truth_store=store, use_nli=False)
+        proc = BatchProcessor(scorer, max_concurrency=1)
+        with pytest.raises(ValueError, match="max_concurrency"):
+            asyncio.run(
+                proc.review_batch_async(
+                    [("prompt", "response")],
+                    max_concurrency=0,
+                )
+            )
 
 
 class TestBatchErrorPaths:

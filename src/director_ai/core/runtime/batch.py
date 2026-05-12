@@ -86,6 +86,16 @@ class BatchProcessor:
         self.max_concurrency = max_concurrency
         self.item_timeout = item_timeout
 
+    @staticmethod
+    def _resolve_max_concurrency(
+        override: int | None,
+        default: int,
+    ) -> int:
+        resolved = default if override is None else override
+        if resolved < 1:
+            raise ValidationError(f"max_concurrency must be >= 1, got {resolved}")
+        return resolved
+
     def process_batch(self, prompts: list[str], tenant_id: str = "") -> BatchResult:
         """Process a batch of prompts with concurrent execution.
 
@@ -273,7 +283,9 @@ class BatchProcessor:
         """Async version of process_batch using asyncio concurrency."""
         start = time.monotonic()
         metrics.observe("batch_size", float(len(prompts)))
-        sem = asyncio.Semaphore(max_concurrency or self.max_concurrency)
+        sem = asyncio.Semaphore(
+            self._resolve_max_concurrency(max_concurrency, self.max_concurrency)
+        )
         loop = asyncio.get_running_loop()
 
         result = BatchResult(total=len(prompts))
@@ -318,6 +330,10 @@ class BatchProcessor:
         start = time.monotonic()
         metrics.observe("batch_size", float(len(items)))
         loop = asyncio.get_running_loop()
+        resolved_max_concurrency = self._resolve_max_concurrency(
+            max_concurrency,
+            self.max_concurrency,
+        )
 
         scorer_batch_fn = getattr(self._backend, "review_batch", None)
         has_native_review_batch = callable(
@@ -343,7 +359,7 @@ class BatchProcessor:
                     exc,
                 )
 
-        sem = asyncio.Semaphore(max_concurrency or self.max_concurrency)
+        sem = asyncio.Semaphore(resolved_max_concurrency)
         result = BatchResult(total=len(items))
         ordered: list[tuple[bool, CoherenceScore] | None] = [None] * len(items)
 
