@@ -301,10 +301,21 @@ def run_suite(
             running_ba = balanced_accuracy(preds, labels)
             logger.info("[%d] BA=%.4f", i + 1, running_ba)
 
+    is_test_only = isinstance(backend_obj, MockBackend)
     results: dict[str, Any] = {
         "schema_version": 2,
-        "model": backend_name,
+        "model": f"{backend_name}:test-only" if is_test_only else backend_name,
         "backend": "competitor-suite",
+        "benchmark_evidence": not is_test_only,
+        "provenance": {
+            "test_only": is_test_only,
+            "credentialed_real_api": not is_test_only,
+            "warning": (
+                "MockBackend output is plumbing-only and not valid benchmark evidence."
+                if is_test_only
+                else ""
+            ),
+        },
         "samples": len(preds),
         "global_balanced_accuracy": balanced_accuracy(preds, labels),
         "scores": scores,
