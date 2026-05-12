@@ -101,6 +101,18 @@ class TestVectorGroundTruthStore:
         assert store.backend.count() == 0
         assert store.facts == {}
 
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"backend": object()}, "backend"),
+            ({"tenant_id": 123}, "tenant_id"),
+            ({"tenant_id": True}, "tenant_id"),
+        ],
+    )
+    def test_constructor_rejects_invalid_dependencies(self, kwargs, message):
+        with pytest.raises(ValueError, match=message):
+            VectorGroundTruthStore(**kwargs)  # type: ignore[arg-type]
+
     def test_ingest_and_retrieve(self):
         store = VectorGroundTruthStore()
         store.ingest(["The sky is blue", "SCPN has 16 layers"])

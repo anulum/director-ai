@@ -36,6 +36,12 @@ from .embedding import SentenceTransformerBackend
 __all__ = ["VectorGroundTruthStore"]
 
 
+def _is_vector_backend_like(backend: object) -> bool:
+    return all(
+        callable(getattr(backend, method, None)) for method in ("add", "query", "count")
+    )
+
+
 class VectorGroundTruthStore(GroundTruthStore):
     """Ground truth store with vector-based semantic retrieval.
 
@@ -55,8 +61,12 @@ class VectorGroundTruthStore(GroundTruthStore):
         tenant_id: str = "",
     ) -> None:
         super().__init__()
+        if backend is not None and not _is_vector_backend_like(backend):
+            raise ValueError("backend must provide add, query, and count methods")
+        if not isinstance(tenant_id, str):
+            raise ValueError("tenant_id must be a string")
         self.backend = backend if backend is not None else InMemoryBackend()
-        self.tenant_id = tenant_id
+        self.tenant_id = tenant_id.strip()
         self._version_records: dict[str, dict[str, str]] = {}
         self._retraction_records: list[dict[str, str]] = []
         self._replacement_records: list[dict[str, str]] = []
