@@ -247,6 +247,16 @@ class RetrievalResult:
     latency_ms: float
 
 
+@dataclass
+class ScoringProbeResult:
+    query: str
+    response_key: str
+    label_supported: bool
+    factual_divergence: float
+    accepted: bool
+    latency_ms: float
+
+
 def _build_store(backend_name: str):
     from director_ai.core.vector_store import (
         ChromaBackend,
@@ -274,6 +284,85 @@ def _build_store(backend_name: str):
         store.add_fact(key, value)
 
     return store
+
+
+def run_downstream_scoring_probe(
+    store, threshold: float = 0.4
+) -> list[ScoringProbeResult]:
+    """Measure retrieval quality through factual-scoring behavior.
+
+    Each query is scored against one supported answer and one distractor answer.
+    Lower factual divergence means the scorer found supporting context. A
+    retrieval miss should therefore reduce supported acceptance or unsupported
+    rejection instead of remaining hidden in hit-rate-only metrics.
+    """
+    from director_ai.core.scorer import CoherenceScorer
+
+    scorer = CoherenceScorer(
+        threshold=0.6,
+        ground_truth_store=store,
+        use_nli=False,
+    )
+    scorer._fact_retrieval_top_k = 3
+
+    results: list[ScoringProbeResult] = []
+    for idx, (fact_key, fact_value, query, _) in enumerate(EVAL_SET):
+        distractor_key, distractor_value = DISTRACTORS[idx % len(DISTRACTORS)]
+        for response_key, response, label_supported in (
+            (fact_key, fact_value, True),
+            (distractor_key, distractor_value, False),
+        ):
+            t0 = time.perf_counter()
+            divergence = scorer.calculate_factual_divergence(query, response)
+            elapsed_ms = (time.perf_counter() - t0) * 1000
+            accepted = divergence <= threshold
+            results.append(
+                ScoringProbeResult(
+                    query=query,
+                    response_key=response_key,
+                    label_supported=label_supported,
+                    factual_divergence=divergence,
+                    accepted=accepted,
+                    latency_ms=elapsed_ms,
+                ),
+            )
+    return results
+
+
+def summarize_scoring_probe(
+    results: list[ScoringProbeResult],
+    threshold: float = 0.4,
+) -> dict:
+    """Aggregate downstream factual-scoring probe metrics."""
+    total = len(results)
+    supported = [r for r in results if r.label_supported]
+    unsupported = [r for r in results if not r.label_supported]
+
+    def _rate(items, predicate) -> float:
+        return (
+            sum(1 for item in items if predicate(item)) / len(items) if items else 0.0
+        )
+
+    def _avg(values: list[float]) -> float:
+        return sum(values) / len(values) if values else 0.0
+
+    return {
+        "scoring_threshold": threshold,
+        "total_cases": total,
+        "scoring_accuracy": _rate(
+            results,
+            lambda r: r.accepted == r.label_supported,
+        ),
+        "supported_accept_rate": _rate(supported, lambda r: r.accepted),
+        "unsupported_reject_rate": _rate(unsupported, lambda r: not r.accepted),
+        "avg_supported_divergence": _avg(
+            [r.factual_divergence for r in supported],
+        ),
+        "avg_unsupported_divergence": _avg(
+            [r.factual_divergence for r in unsupported],
+        ),
+        "latency_ms_avg": _avg([r.latency_ms for r in results]),
+    }
 
 
 def run_benchmark(backend_name: str) -> dict:
@@ -328,6 +417,17 @@ def run_benchmark(backend_name: str) -> dict:
     print(f"  Latency:     {avg_ms:.2f} ms/query avg")
     print(f"{'=' * 55}")
 
+    scoring_threshold = 0.4
+    scoring_results = run_downstream_scoring_probe(store, threshold=scoring_threshold)
+    scoring_summary = summarize_scoring_probe(
+        scoring_results,
+        threshold=scoring_threshold,
+    )
+    print("\n  Downstream factual-scoring probe")
+    print(f"  Accuracy:    {scoring_summary['scoring_accuracy']:.1%}")
+    print(f"  Supported:   {scoring_summary['supported_accept_rate']:.1%} accepted")
+    print(f"  Unsupported: {scoring_summary['unsupported_reject_rate']:.1%} rejected")
+
     misses = [r for r in results if not r.hit_at_3]
     if misses:
         print(f"\n  Misses ({len(misses)}):")
@@ -343,6 +443,20 @@ def run_benchmark(backend_name: str) -> dict:
         "hit_at_3": round(hit3, 4),
         "precision_at_3": round(p3, 4),
         "latency_ms_avg": round(avg_ms, 2),
+        "downstream_scoring": {
+            **scoring_summary,
+            "per_case": [
+                {
+                    "query": r.query,
+                    "response_key": r.response_key,
+                    "label_supported": r.label_supported,
+                    "factual_divergence": round(r.factual_divergence, 4),
+                    "accepted": r.accepted,
+                    "latency_ms": round(r.latency_ms, 3),
+                }
+                for r in scoring_results
+            ],
+        },
         "per_query": [
             {
                 "query": r.query,

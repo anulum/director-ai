@@ -113,6 +113,24 @@ Scenarios 1, 8-11, 13-14 are CPU-only by design and are valid:
 
 Raw data: `benchmarks/results/l40s_v3.11.0_2026-03-27.json`
 
+### Retrieval Quality Smoke — In-Memory Backend
+
+`benchmarks.retrieval_bench` now reports ranking metrics and a downstream
+factual-scoring probe. The probe scores each query against one supported answer
+and one distractor answer so retrieval misses show up as guardrail behavior,
+not only as rank failures.
+
+| Metric | Value |
+|---|---:|
+| Hit@1 | 56.7% |
+| Hit@3 | 73.3% |
+| Precision@3 | 0.311 |
+| Downstream scoring accuracy | 86.7% |
+| Supported answers accepted | 73.3% |
+| Unsupported answers rejected | 100.0% |
+
+Raw data: `benchmarks/results/retrieval_inmemory.json`
+
 ## 1. NLI Accuracy — LLM-AggreFact (29,320 samples)
 
 Model: `yaxili96/FactCG-DeBERTa-v3-Large` (0.4B params).

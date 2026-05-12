@@ -101,3 +101,26 @@ Produced by `benchmarks.streaming_false_halt_bench`.
 | `avg_latency_ms` | number | Mean passage latency |
 | `per_passage` | array[object] | Per-fixture outcome rows |
 | `bad_passages` | array[object] | Labelled contradiction smoke rows with expected and observed halt token indices |
+
+## Retrieval Quality Cache
+
+Produced by `benchmarks.retrieval_bench`.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `backend` | string | Vector backend under test |
+| `total_facts` | integer | Indexed facts, including distractors |
+| `total_queries` | integer | Retrieval queries in the synthetic set |
+| `hit_at_1` | number | Fraction with a relevant fact ranked first |
+| `hit_at_3` | number | Fraction with a relevant fact in top 3 |
+| `precision_at_3` | number | Mean relevant fraction among returned top-3 results |
+| `latency_ms_avg` | number | Mean retrieval latency per query |
+| `downstream_scoring` | object | Supported/unsupported factual-scoring probe using retrieved context |
+| `per_query` | array[object] | Per-query retrieval rows |
+
+`downstream_scoring` includes `scoring_threshold`, `total_cases`,
+`scoring_accuracy`, `supported_accept_rate`, `unsupported_reject_rate`,
+mean supported/unsupported factual divergence, mean scoring latency, and
+`per_case` rows. Keep these scoring metrics separate from raw retrieval
+rank metrics; they measure how retrieval quality propagates into the
+guardrail decision path.
