@@ -144,6 +144,11 @@ Tune against a labelled evaluation set before production:
 director-ai tune --dataset my_eval.jsonl --profile medical --output medical_tuned.yaml
 ```
 
+The tuned overlay includes the selected threshold, weight pair, confusion
+matrix, boundary examples, and 95% Wilson score intervals for the selected
+metrics. Treat wide intervals or a `low` confidence level as a requirement for
+more labelled traces before strict enforcement.
+
 Load via environment variable:
 
 ```bash

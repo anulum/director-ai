@@ -89,6 +89,8 @@ class TestTuner:
         assert overlay["w_fact"] == 0.4
         assert overlay["extra"]["tuned_from_profile"] == "medical"
         assert overlay["extra"]["tune_confidence_level"] in {"low", "medium", "high"}
+        assert "tune_confidence_intervals" in overlay["extra"]
+        assert "balanced_accuracy=" in overlay["extra"]["tune_confidence_intervals"]
         assert "tune_confusion_matrix" in overlay["extra"]
         assert "tune_tradeoff_summary" in overlay["extra"]
 
@@ -122,10 +124,17 @@ class TestTuner:
         assert result.positive_samples == 5
         assert result.negative_samples == 5
         assert result.evaluated_candidates
+        assert result.confidence_intervals["balanced_accuracy"][0] <= (
+            result.balanced_accuracy
+        )
+        assert result.confidence_intervals["balanced_accuracy"][1] >= (
+            result.balanced_accuracy
+        )
         assert isinstance(result.evaluated_candidates[0], ThresholdCandidate)
         assert result.boundary_examples
         assert isinstance(result.boundary_examples[0], BoundaryExample)
         assert "Trade-off" in report
+        assert "95% Wilson intervals" in report
         assert "Boundary examples" in report
         assert "flip_threshold" in report
 

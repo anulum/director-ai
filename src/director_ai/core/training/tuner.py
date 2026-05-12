@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from typing import Protocol, cast
 
 from ..scoring.scorer import CoherenceScorer
@@ -99,6 +99,7 @@ class TuneResult:
     negative_samples: int = 0
     selection_margin: float = 0.0
     confidence_level: str = "low"
+    confidence_intervals: dict[str, tuple[float, float]] = field(default_factory=dict)
     tradeoff_summary: str = ""
     evaluated_candidates: tuple[ThresholdCandidate, ...] = ()
     boundary_examples: tuple[BoundaryExample, ...] = ()
@@ -119,6 +120,9 @@ class TuneResult:
             "tune_recall": f"{self.recall:.4f}",
             "tune_f1": f"{self.f1:.4f}",
             "tune_confidence_level": self.confidence_level,
+            "tune_confidence_intervals": _format_confidence_intervals(
+                self.confidence_intervals
+            ),
             "tune_selection_margin": f"{self.selection_margin:.4f}",
             "tune_confusion_matrix": (
                 f"tp={self.tp},fp={self.fp},tn={self.tn},fn={self.fn}"
@@ -200,6 +204,10 @@ def format_confidence_report(result: object) -> str:
     confidence_level = str(getattr(result, "confidence_level", "low"))
     selection_margin = float(getattr(result, "selection_margin", 0.0))
     tradeoff_summary = str(getattr(result, "tradeoff_summary", ""))
+    confidence_intervals = cast(
+        "dict[str, tuple[float, float]]",
+        getattr(result, "confidence_intervals", {}),
+    )
     tp = int(getattr(result, "tp", 0))
     fp = int(getattr(result, "fp", 0))
     tn = int(getattr(result, "tn", 0))
@@ -231,6 +239,11 @@ def format_confidence_report(result: object) -> str:
     ]
     if tradeoff_summary:
         lines.append(f"- Trade-off: {tradeoff_summary}")
+    if confidence_intervals:
+        lines.append(
+            "- 95% Wilson intervals: "
+            f"{_format_confidence_intervals(confidence_intervals)}"
+        )
     if candidates:
         lines.append("- Top candidate thresholds:")
         for candidate in candidates[:_REPORT_CANDIDATE_LIMIT]:
@@ -278,6 +291,12 @@ def _to_profile_overlay(
         "tune_recall": f"{recall:.4f}",
         "tune_f1": f"{f1:.4f}",
         "tune_confidence_level": str(getattr(result, "confidence_level", "low")),
+        "tune_confidence_intervals": _format_confidence_intervals(
+            cast(
+                "dict[str, tuple[float, float]]",
+                getattr(result, "confidence_intervals", {}),
+            )
+        ),
         "tune_selection_margin": f"{float(getattr(result, 'selection_margin', 0.0)):.4f}",
     }
     tradeoff_summary = str(getattr(result, "tradeoff_summary", ""))
@@ -380,6 +399,7 @@ def tune(
         negative_samples=negatives,
         selection_margin=selection_margin,
         confidence_level=confidence_level,
+        confidence_intervals=_confidence_intervals(best),
         tradeoff_summary=_tradeoff_summary(best),
         evaluated_candidates=ranked_candidates,
         boundary_examples=tuple(_boundary_examples(best.threshold, best_samples)),
@@ -478,6 +498,63 @@ def _confidence_level(
     if samples >= 20 and minority_ratio >= 0.15 and selection_margin >= 0.02:
         return "medium"
     return "low"
+
+
+def _confidence_intervals(result: TuneResult) -> dict[str, tuple[float, float]]:
+    """Approximate 95% intervals for selected classification metrics.
+
+    Recall and specificity are binomial rates, so Wilson score intervals are a
+    deterministic small-sample choice. Balanced accuracy averages the recall and
+    specificity bounds. F1 uses the monotonic transform of precision and recall
+    bounds, giving an interpretable conservative interval without stochastic
+    bootstrap variance in CLI output.
+    """
+    recall_ci = _wilson_interval(result.tp, result.tp + result.fn)
+    specificity_ci = _wilson_interval(result.tn, result.tn + result.fp)
+    precision_ci = _wilson_interval(result.tp, result.tp + result.fp)
+    f1_ci = (
+        _f1_from_precision_recall(precision_ci[0], recall_ci[0]),
+        _f1_from_precision_recall(precision_ci[1], recall_ci[1]),
+    )
+    return {
+        "balanced_accuracy": (
+            round((recall_ci[0] + specificity_ci[0]) / 2.0, 4),
+            round((recall_ci[1] + specificity_ci[1]) / 2.0, 4),
+        ),
+        "precision": precision_ci,
+        "recall": recall_ci,
+        "f1": (round(f1_ci[0], 4), round(f1_ci[1], 4)),
+    }
+
+
+def _wilson_interval(successes: int, total: int) -> tuple[float, float]:
+    if total <= 0:
+        return (0.0, 0.0)
+    z = 1.959963984540054  # 95% normal quantile
+    p = successes / total
+    denom = 1.0 + z * z / total
+    centre = p + z * z / (2.0 * total)
+    margin = z * ((p * (1.0 - p) + z * z / (4.0 * total)) / total) ** 0.5
+    return (
+        round(max(0.0, (centre - margin) / denom), 4),
+        round(min(1.0, (centre + margin) / denom), 4),
+    )
+
+
+def _f1_from_precision_recall(precision: float, recall: float) -> float:
+    if precision <= 0.0 or recall <= 0.0:
+        return 0.0
+    return 2.0 * precision * recall / (precision + recall)
+
+
+def _format_confidence_intervals(
+    intervals: dict[str, tuple[float, float]],
+) -> str:
+    if not intervals:
+        return ""
+    return ", ".join(
+        f"{name}=[{lo:.4f},{hi:.4f}]" for name, (lo, hi) in intervals.items()
+    )
 
 
 def _tradeoff_summary(result: TuneResult) -> str:

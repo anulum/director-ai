@@ -186,6 +186,8 @@ profile. Load it with `DirectorConfig.from_yaml(...)` or merge it over
 The tuner also prints and embeds a confidence report. It records:
 
 - the selected threshold and weight pair
+- 95% Wilson score confidence intervals for balanced accuracy, precision,
+  recall, and F1
 - the balanced-accuracy margin over the next-best candidate
 - class balance and the selected confusion matrix
 - false-positive and false-negative trade-offs for the top candidate thresholds
