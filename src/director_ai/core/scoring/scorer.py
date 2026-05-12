@@ -455,7 +455,9 @@ class CoherenceScorer:
             prompt,
             response,
             tenant_id,
-            calculate_factual_with_evidence=self.calculate_factual_divergence_with_evidence,
+            calculate_factual_with_evidence=(
+                self._calculate_prompt_premise_divergence_with_evidence
+            ),
             fact_inner_agg=self._fact_inner_agg,
             fact_outer_agg=self._fact_outer_agg,
             premise_ratio=self._premise_ratio,
@@ -482,6 +484,63 @@ class CoherenceScorer:
 
         self._minicheck_nli = None
         return None
+
+    def _calculate_prompt_premise_divergence_with_evidence(
+        self,
+        prompt: str,
+        text_output: str,
+        tenant_id: str = "",
+        *,
+        _inner_agg=None,
+        _outer_agg=None,
+    ) -> tuple[float, ScoringEvidence | None]:
+        """Score summarisation directly against the source prompt."""
+        del tenant_id
+        if not (self._nli and self._nli.model_available):
+            return DIVERGENCE_NEUTRAL, None
+
+        fact_inner = _inner_agg if _inner_agg is not None else self._fact_inner_agg
+        fact_outer = _outer_agg if _outer_agg is not None else self._fact_outer_agg
+        task_type = self._detect_task_type(prompt, text_output)
+
+        self._nli.reset_token_counter()
+        with metrics.timer("chunked_nli_seconds"):
+            if self._confidence_weighted_agg:
+                nli_score, chunk_scores = self._nli.score_chunked_confidence_weighted(
+                    prompt,
+                    text_output,
+                    inner_agg=fact_inner,
+                    premise_ratio=self._premise_ratio,
+                    overlap_ratio=self._chunk_overlap_ratio,
+                )
+                prem_count = 1
+                hyp_count = len(chunk_scores)
+            else:
+                nli_score, chunk_scores, prem_count, hyp_count = (
+                    self._nli._score_chunked_with_counts(
+                        prompt,
+                        text_output,
+                        inner_agg=fact_inner,
+                        outer_agg=fact_outer,
+                        premise_ratio=self._premise_ratio,
+                        overlap_ratio=self._chunk_overlap_ratio,
+                    )
+                )
+        if self._should_escalate(nli_score, task_type=task_type):
+            nli_score = self._llm_judge_check(prompt, text_output, nli_score)
+
+        evidence = ScoringEvidence(
+            chunks=[EvidenceChunk(text=prompt[:500], distance=0.0, source="prompt")],
+            nli_premise=prompt,
+            nli_hypothesis=text_output,
+            nli_score=nli_score,
+            chunk_scores=chunk_scores,
+            premise_chunk_count=prem_count,
+            hypothesis_chunk_count=hyp_count,
+            token_count=self._nli.last_token_count,
+            estimated_cost_usd=self._nli.last_estimated_cost,
+        )
+        return nli_score, evidence
 
     # ── Injection detection ──────────────────────────────────────────
 

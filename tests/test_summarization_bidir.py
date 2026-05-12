@@ -108,6 +108,52 @@ class TestSummarizationRouting:
         task = CoherenceScorer._detect_task_type(prompt)
         assert task == "dialogue"
 
+    def test_default_summarization_uses_prompt_as_evidence_premise(self):
+        """Auto-detected summarization uses source prompt without a KB store."""
+
+        class _FakeNli:
+            model_available = True
+            last_token_count = 11
+            last_estimated_cost = 0.001
+            _cost_per_token = 0.0
+
+            def _ensure_model(self):
+                return None
+
+            def reset_token_counter(self):
+                return None
+
+            def _score_chunked_with_counts(self, premise, hypothesis, **kwargs):
+                assert "Source document" in premise
+                assert "short summary" in hypothesis
+                return 0.24, [0.24], 1, 1
+
+            def score_chunked(self, premise, hypothesis, **kwargs):
+                assert "short summary" in premise
+                assert "Source document" in hypothesis
+                return 0.22, None
+
+            def score_claim_coverage_with_attribution(
+                self, premise, response, **kwargs
+            ):
+                return 1.0, [0.1], ["short summary"], ["source span"]
+
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        scorer._nli = _FakeNli()
+        scorer._minicheck_nli = None
+        scorer._use_prompt_as_premise = False
+        prompt = "Summarise this.\n\nSource document: " + ("calibrated fact. " * 80)
+        action = "short summary with calibrated fact."
+
+        _h_logic, _h_fact, _coherence, evidence = scorer._heuristic_coherence(
+            prompt,
+            action,
+        )
+
+        assert evidence is not None
+        assert evidence.nli_premise == prompt
+        assert evidence.chunks[0].source == "prompt"
+
 
 # â”€â”€ Config wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
