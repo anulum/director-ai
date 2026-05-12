@@ -253,23 +253,39 @@ def _chunk_and_store(
     prefix = chunk_id_prefix or doc_id
     chunk_ids = [f"{prefix}:chunk:{i}" for i in range(len(chunks))]
 
+    added_chunk_ids: list[str] = []
     for cid, chunk_text in zip(chunk_ids, chunks, strict=True):
-        store.backend.add(
-            doc_id=cid,
-            text=chunk_text,
-            metadata={
-                "doc_id": doc_id,
-                "tenant_id": tenant_id,
-                **(signature_metadata or {}),
-            },
-        )
-        store.facts[cid] = chunk_text
+        try:
+            store.backend.add(
+                doc_id=cid,
+                text=chunk_text,
+                metadata={
+                    "doc_id": doc_id,
+                    "tenant_id": tenant_id,
+                    **(signature_metadata or {}),
+                },
+            )
+            store.facts[cid] = chunk_text
+            added_chunk_ids.append(cid)
+        except Exception:
+            _cleanup_chunk_ids(added_chunk_ids, store)
+            raise
 
     return chunk_ids
 
 
 def _content_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
+
+
+def _cleanup_chunk_ids(chunk_ids: list[str], store) -> None:
+    for cid in chunk_ids:
+        try:
+            store.backend.delete([cid])
+        except Exception:
+            logger.warning("Unable to roll back staged knowledge chunk %s", cid)
+        finally:
+            store.facts.pop(cid, None)
 
 
 def _delete_chunks(record, store) -> int:
@@ -526,26 +542,32 @@ def create_knowledge_router() -> APIRouter:
                 "unchanged": True,
             }
 
+        loop = asyncio.get_running_loop()
+        chunk_id_prefix = f"{doc_id}:rev:{uuid.uuid4().hex[:12]}"
+        try:
+            new_chunk_ids = await loop.run_in_executor(
+                None,
+                _chunk_and_store,
+                body.text,
+                doc_id,
+                tenant_id,
+                store,
+                body.chunk_size,
+                body.overlap,
+                sig_meta,
+                chunk_id_prefix,
+            )
+        except Exception as exc:
+            logger.exception("Failed staging replacement knowledge chunks: %s", doc_id)
+            raise HTTPException(503, "Unable to stage replacement chunks") from exc
+
         try:
             _delete_chunks(record, store)
         except RuntimeError as exc:
+            _cleanup_chunk_ids(new_chunk_ids, store)
             logger.exception("Failed replacing knowledge document chunks: %s", doc_id)
             raise HTTPException(503, "Unable to replace document chunks") from exc
 
-        loop = asyncio.get_running_loop()
-        chunk_id_prefix = f"{doc_id}:rev:{uuid.uuid4().hex[:12]}"
-        new_chunk_ids = await loop.run_in_executor(
-            None,
-            _chunk_and_store,
-            body.text,
-            doc_id,
-            tenant_id,
-            store,
-            body.chunk_size,
-            body.overlap,
-            sig_meta,
-            chunk_id_prefix,
-        )
         record = registry.update(
             doc_id,
             new_chunk_ids,

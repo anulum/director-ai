@@ -946,6 +946,29 @@ class TestUpdateDocument:
         new_fact_ids = [cid for cid in store.facts if ":rev:" in cid]
         assert new_fact_ids == []
 
+    def test_update_stage_failure_preserves_existing_chunks_and_registry(self):
+        from fastapi.testclient import TestClient
+
+        app, reg, store = _full_app()
+        backend_mock = MagicMock()
+        backend_mock.add.side_effect = RuntimeError("embedding backend unavailable")
+        store.backend = backend_mock
+        rec = _fake_record(doc_id="d4", chunk_ids=["d4:chunk:0"])
+        reg.get.return_value = rec
+        store.facts["d4:chunk:0"] = "old text"
+        client = TestClient(app)
+
+        resp = client.put(
+            "/v1/knowledge/documents/d4",
+            json={"text": "updated content for document d4", "source": "policy_v3"},
+        )
+
+        assert resp.status_code == 503
+        assert "Unable to stage replacement chunks" in resp.json()["detail"]
+        reg.update.assert_not_called()
+        backend_mock.delete.assert_not_called()
+        assert store.facts == {"d4:chunk:0": "old text"}
+
 
 class TestKnowledgeApiEnterpriseAlias:
     def test_server_mounts_api_v1_knowledge_ingest_alias(self):
