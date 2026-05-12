@@ -121,8 +121,11 @@ store = config.build_store()
 | `embedding_model` | `str` | `"BAAI/bge-large-en-v1.5"` | Embedding model ID |
 | `chroma_collection` | `str` | `"director_ai"` | ChromaDB collection name |
 | `chroma_persist_dir` | `str` | `""` | Persistence directory (empty = in-memory) |
+| `hybrid_retrieval` | `bool` | `True` | Enable BM25 + dense retrieval with Reciprocal Rank Fusion |
+| `hybrid_rrf_k` | `int` | `60` | Reciprocal Rank Fusion rank constant |
 | `reranker_enabled` | `bool` | `True` | Enable cross-encoder reranking |
 | `reranker_model` | `str` | `"cross-encoder/ms-marco-MiniLM-L-6-v2"` | Reranker model |
+| `retrieval_abstention_threshold` | `float` | `0.3` | Minimum retrieval quality before grounded scoring |
 
 ### Server
 

@@ -28,14 +28,33 @@ approved, score = scorer.review(
 
 Facts are matched by key similarity to the prompt. The scorer retrieves the best-matching fact and computes word overlap (heuristic) or NLI entailment (when `use_nli=True`).
 
-## Option 2: Vector Store for RAG Pipelines
+## Option 2: Grounded Retrieval Recipe for RAG Pipelines
 
-For larger KBs or when you need semantic search, use `VectorGroundTruthStore`:
+For larger KBs or when you need semantic search, build the store through
+`DirectorConfig`. This exposes the default grounded recipe as an explicit
+contract:
+
+- dense retrieval from the configured vector backend
+- BM25 sparse retrieval fused with dense retrieval by Reciprocal Rank Fusion
+  (`hybrid_rrf_k=60`)
+- cross-encoder reranking when `director-ai[reranker]` dependencies are
+  installed
+- retrieval abstention for low-quality matches instead of false confidence
+  (`retrieval_abstention_threshold=0.3` by default)
+
+Use the in-memory backend for local development and test corpora. Use a
+persistent backend such as ChromaDB for production storage.
 
 ```python
-from director_ai import VectorGroundTruthStore, CoherenceScorer
+from director_ai.core.config import DirectorConfig
 
-store = VectorGroundTruthStore()
+cfg = DirectorConfig(
+    mode="grounded",
+    vector_backend="chroma",
+    chroma_persist_dir="/data/chroma",
+)
+
+store = cfg.build_store()
 
 # Ingest documents (splits into chunks, embeds, indexes)
 store.ingest([
@@ -47,14 +66,19 @@ store.ingest([
 # Or add individual facts
 store.add_fact("gravity", "Earth's gravitational acceleration is 9.81 m/s².")
 
-scorer = CoherenceScorer(
-    threshold=0.6,
-    use_nli=True,
-    ground_truth_store=store,
-)
+scorer = cfg.build_scorer(store=store)
 ```
 
-The in-memory backend works for up to ~10K documents. For production, use ChromaDB.
+Inspect the active recipe without exposing API keys:
+
+```python
+recipe = cfg.retrieval_recipe()
+assert recipe["name"] == "grounded-hybrid-rerank-v1"
+```
+
+Production deployments should still benchmark the configured corpus and domain
+thresholds before enforcement. The default recipe is a strong retrieval baseline,
+not a substitute for corpus-specific calibration.
 
 ## Option 3: ChromaDB Persistent Backend
 

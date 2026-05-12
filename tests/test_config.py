@@ -340,6 +340,50 @@ class TestBuildStore:
             revision=cfg.reranker_model_revision,
         )
 
+    def test_grounded_recipe_wraps_hybrid_before_reranker(self, monkeypatch):
+        from unittest.mock import MagicMock
+
+        mock_module = MagicMock()
+        mock_module.CrossEncoder = MagicMock(return_value=MagicMock())
+        monkeypatch.setitem(
+            __import__("sys").modules,
+            "sentence_transformers",
+            mock_module,
+        )
+
+        from director_ai.core.vector_store import HybridBackend, RerankedBackend
+
+        cfg = DirectorConfig(
+            mode="grounded",
+            vector_backend="memory",
+            hybrid_retrieval=True,
+            hybrid_rrf_k=47,
+            reranker_enabled=True,
+            reranker_top_k_multiplier=5,
+        )
+        store = cfg.build_store()
+
+        assert isinstance(store.backend, RerankedBackend)
+        assert store.backend._multiplier == 5
+        assert isinstance(store.backend._base, HybridBackend)
+        assert store.backend._base._rrf_k == 47
+
+    def test_retrieval_recipe_metadata_exposes_grounded_contract(self):
+        cfg = DirectorConfig(mode="grounded")
+
+        recipe = cfg.retrieval_recipe()
+
+        assert recipe["name"] == "grounded-hybrid-rerank-v1"
+        assert recipe["mode"] == "grounded"
+        assert recipe["embedding_model"] == cfg.embedding_model
+        assert recipe["hybrid"]["enabled"] is True
+        assert recipe["hybrid"]["fusion"] == "reciprocal_rank_fusion"
+        assert recipe["hybrid"]["rrf_k"] == 60
+        assert recipe["reranker"]["enabled"] is True
+        assert recipe["reranker"]["top_k_multiplier"] == 3
+        assert recipe["abstention"]["threshold"] == pytest.approx(0.3)
+        assert "embedding_api_key" not in recipe
+
     def test_build_store_skips_unavailable_reranker_outside_production(
         self, monkeypatch
     ):
@@ -404,6 +448,10 @@ class TestBuildStore:
         )
         store = cfg.build_store()
         assert isinstance(store.backend, InMemoryBackend)
+
+    def test_hybrid_rrf_k_must_be_positive_integer(self):
+        with pytest.raises(ValueError, match="hybrid_rrf_k"):
+            DirectorConfig(hybrid_rrf_k=0)
 
 
 class TestValidationBoundaries:

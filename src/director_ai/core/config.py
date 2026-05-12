@@ -157,6 +157,7 @@ class DirectorConfig:
     chroma_collection: str = "director_ai"
     chroma_persist_dir: str = ""
     hybrid_retrieval: bool = True  # BM25 + dense with Reciprocal Rank Fusion
+    hybrid_rrf_k: int = 60  # RRF rank constant; 60 is the canonical TREC default
     reranker_enabled: bool = True  # cross-encoder reranking on top of retrieval
     reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     reranker_model_revision: str = "c5ee24cb16019beea0893ab7796b1df96625c6b8"
@@ -415,6 +416,12 @@ class DirectorConfig:
             )
         if self.reranker_enabled and not self.reranker_model.strip():
             raise ValueError("reranker_model must be set when reranker_enabled=True")
+        if not isinstance(self.hybrid_rrf_k, int) or isinstance(
+            self.hybrid_rrf_k, bool
+        ):
+            raise ValueError("hybrid_rrf_k must be an integer")
+        if self.hybrid_rrf_k < 1:
+            raise ValueError("hybrid_rrf_k must be at least 1")
         if self.scorer_model:
             from .scoring.model_choices import resolve_scorer_model_choice
 
@@ -836,8 +843,11 @@ class DirectorConfig:
             try:
                 from .retrieval.vector_store import HybridBackend
 
-                backend = HybridBackend(base=backend)
-                logger.info("Hybrid retrieval enabled (BM25 + dense + RRF)")
+                backend = HybridBackend(base=backend, rrf_k=self.hybrid_rrf_k)
+                logger.info(
+                    "Hybrid retrieval enabled (BM25 + dense + RRF, k=%s)",
+                    self.hybrid_rrf_k,
+                )
             except ImportError:
                 logger.warning("HybridBackend unavailable, using dense-only retrieval")
 
@@ -1053,6 +1063,42 @@ class DirectorConfig:
             scorer._judge._cost_callback = _cost_cb
             logger.info("Cost tracking enabled on scorer")
         return scorer
+
+    def retrieval_recipe(self) -> dict[str, object]:
+        """Return the explicit grounded retrieval recipe without secrets.
+
+        The recipe is operator metadata: it documents how ``build_store()`` composes
+        retrieval for grounded/auto modes and is safe to expose through CLIs, API
+        diagnostics, or documentation generators.
+        """
+        return {
+            "name": "grounded-hybrid-rerank-v1",
+            "mode": self.mode,
+            "vector_backend": self.vector_backend,
+            "embedding_model": self.embedding_model,
+            "embedding_model_revision": self.embedding_model_revision,
+            "hybrid": {
+                "enabled": self.hybrid_retrieval
+                and self.vector_backend != "remanentia"
+                and self.mode != "general",
+                "sparse": "bm25",
+                "dense": self.vector_backend,
+                "fusion": "reciprocal_rank_fusion",
+                "rrf_k": self.hybrid_rrf_k,
+            },
+            "reranker": {
+                "enabled": self.reranker_enabled
+                and self.vector_backend != "remanentia"
+                and self.mode != "general",
+                "model": self.reranker_model,
+                "model_revision": self.reranker_model_revision,
+                "top_k_multiplier": self.reranker_top_k_multiplier,
+            },
+            "abstention": {
+                "enabled": self.retrieval_abstention_threshold > 0,
+                "threshold": self.retrieval_abstention_threshold,
+            },
+        }
 
     _REDACTED_FIELDS: frozenset[str] = frozenset(
         {

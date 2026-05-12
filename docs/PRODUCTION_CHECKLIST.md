@@ -78,7 +78,9 @@ dry_run: false                 # set true first to monitor false-positive rate
 
 # Retrieval (if using KB)
 hybrid_retrieval: true
+hybrid_rrf_k: 60              # BM25 + dense Reciprocal Rank Fusion constant
 reranker_enabled: true
+retrieval_abstention_threshold: 0.3
 parent_child_enabled: true     # better context from small chunks
 
 # Security
