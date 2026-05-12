@@ -96,6 +96,8 @@ Produced by `benchmarks.streaming_false_halt_bench`.
 | `total_passages` | integer | Number of known-good passages |
 | `false_halts` | integer | Count of wrong halts |
 | `false_halt_rate` | number | `false_halts / total_passages` |
+| `halt_quality` | object | TP/FP/TN/FN, halt precision, halt recall, false-halt rate, token-of-halt accuracy, median halt latency |
 | `avg_coherence` | number | Mean coherence over all passages |
 | `avg_latency_ms` | number | Mean passage latency |
 | `per_passage` | array[object] | Per-fixture outcome rows |
+| `bad_passages` | array[object] | Labelled contradiction smoke rows with expected and observed halt token indices |

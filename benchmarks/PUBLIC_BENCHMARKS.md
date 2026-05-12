@@ -37,6 +37,7 @@ External accuracy review packet:
 | `halueval` | `pminervini/HaluEval` task files | Public parquet downloads | `benchmarks/.cache/halueval_*.parquet` |
 | `truthfulqa` | TruthfulQA CSV cache | Public CSV cache | `benchmarks/.cache/TruthfulQA.csv` |
 | `streaming_good_passages` | In-repo fixture list | Tracked source fixture | none |
+| `streaming_bad_passages` | In-repo labelled contradiction smoke set | Tracked source fixture | none |
 | `latency_fixture_pairs` | In-repo fixture list | Tracked source fixture | none |
 
 ## Public Tables
@@ -58,7 +59,7 @@ pure NLI result.
 
 | Card id | Mode family | Public metric | Boundary |
 |---|---|---|---|
-| `heuristic_streaming_false_halt` | heuristic | 4.4% false-halt rate | False-halt rate only; not a hallucination catch-rate claim. |
+| `heuristic_streaming_false_halt` | heuristic | 4.4% false-halt rate; 33.3% halt recall on labelled smoke set | False-halt rate and small smoke-set diagnostics only; not a customer-domain hallucination catch-rate claim. |
 | `pure_nli_aggrefact_global` | pure NLI | 75.8% per-dataset mean BA | Global-threshold FactCG result; separate from tuned thresholds. |
 | `tuned_threshold_aggrefact` | tuned-threshold NLI | 77.76% per-dataset mean BA | Threshold replay only; not default runtime behaviour. |
 | `pure_nli_halueval_e2e` | pure NLI | 46.7% catch, 56.9% precision | End-to-end HaluEval guardrail mode; not an AggreFact row. |

@@ -209,10 +209,17 @@ Measured with `benchmarks/streaming_false_halt_bench.py` on 135 factually correc
 | False halts | 6 |
 | False-halt rate | **4.4%** |
 | Avg coherence | 0.459 |
+| Synthetic bad-passage halt precision | 14.3% |
+| Synthetic bad-passage halt recall | 33.3% |
+| Token-of-halt accuracy, 8-token window | 0.0% |
 
 All 6 false halts are trend-triggered on borderline score trajectories
 (trend drop barely exceeding 0.30 threshold). NLI mode produces higher
 coherence scores and is expected to have a lower false-halt rate.
+The heuristic benchmark now reports halt precision, halt recall, and
+token-of-halt accuracy on a small labelled bad-passage smoke set. Treat those
+rows as halt-quality diagnostics, not as a hallucination benchmark or a
+customer-domain guarantee.
 
 The regression suite (`benchmarks/regression_suite.py`) asserts
 `false_halt_rate < 5%` on every CI run.

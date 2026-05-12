@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import statistics
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -1184,13 +1185,14 @@ GOOD_PASSAGES: list[tuple[str, dict[str, str], str]] = [
 ]
 
 
-BAD_PASSAGES: list[tuple[str, dict[str, str], str]] = [
+BAD_PASSAGES: list[tuple[str, dict[str, str], str, str]] = [
     (
         "wrong_boiling",
         {"boiling point": "100 degrees Celsius at standard pressure"},
         "Water boils at 50 degrees Celsius which makes it easy to "
         "evaporate at room temperature. This is why water disappears "
         "so quickly from open containers in warm weather.",
+        "50",
     ),
     (
         "wrong_light_speed",
@@ -1198,6 +1200,7 @@ BAD_PASSAGES: list[tuple[str, dict[str, str], str]] = [
         "The speed of light is approximately 3,000 kilometers per "
         "second making it only ten times faster than sound in air. "
         "This is why we see lightning and hear thunder almost simultaneously.",
+        "3,000",
     ),
     (
         "wrong_dna",
@@ -1205,6 +1208,7 @@ BAD_PASSAGES: list[tuple[str, dict[str, str], str]] = [
         "DNA consists of six nucleotide bases: adenine, thymine, "
         "guanine, cytosine, uracil, and xanthine. Each base can "
         "pair with any other base making DNA highly flexible.",
+        "six",
     ),
 ]
 
@@ -1232,6 +1236,60 @@ def _tokenize_simple(text: str) -> list[str]:
     if not words:
         return []
     return [words[0]] + [f" {w}" for w in words[1:]]
+
+
+def _expected_halt_index(text: str, expected_fragment: str) -> int:
+    """Return the first token index containing the labelled contradiction."""
+    fragment = expected_fragment.strip()
+    if not fragment:
+        raise ValueError("expected_fragment must not be empty")
+    for index, token in enumerate(_tokenize_simple(text)):
+        if fragment in token.strip():
+            return index
+    raise ValueError(f"expected_fragment {expected_fragment!r} not found")
+
+
+def _halt_quality_metrics(
+    good_results: list[dict],
+    bad_results: list[dict],
+    *,
+    token_tolerance: int = 8,
+) -> dict[str, float | int]:
+    """Compute confusion and token-timing metrics for streaming halt quality."""
+    false_positives = sum(1 for result in good_results if result["halted"])
+    true_negatives = len(good_results) - false_positives
+    true_positives = sum(1 for result in bad_results if result["halted"])
+    false_negatives = len(bad_results) - true_positives
+    halt_precision = (
+        true_positives / (true_positives + false_positives)
+        if true_positives + false_positives
+        else 0.0
+    )
+    halt_recall = true_positives / len(bad_results) if bad_results else 0.0
+    false_halt_rate = false_positives / len(good_results) if good_results else 0.0
+    on_time_halts = 0
+    halt_latencies: list[int] = []
+    for result in bad_results:
+        if not result["halted"]:
+            continue
+        latency = result["halt_index"] - result["expected_halt_index"]
+        halt_latencies.append(latency)
+        if 0 <= latency <= token_tolerance:
+            on_time_halts += 1
+    token_accuracy = on_time_halts / true_positives if true_positives else 0.0
+    median_latency = statistics.median(halt_latencies) if halt_latencies else 0.0
+    return {
+        "true_positives": true_positives,
+        "false_positives": false_positives,
+        "true_negatives": true_negatives,
+        "false_negatives": false_negatives,
+        "halt_precision": round(halt_precision, 4),
+        "halt_recall": round(halt_recall, 4),
+        "false_halt_rate": round(false_halt_rate, 4),
+        "token_of_halt_accuracy": round(token_accuracy, 4),
+        "median_halt_latency_tokens": round(float(median_latency), 4),
+        "token_tolerance": token_tolerance,
+    }
 
 
 def _make_callbacks(scorer, prompt: str):
@@ -1272,6 +1330,8 @@ def run_benchmark(use_nli: bool = False) -> dict:
     )
 
     results: list[FalseHaltResult] = []
+    good_metrics: list[dict] = []
+    bad_metrics: list[dict] = []
     n = len(GOOD_PASSAGES)
     print(f"Passages: {n}  |  NLI: {use_nli}")
 
@@ -1297,24 +1357,71 @@ def run_benchmark(use_nli: bool = False) -> dict:
         )
         elapsed = (time.perf_counter() - t0) * 1000
 
-        results.append(
-            FalseHaltResult(
-                passage_id=pid,
-                halted=session.halted,
-                halt_reason=session.halt_reason,
-                halt_index=session.halt_index,
-                halt_evidence=session.halt_evidence,
-                token_count=session.token_count,
-                avg_coherence=session.avg_coherence,
-                min_coherence=session.min_coherence,
-                duration_ms=elapsed,
-            ),
+        result = FalseHaltResult(
+            passage_id=pid,
+            halted=session.halted,
+            halt_reason=session.halt_reason,
+            halt_index=session.halt_index,
+            halt_evidence=session.halt_evidence,
+            token_count=session.token_count,
+            avg_coherence=session.avg_coherence,
+            min_coherence=session.min_coherence,
+            duration_ms=elapsed,
         )
+        results.append(result)
+        good_metrics.append({"id": pid, "halted": session.halted})
 
         # Reset kernel for next passage
         kernel.reset_state()
 
+    bad_results: list[FalseHaltResult] = []
+    for pid, facts, passage, expected_fragment in BAD_PASSAGES:
+        store = GroundTruthStore()
+        for k, v in facts.items():
+            store.add(k, v)
+
+        scorer = CoherenceScorer(
+            threshold=0.3,
+            ground_truth_store=store,
+            use_nli=use_nli,
+        )
+
+        expected_index = _expected_halt_index(passage, expected_fragment)
+        tokens = _tokenize_simple(passage)
+        coh_cb, ev_cb = _make_callbacks(scorer, passage[:50])
+
+        t0 = time.perf_counter()
+        session = kernel.stream_tokens(
+            iter(tokens),
+            coh_cb,
+            evidence_callback=ev_cb,
+        )
+        elapsed = (time.perf_counter() - t0) * 1000
+
+        bad_result = FalseHaltResult(
+            passage_id=pid,
+            halted=session.halted,
+            halt_reason=session.halt_reason,
+            halt_index=session.halt_index,
+            halt_evidence=session.halt_evidence,
+            token_count=session.token_count,
+            avg_coherence=session.avg_coherence,
+            min_coherence=session.min_coherence,
+            duration_ms=elapsed,
+        )
+        bad_results.append(bad_result)
+        bad_metrics.append(
+            {
+                "id": pid,
+                "halted": session.halted,
+                "halt_index": session.halt_index,
+                "expected_halt_index": expected_index,
+            },
+        )
+        kernel.reset_state()
+
     false_halts = [r for r in results if r.halted]
+    quality = _halt_quality_metrics(good_metrics, bad_metrics)
     fh_rate = len(false_halts) / n
     avg_coh = sum(r.avg_coherence for r in results) / n
     avg_ms = sum(r.duration_ms for r in results) / n
@@ -1324,6 +1431,9 @@ def run_benchmark(use_nli: bool = False) -> dict:
     print(f"{'=' * 55}")
     print(f"  Passages:     {n}")
     print(f"  False halts:  {len(false_halts)} ({fh_rate:.1%})")
+    print(f"  Halt precision: {quality['halt_precision']:.1%}")
+    print(f"  Halt recall:    {quality['halt_recall']:.1%}")
+    print(f"  Token accuracy: {quality['token_of_halt_accuracy']:.1%}")
     print(f"  Avg coherence: {avg_coh:.3f}")
     print(f"  Avg latency:  {avg_ms:.2f} ms/passage")
     print(f"{'=' * 55}")
@@ -1346,6 +1456,7 @@ def run_benchmark(use_nli: bool = False) -> dict:
         "total_passages": n,
         "false_halts": len(false_halts),
         "false_halt_rate": round(fh_rate, 4),
+        "halt_quality": quality,
         "avg_coherence": round(avg_coh, 4),
         "avg_latency_ms": round(avg_ms, 2),
         "per_passage": [
@@ -1361,6 +1472,21 @@ def run_benchmark(use_nli: bool = False) -> dict:
                 "duration_ms": round(r.duration_ms, 3),
             }
             for r in results
+        ],
+        "bad_passages": [
+            {
+                "id": r.passage_id,
+                "halted": r.halted,
+                "halt_reason": r.halt_reason,
+                "halt_index": r.halt_index,
+                "expected_halt_index": bad_metrics[index]["expected_halt_index"],
+                "halt_evidence": r.halt_evidence,
+                "token_count": r.token_count,
+                "avg_coherence": round(r.avg_coherence, 4),
+                "min_coherence": round(r.min_coherence, 4),
+                "duration_ms": round(r.duration_ms, 3),
+            }
+            for index, r in enumerate(bad_results)
         ],
     }
 
@@ -1408,7 +1534,7 @@ def run_window_sweep(use_nli: bool = False) -> dict:
 
         correct_halts = 0
         halt_coherences = []
-        for _pid, facts, passage in BAD_PASSAGES:
+        for _pid, facts, passage, _expected_fragment in BAD_PASSAGES:
             store = GroundTruthStore()
             for k, v in facts.items():
                 store.add(k, v)

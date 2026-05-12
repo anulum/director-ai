@@ -249,6 +249,10 @@ Measures how often correct (non-hallucinated) summaries are falsely rejected.
 
 4.4% false-halt rate (6/135 passages, heuristic mode, no NLI).
 All 6 false halts are trend-triggered on borderline score trajectories.
+The same runner now records a labelled bad-passage smoke set: halt precision
+14.3%, halt recall 33.3%, and token-of-halt accuracy 0.0% within an 8-token
+window. These values are diagnostics for heuristic streaming halt, not a
+claim that the heuristic path catches hallucinations reliably.
 
 Reproduce: `python -m benchmarks.streaming_false_halt_bench`
 

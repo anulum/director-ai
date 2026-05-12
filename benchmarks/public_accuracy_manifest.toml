@@ -19,15 +19,15 @@ manifest = "benchmarks/external_validation_packet.toml"
 [[benchmark_mode_cards]]
 id = "heuristic_streaming_false_halt"
 mode_family = "heuristic"
-claim_scope = "Streaming false-halt rate for known-good passages"
-public_metric = "4.4% false-halt rate"
+claim_scope = "Streaming false-halt rate plus labelled bad-passage halt diagnostics"
+public_metric = "4.4% false-halt rate; 33.3% heuristic halt recall on labelled smoke set"
 public_tables = ["readme_scoring_pyramid", "benchmark_report_streaming_false_halt"]
-datasets = ["streaming_good_passages"]
+datasets = ["streaming_good_passages", "streaming_bad_passages"]
 runner_files = ["benchmarks/streaming_false_halt_bench.py"]
 commands = ["python -m benchmarks.streaming_false_halt_bench"]
 result_files = ["benchmarks/results/streaming_false_halt_heuristic.json"]
-metrics = ["false_halt_rate", "avg_coherence", "avg_latency_ms"]
-claim_boundary = "False-halt rate only; do not present as hallucination catch rate."
+metrics = ["false_halt_rate", "halt_precision", "halt_recall", "token_of_halt_accuracy", "avg_coherence", "avg_latency_ms"]
+claim_boundary = "False-halt rate and synthetic bad-passage halt diagnostics only; do not present as a customer-domain hallucination catch rate."
 
 [[benchmark_mode_cards]]
 id = "pure_nli_aggrefact_global"
@@ -153,6 +153,16 @@ size_note = "known-good factual passages for false-halt measurement"
 label_fields = ["id", "facts", "passage"]
 
 [[datasets]]
+id = "streaming_bad_passages"
+name = "Streaming labelled bad passages"
+source = "benchmarks/streaming_false_halt_bench.py"
+split = "in-repo fixture list"
+access = "tracked source fixture"
+local_cache = []
+size_note = "small labelled contradiction smoke set for halt precision, recall, and token-timing diagnostics"
+label_fields = ["id", "facts", "passage", "expected_fragment"]
+
+[[datasets]]
 id = "latency_fixture_pairs"
 name = "Latency fixture pairs"
 source = "benchmarks/latency_bench.py"
@@ -269,11 +279,11 @@ commands = [
   "python -m benchmarks.streaming_false_halt_bench",
   "python -m benchmarks.streaming_false_halt_bench --nli",
 ]
-datasets = ["streaming_good_passages"]
+datasets = ["streaming_good_passages", "streaming_bad_passages"]
 cache_files = []
 result_files = [
   "benchmarks/results/streaming_false_halt_heuristic.json",
   "benchmarks/results/streaming_false_halt_nli.json",
 ]
-metrics = ["false_halt_rate", "avg_coherence", "avg_latency_ms"]
+metrics = ["false_halt_rate", "halt_precision", "halt_recall", "token_of_halt_accuracy", "avg_coherence", "avg_latency_ms"]
 notes = "The NLI result file is produced only when the optional NLI stack is installed."

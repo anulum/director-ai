@@ -308,6 +308,10 @@ python -m benchmarks.summarization_fpr_diag 200 --threshold 0.15
 
 4.4% false-halt rate (6/135 passages, heuristic mode, no NLI).
 All 6 false halts are trend-triggered on borderline score trajectories.
+The current artifact also includes labelled bad-passage diagnostics:
+halt precision 14.3%, halt recall 33.3%, and token-of-halt accuracy 0.0%
+within an 8-token window. Use this row to audit heuristic halt quality; do
+not present false-halt rate as hallucination catch rate.
 
 Reproduce: `python -m benchmarks.streaming_false_halt_bench`
 

@@ -113,11 +113,12 @@ The report must keep these claims separate:
 2. Tuned-threshold AggreFact replay.
 3. HaluEval end-to-end catch, FPR, precision, and F1.
 4. Local judge HaluEval metrics.
-5. Heuristic streaming false-halt rate.
+5. Heuristic streaming false-halt rate plus labelled bad-passage halt
+   precision, recall, and token timing.
 
-Do not convert false-halt rate into hallucination catch rate. Do not merge
-judge-assisted rows into pure NLI rows. Do not describe tuned thresholds as
-model training.
+Do not convert false-halt rate or the small labelled smoke set into a
+customer-domain hallucination catch-rate claim. Do not merge judge-assisted
+rows into pure NLI rows. Do not describe tuned thresholds as model training.
 
 ## Auditor Questions
 

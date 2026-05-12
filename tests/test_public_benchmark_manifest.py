@@ -144,7 +144,9 @@ def test_external_validation_packet_is_linked_and_complete():
 
     for task in packet["benchmark_tasks"]:
         assert task["mode_card"] in mode_cards
-        assert task["dataset"] in dataset_ids
+        task_datasets = task["datasets"] if "datasets" in task else [task["dataset"]]
+        for dataset in task_datasets:
+            assert dataset in dataset_ids
         assert (ROOT / task["runner"]).exists()
         _assert_result_path(task["expected_result"])
         assert task["command"]

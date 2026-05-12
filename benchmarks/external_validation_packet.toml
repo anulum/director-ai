@@ -69,13 +69,13 @@ claim_boundary = "Local judge mode; report apart from remote-judge and pure-NLI 
 [[benchmark_tasks]]
 id = "streaming_false_halt_heuristic"
 mode_card = "heuristic_streaming_false_halt"
-purpose = "Verify the heuristic streaming false-halt rate on known-good passages."
-dataset = "streaming_good_passages"
+purpose = "Verify the heuristic streaming false-halt rate and labelled bad-passage halt diagnostics."
+datasets = ["streaming_good_passages", "streaming_bad_passages"]
 runner = "benchmarks/streaming_false_halt_bench.py"
 command = "python -m benchmarks.streaming_false_halt_bench"
 expected_result = "benchmarks/results/streaming_false_halt_heuristic.json"
-primary_metrics = ["false_halt_rate", "avg_coherence", "avg_latency_ms"]
-claim_boundary = "False-halt rate only; not a hallucination catch-rate claim."
+primary_metrics = ["false_halt_rate", "halt_precision", "halt_recall", "token_of_halt_accuracy", "avg_coherence", "avg_latency_ms"]
+claim_boundary = "False-halt rate and labelled smoke-set diagnostics only; not a customer-domain hallucination catch-rate claim."
 
 [[required_outputs]]
 path = "validation/environment.json"
