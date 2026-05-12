@@ -33,6 +33,15 @@ class TestConstruction:
         agent = CoherenceAgent(llm_api_url="http://localhost:8080/completion")
         assert agent.generator.__class__.__name__ == "LLMGenerator"
 
+    def test_llm_url_forwards_generation_parameters(self):
+        agent = CoherenceAgent(
+            llm_api_url="http://localhost:8080/completion",
+            llm_max_tokens=384,
+            llm_temperature=0.3,
+        )
+        assert agent.generator.max_tokens == 384
+        assert agent.generator.temperature == 0.3
+
     def test_production_mode_requires_real_generator(self):
         with pytest.raises(ValueError, match="production_mode"):
             CoherenceAgent(production_mode=True)

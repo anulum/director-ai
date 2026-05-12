@@ -72,6 +72,8 @@ class CoherenceAgent:
         disclaimer_prefix="[Unverified] ",
         api_key=None,
         production_mode: bool = False,
+        llm_max_tokens: int = 128,
+        llm_temperature: float = 0.8,
         *,
         _scorer=None,
         _store=None,
@@ -111,7 +113,11 @@ class CoherenceAgent:
             self.generator = self._build_provider(provider, api_key=api_key)
             self.logger.info("Using %s provider", provider)
         elif llm_api_url:
-            self.generator = LLMGenerator(llm_api_url)
+            self.generator = LLMGenerator(
+                llm_api_url,
+                max_tokens=llm_max_tokens,
+                temperature=llm_temperature,
+            )
             self.logger.info("Connected to LLM at %s", llm_api_url)
         else:
             self.generator = MockGenerator()

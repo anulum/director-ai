@@ -298,6 +298,23 @@ def test_server_provider_wiring_openai(monkeypatch):
     assert os.environ.get("OPENAI_API_KEY") != "from-config"
 
 
+def test_server_local_provider_wires_generation_parameters():
+    cfg = DirectorConfig(
+        api_keys=[],
+        llm_provider="local",
+        llm_api_url="http://localhost:8080/completion",
+        llm_max_tokens=384,
+        llm_temperature=0.3,
+    )
+    app = create_app(cfg)
+    with TestClient(app) as client:
+        r = client.get("/v1/health")
+    assert r.status_code == 200
+    agent = app.state._state["agent"]
+    assert agent.generator.max_tokens == 384
+    assert agent.generator.temperature == 0.3
+
+
 def test_sqlite_stats_works(tmp_path):
     db_path = str(tmp_path / "test_stats.db")
     cfg = DirectorConfig(

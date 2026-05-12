@@ -281,6 +281,8 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             "_scorer": scorer,
             "_store": store,
             "production_mode": cfg.production_mode,
+            "llm_max_tokens": cfg.llm_max_tokens,
+            "llm_temperature": cfg.llm_temperature,
         }
         if cfg.llm_provider == "local":
             agent_kwargs["llm_api_url"] = cfg.llm_api_url
