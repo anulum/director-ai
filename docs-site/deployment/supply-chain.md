@@ -38,6 +38,7 @@ controls.
 | `torch` | `[nli]` | native-code | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `transformers` | `[nli]` | model-loader | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `onnxruntime` | `[onnx]` | native-runtime | upper-bound, uv-lock, runtime-isolation, audit, fallback |
+| `onnx` | `[onnx]` | model-graph-serialization | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `onnxruntime-gpu` | `[tensorrt]` | native-gpu-runtime | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `mujoco` | `[physical]` | native-simulation-runtime | upper-bound, uv-lock, runtime-isolation, audit, fallback |
 | `chromadb` | `[vector]` | local-store | upper-bound, uv-lock, runtime-isolation, audit, fallback |
@@ -69,16 +70,19 @@ gateway needed by `GroundingHook`.
 
 ## Export-Only Tooling
 
-ONNX export uses separate build-time wheels:
+ONNX export uses the same current `torch` and `transformers` major lines as
+runtime NLI. The build-time wheel file is limited to graph/runtime packages
+that are safe to keep hash-pinned outside the default service image:
 
 | Package | File | Controls |
 |---------|------|----------|
-| `optimum` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
-| `optimum-onnx` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
+| `onnx` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
+| `onnxruntime` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
 
-These packages stay outside runtime images. `Dockerfile.gpu` installs them only
-in the model-builder stage, exports the ONNX directory, then copies the
-artefact into the runtime stage.
+Legacy exporter packages that force `transformers<5` are not installed. That
+keeps the model-loader stack on the audited `transformers>=5.0.0rc3,<6` line.
+`Dockerfile.gpu` installs the export wheels only in the model-builder stage,
+exports the ONNX directory, then copies the artefact into the runtime stage.
 
 ## Deployment Guidance
 

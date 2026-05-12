@@ -13,8 +13,9 @@ export_onnx(
 )
 ```
 
-This uses [Optimum](https://huggingface.co/docs/optimum) to convert the
-PyTorch model + tokenizer to ONNX format. The export-only wheels are pinned in
+This uses `torch.onnx.export` to convert the PyTorch model + tokenizer to ONNX
+format while staying on the same audited `transformers>=5.0.0rc3,<6` model
+loader line as runtime NLI. The export-only graph/runtime wheels are pinned in
 `requirements/docker-gpu-export.txt`.
 
 For deployable directory layout and wheel target coverage, see

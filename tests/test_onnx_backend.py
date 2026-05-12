@@ -8,14 +8,17 @@
 """Multi-angle tests for ONNX NLI backend and export.
 
 Covers: heuristic fallback when ONNX unavailable, bad path handling,
-batch scoring, export importability, missing optimum guard, onnxruntime
+batch scoring, export importability, native exporter guards, onnxruntime
 provider check, parametrised inputs, score range invariants, pipeline
 integration via CoherenceScorer, and performance documentation.
 """
 
 from __future__ import annotations
 
+from unittest.mock import MagicMock, patch
+
 import pytest
+import torch
 
 from director_ai.core.nli import NLIScorer, export_onnx
 
@@ -82,19 +85,49 @@ class TestOnnxBackendFallback:
 
 
 class TestExportOnnx:
-    """export_onnx must be importable and guard missing deps."""
+    """export_onnx must be importable and use the native modern stack."""
 
     def test_importable(self):
         from director_ai.core import export_onnx as fn
 
         assert callable(fn)
 
-    def test_missing_optimum_raises(self):
-        try:
-            export_onnx(output_dir="/tmp/test_onnx_export_guard")
-            pytest.skip("optimum is installed — skip import test")
-        except (ImportError, OSError):
-            pass
+    def test_rejects_unknown_quantize_mode(self, tmp_path):
+        with pytest.raises(ValueError, match="quantize"):
+            export_onnx(output_dir=str(tmp_path), quantize="nf4")
+
+    def test_export_uses_torch_onnx_not_legacy_exporter(self, tmp_path):
+        model = MagicMock()
+        model.config.save_pretrained = MagicMock()
+        tokenizer = MagicMock()
+        tokenizer.return_value = {
+            "input_ids": torch.ones((1, 4), dtype=torch.long),
+            "attention_mask": torch.ones((1, 4), dtype=torch.long),
+        }
+
+        with (
+            patch(
+                "transformers.AutoTokenizer.from_pretrained",
+                return_value=tokenizer,
+            ) as tok_from_pretrained,
+            patch(
+                "transformers.AutoModelForSequenceClassification.from_pretrained",
+                return_value=model,
+            ) as model_from_pretrained,
+            patch("torch.onnx.export") as torch_export,
+        ):
+            result = export_onnx(
+                model_name="test/model",
+                output_dir=str(tmp_path),
+                revision="abc123",
+            )
+
+        assert result == str(tmp_path)
+        tok_from_pretrained.assert_called_once_with("test/model", revision="abc123")
+        model_from_pretrained.assert_called_once_with("test/model", revision="abc123")
+        torch_export.assert_called_once()
+        _, _, exported_path = torch_export.call_args.args
+        assert exported_path.endswith("model.onnx")
 
 
 # ── ONNX runtime ─────────────────────────────────────────────────

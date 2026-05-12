@@ -4,13 +4,11 @@
 # generated file with ``pip install --require-hashes`` so every
 # resolved package is locked by SHA-256.
 #
-# ``optimum[onnxruntime]`` is deliberately NOT pinned here even
-# though downstream export paths use it — the training script
-# (``distil_v5_cloud.py``) is pure PyTorch, so baking ONNX tooling
-# into the training image would only add attack surface without
-# a runtime caller.
-torch==2.8.0
-transformers==5.7.0
+# ONNX export is handled by the project exporter on the current
+# torch/transformers stack. The training image stays pure PyTorch;
+# graph/runtime export wheels are installed only in export-capable images.
+torch==2.11.0
+transformers==5.8.0
 datasets==3.6.0
 scikit-learn==1.6.1
 accelerate==1.7.0

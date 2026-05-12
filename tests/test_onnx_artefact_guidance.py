@@ -45,8 +45,8 @@ def test_export_wheel_file_is_pinned() -> None:
     requirements_path = ROOT / policy["policy"]["export_requirements"]
     text = requirements_path.read_text()
 
-    assert "optimum==" in text
-    assert "optimum-onnx==" in text
+    assert "onnx==" in text
+    assert "onnxruntime==" in text
     assert "--hash=sha256:" in text
 
 

@@ -25,7 +25,7 @@ notes = "Heavy scorer backend keeps major caps for model API churn."
 
 [[extras]]
 name = "onnx"
-packages = ["onnxruntime"]
+packages = ["onnx", "onnxruntime"]
 notes = "ONNX Runtime stays within one major line for graph runtime parity."
 
 [[extras]]

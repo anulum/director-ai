@@ -39,6 +39,12 @@ risk = "native-runtime"
 controls = ["upper-bound", "uv-lock", "runtime-isolation", "audit", "fallback"]
 
 [[packages]]
+name = "onnx"
+extra = "onnx"
+risk = "model-graph-serialization"
+controls = ["upper-bound", "uv-lock", "runtime-isolation", "audit", "fallback"]
+
+[[packages]]
 name = "onnxruntime-gpu"
 extra = "tensorrt"
 risk = "native-gpu-runtime"
@@ -69,15 +75,15 @@ risk = "web-ui"
 controls = ["upper-bound", "uv-lock", "runtime-isolation", "audit"]
 
 [[export_only]]
-name = "optimum"
+name = "onnx"
 requirements = "requirements/docker-gpu-export.txt"
-risk = "export-model-loader"
+risk = "model-graph-serialization"
 controls = ["hash-pin", "isolated-build-stage"]
 
 [[export_only]]
-name = "optimum-onnx"
+name = "onnxruntime"
 requirements = "requirements/docker-gpu-export.txt"
-risk = "export-model-loader"
+risk = "native-runtime"
 controls = ["hash-pin", "isolated-build-stage"]
 
 [[external_runtime]]

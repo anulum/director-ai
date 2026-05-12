@@ -43,6 +43,10 @@ pip install --no-deps --require-hashes -r requirements/docker-gpu-export.txt
 director-ai export --format onnx --output models/factcg-onnx
 ```
 
+The export environment must keep the repository's `transformers>=5.0.0rc3,<6`
+line. Do not install legacy ONNX exporter packages that force
+`transformers<5`.
+
 Mirror the pinned model revisions:
 
 | Key | Model | Revision | Target directory |

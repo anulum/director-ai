@@ -28,6 +28,10 @@ director-ai export --format onnx --output models/factcg-onnx
 The GPU Docker build uses the same export wheel file during its model-builder
 stage, then copies only the exported model into the runtime image.
 
+The exporter uses the current `torch` and `transformers>=5.0.0rc3,<6` stack
+directly. Do not add legacy exporter packages that require `transformers<5`;
+they would downgrade the audited model-loader dependency line.
+
 The expected directory is:
 
 ```text
@@ -74,7 +78,8 @@ DIRECTOR_ONNX_PATH=/models/factcg-onnx
 ## Wheel Target Matrix
 
 `requirements/onnx_wheel_targets.toml` is the tracked source for these targets.
-`requirements/docker-gpu-export.txt` pins the export-only wheels.
+`requirements/docker-gpu-export.txt` pins the `onnx` and `onnxruntime`
+build-time wheels.
 
 | Target id | Platform | Extra | Runtime package | Execution provider | Status |
 |-----------|----------|-------|-----------------|--------------------|--------|

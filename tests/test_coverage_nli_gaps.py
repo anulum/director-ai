@@ -304,46 +304,61 @@ def test_nli_available_returns_bool():
 
 
 class TestExportOnnx:
-    def _make_ort_modules(self):
-        mock_optimum = MagicMock()
-        mock_ort_model = MagicMock()
-        mock_optimum.onnxruntime.ORTModelForSequenceClassification.from_pretrained.return_value = mock_ort_model
-        mock_transformers = MagicMock()
-        mock_tok = MagicMock()
-        mock_transformers.AutoTokenizer.from_pretrained.return_value = mock_tok
-        return mock_optimum, mock_transformers, mock_ort_model
+    def _make_native_export_mocks(self):
+        import torch
+
+        mock_model = MagicMock()
+        mock_model.config.save_pretrained = MagicMock()
+        mock_tokenizer = MagicMock()
+        mock_tokenizer.return_value = {
+            "input_ids": torch.ones((1, 4), dtype=torch.long),
+            "attention_mask": torch.ones((1, 4), dtype=torch.long),
+        }
+        return mock_model, mock_tokenizer
 
     def test_export_no_quantize(self, tmp_path):
-        mock_optimum, mock_transformers, _ = self._make_ort_modules()
+        mock_model, mock_tokenizer = self._make_native_export_mocks()
         out = str(tmp_path / "onnx_out")
-        with patch.dict(
-            sys.modules,
-            {
-                "optimum": mock_optimum,
-                "optimum.onnxruntime": mock_optimum.onnxruntime,
-                "transformers": mock_transformers,
-            },
+        with (
+            patch(
+                "transformers.AutoTokenizer.from_pretrained",
+                return_value=mock_tokenizer,
+            ),
+            patch(
+                "transformers.AutoModelForSequenceClassification.from_pretrained",
+                return_value=mock_model,
+            ),
+            patch("torch.onnx.export") as mock_export,
         ):
             result = export_onnx(model_name="test/model", output_dir=out, quantize=None)
         assert result == out
+        mock_export.assert_called_once()
 
     def test_export_int8(self, tmp_path):
-        mock_optimum, mock_transformers, _ = self._make_ort_modules()
+        mock_model, mock_tokenizer = self._make_native_export_mocks()
         out = str(tmp_path / "onnx_int8")
 
         mock_ort_quant = MagicMock()
         mock_ort_quant.quantization.QuantType.QInt8 = 0
         mock_ort_quant.quantization.quantize_dynamic = MagicMock()
 
-        with patch.dict(
-            sys.modules,
-            {
-                "optimum": mock_optimum,
-                "optimum.onnxruntime": mock_optimum.onnxruntime,
-                "transformers": mock_transformers,
-                "onnxruntime": mock_ort_quant,
-                "onnxruntime.quantization": mock_ort_quant.quantization,
-            },
+        with (
+            patch(
+                "transformers.AutoTokenizer.from_pretrained",
+                return_value=mock_tokenizer,
+            ),
+            patch(
+                "transformers.AutoModelForSequenceClassification.from_pretrained",
+                return_value=mock_model,
+            ),
+            patch("torch.onnx.export"),
+            patch.dict(
+                sys.modules,
+                {
+                    "onnxruntime": mock_ort_quant,
+                    "onnxruntime.quantization": mock_ort_quant.quantization,
+                },
+            ),
         ):
             result = export_onnx(
                 model_name="test/model", output_dir=out, quantize="int8"
@@ -351,7 +366,7 @@ class TestExportOnnx:
         assert result == out
 
     def test_export_fp16(self, tmp_path):
-        mock_optimum, mock_transformers, _ = self._make_ort_modules()
+        mock_model, mock_tokenizer = self._make_native_export_mocks()
         out = str(tmp_path / "onnx_fp16")
 
         mock_onnx_mod = MagicMock()
@@ -361,15 +376,23 @@ class TestExportOnnx:
         mock_ort_transformers = MagicMock()
         mock_ort_transformers.float16 = mock_float16
 
-        with patch.dict(
-            sys.modules,
-            {
-                "optimum": mock_optimum,
-                "optimum.onnxruntime": mock_optimum.onnxruntime,
-                "transformers": mock_transformers,
-                "onnx": mock_onnx_mod,
-                "onnxruntime.transformers": mock_ort_transformers,
-            },
+        with (
+            patch(
+                "transformers.AutoTokenizer.from_pretrained",
+                return_value=mock_tokenizer,
+            ),
+            patch(
+                "transformers.AutoModelForSequenceClassification.from_pretrained",
+                return_value=mock_model,
+            ),
+            patch("torch.onnx.export"),
+            patch.dict(
+                sys.modules,
+                {
+                    "onnx": mock_onnx_mod,
+                    "onnxruntime.transformers": mock_ort_transformers,
+                },
+            ),
         ):
             result = export_onnx(
                 model_name="test/model", output_dir=out, quantize="fp16"

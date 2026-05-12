@@ -39,8 +39,9 @@ WORKDIR /app
 
 ENV PYTHONPATH=/app/src
 
-# optimum: build-time only for ONNX export (not in runtime image).
-# Hash-pinned for OpenSSF supply-chain compliance.
+# ONNX graph/runtime wheels: build-time only for export. Hash-pinned for
+# OpenSSF supply-chain compliance and kept on the current transformers line
+# already installed by the runtime dependency lock.
 COPY requirements/docker-gpu-export.txt /tmp/docker-gpu-export.txt
 RUN pip install --no-cache-dir --no-deps --require-hashes \
         -r /tmp/docker-gpu-export.txt

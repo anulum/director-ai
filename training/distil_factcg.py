@@ -255,36 +255,17 @@ def phase_train(args):
 
 def phase_export(args):
     """Phase 3: export to ONNX + optional INT8 quantisation."""
-    from transformers import AutoTokenizer
-
-    tokeniser = AutoTokenizer.from_pretrained(args.model)
-
     try:
-        from optimum.onnxruntime import ORTModelForSequenceClassification
+        from director_ai.core.scoring.nli import export_onnx
 
-        ort_model = ORTModelForSequenceClassification.from_pretrained(
-            args.model, export=True
+        export_onnx(
+            model_name=args.model,
+            output_dir=args.output,
+            quantize="int8" if args.quantise else None,
         )
-        out = Path(args.output)
-        out.mkdir(parents=True, exist_ok=True)
-        ort_model.save_pretrained(out)
-        tokeniser.save_pretrained(out)
-        logger.info("ONNX exported to %s", out)
-
-        if args.quantise:
-            from onnxruntime.quantization import QuantType, quantize_dynamic
-
-            onnx_path = out / "model.onnx"
-            quant_path = out / "model_quantised.onnx"
-            quantize_dynamic(
-                str(onnx_path),
-                str(quant_path),
-                weight_type=QuantType.QInt8,
-            )
-            logger.info("INT8 quantised: %s", quant_path)
-
+        logger.info("ONNX exported to %s", args.output)
     except ImportError:
-        logger.error("ONNX export requires optimum: pip install optimum[onnxruntime]")
+        logger.error("ONNX export requires director_ai[nli,onnx]")
         raise
 
 

@@ -1775,10 +1775,12 @@ nli = [
     { name = "transformers" },
 ]
 nli-lite = [
+    { name = "onnx" },
     { name = "onnxruntime" },
     { name = "transformers" },
 ]
 onnx = [
+    { name = "onnx" },
     { name = "onnxruntime" },
 ]
 openai = [
@@ -1826,6 +1828,7 @@ server = [
     { name = "uvicorn" },
 ]
 tensorrt = [
+    { name = "onnx" },
     { name = "onnxruntime-gpu" },
 ]
 toxicity = [
@@ -1911,6 +1914,9 @@ requires-dist = [
     { name = "notion-client", marker = "extra == 'auto-kb'", specifier = ">=2.0" },
     { name = "notion-client", marker = "extra == 'ingestion-notion'", specifier = ">=2.0" },
     { name = "numpy", specifier = ">=1.24" },
+    { name = "onnx", marker = "extra == 'nli-lite'", specifier = ">=1.21,<2" },
+    { name = "onnx", marker = "extra == 'onnx'", specifier = ">=1.21,<2" },
+    { name = "onnx", marker = "extra == 'tensorrt'", specifier = ">=1.21,<2" },
     { name = "onnxruntime", marker = "extra == 'nli-lite'", specifier = ">=1.15,<2" },
     { name = "onnxruntime", marker = "extra == 'onnx'", specifier = ">=1.15,<2" },
     { name = "onnxruntime-gpu", marker = "extra == 'tensorrt'", specifier = ">=1.15,<2" },

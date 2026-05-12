@@ -16,6 +16,7 @@ import logging
 import os
 from collections.abc import Callable
 from functools import lru_cache
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -111,44 +112,94 @@ def export_onnx(
     ----------
     quantize : "int8", "fp16", or None (default FP32).
 
-    Requires ``pip install optimum[onnxruntime]``.
+    Requires ``torch``, ``transformers``, and ``onnx``.
     For int8: also requires ``onnxruntime`` quantization module.
     Load the result with
     ``NLIScorer(backend="onnx", onnx_path=<returned_dir>)``.
 
     """
-    from optimum.onnxruntime import (
-        ORTModelForSequenceClassification,
-    )
-    from transformers import AutoTokenizer
+    import torch
+    from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
     from .nli import _resolve_revision
 
+    if quantize not in {None, "int8", "fp16"}:
+        raise ValueError("quantize must be one of: None, 'int8', 'fp16'")
+
     rev = _resolve_revision(model_name, revision)
-    model = ORTModelForSequenceClassification.from_pretrained(
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name, revision=rev)
+    model = AutoModelForSequenceClassification.from_pretrained(
         model_name,
-        export=True,
         revision=rev,
     )
-    model.save_pretrained(output_dir)
-    AutoTokenizer.from_pretrained(model_name, revision=rev).save_pretrained(output_dir)
+    model.eval()
+
+    encoded = tokenizer(
+        _FACTCG_TEMPLATE.format(text_a="Premise.", text_b="Hypothesis."),
+        return_tensors="pt",
+        truncation=True,
+        max_length=512,
+    )
+    input_names = [
+        name
+        for name in ("input_ids", "attention_mask", "token_type_ids")
+        if name in encoded
+    ]
+    if not input_names:
+        raise RuntimeError("Tokenizer did not produce ONNX-exportable tensor inputs")
+
+    class _SequenceClassifierOnnxWrapper(torch.nn.Module):
+        def __init__(self, wrapped_model: Any, names: list[str]) -> None:
+            super().__init__()
+            self.wrapped_model = wrapped_model
+            self.names = names
+
+        def forward(self, *inputs: Any) -> Any:
+            outputs = self.wrapped_model(
+                **dict(zip(self.names, inputs, strict=True)),
+            )
+            return outputs.logits
+
+    dynamic_axes: dict[str, dict[int, str]] = {
+        name: {0: "batch", 1: "sequence"} for name in input_names
+    }
+    dynamic_axes["logits"] = {0: "batch"}
+    model_file = output_path / "model.onnx"
+
+    with torch.no_grad():
+        torch.onnx.export(
+            _SequenceClassifierOnnxWrapper(model, input_names),
+            tuple(encoded[name] for name in input_names),
+            str(model_file),
+            input_names=input_names,
+            output_names=["logits"],
+            dynamic_axes=dynamic_axes,
+            opset_version=17,
+            do_constant_folding=True,
+        )
+
+    model.config.save_pretrained(output_path)
+    tokenizer.save_pretrained(output_path)
     logger.info("ONNX model exported to %s", output_dir)
 
     if quantize == "int8":
         from onnxruntime.quantization import QuantType, quantize_dynamic
 
-        src = os.path.join(output_dir, "model.onnx")
-        dst = os.path.join(output_dir, "model_quantized.onnx")
+        src = str(model_file)
+        dst = str(output_path / "model_quantized.onnx")
         quantize_dynamic(src, dst, weight_type=QuantType.QInt8)
         logger.info("INT8 quantized model saved to %s", dst)
     elif quantize == "fp16":
         import onnx
         from onnxruntime.transformers import float16
 
-        src = os.path.join(output_dir, "model.onnx")
+        src = str(model_file)
         model_fp32 = onnx.load(src)
         model_fp16 = float16.convert_float_to_float16(model_fp32)
-        dst = os.path.join(output_dir, "model_fp16.onnx")
+        dst = str(output_path / "model_fp16.onnx")
         onnx.save(model_fp16, dst)
         logger.info("FP16 model saved to %s", dst)
 

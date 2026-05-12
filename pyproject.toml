@@ -79,9 +79,11 @@ voice = [
     "deepgram-sdk>=3.0",
 ]
 onnx = [
+    "onnx>=1.21,<2",
     "onnxruntime>=1.15,<2",
 ]
 tensorrt = [
+    "onnx>=1.21,<2",
     "onnxruntime-gpu>=1.15,<2",
 ]
 grpc = [
@@ -121,6 +123,7 @@ embed = [
     "sentence-transformers>=4,<6",
 ]
 nli-lite = [
+    "onnx>=1.21,<2",
     "onnxruntime>=1.15,<2",
     "transformers>=5.0.0rc3,<6",
 ]
