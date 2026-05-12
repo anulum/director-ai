@@ -196,6 +196,15 @@ class RerankedBackend(VectorBackend):
         reranker_model: str = "cross-encoder/ms-marco-MiniLM-L-6-v2",
         top_k_multiplier: int = 3,
     ) -> None:
+        if base is None:
+            raise ValueError("base backend is required")
+        if not isinstance(reranker_model, str) or not reranker_model.strip():
+            raise ValueError("reranker_model must be a non-empty string")
+        reranker_model = reranker_model.strip()
+        if not isinstance(top_k_multiplier, int) or isinstance(top_k_multiplier, bool):
+            raise ValueError("top_k_multiplier must be an integer")
+        if top_k_multiplier < 1:
+            raise ValueError("top_k_multiplier must be at least 1")
         self._base = base
         self._multiplier = top_k_multiplier
         try:

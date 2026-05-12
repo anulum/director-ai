@@ -26,7 +26,7 @@ class _MockCrossEncoder:
         return [float(len(pairs) - i) for i in range(len(pairs))]
 
 
-def _make_reranked(base, top_k_multiplier=3):
+def _make_reranked(base, top_k_multiplier=3, reranker_model="test-reranker"):
     """Build RerankedBackend with mocked sentence-transformers import."""
     mock_st = MagicMock()
     mock_st.CrossEncoder.return_value = _MockCrossEncoder()
@@ -34,10 +34,29 @@ def _make_reranked(base, top_k_multiplier=3):
         patch.dict("os.environ", {"DIRECTOR_FORCE_CPU": "1"}),
         patch.dict("sys.modules", {"sentence_transformers": mock_st}),
     ):
-        return RerankedBackend(base, top_k_multiplier=top_k_multiplier)
+        return RerankedBackend(
+            base,
+            reranker_model=reranker_model,
+            top_k_multiplier=top_k_multiplier,
+        )
 
 
 class TestRerankedBackend:
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"base": None}, "base"),
+            ({"reranker_model": ""}, "reranker_model"),
+            ({"reranker_model": "   "}, "reranker_model"),
+            ({"top_k_multiplier": 0}, "top_k_multiplier"),
+            ({"top_k_multiplier": 1.5}, "top_k_multiplier"),
+        ],
+    )
+    def test_rejects_invalid_constructor_values(self, kwargs, message):
+        base = kwargs.pop("base", InMemoryBackend())
+        with pytest.raises(ValueError, match=message):
+            _make_reranked(base, **kwargs)
+
     def test_reranking_reverses_order(self):
         base = InMemoryBackend()
         base.add("d1", "first doc about cats")
