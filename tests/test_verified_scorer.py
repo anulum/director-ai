@@ -197,6 +197,27 @@ class TestVerifiedScorer:
             "Berlin is the capital of Germany.",
         ]
 
+    def test_multi_span_evidence_supports_cross_sentence_claim(self):
+        vs = VerifiedScorer()
+        r = vs.verify(
+            "The mission used Falcon 9 from Cape Canaveral.",
+            "The mission used Falcon 9. The launch site was Cape Canaveral.",
+            evidence_top_k=2,
+        )
+
+        assert r.claims[0].evidence_mode == "multi_span"
+        assert r.claims[0].source_indices == [0, 1]
+        assert r.claims[0].aggregated_source == (
+            "The mission used Falcon 9. The launch site was Cape Canaveral."
+        )
+        assert r.claims[0].traceability >= 0.8
+        assert r.claims[0].verdict == "supported"
+
+        payload = r.to_dict()["claims"][0]
+        assert payload["evidence_mode"] == "multi_span"
+        assert payload["source_indices"] == [0, 1]
+        assert payload["aggregated_source"] == r.claims[0].aggregated_source
+
     def test_short_claims_are_ignored_after_sentence_split(self):
         vs = VerifiedScorer()
         r = vs.verify("Too short.", "The source has enough words.")

@@ -1,6 +1,6 @@
 # VerifiedScorer
 
-Sentence-level multi-signal fact verification. Decomposes both response and source into sentences, matches each response sentence to its best source sentence via NLI (or word overlap fallback), runs 5 independent signals, and reports per-claim verdicts with calibrated confidence.
+Atomic multi-span fact verification. Decomposes responses into sentences or atomic claims, ranks source sentences by NLI or word-overlap fallback, aggregates the top evidence spans for each claim, runs 5 independent signals, and reports per-claim verdicts with calibrated confidence and provenance.
 
 ```python
 from director_ai import VerifiedScorer
@@ -10,11 +10,12 @@ from director_ai import VerifiedScorer
 
 ```mermaid
 graph TD
-    R["Response text"] --> SPLIT_R["Split into sentences"]
+    R["Response text"] --> SPLIT_R["Split into sentences or atomic claims"]
     S["Source text"] --> SPLIT_S["Split into sentences"]
-    SPLIT_R --> MATCH["Match each claim to best source sentence"]
+    SPLIT_R --> MATCH["Rank top-k source spans"]
     SPLIT_S --> MATCH
-    MATCH --> SIG["Run 5 signals per pair"]
+    MATCH --> AGG["Aggregate evidence spans"]
+    AGG --> SIG["Run 5 signals per claim/evidence pair"]
     SIG --> NLI["1. NLI entailment"]
     SIG --> ENT["2. Entity consistency"]
     SIG --> NUM["3. Numerical consistency"]
@@ -92,7 +93,7 @@ Without `atomic=True`, the compound sentence would be matched as a single claim,
 
 ### Multi-Span Evidence
 
-`evidence_top_k` controls how many source spans are attached as evidence per claim (default: 3). Each `SourceSpan` contains the matched source text, its index, and NLI divergence score.
+`evidence_top_k` controls how many source spans are attached and aggregated as evidence per claim (default: 3). Each `SourceSpan` contains the matched source text, its index, and NLI divergence score. `ClaimVerdict.matched_source` keeps the best single span for compatibility; `aggregated_source`, `source_indices`, and `evidence_mode` expose the full multi-span premise used by entity, number, negation, traceability, and NLI re-scoring when an NLI scorer is available.
 
 ```python
 from director_ai import VerifiedScorer
@@ -105,6 +106,8 @@ result = vs.verify(
 )
 
 for claim in result.claims:
+    print(claim.evidence_mode)
+    print(claim.aggregated_source)
     for span in claim.evidence_spans:
         print(f"  [{span.nli_divergence:.2f}] {span.text}")
 ```
@@ -262,6 +265,8 @@ Per-claim result from multi-signal analysis.
 | `claim_index` | `int` | Position in the response |
 | `matched_source` | `str` | Best-matching source sentence |
 | `source_index` | `int` | Position in the source |
+| `aggregated_source` | `str` | Source-order concatenation of the selected evidence spans |
+| `source_indices` | `list[int]` | Source sentence indices included in `aggregated_source` |
 | `nli_divergence` | `float` | NLI divergence score (0 = entailed, 1 = contradicted) |
 | `entity_match` | `float` | Jaccard overlap of named entities (0.0–1.0) |
 | `numerical_match` | `bool \| None` | `True` if numbers match, `False` if mismatch, `None` if no numbers |
@@ -270,6 +275,7 @@ Per-claim result from multi-signal analysis.
 | `verdict` | `str` | `"supported"`, `"contradicted"`, `"fabricated"`, or `"unverifiable"` |
 | `confidence` | `float` | Verdict confidence (0.0–1.0) |
 | `evidence_spans` | `list[SourceSpan]` | Top-k source spans matched to this claim (controlled by `evidence_top_k`) |
+| `evidence_mode` | `str` | `"single_span"` or `"multi_span"` |
 | `is_atomic` | `bool` | `True` if this claim was produced by atomic decomposition |
 
 ### VerificationResult

@@ -888,15 +888,16 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             fnr_ci=report.fnr_ci,
         )
 
-    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Verified Review (sentence-level multi-signal) Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
+    # ── Verified Review (atomic multi-span signals) ──────────────────
 
     @app.post("/v1/verify", response_model=VerifyResponse)
     async def verify_response(req: ReviewRequest, request: Request):
-        """Sentence-level multi-signal fact verification.
+        """Atomic multi-span fact verification.
 
-        Decomposes the response into claims, matches each to the best
-        source sentence from the KB, checks NLI + entity + number +
-        negation signals. Returns per-claim verdicts with confidence.
+        Decomposes the response into claims, ranks source spans from the
+        KB, aggregates evidence, and checks NLI + entity + number +
+        negation + traceability signals. Returns per-claim verdicts with
+        confidence and provenance.
         """
         import asyncio
 

@@ -4,14 +4,14 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Verified Scorer (Sentence-Level Multi-Signal)
+# Director-Class AI — Verified Scorer (Atomic Multi-Span Multi-Signal)
 
-"""Sentence-level fact verification with multi-signal consensus.
+"""Atomic fact verification with multi-span, multi-signal consensus.
 
-Decomposes both response and source into sentences, matches each
-response sentence to its best source sentence, scores each pair
-with multiple independent signals, and reports per-claim verdicts
-with calibrated confidence.
+Decomposes responses into sentences or atomic claims, ranks source
+sentences for each claim, aggregates the top evidence spans, scores the
+claim/evidence pair with multiple independent signals, and reports
+per-claim verdicts with calibrated confidence and provenance.
 
 Signals:
 1. NLI entailment (FactCG — primary)
@@ -102,7 +102,10 @@ class ClaimVerdict:
     traceability: float
     verdict: str  # "supported", "contradicted", "unverifiable", "fabricated"
     confidence: float
+    aggregated_source: str = ""
+    source_indices: list[int] = field(default_factory=list)
     evidence_spans: list[SourceSpan] = field(default_factory=list)
+    evidence_mode: str = "single_span"
     is_atomic: bool = False
 
 
@@ -132,12 +135,15 @@ class VerificationResult:
                 {
                     "claim": c.claim,
                     "matched_source": c.matched_source,
+                    "aggregated_source": c.aggregated_source,
+                    "source_indices": c.source_indices,
                     "nli_divergence": round(c.nli_divergence, 4),
                     "entity_match": round(c.entity_match, 2),
                     "numerical_match": c.numerical_match,
                     "negation_flip": c.negation_flip,
                     "traceability": round(c.traceability, 2),
                     "verdict": c.verdict,
+                    "evidence_mode": c.evidence_mode,
                     "is_atomic": c.is_atomic,
                     "evidence_spans": [
                         {
@@ -154,7 +160,7 @@ class VerificationResult:
 
 
 class VerifiedScorer:
-    """Multi-signal sentence-level fact verifier.
+    """Multi-signal atomic fact verifier with source-span provenance.
 
     Parameters
     ----------
@@ -224,12 +230,15 @@ class VerifiedScorer:
             best_span = spans[0] if spans else SourceSpan("", 0, 1.0)
             best_src_idx = best_span.index
             best_src = best_span.text
-            nli_div = best_span.nli_divergence
+            aggregate_src, source_indices = _aggregate_evidence_spans(spans)
+            evidence_src = aggregate_src or best_src
+            evidence_mode = "multi_span" if len(source_indices) > 1 else "single_span"
+            nli_div = self._score_evidence_premise(evidence_src, r_sent, best_span)
 
-            entity_score = _entity_overlap(r_sent, best_src)
-            num_match = _numerical_consistency(r_sent, best_src)
-            neg_flip = _negation_flip(r_sent, best_src)
-            trace = _traceability(r_sent, best_src)
+            entity_score = _entity_overlap(r_sent, evidence_src)
+            num_match = _numerical_consistency(r_sent, evidence_src)
+            neg_flip = _negation_flip(r_sent, evidence_src)
+            trace = _traceability(r_sent, evidence_src)
 
             verdict, conf = self._multi_signal_verdict(
                 nli_div,
@@ -245,6 +254,8 @@ class VerifiedScorer:
                     claim_index=r_idx,
                     matched_source=best_src,
                     source_index=best_src_idx,
+                    aggregated_source=evidence_src,
+                    source_indices=source_indices or [best_src_idx],
                     nli_divergence=nli_div,
                     entity_match=entity_score,
                     numerical_match=num_match,
@@ -253,6 +264,7 @@ class VerifiedScorer:
                     verdict=verdict,
                     confidence=conf,
                     evidence_spans=spans,
+                    evidence_mode=evidence_mode,
                     is_atomic=atomic,
                 )
             )
@@ -376,6 +388,17 @@ class VerifiedScorer:
             for i, div in scored[:k]
         ]
 
+    def _score_evidence_premise(
+        self,
+        premise: str,
+        claim: str,
+        fallback_span: SourceSpan,
+    ) -> float:
+        """Score the aggregated evidence premise when NLI is available."""
+        if self._nli and self._nli.model_available and premise != fallback_span.text:
+            return float(self._nli.score_batch([(premise, claim)])[0])
+        return fallback_span.nli_divergence
+
     def _multi_signal_verdict(
         self,
         nli_div: float,
@@ -451,6 +474,21 @@ def _split_sentences(text: str) -> list[str]:
     return [
         s.strip() for s in _SENT_SPLIT.split(text) if s.strip() and len(s.split()) >= 3
     ]
+
+
+def _aggregate_evidence_spans(spans: list[SourceSpan]) -> tuple[str, list[int]]:
+    """Return source-order evidence text and source indices for a claim."""
+    ordered = sorted(spans, key=lambda span: span.index)
+    texts: list[str] = []
+    indices: list[int] = []
+    seen: set[int] = set()
+    for span in ordered:
+        if span.index in seen or not span.text.strip():
+            continue
+        seen.add(span.index)
+        texts.append(span.text.strip())
+        indices.append(span.index)
+    return " ".join(texts), indices
 
 
 def _decompose_atomic(text: str) -> list[str]:
@@ -579,8 +617,8 @@ def _traceability(claim: str, source: str) -> float:
     """
     if _RUST_SIGNALS:
         return float(rust_traceability(claim, source))
-    claim_words = set(claim.lower().split()) - _STOP_WORDS - _NEG_WORDS
-    source_words = set(source.lower().split()) - _STOP_WORDS - _NEG_WORDS
+    claim_words = set(re.findall(r"\w+", claim.lower())) - _STOP_WORDS - _NEG_WORDS
+    source_words = set(re.findall(r"\w+", source.lower())) - _STOP_WORDS - _NEG_WORDS
     if not claim_words:
         return 1.0
     return len(claim_words & source_words) / len(claim_words)
