@@ -56,6 +56,15 @@ def _require_string(field_name: str, value: str) -> str:
     return value
 
 
+def _require_numeric_timestamp(field_name: str, value: str) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError) as exc:
+        raise ValueError(
+            f"{field_name} must be a numeric timestamp; got {value!r}",
+        ) from exc
+
+
 class VectorGroundTruthStore(GroundTruthStore):
     """Ground truth store with vector-based semantic retrieval.
 
@@ -243,12 +252,21 @@ class VectorGroundTruthStore(GroundTruthStore):
                 "status_source": record.get("status_source", ""),
             }
             if published_at:
-                signal["published_at"] = float(published_at)
+                signal["published_at"] = _require_numeric_timestamp(
+                    "source_timestamp",
+                    published_at,
+                )
             if updated_at:
-                signal["updated_at"] = float(updated_at)
+                signal["updated_at"] = _require_numeric_timestamp(
+                    "updated_timestamp",
+                    updated_at,
+                )
             observed_at = record.get("status_observed_at", "")
             if observed_at:
-                signal["observed_at"] = float(observed_at)
+                signal["observed_at"] = _require_numeric_timestamp(
+                    "status_observed_at",
+                    observed_at,
+                )
             signals.append(signal)
         return signals
 

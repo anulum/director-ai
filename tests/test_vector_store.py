@@ -657,6 +657,21 @@ class TestVectorGroundTruthStore:
         with pytest.raises(ValueError, match="key"):
             store.freshness_status_signals(key=key)  # type: ignore[arg-type]
 
+    @pytest.mark.parametrize(
+        "metadata_field",
+        ["source_timestamp", "updated_timestamp", "status_observed_at"],
+    )
+    def test_freshness_status_signals_reject_malformed_timestamps(
+        self,
+        metadata_field,
+    ):
+        store = VectorGroundTruthStore()
+        metadata = {"citation_status": "active", metadata_field: "not-a-timestamp"}
+        store.add_fact("paper-a", "publisher status payload", metadata=metadata)
+
+        with pytest.raises(ValueError, match=metadata_field):
+            store.freshness_status_signals()
+
     def test_freshness_status_signals_ignore_records_without_temporal_metadata(self):
         store = VectorGroundTruthStore()
         store.add_fact("paper-a", "stable result without citation feed metadata")
