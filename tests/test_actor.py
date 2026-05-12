@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from director_ai.core.actor import LLMGenerator, MockGenerator
 
 URL = "http://localhost:8080/completion"
@@ -36,6 +38,47 @@ class TestMockGenerator:
 
 
 class TestLLMGeneratorRetry:
+    def test_generation_parameters_are_wired_into_payload(self):
+        g = LLMGenerator(
+            URL,
+            max_tokens=256,
+            temperature=0.2,
+            stop_sequences=("END",),
+        )
+        mock_resp = MagicMock()
+        mock_resp.status_code = 200
+        mock_resp.json.return_value = {"content": "answer"}
+
+        with patch(
+            "director_ai.core.actor.requests.post",
+            return_value=mock_resp,
+        ) as mock_post:
+            candidates = g.generate_candidates("test", n=1)
+
+        assert candidates[0]["text"] == "answer"
+        payload = mock_post.call_args.kwargs["json"]
+        assert payload["n_predict"] == 256
+        assert payload["temperature"] == 0.2
+        assert payload["stop"] == ["END"]
+
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"api_url": ""}, "api_url"),
+            ({"api_url": URL, "max_retries": 0}, "max_retries"),
+            ({"api_url": URL, "base_delay": -0.1}, "base_delay"),
+            ({"api_url": URL, "timeout": 0}, "timeout"),
+            ({"api_url": URL, "max_tokens": 0}, "max_tokens"),
+            ({"api_url": URL, "temperature": -0.1}, "temperature"),
+            ({"api_url": URL, "temperature": 2.1}, "temperature"),
+            ({"api_url": URL, "stop_sequences": ("",)}, "stop_sequences"),
+            ({"api_url": URL, "stop_sequences": "END"}, "stop_sequences"),
+        ],
+    )
+    def test_invalid_generation_configuration_rejected(self, kwargs, message):
+        with pytest.raises(ValueError, match=message):
+            LLMGenerator(**kwargs)
+
     def test_success_first_try(self):
         g = LLMGenerator(URL, max_retries=3)
         mock_resp = MagicMock()
