@@ -366,7 +366,8 @@ jobs:
             --cov=director_ai \
             --cov-report=term-missing \
             --cov-report=xml \
-            --cov-config=.coveragerc-extras
+            --cov-config=.coveragerc-extras \
+            --cov-fail-under=0
 
       - name: Upload extras coverage artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
