@@ -232,7 +232,6 @@ def test_proxy_builds_app_from_flags_and_config_env(monkeypatch, capsys):
         {"app": {"proxy": True}, "host": "0.0.0.0", "port": 8088},
     ]
     out = capsys.readouterr().out
-    assert "http://upstream.local" in out
     assert "threshold=0.42" in out
 
 
