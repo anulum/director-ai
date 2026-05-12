@@ -300,9 +300,9 @@ class VectorGroundTruthStore(GroundTruthStore):
         tenant_id = self._resolved_tenant_id(tenant_id)
         key = _require_non_empty_string("key", key)
         value = _require_non_empty_string("value", value)
+        self.add(key, value, metadata=metadata, tenant_id=tenant_id)
         fact_key = f"{tenant_id}:{key}" if tenant_id else key
         self.facts[fact_key] = value
-        self.add(key, value, metadata=metadata, tenant_id=tenant_id)
 
     def ingest(self, texts: list[str], tenant_id: str = "") -> int:
         """Bulk-add plain text documents into the vector backend."""

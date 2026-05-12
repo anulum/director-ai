@@ -290,6 +290,26 @@ class TestVectorGroundTruthStore:
             store.add("policy", "refunds in 30 days")
 
         assert store.revision == revision_before
+        assert store.facts == {}
+        assert store.version_manifest() == {}
+
+    def test_add_fact_backend_failure_does_not_mutate_keyword_fallback(self):
+        class FailingBackend:
+            def add(self, doc_id, text, metadata=None):
+                raise RuntimeError("vector service unavailable")
+
+            def query(self, text, n_results=3, tenant_id=""):
+                return []
+
+            def count(self):
+                return 0
+
+        store = VectorGroundTruthStore(backend=FailingBackend())
+
+        with pytest.raises(ValueError, match="Failed to add to vector store"):
+            store.add_fact("policy", "refunds in 30 days")
+
+        assert store.facts == {}
         assert store.version_manifest() == {}
 
     def test_readding_identical_fact_preserves_version_and_previous_hash(self):
