@@ -17,6 +17,7 @@ claude-director-ai.md
 
 # Outreach emails, scripts, logs (contains credentials and contact data)
 docs/internal/
+docs/superpowers/
 
 # Internal audit/review documents (never public-facing)
 SECURITY_AUDIT_PREP.md
