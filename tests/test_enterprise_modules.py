@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 
+import pytest
+
 from director_ai.core.audit import AuditEntry
 from director_ai.enterprise.audit_pg import SCHEMA_VERSION, PostgresAuditSink
 
@@ -61,6 +63,36 @@ class TestPostgresAuditSinkSchema:
         cur.execute("SELECT MAX(version) FROM _schema_version")
         assert cur.fetchone()[0] == SCHEMA_VERSION
         cur.close()
+
+    @pytest.mark.parametrize(
+        "table_name",
+        [
+            "audit_logs; DROP TABLE users;--",
+            "audit logs",
+            "audit.logs",
+            "1audit_logs",
+            "audit_logs/*comment*/",
+            'audit_logs"quoted',
+        ],
+    )
+    def test_rejects_injection_looking_table_names_before_connect(
+        self,
+        monkeypatch,
+        table_name,
+    ):
+        def forbidden_connect(self):
+            raise AssertionError("invalid table name reached connection setup")
+
+        monkeypatch.setattr(PostgresAuditSink, "_connect", forbidden_connect)
+
+        with pytest.raises(ValueError, match="Invalid table_name"):
+            PostgresAuditSink("sqlite://", table_name=table_name)
+
+    def test_custom_safe_table_name_is_quoted_and_usable(self):
+        sink = PostgresAuditSink("sqlite://", table_name="tenant_audit_2026")
+        sink.write(_make_entry(tenant_id="t1"))
+
+        assert sink.count("t1") == 1
 
 
 class TestPostgresAuditSinkWrite:

@@ -22,6 +22,7 @@ from ..core.safety.audit import AuditEntry
 logger = logging.getLogger("DirectorAI.Audit.PG")
 
 SCHEMA_VERSION = 3
+_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]{0,62}$")
 
 _COLUMNS = (
     "timestamp",
@@ -58,9 +59,10 @@ class PostgresAuditSink:
         pool_max: int = 5,
     ):
         self.db_url = db_url
-        if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", table_name):
-            raise ValueError(f"Invalid table name: {table_name!r}")
-        self.table_name = table_name
+        self.table_name = _validate_identifier(table_name, "table_name")
+        self._table_sql = _quote_identifier(self.table_name)
+        self._tenant_index_sql = _quote_identifier(f"idx_{self.table_name}_tenant")
+        self._ts_index_sql = _quote_identifier(f"idx_{self.table_name}_ts")
         self._lock = threading.Lock()
         self._conn: Any = None
         self._pool: Any = None
@@ -152,8 +154,12 @@ class PostgresAuditSink:
         return int(cur.fetchone()[0])
 
     def _set_version(self, cur: Any, version: int) -> None:
-        ph = "?" if self._is_sqlite else "%s"
-        cur.execute(f"INSERT INTO _schema_version (version) VALUES ({ph})", (version,))  # nosec B608 — ph is literal "?" or "%s" dialect switch
+        sql = (
+            "INSERT INTO _schema_version (version) VALUES (?)"
+            if self._is_sqlite
+            else "INSERT INTO _schema_version (version) VALUES (%s)"
+        )
+        cur.execute(sql, (version,))
 
     def _apply_v1(self, cur: Any) -> None:
         bool_type = "INTEGER" if self._is_sqlite else "BOOLEAN"
@@ -163,7 +169,7 @@ class PostgresAuditSink:
             else "SERIAL PRIMARY KEY"
         )
         cur.execute(
-            f"CREATE TABLE IF NOT EXISTS {self.table_name} ("
+            f"CREATE TABLE IF NOT EXISTS {self._table_sql} ("
             f"id {pk},"
             f"timestamp VARCHAR(64) NOT NULL,"
             f"query_hash VARCHAR(64) NOT NULL,"
@@ -182,12 +188,12 @@ class PostgresAuditSink:
 
     def _apply_v2(self, cur: Any) -> None:
         cur.execute(
-            f"CREATE INDEX IF NOT EXISTS idx_{self.table_name}_tenant "
-            f"ON {self.table_name} (tenant_id)",
+            f"CREATE INDEX IF NOT EXISTS {self._tenant_index_sql} "
+            f"ON {self._table_sql} (tenant_id)",
         )
         cur.execute(
-            f"CREATE INDEX IF NOT EXISTS idx_{self.table_name}_ts "
-            f"ON {self.table_name} (created_at)",
+            f"CREATE INDEX IF NOT EXISTS {self._ts_index_sql} "
+            f"ON {self._table_sql} (created_at)",
         )
         self._set_version(cur, 2)
 
@@ -200,7 +206,7 @@ class PostgresAuditSink:
             ("kb_snapshot_replacement_count", "INT NOT NULL DEFAULT 0"),
         ):
             cur.execute(
-                f"ALTER TABLE {self.table_name} ADD COLUMN {column} {definition}",
+                f"ALTER TABLE {self._table_sql} ADD COLUMN {column} {definition}",
             )
         self._set_version(cur, 3)
 
@@ -213,7 +219,7 @@ class PostgresAuditSink:
             return
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
-        sql = f"INSERT INTO {self.table_name} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"  # nosec B608 — table_name code-controlled; values via placeholders
+        sql = f"INSERT INTO {self._table_sql} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"
         values = (
             entry.timestamp,
             entry.query_hash,
@@ -262,7 +268,7 @@ class PostgresAuditSink:
             return 0
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
-        sql = f"INSERT INTO {self.table_name} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"  # nosec B608 — table_name code-controlled; values via placeholders
+        sql = f"INSERT INTO {self._table_sql} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"
         rows = [
             (
                 e.timestamp,
@@ -321,7 +327,7 @@ class PostgresAuditSink:
             params.append(val)
         where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
         sql = (
-            f"SELECT {', '.join(_COLUMNS)}, created_at FROM {self.table_name}"  # nosec B608 — table_name code-controlled
+            f"SELECT {', '.join(_COLUMNS)}, created_at FROM {self._table_sql}"
             f"{where} ORDER BY created_at DESC LIMIT {ph}"
         )
         params.append(limit)
@@ -344,10 +350,10 @@ class PostgresAuditSink:
             return 0
         ph = "?" if self._is_sqlite else "%s"
         if tenant_id is not None:
-            sql = f"SELECT COUNT(*) FROM {self.table_name} WHERE tenant_id = {ph}"  # nosec B608
+            sql = f"SELECT COUNT(*) FROM {self._table_sql} WHERE tenant_id = {ph}"
             params: tuple = (tenant_id,)
         else:
-            sql = f"SELECT COUNT(*) FROM {self.table_name}"  # nosec B608
+            sql = f"SELECT COUNT(*) FROM {self._table_sql}"
             params = ()
         try:
             cur = conn.cursor()
@@ -359,3 +365,16 @@ class PostgresAuditSink:
         finally:
             cur.close()
             self._put_conn(conn)
+
+
+def _validate_identifier(value: str, label: str) -> str:
+    if not _IDENTIFIER_RE.fullmatch(value):
+        raise ValueError(
+            f"Invalid {label}: {value!r}. Use 1-63 ASCII letters, numbers, "
+            "or underscores, starting with a letter or underscore.",
+        )
+    return value
+
+
+def _quote_identifier(value: str) -> str:
+    return f'"{_validate_identifier(value, "identifier")}"'
