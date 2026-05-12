@@ -153,6 +153,8 @@ class VectorGroundTruthStore(GroundTruthStore):
     ) -> list[dict[str, str]]:
         """Return KB conflict reports visible to *tenant_id*."""
         tenant_id = self._resolved_tenant_id(tenant_id)
+        if key is not None:
+            key = _require_non_empty_string("key", key)
         reports = []
         for record in self._conflict_records:
             if tenant_id and record.get("tenant_id", "") != tenant_id:

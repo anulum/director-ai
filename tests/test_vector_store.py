@@ -764,6 +764,13 @@ class TestVectorGroundTruthStore:
         assert store.conflict_reports("tenant_b") == []
         assert store.conflict_reports("tenant_a", key="other-paper") == []
 
+    @pytest.mark.parametrize("key", ["", "   ", 123])
+    def test_conflict_reports_reject_invalid_filter_keys(self, key):
+        store = VectorGroundTruthStore()
+
+        with pytest.raises(ValueError, match="key"):
+            store.conflict_reports(key=key)  # type: ignore[arg-type]
+
     def test_conflict_helpers_ignore_unrelated_refs_and_dedupe_duplicate_reports(self):
         store = VectorGroundTruthStore()
         store.add_fact("withdrawn-a", "withdrawn result")
