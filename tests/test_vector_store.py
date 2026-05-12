@@ -536,6 +536,15 @@ class TestVectorGroundTruthStore:
         with pytest.raises(ValueError, match="key"):
             store.replace_fact(key, "new value")  # type: ignore[arg-type]
 
+    @pytest.mark.parametrize("reason", [123, True])
+    def test_retract_and_replace_reject_invalid_reasons(self, reason):
+        store = VectorGroundTruthStore()
+        store.add_fact("policy", "old value")
+        with pytest.raises(ValueError, match="reason"):
+            store.retract_fact("policy", reason=reason)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="reason"):
+            store.replace_fact("policy", "new value", reason=reason)  # type: ignore[arg-type]
+
     def test_empty_kb_snapshot_root_is_deterministic(self):
         store = VectorGroundTruthStore()
 

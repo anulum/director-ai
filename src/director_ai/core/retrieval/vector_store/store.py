@@ -50,6 +50,12 @@ def _require_non_negative_top_k(top_k: int) -> int:
     return top_k
 
 
+def _require_string(field_name: str, value: str) -> str:
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    return value
+
+
 class VectorGroundTruthStore(GroundTruthStore):
     """Ground truth store with vector-based semantic retrieval.
 
@@ -253,6 +259,7 @@ class VectorGroundTruthStore(GroundTruthStore):
     ) -> dict[str, str]:
         """Mark a fact or derived chunk source as unusable for retrieval."""
         key = _require_non_empty_string("key", key)
+        reason = _require_string("reason", reason)
         tenant_id = self._resolved_tenant_id(tenant_id)
         version_key = self._version_key(key, tenant_id)
         record = self._version_records.get(version_key)
@@ -291,6 +298,7 @@ class VectorGroundTruthStore(GroundTruthStore):
     ) -> dict[str, str]:
         """Add a replacement value and record the superseded hash."""
         key = _require_non_empty_string("key", key)
+        reason = _require_string("reason", reason)
         tenant_id = self._resolved_tenant_id(tenant_id)
         version_key = self._version_key(key, tenant_id)
         previous = self._version_records.get(version_key)
