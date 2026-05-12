@@ -240,6 +240,10 @@ class InMemoryBackend(VectorBackend):
             return len(self._docs)
 
     def delete(self, doc_ids: list[str]) -> int:
+        if not isinstance(doc_ids, list):
+            raise ValueError("doc_ids must be a list of non-empty strings")
+        if any(not isinstance(doc_id, str) or not doc_id.strip() for doc_id in doc_ids):
+            raise ValueError("doc_ids must contain only non-empty strings")
         targets = set(doc_ids)
         if not targets:
             return 0

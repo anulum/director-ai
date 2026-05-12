@@ -73,6 +73,12 @@ class TestInMemoryBackend:
         with pytest.raises(ValueError, match="n_results"):
             backend.query("sky", n_results=n_results)
 
+    @pytest.mark.parametrize("doc_ids", ["doc1", [""], ["   "], [123]])
+    def test_delete_rejects_invalid_doc_ids(self, doc_ids):
+        backend = InMemoryBackend()
+        with pytest.raises(ValueError, match="doc_ids"):
+            backend.delete(doc_ids)  # type: ignore[arg-type]
+
 
 @pytest.mark.consumer
 class TestVectorGroundTruthStore:
