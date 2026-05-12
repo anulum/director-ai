@@ -13,6 +13,7 @@ from __future__ import annotations
 import logging
 import threading
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 logger = logging.getLogger("DirectorAI.DocRegistry")
@@ -29,6 +30,37 @@ class DocRecord:
     chunk_ids: list[str] = field(default_factory=list)
 
 
+def _require_non_empty_string(value: str, field_name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{field_name} must be a non-empty string")
+    return value.strip()
+
+
+def _require_chunk_ids(chunk_ids: Sequence[str]) -> list[str]:
+    if isinstance(chunk_ids, str | bytes) or not isinstance(chunk_ids, Sequence):
+        raise ValueError("chunk_ids must be a non-empty sequence of strings")
+    normalized = list(chunk_ids)
+    if not normalized:
+        raise ValueError("chunk_ids must be a non-empty sequence of strings")
+    if any(
+        not isinstance(chunk_id, str) or not chunk_id.strip() for chunk_id in normalized
+    ):
+        raise ValueError("chunk_ids must be a non-empty sequence of strings")
+    return [chunk_id.strip() for chunk_id in normalized]
+
+
+def _snapshot(record: DocRecord) -> DocRecord:
+    return DocRecord(
+        doc_id=record.doc_id,
+        source=record.source,
+        tenant_id=record.tenant_id,
+        created_at=record.created_at,
+        updated_at=record.updated_at,
+        chunk_count=record.chunk_count,
+        chunk_ids=list(record.chunk_ids),
+    )
+
+
 class DocRegistry:
     """Thread-safe document metadata store."""
 
@@ -43,6 +75,10 @@ class DocRegistry:
         tenant_id: str,
         chunk_ids: list[str],
     ) -> DocRecord:
+        doc_id = _require_non_empty_string(doc_id, "doc_id")
+        source = _require_non_empty_string(source, "source")
+        tenant_id = _require_non_empty_string(tenant_id, "tenant_id")
+        normalized_chunk_ids = _require_chunk_ids(chunk_ids)
         now = time.time()
         record = DocRecord(
             doc_id=doc_id,
@@ -50,8 +86,8 @@ class DocRegistry:
             tenant_id=tenant_id,
             created_at=now,
             updated_at=now,
-            chunk_count=len(chunk_ids),
-            chunk_ids=list(chunk_ids),
+            chunk_count=len(normalized_chunk_ids),
+            chunk_ids=normalized_chunk_ids,
         )
         with self._lock:
             if doc_id in self._docs:
@@ -60,10 +96,10 @@ class DocRegistry:
         logger.info(
             "Registered doc %s (%d chunks, tenant=%s)",
             doc_id,
-            len(chunk_ids),
+            len(normalized_chunk_ids),
             tenant_id,
         )
-        return record
+        return _snapshot(record)
 
     def update(
         self,
@@ -71,36 +107,48 @@ class DocRegistry:
         chunk_ids: list[str],
         source: str | None = None,
     ) -> DocRecord:
+        doc_id = _require_non_empty_string(doc_id, "doc_id")
+        normalized_chunk_ids = _require_chunk_ids(chunk_ids)
+        if source is not None:
+            source = _require_non_empty_string(source, "source")
         with self._lock:
             record = self._docs.get(doc_id)
             if record is None:
                 raise KeyError(f"Document {doc_id!r} not found")
             if source is not None:
                 record.source = source
-            record.chunk_ids = list(chunk_ids)
-            record.chunk_count = len(chunk_ids)
+            record.chunk_ids = normalized_chunk_ids
+            record.chunk_count = len(normalized_chunk_ids)
             record.updated_at = time.time()
-        return record
+            return _snapshot(record)
 
     def delete(self, doc_id: str) -> DocRecord | None:
+        doc_id = _require_non_empty_string(doc_id, "doc_id")
         with self._lock:
             record = self._docs.pop(doc_id, None)
         if record:
             logger.info("Deleted doc %s (%d chunks)", doc_id, record.chunk_count)
-        return record
+            return _snapshot(record)
+        return None
 
     def get(self, doc_id: str, tenant_id: str) -> DocRecord | None:
+        doc_id = _require_non_empty_string(doc_id, "doc_id")
+        tenant_id = _require_non_empty_string(tenant_id, "tenant_id")
         with self._lock:
             record = self._docs.get(doc_id)
         if record is None or record.tenant_id != tenant_id:
             return None
-        return record
+        return _snapshot(record)
 
     def list_for_tenant(self, tenant_id: str) -> list[DocRecord]:
+        tenant_id = _require_non_empty_string(tenant_id, "tenant_id")
         with self._lock:
-            return [r for r in self._docs.values() if r.tenant_id == tenant_id]
+            return [
+                _snapshot(r) for r in self._docs.values() if r.tenant_id == tenant_id
+            ]
 
     def exists(self, doc_id: str) -> bool:
+        doc_id = _require_non_empty_string(doc_id, "doc_id")
         with self._lock:
             return doc_id in self._docs
 

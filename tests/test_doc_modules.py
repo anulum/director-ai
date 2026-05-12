@@ -250,6 +250,52 @@ class TestParser:
 
 
 class TestRegistry:
+    @pytest.mark.parametrize(
+        ("method_name", "args", "message"),
+        [
+            ("register", ("", "source.txt", "t1", ["c0"]), "doc_id"),
+            ("register", ("d1", "", "t1", ["c0"]), "source"),
+            ("register", ("d1", "source.txt", "", ["c0"]), "tenant_id"),
+            ("register", ("d1", "source.txt", "t1", []), "chunk_ids"),
+            ("update", ("", ["c0"]), "doc_id"),
+            ("update", ("d1", []), "chunk_ids"),
+            ("delete", ("",), "doc_id"),
+            ("get", ("", "t1"), "doc_id"),
+            ("get", ("d1", ""), "tenant_id"),
+            ("list_for_tenant", ("",), "tenant_id"),
+            ("exists", ("",), "doc_id"),
+        ],
+    )
+    def test_rejects_invalid_registry_inputs(self, method_name, args, message):
+        reg = DocRegistry()
+        method = getattr(reg, method_name)
+
+        with pytest.raises(ValueError, match=message):
+            method(*args)
+
+    def test_returned_records_do_not_mutate_stored_state(self):
+        reg = DocRegistry()
+        returned = reg.register("d1", "test.txt", "t1", ["c0"])
+        returned.source = "changed.txt"
+        returned.chunk_ids.append("evil")
+
+        stored = reg.get("d1", "t1")
+
+        assert stored is not None
+        assert stored.source == "test.txt"
+        assert stored.chunk_ids == ["c0"]
+
+    def test_list_for_tenant_returns_record_snapshots(self):
+        reg = DocRegistry()
+        reg.register("d1", "test.txt", "t1", ["c0"])
+        listed = reg.list_for_tenant("t1")
+        listed[0].chunk_ids.append("evil")
+
+        stored = reg.get("d1", "t1")
+
+        assert stored is not None
+        assert stored.chunk_ids == ["c0"]
+
     def test_register_and_get(self):
         reg = DocRegistry()
         rec = reg.register("d1", "test.txt", "t1", ["d1:chunk:0", "d1:chunk:1"])
