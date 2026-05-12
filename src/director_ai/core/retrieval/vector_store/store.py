@@ -87,6 +87,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     def fact_version(self, key: str, tenant_id: str = "") -> str | None:
         """Return the semantic version currently recorded for *key*."""
+        key = _require_non_empty_string("key", key)
         tenant_id = self._resolved_tenant_id(tenant_id)
         record = self._version_records.get(self._version_key(key, tenant_id))
         return record["version"] if record else None
@@ -97,6 +98,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         tenant_id: str = "",
     ) -> dict[str, str] | None:
         """Return version metadata for *key* without exposing mutable state."""
+        key = _require_non_empty_string("key", key)
         tenant_id = self._resolved_tenant_id(tenant_id)
         record = self._version_records.get(self._version_key(key, tenant_id))
         return dict(record) if record else None

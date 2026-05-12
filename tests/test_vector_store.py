@@ -285,6 +285,14 @@ class TestVectorGroundTruthStore:
         assert record["record_kind"] == "fact"
         assert record["previous_hash"] == ""
 
+    @pytest.mark.parametrize("key", ["", "   ", 123])
+    def test_fact_version_lookup_rejects_invalid_keys(self, key):
+        store = VectorGroundTruthStore()
+        with pytest.raises(ValueError, match="key"):
+            store.fact_version(key)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="key"):
+            store.fact_version_record(key)  # type: ignore[arg-type]
+
     def test_fact_replacement_bumps_patch_version(self):
         store = VectorGroundTruthStore()
         store.add_fact("policy", "refunds in 30 days")
