@@ -41,6 +41,8 @@ logger = logging.getLogger("DirectorAI.MultiVector")
 __all__ = ["MultiVectorBackend"]
 
 _SENT_RE = re.compile(r"(?<=[.!?])\s+")
+_DEFAULT_REPRESENTATIONS = ("content", "summary", "title")
+_ALLOWED_REPRESENTATIONS = frozenset(_DEFAULT_REPRESENTATIONS)
 
 
 def _extract_title(text: str) -> str:
@@ -82,8 +84,19 @@ class MultiVectorBackend(VectorBackend):
         summary_generator: Callable[[str], str] | None = None,
         summary_sentences: int = 3,
     ) -> None:
+        if base is None:
+            raise ValueError("base backend is required")
+        normalized_representations = _normalise_representations(representations)
+        if summary_generator is not None and not callable(summary_generator):
+            raise ValueError("summary_generator must be callable")
+        if not isinstance(summary_sentences, int) or isinstance(
+            summary_sentences, bool
+        ):
+            raise ValueError("summary_sentences must be an integer")
+        if summary_sentences < 1:
+            raise ValueError("summary_sentences must be at least 1")
         self._base = base
-        self._representations = representations or ["content", "summary", "title"]
+        self._representations = normalized_representations
         self._summary_generator = summary_generator
         self._summary_sentences = summary_sentences
         self._doc_texts: dict[str, str] = {}  # doc_id → original text
@@ -178,3 +191,20 @@ class MultiVectorBackend(VectorBackend):
             reps["title"] = _extract_title(text)
 
         return reps
+
+
+def _normalise_representations(representations: list[str] | None) -> list[str]:
+    if representations is None:
+        return list(_DEFAULT_REPRESENTATIONS)
+    if not representations:
+        raise ValueError("representations must be non-empty")
+    normalized = []
+    for representation in representations:
+        if not isinstance(representation, str) or not representation.strip():
+            raise ValueError("representations must contain non-empty strings")
+        value = representation.strip()
+        if value not in _ALLOWED_REPRESENTATIONS:
+            allowed = ", ".join(sorted(_ALLOWED_REPRESENTATIONS))
+            raise ValueError(f"representations must be one of: {allowed}")
+        normalized.append(value)
+    return normalized

@@ -15,6 +15,8 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
+import pytest
+
 from director_ai.core.retrieval.multi_vector import (
     MultiVectorBackend,
     _extract_summary,
@@ -67,6 +69,23 @@ class TestSummaryExtraction:
 
 
 class TestConstruction:
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"base": None}, "base"),
+            ({"representations": []}, "representations"),
+            ({"representations": ["content", ""]}, "representations"),
+            ({"representations": ["content", "unknown"]}, "representations"),
+            ({"summary_generator": object()}, "summary_generator"),
+            ({"summary_sentences": 0}, "summary_sentences"),
+        ],
+    )
+    def test_rejects_invalid_constructor_values(self, kwargs, message):
+        base = kwargs.pop("base", InMemoryBackend())
+
+        with pytest.raises(ValueError, match=message):
+            MultiVectorBackend(base, **kwargs)
+
     def test_default_representations(self):
         b = _make_backend()
         assert set(b._representations) == {"content", "summary", "title"}
