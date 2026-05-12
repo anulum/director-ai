@@ -252,6 +252,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         reason: str = "",
     ) -> dict[str, str]:
         """Mark a fact or derived chunk source as unusable for retrieval."""
+        key = _require_non_empty_string("key", key)
         tenant_id = self._resolved_tenant_id(tenant_id)
         version_key = self._version_key(key, tenant_id)
         record = self._version_records.get(version_key)
@@ -289,6 +290,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         metadata: dict[str, Any] | None = None,
     ) -> dict[str, str]:
         """Add a replacement value and record the superseded hash."""
+        key = _require_non_empty_string("key", key)
         tenant_id = self._resolved_tenant_id(tenant_id)
         version_key = self._version_key(key, tenant_id)
         previous = self._version_records.get(version_key)

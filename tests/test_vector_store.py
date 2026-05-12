@@ -528,6 +528,14 @@ class TestVectorGroundTruthStore:
         with pytest.raises(KeyError, match="cannot replace unknown fact"):
             store.replace_fact("missing", "new value")
 
+    @pytest.mark.parametrize("key", ["", "   ", 123])
+    def test_retract_and_replace_reject_invalid_keys(self, key):
+        store = VectorGroundTruthStore()
+        with pytest.raises(ValueError, match="key"):
+            store.retract_fact(key)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="key"):
+            store.replace_fact(key, "new value")  # type: ignore[arg-type]
+
     def test_empty_kb_snapshot_root_is_deterministic(self):
         store = VectorGroundTruthStore()
 
