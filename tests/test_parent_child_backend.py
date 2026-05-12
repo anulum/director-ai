@@ -12,6 +12,8 @@ parent-returned-not-child, edge cases, and thread safety.
 
 from __future__ import annotations
 
+import pytest
+
 from director_ai.core.retrieval.parent_child import ParentChildBackend, _chunk_id
 from director_ai.core.retrieval.vector_store import InMemoryBackend
 
@@ -39,6 +41,32 @@ class TestChunkId:
 
 
 class TestConstruction:
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"base": None}, "base"),
+            ({"parent_size": 0}, "parent_size"),
+            ({"child_size": 0}, "child_size"),
+            (
+                {
+                    "parent_size": 100,
+                    "child_size": 101,
+                    "parent_overlap": 10,
+                    "child_overlap": 10,
+                },
+                "child_size",
+            ),
+            ({"parent_size": 100, "parent_overlap": 100}, "parent_overlap"),
+            ({"child_size": 50, "child_overlap": 50}, "child_overlap"),
+            ({"persist_parents": "yes"}, "persist_parents"),
+        ],
+    )
+    def test_rejects_invalid_constructor_values(self, kwargs, message):
+        base = kwargs.pop("base", InMemoryBackend())
+
+        with pytest.raises(ValueError, match=message):
+            ParentChildBackend(base, **kwargs)
+
     def test_default_sizes(self):
         b = _make_backend()
         assert b._parent_size == 2048
@@ -68,7 +96,9 @@ class TestAddAndQuery:
 
     def test_long_text_multiple_parents(self):
         """Text longer than parent_size → multiple parents."""
-        b = _make_backend(parent_size=100, child_size=30, parent_overlap=10)
+        b = _make_backend(
+            parent_size=100, child_size=30, parent_overlap=10, child_overlap=5
+        )
         b.add("d1", "word " * 100)  # ~500 chars
         assert b.parent_count > 1
 
@@ -111,7 +141,7 @@ class TestAddAndQuery:
 class TestDeduplication:
     def test_no_duplicate_parents(self):
         """Multiple child matches from same parent → one result."""
-        b = _make_backend(parent_size=500, child_size=30)
+        b = _make_backend(parent_size=500, child_size=30, child_overlap=5)
         # Long text with repeated keyword → many child matches from same parent
         b.add("d1", "Paris is great. Paris is beautiful. Paris is historic. " * 5)
 
@@ -156,7 +186,9 @@ class TestEdgeCases:
 
     def test_n_results_respected(self):
         """Should not return more than n_results."""
-        b = _make_backend(parent_size=100, child_size=30)
+        b = _make_backend(
+            parent_size=100, child_size=30, parent_overlap=10, child_overlap=5
+        )
         for i in range(10):
             b.add(f"d{i}", f"Document {i} about topic {i}. " * 5)
 

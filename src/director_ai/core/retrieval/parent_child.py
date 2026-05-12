@@ -72,6 +72,14 @@ class ParentChildBackend(VectorBackend):
         child_overlap: int = 32,
         persist_parents: bool = True,
     ) -> None:
+        if base is None:
+            raise ValueError("base backend is required")
+        _validate_chunk_window(parent_size, parent_overlap, "parent")
+        _validate_chunk_window(child_size, child_overlap, "child")
+        if child_size > parent_size:
+            raise ValueError("child_size must be less than or equal to parent_size")
+        if not isinstance(persist_parents, bool):
+            raise ValueError("persist_parents must be a boolean")
         self._base = base
         self._parent_size = parent_size
         self._child_size = child_size
@@ -187,3 +195,16 @@ class ParentChildBackend(VectorBackend):
         """Number of stored parent chunks."""
         with self._lock:
             return len(self._parents)
+
+
+def _validate_chunk_window(size: int, overlap: int, label: str) -> None:
+    if not isinstance(size, int) or isinstance(size, bool):
+        raise ValueError(f"{label}_size must be an integer")
+    if size < 1:
+        raise ValueError(f"{label}_size must be at least 1")
+    if not isinstance(overlap, int) or isinstance(overlap, bool):
+        raise ValueError(f"{label}_overlap must be an integer")
+    if overlap < 0:
+        raise ValueError(f"{label}_overlap must be non-negative")
+    if overlap >= size:
+        raise ValueError(f"{label}_overlap must be smaller than {label}_size")
