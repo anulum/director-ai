@@ -29,6 +29,23 @@ class TestHybridBackend:
         self.hybrid.add("d2", "Water boils at 100 degrees Celsius")
         assert self.hybrid.count() == 2
 
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"base": None}, "base"),
+            ({"rrf_k": 0}, "rrf_k"),
+            ({"sparse_weight": -0.1}, "sparse_weight"),
+            ({"dense_weight": -0.1}, "dense_weight"),
+            ({"sparse_weight": 0.0, "dense_weight": 0.0}, "weight"),
+            ({"fetch_multiplier": 0}, "fetch_multiplier"),
+        ],
+    )
+    def test_rejects_invalid_constructor_values(self, kwargs, message):
+        base = kwargs.pop("base", InMemoryBackend())
+
+        with pytest.raises(ValueError, match=message):
+            HybridBackend(base, **kwargs)
+
     def test_query_returns_results(self):
         self.hybrid.add("d1", "The sky is blue due to Rayleigh scattering")
         self.hybrid.add("d2", "Water boils at 100 degrees Celsius")

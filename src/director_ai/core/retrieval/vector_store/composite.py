@@ -48,6 +48,20 @@ class HybridBackend(VectorBackend):
         dense_weight: float = 1.0,
         fetch_multiplier: int = 3,
     ) -> None:
+        if base is None:
+            raise ValueError("base backend is required")
+        if not isinstance(rrf_k, int) or isinstance(rrf_k, bool):
+            raise ValueError("rrf_k must be an integer")
+        if rrf_k < 1:
+            raise ValueError("rrf_k must be at least 1")
+        sparse_weight = _validate_non_negative_weight(sparse_weight, "sparse_weight")
+        dense_weight = _validate_non_negative_weight(dense_weight, "dense_weight")
+        if sparse_weight == 0.0 and dense_weight == 0.0:
+            raise ValueError("at least one retrieval weight must be positive")
+        if not isinstance(fetch_multiplier, int) or isinstance(fetch_multiplier, bool):
+            raise ValueError("fetch_multiplier must be an integer")
+        if fetch_multiplier < 1:
+            raise ValueError("fetch_multiplier must be at least 1")
         self._base = base
         self._rrf_k = rrf_k
         self._sparse_w = sparse_weight
@@ -243,3 +257,12 @@ class RerankedBackend(VectorBackend):
 def _is_cuda_oom(exc: RuntimeError) -> bool:
     msg = str(exc).lower()
     return "cuda out of memory" in msg or "torch.outofmemoryerror" in msg
+
+
+def _validate_non_negative_weight(value: float, field_name: str) -> float:
+    if not isinstance(value, int | float) or isinstance(value, bool):
+        raise ValueError(f"{field_name} must be numeric")
+    value = float(value)
+    if value < 0.0:
+        raise ValueError(f"{field_name} must be non-negative")
+    return value
