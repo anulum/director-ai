@@ -28,6 +28,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from .geometry import AABB, Sphere, Vec3
+from .kinematics import UnsupportedKinematicsError
 
 
 @dataclass
@@ -90,7 +91,7 @@ class Ros2Adapter:
 
     def forward(self, joint_angles: Sequence[float]) -> Vec3:
         if self.forward_kinematics is None:
-            raise RuntimeError(
+            raise UnsupportedKinematicsError(
                 "Ros2Adapter.forward requires a configured FK callable "
                 "backed by moveit_msgs/GetPositionFK or an equivalent "
                 "robot-state service"
@@ -99,7 +100,7 @@ class Ros2Adapter:
 
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
         if self.inverse_kinematics is None:
-            raise RuntimeError(
+            raise UnsupportedKinematicsError(
                 "Ros2Adapter.inverse requires a configured IK callable "
                 "backed by moveit_msgs/GetPositionIK or an equivalent "
                 "robot-state service"
@@ -178,7 +179,7 @@ class MuJoCoAdapter:
 
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
         if self.inverse_solver is None:
-            raise RuntimeError(
+            raise UnsupportedKinematicsError(
                 "MuJoCoAdapter.inverse requires a configured inverse_solver "
                 "that owns the deployment-specific numerical IK policy"
             )
@@ -247,14 +248,14 @@ class CarlaAdapter:
 
     def forward(self, joint_angles: Sequence[float]) -> Vec3:
         _ = joint_angles
-        raise RuntimeError(
+        raise UnsupportedKinematicsError(
             "CarlaAdapter does not support joint-space forward kinematics; "
             "CARLA controls vehicle poses rather than robot joints"
         )
 
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
         _ = target
-        raise RuntimeError(
+        raise UnsupportedKinematicsError(
             "CarlaAdapter does not support joint-space inverse kinematics; "
             "use CARLA vehicle controls or route planning instead"
         )

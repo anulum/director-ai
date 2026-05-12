@@ -53,6 +53,7 @@ from .kinematics import (
     KinematicModel,
     PhysicalAction,
     SimpleKinematicModel,
+    UnsupportedKinematicsError,
 )
 
 __all__ = [
@@ -73,6 +74,7 @@ __all__ = [
     "Sphere",
     "TorqueConstraint",
     "TenantPhysicalBudget",
+    "UnsupportedKinematicsError",
     "Vec3",
     "VelocityConstraint",
     "Violation",

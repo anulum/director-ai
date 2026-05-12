@@ -85,8 +85,8 @@ Dependency-free `KinematicModel` implementation:
   walk.
 - Analytical two-link IK from Spong's *Robot Modeling and Control*
   (Ch. 5), both `elbow_up` and `elbow_down` branches. Longer chains
-  raise `NotImplementedError` — the operator plugs in a numerical
-  solver (e.g. a MuJoCo-backed `KinematicModel` subclass) for those.
+  raise `UnsupportedKinematicsError` — the operator plugs in a numerical
+  solver or capability-specific `KinematicModel` adapter for those.
 - Collision against `AABB` and `Sphere` obstacles, honouring the
   model's `collision_margin` and `end_effector_radius`.
 
@@ -134,13 +134,17 @@ deployments that do not install them.
   caller-supplied obstacles. ROS 2 stays outside PyPI and must be
   installed through the target distribution in the isolated physical
   runtime. Forward / inverse kinematics are deployment-specific and
-  raise `NotImplementedError`.
+  raise `UnsupportedKinematicsError` until configured with FK / IK callables
+  backed by robot-state services such as MoveIt FK / IK.
 - `MuJoCoAdapter.from_mjcf(path)` — mjcf model loading,
   `mj_forward` + `site_xpos` for forward kinematics, live `data.ncon`
-  contact count for collisions. Install via `director-ai[physical]`.
+  contact count for collisions. Inverse kinematics raises
+  `UnsupportedKinematicsError` unless an operator-supplied numerical solver
+  is configured. Install via `director-ai[physical]`.
 - `CarlaAdapter.from_carla(port=2000)` — vehicle-class scenarios with
   spawn-filtered collision. Install CARLA from the simulator vendor
-  into the isolated physical runtime.
+  into the isolated physical runtime. Joint-space FK / IK are intentionally
+  unsupported; use CARLA vehicle controls or route planning for motion.
 
 ## CoherenceAgent wiring
 

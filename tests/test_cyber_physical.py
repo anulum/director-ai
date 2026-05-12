@@ -34,6 +34,7 @@ from director_ai.core.cyber_physical import (
     SpatialConstraint,
     Sphere,
     TorqueConstraint,
+    UnsupportedKinematicsError,
     Vec3,
     VelocityConstraint,
     WorkspaceConstraint,
@@ -693,13 +694,33 @@ class TestRos2Adapter:
 
     def test_forward_raises(self):
         adapter = Ros2Adapter(node=object())
-        with pytest.raises(RuntimeError, match="configured FK callable"):
+        with pytest.raises(UnsupportedKinematicsError, match="configured FK callable"):
             adapter.forward([0.0])
 
     def test_inverse_raises(self):
         adapter = Ros2Adapter(node=object())
-        with pytest.raises(RuntimeError, match="configured IK callable"):
+        with pytest.raises(UnsupportedKinematicsError, match="configured IK callable"):
             adapter.inverse(Vec3(0.0, 0.0, 0.0))
+
+    def test_grounding_hook_defers_when_ros2_ik_is_not_configured(self):
+        adapter = Ros2Adapter(node=object())
+        workspace = WorkspaceConstraint(
+            name="cell",
+            envelope=AABB(
+                min_corner=Vec3(-1.0, -1.0, -1.0),
+                max_corner=Vec3(1.0, 1.0, 1.0),
+            ),
+        )
+        hook = GroundingHook(model=adapter, constraints=(workspace,))
+        action = PhysicalAction(
+            actuator_id="arm",
+            target_position=Vec3(0.0, 0.0, 0.0),
+        )
+
+        verdict = hook.evaluate(action)
+
+        assert verdict.allowed
+        assert verdict.violations == ()
 
     def test_forward_and_inverse_delegate_to_configured_services(self):
         calls: dict[str, object] = {}
@@ -845,7 +866,9 @@ class TestMuJoCoAdapter:
     def test_inverse_is_deployment_specific(self):
         adapter = MuJoCoAdapter(model=object(), data=types.SimpleNamespace(ncon=0))
 
-        with pytest.raises(RuntimeError, match="configured inverse_solver"):
+        with pytest.raises(
+            UnsupportedKinematicsError, match="configured inverse_solver"
+        ):
             adapter.inverse(Vec3(0.0, 0.0, 0.0))
 
     def test_inverse_delegates_to_configured_solver(self):
@@ -951,7 +974,31 @@ class TestCarlaAdapter:
         sphere = Sphere(centre=Vec3(1.0, 1.0, 1.0), radius=0.5)
 
         assert adapter.collides_with(Vec3(1.25, 1.0, 1.0), obstacles_sphere=(sphere,))
-        with pytest.raises(RuntimeError, match="does not support joint-space"):
+        with pytest.raises(
+            UnsupportedKinematicsError, match="does not support joint-space"
+        ):
             adapter.forward([0.0])
-        with pytest.raises(RuntimeError, match="does not support joint-space"):
+        with pytest.raises(
+            UnsupportedKinematicsError, match="does not support joint-space"
+        ):
             adapter.inverse(Vec3(1.0, 1.0, 1.0))
+
+    def test_grounding_hook_defers_when_carla_joint_ik_is_unsupported(self):
+        adapter = CarlaAdapter(client=object(), world=object())
+        workspace = WorkspaceConstraint(
+            name="road_bounds",
+            envelope=AABB(
+                min_corner=Vec3(-10.0, -10.0, -1.0),
+                max_corner=Vec3(10.0, 10.0, 3.0),
+            ),
+        )
+        hook = GroundingHook(model=adapter, constraints=(workspace,))
+        action = PhysicalAction(
+            actuator_id="ego_vehicle",
+            target_position=Vec3(0.0, 0.0, 0.0),
+        )
+
+        verdict = hook.evaluate(action)
+
+        assert verdict.allowed
+        assert verdict.violations == ()

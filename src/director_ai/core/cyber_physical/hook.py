@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 from ..safety_event import SafetyEvent
 from .budget import PhysicalBudgetExceededError, TenantPhysicalBudget
 from .constraints import PhysicalConstraint
-from .kinematics import KinematicModel, PhysicalAction
+from .kinematics import KinematicModel, PhysicalAction, UnsupportedKinematicsError
 
 
 @dataclass(frozen=True)
@@ -106,7 +106,7 @@ class GroundingHook:
                 return budget_verdict
             try:
                 solution = self._model.inverse(action.target_position)
-            except NotImplementedError:
+            except (NotImplementedError, UnsupportedKinematicsError):
                 # Model cannot answer reachability — defer to the
                 # constraint set. Not a violation by itself.
                 solution = ()

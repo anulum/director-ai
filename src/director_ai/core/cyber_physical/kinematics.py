@@ -37,6 +37,10 @@ except ImportError:  # pragma: no cover — optional accelerator
     _RUST_IK_AVAILABLE = False
 
 
+class UnsupportedKinematicsError(NotImplementedError):
+    """Raised when a model cannot answer a requested kinematic capability."""
+
+
 @dataclass(frozen=True)
 class PhysicalAction:
     """One actuation the agent wants to execute.
@@ -158,7 +162,7 @@ class SimpleKinematicModel:
         """Analytical IK.
 
         Supports the exact closed-form solution for two-link
-        chains. Longer chains raise :class:`NotImplementedError`
+        chains. Longer chains raise :class:`UnsupportedKinematicsError`
         — the caller should plug in a numerical solver or a
         dedicated :class:`KinematicModel` subclass for those.
 
@@ -166,7 +170,7 @@ class SimpleKinematicModel:
         """
         links = self.chain.link_lengths
         if len(links) != 2:
-            raise NotImplementedError(
+            raise UnsupportedKinematicsError(
                 "SimpleKinematicModel.inverse supports two-link chains; "
                 "extend with a numerical solver for longer chains"
             )
