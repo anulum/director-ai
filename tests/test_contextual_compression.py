@@ -15,6 +15,8 @@ from __future__ import annotations
 import time
 from unittest.mock import MagicMock
 
+import pytest
+
 from director_ai.core.retrieval.contextual_compression import (
     ContextualCompressionBackend,
     _heuristic_compress,
@@ -82,6 +84,25 @@ class TestHeuristicCompress:
 
 
 class TestBackendHeuristic:
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"base": None}, "base"),
+            ({"strategy": ""}, "strategy"),
+            ({"strategy": "unknown"}, "strategy"),
+            ({"strategy": "llm"}, "generator"),
+            ({"strategy": "llm", "generator": object()}, "generator"),
+            ({"overlap_threshold": -0.01}, "overlap_threshold"),
+            ({"overlap_threshold": 1.01}, "overlap_threshold"),
+            ({"min_compressed_len": 0}, "min_compressed_len"),
+        ],
+    )
+    def test_rejects_invalid_constructor_values(self, kwargs, message):
+        base = kwargs.pop("base", InMemoryBackend())
+
+        with pytest.raises(ValueError, match=message):
+            ContextualCompressionBackend(base, **kwargs)
+
     def test_query_compresses_results(self):
         b = _make_backend(overlap_threshold=0.05)
         b.add(

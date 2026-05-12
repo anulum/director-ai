@@ -93,10 +93,28 @@ class ContextualCompressionBackend(VectorBackend):
         overlap_threshold: float = 0.1,
         min_compressed_len: int = 20,
     ) -> None:
+        if base is None:
+            raise ValueError("base backend is required")
+        if strategy not in {"heuristic", "llm"}:
+            raise ValueError("strategy must be 'heuristic' or 'llm'")
+        if strategy == "llm" and not callable(generator):
+            raise ValueError("generator must be callable for llm strategy")
+        if not isinstance(overlap_threshold, int | float) or isinstance(
+            overlap_threshold, bool
+        ):
+            raise ValueError("overlap_threshold must be numeric")
+        if not 0.0 <= float(overlap_threshold) <= 1.0:
+            raise ValueError("overlap_threshold must be between 0.0 and 1.0")
+        if not isinstance(min_compressed_len, int) or isinstance(
+            min_compressed_len, bool
+        ):
+            raise ValueError("min_compressed_len must be an integer")
+        if min_compressed_len < 1:
+            raise ValueError("min_compressed_len must be at least 1")
         self._base = base
         self._strategy = strategy
         self._generator = generator
-        self._overlap_threshold = overlap_threshold
+        self._overlap_threshold = float(overlap_threshold)
         self._min_compressed_len = min_compressed_len
 
     def add(
