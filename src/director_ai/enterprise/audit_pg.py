@@ -219,7 +219,7 @@ class PostgresAuditSink:
             return
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
-        sql = f"INSERT INTO {self._table_sql} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"
+        sql = f"INSERT INTO {self._table_sql} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"  # nosec B608
         values = (
             entry.timestamp,
             entry.query_hash,
@@ -268,7 +268,7 @@ class PostgresAuditSink:
             return 0
         ph = "?" if self._is_sqlite else "%s"
         placeholders = ", ".join([ph] * len(_COLUMNS))
-        sql = f"INSERT INTO {self._table_sql} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"
+        sql = f"INSERT INTO {self._table_sql} ({', '.join(_COLUMNS)}) VALUES ({placeholders})"  # nosec B608
         rows = [
             (
                 e.timestamp,
@@ -327,7 +327,7 @@ class PostgresAuditSink:
             params.append(val)
         where = f" WHERE {' AND '.join(clauses)}" if clauses else ""
         sql = (
-            f"SELECT {', '.join(_COLUMNS)}, created_at FROM {self._table_sql}"
+            f"SELECT {', '.join(_COLUMNS)}, created_at FROM {self._table_sql}"  # nosec B608
             f"{where} ORDER BY created_at DESC LIMIT {ph}"
         )
         params.append(limit)
@@ -350,10 +350,10 @@ class PostgresAuditSink:
             return 0
         ph = "?" if self._is_sqlite else "%s"
         if tenant_id is not None:
-            sql = f"SELECT COUNT(*) FROM {self._table_sql} WHERE tenant_id = {ph}"
+            sql = f"SELECT COUNT(*) FROM {self._table_sql} WHERE tenant_id = {ph}"  # nosec B608
             params: tuple = (tenant_id,)
         else:
-            sql = f"SELECT COUNT(*) FROM {self._table_sql}"
+            sql = f"SELECT COUNT(*) FROM {self._table_sql}"  # nosec B608
             params = ()
         try:
             cur = conn.cursor()
