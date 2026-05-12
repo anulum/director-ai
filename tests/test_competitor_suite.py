@@ -223,11 +223,14 @@ class TestRunSuite:
         assert out.exists()
         loaded = json.loads(out.read_text())
         assert loaded["schema_version"] == 2
-        assert loaded["model"] == "mock"
+        assert loaded["model"] == "mock:test-only"
+        assert loaded["benchmark_evidence"] is False
+        assert loaded["provenance"]["test_only"] is True
 
     def test_string_backend_name(self):
         results = run_suite("mock", dataset=_toy_dataset())
-        assert results["model"] == "mock"
+        assert results["model"] == "mock:test-only"
+        assert results["benchmark_evidence"] is False
 
     def test_unknown_string_backend_raises(self):
         with pytest.raises(ValueError, match="Unknown backend"):

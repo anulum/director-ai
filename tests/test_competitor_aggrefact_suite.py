@@ -9,10 +9,15 @@
 from __future__ import annotations
 
 import json
+import sys
+from pathlib import Path
 
 import pytest
 
-from benchmarks.competitor_aggrefact_suite import (
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(PROJECT_ROOT / "benchmarks"))
+
+from competitor_aggrefact_suite import (  # noqa: E402
     GalileoBackend,
     MockBackend,
     run_suite,
