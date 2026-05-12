@@ -130,6 +130,9 @@ class TestProfileLoading:
         assert "medical" in meta.intended_workload.lower()
         assert meta.validation_status
         assert meta.expected_false_halt_risk
+        assert meta.calibration_required is True
+        assert meta.min_calibration_samples >= 20
+        assert "director-ai tune" in meta.calibration_command
 
     def test_profile_metadata_serializes_dependencies_as_list(self):
         data = DirectorConfig.profile_metadata("summarization").to_dict()
@@ -137,6 +140,9 @@ class TestProfileLoading:
         assert data["name"] == "summarization"
         assert data["required_dependencies"] == ["nli"]
         assert data["validation_status"]
+        assert data["calibration_required"] is True
+        assert data["min_calibration_samples"] >= 20
+        assert "director-ai tune" in data["calibration_command"]
 
     def test_list_profile_metadata_matches_builtin_profiles(self):
         names = {meta.name for meta in DirectorConfig.list_profile_metadata()}

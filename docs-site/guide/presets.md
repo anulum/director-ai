@@ -9,7 +9,8 @@ evaluation set. Domain profiles should be treated as a starting config until
 
 Each built-in profile has runtime metadata available through
 `DirectorConfig.profile_metadata(name)`: intended workload, validation status,
-expected false-halt risk, and required dependency extras.
+expected false-halt risk, required dependency extras, and whether labelled
+calibration is required before strict deployment.
 
 | Profile | Threshold | Hard Limit | Soft Limit | NLI | Reranker | W_Logic | W_Fact |
 |---------|-----------|------------|------------|-----|----------|---------|--------|
@@ -44,6 +45,12 @@ expected false-halt risk, and required dependency extras.
 | `creative` | Drafting, fiction, and non-factual generation | heuristic permissive preset | low for creative drift, high for factual safety | none |
 | `customer_support` | Policy bots and troubleshooting assistants | latency-first starter preset | medium; depends on policy KB coverage | none |
 | `summarization` | Source-grounded summaries | validated with summarization FPR diagnostics | low after claim coverage; tune per corpus | `nli` |
+
+High-stakes profiles (`medical`, `finance`, `legal`) and source-grounded
+`summarization` expose `calibration_required=True`,
+`min_calibration_samples`, and a `director-ai tune --profile ...` command in
+metadata. Treat the built-in threshold as an onboarding default until labelled
+local traces have measured false-halt and miss rates for the deployment corpus.
 
 ## Starter YAML Presets
 

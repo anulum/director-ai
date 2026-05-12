@@ -38,6 +38,9 @@ class ProfileMetadata:
     expected_false_halt_risk: str
     required_dependencies: tuple[str, ...] = ()
     notes: str = ""
+    calibration_required: bool = False
+    min_calibration_samples: int = 0
+    calibration_command: str = ""
 
     def to_dict(self) -> dict[str, object]:
         """Serialize profile metadata for CLIs, APIs, and docs tooling."""
@@ -48,6 +51,9 @@ class ProfileMetadata:
             "expected_false_halt_risk": self.expected_false_halt_risk,
             "required_dependencies": list(self.required_dependencies),
             "notes": self.notes,
+            "calibration_required": self.calibration_required,
+            "min_calibration_samples": self.min_calibration_samples,
+            "calibration_command": self.calibration_command,
         }
 
 
@@ -1147,6 +1153,9 @@ _PROFILE_METADATA: dict[str, ProfileMetadata] = {
         expected_false_halt_risk="very high without KB grounding and calibration",
         required_dependencies=("nli", "vector"),
         notes="Do not deploy strictly until tuned on local clean and adversarial samples.",
+        calibration_required=True,
+        min_calibration_samples=50,
+        calibration_command="director-ai tune --profile medical --input labelled_traces.jsonl",
     ),
     "finance": ProfileMetadata(
         name="finance",
@@ -1155,6 +1164,9 @@ _PROFILE_METADATA: dict[str, ProfileMetadata] = {
         expected_false_halt_risk="very high without KB grounding and calibration",
         required_dependencies=("nli", "vector"),
         notes="Use with retrieval and domain-specific clean-response calibration.",
+        calibration_required=True,
+        min_calibration_samples=50,
+        calibration_command="director-ai tune --profile finance --input labelled_traces.jsonl",
     ),
     "legal": ProfileMetadata(
         name="legal",
@@ -1163,6 +1175,9 @@ _PROFILE_METADATA: dict[str, ProfileMetadata] = {
         expected_false_halt_risk="unknown; treat as high until tuned",
         required_dependencies=("nli",),
         notes="Thresholds are aligned with other high-stakes profiles pending eval.",
+        calibration_required=True,
+        min_calibration_samples=50,
+        calibration_command="director-ai tune --profile legal --input labelled_traces.jsonl",
     ),
     "creative": ProfileMetadata(
         name="creative",
@@ -1187,6 +1202,11 @@ _PROFILE_METADATA: dict[str, ProfileMetadata] = {
         expected_false_halt_risk="low after v3.6 claim coverage, still tune per corpus",
         required_dependencies=("nli",),
         notes="Uses prompt-as-premise scoring, trimmed mean aggregation, and claim coverage.",
+        calibration_required=True,
+        min_calibration_samples=20,
+        calibration_command=(
+            "director-ai tune --profile summarization --input labelled_traces.jsonl"
+        ),
     ),
 }
 
