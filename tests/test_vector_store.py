@@ -73,6 +73,53 @@ class TestVectorGroundTruthStore:
         assert store.backend.count() == 1
         assert "gravity" in store.facts
 
+    def test_add_writes_backend_once(self):
+        class CountingBackend(InMemoryBackend):
+            def __init__(self):
+                super().__init__()
+                self.add_calls = 0
+
+            def add(self, doc_id, text, metadata=None):
+                self.add_calls += 1
+                return super().add(doc_id, text, metadata=metadata)
+
+        backend = CountingBackend()
+        store = VectorGroundTruthStore(backend=backend)
+        store.add_fact("gravity", "9.81 m/s^2")
+        assert backend.add_calls == 1
+
+    @pytest.mark.parametrize(
+        ("key", "value", "message"),
+        [
+            ("", "value", "key"),
+            ("   ", "value", "key"),
+            ("key", "", "value"),
+            ("key", "   ", "value"),
+        ],
+    )
+    def test_add_fact_rejects_empty_fields(self, key, value, message):
+        store = VectorGroundTruthStore()
+        with pytest.raises(ValueError, match=message):
+            store.add_fact(key, value)
+
+    @pytest.mark.parametrize("query", ["", "   "])
+    def test_retrieve_context_rejects_empty_query(self, query):
+        store = VectorGroundTruthStore()
+        store.add_fact("sky", "blue")
+        with pytest.raises(ValueError, match="query"):
+            store.retrieve_context(query)
+
+    def test_retrieve_context_rejects_negative_top_k(self):
+        store = VectorGroundTruthStore()
+        store.add_fact("sky", "blue")
+        with pytest.raises(ValueError, match="top_k"):
+            store.retrieve_context("sky", top_k=-1)
+
+    def test_ingest_rejects_blank_documents(self):
+        store = VectorGroundTruthStore()
+        with pytest.raises(ValueError, match="texts"):
+            store.ingest(["valid", " "])
+
     def test_retrieve_custom_fact(self):
         store = VectorGroundTruthStore()
         store.add_fact("planck constant", "6.626e-34 JÂ·s")

@@ -23,7 +23,7 @@ from typing import Any
 from ...metrics import metrics
 from ...otel import trace_vector_add, trace_vector_query
 from ...types import EvidenceChunk
-from ..knowledge import GroundTruthStore
+from ..knowledge import GroundTruthStore, _require_non_empty_string
 from .base import (
     RECOMMENDED_EMBEDDING_MODEL,
     InMemoryBackend,
@@ -63,7 +63,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         self._conflict_records: list[dict[str, str]] = []
 
     def _resolved_tenant_id(self, tenant_id: str = "") -> str:
-        return tenant_id or self.tenant_id
+        return (tenant_id or self.tenant_id).strip()
 
     def fact_version(self, key: str, tenant_id: str = "") -> str | None:
         """Return the semantic version currently recorded for *key*."""
@@ -298,6 +298,8 @@ class VectorGroundTruthStore(GroundTruthStore):
     ) -> None:
         """Alias for add() — also populates parent keyword store."""
         tenant_id = self._resolved_tenant_id(tenant_id)
+        key = _require_non_empty_string("key", key)
+        value = _require_non_empty_string("value", value)
         fact_key = f"{tenant_id}:{key}" if tenant_id else key
         self.facts[fact_key] = value
         self.add(key, value, metadata=metadata, tenant_id=tenant_id)
@@ -305,6 +307,8 @@ class VectorGroundTruthStore(GroundTruthStore):
     def ingest(self, texts: list[str], tenant_id: str = "") -> int:
         """Bulk-add plain text documents into the vector backend."""
         tenant_id = self._resolved_tenant_id(tenant_id)
+        if any(not isinstance(text, str) or not text.strip() for text in texts):
+            raise ValueError("texts must contain only non-empty strings")
         for i, text in enumerate(texts):
             doc_id = f"ingest_{i}_{tenant_id}"
             metadata = {
@@ -341,6 +345,8 @@ class VectorGroundTruthStore(GroundTruthStore):
         import time
 
         tenant_id = self._resolved_tenant_id(tenant_id)
+        key = _require_non_empty_string("key", key)
+        value = _require_non_empty_string("value", value)
         doc_id = f"{tenant_id}::{key}" if tenant_id else key
         combined_text = f"{key}: {value}"
         incoming = dict(metadata or {})
@@ -740,6 +746,9 @@ class VectorGroundTruthStore(GroundTruthStore):
         import time
 
         tenant_id = self._resolved_tenant_id(tenant_id)
+        query = _require_non_empty_string("query", query)
+        if top_k < 0:
+            raise ValueError(f"top_k must be >= 0; got {top_k!r}")
         with trace_vector_query() as span:
             start_time = time.monotonic()
             metrics.inc("knowledge_queries_total")
@@ -841,6 +850,9 @@ class VectorGroundTruthStore(GroundTruthStore):
         import time
 
         tenant_id = self._resolved_tenant_id(tenant_id)
+        query = _require_non_empty_string("query", query)
+        if top_k < 0:
+            raise ValueError(f"top_k must be >= 0; got {top_k!r}")
         with trace_vector_query() as span:
             start_time = time.monotonic()
             try:
