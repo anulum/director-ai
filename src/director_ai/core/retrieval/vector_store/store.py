@@ -224,6 +224,8 @@ class VectorGroundTruthStore(GroundTruthStore):
     ) -> list[dict[str, str | float]]:
         """Return citation status signals for temporal freshness scoring."""
         tenant_id = self._resolved_tenant_id(tenant_id)
+        if key is not None:
+            key = _require_non_empty_string("key", key)
         signals: list[dict[str, str | float]] = []
         for record in self.version_manifest(tenant_id).values():
             if key is not None and record.get("key") != key:

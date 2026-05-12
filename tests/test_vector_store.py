@@ -650,6 +650,13 @@ class TestVectorGroundTruthStore:
         assert len(signals) == 1
         assert signals[0]["source_id"] == "paper-a"
 
+    @pytest.mark.parametrize("key", ["", "   ", 123])
+    def test_freshness_status_signals_reject_invalid_filter_keys(self, key):
+        store = VectorGroundTruthStore()
+
+        with pytest.raises(ValueError, match="key"):
+            store.freshness_status_signals(key=key)  # type: ignore[arg-type]
+
     def test_freshness_status_signals_ignore_records_without_temporal_metadata(self):
         store = VectorGroundTruthStore()
         store.add_fact("paper-a", "stable result without citation feed metadata")
