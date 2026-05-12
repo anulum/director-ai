@@ -136,6 +136,8 @@ class HttpEmbeddingFunction:
             return []
         if not all(isinstance(text, str) for text in batch):
             raise TypeError("all embedding inputs must be strings")
+        if any(not text.strip() for text in batch):
+            raise ValueError("embedding inputs must be non-empty strings")
 
         payload = self._request_embeddings(batch)
         vectors = self._extract_vectors(payload)

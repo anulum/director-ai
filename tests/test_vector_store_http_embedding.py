@@ -386,6 +386,27 @@ def test_non_string_batch_input_is_rejected_before_network() -> None:
     assert server.requests == []
 
 
+@pytest.mark.parametrize("text", ["", "   "])
+def test_blank_embedding_input_is_rejected_before_network(text) -> None:
+    with _EmbeddingServer({"data": []}) as server:
+        embed = HttpEmbeddingFunction(base_url=server.url, model="embedding-model")
+
+        with pytest.raises(ValueError, match="embedding inputs"):
+            embed.embed(text)
+
+    assert server.requests == []
+
+
+def test_blank_embedding_batch_item_is_rejected_before_network() -> None:
+    with _EmbeddingServer({"data": []}) as server:
+        embed = HttpEmbeddingFunction(base_url=server.url, model="embedding-model")
+
+        with pytest.raises(ValueError, match="embedding inputs"):
+            embed.embed_many(["valid", " "])
+
+    assert server.requests == []
+
+
 def test_from_env_reads_public_configuration_names(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
