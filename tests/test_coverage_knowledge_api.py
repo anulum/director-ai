@@ -44,7 +44,13 @@ def _make_request(
     return SimpleNamespace(state=state, app=app, headers=headers)
 
 
-def _fake_record(doc_id="doc1", source="test", tenant_id="t1", chunk_ids=None):
+def _fake_record(
+    doc_id="doc1",
+    source="test",
+    tenant_id="t1",
+    chunk_ids=None,
+    content_hash="",
+):
     return SimpleNamespace(
         doc_id=doc_id,
         source=source,
@@ -53,6 +59,7 @@ def _fake_record(doc_id="doc1", source="test", tenant_id="t1", chunk_ids=None):
         chunk_ids=list(chunk_ids or []),
         created_at=0.0,
         updated_at=0.0,
+        content_hash=content_hash,
     )
 
 
@@ -730,6 +737,7 @@ class TestListDocuments:
         data = resp.json()
         assert data["count"] == 1
         assert data["documents"][0]["doc_id"] == "d1"
+        assert "content_hash" in data["documents"][0]
 
     def test_503_no_registry(self):
         from fastapi.testclient import TestClient
@@ -770,6 +778,7 @@ class TestGetDocument:
         assert "created_at" in data
         assert "updated_at" in data
         assert "tenant_id" in data
+        assert "content_hash" in data
 
     def test_400_invalid_doc_id(self):
         from fastapi.testclient import TestClient
@@ -876,10 +885,42 @@ class TestUpdateDocument:
         assert "chunk_count" in data
         reg.update.assert_called_once()
         assert reg.update.call_args.kwargs["source"] == "policy_v3"
+        assert len(reg.update.call_args.kwargs["content_hash"]) == 64
         new_ids = reg.update.call_args.args[1]
         assert new_ids
         assert all(":rev:" in cid for cid in new_ids)
         backend_mock.delete.assert_called_once_with(["d4:chunk:0"])
+
+    def test_put_unchanged_content_skips_rechunk_and_delete(self):
+        from fastapi.testclient import TestClient
+
+        from director_ai.knowledge_api import _content_hash
+
+        app, reg, store = _full_app()
+        backend_mock = MagicMock()
+        store.backend = backend_mock
+        text = "updated content for document d4"
+        rec = _fake_record(
+            doc_id="d4",
+            source="policy",
+            chunk_ids=["d4:chunk:0"],
+            content_hash=_content_hash(text),
+        )
+        reg.get.return_value = rec
+        client = TestClient(app)
+
+        resp = client.put(
+            "/v1/knowledge/documents/d4",
+            json={"text": text, "source": "policy_v3"},
+        )
+
+        assert resp.status_code == 200
+        data = resp.json()
+        assert data["unchanged"] is True
+        assert data["content_hash"] == _content_hash(text)
+        backend_mock.delete.assert_not_called()
+        backend_mock.add.assert_not_called()
+        reg.update.assert_not_called()
 
     def test_update_delete_failure_keeps_registry_and_removes_new_chunks(self):
         from fastapi.testclient import TestClient

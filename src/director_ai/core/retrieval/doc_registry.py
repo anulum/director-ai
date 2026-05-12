@@ -28,6 +28,7 @@ class DocRecord:
     updated_at: float
     chunk_count: int
     chunk_ids: list[str] = field(default_factory=list)
+    content_hash: str = ""
 
 
 def _require_non_empty_string(value: str, field_name: str) -> str:
@@ -58,6 +59,7 @@ def _snapshot(record: DocRecord) -> DocRecord:
         updated_at=record.updated_at,
         chunk_count=record.chunk_count,
         chunk_ids=list(record.chunk_ids),
+        content_hash=record.content_hash,
     )
 
 
@@ -74,6 +76,8 @@ class DocRegistry:
         source: str,
         tenant_id: str,
         chunk_ids: list[str],
+        *,
+        content_hash: str = "",
     ) -> DocRecord:
         doc_id = _require_non_empty_string(doc_id, "doc_id")
         source = _require_non_empty_string(source, "source")
@@ -88,6 +92,7 @@ class DocRegistry:
             updated_at=now,
             chunk_count=len(normalized_chunk_ids),
             chunk_ids=normalized_chunk_ids,
+            content_hash=content_hash.strip(),
         )
         with self._lock:
             if doc_id in self._docs:
@@ -106,6 +111,8 @@ class DocRegistry:
         doc_id: str,
         chunk_ids: list[str],
         source: str | None = None,
+        *,
+        content_hash: str | None = None,
     ) -> DocRecord:
         doc_id = _require_non_empty_string(doc_id, "doc_id")
         normalized_chunk_ids = _require_chunk_ids(chunk_ids)
@@ -117,6 +124,8 @@ class DocRegistry:
                 raise KeyError(f"Document {doc_id!r} not found")
             if source is not None:
                 record.source = source
+            if content_hash is not None:
+                record.content_hash = content_hash.strip()
             record.chunk_ids = normalized_chunk_ids
             record.chunk_count = len(normalized_chunk_ids)
             record.updated_at = time.time()

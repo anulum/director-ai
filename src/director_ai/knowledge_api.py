@@ -14,6 +14,7 @@ Endpoints under ``/v1/knowledge/`` — all tenant-scoped.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
 import re
 import uuid
@@ -267,6 +268,10 @@ def _chunk_and_store(
     return chunk_ids
 
 
+def _content_hash(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
+
+
 def _delete_chunks(record, store) -> int:
     removed = 0
     for cid in record.chunk_ids:
@@ -350,7 +355,11 @@ def create_knowledge_router() -> APIRouter:
             sig_meta,
         )
         record = registry.register(
-            doc_id, file.filename or "upload", tenant_id, chunk_ids
+            doc_id,
+            file.filename or "upload",
+            tenant_id,
+            chunk_ids,
+            content_hash=_content_hash(text),
         )
 
         return {
@@ -403,7 +412,13 @@ def create_knowledge_router() -> APIRouter:
             body.overlap,
             sig_meta,
         )
-        record = registry.register(doc_id, source, tenant_id, chunk_ids)
+        record = registry.register(
+            doc_id,
+            source,
+            tenant_id,
+            chunk_ids,
+            content_hash=_content_hash(body.text),
+        )
 
         return {
             "doc_id": record.doc_id,
@@ -428,6 +443,7 @@ def create_knowledge_router() -> APIRouter:
                     "chunk_count": d.chunk_count,
                     "created_at": d.created_at,
                     "updated_at": d.updated_at,
+                    "content_hash": getattr(d, "content_hash", ""),
                 }
                 for d in docs
             ],
@@ -449,6 +465,7 @@ def create_knowledge_router() -> APIRouter:
             "chunk_count": record.chunk_count,
             "created_at": record.created_at,
             "updated_at": record.updated_at,
+            "content_hash": getattr(record, "content_hash", ""),
         }
 
     @router.delete("/documents/{doc_id}")
@@ -499,6 +516,15 @@ def create_knowledge_router() -> APIRouter:
         record = registry.get(doc_id, tenant_id)
         if record is None:
             raise HTTPException(404, "Document not found")
+        incoming_hash = _content_hash(body.text)
+        if getattr(record, "content_hash", "") == incoming_hash:
+            return {
+                "doc_id": doc_id,
+                "source": record.source,
+                "chunk_count": record.chunk_count,
+                "content_hash": incoming_hash,
+                "unchanged": True,
+            }
 
         try:
             _delete_chunks(record, store)
@@ -520,12 +546,19 @@ def create_knowledge_router() -> APIRouter:
             sig_meta,
             chunk_id_prefix,
         )
-        record = registry.update(doc_id, new_chunk_ids, source=source)
+        record = registry.update(
+            doc_id,
+            new_chunk_ids,
+            source=source,
+            content_hash=incoming_hash,
+        )
 
         return {
             "doc_id": doc_id,
             "source": record.source,
             "chunk_count": record.chunk_count,
+            "content_hash": getattr(record, "content_hash", incoming_hash),
+            "unchanged": False,
         }
 
     @router.get("/search")

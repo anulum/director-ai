@@ -118,5 +118,6 @@ curl -X POST http://localhost:8080/v1/review \
 1. **Chunk size** — keep documents under 500 tokens each. Long documents dilute retrieval precision.
 2. **Deduplication** — avoid ingesting the same content twice; it inflates retrieval scores without adding information.
 3. **Metadata** — use `add_fact(key, value)` with meaningful keys for small KBs. The key helps with retrieval matching.
-4. **Update strategy** — use `PUT /v1/knowledge/documents/{doc_id}` to replace one document and `DELETE /v1/knowledge/documents/{doc_id}` to remove its chunks. Re-ingest the full corpus only when the embedding model, chunking policy, or parser configuration changes.
-5. **Test coverage** — run `python -m benchmarks.regression_suite` after KB changes to verify the scorer still behaves correctly.
+4. **Incremental sync** — keep a stable upstream document id and call `PUT /v1/knowledge/documents/{doc_id}` when the upstream file changes. Director-AI stores a SHA-256 `content_hash`; unchanged `PUT` requests return `unchanged: true` without deleting chunks or re-embedding.
+5. **Update strategy** — use `PUT /v1/knowledge/documents/{doc_id}` to replace one document and `DELETE /v1/knowledge/documents/{doc_id}` to remove its chunks. Re-ingest the full corpus only when the embedding model, chunking policy, or parser configuration changes.
+6. **Test coverage** — run `python -m benchmarks.regression_suite` after KB changes to verify the scorer still behaves correctly.
