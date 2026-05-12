@@ -78,19 +78,29 @@ class S3Plugin(IngestionPlugin):
     ) -> None:
         if client is None:
             raise ValueError("client is required")
-        if not bucket:
+        if not isinstance(bucket, str) or not bucket.strip():
             raise ValueError("bucket is required")
+        if not isinstance(prefix, str):
+            raise ValueError("prefix must be a string")
+        if not isinstance(text_encoding, str) or not text_encoding.strip():
+            raise ValueError("text_encoding must be a non-empty string")
         if page_size <= 0:
             raise ValueError(f"page_size must be positive; got {page_size}")
-        self._client = client
-        self._bucket = bucket
-        self._prefix = prefix
-        self._allowed = frozenset(
-            allowed_content_types
-            if allowed_content_types is not None
-            else _DEFAULT_ALLOWED_CONTENT_TYPES
+        allowed = (
+            _DEFAULT_ALLOWED_CONTENT_TYPES
+            if allowed_content_types is None
+            else frozenset(allowed_content_types)
         )
-        self._encoding = text_encoding
+        if not allowed or any(
+            not isinstance(content_type, str) or not content_type.strip()
+            for content_type in allowed
+        ):
+            raise ValueError("allowed_content_types must be non-empty strings")
+        self._client = client
+        self._bucket = bucket.strip()
+        self._prefix = prefix.strip()
+        self._allowed = frozenset(content_type.strip() for content_type in allowed)
+        self._encoding = text_encoding.strip()
         self._page_size = page_size
 
     @classmethod

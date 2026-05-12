@@ -242,6 +242,10 @@ class TestS3:
         with pytest.raises(ValueError, match="bucket is required"):
             S3Plugin(_FakeS3([], {}), bucket="")
 
+    def test_rejects_whitespace_bucket(self):
+        with pytest.raises(ValueError, match="bucket is required"):
+            S3Plugin(_FakeS3([], {}), bucket="   ")
+
     def test_rejects_none_client(self):
         with pytest.raises(ValueError, match="client is required"):
             S3Plugin(None, bucket="k")  # type: ignore[arg-type]
@@ -250,10 +254,32 @@ class TestS3:
         with pytest.raises(ValueError, match="page_size"):
             S3Plugin(_FakeS3([], {}), bucket="k", page_size=0)
 
+    @pytest.mark.parametrize(
+        ("kwargs", "message"),
+        [
+            ({"prefix": object()}, "prefix"),
+            ({"text_encoding": ""}, "text_encoding"),
+            ({"allowed_content_types": []}, "allowed_content_types"),
+            ({"allowed_content_types": ["text/plain", ""]}, "allowed_content_types"),
+        ],
+    )
+    def test_rejects_invalid_optional_configuration(self, kwargs, message):
+        with pytest.raises(ValueError, match=message):
+            S3Plugin(_FakeS3([], {}), bucket="k", **kwargs)
+
     def test_prefix_forwarded(self):
         pages = [{"Contents": [], "IsTruncated": False}]
         fake = _FakeS3(pages, {})
         list(S3Plugin(fake, bucket="k", prefix="docs/").iter_documents())
+        assert fake.list_calls[0]["Prefix"] == "docs/"
+
+    def test_bucket_and_prefix_are_normalized(self):
+        pages = [{"Contents": [], "IsTruncated": False}]
+        fake = _FakeS3(pages, {})
+
+        list(S3Plugin(fake, bucket=" kb ", prefix=" docs/ ").iter_documents())
+
+        assert fake.list_calls[0]["Bucket"] == "kb"
         assert fake.list_calls[0]["Prefix"] == "docs/"
 
     def test_end_to_end_ingest(self):
