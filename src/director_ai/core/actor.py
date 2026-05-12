@@ -112,6 +112,8 @@ class LLMGenerator:
         self._circuit_threshold = CIRCUIT_BREAKER_THRESHOLD
 
     def _build_payload(self, prompt: str, *, stream: bool = False) -> dict:
+        if not isinstance(prompt, str) or not prompt.strip():
+            raise ValueError("prompt must be a non-empty string")
         payload = {
             "prompt": prompt,
             "n_predict": self.max_tokens,
@@ -177,6 +179,8 @@ class LLMGenerator:
 
     def generate_candidates(self, prompt, n=3) -> list[dict]:
         """Generate *n* candidate responses from the LLM backend."""
+        if not isinstance(n, int) or n <= 0:
+            raise ValueError(f"n must be a positive integer; got {n!r}")
         candidates = []
         payload = self._build_payload(prompt)
 

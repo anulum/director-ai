@@ -79,6 +79,18 @@ class TestLLMGeneratorRetry:
         with pytest.raises(ValueError, match=message):
             LLMGenerator(**kwargs)
 
+    @pytest.mark.parametrize("prompt", ["", "   ", 42])
+    def test_invalid_prompt_rejected(self, prompt):
+        g = LLMGenerator(URL)
+        with pytest.raises(ValueError, match="prompt"):
+            g.generate_candidates(prompt, n=1)  # type: ignore[arg-type]
+
+    @pytest.mark.parametrize("n", [0, -1])
+    def test_invalid_candidate_count_rejected(self, n):
+        g = LLMGenerator(URL)
+        with pytest.raises(ValueError, match="n"):
+            g.generate_candidates("test", n=n)
+
     def test_success_first_try(self):
         g = LLMGenerator(URL, max_retries=3)
         mock_resp = MagicMock()
