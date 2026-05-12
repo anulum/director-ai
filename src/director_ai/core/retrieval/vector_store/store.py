@@ -81,6 +81,8 @@ class VectorGroundTruthStore(GroundTruthStore):
         self._conflict_records: list[dict[str, str]] = []
 
     def _resolved_tenant_id(self, tenant_id: str = "") -> str:
+        if not isinstance(tenant_id, str):
+            raise ValueError("tenant_id must be a string")
         return (tenant_id or self.tenant_id).strip()
 
     def fact_version(self, key: str, tenant_id: str = "") -> str | None:

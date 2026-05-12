@@ -113,6 +113,16 @@ class TestVectorGroundTruthStore:
         with pytest.raises(ValueError, match=message):
             VectorGroundTruthStore(**kwargs)  # type: ignore[arg-type]
 
+    @pytest.mark.parametrize("tenant_id", [123, True])
+    def test_methods_reject_invalid_tenant_ids(self, tenant_id):
+        store = VectorGroundTruthStore()
+        with pytest.raises(ValueError, match="tenant_id"):
+            store.add_fact("sky", "blue", tenant_id=tenant_id)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="tenant_id"):
+            store.retrieve_context("sky", tenant_id=tenant_id)  # type: ignore[arg-type]
+        with pytest.raises(ValueError, match="tenant_id"):
+            store.version_manifest(tenant_id=tenant_id)  # type: ignore[arg-type]
+
     def test_ingest_and_retrieve(self):
         store = VectorGroundTruthStore()
         store.ingest(["The sky is blue", "SCPN has 16 layers"])
