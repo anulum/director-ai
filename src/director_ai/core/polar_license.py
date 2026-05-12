@@ -8,7 +8,15 @@
 
 from __future__ import annotations
 
+import base64
+import binascii
+import hashlib
+import hmac
+import json
 import os
+import time
+from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -18,7 +26,63 @@ from director_ai.core.license import TIERS, LicenseInfo
 
 POLAR_VALIDATE_URL = "https://api.polar.sh/v1/customer-portal/license-keys/validate"
 POLAR_SERVER_VALIDATE_URL = "https://api.polar.sh/v1/license-keys/validate"
+POLAR_ACTIVATE_PATH = "/license-keys/activate"
+POLAR_DEACTIVATE_PATH = "/license-keys/deactivate"
+POLAR_CUSTOMER_PORTAL_PREFIX = "/customer-portal"
+POLAR_CUSTOMER_SESSIONS_PATH = "/customer-sessions/"
 POLAR_DEFAULT_TIMEOUT_SECONDS = 5.0
+POLAR_DEFAULT_WEBHOOK_TOLERANCE_SECONDS = 300
+
+
+@dataclass(frozen=True)
+class PolarActivationInfo:
+    """Result returned by a Polar license-key activation call."""
+
+    activation_id: str
+    license_key_id: str
+    label: str
+    license: LicenseInfo
+    payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class PolarOperationResult:
+    """Result for Polar operations that do not return a license object."""
+
+    valid: bool
+    message: str
+    status_code: int = 0
+    payload: dict[str, Any] | None = None
+
+
+@dataclass(frozen=True)
+class PolarCustomerPortalSession:
+    """Pre-authenticated Polar customer portal session."""
+
+    customer_portal_url: str
+    token: str
+    customer_id: str
+    expires_at: str
+    payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class PolarWebhookEvent:
+    """Verified Polar webhook payload with Standard Webhooks metadata."""
+
+    webhook_id: str
+    timestamp: int
+    event_type: str
+    payload: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class PolarDeploymentReport:
+    """Readiness report for production Polar licensing configuration."""
+
+    ready: bool
+    errors: list[str]
+    warnings: list[str]
 
 
 def validate_polar_key(
@@ -108,6 +172,257 @@ def validate_polar_key(
     return _license_info_from_payload(clean_key, payload)
 
 
+def activate_polar_key(
+    key: str,
+    organization_id: str | None = None,
+    *,
+    label: str | None = None,
+    conditions: dict[str, object] | None = None,
+    meta: dict[str, object] | None = None,
+    timeout_seconds: float | None = None,
+    endpoint: str | None = None,
+) -> PolarActivationInfo:
+    """Activate a Polar license key and return the activation identifier."""
+
+    clean_key = key.strip()
+    activation_label = (
+        label or os.environ.get("DIRECTOR_AI_POLAR_ACTIVATION_LABEL") or "director-ai"
+    ).strip()
+    if not clean_key:
+        return _activation_error("No Polar license key provided", activation_label)
+    if not activation_label:
+        return _activation_error("Polar activation label is required", activation_label)
+
+    org_id = (organization_id or os.environ.get("DIRECTOR_AI_POLAR_ORG_ID", "")).strip()
+    if not org_id:
+        return _activation_error(
+            "DIRECTOR_AI_POLAR_ORG_ID not configured", activation_label
+        )
+
+    conditions_info = (
+        _conditions_from_env()
+        if conditions is None
+        else _map_info("Polar activation conditions", conditions)
+    )
+    if not conditions_info.valid:
+        return _activation_error(conditions_info.message, activation_label)
+    meta_info = _map_info("Polar activation meta", meta or {})
+    if not meta_info.valid:
+        return _activation_error(meta_info.message, activation_label)
+
+    request_body: dict[str, object] = {
+        "key": clean_key,
+        "organization_id": org_id,
+        "label": activation_label,
+    }
+    if conditions_info.conditions:
+        request_body["conditions"] = conditions_info.conditions
+    if meta_info.conditions:
+        request_body["meta"] = meta_info.conditions
+
+    url = endpoint or _polar_endpoint(POLAR_ACTIVATE_PATH)
+    response = _post_polar(url, request_body, timeout_seconds)
+    if isinstance(response, LicenseInfo):
+        return _activation_error(response.message, activation_label)
+    if response.status_code < 200 or response.status_code >= 300:
+        return _activation_error(
+            f"Polar activation failed with HTTP {response.status_code}",
+            activation_label,
+        )
+
+    payload = _response_payload(response)
+    if payload is None:
+        return _activation_error(
+            "Polar activation returned invalid payload", activation_label
+        )
+    license_payload = payload.get("license_key")
+    license_info = _license_info_from_payload(
+        clean_key, license_payload if isinstance(license_payload, dict) else payload
+    )
+    return PolarActivationInfo(
+        activation_id=_string_field(payload, "id"),
+        license_key_id=_string_field(payload, "license_key_id"),
+        label=_string_field(payload, "label") or activation_label,
+        license=license_info,
+        payload=payload,
+    )
+
+
+def deactivate_polar_key(
+    key: str,
+    activation_id: str,
+    organization_id: str | None = None,
+    *,
+    timeout_seconds: float | None = None,
+    endpoint: str | None = None,
+) -> PolarOperationResult:
+    """Deactivate a Polar license-key activation."""
+
+    clean_key = key.strip()
+    clean_activation = activation_id.strip()
+    if not clean_key:
+        return PolarOperationResult(False, "No Polar license key provided")
+    if not clean_activation:
+        return PolarOperationResult(False, "Polar activation_id is required")
+
+    org_id = (organization_id or os.environ.get("DIRECTOR_AI_POLAR_ORG_ID", "")).strip()
+    if not org_id:
+        return PolarOperationResult(False, "DIRECTOR_AI_POLAR_ORG_ID not configured")
+
+    request_body = {
+        "key": clean_key,
+        "organization_id": org_id,
+        "activation_id": clean_activation,
+    }
+    url = endpoint or _polar_endpoint(POLAR_DEACTIVATE_PATH)
+    response = _post_polar(url, request_body, timeout_seconds)
+    if isinstance(response, LicenseInfo):
+        return PolarOperationResult(False, response.message)
+    if response.status_code == 204:
+        return PolarOperationResult(True, "Polar activation deactivated", 204)
+    payload = _response_payload(response) or {}
+    return PolarOperationResult(
+        False,
+        f"Polar deactivation failed with HTTP {response.status_code}",
+        response.status_code,
+        payload,
+    )
+
+
+def create_polar_customer_portal_session(
+    *,
+    customer_id: str | None = None,
+    customer_external_id: str | None = None,
+    timeout_seconds: float | None = None,
+    endpoint: str | None = None,
+) -> PolarCustomerPortalSession:
+    """Create a pre-authenticated Polar customer portal session."""
+
+    token = _polar_access_token()
+    if not token:
+        raise ValueError("DIRECTOR_AI_POLAR_ACCESS_TOKEN is required")
+    if bool(customer_id) == bool(customer_external_id):
+        raise ValueError("provide exactly one of customer_id or customer_external_id")
+
+    request_body = (
+        {"customer_id": customer_id.strip()}
+        if customer_id
+        else {"external_customer_id": customer_external_id.strip()}
+    )
+    if not next(iter(request_body.values())):
+        raise ValueError("Polar customer identifier must be non-empty")
+
+    url = endpoint or _polar_api_url(POLAR_CUSTOMER_SESSIONS_PATH)
+    response = _post_polar(url, request_body, timeout_seconds)
+    if isinstance(response, LicenseInfo):
+        raise ValueError(response.message)
+    if response.status_code < 200 or response.status_code >= 300:
+        raise ValueError(
+            f"Polar customer session failed with HTTP {response.status_code}"
+        )
+    payload = _response_payload(response)
+    if payload is None:
+        raise ValueError("Polar customer session returned invalid payload")
+    portal_url = _string_field(payload, "customer_portal_url")
+    if not portal_url:
+        raise ValueError("Polar customer session response missing customer_portal_url")
+    return PolarCustomerPortalSession(
+        customer_portal_url=portal_url,
+        token=_string_field(payload, "token"),
+        customer_id=_string_field(payload, "customer_id"),
+        expires_at=_string_field(payload, "expires_at"),
+        payload=payload,
+    )
+
+
+def validate_polar_webhook(
+    body: bytes | str,
+    headers: Mapping[str, str],
+    secret: str | None = None,
+    *,
+    tolerance_seconds: int = POLAR_DEFAULT_WEBHOOK_TOLERANCE_SECONDS,
+    now: float | None = None,
+) -> PolarWebhookEvent:
+    """Validate a Polar webhook using the Standard Webhooks HMAC scheme."""
+
+    raw_body = body.encode("utf-8") if isinstance(body, str) else body
+    webhook_id = _header_value(headers, "webhook-id")
+    timestamp_raw = _header_value(headers, "webhook-timestamp")
+    signature_header = _header_value(headers, "webhook-signature")
+    if not webhook_id or not timestamp_raw or not signature_header:
+        raise ValueError("Missing Polar webhook signature headers")
+    if "." in webhook_id or "." in timestamp_raw:
+        raise ValueError("Invalid Polar webhook signature metadata")
+    try:
+        timestamp = int(timestamp_raw)
+    except ValueError as exc:
+        raise ValueError("Invalid Polar webhook timestamp") from exc
+    clock = time.time() if now is None else now
+    if abs(clock - timestamp) > tolerance_seconds:
+        raise ValueError("Polar webhook timestamp outside tolerance")
+
+    secret_bytes = _decode_webhook_secret(
+        secret or os.environ.get("DIRECTOR_AI_POLAR_WEBHOOK_SECRET", "")
+    )
+    signed = b".".join([webhook_id.encode(), timestamp_raw.encode(), raw_body])
+    expected = hmac.new(secret_bytes, signed, hashlib.sha256).digest()
+    if not _signature_matches(signature_header, expected):
+        raise ValueError("Invalid Polar webhook signature")
+
+    try:
+        payload = json.loads(raw_body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError(f"Invalid Polar webhook JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("Invalid Polar webhook payload")
+    return PolarWebhookEvent(
+        webhook_id=webhook_id,
+        timestamp=timestamp,
+        event_type=_string_field(payload, "type"),
+        payload=payload,
+    )
+
+
+def validate_polar_deployment_env() -> PolarDeploymentReport:
+    """Check Polar-related environment variables before production deployment."""
+
+    errors: list[str] = []
+    warnings: list[str] = []
+    if not os.environ.get("DIRECTOR_LICENSE_KEY", "").strip():
+        errors.append("DIRECTOR_LICENSE_KEY is not configured")
+    if not os.environ.get("DIRECTOR_AI_POLAR_ORG_ID", "").strip():
+        errors.append("DIRECTOR_AI_POLAR_ORG_ID is not configured")
+
+    if not _polar_access_token():
+        warnings.append(
+            "DIRECTOR_AI_POLAR_ACCESS_TOKEN is not configured; "
+            "server-side validation, activations, and portal sessions are unavailable"
+        )
+    if not os.environ.get("DIRECTOR_AI_POLAR_ACTIVATION_ID", "").strip():
+        warnings.append(
+            "DIRECTOR_AI_POLAR_ACTIVATION_ID is not configured; "
+            "device activation limits will not be bound to this deployment"
+        )
+    if not os.environ.get("DIRECTOR_AI_POLAR_WEBHOOK_SECRET", "").strip():
+        warnings.append("DIRECTOR_AI_POLAR_WEBHOOK_SECRET is not configured")
+    else:
+        try:
+            _decode_webhook_secret(os.environ["DIRECTOR_AI_POLAR_WEBHOOK_SECRET"])
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    conditions_info = _conditions_from_env()
+    if not conditions_info.valid:
+        errors.append(conditions_info.message)
+    increment_usage = os.environ.get("DIRECTOR_AI_POLAR_INCREMENT_USAGE", "").strip()
+    if increment_usage:
+        try:
+            int(increment_usage)
+        except ValueError:
+            errors.append("DIRECTOR_AI_POLAR_INCREMENT_USAGE must be int")
+    return PolarDeploymentReport(ready=not errors, errors=errors, warnings=warnings)
+
+
 def _env_timeout_seconds() -> float:
     raw = os.environ.get("DIRECTOR_AI_POLAR_TIMEOUT_SECONDS", "").strip()
     if not raw:
@@ -117,6 +432,17 @@ def _env_timeout_seconds() -> float:
     except ValueError:
         return POLAR_DEFAULT_TIMEOUT_SECONDS
     return max(0.1, timeout)
+
+
+def _polar_api_url(path: str) -> str:
+    base = os.environ.get("DIRECTOR_AI_POLAR_API_BASE", "https://api.polar.sh/v1")
+    return base.rstrip("/") + "/" + path.lstrip("/")
+
+
+def _polar_endpoint(path: str) -> str:
+    if _polar_access_token():
+        return _polar_api_url(path)
+    return _polar_api_url(POLAR_CUSTOMER_PORTAL_PREFIX + path)
 
 
 def _validate_url_from_env() -> str:
@@ -161,7 +487,6 @@ def _conditions_from_env() -> _ConditionsInfo:
     raw = os.environ.get("DIRECTOR_AI_POLAR_CONDITIONS", "").strip()
     if not raw:
         return _ConditionsInfo(valid=True)
-    import json
 
     try:
         parsed = json.loads(raw)
@@ -170,33 +495,112 @@ def _conditions_from_env() -> _ConditionsInfo:
             valid=False,
             message=f"DIRECTOR_AI_POLAR_CONDITIONS must be JSON: {exc}",
         )
+    return _map_info("DIRECTOR_AI_POLAR_CONDITIONS", parsed)
+
+
+def _map_info(name: str, parsed: object) -> _ConditionsInfo:
     if not isinstance(parsed, dict):
-        return _ConditionsInfo(
-            valid=False,
-            message="DIRECTOR_AI_POLAR_CONDITIONS must be a JSON object",
-        )
+        return _ConditionsInfo(valid=False, message=f"{name} must be a JSON object")
     if len(parsed) > 50:
         return _ConditionsInfo(
-            valid=False,
-            message="DIRECTOR_AI_POLAR_CONDITIONS supports at most 50 entries",
+            valid=False, message=f"{name} supports at most 50 entries"
         )
     for key, value in parsed.items():
         if not isinstance(key, str) or len(key) > 40:
             return _ConditionsInfo(
                 valid=False,
-                message="Polar condition keys must be strings up to 40 characters",
+                message=f"{name} keys must be strings up to 40 characters",
             )
         if not isinstance(value, str | int | float | bool):
             return _ConditionsInfo(
                 valid=False,
-                message="Polar condition values must be scalar JSON values",
+                message=f"{name} values must be scalar JSON values",
             )
         if isinstance(value, str) and len(value) > 500:
             return _ConditionsInfo(
                 valid=False,
-                message="Polar string condition values must be up to 500 characters",
+                message=f"{name} string condition values must be up to 500 characters",
             )
     return _ConditionsInfo(valid=True, conditions=parsed)
+
+
+def _post_polar(
+    url: str,
+    request_body: dict[str, object],
+    timeout_seconds: float | None,
+) -> requests.Response | LicenseInfo:
+    timeout = (
+        float(timeout_seconds)
+        if timeout_seconds is not None
+        else _env_timeout_seconds()
+    )
+    headers = _auth_headers(url)
+    try:
+        if headers:
+            return requests.post(
+                url,
+                json=request_body,
+                timeout=timeout,
+                headers=headers,
+            )
+        return requests.post(url, json=request_body, timeout=timeout)
+    except requests.RequestException as exc:
+        return LicenseInfo(message=f"Polar request unavailable: {exc}")
+
+
+def _response_payload(response: requests.Response) -> dict[str, Any] | None:
+    if response.status_code == 204:
+        return {}
+    try:
+        payload = response.json()
+    except ValueError:
+        return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _activation_error(message: str, label: str = "") -> PolarActivationInfo:
+    return PolarActivationInfo("", "", label, LicenseInfo(message=message), {})
+
+
+def _header_value(headers: Mapping[str, str], name: str) -> str:
+    wanted = name.lower()
+    for key, value in headers.items():
+        if key.lower() == wanted:
+            return value.strip()
+    return ""
+
+
+def _decode_webhook_secret(secret: str) -> bytes:
+    clean = secret.strip()
+    if not clean:
+        raise ValueError("DIRECTOR_AI_POLAR_WEBHOOK_SECRET is not configured")
+    if clean.startswith("whsec_"):
+        clean = clean[6:]
+    try:
+        decoded = base64.b64decode(clean, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        raise ValueError("DIRECTOR_AI_POLAR_WEBHOOK_SECRET must be base64") from exc
+    if len(decoded) < 24:
+        raise ValueError(
+            "DIRECTOR_AI_POLAR_WEBHOOK_SECRET must decode to at least 24 bytes"
+        )
+    return decoded
+
+
+def _signature_matches(signature_header: str, expected: bytes) -> bool:
+    for item in signature_header.split():
+        if "," not in item:
+            continue
+        scheme, signature = item.split(",", 1)
+        if scheme != "v1":
+            continue
+        try:
+            received = base64.b64decode(signature, validate=True)
+        except (ValueError, binascii.Error):
+            continue
+        if hmac.compare_digest(received, expected):
+            return True
+    return False
 
 
 def _license_info_from_payload(key: str, payload: dict[str, Any]) -> LicenseInfo:

@@ -241,8 +241,23 @@ def _cmd_license(args: list[str]) -> None:
         print(f"Message:  {info.message}")
         sys.exit(0 if info.valid else 1)
 
+    if args[0] in ("polar-env", "env"):
+        from .core.polar_license import validate_polar_deployment_env
+
+        report = validate_polar_deployment_env()
+        print(f"Ready:    {report.ready}")
+        if report.errors:
+            print("Errors:")
+            for item in report.errors:
+                print(f"  - {item}")
+        if report.warnings:
+            print("Warnings:")
+            for item in report.warnings:
+                print(f"  - {item}")
+        sys.exit(0 if report.ready else 1)
+
     print(f"Unknown license subcommand: {args[0]}")
-    print("Usage: director-ai license [status|generate|validate]")
+    print("Usage: director-ai license [status|generate|validate|polar-env]")
     sys.exit(1)
 
 

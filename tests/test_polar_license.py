@@ -8,14 +8,25 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import hmac
 import json
+import time
 from types import SimpleNamespace
 
 import pytest
 import requests
 
 from director_ai.core.license import generate_license, load_license
-from director_ai.core.polar_license import validate_polar_key
+from director_ai.core.polar_license import (
+    activate_polar_key,
+    create_polar_customer_portal_session,
+    deactivate_polar_key,
+    validate_polar_deployment_env,
+    validate_polar_key,
+    validate_polar_webhook,
+)
 
 
 class _Response:
@@ -44,8 +55,11 @@ def _license_env(monkeypatch):
     monkeypatch.delenv("DIRECTOR_AI_POLAR_INCREMENT_USAGE", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_TIMEOUT_SECONDS", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_VALIDATE_URL", raising=False)
+    monkeypatch.delenv("DIRECTOR_AI_POLAR_API_BASE", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_DEFAULT_TIER", raising=False)
     monkeypatch.delenv("DIRECTOR_AI_POLAR_BENEFIT_TIERS", raising=False)
+    monkeypatch.delenv("DIRECTOR_AI_POLAR_ACTIVATION_LABEL", raising=False)
+    monkeypatch.delenv("DIRECTOR_AI_POLAR_WEBHOOK_SECRET", raising=False)
 
 
 def test_polar_granted_license_is_commercial(monkeypatch):
@@ -581,3 +595,187 @@ def test_polar_benefit_map_falls_back_when_unconfigured_or_unmatched(monkeypatch
     assert unconfigured.tier == "enterprise"
     assert unmatched.valid
     assert unmatched.tier == "enterprise"
+
+
+def test_polar_activation_uses_server_auth_conditions_and_meta(monkeypatch):
+    captured = {}
+
+    def fake_post(url, *, json, timeout, headers):
+        captured["url"] = url
+        captured["json"] = json
+        captured["timeout"] = timeout
+        captured["headers"] = headers
+        return _Response(
+            200,
+            {
+                "id": "activation-id",
+                "license_key_id": "license-id",
+                "label": "node-a",
+                "license_key": {
+                    "status": "granted",
+                    "metadata": {"tier": "pro"},
+                    "customer": {"name": "Acme"},
+                    "limit_activations": 4,
+                },
+            },
+        )
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_ACCESS_TOKEN", "polar-token")
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    activation = activate_polar_key(
+        "polar-key",
+        "550e8400-e29b-41d4-a716-446655440000",
+        label="node-a",
+        conditions={"major_version": 3},
+        meta={"host": "worker-1"},
+        timeout_seconds=2.5,
+    )
+
+    assert activation.activation_id == "activation-id"
+    assert activation.license_key_id == "license-id"
+    assert activation.label == "node-a"
+    assert activation.license.valid
+    assert activation.license.tier == "pro"
+    assert activation.license.licensee == "Acme"
+    assert activation.license.deployments == 4
+    assert captured == {
+        "url": "https://api.polar.sh/v1/license-keys/activate",
+        "json": {
+            "key": "polar-key",
+            "organization_id": "550e8400-e29b-41d4-a716-446655440000",
+            "label": "node-a",
+            "conditions": {"major_version": 3},
+            "meta": {"host": "worker-1"},
+        },
+        "timeout": 2.5,
+        "headers": {"Authorization": "Bearer polar-token"},
+    }
+
+
+def test_polar_deactivation_accepts_204_and_requires_activation_id(monkeypatch):
+    captured = {}
+
+    def fake_post(url, *, json, timeout):
+        captured["url"] = url
+        captured["json"] = json
+        captured["timeout"] = timeout
+        return _Response(204, {})
+
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    result = deactivate_polar_key(
+        "polar-key",
+        "activation-id",
+        "550e8400-e29b-41d4-a716-446655440000",
+        timeout_seconds=1.5,
+    )
+
+    assert result.valid
+    assert result.message == "Polar activation deactivated"
+    assert captured == {
+        "url": "https://api.polar.sh/v1/customer-portal/license-keys/deactivate",
+        "json": {
+            "key": "polar-key",
+            "organization_id": "550e8400-e29b-41d4-a716-446655440000",
+            "activation_id": "activation-id",
+        },
+        "timeout": 1.5,
+    }
+
+    missing = deactivate_polar_key(
+        "polar-key", "", "550e8400-e29b-41d4-a716-446655440000"
+    )
+    assert not missing.valid
+    assert "activation_id" in missing.message
+
+
+def test_polar_customer_portal_session_uses_org_token(monkeypatch):
+    captured = {}
+
+    def fake_post(url, *, json, timeout, headers):
+        captured["url"] = url
+        captured["json"] = json
+        captured["headers"] = headers
+        captured["timeout"] = timeout
+        return _Response(
+            201,
+            {
+                "customer_portal_url": "https://polar.sh/acme/portal/session",
+                "token": "customer-session-token",
+                "customer_id": "customer-id",
+                "expires_at": "2999-01-01T00:00:00Z",
+            },
+        )
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_ACCESS_TOKEN", "polar-token")
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    session = create_polar_customer_portal_session(
+        customer_external_id="tenant-42",
+        timeout_seconds=3.0,
+    )
+
+    assert session.customer_portal_url == "https://polar.sh/acme/portal/session"
+    assert session.token == "customer-session-token"
+    assert session.customer_id == "customer-id"
+    assert captured == {
+        "url": "https://api.polar.sh/v1/customer-sessions/",
+        "json": {"external_customer_id": "tenant-42"},
+        "headers": {"Authorization": "Bearer polar-token"},
+        "timeout": 3.0,
+    }
+
+
+def test_polar_webhook_validation_uses_standard_webhooks(monkeypatch):
+    secret = base64.b64encode(b"webhook-secret-32-bytes-minimum").decode()
+    body = b'{"type":"license_key.updated","data":{"id":"lk_1"}}'
+    timestamp = str(int(time.time()))
+    signed = b"msg_1." + timestamp.encode() + b"." + body
+    digest = hmac.new(base64.b64decode(secret), signed, hashlib.sha256).digest()
+    headers = {
+        "webhook-id": "msg_1",
+        "webhook-timestamp": timestamp,
+        "webhook-signature": "v1," + base64.b64encode(digest).decode(),
+    }
+
+    event = validate_polar_webhook(body, headers, "whsec_" + secret)
+
+    assert event.webhook_id == "msg_1"
+    assert event.event_type == "license_key.updated"
+    assert event.payload["data"] == {"id": "lk_1"}
+
+    headers["webhook-signature"] = "v1,invalid"
+    with pytest.raises(ValueError, match="Invalid Polar webhook signature"):
+        validate_polar_webhook(body, headers, "whsec_" + secret)
+
+    headers["webhook-signature"] = "v1," + base64.b64encode(digest).decode()
+    headers["webhook-timestamp"] = str(int(time.time()) - 1_000)
+    with pytest.raises(ValueError, match="timestamp outside tolerance"):
+        validate_polar_webhook(body, headers, "whsec_" + secret)
+
+
+def test_polar_deployment_env_validation_surfaces_operational_gaps(monkeypatch):
+    report = validate_polar_deployment_env()
+
+    assert not report.ready
+    assert "DIRECTOR_LICENSE_KEY is not configured" in report.errors
+    assert "DIRECTOR_AI_POLAR_ORG_ID is not configured" in report.errors
+    assert "DIRECTOR_AI_POLAR_WEBHOOK_SECRET is not configured" in report.warnings
+
+    monkeypatch.setenv("DIRECTOR_LICENSE_KEY", "polar-key")
+    monkeypatch.setenv(
+        "DIRECTOR_AI_POLAR_ORG_ID", "550e8400-e29b-41d4-a716-446655440000"
+    )
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_ACCESS_TOKEN", "polar-token")
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_ACTIVATION_ID", "activation-id")
+    monkeypatch.setenv(
+        "DIRECTOR_AI_POLAR_WEBHOOK_SECRET",
+        "whsec_" + base64.b64encode(b"webhook-secret-32-bytes-minimum").decode(),
+    )
+
+    ready = validate_polar_deployment_env()
+
+    assert ready.ready
+    assert ready.errors == []
+    assert ready.warnings == []

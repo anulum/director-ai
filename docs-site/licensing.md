@@ -124,6 +124,48 @@ Self-hosted deployments use the license tiers above.
 
 ---
 
+## :material-shield-key: Polar Deployment Wiring
+
+Director-AI validates commercial self-hosted licenses through Polar when
+`DIRECTOR_LICENSE_KEY` and `DIRECTOR_AI_POLAR_ORG_ID` are configured. The
+runtime never requires storing a raw organization access token for public
+customer-portal validation. Add `DIRECTOR_AI_POLAR_ACCESS_TOKEN` only on
+trusted server deployments that need server-side activation, deactivation,
+customer portal sessions, or webhook reconciliation.
+
+Required production checks:
+
+```bash
+director-ai license polar-env
+```
+
+Core variables:
+
+| Variable | Purpose |
+|---|---|
+| `DIRECTOR_LICENSE_KEY` | Customer license key presented by the deployment. |
+| `DIRECTOR_AI_POLAR_ORG_ID` | Polar organization UUID used for license validation. |
+| `DIRECTOR_AI_POLAR_ACTIVATION_ID` | Optional activation binding for deployments with activation limits. |
+| `DIRECTOR_AI_POLAR_INCREMENT_USAGE` | Optional integer usage increment sent during validation. |
+| `DIRECTOR_AI_POLAR_CONDITIONS` | Optional JSON object for Polar validation conditions, such as major version or edition. |
+| `DIRECTOR_AI_POLAR_ACCESS_TOKEN` | Server-only organization access token for server API calls. Never expose it in client code or public logs. |
+| `DIRECTOR_AI_POLAR_WEBHOOK_SECRET` | Base64 Standard Webhooks secret for validating Polar webhook deliveries. |
+
+Supported operational surfaces:
+
+- License validation through Polar customer-portal or server endpoints.
+- Activation and deactivation helpers for deployments using activation limits.
+- Usage tracking via Polar validation `increment_usage`.
+- Customer portal session creation from a server-side customer id or external customer id.
+- Standard Webhooks HMAC verification over the raw body plus `webhook-id` and `webhook-timestamp` headers.
+
+Webhook handlers must verify the raw request body before parsing JSON, reject
+stale timestamps, and use `webhook-id` as the idempotency key in the deployment's
+queue or database. Return a 2xx response only after the event has been accepted
+for durable processing.
+
+---
+
 ## :material-open-source-initiative: Open Source — AGPL-3.0
 
 The entire Director-AI package is licensed under [AGPL-3.0-or-later](https://www.gnu.org/licenses/agpl-3.0.html).

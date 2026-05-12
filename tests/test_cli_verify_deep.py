@@ -183,6 +183,26 @@ class TestLicenseCliBranches:
         assert exc_info.value.code == 1
         assert "Unknown license subcommand" in capsys.readouterr().out
 
+    def test_license_polar_env_reports_readiness(self, monkeypatch, capsys):
+        report = SimpleNamespace(
+            ready=False,
+            errors=["DIRECTOR_LICENSE_KEY is not configured"],
+            warnings=["DIRECTOR_AI_POLAR_WEBHOOK_SECRET is not configured"],
+        )
+        monkeypatch.setattr(
+            "director_ai.core.polar_license.validate_polar_deployment_env",
+            lambda: report,
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_license(["polar-env"])
+
+        assert exc_info.value.code == 1
+        out = capsys.readouterr().out
+        assert "Ready:    False" in out
+        assert "DIRECTOR_LICENSE_KEY is not configured" in out
+        assert "DIRECTOR_AI_POLAR_WEBHOOK_SECRET is not configured" in out
+
 
 class TestComplianceCliBranches:
     def test_compliance_missing_database_exits(self, tmp_path, capsys):
