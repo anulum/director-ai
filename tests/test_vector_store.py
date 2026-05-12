@@ -73,6 +73,20 @@ class TestInMemoryBackend:
         with pytest.raises(ValueError, match="n_results"):
             backend.query("sky", n_results=n_results)
 
+    @pytest.mark.parametrize(
+        ("text", "tenant_id", "message"),
+        [
+            (123, "", "query text"),
+            ("sky", 123, "tenant_id"),
+            ("sky", True, "tenant_id"),
+        ],
+    )
+    def test_query_rejects_invalid_text_and_tenant(self, text, tenant_id, message):
+        backend = InMemoryBackend()
+        backend.add("doc1", "The sky is blue")
+        with pytest.raises(ValueError, match=message):
+            backend.query(text, tenant_id=tenant_id)  # type: ignore[arg-type]
+
     @pytest.mark.parametrize("doc_ids", ["doc1", [""], ["   "], [123]])
     def test_delete_rejects_invalid_doc_ids(self, doc_ids):
         backend = InMemoryBackend()

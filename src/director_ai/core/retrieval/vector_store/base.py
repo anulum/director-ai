@@ -197,6 +197,10 @@ class InMemoryBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        if not isinstance(text, str):
+            raise ValueError("query text must be a string")
+        if not isinstance(tenant_id, str):
+            raise ValueError("tenant_id must be a string")
         if not isinstance(n_results, int) or isinstance(n_results, bool):
             raise ValueError("n_results must be an integer")
         if n_results < 0:
