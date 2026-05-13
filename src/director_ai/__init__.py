@@ -77,6 +77,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "RegressionReport": (".core", "RegressionReport"),
     "RerankedBackend": (".core", "RerankedBackend"),
     "ReviewQueue": (".core", "ReviewQueue"),
+    "DIRECTOR_SAFETY_PROTOCOL_VERSION": (
+        ".core",
+        "DIRECTOR_SAFETY_PROTOCOL_VERSION",
+    ),
+    "DirectorSafetySignal": (".core", "DirectorSafetySignal"),
     "ReviewResult": (".core", "ReviewResult"),
     "SafetyEvent": (".core", "SafetyEvent"),
     "SafetyKernel": (".core", "SafetyKernel"),
@@ -113,7 +118,16 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "register_vector_backend": (".core", "register_vector_backend"),
     "tune": (".core", "tune"),
     "validate_finetune_data": (".core", "validate_finetune_data"),
+    "director_safety_signal_from_event": (
+        ".core",
+        "director_safety_signal_from_event",
+    ),
+    "new_director_safety_signal_id": (".core", "new_director_safety_signal_id"),
     "new_safety_event_id": (".core", "new_safety_event_id"),
+    "validate_director_safety_signal": (
+        ".core",
+        "validate_director_safety_signal",
+    ),
     "utc_timestamp": (".core", "utc_timestamp"),
     # Exceptions
     "CoherenceError": (".core.exceptions", "CoherenceError"),

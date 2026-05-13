@@ -79,6 +79,13 @@ from .runtime.structured_recovery import (
 from .safety.injection import InjectionDetector
 from .safety.sanitizer import InputSanitizer, SanitizeResult
 from .safety_event import SafetyEvent, new_safety_event_id, utc_timestamp
+from .safety_protocol import (
+    DIRECTOR_SAFETY_PROTOCOL_VERSION,
+    DirectorSafetySignal,
+    director_safety_signal_from_event,
+    new_director_safety_signal_id,
+    validate_director_safety_signal,
+)
 from .scoring.backends import (
     ScorerBackend,
     get_backend,
@@ -187,6 +194,7 @@ __all__ = [
     "HaltCorrectionContext",
     "HaltMonitor",
     "ReviewQueue",
+    "DirectorSafetySignal",
     "SafetyEvent",
     "SafetyKernel",
     "StreamSession",
@@ -248,7 +256,11 @@ __all__ = [
     "resolve_finetune_model",
     "validate_finetune_data",
     "new_safety_event_id",
+    "director_safety_signal_from_event",
+    "new_director_safety_signal_id",
+    "validate_director_safety_signal",
     "utc_timestamp",
+    "DIRECTOR_SAFETY_PROTOCOL_VERSION",
     # Calibration
     "CalibrationReport",
     "ConformalPredictor",

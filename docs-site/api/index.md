@@ -49,6 +49,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`HaltEvidence`](types.md#haltevidence) | `director_ai.core.types` | Structured halt reason with evidence |
 | [`CounterfactualHaltDiagnostic`](types.md#counterfactualhaltdiagnostic) | `director_ai.core.types` | Single-fact halt diagnostic |
 | [`SafetyEvent`](types.md#safetyevent) | `director_ai.core.safety_event` | Tenant-safe halt and policy event schema |
+| [`DirectorSafetySignal`](director-safety-protocol.md) | `director_ai.core.safety_protocol` | Cross-runtime safety protocol envelope |
 | [`TokenEvent`](streaming.md#tokenevent) | `director_ai.core.runtime.streaming` | Per-token stream event |
 | [`StreamSession`](streaming.md#streamsession) | `director_ai.core.runtime.streaming` | Complete stream session state |
 | [`SustainabilityPolicyAdapter`](sustainability-scoring.md) | `director_ai.core.sustainability` | Token, cost, energy, carbon, quota, and forecast policy decisions |

@@ -467,7 +467,7 @@ Last updated: 2026-04-30
   halt feedback into hard negatives and periodic domain-adapted training jobs.
 - [x] Plan multi-modal hallucination checks for generated image, audio, and video
   outputs using caption/metadata grounding.
-- [ ] Draft an open Director Safety Protocol for guard signals shared across agent
+- [x] Draft an open Director Safety Protocol for guard signals shared across agent
   frameworks.
 - [ ] Add conflict-aware knowledge-base checks that detect contradictory user facts
   before they enter retrieval.
