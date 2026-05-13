@@ -172,6 +172,48 @@ assert "pd.read_quantum_csv" in result.hallucinated_apis
 | Hallucinated API | `pd.read_quantum_csv()` | In `hallucinated_apis` |
 | JSON syntax | `{key: value}` | `syntax_valid=False` (language="json") |
 
+## Multimodal Checks
+
+Use `MultimodalVerifierAdapter` when image, audio, or video evidence needs to
+enter the same guard-control path as text, JSON, tool, and code verification.
+The adapter is opt-in per modality and returns a tenant-safe `GuardDecision`.
+
+```python
+from director_ai.core.guard_control import RiskEnvelope
+from director_ai.core.multimodal_guard import (
+    MultimodalCheckRequest,
+    MultimodalVerifierAdapter,
+)
+
+adapter = MultimodalVerifierAdapter(
+    image_guard=image_guard,
+    enabled_modalities=("image",),
+    benchmarked_modalities=("image",),
+)
+
+result = adapter.check(
+    MultimodalCheckRequest(
+        modality="image",
+        claim_text="The image shows a labelled package.",
+        media_ref="media://image-42",
+        image_bytes=image_bytes,
+    ),
+    risk_envelope=RiskEnvelope(
+        action_category="multimodal",
+        reversibility="reversible",
+        domain="regulated",
+        calibrated_threshold=0.5,
+        no_go_threshold=0.85,
+    ),
+    policy_id="policy.multimodal.regulated",
+)
+```
+
+Uncertain evidence is a warning, not an allow decision. Disabled modalities
+raise errors instead of silently passing. Safety events include media references
+and verifier scores; they do not include raw media, transcript text, frame data,
+or claim text.
+
 ### Custom Module Registry
 
 ```python

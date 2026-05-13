@@ -38,6 +38,11 @@ Temporal aggregation for video / audio streams ships as
 :class:`TemporalConsistencyGuard`.
 """
 
+from .adapter import (
+    MultimodalCheckRequest,
+    MultimodalCheckResult,
+    MultimodalVerifierAdapter,
+)
 from .claim import MultimodalClaim
 from .encoders import HashBagImageEncoder, ImageEncoder, TorchCLIPImageEncoder
 from .guard import MultimodalGuard, MultimodalVerdict, TemporalConsistencyGuard
@@ -52,9 +57,12 @@ __all__ = [
     "HashBagCrossModalVerifier",
     "HashBagImageEncoder",
     "ImageEncoder",
+    "MultimodalCheckRequest",
+    "MultimodalCheckResult",
     "MultimodalClaim",
     "MultimodalGuard",
     "MultimodalVerdict",
+    "MultimodalVerifierAdapter",
     "TemporalConsistencyGuard",
     "TorchCLIPCrossModalVerifier",
     "TorchCLIPImageEncoder",
