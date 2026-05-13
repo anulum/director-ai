@@ -117,6 +117,12 @@ class CoherenceScore:
         None  # best retrieval distance (0=no match, 1=exact)
     )
     injection_risk: float | None = None  # 0-1, intent-grounded injection risk
+    verified_result: dict | None = None  # atomic VerifiedScorer payload
+    verified_approved: bool | None = None
+    verified_coverage: float | None = None
+    verified_claim_count: int = 0
+    verified_contradicted_count: int = 0
+    verified_fabricated_count: int = 0
 
     # -- Claim-Level Provenance (Gem 2) ------------------------------------
 

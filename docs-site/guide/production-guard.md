@@ -49,6 +49,11 @@ for claim in vr.claims:
         print(f"  source: {span.text[:60]}  nli={span.nli_divergence:.3f}")
 ```
 
+Regulated and summarisation profiles also enable guarded review-path
+escalation. Low-confidence, RAG, and summarisation reviews with evidence attach
+`verified_result` to the `CoherenceScore`; RAG and summarisation paths fail
+closed when verified claim coverage is below the configured floor.
+
 ## Agent Tool-Call Verification
 
 Verify that an agent's function calls match a known manifest:

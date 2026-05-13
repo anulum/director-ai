@@ -321,9 +321,8 @@ class TestPrivacyModeRedaction:
         with patch.dict("sys.modules", {"openai": mock_openai}):
             scorer._llm_judge_check("email: user@test.com", "response", 0.5)
 
-        sent_prompt = mock_client.chat.completions.create.call_args[1]["messages"][0][
-            "content"
-        ]
+        sent_messages = mock_client.chat.completions.create.call_args[1]["messages"]
+        sent_prompt = "\n".join(message["content"] for message in sent_messages)
         assert "user@test.com" not in sent_prompt
         assert "[EMAIL]" in sent_prompt
 

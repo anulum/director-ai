@@ -191,6 +191,25 @@ class TestProfileLoading:
         assert data["min_calibration_samples"] >= 20
         assert "director-ai tune" in data["calibration_command"]
 
+    @pytest.mark.parametrize("name", ["medical", "finance", "legal", "summarization"])
+    def test_regulated_and_summarization_profiles_enable_verified_scorer(self, name):
+        cfg = DirectorConfig.from_profile(name)
+        scorer = cfg.build_scorer()
+
+        assert cfg.verified_scorer_enabled is True
+        assert scorer._verified_scorer_enabled is True
+        assert scorer._verified_scorer_atomic is True
+        assert scorer._verified_scorer_evidence_top_k == 3
+        assert scorer._verified_scorer_min_coverage == pytest.approx(0.5)
+
+    def test_verified_scorer_config_validates_bounds(self):
+        with pytest.raises(ValueError, match="verified_scorer_low_confidence_margin"):
+            DirectorConfig(verified_scorer_low_confidence_margin=1.5)
+        with pytest.raises(ValueError, match="verified_scorer_min_coverage"):
+            DirectorConfig(verified_scorer_min_coverage=-0.1)
+        with pytest.raises(ValueError, match="verified_scorer_evidence_top_k"):
+            DirectorConfig(verified_scorer_evidence_top_k=0)
+
     def test_list_profile_metadata_matches_builtin_profiles(self):
         names = {meta.name for meta in DirectorConfig.list_profile_metadata()}
 

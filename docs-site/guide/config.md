@@ -131,6 +131,12 @@ config = DirectorConfig.from_yaml("config.yaml")
 
 `vector_backend` (`memory` | `chroma`), `embedding_model`, `chroma_collection`, `chroma_persist_dir`, `reranker_enabled`
 
+### Verified Scorer Escalation
+
+`verified_scorer_enabled`, `verified_scorer_atomic`,
+`verified_scorer_evidence_top_k`, `verified_scorer_low_confidence_margin`,
+`verified_scorer_min_coverage`
+
 ### Server
 
 `server_host`, `server_port`, `server_workers`, `cors_origins`, `rate_limit_rpm`, `api_keys`

@@ -255,6 +255,12 @@ class CoherenceScorer:
         self._rag_claim_decomposition = True  # per-sentence scoring for RAG path
         self._retrieval_abstention_threshold = 0.0
         self._claim_coverage_alpha = 0.4
+        self._verified_scorer_enabled = False
+        self._verified_scorer_atomic = True
+        self._verified_scorer_evidence_top_k = 3
+        self._verified_scorer_low_confidence_margin = 0.10
+        self._verified_scorer_min_coverage = 0.50
+        self._verified_scorer_task_types = {"rag", "summarization"}
         self._adaptive_threshold_enabled = False
         self._task_type_thresholds: dict[str, float] = {}
         self._chunk_overlap_ratio = 0.5
@@ -1267,6 +1273,80 @@ class CoherenceScorer:
         )
         return approved, score
 
+    def _verified_source_from_evidence(self, evidence: ScoringEvidence | None) -> str:
+        """Build source text for claim-level verification from scoring evidence."""
+        if evidence is None:
+            return ""
+        chunk_texts = [
+            chunk.text.strip() for chunk in evidence.chunks if chunk.text.strip()
+        ]
+        if chunk_texts:
+            return " ".join(chunk_texts)
+        return evidence.nli_premise.strip()
+
+    def _should_run_verified_scorer(
+        self,
+        *,
+        coherence: float,
+        threshold: float,
+        task_type: str,
+        evidence: ScoringEvidence | None,
+    ) -> bool:
+        """Return whether atomic verification should run on the review path."""
+        if not self._verified_scorer_enabled:
+            return False
+        if not self._verified_source_from_evidence(evidence):
+            return False
+        low_confidence = (
+            abs(coherence - threshold) <= self._verified_scorer_low_confidence_margin
+        )
+        task_routed = task_type in self._verified_scorer_task_types
+        return low_confidence or task_routed
+
+    def _apply_verified_scorer(
+        self,
+        score: CoherenceScore,
+        *,
+        task_type: str,
+        threshold: float,
+    ) -> tuple[bool, CoherenceScore]:
+        """Attach atomic verification and fail closed on verified claim failures."""
+        if not self._should_run_verified_scorer(
+            coherence=score.score,
+            threshold=threshold,
+            task_type=task_type,
+            evidence=score.evidence,
+        ):
+            return score.approved, score
+
+        source = self._verified_source_from_evidence(score.evidence)
+        from .verified_scorer import VerifiedScorer
+
+        verifier = VerifiedScorer(nli_scorer=self._nli)
+        result = verifier.verify(
+            score.evidence.nli_hypothesis if score.evidence else "",
+            source,
+            atomic=self._verified_scorer_atomic,
+            evidence_top_k=self._verified_scorer_evidence_top_k,
+        )
+        payload = result.to_dict()
+        score.verified_result = payload
+        score.verified_approved = result.approved
+        score.verified_coverage = result.coverage
+        score.verified_claim_count = len(result.claims)
+        score.verified_contradicted_count = result.contradicted_count
+        score.verified_fabricated_count = result.fabricated_count
+        insufficient_coverage = (
+            task_type in self._verified_scorer_task_types
+            and len(result.claims) > 0
+            and result.coverage < self._verified_scorer_min_coverage
+        )
+        if not result.approved or insufficient_coverage:
+            score.verified_approved = False
+            score.approved = False
+            return False, score
+        return score.approved, score
+
     # â"€â"€ Composite scoring â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _score_cache_scope(self, session=None, tenant_id: str = "") -> str:
@@ -1426,6 +1506,11 @@ class CoherenceScorer:
                 evidence,
                 threshold_override=effective_threshold,
                 detected_task_type=task_type,
+            )
+            result = self._apply_verified_scorer(
+                result[1],
+                task_type=task_type,
+                threshold=effective_threshold,
             )
             if cross_turn is not None:
                 result[1].cross_turn_divergence = cross_turn

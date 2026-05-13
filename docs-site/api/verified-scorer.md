@@ -68,6 +68,25 @@ for claim in result.claims:
     print(f"    Confidence: {claim.confidence:.2f}")
 ```
 
+## Default Review-Path Escalation
+
+`DirectorConfig` can wire `VerifiedScorer` into normal `CoherenceScorer.review()`
+calls. When `verified_scorer_enabled=True`, review results that have evidence
+are escalated to atomic verification when either condition holds:
+
+- the coherence score is within `verified_scorer_low_confidence_margin` of the
+  active threshold;
+- the detected task type is RAG or summarisation.
+
+The verification payload is attached to `CoherenceScore.verified_result` with
+summary fields such as `verified_approved`, `verified_coverage`, and
+`verified_claim_count`. RAG and summarisation paths fail closed when verified
+coverage is below `verified_scorer_min_coverage`, even if the original
+coherence score passed.
+
+Built-in `medical`, `finance`, `legal`, and `summarization` profiles enable this
+guarded escalation by default.
+
 ### Atomic Claim Decomposition
 
 Compound sentences can hide errors — one clause is correct while the other is fabricated. `atomic=True` splits compound sentences at conjunctions (`and`, `but`, `while`, `whereas`, `although`, `however`, `moreover`, `furthermore`) before matching, so each atomic claim gets its own verdict.

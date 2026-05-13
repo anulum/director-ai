@@ -163,6 +163,11 @@ class DirectorConfig:
     reranker_model_revision: str = "c5ee24cb16019beea0893ab7796b1df96625c6b8"
     reranker_top_k_multiplier: int = 3
     retrieval_abstention_threshold: float = 0.3  # 0 = disabled; min similarity to score
+    verified_scorer_enabled: bool = False
+    verified_scorer_atomic: bool = True
+    verified_scorer_evidence_top_k: int = 3
+    verified_scorer_low_confidence_margin: float = 0.10
+    verified_scorer_min_coverage: float = 0.50
 
     # Parent-child chunking (v3.14+)
     parent_child_enabled: bool = False
@@ -416,6 +421,12 @@ class DirectorConfig:
             )
         if self.reranker_enabled and not self.reranker_model.strip():
             raise ValueError("reranker_model must be set when reranker_enabled=True")
+        if self.verified_scorer_evidence_top_k < 1:
+            raise ValueError("verified_scorer_evidence_top_k must be >= 1")
+        if not (0.0 <= self.verified_scorer_low_confidence_margin <= 1.0):
+            raise ValueError("verified_scorer_low_confidence_margin must be in [0, 1]")
+        if not (0.0 <= self.verified_scorer_min_coverage <= 1.0):
+            raise ValueError("verified_scorer_min_coverage must be in [0, 1]")
         if not isinstance(self.hybrid_rrf_k, int) or isinstance(
             self.hybrid_rrf_k, bool
         ):
@@ -607,6 +618,8 @@ class DirectorConfig:
                 "reranker_enabled": True,
                 "scorer_backend": "hybrid",
                 "llm_judge_enabled": True,
+                "llm_judge_provider": "local",
+                "verified_scorer_enabled": True,
                 "w_logic": 0.5,
                 "w_fact": 0.5,
                 "profile": "medical",
@@ -622,6 +635,8 @@ class DirectorConfig:
                 "reranker_enabled": True,
                 "scorer_backend": "hybrid",
                 "llm_judge_enabled": True,
+                "llm_judge_provider": "local",
+                "verified_scorer_enabled": True,
                 "w_logic": 0.4,
                 "w_fact": 0.6,
                 "profile": "finance",
@@ -636,6 +651,8 @@ class DirectorConfig:
                 "reranker_enabled": False,
                 "scorer_backend": "hybrid",
                 "llm_judge_enabled": True,
+                "llm_judge_provider": "local",
+                "verified_scorer_enabled": True,
                 "w_logic": 0.6,
                 "w_fact": 0.4,
                 "profile": "legal",
@@ -668,6 +685,8 @@ class DirectorConfig:
                 "reranker_enabled": False,
                 "scorer_backend": "hybrid",
                 "llm_judge_enabled": True,
+                "llm_judge_provider": "local",
+                "verified_scorer_enabled": True,
                 "w_logic": 0.0,
                 "w_fact": 1.0,
                 "nli_fact_inner_agg": "min",
@@ -1022,6 +1041,13 @@ class DirectorConfig:
         scorer._claim_coverage_enabled = self.nli_claim_coverage_enabled
         scorer._claim_support_threshold = self.nli_claim_support_threshold
         scorer._claim_coverage_alpha = self.nli_claim_coverage_alpha
+        scorer._verified_scorer_enabled = self.verified_scorer_enabled
+        scorer._verified_scorer_atomic = self.verified_scorer_atomic
+        scorer._verified_scorer_evidence_top_k = self.verified_scorer_evidence_top_k
+        scorer._verified_scorer_low_confidence_margin = (
+            self.verified_scorer_low_confidence_margin
+        )
+        scorer._verified_scorer_min_coverage = self.verified_scorer_min_coverage
         scorer._adaptive_threshold_enabled = self.adaptive_threshold_enabled
         scorer._task_type_thresholds = {
             "summarization": self.threshold_summarization,
