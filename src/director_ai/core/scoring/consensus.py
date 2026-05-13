@@ -27,6 +27,7 @@ from dataclasses import dataclass, field
 from director_ai.core.guard_control import (
     GuardDecision,
     NoGoPolicy,
+    NoGoVerdict,
     RiskEnvelope,
     VerifierSignal,
 )
@@ -363,8 +364,13 @@ class CrossVerifierConsensus:
         *,
         risk_envelope: RiskEnvelope,
         policy_id: str,
+        action_sequence: Sequence[str] | None = None,
     ) -> GuardDecision:
         """Return one decision for a set of verifier signals."""
+        attributes = {
+            "consensus_mode": self._mode,
+            **_action_sequence_attributes(action_sequence),
+        }
         signal_tuple = tuple(signals)
         if not signal_tuple:
             return self._finalize(
@@ -381,7 +387,7 @@ class CrossVerifierConsensus:
                     evidence_refs=(),
                     verifier_signals=(),
                     risk_envelope=risk_envelope,
-                    attributes={"consensus_mode": self._mode},
+                    attributes=attributes,
                 )
             )
         risk_score = (
@@ -421,7 +427,7 @@ class CrossVerifierConsensus:
                 evidence_refs=evidence_refs,
                 verifier_signals=signal_tuple,
                 risk_envelope=risk_envelope,
-                attributes={"consensus_mode": self._mode},
+                attributes=attributes,
             )
         )
 
@@ -432,6 +438,7 @@ class CrossVerifierConsensus:
         profile: CriticalConsensusProfile,
         risk_envelope: RiskEnvelope,
         policy_id: str,
+        action_sequence: Sequence[str] | None = None,
     ) -> GuardDecision:
         """Return a profile-gated consensus decision for critical domains."""
         signal_tuple = tuple(signals)
@@ -439,6 +446,7 @@ class CrossVerifierConsensus:
             signal_tuple,
             risk_envelope=risk_envelope,
             policy_id=policy_id,
+            action_sequence=action_sequence,
         )
         present = tuple(sorted({signal.verifier for signal in signal_tuple}))
         missing = tuple(
@@ -526,6 +534,7 @@ class CrossVerifierConsensus:
             attributes={
                 **dict(decision.attributes),
                 "requires_human_review": str(verdict.requires_human_review).lower(),
+                **_forecast_attributes(verdict),
             },
         )
 
@@ -574,6 +583,31 @@ def _collect_evidence_refs(signals: tuple[VerifierSignal, ...]) -> tuple[str, ..
                 refs.append(ref)
                 seen.add(ref)
     return tuple(refs)
+
+
+def _forecast_attributes(verdict: NoGoVerdict) -> dict[str, str]:
+    if verdict.forecast is None:
+        return {}
+    forecast = verdict.forecast
+    return {
+        "irreversibility_forecast_p": f"{forecast.p_irreversible:.6f}",
+        "irreversibility_forecast_ci_low": f"{forecast.ci_low:.6f}",
+        "irreversibility_forecast_ci_high": f"{forecast.ci_high:.6f}",
+        "irreversibility_forecast_samples": str(forecast.samples),
+    }
+
+
+def _action_sequence_attributes(
+    action_sequence: Sequence[str] | None,
+) -> dict[str, str]:
+    if action_sequence is None:
+        return {}
+    actions = tuple(
+        str(action).strip() for action in action_sequence if str(action).strip()
+    )
+    if not actions:
+        return {}
+    return {"action_sequence": "\n".join(actions)}
 
 
 def _fused_interval(

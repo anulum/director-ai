@@ -16,6 +16,7 @@ from director_ai.core.guard_control import (
     RiskEnvelope,
     VerifierSignal,
 )
+from director_ai.core.irreversibility import Forecast
 from director_ai.core.safety_event import SafetyEvent
 
 
@@ -102,6 +103,97 @@ def test_no_go_policy_blocks_irreversible_high_risk_actions() -> None:
     assert verdict.reason == "no_go_irreversible_risk"
     assert verdict.requires_human_review is True
     assert verdict.original_decision == decision
+
+
+def test_no_go_policy_blocks_forecasted_irreversible_action_sequence() -> None:
+    class AlwaysIrreversibleForecaster:
+        def forecast(self, actions, *, seed=0):
+            assert tuple(actions) == ("preview deployment", "delete production table")
+            assert seed == 11
+            return Forecast(
+                p_irreversible=0.91,
+                ci_low=0.84,
+                ci_high=0.96,
+                crossed=91,
+                samples=100,
+            )
+
+    policy = NoGoPolicy(
+        default_threshold=0.95,
+        irreversible_threshold=0.75,
+        irreversibility_forecaster=AlwaysIrreversibleForecaster(),
+        forecast_seed=11,
+    )
+    decision = GuardDecision(
+        decision="warn",
+        risk_score=0.78,
+        confidence_low=0.69,
+        confidence_high=0.86,
+        policy_id="policy.ops",
+        reason="operator_review",
+        tenant_safe_explanation="The action needs operator review.",
+        evidence_refs=("ops:change-7",),
+        verifier_signals=(),
+        risk_envelope=RiskEnvelope(
+            action_category="tool",
+            reversibility="costly",
+            domain="security",
+            calibrated_threshold=0.7,
+            no_go_threshold=0.95,
+        ),
+        attributes={"action_sequence": "preview deployment\ndelete production table"},
+    )
+
+    verdict = policy.evaluate(decision)
+
+    assert verdict.decision == "block"
+    assert verdict.reason == "no_go_irreversibility_forecast"
+    assert verdict.requires_human_review is True
+    assert verdict.forecast == Forecast(
+        p_irreversible=0.91,
+        ci_low=0.84,
+        ci_high=0.96,
+        crossed=91,
+        samples=100,
+    )
+    assert verdict.original_decision == decision
+
+
+def test_no_go_policy_skips_forecast_below_calibrated_risk_threshold() -> None:
+    class FailingForecaster:
+        def forecast(self, actions, *, seed=0):
+            raise AssertionError("forecast should not run below calibrated risk")
+
+    policy = NoGoPolicy(
+        default_threshold=0.95,
+        irreversible_threshold=0.25,
+        irreversibility_forecaster=FailingForecaster(),
+    )
+    decision = GuardDecision(
+        decision="warn",
+        risk_score=0.68,
+        confidence_low=0.59,
+        confidence_high=0.75,
+        policy_id="policy.ops",
+        reason="operator_review",
+        tenant_safe_explanation="The action needs operator review.",
+        evidence_refs=("ops:change-8",),
+        verifier_signals=(),
+        risk_envelope=RiskEnvelope(
+            action_category="tool",
+            reversibility="costly",
+            domain="security",
+            calibrated_threshold=0.7,
+            no_go_threshold=0.95,
+        ),
+        attributes={"action_sequence": "delete production table"},
+    )
+
+    verdict = policy.evaluate(decision)
+
+    assert verdict.decision == "warn"
+    assert verdict.reason == "operator_review"
+    assert verdict.forecast is None
 
 
 def test_guard_control_rejects_invalid_scores_and_impossible_intervals() -> None:

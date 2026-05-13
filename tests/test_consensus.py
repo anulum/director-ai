@@ -16,6 +16,7 @@ from __future__ import annotations
 import pytest
 
 from director_ai.core.guard_control import NoGoPolicy, RiskEnvelope, VerifierSignal
+from director_ai.core.irreversibility import Forecast
 from director_ai.core.scoring.consensus import (
     ConsensusScorer,
     CriticalConsensusProfile,
@@ -490,3 +491,50 @@ class TestCrossVerifierConsensus:
         assert decision.decision == "block"
         assert decision.reason == "no_go_irreversible_risk"
         assert decision.attributes["consensus_mode"] == "weighted"
+
+    def test_no_go_policy_blocks_forecasted_irreversibility_from_consensus(self):
+        class AlwaysIrreversibleForecaster:
+            def forecast(self, actions, *, seed=0):
+                assert tuple(actions) == ("stage plan", "transfer funds")
+                return Forecast(
+                    p_irreversible=0.87,
+                    ci_low=0.78,
+                    ci_high=0.93,
+                    crossed=87,
+                    samples=100,
+                )
+
+        envelope = RiskEnvelope(
+            action_category="tool",
+            reversibility="costly",
+            domain="financial",
+            calibrated_threshold=0.5,
+            no_go_threshold=0.95,
+        )
+        signal = VerifierSignal(
+            verifier="policy",
+            modality="policy",
+            score=0.61,
+            verdict="uncertain",
+            confidence_low=0.54,
+            confidence_high=0.73,
+            evidence_refs=("policy:change-risk",),
+        )
+        consensus = CrossVerifierConsensus(
+            no_go_policy=NoGoPolicy(
+                irreversible_threshold=0.7,
+                irreversibility_forecaster=AlwaysIrreversibleForecaster(),
+            )
+        )
+
+        decision = consensus.decide(
+            (signal,),
+            risk_envelope=envelope,
+            policy_id="policy.finance.ops",
+            action_sequence=("stage plan", "transfer funds"),
+        )
+
+        assert decision.decision == "block"
+        assert decision.reason == "no_go_irreversibility_forecast"
+        assert decision.attributes["requires_human_review"] == "true"
+        assert decision.attributes["irreversibility_forecast_ci_low"] == "0.780000"

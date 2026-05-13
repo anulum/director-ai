@@ -493,7 +493,7 @@ future-differentiator queue.
   with claimed state before and after high-risk actions.
 - [x] Design an agent passport registry for verifiable coherence history across
   organisational hand-offs.
-- [ ] Promote irreversibility forecasting into the default policy path for actions
+- [x] Promote irreversibility forecasting into the default policy path for actions
   above a calibrated risk threshold.
 - [ ] Unify defence registry, self-evolution, and continual adversarial testing
   into one reviewed defence-update pipeline.

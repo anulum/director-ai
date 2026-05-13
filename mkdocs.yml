@@ -176,6 +176,7 @@ nav:
       - StreamingKernel: api/streaming.md
       - Correction Loop: api/correction-loop.md
       - Human Review Queue: api/human-review.md
+      - Guard Control: api/guard-control.md
       - Policy Evaluation: api/policy-evaluation.md
       - Causal Attribution Graph: api/causal-attribution.md
       - Adaptive Threshold Learning: api/adaptive-threshold.md

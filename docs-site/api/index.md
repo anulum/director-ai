@@ -21,6 +21,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`StreamingKernel`](streaming.md) | `director_ai.core.runtime.streaming` | Token-level streaming halt |
 | [`AsyncStreamingKernel`](streaming.md#async) | `director_ai.core.runtime.async_streaming` | Async variant of StreamingKernel |
 | [`HumanReviewQueue`](human-review.md) | `director_ai.core.runtime.human_review` | Durable reviewer approval, retry, and release gate |
+| [`NoGoPolicy`](guard-control.md) | `director_ai.core.guard_control` | Calibrated no-go policy with default irreversibility forecasting |
 | [`evaluate_policy_variants()`](policy-evaluation.md) | `director_ai.core.evaluation.policy` | Controlled profile and threshold comparison on labelled data |
 | [`build_causal_attribution_graph()`](causal-attribution.md) | `director_ai.core.attribution.causal_graph` | Evidence, claim, halt-trace, and counterfactual attribution DAGs |
 | [`AdaptiveThresholdLearner`](adaptive-threshold.md) | `director_ai.core.calibration.adaptive_threshold` | Human-gated Thompson-sampling threshold recommendations |
