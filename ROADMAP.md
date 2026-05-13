@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-04-30
+Last updated: 2026-05-13
 
 ## Shipped Today - 2026-04-29
 
@@ -451,6 +451,11 @@ Last updated: 2026-04-30
   signed fact, passport claim, or retraction record.
 
 ### Future Differentiators (Planned)
+2026-05-13 reconciliation: sustainability scoring, agent passport registry,
+and the closed-loop physical grounding evaluator are implemented and marked
+complete below. The remaining unchecked entries in this section are the active
+future-differentiator queue.
+
 - [x] Prototype native inference-server hooks for vLLM, TGI, and llama.cpp so the
   guard can intervene before unsafe tokens are sampled.
 - [x] Design a human-reviewed self-improving guard loop from calibration feedback
@@ -476,9 +481,9 @@ Last updated: 2026-04-30
 - [x] Add verifier backends for formal math and code outputs through theorem
   prover integrations.
 - [ ] Design federated, privacy-preserving sharing of anonymised guard signals.
-- [ ] Add sustainability scoring for token cost, energy estimates, and budget
+- [x] Add sustainability scoring for token cost, energy estimates, and budget
   halts.
-- [ ] Extend sustainability scoring with real hardware profiles, projected energy,
+- [x] Extend sustainability scoring with real hardware profiles, projected energy,
   projected currency cost, and budget-halt policy controls.
 - [ ] Promote the recursive guard-of-the-guard layer into a guarded production
   option with drift and evasion checks.
@@ -486,7 +491,7 @@ Last updated: 2026-04-30
   across inference servers and downstream tools.
 - [ ] Add a live physical-world grounding loop that compares sensor-fusion state
   with claimed state before and after high-risk actions.
-- [ ] Design an agent passport registry for verifiable coherence history across
+- [x] Design an agent passport registry for verifiable coherence history across
   organisational hand-offs.
 - [ ] Promote irreversibility forecasting into the default policy path for actions
   above a calibrated risk threshold.
@@ -496,6 +501,6 @@ Last updated: 2026-04-30
   interoperability specification for inference servers and agent frameworks.
 - [ ] Add a reviewed no-go policy that makes irreversibility forecasts block
   high-risk actions above a calibrated conformal threshold.
-- [ ] Design a closed-loop physical grounding evaluator that compares perception
+- [x] Design a closed-loop physical grounding evaluator that compares perception
   state, claimed state, and post-action state across camera, IMU, and simulator
   feeds.
