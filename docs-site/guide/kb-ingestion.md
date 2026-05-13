@@ -69,6 +69,30 @@ store.add_fact("gravity", "Earth's gravitational acceleration is 9.81 m/s².")
 scorer = cfg.build_scorer(store=store)
 ```
 
+For user-supplied or externally synchronized facts, place
+`ConflictAwareKnowledgeGuard` in front of the store so contradictory updates are
+checked before they become retrievable context:
+
+```python
+from director_ai import ConflictAwareKnowledgeGuard, KnowledgeFact
+
+guard = ConflictAwareKnowledgeGuard(store, score_fn=contradiction_score)
+result = guard.add_fact(
+    KnowledgeFact(
+        key="refund_policy",
+        value="Refunds are unavailable after delivery confirmation.",
+        metadata={"contradicts": "claim-refund-v1"},
+    )
+)
+
+if result.decision == "block":
+    raise RuntimeError("KB update rejected before retrieval admission")
+```
+
+Conflict reports carry hashes and evidence references, not raw fact text. Use
+this guard at ingestion boundaries where tenant users, signed facts, passport
+claims, or upstream synchronizers can introduce mutually incompatible facts.
+
 Inspect the active recipe without exposing API keys:
 
 ```python

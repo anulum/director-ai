@@ -469,7 +469,7 @@ Last updated: 2026-04-30
   outputs using caption/metadata grounding.
 - [x] Draft an open Director Safety Protocol for guard signals shared across agent
   frameworks.
-- [ ] Add conflict-aware knowledge-base checks that detect contradictory user facts
+- [x] Add conflict-aware knowledge-base checks that detect contradictory user facts
   before they enter retrieval.
 - [ ] Package the halt/interlock kernel as a standalone library for users who bring
   their own scorer.

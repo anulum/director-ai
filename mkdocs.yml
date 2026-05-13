@@ -184,6 +184,7 @@ nav:
       - Sustainability Scoring: api/sustainability-scoring.md
       - Agent Passport Registry: api/agent-passport-registry.md
       - CoherenceAgent: api/agent.md
+      - Conflict-Aware Knowledge Checks: api/conflict-aware-knowledge.md
       - VectorGroundTruthStore: api/vector-store.md
       - Document Ingestion Pipeline: api/ingestion.md
       - BatchProcessor: api/batch.md

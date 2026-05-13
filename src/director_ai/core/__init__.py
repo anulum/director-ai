@@ -34,6 +34,12 @@ from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
 from .config import DirectorConfig, ProfileMetadata
 
 # --- Retrieval ---
+from .retrieval.conflict_guard import (
+    ConflictAwareKnowledgeGuard,
+    KnowledgeConflict,
+    KnowledgeConflictCheck,
+    KnowledgeFact,
+)
 from .retrieval.knowledge import GroundTruthStore
 from .retrieval.vector_store import (
     ChromaBackend,
@@ -161,6 +167,7 @@ __all__ = [
     # Scoring
     "ClaimVerdict",
     "CoherenceScorer",
+    "ConflictAwareKnowledgeGuard",
     "DatasetTypeClassifier",
     "LiteScorer",
     "MetaClassifier",
@@ -177,6 +184,9 @@ __all__ = [
     "GroundTruthStore",
     "HybridBackend",
     "InMemoryBackend",
+    "KnowledgeConflict",
+    "KnowledgeConflictCheck",
+    "KnowledgeFact",
     "PineconeBackend",
     "QdrantBackend",
     "RerankedBackend",

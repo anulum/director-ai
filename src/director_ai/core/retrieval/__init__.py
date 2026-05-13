@@ -5,3 +5,17 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # retrieval subpackage
+
+from .conflict_guard import (
+    ConflictAwareKnowledgeGuard,
+    KnowledgeConflict,
+    KnowledgeConflictCheck,
+    KnowledgeFact,
+)
+
+__all__ = [
+    "ConflictAwareKnowledgeGuard",
+    "KnowledgeConflict",
+    "KnowledgeConflictCheck",
+    "KnowledgeFact",
+]
