@@ -250,6 +250,72 @@ class TestVerifiedScorer:
         assert spans[0].index == 1
         assert spans[0].nli_divergence == 0.05
 
+    def test_decisive_nli_support_is_not_overridden_by_lexical_traceability(self):
+        class SupportingNLI:
+            model_available = True
+
+            def score_batch(self, pairs):
+                return [0.05 for _ in pairs]
+
+        vs = VerifiedScorer(nli_scorer=SupportingNLI())
+        result = vs.verify(
+            "The client ended service following the subscription extension.",
+            "The customer cancelled after the renewal.",
+        )
+
+        assert result.approved
+        assert result.fabricated_count == 0
+        assert result.claims[0].traceability < 0.15
+        assert result.claims[0].verdict == "supported"
+        assert result.claims[0].traceability_mode == "lexical"
+
+    def test_uncertain_nli_still_uses_traceability_as_fabrication_signal(self):
+        class UncertainNLI:
+            model_available = True
+
+            def score_batch(self, pairs):
+                return [0.5 for _ in pairs]
+
+        vs = VerifiedScorer(nli_scorer=UncertainNLI())
+        result = vs.verify(
+            "WhatsApp Business approvals ship now.",
+            "Slack notifications work today.",
+        )
+
+        assert not result.approved
+        assert result.fabricated_count == 1
+        assert result.claims[0].traceability < 0.2
+
+    def test_semantic_traceability_backend_is_used_when_configured(self):
+        class SemanticTrace:
+            def score(self, premise, hypothesis):
+                assert premise == "The customer cancelled after the renewal."
+                assert (
+                    hypothesis
+                    == "The client ended service following the subscription extension."
+                )
+                return 0.91
+
+        vs = VerifiedScorer(
+            traceability_scorer=SemanticTrace(),
+            traceability_mode="semantic",
+        )
+        result = vs.verify(
+            "The client ended service following the subscription extension.",
+            "The customer cancelled after the renewal.",
+        )
+
+        assert result.claims[0].traceability == 0.91
+        assert result.claims[0].traceability_mode == "semantic"
+
+    def test_semantic_traceability_requires_backend(self):
+        try:
+            VerifiedScorer(traceability_mode="semantic")
+        except ValueError as exc:
+            assert "traceability_scorer" in str(exc)
+        else:
+            raise AssertionError("semantic traceability without scorer must fail")
+
     def test_fallback_best_match_uses_word_overlap(self):
         vs = VerifiedScorer()
         best_idx, divergence = vs._find_best_match(

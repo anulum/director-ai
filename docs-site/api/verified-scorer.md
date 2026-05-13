@@ -29,7 +29,7 @@ graph TD
     VOTE --> VER{Verdict}
     VER -->|"support ≥ 50%"| SUP["supported"]
     VER -->|"contradict ≥ 50%"| CON["contradicted"]
-    VER -->|"trace < 15%"| FAB["fabricated"]
+    VER -->|"uncertain NLI + trace < 15%"| FAB["fabricated"]
     VER -->|"signals disagree"| UNV["unverifiable"]
 
     style R fill:#7c4dff,color:#fff
@@ -114,7 +114,7 @@ for claim in result.claims:
 
 ### With NLI Model
 
-When an NLI scorer is provided, claim-to-source matching uses NLI divergence instead of word overlap, producing more accurate verdicts.
+When an NLI scorer is provided, claim-to-source matching uses NLI divergence instead of word overlap. Decisive NLI support or contradiction is authoritative; traceability is retained as an auxiliary grounding signal only when NLI is unavailable or uncertain.
 
 ```python
 from director_ai import NLIScorer, VerifiedScorer
@@ -129,9 +129,27 @@ result = vs.verify(
 # contradicted: entity mismatch (Germany ≠ France) + NLI divergence
 ```
 
+### Semantic Traceability
+
+By default, traceability is lexical so `VerifiedScorer()` has no heavyweight runtime dependency. Production deployments can inject a semantic scorer that implements `score(premise, hypothesis) -> float`, including `EmbedBackend` from `director-ai[embed]`.
+
+```python
+from director_ai import VerifiedScorer
+from director_ai.core.scoring.embed_scorer import EmbedBackend
+
+semantic_trace = EmbedBackend()
+vs = VerifiedScorer(
+    nli_scorer=nli,
+    traceability_scorer=semantic_trace,
+    traceability_mode="semantic",
+)
+```
+
+`traceability_mode="auto"` uses semantic traceability when a scorer is supplied and lexical traceability otherwise. `traceability_mode="disabled"` omits traceability from the verdict vote while still preserving the other verification signals.
+
 ## The 5 Signals
 
-Each claim-source pair is scored by 5 independent signals. Signals vote toward support, contradiction, or fabrication. The majority determines the verdict.
+Each claim-source pair is scored by independent signals. Signals vote toward support, contradiction, or fabrication. The majority determines the verdict.
 
 | # | Signal | Supports when | Contradicts when | Notes |
 |---|--------|---------------|------------------|-------|
@@ -139,7 +157,7 @@ Each claim-source pair is scored by 5 independent signals. Signals vote toward s
 | 2 | **Entity consistency** | overlap ≥ 50% | overlap < 20% | Regex-based capitalized phrase extraction. Skipped when neither text has entities. |
 | 3 | **Numerical consistency** | numbers match | numbers differ | Compares digit sequences. `None` (no vote) when neither text has numbers. |
 | 4 | **Negation detection** | — | polarity flip detected | Requires ≥ 3 shared content words with opposite negation. Only votes to contradict. |
-| 5 | **Traceability** | content overlap ≥ 50% | content overlap < 20% | Measures what fraction of claim's content words appear in source. Low = fabrication. |
+| 5 | **Traceability** | score ≥ 50% | score < 20% | Lexical content overlap by default, semantic similarity when a scorer is configured. Applied as a fabrication signal only when NLI is unavailable or uncertain. |
 
 ### Signal Interaction Table
 
@@ -148,17 +166,19 @@ NLI  Entity  Number  Negation  Trace  → Verdict
 ───  ──────  ──────  ────────  ─────  ─────────
 sup  sup     match   no flip   high   → supported (high conf)
 sup  sup     —       no flip   high   → supported (high conf)
-con  low     —       —         low    → fabricated (traceability override)
+con  low     —       —         low    → contradicted (decisive NLI)
 con  sup     mismatch flip    high   → contradicted (3 signals)
 sup  —       mismatch —       high   → unverifiable (signals disagree)
-—    —       —       —         <15%   → fabricated (hard override)
+unc  —       —       —         <15%   → fabricated
 ```
 
 ## Verdicts
 
 ```mermaid
 graph LR
-    SIG["Signal votes"] --> CHK1{"trace < 15%?"}
+    SIG["Signal votes"] --> CHK0{"NLI decisive?"}
+    CHK0 -->|Yes| CHK2{"contradict ≥ 50%?"}
+    CHK0 -->|No| CHK1{"trace < 15%?"}
     CHK1 -->|Yes| FAB["fabricated<br/>conf: 0.7+"]
     CHK1 -->|No| CHK2{"contradict ≥ 50%?"}
     CHK2 -->|Yes| CON["contradicted<br/>conf: contradict_ratio"]
@@ -176,7 +196,7 @@ graph LR
 |---------|---------|-----------------|
 | `supported` | Claim consistent with source | support_ratio (proportion of signals agreeing) |
 | `contradicted` | Claim conflicts with source | contradict_ratio |
-| `fabricated` | Claim content not traceable to source | Traceability < 15% triggers hard override (conf ≥ 0.7) |
+| `fabricated` | Claim content not traceable to source | Traceability < 15% only when NLI is unavailable or uncertain |
 | `unverifiable` | Insufficient signal agreement | max(support_ratio, contradict_ratio) |
 
 ### Approval Logic

@@ -25,7 +25,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
-from typing import cast
+from typing import Literal, Protocol, cast
 
 logger = logging.getLogger("DirectorAI.VerifiedScorer")
 
@@ -102,6 +102,7 @@ class ClaimVerdict:
     traceability: float
     verdict: str  # "supported", "contradicted", "unverifiable", "fabricated"
     confidence: float
+    traceability_mode: str = "lexical"
     aggregated_source: str = ""
     source_indices: list[int] = field(default_factory=list)
     evidence_spans: list[SourceSpan] = field(default_factory=list)
@@ -142,6 +143,7 @@ class VerificationResult:
                     "numerical_match": c.numerical_match,
                     "negation_flip": c.negation_flip,
                     "traceability": round(c.traceability, 2),
+                    "traceability_mode": c.traceability_mode,
                     "verdict": c.verdict,
                     "evidence_mode": c.evidence_mode,
                     "is_atomic": c.is_atomic,
@@ -159,6 +161,17 @@ class VerificationResult:
         }
 
 
+class TraceabilityScorer(Protocol):
+    """Semantic traceability backend used by ``VerifiedScorer``.
+
+    Implementations return a groundedness similarity in [0, 1] for
+    ``premise`` and ``hypothesis``. ``EmbedBackend`` satisfies this
+    protocol without importing sentence-transformers on the default path.
+    """
+
+    def score(self, premise: str, hypothesis: str) -> float: ...
+
+
 class VerifiedScorer:
     """Multi-signal atomic fact verifier with source-span provenance.
 
@@ -168,6 +181,8 @@ class VerifiedScorer:
     nli_threshold : float — divergence above this = contradiction (default 0.65).
     support_threshold : float — divergence below this = supported (default 0.35).
     min_confidence : float — below this, verdict is "unverifiable" (default 0.4).
+    traceability_scorer : object or None — optional semantic traceability scorer.
+    traceability_mode : "auto" | "lexical" | "semantic" | "disabled".
     """
 
     def __init__(
@@ -176,11 +191,21 @@ class VerifiedScorer:
         nli_threshold: float = 0.65,
         support_threshold: float = 0.35,
         min_confidence: float = 0.4,
+        traceability_scorer: TraceabilityScorer | None = None,
+        traceability_mode: Literal["auto", "lexical", "semantic", "disabled"] = "auto",
     ):
+        if traceability_mode not in {"auto", "lexical", "semantic", "disabled"}:
+            raise ValueError(
+                "traceability_mode must be one of: auto, lexical, semantic, disabled"
+            )
+        if traceability_mode == "semantic" and traceability_scorer is None:
+            raise ValueError("semantic traceability requires traceability_scorer")
         self._nli = nli_scorer
         self._nli_threshold = nli_threshold
         self._support_threshold = support_threshold
         self._min_confidence = min_confidence
+        self._traceability_scorer = traceability_scorer
+        self._traceability_mode = traceability_mode
 
     def verify(
         self,
@@ -238,7 +263,7 @@ class VerifiedScorer:
             entity_score = _entity_overlap(r_sent, evidence_src)
             num_match = _numerical_consistency(r_sent, evidence_src)
             neg_flip = _negation_flip(r_sent, evidence_src)
-            trace = _traceability(r_sent, evidence_src)
+            trace, trace_mode = self._score_traceability(r_sent, evidence_src)
 
             verdict, conf = self._multi_signal_verdict(
                 nli_div,
@@ -246,6 +271,8 @@ class VerifiedScorer:
                 num_match,
                 neg_flip,
                 trace,
+                nli_available=self._nli_available(),
+                traceability_mode=trace_mode,
             )
 
             claims.append(
@@ -263,6 +290,7 @@ class VerifiedScorer:
                     traceability=trace,
                     verdict=verdict,
                     confidence=conf,
+                    traceability_mode=trace_mode,
                     evidence_spans=spans,
                     evidence_mode=evidence_mode,
                     is_atomic=atomic,
@@ -399,6 +427,21 @@ class VerifiedScorer:
             return float(self._nli.score_batch([(premise, claim)])[0])
         return fallback_span.nli_divergence
 
+    def _nli_available(self) -> bool:
+        return bool(self._nli and self._nli.model_available)
+
+    def _score_traceability(self, claim: str, source: str) -> tuple[float, str]:
+        """Score claim grounding against evidence with the configured backend."""
+        if self._traceability_mode == "disabled":
+            return 1.0, "disabled"
+        if (
+            self._traceability_mode in {"auto", "semantic"}
+            and self._traceability_scorer is not None
+        ):
+            score = float(self._traceability_scorer.score(source, claim))
+            return max(0.0, min(1.0, score)), "semantic"
+        return _traceability(claim, source), "lexical"
+
     def _multi_signal_verdict(
         self,
         nli_div: float,
@@ -406,6 +449,9 @@ class VerifiedScorer:
         num_match: bool | None,
         neg_flip: bool,
         traceability: float,
+        *,
+        nli_available: bool = False,
+        traceability_mode: str = "lexical",
     ) -> tuple[str, float]:
         """Combine signals into verdict + confidence."""
         signals_support = 0
@@ -442,12 +488,17 @@ class VerifiedScorer:
             signals_contradict += 1
 
         # Signal 5: Traceability (fabrication detection)
-        # Low traceability = claim content not found in source = likely fabricated
-        total_signals += 1
-        if traceability >= 0.5:
-            signals_support += 1
-        elif traceability < 0.2:
-            signals_fabricate += 1
+        # Low traceability is only decisive when NLI is unavailable or uncertain.
+        nli_uncertain = self._support_threshold <= nli_div <= self._nli_threshold
+        traceability_applies = traceability_mode != "disabled" and (
+            not nli_available or nli_uncertain
+        )
+        if traceability_applies:
+            total_signals += 1
+            if traceability >= 0.5:
+                signals_support += 1
+            elif traceability < 0.2:
+                signals_fabricate += 1
 
         if total_signals == 0:
             return "unverifiable", 0.0
@@ -456,8 +507,8 @@ class VerifiedScorer:
         contradict_ratio = signals_contradict / total_signals
         fabricate_ratio = signals_fabricate / total_signals
 
-        # Fabrication: very low traceability overrides other signals
-        if traceability < 0.15:
+        # Fabrication: very low traceability overrides only when NLI cannot decide.
+        if traceability_applies and traceability < 0.15:
             return "fabricated", 0.7 + (1.0 - traceability) * 0.3
         if fabricate_ratio > 0 and contradict_ratio == 0 and support_ratio < 0.5:
             return "fabricated", 0.5 + (1.0 - traceability) * 0.5
