@@ -143,6 +143,44 @@ the simulator is foundation scope. Calibrate a proper conformal
 threshold against historical traces once the fan-out has been
 running in production long enough to collect a calibration set.
 
+## Predictive pre-halt steering
+
+Use `PredictivePreHaltSteering` when the gateway needs an action before
+starting the expensive generation path. The controller consumes the preflight
+verdict and a calibrated `RiskEnvelope`, then returns one of three actions:
+
+| Steering action | Guard decision | Gateway action |
+| --- | --- | --- |
+| `proceed` | `allow` | Use the current backend. |
+| `escalate` | `warn` | Route to a stronger verifier or review lane. |
+| `halt` | `halt` | Stop before upstream generation and attach the safety event. |
+
+```python
+from director_ai.core.guard_control import RiskEnvelope
+from director_ai.core.trajectory import PredictivePreHaltSteering
+
+steering = PredictivePreHaltSteering(min_simulations=8)
+decision = steering.evaluate(
+    verdict,
+    risk_envelope=RiskEnvelope(
+        action_category="inference_steering",
+        reversibility="reversible",
+        domain="regulated",
+        calibrated_threshold=0.5,
+        no_go_threshold=0.9,
+    ),
+    policy_id="policy.prehalt.regulated",
+)
+
+event = decision.to_safety_event(hook_id="prehalt.steering")
+```
+
+The controller halts when empirical halt probability crosses the calibrated
+threshold. It escalates when the upper confidence bound crosses the threshold
+or when there are too few simulations for the configured minimum. Audit records
+include probability, confidence bounds, backend recommendation, and failed
+trajectory IDs; they do not include prompt text or sampled token text.
+
 ## Cost
 
 Every preflight call is N extra scoring reviews. The default

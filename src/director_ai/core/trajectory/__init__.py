@@ -36,10 +36,13 @@ from .simulator import (
     TrajectorySimulator,
     VerdictProducer,
 )
+from .steering import PredictivePreHaltSteering, PreHaltSteeringDecision
 
 __all__ = [
     "Actor",
+    "PreHaltSteeringDecision",
     "PreflightVerdict",
+    "PredictivePreHaltSteering",
     "TrajectoryResult",
     "TrajectorySimulator",
     "VerdictProducer",
