@@ -36,12 +36,15 @@ Four pieces:
 from .engine import EvolutionEngine, EvolutionReport, GenomePopulation
 from .genome import AdversarialGenome, Gene, GeneOperator
 from .registry import Defense, DefenseRegistry, DefenseSnapshot
+from .update_pipeline import DefenseUpdatePipeline, DefenseUpdateReport
 
 __all__ = [
     "AdversarialGenome",
     "Defense",
     "DefenseRegistry",
     "DefenseSnapshot",
+    "DefenseUpdatePipeline",
+    "DefenseUpdateReport",
     "EvolutionEngine",
     "EvolutionReport",
     "Gene",

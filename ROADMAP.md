@@ -495,7 +495,7 @@ future-differentiator queue.
   organisational hand-offs.
 - [x] Promote irreversibility forecasting into the default policy path for actions
   above a calibrated risk threshold.
-- [ ] Unify defence registry, self-evolution, and continual adversarial testing
+- [x] Unify defence registry, self-evolution, and continual adversarial testing
   into one reviewed defence-update pipeline.
 - [ ] Publish the Director safety telemetry schema as an independent
   interoperability specification for inference servers and agent frameworks.

@@ -25,6 +25,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`evaluate_policy_variants()`](policy-evaluation.md) | `director_ai.core.evaluation.policy` | Controlled profile and threshold comparison on labelled data |
 | [`build_causal_attribution_graph()`](causal-attribution.md) | `director_ai.core.attribution.causal_graph` | Evidence, claim, halt-trace, and counterfactual attribution DAGs |
 | [`AdaptiveThresholdLearner`](adaptive-threshold.md) | `director_ai.core.calibration.adaptive_threshold` | Human-gated Thompson-sampling threshold recommendations |
+| [`DefenseUpdatePipeline`](defence-update-pipeline.md) | `director_ai.core.defense_genome` | Reviewed defence promotion across feedback, adversarial mining, and registry hot-swap |
 | [`CrossDocumentConsistencyMemory`](cross-document-memory.md) | `director_ai.core.memory.consistency` | Tenant-scoped long-term consistency checks with retention and delete controls |
 | [`DifferentialPrivacyScoreReleaser`](private-score-release.md) | `director_ai.core.federated_privacy.score_release` | Laplace-noised score disclosure with privacy accounting |
 | [`FederatedSafetySignalAggregator`](federated-safety-signals.md) | `director_ai.core.federated_privacy.signal_sharing` | Anonymous DP aggregate sharing for tenant-safe guard signals |
