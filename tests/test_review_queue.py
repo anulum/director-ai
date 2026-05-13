@@ -15,6 +15,8 @@ batch sizes, pipeline integration, and performance documentation.
 from __future__ import annotations
 
 import asyncio
+import threading
+import time
 
 import pytest
 
@@ -92,6 +94,61 @@ class TestReviewQueueTenantGrouping:
             assert len(results) == 3
         finally:
             await queue.stop()
+
+
+class TestReviewQueueTimingSideChannel:
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "tenant_ids",
+        [
+            ("tenant-a", "tenant-a", "tenant-a", "tenant-a"),
+            ("tenant-a", "tenant-a", "tenant-b", "tenant-b"),
+            ("tenant-a", "tenant-b", "tenant-c", "tenant-d"),
+        ],
+    )
+    async def test_tenant_mix_does_not_serialise_batch_latency(self, tenant_ids):
+        class DelayedTenantScorer:
+            def __init__(self) -> None:
+                self.calls: list[tuple[str, int]] = []
+                self._lock = threading.Lock()
+
+            def review_batch(self, items, tenant_id=""):
+                time.sleep(0.05)
+                with self._lock:
+                    self.calls.append((tenant_id, len(items)))
+                return [
+                    (
+                        True,
+                        CoherenceScore(
+                            score=0.9,
+                            approved=True,
+                            h_logical=0.05,
+                            h_factual=0.05,
+                        ),
+                    )
+                    for _ in items
+                ]
+
+        scorer = DelayedTenantScorer()
+        queue = ReviewQueue(scorer, max_batch=4, flush_timeout_ms=5000.0)
+        await queue.start()
+        try:
+            started = time.perf_counter()
+            results = await asyncio.gather(
+                *(
+                    queue.submit(f"Q{index}", f"A{index}", tenant_id=tenant_id)
+                    for index, tenant_id in enumerate(tenant_ids)
+                ),
+            )
+            elapsed = time.perf_counter() - started
+        finally:
+            await queue.stop()
+
+        assert len(results) == 4
+        assert sorted(scorer.calls) == sorted(
+            (tenant_id, tenant_ids.count(tenant_id)) for tenant_id in set(tenant_ids)
+        )
+        assert elapsed < 0.15
 
 
 class TestReviewQueueFallback:

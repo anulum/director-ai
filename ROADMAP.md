@@ -431,7 +431,7 @@ Last updated: 2026-04-30
   and attestation failure cases before cross-organisation hand-off is promoted.
 - [x] Add pinned dependency guidance and sandbox notes for zk proof backends,
   simulation libraries, and physical adapters.
-- [ ] Add timing side-channel fuzz tests for ReviewQueue batching so coherence
+- [x] Add timing side-channel fuzz tests for ReviewQueue batching so coherence
   score latency cannot be inferred from batch size or tenant mix.
 - [ ] Document that `meta_guard`, `self_evolving`, `continual_adversarial`, and
   similar experimental hooks must not be enabled for live deployments without

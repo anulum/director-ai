@@ -207,6 +207,9 @@ uvicorn director_ai.server:app --host 0.0.0.0 --port 8080
 ```
 
 Session-bound requests (with `session_id`) bypass the queue automatically.
+Tenant groups inside one flush are dispatched concurrently. This preserves
+tenant-specific scorer calls while avoiding a response-time signal that scales
+linearly with the number of tenants represented in the flush window.
 
 ### Throughput Comparison
 

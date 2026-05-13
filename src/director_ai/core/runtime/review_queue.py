@@ -144,38 +144,53 @@ class ReviewQueue:
         for item in batch:
             tenant_groups.setdefault(item.tenant_id, []).append(item)
 
-        loop = asyncio.get_running_loop()
+        await asyncio.gather(
+            *(
+                self._flush_tenant_group(tenant_id, group)
+                for tenant_id, group in tenant_groups.items()
+            ),
+        )
 
-        for tenant_id, group in tenant_groups.items():
-            items = [(g.prompt, g.response) for g in group]
-            try:
-                results = await loop.run_in_executor(
-                    None,
-                    functools.partial(
-                        self._scorer.review_batch,
-                        items,
-                        tenant_id=tenant_id,
-                    ),
-                )
-                for pending, result in zip(group, results, strict=True):
-                    if not pending.future.done():
-                        pending.future.set_result(result)
-            except Exception as exc:
-                logger.warning("Batch flush failed, falling back per-item: %s", exc)
-                for pending in group:
-                    if pending.future.done():
-                        continue
-                    try:
-                        result = await loop.run_in_executor(
-                            None,
-                            functools.partial(
-                                self._scorer.review,
-                                pending.prompt,
-                                pending.response,
-                                session=pending.session,
-                                tenant_id=pending.tenant_id,
-                            ),
-                        )
-                        pending.future.set_result(result)
-                    except Exception as item_exc:
-                        pending.future.set_exception(item_exc)
+    async def _flush_tenant_group(
+        self,
+        tenant_id: str,
+        group: list[_PendingReview],
+    ) -> None:
+        loop = asyncio.get_running_loop()
+        items = [(g.prompt, g.response) for g in group]
+        try:
+            results = await loop.run_in_executor(
+                None,
+                functools.partial(
+                    self._scorer.review_batch,
+                    items,
+                    tenant_id=tenant_id,
+                ),
+            )
+            for pending, result in zip(group, results, strict=True):
+                if not pending.future.done():
+                    pending.future.set_result(result)
+        except Exception as exc:
+            logger.warning("Batch flush failed, falling back per-item: %s", exc)
+            await asyncio.gather(
+                *(self._fallback_pending_review(pending) for pending in group),
+            )
+
+    async def _fallback_pending_review(self, pending: _PendingReview) -> None:
+        if pending.future.done():
+            return
+        loop = asyncio.get_running_loop()
+        try:
+            result = await loop.run_in_executor(
+                None,
+                functools.partial(
+                    self._scorer.review,
+                    pending.prompt,
+                    pending.response,
+                    session=pending.session,
+                    tenant_id=pending.tenant_id,
+                ),
+            )
+            pending.future.set_result(result)
+        except Exception as item_exc:
+            pending.future.set_exception(item_exc)
