@@ -178,6 +178,7 @@ nav:
       - Self-Improving Guard Loop: api/self-improving-guard-loop.md
       - Synthetic Distillation: api/synthetic-distillation.md
       - Multimodal Checks: api/multimodal-checks.md
+      - Formal and Code Verifiers: api/formal-code-verifiers.md
       - CoherenceAgent: api/agent.md
       - VectorGroundTruthStore: api/vector-store.md
       - BatchProcessor: api/batch.md

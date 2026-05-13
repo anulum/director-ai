@@ -214,6 +214,42 @@ raise errors instead of silently passing. Safety events include media references
 and verifier scores; they do not include raw media, transcript text, frame data,
 or claim text.
 
+## Formal and Code Verifier Routing
+
+Use `FormalCodeVerifierAdapter` when symbolic claims or generated code need to
+enter the shared guard-control path. The adapter delegates formal formulae to
+the configured reasoning backend and generated code to `verify_code()` by
+default.
+
+```python
+from director_ai.core.formal_verification import (
+    And,
+    FormalCodeVerifierAdapter,
+    Not,
+    Variable,
+)
+from director_ai.core.guard_control import RiskEnvelope
+
+adapter = FormalCodeVerifierAdapter(timeout_ms=1000.0)
+result = adapter.verify_formula(
+    formula=And(Variable("approved"), Not(Variable("approved"))),
+    risk_envelope=RiskEnvelope(
+        action_category="code",
+        reversibility="reversible",
+        domain="regulated",
+        calibrated_threshold=0.5,
+        no_go_threshold=0.85,
+    ),
+    policy_id="policy.formal.regulated",
+    evidence_ref="formal://claim-1",
+)
+```
+
+Verifier failure is not proof of correctness. Missing backends, exceptions, and
+timeouts become warning decisions. Generated code is checked structurally and
+against manifests without executing it, and audit payloads carry evidence
+references rather than raw formulae or source code.
+
 ### Custom Module Registry
 
 ```python

@@ -39,6 +39,7 @@ single conjunction and asks the backend whether the conjunction
 is satisfiable. The shipped default is :class:`DpllSolver`.
 """
 
+from .adapter import FormalCodeVerificationResult, FormalCodeVerifierAdapter
 from .cnf import Clause, CnfConverter, Literal
 from .dpll import DpllSolver, Solution
 from .formula import And, Formula, Iff, Implies, Not, Or, Variable
@@ -57,6 +58,8 @@ __all__ = [
     "CnfConverter",
     "DpllSolver",
     "Formula",
+    "FormalCodeVerificationResult",
+    "FormalCodeVerifierAdapter",
     "Iff",
     "Implies",
     "LeanBackend",
