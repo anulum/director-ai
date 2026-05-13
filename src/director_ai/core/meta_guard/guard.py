@@ -20,11 +20,86 @@ into the scorer directly so it stays coupling-free.
 
 from __future__ import annotations
 
+from collections import Counter
+from collections.abc import Sequence
 from dataclasses import dataclass
 
 from .adjuster import ThresholdAdjuster, ThresholdBundle
 from .analyzer import MetaAnalysis, MetaAnalyzer
 from .log import DecisionLog, ScoringAction, ScoringDecision
+
+
+@dataclass(frozen=True)
+class ProductionMetaGuardDecision:
+    """Production gate result for recursive guard adjustment."""
+
+    enabled: bool
+    blocked: bool = False
+    block_reason: str = ""
+    window_size: int = 0
+    labelled_fraction: float = 0.0
+    single_tenant_fraction: float = 0.0
+    duplicate_prompt_fraction: float = 0.0
+    evasion_score: float = 0.0
+
+
+@dataclass(frozen=True)
+class MetaGuardProductionPolicy:
+    """Gate recursive threshold changes in production deployments.
+
+    The policy does not replace drift detection. It decides whether a detected
+    drift window is safe enough for the recursive guard layer to adjust
+    thresholds. Dominated windows are treated as possible evasion or traffic
+    skew and are observe-only until operator review.
+    """
+
+    min_labelled_fraction: float = 0.2
+    max_single_tenant_fraction: float = 0.5
+    max_duplicate_prompt_fraction: float = 0.4
+
+    def __post_init__(self) -> None:
+        _validate_fraction("min_labelled_fraction", self.min_labelled_fraction)
+        _validate_fraction(
+            "max_single_tenant_fraction", self.max_single_tenant_fraction
+        )
+        _validate_fraction(
+            "max_duplicate_prompt_fraction", self.max_duplicate_prompt_fraction
+        )
+
+    def evaluate(
+        self,
+        *,
+        window: Sequence[ScoringDecision],
+        analysis: MetaAnalysis,
+    ) -> ProductionMetaGuardDecision:
+        """Return whether the current recursive adjustment may proceed."""
+        metrics = _window_metrics(window)
+        if not analysis.any_alarm:
+            return ProductionMetaGuardDecision(enabled=True, **metrics)
+        if metrics["window_size"] == 0:
+            return ProductionMetaGuardDecision(enabled=True, **metrics)
+        if metrics["single_tenant_fraction"] > self.max_single_tenant_fraction:
+            return ProductionMetaGuardDecision(
+                enabled=True,
+                blocked=True,
+                block_reason="single_tenant_dominance",
+                **metrics,
+            )
+        if metrics["duplicate_prompt_fraction"] > self.max_duplicate_prompt_fraction:
+            return ProductionMetaGuardDecision(
+                enabled=True,
+                blocked=True,
+                block_reason="duplicate_prompt_dominance",
+                **metrics,
+            )
+        if metrics["labelled_fraction"] < self.min_labelled_fraction:
+            return ProductionMetaGuardDecision(
+                enabled=True,
+                blocked=True,
+                block_reason="insufficient_labels",
+                **metrics,
+            )
+        return ProductionMetaGuardDecision(enabled=True, **metrics)
 
 
 @dataclass(frozen=True)
@@ -40,6 +115,7 @@ class MetaVerdict:
     decision: ScoringDecision
     analysis: MetaAnalysis
     thresholds: ThresholdBundle | None
+    production: ProductionMetaGuardDecision = ProductionMetaGuardDecision(enabled=False)
 
     @property
     def adjusted(self) -> bool:
@@ -58,6 +134,10 @@ class MetaGuard:
     adjuster :
         Threshold mover — ``None`` disables auto-adjustment
         and the guard runs in observe-only mode.
+    production_policy :
+        Optional production gate. When supplied, detected drift windows must
+        pass diversity/evasion checks before the adjuster is allowed to mutate
+        thresholds.
     window_last_n :
         How many recent decisions the analyser sees per call.
         Default 256 — large enough for meaningful statistics,
@@ -70,6 +150,7 @@ class MetaGuard:
         log: DecisionLog,
         analyzer: MetaAnalyzer,
         adjuster: ThresholdAdjuster | None = None,
+        production_policy: MetaGuardProductionPolicy | None = None,
         window_last_n: int = 256,
     ) -> None:
         if window_last_n <= 0:
@@ -77,6 +158,7 @@ class MetaGuard:
         self._log = log
         self._analyzer = analyzer
         self._adjuster = adjuster
+        self._production_policy = production_policy
         self._window = window_last_n
 
     @property
@@ -106,13 +188,21 @@ class MetaGuard:
         )
         window = self._log.window(last_n=self._window)
         analysis = self._analyzer.analyse(window)
+        production = (
+            self._production_policy.evaluate(window=window, analysis=analysis)
+            if self._production_policy is not None
+            else ProductionMetaGuardDecision(enabled=False)
+        )
         adjusted = (
-            self._adjuster.observe(analysis) if self._adjuster is not None else None
+            self._adjuster.observe(analysis)
+            if self._adjuster is not None and not production.blocked
+            else None
         )
         return MetaVerdict(
             decision=decision,
             analysis=analysis,
             thresholds=adjusted,
+            production=production,
         )
 
     def latest_analysis(self) -> MetaAnalysis:
@@ -120,3 +210,33 @@ class MetaGuard:
         recording anything."""
         window = self._log.window(last_n=self._window)
         return self._analyzer.analyse(window)
+
+
+def _window_metrics(window: Sequence[ScoringDecision]) -> dict[str, float | int]:
+    size = len(window)
+    if size == 0:
+        return {
+            "window_size": 0,
+            "labelled_fraction": 0.0,
+            "single_tenant_fraction": 0.0,
+            "duplicate_prompt_fraction": 0.0,
+            "evasion_score": 0.0,
+        }
+    labelled = sum(1 for decision in window if decision.ground_truth is not None)
+    tenant_counts = Counter(decision.tenant_id for decision in window)
+    prompt_counts = Counter(decision.prompt_hash for decision in window)
+    single_tenant_fraction = max(tenant_counts.values()) / size
+    duplicate_prompt_fraction = max(prompt_counts.values()) / size
+    evasion_score = max(single_tenant_fraction, duplicate_prompt_fraction)
+    return {
+        "window_size": size,
+        "labelled_fraction": labelled / size,
+        "single_tenant_fraction": single_tenant_fraction,
+        "duplicate_prompt_fraction": duplicate_prompt_fraction,
+        "evasion_score": evasion_score,
+    }
+
+
+def _validate_fraction(name: str, value: float) -> None:
+    if not 0.0 <= value <= 1.0:
+        raise ValueError(f"{name} must be in [0, 1]")

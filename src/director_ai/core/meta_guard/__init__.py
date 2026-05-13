@@ -39,7 +39,12 @@ Four pieces:
 
 from .adjuster import ThresholdAdjuster, ThresholdBundle
 from .analyzer import MetaAnalysis, MetaAnalyzer
-from .guard import MetaGuard, MetaVerdict
+from .guard import (
+    MetaGuard,
+    MetaGuardProductionPolicy,
+    MetaVerdict,
+    ProductionMetaGuardDecision,
+)
 from .log import DecisionLog, ScoringAction, ScoringDecision
 
 __all__ = [
@@ -47,7 +52,9 @@ __all__ = [
     "MetaAnalysis",
     "MetaAnalyzer",
     "MetaGuard",
+    "MetaGuardProductionPolicy",
     "MetaVerdict",
+    "ProductionMetaGuardDecision",
     "ScoringAction",
     "ScoringDecision",
     "ThresholdAdjuster",

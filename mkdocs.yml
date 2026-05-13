@@ -187,6 +187,7 @@ nav:
       - Standalone Interlock Kernel: api/interlock-kernel.md
       - Trajectory Preflight: api/trajectory-preflight.md
       - Self-Improving Guard Loop: api/self-improving-guard-loop.md
+      - Recursive Meta-Guard: api/meta-guard.md
       - Synthetic Distillation: api/synthetic-distillation.md
       - Multimodal Checks: api/multimodal-checks.md
       - Director Safety Protocol: api/director-safety-protocol.md

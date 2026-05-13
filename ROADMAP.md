@@ -485,7 +485,7 @@ future-differentiator queue.
   halts.
 - [x] Extend sustainability scoring with real hardware profiles, projected energy,
   projected currency cost, and budget-halt policy controls.
-- [ ] Promote the recursive guard-of-the-guard layer into a guarded production
+- [x] Promote the recursive guard-of-the-guard layer into a guarded production
   option with drift and evasion checks.
 - [ ] Publish a structured Director Safety Event schema for uniform halt telemetry
   across inference servers and downstream tools.

@@ -24,7 +24,9 @@ from director_ai.core.meta_guard import (
     DecisionLog,
     MetaAnalyzer,
     MetaGuard,
+    MetaGuardProductionPolicy,
     MetaVerdict,
+    ProductionMetaGuardDecision,
     ScoringDecision,
     ThresholdAdjuster,
     ThresholdBundle,
@@ -483,3 +485,103 @@ class TestMetaGuard:
         guard = self._guard()
         guard.record(prompt="p", score=0.3, action="allow")
         assert len(guard.log) == 1
+
+    def test_production_policy_blocks_single_tenant_recursive_adjustment(self):
+        policy = MetaGuardProductionPolicy(
+            min_labelled_fraction=0.0,
+            max_single_tenant_fraction=0.5,
+            max_duplicate_prompt_fraction=1.0,
+        )
+        guard = MetaGuard(
+            log=DecisionLog(clock=_FakeClock()),
+            analyzer=MetaAnalyzer(reference_mean=0.1, ph_threshold=0.1, min_window=8),
+            adjuster=ThresholdAdjuster(
+                initial=ThresholdBundle(warn_threshold=0.3, halt_threshold=0.7),
+                hysteresis_strikes=1,
+                max_step=0.05,
+            ),
+            production_policy=policy,
+        )
+
+        blocked = False
+        for i in range(16):
+            verdict = guard.record(
+                prompt=f"attack-{i}",
+                score=0.9,
+                action="halt",
+                tenant_id="tenant-a",
+            )
+            blocked = blocked or verdict.production.blocked
+
+        assert blocked is True
+        assert verdict.thresholds is None
+        assert guard.adjuster is not None
+        assert guard.adjuster.current == ThresholdBundle(
+            warn_threshold=0.3,
+            halt_threshold=0.7,
+        )
+        assert verdict.production.block_reason == "single_tenant_dominance"
+
+    def test_production_policy_blocks_duplicate_prompt_evasion(self):
+        policy = MetaGuardProductionPolicy(
+            min_labelled_fraction=0.0,
+            max_single_tenant_fraction=1.0,
+            max_duplicate_prompt_fraction=0.4,
+        )
+        guard = MetaGuard(
+            log=DecisionLog(clock=_FakeClock()),
+            analyzer=MetaAnalyzer(reference_mean=0.1, ph_threshold=0.1, min_window=8),
+            adjuster=ThresholdAdjuster(
+                initial=ThresholdBundle(warn_threshold=0.3, halt_threshold=0.7),
+                hysteresis_strikes=1,
+                max_step=0.05,
+            ),
+            production_policy=policy,
+        )
+
+        for i in range(16):
+            tenant_id = f"tenant-{i % 4}"
+            verdict = guard.record(
+                prompt="same jailbreak probe",
+                score=0.9,
+                action="halt",
+                tenant_id=tenant_id,
+            )
+
+        assert verdict.production.blocked is True
+        assert verdict.production.block_reason == "duplicate_prompt_dominance"
+        assert verdict.production.evasion_score > 0.4
+        assert verdict.thresholds is None
+
+    def test_production_policy_allows_labelled_diverse_adjustment(self):
+        policy = MetaGuardProductionPolicy(
+            min_labelled_fraction=0.75,
+            max_single_tenant_fraction=0.5,
+            max_duplicate_prompt_fraction=0.5,
+        )
+        guard = MetaGuard(
+            log=DecisionLog(clock=_FakeClock()),
+            analyzer=MetaAnalyzer(reference_mean=0.1, ph_threshold=0.1, min_window=8),
+            adjuster=ThresholdAdjuster(
+                initial=ThresholdBundle(warn_threshold=0.3, halt_threshold=0.7),
+                hysteresis_strikes=1,
+                max_step=0.05,
+            ),
+            production_policy=policy,
+        )
+
+        adjusted = False
+        for i in range(16):
+            verdict = guard.record(
+                prompt=f"calibrated-{i}",
+                score=0.9,
+                action="halt",
+                ground_truth=1.0,
+                tenant_id=f"tenant-{i % 4}",
+            )
+            adjusted = adjusted or verdict.adjusted
+
+        assert adjusted is True
+        assert isinstance(verdict.production, ProductionMetaGuardDecision)
+        assert verdict.production.blocked is False
+        assert verdict.production.labelled_fraction == pytest.approx(1.0)

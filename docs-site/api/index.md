@@ -30,6 +30,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`NeuroSymbolicVerifier`](neuro-symbolic-verifier.md) | `director_ai.core.verification.neuro_symbolic` | Neural score fusion with numeric and formal symbolic checks |
 | [`ByzantineFaultTolerantConsensus`](byzantine-consensus.md) | `director_ai.core.scoring.consensus` | PBFT-style quorum over independent verifier votes |
 | [`InferenceServerHook`](../guide/streaming.md#pre-sampling-inference-server-hooks) | `director_ai.integrations.inference_server_hooks` | Server-neutral pre-sampling hook for vLLM, TGI, and llama.cpp |
+| [`MetaGuard`](meta-guard.md) | `director_ai.core.meta_guard` | Recursive guard drift monitor with production evasion gates |
 | [`CoherenceAgent`](agent.md) | `director_ai.core.agent` | Orchestrator: generator + scorer + kernel |
 | [`BatchProcessor`](batch.md) | `director_ai.core.runtime.batch` | Concurrent batch scoring |
 
