@@ -175,6 +175,7 @@ nav:
       - CoherenceScorer: api/scorer.md
       - StreamingKernel: api/streaming.md
       - Correction Loop: api/correction-loop.md
+      - Standalone Interlock Kernel: api/interlock-kernel.md
       - Trajectory Preflight: api/trajectory-preflight.md
       - Self-Improving Guard Loop: api/self-improving-guard-loop.md
       - Synthetic Distillation: api/synthetic-distillation.md

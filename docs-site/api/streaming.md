@@ -89,6 +89,20 @@ kernel = AsyncStreamingKernel(hard_limit=0.4, soft_limit=0.6)
 session = await kernel.stream_to_session(async_token_gen, coherence_fn)
 ```
 
+## Standalone Interlock
+
+Use `InterlockKernel` when generation and scoring are owned by another runtime
+and only the halt decision layer is needed. The caller supplies `scorer(text)`;
+the interlock returns a structured decision and, on warning or halt, a
+tenant-safe `SafetyEvent`.
+
+```python
+from director_ai import InterlockKernel, InterlockPolicy
+
+kernel = InterlockKernel(InterlockPolicy(hard_limit=0.5))
+result = kernel.run(tokens, scorer=my_score_fn)
+```
+
 ---
 
 ## StreamSession {: #streamsession }

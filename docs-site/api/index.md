@@ -51,6 +51,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`SafetyEvent`](types.md#safetyevent) | `director_ai.core.safety_event` | Tenant-safe halt and policy event schema |
 | [`DirectorSafetySignal`](director-safety-protocol.md) | `director_ai.core.safety_protocol` | Cross-runtime safety protocol envelope |
 | [`ConflictAwareKnowledgeGuard`](conflict-aware-knowledge.md) | `director_ai.core.retrieval.conflict_guard` | Pre-ingestion KB conflict checks |
+| [`InterlockKernel`](interlock-kernel.md) | `director_ai.interlock` | Standalone bring-your-own-scorer halt kernel |
 | [`TokenEvent`](streaming.md#tokenevent) | `director_ai.core.runtime.streaming` | Per-token stream event |
 | [`StreamSession`](streaming.md#streamsession) | `director_ai.core.runtime.streaming` | Complete stream session state |
 | [`SustainabilityPolicyAdapter`](sustainability-scoring.md) | `director_ai.core.sustainability` | Token, cost, energy, carbon, quota, and forecast policy decisions |

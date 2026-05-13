@@ -160,6 +160,9 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
         ".integrations.inference_server_hooks",
         "InferenceServerHookPolicy",
     ),
+    "InterlockDecision": (".interlock", "InterlockDecision"),
+    "InterlockKernel": (".interlock", "InterlockKernel"),
+    "InterlockPolicy": (".interlock", "InterlockPolicy"),
     "build_inference_server_hook": (
         ".integrations.inference_server_hooks",
         "build_inference_server_hook",
