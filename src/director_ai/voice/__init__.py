@@ -20,10 +20,29 @@ from .pipeline import voice_pipeline
 
 __all__ = [
     "AsyncVoiceGuard",
+    "DryRunTTSAdapter",
     "DeepgramAdapter",
     "ElevenLabsAdapter",
     "OpenAITTSAdapter",
     "TTSAdapter",
     "VoiceToken",
+    "VoiceDemoResult",
+    "run_voice_demo",
+    "scripted_tokens",
     "voice_pipeline",
 ]
+
+_DEMO_EXPORTS = {
+    "DryRunTTSAdapter",
+    "VoiceDemoResult",
+    "run_voice_demo",
+    "scripted_tokens",
+}
+
+
+def __getattr__(name: str) -> object:
+    if name in _DEMO_EXPORTS:
+        from . import demo
+
+        return getattr(demo, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

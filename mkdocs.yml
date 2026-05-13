@@ -144,6 +144,7 @@ nav:
       - Rust Benchmarks: guide/rust-benchmarks.md
       - Streaming Overhead: guide/streaming-overhead.md
       - Voice AI: guide/voice-ai.md
+      - Credential-Free Voice Demo: guide/voice-demo.md
       - Meta-Confidence: guide/meta-confidence.md
       - Structured Verification: guide/structured-verification.md
       - Online Calibration: guide/online-calibration.md
