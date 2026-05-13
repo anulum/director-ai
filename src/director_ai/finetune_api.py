@@ -345,7 +345,7 @@ async def _read_upload_with_limit(file: UploadFile) -> bytes:
 
 
 def _tenant_from_request(request: Request) -> str:
-    tenant_id = request.headers.get("X-Tenant-ID", "")
+    tenant_id = str(request.headers.get("X-Tenant-ID", ""))
     if not tenant_id:
         return ""
     if not _SAFE_TENANT_RE.fullmatch(tenant_id):

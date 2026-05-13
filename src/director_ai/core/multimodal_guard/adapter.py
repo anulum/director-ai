@@ -13,7 +13,7 @@ from __future__ import annotations
 import math
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
-from typing import Any, Literal
+from typing import Any, Literal, cast
 
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 from director_ai.core.safety_event import SafetyEvent
@@ -22,7 +22,7 @@ from .claim import MultimodalClaim
 from .guard import MultimodalGuard, TemporalConsistencyGuard
 
 Modality = Literal["image", "audio", "video"]
-_MODALITIES = frozenset({"image", "audio", "video"})
+_MODALITIES: frozenset[Modality] = frozenset(("image", "audio", "video"))
 
 __all__ = [
     "MultimodalCheckRequest",
@@ -109,8 +109,8 @@ class MultimodalVerifierAdapter:
         audio_score_fn: Callable[[str, str], float] | None = None,
         caption_score_fn: Callable[[str, str], float] | None = None,
         metadata_score_fn: Callable[[Mapping[str, str], str], float] | None = None,
-        enabled_modalities: Sequence[Modality] = (),
-        benchmarked_modalities: Sequence[Modality] = (),
+        enabled_modalities: Sequence[str] = (),
+        benchmarked_modalities: Sequence[str] = (),
         temporal_alpha: float = 0.5,
         temporal_floor: float = 0.2,
         grounding_floor: float = 0.4,
@@ -120,8 +120,10 @@ class MultimodalVerifierAdapter:
         self._audio_score = audio_score_fn
         self._caption_score = caption_score_fn
         self._metadata_score = metadata_score_fn
-        self._enabled = frozenset(enabled_modalities)
-        self._benchmarked = frozenset(benchmarked_modalities)
+        self._enabled = _validated_modalities("enabled modalities", enabled_modalities)
+        self._benchmarked = _validated_modalities(
+            "benchmarked modalities", benchmarked_modalities
+        )
         self._temporal_alpha = temporal_alpha
         self._temporal_floor = temporal_floor
         self._grounding_floor = _unit(grounding_floor)
@@ -307,6 +309,19 @@ def _unit(value: float) -> float:
     if not math.isfinite(value) or value < 0.0 or value > 1.0:
         raise ValueError("score must be finite and in [0, 1]")
     return value
+
+
+def _validated_modalities(name: str, modalities: Sequence[str]) -> frozenset[Modality]:
+    validated: list[Modality] = []
+    unsupported: list[str] = []
+    for modality in modalities:
+        if modality in _MODALITIES:
+            validated.append(cast(Modality, modality))
+        else:
+            unsupported.append(modality)
+    if unsupported:
+        raise ValueError(f"unsupported {name} {sorted(unsupported)}")
+    return frozenset(validated)
 
 
 def _grounded_verdict(

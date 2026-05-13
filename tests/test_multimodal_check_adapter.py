@@ -241,3 +241,14 @@ def test_unsupported_or_disabled_modality_raises_instead_of_silent_pass():
             claim_text="A point cloud claim.",
             media_ref="media://lidar-1",
         )
+
+
+def test_configured_modalities_are_validated_before_runtime_checks():
+    with pytest.raises(ValueError, match="unsupported enabled modalities"):
+        MultimodalVerifierAdapter(enabled_modalities=("lidar",))
+
+    with pytest.raises(ValueError, match="benchmarked modalities must be enabled"):
+        MultimodalVerifierAdapter(
+            enabled_modalities=("image",),
+            benchmarked_modalities=("audio",),
+        )

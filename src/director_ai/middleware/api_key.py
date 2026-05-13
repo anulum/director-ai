@@ -113,11 +113,12 @@ class APIKeyMiddleware(BaseHTTPMiddleware):
 def _extract_key(request: Request) -> str | None:
     """Extract API key from request headers."""
     # Try Authorization: Bearer <key>
-    auth = request.headers.get("authorization", "")
+    auth = str(request.headers.get("authorization", ""))
     if auth.lower().startswith("bearer "):
         return auth[7:].strip()
     # Try X-API-Key header
-    return request.headers.get("x-api-key")
+    api_key = request.headers.get("x-api-key")
+    return str(api_key) if api_key is not None else None
 
 
 def _hash_key(key: str) -> str:
