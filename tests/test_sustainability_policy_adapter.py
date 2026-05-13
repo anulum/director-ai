@@ -238,3 +238,173 @@ def test_per_tenant_telemetry_summary_alerts_without_payloads() -> None:
     assert "tenant-b" not in rendered
     assert "prompt" not in rendered.lower()
     assert "raw" not in rendered.lower()
+
+
+def test_allow_decision_exposes_numeric_sustainability_accounting() -> None:
+    decision = _adapter().evaluate(
+        tenant_id="tenant-a",
+        input_tokens=100,
+        output_tokens=50,
+        quota_remaining_tokens=10_000,
+        forecast_next_tokens=100,
+        risk_envelope=_risk_envelope(),
+        evidence_ref="sustainability://tenant-a/request-1",
+    )
+
+    assert decision.decision == "allow"
+    assert decision.reason == "sustainability_within_budget"
+    assert decision.risk_score == 0.0
+    assert decision.evidence_refs == ("sustainability://tenant-a/request-1",)
+    assert decision.attributes["input_units"] == "100"
+    assert decision.attributes["output_units"] == "50"
+    assert decision.attributes["total_units"] == "150"
+    assert "recommended_action" not in decision.attributes
+    assert decision.verifier_signals[0].verdict == "policy_allow"
+
+
+def test_high_risk_domain_and_irreversible_actions_warn_instead_of_halting() -> None:
+    for envelope in (
+        _risk_envelope(domain="medical"),
+        _risk_envelope(action_category="training"),
+        _risk_envelope(reversibility="irreversible"),
+    ):
+        decision = _adapter().evaluate(
+            tenant_id="tenant-a",
+            input_tokens=2000,
+            output_tokens=2000,
+            quota_remaining_tokens=1000,
+            forecast_next_tokens=0,
+            risk_envelope=envelope,
+        )
+
+        assert decision.decision == "warn"
+        assert decision.attributes["override_basis"] == "high_risk_safety_action"
+
+
+@pytest.mark.parametrize(
+    "estimate_kwargs",
+    [
+        {"input_tokens": -1},
+        {"output_tokens": -1},
+        {"total_tokens": 99},
+        {"energy_kwh": -0.1},
+        {"carbon_kg": -0.1},
+        {"cost": -0.1},
+        {"provenance": "untracked"},
+        {"hardware_profile_id": " "},
+    ],
+)
+def test_sustainability_estimate_rejects_invalid_accounting_fields(
+    estimate_kwargs: dict[str, object],
+) -> None:
+    kwargs = {
+        "input_tokens": 10,
+        "output_tokens": 5,
+        "total_tokens": 15,
+        "energy_kwh": 0.01,
+        "carbon_kg": 0.02,
+        "cost": 0.03,
+        "provenance": "measured",
+        "hardware_profile_id": "gpu-a",
+    }
+    kwargs.update(estimate_kwargs)
+
+    with pytest.raises(ValueError):
+        SustainabilityEstimate(**kwargs)
+
+
+def test_registry_replacement_and_empty_ids_are_guarded() -> None:
+    registry = HardwareProfileRegistry()
+    first = HardwareProfile(
+        profile_id="gpu-a",
+        energy_kwh_per_1k_tokens=0.001,
+        carbon_kg_per_kwh=0.2,
+        provenance="measured",
+    )
+    replacement = HardwareProfile(
+        profile_id="gpu-a",
+        energy_kwh_per_1k_tokens=0.002,
+        carbon_kg_per_kwh=0.1,
+        provenance="configured",
+    )
+
+    registry.register(first)
+    registry.register(replacement, replace=True)
+
+    assert registry.get("gpu-a") == replacement
+    with pytest.raises(ValueError, match="profile_id"):
+        registry.get(" ")
+    with pytest.raises(ValueError, match="profile_id"):
+        HardwareProfile(
+            profile_id=" ",
+            energy_kwh_per_1k_tokens=0.001,
+            carbon_kg_per_kwh=0.2,
+            provenance="measured",
+        )
+
+
+def test_telemetry_rejects_invalid_tenants_and_thresholds() -> None:
+    estimate = SustainabilityEstimate(
+        input_tokens=1,
+        output_tokens=1,
+        total_tokens=2,
+        energy_kwh=0.01,
+        carbon_kg=0.01,
+        cost=0.01,
+        provenance="configured",
+        hardware_profile_id="gpu-a",
+    )
+
+    with pytest.raises(ValueError, match="token_alert_threshold"):
+        SustainabilityTelemetry(
+            token_alert_threshold=-1,
+            cost_alert_threshold=1.0,
+            carbon_alert_threshold=1.0,
+        )
+    telemetry = SustainabilityTelemetry(
+        token_alert_threshold=10,
+        cost_alert_threshold=1.0,
+        carbon_alert_threshold=1.0,
+    )
+    with pytest.raises(ValueError, match="tenant_id"):
+        telemetry.record(" ", estimate)
+    with pytest.raises(ValueError, match="tenant_id"):
+        telemetry.summary("")
+    empty = telemetry.summary("tenant-c")
+    assert empty.request_count == 0
+    assert empty.to_dict()["alerts"] == []
+
+
+def test_policy_adapter_rejects_invalid_operational_inputs() -> None:
+    with pytest.raises(ValueError, match="policy_id"):
+        SustainabilityPolicyAdapter(
+            estimator=_adapter().estimator,
+            policy_id=" ",
+            carbon_defer_kg=0.1,
+        )
+    with pytest.raises(ValueError, match="forecast_headroom_ratio"):
+        SustainabilityPolicyAdapter(
+            estimator=_adapter().estimator,
+            policy_id="policy",
+            carbon_defer_kg=0.1,
+            forecast_headroom_ratio=1.1,
+        )
+    adapter = _adapter()
+    with pytest.raises(ValueError, match="tenant_id"):
+        adapter.evaluate(
+            tenant_id=" ",
+            input_tokens=1,
+            output_tokens=1,
+            quota_remaining_tokens=10,
+            forecast_next_tokens=0,
+            risk_envelope=_risk_envelope(),
+        )
+    with pytest.raises(ValueError, match="quota_remaining_tokens"):
+        adapter.evaluate(
+            tenant_id="tenant-a",
+            input_tokens=1,
+            output_tokens=1,
+            quota_remaining_tokens=-1,
+            forecast_next_tokens=0,
+            risk_envelope=_risk_envelope(),
+        )

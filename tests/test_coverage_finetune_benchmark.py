@@ -14,6 +14,8 @@ dataset evaluation, pipeline integration, and performance documentation.
 from __future__ import annotations
 
 import json
+import sys
+import types
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
@@ -27,6 +29,7 @@ from director_ai.core.training.finetune_benchmark import (
     _evaluate_model,
     _load_benchmark_jsonl,
     benchmark_finetuned_model,
+    benchmark_model_candidates,
 )
 
 try:
@@ -387,6 +390,133 @@ def test_evaluate_model_raises_on_missing_transformers():
             _evaluate_model("/model", samples)
 
 
+class _FakeTensor:
+    def __init__(self, data):
+        self._data = data
+
+    def to(self, device):
+        del device
+        return self
+
+    def cpu(self):
+        return self
+
+    def numpy(self):
+        return self
+
+    def flatten(self):
+        if self._data and isinstance(self._data[0], list):
+            return [item for row in self._data for item in row]
+        return list(self._data)
+
+
+class _FakeNoGrad:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, exc_type, exc, tb):
+        del exc_type, exc, tb
+        return False
+
+
+class _FakeTorch(types.ModuleType):
+    def __init__(self):
+        super().__init__("torch")
+        self.cuda = types.SimpleNamespace(
+            is_available=lambda: False,
+            empty_cache=lambda: None,
+        )
+
+    def device(self, name):
+        return name
+
+    def no_grad(self):
+        return _FakeNoGrad()
+
+    def argmax(self, logits, dim=-1):
+        del dim
+        winners = [
+            max(range(len(row)), key=lambda index: row[index]) for row in logits._data
+        ]
+        return _FakeTensor(winners)
+
+
+class _FakeTokenizer:
+    sep_token = "[SEP]"
+
+    def __init__(self):
+        self.batch_texts: list[list[str]] = []
+
+    def __call__(self, batch_texts, **kwargs):
+        assert kwargs["truncation"] is True
+        assert kwargs["padding"] is True
+        assert kwargs["max_length"] == 512
+        assert kwargs["return_tensors"] == "pt"
+        self.batch_texts.append(list(batch_texts))
+        return {"input_ids": _FakeTensor([[1, 2, 3] for _ in batch_texts])}
+
+
+class _FakeSequenceClassifier:
+    def __init__(self, predictions):
+        self._predictions = list(predictions)
+        self.to_calls: list[str] = []
+        self.eval_called = False
+
+    def eval(self):
+        self.eval_called = True
+
+    def to(self, device):
+        self.to_calls.append(str(device))
+        return self
+
+    def __call__(self, **encodings):
+        batch_size = len(encodings["input_ids"]._data)
+        batch_preds = [self._predictions.pop(0) for _ in range(batch_size)]
+        logits = [[0.1, 0.9] if pred else [0.9, 0.1] for pred in batch_preds]
+        return types.SimpleNamespace(logits=_FakeTensor(logits))
+
+
+def test_evaluate_model_inference_path_without_optional_ml_stack(monkeypatch):
+    tokenizer = _FakeTokenizer()
+    model = _FakeSequenceClassifier(predictions=[0, 1, 0, 1])
+    fake_transformers = types.ModuleType("transformers")
+    fake_transformers.AutoTokenizer = types.SimpleNamespace(
+        from_pretrained=MagicMock(return_value=tokenizer),
+    )
+    fake_transformers.AutoModelForSequenceClassification = types.SimpleNamespace(
+        from_pretrained=MagicMock(return_value=model),
+    )
+    fake_torch = _FakeTorch()
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+    monkeypatch.setattr(
+        "director_ai.core.training.finetune_benchmark.select_torch_device",
+        lambda: "cpu",
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "director_ai.core.training.finetune_benchmark.release_torch_cuda",
+        lambda: None,
+        raising=False,
+    )
+    samples = [
+        {"premise": "p0", "hypothesis": "h0", "label": 0},
+        {"premise": "p1", "hypothesis": "h1", "label": 1},
+        {"premise": "p2", "hypothesis": "h2", "label": 0},
+        {"premise": "p3", "hypothesis": "h3", "label": 1},
+    ]
+
+    result = _evaluate_model("/local/model", samples, batch_size=2)
+
+    assert result == {"balanced_accuracy": 1.0, "f1": 1.0}
+    assert model.eval_called is True
+    assert model.to_calls == ["cpu", "cpu"]
+    assert tokenizer.batch_texts == [
+        ["p0 [SEP] h0", "p1 [SEP] h1"],
+        ["p2 [SEP] h2", "p3 [SEP] h3"],
+    ]
+
+
 # ---------------------------------------------------------------------------
 # benchmark_finetuned_model — uncovered branches
 # ---------------------------------------------------------------------------
@@ -548,6 +678,71 @@ def test_benchmark_general_skipped_flag_set(mock_eval, tmp_path):
     )
     assert report.details.get("general_skipped") is True
     mock_eval.assert_not_called()
+
+
+@patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+def test_candidate_sweep_selects_best_deployable_result(mock_eval, tmp_path):
+    general = tmp_path / "general.jsonl"
+    domain = tmp_path / "domain.jsonl"
+    _write_jsonl(general, _bench_rows())
+    _write_jsonl(domain, _bench_rows(10))
+    mock_eval.side_effect = [
+        {"balanced_accuracy": 0.78, "f1": 0.76},
+        {"balanced_accuracy": 0.82, "f1": 0.80},
+        {"balanced_accuracy": 0.79, "f1": 0.78},
+        {"balanced_accuracy": 0.87, "f1": 0.85},
+    ]
+
+    report = benchmark_model_candidates(
+        {
+            "factcg-deberta-v3-large": tmp_path / "factcg-model",
+            "roberta-large-mnli": tmp_path / "roberta-model",
+        },
+        general_path=general,
+        eval_path=domain,
+        batch_size=4,
+        allow_experimental=True,
+        seed=99,
+    )
+
+    assert report.best_model_alias == "roberta-large-mnli"
+    assert report.best_model_id
+    assert report.general_path == str(general)
+    assert report.eval_path == str(domain)
+    assert report.seed == 99
+    assert [result.requested_model for result in report.results] == [
+        "factcg-deberta-v3-large",
+        "roberta-large-mnli",
+    ]
+    assert report.results[0].details["general_samples"] == 20
+    assert report.results[1].recommended_batch_size > 0
+
+
+@patch("director_ai.core.training.finetune_benchmark._evaluate_model")
+def test_candidate_sweep_records_model_errors_without_aborting(mock_eval, tmp_path):
+    del mock_eval
+
+    report = benchmark_model_candidates(
+        {"org/custom-model": tmp_path / "custom-model"},
+        allow_experimental=False,
+        batch_size=8,
+    )
+
+    assert report.best_model_alias == ""
+    assert len(report.results) == 1
+    result = report.results[0]
+    assert result.requested_model == "org/custom-model"
+    assert result.alias == "org/custom-model"
+    assert result.model_path == str(tmp_path / "custom-model")
+    assert result.status == "error"
+    assert result.recommendation == "reject"
+    assert result.recommended_batch_size == 8
+    assert "stable fine-tune registry" in result.error
+
+
+def test_candidate_sweep_requires_at_least_one_model() -> None:
+    with pytest.raises(ValueError, match="model_artifacts"):
+        benchmark_model_candidates({})
 
 
 # ---------------------------------------------------------------------------

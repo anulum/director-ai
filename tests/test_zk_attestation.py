@@ -104,6 +104,12 @@ class TestMinimumCoherence:
 
 
 class TestMaximumHaltRate:
+    def test_rejects_empty_name_and_non_positive_min(self):
+        with pytest.raises(ValueError, match="name"):
+            MaximumHaltRate(name="", max_rate=0.1, samples_min=1)
+        with pytest.raises(ValueError, match="samples_min"):
+            MaximumHaltRate(name="ok", max_rate=0.1, samples_min=0)
+
     def test_rejects_out_of_range_rate(self):
         with pytest.raises(ValueError, match="max_rate"):
             MaximumHaltRate(name="ok", max_rate=-0.1, samples_min=1)
@@ -121,8 +127,16 @@ class TestMaximumHaltRate:
         stmt = MaximumHaltRate(name="ok", max_rate=0.1, samples_min=10)
         assert stmt.accepts(3.0, 10) is False
 
+    def test_rejects_when_samples_below_min(self):
+        stmt = MaximumHaltRate(name="ok", max_rate=0.1, samples_min=10)
+        assert stmt.accepts(0.0, 9) is False
+
 
 class TestDomainExperience:
+    def test_rejects_empty_name(self):
+        with pytest.raises(ValueError, match="name"):
+            DomainExperience(name="", domain="finance", hours_min=5.0)
+
     def test_rejects_empty_domain(self):
         with pytest.raises(ValueError, match="domain"):
             DomainExperience(name="ok", domain="", hours_min=5.0)
@@ -146,6 +160,10 @@ class TestDomainExperience:
         assert (
             stmt.evaluate_sample({"domain": "finance", "duration_seconds": -60}) == 0.0
         )
+        assert (
+            stmt.evaluate_sample({"domain": "finance", "duration_seconds": "one hour"})
+            == 0.0
+        )
 
     def test_accepts_when_hours_met(self):
         stmt = DomainExperience(name="ok", domain="finance", hours_min=1.0)
@@ -158,6 +176,12 @@ class TestDomainExperience:
 
 
 class TestNoBreakoutEvents:
+    def test_rejects_empty_name_and_non_positive_min(self):
+        with pytest.raises(ValueError, match="name"):
+            NoBreakoutEvents(name="", samples_min=1)
+        with pytest.raises(ValueError, match="samples_min"):
+            NoBreakoutEvents(name="ok", samples_min=0)
+
     def test_evaluate_is_indicator(self):
         stmt = NoBreakoutEvents(name="ok", samples_min=1)
         assert stmt.evaluate_sample({"breakout": True}) == 1.0
@@ -937,6 +961,49 @@ class TestPassport:
                 mac="0" * 64,
             )
 
+    def test_passport_rejects_invalid_header_fields(self):
+        issuer = PassportIssuer(key=_KEY_A, issuing_org="org://alpha")
+        passport = issuer.issue(
+            agent_id="a|b\\c",
+            samples=[{"coherence": 0.99}],
+            statements=[MinimumCoherence(name="c|d\\e", threshold=0.9, samples_min=1)],
+        )
+
+        assert b"a\\|b\\\\c" in passport.canonical_header
+        assert b"c\\|d\\\\e" in passport.canonical_header
+        with pytest.raises(ValueError, match="agent_id"):
+            CrossOrgPassport(
+                agent_id="",
+                issuing_org="org",
+                created_at=0,
+                entries=passport.entries,
+                mac="0" * 64,
+            )
+        with pytest.raises(ValueError, match="issuing_org"):
+            CrossOrgPassport(
+                agent_id="a",
+                issuing_org="",
+                created_at=0,
+                entries=passport.entries,
+                mac="0" * 64,
+            )
+        with pytest.raises(ValueError, match="created_at"):
+            CrossOrgPassport(
+                agent_id="a",
+                issuing_org="org",
+                created_at=-1,
+                entries=passport.entries,
+                mac="0" * 64,
+            )
+        with pytest.raises(ValueError, match="mac"):
+            CrossOrgPassport(
+                agent_id="a",
+                issuing_org="org",
+                created_at=0,
+                entries=passport.entries,
+                mac="short",
+            )
+
     def test_verifier_rejects_empty_issuer_keys(self):
         with pytest.raises(ValueError, match="issuer_keys"):
             PassportVerifier(
@@ -963,4 +1030,16 @@ class TestPassport:
             PassportVerifier(
                 issuer_keys={"org": _KEY_A},
                 backends={},
+            )
+
+    def test_verifier_rejects_empty_issuer_org_and_backend_kind(self):
+        with pytest.raises(ValueError, match="empty org"):
+            PassportVerifier(
+                issuer_keys={"": _KEY_A},
+                backends={"commitment": CommitmentBackend(key=_KEY_A)},
+            )
+        with pytest.raises(ValueError, match="empty kind"):
+            PassportVerifier(
+                issuer_keys={"org": _KEY_A},
+                backends={"": CommitmentBackend(key=_KEY_A)},
             )

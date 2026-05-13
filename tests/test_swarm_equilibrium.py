@@ -19,6 +19,7 @@ import math
 import pytest
 
 from director_ai.core.swarm_equilibrium import (
+    NashEquilibrium,
     NashSolver,
     NormalFormGame,
     PayoffError,
@@ -194,6 +195,14 @@ class TestNormalFormGame:
 
 
 class TestNashSolver:
+    def test_equilibrium_dataclass_validates_kind_specific_payloads(self):
+        with pytest.raises(ValueError, match="kind"):
+            NashEquilibrium(kind="correlated", expected_payoffs=(0.0, 0.0))
+        with pytest.raises(ValueError, match="pure equilibrium"):
+            NashEquilibrium(kind="pure", expected_payoffs=(0.0, 0.0))
+        with pytest.raises(ValueError, match="mixed equilibrium"):
+            NashEquilibrium(kind="mixed", expected_payoffs=(0.0, 0.0))
+
     def test_prisoners_dilemma_single_nash(self):
         solver = NashSolver()
         pures = solver.pure_equilibria(_prisoners_dilemma())
@@ -218,6 +227,62 @@ class TestNashSolver:
         assert col_probs["T"] == pytest.approx(0.5)
         # Expected payoffs of mixed equilibrium in matching pennies = 0.
         assert all(abs(p) < 1e-9 for p in mixed.expected_payoffs)
+
+    def test_mixed_returns_none_for_non_two_player_and_non_2x2_games(self):
+        solver = NashSolver()
+        players = ("a", "b", "c")
+        strategies = {p: ("0", "1") for p in players}
+        payoffs = {
+            StrategyProfile((x, y, z)): (0.0, 0.0, 0.0)
+            for x in ("0", "1")
+            for y in ("0", "1")
+            for z in ("0", "1")
+        }
+        three_player = NormalFormGame(
+            players=players,
+            strategies=strategies,
+            payoffs=payoffs,
+        )
+        wide_game = NormalFormGame(
+            players=("row", "col"),
+            strategies={"row": ("A", "B", "C"), "col": ("L", "R")},
+            payoffs={
+                StrategyProfile((row, col)): (0.0, 0.0)
+                for row in ("A", "B", "C")
+                for col in ("L", "R")
+            },
+        )
+
+        assert solver.mixed_equilibrium_2x2(three_player) is None
+        assert solver.mixed_equilibrium_2x2(wide_game) is None
+
+    def test_mixed_returns_none_when_closed_form_denominator_is_singular(self):
+        game = NormalFormGame(
+            players=("row", "col"),
+            strategies={"row": ("A", "B"), "col": ("L", "R")},
+            payoffs={
+                StrategyProfile(("A", "L")): (1.0, 1.0),
+                StrategyProfile(("A", "R")): (1.0, 1.0),
+                StrategyProfile(("B", "L")): (1.0, 1.0),
+                StrategyProfile(("B", "R")): (1.0, 1.0),
+            },
+        )
+
+        assert NashSolver().mixed_equilibrium_2x2(game) is None
+
+    def test_mixed_returns_none_when_probability_is_outside_simplex(self):
+        game = NormalFormGame(
+            players=("row", "col"),
+            strategies={"row": ("A", "B"), "col": ("L", "R")},
+            payoffs={
+                StrategyProfile(("A", "L")): (3.0, 3.0),
+                StrategyProfile(("A", "R")): (3.0, 2.0),
+                StrategyProfile(("B", "L")): (2.0, 1.0),
+                StrategyProfile(("B", "R")): (2.0, 0.0),
+            },
+        )
+
+        assert NashSolver().mixed_equilibrium_2x2(game) is None
 
     def test_stag_hunt_multiple_pure(self):
         solver = NashSolver()

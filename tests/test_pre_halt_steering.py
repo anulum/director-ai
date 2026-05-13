@@ -148,3 +148,91 @@ def test_predictive_steering_audit_payload_excludes_trajectory_text():
     assert payload["guard_decision"]["risk_envelope"]["action_category"] == (
         "inference_steering"
     )
+
+
+def test_predictive_steering_escalates_when_preflight_warns():
+    steering = PredictivePreHaltSteering(min_simulations=4)
+
+    decision = steering.evaluate(
+        _verdict(
+            halt_rate=0.18,
+            ci_low=0.05,
+            ci_high=0.30,
+            recommended="warn",
+        ),
+        risk_envelope=_envelope(),
+        policy_id="policy.prehalt.regulated",
+    )
+
+    assert decision.action == "escalate"
+    assert decision.reason == "predictive_preflight_warning"
+    assert decision.guard_decision.risk_score == pytest.approx(0.30)
+    assert decision.guard_decision.attributes["recommended_backend"] == (
+        "strong_verifier"
+    )
+
+
+def test_predictive_steering_evidence_refs_only_failed_trajectories():
+    steering = PredictivePreHaltSteering(min_simulations=4)
+
+    decision = steering.evaluate(
+        _verdict(
+            n=4,
+            halt_rate=0.5,
+            ci_low=0.2,
+            ci_high=0.7,
+            recommended="halt",
+        ),
+        risk_envelope=_envelope(),
+        policy_id="policy.prehalt.regulated",
+    )
+
+    assert decision.evidence_refs == ("trajectory:0", "trajectory:1")
+    assert decision.to_dict()["evidence_refs"] == ["trajectory:0", "trajectory:1"]
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"min_simulations": 0},
+        {"uncertainty_margin": -0.1},
+        {"uncertainty_margin": float("inf")},
+    ],
+)
+def test_predictive_steering_rejects_invalid_constructor_inputs(
+    kwargs: dict[str, float],
+):
+    with pytest.raises(ValueError):
+        PredictivePreHaltSteering(**kwargs)
+
+
+@pytest.mark.parametrize(
+    "verdict_kwargs",
+    [
+        {"halt_rate": -0.01, "ci_low": 0.0, "ci_high": 0.1},
+        {"halt_rate": 0.1, "ci_low": -0.01, "ci_high": 0.1},
+        {"halt_rate": 0.1, "ci_low": 0.0, "ci_high": 1.01},
+    ],
+)
+def test_predictive_steering_rejects_out_of_range_probabilities(
+    verdict_kwargs: dict[str, float],
+):
+    steering = PredictivePreHaltSteering(min_simulations=4)
+
+    with pytest.raises(ValueError):
+        steering.evaluate(
+            _verdict(**verdict_kwargs),
+            risk_envelope=_envelope(),
+            policy_id="policy.prehalt.regulated",
+        )
+
+
+def test_predictive_steering_rejects_blank_policy_id():
+    steering = PredictivePreHaltSteering(min_simulations=4)
+
+    with pytest.raises(ValueError, match="policy_id"):
+        steering.evaluate(
+            _verdict(halt_rate=0.1, ci_low=0.0, ci_high=0.2),
+            risk_envelope=_envelope(),
+            policy_id=" ",
+        )

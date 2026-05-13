@@ -241,6 +241,20 @@ def test_request_server_must_match_hook_server() -> None:
         hook.check(request)
 
 
+def test_steering_request_server_must_match_hook_server() -> None:
+    hook = InferenceServerHook("vllm", lambda text: 1.0)
+    request = InferenceHookRequest(
+        server="tgi",
+        accumulated_text="",
+        candidate_token="x",
+    )
+
+    with pytest.raises(ValueError, match="does not match hook"):
+        hook.steer(
+            request, _steering_decision(action="proceed", guard_decision="allow")
+        )
+
+
 def test_score_is_clamped_to_unit_interval() -> None:
     hook = InferenceServerHook("vllm", lambda text: math.inf)
     request = InferenceHookRequest(
@@ -253,6 +267,143 @@ def test_score_is_clamped_to_unit_interval() -> None:
 
     assert decision.allow is True
     assert decision.score == 1.0
+
+
+def test_request_metadata_is_tenant_safe_string_map() -> None:
+    request = InferenceHookRequest(
+        server="vllm",
+        accumulated_text="a=",
+        candidate_token="1",
+        token_id=0,
+        metadata={"attempt": 3, "flag": True},
+    )
+
+    assert request.candidate_text == "a=1"
+    assert request.metadata == {"attempt": "3", "flag": "True"}
+
+
+def test_negative_token_id_is_rejected() -> None:
+    with pytest.raises(ValueError, match="token_id"):
+        InferenceHookRequest(
+            server="vllm",
+            accumulated_text="",
+            candidate_token="x",
+            token_id=-1,
+        )
+
+
+@pytest.mark.parametrize(
+    ("kwargs", "message"),
+    [
+        ({"hard_limit": math.nan}, "hard_limit must be finite"),
+        ({"hard_limit": -0.01}, "hard_limit must be in"),
+        ({"hard_limit": 1.01}, "hard_limit must be in"),
+        ({"block_token_id": -1}, "block_token_id"),
+        ({"block_logit": math.inf}, "block_logit"),
+        ({"steering_bias_logit": 0.0}, "steering_bias_logit"),
+        ({"halt_reason": " "}, "halt_reason"),
+        ({"tenant_safe_explanation": ""}, "tenant_safe_explanation"),
+    ],
+)
+def test_policy_rejects_invalid_thresholds_and_operator_text(
+    kwargs: dict[str, object],
+    message: str,
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        InferenceServerHookPolicy(**kwargs)
+
+
+def test_hook_rejects_unsupported_server_at_construction() -> None:
+    with pytest.raises(ValueError, match="unsupported inference server"):
+        InferenceServerHook(cast(InferenceServerName, "unknown"), lambda text: 1.0)
+
+
+def test_halt_with_out_of_range_token_id_keeps_logits_shape() -> None:
+    hook = InferenceServerHook(
+        "vllm",
+        lambda text: math.nan,
+        InferenceServerHookPolicy(block_token_id=9, block_logit=-44.0),
+    )
+    request = InferenceHookRequest(
+        server="vllm",
+        accumulated_text="",
+        candidate_token="x",
+        token_id=1,
+    )
+
+    decision = hook.check(request, logits=[0.1, 0.2])
+
+    assert decision.allow is False
+    assert decision.score == 0.0
+    assert decision.adjusted_logits == (0.1, 0.2)
+    assert decision.blocked_token_ids == (9,)
+    assert decision.server_payload["token_ids"] == [9]
+
+
+def test_predictive_pre_halt_proceed_preserves_logits_and_payload() -> None:
+    hook = InferenceServerHook("tgi", lambda text: 0.1)
+    request = InferenceHookRequest(
+        server="tgi",
+        accumulated_text="safe ",
+        candidate_token="token",
+        token_id=0,
+    )
+
+    decision = hook.steer(
+        request,
+        _steering_decision(
+            action="proceed",
+            guard_decision="allow",
+            risk_score=0.12,
+        ),
+        logits=[1.5, 2.5],
+    )
+
+    assert decision.allow is True
+    assert decision.score == pytest.approx(0.12)
+    assert decision.adjusted_logits == (1.5, 2.5)
+    assert decision.safety_event is None
+    assert decision.server_payload == {
+        "server": "tgi",
+        "action": "allow",
+        "allow": True,
+        "score": pytest.approx(0.12),
+    }
+
+
+@pytest.mark.parametrize(
+    ("server", "expected_action"),
+    [
+        ("tgi", "bias_next_token"),
+        ("llama_cpp", "logit_bias"),
+    ],
+)
+def test_predictive_pre_halt_escalation_payloads_for_other_servers(
+    server: str,
+    expected_action: str,
+) -> None:
+    hook = InferenceServerHook(cast(InferenceServerName, server), lambda text: 1.0)
+    request = InferenceHookRequest(
+        server=cast(InferenceServerName, server),
+        accumulated_text="",
+        candidate_token="x",
+        token_id=1,
+    )
+
+    decision = hook.steer(
+        request,
+        _steering_decision(action="escalate", guard_decision="warn"),
+        logits=[3.0, 4.0],
+    )
+
+    assert decision.allow is True
+    assert decision.adjusted_logits == (3.0, -5.0)
+    assert decision.server_payload["action"] == expected_action
+    if server == "tgi":
+        assert decision.server_payload["token_biases"] == {1: -5.0}
+    else:
+        assert decision.server_payload["token_id"] == 1
+        assert decision.server_payload["bias"] == -5.0
 
 
 def _steering_decision(
