@@ -26,6 +26,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`AdaptiveThresholdLearner`](adaptive-threshold.md) | `director_ai.core.calibration.adaptive_threshold` | Human-gated Thompson-sampling threshold recommendations |
 | [`CrossDocumentConsistencyMemory`](cross-document-memory.md) | `director_ai.core.memory.consistency` | Tenant-scoped long-term consistency checks with retention and delete controls |
 | [`DifferentialPrivacyScoreReleaser`](private-score-release.md) | `director_ai.core.federated_privacy.score_release` | Laplace-noised score disclosure with privacy accounting |
+| [`FederatedSafetySignalAggregator`](federated-safety-signals.md) | `director_ai.core.federated_privacy.signal_sharing` | Anonymous DP aggregate sharing for tenant-safe guard signals |
 | [`NeuroSymbolicVerifier`](neuro-symbolic-verifier.md) | `director_ai.core.verification.neuro_symbolic` | Neural score fusion with numeric and formal symbolic checks |
 | [`ByzantineFaultTolerantConsensus`](byzantine-consensus.md) | `director_ai.core.scoring.consensus` | PBFT-style quorum over independent verifier votes |
 | [`InferenceServerHook`](../guide/streaming.md#pre-sampling-inference-server-hooks) | `director_ai.integrations.inference_server_hooks` | Server-neutral pre-sampling hook for vLLM, TGI, and llama.cpp |
@@ -109,6 +110,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | `ContradictionReport` | `core.runtime.contradiction_tracker` | Contradiction summary (worst pair, trend) |
 | `CrossDocumentConsistencyMemory` | `core.memory.consistency` | Durable tenant-scoped contradiction memory across documents |
 | `DifferentialPrivacyScoreReleaser` | `core.federated_privacy.score_release` | Optional DP layer for public score release |
+| `FederatedSafetySignalAggregator` | `core.federated_privacy.signal_sharing` | Anonymous DP aggregate sharing for tenant-safe guard signals |
 
 See [Meta-Confidence Guide](../guide/meta-confidence.md).
 

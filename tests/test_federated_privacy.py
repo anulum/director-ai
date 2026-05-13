@@ -24,6 +24,7 @@ from director_ai.core.federated_privacy import (
     AccountantEntry,
     FederatedCounter,
     FederatedHistogram,
+    FederatedSafetySignalAggregator,
     GaussianMechanism,
     LaplaceMechanism,
     PrivacyAccountant,
@@ -37,6 +38,8 @@ from director_ai.core.federated_privacy.secret_sharing import (
     split,
     split_many,
 )
+from director_ai.core.safety_event import SafetyEvent
+from director_ai.core.safety_protocol import director_safety_signal_from_event
 
 # --- LaplaceMechanism ---------------------------------------------
 
@@ -574,3 +577,121 @@ class TestFederatedHistogram:
             hist.submit(tenant_id="", category="a")
         with pytest.raises(ValueError, match="count"):
             hist.submit(tenant_id="t", category="a", count=-1)
+
+    def test_reset_clears_pending_counts_without_charging_accountant(self):
+        acc = PrivacyAccountant(max_epsilon=5.0)
+        hist = FederatedHistogram(
+            categories=("a",),
+            epsilon=0.5,
+            accountant=acc,
+            seed=0,
+            allow_insecure_seed=True,
+        )
+        hist.submit(tenant_id="t", category="a")
+
+        hist.reset()
+        assert acc.cumulative_epsilon() == 0.0
+        release = hist.release()
+
+        assert release.raw_counts["a"] == 0
+        assert acc.cumulative_epsilon() == pytest.approx(0.5)
+
+
+# --- FederatedSafetySignalAggregator ------------------------------
+
+
+def _signal(*, tenant_id: str, decision: str = "halt", reason: str = "coherence"):
+    event = SafetyEvent.from_policy_decision(
+        hook_id="stream",
+        hook_scope="streaming",
+        policy_decision=decision,
+        halt_reason=reason,
+        tenant_safe_explanation="Tenant-safe halt summary.",
+        tenant_id=tenant_id,
+        observed_score=0.2,
+        threshold=0.5,
+        evidence_refs=("chunk:0",),
+    )
+    return director_safety_signal_from_event(
+        event,
+        producer_id="producer-a",
+        framework="test",
+    )
+
+
+class TestFederatedSafetySignalAggregator:
+    def test_releases_anonymised_noisy_signal_histogram_without_raw_defaults(self):
+        accountant = PrivacyAccountant(max_epsilon=5.0)
+        aggregator = FederatedSafetySignalAggregator(
+            epsilon=0.9,
+            accountant=accountant,
+            min_tenants=2,
+            seed=0,
+            allow_insecure_seed=True,
+        )
+        aggregator.submit_signal(_signal(tenant_id="tenant-a", decision="halt"))
+        aggregator.submit_signal(_signal(tenant_id="tenant-b", decision="warn"))
+
+        release = aggregator.release()
+        payload = release.to_dict()
+
+        assert release.signal_count == 2
+        assert release.distinct_tenants == 2
+        assert release.raw_counts["decision:halt"] == 1
+        assert release.raw_counts["decision:warn"] == 1
+        assert "raw_counts" not in payload
+        assert "tenant-a" not in str(payload)
+        assert "tenant-b" not in str(payload)
+        assert payload["privacy"]["payload_classification"] == "anonymous_dp_aggregate"
+        assert payload["epsilon_spent"] == pytest.approx(0.9)
+        assert accountant.cumulative_epsilon() == pytest.approx(0.9)
+
+    def test_per_tenant_category_cap_bounds_histogram_sensitivity(self):
+        aggregator = FederatedSafetySignalAggregator(
+            epsilon=0.9,
+            min_tenants=2,
+            seed=0,
+            allow_insecure_seed=True,
+        )
+        first = _signal(tenant_id="tenant-a", decision="halt")
+        duplicate = _signal(tenant_id="tenant-a", decision="halt")
+        other = _signal(tenant_id="tenant-b", decision="halt")
+
+        assert aggregator.submit_signal(first) == ("decision:halt", "scope:streaming")
+        assert aggregator.submit_signal(duplicate) == ()
+        assert aggregator.submit_signal(other) == ("decision:halt", "scope:streaming")
+
+        release = aggregator.release()
+
+        assert release.raw_counts["decision:halt"] == 2
+        assert release.raw_counts["scope:streaming"] == 2
+        assert release.signal_count == 2
+
+    def test_release_requires_minimum_distinct_tenants_without_charging_budget(self):
+        accountant = PrivacyAccountant(max_epsilon=5.0)
+        aggregator = FederatedSafetySignalAggregator(
+            epsilon=0.9,
+            accountant=accountant,
+            min_tenants=2,
+            seed=0,
+            allow_insecure_seed=True,
+        )
+        aggregator.submit_signal(_signal(tenant_id="tenant-a", decision="halt"))
+
+        with pytest.raises(ValueError, match="min_tenants"):
+            aggregator.release()
+
+        assert accountant.cumulative_epsilon() == 0.0
+
+    def test_rejects_transport_payloads_that_include_raw_data(self):
+        aggregator = FederatedSafetySignalAggregator(
+            epsilon=0.9,
+            min_tenants=1,
+            seed=0,
+            allow_insecure_seed=True,
+        )
+        payload = _signal(tenant_id="tenant-a", decision="halt").to_transport_dict()
+        payload["privacy"]["raw_payload_included"] = True
+
+        with pytest.raises(ValueError, match="raw payloads"):
+            aggregator.submit_transport(payload)

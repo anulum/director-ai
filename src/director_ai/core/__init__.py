@@ -56,7 +56,12 @@ from .evaluation import (
     compare_policy_variants,
     evaluate_policy_variants,
 )
-from .federated_privacy import DifferentialPrivacyScoreReleaser, PrivacyScoreRelease
+from .federated_privacy import (
+    DifferentialPrivacyScoreReleaser,
+    FederatedSafetySignalAggregator,
+    FederatedSafetySignalRelease,
+    PrivacyScoreRelease,
+)
 from .memory import (
     CrossDocumentConflict,
     CrossDocumentConsistencyMemory,
@@ -284,6 +289,8 @@ __all__ = [
     "DifferentialPrivacyScoreReleaser",
     "FinetuneConfig",
     "FinetuneResult",
+    "FederatedSafetySignalAggregator",
+    "FederatedSafetySignalRelease",
     "ModelBenchmarkReport",
     "ModelBenchmarkResult",
     "NeuroSymbolicVerificationResult",

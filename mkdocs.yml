@@ -181,6 +181,7 @@ nav:
       - Adaptive Threshold Learning: api/adaptive-threshold.md
       - Cross-Document Consistency Memory: api/cross-document-memory.md
       - Differentially Private Score Release: api/private-score-release.md
+      - Federated Safety Signal Sharing: api/federated-safety-signals.md
       - Neuro-Symbolic Verifier: api/neuro-symbolic-verifier.md
       - Byzantine-Resilient Consensus: api/byzantine-consensus.md
       - Standalone Interlock Kernel: api/interlock-kernel.md

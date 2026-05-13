@@ -71,6 +71,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "FAISSBackend": (".core", "FAISSBackend"),
     "FinetuneConfig": (".core", "FinetuneConfig"),
     "FinetuneResult": (".core", "FinetuneResult"),
+    "FederatedSafetySignalAggregator": (
+        ".core",
+        "FederatedSafetySignalAggregator",
+    ),
+    "FederatedSafetySignalRelease": (".core", "FederatedSafetySignalRelease"),
     "GroundTruthStore": (".core", "GroundTruthStore"),
     "HaltEvidence": (".core", "HaltEvidence"),
     "HaltMonitor": (".core", "HaltMonitor"),

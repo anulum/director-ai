@@ -480,7 +480,7 @@ future-differentiator queue.
   their own scorer.
 - [x] Add verifier backends for formal math and code outputs through theorem
   prover integrations.
-- [ ] Design federated, privacy-preserving sharing of anonymised guard signals.
+- [x] Design federated, privacy-preserving sharing of anonymised guard signals.
 - [x] Add sustainability scoring for token cost, energy estimates, and budget
   halts.
 - [x] Extend sustainability scoring with real hardware profiles, projected energy,

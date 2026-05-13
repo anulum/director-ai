@@ -41,12 +41,20 @@ from .aggregator import FederatedCounter, FederatedHistogram
 from .mechanisms import GaussianMechanism, LaplaceMechanism
 from .score_release import DifferentialPrivacyScoreReleaser, PrivacyScoreRelease
 from .secret_sharing import SecretShare, SecureAggregator, ShareError
+from .signal_sharing import (
+    DEFAULT_SIGNAL_CATEGORIES,
+    FederatedSafetySignalAggregator,
+    FederatedSafetySignalRelease,
+)
 
 __all__ = [
     "AccountantEntry",
+    "DEFAULT_SIGNAL_CATEGORIES",
     "DifferentialPrivacyScoreReleaser",
     "FederatedCounter",
     "FederatedHistogram",
+    "FederatedSafetySignalAggregator",
+    "FederatedSafetySignalRelease",
     "GaussianMechanism",
     "LaplaceMechanism",
     "PrivacyAccountant",

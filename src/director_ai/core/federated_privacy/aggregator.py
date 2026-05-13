@@ -211,6 +211,11 @@ class FederatedHistogram:
         with self._lock:
             self._contributions[category] += count
 
+    def reset(self) -> None:
+        with self._lock:
+            for category in self._categories:
+                self._contributions[category] = 0
+
     def release(self) -> HistogramRelease:
         with self._lock:
             raw_counts = dict(self._contributions)
