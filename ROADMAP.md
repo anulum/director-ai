@@ -463,7 +463,7 @@ Last updated: 2026-04-30
 - [x] Add a cross-verifier consensus engine for critical domains that combines
   NLI, policy rules, temporal checks, numeric checks, and domain-specific
   symbolic validators into one calibrated confidence interval.
-- [ ] Build a synthetic data and self-distillation pipeline that turns reviewed
+- [x] Build a synthetic data and self-distillation pipeline that turns reviewed
   halt feedback into hard negatives and periodic domain-adapted training jobs.
 - [ ] Plan multi-modal hallucination checks for generated image, audio, and video
   outputs using caption/metadata grounding.

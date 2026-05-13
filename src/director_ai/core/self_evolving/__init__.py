@@ -62,6 +62,7 @@ from .guard_loop import (
 from .synthetic_distillation import (
     SyntheticDistillationBuilder,
     SyntheticDistillationManifest,
+    SyntheticDistillationPlan,
     SyntheticExample,
 )
 from .trainer import (
@@ -90,6 +91,7 @@ __all__ = [
     "SelfImprovingGuardLoop",
     "SyntheticDistillationBuilder",
     "SyntheticDistillationManifest",
+    "SyntheticDistillationPlan",
     "SyntheticExample",
     "TrainedGuardrail",
 ]

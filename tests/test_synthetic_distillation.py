@@ -14,6 +14,7 @@ from director_ai.core.self_evolving import (
     FeedbackEvent,
     SyntheticDistillationBuilder,
     SyntheticDistillationManifest,
+    SyntheticDistillationPlan,
     SyntheticExample,
 )
 
@@ -148,4 +149,65 @@ def test_builder_rejects_unreviewed_source_events():
             reviewer_id="reviewer-passport-1",
             seed=0,
             max_examples=1,
+        )
+
+
+def test_builder_creates_training_plan_without_submitting_job():
+    builder = SyntheticDistillationBuilder(generator_id="deterministic-v1")
+
+    plan = builder.build_training_plan(
+        _reviewed_events(),
+        reviewer_id="reviewer-passport-1",
+        seed=123,
+        max_examples=3,
+        real_event_count=4,
+        manifest_id="distill-20260513-a",
+        dataset_uri="env://DIRECTOR_SYNTHETIC_DISTILLATION_DATASET",
+        output_uri="env://DIRECTOR_SYNTHETIC_DISTILLATION_OUTPUT",
+        base_model_ref="factcg-deberta-v3-large",
+        schedule_id="nightly-reviewed-feedback",
+    )
+
+    assert isinstance(plan, SyntheticDistillationPlan)
+    assert len(plan.examples) == 3
+    assert len(plan.training_rows()) == 3
+    assert plan.manifest.synthetic_event_count == 3
+    assert plan.training_job.display_name == "director-ai-distill-20260513-a"
+    assert plan.training_job.dataset_uri == (
+        "env://DIRECTOR_SYNTHETIC_DISTILLATION_DATASET"
+    )
+    assert plan.training_job.output_uri == (
+        "env://DIRECTOR_SYNTHETIC_DISTILLATION_OUTPUT"
+    )
+    assert plan.training_job.base_model == "factcg-deberta-v3-large"
+    assert plan.training_job.labels["synthetic"] == "true"
+    assert plan.training_job.labels["benchmark_evidence"] == "false"
+    assert plan.training_job.labels["manifest_id"] == "distill-20260513-a"
+    assert plan.training_job.labels["schedule_id"] == "nightly-reviewed-feedback"
+    assert plan.training_job.env == {
+        "DIRECTOR_DISTILLATION_MANIFEST_ID": "distill-20260513-a",
+        "DIRECTOR_DISTILLATION_SYNTHETIC_ROWS": "3",
+        "DIRECTOR_DISTILLATION_REAL_ROWS": "4",
+    }
+    audit_payload = plan.to_dict()
+    assert "unsafe reviewed prompt" not in str(audit_payload)
+    assert "synthetic reviewed variant" not in str(audit_payload)
+    assert audit_payload["training_job"]["submitted"] is False
+
+
+def test_training_plan_rejects_dataset_uri_with_embedded_credentials():
+    builder = SyntheticDistillationBuilder(generator_id="deterministic-v1")
+
+    with pytest.raises(ValueError, match="embedded credentials"):
+        builder.build_training_plan(
+            _reviewed_events(),
+            reviewer_id="reviewer-passport-1",
+            seed=123,
+            max_examples=3,
+            real_event_count=4,
+            manifest_id="distill-20260513-a",
+            dataset_uri="https://user@example.test/distill.jsonl",
+            output_uri="env://DIRECTOR_SYNTHETIC_DISTILLATION_OUTPUT",
+            base_model_ref="factcg-deberta-v3-large",
+            schedule_id="nightly-reviewed-feedback",
         )

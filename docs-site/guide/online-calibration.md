@@ -171,6 +171,28 @@ manifest = SyntheticDistillationManifest.from_examples(
 )
 ```
 
+For scheduled distillation, build a managed training plan instead of assembling
+the job manually:
+
+```python
+plan = builder.build_training_plan(
+    reviewed_events,
+    reviewer_id="reviewer-passport-1",
+    seed=123,
+    max_examples=32,
+    real_event_count=real_event_count,
+    manifest_id="distill-20260513-a",
+    dataset_uri="env://DIRECTOR_SYNTHETIC_DISTILLATION_DATASET",
+    output_uri="env://DIRECTOR_SYNTHETIC_DISTILLATION_OUTPUT",
+    base_model_ref="factcg-deberta-v3-large",
+    schedule_id="nightly-reviewed-feedback",
+)
+```
+
+`plan.training_job` is a managed training job spec and remains unsubmitted until
+an external controller approves and submits it. The plan audit payload excludes
+generated prompt and response text.
+
 Synthetic rows stay marked `synthetic=True` and
 `benchmark_evidence=False`. Keep benchmark reports split into real, synthetic,
 and mixed sets so generated examples are never presented as real measured

@@ -16,12 +16,16 @@ from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from hashlib import sha256
 from typing import Any
+from urllib.parse import urlparse
+
+from director_ai.core.training.jobs import TrainingJobSpec
 
 from .feedback import FeedbackEvent, FeedbackLabel
 
 __all__ = [
     "SyntheticDistillationBuilder",
     "SyntheticDistillationManifest",
+    "SyntheticDistillationPlan",
     "SyntheticExample",
 ]
 
@@ -156,6 +160,40 @@ class SyntheticDistillationManifest:
         }
 
 
+@dataclass(frozen=True)
+class SyntheticDistillationPlan:
+    """Reviewed synthetic rows, tenant-safe manifest, and managed job request."""
+
+    examples: Sequence[SyntheticExample]
+    manifest: SyntheticDistillationManifest
+    training_job: TrainingJobSpec
+
+    def __post_init__(self) -> None:
+        examples = tuple(self.examples)
+        if not examples:
+            raise ValueError("examples must not be empty")
+        if len(examples) != self.manifest.synthetic_event_count:
+            raise ValueError("example count must match manifest")
+        object.__setattr__(self, "examples", examples)
+
+    def training_rows(self) -> tuple[dict[str, Any], ...]:
+        """Return synthetic rows for the controlled dataset writer."""
+        return tuple(example.to_training_row() for example in self.examples)
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialise the plan without generated prompt or response text."""
+        return {
+            "manifest": self.manifest.to_dict(),
+            "examples": [example.to_dict() for example in self.examples],
+            "training_job": {
+                "submitted": False,
+                "spec": self.training_job.to_redacted_dict(),
+                "dataset_hash": self.training_job.dataset_hash,
+                "config_hash": self.training_job.config_hash,
+            },
+        }
+
+
 class SyntheticDistillationBuilder:
     """Deterministically derive reviewed synthetic examples from feedback."""
 
@@ -203,6 +241,74 @@ class SyntheticDistillationBuilder:
             examples.append(candidate)
         return tuple(examples)
 
+    def build_training_plan(
+        self,
+        events: Iterable[FeedbackEvent],
+        *,
+        reviewer_id: str,
+        seed: int,
+        max_examples: int,
+        real_event_count: int,
+        manifest_id: str,
+        dataset_uri: str,
+        output_uri: str,
+        base_model_ref: str,
+        schedule_id: str,
+    ) -> SyntheticDistillationPlan:
+        """Build a synthetic distillation plan without submitting a job."""
+        _reject_embedded_credentials("dataset_uri", dataset_uri)
+        _reject_embedded_credentials("output_uri", output_uri)
+        if not dataset_uri.strip():
+            raise ValueError("dataset_uri is required")
+        if not output_uri.strip():
+            raise ValueError("output_uri is required")
+        if not base_model_ref.strip():
+            raise ValueError("base_model_ref is required")
+        if not schedule_id.strip():
+            raise ValueError("schedule_id is required")
+        examples = self.generate(
+            events,
+            reviewer_id=reviewer_id,
+            seed=seed,
+            max_examples=max_examples,
+        )
+        manifest = SyntheticDistillationManifest.from_examples(
+            examples=examples,
+            real_event_count=real_event_count,
+            manifest_id=manifest_id,
+        )
+        training_job = TrainingJobSpec(
+            display_name=f"director-ai-{manifest.manifest_id}",
+            dataset_uri=dataset_uri,
+            output_uri=output_uri,
+            base_model=base_model_ref,
+            labels={
+                "synthetic": "true",
+                "benchmark_evidence": "false",
+                "manifest_id": manifest.manifest_id,
+                "schedule_id": schedule_id,
+            },
+            env={
+                "DIRECTOR_DISTILLATION_MANIFEST_ID": manifest.manifest_id,
+                "DIRECTOR_DISTILLATION_SYNTHETIC_ROWS": str(
+                    manifest.synthetic_event_count
+                ),
+                "DIRECTOR_DISTILLATION_REAL_ROWS": str(manifest.real_event_count),
+            },
+            args=[
+                "--synthetic-distillation-manifest",
+                manifest.manifest_id,
+                "--schedule-id",
+                schedule_id,
+            ],
+        )
+        training_job.validate("local")
+        return SyntheticDistillationPlan(
+            examples=examples,
+            manifest=manifest,
+            training_job=training_job,
+        )
+
 
 def _reviewed_event(event: FeedbackEvent, index: int) -> FeedbackEvent:
     if not event.metadata.get("event_id", "").strip():
@@ -219,3 +325,9 @@ def _synthetic_prompt(prompt: str, rng: random.Random) -> str:
         rng.shuffle(left)
         return "synthetic reviewed variant: " + " ".join(left)
     return f"synthetic reviewed variant: {prompt}"
+
+
+def _reject_embedded_credentials(name: str, uri: str) -> None:
+    parsed = urlparse(uri)
+    if parsed.netloc and "@" in parsed.netloc:
+        raise ValueError(f"{name} must not contain embedded credentials")
