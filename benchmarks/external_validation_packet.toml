@@ -67,6 +67,17 @@ primary_metrics = ["catch_rate", "false_positive_rate", "precision", "f1"]
 claim_boundary = "Local judge mode; report apart from remote-judge and pure-NLI rows."
 
 [[benchmark_tasks]]
+id = "hallubench_geospatial_internal"
+mode_card = "hallubench_geospatial_internal"
+purpose = "Exercise the gated HalluBench geospatial VLM validation path without promoting a public score."
+dataset = "hallubench"
+runner = "benchmarks/hallubench_eval.py"
+command = "HF_TOKEN=<accepted-access-token> python -m benchmarks.hallubench_eval --predictions-jsonl validation/hallubench_predictions.jsonl --output-json benchmarks/results/hallubench_internal_validation.json"
+expected_result = "benchmarks/results/hallubench_internal_validation.json"
+primary_metrics = ["accuracy", "exact_match_rate", "numeric_match_rate", "mean_token_f1", "missing_predictions"]
+claim_boundary = "Gated internal validation only; do not publish a HalluBench score until access, provenance, and metric review are complete."
+
+[[benchmark_tasks]]
 id = "streaming_false_halt_heuristic"
 mode_card = "heuristic_streaming_false_halt"
 purpose = "Verify the heuristic streaming false-halt rate and labelled bad-passage halt diagnostics."

@@ -32,6 +32,7 @@ Cache and result schemas:
 | `aggrefact_tuned_threshold_replay` | tuned-threshold NLI | Tuned-threshold replay claim | `benchmarks/results/aggrefact_sweep_lr_low.json` |
 | `halueval_nli_e2e` | pure NLI end-to-end | HaluEval guardrail catch/FPR/F1 claim | `benchmarks/results/e2e_guardrail.json` |
 | `local_judge_halueval` | local judge | Local borderline-case judge claim | `benchmarks/results/judge_bench_local_judge_1000.json` |
+| `hallubench_geospatial_internal` | multimodal geospatial | Prepared gated HalluBench validation path; no public score claim | `benchmarks/results/hallubench_internal_validation.json` |
 | `streaming_false_halt_heuristic` | heuristic | Streaming false-halt claim | `benchmarks/results/streaming_false_halt_heuristic.json` |
 
 The reviewer may run a smaller smoke subset first, but the final report should
@@ -89,6 +90,14 @@ Local judge:
 python benchmarks/run_judge_benchmark.py --samples 1000
 ```
 
+HalluBench gated geospatial VLM validation:
+
+```bash
+HF_TOKEN=<accepted-access-token> python -m benchmarks.hallubench_eval \
+  --predictions-jsonl validation/hallubench_predictions.jsonl \
+  --output-json benchmarks/results/hallubench_internal_validation.json
+```
+
 Streaming false-halt:
 
 ```bash
@@ -113,12 +122,16 @@ The report must keep these claims separate:
 2. Tuned-threshold AggreFact replay.
 3. HaluEval end-to-end catch, FPR, precision, and F1.
 4. Local judge HaluEval metrics.
-5. Heuristic streaming false-halt rate plus labelled bad-passage halt
+5. HalluBench gated geospatial VLM validation.
+6. Heuristic streaming false-halt rate plus labelled bad-passage halt
    precision, recall, and token timing.
 
 Do not convert false-halt rate or the small labelled smoke set into a
 customer-domain hallucination catch-rate claim. Do not merge judge-assisted
 rows into pure NLI rows. Do not describe tuned thresholds as model training.
+Do not publish HalluBench scores until gated dataset access, model provenance,
+and metric review are captured in the validation report. Do not include raw
+HalluBench images, questions, references, or model predictions in public files.
 
 ## Auditor Questions
 
@@ -130,3 +143,5 @@ The final report should answer:
 4. Which task families produced the highest false-positive and false-negative
    counts?
 5. Which claim boundaries need clearer public wording before release?
+6. For HalluBench, did the report verify dataset-access approval, prediction
+   provenance, and absence of raw gated data in public artefacts?

@@ -214,6 +214,7 @@ train = [
     "datasets>=2.14",
     "accelerate>=0.21",
     "peft>=0.6",
+    "pillow>=10,<13",
 ]
 managed-training = [
     "google-cloud-aiplatform>=1.133",

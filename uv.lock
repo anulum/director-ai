@@ -1842,6 +1842,7 @@ train = [
     { name = "accelerate" },
     { name = "datasets" },
     { name = "peft" },
+    { name = "pillow" },
     { name = "transformers" },
 ]
 ui = [
@@ -1928,6 +1929,7 @@ requires-dist = [
     { name = "openai", marker = "extra == 'voice'", specifier = ">=1.0" },
     { name = "opentelemetry-api", marker = "extra == 'otel'", specifier = ">=1.20" },
     { name = "peft", marker = "extra == 'train'", specifier = ">=0.6" },
+    { name = "pillow", marker = "extra == 'train'", specifier = ">=10,<13" },
     { name = "pinecone", marker = "extra == 'pinecone'", specifier = ">=5.0" },
     { name = "polar-sdk", marker = "extra == 'license'", specifier = "==0.31.3" },
     { name = "presidio-analyzer", marker = "extra == 'moderation'", specifier = ">=2.2" },

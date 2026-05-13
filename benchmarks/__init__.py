@@ -15,6 +15,7 @@
 #   python -m benchmarks.paws_eval [N]           -- Adversarial paraphrase
 #   python -m benchmarks.falsepositive_eval [N]  -- Clean RAG FP rate
 #   python -m benchmarks.aggrefact_eval [N]      -- LLM-AggreFact (requires HF_TOKEN)
+#   python -m benchmarks.hallubench_eval         -- HalluBench gated VLM eval
 #   python -m benchmarks.run_all --max-samples N -- Full suite + comparison table
 #
 # In-training eval (data leakage — report separately):

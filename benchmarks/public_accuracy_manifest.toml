@@ -108,6 +108,21 @@ result_files = [
 metrics = ["catch_rate", "false_positive_rate", "precision", "f1"]
 claim_boundary = "Local judge mode; report separately from remote-judge and pure-NLI rows."
 
+[[benchmark_mode_cards]]
+id = "hallubench_geospatial_internal"
+mode_family = "multimodal_geospatial"
+claim_scope = "Gated HalluBench geospatial VLM answer agreement"
+public_metric = "No public score yet; runner prepared for gated internal validation"
+public_tables = ["benchmark_report_hallubench_internal"]
+datasets = ["hallubench"]
+runner_files = ["benchmarks/hallubench_eval.py"]
+commands = [
+  "HF_TOKEN=<accepted-access-token> python -m benchmarks.hallubench_eval --predictions-jsonl validation/hallubench_predictions.jsonl --output-json benchmarks/results/hallubench_internal_validation.json",
+]
+result_files = ["benchmarks/results/hallubench_internal_validation.json"]
+metrics = ["accuracy", "exact_match_rate", "numeric_match_rate", "mean_token_f1", "missing_predictions"]
+claim_boundary = "Prepared internal validation harness only; do not publish a HalluBench score until gated access, model provenance, and metric review are recorded."
+
 [[datasets]]
 id = "llm_aggrefact"
 name = "LLM-AggreFact"
@@ -141,6 +156,16 @@ access = "public CSV mirrored into benchmark cache"
 local_cache = ["benchmarks/.cache/TruthfulQA.csv"]
 size_note = "truthfulness benchmark cache used by legacy runs"
 label_fields = ["question", "best_answer", "incorrect_answers"]
+
+[[datasets]]
+id = "hallubench"
+name = "HalluBench"
+source = "AuwAuwAuw/HalluBench"
+split = "train"
+access = "gated; requires accepted Hugging Face access conditions; CC BY-NC-ND 4.0 non-commercial no-derivatives"
+local_cache = []
+size_note = "200 geospatial VLM questions across emergency and urban domains; raw samples and images are not committed"
+label_fields = ["question_id", "application", "task_type", "output_form", "question", "ground_truth", "img1_path", "img2_path"]
 
 [[datasets]]
 id = "streaming_good_passages"
@@ -269,6 +294,20 @@ result_files = [
 ]
 metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "median_latency_ms"]
 notes = "Local judge rows depend on the trained local judge directory referenced by the runner."
+
+[[public_accuracy_tables]]
+id = "benchmark_report_hallubench_internal"
+title = "HalluBench geospatial VLM internal validation"
+public_file = "benchmarks/PUBLIC_BENCHMARKS.md"
+runner_files = ["benchmarks/hallubench_eval.py"]
+commands = [
+  "HF_TOKEN=<accepted-access-token> python -m benchmarks.hallubench_eval --predictions-jsonl validation/hallubench_predictions.jsonl --output-json benchmarks/results/hallubench_internal_validation.json",
+]
+datasets = ["hallubench"]
+cache_files = []
+result_files = ["benchmarks/results/hallubench_internal_validation.json"]
+metrics = ["accuracy", "exact_match_rate", "numeric_match_rate", "mean_token_f1", "missing_predictions"]
+notes = "Prepared gated-data runner only. No raw images, questions, answers, or predictions may be committed, and no public score is claimed until external review."
 
 [[public_accuracy_tables]]
 id = "benchmark_report_streaming_false_halt"

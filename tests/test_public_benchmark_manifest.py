@@ -94,6 +94,7 @@ def test_public_manifest_mode_cards_keep_backend_claims_separate():
         "tuned_threshold_nli",
         "hybrid_judge",
         "local_judge",
+        "multimodal_geospatial",
     }
 
     for card in mode_cards:
@@ -117,6 +118,7 @@ def test_reproduction_docs_reference_manifest_and_cache_schema():
     assert "readme_aggrefact_leaderboard" in doc
     assert "Benchmark Mode Cards" in doc
     assert "hybrid_remote_judge_halueval" in doc
+    assert "hallubench_geospatial_internal" in doc
     assert "benchmarks/EXTERNAL_VALIDATION_PACKET.md" in doc
 
 

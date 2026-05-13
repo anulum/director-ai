@@ -85,6 +85,47 @@ Produced by `benchmarks.run_judge_benchmark`.
 | `total_elapsed_s` | number | Runner wall time |
 | `hw` | object | Hardware fingerprint captured by the runner |
 
+## HalluBench Internal Validation Cache
+
+Produced by:
+
+```bash
+HF_TOKEN=<accepted-access-token> python -m benchmarks.hallubench_eval \
+  --predictions-jsonl validation/hallubench_predictions.jsonl \
+  --output-json benchmarks/results/hallubench_internal_validation.json
+```
+
+HalluBench is gated and licensed for non-commercial, no-derivatives use. The
+result cache must not contain raw images, questions, ground-truth answers, or
+model predictions. It may contain sample metadata, aggregate metrics, and
+SHA-256 hashes of references and predictions for audit matching.
+
+Required top-level fields:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `benchmark` | string | Benchmark name, expected `HalluBench` |
+| `schema_version` | string | Result schema marker from the runner |
+| `benchmark_evidence` | boolean | Always `false` until external review promotes a score |
+| `claim_boundary` | string | Publication boundary for the gated benchmark |
+| `dataset` | object | Dataset id, source, split, access, license, and raw-data flag |
+| `model_id` | string | Operator-supplied model or system identifier |
+| `parameters` | object | Filters and metric thresholds used for the run |
+| `overall` | object | Aggregate totals and derived metrics |
+| `by_application` | object | Metrics split by `emergency` and `urban` |
+| `by_task_type` | object | Metrics split by HalluBench task taxonomy |
+| `by_output_form` | object | Metrics split by `short` and `long` answer forms |
+| `by_temporal` | object | Metrics split by temporal-pair and single-image rows |
+| `image_modalities` | object | Count of referenced modalities such as RGB or SAR |
+| `elapsed_seconds` | number | Runner wall time |
+| `per_sample` | array[object] | Metadata, metric row, and reference/prediction hashes |
+
+Each metric summary includes `total`, `passed`, `failed`,
+`missing_predictions`, `accuracy`, `exact_match_rate`, `numeric_match_rate`,
+and `mean_token_f1`. Per-sample rows include `ground_truth_sha256` and may
+include `prediction_sha256`; they must not include `question`, `ground_truth`,
+or `prediction` fields.
+
 ## Streaming False-Halt Cache
 
 Produced by `benchmarks.streaming_false_halt_bench`.
