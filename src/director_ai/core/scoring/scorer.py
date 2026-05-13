@@ -19,7 +19,13 @@ from typing import cast
 from ...enterprise.redactor import PIIRedactor
 from ..cache import ScoreCache
 from ..metrics import metrics
-from ..otel import trace_review
+from ..otel import (
+    trace_cache,
+    trace_calibration,
+    trace_nli_inference,
+    trace_retrieval,
+    trace_review,
+)
 from ..types import CoherenceScore, EvidenceChunk, ScoringEvidence
 from ._llm_judge import LLMJudge
 from ._task_scoring import (
@@ -632,24 +638,30 @@ class CoherenceScorer:
         # Summarization mode: score prompt (source document) directly as premise.
         # Bypasses vector store retrieval which loses context and degrades scores.
         if self._use_prompt_as_premise and self._nli and self._nli.model_available:
-            with metrics.timer("chunked_nli_seconds"):
-                if self._confidence_weighted_agg:
-                    score, _ = self._nli.score_chunked_confidence_weighted(
-                        prompt,
-                        text_output,
-                        inner_agg=fact_inner,
-                        premise_ratio=effective_premise_ratio,
-                        overlap_ratio=self._chunk_overlap_ratio,
-                    )
-                else:
-                    score, _ = self._nli.score_chunked(
-                        prompt,
-                        text_output,
-                        inner_agg=fact_inner,
-                        outer_agg=fact_outer,
-                        premise_ratio=effective_premise_ratio,
-                        overlap_ratio=self._chunk_overlap_ratio,
-                    )
+            with trace_nli_inference(stage="factual_prompt") as nli_span:
+                nli_span.set_attribute("nli.model_available", True)
+                nli_span.set_attribute(
+                    "nli.confidence_weighted", self._confidence_weighted_agg
+                )
+                with metrics.timer("chunked_nli_seconds"):
+                    if self._confidence_weighted_agg:
+                        score, _ = self._nli.score_chunked_confidence_weighted(
+                            prompt,
+                            text_output,
+                            inner_agg=fact_inner,
+                            premise_ratio=effective_premise_ratio,
+                            overlap_ratio=self._chunk_overlap_ratio,
+                        )
+                    else:
+                        score, _ = self._nli.score_chunked(
+                            prompt,
+                            text_output,
+                            inner_agg=fact_inner,
+                            outer_agg=fact_outer,
+                            premise_ratio=effective_premise_ratio,
+                            overlap_ratio=self._chunk_overlap_ratio,
+                        )
+                nli_span.set_attribute("nli.score", score)
             if self._should_escalate(score, task_type=task_type):
                 score = self._llm_judge_check(prompt, text_output, score)
             return score
@@ -668,12 +680,19 @@ class CoherenceScorer:
                 )
                 return DIVERGENCE_NEUTRAL
 
-        with metrics.timer("factual_retrieval_seconds"):
+        with (
+            trace_retrieval(
+                top_k=self._fact_retrieval_top_k,
+                tenant_scoped=bool(tenant_id),
+            ) as retrieval_span,
+            metrics.timer("factual_retrieval_seconds"),
+        ):
             context = self.ground_truth_store.retrieve_context(
                 prompt,
                 top_k=self._fact_retrieval_top_k,
                 tenant_id=tenant_id,
             )
+            retrieval_span.set_attribute("retrieval.has_context", bool(context))
         if not context:
             return DIVERGENCE_NEUTRAL
 
@@ -694,24 +713,30 @@ class CoherenceScorer:
                         return DIVERGENCE_NEUTRAL
 
         if self._nli and self._nli.model_available:
-            with metrics.timer("chunked_nli_seconds"):
-                if self._confidence_weighted_agg:
-                    score, _ = self._nli.score_chunked_confidence_weighted(
-                        context,
-                        text_output,
-                        inner_agg=fact_inner,
-                        premise_ratio=effective_premise_ratio,
-                        overlap_ratio=self._chunk_overlap_ratio,
-                    )
-                else:
-                    score, _ = self._nli.score_chunked(
-                        context,
-                        text_output,
-                        inner_agg=fact_inner,
-                        outer_agg=fact_outer,
-                        premise_ratio=effective_premise_ratio,
-                        overlap_ratio=self._chunk_overlap_ratio,
-                    )
+            with trace_nli_inference(stage="factual") as nli_span:
+                nli_span.set_attribute("nli.model_available", True)
+                nli_span.set_attribute(
+                    "nli.confidence_weighted", self._confidence_weighted_agg
+                )
+                with metrics.timer("chunked_nli_seconds"):
+                    if self._confidence_weighted_agg:
+                        score, _ = self._nli.score_chunked_confidence_weighted(
+                            context,
+                            text_output,
+                            inner_agg=fact_inner,
+                            premise_ratio=effective_premise_ratio,
+                            overlap_ratio=self._chunk_overlap_ratio,
+                        )
+                    else:
+                        score, _ = self._nli.score_chunked(
+                            context,
+                            text_output,
+                            inner_agg=fact_inner,
+                            outer_agg=fact_outer,
+                            premise_ratio=effective_premise_ratio,
+                            overlap_ratio=self._chunk_overlap_ratio,
+                        )
+                nli_span.set_attribute("nli.score", score)
 
             # RAG claim decomposition: score each response sentence
             # against the context independently, compute coverage.
@@ -766,31 +791,38 @@ class CoherenceScorer:
         # Summarization mode: score prompt directly, skip store retrieval.
         if self._use_prompt_as_premise and self._nli and self._nli.model_available:
             self._nli.reset_token_counter()
-            with metrics.timer("chunked_nli_seconds"):
-                if self._confidence_weighted_agg:
-                    nli_score, chunk_scores_list = (
-                        self._nli.score_chunked_confidence_weighted(
-                            prompt,
-                            text_output,
-                            inner_agg=fact_inner,
-                            premise_ratio=effective_premise_ratio,
-                            overlap_ratio=self._chunk_overlap_ratio,
+            with trace_nli_inference(stage="factual_prompt_evidence") as nli_span:
+                nli_span.set_attribute("nli.model_available", True)
+                nli_span.set_attribute(
+                    "nli.confidence_weighted", self._confidence_weighted_agg
+                )
+                with metrics.timer("chunked_nli_seconds"):
+                    if self._confidence_weighted_agg:
+                        nli_score, chunk_scores_list = (
+                            self._nli.score_chunked_confidence_weighted(
+                                prompt,
+                                text_output,
+                                inner_agg=fact_inner,
+                                premise_ratio=effective_premise_ratio,
+                                overlap_ratio=self._chunk_overlap_ratio,
+                            )
                         )
-                    )
-                    chunk_scores = chunk_scores_list
-                    prem_count = 1
-                    hyp_count = len(chunk_scores_list)
-                else:
-                    nli_score, chunk_scores, prem_count, hyp_count = (
-                        self._nli._score_chunked_with_counts(
-                            prompt,
-                            text_output,
-                            inner_agg=fact_inner,
-                            outer_agg=fact_outer,
-                            premise_ratio=effective_premise_ratio,
-                            overlap_ratio=self._chunk_overlap_ratio,
+                        chunk_scores = chunk_scores_list
+                        prem_count = 1
+                        hyp_count = len(chunk_scores_list)
+                    else:
+                        nli_score, chunk_scores, prem_count, hyp_count = (
+                            self._nli._score_chunked_with_counts(
+                                prompt,
+                                text_output,
+                                inner_agg=fact_inner,
+                                outer_agg=fact_outer,
+                                premise_ratio=effective_premise_ratio,
+                                overlap_ratio=self._chunk_overlap_ratio,
+                            )
                         )
-                    )
+                nli_span.set_attribute("nli.score", nli_score)
+                nli_span.set_attribute("nli.token_count", self._nli.last_token_count)
             if self._should_escalate(nli_score, task_type=task_type):
                 nli_score = self._llm_judge_check(prompt, text_output, nli_score)
             evidence = ScoringEvidence(
@@ -811,7 +843,13 @@ class CoherenceScorer:
         if not self.ground_truth_store:
             return DIVERGENCE_NEUTRAL, None
 
-        with metrics.timer("factual_retrieval_seconds"):
+        with (
+            trace_retrieval(
+                top_k=self._fact_retrieval_top_k,
+                tenant_scoped=bool(tenant_id),
+            ) as retrieval_span,
+            metrics.timer("factual_retrieval_seconds"),
+        ):
             chunks: list[EvidenceChunk] = []
             context: str | None = None
             from ..retrieval.vector_store import VectorGroundTruthStore
@@ -834,6 +872,8 @@ class CoherenceScorer:
                     chunks = [
                         EvidenceChunk(text=context, distance=0.0, source="keyword"),
                     ]
+            retrieval_span.set_attribute("retrieval.has_context", bool(context))
+            retrieval_span.set_attribute("retrieval.result_count", len(chunks))
 
         if not context:
             return DIVERGENCE_NEUTRAL, None
@@ -844,34 +884,41 @@ class CoherenceScorer:
         tok_count = 0
         if self._nli and self._nli.model_available:
             self._nli.reset_token_counter()
-            with metrics.timer("chunked_nli_seconds"):
-                if self._confidence_weighted_agg:
-                    nli_score, chunk_scores_list = (
-                        self._nli.score_chunked_confidence_weighted(
+            with trace_nli_inference(stage="factual_evidence") as nli_span:
+                nli_span.set_attribute("nli.model_available", True)
+                nli_span.set_attribute(
+                    "nli.confidence_weighted", self._confidence_weighted_agg
+                )
+                with metrics.timer("chunked_nli_seconds"):
+                    if self._confidence_weighted_agg:
+                        nli_score, chunk_scores_list = (
+                            self._nli.score_chunked_confidence_weighted(
+                                context,
+                                text_output,
+                                inner_agg=fact_inner,
+                                premise_ratio=effective_premise_ratio,
+                                overlap_ratio=self._chunk_overlap_ratio,
+                            )
+                        )
+                        retrieved_chunk_scores = chunk_scores_list
+                        hyp_count = len(chunk_scores_list)
+                    else:
+                        (
+                            nli_score,
+                            retrieved_chunk_scores,
+                            prem_count,
+                            hyp_count,
+                        ) = self._nli._score_chunked_with_counts(
                             context,
                             text_output,
                             inner_agg=fact_inner,
+                            outer_agg=fact_outer,
                             premise_ratio=effective_premise_ratio,
                             overlap_ratio=self._chunk_overlap_ratio,
                         )
-                    )
-                    retrieved_chunk_scores = chunk_scores_list
-                    hyp_count = len(chunk_scores_list)
-                else:
-                    (
-                        nli_score,
-                        retrieved_chunk_scores,
-                        prem_count,
-                        hyp_count,
-                    ) = self._nli._score_chunked_with_counts(
-                        context,
-                        text_output,
-                        inner_agg=fact_inner,
-                        outer_agg=fact_outer,
-                        premise_ratio=effective_premise_ratio,
-                        overlap_ratio=self._chunk_overlap_ratio,
-                    )
             tok_count = self._nli.last_token_count
+            nli_span.set_attribute("nli.score", nli_score)
+            nli_span.set_attribute("nli.token_count", tok_count)
         elif self.strict_mode:
             nli_score = DIVERGENCE_CONTRADICTED
         else:
@@ -987,14 +1034,17 @@ class CoherenceScorer:
             logic_outer = (
                 _outer_agg if _outer_agg is not None else self._logic_outer_agg
             )
-            with metrics.timer("chunked_nli_seconds"):
-                score, _ = self._nli.score_chunked(
-                    prompt,
-                    text_output,
-                    inner_agg=logic_inner,
-                    outer_agg=logic_outer,
-                    premise_ratio=self._premise_ratio,
-                )
+            with trace_nli_inference(stage="logical") as nli_span:
+                nli_span.set_attribute("nli.model_available", True)
+                with metrics.timer("chunked_nli_seconds"):
+                    score, _ = self._nli.score_chunked(
+                        prompt,
+                        text_output,
+                        inner_agg=logic_inner,
+                        outer_agg=logic_outer,
+                        premise_ratio=self._premise_ratio,
+                    )
+                nli_span.set_attribute("nli.score", score)
             return score
 
         if self.strict_mode:
@@ -1184,12 +1234,16 @@ class CoherenceScorer:
 
         from .meta_confidence import compute_meta_confidence
 
-        vc, _mc, sa = compute_meta_confidence(
-            score=coherence,
-            threshold=t,
-            h_logical=h_logic,
-            h_factual=h_fact,
-        )
+        with trace_calibration(stage="meta_confidence") as calibration_span:
+            vc, _mc, sa = compute_meta_confidence(
+                score=coherence,
+                threshold=t,
+                h_logical=h_logic,
+                h_factual=h_fact,
+            )
+            calibration_span.set_attribute("calibration.threshold", t)
+            calibration_span.set_attribute("calibration.verdict_confidence", vc)
+            calibration_span.set_attribute("calibration.signal_agreement", sa)
 
         # Retrieval confidence from evidence chunks
         retrieval_conf = None
@@ -1274,12 +1328,14 @@ class CoherenceScorer:
             cache_scope = self._score_cache_scope(session=session, tenant_id=tenant_id)
 
             if self.cache:
-                cached = self.cache.get(
-                    prompt,
-                    action,
-                    tenant_id=tenant_id,
-                    scope=cache_scope,
-                )
+                with trace_cache(scope_present=bool(cache_scope)) as cache_span:
+                    cached = self.cache.get(
+                        prompt,
+                        action,
+                        tenant_id=tenant_id,
+                        scope=cache_scope,
+                    )
+                    cache_span.set_attribute("cache.hit", cached is not None)
                 if cached is not None:
                     result = self._finalise_review(
                         cached.score,

@@ -108,6 +108,41 @@ with open("finetune_data.jsonl", "w") as f:
 
 This dataset can be used with `finetune_nli()` to train a domain-specific NLI model.
 
+## Exporting Calibration Artefacts
+
+For analytics, audit, and MLOps pipelines, export the canonical calibration
+schema. The export preserves guardrail score, guardrail verdict, human verdict,
+tenant/domain/review identifiers, disagreement status, timestamp, and a
+versioned schema marker.
+
+```python
+rows = store.export_calibration_rows(domain="medical")
+
+parquet_path = store.export_parquet(
+    "exports/medical-feedback.parquet",
+    domain="medical",
+)
+```
+
+Parquet export imports `pyarrow` only at call time and writes via a
+same-directory temporary file before replacing the final path. Use
+`include_text=False` when the export destination should not receive prompt or
+response text.
+
+Optional MLOps artefact logging is also runtime-only:
+
+```python
+store.log_export_artifact(
+    parquet_path,
+    backend="mlflow",
+    artifact_name="medical-calibration-feedback",
+    metadata={"rows": len(rows), "domain": "medical"},
+)
+```
+
+Supported backends are `mlflow` and `wandb`; both require an already active run.
+Director-AI does not silently create remote runs during feedback export.
+
 ## Self-Improving Guard Loop Gate
 
 Use `SelfImprovingGuardLoop` when calibration or fine-tuning should enter a

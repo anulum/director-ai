@@ -347,6 +347,7 @@ class HealthResponse(BaseModel):
     nli_loaded: bool
     uptime_seconds: float
     routers: dict[str, str] = Field(default_factory=dict)
+    model_revisions: dict = Field(default_factory=dict)
 
 
 class ReadyResponse(BaseModel):

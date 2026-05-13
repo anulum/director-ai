@@ -20,6 +20,7 @@ from typing import Any
 
 from ..metrics import metrics
 from ..model_revisions import resolve_model_revision
+from ..otel import trace_judge
 
 # LLM-as-judge blending constants
 LLM_JUDGE_AGREE_DIVERGENCE = 0.2
@@ -239,20 +240,26 @@ class LLMJudge:
         )
         inputs = {k: v.to(self._local_judge_device) for k, v in inputs.items()}
 
-        with torch.no_grad():
-            logits = model(**inputs).logits
-        probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
+        with trace_judge(provider="local") as span:
+            span.set_attribute("judge.cache_hit", False)
+            span.set_attribute("judge.nli_score", nli_score)
+            with torch.no_grad():
+                logits = model(**inputs).logits
+            probs = torch.softmax(logits, dim=1).cpu().numpy()[0]
 
-        judge_agrees = probs[0] > 0.5  # class 0 = approve
-        judge_conf = float(max(probs))
-        llm_divergence = (
-            LLM_JUDGE_AGREE_DIVERGENCE
-            if judge_agrees
-            else LLM_JUDGE_DISAGREE_DIVERGENCE
-        )
-        llm_w = LLM_JUDGE_LLM_WEIGHT * judge_conf
-        nli_w = 1.0 - llm_w
-        adjusted = max(0.0, min(1.0, nli_w * nli_score + llm_w * llm_divergence))
+            judge_agrees = probs[0] > 0.5  # class 0 = approve
+            judge_conf = float(max(probs))
+            llm_divergence = (
+                LLM_JUDGE_AGREE_DIVERGENCE
+                if judge_agrees
+                else LLM_JUDGE_DISAGREE_DIVERGENCE
+            )
+            llm_w = LLM_JUDGE_LLM_WEIGHT * judge_conf
+            nli_w = 1.0 - llm_w
+            adjusted = max(0.0, min(1.0, nli_w * nli_score + llm_w * llm_divergence))
+            span.set_attribute("judge.confidence", judge_conf)
+            span.set_attribute("judge.agrees", bool(judge_agrees))
+            span.set_attribute("judge.adjusted_score", adjusted)
 
         if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
             self._judge_cache.pop(next(iter(self._judge_cache)))
@@ -278,7 +285,10 @@ class LLMJudge:
         cached = self._judge_cache.get(cache_key)
         if cached is not None:
             metrics.inc("llm_judge_cache_hits")
-            return cached
+            with trace_judge(provider=self.provider or "external") as span:
+                span.set_attribute("judge.cache_hit", True)
+                span.set_attribute("judge.adjusted_score", cached)
+                return cached
         metrics.inc("llm_judge_cache_misses")
 
         t0 = time.monotonic()
@@ -297,33 +307,41 @@ class LLMJudge:
             r_text = redactor(r_text)
 
         judge_messages = self._build_judge_messages(p_text, r_text, nli_score)
-        try:
-            reply = self._call_llm_judge(model, judge_messages, nli_score)
-            if reply is None:
-                return nli_score
+        with trace_judge(provider=self.provider or "external") as span:
+            span.set_attribute("judge.cache_hit", False)
+            span.set_attribute("judge.nli_score", nli_score)
+            try:
+                reply = self._call_llm_judge(model, judge_messages, nli_score)
+                if reply is None:
+                    span.set_attribute("judge.fallback", True)
+                    return nli_score
 
-            parsed = self._parse_judge_reply_strict(reply)
-            if parsed is None:
-                logger.warning("LLM judge returned invalid JSON verdict")
-                return nli_score
-            llm_agrees, judge_conf = parsed
-            llm_divergence = (
-                LLM_JUDGE_AGREE_DIVERGENCE
-                if llm_agrees
-                else LLM_JUDGE_DISAGREE_DIVERGENCE
-            )
-            llm_w = LLM_JUDGE_LLM_WEIGHT * judge_conf
-            nli_w = 1.0 - llm_w
-            adjusted = max(
-                0.0,
-                min(1.0, nli_w * nli_score + llm_w * llm_divergence),
-            )
-            if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
-                self._judge_cache.pop(next(iter(self._judge_cache)))
-            self._judge_cache[cache_key] = adjusted
-            return adjusted
-        finally:
-            metrics.observe("llm_judge_seconds", time.monotonic() - t0)
+                parsed = self._parse_judge_reply_strict(reply)
+                if parsed is None:
+                    logger.warning("LLM judge returned invalid JSON verdict")
+                    span.set_attribute("judge.invalid_reply", True)
+                    return nli_score
+                llm_agrees, judge_conf = parsed
+                llm_divergence = (
+                    LLM_JUDGE_AGREE_DIVERGENCE
+                    if llm_agrees
+                    else LLM_JUDGE_DISAGREE_DIVERGENCE
+                )
+                llm_w = LLM_JUDGE_LLM_WEIGHT * judge_conf
+                nli_w = 1.0 - llm_w
+                adjusted = max(
+                    0.0,
+                    min(1.0, nli_w * nli_score + llm_w * llm_divergence),
+                )
+                span.set_attribute("judge.confidence", judge_conf)
+                span.set_attribute("judge.agrees", bool(llm_agrees))
+                span.set_attribute("judge.adjusted_score", adjusted)
+                if len(self._judge_cache) >= self._JUDGE_CACHE_MAX:
+                    self._judge_cache.pop(next(iter(self._judge_cache)))
+                self._judge_cache[cache_key] = adjusted
+                return adjusted
+            finally:
+                metrics.observe("llm_judge_seconds", time.monotonic() - t0)
 
     @staticmethod
     def _build_judge_messages(

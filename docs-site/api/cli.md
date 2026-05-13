@@ -41,6 +41,9 @@ curl http://localhost:8080/v1/health
 # Show current config
 director-ai config
 
+# Check runtime dependencies and model revision pins
+director-ai doctor
+
 # Show a named profile
 director-ai config --profile medical
 

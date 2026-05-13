@@ -57,6 +57,24 @@ def _get_tracer():
 
 
 @contextmanager
+def _trace_named_span(name: str, attributes: dict[str, object] | None = None):
+    """Open an optional OTel span and attach primitive attributes."""
+    tracer = _get_tracer()
+    if tracer is None:
+        span = _NoopSpan()
+        if attributes:
+            for key, value in attributes.items():
+                span.set_attribute(key, value)
+        yield span
+        return
+    with tracer.start_as_current_span(name) as span:
+        if attributes:
+            for key, value in attributes.items():
+                span.set_attribute(key, value)
+        yield span
+
+
+@contextmanager
 def trace_review():
     """Span around a CoherenceScorer.review() call."""
     tracer = _get_tracer()
@@ -98,6 +116,41 @@ def trace_vector_add():
         return
     with tracer.start_as_current_span("director_ai.vector_add") as span:
         yield span
+
+
+def trace_cache(*, hit: bool | None = None, scope_present: bool | None = None):
+    """Span around score-cache lookup decisions."""
+    attrs: dict[str, object] = {}
+    if hit is not None:
+        attrs["cache.hit"] = hit
+    if scope_present is not None:
+        attrs["cache.scope_present"] = scope_present
+    return _trace_named_span("director_ai.cache", attrs)
+
+
+def trace_retrieval(*, top_k: int | None = None, tenant_scoped: bool | None = None):
+    """Span around grounding-context retrieval."""
+    attrs: dict[str, object] = {}
+    if top_k is not None:
+        attrs["retrieval.top_k"] = top_k
+    if tenant_scoped is not None:
+        attrs["retrieval.tenant_scoped"] = tenant_scoped
+    return _trace_named_span("director_ai.retrieval", attrs)
+
+
+def trace_nli_inference(*, stage: str):
+    """Span around NLI inference for a named scoring stage."""
+    return _trace_named_span("director_ai.nli", {"nli.stage": stage})
+
+
+def trace_calibration(*, stage: str):
+    """Span around calibration/meta-confidence transforms."""
+    return _trace_named_span("director_ai.calibration", {"calibration.stage": stage})
+
+
+def trace_judge(*, provider: str):
+    """Span around LLM-as-judge escalation."""
+    return _trace_named_span("director_ai.judge", {"judge.provider": provider})
 
 
 class _NoopSpan:

@@ -1064,6 +1064,31 @@ class DirectorConfig:
             logger.info("Cost tracking enabled on scorer")
         return scorer
 
+    def model_revision_health(self) -> dict[str, object]:
+        """Return non-network health for configured model revision pins."""
+        from .model_revisions import model_revision_health
+
+        judge_model = self.llm_judge_model
+        if self.llm_judge_provider == "local" and self.llm_judge_local_model:
+            judge_model = self.llm_judge_local_model
+        return model_revision_health(
+            {
+                "nli": (self.nli_model, self.nli_model_revision or None),
+                "embedding": (
+                    self.embedding_model,
+                    self.embedding_model_revision or None,
+                ),
+                "reranker": (
+                    self.reranker_model if self.reranker_enabled else "",
+                    self.reranker_model_revision or None,
+                ),
+                "local_judge": (
+                    judge_model if self.llm_judge_provider == "local" else "",
+                    self.llm_judge_model_revision or None,
+                ),
+            }
+        )
+
     def retrieval_recipe(self) -> dict[str, object]:
         """Return the explicit grounded retrieval recipe without secrets.
 

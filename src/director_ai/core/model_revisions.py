@@ -10,6 +10,9 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
+from pathlib import Path
+from typing import Any
 
 DEFAULT_NLI_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 DEFAULT_NLI_MODEL_REVISION = "0430e3509dbd28d2dff7a117c0eae25359ff3e80"
@@ -68,3 +71,72 @@ def resolve_model_revision(model_name: str, revision: str | None = None) -> str 
         )
 
     return None
+
+
+def _redact_local_detail(model_name: str) -> str:
+    path = Path(model_name).expanduser()
+    return f"local artefact path ({path.name or 'configured'})"
+
+
+def _model_revision_check(
+    label: str,
+    model_name: str,
+    revision: str | None,
+) -> dict[str, Any]:
+    model = model_name.strip()
+    rev = revision.strip() if isinstance(revision, str) else revision
+    if not model:
+        return {
+            "label": label,
+            "model": "",
+            "revision": "",
+            "status": "skipped",
+            "detail": "no model configured",
+        }
+    if _is_explicit_local_reference(model):
+        return {
+            "label": label,
+            "model": _redact_local_detail(model),
+            "revision": "",
+            "status": "local",
+            "detail": "explicit local model reference; registry pin not required",
+        }
+    try:
+        resolved = resolve_model_revision(model, rev)
+    except ValueError as exc:
+        return {
+            "label": label,
+            "model": model,
+            "revision": rev or "",
+            "status": "error",
+            "detail": str(exc),
+        }
+    return {
+        "label": label,
+        "model": model,
+        "revision": resolved or "",
+        "status": "pinned" if resolved else "unversioned-local",
+        "detail": "immutable revision resolved"
+        if resolved
+        else "local/package model name; registry pin not required",
+    }
+
+
+def model_revision_health(
+    references: Mapping[str, tuple[str, str | None]],
+) -> dict[str, Any]:
+    """Return non-network health for configured model revision pins.
+
+    Remote repository IDs must resolve through the immutable registry or carry
+    an explicit revision. Explicit local paths remain valid for air-gapped and
+    operator-managed deployments.
+    """
+
+    checks = {
+        label: _model_revision_check(label, model_name, revision)
+        for label, (model_name, revision) in references.items()
+    }
+    return {
+        "ok": all(check["status"] != "error" for check in checks.values()),
+        "checks": checks,
+    }

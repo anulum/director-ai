@@ -92,6 +92,35 @@ class TestOptionalDependencyDiagnostics:
             "DIRECTOR_VECTOR_BACKEND=chroma but chromadb is missing.",
         ]
 
+    def test_stack_warnings_surface_model_revision_health(self, monkeypatch):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = SimpleNamespace(
+            use_nli=False,
+            scorer_backend="lite",
+            onnx_path="",
+            vector_backend="memory",
+            model_revision_health=lambda: {
+                "ok": False,
+                "checks": {
+                    "nli": {
+                        "status": "error",
+                        "detail": "remote model requires an immutable revision",
+                    }
+                },
+            },
+        )
+        monkeypatch.setattr(DirectorConfig, "from_env", staticmethod(lambda: cfg))
+        monkeypatch.setattr(
+            verify_cli, "_check_optional_module", lambda name: (True, "installed")
+        )
+
+        warnings = verify_cli._stack_warnings([("Rust kernel", True, "installed")])
+
+        assert warnings == [
+            "Model revision health failed for nli: remote model requires an immutable revision"
+        ]
+
 
 class TestLicenseCliBranches:
     def test_license_generate_requires_admin_key(self, monkeypatch, capsys):

@@ -18,6 +18,11 @@ from unittest.mock import MagicMock, patch
 from director_ai.core.otel import (
     _NoopSpan,
     setup_otel,
+    trace_cache,
+    trace_calibration,
+    trace_judge,
+    trace_nli_inference,
+    trace_retrieval,
     trace_review,
     trace_streaming,
     trace_vector_add,
@@ -60,6 +65,28 @@ class TestOtelNoopFallback:
 
         assert isinstance(query_span, _NoopSpan)
         assert isinstance(add_span, _NoopSpan)
+
+    def test_scoring_stage_spans_noop_when_otel_unavailable(self):
+        import director_ai.core.otel as otel_mod
+
+        otel_mod._tracer = None
+        with patch.object(otel_mod, "_OTEL_AVAILABLE", False):
+            with trace_cache(hit=True) as cache_span:
+                cache_span.set_attribute("cache.scope_present", True)
+            with trace_retrieval(top_k=3, tenant_scoped=True) as retrieval_span:
+                retrieval_span.set_attribute("retrieval.result_count", 0)
+            with trace_nli_inference(stage="logical") as nli_span:
+                nli_span.set_attribute("nli.model_available", False)
+            with trace_calibration(stage="meta_confidence") as calibration_span:
+                calibration_span.set_attribute("calibration.enabled", True)
+            with trace_judge(provider="external") as judge_span:
+                judge_span.set_attribute("judge.escalated", True)
+
+        assert isinstance(cache_span, _NoopSpan)
+        assert isinstance(retrieval_span, _NoopSpan)
+        assert isinstance(nli_span, _NoopSpan)
+        assert isinstance(calibration_span, _NoopSpan)
+        assert isinstance(judge_span, _NoopSpan)
 
 
 class TestOtelWithMock:
@@ -195,6 +222,47 @@ class TestOtelWithMock:
             (("vector.doc_id", "doc-1"),),
         ]
 
+    def test_scoring_stage_spans_create_named_spans_with_attributes(self):
+        import director_ai.core.otel as otel_mod
+
+        mock_span = MagicMock()
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_span)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.return_value = mock_cm
+
+        otel_mod._tracer = mock_tracer
+        try:
+            with trace_cache(hit=False):
+                pass
+            with trace_retrieval(top_k=5, tenant_scoped=False):
+                pass
+            with trace_nli_inference(stage="factual"):
+                pass
+            with trace_calibration(stage="meta_confidence"):
+                pass
+            with trace_judge(provider="local"):
+                pass
+        finally:
+            otel_mod._tracer = None
+
+        mock_tracer.start_as_current_span.assert_any_call("director_ai.cache")
+        mock_tracer.start_as_current_span.assert_any_call("director_ai.retrieval")
+        mock_tracer.start_as_current_span.assert_any_call("director_ai.nli")
+        mock_tracer.start_as_current_span.assert_any_call("director_ai.calibration")
+        mock_tracer.start_as_current_span.assert_any_call("director_ai.judge")
+        attrs = {
+            call.args[0]: call.args[1]
+            for call in mock_span.set_attribute.call_args_list
+        }
+        assert attrs["cache.hit"] is False
+        assert attrs["retrieval.top_k"] == 5
+        assert attrs["retrieval.tenant_scoped"] is False
+        assert attrs["nli.stage"] == "factual"
+        assert attrs["calibration.stage"] == "meta_confidence"
+        assert attrs["judge.provider"] == "local"
+
 
 class TestOtelSpanEnrichment:
     def test_review_span_has_h_logical_h_factual(self):
@@ -286,6 +354,71 @@ class TestOtelSpanEnrichment:
             assert attrs["stream.counterfactual.prevented_halt"] is True
         finally:
             otel_mod._tracer = None
+
+    def test_review_emits_cache_hit_and_miss_stage_spans(self):
+        import director_ai.core.otel as otel_mod
+        from director_ai.core import CoherenceScorer
+
+        spans = {}
+
+        def make_cm(name):
+            span = MagicMock()
+            spans.setdefault(name, []).append(span)
+            cm = MagicMock()
+            cm.__enter__ = MagicMock(return_value=span)
+            cm.__exit__ = MagicMock(return_value=False)
+            return cm
+
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.side_effect = make_cm
+
+        otel_mod._tracer = mock_tracer
+        try:
+            scorer = CoherenceScorer(threshold=0.5, use_nli=False, cache_size=8)
+            scorer.review("stable prompt", "consistent with reality")
+            scorer.review("stable prompt", "consistent with reality")
+        finally:
+            otel_mod._tracer = None
+
+        cache_attrs = [
+            {call.args[0]: call.args[1] for call in span.set_attribute.call_args_list}
+            for span in spans["director_ai.cache"]
+        ]
+        assert cache_attrs[0]["cache.hit"] is False
+        assert cache_attrs[1]["cache.hit"] is True
+        assert all(attrs["cache.scope_present"] is False for attrs in cache_attrs)
+
+    def test_judge_escalation_emits_stage_span(self):
+        import director_ai.core.otel as otel_mod
+        from director_ai.core.scoring._llm_judge import LLMJudge
+
+        mock_span = MagicMock()
+        mock_cm = MagicMock()
+        mock_cm.__enter__ = MagicMock(return_value=mock_span)
+        mock_cm.__exit__ = MagicMock(return_value=False)
+        mock_tracer = MagicMock()
+        mock_tracer.start_as_current_span.return_value = mock_cm
+
+        judge = LLMJudge(provider="openai")
+        judge._call_llm_judge = MagicMock(
+            return_value='{"verdict": "YES", "confidence": 80}',
+        )
+
+        otel_mod._tracer = mock_tracer
+        try:
+            adjusted = judge.check("A", "A", 0.5)
+        finally:
+            otel_mod._tracer = None
+
+        assert adjusted < 0.5
+        mock_tracer.start_as_current_span.assert_any_call("director_ai.judge")
+        attrs = {
+            call.args[0]: call.args[1]
+            for call in mock_span.set_attribute.call_args_list
+        }
+        assert attrs["judge.provider"] == "openai"
+        assert attrs["judge.cache_hit"] is False
+        assert attrs["judge.adjusted_score"] == adjusted
 
 
 class TestOtelPerformanceDoc:

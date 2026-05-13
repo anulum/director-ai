@@ -30,6 +30,44 @@ schema = {
 result = verify_json('{"status": "shipped"}', schema=schema)
 assert result.schema_valid is False  # missing required "tracking"
 
+# Recursive arrays and nested constraints
+schema = {
+    "type": "object",
+    "properties": {
+        "items": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["sku", "quantity"],
+                "properties": {
+                    "sku": {"type": "string"},
+                    "quantity": {"type": "integer"},
+                },
+                "additionalProperties": False,
+            },
+        },
+        "status": {"type": "string", "enum": ["approved", "rejected"]},
+    },
+}
+result = verify_json(
+    '{"items": [{"sku": "A-1", "quantity": "two"}], "status": "pending"}',
+    schema=schema,
+)
+assert result.schema_valid is False
+
+# Optional Pydantic model validation
+from pydantic import BaseModel
+
+class Payload(BaseModel):
+    status: str
+    quantity: int
+
+result = verify_json(
+    '{"status": "approved", "quantity": "two"}',
+    pydantic_model=Payload,
+)
+assert result.schema_valid is False
+
 # Value grounding against a knowledge base
 from director_ai import CoherenceScorer
 scorer = CoherenceScorer(use_nli=True)
@@ -51,6 +89,9 @@ for v in result.field_verdicts:
 | Wrong type | Schema says `integer`, value is `"thirty"` | `verdict="invalid_type"` |
 | Extra field | `additionalProperties: false` and unknown key present | `verdict="extra"` |
 | Bool as integer | `{"count": true}` where schema says `integer` | `verdict="invalid_type"` |
+| Nested array item violation | `items[1].quantity` is a string where integer is required | `verdict="invalid_type"` |
+| Enum or const violation | `status` not in allowed values | `verdict="invalid_value"` |
+| Pydantic validation failure | Model rejects a field | `verdict="invalid_type"` or `invalid_value` |
 | Ungrounded value | String value contradicts knowledge base | `verdict="invalid_value"` |
 
 ### Result Type

@@ -80,6 +80,19 @@ class TestOptionalRouterVisibility:
         assert routers["finetune"].startswith("unavailable:")
         assert routers["knowledge"] == "mounted"
 
+    def test_health_reports_model_revision_registry_status(self):
+        cfg = _cfg(
+            nli_model="unverified-org/unverified-model",
+            nli_model_revision="",
+        )
+        with _make_client(cfg) as c:
+            resp = c.get("/v1/health")
+
+        assert resp.status_code == 200
+        model_revisions = resp.json()["model_revisions"]
+        assert model_revisions["ok"] is False
+        assert model_revisions["checks"]["nli"]["status"] == "error"
+
     def test_production_mode_fails_when_optional_router_unavailable(self):
         cfg = _cfg(
             production_mode=True,

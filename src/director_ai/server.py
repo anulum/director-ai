@@ -624,6 +624,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             nli_loaded=cfg.use_nli,
             uptime_seconds=time.monotonic() - _start_time,
             routers=dict(request.app.state.router_mounts),
+            model_revisions=cfg.model_revision_health(),
         )
         return {**resp.model_dump(), **extra}
 

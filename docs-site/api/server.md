@@ -33,7 +33,7 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 | `POST` | `/v1/verify` | Sentence-level multi-signal fact verification |
 | `POST` | `/v1/process` | Full agent pipeline (generate + score) |
 | `POST` | `/v1/batch` | Batch score multiple pairs |
-| `GET` | `/v1/health` | Liveness probe (version, mode, NLI status) |
+| `GET` | `/v1/health` | Liveness probe (version, mode, NLI status, model revision status) |
 | `GET` | `/v1/ready` | Readiness probe — 503 if scorer/NLI not loaded |
 | `GET` | `/v1/config` | Config introspection |
 | `GET` | `/v1/metrics` | Metrics as JSON |
@@ -78,6 +78,12 @@ Production-ready FastAPI server exposing Director-AI scoring over HTTP.
 
 Operational endpoint exposure rules are documented in
 [Public Endpoint Exposure](../deployment/public-endpoints.md).
+
+The health response includes a `model_revisions` block. It performs a local,
+non-network check that configured remote model IDs resolve to immutable
+revisions through the registry or explicit configuration. Explicit local model
+paths remain valid for air-gapped deployments and are reported without exposing
+the full path.
 
 ## Review Request
 

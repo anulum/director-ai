@@ -89,6 +89,15 @@ def _stack_warnings(checks: list[tuple[str, bool, str]]) -> list[str]:
         warnings.append("DIRECTOR_SCORER_BACKEND=rust but backfire_kernel is missing.")
     if cfg.vector_backend == "chroma" and not deps["chromadb"]:
         warnings.append("DIRECTOR_VECTOR_BACKEND=chroma but chromadb is missing.")
+    if hasattr(cfg, "model_revision_health"):
+        revision_health = cfg.model_revision_health()
+        if not revision_health.get("ok", True):
+            for label, check in revision_health.get("checks", {}).items():
+                if check.get("status") == "error":
+                    warnings.append(
+                        "Model revision health failed for "
+                        f"{label}: {check.get('detail', 'unknown error')}"
+                    )
     return warnings
 
 

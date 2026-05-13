@@ -13,6 +13,9 @@ domains/limits, pipeline integration with calibrator, and performance.
 
 from __future__ import annotations
 
+import sys
+from types import SimpleNamespace
+
 import pytest
 
 from director_ai.core.calibration.feedback_store import FeedbackStore
@@ -103,6 +106,174 @@ class TestExport:
         assert "prompt" in data[0]
         assert "response" in data[0]
         assert "domain" in data[0]
+        store.close()
+
+    def test_export_calibration_rows_preserve_operational_fields(self, tmp_path):
+        store = FeedbackStore(tmp_path / "test.db")
+        store.report(
+            "q1",
+            "a1",
+            True,
+            False,
+            guardrail_score=0.41,
+            domain="medical",
+            review_id="rev-1",
+            tenant_id="tenant-a",
+        )
+
+        rows = store.export_calibration_rows()
+
+        assert rows == [
+            {
+                "schema_version": "director-ai.calibration-feedback.v1",
+                "prompt": "q1",
+                "response": "a1",
+                "guardrail_score": 0.41,
+                "guardrail_approved": True,
+                "human_approved": False,
+                "label": 0,
+                "disagreement": True,
+                "domain": "medical",
+                "review_id": "rev-1",
+                "tenant_id": "tenant-a",
+                "timestamp": pytest.approx(rows[0]["timestamp"]),
+            }
+        ]
+        store.close()
+
+    def test_export_parquet_uses_optional_pyarrow_and_atomic_replace(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        writes = []
+
+        class FakeTable:
+            @classmethod
+            def from_pylist(cls, rows):
+                assert rows[0]["prompt"] == "q1"
+                return {"rows": rows}
+
+        def write_table(table, path):
+            writes.append((table, path))
+            path.write_bytes(b"PAR1")
+
+        monkeypatch.setitem(
+            sys.modules,
+            "pyarrow",
+            SimpleNamespace(Table=FakeTable),
+        )
+        monkeypatch.setitem(
+            sys.modules,
+            "pyarrow.parquet",
+            SimpleNamespace(write_table=write_table),
+        )
+        store = FeedbackStore(tmp_path / "test.db")
+        store.report("q1", "a1", True, True, 0.9, domain="medical")
+
+        output = store.export_parquet(tmp_path / "feedback.parquet", domain="medical")
+
+        assert output == tmp_path / "feedback.parquet"
+        assert output.read_bytes() == b"PAR1"
+        assert writes[0][1].name.endswith(".tmp")
+        store.close()
+
+    def test_export_parquet_missing_dependency_is_actionable(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        monkeypatch.setitem(sys.modules, "pyarrow", None)
+        monkeypatch.setitem(sys.modules, "pyarrow.parquet", None)
+        store = FeedbackStore(tmp_path / "test.db")
+
+        with pytest.raises(ImportError, match="pyarrow"):
+            store.export_parquet(tmp_path / "feedback.parquet")
+
+        store.close()
+
+    def test_log_export_artifact_to_mlflow_requires_explicit_run(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        artifact = tmp_path / "feedback.parquet"
+        artifact.write_bytes(b"PAR1")
+        logged = []
+
+        fake_mlflow = SimpleNamespace(
+            active_run=lambda: object(),
+            log_artifact=lambda path, artifact_path=None: logged.append(
+                (path, artifact_path),
+            ),
+            log_params=lambda params: logged.append(("params", params)),
+        )
+        monkeypatch.setitem(sys.modules, "mlflow", fake_mlflow)
+        store = FeedbackStore(tmp_path / "test.db")
+
+        result = store.log_export_artifact(
+            artifact,
+            backend="mlflow",
+            artifact_name="calibration-feedback",
+            metadata={"rows": 1},
+        )
+
+        assert result == {
+            "backend": "mlflow",
+            "artifact_name": "calibration-feedback",
+            "path": str(artifact),
+        }
+        assert logged[0] == (str(artifact), "calibration-feedback")
+        assert logged[1] == ("params", {"calibration_rows": 1})
+        store.close()
+
+    def test_log_export_artifact_to_wandb_requires_active_run(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        artifact_path = tmp_path / "feedback.parquet"
+        artifact_path.write_bytes(b"PAR1")
+        files = []
+
+        class FakeArtifact:
+            def __init__(self, name, type, metadata=None):
+                self.name = name
+                self.type = type
+                self.metadata = metadata
+
+            def add_file(self, path):
+                files.append(path)
+
+        fake_run = SimpleNamespace(log_artifact=lambda artifact: files.append(artifact))
+        fake_wandb = SimpleNamespace(run=fake_run, Artifact=FakeArtifact)
+        monkeypatch.setitem(sys.modules, "wandb", fake_wandb)
+        store = FeedbackStore(tmp_path / "test.db")
+
+        result = store.log_export_artifact(
+            artifact_path,
+            backend="wandb",
+            artifact_name="calibration-feedback",
+            metadata={"rows": 2},
+        )
+
+        assert result == {
+            "backend": "wandb",
+            "artifact_name": "calibration-feedback",
+            "path": str(artifact_path),
+        }
+        assert files[0] == str(artifact_path)
+        assert files[1].metadata == {"rows": 2}
+        store.close()
+
+    def test_log_export_artifact_rejects_unknown_backend(self, tmp_path):
+        artifact_path = tmp_path / "feedback.parquet"
+        artifact_path.write_bytes(b"PAR1")
+        store = FeedbackStore(tmp_path / "test.db")
+
+        with pytest.raises(ValueError, match="backend"):
+            store.log_export_artifact(artifact_path, backend="unknown")
+
         store.close()
 
 

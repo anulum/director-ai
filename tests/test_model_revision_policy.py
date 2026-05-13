@@ -45,3 +45,31 @@ def test_unpinned_remote_model_requires_explicit_revision() -> None:
 
     with pytest.raises(ValueError, match="requires an explicit immutable revision"):
         resolve_model_revision("unverified-org/unverified-model")
+
+
+def test_model_revision_health_reports_unpinned_remote_failure() -> None:
+    from director_ai.core.model_revisions import model_revision_health
+
+    report = model_revision_health(
+        {
+            "nli": ("unverified-org/unverified-model", None),
+            "embedding": ("BAAI/bge-large-en-v1.5", "d4aa6901"),
+        }
+    )
+
+    assert report["ok"] is False
+    assert report["checks"]["nli"]["status"] == "error"
+    assert "immutable revision" in report["checks"]["nli"]["detail"]
+    assert report["checks"]["embedding"]["status"] == "pinned"
+
+
+def test_model_revision_health_preserves_local_model_paths(tmp_path) -> None:
+    from director_ai.core.model_revisions import model_revision_health
+
+    model_dir = tmp_path / "local-model"
+    model_dir.mkdir()
+
+    report = model_revision_health({"local_judge": (str(model_dir), None)})
+
+    assert report["ok"] is True
+    assert report["checks"]["local_judge"]["status"] == "local"

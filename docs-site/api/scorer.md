@@ -108,6 +108,23 @@ Sentence-level NLI scoring with max-aggregation. Catches localized hallucination
 - `w_logic + w_fact` must equal 1.0
 - `hybrid` backend requires `llm_judge_provider`
 
+## OpenTelemetry
+
+When OpenTelemetry is configured, `review()` emits a parent
+`director_ai.review` span plus optional stage spans for cache lookup,
+retrieval, NLI inference, calibration, and judge escalation. The stage spans
+are no-ops when OTel is unavailable or no collector is configured.
+
+Stage span names and core attributes:
+
+| Span | Key attributes |
+|------|----------------|
+| `director_ai.cache` | `cache.hit`, `cache.scope_present` |
+| `director_ai.retrieval` | `retrieval.top_k`, `retrieval.tenant_scoped`, `retrieval.has_context`, `retrieval.result_count` |
+| `director_ai.nli` | `nli.stage`, `nli.model_available`, `nli.score`, `nli.token_count` |
+| `director_ai.calibration` | `calibration.stage`, `calibration.threshold`, `calibration.verdict_confidence`, `calibration.signal_agreement` |
+| `director_ai.judge` | `judge.provider`, `judge.cache_hit`, `judge.nli_score`, `judge.adjusted_score` |
+
 ## Full API
 
 ::: director_ai.core.scoring.scorer.CoherenceScorer

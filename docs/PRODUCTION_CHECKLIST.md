@@ -129,11 +129,14 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] Deploy Grafana dashboard from `deploy/observability/grafana-dashboard.json`
 - [ ] Configure Prometheus alerts from `deploy/observability/prometheus-alerts.yml`
 - [ ] Enable `audit_log_path` for compliance trail
+- [ ] Enable OpenTelemetry where distributed traces are required; scorer spans
+      cover cache lookup, retrieval, NLI, calibration, and judge escalation
 
 ### Performance
 
 - [ ] Use ONNX backend for GPU: `scorer_backend: onnx`
-- [ ] Pre-warm model: `director-ai doctor` verifies model loads
+- [ ] Run `director-ai doctor` and resolve dependency or model-revision warnings
+- [ ] Pre-warm model after `doctor` passes for the selected backend
 - [ ] Set `cache_size: 1024` for repeated queries
 - [ ] For high throughput: `director-ai stress-test --rps 100`
 

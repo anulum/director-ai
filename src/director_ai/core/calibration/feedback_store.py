@@ -22,8 +22,11 @@ from __future__ import annotations
 import sqlite3
 import threading
 import time
+from collections.abc import Mapping
 from dataclasses import dataclass
+from importlib import import_module
 from pathlib import Path
+from typing import Any
 
 __all__ = ["Correction", "FeedbackStore"]
 
@@ -215,6 +218,153 @@ class FeedbackStore:
             }
             for c in corrections
         ]
+
+    def export_calibration_rows(
+        self,
+        limit: int = 0,
+        domain: str | None = None,
+        *,
+        include_text: bool = True,
+    ) -> list[dict]:
+        """Export canonical calibration rows for analytics and MLOps.
+
+        The schema is intentionally explicit and versioned so downstream
+        systems can consume the dataset without inferring boolean semantics
+        from historical training-export fields.
+        """
+        rows = []
+        for correction in self.get_corrections(limit=limit, domain=domain):
+            row = {
+                "schema_version": "director-ai.calibration-feedback.v1",
+                "prompt": correction.prompt if include_text else "",
+                "response": correction.response if include_text else "",
+                "guardrail_score": float(correction.guardrail_score),
+                "guardrail_approved": bool(correction.guardrail_approved),
+                "human_approved": bool(correction.human_approved),
+                "label": 1 if correction.human_approved else 0,
+                "disagreement": correction.guardrail_approved
+                != correction.human_approved,
+                "domain": correction.domain,
+                "review_id": correction.review_id,
+                "tenant_id": correction.tenant_id,
+                "timestamp": float(correction.timestamp),
+            }
+            rows.append(row)
+        return rows
+
+    def export_parquet(
+        self,
+        path: str | Path,
+        limit: int = 0,
+        domain: str | None = None,
+        *,
+        include_text: bool = True,
+    ) -> Path:
+        """Export calibration feedback to Parquet with an optional dependency.
+
+        Requires ``pyarrow`` only at call time. Writes to a same-directory
+        temporary file first and atomically replaces the final path.
+        """
+        try:
+            pa = import_module("pyarrow")
+            pq = import_module("pyarrow.parquet")
+            table_cls = pa.Table
+        except (ImportError, AttributeError) as exc:
+            raise ImportError(
+                "FeedbackStore.export_parquet() requires the optional pyarrow "
+                "package. Install a deployment extra that provides pyarrow.",
+            ) from exc
+        if pa is None or pq is None:  # supports tests that mask optional modules
+            raise ImportError(
+                "FeedbackStore.export_parquet() requires the optional pyarrow "
+                "package. Install a deployment extra that provides pyarrow.",
+            )
+
+        output = Path(path)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        tmp_path = output.with_name(f"{output.name}.tmp")
+        rows = self.export_calibration_rows(
+            limit=limit,
+            domain=domain,
+            include_text=include_text,
+        )
+        table = table_cls.from_pylist(rows)
+        pq.write_table(table, tmp_path)
+        tmp_path.replace(output)
+        return output
+
+    def log_export_artifact(
+        self,
+        path: str | Path,
+        *,
+        backend: str,
+        artifact_name: str = "director-ai-calibration-feedback",
+        metadata: Mapping[str, Any] | None = None,
+    ) -> dict[str, str]:
+        """Log an exported calibration artefact to an optional MLOps backend.
+
+        Supported backends are ``"mlflow"`` and ``"wandb"``. Both are imported
+        only when requested; no core runtime dependency is introduced.
+        """
+        artifact_path = Path(path)
+        if not artifact_path.is_file():
+            raise FileNotFoundError(str(artifact_path))
+        backend_name = backend.strip().lower()
+        if backend_name == "mlflow":
+            self._log_mlflow_artifact(artifact_path, artifact_name, metadata or {})
+        elif backend_name == "wandb":
+            self._log_wandb_artifact(artifact_path, artifact_name, metadata or {})
+        else:
+            raise ValueError("backend must be 'mlflow' or 'wandb'")
+        return {
+            "backend": backend_name,
+            "artifact_name": artifact_name,
+            "path": str(artifact_path),
+        }
+
+    @staticmethod
+    def _log_mlflow_artifact(
+        path: Path,
+        artifact_name: str,
+        metadata: Mapping[str, Any],
+    ) -> None:
+        try:
+            mlflow = import_module("mlflow")
+        except ImportError as exc:
+            raise ImportError(
+                "MLflow artefact logging requires the optional mlflow package.",
+            ) from exc
+        active_run = getattr(mlflow, "active_run", lambda: None)()
+        if active_run is None:
+            raise RuntimeError("MLflow artefact logging requires an active MLflow run")
+        mlflow.log_artifact(str(path), artifact_path=artifact_name)
+        if metadata:
+            mlflow.log_params(
+                {f"calibration_{key}": value for key, value in metadata.items()},
+            )
+
+    @staticmethod
+    def _log_wandb_artifact(
+        path: Path,
+        artifact_name: str,
+        metadata: Mapping[str, Any],
+    ) -> None:
+        try:
+            wandb = import_module("wandb")
+        except ImportError as exc:
+            raise ImportError(
+                "W&B artefact logging requires the optional wandb package.",
+            ) from exc
+        run = getattr(wandb, "run", None)
+        if run is None:
+            raise RuntimeError("W&B artefact logging requires an active wandb run")
+        artifact = wandb.Artifact(
+            artifact_name,
+            type="calibration-feedback",
+            metadata=dict(metadata),
+        )
+        artifact.add_file(str(path))
+        run.log_artifact(artifact)
 
     def close(self) -> None:
         """Close the database connection. Safe to call multiple times."""

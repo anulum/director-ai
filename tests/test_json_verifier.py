@@ -13,6 +13,8 @@ tool call verification, and performance documentation.
 
 from __future__ import annotations
 
+import pytest
+
 from director_ai.core.verification.json_verifier import verify_json
 
 
@@ -162,6 +164,71 @@ class TestSchemaValidation:
 
         assert r.valid_json is True
         assert r.schema_valid is True
+
+    def test_array_items_are_validated_recursively(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "items": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["sku", "quantity"],
+                        "properties": {
+                            "sku": {"type": "string"},
+                            "quantity": {"type": "integer"},
+                        },
+                        "additionalProperties": False,
+                    },
+                }
+            },
+        }
+
+        r = verify_json(
+            '{"items": [{"sku": "A-1", "quantity": 2}, {"sku": "B-2", "quantity": "two", "extra": true}]}',
+            schema=schema,
+        )
+
+        assert r.schema_valid is False
+        assert any(v.path == "items[1].quantity" for v in r.field_verdicts)
+        assert any(v.path == "items[1].extra" for v in r.field_verdicts)
+
+    def test_nested_enum_and_const_are_validated(self):
+        schema = {
+            "type": "object",
+            "properties": {
+                "status": {"type": "string", "enum": ["approved", "rejected"]},
+                "schema_version": {"const": "v1"},
+            },
+        }
+
+        r = verify_json(
+            '{"status": "pending", "schema_version": "v2"}',
+            schema=schema,
+        )
+
+        assert r.schema_valid is False
+        invalid = {v.path: v.verdict for v in r.field_verdicts}
+        assert invalid["status"] == "invalid_value"
+        assert invalid["schema_version"] == "invalid_value"
+
+    def test_pydantic_model_validation_reports_field_path(self):
+        pydantic = pytest.importorskip("pydantic")
+
+        class Payload(pydantic.BaseModel):
+            status: str
+            quantity: int
+
+        r = verify_json(
+            '{"status": "approved", "quantity": "two"}',
+            pydantic_model=Payload,
+        )
+
+        assert r.schema_valid is False
+        assert any(
+            v.path == "quantity" and v.verdict == "invalid_type"
+            for v in r.field_verdicts
+        )
 
 
 class TestValueGrounding:
