@@ -460,7 +460,7 @@ Last updated: 2026-04-30
   sampling.
 - [x] Add an automatic correction loop that proposes a grounded continuation after
   a halt, with user or operator approval before release.
-- [ ] Add a cross-verifier consensus engine for critical domains that combines
+- [x] Add a cross-verifier consensus engine for critical domains that combines
   NLI, policy rules, temporal checks, numeric checks, and domain-specific
   symbolic validators into one calibrated confidence interval.
 - [ ] Build a synthetic data and self-distillation pipeline that turns reviewed

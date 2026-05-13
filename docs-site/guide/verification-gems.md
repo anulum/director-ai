@@ -159,6 +159,29 @@ print(result.agreement_score)  # 0.0-1.0
 print(result.has_consensus)    # True if agreement > 0.7
 ```
 
+For critical domains, use `CrossVerifierConsensus.decide_critical()` with a
+`CriticalConsensusProfile`. The profile names the required verifier families
+and weights the NLI, policy, temporal, numeric, and symbolic signals into one
+risk score and one calibrated confidence interval. Missing verifier coverage or
+an interval wider than the profile limit returns `warn` instead of releasing.
+
+```python
+from director_ai import CrossVerifierConsensus, CriticalConsensusProfile
+
+profile = CriticalConsensusProfile(
+    required_verifiers=("nli", "policy", "temporal", "numeric", "symbolic"),
+    weights={"nli": 2.0, "policy": 1.5},
+    max_interval_width=0.35,
+)
+
+decision = CrossVerifierConsensus().decide_critical(
+    signals,
+    profile=profile,
+    risk_envelope=risk_envelope,
+    policy_id="policy.critical.regulated",
+)
+```
+
 ### REST API
 
 ```bash

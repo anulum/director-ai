@@ -18,6 +18,7 @@ import pytest
 from director_ai.core.guard_control import NoGoPolicy, RiskEnvelope, VerifierSignal
 from director_ai.core.scoring.consensus import (
     ConsensusScorer,
+    CriticalConsensusProfile,
     CrossVerifierConsensus,
     ModelResponse,
 )
@@ -186,6 +187,196 @@ class TestConsensusPerformanceDoc:
 
 
 class TestCrossVerifierConsensus:
+    def test_critical_consensus_combines_required_verifiers_into_interval(self):
+        envelope = RiskEnvelope(
+            action_category="text",
+            reversibility="reversible",
+            domain="regulated",
+            calibrated_threshold=0.65,
+            no_go_threshold=0.9,
+        )
+        profile = CriticalConsensusProfile(
+            required_verifiers=("nli", "policy", "temporal", "numeric", "symbolic"),
+            weights={
+                "nli": 2.0,
+                "policy": 1.5,
+                "temporal": 1.0,
+                "numeric": 1.0,
+                "symbolic": 1.0,
+            },
+            max_interval_width=0.35,
+        )
+
+        decision = CrossVerifierConsensus().decide_critical(
+            (
+                VerifierSignal(
+                    verifier="nli",
+                    modality="text",
+                    score=0.12,
+                    verdict="supported",
+                    confidence_low=0.08,
+                    confidence_high=0.18,
+                    evidence_refs=("kb://claim",),
+                ),
+                VerifierSignal(
+                    verifier="policy",
+                    modality="policy",
+                    score=0.18,
+                    verdict="allowed",
+                    confidence_low=0.12,
+                    confidence_high=0.25,
+                    evidence_refs=("policy://regulated",),
+                ),
+                VerifierSignal(
+                    verifier="temporal",
+                    modality="text",
+                    score=0.21,
+                    verdict="fresh",
+                    confidence_low=0.14,
+                    confidence_high=0.31,
+                    evidence_refs=("time://observed",),
+                ),
+                VerifierSignal(
+                    verifier="numeric",
+                    modality="code",
+                    score=0.09,
+                    verdict="consistent",
+                    confidence_low=0.05,
+                    confidence_high=0.16,
+                    evidence_refs=("calc://claim",),
+                ),
+                VerifierSignal(
+                    verifier="symbolic",
+                    modality="code",
+                    score=0.16,
+                    verdict="valid",
+                    confidence_low=0.1,
+                    confidence_high=0.22,
+                    evidence_refs=("proof://claim",),
+                ),
+            ),
+            profile=profile,
+            risk_envelope=envelope,
+            policy_id="policy.critical.regulated",
+        )
+
+        assert decision.decision == "allow"
+        assert decision.reason == "cross_verifier_supported"
+        assert decision.risk_score == pytest.approx(0.14923076923076922)
+        assert decision.confidence_low == pytest.approx(0.09692307692307692)
+        assert decision.confidence_high == pytest.approx(0.21923076923076923)
+        assert decision.attributes["consensus_profile"] == "critical"
+        assert decision.attributes["missing_verifiers"] == ""
+        assert decision.attributes["present_verifiers"] == (
+            "nli,numeric,policy,symbolic,temporal"
+        )
+        assert decision.attributes["calibrated_interval_width"] == "0.122308"
+
+    def test_critical_consensus_warns_when_required_verifier_is_missing(self):
+        envelope = RiskEnvelope(
+            action_category="text",
+            reversibility="reversible",
+            domain="regulated",
+            calibrated_threshold=0.65,
+            no_go_threshold=0.9,
+        )
+        profile = CriticalConsensusProfile(
+            required_verifiers=("nli", "policy", "temporal", "numeric", "symbolic"),
+        )
+
+        decision = CrossVerifierConsensus().decide_critical(
+            (
+                VerifierSignal(
+                    verifier="nli",
+                    modality="text",
+                    score=0.12,
+                    verdict="supported",
+                    confidence_low=0.08,
+                    confidence_high=0.18,
+                ),
+                VerifierSignal(
+                    verifier="policy",
+                    modality="policy",
+                    score=0.1,
+                    verdict="allowed",
+                    confidence_low=0.06,
+                    confidence_high=0.18,
+                ),
+            ),
+            profile=profile,
+            risk_envelope=envelope,
+            policy_id="policy.critical.regulated",
+        )
+
+        assert decision.decision == "warn"
+        assert decision.reason == "critical_consensus_missing_verifier"
+        assert decision.attributes["missing_verifiers"] == "numeric,symbolic,temporal"
+
+    def test_critical_consensus_preserves_decisive_contradiction_risk(self):
+        envelope = RiskEnvelope(
+            action_category="text",
+            reversibility="reversible",
+            domain="regulated",
+            calibrated_threshold=0.65,
+            no_go_threshold=0.9,
+        )
+        profile = CriticalConsensusProfile(
+            required_verifiers=("nli", "policy", "temporal", "numeric", "symbolic"),
+            weights={"nli": 0.1, "policy": 1.0, "temporal": 1.0, "numeric": 1.0},
+        )
+
+        decision = CrossVerifierConsensus().decide_critical(
+            (
+                VerifierSignal(
+                    verifier="nli",
+                    modality="text",
+                    score=0.94,
+                    verdict="contradiction",
+                    confidence_low=0.9,
+                    confidence_high=0.98,
+                ),
+                VerifierSignal(
+                    verifier="policy",
+                    modality="policy",
+                    score=0.05,
+                    verdict="allowed",
+                    confidence_low=0.02,
+                    confidence_high=0.08,
+                ),
+                VerifierSignal(
+                    verifier="temporal",
+                    modality="text",
+                    score=0.04,
+                    verdict="fresh",
+                    confidence_low=0.01,
+                    confidence_high=0.07,
+                ),
+                VerifierSignal(
+                    verifier="numeric",
+                    modality="code",
+                    score=0.03,
+                    verdict="consistent",
+                    confidence_low=0.01,
+                    confidence_high=0.05,
+                ),
+                VerifierSignal(
+                    verifier="symbolic",
+                    modality="code",
+                    score=0.02,
+                    verdict="valid",
+                    confidence_low=0.01,
+                    confidence_high=0.04,
+                ),
+            ),
+            profile=profile,
+            risk_envelope=envelope,
+            policy_id="policy.critical.regulated",
+        )
+
+        assert decision.decision == "halt"
+        assert decision.reason == "cross_verifier_contradiction"
+        assert decision.risk_score == pytest.approx(0.94)
+
     def test_conservative_consensus_halts_on_high_confidence_contradiction(self):
         envelope = RiskEnvelope(
             action_category="text",

@@ -87,7 +87,11 @@ from .scoring.backends import (
 )
 
 # --- Scoring (Phase 5) ---
-from .scoring.consensus import ConsensusScorer
+from .scoring.consensus import (
+    ConsensusScorer,
+    CriticalConsensusProfile,
+    CrossVerifierConsensus,
+)
 from .scoring.lite_scorer import LiteScorer
 from .scoring.meta_classifier import DatasetTypeClassifier, MetaClassifier
 from .scoring.meta_confidence import compute_meta_confidence
@@ -264,6 +268,8 @@ __all__ = [
     "verify_tool_call",
     # Scoring (Phase 5)
     "ConsensusScorer",
+    "CriticalConsensusProfile",
+    "CrossVerifierConsensus",
     "CitationStatusSignal",
     "CitationStatusVerdict",
     "compute_meta_confidence",

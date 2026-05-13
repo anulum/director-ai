@@ -197,6 +197,11 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "PredictionInterval": (".core.calibration.conformal", "PredictionInterval"),
     # Cross-model consensus (Phase 5)
     "ConsensusScorer": (".core.scoring.consensus", "ConsensusScorer"),
+    "CriticalConsensusProfile": (
+        ".core.scoring.consensus",
+        "CriticalConsensusProfile",
+    ),
+    "CrossVerifierConsensus": (".core.scoring.consensus", "CrossVerifierConsensus"),
     "ModelResponse": (".core.scoring.consensus", "ModelResponse"),
     # Adversarial robustness testing (Phase 5)
     "AdversarialTester": (".testing.adversarial_suite", "AdversarialTester"),

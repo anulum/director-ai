@@ -21,6 +21,7 @@ Usage::
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 
 from director_ai.core.guard_control import (
@@ -34,6 +35,7 @@ __all__ = [
     "ConsensusScorer",
     "ConsensusResult",
     "CrossVerifierConsensus",
+    "CriticalConsensusProfile",
     "ModelResponse",
     "PairwiseAgreement",
 ]
@@ -71,6 +73,28 @@ class ConsensusResult:
     @property
     def has_consensus(self) -> bool:
         return self.agreement_score > 0.7
+
+
+@dataclass(frozen=True)
+class CriticalConsensusProfile:
+    """Verifier coverage and calibration settings for critical-domain consensus."""
+
+    required_verifiers: Sequence[str]
+    weights: dict[str, float] = field(default_factory=dict)
+    max_interval_width: float = 0.35
+
+    def __post_init__(self) -> None:
+        required = tuple(sorted({name.strip() for name in self.required_verifiers}))
+        if not required:
+            raise ValueError("required_verifiers are required")
+        if self.max_interval_width < 0.0 or self.max_interval_width > 1.0:
+            raise ValueError("max_interval_width must be in [0, 1]")
+        for name, weight in self.weights.items():
+            if not name.strip():
+                raise ValueError("weight verifier names must be non-empty")
+            if weight < 0.0:
+                raise ValueError("weights must be non-negative")
+        object.__setattr__(self, "required_verifiers", required)
 
 
 class ConsensusScorer:
@@ -279,6 +303,83 @@ class CrossVerifierConsensus:
             )
         )
 
+    def decide_critical(
+        self,
+        signals: Sequence[VerifierSignal],
+        *,
+        profile: CriticalConsensusProfile,
+        risk_envelope: RiskEnvelope,
+        policy_id: str,
+    ) -> GuardDecision:
+        """Return a profile-gated consensus decision for critical domains."""
+        signal_tuple = tuple(signals)
+        decision = self.decide(
+            signal_tuple,
+            risk_envelope=risk_envelope,
+            policy_id=policy_id,
+        )
+        present = tuple(sorted({signal.verifier for signal in signal_tuple}))
+        missing = tuple(
+            verifier
+            for verifier in profile.required_verifiers
+            if verifier not in present
+        )
+        interval_low, interval_high = _fused_interval(signal_tuple, profile.weights)
+        interval_width = interval_high - interval_low
+        attributes = {
+            **dict(decision.attributes),
+            "consensus_profile": "critical",
+            "required_verifiers": ",".join(profile.required_verifiers),
+            "present_verifiers": ",".join(present),
+            "missing_verifiers": ",".join(missing),
+            "calibrated_interval_width": f"{interval_width:.6f}",
+        }
+        if missing and decision.decision == "allow":
+            return GuardDecision(
+                decision="warn",
+                risk_score=decision.risk_score,
+                confidence_low=interval_low,
+                confidence_high=interval_high,
+                policy_id=decision.policy_id,
+                reason="critical_consensus_missing_verifier",
+                tenant_safe_explanation=(
+                    "Critical-domain consensus is missing required verifier coverage."
+                ),
+                evidence_refs=decision.evidence_refs,
+                verifier_signals=decision.verifier_signals,
+                risk_envelope=decision.risk_envelope,
+                attributes=attributes,
+            )
+        if interval_width > profile.max_interval_width and decision.decision == "allow":
+            return GuardDecision(
+                decision="warn",
+                risk_score=decision.risk_score,
+                confidence_low=interval_low,
+                confidence_high=interval_high,
+                policy_id=decision.policy_id,
+                reason="critical_consensus_interval_too_wide",
+                tenant_safe_explanation=(
+                    "Critical-domain consensus interval is too wide for release."
+                ),
+                evidence_refs=decision.evidence_refs,
+                verifier_signals=decision.verifier_signals,
+                risk_envelope=decision.risk_envelope,
+                attributes=attributes,
+            )
+        return GuardDecision(
+            decision=decision.decision,
+            risk_score=_critical_risk_score(decision, signal_tuple, profile.weights),
+            confidence_low=interval_low,
+            confidence_high=interval_high,
+            policy_id=decision.policy_id,
+            reason=decision.reason,
+            tenant_safe_explanation=decision.tenant_safe_explanation,
+            evidence_refs=decision.evidence_refs,
+            verifier_signals=decision.verifier_signals,
+            risk_envelope=decision.risk_envelope,
+            attributes=attributes,
+        )
+
     def _finalize(self, decision: GuardDecision) -> GuardDecision:
         if self._no_go is None:
             return decision
@@ -351,3 +452,45 @@ def _collect_evidence_refs(signals: tuple[VerifierSignal, ...]) -> tuple[str, ..
                 refs.append(ref)
                 seen.add(ref)
     return tuple(refs)
+
+
+def _fused_interval(
+    signals: tuple[VerifierSignal, ...],
+    weights: dict[str, float],
+) -> tuple[float, float]:
+    if not signals:
+        return (0.0, 1.0)
+    low = _weighted_value(signals, weights, "confidence_low")
+    high = _weighted_value(signals, weights, "confidence_high")
+    return (low, high)
+
+
+def _weighted_value(
+    signals: tuple[VerifierSignal, ...],
+    weights: dict[str, float],
+    field_name: str,
+) -> float:
+    if not signals:
+        return 0.0
+    weighted_sum = 0.0
+    weight_total = 0.0
+    for signal in signals:
+        weight = weights.get(signal.verifier, 1.0)
+        if weight < 0.0:
+            raise ValueError("weights must be non-negative")
+        weighted_sum += getattr(signal, field_name) * weight
+        weight_total += weight
+    if weight_total <= 0.0:
+        raise ValueError("at least one verifier weight must be positive")
+    return max(0.0, min(1.0, weighted_sum / weight_total))
+
+
+def _critical_risk_score(
+    decision: GuardDecision,
+    signals: tuple[VerifierSignal, ...],
+    weights: dict[str, float],
+) -> float:
+    weighted = _weighted_value(signals, weights, "score")
+    if decision.decision in {"halt", "block"}:
+        return max(decision.risk_score, weighted)
+    return weighted
