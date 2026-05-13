@@ -594,6 +594,11 @@ def _forecast_attributes(verdict: NoGoVerdict) -> dict[str, str]:
         "irreversibility_forecast_ci_low": f"{forecast.ci_low:.6f}",
         "irreversibility_forecast_ci_high": f"{forecast.ci_high:.6f}",
         "irreversibility_forecast_samples": str(forecast.samples),
+        **(
+            verdict.reviewed_threshold.to_attributes()
+            if verdict.reviewed_threshold is not None
+            else {}
+        ),
     }
 
 

@@ -13,6 +13,7 @@ import pytest
 from director_ai.core.guard_control import (
     GuardDecision,
     NoGoPolicy,
+    ReviewedIrreversibilityThreshold,
     RiskEnvelope,
     VerifierSignal,
 )
@@ -157,6 +158,108 @@ def test_no_go_policy_blocks_forecasted_irreversible_action_sequence() -> None:
         samples=100,
     )
     assert verdict.original_decision == decision
+
+
+def test_reviewed_no_go_threshold_blocks_high_risk_forecast() -> None:
+    class HighRiskForecaster:
+        def forecast(self, actions, *, seed=0):
+            assert tuple(actions) == ("stage payment", "transfer funds")
+            return Forecast(
+                p_irreversible=0.73,
+                ci_low=0.68,
+                ci_high=0.81,
+                crossed=73,
+                samples=100,
+            )
+
+    policy = NoGoPolicy(
+        default_threshold=0.95,
+        irreversible_threshold=0.95,
+        irreversibility_forecaster=HighRiskForecaster(),
+        reviewed_irreversibility_threshold=ReviewedIrreversibilityThreshold(
+            threshold=0.6,
+            source_ref="calibration://irreversibility/2026-05-13",
+            reviewer_id="reviewer-passport-a",
+            calibration_size=256,
+            coverage=0.95,
+        ),
+    )
+    decision = GuardDecision(
+        decision="warn",
+        risk_score=0.72,
+        confidence_low=0.62,
+        confidence_high=0.84,
+        policy_id="policy.finance.ops",
+        reason="operator_review",
+        tenant_safe_explanation="The action needs operator review.",
+        evidence_refs=("ops:payment-change",),
+        verifier_signals=(),
+        risk_envelope=RiskEnvelope(
+            action_category="tool",
+            reversibility="costly",
+            domain="financial",
+            calibrated_threshold=0.7,
+            no_go_threshold=0.95,
+        ),
+        attributes={"action_sequence": "stage payment\ntransfer funds"},
+    )
+
+    verdict = policy.evaluate(decision)
+
+    assert verdict.decision == "block"
+    assert verdict.reason == "no_go_reviewed_irreversibility_forecast"
+    assert verdict.reviewed_threshold is not None
+    assert verdict.reviewed_threshold.threshold == pytest.approx(0.6)
+
+
+def test_reviewed_no_go_threshold_does_not_block_low_risk_text_forecast() -> None:
+    class HighRiskForecaster:
+        def forecast(self, actions, *, seed=0):
+            return Forecast(
+                p_irreversible=0.73,
+                ci_low=0.68,
+                ci_high=0.81,
+                crossed=73,
+                samples=100,
+            )
+
+    policy = NoGoPolicy(
+        default_threshold=0.95,
+        irreversible_threshold=0.95,
+        irreversibility_forecaster=HighRiskForecaster(),
+        reviewed_irreversibility_threshold=ReviewedIrreversibilityThreshold(
+            threshold=0.6,
+            source_ref="calibration://irreversibility/2026-05-13",
+            reviewer_id="reviewer-passport-a",
+            calibration_size=256,
+            coverage=0.95,
+        ),
+    )
+    decision = GuardDecision(
+        decision="warn",
+        risk_score=0.72,
+        confidence_low=0.62,
+        confidence_high=0.84,
+        policy_id="policy.text",
+        reason="operator_review",
+        tenant_safe_explanation="The text action needs review.",
+        evidence_refs=("text:summary-change",),
+        verifier_signals=(),
+        risk_envelope=RiskEnvelope(
+            action_category="text",
+            reversibility="reversible",
+            domain="general",
+            calibrated_threshold=0.7,
+            no_go_threshold=0.95,
+        ),
+        attributes={"action_sequence": "summarise approved notes"},
+    )
+
+    verdict = policy.evaluate(decision)
+
+    assert verdict.decision == "warn"
+    assert verdict.reason == "operator_review"
+    assert verdict.forecast is not None
 
 
 def test_no_go_policy_skips_forecast_below_calibrated_risk_threshold() -> None:

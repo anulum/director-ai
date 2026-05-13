@@ -499,7 +499,7 @@ future-differentiator queue.
   into one reviewed defence-update pipeline.
 - [x] Publish the Director safety telemetry schema as an independent
   interoperability specification for inference servers and agent frameworks.
-- [ ] Add a reviewed no-go policy that makes irreversibility forecasts block
+- [x] Add a reviewed no-go policy that makes irreversibility forecasts block
   high-risk actions above a calibrated conformal threshold.
 - [x] Design a closed-loop physical grounding evaluator that compares perception
   state, claimed state, and post-action state across camera, IMU, and simulator

@@ -19,8 +19,20 @@ crosses `irreversible_threshold`. This prevents a point estimate alone from
 blocking high-risk actions while still stopping action sequences whose
 irreversibility remains high under interval uncertainty.
 
+For production high-risk paths, pass a `ReviewedIrreversibilityThreshold`. This
+represents a reviewed conformal threshold with source reference, reviewer
+identity, calibration size, coverage, and approval status. When a high-risk
+decision crosses the calibrated risk threshold and the forecast lower bound
+crosses the reviewed threshold, the policy returns
+`no_go_reviewed_irreversibility_forecast`.
+
 ```python
-from director_ai.core.guard_control import GuardDecision, NoGoPolicy, RiskEnvelope
+from director_ai.core.guard_control import (
+    GuardDecision,
+    NoGoPolicy,
+    ReviewedIrreversibilityThreshold,
+    RiskEnvelope,
+)
 
 risk = RiskEnvelope(
     action_category="tool",
@@ -44,7 +56,16 @@ decision = GuardDecision(
     attributes={"action_sequence": "preview deployment\ndelete production table"},
 )
 
-verdict = NoGoPolicy(irreversible_threshold=0.75).evaluate(decision)
+verdict = NoGoPolicy(
+    irreversible_threshold=0.95,
+    reviewed_irreversibility_threshold=ReviewedIrreversibilityThreshold(
+        threshold=0.75,
+        source_ref="calibration://irreversibility/2026-05-13",
+        reviewer_id="reviewer-passport-a",
+        calibration_size=256,
+        coverage=0.95,
+    ),
+).evaluate(decision)
 assert verdict.decision in {"warn", "block"}
 ```
 
@@ -89,9 +110,11 @@ decision = CrossVerifierConsensus(no_go_policy=NoGoPolicy()).decide(
 ```
 
 When the no-go policy blocks from a forecast, `decision.reason` is
-`"no_go_irreversibility_forecast"` and the attributes include
+`"no_go_irreversibility_forecast"` or
+`"no_go_reviewed_irreversibility_forecast"` and the attributes include
 `irreversibility_forecast_p`, `irreversibility_forecast_ci_low`,
 `irreversibility_forecast_ci_high`, and `irreversibility_forecast_samples`.
+Reviewed thresholds also add reviewed threshold provenance attributes.
 
 ## Full API
 
@@ -104,3 +127,5 @@ When the no-go policy blocks from a forecast, `decision.reason` is
 ::: director_ai.core.guard_control.NoGoPolicy
 
 ::: director_ai.core.guard_control.NoGoVerdict
+
+::: director_ai.core.guard_control.ReviewedIrreversibilityThreshold

@@ -15,7 +15,12 @@ from __future__ import annotations
 
 import pytest
 
-from director_ai.core.guard_control import NoGoPolicy, RiskEnvelope, VerifierSignal
+from director_ai.core.guard_control import (
+    NoGoPolicy,
+    ReviewedIrreversibilityThreshold,
+    RiskEnvelope,
+    VerifierSignal,
+)
 from director_ai.core.irreversibility import Forecast
 from director_ai.core.scoring.consensus import (
     ConsensusScorer,
@@ -522,8 +527,15 @@ class TestCrossVerifierConsensus:
         )
         consensus = CrossVerifierConsensus(
             no_go_policy=NoGoPolicy(
-                irreversible_threshold=0.7,
+                irreversible_threshold=0.95,
                 irreversibility_forecaster=AlwaysIrreversibleForecaster(),
+                reviewed_irreversibility_threshold=ReviewedIrreversibilityThreshold(
+                    threshold=0.7,
+                    source_ref="calibration://irreversibility/2026-05-13",
+                    reviewer_id="reviewer-passport-a",
+                    calibration_size=128,
+                    coverage=0.95,
+                ),
             )
         )
 
@@ -535,6 +547,8 @@ class TestCrossVerifierConsensus:
         )
 
         assert decision.decision == "block"
-        assert decision.reason == "no_go_irreversibility_forecast"
+        assert decision.reason == "no_go_reviewed_irreversibility_forecast"
         assert decision.attributes["requires_human_review"] == "true"
         assert decision.attributes["irreversibility_forecast_ci_low"] == "0.780000"
+        assert decision.attributes["reviewed_threshold"] == "0.700000"
+        assert decision.attributes["reviewed_threshold_calibration_size"] == "128"

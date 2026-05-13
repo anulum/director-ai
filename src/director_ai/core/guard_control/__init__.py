@@ -9,12 +9,13 @@
 """Shared guard-control contracts for advanced safety decisions."""
 
 from .decision import GuardDecision, RiskEnvelope, VerifierSignal
-from .no_go import NoGoPolicy, NoGoVerdict
+from .no_go import NoGoPolicy, NoGoVerdict, ReviewedIrreversibilityThreshold
 
 __all__ = [
     "GuardDecision",
     "NoGoPolicy",
     "NoGoVerdict",
     "RiskEnvelope",
+    "ReviewedIrreversibilityThreshold",
     "VerifierSignal",
 ]

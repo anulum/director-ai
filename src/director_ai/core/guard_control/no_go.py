@@ -19,6 +19,13 @@ from director_ai.core.irreversibility import Forecast, IrreversibilityForecaster
 
 from .decision import GuardDecision
 
+_HIGH_RISK_ACTION_CATEGORIES = frozenset(
+    {"code", "physical", "tool", "training", "inference_steering", "multimodal"}
+)
+_HIGH_RISK_DOMAINS = frozenset(
+    {"financial", "legal", "medical", "physical", "regulated", "security"}
+)
+
 
 class _IrreversibilityForecasterLike(Protocol):
     def forecast(
@@ -30,6 +37,40 @@ class _IrreversibilityForecasterLike(Protocol):
 
 
 @dataclass(frozen=True)
+class ReviewedIrreversibilityThreshold:
+    """Reviewed conformal threshold for forecast-based no-go blocking."""
+
+    threshold: float
+    source_ref: str
+    reviewer_id: str
+    calibration_size: int
+    coverage: float
+    approved: bool = True
+
+    def __post_init__(self) -> None:
+        _validate_threshold("threshold", self.threshold)
+        _validate_threshold("coverage", self.coverage)
+        if not self.source_ref.strip():
+            raise ValueError("source_ref is required")
+        if not self.reviewer_id.strip():
+            raise ValueError("reviewer_id is required")
+        if self.calibration_size <= 0:
+            raise ValueError("calibration_size must be positive")
+        if not self.approved:
+            raise ValueError("reviewed irreversibility threshold must be approved")
+
+    def to_attributes(self) -> dict[str, str]:
+        """Return tenant-safe threshold provenance for telemetry."""
+        return {
+            "reviewed_threshold": f"{self.threshold:.6f}",
+            "reviewed_threshold_source": self.source_ref,
+            "reviewed_threshold_reviewer": self.reviewer_id,
+            "reviewed_threshold_calibration_size": str(self.calibration_size),
+            "reviewed_threshold_coverage": f"{self.coverage:.6f}",
+        }
+
+
+@dataclass(frozen=True)
 class NoGoVerdict:
     """Result of applying :class:`NoGoPolicy` to a guard decision."""
 
@@ -38,6 +79,7 @@ class NoGoVerdict:
     requires_human_review: bool
     original_decision: GuardDecision
     forecast: Forecast | None = None
+    reviewed_threshold: ReviewedIrreversibilityThreshold | None = None
 
 
 class NoGoPolicy:
@@ -66,6 +108,8 @@ class NoGoPolicy:
             "physical_action",
         ),
         enable_irreversibility_forecast: bool = True,
+        reviewed_irreversibility_threshold: ReviewedIrreversibilityThreshold
+        | None = None,
     ) -> None:
         _validate_threshold("default_threshold", default_threshold)
         _validate_threshold("irreversible_threshold", irreversible_threshold)
@@ -79,6 +123,7 @@ class NoGoPolicy:
         self._review_irreversible = require_human_review_for_irreversible
         self._forecast_seed = forecast_seed
         self._forecast_action_keys = action_keys
+        self._reviewed_irreversibility_threshold = reviewed_irreversibility_threshold
         self._forecaster: _IrreversibilityForecasterLike | None
         if enable_irreversibility_forecast:
             self._forecaster = irreversibility_forecaster or IrreversibilityForecaster()
@@ -99,6 +144,21 @@ class NoGoPolicy:
                 original_decision=decision,
             )
         forecast = self._forecast_irreversibility(decision)
+        reviewed_threshold = self._reviewed_irreversibility_threshold
+        if (
+            forecast is not None
+            and reviewed_threshold is not None
+            and _is_high_risk(decision)
+            and forecast.ci_low >= reviewed_threshold.threshold
+        ):
+            return NoGoVerdict(
+                decision="block",
+                reason="no_go_reviewed_irreversibility_forecast",
+                requires_human_review=True,
+                original_decision=decision,
+                forecast=forecast,
+                reviewed_threshold=reviewed_threshold,
+            )
         if forecast is not None and forecast.ci_low >= self._irreversible_threshold:
             return NoGoVerdict(
                 decision="block",
@@ -152,6 +212,15 @@ def _tenant_safe_action_sequence(
         if actions:
             return actions
     return ()
+
+
+def _is_high_risk(decision: GuardDecision) -> bool:
+    envelope = decision.risk_envelope
+    return (
+        envelope.action_category in _HIGH_RISK_ACTION_CATEGORIES
+        or envelope.domain in _HIGH_RISK_DOMAINS
+        or envelope.reversibility == "irreversible"
+    )
 
 
 def _validate_threshold(name: str, value: float) -> None:
