@@ -180,6 +180,7 @@ budget = TenantPhysicalBudget(
         max_action_validations=120,
         max_inverse_kinematics=30,
         max_simulation_checks=60,
+        max_sensor_fusion=60,
     )
 )
 hook = GroundingHook(model=model, constraints=constraints, budget=budget)
@@ -188,10 +189,84 @@ hook = GroundingHook(model=model, constraints=constraints, budget=budget)
 The hook consumes one action-validation unit for every proposed action,
 one inverse-kinematics unit before calling `model.inverse`, and one
 simulation-check unit before spatial constraints call `model.collides_with`.
+`PhysicalGroundingEvaluator` additionally consumes one sensor-fusion unit
+before comparing perception and simulator snapshots.
 Budget exhaustion blocks before the expensive operation is called. This
 budget block is not converted into warn-only mode, so it still prevents
 tenant payloads from exhausting physical runtimes when
 `CoherenceAgent` uses the default advisory physical policy.
+
+## Closed-loop evaluator
+
+`PhysicalGroundingEvaluator` compares pre-action perception state,
+pre-action simulator state, the planned `PhysicalAction`, and optional
+post-action perception/simulator snapshots. It is a policy-control layer
+over `GroundingHook`, not a replacement for kinematic checks.
+
+```python
+from director_ai.core.cyber_physical import (
+    PhysicalGroundingEvaluator,
+    SensorStateSnapshot,
+)
+from director_ai.core.guard_control import RiskEnvelope
+
+evaluator = PhysicalGroundingEvaluator(
+    grounding_hook=hook,
+    high_risk_physical_deployment=False,
+    state_tolerance_m=0.05,
+    budget=budget,
+)
+
+pre_perception = SensorStateSnapshot(
+    snapshot_ref="sensor://pre-1",
+    sensor_id="camera-1",
+    adapter_id="vision.cell",
+    timestamp=1.0,
+    end_effector_position=Vec3(0.0, 0.0, 0.0),
+)
+pre_simulation = SensorStateSnapshot(
+    snapshot_ref="sim://pre-1",
+    sensor_id="simulator-1",
+    adapter_id="sim.cell",
+    timestamp=1.0,
+    end_effector_position=Vec3(0.01, 0.0, 0.0),
+)
+
+result = evaluator.evaluate(
+    action=action,
+    risk_envelope=RiskEnvelope(
+        action_category="physical",
+        reversibility="reversible",
+        domain="physical",
+        calibrated_threshold=0.6,
+        no_go_threshold=0.8,
+    ),
+    pre_perception=pre_perception,
+    pre_simulation=pre_simulation,
+    tenant_id="tenant-a",
+)
+```
+
+Production semantics:
+
+- unsupported sensors/adapters produce explicit `unsupported` violations
+  rather than silent passes
+- perception/simulator mismatch produces `warn` by default
+- mismatch becomes `block` only when `high_risk_physical_deployment=True`
+- irreversible actions go through no-go policy and require human review
+- post-action checks compare both perception and simulation with the planned
+  target and with each other
+- `SensorStateSnapshot` serialises references and coordinates only; it does
+  not serialise raw frames, point clouds, prompts, credentials, or driver
+  payloads
+
+::: director_ai.core.cyber_physical.closed_loop.SensorStateSnapshot
+
+::: director_ai.core.cyber_physical.closed_loop.PhysicalGroundingEvaluator
+
+::: director_ai.core.cyber_physical.closed_loop.PhysicalGroundingEvaluation
+
+::: director_ai.core.cyber_physical.closed_loop.PhysicalGroundingViolation
 
 ## Rust acceleration
 

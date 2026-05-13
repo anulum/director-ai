@@ -221,6 +221,7 @@ def test_direct_budget_consume_tracks_default_tenant_and_snapshots() -> None:
         "action_validations": 0,
         "inverse_kinematics": 0,
         "simulation_checks": 0,
+        "sensor_fusion": 0,
     }
 
     budget.consume("", "action_validations")
@@ -230,6 +231,7 @@ def test_direct_budget_consume_tracks_default_tenant_and_snapshots() -> None:
         "action_validations": 1,
         "inverse_kinematics": 1,
         "simulation_checks": 0,
+        "sensor_fusion": 0,
     }
 
 

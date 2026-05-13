@@ -39,6 +39,13 @@ from .budget import (
     PhysicalBudgetLimits,
     TenantPhysicalBudget,
 )
+from .closed_loop import (
+    PhysicalGroundingEvaluation,
+    PhysicalGroundingEvaluator,
+    PhysicalGroundingStatus,
+    PhysicalGroundingViolation,
+    SensorStateSnapshot,
+)
 from .constraints import (
     PhysicalConstraint,
     SpatialConstraint,
@@ -68,7 +75,12 @@ __all__ = [
     "PhysicalBudgetExceededError",
     "PhysicalBudgetLimits",
     "PhysicalConstraint",
+    "PhysicalGroundingEvaluation",
+    "PhysicalGroundingEvaluator",
+    "PhysicalGroundingStatus",
+    "PhysicalGroundingViolation",
     "Ros2Adapter",
+    "SensorStateSnapshot",
     "SimpleKinematicModel",
     "SpatialConstraint",
     "Sphere",

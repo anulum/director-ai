@@ -22,7 +22,9 @@ __all__ = [
 ]
 
 
-_COUNTERS = frozenset({"action_validations", "inverse_kinematics", "simulation_checks"})
+_COUNTERS = frozenset(
+    {"action_validations", "inverse_kinematics", "simulation_checks", "sensor_fusion"}
+)
 
 
 @dataclass(frozen=True)
@@ -33,6 +35,7 @@ class PhysicalBudgetLimits:
     max_action_validations: int = 120
     max_inverse_kinematics: int = 30
     max_simulation_checks: int = 60
+    max_sensor_fusion: int = 60
 
     def __post_init__(self) -> None:
         if self.window_seconds <= 0:
@@ -41,6 +44,7 @@ class PhysicalBudgetLimits:
             "max_action_validations",
             "max_inverse_kinematics",
             "max_simulation_checks",
+            "max_sensor_fusion",
         ):
             if getattr(self, name) < 0:
                 raise ValueError(f"{name} must be non-negative")
@@ -52,6 +56,8 @@ class PhysicalBudgetLimits:
             return self.max_inverse_kinematics
         if counter == "simulation_checks":
             return self.max_simulation_checks
+        if counter == "sensor_fusion":
+            return self.max_sensor_fusion
         raise ValueError(f"unknown physical budget counter {counter!r}")
 
 
@@ -77,6 +83,7 @@ class _UsageWindow:
     action_validations: int = 0
     inverse_kinematics: int = 0
     simulation_checks: int = 0
+    sensor_fusion: int = 0
 
 
 class TenantPhysicalBudget:
@@ -125,9 +132,11 @@ class TenantPhysicalBudget:
                     "action_validations": 0,
                     "inverse_kinematics": 0,
                     "simulation_checks": 0,
+                    "sensor_fusion": 0,
                 }
             return {
                 "action_validations": window.action_validations,
                 "inverse_kinematics": window.inverse_kinematics,
                 "simulation_checks": window.simulation_checks,
+                "sensor_fusion": window.sensor_fusion,
             }
