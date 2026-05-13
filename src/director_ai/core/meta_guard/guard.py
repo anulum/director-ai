@@ -23,6 +23,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import TypedDict
 
 from .adjuster import ThresholdAdjuster, ThresholdBundle
 from .analyzer import MetaAnalysis, MetaAnalyzer
@@ -41,6 +42,14 @@ class ProductionMetaGuardDecision:
     single_tenant_fraction: float = 0.0
     duplicate_prompt_fraction: float = 0.0
     evasion_score: float = 0.0
+
+
+class _WindowMetrics(TypedDict):
+    window_size: int
+    labelled_fraction: float
+    single_tenant_fraction: float
+    duplicate_prompt_fraction: float
+    evasion_score: float
 
 
 @dataclass(frozen=True)
@@ -75,31 +84,31 @@ class MetaGuardProductionPolicy:
         """Return whether the current recursive adjustment may proceed."""
         metrics = _window_metrics(window)
         if not analysis.any_alarm:
-            return ProductionMetaGuardDecision(enabled=True, **metrics)
+            return _production_decision(enabled=True, metrics=metrics)
         if metrics["window_size"] == 0:
-            return ProductionMetaGuardDecision(enabled=True, **metrics)
+            return _production_decision(enabled=True, metrics=metrics)
         if metrics["single_tenant_fraction"] > self.max_single_tenant_fraction:
-            return ProductionMetaGuardDecision(
+            return _production_decision(
                 enabled=True,
                 blocked=True,
                 block_reason="single_tenant_dominance",
-                **metrics,
+                metrics=metrics,
             )
         if metrics["duplicate_prompt_fraction"] > self.max_duplicate_prompt_fraction:
-            return ProductionMetaGuardDecision(
+            return _production_decision(
                 enabled=True,
                 blocked=True,
                 block_reason="duplicate_prompt_dominance",
-                **metrics,
+                metrics=metrics,
             )
         if metrics["labelled_fraction"] < self.min_labelled_fraction:
-            return ProductionMetaGuardDecision(
+            return _production_decision(
                 enabled=True,
                 blocked=True,
                 block_reason="insufficient_labels",
-                **metrics,
+                metrics=metrics,
             )
-        return ProductionMetaGuardDecision(enabled=True, **metrics)
+        return _production_decision(enabled=True, metrics=metrics)
 
 
 @dataclass(frozen=True)
@@ -212,7 +221,26 @@ class MetaGuard:
         return self._analyzer.analyse(window)
 
 
-def _window_metrics(window: Sequence[ScoringDecision]) -> dict[str, float | int]:
+def _production_decision(
+    *,
+    enabled: bool,
+    metrics: _WindowMetrics,
+    blocked: bool = False,
+    block_reason: str = "",
+) -> ProductionMetaGuardDecision:
+    return ProductionMetaGuardDecision(
+        enabled=enabled,
+        blocked=blocked,
+        block_reason=block_reason,
+        window_size=metrics["window_size"],
+        labelled_fraction=metrics["labelled_fraction"],
+        single_tenant_fraction=metrics["single_tenant_fraction"],
+        duplicate_prompt_fraction=metrics["duplicate_prompt_fraction"],
+        evasion_score=metrics["evasion_score"],
+    )
+
+
+def _window_metrics(window: Sequence[ScoringDecision]) -> _WindowMetrics:
     size = len(window)
     if size == 0:
         return {

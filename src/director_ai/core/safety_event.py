@@ -437,11 +437,15 @@ def _trace_from_payload(value: Any) -> HaltTraceAttribution | None:
     _assert_type("trace_attribution.fact_source", value["fact_source"], str)
     _assert_type("trace_attribution.retrieval_path", value["retrieval_path"], str)
     _assert_type("trace_attribution.scorer_path", value["scorer_path"], str)
-    token_offset_raw = value["token_offset"]
-    if token_offset_raw is not None and (
-        isinstance(token_offset_raw, bool) or not isinstance(token_offset_raw, int)
+    token_offset_value = value["token_offset"]
+    if token_offset_value is None:
+        token_offset = -1
+    elif isinstance(token_offset_value, bool) or not isinstance(
+        token_offset_value, int
     ):
         raise ValueError("trace_attribution.token_offset must be integer or null")
+    else:
+        token_offset = token_offset_value
     threshold = _optional_float(
         "trace_attribution.threshold", value["threshold"], unit=True
     )
@@ -456,7 +460,7 @@ def _trace_from_payload(value: Any) -> HaltTraceAttribution | None:
         fact_source=value["fact_source"],
         retrieval_path=value["retrieval_path"],
         scorer_path=value["scorer_path"],
-        token_offset=token_offset_raw,
+        token_offset=token_offset,
         threshold=threshold,
         causal_contribution=causal,
     )

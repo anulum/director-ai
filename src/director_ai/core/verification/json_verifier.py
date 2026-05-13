@@ -26,7 +26,8 @@ from __future__ import annotations
 
 import json
 import re
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
 from .types import FieldVerdict, StructuredVerificationResult
 
@@ -191,7 +192,7 @@ def _pydantic_verdicts(data: Any, model: Any) -> list[FieldVerdict]:
             raise TypeError("pydantic_model must expose model_validate or parse_obj")
         return []
     except Exception as exc:
-        errors = getattr(exc, "errors", lambda: [])()
+        errors = cast(list[Mapping[str, Any]], getattr(exc, "errors", lambda: [])())
         verdicts: list[FieldVerdict] = []
         for error in errors:
             loc = error.get("loc", ())

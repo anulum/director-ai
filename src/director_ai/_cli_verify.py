@@ -14,6 +14,8 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Mapping
+from typing import Any, cast
 
 
 def _check_optional_module(module_name: str) -> tuple[bool, str]:
@@ -90,9 +92,13 @@ def _stack_warnings(checks: list[tuple[str, bool, str]]) -> list[str]:
     if cfg.vector_backend == "chroma" and not deps["chromadb"]:
         warnings.append("DIRECTOR_VECTOR_BACKEND=chroma but chromadb is missing.")
     if hasattr(cfg, "model_revision_health"):
-        revision_health = cfg.model_revision_health()
+        revision_health = cast(Mapping[str, Any], cfg.model_revision_health())
         if not revision_health.get("ok", True):
-            for label, check in revision_health.get("checks", {}).items():
+            revision_checks = cast(
+                Mapping[str, Mapping[str, Any]],
+                revision_health.get("checks", {}),
+            )
+            for label, check in revision_checks.items():
                 if check.get("status") == "error":
                     warnings.append(
                         "Model revision health failed for "
