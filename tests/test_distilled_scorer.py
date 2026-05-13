@@ -166,6 +166,75 @@ class TestOnnxPath:
         assert calls["providers"] == ["CPUExecutionProvider"]
         assert calls["tokenizer_model_path"] == str(model_dir)
 
+    def test_local_onnx_rejects_path_outside_allowed_root(self, monkeypatch, tmp_path):
+        calls: dict[str, object] = {}
+        allowed = tmp_path / "allowed"
+        allowed.mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "model.onnx").write_bytes(b"fake")
+
+        class FakeSession:
+            def __init__(self, path, *, providers):
+                calls["onnx_path"] = path
+                calls["providers"] = providers
+
+        class FakeTokenizer:
+            @classmethod
+            def from_pretrained(cls, model_path, *, revision):
+                calls["tokenizer_model_path"] = model_path
+                return MagicMock()
+
+        fake_ort = types.ModuleType("onnxruntime")
+        fake_ort.InferenceSession = FakeSession
+        fake_transformers = types.ModuleType("transformers")
+        fake_transformers.AutoTokenizer = FakeTokenizer
+        monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
+        monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+        monkeypatch.setenv("DIRECTOR_ONNX_ALLOWED_DIRS", str(allowed))
+
+        backend = DistilledNLIBackend(model_path=str(outside))
+        with pytest.raises(PermissionError, match="DIRECTOR_ONNX_ALLOWED_DIRS"):
+            backend._load_onnx()
+
+        assert "onnx_path" not in calls
+
+    def test_local_onnx_rejects_model_file_symlink_escape(self, monkeypatch, tmp_path):
+        calls: dict[str, object] = {}
+        allowed = tmp_path / "allowed"
+        allowed.mkdir()
+        external = tmp_path / "external"
+        external.mkdir()
+        (external / "model.onnx").write_bytes(b"fake")
+        model_dir = allowed / "bundle"
+        model_dir.mkdir()
+        (model_dir / "model.onnx").symlink_to(external / "model.onnx")
+
+        class FakeSession:
+            def __init__(self, path, *, providers):
+                calls["onnx_path"] = path
+                calls["providers"] = providers
+
+        class FakeTokenizer:
+            @classmethod
+            def from_pretrained(cls, model_path, *, revision):
+                calls["tokenizer_model_path"] = model_path
+                return MagicMock()
+
+        fake_ort = types.ModuleType("onnxruntime")
+        fake_ort.InferenceSession = FakeSession
+        fake_transformers = types.ModuleType("transformers")
+        fake_transformers.AutoTokenizer = FakeTokenizer
+        monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
+        monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+        monkeypatch.setenv("DIRECTOR_ONNX_ALLOWED_DIRS", str(allowed))
+
+        backend = DistilledNLIBackend(model_path=str(model_dir))
+        with pytest.raises(PermissionError, match="escapes model directory"):
+            backend._load_onnx()
+
+        assert "onnx_path" not in calls
+
     def test_ensure_loaded_downloads_remote_onnx_with_pinned_revision(
         self, monkeypatch, tmp_path
     ):

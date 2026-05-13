@@ -54,6 +54,7 @@ class AsyncVoiceGuard:
     score_every : int — score every N-th token (default 4).
     hard_limit : float — immediate halt below this score (default 0.25).
     window_size : int — sliding window for trend detection (default 8).
+    max_context_tokens : int — maximum recent token chunks retained for scoring.
     soft_halt : bool — if True, finish current sentence before halting.
     recovery : str — text spoken when halt fires.
     use_nli : bool — enable NLI model (default True).
@@ -72,7 +73,10 @@ class AsyncVoiceGuard:
         recovery: str = "I need to verify that information. One moment.",
         use_nli: bool = True,
         prompt: str = "",
+        max_context_tokens: int = 4096,
     ) -> None:
+        if max_context_tokens <= 0:
+            raise ValueError("max_context_tokens must be positive")
         if store is not None:
             self._store = store
         else:
@@ -94,7 +98,7 @@ class AsyncVoiceGuard:
         self._soft_halt = soft_halt
         self._recovery = recovery
 
-        self._tokens: list[str] = []
+        self._tokens: deque[str] = deque(maxlen=max_context_tokens)
         self._scores: deque[float] = deque(maxlen=window_size)
         self._index = 0
         self._halted = False

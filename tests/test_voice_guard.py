@@ -129,6 +129,15 @@ class TestVoiceGuardScoring:
             results.append(guard.feed(token))
         assert all(r.approved for r in results)
 
+    def test_accumulated_context_is_bounded_by_sliding_window(self):
+        guard = VoiceGuard(use_nli=False, score_every=100, max_context_tokens=5)
+        for i in range(12):
+            guard.feed(f"t{i} ")
+
+        assert len(guard._tokens) == 5
+        assert guard.accumulated_text == "t7 t8 t9 t10 t11 "
+        assert guard.feed("next ").index == 12
+
 
 class TestVoiceToken:
     def test_dataclass_fields(self):

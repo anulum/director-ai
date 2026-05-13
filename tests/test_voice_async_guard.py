@@ -173,6 +173,15 @@ class TestAsyncVoiceGuardScoring:
             results.append(await guard.feed(token))
         assert all(r.approved for r in results)
 
+    async def test_accumulated_context_is_bounded_by_sliding_window(self):
+        guard = AsyncVoiceGuard(use_nli=False, score_every=100, max_context_tokens=5)
+        for i in range(12):
+            await guard.feed(f"t{i} ")
+
+        assert len(guard._tokens) == 5
+        assert guard.accumulated_text == "t7 t8 t9 t10 t11 "
+        assert (await guard.feed("next ")).index == 12
+
 
 class TestAsyncVoiceGuardCoverageGaps:
     """Targeted tests for the 3 uncovered paths in voice/guard.py."""

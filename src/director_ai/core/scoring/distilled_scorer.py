@@ -103,8 +103,12 @@ class DistilledNLIBackend:
         import onnxruntime as ort
         from transformers import AutoTokenizer
 
+        from director_ai.core.scoring._nli_export import _resolve_onnx_model_file
+
         model_dir = Path(self._model_path)
-        onnx_path = model_dir / "model.onnx" if model_dir.is_dir() else None
+        onnx_path = None
+        if model_dir.is_dir():
+            resolved_model_dir, onnx_path = _resolve_onnx_model_file(self._model_path)
 
         if onnx_path is None or not onnx_path.exists():
             # Try downloading from HF Hub
@@ -119,7 +123,7 @@ class DistilledNLIBackend:
             )
 
         self._tokeniser = AutoTokenizer.from_pretrained(
-            self._model_path,
+            str(resolved_model_dir) if model_dir.is_dir() else self._model_path,
             revision=DEFAULT_DISTILLED_REVISION,
         )
         self._session = ort.InferenceSession(

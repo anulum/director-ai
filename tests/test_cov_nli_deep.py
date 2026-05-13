@@ -163,6 +163,77 @@ class TestOnnxSessionLoading:
             tok, session = _load_onnx_session(str(onnx_dir))
             assert session is mock_session
 
+    def test_load_onnx_rejects_path_outside_allowed_root(self, tmp_path):
+        mock_ort = MagicMock()
+        mock_ort.get_available_providers.return_value = ["CPUExecutionProvider"]
+        mock_ort.GraphOptimizationLevel.ORT_ENABLE_ALL = 99
+        mock_ort.InferenceSession.return_value = MagicMock()
+        mock_ort.SessionOptions.return_value = MagicMock()
+
+        mock_transformers = MagicMock()
+        mock_transformers.AutoTokenizer.from_pretrained.return_value = MagicMock()
+
+        allowed = tmp_path / "allowed"
+        allowed.mkdir()
+        outside = tmp_path / "outside"
+        outside.mkdir()
+        (outside / "model.onnx").write_bytes(b"fake")
+
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "onnxruntime": mock_ort,
+                    "transformers": mock_transformers,
+                },
+            ),
+            patch.dict(os.environ, {"DIRECTOR_ONNX_ALLOWED_DIRS": str(allowed)}),
+        ):
+            from director_ai.core.nli import _load_onnx_session
+
+            _load_onnx_session.cache_clear()
+            tok, session = _load_onnx_session(str(outside))
+            assert tok is None
+            assert session is None
+            mock_ort.InferenceSession.assert_not_called()
+
+    def test_load_onnx_rejects_model_file_symlink_escape(self, tmp_path):
+        mock_ort = MagicMock()
+        mock_ort.get_available_providers.return_value = ["CPUExecutionProvider"]
+        mock_ort.GraphOptimizationLevel.ORT_ENABLE_ALL = 99
+        mock_ort.InferenceSession.return_value = MagicMock()
+        mock_ort.SessionOptions.return_value = MagicMock()
+
+        mock_transformers = MagicMock()
+        mock_transformers.AutoTokenizer.from_pretrained.return_value = MagicMock()
+
+        allowed = tmp_path / "allowed"
+        allowed.mkdir()
+        external = tmp_path / "external"
+        external.mkdir()
+        (external / "model.onnx").write_bytes(b"fake")
+        onnx_dir = allowed / "bundle"
+        onnx_dir.mkdir()
+        (onnx_dir / "model.onnx").symlink_to(external / "model.onnx")
+
+        with (
+            patch.dict(
+                sys.modules,
+                {
+                    "onnxruntime": mock_ort,
+                    "transformers": mock_transformers,
+                },
+            ),
+            patch.dict(os.environ, {"DIRECTOR_ONNX_ALLOWED_DIRS": str(allowed)}),
+        ):
+            from director_ai.core.nli import _load_onnx_session
+
+            _load_onnx_session.cache_clear()
+            tok, session = _load_onnx_session(str(onnx_dir))
+            assert tok is None
+            assert session is None
+            mock_ort.InferenceSession.assert_not_called()
+
 
 class TestQuantize8bit:
     def test_load_with_quantize(self):

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import time
 from typing import Any
 
@@ -30,6 +31,17 @@ except ImportError:
     redis = None
 
 logger = logging.getLogger("DirectorAI.Enterprise.Redis")
+_TENANT_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def _validate_redis_tenant_id(tenant_id: str) -> str:
+    if tenant_id == "":
+        return tenant_id
+    if not _TENANT_ID_RE.fullmatch(tenant_id):
+        raise ValueError(
+            "Invalid Redis tenant_id: expected 1-64 characters matching [A-Za-z0-9_-]",
+        )
+    return tenant_id
 
 
 class RedisGroundTruthStore(GroundTruthStore):
@@ -58,9 +70,11 @@ class RedisGroundTruthStore(GroundTruthStore):
             raise
 
     def _hash_key(self, tenant_id: str = "") -> str:
+        tenant_id = _validate_redis_tenant_id(tenant_id)
         return f"{self.prefix}{tenant_id or '_default'}:hash"
 
     def add(self, key: str, value: str, tenant_id: str = "") -> None:
+        tenant_id = _validate_redis_tenant_id(tenant_id)
         super().add(key, value, tenant_id=tenant_id)
         self.client.hset(self._hash_key(tenant_id), key, value)
 
@@ -68,6 +82,7 @@ class RedisGroundTruthStore(GroundTruthStore):
         """Batch-add facts. Returns count added."""
         if not facts:
             return 0
+        tenant_id = _validate_redis_tenant_id(tenant_id)
         hk = self._hash_key(tenant_id)
         pipe = self.client.pipeline()
         for k, v in facts.items():
@@ -77,6 +92,7 @@ class RedisGroundTruthStore(GroundTruthStore):
         return len(facts)
 
     def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
+        tenant_id = _validate_redis_tenant_id(tenant_id)
         facts_dict = self.client.hgetall(self._hash_key(tenant_id))
         if not facts_dict:
             return None
@@ -90,6 +106,7 @@ class RedisGroundTruthStore(GroundTruthStore):
         return "; ".join(context) if context else None
 
     def count(self, tenant_id: str = "") -> int:
+        tenant_id = _validate_redis_tenant_id(tenant_id)
         return int(self.client.hlen(self._hash_key(tenant_id)))
 
 
@@ -134,6 +151,7 @@ class RedisScoreCache(ScoreCache):
         # Local import to construct the expected _CacheEntry format transparently
         from director_ai.core.cache import _CacheEntry
 
+        tenant_id = _validate_redis_tenant_id(tenant_id)
         k = self._key(query, prefix, tenant_id, scope)
         redis_key = f"{self.prefix}{k}"
 
@@ -173,6 +191,7 @@ class RedisScoreCache(ScoreCache):
         tenant_id: str = "",
         scope: str = "",
     ) -> None:
+        tenant_id = _validate_redis_tenant_id(tenant_id)
         k = self._key(query, prefix, tenant_id, scope)
         redis_key = f"{self.prefix}{k}"
 

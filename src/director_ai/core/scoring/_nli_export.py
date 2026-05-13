@@ -34,6 +34,58 @@ _LOCAL_ARTIFACT_REVISION = "local-artifact"
 logger = logging.getLogger("DirectorAI.NLI")
 
 
+def _configured_onnx_allowed_dirs() -> tuple[Path, ...]:
+    raw = os.environ.get("DIRECTOR_ONNX_ALLOWED_DIRS", "").strip()
+    if not raw:
+        return ()
+    roots: list[Path] = []
+    for part in raw.split(os.pathsep):
+        item = part.strip()
+        if item:
+            roots.append(Path(item).expanduser().resolve())
+    return tuple(roots)
+
+
+def _is_relative_to(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
+def _resolve_onnx_model_file(onnx_path: str) -> tuple[Path, Path]:
+    onnx_dir = Path(onnx_path).expanduser().resolve()
+    allowed_dirs = _configured_onnx_allowed_dirs()
+    if allowed_dirs and not any(
+        _is_relative_to(onnx_dir, root) for root in allowed_dirs
+    ):
+        raise PermissionError(
+            f"ONNX path is outside DIRECTOR_ONNX_ALLOWED_DIRS: {onnx_dir}",
+        )
+    if not onnx_dir.is_dir():
+        raise FileNotFoundError(f"Not a directory: {onnx_path}")
+
+    quantized = onnx_dir / "model_quantized.onnx"
+    model_file = onnx_dir / "model.onnx"
+    if not quantized.exists() and not model_file.exists():
+        for candidate in sorted(onnx_dir.iterdir()):  # pragma: no branch
+            if candidate.name.endswith(".onnx"):  # pragma: no branch
+                model_file = candidate
+                break
+
+    resolved_model = model_file.resolve()
+    if not _is_relative_to(resolved_model, onnx_dir):
+        raise PermissionError(f"ONNX model file escapes model directory: {model_file}")
+    if allowed_dirs and not any(
+        _is_relative_to(resolved_model, root) for root in allowed_dirs
+    ):
+        raise PermissionError(
+            f"ONNX model file is outside DIRECTOR_ONNX_ALLOWED_DIRS: {resolved_model}",
+        )
+    return onnx_dir, model_file
+
+
 @lru_cache(maxsize=4)
 def _load_onnx_session(
     onnx_path: str,
@@ -44,25 +96,22 @@ def _load_onnx_session(
         import onnxruntime as ort
         from transformers import AutoTokenizer
 
-        if not os.path.isdir(onnx_path):
-            raise FileNotFoundError(f"Not a directory: {onnx_path}")
+        onnx_dir, model_file_path = _resolve_onnx_model_file(onnx_path)
         tokenizer = AutoTokenizer.from_pretrained(
-            onnx_path,
+            str(onnx_dir),
             revision=_LOCAL_ARTIFACT_REVISION,
             local_files_only=True,
         )
 
         # Prefer quantized model on CPU
-        quantized = os.path.join(onnx_path, "model_quantized.onnx")
-        model_file = os.path.join(onnx_path, "model.onnx")
-        if os.path.exists(quantized) and (device is None or "cpu" in (device or "")):
-            model_file = quantized
+        quantized = onnx_dir / "model_quantized.onnx"
+        if (
+            quantized.exists()
+            and (device is None or "cpu" in (device or ""))
+            and _is_relative_to(quantized.resolve(), onnx_dir)
+        ):
+            model_file_path = quantized
             logger.info("Using INT8 quantized model: %s", quantized)
-        elif not os.path.exists(model_file):
-            for f in os.listdir(onnx_path):  # pragma: no branch
-                if f.endswith(".onnx"):  # pragma: no branch
-                    model_file = os.path.join(onnx_path, f)
-                    break
 
         providers: list[str | tuple[str, dict[str, object]]] = [
             "CPUExecutionProvider",
@@ -71,7 +120,7 @@ def _load_onnx_session(
         if (device and "cuda" in device) or "CUDAExecutionProvider" in available:
             providers.insert(0, "CUDAExecutionProvider")
 
-        trt_cache = os.path.join(onnx_path, "trt_cache")
+        trt_cache = str(onnx_dir / "trt_cache")
         trt_requested = os.environ.get("DIRECTOR_ENABLE_TRT") == "1"
         trt_cache_exists = os.path.isdir(trt_cache)
         if (trt_requested or trt_cache_exists) and (
@@ -88,10 +137,10 @@ def _load_onnx_session(
         opts = ort.SessionOptions()
         opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
         opts.log_severity_level = 3  # suppress Memcpy transformer warnings
-        session = ort.InferenceSession(model_file, opts, providers=providers)
+        session = ort.InferenceSession(str(model_file_path), opts, providers=providers)
         logger.info(
             "ONNX session: %s (%s)",
-            model_file,
+            model_file_path,
             session.get_providers()[0],
         )
         return tokenizer, session
@@ -100,6 +149,7 @@ def _load_onnx_session(
         RuntimeError,
         OSError,
         FileNotFoundError,
+        PermissionError,
     ) as e:
         logger.warning("ONNX session unavailable: %s", e)
         return None, None

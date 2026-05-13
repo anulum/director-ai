@@ -116,6 +116,26 @@ class TestRedisGroundTruthStore:
             assert store.count(tenant_id="t1") == 1
             assert store.count(tenant_id="t2") == 1
 
+    def test_tenant_id_validation_accepts_safe_redis_ids(self):
+        fake = _make_fake_redis()
+        with patch("director_ai.enterprise.redis.redis") as mock_redis:
+            mock_redis.from_url.return_value = fake
+            from director_ai.enterprise.redis import RedisGroundTruthStore
+
+            store = RedisGroundTruthStore(redis_url="redis://fake")
+            store.add("sky", "blue", tenant_id="tenant-A_123")
+            assert store.count(tenant_id="tenant-A_123") == 1
+
+    def test_tenant_id_validation_rejects_redis_glob_injection(self):
+        fake = _make_fake_redis()
+        with patch("director_ai.enterprise.redis.redis") as mock_redis:
+            mock_redis.from_url.return_value = fake
+            from director_ai.enterprise.redis import RedisGroundTruthStore
+
+            store = RedisGroundTruthStore(redis_url="redis://fake")
+            with pytest.raises(ValueError, match="Invalid Redis tenant_id"):
+                store.add("sky", "blue", tenant_id="*__keyspace@0__:*")
+
     def test_retrieve_no_match(self):
         fake = _make_fake_redis()
         with patch("director_ai.enterprise.redis.redis") as mock_redis:
@@ -201,6 +221,16 @@ class TestRedisScoreCache:
             cache.put("q", "p", 0.9, 0.0, 0.0, tenant_id="tenant-a")
             assert cache.get("q", "p", tenant_id="tenant-a") is not None
             assert cache.get("q", "p", tenant_id="tenant-b") is None
+
+    def test_tenant_id_validation_rejects_cache_tenant_injection(self):
+        fake = _make_fake_redis()
+        with patch("director_ai.enterprise.redis.redis") as mock_redis:
+            mock_redis.from_url.return_value = fake
+            from director_ai.enterprise.redis import RedisScoreCache
+
+            cache = RedisScoreCache(redis_url="redis://fake")
+            with pytest.raises(ValueError, match="Invalid Redis tenant_id"):
+                cache.put("q", "p", 0.9, 0.0, 0.0, tenant_id="*__keyspace@0__:*")
 
     def test_scope_changes_cache_key(self):
         fake = _make_fake_redis()

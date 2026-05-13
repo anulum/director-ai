@@ -53,9 +53,17 @@ Soft halt mode (default) waits for a sentence boundary (`.`, `!`, `?`) before si
 | `hard_limit` | `float` | `0.25` | Immediate halt threshold |
 | `score_every` | `int` | `4` | Score every N-th token |
 | `window_size` | `int` | `8` | Sliding window for average |
+| `max_context_tokens` | `int` | `4096` | Recent token chunks retained for scoring context |
 | `soft_halt` | `bool` | `True` | Wait for sentence end before halting |
 | `recovery` | `str` | `"I need to verify..."` | Text spoken on halt |
 | `use_nli` | `bool` | `True` | Enable NLI model scoring |
+
+`VoiceGuard` and `AsyncVoiceGuard` keep only the most recent
+`max_context_tokens` token chunks in memory. Stream indexes remain monotonic,
+but `accumulated_text` is a bounded scoring window rather than an unbounded
+transcript. For long-form TTS, set this high enough to cover the factual
+context needed for one scoring decision and persist full transcripts outside
+the guard if your application needs archival storage.
 
 ## VoiceToken
 

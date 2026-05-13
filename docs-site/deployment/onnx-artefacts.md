@@ -73,7 +73,30 @@ The container mounts the model directory read-only and sets:
 ```bash
 DIRECTOR_SCORER_BACKEND=onnx
 DIRECTOR_ONNX_PATH=/models/factcg-onnx
+DIRECTOR_ONNX_ALLOWED_DIRS=/models
 ```
+
+## Path Containment
+
+Production deployments should set `DIRECTOR_ONNX_ALLOWED_DIRS` to a
+path-separated allowlist of directories that may contain ONNX artefacts. The
+runtime resolves `DIRECTOR_ONNX_PATH` and the selected `.onnx` file before
+initialising ONNX Runtime, rejects paths outside the allowlist, and rejects
+symlinks that escape the model directory.
+
+Examples:
+
+```bash
+# Linux/macOS
+export DIRECTOR_ONNX_ALLOWED_DIRS=/models:/opt/director-ai/models
+
+# Windows PowerShell
+$env:DIRECTOR_ONNX_ALLOWED_DIRS = "C:\director\models;D:\approved-models"
+```
+
+If the variable is unset, local library use remains backward compatible, but
+container and server deployments should always set it and mount the model root
+read-only.
 
 ## Wheel Target Matrix
 
