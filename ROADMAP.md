@@ -489,7 +489,7 @@ future-differentiator queue.
   option with drift and evasion checks.
 - [x] Publish a structured Director Safety Event schema for uniform halt telemetry
   across inference servers and downstream tools.
-- [ ] Add a live physical-world grounding loop that compares sensor-fusion state
+- [x] Add a live physical-world grounding loop that compares sensor-fusion state
   with claimed state before and after high-risk actions.
 - [x] Design an agent passport registry for verifiable coherence history across
   organisational hand-offs.

@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, field
 from typing import Literal
 
@@ -103,6 +103,15 @@ class PhysicalGroundingEvaluation:
     violations: tuple[PhysicalGroundingViolation, ...] = field(default_factory=tuple)
 
 
+@dataclass(frozen=True)
+class PhysicalGroundingLoopResult:
+    """Live physical grounding loop result."""
+
+    pre_evaluation: PhysicalGroundingEvaluation
+    final_evaluation: PhysicalGroundingEvaluation
+    action_executed: bool
+
+
 class PhysicalGroundingEvaluator:
     """Compare perception, simulation, action, and post-action state."""
 
@@ -126,6 +135,10 @@ class PhysicalGroundingEvaluator:
             default_threshold=0.95,
             require_human_review_for_irreversible=True,
         )
+
+    @property
+    def high_risk_physical_deployment(self) -> bool:
+        return self._high_risk
 
     def evaluate(
         self,
@@ -298,6 +311,117 @@ class PhysicalGroundingEvaluator:
             post_action_verified=post_action_verified,
             requires_human_review=requires_human_review,
             violations=violations,
+        )
+
+    def blocking_evaluation(
+        self,
+        *,
+        action: PhysicalAction,
+        risk_envelope: RiskEnvelope,
+        pre_action: GroundingVerdict,
+        reason: str,
+        violations: tuple[PhysicalGroundingViolation, ...],
+        post_action_verified: bool,
+    ) -> PhysicalGroundingEvaluation:
+        return self._evaluation(
+            action=action,
+            reason=reason,
+            risk_score=1.0,
+            risk_envelope=risk_envelope,
+            pre_action=pre_action,
+            violations=violations,
+            post_action_verified=post_action_verified,
+            decision_override="block",
+        )
+
+
+class PhysicalGroundingLoop:
+    """Live pre-action / actuation / post-action grounding orchestrator."""
+
+    def __init__(
+        self,
+        *,
+        evaluator: PhysicalGroundingEvaluator,
+        execute_action: Callable[[PhysicalAction], None] | None = None,
+    ) -> None:
+        self._evaluator = evaluator
+        self._execute_action = execute_action
+
+    def run(
+        self,
+        *,
+        action: PhysicalAction,
+        risk_envelope: RiskEnvelope,
+        pre_perception: SensorStateSnapshot,
+        pre_simulation: SensorStateSnapshot,
+        post_perception: Callable[[], SensorStateSnapshot] | None = None,
+        post_simulation: Callable[[], SensorStateSnapshot] | None = None,
+        tenant_id: str = "",
+    ) -> PhysicalGroundingLoopResult:
+        """Gate a live action on pre-state and mandatory post-state checks."""
+        if self._evaluator.high_risk_physical_deployment and (
+            post_perception is None or post_simulation is None
+        ):
+            pre = self._evaluator.evaluate(
+                action=action,
+                risk_envelope=risk_envelope,
+                pre_perception=pre_perception,
+                pre_simulation=pre_simulation,
+                tenant_id=tenant_id,
+            )
+            final = self._evaluator.blocking_evaluation(
+                action=action,
+                risk_envelope=risk_envelope,
+                pre_action=pre.pre_action,
+                reason="post_action_sensor_fusion_required",
+                violations=(
+                    PhysicalGroundingViolation(
+                        stage="post_action",
+                        status="unsupported",
+                        constraint="post_action_sensor_fusion",
+                        reason="high-risk physical actions require post-action perception and simulation snapshots",
+                        evidence_refs=(),
+                    ),
+                ),
+                post_action_verified=False,
+            )
+            return PhysicalGroundingLoopResult(
+                pre_evaluation=pre,
+                final_evaluation=final,
+                action_executed=False,
+            )
+
+        pre = self._evaluator.evaluate(
+            action=action,
+            risk_envelope=risk_envelope,
+            pre_perception=pre_perception,
+            pre_simulation=pre_simulation,
+            tenant_id=tenant_id,
+        )
+        if pre.decision.decision != "allow":
+            return PhysicalGroundingLoopResult(
+                pre_evaluation=pre,
+                final_evaluation=pre,
+                action_executed=False,
+            )
+
+        if self._execute_action is not None:
+            self._execute_action(action)
+        executed = self._execute_action is not None
+
+        final = self._evaluator.evaluate(
+            action=action,
+            risk_envelope=risk_envelope,
+            pre_perception=pre_perception,
+            pre_simulation=pre_simulation,
+            post_perception=post_perception() if post_perception is not None else None,
+            post_simulation=post_simulation() if post_simulation is not None else None,
+            tenant_id=tenant_id,
+        )
+        return PhysicalGroundingLoopResult(
+            pre_evaluation=pre,
+            final_evaluation=final,
+            action_executed=executed,
         )
 
 

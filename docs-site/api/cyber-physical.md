@@ -260,9 +260,50 @@ Production semantics:
   not serialise raw frames, point clouds, prompts, credentials, or driver
   payloads
 
+## Live physical grounding loop
+
+`PhysicalGroundingLoop` wraps the evaluator for live deployments. It first runs
+a pre-action sensor-fusion check, executes the supplied action callback only
+when the pre-check allows, then re-runs the evaluator with post-action
+perception and simulation snapshots.
+
+High-risk physical deployments require both post-action suppliers. Missing
+post-action sensor fusion returns a blocking evaluation with reason
+`post_action_sensor_fusion_required`; the action callback is not invoked.
+
+```python
+from director_ai.core.cyber_physical import PhysicalGroundingLoop
+
+loop = PhysicalGroundingLoop(
+    evaluator=evaluator,
+    execute_action=lambda action: robot_driver.move_to(action.target_position),
+)
+
+result = loop.run(
+    action=action,
+    risk_envelope=risk_envelope,
+    pre_perception=pre_perception,
+    pre_simulation=pre_simulation,
+    post_perception=lambda: camera_adapter.snapshot(),
+    post_simulation=lambda: simulator_adapter.snapshot(),
+    tenant_id="tenant-a",
+)
+
+if result.final_evaluation.decision.decision == "block":
+    raise RuntimeError(result.final_evaluation.reason)
+```
+
+The loop deliberately stores only `SensorStateSnapshot` references and numeric
+coordinates. Raw camera frames, simulator dumps, driver payloads, credentials,
+and private sensor packets remain outside Director telemetry.
+
 ::: director_ai.core.cyber_physical.closed_loop.SensorStateSnapshot
 
 ::: director_ai.core.cyber_physical.closed_loop.PhysicalGroundingEvaluator
+
+::: director_ai.core.cyber_physical.closed_loop.PhysicalGroundingLoop
+
+::: director_ai.core.cyber_physical.closed_loop.PhysicalGroundingLoopResult
 
 ::: director_ai.core.cyber_physical.closed_loop.PhysicalGroundingEvaluation
 

@@ -42,6 +42,8 @@ from .budget import (
 from .closed_loop import (
     PhysicalGroundingEvaluation,
     PhysicalGroundingEvaluator,
+    PhysicalGroundingLoop,
+    PhysicalGroundingLoopResult,
     PhysicalGroundingStatus,
     PhysicalGroundingViolation,
     SensorStateSnapshot,
@@ -77,6 +79,8 @@ __all__ = [
     "PhysicalConstraint",
     "PhysicalGroundingEvaluation",
     "PhysicalGroundingEvaluator",
+    "PhysicalGroundingLoop",
+    "PhysicalGroundingLoopResult",
     "PhysicalGroundingStatus",
     "PhysicalGroundingViolation",
     "Ros2Adapter",
