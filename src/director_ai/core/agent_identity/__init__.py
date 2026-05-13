@@ -31,14 +31,24 @@ fingerprint so the guardrail can detect identity hijacking.
 from .audit import AuditChain, AuditEntry
 from .fingerprint import BehavioralFingerprint, BehaviorObservation, IdentityMonitor
 from .passport import AgentPassport, PassportSigner, PassportVerificationError
+from .registry import (
+    AgentPassportRegistry,
+    CoherenceHistoryEntry,
+    PassportActionVerdict,
+    PassportRegistryReason,
+)
 
 __all__ = [
     "AgentPassport",
+    "AgentPassportRegistry",
     "AuditChain",
     "AuditEntry",
     "BehaviorObservation",
     "BehavioralFingerprint",
+    "CoherenceHistoryEntry",
     "IdentityMonitor",
+    "PassportActionVerdict",
+    "PassportRegistryReason",
     "PassportSigner",
     "PassportVerificationError",
 ]

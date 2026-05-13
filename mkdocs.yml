@@ -180,6 +180,7 @@ nav:
       - Multimodal Checks: api/multimodal-checks.md
       - Formal and Code Verifiers: api/formal-code-verifiers.md
       - Sustainability Scoring: api/sustainability-scoring.md
+      - Agent Passport Registry: api/agent-passport-registry.md
       - CoherenceAgent: api/agent.md
       - VectorGroundTruthStore: api/vector-store.md
       - BatchProcessor: api/batch.md
