@@ -57,6 +57,9 @@ async def voice_pipeline(
 
     On halt the pipeline flushes any buffered text, synthesises the
     recovery message, calls ``on_halt``, then stops.
+    The TTS adapter is closed from a ``finally`` block, so socket-backed
+    adapters are released after normal completion, guarded halt, token-source
+    failure, synthesis failure, or cancellation.
 
     Parameters
     ----------
@@ -92,46 +95,47 @@ async def voice_pipeline(
         async for audio in tts.synthesise(chunk):
             yield audio
 
-    async for vtoken in guard.feed_stream(token_source):
-        if vtoken.halted:
-            # Flush remaining buffered text
-            if vtoken.approved:
-                text_buf.append(vtoken.token)
-            async for audio in _flush_buffer():
-                yield audio
-
-            # Synthesise recovery message
-            if vtoken.recovery_text:
-                async for audio in tts.synthesise(vtoken.recovery_text):
-                    yield audio
-
-            # Fire callback
-            if on_halt is not None:
-                result = on_halt(vtoken)
-                if asyncio.iscoroutine(result) or asyncio.isfuture(result):
-                    await result
-
-            async for audio in tts.flush():
-                yield audio
-            await tts.close()
-            return
-
-        if not vtoken.approved:
-            continue
-
-        if sentence_buffer:
-            text_buf.append(vtoken.token)
-            stripped = vtoken.token.rstrip()
-            if stripped and stripped[-1] in _SENTENCE_ENDS:
+    try:
+        async for vtoken in guard.feed_stream(token_source):
+            if vtoken.halted:
+                # Flush remaining buffered text
+                if vtoken.approved:
+                    text_buf.append(vtoken.token)
                 async for audio in _flush_buffer():
                     yield audio
-        else:
-            async for audio in tts.synthesise(vtoken.token):
-                yield audio
 
-    # Stream ended without halt — flush remaining
-    async for audio in _flush_buffer():
-        yield audio
-    async for audio in tts.flush():
-        yield audio
-    await tts.close()
+                # Synthesise recovery message
+                if vtoken.recovery_text:
+                    async for audio in tts.synthesise(vtoken.recovery_text):
+                        yield audio
+
+                # Fire callback
+                if on_halt is not None:
+                    result = on_halt(vtoken)
+                    if asyncio.iscoroutine(result) or asyncio.isfuture(result):
+                        await result
+
+                async for audio in tts.flush():
+                    yield audio
+                return
+
+            if not vtoken.approved:
+                continue
+
+            if sentence_buffer:
+                text_buf.append(vtoken.token)
+                stripped = vtoken.token.rstrip()
+                if stripped and stripped[-1] in _SENTENCE_ENDS:
+                    async for audio in _flush_buffer():
+                        yield audio
+            else:
+                async for audio in tts.synthesise(vtoken.token):
+                    yield audio
+
+        # Stream ended without halt — flush remaining
+        async for audio in _flush_buffer():
+            yield audio
+        async for audio in tts.flush():
+            yield audio
+    finally:
+        await tts.close()

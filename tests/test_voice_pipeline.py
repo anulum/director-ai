@@ -37,6 +37,13 @@ class RecordingAdapter(TTSAdapter):
         self.closed = True
 
 
+class FailingSynthesisAdapter(RecordingAdapter):
+    async def synthesise(self, text: str):
+        self.texts.append(text)
+        raise RuntimeError("tts backend failed")
+        yield b"unreachable"
+
+
 class FlushRecordingAdapter(RecordingAdapter):
     def __init__(self):
         super().__init__()
@@ -291,6 +298,48 @@ class TestVoicePipelineEmpty:
             )
         ]
         assert audio == []
+        assert tts.closed
+
+
+class TestVoicePipelineLifecycle:
+    async def test_tts_is_closed_when_synthesis_raises(self, monkeypatch):
+        class ApprovedSentenceGuard(ScriptedGuard):
+            tokens = [VoiceToken("Approved sentence.", 0, approved=True, coherence=1.0)]
+
+        monkeypatch.setattr(pipeline_module, "AsyncVoiceGuard", ApprovedSentenceGuard)
+        tts = FailingSynthesisAdapter()
+
+        with pytest.raises(RuntimeError, match="tts backend failed"):
+            _ = [
+                chunk
+                async for chunk in voice_pipeline(
+                    iter(["ignored"]),
+                    tts,
+                    sentence_buffer=True,
+                )
+            ]
+
+        assert tts.texts == ["Approved sentence."]
+        assert tts.closed
+
+    async def test_tts_is_closed_when_token_source_raises(self):
+        tts = RecordingAdapter()
+
+        def broken_tokens():
+            yield "Approved "
+            raise RuntimeError("token source failed")
+
+        with pytest.raises(RuntimeError, match="token source failed"):
+            _ = [
+                chunk
+                async for chunk in voice_pipeline(
+                    broken_tokens(),
+                    tts,
+                    use_nli=False,
+                    score_every=10,
+                )
+            ]
+
         assert tts.closed
 
 
