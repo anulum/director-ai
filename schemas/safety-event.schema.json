@@ -1,0 +1,185 @@
+{
+  "$id": "https://anulum.github.io/director-ai/schemas/safety-event.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "properties": {
+    "attributes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "type": "object"
+    },
+    "event_id": {
+      "pattern": "^sevt_[0-9a-f]{32}$|^sevt_.+",
+      "type": "string"
+    },
+    "evidence_refs": {
+      "items": {
+        "type": "string"
+      },
+      "type": "array"
+    },
+    "halt_reason": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "hook_id": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "hook_scope": {
+      "enum": [
+        "agent",
+        "attestation",
+        "containment",
+        "cyber_physical",
+        "inference_server",
+        "ontology",
+        "streaming",
+        "swarm",
+        "trajectory"
+      ],
+      "type": "string"
+    },
+    "latency_ms": {
+      "anyOf": [
+        {
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "observed_score": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "maximum": 1.0,
+      "minimum": 0.0
+    },
+    "policy_decision": {
+      "enum": [
+        "allow",
+        "block",
+        "halt",
+        "warn"
+      ],
+      "type": "string"
+    },
+    "request_id": {
+      "type": "string"
+    },
+    "schema_version": {
+      "const": "director.safety_event.v1"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "tenant_safe_explanation": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "threshold": {
+      "anyOf": [
+        {
+          "maximum": 1.0,
+          "minimum": 0.0,
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "maximum": 1.0,
+      "minimum": 0.0
+    },
+    "timestamp": {
+      "minLength": 1,
+      "type": "string"
+    },
+    "trace_attribution": {
+      "anyOf": [
+        {
+          "additionalProperties": false,
+          "properties": {
+            "causal_contribution": {
+              "type": "number"
+            },
+            "fact_source": {
+              "type": "string"
+            },
+            "retrieval_path": {
+              "type": "string"
+            },
+            "scorer_path": {
+              "type": "string"
+            },
+            "threshold": {
+              "anyOf": [
+                {
+                  "maximum": 1.0,
+                  "minimum": 0.0,
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "token_offset": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "fact_source",
+            "retrieval_path",
+            "scorer_path",
+            "token_offset",
+            "threshold",
+            "causal_contribution"
+          ],
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "schema_version",
+    "event_id",
+    "timestamp",
+    "request_id",
+    "tenant_id",
+    "hook_id",
+    "hook_scope",
+    "policy_decision",
+    "halt_reason",
+    "threshold",
+    "observed_score",
+    "latency_ms",
+    "evidence_refs",
+    "tenant_safe_explanation",
+    "trace_attribution",
+    "attributes"
+  ],
+  "title": "Director SafetyEvent",
+  "type": "object"
+}

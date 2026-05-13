@@ -5,6 +5,11 @@ and policy decisions. The same schema is used by streaming guards, inference
 server hooks, containment, attestation, ontology, trajectory, cyber-physical,
 swarm, and agent surfaces.
 
+The independent interoperability specification is published at
+[Director Safety Telemetry v1](../specs/director-safety-telemetry-v1.md). Its
+machine-readable JSON Schema lives at `schemas/safety-event.schema.json` and is
+tested against the runtime schema constant.
+
 The schema is intentionally payload-safe:
 
 - evidence is represented by references only;

@@ -8,6 +8,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 import pytest
 
 from director_ai.core.safety_event import (
@@ -19,6 +22,8 @@ from director_ai.core.safety_event import (
     validate_safety_event_payload,
 )
 from director_ai.core.types import EvidenceChunk, HaltEvidence, HaltTraceAttribution
+
+ROOT = Path(__file__).resolve().parents[1]
 
 
 def _event(**overrides):
@@ -201,6 +206,13 @@ class TestSafetyEventSchema:
         assert schema["properties"]["threshold"]["minimum"] == 0.0
         assert schema["properties"]["threshold"]["maximum"] == 1.0
         assert schema["additionalProperties"] is False
+
+    def test_published_interoperability_schema_matches_runtime_schema(self):
+        published = json.loads(
+            (ROOT / "schemas" / "safety-event.schema.json").read_text(encoding="utf-8")
+        )
+
+        assert published == SAFETY_EVENT_JSON_SCHEMA
 
     def test_validate_payload_round_trips_schema_checked_event(self):
         trace = HaltTraceAttribution(

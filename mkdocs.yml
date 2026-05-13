@@ -169,6 +169,8 @@ nav:
       - CrewAI: integrations/crewai.md
       - Semantic Kernel: integrations/semantic-kernel.md
       - DSPy / Instructor: integrations/dspy.md
+  - Specifications:
+      - Director Safety Telemetry v1: specs/director-safety-telemetry-v1.md
   - API Reference:
       - Overview: api/index.md
       - guard / score / get_score: api/guard.md
