@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+import hashlib
+
 from director_ai.agentic.loop_monitor import LoopMonitor
 
 
@@ -79,6 +81,13 @@ class TestTokenBudget:
 
 
 class TestCircularDetection:
+    def test_action_hash_uses_96_bit_blake2b_digest(self):
+        digest = LoopMonitor._hash_action("search", "query X")
+        expected = hashlib.blake2b(b"search::query X", digest_size=12).hexdigest()
+
+        assert digest == expected
+        assert len(digest) == 24
+
     def test_detects_circular_calls(self):
         m = LoopMonitor(goal="test", circular_threshold=3, **_NO_DRIFT)
         m.check_step(action="search", args="query X")

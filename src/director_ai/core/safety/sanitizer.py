@@ -26,6 +26,8 @@ Usage::
 
 from __future__ import annotations
 
+import base64
+import binascii
 import re
 import unicodedata
 from dataclasses import dataclass, field
@@ -80,12 +82,6 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         ),
     ),
     (
-        "base64_payload",
-        re.compile(
-            r"[A-Za-z0-9+/]{60,}={1,2}",
-        ),
-    ),
-    (
         "unicode_escape_injection",
         re.compile(
             r"(\\u[0-9a-fA-F]{4}){4,}",
@@ -112,7 +108,8 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     (
         "yaml_json_injection",
         re.compile(
-            r"(!!python/|!!binary|!!map|__import__|yaml\.unsafe_load)",
+            r"(!!python/(?:object(?::|/(?:apply|new):?)|module:?|name:?)|"
+            r"__import__\s*\([^)]*\)\s*(?:\.|;)|yaml\.unsafe_load)",
             re.IGNORECASE,
         ),
     ),
@@ -135,6 +132,7 @@ _PATTERN_WEIGHTS: dict[str, float] = {
 _MAX_INPUT_LENGTH = 100_000
 _MAX_UNICODE_CATEGORY_RATIO = 0.15
 _DEFAULT_BLOCK_THRESHOLD = 0.8
+_BASE64_TOKEN_RE = re.compile(r"[A-Za-z0-9+/=]{60,}")
 
 
 @dataclass(frozen=True)
@@ -225,6 +223,12 @@ class InputSanitizer:
         allowlisted = self._is_allowlisted(text)
         py_matched: list[str] = []
         total = 0.0
+        if _contains_base64_payload(text):
+            weight = self._weights["base64_payload"]
+            if allowlisted:
+                weight *= 0.1  # reduce but don't skip — prevents full bypass
+            total += weight
+            py_matched.append("base64_payload")
         for name, pat in self._patterns:
             if pat.search(text):
                 weight = self._weights.get(name, 0.5)
@@ -279,3 +283,29 @@ class InputSanitizer:
             if cat in ("Cf", "Co", "Cn", "Me"):
                 suspicious += 1
         return (suspicious / len(text)) > _MAX_UNICODE_CATEGORY_RATIO
+
+
+def _contains_base64_payload(text: str) -> bool:
+    """Detect long base64-looking payloads without backtracking-prone regexes."""
+    for match in _BASE64_TOKEN_RE.finditer(text):
+        if _is_base64_payload_token(match.group(0).strip()):
+            return True
+    return False
+
+
+def _is_base64_payload_token(token: str) -> bool:
+    if len(token) < 60 or len(token) % 4 == 1:
+        return False
+    if "=" in token and not re.fullmatch(r"[A-Za-z0-9+/]+={0,2}", token):
+        return False
+    padded = token + ("=" * ((4 - len(token) % 4) % 4))
+    try:
+        decoded = base64.b64decode(padded, validate=True)
+    except (binascii.Error, ValueError):
+        return False
+    if len(decoded) < 32:
+        return False
+    if token.endswith("="):
+        return True
+    printable = sum(byte in b"\n\r\t" or 32 <= byte <= 126 for byte in decoded)
+    return printable / len(decoded) >= 0.85

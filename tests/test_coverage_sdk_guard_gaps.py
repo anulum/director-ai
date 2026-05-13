@@ -15,6 +15,7 @@ with CoherenceScorer, and performance documentation.
 from __future__ import annotations
 
 import asyncio
+from contextvars import ContextVar
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -121,6 +122,36 @@ class TestScoreAndGateAsyncCoroutine:
 
         asyncio.run(_run())
         assert result_holder[0].score == pytest.approx(0.85)
+
+    def test_running_loop_preserves_contextvars_for_async_review(self):
+        request_context: ContextVar[str] = ContextVar(
+            "sdk_guard_test_request_context",
+            default="missing",
+        )
+
+        async def _async_review(prompt, response, **_kw):
+            marker = request_context.get()
+            cs = CoherenceScore(
+                score=0.9 if marker == "tenant-a" else 0.1,
+                approved=marker == "tenant-a",
+                h_logical=0.1,
+                h_factual=0.1,
+                warning=False,
+            )
+            return cs.approved, cs
+
+        scorer = MagicMock()
+        scorer.review.side_effect = lambda p, r, **kw: _async_review(p, r)
+
+        async def _run():
+            token = request_context.set("tenant-a")
+            try:
+                return _score_and_gate(scorer, "metadata", "q", "response")
+            finally:
+                request_context.reset(token)
+
+        cs = asyncio.run(_run())
+        assert cs.score == pytest.approx(0.9)
 
     def test_coroutine_metadata_on_fail(self):
         async def _async_review(prompt, response, **_kw):

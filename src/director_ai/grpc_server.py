@@ -24,11 +24,64 @@ import asyncio
 import hmac
 import logging
 import threading
+import time
+from collections import defaultdict
 from typing import Any
 
 from .core.config import DirectorConfig
 
 logger = logging.getLogger("DirectorAI.gRPC")
+
+
+class _GrpcTokenBucket:
+    """Thread-safe token bucket for expensive gRPC scoring calls."""
+
+    def __init__(self, capacity: int, refill_rate: float) -> None:
+        self._capacity = max(1, int(capacity))
+        self._tokens = float(self._capacity)
+        self._refill_rate = max(float(refill_rate), 1e-9)
+        self._last_refill = time.monotonic()
+        self._lock = threading.Lock()
+
+    def consume(self, cost: int = 1) -> bool:
+        cost = max(1, int(cost))
+        with self._lock:
+            now = time.monotonic()
+            elapsed = now - self._last_refill
+            self._tokens = min(
+                self._capacity,
+                self._tokens + elapsed * self._refill_rate,
+            )
+            self._last_refill = now
+            if self._tokens >= cost:
+                self._tokens -= cost
+                return True
+            return False
+
+
+class _GrpcTenantRateLimiter:
+    """Per-tenant limiter shared by unary and streaming gRPC methods."""
+
+    def __init__(self, requests_per_minute: int) -> None:
+        self._rpm = max(0, int(requests_per_minute))
+        self._burst = max(self._rpm // 6, 1)
+        self._refill_rate = self._rpm / 60.0 if self._rpm else 0.0
+        self._buckets: dict[str, _GrpcTokenBucket] = defaultdict(
+            lambda: _GrpcTokenBucket(self._burst, self._refill_rate)
+        )
+        self._lock = threading.Lock()
+
+    @property
+    def enabled(self) -> bool:
+        return self._rpm > 0
+
+    def allow(self, tenant_id: str, *, cost: int = 1) -> bool:
+        if not self.enabled:
+            return True
+        key = tenant_id or "anonymous"
+        with self._lock:
+            bucket = self._buckets[key]
+        return bucket.consume(cost)
 
 
 def create_grpc_server(
@@ -69,6 +122,7 @@ def create_grpc_server(
     _api_key_tenant_map: dict[str, str] = {}
     if cfg.api_key_tenant_map:
         _api_key_tenant_map = _json_mod.loads(cfg.api_key_tenant_map)
+    _rate_limiter = _GrpcTenantRateLimiter(cfg.rate_limit_rpm)
 
     # Resolve proto message factories. director_pb2 is
     # protoc-generated without type stubs; Any-typing at the
@@ -107,6 +161,14 @@ def create_grpc_server(
             return _api_key_tenant_map.get(api_key, "")
         return str(metadata.get("x-tenant-id", ""))
 
+    def _enforce_rate_limit(context, tenant_id: str, *, cost: int = 1) -> None:
+        if _rate_limiter.allow(tenant_id, cost=cost):
+            return
+        context.abort(
+            grpc.StatusCode.RESOURCE_EXHAUSTED,
+            "gRPC rate limit exceeded",
+        )
+
     class DirectorServicer:
         """Implements the DirectorService RPC methods.
 
@@ -121,6 +183,7 @@ def create_grpc_server(
 
         def review(self, request, context):
             tid = _tenant_from_context(context)
+            _enforce_rate_limit(context, tid)
             approved, score = scorer.review(
                 request.prompt,
                 request.response,
@@ -136,6 +199,7 @@ def create_grpc_server(
 
         def process(self, request, context):
             tid = _tenant_from_context(context)
+            _enforce_rate_limit(context, tid)
             result = agent.process(request.prompt, tenant_id=tid)
             return process_resp(
                 output=result.output,
@@ -154,6 +218,7 @@ def create_grpc_server(
                 )
                 return batch_resp(responses=[])
             tid = _tenant_from_context(context)
+            _enforce_rate_limit(context, tid, cost=len(request.requests))
             responses = []
             for req in request.requests:
                 approved, score = scorer.review(
@@ -176,6 +241,7 @@ def create_grpc_server(
             import queue
 
             tid = _tenant_from_context(context)
+            _enforce_rate_limit(context, tid)
             q: queue.Queue[tuple[str, float] | None] = queue.Queue()
 
             async def _produce():

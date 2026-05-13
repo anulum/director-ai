@@ -221,7 +221,7 @@ class LoopMonitor:
     @staticmethod
     def _hash_action(action: str, args: str) -> str:
         key = f"{action}::{args}"
-        return hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()[:12]
+        return hashlib.blake2b(key.encode(), digest_size=12).hexdigest()
 
     @staticmethod
     def _jaccard_drift(goal: str, action_desc: str) -> float:

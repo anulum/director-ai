@@ -19,7 +19,7 @@ import asyncio
 import contextlib
 import inspect
 import logging
-from contextvars import ContextVar
+from contextvars import ContextVar, copy_context
 from typing import Any, cast
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
@@ -257,8 +257,9 @@ def _score_and_gate(scorer, on_fail, query, response_text, *, injection_threshol
         if loop and loop.is_running():
             import concurrent.futures
 
+            ctx = copy_context()
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                approved, cs = pool.submit(asyncio.run, result).result()
+                approved, cs = pool.submit(ctx.run, asyncio.run, result).result()
         else:
             approved, cs = asyncio.run(result)
     else:

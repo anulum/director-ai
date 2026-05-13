@@ -48,6 +48,7 @@ def _build_grpc_mocks(*, with_proto=True, with_reflection=False):
     grpc.StatusCode = MagicMock()
     grpc.StatusCode.INVALID_ARGUMENT = "INVALID_ARGUMENT"
     grpc.StatusCode.UNAUTHENTICATED = "UNAUTHENTICATED"
+    grpc.StatusCode.RESOURCE_EXHAUSTED = "RESOURCE_EXHAUSTED"
     grpc.unary_unary_rpc_method_handler = MagicMock()
     grpc.unary_stream_rpc_method_handler = MagicMock()
 
@@ -93,6 +94,22 @@ def _get_interceptor(grpc_mock):
     return grpc_mock.server.call_args.kwargs["interceptors"][0]
 
 
+def _patch_fast_grpc_scorer(monkeypatch):
+    from director_ai.core.config import DirectorConfig
+
+    score = SimpleNamespace(
+        score=0.9,
+        h_logical=0.0,
+        h_factual=0.0,
+        warning=False,
+    )
+    scorer = MagicMock()
+    scorer.review.return_value = (True, score)
+    monkeypatch.setattr(DirectorConfig, "build_store", lambda self: MagicMock())
+    monkeypatch.setattr(DirectorConfig, "build_scorer", lambda self, store=None: scorer)
+    return scorer
+
+
 # ── Line 69: api_key_tenant_map JSON load ─────────────────────────────────────
 
 
@@ -128,9 +145,10 @@ class TestApiKeyTenantMap:
 
 
 class TestTenantFromContextApiKey:
-    def test_api_key_resolves_tenant(self):
+    def test_api_key_resolves_tenant(self, monkeypatch):
         from director_ai.core.config import DirectorConfig
 
+        _patch_fast_grpc_scorer(monkeypatch)
         tenant_map = {"my-api-key": "tenant-42"}
         cfg = DirectorConfig(
             use_nli=False,
@@ -150,9 +168,93 @@ class TestTenantFromContextApiKey:
             request = SimpleNamespace(prompt="sky?", response="The sky is blue.")
             servicer.Review(request, ctx)
 
-    def test_api_key_not_in_map_falls_back_to_tenant_id(self):
+
+class TestGrpcRateLimit:
+    def test_same_tenant_second_review_is_rate_limited(self, monkeypatch):
         from director_ai.core.config import DirectorConfig
 
+        _patch_fast_grpc_scorer(monkeypatch)
+        cfg = DirectorConfig(use_nli=False, rate_limit_rpm=1)
+        grpc_mock, server, mods = _build_grpc_mocks(with_proto=True)
+
+        with _grpc_context(mods):
+            from director_ai.grpc_server import create_grpc_server
+
+            create_grpc_server(config=cfg, port=50311)
+            servicer = _get_servicer(mods)
+
+            ctx = MagicMock()
+            ctx.invocation_metadata.return_value = [("x-tenant-id", "tenant-a")]
+            ctx.abort.side_effect = RuntimeError("rate limited")
+            request = SimpleNamespace(prompt="sky?", response="The sky is blue.")
+
+            servicer.Review(request, ctx)
+            with pytest.raises(RuntimeError, match="rate limited"):
+                servicer.Review(request, ctx)
+            ctx.abort.assert_called_with(
+                grpc_mock.StatusCode.RESOURCE_EXHAUSTED,
+                "gRPC rate limit exceeded",
+            )
+
+    def test_rate_limit_budget_is_per_tenant(self, monkeypatch):
+        from director_ai.core.config import DirectorConfig
+
+        _patch_fast_grpc_scorer(monkeypatch)
+        cfg = DirectorConfig(use_nli=False, rate_limit_rpm=1)
+        grpc_mock, server, mods = _build_grpc_mocks(with_proto=True)
+
+        with _grpc_context(mods):
+            from director_ai.grpc_server import create_grpc_server
+
+            create_grpc_server(config=cfg, port=50312)
+            servicer = _get_servicer(mods)
+
+            request = SimpleNamespace(prompt="sky?", response="The sky is blue.")
+            ctx_a = MagicMock()
+            ctx_a.invocation_metadata.return_value = [("x-tenant-id", "tenant-a")]
+            ctx_b = MagicMock()
+            ctx_b.invocation_metadata.return_value = [("x-tenant-id", "tenant-b")]
+
+            servicer.Review(request, ctx_a)
+            servicer.Review(request, ctx_b)
+            ctx_b.abort.assert_not_called()
+
+    def test_batch_review_consumes_one_token_per_item(self, monkeypatch):
+        from director_ai.core.config import DirectorConfig
+
+        _patch_fast_grpc_scorer(monkeypatch)
+        cfg = DirectorConfig(use_nli=False, rate_limit_rpm=1)
+        grpc_mock, server, mods = _build_grpc_mocks(with_proto=True)
+
+        with _grpc_context(mods):
+            from director_ai.grpc_server import create_grpc_server
+
+            create_grpc_server(config=cfg, port=50313)
+            servicer = _get_servicer(mods)
+
+            ctx = MagicMock()
+            ctx.invocation_metadata.return_value = [("x-tenant-id", "tenant-a")]
+            ctx.abort.side_effect = RuntimeError("rate limited")
+            request = SimpleNamespace(
+                requests=[
+                    SimpleNamespace(prompt="p1", response="r1"),
+                    SimpleNamespace(prompt="p2", response="r2"),
+                ]
+            )
+
+            with pytest.raises(RuntimeError, match="rate limited"):
+                servicer.ReviewBatch(request, ctx)
+            ctx.abort.assert_called_with(
+                grpc_mock.StatusCode.RESOURCE_EXHAUSTED,
+                "gRPC rate limit exceeded",
+            )
+
+
+class TestTenantFromContextFallback:
+    def test_api_key_not_in_map_falls_back_to_tenant_id(self, monkeypatch):
+        from director_ai.core.config import DirectorConfig
+
+        _patch_fast_grpc_scorer(monkeypatch)
         tenant_map = {"other-key": "tenant-99"}
         cfg = DirectorConfig(
             use_nli=False,

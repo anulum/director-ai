@@ -56,6 +56,12 @@ class TestYAMLInjection:
         assert result.blocked
         assert result.pattern == "yaml_json_injection"
 
+    def test_python_object_apply_blocked(self):
+        san = InputSanitizer()
+        result = san.check("!!python/object/apply:os.system ['whoami']")
+        assert result.blocked
+        assert result.pattern == "yaml_json_injection"
+
     def test_unsafe_load_blocked(self):
         san = InputSanitizer()
         result = san.check("yaml.unsafe_load(data)")
