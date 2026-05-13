@@ -6,6 +6,16 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # runtime subpackage
 
-from .correction import CorrectionLoop, CorrectionProposal
+from .correction import (
+    CorrectionLoop,
+    CorrectionProposal,
+    GroundedCorrectionDraft,
+    HaltCorrectionContext,
+)
 
-__all__ = ["CorrectionLoop", "CorrectionProposal"]
+__all__ = [
+    "CorrectionLoop",
+    "CorrectionProposal",
+    "GroundedCorrectionDraft",
+    "HaltCorrectionContext",
+]

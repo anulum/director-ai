@@ -458,7 +458,7 @@ Last updated: 2026-04-30
 - [x] Prototype predictive pre-halt intervention through native inference hooks
   that bias next-token candidates away from low-coherence continuations before
   sampling.
-- [ ] Add an automatic correction loop that proposes a grounded continuation after
+- [x] Add an automatic correction loop that proposes a grounded continuation after
   a halt, with user or operator approval before release.
 - [ ] Add a cross-verifier consensus engine for critical domains that combines
   NLI, policy rules, temporal checks, numeric checks, and domain-specific

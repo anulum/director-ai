@@ -140,6 +140,31 @@ approved = loop.approve(proposal, approval_id="review-20260513-001")
 released_text = loop.release(approved)
 ```
 
+For halted streams with structured evidence, keep the candidate builder behind
+`propose_from_halt()` so it receives only evidence text, source refs, trace refs,
+and the halt reason. The builder returns a `GroundedCorrectionDraft`; the loop
+then runs the same consensus and approval checks before any text can be
+released.
+
+```python
+from director_ai.core import GroundedCorrectionDraft
+
+
+def build_candidate(context):
+    return GroundedCorrectionDraft(
+        candidate_text="Corrected response text with source citation.",
+        verifier_signals=(nli_signal,),
+        evidence_refs=context.source_refs,
+    )
+
+
+proposal = loop.propose_from_halt(
+    halt_evidence=event.halt_evidence,
+    continuation_builder=build_candidate,
+    structured_recovery=session.structured_recovery,
+)
+```
+
 The default audit payload is tenant-safe: `proposal.to_dict()` excludes the
 generated candidate text and excludes raw structured-recovery payloads. Physical
 or irreversible actions are rejected at proposal time and must remain in

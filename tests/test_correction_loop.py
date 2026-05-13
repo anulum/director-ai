@@ -11,9 +11,14 @@ from __future__ import annotations
 import pytest
 
 from director_ai.core.guard_control import RiskEnvelope, VerifierSignal
-from director_ai.core.runtime.correction import CorrectionLoop
+from director_ai.core.runtime.correction import (
+    CorrectionLoop,
+    GroundedCorrectionDraft,
+    HaltCorrectionContext,
+)
 from director_ai.core.runtime.structured_recovery import StructuredRecoveryResult
 from director_ai.core.scoring.consensus import CrossVerifierConsensus
+from director_ai.core.types import EvidenceChunk, HaltEvidence, HaltTraceAttribution
 
 
 def _text_envelope() -> RiskEnvelope:
@@ -71,6 +76,123 @@ def test_grounded_correction_requires_allow_decision_and_approval_before_release
     assert approved.approved is True
     assert approved.approval_id == "review-20260513-001"
     assert loop.release(approved) == "The corrected answer cites the validated source."
+
+
+def test_correction_loop_builds_grounded_candidate_from_halt_evidence():
+    loop = CorrectionLoop(
+        consensus=CrossVerifierConsensus(),
+        risk_envelope=_text_envelope(),
+        policy_id="policy.correction.regulated",
+    )
+    halt_evidence = HaltEvidence(
+        reason="hard_limit breach",
+        last_score=0.21,
+        evidence_chunks=[
+            EvidenceChunk(
+                text="The validated source says the launch date is 2026-05-13.",
+                distance=0.02,
+                source="kb://fact-launch-date",
+            )
+        ],
+        trace_attribution=HaltTraceAttribution(
+            fact_source="kb://fact-launch-date",
+            retrieval_path="retrieval://query-7",
+            scorer_path="nli://scorer",
+            token_offset=18,
+            threshold=0.4,
+            causal_contribution=0.19,
+        ),
+    )
+    observed_contexts: list[HaltCorrectionContext] = []
+
+    def build_candidate(context: HaltCorrectionContext) -> GroundedCorrectionDraft:
+        observed_contexts.append(context)
+        return GroundedCorrectionDraft(
+            candidate_text=(
+                "The launch date is 2026-05-13 [source: kb://fact-launch-date]."
+            ),
+            verifier_signals=(_supported_signal(),),
+            evidence_refs=("kb://fact-launch-date",),
+        )
+
+    proposal = loop.propose_from_halt(
+        halt_evidence=halt_evidence,
+        continuation_builder=build_candidate,
+    )
+
+    assert proposal.guard_decision.decision == "allow"
+    assert proposal.evidence_refs == (
+        "kb://fact-launch-date",
+        "trace://retrieval://query-7",
+        "trace://nli://scorer",
+        "kb://fact-1",
+    )
+    assert observed_contexts[0].halt_reason == "hard_limit breach"
+    assert observed_contexts[0].source_refs == ("kb://fact-launch-date",)
+    assert observed_contexts[0].evidence_texts == (
+        "The validated source says the launch date is 2026-05-13.",
+    )
+    assert "candidate_text" not in proposal.to_dict()
+    approved = loop.approve(proposal, approval_id="review-20260513-003")
+    assert loop.release(approved) == (
+        "The launch date is 2026-05-13 [source: kb://fact-launch-date]."
+    )
+
+
+def test_correction_loop_rejects_halt_correction_without_grounding_refs():
+    loop = CorrectionLoop(
+        consensus=CrossVerifierConsensus(),
+        risk_envelope=_text_envelope(),
+        policy_id="policy.correction.regulated",
+    )
+    halt_evidence = HaltEvidence(
+        reason="hard_limit breach",
+        last_score=0.21,
+        evidence_chunks=[
+            EvidenceChunk(text="Source text", distance=0.02, source="kb://fact-9")
+        ],
+    )
+
+    def build_candidate(context: HaltCorrectionContext) -> GroundedCorrectionDraft:
+        return GroundedCorrectionDraft(
+            candidate_text="Correction without a source.",
+            verifier_signals=(_supported_signal(),),
+            evidence_refs=(),
+        )
+
+    with pytest.raises(ValueError, match="grounding evidence_refs"):
+        loop.propose_from_halt(
+            halt_evidence=halt_evidence,
+            continuation_builder=build_candidate,
+        )
+
+
+def test_correction_loop_rejects_halt_correction_with_unknown_refs():
+    loop = CorrectionLoop(
+        consensus=CrossVerifierConsensus(),
+        risk_envelope=_text_envelope(),
+        policy_id="policy.correction.regulated",
+    )
+    halt_evidence = HaltEvidence(
+        reason="hard_limit breach",
+        last_score=0.21,
+        evidence_chunks=[
+            EvidenceChunk(text="Source text", distance=0.02, source="kb://fact-9")
+        ],
+    )
+
+    def build_candidate(context: HaltCorrectionContext) -> GroundedCorrectionDraft:
+        return GroundedCorrectionDraft(
+            candidate_text="Correction with an unrelated source.",
+            verifier_signals=(_supported_signal(),),
+            evidence_refs=("kb://unrelated",),
+        )
+
+    with pytest.raises(ValueError, match="unknown grounding evidence_refs"):
+        loop.propose_from_halt(
+            halt_evidence=halt_evidence,
+            continuation_builder=build_candidate,
+        )
 
 
 def test_correction_proposal_blocks_unsafe_consensus():

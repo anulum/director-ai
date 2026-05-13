@@ -60,7 +60,12 @@ from .runtime.batch import BatchProcessor, BatchResult
 
 # --- Runtime (Phase 5) ---
 from .runtime.contradiction_tracker import ContradictionReport, ContradictionTracker
-from .runtime.correction import CorrectionLoop, CorrectionProposal
+from .runtime.correction import (
+    CorrectionLoop,
+    CorrectionProposal,
+    GroundedCorrectionDraft,
+    HaltCorrectionContext,
+)
 from .runtime.kernel import HaltMonitor, SafetyKernel
 from .runtime.review_queue import ReviewQueue
 from .runtime.session import ConversationSession, Turn
@@ -174,6 +179,8 @@ __all__ = [
     "BatchResult",
     "CorrectionLoop",
     "CorrectionProposal",
+    "GroundedCorrectionDraft",
+    "HaltCorrectionContext",
     "HaltMonitor",
     "ReviewQueue",
     "SafetyEvent",

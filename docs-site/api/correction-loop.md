@@ -48,6 +48,30 @@ approved = loop.approve(proposal, approval_id="review-20260513-001")
 released_text = loop.release(approved)
 ```
 
+Use `propose_from_halt()` when the correction should be built from structured
+halt evidence. The loop constructs a `HaltCorrectionContext` from evidence
+chunks and trace attribution, passes that context to a continuation builder,
+then applies the same cross-verifier consensus and approval gate.
+
+```python
+from director_ai.core import GroundedCorrectionDraft
+
+
+def build_candidate(context):
+    return GroundedCorrectionDraft(
+        candidate_text="Corrected response text with source citation.",
+        verifier_signals=(nli_signal,),
+        evidence_refs=context.source_refs,
+    )
+
+
+proposal = loop.propose_from_halt(
+    halt_evidence=halt_evidence,
+    continuation_builder=build_candidate,
+    structured_recovery=session.structured_recovery,
+)
+```
+
 ## Audit Boundary
 
 `CorrectionProposal.to_dict()` excludes `candidate_text` by default so shared
@@ -61,3 +85,7 @@ partial output or recovered payload text.
 ::: director_ai.core.runtime.correction.CorrectionLoop
 
 ::: director_ai.core.runtime.correction.CorrectionProposal
+
+::: director_ai.core.runtime.correction.HaltCorrectionContext
+
+::: director_ai.core.runtime.correction.GroundedCorrectionDraft

@@ -10,7 +10,7 @@
 
 from __future__ import annotations
 
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from typing import Any
 from uuid import uuid4
@@ -18,10 +18,74 @@ from uuid import uuid4
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 from director_ai.core.safety_event import SafetyEvent
 from director_ai.core.scoring.consensus import CrossVerifierConsensus
+from director_ai.core.types import HaltEvidence
 
 from .structured_recovery import StructuredRecoveryResult
 
-__all__ = ["CorrectionLoop", "CorrectionProposal"]
+__all__ = [
+    "CorrectionLoop",
+    "CorrectionProposal",
+    "GroundedCorrectionDraft",
+    "HaltCorrectionContext",
+]
+
+
+@dataclass(frozen=True)
+class HaltCorrectionContext:
+    """Tenant-local evidence context passed to a correction continuation builder."""
+
+    halt_reason: str
+    last_score: float
+    evidence_texts: Sequence[str]
+    source_refs: Sequence[str]
+    trace_refs: Sequence[str] = ()
+    suggested_action: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.halt_reason.strip():
+            raise ValueError("halt_reason is required")
+        object.__setattr__(
+            self,
+            "evidence_texts",
+            tuple(text for text in map(str, self.evidence_texts) if text.strip()),
+        )
+        object.__setattr__(
+            self,
+            "source_refs",
+            tuple(ref for ref in map(str, self.source_refs) if ref.strip()),
+        )
+        object.__setattr__(
+            self,
+            "trace_refs",
+            tuple(ref for ref in map(str, self.trace_refs) if ref.strip()),
+        )
+        if not self.evidence_texts:
+            raise ValueError("evidence_texts are required")
+        if not self.source_refs:
+            raise ValueError("source_refs are required")
+
+
+@dataclass(frozen=True)
+class GroundedCorrectionDraft:
+    """Candidate continuation and verifier evidence produced from halt evidence."""
+
+    candidate_text: str
+    verifier_signals: Sequence[VerifierSignal]
+    evidence_refs: Sequence[str]
+
+    def __post_init__(self) -> None:
+        if not self.candidate_text.strip():
+            raise ValueError("candidate_text is required")
+        object.__setattr__(self, "verifier_signals", tuple(self.verifier_signals))
+        object.__setattr__(
+            self,
+            "evidence_refs",
+            tuple(ref for ref in map(str, self.evidence_refs) if ref.strip()),
+        )
+        if not self.verifier_signals:
+            raise ValueError("verifier_signals are required")
+        if not self.evidence_refs:
+            raise ValueError("grounding evidence_refs are required")
 
 
 @dataclass(frozen=True)
@@ -125,6 +189,27 @@ class CorrectionLoop:
             structured_recovery=structured_recovery,
         )
 
+    def propose_from_halt(
+        self,
+        *,
+        halt_evidence: HaltEvidence,
+        continuation_builder: Callable[
+            [HaltCorrectionContext],
+            GroundedCorrectionDraft,
+        ],
+        structured_recovery: StructuredRecoveryResult | None = None,
+    ) -> CorrectionProposal:
+        """Build an unreleased grounded correction proposal from halt evidence."""
+        context = _halt_context(halt_evidence)
+        draft = continuation_builder(context)
+        _validate_draft_refs(draft.evidence_refs, context)
+        return self.propose(
+            candidate_text=draft.candidate_text,
+            signals=draft.verifier_signals,
+            evidence_refs=_merge_refs(draft.evidence_refs, context.trace_refs),
+            structured_recovery=structured_recovery,
+        )
+
     def approve(
         self,
         proposal: CorrectionProposal,
@@ -176,6 +261,40 @@ def _merge_refs(
             refs.append(ref_s)
             seen.add(ref_s)
     return tuple(refs)
+
+
+def _halt_context(halt_evidence: HaltEvidence) -> HaltCorrectionContext:
+    source_refs = tuple(
+        chunk.source for chunk in halt_evidence.evidence_chunks if chunk.source.strip()
+    )
+    trace_refs: list[str] = []
+    trace = halt_evidence.trace_attribution
+    if trace is not None:
+        if trace.fact_source.strip():
+            trace_refs.append(trace.fact_source)
+        if trace.retrieval_path.strip():
+            trace_refs.append(f"trace://{trace.retrieval_path}")
+        if trace.scorer_path.strip():
+            trace_refs.append(f"trace://{trace.scorer_path}")
+    return HaltCorrectionContext(
+        halt_reason=halt_evidence.reason,
+        last_score=halt_evidence.last_score,
+        evidence_texts=tuple(chunk.text for chunk in halt_evidence.evidence_chunks),
+        source_refs=source_refs,
+        trace_refs=_merge_refs(source_refs, trace_refs),
+        suggested_action=halt_evidence.suggested_action,
+    )
+
+
+def _validate_draft_refs(
+    evidence_refs: Sequence[str],
+    context: HaltCorrectionContext,
+) -> None:
+    allowed_refs = {*context.source_refs, *context.trace_refs}
+    unknown_refs = tuple(ref for ref in evidence_refs if ref not in allowed_refs)
+    if unknown_refs:
+        refs = ", ".join(unknown_refs)
+        raise ValueError(f"unknown grounding evidence_refs: {refs}")
 
 
 def _recovery_audit_payload(
