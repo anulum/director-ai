@@ -76,8 +76,9 @@ The interoperability severity mapping is deterministic:
 ## Validation
 
 Use `validate_director_safety_signal()` at trust boundaries. It reconstructs the
-`SafetyEvent`, verifies the privacy declaration, checks severity consistency,
-and rejects unsafe attributes or extensions.
+`SafetyEvent` through `validate_safety_event_payload()`, verifies the privacy
+declaration, checks severity consistency, and rejects unsafe attributes or
+extensions.
 
 ```python
 from director_ai.core.safety_protocol import validate_director_safety_signal

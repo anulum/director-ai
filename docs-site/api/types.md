@@ -192,6 +192,10 @@ Runtime hook verdicts now carry this schema directly:
 | Trajectory | `PreflightVerdict.safety_event` |
 | Swarm | `HandoffResult.safety_event` |
 
+For machine-readable validation and downstream telemetry ingestion, use
+[`SAFETY_EVENT_JSON_SCHEMA`](safety-event-schema.md) and
+`validate_safety_event_payload()`.
+
 ## CounterfactualHaltDiagnostic {: #counterfactualhaltdiagnostic }
 
 Answer to "what single fact change would have prevented this halt?"

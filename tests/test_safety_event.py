@@ -11,10 +11,12 @@ from __future__ import annotations
 import pytest
 
 from director_ai.core.safety_event import (
+    SAFETY_EVENT_JSON_SCHEMA,
     SAFETY_EVENT_SCHEMA_VERSION,
     SafetyEvent,
     new_safety_event_id,
     utc_timestamp,
+    validate_safety_event_payload,
 )
 from director_ai.core.types import EvidenceChunk, HaltEvidence, HaltTraceAttribution
 
@@ -176,7 +178,82 @@ class TestSafetyEventSchema:
         assert event.evidence_refs == ("ref-a", "ref-b")
         assert event.attributes == {"count": "2", "approved": "True"}
 
-    def test_lazy_import_export(self):
-        from director_ai import SafetyEvent as RootSafetyEvent
+    def test_json_schema_declares_uniform_telemetry_contract(self):
+        schema = SAFETY_EVENT_JSON_SCHEMA
 
-        assert RootSafetyEvent is SafetyEvent
+        assert schema["$id"].endswith("/safety-event.schema.json")
+        assert schema["properties"]["schema_version"]["const"] == (
+            SAFETY_EVENT_SCHEMA_VERSION
+        )
+        assert set(schema["required"]) >= {
+            "schema_version",
+            "event_id",
+            "timestamp",
+            "hook_id",
+            "hook_scope",
+            "policy_decision",
+            "halt_reason",
+            "tenant_safe_explanation",
+            "evidence_refs",
+            "attributes",
+        }
+        assert "inference_server" in schema["properties"]["hook_scope"]["enum"]
+        assert schema["properties"]["threshold"]["minimum"] == 0.0
+        assert schema["properties"]["threshold"]["maximum"] == 1.0
+        assert schema["additionalProperties"] is False
+
+    def test_validate_payload_round_trips_schema_checked_event(self):
+        trace = HaltTraceAttribution(
+            fact_source="kb://physics",
+            retrieval_path="hybrid",
+            scorer_path="factcg",
+            token_offset=7,
+            threshold=0.5,
+            causal_contribution=0.19,
+        )
+        event = _event(
+            hook_scope="inference_server",
+            threshold=0.5,
+            observed_score=0.31,
+            evidence_refs=("trajectory:7",),
+            attributes={"server": "vllm", "token_id": "2"},
+            trace_attribution=trace,
+        )
+
+        restored = validate_safety_event_payload(event.to_dict())
+
+        assert restored == event
+        assert restored.trace_attribution == trace
+
+    def test_validate_payload_rejects_unknown_fields_and_bad_bounds(self):
+        payload = _event(threshold=0.5).to_dict()
+        payload["raw_prompt"] = "do not allow raw prompt text"
+        with pytest.raises(ValueError, match="unknown field"):
+            validate_safety_event_payload(payload)
+
+        payload = _event(threshold=0.5).to_dict()
+        payload["threshold"] = 1.5
+        with pytest.raises(ValueError, match="threshold"):
+            validate_safety_event_payload(payload)
+
+    def test_validate_payload_rejects_raw_or_secret_telemetry_refs(self):
+        payload = _event(
+            evidence_refs=("raw_prompt:abc",),
+            attributes={"policy_id": "safe"},
+        ).to_dict()
+        with pytest.raises(ValueError, match="tenant-safe"):
+            validate_safety_event_payload(payload)
+
+        payload = _event(
+            evidence_refs=("chunk:1",),
+            attributes={"api_token": "should-not-ship"},
+        ).to_dict()
+        with pytest.raises(ValueError, match="tenant-safe"):
+            validate_safety_event_payload(payload)
+
+    def test_lazy_import_export(self):
+        import director_ai
+
+        assert director_ai.SafetyEvent is SafetyEvent
+        assert director_ai.SAFETY_EVENT_JSON_SCHEMA is SAFETY_EVENT_JSON_SCHEMA
+        assert director_ai.validate_safety_event_payload(_event().to_dict()) == _event()

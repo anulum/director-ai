@@ -487,7 +487,7 @@ future-differentiator queue.
   projected currency cost, and budget-halt policy controls.
 - [x] Promote the recursive guard-of-the-guard layer into a guarded production
   option with drift and evasion checks.
-- [ ] Publish a structured Director Safety Event schema for uniform halt telemetry
+- [x] Publish a structured Director Safety Event schema for uniform halt telemetry
   across inference servers and downstream tools.
 - [ ] Add a live physical-world grounding loop that compares sensor-fusion state
   with claimed state before and after high-risk actions.

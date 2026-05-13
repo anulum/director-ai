@@ -121,7 +121,13 @@ from .runtime.structured_recovery import (
 # --- Safety ---
 from .safety.injection import InjectionDetector
 from .safety.sanitizer import InputSanitizer, SanitizeResult
-from .safety_event import SafetyEvent, new_safety_event_id, utc_timestamp
+from .safety_event import (
+    SAFETY_EVENT_JSON_SCHEMA,
+    SafetyEvent,
+    new_safety_event_id,
+    utc_timestamp,
+    validate_safety_event_payload,
+)
 from .safety_protocol import (
     DIRECTOR_SAFETY_PROTOCOL_VERSION,
     DirectorSafetySignal,
@@ -271,6 +277,7 @@ __all__ = [
     "HumanReviewQueue",
     "ReviewQueue",
     "DirectorSafetySignal",
+    "SAFETY_EVENT_JSON_SCHEMA",
     "SafetyEvent",
     "SafetyKernel",
     "StreamSession",
@@ -344,6 +351,7 @@ __all__ = [
     "resolve_finetune_model",
     "validate_finetune_data",
     "new_safety_event_id",
+    "validate_safety_event_payload",
     "director_safety_signal_from_event",
     "new_director_safety_signal_id",
     "validate_director_safety_signal",

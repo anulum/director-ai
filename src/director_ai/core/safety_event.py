@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import math
 import uuid
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any
@@ -20,10 +20,12 @@ from typing import Any
 from .types import HaltEvidence, HaltTraceAttribution
 
 __all__ = [
+    "SAFETY_EVENT_JSON_SCHEMA",
     "SAFETY_EVENT_SCHEMA_VERSION",
     "SafetyEvent",
     "new_safety_event_id",
     "utc_timestamp",
+    "validate_safety_event_payload",
 ]
 
 SAFETY_EVENT_SCHEMA_VERSION = "director.safety_event.v1"
@@ -41,6 +43,112 @@ _SCOPES = frozenset(
         "agent",
     },
 )
+_BLOCKED_PARTS = (
+    "credential",
+    "image",
+    "password",
+    "private-key",
+    "prompt",
+    "raw",
+    "secret",
+    "sensor",
+    "token",
+)
+_TENANT_SAFE_TEXT_ALLOWLIST = frozenset({"token-id", "token_id"})
+
+SAFETY_EVENT_JSON_SCHEMA: dict[str, Any] = {
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "$id": "https://anulum.github.io/director-ai/schemas/safety-event.schema.json",
+    "title": "Director SafetyEvent",
+    "type": "object",
+    "additionalProperties": False,
+    "required": [
+        "schema_version",
+        "event_id",
+        "timestamp",
+        "request_id",
+        "tenant_id",
+        "hook_id",
+        "hook_scope",
+        "policy_decision",
+        "halt_reason",
+        "threshold",
+        "observed_score",
+        "latency_ms",
+        "evidence_refs",
+        "tenant_safe_explanation",
+        "trace_attribution",
+        "attributes",
+    ],
+    "properties": {
+        "schema_version": {"const": SAFETY_EVENT_SCHEMA_VERSION},
+        "event_id": {"type": "string", "pattern": "^sevt_[0-9a-f]{32}$|^sevt_.+"},
+        "timestamp": {"type": "string", "minLength": 1},
+        "request_id": {"type": "string"},
+        "tenant_id": {"type": "string"},
+        "hook_id": {"type": "string", "minLength": 1},
+        "hook_scope": {"type": "string", "enum": sorted(_SCOPES)},
+        "policy_decision": {"type": "string", "enum": sorted(_DECISIONS)},
+        "halt_reason": {"type": "string", "minLength": 1},
+        "threshold": {
+            "anyOf": [
+                {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                {"type": "null"},
+            ],
+            "minimum": 0.0,
+            "maximum": 1.0,
+        },
+        "observed_score": {
+            "anyOf": [
+                {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                {"type": "null"},
+            ],
+            "minimum": 0.0,
+            "maximum": 1.0,
+        },
+        "latency_ms": {
+            "anyOf": [{"type": "number", "minimum": 0.0}, {"type": "null"}],
+        },
+        "evidence_refs": {"type": "array", "items": {"type": "string"}},
+        "tenant_safe_explanation": {"type": "string", "minLength": 1},
+        "trace_attribution": {
+            "anyOf": [
+                {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": [
+                        "fact_source",
+                        "retrieval_path",
+                        "scorer_path",
+                        "token_offset",
+                        "threshold",
+                        "causal_contribution",
+                    ],
+                    "properties": {
+                        "fact_source": {"type": "string"},
+                        "retrieval_path": {"type": "string"},
+                        "scorer_path": {"type": "string"},
+                        "token_offset": {
+                            "anyOf": [{"type": "integer"}, {"type": "null"}]
+                        },
+                        "threshold": {
+                            "anyOf": [
+                                {"type": "number", "minimum": 0.0, "maximum": 1.0},
+                                {"type": "null"},
+                            ]
+                        },
+                        "causal_contribution": {"type": "number"},
+                    },
+                },
+                {"type": "null"},
+            ]
+        },
+        "attributes": {
+            "type": "object",
+            "additionalProperties": {"type": "string"},
+        },
+    },
+}
 
 
 def utc_timestamp() -> str:
@@ -198,11 +306,168 @@ class SafetyEvent:
         }
 
 
+def validate_safety_event_payload(payload: Mapping[str, Any]) -> SafetyEvent:
+    """Validate and reconstruct a tenant-safe ``SafetyEvent`` payload.
+
+    This is a lightweight stdlib validator for the exported JSON schema shape.
+    It intentionally checks the deployment-critical constraints locally instead
+    of requiring the optional ``jsonschema`` package at runtime.
+    """
+    allowed = set(SAFETY_EVENT_JSON_SCHEMA["properties"])
+    required = set(SAFETY_EVENT_JSON_SCHEMA["required"])
+    keys = set(payload)
+    unknown = keys - allowed
+    if unknown:
+        raise ValueError(f"unknown field(s): {sorted(unknown)}")
+    missing = required - keys
+    if missing:
+        raise ValueError(f"missing required field(s): {sorted(missing)}")
+    _assert_type("schema_version", payload["schema_version"], str)
+    _assert_type("event_id", payload["event_id"], str)
+    _assert_type("timestamp", payload["timestamp"], str)
+    _assert_type("request_id", payload["request_id"], str)
+    _assert_type("tenant_id", payload["tenant_id"], str)
+    _assert_type("hook_id", payload["hook_id"], str)
+    _assert_type("hook_scope", payload["hook_scope"], str)
+    _assert_type("policy_decision", payload["policy_decision"], str)
+    _assert_type("halt_reason", payload["halt_reason"], str)
+    _assert_type("tenant_safe_explanation", payload["tenant_safe_explanation"], str)
+    threshold = _optional_float("threshold", payload["threshold"], unit=True)
+    observed_score = _optional_float(
+        "observed_score", payload["observed_score"], unit=True
+    )
+    latency_ms = _optional_float("latency_ms", payload["latency_ms"], unit=False)
+    if latency_ms is not None and latency_ms < 0:
+        raise ValueError("latency_ms must be non-negative")
+    evidence_refs = payload["evidence_refs"]
+    if not isinstance(evidence_refs, list):
+        raise ValueError("evidence_refs must be an array")
+    for ref in evidence_refs:
+        if not isinstance(ref, str):
+            raise ValueError("evidence_refs entries must be strings")
+        _assert_tenant_safe_text(ref, field_name="evidence_refs")
+    attributes = payload["attributes"]
+    if not isinstance(attributes, Mapping):
+        raise ValueError("attributes must be an object")
+    safe_attributes = _tenant_safe_mapping(attributes, field_name="attributes")
+    trace_attribution = _trace_from_payload(payload["trace_attribution"])
+    _assert_tenant_safe_text(
+        payload["tenant_safe_explanation"],
+        field_name="tenant_safe_explanation",
+    )
+    return SafetyEvent(
+        schema_version=payload["schema_version"],
+        event_id=payload["event_id"],
+        timestamp=payload["timestamp"],
+        request_id=payload["request_id"],
+        tenant_id=payload["tenant_id"],
+        hook_id=payload["hook_id"],
+        hook_scope=payload["hook_scope"],
+        policy_decision=payload["policy_decision"],
+        halt_reason=payload["halt_reason"],
+        threshold=threshold,
+        observed_score=observed_score,
+        latency_ms=latency_ms,
+        evidence_refs=tuple(evidence_refs),
+        trace_attribution=trace_attribution,
+        tenant_safe_explanation=payload["tenant_safe_explanation"],
+        attributes=safe_attributes,
+    )
+
+
 def _validate_unit_interval(name: str, value: float | None) -> None:
     if value is None:
         return
     if not math.isfinite(value) or value < 0.0 or value > 1.0:
         raise ValueError(f"{name} must be in [0, 1]")
+
+
+def _assert_type(name: str, value: Any, expected: type) -> None:
+    if not isinstance(value, expected):
+        raise ValueError(f"{name} must be {expected.__name__}")
+
+
+def _optional_float(name: str, value: Any, *, unit: bool) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise ValueError(f"{name} must be a number or null")
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError(f"{name} must be finite")
+    if unit:
+        _validate_unit_interval(name, number)
+    return number
+
+
+def _tenant_safe_mapping(
+    values: Mapping[str, Any],
+    *,
+    field_name: str,
+) -> dict[str, str]:
+    safe: dict[str, str] = {}
+    for key, value in values.items():
+        key_s = str(key)
+        value_s = str(value)
+        _assert_tenant_safe_text(key_s, field_name=field_name)
+        _assert_tenant_safe_text(value_s, field_name=field_name)
+        safe[key_s] = value_s
+    return safe
+
+
+def _trace_from_payload(value: Any) -> HaltTraceAttribution | None:
+    if value is None:
+        return None
+    if not isinstance(value, Mapping):
+        raise ValueError("trace_attribution must be an object or null")
+    allowed = {
+        "fact_source",
+        "retrieval_path",
+        "scorer_path",
+        "token_offset",
+        "threshold",
+        "causal_contribution",
+    }
+    unknown = set(value) - allowed
+    if unknown:
+        raise ValueError(f"trace_attribution unknown field(s): {sorted(unknown)}")
+    missing = allowed - set(value)
+    if missing:
+        raise ValueError(f"trace_attribution missing field(s): {sorted(missing)}")
+    _assert_type("trace_attribution.fact_source", value["fact_source"], str)
+    _assert_type("trace_attribution.retrieval_path", value["retrieval_path"], str)
+    _assert_type("trace_attribution.scorer_path", value["scorer_path"], str)
+    token_offset_raw = value["token_offset"]
+    if token_offset_raw is not None and (
+        isinstance(token_offset_raw, bool) or not isinstance(token_offset_raw, int)
+    ):
+        raise ValueError("trace_attribution.token_offset must be integer or null")
+    threshold = _optional_float(
+        "trace_attribution.threshold", value["threshold"], unit=True
+    )
+    causal = _optional_float(
+        "trace_attribution.causal_contribution",
+        value["causal_contribution"],
+        unit=False,
+    )
+    if causal is None:
+        raise ValueError("trace_attribution.causal_contribution must be a number")
+    return HaltTraceAttribution(
+        fact_source=value["fact_source"],
+        retrieval_path=value["retrieval_path"],
+        scorer_path=value["scorer_path"],
+        token_offset=token_offset_raw,
+        threshold=threshold,
+        causal_contribution=causal,
+    )
+
+
+def _assert_tenant_safe_text(value: str, *, field_name: str) -> None:
+    lowered = value.lower().replace("_", "-")
+    if lowered in _TENANT_SAFE_TEXT_ALLOWLIST:
+        return
+    if any(part in lowered for part in _BLOCKED_PARTS):
+        raise ValueError(f"{field_name} must be tenant-safe")
 
 
 def _evidence_refs(evidence: HaltEvidence) -> tuple[str, ...]:

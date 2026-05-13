@@ -20,6 +20,7 @@ from director_ai.core.safety_event import (
     SAFETY_EVENT_SCHEMA_VERSION,
     SafetyEvent,
     utc_timestamp,
+    validate_safety_event_payload,
 )
 
 __all__ = [
@@ -176,23 +177,7 @@ def validate_director_safety_signal(
     if severity not in _ALLOWED_SEVERITIES:
         raise ValueError("unsupported severity")
 
-    event = SafetyEvent(
-        schema_version=str(event_payload.get("schema_version", "")),
-        event_id=str(event_payload.get("event_id", "")),
-        timestamp=str(event_payload.get("timestamp", "")),
-        request_id=str(event_payload.get("request_id", "")),
-        tenant_id=str(event_payload.get("tenant_id", "")),
-        hook_id=str(event_payload.get("hook_id", "")),
-        hook_scope=str(event_payload.get("hook_scope", "")),
-        policy_decision=str(event_payload.get("policy_decision", "")),
-        halt_reason=str(event_payload.get("halt_reason", "")),
-        threshold=event_payload.get("threshold"),
-        observed_score=event_payload.get("observed_score"),
-        latency_ms=event_payload.get("latency_ms"),
-        evidence_refs=tuple(event_payload.get("evidence_refs", ())),
-        tenant_safe_explanation=str(event_payload.get("tenant_safe_explanation", "")),
-        attributes=dict(event_payload.get("attributes", {})),
-    )
+    event = validate_safety_event_payload(event_payload)
     expected = _SEVERITY_BY_DECISION[event.policy_decision]
     if severity != expected:
         raise ValueError("severity does not match policy_decision")

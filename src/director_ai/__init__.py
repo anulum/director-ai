@@ -118,6 +118,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     ),
     "DirectorSafetySignal": (".core", "DirectorSafetySignal"),
     "ReviewResult": (".core", "ReviewResult"),
+    "SAFETY_EVENT_JSON_SCHEMA": (".core", "SAFETY_EVENT_JSON_SCHEMA"),
     "SafetyEvent": (".core", "SafetyEvent"),
     "SafetyKernel": (".core", "SafetyKernel"),
     "SanitizeResult": (".core", "SanitizeResult"),
@@ -164,6 +165,7 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     ),
     "new_director_safety_signal_id": (".core", "new_director_safety_signal_id"),
     "new_safety_event_id": (".core", "new_safety_event_id"),
+    "validate_safety_event_payload": (".core", "validate_safety_event_payload"),
     "validate_director_safety_signal": (
         ".core",
         "validate_director_safety_signal",
