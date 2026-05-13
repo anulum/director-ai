@@ -455,7 +455,7 @@ Last updated: 2026-04-30
   guard can intervene before unsafe tokens are sampled.
 - [x] Design a human-reviewed self-improving guard loop from calibration feedback
   into LoRA fine-tuning jobs.
-- [ ] Prototype predictive pre-halt intervention through native inference hooks
+- [x] Prototype predictive pre-halt intervention through native inference hooks
   that bias next-token candidates away from low-coherence continuations before
   sampling.
 - [ ] Add an automatic correction loop that proposes a grounded continuation after

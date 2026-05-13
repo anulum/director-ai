@@ -39,6 +39,11 @@ if decision.action == "escalate":
     route_to = decision.recommended_backend
 ```
 
+Use `InferenceServerHook.steer()` when the decision must affect pre-sampling
+logits directly. The hook maps `escalate` to a finite negative bias for the
+candidate token and maps `halt` to the same block action used by the coherence
+threshold hook.
+
 ## Full API
 
 ::: director_ai.core.trajectory.simulator.TrajectorySimulator

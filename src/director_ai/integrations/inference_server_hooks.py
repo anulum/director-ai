@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Literal
 
 from director_ai.core.safety_event import SafetyEvent
+from director_ai.core.trajectory import PreHaltSteeringDecision
 
 InferenceServerName = Literal["vllm", "tgi", "llama_cpp"]
 ScoreFn = Callable[[str], float]
@@ -67,6 +68,7 @@ class InferenceServerHookPolicy:
     hard_limit: float = 0.4
     block_token_id: int | None = None
     block_logit: float = -1.0e9
+    steering_bias_logit: float = -5.0
     halt_reason: str = "coherence_below_threshold"
     tenant_safe_explanation: str = "Candidate token rejected before sampling."
 
@@ -79,6 +81,10 @@ class InferenceServerHookPolicy:
             raise ValueError("block_token_id must be non-negative")
         if not math.isfinite(self.block_logit):
             raise ValueError("block_logit must be finite")
+        if not math.isfinite(self.steering_bias_logit):
+            raise ValueError("steering_bias_logit must be finite")
+        if self.steering_bias_logit >= 0.0:
+            raise ValueError("steering_bias_logit must be negative")
         if not self.halt_reason.strip():
             raise ValueError("halt_reason is required")
         if not self.tenant_safe_explanation.strip():
@@ -165,6 +171,67 @@ class InferenceServerHook:
             ),
         )
 
+    def steer(
+        self,
+        request: InferenceHookRequest,
+        steering_decision: PreHaltSteeringDecision,
+        logits: Sequence[float] | None = None,
+    ) -> InferenceHookDecision:
+        """Apply predictive pre-halt steering at the pre-sampling boundary."""
+        if request.server != self.server:
+            raise ValueError(
+                f"request server {request.server!r} does not match hook {self.server!r}"
+            )
+
+        score = _clamp_unit(float(steering_decision.halt_probability))
+        if steering_decision.action == "proceed":
+            return InferenceHookDecision(
+                allow=True,
+                score=score,
+                reason=steering_decision.reason,
+                adjusted_logits=tuple(logits) if logits is not None else None,
+                server_payload=_allow_payload(request.server, score),
+            )
+
+        token_id = self.policy.block_token_id
+        if token_id is None:
+            token_id = request.token_id
+
+        if steering_decision.action == "escalate":
+            adjusted = _mask_logits(logits, token_id, self.policy.steering_bias_logit)
+            event = _steering_event(request, steering_decision, token_id)
+            return InferenceHookDecision(
+                allow=True,
+                score=score,
+                reason=steering_decision.reason,
+                adjusted_logits=adjusted,
+                safety_event=event,
+                server_payload=_bias_payload(
+                    request.server,
+                    score,
+                    token_id,
+                    self.policy.steering_bias_logit,
+                ),
+            )
+
+        blocked = (token_id,) if token_id is not None else ()
+        adjusted = _mask_logits(logits, token_id, self.policy.block_logit)
+        event = _steering_event(request, steering_decision, token_id)
+        return InferenceHookDecision(
+            allow=False,
+            score=score,
+            reason=steering_decision.reason,
+            adjusted_logits=adjusted,
+            blocked_token_ids=blocked,
+            safety_event=event,
+            server_payload=_halt_payload(
+                request.server,
+                score,
+                token_id,
+                self.policy.block_logit,
+            ),
+        )
+
 
 def build_inference_server_hook(
     server: InferenceServerName,
@@ -224,6 +291,35 @@ def _event_attributes(
     return attributes
 
 
+def _steering_event(
+    request: InferenceHookRequest,
+    steering_decision: PreHaltSteeringDecision,
+    token_id: int | None,
+) -> SafetyEvent:
+    guard = steering_decision.guard_decision
+    attributes = {
+        "policy_id": guard.policy_id,
+        "risk_domain": guard.risk_envelope.domain,
+        "action_category": guard.risk_envelope.action_category,
+        "reversibility": guard.risk_envelope.reversibility,
+        **dict(guard.attributes),
+        **_event_attributes(request, token_id),
+    }
+    return SafetyEvent.from_policy_decision(
+        hook_id=f"inference_server.{request.server}.prehalt",
+        hook_scope="inference_server",
+        policy_decision=guard.decision,
+        halt_reason=steering_decision.reason,
+        tenant_safe_explanation=guard.tenant_safe_explanation,
+        request_id=request.request_id,
+        tenant_id=request.tenant_id,
+        threshold=guard.risk_envelope.calibrated_threshold,
+        observed_score=guard.risk_score,
+        evidence_refs=steering_decision.evidence_refs,
+        attributes=attributes,
+    )
+
+
 def _allow_payload(server: str, score: float) -> dict[str, object]:
     return {
         "server": server,
@@ -255,4 +351,30 @@ def _halt_payload(
         if token_id is not None:
             payload["token_id"] = token_id
             payload["bias"] = block_logit
+    return payload
+
+
+def _bias_payload(
+    server: str,
+    score: float,
+    token_id: int | None,
+    bias_logit: float,
+) -> dict[str, object]:
+    payload: dict[str, object] = {
+        "server": server,
+        "allow": True,
+        "score": score,
+    }
+    token_biases = {} if token_id is None else {token_id: bias_logit}
+    if server == "vllm":
+        payload["action"] = "bias_token"
+        payload["token_biases"] = token_biases
+    elif server == "tgi":
+        payload["action"] = "bias_next_token"
+        payload["token_biases"] = token_biases
+    else:
+        payload["action"] = "logit_bias"
+        if token_id is not None:
+            payload["token_id"] = token_id
+            payload["bias"] = bias_logit
     return payload

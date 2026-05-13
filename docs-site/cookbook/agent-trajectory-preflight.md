@@ -181,6 +181,12 @@ or when there are too few simulations for the configured minimum. Audit records
 include probability, confidence bounds, backend recommendation, and failed
 trajectory IDs; they do not include prompt text or sampled token text.
 
+The same decision can drive native inference-server hooks. Pass the decision to
+`InferenceServerHook.steer()` before sampling a candidate. Low-risk `proceed`
+decisions preserve logits, `escalate` decisions add a finite negative logit
+bias for the candidate token, and `halt` decisions apply the normal block path
+with an `inference_server` safety event.
+
 ## Cost
 
 Every preflight call is N extra scoring reviews. The default

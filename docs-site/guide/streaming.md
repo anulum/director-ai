@@ -152,6 +152,38 @@ On a halt, the hook returns masked logits when logits are supplied, the
 server-specific action payload, blocked token ids when known, and a
 tenant-safe `SafetyEvent` with `hook_scope="inference_server"`.
 
+Predictive pre-halt decisions can be applied through the same server boundary.
+Pass a `PreHaltSteeringDecision` from the trajectory preflight controller to
+`steer()`. `proceed` preserves logits, `escalate` applies a finite negative
+logit bias to the candidate token while allowing sampling to continue, and
+`halt` uses the same hard block path as `check()`.
+
+```python
+steering_decision = prehalt.evaluate(
+    verdict,
+    risk_envelope=risk_envelope,
+    policy_id="policy.prehalt.regulated",
+)
+
+decision = hook.steer(
+    InferenceHookRequest(
+        server="vllm",
+        accumulated_text="The measured value is ",
+        candidate_token="candidate",
+        token_id=42,
+        request_id="req-123",
+    ),
+    steering_decision,
+    logits=[0.0] * 100,
+)
+
+apply_server_payload(decision.server_payload)
+```
+
+The pre-halt safety event carries calibrated risk, confidence bounds, policy
+identity, server name, and token id when known. It does not carry prompt text or
+candidate text.
+
 ## Threshold Tuning by Domain
 
 | Domain | hard_limit | window_threshold | trend_threshold | window_size | Rationale |
