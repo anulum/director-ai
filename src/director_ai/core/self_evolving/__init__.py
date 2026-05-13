@@ -54,6 +54,11 @@ from .feedback import (
     InMemoryFeedbackStore,
     JSONLFeedbackStore,
 )
+from .guard_loop import (
+    GuardLoopProposal,
+    ReviewedFeedbackManifest,
+    SelfImprovingGuardLoop,
+)
 from .trainer import (
     GuardrailTrainer,
     LoraGuardrailTrainer,
@@ -69,11 +74,14 @@ __all__ = [
     "FeedbackLabel",
     "FeedbackStore",
     "GuardrailTrainer",
+    "GuardLoopProposal",
     "InMemoryFeedbackStore",
     "JSONLFeedbackStore",
     "LoraGuardrailTrainer",
     "PerceptronGuardrailTrainer",
     "PerturbativeAdversarialGenerator",
+    "ReviewedFeedbackManifest",
     "SelfEvolver",
+    "SelfImprovingGuardLoop",
     "TrainedGuardrail",
 ]

@@ -175,6 +175,7 @@ nav:
       - StreamingKernel: api/streaming.md
       - Correction Loop: api/correction-loop.md
       - Trajectory Preflight: api/trajectory-preflight.md
+      - Self-Improving Guard Loop: api/self-improving-guard-loop.md
       - CoherenceAgent: api/agent.md
       - VectorGroundTruthStore: api/vector-store.md
       - BatchProcessor: api/batch.md

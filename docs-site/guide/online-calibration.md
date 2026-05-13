@@ -1,15 +1,17 @@
 # Online Calibration
 
-Improve the guardrail from production feedback — the longer you use it, the better it gets for your data.
+Improve the guardrail from reviewed production feedback. Feedback can propose
+better thresholds and training jobs, but runtime changes still require an
+explicit deployment approval.
 
 ## Why Online Calibration?
 
-Every guardrail ships with a default threshold (0.30 for director-ai). But the optimal threshold depends on your deployment: your documents, your domain, your tolerance for false positives vs false negatives. Online calibration collects human corrections and automatically adjusts the threshold to minimize errors on your actual data.
+Every guardrail ships with a default threshold (0.30 for director-ai). But the optimal threshold depends on your deployment: your documents, your domain, your tolerance for false positives vs false negatives. Online calibration collects human corrections and proposes threshold updates that minimise errors on your actual data.
 
 ## Workflow
 
 ```
-Deploy → Collect Feedback → Calibrate → Apply → Deploy (improved)
+Deploy → Collect Feedback → Calibrate → Review Proposal → Deploy
     ↑                                                │
     └────────────────────────────────────────────────┘
 ```
@@ -105,6 +107,42 @@ with open("finetune_data.jsonl", "w") as f:
 ```
 
 This dataset can be used with `finetune_nli()` to train a domain-specific NLI model.
+
+## Self-Improving Guard Loop Gate
+
+Use `SelfImprovingGuardLoop` when calibration or fine-tuning should enter a
+production approval workflow. It builds a tenant-safe reviewed-feedback
+manifest, rejects unreviewed rows, checks confidence interval width, requires a
+rollback ID, and returns a proposal payload only after explicit approval.
+
+```python
+from director_ai.core.guard_control import RiskEnvelope
+from director_ai.core.self_evolving import SelfImprovingGuardLoop
+
+loop = SelfImprovingGuardLoop(
+    store=reviewed_feedback_store,
+    risk_envelope=RiskEnvelope(
+        action_category="training",
+        reversibility="costly",
+        domain="regulated",
+        calibrated_threshold=0.45,
+        no_go_threshold=0.8,
+    ),
+    policy_id="policy.self_improving.regulated",
+)
+
+proposal = loop.propose_calibration_update(
+    source_ref="feedback://recent-reviewed",
+    current_threshold=0.55,
+    candidate_threshold=0.58,
+    confidence_low=0.51,
+    confidence_high=0.61,
+    rollback_id="threshold-profile-20260513-a",
+)
+```
+
+The loop does not mutate runtime configuration, submit training jobs, or promote
+models. It creates an auditable proposal for an external deployment controller.
 
 ## Calibration Report
 
