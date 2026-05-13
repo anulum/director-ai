@@ -43,7 +43,19 @@ _DOMAINS = frozenset(
         "security",
     }
 )
-_MODALITIES = frozenset({"text", "image", "audio", "video", "code", "physical"})
+_MODALITIES = frozenset(
+    {
+        "audio",
+        "code",
+        "identity",
+        "image",
+        "physical",
+        "policy",
+        "sustainability",
+        "text",
+        "video",
+    }
+)
 _BLOCKED_ATTRIBUTE_PARTS = (
     "credential",
     "image",

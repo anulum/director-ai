@@ -15,8 +15,10 @@ from __future__ import annotations
 
 import pytest
 
+from director_ai.core.guard_control import NoGoPolicy, RiskEnvelope, VerifierSignal
 from director_ai.core.scoring.consensus import (
     ConsensusScorer,
+    CrossVerifierConsensus,
     ModelResponse,
 )
 
@@ -181,3 +183,119 @@ class TestConsensusPerformanceDoc:
         scorer.score_responses(responses)
         elapsed_ms = (time.perf_counter() - t0) * 1000
         assert elapsed_ms < 1000, f"Consensus scoring took {elapsed_ms:.0f}ms"
+
+
+class TestCrossVerifierConsensus:
+    def test_conservative_consensus_halts_on_high_confidence_contradiction(self):
+        envelope = RiskEnvelope(
+            action_category="text",
+            reversibility="reversible",
+            domain="regulated",
+            calibrated_threshold=0.65,
+            no_go_threshold=0.9,
+        )
+        signals = [
+            VerifierSignal(
+                verifier="nli",
+                modality="text",
+                score=0.91,
+                verdict="contradiction",
+                confidence_low=0.86,
+                confidence_high=0.97,
+                evidence_refs=("kb://claim-a",),
+                latency_ms=4.0,
+            ),
+            VerifierSignal(
+                verifier="numeric",
+                modality="text",
+                score=0.21,
+                verdict="supported",
+                confidence_low=0.18,
+                confidence_high=0.34,
+                evidence_refs=("calc://n-1",),
+                latency_ms=1.0,
+            ),
+        ]
+
+        decision = CrossVerifierConsensus().decide(
+            signals,
+            risk_envelope=envelope,
+            policy_id="policy.critical.regulated",
+        )
+
+        assert decision.decision == "halt"
+        assert decision.reason == "cross_verifier_contradiction"
+        assert decision.risk_score == pytest.approx(0.91)
+        assert decision.confidence_low == pytest.approx(0.18)
+        assert decision.confidence_high == pytest.approx(0.97)
+        assert decision.evidence_refs == ("kb://claim-a", "calc://n-1")
+        assert (
+            decision.to_safety_event(
+                hook_id="consensus", hook_scope="agent"
+            ).policy_decision
+            == "halt"
+        )
+
+    def test_empty_consensus_warns_instead_of_allowing(self):
+        envelope = RiskEnvelope(
+            action_category="code",
+            reversibility="costly",
+            domain="security",
+            calibrated_threshold=0.6,
+            no_go_threshold=0.8,
+        )
+
+        decision = CrossVerifierConsensus().decide(
+            [],
+            risk_envelope=envelope,
+            policy_id="policy.code",
+        )
+
+        assert decision.decision == "warn"
+        assert decision.reason == "insufficient_verifier_evidence"
+        assert decision.risk_score == 0.0
+        assert decision.verifier_signals == ()
+
+    def test_no_go_policy_blocks_irreversible_weighted_consensus(self):
+        envelope = RiskEnvelope(
+            action_category="physical",
+            reversibility="irreversible",
+            domain="physical",
+            calibrated_threshold=0.5,
+            no_go_threshold=0.7,
+        )
+        signals = [
+            VerifierSignal(
+                verifier="trajectory",
+                modality="physical",
+                score=0.62,
+                verdict="uncertain",
+                confidence_low=0.55,
+                confidence_high=0.72,
+                evidence_refs=("physical:trajectory",),
+            ),
+            VerifierSignal(
+                verifier="policy",
+                modality="policy",
+                score=0.88,
+                verdict="unsafe",
+                confidence_low=0.88,
+                confidence_high=0.88,
+                evidence_refs=("policy:no-go",),
+            ),
+        ]
+        consensus = CrossVerifierConsensus(
+            mode="weighted",
+            weights={"trajectory": 0.25, "policy": 0.75},
+            no_go_policy=NoGoPolicy(irreversible_threshold=0.5),
+        )
+
+        decision = consensus.decide(
+            signals,
+            risk_envelope=envelope,
+            policy_id="policy.physical",
+        )
+
+        assert decision.decision == "block"
+        assert decision.reason == "no_go_irreversible_risk"
+        assert decision.attributes["consensus_mode"] == "weighted"
