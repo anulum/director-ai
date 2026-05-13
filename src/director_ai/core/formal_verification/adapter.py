@@ -20,7 +20,7 @@ from director_ai.core.safety_event import SafetyEvent
 from director_ai.core.verification.code_verifier import verify_code
 
 from .formula import Formula
-from .verifier import ReasoningStep, ReasoningVerifier
+from .verifier import LeanBackend, ReasoningStep, ReasoningVerifier, Z3Backend
 
 __all__ = [
     "FormalCodeVerificationResult",
@@ -78,6 +78,7 @@ class FormalCodeVerifierAdapter:
         formal_verifier: ReasoningVerifier | None | object = _DEFAULT_FORMAL_VERIFIER,
         code_verifier: Callable[..., Any] = verify_code,
         timeout_ms: float = 1000.0,
+        theorem_backend_name: str = "formal",
     ) -> None:
         if timeout_ms <= 0.0:
             raise ValueError("timeout_ms must be positive")
@@ -89,6 +90,41 @@ class FormalCodeVerifierAdapter:
             self._formal_verifier = cast(ReasoningVerifier, formal_verifier)
         self._code_verifier = code_verifier
         self._timeout_ms = timeout_ms
+        self._theorem_backend_name = theorem_backend_name
+
+    @classmethod
+    def with_theorem_backend(
+        cls,
+        backend: str,
+        *,
+        code_verifier: Callable[..., Any] = verify_code,
+        timeout_ms: float = 1000.0,
+        z3_solver: Any | None = None,
+        lean_runner: Callable[[str], Mapping[str, Any]] | None = None,
+    ) -> FormalCodeVerifierAdapter:
+        """Build an adapter with a named theorem-prover backend."""
+        backend_name = backend.strip().lower()
+        if backend_name == "dpll":
+            verifier = ReasoningVerifier()
+        elif backend_name == "z3":
+            z3_backend = (
+                Z3Backend(z3_solver=z3_solver)
+                if z3_solver is not None
+                else Z3Backend.from_z3()
+            )
+            verifier = ReasoningVerifier(backend=z3_backend)
+        elif backend_name == "lean":
+            if lean_runner is None:
+                raise ValueError("lean_runner is required for lean backend")
+            verifier = ReasoningVerifier(backend=LeanBackend(runner=lean_runner))
+        else:
+            raise ValueError(f"unsupported theorem backend {backend!r}")
+        return cls(
+            formal_verifier=verifier,
+            code_verifier=code_verifier,
+            timeout_ms=timeout_ms,
+            theorem_backend_name=backend_name,
+        )
 
     def verify_formula(
         self,
@@ -104,7 +140,7 @@ class FormalCodeVerifierAdapter:
         sandbox = {
             "execution_allowed": False,
             "timeout_ms": self._timeout_ms,
-            "backend": "formal",
+            "backend": self._theorem_backend_name,
         }
         if self._formal_verifier is None:
             return self._result(
@@ -263,6 +299,80 @@ class FormalCodeVerifierAdapter:
             sandbox=sandbox,
         )
 
+    def verify_code_contract(
+        self,
+        *,
+        code: str,
+        contract: Formula,
+        risk_envelope: RiskEnvelope,
+        policy_id: str,
+        evidence_ref: str,
+        language: str = "python",
+        known_modules: set[str] | None = None,
+        api_manifest: dict[str, set[str]] | None = None,
+    ) -> FormalCodeVerificationResult:
+        """Verify generated code structurally, then verify its formal contract."""
+        code_result = self.verify_code(
+            code=code,
+            risk_envelope=risk_envelope,
+            policy_id=policy_id,
+            evidence_ref=evidence_ref,
+            language=language,
+            known_modules=known_modules,
+            api_manifest=api_manifest,
+        )
+        if code_result.guard_decision.decision != "allow":
+            return self._result(
+                kind="code_contract",
+                evidence_ref=evidence_ref,
+                verdict="invalid_code",
+                decision=code_result.guard_decision.decision,
+                reason="code_contract_rejected",
+                explanation="Code contract verification stopped at structural checks.",
+                risk_score=code_result.guard_decision.risk_score,
+                confidence_low=code_result.guard_decision.confidence_low,
+                confidence_high=code_result.guard_decision.confidence_high,
+                risk_envelope=risk_envelope,
+                policy_id=policy_id,
+                sandbox={
+                    **dict(code_result.sandbox),
+                    "code_verifier": "structural",
+                    "theorem_backend": self._theorem_backend_name,
+                    "contract_checked": False,
+                },
+            )
+        contract_result = self.verify_formula(
+            formula=contract,
+            risk_envelope=risk_envelope,
+            policy_id=policy_id,
+            evidence_ref=evidence_ref,
+        )
+        return self._result(
+            kind="code_contract",
+            evidence_ref=evidence_ref,
+            verdict=contract_result.signal.verdict,
+            decision=contract_result.guard_decision.decision,
+            reason=contract_result.guard_decision.reason.replace(
+                "formal_",
+                "code_contract_",
+                1,
+            ),
+            explanation=contract_result.guard_decision.tenant_safe_explanation,
+            risk_score=contract_result.guard_decision.risk_score,
+            confidence_low=contract_result.guard_decision.confidence_low,
+            confidence_high=contract_result.guard_decision.confidence_high,
+            risk_envelope=risk_envelope,
+            policy_id=policy_id,
+            sandbox={
+                "execution_allowed": False,
+                "timeout_ms": self._timeout_ms,
+                "language": language,
+                "code_verifier": "structural",
+                "theorem_backend": self._theorem_backend_name,
+                "contract_checked": True,
+            },
+        )
+
     def _timeout_result(
         self,
         *,
@@ -304,7 +414,11 @@ class FormalCodeVerifierAdapter:
         sandbox: Mapping[str, Any],
     ) -> FormalCodeVerificationResult:
         signal = VerifierSignal(
-            verifier=f"{kind}.verifier",
+            verifier=(
+                f"formal.{self._theorem_backend_name}"
+                if kind in {"formal", "code_contract"}
+                else f"{kind}.verifier"
+            ),
             modality="code",
             score=risk_score,
             verdict=verdict,

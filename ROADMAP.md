@@ -473,7 +473,7 @@ Last updated: 2026-04-30
   before they enter retrieval.
 - [x] Package the halt/interlock kernel as a standalone library for users who bring
   their own scorer.
-- [ ] Add verifier backends for formal math and code outputs through theorem
+- [x] Add verifier backends for formal math and code outputs through theorem
   prover integrations.
 - [ ] Design federated, privacy-preserving sharing of anonymised guard signals.
 - [ ] Add sustainability scoring for token cost, energy estimates, and budget

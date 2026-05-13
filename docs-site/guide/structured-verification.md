@@ -253,6 +253,16 @@ result = adapter.verify_formula(
 )
 ```
 
+Named theorem backends can be selected explicitly:
+
+```python
+adapter = FormalCodeVerifierAdapter.with_theorem_backend("dpll")
+```
+
+For generated code with a formal contract, use `verify_code_contract()`. The
+adapter checks code structure first and only then routes the contract to the
+configured theorem backend.
+
 Verifier failure is not proof of correctness. Missing backends, exceptions, and
 timeouts become warning decisions. Generated code is checked structurally and
 against manifests without executing it, and audit payloads carry evidence

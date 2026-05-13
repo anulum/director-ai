@@ -52,6 +52,45 @@ result = adapter.verify_code(
 )
 ```
 
+## Theorem Backend Selection
+
+Use `with_theorem_backend()` when a deployment needs an explicit theorem-prover
+profile. The built-in `dpll` profile has no optional dependency. The `z3` profile
+uses the `director-ai[formal]` extra, and the `lean` profile accepts a caller
+owned runner so the operator controls the Lean invocation, sandbox, and file
+system boundary.
+
+```python
+adapter = FormalCodeVerifierAdapter.with_theorem_backend("dpll")
+
+lean_adapter = FormalCodeVerifierAdapter.with_theorem_backend(
+    "lean",
+    lean_runner=run_lean_in_sandbox,
+)
+```
+
+The selected backend is recorded in the result sandbox and verifier id, for
+example `formal.dpll` or `formal.lean`.
+
+## Code Contracts
+
+`verify_code_contract()` first runs the structural code verifier. If the code is
+invalid, the theorem backend is not called. If the code passes structural
+checks, the formal contract is verified through the selected backend.
+
+```python
+result = adapter.verify_code_contract(
+    code=generated_code,
+    contract=contract_formula,
+    risk_envelope=risk_envelope,
+    policy_id="policy.code.contract.regulated",
+    evidence_ref="code-contract://snippet-1",
+)
+```
+
+Audit payloads include evidence references, backend names, and sandbox metadata;
+they do not include raw source code or raw formula text.
+
 ## Full API
 
 ::: director_ai.core.formal_verification.adapter.FormalCodeVerifierAdapter

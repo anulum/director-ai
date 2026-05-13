@@ -13,6 +13,7 @@ from time import sleep
 from director_ai.core.formal_verification import (
     And,
     FormalCodeVerifierAdapter,
+    Implies,
     Not,
     Variable,
 )
@@ -122,3 +123,94 @@ def test_verifier_timeout_warns_not_passes():
     assert result.guard_decision.decision == "warn"
     assert result.guard_decision.reason == "code_verifier_timeout"
     assert result.signal.verdict == "timeout"
+
+
+def test_named_dpll_backend_records_theorem_backend_in_sandbox():
+    adapter = FormalCodeVerifierAdapter.with_theorem_backend("dpll")
+
+    result = adapter.verify_formula(
+        formula=Implies(Variable("p"), Variable("p")),
+        risk_envelope=_math_envelope(),
+        policy_id="policy.formal.regulated",
+        evidence_ref="formal://claim-4",
+    )
+
+    assert result.guard_decision.decision == "allow"
+    assert result.sandbox["backend"] == "dpll"
+    assert result.signal.verifier == "formal.dpll"
+
+
+def test_named_lean_backend_uses_runner_without_external_binary():
+    def runner(source: str) -> dict:
+        assert "def target" in source
+        return {"sat": False}
+
+    adapter = FormalCodeVerifierAdapter.with_theorem_backend(
+        "lean",
+        lean_runner=runner,
+    )
+
+    result = adapter.verify_formula(
+        formula=And(Variable("p"), Not(Variable("p"))),
+        risk_envelope=_math_envelope(),
+        policy_id="policy.formal.regulated",
+        evidence_ref="formal://lean-claim",
+    )
+
+    assert result.guard_decision.decision == "halt"
+    assert result.sandbox["backend"] == "lean"
+    assert result.signal.verifier == "formal.lean"
+
+
+def test_code_contract_uses_code_verifier_before_theorem_backend():
+    calls = []
+
+    def verifier(**kwargs):
+        calls.append(kwargs["code"])
+        return type(
+            "CodeResult",
+            (),
+            {
+                "syntax_valid": True,
+                "unknown_imports": [],
+                "hallucinated_apis": [],
+                "error_count": 0,
+            },
+        )()
+
+    adapter = FormalCodeVerifierAdapter.with_theorem_backend(
+        "dpll",
+        code_verifier=verifier,
+    )
+
+    result = adapter.verify_code_contract(
+        code="def identity(x):\n    return x\n",
+        contract=Implies(Variable("input_valid"), Variable("output_valid")),
+        risk_envelope=_math_envelope(),
+        policy_id="policy.code.contract.regulated",
+        evidence_ref="code-contract://identity",
+    )
+
+    assert calls == ["def identity(x):\n    return x\n"]
+    assert result.kind == "code_contract"
+    assert result.guard_decision.decision == "allow"
+    assert result.sandbox["code_verifier"] == "structural"
+    assert result.sandbox["theorem_backend"] == "dpll"
+    assert "def identity" not in str(result.to_dict())
+
+
+def test_code_contract_halts_before_theorem_backend_when_code_is_invalid():
+    adapter = FormalCodeVerifierAdapter.with_theorem_backend("dpll")
+
+    result = adapter.verify_code_contract(
+        code="def broken(:\n    pass",
+        contract=Variable("unreached_contract"),
+        risk_envelope=_math_envelope(),
+        policy_id="policy.code.contract.regulated",
+        evidence_ref="code-contract://broken",
+    )
+
+    assert result.kind == "code_contract"
+    assert result.guard_decision.decision == "halt"
+    assert result.guard_decision.reason == "code_contract_rejected"
+    assert "unreached_contract" not in str(result.to_dict())
