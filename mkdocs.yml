@@ -184,6 +184,7 @@ nav:
       - Agent Passport Registry: api/agent-passport-registry.md
       - CoherenceAgent: api/agent.md
       - VectorGroundTruthStore: api/vector-store.md
+      - Document Ingestion Pipeline: api/ingestion.md
       - BatchProcessor: api/batch.md
       - DirectorConfig: api/config.md
       - Types & Dataclasses: api/types.md
