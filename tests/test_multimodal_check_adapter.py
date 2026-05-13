@@ -114,6 +114,67 @@ def test_unbenchmarked_consistent_modality_warns():
     assert result.guard_decision.reason == "multimodal_unbenchmarked"
 
 
+def test_caption_grounding_can_halt_supported_image_claim():
+    adapter = MultimodalVerifierAdapter(
+        image_guard=_ConstantGuard("consistent", 0.94),
+        caption_score_fn=lambda caption, claim: 0.12,
+        enabled_modalities=("image",),
+        benchmarked_modalities=("image",),
+    )
+
+    result = adapter.check(
+        MultimodalCheckRequest(
+            modality="image",
+            claim_text="The image shows an approved label.",
+            media_ref="media://image-4",
+            image_bytes=b"payload",
+            caption_text="Caption says the label is missing.",
+        ),
+        risk_envelope=_envelope(),
+        policy_id="policy.multimodal.regulated",
+    )
+
+    assert result.guard_decision.decision == "halt"
+    assert result.signal.verdict == "hallucinated"
+    assert result.guard_decision.evidence_refs == (
+        "media://image-4",
+        "media://image-4#caption",
+    )
+    assert result.guard_decision.attributes["caption_grounded"] == "true"
+    assert "Caption says" not in str(result.to_dict())
+
+
+def test_metadata_grounding_refs_are_audit_safe_on_allow():
+    adapter = MultimodalVerifierAdapter(
+        image_guard=_ConstantGuard("consistent", 0.93),
+        metadata_score_fn=lambda metadata, claim: 0.91,
+        enabled_modalities=("image",),
+        benchmarked_modalities=("image",),
+    )
+
+    result = adapter.check(
+        MultimodalCheckRequest(
+            modality="image",
+            claim_text="The product was captured in 2026.",
+            media_ref="media://image-5",
+            image_bytes=b"payload",
+            metadata={"captured_at": "2026-05-13", "device": "private-camera"},
+        ),
+        risk_envelope=_envelope(),
+        policy_id="policy.multimodal.regulated",
+    )
+
+    assert result.guard_decision.decision == "allow"
+    assert result.guard_decision.evidence_refs == (
+        "media://image-5",
+        "media://image-5#metadata:captured_at",
+        "media://image-5#metadata:device",
+    )
+    assert result.guard_decision.attributes["metadata_grounded"] == "true"
+    assert "private-camera" not in str(result.to_dict())
+    assert "2026-05-13" not in str(result.to_dict())
+
+
 def test_audio_transcript_adapter_can_allow_benchmarked_supported_claim():
     adapter = MultimodalVerifierAdapter(
         audio_score_fn=lambda transcript, claim: 0.92,

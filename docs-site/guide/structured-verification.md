@@ -187,6 +187,8 @@ from director_ai.core.multimodal_guard import (
 
 adapter = MultimodalVerifierAdapter(
     image_guard=image_guard,
+    caption_score_fn=caption_grounder,
+    metadata_score_fn=metadata_grounder,
     enabled_modalities=("image",),
     benchmarked_modalities=("image",),
 )
@@ -197,6 +199,8 @@ result = adapter.check(
         claim_text="The image shows a labelled package.",
         media_ref="media://image-42",
         image_bytes=image_bytes,
+        caption_text="Package label is absent.",
+        metadata={"captured_at": "2026-05-13", "source": "inspection-rig"},
     ),
     risk_envelope=RiskEnvelope(
         action_category="multimodal",
@@ -212,7 +216,11 @@ result = adapter.check(
 Uncertain evidence is a warning, not an allow decision. Disabled modalities
 raise errors instead of silently passing. Safety events include media references
 and verifier scores; they do not include raw media, transcript text, frame data,
-or claim text.
+caption text, metadata values, or claim text. Caption and metadata grounding
+callbacks are optional score functions that can lower an otherwise consistent
+image, audio, or video decision when auxiliary evidence contradicts the claim.
+The resulting audit references identify only the grounding channel and metadata
+keys.
 
 ## Formal and Code Verifier Routing
 

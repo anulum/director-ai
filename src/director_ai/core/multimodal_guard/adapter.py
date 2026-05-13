@@ -11,8 +11,8 @@
 from __future__ import annotations
 
 import math
-from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from collections.abc import Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
@@ -41,6 +41,8 @@ class MultimodalCheckRequest:
     image_bytes: bytes = b""
     transcript_text: str = ""
     frame_similarities: Sequence[float] = ()
+    caption_text: str = ""
+    metadata: Mapping[str, str] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
         if self.modality not in _MODALITIES:
@@ -53,6 +55,11 @@ class MultimodalCheckRequest:
             self,
             "frame_similarities",
             tuple(float(value) for value in self.frame_similarities),
+        )
+        object.__setattr__(
+            self,
+            "metadata",
+            {str(key): str(value) for key, value in self.metadata.items()},
         )
 
 
@@ -100,17 +107,25 @@ class MultimodalVerifierAdapter:
         *,
         image_guard: MultimodalGuard | Any | None = None,
         audio_score_fn: Callable[[str, str], float] | None = None,
+        caption_score_fn: Callable[[str, str], float] | None = None,
+        metadata_score_fn: Callable[[Mapping[str, str], str], float] | None = None,
         enabled_modalities: Sequence[Modality] = (),
         benchmarked_modalities: Sequence[Modality] = (),
         temporal_alpha: float = 0.5,
         temporal_floor: float = 0.2,
+        grounding_floor: float = 0.4,
+        grounding_allow_threshold: float = 0.75,
     ) -> None:
         self._image_guard = image_guard
         self._audio_score = audio_score_fn
+        self._caption_score = caption_score_fn
+        self._metadata_score = metadata_score_fn
         self._enabled = frozenset(enabled_modalities)
         self._benchmarked = frozenset(benchmarked_modalities)
         self._temporal_alpha = temporal_alpha
         self._temporal_floor = temporal_floor
+        self._grounding_floor = _unit(grounding_floor)
+        self._grounding_allow = _unit(grounding_allow_threshold)
         if not self._enabled:
             raise ValueError("at least one enabled modality is required")
         unsupported = self._enabled - _MODALITIES
@@ -175,6 +190,14 @@ class MultimodalVerifierAdapter:
                 "modality": request.modality,
                 "media_ref": request.media_ref,
                 "benchmarked": str(request.modality in self._benchmarked).lower(),
+                "caption_grounded": str(
+                    bool(
+                        request.caption_text.strip() and self._caption_score is not None
+                    )
+                ).lower(),
+                "metadata_grounded": str(
+                    bool(request.metadata and self._metadata_score is not None)
+                ).lower(),
             },
         )
         return MultimodalCheckResult(
@@ -195,7 +218,8 @@ class MultimodalVerifierAdapter:
                     text_claim=request.claim_text,
                 )
             )
-            return (
+            return self._apply_grounding(
+                request,
                 _unit(float(verdict.similarity)),
                 str(verdict.label),
                 (request.media_ref,),
@@ -215,7 +239,7 @@ class MultimodalVerifierAdapter:
                 if score >= 0.4
                 else "hallucinated"
             )
-            return (score, verdict, (request.media_ref,))
+            return self._apply_grounding(request, score, verdict, (request.media_ref,))
         if request.modality == "video":
             if not request.frame_similarities:
                 raise ValueError("video modality requires frame_similarities")
@@ -229,17 +253,72 @@ class MultimodalVerifierAdapter:
                     halt_frame = index
             score = _unit(temporal.ema if temporal.ema is not None else 0.0)
             if halt_frame >= 0:
-                return (
+                return self._apply_grounding(
+                    request,
                     score,
                     "temporal_inconsistent",
                     (f"{request.media_ref}#frame:{halt_frame}",),
                 )
             verdict = "consistent" if score >= 0.75 else "uncertain"
-            return (score, verdict, (request.media_ref,))
+            return self._apply_grounding(request, score, verdict, (request.media_ref,))
         raise ValueError(f"unsupported modality {request.modality!r}")
+
+    def _apply_grounding(
+        self,
+        request: MultimodalCheckRequest,
+        score: float,
+        verdict: str,
+        evidence_refs: tuple[str, ...],
+    ) -> tuple[float, str, tuple[str, ...]]:
+        grounded_score = score
+        grounded_verdict = verdict
+        refs = list(evidence_refs)
+        if request.caption_text.strip() and self._caption_score is not None:
+            caption_score = _unit(
+                float(self._caption_score(request.caption_text, request.claim_text))
+            )
+            grounded_score = min(grounded_score, caption_score)
+            refs.append(f"{request.media_ref}#caption")
+            grounded_verdict = _grounded_verdict(
+                grounded_verdict,
+                caption_score,
+                self._grounding_floor,
+                self._grounding_allow,
+            )
+        if request.metadata and self._metadata_score is not None:
+            metadata_score = _unit(
+                float(self._metadata_score(request.metadata, request.claim_text))
+            )
+            grounded_score = min(grounded_score, metadata_score)
+            refs.extend(
+                f"{request.media_ref}#metadata:{key}"
+                for key in sorted(request.metadata)
+            )
+            grounded_verdict = _grounded_verdict(
+                grounded_verdict,
+                metadata_score,
+                self._grounding_floor,
+                self._grounding_allow,
+            )
+        return (grounded_score, grounded_verdict, tuple(refs))
 
 
 def _unit(value: float) -> float:
     if not math.isfinite(value) or value < 0.0 or value > 1.0:
         raise ValueError("score must be finite and in [0, 1]")
     return value
+
+
+def _grounded_verdict(
+    current: str,
+    score: float,
+    floor: float,
+    allow_threshold: float,
+) -> str:
+    if current in {"hallucinated", "temporal_inconsistent"}:
+        return current
+    if score < floor:
+        return "hallucinated"
+    if score < allow_threshold:
+        return "uncertain"
+    return current

@@ -465,7 +465,7 @@ Last updated: 2026-04-30
   symbolic validators into one calibrated confidence interval.
 - [x] Build a synthetic data and self-distillation pipeline that turns reviewed
   halt feedback into hard negatives and periodic domain-adapted training jobs.
-- [ ] Plan multi-modal hallucination checks for generated image, audio, and video
+- [x] Plan multi-modal hallucination checks for generated image, audio, and video
   outputs using caption/metadata grounding.
 - [ ] Draft an open Director Safety Protocol for guard signals shared across agent
   frameworks.

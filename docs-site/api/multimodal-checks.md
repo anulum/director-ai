@@ -14,8 +14,10 @@ marked benchmarked before a supported result may become `allow`.
 - hallucinated or temporally inconsistent evidence maps to `halt`
 - unbenchmarked modalities map to `warn` even when the low-level checker says
   the claim is consistent
+- optional caption and metadata grounding can reduce a modality score before a
+  decision is emitted
 - audit payloads and safety events include media references, not raw media,
-  transcripts, frame data, or claim text
+  transcripts, frame data, captions, metadata values, or claim text
 
 ```python
 from director_ai.core.guard_control import RiskEnvelope
@@ -26,6 +28,8 @@ from director_ai.core.multimodal_guard import (
 
 adapter = MultimodalVerifierAdapter(
     image_guard=image_guard,
+    caption_score_fn=caption_grounder,
+    metadata_score_fn=metadata_grounder,
     enabled_modalities=("image",),
     benchmarked_modalities=("image",),
 )
@@ -36,6 +40,8 @@ result = adapter.check(
         claim_text="The image shows a labelled package.",
         media_ref="media://image-42",
         image_bytes=image_bytes,
+        caption_text="Package label is absent.",
+        metadata={"captured_at": "2026-05-13", "source": "inspection-rig"},
     ),
     risk_envelope=RiskEnvelope(
         action_category="multimodal",
@@ -47,6 +53,14 @@ result = adapter.check(
     policy_id="policy.multimodal.regulated",
 )
 ```
+
+Grounding callbacks receive either `(caption_text, claim_text)` or
+`(metadata, claim_text)` and must return a finite score in `[0, 1]`. Scores
+below the grounding floor halt the claim; scores below the grounding allow
+threshold produce a warning unless the base verifier already found a stricter
+verdict. Evidence references use suffixes such as `#caption` and
+`#metadata:captured_at`, so downstream audit logs can identify which grounding
+channel was used without storing private captions or metadata values.
 
 ## Full API
 
