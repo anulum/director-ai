@@ -32,6 +32,16 @@ carbon-aware throttling.
 from .budget import BudgetVerdict, SustainabilityBudget, ThrottleReason
 from .carbon import CarbonIntensityTracker, CarbonReading
 from .forecaster import ConformalDemandForecaster, PredictionInterval
+from .policy_adapter import (
+    EstimateProvenance,
+    HardwareProfile,
+    HardwareProfileRegistry,
+    SustainabilityEstimate,
+    SustainabilityPolicyAdapter,
+    SustainabilityTelemetry,
+    SustainabilityTelemetrySummary,
+    TokenEnergyCostEstimator,
+)
 from .quota import ComputeQuota, DailyUsage, QuotaError
 
 __all__ = [
@@ -41,8 +51,16 @@ __all__ = [
     "ComputeQuota",
     "ConformalDemandForecaster",
     "DailyUsage",
+    "EstimateProvenance",
+    "HardwareProfile",
+    "HardwareProfileRegistry",
     "PredictionInterval",
     "QuotaError",
     "SustainabilityBudget",
+    "SustainabilityEstimate",
+    "SustainabilityPolicyAdapter",
+    "SustainabilityTelemetry",
+    "SustainabilityTelemetrySummary",
     "ThrottleReason",
+    "TokenEnergyCostEstimator",
 ]

@@ -159,7 +159,7 @@ nav:
       - Troubleshooting: guide/troubleshooting.md
       - Migration (v2→v3): guide/migration-v2-v3.md
   - Integrations:
-      - OpenAI / Anthropic SDK: integrations/sdk-guard.md
+      - LLM SDK Guard: integrations/sdk-guard.md
       - FastAPI Middleware: integrations/fastapi-guard.md
       - LangChain: integrations/langchain.md
       - LlamaIndex: integrations/llamaindex.md
@@ -179,6 +179,7 @@ nav:
       - Synthetic Distillation: api/synthetic-distillation.md
       - Multimodal Checks: api/multimodal-checks.md
       - Formal and Code Verifiers: api/formal-code-verifiers.md
+      - Sustainability Scoring: api/sustainability-scoring.md
       - CoherenceAgent: api/agent.md
       - VectorGroundTruthStore: api/vector-store.md
       - BatchProcessor: api/batch.md

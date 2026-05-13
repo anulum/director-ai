@@ -118,3 +118,21 @@ metrics.gauge_set("retune_recommended", 1)
 with metrics.timer("review_duration_seconds"):
     approved, score = scorer.review(query, response)
 ```
+
+## Sustainability Policy Events
+
+The sustainability scoring adapter returns tenant-safe `GuardDecision` and
+`SafetyEvent` payloads rather than raw metrics. Deployments that mirror these
+events into Prometheus, OpenTelemetry, or a billing warehouse should export only
+aggregate fields:
+
+- decision, reason, and policy id
+- request-count and total-unit summaries
+- energy, carbon, and cost estimates with provenance
+- threshold alert names
+- hardware profile id
+
+Do not export raw prompts, completions, media, credentials, API keys, or access
+tokens through sustainability telemetry. Hardware profile values must be marked
+as measured, configured, or projected so operators can distinguish instrumented
+energy measurements from planning estimates.
