@@ -84,7 +84,9 @@ High-risk systems must allow human oversight and intervention.
 - **Review artifacts for operators.** Scores, evidence, and compliance reports give humans concrete material to inspect before adjusting thresholds or approving exceptions.
 - **Override tracking hook.** `AuditLog` can store a `human_override` value when your application records a reviewer decision.
 - **Configurable thresholds.** Operators control the coherence threshold, trading off between false positives and missed hallucinations. This is a human decision, not an automated one.
-- **What Director-AI does not provide here.** The package does not ship a reviewer inbox or approval queue; `ReviewQueue` is a continuous batching helper, not a human-review workflow.
+- **Human review boundary.** `HumanReviewQueue` provides a durable reviewer
+  approval, retry, and release gate. `ReviewQueue` remains only a continuous
+  batching helper for scorer throughput.
 
 ### Article 15 — Accuracy, Robustness, Cybersecurity
 
@@ -130,7 +132,9 @@ For teams deploying Director-AI as part of EU AI Act compliance:
 2. **Set domain-appropriate thresholds** — use `DirectorConfig.from_profile()` or tune with `director-ai tune <labeled.jsonl>`.
 3. **Schedule compliance reports** — run `ComplianceReporter.generate_report()` monthly, or pass explicit `since` / `until` timestamps. Include the output in Article 11 technical documentation.
 4. **Enable drift detection** — configure `DriftDetector` with your baseline accuracy. Wire alerts to your incident management system.
-5. **Implement human review** — build an application-side reviewer workflow for low-confidence responses; do not treat `ReviewQueue` as a human-review system.
+5. **Implement human review** — wire `HumanReviewQueue` into the deployment's
+   reviewer UI or ticketing system; do not treat scorer `ReviewQueue` as a
+   human-review system.
 6. **Run regression benchmarks** — after every KB update or model change, run `director-ai bench` to verify accuracy hasn't degraded.
 7. **Document limitations** — state clearly that Director-AI covers factual coherence only. Combine with other tools for toxicity, bias, PII.
 

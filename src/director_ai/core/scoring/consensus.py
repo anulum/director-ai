@@ -32,6 +32,9 @@ from director_ai.core.guard_control import (
 )
 
 __all__ = [
+    "BFTConsensusResult",
+    "BFTConsensusVote",
+    "ByzantineFaultTolerantConsensus",
     "ConsensusScorer",
     "ConsensusResult",
     "CrossVerifierConsensus",
@@ -73,6 +76,125 @@ class ConsensusResult:
     @property
     def has_consensus(self) -> bool:
         return self.agreement_score > 0.7
+
+
+@dataclass(frozen=True)
+class BFTConsensusVote:
+    """One independent verifier vote for BFT consensus."""
+
+    verifier: str
+    verdict: str
+    risk_score: float
+    evidence_ref: str = ""
+
+    def __post_init__(self) -> None:
+        if not self.verifier.strip():
+            raise ValueError("verifier must be non-empty")
+        if self.verdict not in {"allow", "warn", "halt"}:
+            raise ValueError("verdict must be one of allow, warn, halt")
+        if not 0.0 <= self.risk_score <= 1.0:
+            raise ValueError("risk_score must be in [0, 1]")
+
+
+@dataclass(frozen=True)
+class BFTConsensusResult:
+    """PBFT-style quorum result for verifier votes."""
+
+    decision: str
+    reason: str
+    policy_id: str
+    fault_tolerance: int
+    required_replicas: int
+    quorum_size: int
+    byzantine_resilient: bool
+    participating_verifiers: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+    risk_score: float = 0.0
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "decision": self.decision,
+            "reason": self.reason,
+            "policy_id": self.policy_id,
+            "fault_tolerance": self.fault_tolerance,
+            "required_replicas": self.required_replicas,
+            "quorum_size": self.quorum_size,
+            "byzantine_resilient": self.byzantine_resilient,
+            "participating_verifiers": self.participating_verifiers,
+            "evidence_refs": tuple(_tenant_safe_ref(ref) for ref in self.evidence_refs),
+            "risk_score": self.risk_score,
+        }
+
+
+class ByzantineFaultTolerantConsensus:
+    """PBFT-style quorum over independent verifier votes.
+
+    For fault tolerance ``f``, at least ``3f + 1`` independent votes are
+    required and a decision requires a ``2f + 1`` quorum for the same verdict.
+    """
+
+    def __init__(self, *, fault_tolerance: int) -> None:
+        if fault_tolerance < 0:
+            raise ValueError("fault_tolerance must be non-negative")
+        self.fault_tolerance = fault_tolerance
+        self.required_replicas = 3 * fault_tolerance + 1
+        self.quorum_size = 2 * fault_tolerance + 1
+
+    def decide(
+        self,
+        votes: Sequence[BFTConsensusVote],
+        *,
+        policy_id: str,
+    ) -> BFTConsensusResult:
+        vote_tuple = tuple(votes)
+        verifiers = [vote.verifier for vote in vote_tuple]
+        if len(verifiers) != len(set(verifiers)):
+            raise ValueError("duplicate verifier votes are not allowed")
+        if len(vote_tuple) < self.required_replicas:
+            return BFTConsensusResult(
+                decision="warn",
+                reason="bft_insufficient_replicas",
+                policy_id=policy_id,
+                fault_tolerance=self.fault_tolerance,
+                required_replicas=self.required_replicas,
+                quorum_size=self.quorum_size,
+                byzantine_resilient=False,
+            )
+        by_verdict: dict[str, list[BFTConsensusVote]] = {
+            "halt": [],
+            "warn": [],
+            "allow": [],
+        }
+        for vote in vote_tuple:
+            by_verdict[vote.verdict].append(vote)
+        for verdict in ("halt", "warn", "allow"):
+            bucket = by_verdict[verdict]
+            if len(bucket) >= self.quorum_size:
+                quorum = tuple(bucket[: self.quorum_size])
+                return BFTConsensusResult(
+                    decision=verdict,
+                    reason="bft_quorum",
+                    policy_id=policy_id,
+                    fault_tolerance=self.fault_tolerance,
+                    required_replicas=self.required_replicas,
+                    quorum_size=self.quorum_size,
+                    byzantine_resilient=True,
+                    participating_verifiers=tuple(v.verifier for v in quorum),
+                    evidence_refs=tuple(
+                        v.evidence_ref for v in quorum if v.evidence_ref
+                    ),
+                    risk_score=max(v.risk_score for v in quorum),
+                )
+        return BFTConsensusResult(
+            decision="warn",
+            reason="bft_no_quorum",
+            policy_id=policy_id,
+            fault_tolerance=self.fault_tolerance,
+            required_replicas=self.required_replicas,
+            quorum_size=self.quorum_size,
+            byzantine_resilient=False,
+            risk_score=max((vote.risk_score for vote in vote_tuple), default=0.0),
+        )
 
 
 @dataclass(frozen=True)
@@ -494,3 +616,7 @@ def _critical_risk_score(
     if decision.decision in {"halt", "block"}:
         return max(decision.risk_score, weighted)
     return weighted
+
+
+def _tenant_safe_ref(ref: str) -> str:
+    return "redacted" if ref.startswith(("secret://", "raw://", "prompt://")) else ref

@@ -175,6 +175,14 @@ nav:
       - CoherenceScorer: api/scorer.md
       - StreamingKernel: api/streaming.md
       - Correction Loop: api/correction-loop.md
+      - Human Review Queue: api/human-review.md
+      - Policy Evaluation: api/policy-evaluation.md
+      - Causal Attribution Graph: api/causal-attribution.md
+      - Adaptive Threshold Learning: api/adaptive-threshold.md
+      - Cross-Document Consistency Memory: api/cross-document-memory.md
+      - Differentially Private Score Release: api/private-score-release.md
+      - Neuro-Symbolic Verifier: api/neuro-symbolic-verifier.md
+      - Byzantine-Resilient Consensus: api/byzantine-consensus.md
       - Standalone Interlock Kernel: api/interlock-kernel.md
       - Trajectory Preflight: api/trajectory-preflight.md
       - Self-Improving Guard Loop: api/self-improving-guard-loop.md

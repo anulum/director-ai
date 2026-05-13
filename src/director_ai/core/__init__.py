@@ -25,13 +25,44 @@ All public symbols are re-exported here for backward compatibility::
 # --- Core-level modules (not moved) ---
 from .actor import LLMGenerator, MockGenerator
 from .agent import CoherenceAgent
+from .attribution import (
+    AttributionEdge,
+    AttributionNode,
+    CausalAttributionGraph,
+    build_causal_attribution_graph,
+)
 from .cache import ScoreCache
 
 # --- Calibration ---
+from .calibration.adaptive_threshold import (
+    AdaptiveThresholdArm,
+    AdaptiveThresholdLearner,
+    AdaptiveThresholdRecommendation,
+    AdaptiveThresholdReport,
+    ThresholdFeedback,
+)
 from .calibration.conformal import ConformalPredictor, PredictionInterval
 from .calibration.feedback_store import FeedbackStore
 from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
 from .config import DirectorConfig, ProfileMetadata
+
+# --- Evaluation ---
+from .evaluation import (
+    LabelledPolicySample,
+    PolicyComparisonReport,
+    PolicyEvaluationReport,
+    PolicyVariant,
+    PolicyVariantResult,
+    compare_policy_variants,
+    evaluate_policy_variants,
+)
+from .federated_privacy import DifferentialPrivacyScoreReleaser, PrivacyScoreRelease
+from .memory import (
+    CrossDocumentConflict,
+    CrossDocumentConsistencyMemory,
+    CrossDocumentConsistencyReport,
+    StoredDocument,
+)
 
 # --- Retrieval ---
 from .retrieval.conflict_guard import (
@@ -72,6 +103,7 @@ from .runtime.correction import (
     GroundedCorrectionDraft,
     HaltCorrectionContext,
 )
+from .runtime.human_review import HumanReviewCase, HumanReviewDecision, HumanReviewQueue
 from .runtime.kernel import HaltMonitor, SafetyKernel
 from .runtime.review_queue import ReviewQueue
 from .runtime.session import ConversationSession, Turn
@@ -101,6 +133,9 @@ from .scoring.backends import (
 
 # --- Scoring (Phase 5) ---
 from .scoring.consensus import (
+    BFTConsensusResult,
+    BFTConsensusVote,
+    ByzantineFaultTolerantConsensus,
     ConsensusScorer,
     CriticalConsensusProfile,
     CrossVerifierConsensus,
@@ -156,6 +191,11 @@ from .types import (
 )
 from .verification.code_verifier import CodeCheckResult, verify_code
 from .verification.json_verifier import StructuredVerificationResult, verify_json
+from .verification.neuro_symbolic import (
+    NeuroSymbolicVerificationResult,
+    NeuroSymbolicVerifier,
+    NeuroSymbolicVerifierInput,
+)
 
 # --- Verification ---
 from .verification.numeric_verifier import NumericVerificationResult, verify_numeric
@@ -187,7 +227,12 @@ __all__ = [
     "KnowledgeConflict",
     "KnowledgeConflictCheck",
     "KnowledgeFact",
+    "LabelledPolicySample",
     "PineconeBackend",
+    "PolicyComparisonReport",
+    "PolicyEvaluationReport",
+    "PolicyVariant",
+    "PolicyVariantResult",
     "QdrantBackend",
     "RerankedBackend",
     "SentenceTransformerBackend",
@@ -195,22 +240,40 @@ __all__ = [
     "VectorGroundTruthStore",
     "WeaviateBackend",
     # Runtime
+    "AdaptiveThresholdArm",
+    "AdaptiveThresholdLearner",
+    "AdaptiveThresholdRecommendation",
+    "AdaptiveThresholdReport",
     "AsyncStreamingKernel",
+    "AttributionEdge",
+    "AttributionNode",
+    "BFTConsensusResult",
+    "BFTConsensusVote",
     "BatchProcessor",
     "BatchResult",
+    "CausalAttributionGraph",
+    "ByzantineFaultTolerantConsensus",
     "CorrectionLoop",
     "CorrectionProposal",
+    "CrossDocumentConflict",
+    "CrossDocumentConsistencyMemory",
+    "CrossDocumentConsistencyReport",
     "GroundedCorrectionDraft",
     "HaltCorrectionContext",
     "HaltMonitor",
+    "HumanReviewCase",
+    "HumanReviewDecision",
+    "HumanReviewQueue",
     "ReviewQueue",
     "DirectorSafetySignal",
     "SafetyEvent",
     "SafetyKernel",
     "StreamSession",
     "StreamingKernel",
+    "StoredDocument",
     "StructuredRecoveryConfig",
     "StructuredRecoveryResult",
+    "ThresholdFeedback",
     "TokenEvent",
     # Safety
     "InjectionDetector",
@@ -218,10 +281,14 @@ __all__ = [
     "SanitizeResult",
     # Training
     "DataQualityReport",
+    "DifferentialPrivacyScoreReleaser",
     "FinetuneConfig",
     "FinetuneResult",
     "ModelBenchmarkReport",
     "ModelBenchmarkResult",
+    "NeuroSymbolicVerificationResult",
+    "NeuroSymbolicVerifier",
+    "NeuroSymbolicVerifierInput",
     "RegressionReport",
     "TrainingModelProfile",
     "TuneResult",
@@ -245,13 +312,17 @@ __all__ = [
     "LLMGenerator",
     "MockGenerator",
     "ProfileMetadata",
+    "PrivacyScoreRelease",
     "ScoreCache",
     # Functions
     "benchmark_finetuned_model",
     "benchmark_model_candidates",
+    "build_causal_attribution_graph",
+    "compare_policy_variants",
     "clear_model_cache",
     "export_onnx",
     "export_tensorrt",
+    "evaluate_policy_variants",
     "finetune_nli",
     "finetune_model_registry_to_dict",
     "tune",

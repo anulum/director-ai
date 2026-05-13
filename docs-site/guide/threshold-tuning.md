@@ -191,6 +191,35 @@ The tuner also prints and embeds a confidence report. It records:
 - the balanced-accuracy margin over the next-best candidate
 - class balance and the selected confusion matrix
 - false-positive and false-negative trade-offs for the top candidate thresholds
+
+## Human-Gated Adaptive Recommendations
+
+For deployments with reviewed feedback, `AdaptiveThresholdLearner` can replay
+labelled score feedback across candidate thresholds and estimate each threshold
+with Beta-Bernoulli posteriors. It returns a recommendation and rollback
+threshold; it never changes runtime policy by itself.
+
+Use it only after enough human-labelled examples exist, and constrain maximum
+false-positive and false-negative rates for the domain:
+
+```python
+from director_ai.core import AdaptiveThresholdLearner, ThresholdFeedback
+
+learner = AdaptiveThresholdLearner(
+    candidate_thresholds=[0.3, 0.4, 0.5, 0.6],
+    current_threshold=0.4,
+    min_samples=50,
+    max_false_negative_rate=0.05,
+)
+learner.observe_batch(
+    [ThresholdFeedback(score=row.score, human_approved=row.human_approved) for row in rows]
+)
+recommendation = learner.recommend()
+```
+
+Route `recommendation.to_profile_overlay()` through human review/change control
+before deployment. Keep `adaptive_rollback_threshold` with the approved config
+so the previous threshold can be restored immediately.
 - boundary examples with the score that would flip each decision
 
 Treat a `low` confidence level as a warning to add more labelled examples,

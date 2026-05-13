@@ -20,6 +20,14 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`CoherenceScorer`](scorer.md) | `director_ai.core.scoring.scorer` | Dual-entropy coherence scoring engine |
 | [`StreamingKernel`](streaming.md) | `director_ai.core.runtime.streaming` | Token-level streaming halt |
 | [`AsyncStreamingKernel`](streaming.md#async) | `director_ai.core.runtime.async_streaming` | Async variant of StreamingKernel |
+| [`HumanReviewQueue`](human-review.md) | `director_ai.core.runtime.human_review` | Durable reviewer approval, retry, and release gate |
+| [`evaluate_policy_variants()`](policy-evaluation.md) | `director_ai.core.evaluation.policy` | Controlled profile and threshold comparison on labelled data |
+| [`build_causal_attribution_graph()`](causal-attribution.md) | `director_ai.core.attribution.causal_graph` | Evidence, claim, halt-trace, and counterfactual attribution DAGs |
+| [`AdaptiveThresholdLearner`](adaptive-threshold.md) | `director_ai.core.calibration.adaptive_threshold` | Human-gated Thompson-sampling threshold recommendations |
+| [`CrossDocumentConsistencyMemory`](cross-document-memory.md) | `director_ai.core.memory.consistency` | Tenant-scoped long-term consistency checks with retention and delete controls |
+| [`DifferentialPrivacyScoreReleaser`](private-score-release.md) | `director_ai.core.federated_privacy.score_release` | Laplace-noised score disclosure with privacy accounting |
+| [`NeuroSymbolicVerifier`](neuro-symbolic-verifier.md) | `director_ai.core.verification.neuro_symbolic` | Neural score fusion with numeric and formal symbolic checks |
+| [`ByzantineFaultTolerantConsensus`](byzantine-consensus.md) | `director_ai.core.scoring.consensus` | PBFT-style quorum over independent verifier votes |
 | [`InferenceServerHook`](../guide/streaming.md#pre-sampling-inference-server-hooks) | `director_ai.integrations.inference_server_hooks` | Server-neutral pre-sampling hook for vLLM, TGI, and llama.cpp |
 | [`CoherenceAgent`](agent.md) | `director_ai.core.agent` | Orchestrator: generator + scorer + kernel |
 | [`BatchProcessor`](batch.md) | `director_ai.core.runtime.batch` | Concurrent batch scoring |
@@ -48,6 +56,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`ScoringEvidence`](types.md#scoringevidence) | `director_ai.core.types` | Retrieved chunks + NLI details |
 | [`HaltEvidence`](types.md#haltevidence) | `director_ai.core.types` | Structured halt reason with evidence |
 | [`CounterfactualHaltDiagnostic`](types.md#counterfactualhaltdiagnostic) | `director_ai.core.types` | Single-fact halt diagnostic |
+| [`CausalAttributionGraph`](causal-attribution.md) | `director_ai.core.attribution.causal_graph` | DAG representation of scorer and halt causal pathways |
 | [`SafetyEvent`](types.md#safetyevent) | `director_ai.core.safety_event` | Tenant-safe halt and policy event schema |
 | [`DirectorSafetySignal`](director-safety-protocol.md) | `director_ai.core.safety_protocol` | Cross-runtime safety protocol envelope |
 | [`ConflictAwareKnowledgeGuard`](conflict-aware-knowledge.md) | `director_ai.core.retrieval.conflict_guard` | Pre-ingestion KB conflict checks |
@@ -63,10 +72,12 @@ Complete reference for every public class, function, and dataclass in Director-A
 | Symbol | Module | Purpose |
 |--------|--------|---------|
 | `verify_numeric()` | `director_ai.core.verification.numeric_verifier` | Numeric consistency checks (arithmetic, dates, probabilities) |
+| `NeuroSymbolicVerifier` | `director_ai.core.verification.neuro_symbolic` | Neural + symbolic contradiction gate |
 | `verify_reasoning_chain()` | `director_ai.core.verification.reasoning_verifier` | Reasoning chain logic (non-sequiturs, circularity) |
 | `score_temporal_freshness()` | `director_ai.core.scoring.temporal_freshness` | Staleness risk for date-sensitive claims |
 | `ConsensusScorer` | `director_ai.core.scoring.consensus` | Cross-model factual agreement |
 | `CrossVerifierConsensus` | `director_ai.core.scoring.consensus` | Critical-domain verifier fusion with required coverage and calibrated risk interval |
+| `ByzantineFaultTolerantConsensus` | `director_ai.core.scoring.consensus` | PBFT-style verifier vote quorum |
 | `ConformalPredictor` | `director_ai.core.calibration.conformal` | Calibrated P(hallucination) intervals |
 | `FeedbackLoopDetector` | `director_ai.compliance.feedback_loop_detector` | EU AI Act Art 15(4) feedback loop detection |
 | `LoopMonitor` | `director_ai.agentic.loop_monitor` | Agent loop safety (circular, drift, budget) |
@@ -96,6 +107,8 @@ Complete reference for every public class, function, and dataclass in Director-A
 | `compute_meta_confidence()` | `core.scoring.meta_confidence` | Verdict confidence from margin + signal agreement |
 | `ContradictionTracker` | `core.runtime.contradiction_tracker` | Pairwise cross-turn contradiction matrix |
 | `ContradictionReport` | `core.runtime.contradiction_tracker` | Contradiction summary (worst pair, trend) |
+| `CrossDocumentConsistencyMemory` | `core.memory.consistency` | Durable tenant-scoped contradiction memory across documents |
+| `DifferentialPrivacyScoreReleaser` | `core.federated_privacy.score_release` | Optional DP layer for public score release |
 
 See [Meta-Confidence Guide](../guide/meta-confidence.md).
 
@@ -118,6 +131,8 @@ See [Structured Verification Guide](../guide/structured-verification.md).
 | `FeedbackStore` | `core.calibration.feedback_store` | SQLite-backed human correction store |
 | `OnlineCalibrator` | `core.calibration.online_calibrator` | Threshold sweep + FPR/FNR with Wilson CIs |
 | `CalibrationReport` | `core.calibration.online_calibrator` | Calibration metrics dataclass |
+| `HumanReviewQueue` | `core.runtime.human_review` | Reviewer case queue with append-only decisions |
+| `AdaptiveThresholdLearner` | `core.calibration.adaptive_threshold` | Human-gated Thompson-sampling threshold recommender |
 
 See [Online Calibration Guide](../guide/online-calibration.md).
 

@@ -3,7 +3,9 @@
 The correction loop creates approval-gated remediation proposals after a halt
 or warning. It does not release replacement text automatically. A proposal must
 first pass cross-verifier consensus with an `allow` decision, then receive an
-explicit operator approval ID before `release()` returns candidate text.
+explicit operator approval ID before `release()` returns candidate text. For a
+durable reviewer inbox and append-only decision trail, enqueue proposals into
+[`HumanReviewQueue`](human-review.md).
 
 Physical-domain and irreversible actions are rejected at proposal time. Those
 cases must stay in the no-go or human-review path because automatic remediation

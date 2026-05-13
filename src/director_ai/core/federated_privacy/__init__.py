@@ -39,15 +39,18 @@ High-level helpers:
 from .accountant import AccountantEntry, PrivacyAccountant
 from .aggregator import FederatedCounter, FederatedHistogram
 from .mechanisms import GaussianMechanism, LaplaceMechanism
+from .score_release import DifferentialPrivacyScoreReleaser, PrivacyScoreRelease
 from .secret_sharing import SecretShare, SecureAggregator, ShareError
 
 __all__ = [
     "AccountantEntry",
+    "DifferentialPrivacyScoreReleaser",
     "FederatedCounter",
     "FederatedHistogram",
     "GaussianMechanism",
     "LaplaceMechanism",
     "PrivacyAccountant",
+    "PrivacyScoreRelease",
     "SecretShare",
     "SecureAggregator",
     "ShareError",
