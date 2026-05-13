@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import pytest
 
+from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.scoring.scorer import DIVERGENCE_NEUTRAL
 
 
@@ -78,6 +79,27 @@ class TestNoKBCalibration:
             result = self._calibrate(h)
             assert result <= prev + 1e-9, f"Non-monotonic at h_logic={h}"
             prev = result
+
+    def test_scorer_applies_no_kb_rescale_once(self):
+        class FakeNLI:
+            model_available = True
+
+            def _ensure_model(self):
+                return None
+
+            def score_chunked(self, *_args, **_kwargs):
+                return 0.25, None
+
+        scorer = CoherenceScorer(threshold=0.3, use_nli=False)
+        scorer._nli = FakeNLI()
+        _h_logic, h_fact, coherence, evidence = scorer._heuristic_coherence(
+            "Grounded source statement.",
+            "Grounded answer statement.",
+        )
+
+        assert h_fact == pytest.approx(DIVERGENCE_NEUTRAL)
+        assert evidence is None
+        assert coherence == pytest.approx(0.75)
 
 
 class TestCrossTurnBlending:

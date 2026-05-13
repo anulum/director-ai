@@ -15,6 +15,7 @@ pipeline integration with CoherenceScorer/Agent/Server, and performance.
 import json
 import os
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -133,6 +134,52 @@ class TestProfileLoading:
         assert meta.calibration_required is True
         assert meta.min_calibration_samples >= 20
         assert "director-ai tune" in meta.calibration_command
+
+    def test_regulated_profile_metadata_matches_validation_artifacts(self):
+        root = Path(__file__).resolve().parents[1]
+        medical = json.loads(
+            (root / "benchmarks/results/medical_eval.json").read_text(encoding="utf-8")
+        )["pubmedqa"]
+        finance = json.loads(
+            (root / "benchmarks/results/finance_eval.json").read_text(encoding="utf-8")
+        )["financebench"]
+        legal = json.loads(
+            (root / "benchmarks/results/legal_eval.json").read_text(encoding="utf-8")
+        )["cuad"]
+
+        assert medical["fpr"] == pytest.approx(1.0)
+        assert "FPR=1.0" in DirectorConfig.profile_metadata("medical").validation_status
+        assert finance["fpr"] == pytest.approx(1.0)
+        assert "FPR=1.0" in DirectorConfig.profile_metadata("finance").validation_status
+        assert legal["total"] == 0
+        assert "total=0" in DirectorConfig.profile_metadata("legal").validation_status
+
+    def test_public_docs_do_not_claim_stock_regulated_profiles_are_measured(self):
+        root = Path(__file__).resolve().parents[1]
+        docs = "\n".join(
+            [
+                (root / "docs-site/api/config.md").read_text(encoding="utf-8"),
+                (root / "docs-site/benchmarks.md").read_text(encoding="utf-8"),
+                (root / "docs-site/guide/why-director-ai.md").read_text(
+                    encoding="utf-8"
+                ),
+                (root / "docs-site/deployment/runbooks.md").read_text(encoding="utf-8"),
+                (root / "docs-site/glossary.md").read_text(encoding="utf-8"),
+            ]
+        )
+
+        stale_claims = (
+            "Healthcare (measured on PubMedQA)",
+            "Financial services (measured on FinanceBench)",
+            "measured profile (threshold 0.30)",
+            "0% FPR at t",
+            "77.3% / 66.2% / 59.9%",
+            "medical/finance/legal (measured profiles)",
+        )
+        for claim in stale_claims:
+            assert claim not in docs
+        assert "calibration required" in docs
+        assert "100.0% FPR" in docs
 
     def test_profile_metadata_serializes_dependencies_as_list(self):
         data = DirectorConfig.profile_metadata("summarization").to_dict()

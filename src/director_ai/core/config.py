@@ -1220,7 +1220,7 @@ _PROFILE_METADATA: dict[str, ProfileMetadata] = {
     "medical": ProfileMetadata(
         name="medical",
         intended_workload="Clinical or biomedical fact-heavy review with curated KB.",
-        validation_status="limited PubMedQA validation; requires KB grounding",
+        validation_status="PubMedQA artifact shows FPR=1.0 at t=0.30; calibration required",
         expected_false_halt_risk="very high without KB grounding and calibration",
         required_dependencies=("nli", "vector"),
         notes="Do not deploy strictly until tuned on local clean and adversarial samples.",
@@ -1231,7 +1231,7 @@ _PROFILE_METADATA: dict[str, ProfileMetadata] = {
     "finance": ProfileMetadata(
         name="finance",
         intended_workload="Financial claims, numeric facts, and regulatory KB review.",
-        validation_status="limited FinanceBench validation; requires recalibration",
+        validation_status="FinanceBench artifact shows FPR=1.0 at t=0.30; calibration required",
         expected_false_halt_risk="very high without KB grounding and calibration",
         required_dependencies=("nli", "vector"),
         notes="Use with retrieval and domain-specific clean-response calibration.",
@@ -1242,7 +1242,7 @@ _PROFILE_METADATA: dict[str, ProfileMetadata] = {
     "legal": ProfileMetadata(
         name="legal",
         intended_workload="Legal reasoning chains over small curated KBs.",
-        validation_status="not independently validated",
+        validation_status="CUAD artifact has total=0; not independently validated",
         expected_false_halt_risk="unknown; treat as high until tuned",
         required_dependencies=("nli",),
         notes="Thresholds are aligned with other high-stakes profiles pending eval.",

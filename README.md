@@ -304,7 +304,7 @@ Be aware of these before deploying:
 
 - **Heuristic fallback is weak**: Without `[nli]`, scoring uses word-overlap (~55% accuracy). Not recommended for production.
 - **Summarisation FPR is 10.5%**: Reduced from 95% via bidirectional NLI + baseline calibration (v3.5). Still too high for some use cases — tune thresholds per domain.
-- **NLI needs KB grounding**: Without a knowledge base, domain accuracy drops significantly (PubMedQA F1=62.1%, FinanceBench 80%+ FPR).
+- **NLI needs KB grounding**: Without a knowledge base, stock regulated-domain profiles over-reject badly in checked artifacts (PubMedQA FPR=100%, FinanceBench FPR=100% at t=0.30). Treat them as calibration starting points.
 - **ONNX CPU is slow**: 383 ms/pair without GPU. Use `onnxruntime-gpu` for production.
 - **Long documents need ≥16 GB VRAM**: Chunked NLI on legal/financial docs exceeds 6 GB.
 - **LLM-as-judge sends data externally**: When enabled, truncated prompt+response (500 chars) go to the configured provider. Off by default.

@@ -48,8 +48,8 @@ Scores too LOW (mass rejection)
 │  │
 │  └─ Yes → Step 2 — Check threshold
 │     ├─ threshold too high for content type
-│     │  └─ Fix: use measured profiles
-│     │     Medical/legal/finance: 0.30
+│     │  └─ Fix: tune the profile on labelled traces
+│     │     Medical/legal/finance starter threshold: 0.30
 │     │     General: 0.50
 │     │     Creative: 0.40
 │     │

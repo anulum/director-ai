@@ -428,9 +428,9 @@ All scripts in `benchmarks/`. Run each with `python -m benchmarks.<name>`.
 | `truthfulqa_eval` | TruthfulQA (817 Qs) | Accuracy | Requires GPU |
 | `vitaminc_eval` | VitaminC | Accuracy / F1 | Requires GPU |
 | `falsepositive_eval` | SQuAD/NQ/TriviaQA | FP rate | Requires GPU |
-| `medical_eval --nli` | PubMedQA (500) | Catch / FPR / F1 | **77.3% / 66.2% / 59.9%** (t=0.30, GTX 1060, 2026-03-20) |
-| `legal_eval --nli` | CUAD-RAGBench (510) | Catch / FPR / F1 | OOM on 6GB VRAM (needs ≥16GB) |
-| `finance_eval --nli` | FinanceBench (150) | FPR (known-good) | **0% FPR at t≤0.30** (GTX 1060, 2026-03-20) |
+| `medical_eval --nli` | PubMedQA (1000) | Catch / FPR / F1 | **100.0% / 100.0% / 61.9%** at t=0.30; stock profile requires KB grounding and calibration |
+| `legal_eval --nli` | CUAD-RAGBench | Catch / FPR / F1 | No completed validation in checked artifact (`total=0`); long contracts need ≥16GB GPU |
+| `finance_eval --nli` | FinanceBench (150) | FPR (known-good) | **100.0% FPR** at t=0.30; stock profile requires KB grounding and calibration |
 
 ### Reproduction
 

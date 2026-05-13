@@ -49,7 +49,7 @@ You can (and should) combine Director-AI with these tools. Director-AI guards fa
 | Streaming LLM responses to users | Director-AI `StreamingKernel` — [Streaming guide](../guide/streaming.md) |
 | LLM agent making multi-step decisions | Director-AI `CoherenceAgent` — [API reference](../api/agent.md) |
 | Customer support bot with product facts | Director-AI with domain-specific KB — [Support cookbook](../cookbook/customer-support.md) |
-| Medical / legal / finance compliance | Director-AI with measured profile (threshold 0.30) — domain [cookbooks](../cookbook/medical.md) |
+| Medical / legal / finance compliance | Director-AI with curated KB plus a tuned profile; stock regulated profiles are calibration starting points |
 | Toxicity filtering only | NeMo Guardrails or LLM-Guard instead |
 | Prompt injection defence only | Rebuff or LLM-Guard instead |
 

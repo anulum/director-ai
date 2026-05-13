@@ -310,7 +310,7 @@ _E2E_DELTA_SAMPLES: list[tuple[str, str, dict[str, str], bool]] = [
 
 
 def test_false_halt_rate():
-    """Good passages must have < 2% false-halt rate (heuristic mode, no NLI)."""
+    """Good passages must stay within the 5% heuristic false-halt tolerance."""
     from benchmarks.streaming_false_halt_bench import GOOD_PASSAGES
     from director_ai.core import CoherenceScorer, GroundTruthStore, StreamingKernel
 

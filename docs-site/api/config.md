@@ -53,9 +53,9 @@ Dataclass-based configuration with environment variable, YAML file, and named pr
 | `fast` | Off | 0.5 | 1 | Off | Development, prototyping |
 | `thorough` | On | 0.6 | 3 | On | Production default |
 | `research` | On | 0.7 | 5 | On | Evaluation, benchmarking |
-| `medical` | On | 0.30 | 3 | On | Healthcare (measured on PubMedQA) |
-| `finance` | On | 0.30 | 3 | On | Financial services (measured on FinanceBench) |
-| `legal` | On | 0.30 | 3 | On | Legal document review |
+| `medical` | On | 0.30 | 3 | On | Healthcare starter; calibration required |
+| `finance` | On | 0.30 | 3 | On | Financial starter; calibration required |
+| `legal` | On | 0.30 | 3 | On | Legal starter; validation required |
 | `creative` | Off | 0.40 | 3 | On | Creative writing (low halt rate) |
 | `customer_support` | Off | 0.55 | 3 | On | Support agents |
 | `summarization` | On | 0.15 | 3 | On | Document summarization |
