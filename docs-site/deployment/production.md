@@ -238,6 +238,12 @@ For production use, route these hooks through a non-serving evaluation lane
 first. Promote a hook only after replay tests, tenant-safe audit logging,
 rollback instructions, and human review are in place for the deployment.
 
+The nightly live red-team workflow runs both current jailbreak/evasion data and
+property contract gates for experimental namespace loading, cross-language
+serialisation, zk attestation, and cyber-physical halt contracts. Keep those
+property gates green before promoting experimental hooks or changing generated
+protocol boundaries.
+
 ## Production Checklist
 
 Before going live, verify each item:

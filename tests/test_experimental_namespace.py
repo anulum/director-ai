@@ -8,7 +8,11 @@
 
 from __future__ import annotations
 
+import os
+
 import pytest
+from hypothesis import given, settings
+from hypothesis import strategies as st
 
 from director_ai import experimental
 
@@ -72,3 +76,34 @@ def test_unknown_hook_is_not_silent():
 
     with pytest.raises(AttributeError):
         _ = experimental.missing_hook
+
+
+@settings(max_examples=80, deadline=None)
+@given(name=st.sampled_from(experimental.available_hooks()))
+def test_experimental_hook_gate_rejects_every_registered_surface(name):
+    with pytest.raises(experimental.ExperimentalFeatureError, match=name):
+        experimental.load_hook(name)
+
+
+@settings(max_examples=80, deadline=None)
+@given(
+    env_value=st.sampled_from(["1", "true", "TRUE", " yes ", "ON", "off", "0", ""]),
+    name=st.sampled_from(experimental.available_hooks()),
+)
+def test_environment_gate_truth_table_is_explicit(env_value, name):
+    old_value = os.environ.get("DIRECTOR_AI_ENABLE_EXPERIMENTAL_HOOKS")
+    os.environ["DIRECTOR_AI_ENABLE_EXPERIMENTAL_HOOKS"] = env_value
+    enabled = env_value.strip().lower() in {"1", "true", "yes", "on"}
+    try:
+        assert experimental.experimental_hooks_enabled() is enabled
+        if enabled:
+            module = experimental.load_hook(name)
+            assert module.__name__ == experimental.EXPERIMENTAL_HOOKS[name]
+        else:
+            with pytest.raises(experimental.ExperimentalFeatureError):
+                experimental.load_hook(name)
+    finally:
+        if old_value is None:
+            os.environ.pop("DIRECTOR_AI_ENABLE_EXPERIMENTAL_HOOKS", None)
+        else:
+            os.environ["DIRECTOR_AI_ENABLE_EXPERIMENTAL_HOOKS"] = old_value

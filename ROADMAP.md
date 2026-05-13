@@ -436,7 +436,7 @@ Last updated: 2026-04-30
 - [x] Document that `meta_guard`, `self_evolving`, `continual_adversarial`, and
   similar experimental hooks must not be enabled for live deployments without
   isolation and human review.
-- [ ] Extend the nightly red-team workflow with property-based tests across the
+- [x] Extend the nightly red-team workflow with property-based tests across the
   experimental surface and the cross-language contract suite.
 
 ### Knowledge-Base Governance (Planned)

@@ -61,6 +61,15 @@ jobs:
             --min-detection-rate "${MIN_RATE}" \
             --tiers all
 
+      - name: Run property contract gates
+        run: |
+          uv run --locked --extra embed --extra nli --extra nli-lite --extra dev \
+            pytest \
+              tests/test_experimental_namespace.py \
+              tests/test_cross_language_contracts.py \
+              tests/test_zk_attestation_fuzz.py \
+              tests/test_cyber_physical_halt_contract.py
+
       - name: Upload live red-team report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

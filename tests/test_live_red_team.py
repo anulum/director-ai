@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+NIGHTLY_WORKFLOW = ROOT / ".github" / "workflows" / "nightly-red-team.yml"
 SPEC = importlib.util.spec_from_file_location(
     "live_red_team",
     ROOT / "tools" / "live_red_team.py",
@@ -117,3 +118,17 @@ def test_unknown_tier_is_reported_unavailable(tmp_path: Path) -> None:
 
     assert report.tiers[0].available is False
     assert "unknown tier" in report.tiers[0].unavailable_reason
+
+
+def test_nightly_workflow_runs_property_contract_gates() -> None:
+    workflow = NIGHTLY_WORKFLOW.read_text(encoding="utf-8")
+    required_tests = (
+        "tests/test_experimental_namespace.py",
+        "tests/test_cross_language_contracts.py",
+        "tests/test_zk_attestation_fuzz.py",
+        "tests/test_cyber_physical_halt_contract.py",
+    )
+
+    assert "Run property contract gates" in workflow
+    for test_path in required_tests:
+        assert test_path in workflow
