@@ -92,6 +92,59 @@ session = kernel.stream_tokens(
 event_id = session.safety_events[-1].event_id if session.safety_events else ""
 ```
 
+## Approval-gated correction
+
+Use `CorrectionLoop` when a halted response needs a corrected candidate rather
+than a retry. The loop consumes verifier signals, emits an unreleased
+`CorrectionProposal`, and releases candidate text only after both conditions
+hold:
+
+- cross-verifier consensus returns `allow`
+- an operator supplies a non-empty approval ID
+
+```python
+from director_ai.core import CorrectionLoop
+from director_ai.core.guard_control import RiskEnvelope, VerifierSignal
+from director_ai.core.scoring.consensus import CrossVerifierConsensus
+
+loop = CorrectionLoop(
+    consensus=CrossVerifierConsensus(),
+    risk_envelope=RiskEnvelope(
+        action_category="text",
+        reversibility="reversible",
+        domain="regulated",
+        calibrated_threshold=0.65,
+        no_go_threshold=0.9,
+    ),
+    policy_id="policy.correction.regulated",
+)
+
+proposal = loop.propose(
+    candidate_text="Corrected response text.",
+    signals=[
+        VerifierSignal(
+            verifier="nli",
+            modality="text",
+            score=0.08,
+            verdict="supported",
+            confidence_low=0.03,
+            confidence_high=0.14,
+            evidence_refs=("kb://fact-1",),
+        )
+    ],
+    evidence_refs=("trace://halt-7",),
+    structured_recovery=session.structured_recovery,
+)
+
+approved = loop.approve(proposal, approval_id="review-20260513-001")
+released_text = loop.release(approved)
+```
+
+The default audit payload is tenant-safe: `proposal.to_dict()` excludes the
+generated candidate text and excludes raw structured-recovery payloads. Physical
+or irreversible actions are rejected at proposal time and must remain in
+human-review or no-go handling.
+
 ## Temporary policy fallback
 
 Use temporary fallback only with an expiry:

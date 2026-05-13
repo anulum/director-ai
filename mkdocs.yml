@@ -173,6 +173,7 @@ nav:
       - guard / score / get_score: api/guard.md
       - CoherenceScorer: api/scorer.md
       - StreamingKernel: api/streaming.md
+      - Correction Loop: api/correction-loop.md
       - CoherenceAgent: api/agent.md
       - VectorGroundTruthStore: api/vector-store.md
       - BatchProcessor: api/batch.md
