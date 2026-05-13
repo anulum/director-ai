@@ -226,6 +226,18 @@ linearly with the number of tenants represented in the flush window.
 - Enable `InputSanitizer` to filter prompt injection attempts
 - Audit all rejections via `AuditLogger`
 
+### Experimental Hooks
+
+Keep experimental hook packages disabled for live deployments unless they run
+behind a separately isolated service boundary with operator review. This
+includes `meta_guard`, `self_evolving`, `continual_adversarial`, and adjacent
+research surfaces that can adapt prompts, policies, adversarial examples, or
+runtime decisions.
+
+For production use, route these hooks through a non-serving evaluation lane
+first. Promote a hook only after replay tests, tenant-safe audit logging,
+rollback instructions, and human review are in place for the deployment.
+
 ## Production Checklist
 
 Before going live, verify each item:

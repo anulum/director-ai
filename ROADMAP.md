@@ -433,7 +433,7 @@ Last updated: 2026-04-30
   simulation libraries, and physical adapters.
 - [x] Add timing side-channel fuzz tests for ReviewQueue batching so coherence
   score latency cannot be inferred from batch size or tenant mix.
-- [ ] Document that `meta_guard`, `self_evolving`, `continual_adversarial`, and
+- [x] Document that `meta_guard`, `self_evolving`, `continual_adversarial`, and
   similar experimental hooks must not be enabled for live deployments without
   isolation and human review.
 - [ ] Extend the nightly red-team workflow with property-based tests across the
