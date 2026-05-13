@@ -47,6 +47,12 @@ payload = loop.release(approved)
 `release()` returns the approved proposal payload for an external deployment
 controller. It does not mutate runtime configuration.
 
+The production contract is intentionally one-way: reviewed feedback can create
+calibration or LoRA training proposals, but only a separate human-reviewed
+deployment controller may apply those payloads. Keep the reviewed feedback
+dataset, approval record, rollback ID, and released payload together in the
+operator audit trail.
+
 ## Full API
 
 ::: director_ai.core.self_evolving.guard_loop.SelfImprovingGuardLoop

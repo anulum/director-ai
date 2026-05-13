@@ -453,7 +453,7 @@ Last updated: 2026-04-30
 ### Future Differentiators (Planned)
 - [x] Prototype native inference-server hooks for vLLM, TGI, and llama.cpp so the
   guard can intervene before unsafe tokens are sampled.
-- [ ] Design a human-reviewed self-improving guard loop from calibration feedback
+- [x] Design a human-reviewed self-improving guard loop from calibration feedback
   into LoRA fine-tuning jobs.
 - [ ] Prototype predictive pre-halt intervention through native inference hooks
   that bias next-token candidates away from low-coherence continuations before
