@@ -144,6 +144,38 @@ proposal = loop.propose_calibration_update(
 The loop does not mutate runtime configuration, submit training jobs, or promote
 models. It creates an auditable proposal for an external deployment controller.
 
+## Synthetic Distillation
+
+Synthetic examples can improve hard-negative coverage only when they preserve
+source provenance. Use `SyntheticDistillationBuilder` to derive deterministic
+examples from reviewed feedback events, then attach a
+`SyntheticDistillationManifest` to the training proposal.
+
+```python
+from director_ai.core.self_evolving import (
+    SyntheticDistillationBuilder,
+    SyntheticDistillationManifest,
+)
+
+builder = SyntheticDistillationBuilder(generator_id="deterministic-v1")
+examples = builder.generate(
+    reviewed_events,
+    reviewer_id="reviewer-passport-1",
+    seed=123,
+    max_examples=32,
+)
+manifest = SyntheticDistillationManifest.from_examples(
+    examples=examples,
+    real_event_count=real_event_count,
+    manifest_id="distill-20260513-a",
+)
+```
+
+Synthetic rows stay marked `synthetic=True` and
+`benchmark_evidence=False`. Keep benchmark reports split into real, synthetic,
+and mixed sets so generated examples are never presented as real measured
+evidence.
+
 ## Calibration Report
 
 ```python

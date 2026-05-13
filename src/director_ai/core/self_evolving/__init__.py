@@ -59,6 +59,11 @@ from .guard_loop import (
     ReviewedFeedbackManifest,
     SelfImprovingGuardLoop,
 )
+from .synthetic_distillation import (
+    SyntheticDistillationBuilder,
+    SyntheticDistillationManifest,
+    SyntheticExample,
+)
 from .trainer import (
     GuardrailTrainer,
     LoraGuardrailTrainer,
@@ -83,5 +88,8 @@ __all__ = [
     "ReviewedFeedbackManifest",
     "SelfEvolver",
     "SelfImprovingGuardLoop",
+    "SyntheticDistillationBuilder",
+    "SyntheticDistillationManifest",
+    "SyntheticExample",
     "TrainedGuardrail",
 ]
