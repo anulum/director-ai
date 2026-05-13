@@ -211,3 +211,153 @@ def test_training_plan_rejects_dataset_uri_with_embedded_credentials():
             base_model_ref="factcg-deberta-v3-large",
             schedule_id="nightly-reviewed-feedback",
         )
+
+
+def test_synthetic_example_validates_prompt_generator_and_includes_text_on_request():
+    with pytest.raises(ValueError, match="prompt"):
+        SyntheticExample(
+            prompt="",
+            response="synthetic response",
+            label="unsafe",
+            source_event_ids=("sevt-1",),
+            reviewer_id="reviewer-passport-1",
+            generator_id="deterministic-v1",
+            seed=17,
+        )
+    with pytest.raises(ValueError, match="generator_id"):
+        SyntheticExample(
+            prompt="synthetic prompt",
+            response="synthetic response",
+            label="unsafe",
+            source_event_ids=("sevt-1",),
+            reviewer_id="reviewer-passport-1",
+            generator_id="",
+            seed=17,
+        )
+
+    example = SyntheticExample(
+        prompt="One   Mixed CASE prompt",
+        response="synthetic response",
+        label="unsafe",
+        source_event_ids=("sevt-1",),
+        reviewer_id="reviewer-passport-1",
+        generator_id="deterministic-v1",
+        seed=17,
+    )
+
+    assert example.dedupe_key == "one mixed case prompt"
+    assert example.to_dict(include_generated_text=True)["prompt"].startswith("One")
+
+
+def test_distillation_manifest_and_plan_validate_counts_and_flags():
+    example = SyntheticExample(
+        prompt="unique synthetic prompt",
+        response="",
+        label="unsafe",
+        source_event_ids=("sevt-1",),
+        reviewer_id="reviewer-passport-1",
+        generator_id="deterministic-v1",
+        seed=17,
+    )
+    manifest = SyntheticDistillationManifest.from_examples(
+        examples=[example],
+        real_event_count=0,
+        manifest_id="distill-1",
+    )
+
+    with pytest.raises(ValueError, match="examples"):
+        SyntheticDistillationManifest.from_examples(
+            examples=[],
+            real_event_count=0,
+            manifest_id="distill-empty",
+        )
+    with pytest.raises(ValueError, match="manifest_id"):
+        SyntheticDistillationManifest("", 1, 0, {}, ("sevt-1",), ("gen",))
+    with pytest.raises(ValueError, match="synthetic_event_count"):
+        SyntheticDistillationManifest("distill-1", 0, 0, {}, ("sevt-1",), ("gen",))
+    with pytest.raises(ValueError, match="real_event_count"):
+        SyntheticDistillationManifest("distill-1", 1, -1, {}, ("sevt-1",), ("gen",))
+    with pytest.raises(ValueError, match="benchmark evidence"):
+        SyntheticDistillationManifest(
+            "distill-1",
+            1,
+            0,
+            {},
+            ("sevt-1",),
+            ("gen",),
+            benchmark_evidence=True,
+        )
+    with pytest.raises(ValueError, match="examples"):
+        SyntheticDistillationPlan((), manifest, object())  # type: ignore[arg-type]
+
+
+def test_builder_validates_generation_and_training_plan_arguments():
+    with pytest.raises(ValueError, match="generator_id"):
+        SyntheticDistillationBuilder(generator_id="")
+
+    builder = SyntheticDistillationBuilder(generator_id="deterministic-v1")
+    with pytest.raises(ValueError, match="reviewer_id"):
+        builder.generate(
+            _reviewed_events(),
+            reviewer_id="",
+            seed=1,
+            max_examples=1,
+        )
+    with pytest.raises(ValueError, match="max_examples"):
+        builder.generate(
+            _reviewed_events(),
+            reviewer_id="reviewer-passport-1",
+            seed=1,
+            max_examples=0,
+        )
+
+    invalid_plan_args = [
+        {"dataset_uri": ""},
+        {"output_uri": ""},
+        {"base_model_ref": ""},
+        {"schedule_id": ""},
+        {"output_uri": "https://user@example.test/out"},
+    ]
+    for override in invalid_plan_args:
+        kwargs = {
+            "reviewer_id": "reviewer-passport-1",
+            "seed": 123,
+            "max_examples": 3,
+            "real_event_count": 4,
+            "manifest_id": "distill-20260513-a",
+            "dataset_uri": "env://DIRECTOR_SYNTHETIC_DISTILLATION_DATASET",
+            "output_uri": "env://DIRECTOR_SYNTHETIC_DISTILLATION_OUTPUT",
+            "base_model_ref": "factcg-deberta-v3-large",
+            "schedule_id": "nightly-reviewed-feedback",
+            **override,
+        }
+        with pytest.raises(ValueError):
+            builder.build_training_plan(_reviewed_events(), **kwargs)
+
+
+def test_builder_handles_single_token_prompts_and_deduplicates_generated_rows():
+    builder = SyntheticDistillationBuilder(generator_id="deterministic-v1")
+    events = [
+        FeedbackEvent(
+            prompt="single",
+            response="",
+            label="unsafe",
+            metadata={"event_id": "sevt-1", "reviewer_id": "reviewer-passport-1"},
+        ),
+        FeedbackEvent(
+            prompt="single",
+            response="",
+            label="unsafe",
+            metadata={"event_id": "sevt-2", "reviewer_id": "reviewer-passport-1"},
+        ),
+    ]
+
+    examples = builder.generate(
+        events,
+        reviewer_id="reviewer-passport-1",
+        seed=1,
+        max_examples=2,
+    )
+
+    assert len(examples) == 1
+    assert examples[0].prompt == "synthetic reviewed variant: single"

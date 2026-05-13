@@ -1,0 +1,17 @@
+{
+  "benchmark": "finance_domain",
+  "financebench": {
+    "domain": "finance",
+    "dataset": "FinanceBench",
+    "total": 150,
+    "true_positives": 0,
+    "false_positives": 150,
+    "true_negatives": 0,
+    "false_negatives": 0,
+    "catch_rate": 0.0,
+    "precision": 0.0,
+    "fpr": 1.0,
+    "f1": 0.0,
+    "avg_latency_ms": 3938.08
+  }
+}

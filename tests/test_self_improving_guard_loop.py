@@ -13,7 +13,9 @@ import pytest
 from director_ai.core.guard_control import RiskEnvelope
 from director_ai.core.self_evolving import (
     FeedbackEvent,
+    GuardLoopProposal,
     InMemoryFeedbackStore,
+    ReviewedFeedbackManifest,
     SelfImprovingGuardLoop,
 )
 
@@ -183,3 +185,190 @@ def test_manifest_rejects_unreviewed_feedback():
 
     with pytest.raises(ValueError, match="reviewer_id"):
         loop.build_manifest(source_ref="feedback://missing-reviewer")
+
+
+def test_guard_loop_validates_required_identifiers_and_empty_feedback():
+    with pytest.raises(ValueError, match="policy_id"):
+        SelfImprovingGuardLoop(
+            store=_store(),
+            risk_envelope=_envelope(),
+            policy_id="",
+        )
+
+    loop = SelfImprovingGuardLoop(
+        store=InMemoryFeedbackStore(),
+        risk_envelope=_envelope(),
+        policy_id="policy.self_improving.regulated",
+    )
+    with pytest.raises(ValueError, match="source_ref"):
+        loop.build_manifest(source_ref="")
+    with pytest.raises(ValueError, match="reviewed events"):
+        loop.build_manifest(source_ref="feedback://empty")
+
+
+def test_guard_loop_rejects_invalid_calibration_inputs():
+    loop = SelfImprovingGuardLoop(
+        store=_store(),
+        risk_envelope=_envelope(),
+        policy_id="policy.self_improving.regulated",
+    )
+
+    invalid_calls = [
+        {"current_threshold": -0.1},
+        {"candidate_threshold": 1.1},
+        {"confidence_low": 0.8, "confidence_high": 0.2},
+        {"max_interval_width": 1.1},
+        {"min_feedback": 0},
+    ]
+    for override in invalid_calls:
+        kwargs = {
+            "source_ref": "feedback://recent-reviewed",
+            "current_threshold": 0.5,
+            "candidate_threshold": 0.6,
+            "confidence_low": 0.4,
+            "confidence_high": 0.6,
+            "rollback_id": "threshold-profile-rollback",
+            "min_feedback": 16,
+            "max_interval_width": 0.2,
+            **override,
+        }
+        with pytest.raises(ValueError):
+            loop.propose_calibration_update(**kwargs)
+
+
+def test_guard_loop_warns_for_insufficient_feedback_and_training_regression():
+    loop = SelfImprovingGuardLoop(
+        store=_store(n_each=1),
+        risk_envelope=_envelope(),
+        policy_id="policy.self_improving.regulated",
+    )
+
+    calibration = loop.propose_calibration_update(
+        source_ref="feedback://small-reviewed",
+        current_threshold=0.55,
+        candidate_threshold=0.56,
+        confidence_low=0.5,
+        confidence_high=0.57,
+        rollback_id="threshold-profile-rollback",
+        min_feedback=32,
+    )
+    training = loop.propose_lora_job(
+        source_ref="feedback://small-reviewed",
+        dataset_uri="env://DIRECTOR_REVIEWED_FEEDBACK_DATASET",
+        base_model_ref="registry://guard-base@sha256:abc",
+        rollback_id="guard-model-v12",
+        heldout_score=0.86,
+        baseline_score=0.88,
+        min_improvement=0.02,
+        min_feedback=1,
+    )
+
+    assert calibration.guard_decision.reason == "self_improvement_insufficient_feedback"
+    assert training.guard_decision.reason == "self_improvement_heldout_regression"
+    assert training.guard_decision.risk_score == pytest.approx(0.04)
+
+
+def test_guard_loop_rejects_invalid_training_inputs_and_serialises_event():
+    loop = SelfImprovingGuardLoop(
+        store=_store(),
+        risk_envelope=_envelope(),
+        policy_id="policy.self_improving.regulated",
+    )
+
+    invalid_calls = [
+        {"dataset_uri": ""},
+        {"base_model_ref": ""},
+        {"heldout_score": -0.1},
+        {"baseline_score": 1.1},
+        {"min_improvement": -0.01},
+        {"min_feedback": 0},
+    ]
+    for override in invalid_calls:
+        kwargs = {
+            "source_ref": "feedback://recent-reviewed",
+            "dataset_uri": "env://DIRECTOR_REVIEWED_FEEDBACK_DATASET",
+            "base_model_ref": "registry://guard-base@sha256:abc",
+            "rollback_id": "guard-model-v12",
+            "heldout_score": 0.91,
+            "baseline_score": 0.88,
+            **override,
+        }
+        with pytest.raises(ValueError):
+            loop.propose_lora_job(**kwargs)
+
+    proposal = loop.propose_lora_job(
+        source_ref="feedback://recent-reviewed",
+        dataset_uri="env://DIRECTOR_REVIEWED_FEEDBACK_DATASET",
+        base_model_ref="registry://guard-base@sha256:abc",
+        rollback_id="guard-model-v12",
+        heldout_score=0.91,
+        baseline_score=0.88,
+        min_feedback=16,
+    )
+    event = proposal.to_safety_event(hook_id="guard.loop", tenant_id="tenant-a")
+
+    assert event.hook_id == "guard.loop"
+    assert event.tenant_id == "tenant-a"
+
+
+def test_guard_loop_dataclasses_reject_invalid_states():
+    manifest = ReviewedFeedbackManifest(
+        manifest_id="manifest-1",
+        source_ref="feedback://reviewed",
+        event_count=1,
+        label_counts={"unsafe": 1},
+        reviewer_ids=("reviewer-1",),
+        event_refs=("sevt-1",),
+    )
+    decision = loop_decision = (
+        SelfImprovingGuardLoop(
+            store=_store(),
+            risk_envelope=_envelope(),
+            policy_id="policy.self_improving.regulated",
+        )
+        .propose_calibration_update(
+            source_ref="feedback://recent-reviewed",
+            current_threshold=0.55,
+            candidate_threshold=0.56,
+            confidence_low=0.5,
+            confidence_high=0.57,
+            rollback_id="threshold-profile-rollback",
+            min_feedback=16,
+        )
+        .guard_decision
+    )
+
+    with pytest.raises(ValueError, match="manifest_id"):
+        ReviewedFeedbackManifest("", "feedback://reviewed", 1, {}, (), ("sevt-1",))
+    with pytest.raises(ValueError, match="source_ref"):
+        ReviewedFeedbackManifest("manifest-1", "", 1, {}, (), ("sevt-1",))
+    with pytest.raises(ValueError, match="event_count"):
+        ReviewedFeedbackManifest("manifest-1", "feedback://reviewed", 0, {}, (), ())
+    with pytest.raises(ValueError, match="proposal_id"):
+        GuardLoopProposal("", "calibration_update", manifest, "rollback", decision, {})
+    with pytest.raises(ValueError, match="unsupported proposal_type"):
+        GuardLoopProposal("proposal-1", "bad", manifest, "rollback", decision, {})  # type: ignore[arg-type]
+    with pytest.raises(ValueError, match="rollback_id"):
+        GuardLoopProposal(
+            "proposal-1", "calibration_update", manifest, "", decision, {}
+        )
+    with pytest.raises(ValueError, match="must not submit"):
+        GuardLoopProposal(
+            "proposal-1",
+            "calibration_update",
+            manifest,
+            "rollback",
+            loop_decision,
+            {},
+            submitted=True,
+        )
+    with pytest.raises(ValueError, match="approval_id"):
+        GuardLoopProposal(
+            "proposal-1",
+            "calibration_update",
+            manifest,
+            "rollback",
+            decision,
+            {},
+            approved=True,
+        )

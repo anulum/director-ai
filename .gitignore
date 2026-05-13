@@ -165,6 +165,9 @@ benchmarks/results/*
 # The orchestrator schema doc lives under benchmarks/results/ so
 # every generated result is next to the contract it adheres to.
 !benchmarks/results/SCHEMA.md
+!benchmarks/results/medical_eval.json
+!benchmarks/results/finance_eval.json
+!benchmarks/results/legal_eval.json
 benchmarks/.cache/
 benchmarks/*.jsonl
 benchmarks/forge_ab_results.json

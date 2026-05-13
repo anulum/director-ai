@@ -1,0 +1,17 @@
+{
+  "benchmark": "medical_domain",
+  "pubmedqa": {
+    "domain": "medical",
+    "dataset": "PubMedQA",
+    "total": 1000,
+    "true_positives": 448,
+    "false_positives": 552,
+    "true_negatives": 0,
+    "false_negatives": 0,
+    "catch_rate": 1.0,
+    "precision": 0.448,
+    "fpr": 1.0,
+    "f1": 0.6188,
+    "avg_latency_ms": 287.88
+  }
+}

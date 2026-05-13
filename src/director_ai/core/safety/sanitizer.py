@@ -203,13 +203,20 @@ class InputSanitizer:
                 matches=["unicode"],
             )
 
-        # Rust fast path: use when no custom patterns or allowlist
+        base64_payload = _contains_base64_payload(text)
+
+        # Rust fast path: use when no custom patterns or allowlist.  Base64
+        # detection stays in Python so padding and validation policy remain
+        # identical across wheel and fallback deployments.
         if (
             _RUST_SANITIZER
             and not self._allowlist
             and len(self._patterns) == len(_INJECTION_PATTERNS)
         ):
             clamped, matched = rust_sanitizer_score(text)
+            if base64_payload and "base64_payload" not in matched:
+                matched = [*matched, "base64_payload"]
+                clamped = min(1.0, clamped + self._weights["base64_payload"])
             blocked = clamped >= self.block_threshold
             return SanitizeResult(
                 blocked=blocked,
@@ -223,7 +230,7 @@ class InputSanitizer:
         allowlisted = self._is_allowlisted(text)
         py_matched: list[str] = []
         total = 0.0
-        if _contains_base64_payload(text):
+        if base64_payload:
             weight = self._weights["base64_payload"]
             if allowlisted:
                 weight *= 0.1  # reduce but don't skip — prevents full bypass
@@ -298,6 +305,11 @@ def _is_base64_payload_token(token: str) -> bool:
         return False
     if "=" in token and not re.fullmatch(r"[A-Za-z0-9+/]+={0,2}", token):
         return False
+    if token.endswith("="):
+        # Padded long tokens are rare in natural prose and are frequently used
+        # for payload smuggling. Treat malformed padding as suspicious rather
+        # than spending cycles trying to repair attacker-controlled input.
+        return True
     padded = token + ("=" * ((4 - len(token) % 4) % 4))
     try:
         decoded = base64.b64decode(padded, validate=True)
@@ -305,7 +317,5 @@ def _is_base64_payload_token(token: str) -> bool:
         return False
     if len(decoded) < 32:
         return False
-    if token.endswith("="):
-        return True
     printable = sum(byte in b"\n\r\t" or 32 <= byte <= 126 for byte in decoded)
     return printable / len(decoded) >= 0.85
