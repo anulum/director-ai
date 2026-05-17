@@ -142,10 +142,12 @@ The current evidence placeholder is `benchmarks/lite_scorer_v2_evidence_packet.t
 all evidence statuses remain `pending` until a trained student artefact is
 evaluated.
 
-After training and measuring a student artefact, record the evidence packet with
-`tools/record_lite_scorer_v2_evidence.py`. The recorder hashes the student,
-teacher, and ONNX artefacts, writes the held-out evaluation and quantised latency
-measurements, and re-runs the Lite Scorer v2 validator before keeping the packet.
+After training a student artefact, measure it with
+`tools/eval_lite_scorer_v2.py`, then record the evidence packet with
+`tools/record_lite_scorer_v2_evidence.py`. The evaluator calculates held-out
+balanced accuracy, threshold, and latency percentiles. The recorder hashes the
+student, teacher, and ONNX artefacts, writes the measured values, and re-runs the
+Lite Scorer v2 validator before keeping the packet.
 
 ## Customizing Weights
 
