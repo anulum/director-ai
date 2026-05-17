@@ -158,6 +158,9 @@ only; it does not mark the evidence packet as recorded or make any public score
 claim. `tools/build_lite_scorer_v2_heldout.py` builds the held-out JSONL from
 the local evaluation split with deterministic sampling, balanced supported and
 unsupported labels, source counts, and a SHA-256 provenance manifest.
+`training/train_distillation.py` records the deterministic training seed,
+selected row counts, model parameter counts, device, and claim boundary in
+`training_run_manifest.json` inside the student output directory.
 
 ## Customizing Weights
 

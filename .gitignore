@@ -196,6 +196,7 @@ ckpts/
 !/training/data_pipeline.py
 !/training/distil_factcg.py
 !/training/distil_v5_cloud.py
+!/training/train_distillation.py
 !/training/Dockerfile.distil
 !/training/Dockerfile.benchmarks
 !/training/launch_cloud.sh

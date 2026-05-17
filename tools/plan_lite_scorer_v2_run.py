@@ -52,6 +52,9 @@ REQUIRED_INTS = {
     "heldout_target_rows": 2,
     "heldout_seed": 0,
     "heldout_min_sources": 1,
+    "training_seed": 0,
+    "eval_limit": 1,
+    "num_workers": 0,
 }
 REQUIRED_FLOATS = {
     "temperature": 0.0,
@@ -263,6 +266,12 @@ def _build_commands(data: dict[str, Any]) -> list[dict[str, list[str] | str]]:
         _float_arg(data, "alpha"),
         "--lr",
         _float_arg(data, "learning_rate"),
+        "--seed",
+        _int_arg(data, "training_seed"),
+        "--eval-limit",
+        _int_arg(data, "eval_limit"),
+        "--num-workers",
+        _int_arg(data, "num_workers"),
         "--summ-target",
         _int_arg(data, "summ_target"),
         "--general-target",

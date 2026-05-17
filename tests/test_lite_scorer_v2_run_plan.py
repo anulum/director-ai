@@ -64,6 +64,9 @@ def _write_manifest(root: Path, **overrides: object) -> Path:
         "temperature": 3.0,
         "alpha": 0.5,
         "learning_rate": 0.00005,
+        "training_seed": 20260518,
+        "eval_limit": 5000,
+        "num_workers": 2,
         "summ_target": 15000,
         "general_target": 15000,
         "latency_sample_count": 100,
@@ -138,6 +141,9 @@ def test_lite_scorer_v2_run_plan_emits_ordered_argv_commands(tmp_path: Path) -> 
     assert "--teacher" in train_argv
     assert "--student" in train_argv
     assert "--output-dir" in train_argv
+    assert "--seed" in train_argv
+    assert "--eval-limit" in train_argv
+    assert "--num-workers" in train_argv
     assert commands[2]["argv"] == [
         "uv",
         "run",
