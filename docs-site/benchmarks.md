@@ -2,6 +2,12 @@
 
 Reproducible, measured results across accuracy, latency, false-positive rate, and end-to-end guardrail performance. All numbers from our test suite unless marked "(est.)".
 
+Benchmark fixtures that are not leaderboard claims are documented separately,
+including the [multilingual corpus](benchmarks/multilingual-corpus.md) and
+[FrontierFail seed packet](benchmarks/frontierfail-seed.md). Prompt-injection
+replication setup is tracked in the
+[PINT replication packet](benchmarks/pint-replication.md).
+
 ---
 
 ## NLI Accuracy — LLM-AggreFact (29,320 samples)

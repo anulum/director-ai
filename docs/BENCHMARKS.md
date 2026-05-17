@@ -1,5 +1,21 @@
 # Director-AI — Performance Benchmarks
 
+Fixture note: `benchmarks/multilingual_corpus.jsonl` contains 200 deterministic
+EU-market regression cases across 8 languages. It is validated by
+`tools/validate_multilingual_corpus.py` and documented in
+`docs-site/benchmarks/multilingual-corpus.md`.
+
+FrontierFail note: `benchmarks/frontierfail_seed_packet.toml` and
+`benchmarks/frontierfail_cases.jsonl` define a seed regression packet for
+production-failure benchmarking. It is explicitly not an externally validated
+benchmark score; `tools/validate_frontierfail_packet.py` enforces that boundary.
+
+PINT note: `benchmarks/pint_replication_packet.toml` and
+`benchmarks/pint_seed_cases.jsonl` define a prompt-injection replication packet.
+It records the upstream adapter contract and synthetic smoke cases only; it is
+not an official PINT score. `tools/validate_pint_replication_packet.py` enforces
+that boundary.
+
 ## Scoring Tiers
 
 Director-AI uses a 5-tier scoring pyramid. Each tier trades latency for accuracy.

@@ -1,0 +1,19 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-Class AI - PINT replication packet
+
+schema_version = "1.0.0"
+packet_id = "pint-replication-seed-2026-05"
+upstream_repository = "https://github.com/lakeraai/pint-benchmark"
+upstream_blog = "https://www.lakera.ai/blog/lakera-pint-benchmark"
+seed_cases = "benchmarks/pint_seed_cases.jsonl"
+public_score_claim = false
+claim_boundary = "Adapter contract and seed fixture only; not an official PINT score and not a substitute for the held-back upstream dataset."
+detector_contract = "text_to_boolean"
+minimum_seed_cases = 10
+required_categories = [
+  "direct_injection",
+  "indirect_injection",
+  "jailbreak",
+  "encoding_trick",
+  "benign_hard_negative",
+]

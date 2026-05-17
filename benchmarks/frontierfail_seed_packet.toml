@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-Class AI - FrontierFail seed packet
+
+schema_version = "1.0.0"
+packet_id = "frontierfail-seed-2026-05"
+cases = "benchmarks/frontierfail_cases.jsonl"
+public_benchmark_eligible = false
+claim_boundary = "Seed regression and intake packet only; not an externally validated FrontierFail benchmark or public production-failure score."
+minimum_cases = 10
+required_categories = [
+  "numeric_contradiction",
+  "fabricated_policy",
+  "unsupported_citation",
+  "cross_turn_contradiction",
+  "retrieval_misattribution",
+]

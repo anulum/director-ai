@@ -1,4 +1,11 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Hugging Face Space publish helper
 # Push demo files to HuggingFace Space.
 # Prerequisites: run `hf auth login` first.
 set -euo pipefail
@@ -17,7 +24,7 @@ cp "$SCRIPT_DIR/requirements.txt" "$TMP_DIR/requirements.txt"
 cp "$SCRIPT_DIR/README_HF.md" "$TMP_DIR/README.md"
 
 cd "$TMP_DIR"
-git add -A
+git add app.py requirements.txt README.md
 git diff --cached --stat
 
 echo ""

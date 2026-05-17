@@ -175,6 +175,9 @@ benchmarks/results/*
 !benchmarks/results/legal_eval.json
 benchmarks/.cache/
 benchmarks/*.jsonl
+!benchmarks/multilingual_corpus.jsonl
+!benchmarks/frontierfail_cases.jsonl
+!benchmarks/pint_seed_cases.jsonl
 benchmarks/forge_ab_results.json
 
 # =====================================================================

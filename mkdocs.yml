@@ -241,6 +241,7 @@ nav:
       - Operational Runbooks: deployment/runbooks.md
       - Helm Chart: deployment/helm.md
       - Observability Pack: deployment/observability.md
+      - Hugging Face Space: deployment/huggingface-space.md
   - Cookbook:
       - Legal: cookbook/legal.md
       - Medical: cookbook/medical.md
@@ -253,6 +254,10 @@ nav:
       - Agent Trajectory Preflight: cookbook/agent-trajectory-preflight.md
       - Case Studies: cookbook/case-studies.md
   - Benchmarks: benchmarks.md
+  - Benchmark Fixtures:
+      - Multilingual Corpus: benchmarks/multilingual-corpus.md
+      - FrontierFail Seed Packet: benchmarks/frontierfail-seed.md
+      - PINT Replication Packet: benchmarks/pint-replication.md
   - Tutorials: tutorials.md
   - Glossary: glossary.md
   - Changelog: changelog.md
