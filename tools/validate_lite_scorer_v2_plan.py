@@ -54,6 +54,8 @@ REQUIRED_EVIDENCE_FIELDS = {
 REQUIRED_STUDENTS = {"minilm_l6", "mobilebert", "distilbert"}
 ALLOWED_STATUS = {"design_ready", "training_ready", "validated"}
 ALLOWED_EVIDENCE_STATUS = {"pending", "recorded", "validated"}
+RECORDED_STATUS = {"recorded", "validated"}
+SHA256 = re.compile(r"^[0-9a-f]{64}$")
 UNVERIFIED_CLAIM = re.compile(
     r"(?:~\s*70\s*%\s*BA|70\s*%\s*BA|5\s*ms\s*CPU|5ms\s*CPU)",
     re.IGNORECASE,
@@ -112,6 +114,188 @@ def _validate_plan(data: dict[str, Any]) -> list[str]:
     return errors
 
 
+def _require_string(
+    packet: dict[str, Any],
+    label: Path,
+    status_key: str,
+    field: str,
+) -> list[str]:
+    value = packet.get(field)
+    if isinstance(value, str) and value.strip():
+        return []
+    return [f"{label}: {status_key} {packet[status_key]} requires {field}"]
+
+
+def _require_sha256(
+    packet: dict[str, Any],
+    label: Path,
+    status_key: str,
+    field: str,
+) -> list[str]:
+    value = packet.get(field)
+    if isinstance(value, str) and SHA256.fullmatch(value):
+        return []
+    return [f"{label}: {status_key} {packet[status_key]} requires {field}"]
+
+
+def _require_float_range(
+    packet: dict[str, Any],
+    label: Path,
+    status_key: str,
+    field: str,
+    *,
+    minimum: float,
+    maximum: float | None = None,
+) -> list[str]:
+    value = packet.get(field)
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        numeric = float(value)
+        if numeric >= minimum and (maximum is None or numeric <= maximum):
+            return []
+    return [f"{label}: {status_key} {packet[status_key]} requires {field}"]
+
+
+def _require_int_at_least(
+    packet: dict[str, Any],
+    label: Path,
+    status_key: str,
+    field: str,
+    minimum: int,
+) -> list[str]:
+    value = packet.get(field)
+    if isinstance(value, int) and not isinstance(value, bool) and value >= minimum:
+        return []
+    return [f"{label}: {status_key} {packet[status_key]} requires {field}"]
+
+
+def _validate_recorded_evidence(
+    packet: dict[str, Any],
+    label: Path,
+    minimum_real_eval_rows: int,
+) -> list[str]:
+    errors: list[str] = []
+
+    if packet["student_artifact_status"] in RECORDED_STATUS:
+        errors.extend(
+            _require_string(packet, label, "student_artifact_status", "student_candidate")
+        )
+        if packet.get("student_candidate") not in REQUIRED_STUDENTS:
+            errors.append(
+                f"{label}: student_artifact_status {packet['student_artifact_status']} requires student_candidate from {sorted(REQUIRED_STUDENTS)!r}"
+            )
+        errors.extend(
+            _require_string(
+                packet, label, "student_artifact_status", "student_artifact_path"
+            )
+        )
+        errors.extend(
+            _require_sha256(
+                packet, label, "student_artifact_status", "student_artifact_sha256"
+            )
+        )
+
+    if packet["teacher_artifact_status"] in RECORDED_STATUS:
+        errors.extend(
+            _require_string(
+                packet, label, "teacher_artifact_status", "teacher_artifact_path"
+            )
+        )
+        errors.extend(
+            _require_sha256(
+                packet, label, "teacher_artifact_status", "teacher_artifact_sha256"
+            )
+        )
+
+    if packet["heldout_eval_status"] in RECORDED_STATUS:
+        errors.extend(
+            _require_string(
+                packet, label, "heldout_eval_status", "heldout_eval_dataset"
+            )
+        )
+        errors.extend(
+            _require_int_at_least(
+                packet,
+                label,
+                "heldout_eval_status",
+                "heldout_eval_rows",
+                minimum_real_eval_rows,
+            )
+        )
+        errors.extend(
+            _require_float_range(
+                packet,
+                label,
+                "heldout_eval_status",
+                "heldout_eval_balanced_accuracy",
+                minimum=0.0,
+                maximum=1.0,
+            )
+        )
+        errors.extend(
+            _require_float_range(
+                packet,
+                label,
+                "heldout_eval_status",
+                "heldout_eval_threshold",
+                minimum=0.0,
+                maximum=1.0,
+            )
+        )
+
+    if packet["onnx_export_status"] in RECORDED_STATUS:
+        errors.extend(
+            _require_string(packet, label, "onnx_export_status", "onnx_artifact_path")
+        )
+        errors.extend(
+            _require_sha256(packet, label, "onnx_export_status", "onnx_artifact_sha256")
+        )
+
+    if packet["quantized_latency_status"] in RECORDED_STATUS:
+        errors.extend(
+            _require_string(
+                packet, label, "quantized_latency_status", "latency_backend"
+            )
+        )
+        errors.extend(
+            _require_string(packet, label, "quantized_latency_status", "latency_device")
+        )
+        errors.extend(
+            _require_int_at_least(
+                packet, label, "quantized_latency_status", "latency_sample_count", 100
+            )
+        )
+        errors.extend(
+            _require_float_range(
+                packet,
+                label,
+                "quantized_latency_status",
+                "latency_p50_ms",
+                minimum=1e-12,
+            )
+        )
+        errors.extend(
+            _require_float_range(
+                packet,
+                label,
+                "quantized_latency_status",
+                "latency_p95_ms",
+                minimum=1e-12,
+            )
+        )
+        p50 = packet.get("latency_p50_ms")
+        p95 = packet.get("latency_p95_ms")
+        if (
+            isinstance(p50, int | float)
+            and not isinstance(p50, bool)
+            and isinstance(p95, int | float)
+            and not isinstance(p95, bool)
+            and float(p95) < float(p50)
+        ):
+            errors.append(f"{label}: latency_p95_ms must be greater than latency_p50_ms")
+
+    return errors
+
+
 def _validate_evidence_packet(root: Path, data: dict[str, Any]) -> list[str]:
     packet_ref = data.get("evidence_packet")
     if not isinstance(packet_ref, str):
@@ -146,6 +330,9 @@ def _validate_evidence_packet(root: Path, data: dict[str, Any]) -> list[str]:
     ):
         if packet[key] not in ALLOWED_EVIDENCE_STATUS:
             errors.append(f"{label}: unsupported {key} {packet[key]!r}")
+    rows = data.get("minimum_real_eval_rows")
+    minimum_real_eval_rows = rows if isinstance(rows, int) else 1000
+    errors.extend(_validate_recorded_evidence(packet, label, minimum_real_eval_rows))
     return errors
 
 
