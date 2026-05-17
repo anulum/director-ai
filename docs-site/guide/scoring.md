@@ -146,8 +146,9 @@ After training a student artefact, measure it with
 `tools/eval_lite_scorer_v2.py`, then record the evidence packet with
 `tools/record_lite_scorer_v2_evidence.py`. The evaluator calculates held-out
 balanced accuracy, threshold, and latency percentiles. The recorder hashes the
-student, teacher, and ONNX artefacts, writes the measured values, and re-runs the
-Lite Scorer v2 validator before keeping the packet.
+student, teacher, and ONNX artefacts, can consume the evaluator JSON output via
+`--eval-result`, writes the measured values, and re-runs the Lite Scorer v2
+validator before keeping the packet.
 
 ## Customizing Weights
 

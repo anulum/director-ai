@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib.util
+import json
 import sys
 import tomllib
 from pathlib import Path
@@ -38,6 +39,9 @@ VALIDATOR_SPEC.loader.exec_module(VALIDATOR_MODULE)
 
 EvidenceRecord = RECORDER_MODULE.EvidenceRecord
 record_lite_scorer_v2_evidence = RECORDER_MODULE.record_lite_scorer_v2_evidence
+record_lite_scorer_v2_evidence_from_eval_result = (
+    RECORDER_MODULE.record_lite_scorer_v2_evidence_from_eval_result
+)
 validate_lite_scorer_v2_plan = VALIDATOR_MODULE.validate_lite_scorer_v2_plan
 
 
@@ -182,3 +186,53 @@ def test_lite_scorer_v2_evidence_recorder_rejects_impossible_latency(
     assert errors == [
         "benchmarks/lite_scorer_v2_evidence_packet.toml: latency_p95_ms must be greater than latency_p50_ms"
     ]
+
+
+def test_lite_scorer_v2_evidence_recorder_consumes_eval_result_json(
+    tmp_path: Path,
+) -> None:
+    _write_plan(tmp_path)
+    _write_public_claim_surfaces(tmp_path)
+    student, teacher, onnx = _write_artifacts(tmp_path)
+    eval_result = tmp_path / "benchmarks" / "results" / "lite_scorer_v2_eval.json"
+    eval_result.parent.mkdir(parents=True)
+    eval_result.write_text(
+        json.dumps(
+            {
+                "heldout_eval_dataset": "benchmarks/heldout/lite_scorer_v2.jsonl",
+                "heldout_eval_rows": 1500,
+                "heldout_eval_balanced_accuracy": 0.8125,
+                "heldout_eval_threshold": 0.57,
+                "latency_sample_count": 300,
+                "latency_p50_ms": 2.9,
+                "latency_p95_ms": 5.7,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    errors = record_lite_scorer_v2_evidence_from_eval_result(
+        root=tmp_path,
+        eval_result=eval_result,
+        student_candidate="minilm_l6",
+        student_artifact=student,
+        teacher_artifact=teacher,
+        onnx_artifact=onnx,
+        latency_backend="onnxruntime",
+        latency_device="cpu:amd-ryzen-9-7950x",
+    )
+
+    assert errors == []
+    packet = tomllib.loads(
+        (tmp_path / "benchmarks" / "lite_scorer_v2_evidence_packet.toml").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert packet["heldout_eval_rows"] == 1500
+    assert packet["heldout_eval_balanced_accuracy"] == 0.8125
+    assert packet["heldout_eval_threshold"] == 0.57
+    assert packet["latency_sample_count"] == 300
+    assert packet["latency_p50_ms"] == 2.9
+    assert packet["latency_p95_ms"] == 5.7
+    assert packet["student_artifact_sha256"] == _sha256(student)
+    assert validate_lite_scorer_v2_plan(tmp_path) == []

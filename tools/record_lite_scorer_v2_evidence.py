@@ -12,11 +12,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import importlib.util
+import json
 import sys
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import cast
+from typing import Any, cast
 
 TOOLS_DIR = Path(__file__).resolve().parent
 VALIDATOR = TOOLS_DIR / "validate_lite_scorer_v2_plan.py"
@@ -33,6 +34,15 @@ validate_lite_scorer_v2_plan = cast(
     Callable[[Path], list[str]],
     VALIDATOR_MODULE.validate_lite_scorer_v2_plan,
 )
+EVAL_RESULT_FIELDS = {
+    "heldout_eval_dataset",
+    "heldout_eval_rows",
+    "heldout_eval_balanced_accuracy",
+    "heldout_eval_threshold",
+    "latency_sample_count",
+    "latency_p50_ms",
+    "latency_p95_ms",
+}
 
 
 @dataclass(frozen=True)
@@ -191,28 +201,161 @@ def record_lite_scorer_v2_evidence(root: Path, record: EvidenceRecord) -> list[s
     return []
 
 
+def _load_eval_result(path: Path) -> tuple[dict[str, Any], list[str]]:
+    if not path.exists():
+        return {}, [f"{path}: eval result file does not exist"]
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        return {}, [f"{path}: invalid JSON: {exc}"]
+    if not isinstance(payload, dict):
+        return {}, [f"{path}: eval result must be a JSON object"]
+    missing = sorted(EVAL_RESULT_FIELDS - set(payload))
+    if missing:
+        return {}, [f"{path}: missing required fields {', '.join(missing)}"]
+    return payload, []
+
+
+def _number(payload: dict[str, Any], path: Path, field: str) -> tuple[float, list[str]]:
+    value = payload[field]
+    if isinstance(value, int | float) and not isinstance(value, bool):
+        return float(value), []
+    return 0.0, [f"{path}: {field} must be numeric"]
+
+
+def _integer(payload: dict[str, Any], path: Path, field: str) -> tuple[int, list[str]]:
+    value = payload[field]
+    if isinstance(value, int) and not isinstance(value, bool):
+        return value, []
+    return 0, [f"{path}: {field} must be an integer"]
+
+
+def record_lite_scorer_v2_evidence_from_eval_result(
+    *,
+    root: Path,
+    eval_result: Path,
+    student_candidate: str,
+    student_artifact: Path,
+    teacher_artifact: Path,
+    onnx_artifact: Path,
+    latency_backend: str,
+    latency_device: str,
+    output: Path = DEFAULT_EVIDENCE_PACKET,
+) -> list[str]:
+    payload, errors = _load_eval_result(eval_result)
+    if errors:
+        return errors
+
+    rows, row_errors = _integer(payload, eval_result, "heldout_eval_rows")
+    balanced_accuracy, ba_errors = _number(
+        payload,
+        eval_result,
+        "heldout_eval_balanced_accuracy",
+    )
+    threshold, threshold_errors = _number(
+        payload,
+        eval_result,
+        "heldout_eval_threshold",
+    )
+    latency_sample_count, sample_errors = _integer(
+        payload,
+        eval_result,
+        "latency_sample_count",
+    )
+    latency_p50_ms, p50_errors = _number(payload, eval_result, "latency_p50_ms")
+    latency_p95_ms, p95_errors = _number(payload, eval_result, "latency_p95_ms")
+    errors.extend(
+        row_errors
+        + ba_errors
+        + threshold_errors
+        + sample_errors
+        + p50_errors
+        + p95_errors
+    )
+    dataset = payload["heldout_eval_dataset"]
+    if not isinstance(dataset, str) or not dataset.strip():
+        errors.append(f"{eval_result}: heldout_eval_dataset must be a non-empty string")
+    if errors:
+        return errors
+
+    record = EvidenceRecord(
+        student_candidate=student_candidate,
+        student_artifact=student_artifact,
+        teacher_artifact=teacher_artifact,
+        heldout_eval_dataset=Path(dataset),
+        heldout_eval_rows=rows,
+        heldout_eval_balanced_accuracy=balanced_accuracy,
+        heldout_eval_threshold=threshold,
+        onnx_artifact=onnx_artifact,
+        latency_backend=latency_backend,
+        latency_device=latency_device,
+        latency_sample_count=latency_sample_count,
+        latency_p50_ms=latency_p50_ms,
+        latency_p95_ms=latency_p95_ms,
+        output=output,
+    )
+    return record_lite_scorer_v2_evidence(root, record)
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path, help="Repository root")
+    parser.add_argument("--eval-result", type=Path)
     parser.add_argument("--student-candidate", required=True, choices=sorted(REQUIRED_STUDENTS))
     parser.add_argument("--student-artifact", required=True, type=Path)
     parser.add_argument("--teacher-artifact", required=True, type=Path)
-    parser.add_argument("--heldout-eval-dataset", required=True, type=Path)
-    parser.add_argument("--heldout-eval-rows", required=True, type=int)
-    parser.add_argument("--heldout-eval-balanced-accuracy", required=True, type=float)
-    parser.add_argument("--heldout-eval-threshold", required=True, type=float)
+    parser.add_argument("--heldout-eval-dataset", type=Path)
+    parser.add_argument("--heldout-eval-rows", type=int)
+    parser.add_argument("--heldout-eval-balanced-accuracy", type=float)
+    parser.add_argument("--heldout-eval-threshold", type=float)
     parser.add_argument("--onnx-artifact", required=True, type=Path)
     parser.add_argument("--latency-backend", required=True)
     parser.add_argument("--latency-device", required=True)
-    parser.add_argument("--latency-sample-count", required=True, type=int)
-    parser.add_argument("--latency-p50-ms", required=True, type=float)
-    parser.add_argument("--latency-p95-ms", required=True, type=float)
+    parser.add_argument("--latency-sample-count", type=int)
+    parser.add_argument("--latency-p50-ms", type=float)
+    parser.add_argument("--latency-p95-ms", type=float)
     parser.add_argument("--output", type=Path, default=DEFAULT_EVIDENCE_PACKET)
     return parser
 
 
+def _missing_manual_args(args: argparse.Namespace) -> list[str]:
+    required = (
+        "heldout_eval_dataset",
+        "heldout_eval_rows",
+        "heldout_eval_balanced_accuracy",
+        "heldout_eval_threshold",
+        "latency_sample_count",
+        "latency_p50_ms",
+        "latency_p95_ms",
+    )
+    return [f"--{field.replace('_', '-')}" for field in required if getattr(args, field) is None]
+
+
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
+    if args.eval_result is not None:
+        errors = record_lite_scorer_v2_evidence_from_eval_result(
+            root=args.root,
+            eval_result=args.eval_result,
+            student_candidate=args.student_candidate,
+            student_artifact=args.student_artifact,
+            teacher_artifact=args.teacher_artifact,
+            onnx_artifact=args.onnx_artifact,
+            latency_backend=args.latency_backend,
+            latency_device=args.latency_device,
+            output=args.output,
+        )
+        if errors:
+            for error in errors:
+                print(error, file=sys.stderr)
+            return 1
+        print("lite_scorer_v2_evidence_recorded")
+        return 0
+
+    missing = _missing_manual_args(args)
+    if missing:
+        print(f"missing required arguments without --eval-result: {', '.join(missing)}", file=sys.stderr)
+        return 1
     record = EvidenceRecord(
         student_candidate=args.student_candidate,
         student_artifact=args.student_artifact,
