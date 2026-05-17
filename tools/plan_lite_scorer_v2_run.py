@@ -35,6 +35,8 @@ REQUIRED_STRINGS = {
     "onnx_output_dir",
     "onnx_artifact",
     "heldout_eval_dataset",
+    "heldout_source_dataset",
+    "heldout_manifest",
     "eval_result",
     "evidence_packet",
     "latency_backend",
@@ -47,6 +49,9 @@ REQUIRED_INTS = {
     "summ_target": 1,
     "general_target": 1,
     "latency_sample_count": 100,
+    "heldout_target_rows": 2,
+    "heldout_seed": 0,
+    "heldout_min_sources": 1,
 }
 REQUIRED_FLOATS = {
     "temperature": 0.0,
@@ -61,6 +66,8 @@ PATH_FIELDS = {
     "onnx_output_dir",
     "onnx_artifact",
     "heldout_eval_dataset",
+    "heldout_source_dataset",
+    "heldout_manifest",
     "eval_result",
     "evidence_packet",
 }
@@ -71,6 +78,8 @@ GENERATED_PATH_FIELDS = {
     "onnx_output_dir",
     "onnx_artifact",
     "heldout_eval_dataset",
+    "heldout_source_dataset",
+    "heldout_manifest",
     "eval_result",
     "evidence_packet",
 }
@@ -147,6 +156,13 @@ def _validate_paths(root: Path, data: dict[str, Any], label: str) -> list[str]:
         and not (root / script).is_file()
     ):
         errors.append(f"{label}: training_script does not exist")
+    heldout_source = data.get("heldout_source_dataset")
+    if (
+        isinstance(heldout_source, str)
+        and _is_safe_relative_path(heldout_source)
+        and not (root / heldout_source).exists()
+    ):
+        errors.append(f"{label}: heldout_source_dataset does not exist")
     return errors
 
 
@@ -173,6 +189,13 @@ def validate_lite_scorer_v2_run_manifest(
     quantise = data.get("quantise_onnx")
     if not isinstance(quantise, bool):
         errors.append(f"{label}: quantise_onnx must be boolean")
+    target_rows = data.get("heldout_target_rows")
+    if (
+        isinstance(target_rows, int)
+        and not isinstance(target_rows, bool)
+        and target_rows % 2 != 0
+    ):
+        errors.append(f"{label}: heldout_target_rows must be even")
     errors.extend(_validate_paths(root, data, label))
     return errors
 
@@ -199,6 +222,25 @@ def _float_arg(data: dict[str, Any], field: str) -> str:
 
 
 def _build_commands(data: dict[str, Any]) -> list[dict[str, list[str] | str]]:
+    build_heldout = [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "tools/build_lite_scorer_v2_heldout.py",
+        "--source",
+        _path(data, "heldout_source_dataset"),
+        "--output",
+        _path(data, "heldout_eval_dataset"),
+        "--manifest",
+        _path(data, "heldout_manifest"),
+        "--target-rows",
+        _int_arg(data, "heldout_target_rows"),
+        "--seed",
+        _int_arg(data, "heldout_seed"),
+        "--min-sources",
+        _int_arg(data, "heldout_min_sources"),
+    ]
     train = [
         "uv",
         "run",
@@ -283,6 +325,7 @@ def _build_commands(data: dict[str, Any]) -> list[dict[str, list[str] | str]]:
         _path(data, "evidence_packet"),
     ]
     return [
+        {"name": "build_heldout", "argv": build_heldout},
         {"name": "train", "argv": train},
         {"name": "export_onnx", "argv": export},
         {"name": "evaluate", "argv": evaluate},

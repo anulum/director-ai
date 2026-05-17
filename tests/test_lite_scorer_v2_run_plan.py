@@ -31,6 +31,7 @@ def _write_training_script(root: Path) -> None:
         "print('training placeholder')\n",
         encoding="utf-8",
     )
+    (root / "training" / "data" / "eval").mkdir(parents=True)
 
 
 def _write_manifest(root: Path, **overrides: object) -> Path:
@@ -48,6 +49,11 @@ def _write_manifest(root: Path, **overrides: object) -> Path:
         "onnx_output_dir": "MODELS/lite-scorer-v2/onnx",
         "onnx_artifact": "MODELS/lite-scorer-v2/onnx/model_quantized.onnx",
         "heldout_eval_dataset": "benchmarks/heldout/lite_scorer_v2.jsonl",
+        "heldout_source_dataset": "training/data/eval",
+        "heldout_manifest": "benchmarks/heldout/lite_scorer_v2.manifest.toml",
+        "heldout_target_rows": 1000,
+        "heldout_seed": 20260518,
+        "heldout_min_sources": 5,
         "eval_result": "benchmarks/results/lite_scorer_v2_eval.json",
         "evidence_packet": "benchmarks/lite_scorer_v2_evidence_packet.toml",
         "latency_backend": "onnxruntime",
@@ -95,6 +101,7 @@ def test_lite_scorer_v2_run_plan_emits_ordered_argv_commands(tmp_path: Path) -> 
     )
     commands = plan["commands"]
     assert [command["name"] for command in commands] == [
+        "build_heldout",
         "train",
         "export_onnx",
         "evaluate",
@@ -102,7 +109,26 @@ def test_lite_scorer_v2_run_plan_emits_ordered_argv_commands(tmp_path: Path) -> 
     ]
     assert all(isinstance(command["argv"], list) for command in commands)
     assert all("command" not in command for command in commands)
-    train_argv = commands[0]["argv"]
+    assert commands[0]["argv"] == [
+        "uv",
+        "run",
+        "--frozen",
+        "python",
+        "tools/build_lite_scorer_v2_heldout.py",
+        "--source",
+        "training/data/eval",
+        "--output",
+        "benchmarks/heldout/lite_scorer_v2.jsonl",
+        "--manifest",
+        "benchmarks/heldout/lite_scorer_v2.manifest.toml",
+        "--target-rows",
+        "1000",
+        "--seed",
+        "20260518",
+        "--min-sources",
+        "5",
+    ]
+    train_argv = commands[1]["argv"]
     assert train_argv[:4] == [
         "uv",
         "run",
@@ -112,7 +138,7 @@ def test_lite_scorer_v2_run_plan_emits_ordered_argv_commands(tmp_path: Path) -> 
     assert "--teacher" in train_argv
     assert "--student" in train_argv
     assert "--output-dir" in train_argv
-    assert commands[1]["argv"] == [
+    assert commands[2]["argv"] == [
         "uv",
         "run",
         "--frozen",
@@ -127,7 +153,7 @@ def test_lite_scorer_v2_run_plan_emits_ordered_argv_commands(tmp_path: Path) -> 
         "--quantize",
         "int8",
     ]
-    assert commands[3]["argv"][-2:] == [
+    assert commands[4]["argv"][-2:] == [
         "--output",
         "benchmarks/lite_scorer_v2_evidence_packet.toml",
     ]
@@ -155,6 +181,19 @@ def test_lite_scorer_v2_run_plan_rejects_path_traversal(tmp_path: Path) -> None:
     ]
 
 
+def test_lite_scorer_v2_run_plan_rejects_missing_heldout_source(
+    tmp_path: Path,
+) -> None:
+    _write_training_script(tmp_path)
+    manifest = _write_manifest(tmp_path, heldout_source_dataset="training/data/missing")
+
+    errors = validate_lite_scorer_v2_run_manifest(tmp_path, manifest)
+
+    assert errors == [
+        "benchmarks/lite_scorer_v2_run_manifest.toml: heldout_source_dataset does not exist"
+    ]
+
+
 def test_lite_scorer_v2_run_plan_omits_quantisation_flag_when_disabled(
     tmp_path: Path,
 ) -> None:
@@ -168,5 +207,5 @@ def test_lite_scorer_v2_run_plan_omits_quantisation_flag_when_disabled(
     plan, errors = build_lite_scorer_v2_run_plan(tmp_path, manifest)
 
     assert errors == []
-    assert "--quantize" not in plan["commands"][1]["argv"]
-    assert "MODELS/lite-scorer-v2/onnx/model.onnx" in plan["commands"][3]["argv"]
+    assert "--quantize" not in plan["commands"][2]["argv"]
+    assert "MODELS/lite-scorer-v2/onnx/model.onnx" in plan["commands"][4]["argv"]

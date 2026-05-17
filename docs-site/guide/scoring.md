@@ -152,9 +152,12 @@ validator before keeping the packet.
 
 The reproducible command plan is defined in
 `benchmarks/lite_scorer_v2_run_manifest.toml` and emitted by
-`tools/plan_lite_scorer_v2_run.py`. The planner prints train, ONNX export,
-held-out evaluation, and evidence-recording argv arrays only; it does not mark
-the evidence packet as recorded or make any public score claim.
+`tools/plan_lite_scorer_v2_run.py`. The planner prints held-out dataset build,
+train, ONNX export, held-out evaluation, and evidence-recording argv arrays
+only; it does not mark the evidence packet as recorded or make any public score
+claim. `tools/build_lite_scorer_v2_heldout.py` builds the held-out JSONL from
+the local evaluation split with deterministic sampling, balanced supported and
+unsupported labels, source counts, and a SHA-256 provenance manifest.
 
 ## Customizing Weights
 

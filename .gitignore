@@ -175,6 +175,7 @@ benchmarks/results/*
 !benchmarks/results/legal_eval.json
 benchmarks/.cache/
 benchmarks/*.jsonl
+benchmarks/heldout/
 !benchmarks/multilingual_corpus.jsonl
 !benchmarks/frontierfail_cases.jsonl
 !benchmarks/pint_seed_cases.jsonl
@@ -228,7 +229,7 @@ nohup.out
 # Auto-generated benchmark / analysis reports — never committed
 /reports/
 
-# Gemini Internal
+# Internal analysis reports
 docs/internal/gemini/
 
 # Multi-agent coordination metadata (local audit snapshot, never committed)
