@@ -1,0 +1,34 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Lite Scorer v2 reproducible run manifest
+
+schema_version = "1.0.0"
+plan_id = "lite-scorer-v2-run-plan"
+student_candidate = "minilm_l6"
+teacher_model = "training/output/deberta-v3-base-hallucination"
+teacher_artifact = "training/output/deberta-v3-base-hallucination/model.safetensors"
+student_base_model = "microsoft/MiniLM-L6-H384-uncased"
+training_script = "training/train_distillation.py"
+train_output_dir = "MODELS/lite-scorer-v2/student"
+student_artifact = "MODELS/lite-scorer-v2/student/model.safetensors"
+onnx_output_dir = "MODELS/lite-scorer-v2/onnx"
+onnx_artifact = "MODELS/lite-scorer-v2/onnx/model_quantized.onnx"
+heldout_eval_dataset = "benchmarks/heldout/lite_scorer_v2.jsonl"
+eval_result = "benchmarks/results/lite_scorer_v2_eval.json"
+evidence_packet = "benchmarks/lite_scorer_v2_evidence_packet.toml"
+latency_backend = "onnxruntime"
+latency_device = "cpu"
+epochs = 5
+batch_size = 32
+max_length = 256
+temperature = 3.0
+alpha = 0.5
+learning_rate = 0.00005
+summ_target = 15000
+general_target = 15000
+latency_sample_count = 100
+quantise_onnx = true

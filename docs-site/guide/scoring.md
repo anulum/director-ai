@@ -150,6 +150,12 @@ student, teacher, and ONNX artefacts, can consume the evaluator JSON output via
 `--eval-result`, writes the measured values, and re-runs the Lite Scorer v2
 validator before keeping the packet.
 
+The reproducible command plan is defined in
+`benchmarks/lite_scorer_v2_run_manifest.toml` and emitted by
+`tools/plan_lite_scorer_v2_run.py`. The planner prints train, ONNX export,
+held-out evaluation, and evidence-recording argv arrays only; it does not mark
+the evidence packet as recorded or make any public score claim.
+
 ## Customizing Weights
 
 Adjust the balance between logical and factual signals:
