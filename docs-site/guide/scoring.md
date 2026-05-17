@@ -123,13 +123,24 @@ scorer = CoherenceScorer(
 )
 ```
 
-### LiteScorer (CPU-only, ~65% accuracy)
+### LiteScorer (CPU-only heuristic baseline)
 
 Word overlap + length ratio + negation heuristics. <0.5 ms/pair, no dependencies.
 
 ```python
 scorer = CoherenceScorer(scorer_backend="lite")
 ```
+
+### Distilled NLI Lite
+
+The `nli-lite` backend is the Lite Scorer v2 distillation track. It is available
+as an experimental backend for local student artefacts and readiness testing,
+but public accuracy or latency claims require a held-out evaluation packet,
+ONNX export evidence, quantized latency evidence, and the validator gate in
+`tools/validate_lite_scorer_v2_plan.py`.
+The current evidence placeholder is `benchmarks/lite_scorer_v2_evidence_packet.toml`;
+all evidence statuses remain `pending` until a trained student artefact is
+evaluated.
 
 ## Customizing Weights
 

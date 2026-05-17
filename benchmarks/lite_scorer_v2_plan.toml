@@ -1,0 +1,20 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Lite Scorer v2 distillation readiness plan
+
+schema_version = "1.0.0"
+plan_id = "lite-scorer-v2-distillation"
+public_score_claim = false
+claim_boundary = "Design and readiness plan only; no public score claim until a held-out evaluation and latency packet are recorded."
+student_candidates = ["minilm_l6", "mobilebert", "distilbert"]
+teacher_artifact_required = true
+heldout_eval_required = true
+onnx_export_required = true
+quantized_latency_required = true
+minimum_real_eval_rows = 1000
+status = "design_ready"
+evidence_packet = "benchmarks/lite_scorer_v2_evidence_packet.toml"

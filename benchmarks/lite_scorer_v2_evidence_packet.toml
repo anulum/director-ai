@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Lite Scorer v2 evidence packet placeholder
+
+schema_version = "1.0.0"
+packet_id = "lite-scorer-v2-evidence"
+public_score_claim = false
+student_artifact_status = "pending"
+teacher_artifact_status = "pending"
+heldout_eval_status = "pending"
+onnx_export_status = "pending"
+quantized_latency_status = "pending"
+claim_boundary = "Evidence packet placeholder only; no public score claim until student artefact, teacher artefact, held-out evaluation, ONNX export, and quantized latency evidence are validated."

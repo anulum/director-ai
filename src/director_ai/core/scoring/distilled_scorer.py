@@ -5,12 +5,12 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Distilled lightweight NLI scorer
-"""Distilled NLI scorer: MiniLM-class model (~22M params) trained via
-knowledge distillation from FactCG-DeBERTa-v3-Large.
+"""Distilled NLI scorer for locally validated student artefacts.
 
 This is Tier 4 in the 5-tier scoring pyramid — between embedding
-similarity (Tier 3, ~65% BA) and full NLI (Tier 5, 75.6% BA). Target:
-~70% BA at 5ms latency on CPU via ONNX INT8.
+similarity and full NLI. Public accuracy and latency claims require a
+held-out evaluation packet plus ONNX and quantized latency evidence for
+the exact student artefact.
 
 The model is loaded from HuggingFace Hub (``anulum/director-ai-nli-lite``)
 or from a local path. ONNX Runtime is used for inference when available,
@@ -44,11 +44,10 @@ DEFAULT_DISTILLED_REVISION = "f88222676f64b698c1fcb394f4eeb8da40405027"
 
 
 class DistilledNLIBackend:
-    """Distilled MiniLM NLI scorer — ~70% BA at 5ms.
+    """Distilled NLI scorer for validated small-model artefacts.
 
-    Loads a small NLI model (MiniLM-L6-H384, ~22M params) distilled
-    from FactCG-DeBERTa-v3-Large. Supports ONNX Runtime (preferred)
-    and PyTorch fallback.
+    Loads a small NLI model distilled from a stronger NLI teacher.
+    Supports ONNX Runtime (preferred) and PyTorch fallback.
 
     Parameters
     ----------

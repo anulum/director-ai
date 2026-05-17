@@ -62,7 +62,7 @@ and quickstart must remain usable without these extras.
 |-------|---------|------|
 | `nli` | `pip install director-ai[nli]` | FactCG-DeBERTa-v3-Large NLI (75.6% per-ds mean BA, 14.6ms/pair ONNX GPU) |
 | `embed` | `pip install director-ai[embed]` | Embedding cosine-similarity scorer (~65% BA, 3ms CPU) |
-| `nli-lite` | `pip install director-ai[nli-lite]` | Distilled NLI (~70% BA, 5ms CPU, ONNX) |
+| `nli-lite` | `pip install director-ai[nli-lite]` | Experimental distilled NLI backend; production claims require a validated student artefact |
 | `minicheck` | `pip install director-ai[minicheck]` | MiniCheck alternative |
 | `onnx` | `pip install director-ai[onnx]` | ONNX Runtime inference (14.6ms/pair GPU, portable CPU fallback) |
 | `quantize` | `pip install director-ai[quantize]` | bitsandbytes 8-bit quantization |

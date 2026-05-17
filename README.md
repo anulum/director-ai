@@ -220,7 +220,7 @@ pip install "minicheck @ git+https://github.com/Liyan06/MiniCheck.git"
 | Tier | Backend | Accuracy | Latency | Install |
 |------|---------|----------|---------|---------|
 | **5** | NLI (FactCG) | **75.6% BA** | 14.6 ms | `[nli]` |
-| **4** | Distilled NLI (preview) | ~70% BA | 5 ms | `[nli-lite]` |
+| **4** | Distilled NLI (preview) | validation required | measured per artefact | `[nli-lite]` |
 | **3** | Embedding (bge-small) | ~65% BA | 3 ms | `[embed]` |
 | **2** | Rules engine (8 rules) | rule-based | <1 ms | — (base) |
 | **1** | Heuristic (lite) | ~55% BA | <1 ms | — (base) |

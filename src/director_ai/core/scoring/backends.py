@@ -240,7 +240,7 @@ except ImportError:  # pragma: no cover
 
 
 class DistilledNLIBackendWrapper(ScorerBackend):
-    """Wraps DistilledNLIBackend (~70% BA, 5ms, ONNX INT8)."""
+    """Wraps DistilledNLIBackend for validated local or remote artefacts."""
 
     def __init__(self, **kwargs) -> None:
         from .distilled_scorer import DistilledNLIBackend
