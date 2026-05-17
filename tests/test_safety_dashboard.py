@@ -16,8 +16,10 @@ from director_ai.ui.safety_dashboard import (
     EVIDENCE_COLUMNS,
     SOURCE_COLUMNS,
     TENANT_COLUMNS,
+    TrustControl,
     build_retune_guidance,
     build_safety_dashboard,
+    build_trust_console_report,
     launch_safety_dashboard,
     parse_dashboard_records,
 )
@@ -409,6 +411,88 @@ class TestSafetyDashboard:
             "Halt-rate alert threshold",
             "False-positive alert threshold",
         ]
+
+
+class TestTrustConsole:
+    def test_report_is_tenant_safe_and_excludes_raw_payload_fields(self):
+        events = _line(
+            {
+                "event_id": "e1",
+                "tenant_id": "tenant-a",
+                "timestamp": "2026-05-17T12:00:00Z",
+                "policy_decision": "halt",
+                "halt_reason": "contradiction",
+                "observed_score": 0.19,
+                "trace_attribution": {"fact_source": "kb://policy-v4"},
+                "tenant_safe_explanation": "Refresh the policy source.",
+                "prompt": "raw user prompt must not leave the tenant",
+                "response": "raw model answer must not leave the tenant",
+                "customer_email": "jane@example.com",
+            },
+        )
+
+        report = build_trust_console_report(
+            events,
+            controls=[
+                TrustControl(
+                    control="PII redaction",
+                    status="passed",
+                    evidence_ref="docs/BENCHMARKS.md#pii-redaction",
+                    owner="security",
+                    updated_at="2026-05-17",
+                ),
+            ],
+            generated_at="2026-05-17T12:05:00Z",
+        )
+        payload = report.to_dict()
+        serialized = json.dumps(payload, sort_keys=True)
+
+        assert payload["title"] == "Director-AI Trust Console"
+        assert payload["privacy"] == {
+            "payload_classification": "tenant_safe",
+            "raw_event_text_included": False,
+            "raw_feedback_text_included": False,
+        }
+        assert payload["summary"]["total_events"] == 1
+        assert payload["summary"]["halt_rate"] == 1.0
+        assert payload["summary"]["risk_level"] == "attention_required"
+        assert payload["controls"] == [
+            {
+                "control": "PII redaction",
+                "status": "passed",
+                "evidence_ref": "docs/BENCHMARKS.md#pii-redaction",
+                "owner": "security",
+                "updated_at": "2026-05-17",
+            }
+        ]
+        assert "tenant-a" in serialized
+        assert "raw user prompt" not in serialized
+        assert "raw model answer" not in serialized
+        assert "jane@example.com" not in serialized
+
+    def test_report_marks_failing_control_as_critical(self):
+        report = build_trust_console_report(
+            "",
+            controls=[
+                TrustControl(
+                    control="External security test",
+                    status="failing",
+                    evidence_ref="docs/internal/security.md",
+                ),
+            ],
+        )
+
+        assert report.to_dict()["summary"]["risk_level"] == "critical"
+        assert "External security test" in report.to_markdown()
+        assert "critical" in report.to_markdown()
+
+    def test_control_status_is_validated(self):
+        try:
+            TrustControl(control="SOC 2", status="maybe", evidence_ref="soc2.md")
+        except ValueError as exc:
+            assert "status" in str(exc)
+        else:
+            raise AssertionError("TrustControl should reject unknown statuses")
 
 
 class _FakeComponent:

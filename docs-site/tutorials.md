@@ -2,6 +2,9 @@
 
 Interactive Jupyter notebooks covering Director-AI from first principles to production deployment. Every notebook runs in Google Colab with zero local setup.
 
+For a buyer- and use-case-oriented index across every published notebook, see
+the [Notebook Gallery](notebook-gallery.md).
+
 ## Learning Path
 
 ```mermaid
@@ -56,7 +59,7 @@ Deep dives into the four pillars of Director-AI.
 
 | # | Notebook | What You Learn | Time | Colab |
 |---|----------|----------------|------|-------|
-| 09 | [Production Guardrails](https://github.com/anulum/director-ai/blob/main/notebooks/09_production_guardrails.ipynb) | `guard()` for OpenAI / Anthropic / Bedrock / Gemini / Cohere, failure modes, streaming guards | 20 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/09_production_guardrails.ipynb) |
+| 09 | [Production Guardrails](https://github.com/anulum/director-ai/blob/main/notebooks/09_production_guardrails.ipynb) | `guard()` for supported chat, message, cloud-runtime, Mistral, Cohere, and Pydantic AI, failure modes, streaming guards | 20 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/09_production_guardrails.ipynb) |
 | 10 | [Vector RAG Pipeline](https://github.com/anulum/director-ai/blob/main/notebooks/10_vector_rag_pipeline.ipynb) | Semantic retrieval, ChromaDB, pluggable backends, reranking, multi-tenant KB | 25 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/10_vector_rag_pipeline.ipynb) |
 | 11 | [Streaming Halt Deep Dive](https://github.com/anulum/director-ai/blob/main/notebooks/11_streaming_halt_deep_dive.ipynb) | Hard limit, sliding window, trend detection, async, per-token visualization | 20 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/11_streaming_halt_deep_dive.ipynb) |
 | 12 | [Domain Presets & Config](https://github.com/anulum/director-ai/blob/main/notebooks/12_domain_presets_and_config.ipynb) | 8 profiles, env vars, YAML, backends, strict mode, multi-GPU, LLM-as-judge | 15 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/12_domain_presets_and_config.ipynb) |
@@ -74,7 +77,7 @@ Real-world integrations and domain-specific patterns.
 | 05 | [SSGF Geometry](https://github.com/anulum/director-ai/blob/main/notebooks/05_ssgf_geometry.ipynb) | Self-similar geometry foundation concepts | 10 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/05_ssgf_geometry.ipynb) |
 | 06 | [Medical RAG Chatbot](https://github.com/anulum/director-ai/blob/main/notebooks/06_medical_rag_chatbot.ipynb) | Healthcare-specific guardrails, high thresholds, evidence citations | 20 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/06_medical_rag_chatbot.ipynb) |
 | 07 | [LangChain Integration](https://github.com/anulum/director-ai/blob/main/notebooks/07_langchain_integration.ipynb) | CoherenceCallbackHandler, chain integration, output parsing | 15 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/07_langchain_integration.ipynb) |
-| 08 | [Provider Adapters](https://github.com/anulum/director-ai/blob/main/notebooks/08_provider_adapters.ipynb) | OpenAI, Anthropic, Bedrock, Gemini, Cohere adapter patterns | 10 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/08_provider_adapters.ipynb) |
+| 08 | [Provider Adapters](https://github.com/anulum/director-ai/blob/main/notebooks/08_provider_adapters.ipynb) | Commercial SDK adapters, cloud-runtime adapters, agent frameworks, Guardrails AI, and Vercel AI SDK adapter patterns | 10 min | [![Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/08_provider_adapters.ipynb) |
 
 ---
 

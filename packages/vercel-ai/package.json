@@ -1,0 +1,29 @@
+{
+  "name": "@director-ai/vercel-ai",
+  "version": "0.1.0",
+  "description": "Vercel AI SDK middleware for Director-AI REST review gates",
+  "type": "module",
+  "license": "AGPL-3.0-or-later",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "prebuild": "node -e \"import('node:fs').then(fs => fs.rmSync('dist', { recursive: true, force: true }))\"",
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "test": "npm run build && node --test test/*.test.mjs"
+  },
+  "peerDependencies": {
+    "@ai-sdk/provider": "^3.0.10",
+    "ai": "^6.0.184"
+  },
+  "devDependencies": {
+    "@ai-sdk/provider": "^3.0.10",
+    "@types/json-schema": "^7.0.15",
+    "ai": "^6.0.184",
+    "typescript": "^6.0.3"
+  }
+}

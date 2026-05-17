@@ -1979,7 +1979,7 @@ requires-dist = [
     { name = "weaviate-client", marker = "extra == 'weaviate'", specifier = ">=4.0" },
     { name = "z3-solver", marker = "extra == 'formal'", specifier = ">=4.12,<5" },
 ]
-provides-extras = ["nli", "vector", "openai", "anthropic", "langchain", "llamaindex", "server", "minicheck", "voice", "onnx", "tensorrt", "grpc", "physical", "formal", "finetune", "quantize", "pinecone", "weaviate", "qdrant", "faiss", "elasticsearch", "reranker", "embeddings", "license", "embed", "nli-lite", "langgraph", "haystack", "crewai", "docs", "otel", "langfuse", "presidio", "toxicity", "moderation", "demo", "ingestion", "ingestion-s3", "ingestion-notion", "ingestion-gdrive", "auto-kb", "colbert", "rust", "enterprise", "ui", "reports", "autogen", "research", "train", "managed-training", "security", "dev"]
+provides-extras = ["nli", "vector", "openai", "anthropic", "langchain", "llamaindex", "server", "minicheck", "voice", "onnx", "tensorrt", "grpc", "physical", "formal", "finetune", "quantize", "pinecone", "weaviate", "qdrant", "faiss", "elasticsearch", "reranker", "embeddings", "license", "embed", "nli-lite", "langgraph", "haystack", "crewai", "guardrails", "docs", "otel", "langfuse", "presidio", "toxicity", "moderation", "demo", "ingestion", "ingestion-s3", "ingestion-notion", "ingestion-gdrive", "auto-kb", "colbert", "rust", "enterprise", "ui", "reports", "autogen", "research", "train", "managed-training", "security", "dev"]
 
 [[package]]
 name = "dirtyjson"

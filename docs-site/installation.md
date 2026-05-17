@@ -85,6 +85,8 @@ and quickstart must remain usable without these extras.
 | `langgraph` | `pip install director-ai[langgraph]` | LangGraph integration |
 | `haystack` | `pip install director-ai[haystack]` | Haystack integration |
 | `crewai` | `pip install director-ai[crewai]` | CrewAI integration |
+| `guardrails` | `pip install director-ai[guardrails] guardrails-ai` | Guardrails AI custom validator; install Guardrails AI from an index that provides it |
+| Vercel AI SDK | `cd packages/vercel-ai && npm install && npm run build` | TypeScript AI SDK middleware |
 
 ### Operations, Training, and Development
 

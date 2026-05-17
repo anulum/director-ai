@@ -1,12 +1,13 @@
-# OpenAI / Anthropic SDK Guard
+# SDK Guard
 
-2-line integration that wraps your existing SDK client with coherence scoring.
+2-line integration that wraps an existing LLM SDK client with coherence
+scoring. The guard supports chat-completions-compatible, message API, cloud-runtime, generate-content, Mistral, Cohere, and Pydantic AI SDK shapes.
 
 ```mermaid
 sequenceDiagram
     participant App as Your Code
     participant Guard as guard(client)
-    participant SDK as OpenAI / Anthropic SDK
+    participant SDK as LLM SDK
     participant LLM as LLM API
     participant Scorer as CoherenceScorer
 
@@ -65,6 +66,48 @@ message = client.messages.create(
     messages=[{"role": "user", "content": "What is the refund policy?"}],
 )
 ```
+
+## Mistral
+
+```python
+import os
+
+from director_ai import guard
+from mistralai import Mistral
+
+client = guard(
+    Mistral(api_key=os.environ["MISTRAL_API_KEY"]),
+    facts={"refund": "within 30 days"},
+    threshold=0.6,
+    on_fail="raise",
+)
+
+response = client.chat.complete(
+    model="mistral-large-latest",
+    messages=[{"role": "user", "content": "What is the refund policy?"}],
+)
+```
+
+## Pydantic AI
+
+```python
+from director_ai import guard
+from pydantic_ai import Agent
+
+agent = guard(
+    Agent("openai:gpt-4o-mini"),
+    facts={"refund": "within 30 days"},
+    threshold=0.6,
+    on_fail="raise",
+)
+
+result = agent.run_sync("What is the refund policy?")
+print(result.output)
+```
+
+`guard()` currently scores Pydantic AI `run_sync()` and `run()` results by
+reading the returned `.output` value. Streaming runs should be guarded with
+`StreamingKernel` until an explicit `run_stream()` adapter is added.
 
 ## Failure Modes
 

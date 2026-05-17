@@ -5,3 +5,15 @@
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — UI subpackage (Gradio-based config wizard + dashboard)
+
+from .safety_dashboard import (
+    TrustConsoleReport,
+    TrustControl,
+    build_trust_console_report,
+)
+
+__all__ = [
+    "TrustConsoleReport",
+    "TrustControl",
+    "build_trust_console_report",
+]

@@ -4,7 +4,7 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Native SDK interceptors for OpenAI and Anthropic clients.
+"""Native SDK interceptors for common LLM clients.
 
 Usage::
 
@@ -18,6 +18,7 @@ from __future__ import annotations
 import asyncio
 import contextlib
 import inspect
+import json
 import logging
 from contextvars import ContextVar, copy_context
 from typing import Any, cast
@@ -96,22 +97,25 @@ def guard(
 ) -> Any:
     """Wrap an LLM SDK client with coherence scoring.
 
-    Supports five SDK shapes:
+    Supports seven SDK shapes:
 
     - **OpenAI-compatible** (``client.chat.completions.create``):
       OpenAI, vLLM, Groq, LiteLLM, Ollama, Together.
     - **Anthropic** (``client.messages.create``).
     - **AWS Bedrock** (``client.converse`` / ``client.converse_stream``).
     - **Google Gemini** (``client.generate_content``).
+    - **Mistral** (``client.chat.complete``).
     - **Cohere** (``client.chat`` without ``client.completions``).
+    - **Pydantic AI** (``agent.run_sync`` / ``agent.run``).
 
     When *injection_detection* is enabled, each response is additionally
     checked for prompt injection via intent-grounded NLI divergence.
     The *injection_threshold* controls sensitivity (0.0–1.0).
 
-    Returns the guarded client. For OpenAI/Anthropic the original object
-    is mutated in place. For Bedrock, Gemini, and Cohere a new proxy is
-    returned — **always use the return value**: ``client = guard(client, ...)``.
+    Returns the guarded client. Some SDK clients are mutated in place; others
+    return a proxy when their public surface cannot be safely patched.
+    **Always use the return value**:
+    ``client = guard(client, ...)``.
     """
     if on_fail not in ("raise", "log", "metadata"):
         raise ValueError(
@@ -159,6 +163,20 @@ def guard(
             on_fail,
             injection_threshold=inj_threshold,
         )
+    elif _has_mistral_shape(client):
+        client.chat = _MistralChatProxy(
+            client.chat,
+            scorer,
+            on_fail,
+            injection_threshold=inj_threshold,
+        )
+    elif _has_pydantic_ai_shape(client):
+        client = _PydanticAIProxy(
+            client,
+            scorer,
+            on_fail,
+            injection_threshold=inj_threshold,
+        )
     elif _has_cohere_shape(client):
         client = _CohereProxy(
             client,
@@ -169,7 +187,7 @@ def guard(
     else:
         raise TypeError(
             f"Unsupported client type: {type(client).__qualname__}. "
-            "Expected OpenAI, Anthropic, Bedrock, Gemini, or Cohere shape.",
+            "Expected a supported LLM SDK shape.",
         )
     return client
 
@@ -752,7 +770,7 @@ class _GuardedBedrockStream:
             )
 
 
-# â”€â”€ Gemini proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Generate-content proxy
 
 
 def _has_gemini_shape(client) -> bool:
@@ -881,7 +899,173 @@ class _GuardedGeminiStream:
             )
 
 
-# â”€â”€ Cohere proxy â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Mistral proxy
+
+
+def _has_mistral_shape(client) -> bool:
+    """True if client exposes ``client.chat.complete()`` (mistralai SDK)."""
+    if _has_openai_shape(client):
+        return False
+    chat = getattr(client, "chat", None)
+    with contextlib.suppress(AttributeError):
+        inspect.getattr_static(chat, "complete")
+        return callable(getattr(chat, "complete", None))
+    return False
+
+
+class _MistralChatProxy:
+    """Drop-in for ``client.chat`` in the Mistral Python SDK."""
+
+    def __init__(self, original, scorer, on_fail, *, injection_threshold=None):
+        self._original = original
+        self._scorer = scorer
+        self._on_fail = on_fail
+        self._injection_threshold = injection_threshold
+        self.complete: Any = (
+            self._acomplete_entry
+            if inspect.iscoroutinefunction(original.complete)
+            else self._sync_complete
+        )
+
+    def _sync_complete(self, **kwargs):
+        prompt = _extract_prompt(kwargs.get("messages", []))
+        response = self._original.complete(**kwargs)
+        text = _mistral_response_text(response)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
+        return response
+
+    async def _acomplete_entry(self, **kwargs):
+        prompt = _extract_prompt(kwargs.get("messages", []))
+        response = await self._original.complete(**kwargs)
+        text = _mistral_response_text(response)
+        await _ascore_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
+        return response
+
+    def __getattr__(self, name):
+        return getattr(self._original, name)
+
+
+def _mistral_response_text(response) -> str:
+    with contextlib.suppress(IndexError, AttributeError):
+        content = response.choices[0].message.content
+        if isinstance(content, str):
+            return content
+        if isinstance(content, list):
+            parts: list[str] = []
+            for chunk in content:
+                if isinstance(chunk, str):
+                    parts.append(chunk)
+                elif isinstance(chunk, dict) and "text" in chunk:
+                    parts.append(str(chunk["text"]))
+                else:
+                    text = getattr(chunk, "text", None)
+                    if text is not None:
+                        parts.append(str(text))
+            return "".join(parts)
+    return ""
+
+
+# Pydantic AI proxy
+
+
+def _has_pydantic_ai_shape(client) -> bool:
+    """True for Pydantic AI ``Agent`` instances with run APIs."""
+    module = type(client).__module__
+    if not module.startswith("pydantic_ai"):
+        return False
+    return callable(getattr(client, "run_sync", None)) and callable(
+        getattr(client, "run", None),
+    )
+
+
+class _PydanticAIProxy:
+    """Guard Pydantic AI ``Agent.run_sync`` and ``Agent.run`` outputs."""
+
+    def __init__(self, agent, scorer, on_fail, *, injection_threshold=None):
+        self._agent = agent
+        self._scorer = scorer
+        self._on_fail = on_fail
+        self._injection_threshold = injection_threshold
+
+    def run_sync(self, *args, **kwargs):
+        prompt = _extract_pydantic_ai_prompt(args, kwargs)
+        result = self._agent.run_sync(*args, **kwargs)
+        text = _pydantic_ai_output_text(result)
+        _score_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
+        return result
+
+    async def run(self, *args, **kwargs):
+        prompt = _extract_pydantic_ai_prompt(args, kwargs)
+        result = await self._agent.run(*args, **kwargs)
+        text = _pydantic_ai_output_text(result)
+        await _ascore_and_gate(
+            self._scorer,
+            self._on_fail,
+            prompt,
+            text,
+            injection_threshold=self._injection_threshold,
+        )
+        return result
+
+    def __getattr__(self, name):
+        return getattr(self._agent, name)
+
+
+def _extract_pydantic_ai_prompt(args, kwargs) -> str:
+    prompt = kwargs.get("user_prompt")
+    if prompt is None and args:
+        prompt = args[0]
+    if prompt is None:
+        return ""
+    if isinstance(prompt, str):
+        return prompt
+    if isinstance(prompt, list | tuple):
+        return " ".join(_pydantic_ai_content_text(part) for part in prompt)
+    return str(prompt)
+
+
+def _pydantic_ai_content_text(content) -> str:
+    if isinstance(content, str):
+        return content
+    text = getattr(content, "content", None)
+    if text is not None:
+        return str(text)
+    return str(content)
+
+
+def _pydantic_ai_output_text(result) -> str:
+    output = getattr(result, "output", result)
+    if isinstance(output, str):
+        return output
+    if isinstance(output, bytes):
+        return output.decode("utf-8", errors="replace")
+    model_dump_json = getattr(output, "model_dump_json", None)
+    if callable(model_dump_json):
+        return str(model_dump_json())
+    if isinstance(output, dict | list | tuple):
+        return json.dumps(output, sort_keys=True, default=str)
+    return str(output)
+
+
+# Cohere proxy
 
 
 def _has_cohere_shape(client) -> bool:

@@ -1,0 +1,182 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-Class AI notebook gallery manifest
+
+[[notebook]]
+id = "quickstart"
+path = "notebooks/quickstart.ipynb"
+title = "Protect any LLM in 10 lines"
+track = "Foundations"
+audience = "First evaluation"
+duration_minutes = 5
+use_case = "Install Director-AI, score a response, wrap an SDK client, and inspect halt metadata."
+extras = []
+
+[[notebook]]
+id = "01-coherence-engine"
+path = "notebooks/01_coherence_engine.ipynb"
+title = "Coherence Engine Quick Start"
+track = "Foundations"
+audience = "Technical evaluator"
+duration_minutes = 15
+use_case = "Understand CoherenceScorer, SafetyKernel, CoherenceAgent, and dual-entropy scoring."
+extras = ["nli"]
+
+[[notebook]]
+id = "02-streaming-oversight"
+path = "notebooks/02_streaming_oversight.ipynb"
+title = "Streaming Token-by-Token Oversight"
+track = "Streaming Safety"
+audience = "Application engineer"
+duration_minutes = 10
+use_case = "Monitor streamed tokens and halt unsafe output before completion."
+extras = []
+
+[[notebook]]
+id = "03-vector-store"
+path = "notebooks/03_vector_store.ipynb"
+title = "Vector Store and Semantic Retrieval"
+track = "Retrieval"
+audience = "RAG engineer"
+duration_minutes = 10
+use_case = "Load facts into a vector-backed ground-truth store and retrieve evidence for scoring."
+extras = ["vector"]
+
+[[notebook]]
+id = "04-end-to-end-benchmark"
+path = "notebooks/04_end_to_end_benchmark.ipynb"
+title = "End-to-End Guardrail Benchmark"
+track = "Evaluation"
+audience = "ML evaluation lead"
+duration_minutes = 15
+use_case = "Run benchmark examples, profile latency, and interpret catch-rate metrics."
+extras = ["nli"]
+
+[[notebook]]
+id = "05-ssgf-geometry"
+path = "notebooks/05_ssgf_geometry.ipynb"
+title = "SSGF Geometry Learning"
+track = "Concepts"
+audience = "Research reader"
+duration_minutes = 10
+use_case = "Explore the self-similar geometry concepts behind the project language."
+extras = []
+
+[[notebook]]
+id = "06-medical-rag-chatbot"
+path = "notebooks/06_medical_rag_chatbot.ipynb"
+title = "Medical RAG Chatbot"
+track = "Domain Applications"
+audience = "Healthcare evaluator"
+duration_minutes = 20
+use_case = "Apply high-threshold medical guardrails with retrieval evidence and clinical disclaimers."
+extras = ["nli", "vector"]
+
+[[notebook]]
+id = "07-langchain-integration"
+path = "notebooks/07_langchain_integration.ipynb"
+title = "LangChain Integration"
+track = "Integrations"
+audience = "LangChain developer"
+duration_minutes = 15
+use_case = "Wire Director-AI into LangChain callbacks and chain output parsing."
+extras = ["langchain"]
+
+[[notebook]]
+id = "08-provider-adapters"
+path = "notebooks/08_provider_adapters.ipynb"
+title = "Multi-Provider SDK Guard"
+track = "Integrations"
+audience = "Platform engineer"
+duration_minutes = 10
+use_case = "Compare commercial SDK adapters, cloud-runtime adapters, agent frameworks, Guardrails AI, and Vercel AI SDK adapter patterns."
+extras = []
+
+[[notebook]]
+id = "09-production-guardrails"
+path = "notebooks/09_production_guardrails.ipynb"
+title = "Production Guardrails"
+track = "Production"
+audience = "Application engineer"
+duration_minutes = 20
+use_case = "Wrap production SDK calls, choose failure modes, and protect streamed responses."
+extras = ["nli"]
+
+[[notebook]]
+id = "10-vector-rag-pipeline"
+path = "notebooks/10_vector_rag_pipeline.ipynb"
+title = "Vector RAG Pipeline"
+track = "Retrieval"
+audience = "RAG engineer"
+duration_minutes = 25
+use_case = "Build a semantic fact retrieval pipeline with ChromaDB, pluggable backends, reranking, and tenant-aware knowledge."
+extras = ["nli", "vector"]
+
+[[notebook]]
+id = "11-streaming-halt-deep-dive"
+path = "notebooks/11_streaming_halt_deep_dive.ipynb"
+title = "Streaming Halt Deep Dive"
+track = "Streaming Safety"
+audience = "Runtime engineer"
+duration_minutes = 20
+use_case = "Compare hard limits, sliding windows, trend detection, async streams, and per-token visualization."
+extras = []
+
+[[notebook]]
+id = "12-domain-presets-and-config"
+path = "notebooks/12_domain_presets_and_config.ipynb"
+title = "Domain Presets and Configuration"
+track = "Configuration"
+audience = "Solutions engineer"
+duration_minutes = 15
+use_case = "Apply profiles, environment variables, YAML config, strict mode, multi-GPU settings, and LLM-as-judge options."
+extras = ["nli"]
+
+[[notebook]]
+id = "13-batch-processing-and-evaluation"
+path = "notebooks/13_batch_processing_and_evaluation.ipynb"
+title = "Batch Processing and Evaluation Pipelines"
+track = "Evaluation"
+audience = "Evaluation engineer"
+duration_minutes = 20
+use_case = "Run batch scoring, claim attribution, dataset evaluation, and regression gates."
+extras = ["nli"]
+
+[[notebook]]
+id = "14-enterprise-multi-tenant"
+path = "notebooks/14_enterprise_multi_tenant.ipynb"
+title = "Enterprise Multi-Tenant Deployment"
+track = "Enterprise"
+audience = "Enterprise platform team"
+duration_minutes = 25
+use_case = "Inspect tenant isolation, REST and gRPC services, Docker, Kubernetes, and monitoring patterns."
+extras = ["server", "grpc", "vector"]
+
+[[notebook]]
+id = "15-custom-fine-tuning"
+path = "notebooks/15_custom_fine_tuning.ipynb"
+title = "Custom Fine-Tuning"
+track = "Model Adaptation"
+audience = "ML engineer"
+duration_minutes = 30
+use_case = "Prepare JSONL data, validate training examples, fine-tune domain NLI, avoid forgetting, export ONNX, and serve results."
+extras = ["finetune", "nli"]
+
+[[notebook]]
+id = "16-verification-gems"
+path = "notebooks/16_verification_gems.ipynb"
+title = "Verification Gems"
+track = "Verification"
+audience = "Safety engineer"
+duration_minutes = 15
+use_case = "Exercise numeric, reasoning, temporal, consensus, conformal, feedback-loop, agentic, and REST verification modules."
+extras = []
+
+[[notebook]]
+id = "colab-streaming-halt-demo"
+path = "notebooks/colab_streaming_halt_demo.ipynb"
+title = "Streaming Halt Live Demo"
+track = "Demo"
+audience = "First-touch evaluator"
+duration_minutes = 8
+use_case = "Open a focused Colab demo that shows streaming halt behavior without a local setup."
+extras = []

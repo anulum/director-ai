@@ -123,6 +123,7 @@ nav:
   - Home: index.md
   - Getting Started:
       - Quickstart: quickstart.md
+      - Notebook Gallery: notebook-gallery.md
       - Installation: installation.md
       - Runtime Boundaries: guide/runtime-boundaries.md
       - Runtime Extraction Evaluation: guide/runtime-extraction-evaluation.md
@@ -162,11 +163,14 @@ nav:
   - Integrations:
       - LLM SDK Guard: integrations/sdk-guard.md
       - FastAPI Middleware: integrations/fastapi-guard.md
+      - Vercel AI SDK: integrations/vercel-ai.md
       - LangChain: integrations/langchain.md
       - LlamaIndex: integrations/llamaindex.md
       - LangGraph: integrations/langgraph.md
       - Haystack: integrations/haystack.md
+      - AutoGen: integrations/autogen.md
       - CrewAI: integrations/crewai.md
+      - Guardrails AI: integrations/guardrails-ai.md
       - Semantic Kernel: integrations/semantic-kernel.md
       - DSPy / Instructor: integrations/dspy.md
   - Specifications:

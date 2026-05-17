@@ -164,6 +164,40 @@ print(f"Score: {cs.score:.3f}")       # ~0.02
     response = client.generate_content("What is the refund policy?")
     ```
 
+=== "Mistral"
+
+    ```python
+    import os
+
+    from director_ai import guard
+    from mistralai import Mistral
+
+    client = guard(
+        Mistral(api_key=os.environ["MISTRAL_API_KEY"]),
+        facts={"refund": "within 30 days"},
+    )
+
+    response = client.chat.complete(
+        model="mistral-large-latest",
+        messages=[{"role": "user", "content": "What is the refund policy?"}],
+    )
+    ```
+
+=== "Pydantic AI"
+
+    ```python
+    from director_ai import guard
+    from pydantic_ai import Agent
+
+    agent = guard(
+        Agent("openai:gpt-4o-mini"),
+        facts={"refund": "within 30 days"},
+    )
+
+    result = agent.run_sync("What is the refund policy?")
+    print(result.output)
+    ```
+
 ### Failure Modes
 
 | Mode | Behavior |
@@ -240,4 +274,5 @@ asyncio.run(main())
 - [Integrations](integrations/sdk-guard.md) — OpenAI, Anthropic, LangChain, and more
 - [Production deployment](deployment/production.md) — scaling, caching, monitoring
 - [Domain presets](guide/presets.md) — medical, finance, legal, creative profiles
-- [Tutorials](tutorials.md) — 16 Jupyter notebooks from basics to production
+- [Tutorials](tutorials.md) — 18 Jupyter notebooks from basics to production
+- [Notebook Gallery](notebook-gallery.md) — use-case index across every published notebook

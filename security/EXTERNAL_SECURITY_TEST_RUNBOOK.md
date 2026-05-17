@@ -43,7 +43,7 @@ The tester returns one directory named `security-validation/` with:
 | `environment.json` | Target commit, package version, Python, platform, enabled extras, config fingerprint, tester, start time, completion time |
 | `http_transcripts/` | Redacted HTTP request and response captures |
 | `websocket_frames.jsonl` | Accepted, rejected, halted, and cancelled stream frames |
-| `tenant_matrix.csv` | Tenant, surface, action, expected status, and actual status |
+| `tenant_matrix.csv` | At least two tenants, including an allowed same-tenant case and a denied cross-tenant isolation case |
 | `ingestion_matrix.csv` | Tenant, case, expected status, and actual status |
 | `physical_matrix.csv` | Tenant, case, expected decision, and actual decision |
 | `attestation_matrix.csv` | Issuer, case, expected status, and actual status |
@@ -64,10 +64,15 @@ The validator rejects the evidence when:
 - a required file or directory is missing;
 - JSON, JSONL, or CSV files do not parse;
 - required WebSocket frame classes are absent;
+- `http_transcripts/` contains no redacted transcript file;
 - matrix files have missing columns or no rows;
+- the tenant matrix does not include at least two tenants and a denied
+  isolation case;
 - physical, attestation, or cross-language evidence matrices are absent;
-- finding records reference missing evidence paths;
-- summary text omits a required track id or target commit;
+- finding records reference missing evidence paths or paths outside the
+  evidence directory;
+- summary text omits a required track id or the exact `target_commit` recorded
+  in `environment.json`;
 - returned files contain unredacted bearer, cookie, or credential-header markers.
 
 ## Completion Rule

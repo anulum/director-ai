@@ -98,7 +98,8 @@ graph LR
 |------|------|-------------|
 | [Quickstart](quickstart.md) | 2 min | Score a response, guard an SDK client |
 | [Why Director-AI](guide/why-director-ai.md) | 5 min | Problem statement, decision matrix, cost comparison |
-| [Tutorials](tutorials.md) | 30 min | 16 Jupyter notebooks from basics to production |
+| [Tutorials](tutorials.md) | 30 min | 18 Jupyter notebooks from basics to production |
+| [Notebook Gallery](notebook-gallery.md) | 5 min | Buyer- and use-case-oriented notebook index |
 | [API Reference](api/index.md) | — | Every public class and function |
 | [Production Guide](deployment/production.md) | 15 min | Scaling, caching, monitoring, Docker |
 | [Domain Cookbooks](cookbook/legal.md) | 10 min | Legal, medical, finance, support recipes |

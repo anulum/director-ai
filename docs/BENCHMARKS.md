@@ -154,6 +154,13 @@ is largest on benign text, which dominates production traffic.
 The mixed corpora show the worst case where every pattern hits and
 the scanner must actually walk.
 
+`PIIRedactor` uses this detector path by default and exposes
+`redact_with_report()` for production audit metadata. Reports contain stable
+replacement categories, offsets, detector names, scores, and aggregate counts,
+but never serialise raw matched values. This keeps redaction telemetry
+tenant-safe while allowing compliance dashboards to prove which categories were
+masked.
+
 ---
 
 ## Runtime Scorer Model Choices

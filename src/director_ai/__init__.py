@@ -236,6 +236,21 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "ToolCallResult": (".core.verification.types", "ToolCallResult"),
     "CodeCheckResult": (".core.verification.types", "CodeCheckResult"),
     "FieldVerdict": (".core.verification.types", "FieldVerdict"),
+    # Enterprise moderation wrapper
+    "ContentModerator": (".enterprise.moderation", "ContentModerator"),
+    "ContentModerationResult": (
+        ".enterprise.moderation",
+        "ContentModerationResult",
+    ),
+    "ContentModerationFinding": (
+        ".enterprise.moderation",
+        "ContentModerationFinding",
+    ),
+    "ModerationAction": (".enterprise.moderation", "ModerationAction"),
+    # Enterprise custom policy DSL
+    "CustomRule": (".enterprise.rules_dsl", "CustomRule"),
+    "CustomRuleset": (".enterprise.rules_dsl", "CustomRuleset"),
+    "RulesDslError": (".enterprise.rules_dsl", "RulesDslError"),
     # Online calibration from production feedback
     "FeedbackStore": (".core.calibration.feedback_store", "FeedbackStore"),
     "OnlineCalibrator": (".core.calibration.online_calibrator", "OnlineCalibrator"),
@@ -245,6 +260,20 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "AuditEntry": (".compliance.audit_log", "AuditEntry"),
     "ComplianceReporter": (".compliance.reporter", "ComplianceReporter"),
     "Article15Report": (".compliance.reporter", "Article15Report"),
+    "Article15TemplateContext": (
+        ".compliance.reporter",
+        "Article15TemplateContext",
+    ),
+    "ReadinessStatus": (".compliance.readiness", "ReadinessStatus"),
+    "Soc2IsoControl": (".compliance.readiness", "Soc2IsoControl"),
+    "Soc2IsoReadinessReport": (
+        ".compliance.readiness",
+        "Soc2IsoReadinessReport",
+    ),
+    "build_soc2_iso_readiness_report": (
+        ".compliance.readiness",
+        "build_soc2_iso_readiness_report",
+    ),
     "DriftDetector": (".compliance.drift_detector", "DriftDetector"),
     "DriftResult": (".compliance.drift_detector", "DriftResult"),
     # Numeric verification (Phase 5)

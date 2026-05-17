@@ -11,7 +11,10 @@ from __future__ import annotations
 import time
 
 from director_ai.compliance.audit_log import AuditEntry, AuditLog
-from director_ai.compliance.reporter import ComplianceReporter
+from director_ai.compliance.reporter import (
+    Article15TemplateContext,
+    ComplianceReporter,
+)
 
 
 def _entry(
@@ -149,4 +152,102 @@ class TestReporterMarkdown:
         assert "Human Oversight" in md
         assert "Drift Detection" in md
         assert "Incident Summary" in md
+        log.close()
+
+
+class TestArticle15Template:
+    def test_article15_template_contains_required_sections_without_raw_entries(
+        self, tmp_path
+    ):
+        log = AuditLog(tmp_path / "test.db")
+        log.log(
+            _entry(
+                score=0.92,
+                approved=True,
+                domain="medical",
+                human_override=False,
+            )
+        )
+        log.log(_entry(score=0.21, approved=False, domain="medical"))
+        report = ComplianceReporter(log).generate_report()
+        context = Article15TemplateContext(
+            system_name="Director-AI hospital triage guard",
+            intended_purpose=(
+                "Score generated triage advice against hospital knowledge-base facts."
+            ),
+            deployment_context="EU clinical decision-support assistant gateway.",
+            risk_management_summary=(
+                "Low-score responses are blocked and routed to clinical review."
+            ),
+            data_governance_summary=(
+                "Audit events are stored per tenant with PII redaction enabled."
+            ),
+            robustness_summary=(
+                "Streaming halt, NLI scoring, drift checks, and adversarial tests run."
+            ),
+            cybersecurity_summary=(
+                "API-key tenant binding, rate limits, and signed KB entries are enabled."
+            ),
+            human_oversight_summary=(
+                "Human reviewers can override, reject, or request regeneration."
+            ),
+            post_market_monitoring_summary=(
+                "Operations reviews drift, incidents, and override rates every week."
+            ),
+            known_limitations=("Does not diagnose patients.",),
+            residual_risks=("Clinical context can be incomplete.",),
+            evidence_refs=(
+                "docs/PRODUCTION_CHECKLIST.md#compliance",
+                "SECURITY.md#residual-risks",
+            ),
+        )
+
+        payload = report.to_article15_template(context)
+        markdown = report.to_article15_markdown(context)
+
+        assert payload["system"]["name"] == "Director-AI hospital triage guard"
+        assert payload["article_15_sections"]["accuracy"]["total_interactions"] == 2
+        assert payload["article_15_sections"]["robustness"]["summary"].startswith(
+            "Streaming halt"
+        )
+        assert payload["article_15_sections"]["cybersecurity"]["summary"].startswith(
+            "API-key tenant binding"
+        )
+        assert payload["article_15_sections"]["residual_risk"] == {
+            "known_limitations": ["Does not diagnose patients."],
+            "residual_risks": ["Clinical context can be incomplete."],
+        }
+        assert payload["privacy"] == {
+            "payload_classification": "tenant_safe",
+            "raw_interaction_text_included": False,
+        }
+        assert "'q'" not in repr(payload)
+        assert "'a'" not in repr(payload)
+        assert "EU AI Act Article 15 Technical Documentation" in markdown
+        assert "Accuracy, Robustness, and Cybersecurity" in markdown
+        assert "docs/PRODUCTION_CHECKLIST.md#compliance" in markdown
+        log.close()
+
+    def test_article15_template_rejects_missing_required_context(self, tmp_path):
+        log = AuditLog(tmp_path / "test.db")
+        report = ComplianceReporter(log).generate_report()
+
+        try:
+            Article15TemplateContext(
+                system_name="",
+                intended_purpose="purpose",
+                deployment_context="context",
+                risk_management_summary="risk",
+                data_governance_summary="data",
+                robustness_summary="robust",
+                cybersecurity_summary="security",
+                human_oversight_summary="oversight",
+                post_market_monitoring_summary="monitoring",
+            )
+        except ValueError as exc:
+            assert "system_name is required" in str(exc)
+        else:  # pragma: no cover - asserts failure message clarity
+            raise AssertionError("missing system_name should be rejected")
+
+        assert report.total_interactions == 0
         log.close()

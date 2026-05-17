@@ -31,7 +31,9 @@ response = client.chat.completions.create(
 | **Anthropic** | `client.messages.create` (no `client.chat`) | `messages.create()` |
 | **AWS Bedrock** | `client.converse` | `converse()` / `converse_stream()` |
 | **Google Gemini** | `client.generate_content` | `generate_content()` |
+| **Mistral** | `client.chat.complete` | `chat.complete()` |
 | **Cohere** | `client.chat` (no `client.completions`) | `chat()` |
+| **Pydantic AI** | `agent.run_sync` and `agent.run` | `run_sync()` / `run()` |
 
 ### Parameters
 

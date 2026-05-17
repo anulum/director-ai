@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 from collections import Counter, defaultdict
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 TENANT_COLUMNS = [
     "tenant_id",
@@ -41,6 +41,10 @@ EVIDENCE_COLUMNS = [
     "action",
 ]
 RETUNE_MIN_FEEDBACK_SAMPLES = 4
+TrustControlStatus = Literal["passed", "warning", "failing", "not_applicable"]
+_VALID_TRUST_CONTROL_STATUSES = frozenset(
+    ("passed", "warning", "failing", "not_applicable")
+)
 
 
 @dataclass(frozen=True)
@@ -57,6 +61,129 @@ class HaltDashboardRecord:
     score: float | None
     contradiction_source: str
     action: str
+
+
+@dataclass(frozen=True)
+class TrustControl:
+    """Tenant-safe readiness control shown in the Trust Console."""
+
+    control: str
+    status: str
+    evidence_ref: str
+    owner: str = ""
+    updated_at: str = ""
+
+    def __post_init__(self) -> None:
+        status = self.status.strip().lower()
+        if status not in _VALID_TRUST_CONTROL_STATUSES:
+            raise ValueError(
+                "TrustControl.status must be one of "
+                f"{sorted(_VALID_TRUST_CONTROL_STATUSES)}"
+            )
+        if not self.control.strip():
+            raise ValueError("TrustControl.control is required")
+        if not self.evidence_ref.strip():
+            raise ValueError("TrustControl.evidence_ref is required")
+        object.__setattr__(self, "control", self.control.strip())
+        object.__setattr__(self, "status", status)
+        object.__setattr__(self, "evidence_ref", self.evidence_ref.strip())
+        object.__setattr__(self, "owner", self.owner.strip())
+        object.__setattr__(self, "updated_at", self.updated_at.strip())
+
+    def to_dict(self) -> dict[str, str]:
+        """Return JSON-compatible tenant-safe control metadata."""
+
+        return {
+            "control": self.control,
+            "status": self.status,
+            "evidence_ref": self.evidence_ref,
+            "owner": self.owner,
+            "updated_at": self.updated_at,
+        }
+
+
+@dataclass(frozen=True)
+class TrustConsoleReport:
+    """Tenant-safe Trust Console report for customer-facing review."""
+
+    title: str
+    generated_at: str
+    summary: dict[str, Any]
+    tenants: list[list[Any]]
+    recent_evidence: list[list[Any]]
+    controls: tuple[TrustControl, ...]
+    parse_warnings: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a tenant-safe JSON-compatible report payload."""
+
+        return {
+            "title": self.title,
+            "generated_at": self.generated_at,
+            "summary": dict(self.summary),
+            "tenant_columns": list(TENANT_COLUMNS),
+            "tenants": self.tenants,
+            "evidence_columns": list(EVIDENCE_COLUMNS),
+            "recent_evidence": self.recent_evidence,
+            "controls": [control.to_dict() for control in self.controls],
+            "parse_warnings": list(self.parse_warnings),
+            "privacy": {
+                "payload_classification": "tenant_safe",
+                "raw_event_text_included": False,
+                "raw_feedback_text_included": False,
+            },
+        }
+
+    def to_markdown(self) -> str:
+        """Render the Trust Console report as Markdown."""
+
+        lines = [
+            f"# {self.title}",
+            "",
+            f"Generated: {self.generated_at}",
+            "",
+            "## Summary",
+        ]
+        for key, value in self.summary.items():
+            label = key.replace("_", " ").title()
+            lines.append(f"- {label}: {value}")
+        if self.parse_warnings:
+            lines.append("- Parse Warnings: " + "; ".join(self.parse_warnings[:5]))
+
+        lines.extend(["", "## Readiness Controls", ""])
+        if self.controls:
+            lines.extend(
+                [
+                    "| Control | Status | Evidence | Owner | Updated |",
+                    "|---|---:|---|---|---|",
+                ]
+            )
+            for control in self.controls:
+                lines.append(
+                    "| "
+                    + " | ".join(
+                        [
+                            control.control,
+                            control.status,
+                            control.evidence_ref,
+                            control.owner,
+                            control.updated_at,
+                        ]
+                    )
+                    + " |"
+                )
+        else:
+            lines.append("No readiness controls supplied.")
+
+        lines.extend(["", "## Tenant Operations", ""])
+        if self.tenants:
+            lines.append("| " + " | ".join(TENANT_COLUMNS) + " |")
+            lines.append("|" + "|".join("---" for _ in TENANT_COLUMNS) + "|")
+            for row in self.tenants:
+                lines.append("| " + " | ".join(str(value) for value in row) + " |")
+        else:
+            lines.append("No tenant events supplied.")
+        return "\n".join(lines)
 
 
 def build_safety_dashboard(
@@ -88,6 +215,65 @@ def build_safety_dashboard(
         "--output director-ai-tuned.yaml"
     )
     return summary, tenant_rows, source_rows, evidence_rows, command
+
+
+def build_trust_console_report(
+    events_jsonl: str,
+    feedback_jsonl: str = "",
+    *,
+    controls: list[TrustControl] | tuple[TrustControl, ...] = (),
+    title: str = "Director-AI Trust Console",
+    generated_at: str = "",
+    halt_alert_threshold: float = 0.15,
+    false_positive_alert_threshold: float = 0.05,
+) -> TrustConsoleReport:
+    """Build a tenant-safe customer Trust Console report."""
+
+    records, errors = parse_dashboard_records(events_jsonl, feedback_jsonl)
+    tenants = _tenant_rows(
+        records,
+        halt_alert_threshold=halt_alert_threshold,
+        false_positive_alert_threshold=false_positive_alert_threshold,
+    )
+    evidence = _evidence_rows(records)
+    total = len(records)
+    halts = sum(1 for record in records if record.halted)
+    false_positives = sum(1 for record in records if record.false_positive)
+    alert_count = sum(1 for row in tenants if row[-1] != "ok")
+    halt_rate = round(halts / total, 4) if total else 0.0
+    fp_denominator = max(halts, false_positives, 1)
+    false_positive_rate = round(false_positives / fp_denominator, 4)
+    control_tuple = tuple(controls)
+    risk_level = _trust_risk_level(
+        tenants=tenants,
+        controls=control_tuple,
+        halt_rate=halt_rate,
+        false_positive_rate=false_positive_rate,
+    )
+    return TrustConsoleReport(
+        title=title,
+        generated_at=generated_at or "unspecified",
+        summary={
+            "total_events": total,
+            "tenants": len(tenants),
+            "halts": halts,
+            "halt_rate": halt_rate,
+            "false_positives": false_positives,
+            "false_positive_rate": false_positive_rate,
+            "tenant_alerts": alert_count,
+            "control_warnings": sum(
+                1 for control in control_tuple if control.status == "warning"
+            ),
+            "control_failures": sum(
+                1 for control in control_tuple if control.status == "failing"
+            ),
+            "risk_level": risk_level,
+        },
+        tenants=tenants,
+        recent_evidence=evidence,
+        controls=control_tuple,
+        parse_warnings=tuple(errors),
+    )
 
 
 def build_retune_guidance(
@@ -443,6 +629,24 @@ def _summary_markdown(
     if errors:
         lines.append("- Parse warnings: " + "; ".join(errors[:5]))
     return "\n".join(lines)
+
+
+def _trust_risk_level(
+    *,
+    tenants: list[list[Any]],
+    controls: tuple[TrustControl, ...],
+    halt_rate: float,
+    false_positive_rate: float,
+) -> str:
+    if any(control.status == "failing" for control in controls):
+        return "critical"
+    if any(row[-1] != "ok" for row in tenants):
+        return "attention_required"
+    if any(control.status == "warning" for control in controls):
+        return "attention_required"
+    if halt_rate > 0.0 or false_positive_rate > 0.0:
+        return "monitored"
+    return "healthy"
 
 
 def _contradiction_source(item: dict[str, Any]) -> str:

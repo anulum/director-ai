@@ -16,7 +16,17 @@
 __all__ = [
     "AuditEntry",
     "AuditLogger",
+    "ContentModerationFinding",
+    "ContentModerationResult",
+    "ContentModerator",
+    "CustomRule",
+    "CustomRuleset",
+    "ModerationAction",
+    "PIIRedactionFinding",
+    "PIIRedactionReport",
+    "PIIRedactor",
     "Policy",
+    "RulesDslError",
     "TenantRouter",
     "Violation",
 ]
@@ -27,6 +37,16 @@ _ENTERPRISE_IMPORTS = {
     "Violation": ("..core.policy", "Violation"),
     "AuditLogger": ("..core.audit", "AuditLogger"),
     "AuditEntry": ("..core.audit", "AuditEntry"),
+    "ContentModerator": (".moderation", "ContentModerator"),
+    "ContentModerationFinding": (".moderation", "ContentModerationFinding"),
+    "ContentModerationResult": (".moderation", "ContentModerationResult"),
+    "ModerationAction": (".moderation", "ModerationAction"),
+    "CustomRule": (".rules_dsl", "CustomRule"),
+    "CustomRuleset": (".rules_dsl", "CustomRuleset"),
+    "RulesDslError": (".rules_dsl", "RulesDslError"),
+    "PIIRedactor": (".redactor", "PIIRedactor"),
+    "PIIRedactionFinding": (".redactor", "PIIRedactionFinding"),
+    "PIIRedactionReport": (".redactor", "PIIRedactionReport"),
 }
 
 

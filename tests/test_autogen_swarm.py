@@ -14,6 +14,7 @@ from __future__ import annotations
 from director_ai.agentic.agent_profile import AgentProfile
 from director_ai.agentic.swarm_guardian import SwarmGuardian
 from director_ai.integrations.autogen_swarm import (
+    AutoGenReplyGuard,
     GroupChatGuardian,
     MessageFilterResult,
 )
@@ -135,3 +136,101 @@ class TestEdgeCases:
         r = MessageFilterResult(False, "a", 0.1)
         assert not r.suppressed
         assert r.reason == ""
+
+
+# ── AutoGen register_reply hook ───────────────────────────────────────
+
+
+class _FakeAutoGenAgent:
+    def __init__(self, name: str):
+        self.name = name
+        self.registered_replies = []
+
+    def register_reply(self, *args, **kwargs):
+        self.registered_replies.append((args, kwargs))
+
+
+class TestAutoGenReplyGuard:
+    def test_install_registers_reply_guard_without_autogen_import(self):
+        g = _make_guardian()
+        cg = GroupChatGuardian(g)
+        receiver = _FakeAutoGenAgent("c1")
+
+        hook = AutoGenReplyGuard(cg).install(receiver, trigger=["r1", None])
+
+        assert hook is not None
+        assert len(receiver.registered_replies) == 1
+        args, kwargs = receiver.registered_replies[0]
+        assert args[0] == ["r1", None]
+        assert args[1] is hook
+        assert kwargs["position"] == 0
+
+    def test_reply_hook_allows_grounded_message_to_continue(self):
+        g = _make_guardian()
+        cg = GroupChatGuardian(g)
+        sender = _FakeAutoGenAgent("r1")
+        recipient = _FakeAutoGenAgent("c1")
+        hook = AutoGenReplyGuard(cg).reply_func
+
+        handled, reply = hook(
+            recipient,
+            messages=[{"content": "Paris is the capital of France"}],
+            sender=sender,
+            config={"chat_context": "Paris is the capital of France topic"},
+        )
+
+        assert handled is False
+        assert reply is None
+        assert cg.stats == {"messages": 1, "suppressed": 0, "passed": 1}
+
+    def test_reply_hook_suppresses_hallucinated_message(self):
+        g = _make_guardian()
+        g.register_agent(
+            AgentProfile(
+                agent_id="strict",
+                role="reviewer",
+                coherence_threshold=0.99,
+            )
+        )
+        cg = GroupChatGuardian(g)
+        sender = _FakeAutoGenAgent("strict")
+        recipient = _FakeAutoGenAgent("c1")
+        hook = AutoGenReplyGuard(cg).reply_func
+
+        handled, reply = hook(
+            recipient,
+            messages=[{"content": "completely unrelated gibberish xyz"}],
+            sender=sender,
+            config={"chat_context": "actual topic here"},
+        )
+
+        assert handled is True
+        assert reply == {
+            "role": "assistant",
+            "content": "Message suppressed by swarm guardian.",
+        }
+        assert g.is_quarantined("strict")
+
+    def test_reply_hook_extracts_text_from_multimodal_blocks(self):
+        g = _make_guardian()
+        cg = GroupChatGuardian(g)
+        sender = _FakeAutoGenAgent("r1")
+        recipient = _FakeAutoGenAgent("c1")
+        hook = AutoGenReplyGuard(cg).reply_func
+
+        handled, reply = hook(
+            recipient,
+            messages=[
+                {
+                    "content": [
+                        {"type": "text", "text": "Paris is the capital of France"},
+                        {"type": "image_url", "image_url": {"url": "local"}},
+                    ],
+                }
+            ],
+            sender=sender,
+            config={"chat_context": "Paris is the capital of France topic"},
+        )
+
+        assert handled is False
+        assert reply is None

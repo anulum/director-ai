@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import logging
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
@@ -32,6 +32,8 @@ _FakeUnknown = type("SomeClient", (), {"__module__": "some_lib"})
 _FakeVLLM = type("VLLMClient", (), {"__module__": "vllm.client"})
 _FakeGroq = type("Groq", (), {"__module__": "groq"})
 _FakeLiteLLM = type("LiteLLM", (), {"__module__": "litellm"})
+_FakeMistral = type("Mistral", (), {"__module__": "mistralai"})
+_FakePydanticAgent = type("Agent", (), {"__module__": "pydantic_ai.agent"})
 
 
 def _make_openai_client(response_text="The sky is blue."):
@@ -56,6 +58,32 @@ def _make_anthropic_client(response_text="The sky is blue."):
     client = _FakeAnthropic()
     client.messages = messages
     return client, response
+
+
+def _make_mistral_client(response_text="The sky is blue."):
+    choice = SimpleNamespace(message=SimpleNamespace(content=response_text))
+    response = SimpleNamespace(choices=[choice])
+    chat = SimpleNamespace(complete=MagicMock(return_value=response))
+    client = _FakeMistral()
+    client.chat = chat
+    return client, response
+
+
+def _make_async_mistral_client(response_text="The sky is blue."):
+    choice = SimpleNamespace(message=SimpleNamespace(content=response_text))
+    response = SimpleNamespace(choices=[choice])
+    chat = SimpleNamespace(complete=AsyncMock(return_value=response))
+    client = _FakeMistral()
+    client.chat = chat
+    return client, response
+
+
+def _make_pydantic_ai_agent(response_output="The sky is blue."):
+    response = SimpleNamespace(output=response_output)
+    agent = _FakePydanticAgent()
+    agent.run_sync = MagicMock(return_value=response)
+    agent.run = AsyncMock(return_value=response)
+    return agent, response
 
 
 def _make_openai_stream_client(tokens):
@@ -152,6 +180,129 @@ class TestAnthropicGuard:
             guarded.messages.create(
                 messages=[{"role": "user", "content": "What color is the sky?"}],
             )
+
+
+@pytest.mark.consumer
+class TestMistralGuard:
+    def test_pass(self):
+        client, resp = _make_mistral_client("The sky is blue.")
+        original_complete = client.chat.complete
+        guarded = guard(
+            client,
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        result = guarded.chat.complete(
+            model="mistral-large-latest",
+            messages=[{"role": "user", "content": "What color is the sky?"}],
+        )
+        assert result is resp
+        original_complete.assert_called_once()
+
+    def test_fail_raises(self):
+        client, _ = _make_mistral_client("Mars has two moons named Phobos and Deimos.")
+        guarded = guard(
+            client,
+            facts={"sky color": "The sky is blue."},
+            threshold=0.6,
+            use_nli=False,
+        )
+        with pytest.raises(HallucinationError):
+            guarded.chat.complete(
+                model="mistral-large-latest",
+                messages=[{"role": "user", "content": "What color is the sky?"}],
+            )
+
+    def test_response_content_chunks_are_scored(self):
+        client, _ = _make_mistral_client(
+            [
+                {"type": "text", "text": "Mars has two moons "},
+                SimpleNamespace(text="named Phobos and Deimos."),
+            ],
+        )
+        guarded = guard(
+            client,
+            facts={"sky color": "The sky is blue."},
+            threshold=0.6,
+            use_nli=False,
+        )
+        with pytest.raises(HallucinationError):
+            guarded.chat.complete(
+                model="mistral-large-latest",
+                messages=[{"role": "user", "content": "What color is the sky?"}],
+            )
+
+    @pytest.mark.asyncio
+    async def test_async_complete_is_guarded(self):
+        client, resp = _make_async_mistral_client("The sky is blue.")
+        original_complete = client.chat.complete
+        guarded = guard(
+            client,
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        result = await guarded.chat.complete(
+            model="mistral-large-latest",
+            messages=[{"role": "user", "content": "What color is the sky?"}],
+        )
+        assert result is resp
+        original_complete.assert_awaited_once()
+
+
+@pytest.mark.consumer
+class TestPydanticAIGuard:
+    def test_run_sync_pass(self):
+        agent, resp = _make_pydantic_ai_agent("The sky is blue.")
+        guarded = guard(
+            agent,
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        result = guarded.run_sync("What color is the sky?")
+        assert result is resp
+        agent.run_sync.assert_called_once_with("What color is the sky?")
+
+    def test_run_sync_fail_raises(self):
+        agent, _ = _make_pydantic_ai_agent(
+            "Mars has two moons named Phobos and Deimos."
+        )
+        guarded = guard(
+            agent,
+            facts={"sky color": "The sky is blue."},
+            threshold=0.6,
+            use_nli=False,
+        )
+        with pytest.raises(HallucinationError):
+            guarded.run_sync(user_prompt="What color is the sky?")
+
+    @pytest.mark.asyncio
+    async def test_async_run_is_guarded(self):
+        agent, resp = _make_pydantic_ai_agent("The sky is blue.")
+        guarded = guard(
+            agent,
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+        result = await guarded.run("What color is the sky?")
+        assert result is resp
+        agent.run.assert_awaited_once_with("What color is the sky?")
+
+    def test_structured_output_is_scored(self):
+        structured = SimpleNamespace(
+            model_dump_json=MagicMock(
+                return_value='{"answer":"Mars has two moons named Phobos and Deimos."}',
+            ),
+        )
+        agent, _ = _make_pydantic_ai_agent(structured)
+        guarded = guard(
+            agent,
+            facts={"sky color": "The sky is blue."},
+            threshold=0.6,
+            use_nli=False,
+        )
+        with pytest.raises(HallucinationError):
+            guarded.run_sync("What color is the sky?")
+        structured.model_dump_json.assert_called_once()
 
 
 @pytest.mark.consumer

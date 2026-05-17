@@ -30,6 +30,10 @@ def _write_json(path: Path, value: object) -> None:
 
 def _valid_evidence(root: Path) -> None:
     (root / "http_transcripts").mkdir(parents=True)
+    (root / "http_transcripts" / "stream-redacted.json").write_text(
+        '{"path":"/v1/stream","redacted":true}',
+        encoding="utf-8",
+    )
     _write_json(
         root / "environment.json",
         {
@@ -53,7 +57,8 @@ def _valid_evidence(root: Path) -> None:
     )
     (root / "tenant_matrix.csv").write_text(
         "tenant,surface,action,expected_status,actual_status\n"
-        "tenant-a,/v1/tenants,read,200,200\n",
+        "tenant-a,/v1/tenants,read,200,200\n"
+        "tenant-b,/v1/tenants/tenant-a/facts,cross-tenant read,403,403\n",
         encoding="utf-8",
     )
     (root / "ingestion_matrix.csv").write_text(
@@ -133,3 +138,76 @@ def test_validate_external_security_run_rejects_unredacted_markers(
 
     assert errors
     assert "unredacted sensitive marker" in errors[0]
+
+
+def test_validate_external_security_run_rejects_finding_path_traversal(
+    tmp_path: Path,
+) -> None:
+    _valid_evidence(tmp_path)
+    outside = tmp_path.parent / "outside-evidence.txt"
+    outside.write_text("outside", encoding="utf-8")
+    (tmp_path / "findings.jsonl").write_text(
+        json.dumps(
+            {
+                "severity": "medium",
+                "surface": "/v1/stream",
+                "reproduction": "replay script",
+                "evidence_path": "../outside-evidence.txt",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    errors = validate_run(tmp_path)
+
+    assert errors
+    assert "escapes evidence root" in errors[0]
+
+
+def test_validate_external_security_run_rejects_empty_http_transcripts(
+    tmp_path: Path,
+) -> None:
+    _valid_evidence(tmp_path)
+    (tmp_path / "http_transcripts" / "stream-redacted.json").unlink()
+
+    errors = validate_run(tmp_path)
+
+    assert errors
+    assert "http_transcripts must contain" in errors[0]
+
+
+def test_validate_external_security_run_rejects_weak_tenant_matrix(
+    tmp_path: Path,
+) -> None:
+    _valid_evidence(tmp_path)
+    (tmp_path / "tenant_matrix.csv").write_text(
+        "tenant,surface,action,expected_status,actual_status\n"
+        "tenant-a,/v1/tenants,read,200,200\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_run(tmp_path)
+
+    assert errors
+    assert "tenant_matrix.csv must include at least two tenants" in errors[0]
+
+
+def test_validate_external_security_run_rejects_summary_commit_mismatch(
+    tmp_path: Path,
+) -> None:
+    _valid_evidence(tmp_path)
+    (tmp_path / "summary.md").write_text(
+        "target_commit: different\n"
+        "- streaming_interception: pass\n"
+        "- multi_tenant_isolation: pass\n"
+        "- knowledge_ingestion: pass\n"
+        "- physical_hooks: pass\n"
+        "- attestation: pass\n"
+        "- cross_language_trust_boundary: pass\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_run(tmp_path)
+
+    assert errors
+    assert "summary.md target_commit must match environment.json" in errors[0]

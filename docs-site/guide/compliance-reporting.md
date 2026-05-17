@@ -11,7 +11,12 @@ Director-AI generates this documentation automatically from production scoring d
 ## Quick Start
 
 ```python
-from director_ai import AuditLog, AuditEntry, ComplianceReporter
+from director_ai import (
+    Article15TemplateContext,
+    AuditLog,
+    AuditEntry,
+    ComplianceReporter,
+)
 import time
 
 # 1. Log every scored LLM interaction
@@ -37,7 +42,71 @@ report = reporter.generate_report()
 
 # 3. Export as Markdown
 print(report.to_markdown())
+
+# 4. Produce regulator-facing Article 15 technical documentation
+context = Article15TemplateContext(
+    system_name="Director-AI customer-support guard",
+    intended_purpose="Score generated answers against approved support facts.",
+    deployment_context="EU customer-support assistant gateway.",
+    risk_management_summary="Low-score answers are blocked and routed to review.",
+    data_governance_summary="Audit rows are tenant-scoped and PII redaction is enabled.",
+    robustness_summary="NLI scoring, streaming halt, drift checks, and red-team tests run.",
+    cybersecurity_summary="API-key tenant binding, rate limits, and signed KB entries are enabled.",
+    human_oversight_summary="Reviewers can approve, reject, or request regeneration.",
+    post_market_monitoring_summary="Operations reviews drift, incidents, and overrides weekly.",
+    known_limitations=("Does not replace human approval for regulated advice.",),
+    residual_risks=("Knowledge-base facts can become stale between reviews.",),
+    evidence_refs=("docs/PRODUCTION_CHECKLIST.md#compliance", "SECURITY.md"),
+)
+print(report.to_article15_markdown(context))
 ```
+
+## SOC 2 / ISO 27001 Readiness
+
+`build_soc2_iso_readiness_report()` generates a tenant-safe readiness crosswalk
+for customer security reviews. It maps Director-AI evidence references to SOC 2
+Trust Services Criteria categories and ISO/IEC 27001:2022 Annex A-style control
+references, then produces JSON, Markdown, and Trust Console control rows. This
+is readiness evidence only; it is not a SOC 2 report, ISO/IEC 27001
+certification, or auditor opinion.
+
+```python
+from director_ai.compliance import (
+    ReadinessStatus,
+    Soc2IsoControl,
+    build_soc2_iso_readiness_report,
+)
+
+report = build_soc2_iso_readiness_report(
+    controls=[
+        Soc2IsoControl(
+            control_id="SEC-01",
+            title="Tenant authentication and access isolation",
+            soc2_criteria=("security", "confidentiality"),
+            iso27001_refs=("A.5.15", "A.8.3"),
+            status=ReadinessStatus.PASS,
+            evidence_refs=("tests/test_server_auth.py", "tests/test_enterprise.py"),
+            owner="security",
+            updated_at="2026-05-17",
+        ),
+    ],
+)
+
+payload = report.to_dict()
+markdown = report.to_markdown()
+trust_controls = report.to_trust_controls()
+
+assert payload["privacy"] == {
+    "payload_classification": "tenant_safe",
+    "raw_security_evidence_included": False,
+    "certification_claimed": False,
+}
+```
+
+The default catalogue covers tenant isolation, PII redaction, monitoring,
+incident review, vulnerability evidence, and change management. Controls can be
+overridden per deployment so operators can add auditor-owned evidence references
+without serialising raw evidence or customer payloads.
 
 ## What the Report Contains
 
@@ -86,6 +155,17 @@ if report.drift_detected:
 ### 5. Incident Summary
 
 Total rejections (potential hallucinations blocked) during the reporting period.
+
+### 6. Article 15 Technical Documentation Template
+
+`Article15TemplateContext` adds the operator-controlled evidence that cannot be
+derived from metrics alone: intended purpose, deployment context, risk
+management, data governance, robustness controls, cybersecurity controls, human
+oversight, post-market monitoring, known limitations, residual risks, and
+evidence references. `Article15Report.to_article15_template(context)` returns a
+tenant-safe dictionary with `privacy.raw_interaction_text_included = false`.
+`Article15Report.to_article15_markdown(context)` renders the same structure as a
+reviewable technical-documentation draft.
 
 ## Integration with Gateway
 

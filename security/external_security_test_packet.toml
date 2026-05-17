@@ -19,13 +19,17 @@ run_status = "not_run"
 minimum_tracks = 6
 require_environment_fingerprint = true
 require_raw_http_transcripts = true
+require_non_empty_http_transcripts = true
 require_websocket_frame_log = true
 require_tenant_matrix = true
+require_two_tenant_isolation_matrix = true
 require_ingestion_matrix = true
 require_physical_matrix = true
 require_attestation_matrix = true
 require_contract_matrix = true
 require_redaction_review = true
+require_evidence_path_confinement = true
+require_summary_commit_match = true
 
 [[test_tracks]]
 id = "streaming_interception"

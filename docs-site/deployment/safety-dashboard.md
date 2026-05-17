@@ -58,6 +58,46 @@ and the retune command:
 director-ai tune --dataset recent_feedback.jsonl --output director-ai-tuned.yaml
 ```
 
+## Trust Console Report
+
+The same tenant-safe parser can build a customer-facing Trust Console report for
+security reviews, pilots, and procurement questionnaires. The report includes
+aggregate halt metrics, tenant alert state, recent evidence references, and
+operator-supplied readiness controls. It never serialises raw prompt text,
+response text, customer identifiers, media payloads, or feedback payloads.
+
+```python
+from director_ai.ui import TrustControl, build_trust_console_report
+
+events_jsonl = open("safety_events.jsonl", encoding="utf-8").read()
+report = build_trust_console_report(
+    events_jsonl,
+    controls=[
+        TrustControl(
+            control="PII redaction",
+            status="passed",
+            evidence_ref="docs/BENCHMARKS.md#pii-redaction",
+            owner="security",
+            updated_at="2026-05-17",
+        ),
+        TrustControl(
+            control="Article 15 report template",
+            status="passed",
+            evidence_ref="docs-site/guide/compliance-reporting.md",
+        ),
+    ],
+    generated_at="2026-05-17T12:05:00Z",
+)
+
+payload = report.to_dict()
+markdown = report.to_markdown()
+assert payload["privacy"]["raw_event_text_included"] is False
+```
+
+Control statuses are `passed`, `warning`, `failing`, or `not_applicable`.
+Any failing control marks the report risk level as `critical`; tenant alert
+states or warning controls mark it as `attention_required`.
+
 ## Alert Thresholds
 
 The defaults are intentionally conservative:

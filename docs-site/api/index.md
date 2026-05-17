@@ -32,6 +32,9 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`NeuroSymbolicVerifier`](neuro-symbolic-verifier.md) | `director_ai.core.verification.neuro_symbolic` | Neural score fusion with numeric and formal symbolic checks |
 | [`ByzantineFaultTolerantConsensus`](byzantine-consensus.md) | `director_ai.core.scoring.consensus` | PBFT-style quorum over independent verifier votes |
 | [`InferenceServerHook`](../guide/streaming.md#pre-sampling-inference-server-hooks) | `director_ai.integrations.inference_server_hooks` | Server-neutral pre-sampling hook for vLLM, TGI, and llama.cpp |
+| [`createDirectorAiMiddleware`](../integrations/vercel-ai.md) | `@director-ai/vercel-ai` | Vercel AI SDK `LanguageModelV3Middleware` bridge to `/v1/review` |
+| [`AutoGenReplyGuard`](../integrations/autogen.md) | `director_ai.integrations.autogen_swarm` | AutoGen `register_reply()` hook for guarded group-chat messages |
+| [`build_guardrails_validator`](../integrations/guardrails-ai.md) | `director_ai.integrations.guardrails_ai` | Guardrails AI custom validator for coherence checks |
 | [`MetaGuard`](meta-guard.md) | `director_ai.core.meta_guard` | Recursive guard drift monitor with production evasion gates |
 | [`SafetyEvent`](safety-event-schema.md) | `director_ai.core.safety_event` | Tenant-safe telemetry schema and validator for guard decisions |
 | [`CoherenceAgent`](agent.md) | `director_ai.core.agent` | Orchestrator: generator + scorer + kernel |
@@ -150,10 +153,29 @@ See [Online Calibration Guide](../guide/online-calibration.md).
 | `AuditEntry` | `compliance.audit_log` | Single interaction record |
 | `ComplianceReporter` | `compliance.reporter` | Article 15 report generator |
 | `Article15Report` | `compliance.reporter` | Structured report with metrics, drift, incidents |
+| `Article15TemplateContext` | `compliance.reporter` | Operator-supplied Article 15 technical documentation context |
+| `Soc2IsoReadinessReport` | `compliance.readiness` | Tenant-safe SOC 2 / ISO 27001 readiness report |
+| `Soc2IsoControl` | `compliance.readiness` | One readiness control mapped to SOC 2 and ISO 27001 evidence |
+| `build_soc2_iso_readiness_report()` | `compliance.readiness` | Default or operator-supplied readiness report builder |
 | `DriftDetector` | `compliance.drift_detector` | Statistical drift detection (two-proportion z-test) |
 | `DriftResult` | `compliance.drift_detector` | Drift analysis result with z-score, p-value, severity |
 
 See [Compliance Reporting Guide](../guide/compliance-reporting.md).
+
+### Enterprise Moderation
+
+| Class | Module | Purpose |
+|-------|--------|---------|
+| `ContentModerator` | `enterprise.moderation` | One-call PII redaction plus toxicity allow/warn/block wrapper |
+| `ContentModerationResult` | `enterprise.moderation` | Tenant-safe moderation decision and metadata |
+| `ModerationAction` | `enterprise.moderation` | `allow`, `redact`, `warn`, or `block` decision enum |
+| `CustomRuleset` | `enterprise.rules_dsl` | Strict JSON/YAML custom policy loader for operator-owned rules |
+| `CustomRule` | `enterprise.rules_dsl` | Validated compiled-rule input record |
+| `RulesDslError` | `enterprise.rules_dsl` | Stable validation error for invalid ruleset documents |
+| `build_trust_console_report()` | `ui.safety_dashboard` | Tenant-safe Trust Console JSON/Markdown report builder |
+| `TrustControl` | `ui.safety_dashboard` | Readiness control row for customer-facing trust reports |
+
+See [Enterprise API](enterprise.md).
 
 ## Import Patterns
 
@@ -170,7 +192,10 @@ from director_ai import verify_json, verify_tool_call, verify_code
 from director_ai import FeedbackStore, OnlineCalibrator, CalibrationReport
 
 # v3.10.0: EU AI Act compliance
-from director_ai import AuditLog, AuditEntry, ComplianceReporter, Article15Report
+from director_ai import AuditLog, AuditEntry, ComplianceReporter, Article15Report, Article15TemplateContext
+
+# Commercial readiness
+from director_ai import build_soc2_iso_readiness_report
 
 # v3.10.0: Meta-confidence
 from director_ai import compute_meta_confidence, ContradictionTracker
@@ -182,5 +207,5 @@ from director_ai.core.retrieval.vector_store import VectorGroundTruthStore, Chro
 from director_ai.core.runtime.batch import BatchProcessor
 
 # Enterprise (lazy-loaded)
-from director_ai.enterprise import TenantRouter, Policy, AuditLogger
+from director_ai.enterprise import TenantRouter, Policy, AuditLogger, CustomRuleset
 ```

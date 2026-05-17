@@ -60,7 +60,7 @@ def _assert_no_denied_tokens(path: Path) -> None:
             raise ValueError(f"{path} contains unredacted sensitive marker: {token}")
 
 
-def _assert_csv_columns(path: Path, required: set[str]) -> None:
+def _assert_csv_columns(path: Path, required: set[str]) -> list[dict[str, str]]:
     with path.open(newline="", encoding="utf-8") as handle:
         reader = csv.DictReader(handle)
         columns = set(reader.fieldnames or [])
@@ -70,9 +70,17 @@ def _assert_csv_columns(path: Path, required: set[str]) -> None:
         rows = list(reader)
         if not rows:
             raise ValueError(f"{path} must contain at least one row")
+        return rows
 
 
-def _validate_environment(root: Path) -> None:
+def _assert_http_transcripts(root: Path) -> None:
+    transcript_dir = root / "http_transcripts"
+    files = [path for path in transcript_dir.rglob("*") if path.is_file()]
+    if not files:
+        raise ValueError("http_transcripts must contain at least one redacted file")
+
+
+def _validate_environment(root: Path) -> dict[str, Any]:
     env = _read_json(root / "environment.json")
     required = {
         "target_commit",
@@ -90,6 +98,7 @@ def _validate_environment(root: Path) -> None:
         raise ValueError(f"environment.json missing fields: {sorted(missing)}")
     if not isinstance(env["enabled_extras"], list):
         raise ValueError("environment.json enabled_extras must be a list")
+    return env
 
 
 def _validate_frames(path: Path) -> None:
@@ -105,6 +114,7 @@ def _validate_frames(path: Path) -> None:
 
 def _validate_findings(root: Path) -> None:
     findings = _read_jsonl(root / "findings.jsonl")
+    resolved_root = root.resolve()
     for index, finding in enumerate(findings, 1):
         required = {"severity", "surface", "reproduction", "evidence_path"}
         missing = required - set(finding)
@@ -114,21 +124,47 @@ def _validate_findings(root: Path) -> None:
             )
         if str(finding["severity"]).lower() not in SEVERITIES:
             raise ValueError(f"findings.jsonl:{index} has invalid severity")
-        evidence = root / str(finding["evidence_path"])
+        evidence = (root / str(finding["evidence_path"])).resolve()
+        try:
+            evidence.relative_to(resolved_root)
+        except ValueError as exc:
+            raise ValueError(
+                f"findings.jsonl:{index} evidence path escapes evidence root: {evidence}"
+            ) from exc
         if not evidence.exists():
             raise ValueError(
                 f"findings.jsonl:{index} evidence path not found: {evidence}"
             )
 
 
-def _validate_summary(root: Path, packet: dict[str, Any]) -> None:
+def _validate_summary(root: Path, packet: dict[str, Any], env: dict[str, Any]) -> None:
     summary = (root / "summary.md").read_text(encoding="utf-8")
     for track in packet["test_tracks"]:
         track_id = str(track["id"])
         if track_id not in summary:
             raise ValueError(f"summary.md missing track id: {track_id}")
-    if "target_commit" not in summary:
-        raise ValueError("summary.md must include target_commit")
+    expected_commit = str(env["target_commit"])
+    expected_line = f"target_commit: {expected_commit}"
+    if expected_line not in summary:
+        raise ValueError("summary.md target_commit must match environment.json")
+
+
+def _validate_tenant_matrix(root: Path) -> None:
+    rows = _assert_csv_columns(
+        root / "tenant_matrix.csv",
+        {"tenant", "surface", "action", "expected_status", "actual_status"},
+    )
+    tenants = {row["tenant"].strip() for row in rows if row.get("tenant", "").strip()}
+    if len(tenants) < 2:
+        raise ValueError("tenant_matrix.csv must include at least two tenants")
+
+    denied_statuses = {"401", "403", "404", "409", "422", "blocked", "rejected"}
+    has_denied_case = any(
+        row.get("expected_status", "").strip().lower() in denied_statuses
+        for row in rows
+    )
+    if not has_denied_case:
+        raise ValueError("tenant_matrix.csv must include a denied isolation case")
 
 
 def validate_run(root: Path) -> list[str]:
@@ -148,12 +184,10 @@ def validate_run(root: Path) -> list[str]:
         return errors
 
     try:
-        _validate_environment(root)
+        env = _validate_environment(root)
         _validate_frames(root / "websocket_frames.jsonl")
-        _assert_csv_columns(
-            root / "tenant_matrix.csv",
-            {"tenant", "surface", "action", "expected_status", "actual_status"},
-        )
+        _assert_http_transcripts(root)
+        _validate_tenant_matrix(root)
         _assert_csv_columns(
             root / "ingestion_matrix.csv",
             {"tenant", "case", "expected_status", "actual_status"},
@@ -171,7 +205,7 @@ def validate_run(root: Path) -> list[str]:
             {"boundary", "case", "expected_status", "actual_status"},
         )
         _validate_findings(root)
-        _validate_summary(root, packet)
+        _validate_summary(root, packet, env)
         for path in root.rglob("*"):
             if path.is_file():
                 _assert_no_denied_tokens(path)

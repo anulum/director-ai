@@ -25,7 +25,13 @@ from dataclasses import dataclass, field
 
 from .audit_log import AuditLog
 
-__all__ = ["Article15Report", "ComplianceReporter", "ModelMetrics", "PeriodMetrics"]
+__all__ = [
+    "Article15Report",
+    "Article15TemplateContext",
+    "ComplianceReporter",
+    "ModelMetrics",
+    "PeriodMetrics",
+]
 
 
 def _wilson_ci(successes: int, total: int, z: float = 1.96) -> float:
@@ -66,6 +72,56 @@ class PeriodMetrics:
     avg_confidence: float
 
 
+@dataclass(frozen=True)
+class Article15TemplateContext:
+    """Operator-supplied context for Article 15 technical documentation."""
+
+    system_name: str
+    intended_purpose: str
+    deployment_context: str
+    risk_management_summary: str
+    data_governance_summary: str
+    robustness_summary: str
+    cybersecurity_summary: str
+    human_oversight_summary: str
+    post_market_monitoring_summary: str
+    known_limitations: tuple[str, ...] = ()
+    residual_risks: tuple[str, ...] = ()
+    evidence_refs: tuple[str, ...] = ()
+
+    def __post_init__(self) -> None:
+        required = {
+            "system_name": self.system_name,
+            "intended_purpose": self.intended_purpose,
+            "deployment_context": self.deployment_context,
+            "risk_management_summary": self.risk_management_summary,
+            "data_governance_summary": self.data_governance_summary,
+            "robustness_summary": self.robustness_summary,
+            "cybersecurity_summary": self.cybersecurity_summary,
+            "human_oversight_summary": self.human_oversight_summary,
+            "post_market_monitoring_summary": self.post_market_monitoring_summary,
+        }
+        for field_name, value in required.items():
+            if not value.strip():
+                raise ValueError(f"{field_name} is required")
+
+        object.__setattr__(
+            self,
+            "known_limitations",
+            tuple(item.strip() for item in self.known_limitations if item.strip()),
+        )
+        object.__setattr__(
+            self,
+            "residual_risks",
+            tuple(item.strip() for item in self.residual_risks if item.strip()),
+        )
+        object.__setattr__(
+            self,
+            "evidence_refs",
+            tuple(item.strip() for item in self.evidence_refs if item.strip()),
+        )
+
+
 @dataclass
 class Article15Report:
     """EU AI Act Article 15 compliance report.
@@ -100,6 +156,192 @@ class Article15Report:
 
     # Incidents (rejections)
     incident_count: int = 0
+
+    def to_article15_template(
+        self,
+        context: Article15TemplateContext,
+    ) -> dict[str, object]:
+        """Return tenant-safe EU AI Act Article 15 technical documentation."""
+        return {
+            "article": "EU AI Act Article 15",
+            "generated_at": time.strftime(
+                "%Y-%m-%dT%H:%M:%SZ",
+                time.gmtime(self.report_timestamp),
+            ),
+            "reporting_period": {
+                "start": time.strftime("%Y-%m-%d", time.gmtime(self.period_start)),
+                "end": time.strftime("%Y-%m-%d", time.gmtime(self.period_end)),
+            },
+            "system": {
+                "name": context.system_name,
+                "intended_purpose": context.intended_purpose,
+                "deployment_context": context.deployment_context,
+            },
+            "article_15_sections": {
+                "accuracy": {
+                    "total_interactions": self.total_interactions,
+                    "overall_hallucination_rate": self.overall_hallucination_rate,
+                    "overall_hallucination_rate_ci": (
+                        self.overall_hallucination_rate_ci
+                    ),
+                    "avg_score": self.avg_score,
+                    "avg_verdict_confidence": self.avg_verdict_confidence,
+                    "model_metrics": [
+                        {
+                            "model": metric.model,
+                            "total_requests": metric.total_requests,
+                            "approved_count": metric.approved_count,
+                            "rejected_count": metric.rejected_count,
+                            "hallucination_rate": metric.hallucination_rate,
+                            "hallucination_rate_ci": metric.hallucination_rate_ci,
+                            "avg_score": metric.avg_score,
+                            "avg_confidence": metric.avg_confidence,
+                            "avg_latency_ms": metric.avg_latency_ms,
+                        }
+                        for metric in self.model_metrics
+                    ],
+                },
+                "robustness": {
+                    "summary": context.robustness_summary,
+                    "drift_detected": self.drift_detected,
+                    "drift_severity": self.drift_severity,
+                    "drift_periods": [
+                        {
+                            "period_start": time.strftime(
+                                "%Y-%m-%d",
+                                time.gmtime(period.period_start),
+                            ),
+                            "period_end": time.strftime(
+                                "%Y-%m-%d",
+                                time.gmtime(period.period_end),
+                            ),
+                            "total_requests": period.total_requests,
+                            "hallucination_rate": period.hallucination_rate,
+                            "avg_score": period.avg_score,
+                            "avg_confidence": period.avg_confidence,
+                        }
+                        for period in self.drift_periods
+                    ],
+                },
+                "cybersecurity": {"summary": context.cybersecurity_summary},
+                "risk_management": {
+                    "summary": context.risk_management_summary,
+                    "incident_count": self.incident_count,
+                },
+                "data_governance": {"summary": context.data_governance_summary},
+                "human_oversight": {
+                    "summary": context.human_oversight_summary,
+                    "human_override_count": self.human_override_count,
+                    "human_override_rate": self.human_override_rate,
+                },
+                "post_market_monitoring": {
+                    "summary": context.post_market_monitoring_summary,
+                    "avg_latency_ms": self.avg_latency_ms,
+                },
+                "residual_risk": {
+                    "known_limitations": list(context.known_limitations),
+                    "residual_risks": list(context.residual_risks),
+                },
+            },
+            "evidence_refs": list(context.evidence_refs),
+            "privacy": {
+                "payload_classification": "tenant_safe",
+                "raw_interaction_text_included": False,
+            },
+        }
+
+    def to_article15_markdown(self, context: Article15TemplateContext) -> str:
+        """Render the structured Article 15 template as Markdown."""
+        payload = self.to_article15_template(context)
+        sections = payload["article_15_sections"]
+        assert isinstance(sections, dict)
+        accuracy = sections["accuracy"]
+        robustness = sections["robustness"]
+        cybersecurity = sections["cybersecurity"]
+        risk = sections["risk_management"]
+        data = sections["data_governance"]
+        oversight = sections["human_oversight"]
+        monitoring = sections["post_market_monitoring"]
+        residual = sections["residual_risk"]
+        assert isinstance(accuracy, dict)
+        assert isinstance(robustness, dict)
+        assert isinstance(cybersecurity, dict)
+        assert isinstance(risk, dict)
+        assert isinstance(data, dict)
+        assert isinstance(oversight, dict)
+        assert isinstance(monitoring, dict)
+        assert isinstance(residual, dict)
+
+        lines = [
+            "# EU AI Act Article 15 Technical Documentation",
+            "",
+            "## System",
+            "",
+            f"- Name: {context.system_name}",
+            f"- Intended purpose: {context.intended_purpose}",
+            f"- Deployment context: {context.deployment_context}",
+            "",
+            "## Accuracy, Robustness, and Cybersecurity",
+            "",
+            f"- Total interactions: {accuracy['total_interactions']:,}",
+            "- Overall hallucination rate: "
+            f"{accuracy['overall_hallucination_rate']:.2%} ± "
+            f"{accuracy['overall_hallucination_rate_ci']:.2%}",
+            f"- Average score: {accuracy['avg_score']:.3f}",
+            f"- Average verdict confidence: {accuracy['avg_verdict_confidence']:.3f}",
+            f"- Robustness controls: {robustness['summary']}",
+            f"- Drift detected: {'yes' if robustness['drift_detected'] else 'no'}",
+            f"- Drift severity: {robustness['drift_severity']:.3f}",
+            f"- Cybersecurity controls: {cybersecurity['summary']}",
+            "",
+            "## Risk Management",
+            "",
+            f"- Summary: {risk['summary']}",
+            f"- Incident count: {risk['incident_count']:,}",
+            "",
+            "## Data Governance",
+            "",
+            f"- Summary: {data['summary']}",
+            "",
+            "## Human Oversight",
+            "",
+            f"- Summary: {oversight['summary']}",
+            f"- Human overrides: {oversight['human_override_count']:,}",
+            f"- Human override rate: {oversight['human_override_rate']:.2%}",
+            "",
+            "## Post-Market Monitoring",
+            "",
+            f"- Summary: {monitoring['summary']}",
+            f"- Average latency: {monitoring['avg_latency_ms']:.1f} ms",
+            "",
+            "## Residual Risk",
+            "",
+        ]
+        limitations = residual["known_limitations"]
+        risks = residual["residual_risks"]
+        assert isinstance(limitations, list)
+        assert isinstance(risks, list)
+        lines.extend(f"- Known limitation: {item}" for item in limitations)
+        lines.extend(f"- Residual risk: {item}" for item in risks)
+        if not limitations and not risks:
+            lines.append("- No residual risks supplied in this template context.")
+        lines.extend(["", "## Evidence References", ""])
+        evidence_refs = payload["evidence_refs"]
+        assert isinstance(evidence_refs, list)
+        if evidence_refs:
+            lines.extend(f"- {ref}" for ref in evidence_refs)
+        else:
+            lines.append("- No evidence references supplied.")
+        lines.extend(
+            [
+                "",
+                "## Privacy Boundary",
+                "",
+                "- Payload classification: tenant_safe",
+                "- Raw interaction text included: false",
+            ]
+        )
+        return "\n".join(lines)
 
     def to_markdown(self) -> str:
         """Generate Article 15 compliance report in Markdown."""

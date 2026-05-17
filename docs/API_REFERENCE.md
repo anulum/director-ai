@@ -328,8 +328,8 @@ kernel = StreamingKernel(hard_limit=0.3, on_halt=my_handler)
 
 ### SDK Guard (`guard()`)
 
-One-liner hallucination guard for OpenAI and Anthropic SDK clients.
-Wraps the client in-place — use it exactly as before.
+One-liner hallucination guard for supported chat, message, cloud-runtime, Mistral, Cohere, and Pydantic AI SDK clients.
+Wraps or proxies the client — always use the returned object.
 
 ```python
 from director_ai import guard, get_score, HallucinationError
