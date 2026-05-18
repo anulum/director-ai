@@ -29,6 +29,8 @@ _REPORT_EXAMPLE_LIMIT = 3
 
 
 class _TuneResultLike(Protocol):
+    """Protocol for objects that can render tuning reports."""
+
     threshold: float
     w_logic: float
     w_fact: float
@@ -74,6 +76,8 @@ class BoundaryExample:
 
 @dataclass(frozen=True)
 class _ScoredSample:
+    """One labelled sample after scoring by a candidate scorer."""
+
     sample_index: int
     score: float
     label: bool
@@ -83,6 +87,8 @@ class _ScoredSample:
 
 @dataclass
 class TuneResult:
+    """Selected threshold and diagnostic evidence from a tuning run."""
+
     threshold: float
     w_logic: float
     w_fact: float
@@ -270,6 +276,7 @@ def _to_profile_overlay(
     profile: str,
     base_profile: str,
 ) -> dict[str, object]:
+    """Return a profile overlay for modern or legacy tuning results."""
     to_overlay = getattr(result, "to_profile_overlay", None)
     if callable(to_overlay):
         return cast(
@@ -412,6 +419,7 @@ def _evaluate_candidate(
     w_fact: float,
     scores: list[_ScoredSample],
 ) -> ThresholdCandidate:
+    """Evaluate one threshold and weight pair against scored samples."""
     tp = fp = tn = fn = 0
     for scored in scores:
         predicted = scored.score >= threshold
@@ -455,6 +463,7 @@ def _evaluate_candidate(
 def _rank_candidates(
     candidates: list[ThresholdCandidate],
 ) -> list[ThresholdCandidate]:
+    """Return candidates ordered by quality and tie-breaker stability."""
     return sorted(
         candidates,
         key=lambda c: (
@@ -471,6 +480,7 @@ def _selection_margin(
     best: TuneResult,
     ranked_candidates: tuple[ThresholdCandidate, ...],
 ) -> float:
+    """Return the balanced-accuracy margin over the next-best candidate."""
     alternatives = [
         c
         for c in ranked_candidates
@@ -492,6 +502,7 @@ def _confidence_level(
     negatives: int,
     selection_margin: float,
 ) -> str:
+    """Return a coarse confidence level for the selected threshold."""
     minority_ratio = min(positives, negatives) / samples if samples else 0.0
     if samples >= 50 and minority_ratio >= 0.2 and selection_margin >= 0.05:
         return "high"
@@ -528,6 +539,7 @@ def _confidence_intervals(result: TuneResult) -> dict[str, tuple[float, float]]:
 
 
 def _wilson_interval(successes: int, total: int) -> tuple[float, float]:
+    """Return the deterministic 95% Wilson score interval."""
     if total <= 0:
         return (0.0, 0.0)
     z = 1.959963984540054  # 95% normal quantile
@@ -542,6 +554,7 @@ def _wilson_interval(successes: int, total: int) -> tuple[float, float]:
 
 
 def _f1_from_precision_recall(precision: float, recall: float) -> float:
+    """Return F1 from precision and recall."""
     if precision <= 0.0 or recall <= 0.0:
         return 0.0
     return 2.0 * precision * recall / (precision + recall)
@@ -550,6 +563,7 @@ def _f1_from_precision_recall(precision: float, recall: float) -> float:
 def _format_confidence_intervals(
     intervals: dict[str, tuple[float, float]],
 ) -> str:
+    """Render confidence intervals as deterministic metadata text."""
     if not intervals:
         return ""
     return ", ".join(
@@ -558,6 +572,7 @@ def _format_confidence_intervals(
 
 
 def _tradeoff_summary(result: TuneResult) -> str:
+    """Describe the selected threshold's FP/FN trade-off."""
     false_positive_rate = (
         result.fp / (result.fp + result.tn) if (result.fp + result.tn) > 0 else 0.0
     )
@@ -577,6 +592,7 @@ def _boundary_examples(
     threshold: float,
     scores: list[_ScoredSample],
 ) -> list[BoundaryExample]:
+    """Return samples closest to the selected threshold boundary."""
     examples = []
     for scored in sorted(scores, key=lambda s: abs(s.score - threshold)):
         margin = round(scored.score - threshold, 4)
@@ -598,6 +614,7 @@ def _boundary_examples(
 
 
 def _excerpt(text: str, limit: int = 80) -> str:
+    """Return a single-line excerpt bounded by character count."""
     one_line = " ".join(text.split())
     if len(one_line) <= limit:
         return one_line
@@ -605,6 +622,7 @@ def _excerpt(text: str, limit: int = 80) -> str:
 
 
 def _format_boundary_example(example: BoundaryExample) -> str:
+    """Render one boundary example for reports and YAML comments."""
     verdict = "approved" if example.predicted else "rejected"
     expected = "approved" if example.label else "rejected"
     return (
@@ -616,6 +634,7 @@ def _format_boundary_example(example: BoundaryExample) -> str:
 
 
 def _yaml_scalar(value: object) -> str:
+    """Render a primitive value as a conservative YAML scalar."""
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, int | float):
