@@ -36,6 +36,7 @@ learning_rate = 0.00005
 training_seed = 20260518
 eval_limit = 5000
 num_workers = 2
+device = "auto"
 summ_target = 15000
 general_target = 15000
 latency_sample_count = 100

@@ -21,6 +21,7 @@ import logging
 import os
 import random
 import sys
+from collections.abc import Callable
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -73,6 +74,7 @@ class TrainingRunConfig:
     seed: int
     eval_limit: int
     num_workers: int
+    device: str
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -95,6 +97,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--seed", type=int, default=20260518)
     parser.add_argument("--eval-limit", type=int, default=5000)
     parser.add_argument("--num-workers", type=int, default=2)
+    parser.add_argument("--device", choices=("auto", "cpu", "cuda"), default="auto")
     parser.add_argument(
         "--output-dir",
         type=Path,
@@ -119,6 +122,7 @@ def config_from_args(args: argparse.Namespace) -> TrainingRunConfig:
         seed=args.seed,
         eval_limit=args.eval_limit,
         num_workers=args.num_workers,
+        device=args.device,
     )
 
 
@@ -146,7 +150,43 @@ def validate_training_run_config(config: TrainingRunConfig) -> list[str]:
         errors.append("eval_limit must be positive")
     if config.num_workers < 0:
         errors.append("num_workers must be non-negative")
+    if config.device not in {"auto", "cpu", "cuda"}:
+        errors.append("device must be one of auto, cpu, or cuda")
     return errors
+
+
+def _cuda_runtime_probe() -> bool:
+    try:
+        tensor = torch.ones(1, device="cuda")
+        _ = float(tensor.cpu()[0])
+    except Exception:
+        return False
+    return True
+
+
+def resolve_training_device(
+    preference: str,
+    *,
+    cuda_available: Callable[[], bool] = torch.cuda.is_available,
+    cuda_probe: Callable[[], bool] = _cuda_runtime_probe,
+) -> tuple[torch.device, str | None]:
+    if preference == "cpu":
+        return torch.device("cpu"), None
+    if preference == "cuda":
+        if not cuda_available():
+            raise RuntimeError("CUDA requested but is not available")
+        if not cuda_probe():
+            raise RuntimeError("CUDA requested but failed the runtime probe")
+        return torch.device("cuda"), None
+    if preference == "auto":
+        if not cuda_available():
+            return torch.device("cpu"), None
+        if cuda_probe():
+            return torch.device("cuda"), None
+        return torch.device(
+            "cpu"
+        ), "CUDA was visible but failed the runtime probe; using CPU"
+    raise RuntimeError("device must be one of auto, cpu, or cuda")
 
 
 def set_reproducible_seeds(seed: int) -> torch.Generator:
@@ -325,7 +365,8 @@ def write_training_run_manifest(
         },
         "train_rows": train_rows,
         "eval_rows": eval_rows,
-        "device": device,
+        "device_preference": config.device,
+        "resolved_device": device,
         "teacher_params": teacher_params,
         "student_params": student_params,
         "compression_ratio": teacher_params / student_params,
@@ -349,7 +390,13 @@ def main(argv: list[str] | None = None) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     generator = set_reproducible_seeds(config.seed)
 
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    try:
+        device, device_warning = resolve_training_device(config.device)
+    except RuntimeError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    if device_warning is not None:
+        logger.warning("%s", device_warning)
     logger.info("Device: %s", device)
 
     full_dataset = load_from_disk(str(DATA_DIR))
@@ -493,6 +540,7 @@ def main(argv: list[str] | None = None) -> int:
         "seed": config.seed,
         "eval_limit": config.eval_limit,
         "num_workers": config.num_workers,
+        "device_preference": config.device,
         "teacher_params": teacher_params,
         "student_params": student_params,
         "compression_ratio": teacher_params / student_params,

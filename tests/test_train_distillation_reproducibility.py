@@ -26,6 +26,7 @@ SPEC.loader.exec_module(MODULE)
 TrainingRunConfig = MODULE.TrainingRunConfig
 build_parser = MODULE.build_parser
 build_subset = MODULE.build_subset
+resolve_training_device = MODULE.resolve_training_device
 validate_training_run_config = MODULE.validate_training_run_config
 write_training_run_manifest = MODULE.write_training_run_manifest
 
@@ -88,6 +89,31 @@ def test_training_parser_exposes_reproducibility_controls() -> None:
     assert args.seed == 20260518
     assert args.eval_limit == 5000
     assert args.num_workers == 2
+    assert args.device == "auto"
+
+
+def test_resolve_training_device_falls_back_when_cuda_probe_fails() -> None:
+    device, warning = resolve_training_device(
+        "auto",
+        cuda_available=lambda: True,
+        cuda_probe=lambda: False,
+    )
+
+    assert device.type == "cpu"
+    assert warning == "CUDA was visible but failed the runtime probe; using CPU"
+
+
+def test_resolve_training_device_rejects_explicit_unusable_cuda() -> None:
+    try:
+        resolve_training_device(
+            "cuda",
+            cuda_available=lambda: True,
+            cuda_probe=lambda: False,
+        )
+    except RuntimeError as exc:
+        assert str(exc) == "CUDA requested but failed the runtime probe"
+    else:
+        raise AssertionError("explicit CUDA must fail when probe fails")
 
 
 def test_validate_training_run_config_rejects_invalid_bounds() -> None:
@@ -106,6 +132,7 @@ def test_validate_training_run_config_rejects_invalid_bounds() -> None:
         seed=-1,
         eval_limit=0,
         num_workers=-1,
+        device="bogus",
     )
 
     assert validate_training_run_config(config) == [
@@ -114,6 +141,7 @@ def test_validate_training_run_config_rejects_invalid_bounds() -> None:
         "seed must be non-negative",
         "eval_limit must be positive",
         "num_workers must be non-negative",
+        "device must be one of auto, cpu, or cuda",
     ]
 
 
@@ -135,6 +163,7 @@ def test_write_training_run_manifest_records_inputs_without_score_claim(
         seed=20260518,
         eval_limit=5000,
         num_workers=2,
+        device="auto",
     )
 
     write_training_run_manifest(
@@ -152,6 +181,7 @@ def test_write_training_run_manifest_records_inputs_without_score_claim(
     assert payload["claim_boundary"].startswith("Training run metadata only")
     assert payload["seed"] == 20260518
     assert payload["eval_limit"] == 5000
+    assert payload["device_preference"] == "auto"
     assert payload["train_rows"] == 30000
     assert payload["eval_rows"] == 5000
     assert "balanced_accuracy" not in payload

@@ -41,6 +41,7 @@ REQUIRED_STRINGS = {
     "evidence_packet",
     "latency_backend",
     "latency_device",
+    "device",
 }
 REQUIRED_INTS = {
     "epochs": 1,
@@ -192,6 +193,9 @@ def validate_lite_scorer_v2_run_manifest(
     quantise = data.get("quantise_onnx")
     if not isinstance(quantise, bool):
         errors.append(f"{label}: quantise_onnx must be boolean")
+    device = data.get("device")
+    if isinstance(device, str) and device not in {"auto", "cpu", "cuda"}:
+        errors.append(f"{label}: device must be one of auto, cpu, or cuda")
     target_rows = data.get("heldout_target_rows")
     if (
         isinstance(target_rows, int)
@@ -272,6 +276,8 @@ def _build_commands(data: dict[str, Any]) -> list[dict[str, list[str] | str]]:
         _int_arg(data, "eval_limit"),
         "--num-workers",
         _int_arg(data, "num_workers"),
+        "--device",
+        _path(data, "device"),
         "--summ-target",
         _int_arg(data, "summ_target"),
         "--general-target",

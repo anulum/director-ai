@@ -160,7 +160,10 @@ the local evaluation split with deterministic sampling, balanced supported and
 unsupported labels, source counts, and a SHA-256 provenance manifest.
 `training/train_distillation.py` records the deterministic training seed,
 selected row counts, model parameter counts, device, and claim boundary in
-`training_run_manifest.json` inside the student output directory.
+`training_run_manifest.json` inside the student output directory. Its
+`--device auto` mode probes CUDA before loading training data or models and
+falls back to CPU when the local PyTorch build cannot execute on the visible
+GPU.
 
 ## Customizing Weights
 
