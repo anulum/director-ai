@@ -10,6 +10,9 @@ public_score_claim = false
 claim_boundary = "Adapter contract and seed fixture only; not an official PINT score and not a substitute for the held-back upstream dataset."
 detector_contract = "text_to_boolean"
 minimum_seed_cases = 10
+minimum_languages = 6
+minimum_malicious_languages = 5
+minimum_cases_per_required_category = 2
 required_categories = [
   "direct_injection",
   "indirect_injection",

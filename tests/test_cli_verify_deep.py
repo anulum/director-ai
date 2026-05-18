@@ -232,6 +232,36 @@ class TestLicenseCliBranches:
         assert "DIRECTOR_LICENSE_KEY is not configured" in out
         assert "DIRECTOR_AI_POLAR_WEBHOOK_SECRET is not configured" in out
 
+    def test_license_polar_env_json_is_machine_readable_without_secrets(
+        self,
+        monkeypatch,
+        capsys,
+    ):
+        report = SimpleNamespace(
+            ready=True,
+            errors=[],
+            warnings=["DIRECTOR_AI_POLAR_ACTIVATION_ID is not configured"],
+        )
+        monkeypatch.setenv("DIRECTOR_LICENSE_KEY", "polar-secret-key")
+        monkeypatch.setenv("DIRECTOR_AI_POLAR_ACCESS_TOKEN", "polar-secret-token")
+        monkeypatch.setattr(
+            "director_ai.core.polar_license.validate_polar_deployment_env",
+            lambda: report,
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_license(["polar-env", "--json"])
+
+        assert exc_info.value.code == 0
+        payload = json.loads(capsys.readouterr().out)
+        assert payload == {
+            "ready": True,
+            "errors": [],
+            "warnings": ["DIRECTOR_AI_POLAR_ACTIVATION_ID is not configured"],
+        }
+        assert "polar-secret-key" not in json.dumps(payload)
+        assert "polar-secret-token" not in json.dumps(payload)
+
 
 class TestComplianceCliBranches:
     def test_compliance_missing_database_exits(self, tmp_path, capsys):

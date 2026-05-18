@@ -196,9 +196,12 @@ ckpts/
 !/training/data_pipeline.py
 !/training/distil_factcg.py
 !/training/distil_v5_cloud.py
+!/training/lite_scorer_v2_vertex_runner.py
 !/training/train_distillation.py
 !/training/Dockerfile.distil
 !/training/Dockerfile.benchmarks
+!/training/Dockerfile.lite_scorer_v2
+!/training/cloudbuild.lite_scorer_v2.yaml
 !/training/launch_cloud.sh
 !/training/requirements-distil.in
 !/training/requirements-distil.txt

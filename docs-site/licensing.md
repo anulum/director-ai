@@ -137,7 +137,12 @@ Required production checks:
 
 ```bash
 director-ai license polar-env
+director-ai license polar-env --json
 ```
+
+Use the JSON form in deployment smoke checks or CI jobs; it emits only
+`ready`, `errors`, and `warnings` so raw licence keys and Polar access tokens
+are not printed.
 
 Core variables:
 

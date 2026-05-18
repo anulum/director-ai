@@ -14,6 +14,9 @@ python demo/app.py
 
 from __future__ import annotations
 
+from html import escape
+from typing import TypedDict
+
 import gradio as gr
 
 import director_ai
@@ -23,6 +26,11 @@ from director_ai.core import (
     StreamingKernel,
 )
 from director_ai.core.config import DirectorConfig
+
+
+def _escape_markdown_text(text: str) -> str:
+    """Escape user-controlled text before returning it to Markdown widgets."""
+    return escape(text, quote=True)
 
 
 def score_response(
@@ -67,7 +75,8 @@ def score_response(
         evidence_md = f"**NLI score:** {score.evidence.nli_score:.3f}\n\n"
         for i, c in enumerate(score.evidence.chunks):
             evidence_md += (
-                f"**Chunk {i + 1}** (dist={c.distance:.3f}): {c.text[:120]}\n\n"
+                f"**Chunk {i + 1}** (dist={c.distance:.3f}): "
+                f"{_escape_markdown_text(c.text[:120])}\n\n"
             )
 
     bar_pct = int(score.score * 100)
@@ -85,7 +94,9 @@ def score_response(
         "transition:width 0.4s'></div></div>"
     )
 
-    ctx = store.retrieve_context(query) or "No matching facts found."
+    ctx = _escape_markdown_text(
+        store.retrieve_context(query) or "No matching facts found."
+    )
     combined_details = details
     if evidence_md:
         combined_details += "\n\n---\n\n**Evidence:**\n\n" + evidence_md
@@ -218,7 +229,13 @@ def _render_tokens_html(
 
 # ── Streaming halt scenarios ──────────────────────────────────────
 
-STREAMING_SCENARIOS = {
+
+class StreamingScenario(TypedDict):
+    tokens: list[str]
+    scores: list[float]
+
+
+STREAMING_SCENARIOS: dict[str, StreamingScenario] = {
     "Truthful response (APPROVED)": {
         "tokens": [
             "Water",

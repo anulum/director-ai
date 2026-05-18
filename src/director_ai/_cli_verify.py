@@ -257,9 +257,23 @@ def _cmd_license(args: list[str]) -> None:
         sys.exit(0 if info.valid else 1)
 
     if args[0] in ("polar-env", "env"):
+        import json
+
         from .core.polar_license import validate_polar_deployment_env
 
         report = validate_polar_deployment_env()
+        if "--json" in args[1:]:
+            print(
+                json.dumps(
+                    {
+                        "ready": report.ready,
+                        "errors": report.errors,
+                        "warnings": report.warnings,
+                    },
+                    sort_keys=True,
+                )
+            )
+            sys.exit(0 if report.ready else 1)
         print(f"Ready:    {report.ready}")
         if report.errors:
             print("Errors:")

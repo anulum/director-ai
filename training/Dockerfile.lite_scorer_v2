@@ -1,0 +1,31 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Lite Scorer v2 Vertex container
+
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime@sha256:77f17f843507062875ce8be2a6f76aa6aa3df7f9ef1e31d9d7432f4b0f563dee
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends git curl && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY training/requirements-distil.txt training/requirements-distil.txt
+RUN pip install --no-cache-dir --require-hashes -r training/requirements-distil.txt \
+    && pip uninstall -y torchvision
+
+COPY pyproject.toml ./
+COPY src/ src/
+COPY training/__init__.py training/__init__.py
+COPY training/train_distillation.py training/train_distillation.py
+COPY training/lite_scorer_v2_vertex_runner.py training/lite_scorer_v2_vertex_runner.py
+
+RUN pip install --no-cache-dir --no-deps -e .
+
+ENV PYTHONUNBUFFERED=1
+ENV TOKENIZERS_PARALLELISM=false
+
+ENTRYPOINT ["python", "-m", "training.lite_scorer_v2_vertex_runner"]

@@ -8,7 +8,7 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from typing import Literal, TypedDict
 
 import pytest
 
@@ -18,6 +18,17 @@ from director_ai.core.trajectory import (
     PreflightVerdict,
     TrajectoryResult,
 )
+
+
+class SteeringConstructorKwargs(TypedDict, total=False):
+    min_simulations: int
+    uncertainty_margin: float
+
+
+class VerdictProbabilityKwargs(TypedDict):
+    halt_rate: float
+    ci_low: float
+    ci_high: float
 
 
 def _envelope() -> RiskEnvelope:
@@ -200,7 +211,7 @@ def test_predictive_steering_evidence_refs_only_failed_trajectories():
     ],
 )
 def test_predictive_steering_rejects_invalid_constructor_inputs(
-    kwargs: dict[str, float],
+    kwargs: SteeringConstructorKwargs,
 ):
     with pytest.raises(ValueError):
         PredictivePreHaltSteering(**kwargs)
@@ -215,7 +226,7 @@ def test_predictive_steering_rejects_invalid_constructor_inputs(
     ],
 )
 def test_predictive_steering_rejects_out_of_range_probabilities(
-    verdict_kwargs: dict[str, float],
+    verdict_kwargs: VerdictProbabilityKwargs,
 ):
     steering = PredictivePreHaltSteering(min_simulations=4)
 

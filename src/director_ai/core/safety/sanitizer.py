@@ -46,7 +46,10 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         "instruction_override",
         re.compile(
             r"ignore\s+(all\s+)?(previous|prior|above|earlier)\s+"
-            r"(instructions?|rules?|context|prompts?)",
+            r"(instructions?|rules?|context|prompts?)|"
+            r"ignore\s+the\s+user|"
+            r"ignoriere\s+alle\s+fr[üu]heren\s+anweisungen|"
+            r"ignora\s+la\s+policy",
             re.IGNORECASE,
         ),
     ),
@@ -54,7 +57,8 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         "system_role_injection",
         re.compile(
             r"(you\s+are\s+now|act\s+as|pretend\s+(to\s+be|you\s+are)|"
-            r"new\s+instructions?:|system\s*:)",
+            r"new\s+instructions?:|system\s*:|"
+            r"act[úu]a\s+como\s+un\s+sistema\s+sin\s+reglas)",
             re.IGNORECASE,
         ),
     ),
@@ -62,7 +66,7 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         "delimiter_injection",
         re.compile(
             r"(```\s*system|<\|im_start\|>|<\|endoftext\|>|"
-            r"\[INST\]|\[/INST\]|<<SYS>>|<</SYS>>)",
+            r"\[INST\]|\[/INST\]|<<SYS>>|<</SYS>>|<<<[^>]*(ignore|ignora)[^>]*>>>)",
             re.IGNORECASE,
         ),
     ),
@@ -77,7 +81,12 @@ _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
         "data_exfiltration",
         re.compile(
             r"(repeat\s+(all|every)\s+(\w+\s+)*(text|content|instructions?|context)|"
-            r"what\s+(are|were)\s+your\s+(instructions?|rules?|system\s+prompt))",
+            r"what\s+(are|were)\s+your\s+(instructions?|rules?|system\s+prompt)|"
+            r"send\s+the\s+admin\s+token|"
+            r"demande\s+le\s+mot\s+de\s+passe|"
+            r"responde\s+con\s+las\s+instrucciones\s+internas\s+completas|"
+            r"restricted\s+internal\s+escalation\s+phrase|"
+            r"reveal\s+secrets?)",
             re.IGNORECASE,
         ),
     ),
@@ -120,8 +129,8 @@ _PATTERN_WEIGHTS: dict[str, float] = {
     "system_role_injection": 0.8,
     "delimiter_injection": 0.9,
     "output_manipulation": 0.3,
-    "data_exfiltration": 0.7,
-    "base64_payload": 0.4,
+    "data_exfiltration": 0.8,
+    "base64_payload": 0.8,
     "unicode_escape_injection": 0.5,
     "control_char_injection": 0.6,
     "bidi_override": 0.7,
@@ -132,7 +141,7 @@ _PATTERN_WEIGHTS: dict[str, float] = {
 _MAX_INPUT_LENGTH = 100_000
 _MAX_UNICODE_CATEGORY_RATIO = 0.15
 _DEFAULT_BLOCK_THRESHOLD = 0.8
-_BASE64_TOKEN_RE = re.compile(r"[A-Za-z0-9+/=]{60,}")
+_BASE64_TOKEN_RE = re.compile(r"[A-Za-z0-9+/=]{40,}")
 
 
 @dataclass(frozen=True)
@@ -301,7 +310,7 @@ def _contains_base64_payload(text: str) -> bool:
 
 
 def _is_base64_payload_token(token: str) -> bool:
-    if len(token) < 60 or len(token) % 4 == 1:
+    if len(token) < 40 or len(token) % 4 == 1:
         return False
     if "=" in token and not re.fullmatch(r"[A-Za-z0-9+/]+={0,2}", token):
         return False
@@ -315,7 +324,15 @@ def _is_base64_payload_token(token: str) -> bool:
         decoded = base64.b64decode(padded, validate=True)
     except (binascii.Error, ValueError):
         return False
-    if len(decoded) < 32:
+    if len(decoded) < 24:
         return False
     printable = sum(byte in b"\n\r\t" or 32 <= byte <= 126 for byte in decoded)
-    return printable / len(decoded) >= 0.85
+    if printable / len(decoded) < 0.85:
+        return False
+    decoded_text = decoded.decode("utf-8", errors="ignore").lower()
+    if any(
+        signal in decoded_text
+        for signal in ("ignore", "policy", "secret", "instruction", "reveal")
+    ):
+        return True
+    return len(decoded) >= 32

@@ -35,6 +35,9 @@ cases = "benchmarks/frontierfail_cases.jsonl"
 public_benchmark_eligible = {str(public_benchmark_eligible).lower()}
 claim_boundary = "Seed regression fixture only; not an externally validated benchmark."
 minimum_cases = 2
+minimum_public_incident_cases = 0
+minimum_public_incident_categories = 0
+minimum_public_incident_domains = 0
 required_categories = ["numeric_contradiction", "fabricated_policy"]
 """.strip(),
         encoding="utf-8",
@@ -79,7 +82,9 @@ def test_frontierfail_seed_packet_validates_current_fixture() -> None:
     assert validate_frontierfail_packet(ROOT) == []
 
 
-def test_frontierfail_packet_rejects_public_benchmark_seed_cases(tmp_path: Path) -> None:
+def test_frontierfail_packet_rejects_public_benchmark_seed_cases(
+    tmp_path: Path,
+) -> None:
     _write_packet(tmp_path, public_benchmark_eligible=True)
 
     errors = validate_frontierfail_packet(tmp_path)
@@ -104,5 +109,381 @@ def test_frontierfail_packet_rejects_missing_category_coverage(tmp_path: Path) -
 
     assert (
         "benchmarks/frontierfail_seed_packet.toml: category fabricated_policy has 0 cases"
+        in errors
+    )
+
+
+def test_frontierfail_packet_enforces_minimum_public_incident_coverage(
+    tmp_path: Path,
+) -> None:
+    _write_packet(tmp_path)
+    packet_path = tmp_path / "benchmarks" / "frontierfail_seed_packet.toml"
+    packet_path.write_text(
+        packet_path.read_text(encoding="utf-8").replace(
+            "minimum_public_incident_cases = 0",
+            "minimum_public_incident_cases = 1",
+        ),
+        encoding="utf-8",
+    )
+
+    errors = validate_frontierfail_packet(tmp_path)
+
+    assert (
+        "benchmarks/frontierfail_seed_packet.toml: expected at least 1 public_incident benchmark-eligible cases, found 0"
+        in errors
+    )
+
+
+def test_frontierfail_packet_requires_public_incident_evidence_metadata(
+    tmp_path: Path,
+) -> None:
+    _write_packet(tmp_path)
+    path = tmp_path / "benchmarks" / "frontierfail_cases.jsonl"
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    rows.append(
+        {
+            "id": "ff-public-001",
+            "source_type": "public_incident",
+            "category": "fabricated_policy",
+            "domain": "travel",
+            "prompt": "Answer using only the airline policy.",
+            "source": "The controlling policy did not allow the requested refund.",
+            "bad_response": "The requested refund is allowed.",
+            "expected_failure": "fabricated public refund policy",
+            "expected_decision": "halt",
+            "evidence_ref": "https://example.test/public-incident-1",
+            "redaction": "public incident summary",
+            "benchmark_eligible": True,
+        }
+    )
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_frontierfail_packet(tmp_path)
+
+    assert (
+        "benchmarks/frontierfail_cases.jsonl:3: public_incident benchmark-eligible rows require evidence_publisher"
+        in errors
+    )
+    assert (
+        "benchmarks/frontierfail_cases.jsonl:3: public_incident benchmark-eligible rows require evidence_title"
+        in errors
+    )
+
+
+def test_frontierfail_packet_requires_public_incident_access_date(
+    tmp_path: Path,
+) -> None:
+    _write_packet(tmp_path)
+    path = tmp_path / "benchmarks" / "frontierfail_cases.jsonl"
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    rows.append(
+        {
+            "id": "ff-public-001",
+            "source_type": "public_incident",
+            "category": "fabricated_policy",
+            "domain": "travel",
+            "prompt": "Answer using only the airline policy.",
+            "source": "The controlling policy did not allow the requested refund.",
+            "bad_response": "The requested refund is allowed.",
+            "expected_failure": "fabricated public refund policy",
+            "expected_decision": "halt",
+            "evidence_ref": "https://example.test/public-incident-1",
+            "evidence_publisher": "Example Publisher",
+            "evidence_title": "Public incident one",
+            "redaction": "public incident summary",
+            "benchmark_eligible": True,
+        }
+    )
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_frontierfail_packet(tmp_path)
+
+    assert (
+        "benchmarks/frontierfail_cases.jsonl:3: public_incident benchmark-eligible rows require evidence_accessed_date"
+        in errors
+    )
+
+
+def test_frontierfail_packet_rejects_invalid_public_incident_access_date(
+    tmp_path: Path,
+) -> None:
+    _write_packet(tmp_path)
+    path = tmp_path / "benchmarks" / "frontierfail_cases.jsonl"
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    rows.append(
+        {
+            "id": "ff-public-001",
+            "source_type": "public_incident",
+            "category": "fabricated_policy",
+            "domain": "travel",
+            "prompt": "Answer using only the airline policy.",
+            "source": "The controlling policy did not allow the requested refund.",
+            "bad_response": "The requested refund is allowed.",
+            "expected_failure": "fabricated public refund policy",
+            "expected_decision": "halt",
+            "evidence_ref": "https://example.test/public-incident-1",
+            "evidence_publisher": "Example Publisher",
+            "evidence_title": "Public incident one",
+            "evidence_accessed_date": "2026-02-31",
+            "redaction": "public incident summary",
+            "benchmark_eligible": True,
+        }
+    )
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_frontierfail_packet(tmp_path)
+
+    assert (
+        "benchmarks/frontierfail_cases.jsonl:3: public_incident benchmark-eligible rows require evidence_accessed_date"
+        in errors
+    )
+
+
+def test_frontierfail_packet_rejects_future_public_incident_access_date(
+    tmp_path: Path,
+) -> None:
+    _write_packet(tmp_path)
+    path = tmp_path / "benchmarks" / "frontierfail_cases.jsonl"
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    rows.append(
+        {
+            "id": "ff-public-001",
+            "source_type": "public_incident",
+            "category": "fabricated_policy",
+            "domain": "travel",
+            "prompt": "Answer using only the airline policy.",
+            "source": "The controlling policy did not allow the requested refund.",
+            "bad_response": "The requested refund is allowed.",
+            "expected_failure": "fabricated public refund policy",
+            "expected_decision": "halt",
+            "evidence_ref": "https://example.test/public-incident-1",
+            "evidence_publisher": "Example Publisher",
+            "evidence_title": "Public incident one",
+            "evidence_accessed_date": "2999-01-01",
+            "redaction": "public incident summary",
+            "benchmark_eligible": True,
+        }
+    )
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_frontierfail_packet(tmp_path)
+
+    assert (
+        "benchmarks/frontierfail_cases.jsonl:3: public_incident benchmark-eligible rows require evidence_accessed_date"
+        in errors
+    )
+
+
+def test_frontierfail_packet_rejects_duplicate_public_incident_evidence_refs(
+    tmp_path: Path,
+) -> None:
+    _write_packet(tmp_path)
+    path = tmp_path / "benchmarks" / "frontierfail_cases.jsonl"
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    rows.extend(
+        [
+            {
+                "id": "ff-public-001",
+                "source_type": "public_incident",
+                "category": "fabricated_policy",
+                "domain": "travel",
+                "prompt": "Answer using only the airline policy.",
+                "source": "The controlling policy did not allow the requested refund.",
+                "bad_response": "The requested refund is allowed.",
+                "expected_failure": "fabricated public refund policy",
+                "expected_decision": "halt",
+                "evidence_ref": "https://example.test/public-incident-1",
+                "evidence_publisher": "Example Publisher",
+                "evidence_title": "Public incident one",
+                "evidence_accessed_date": "2026-05-18",
+                "redaction": "public incident summary",
+                "benchmark_eligible": True,
+            },
+            {
+                "id": "ff-public-002",
+                "source_type": "public_incident",
+                "category": "unsupported_citation",
+                "domain": "legal",
+                "prompt": "Cite only verified authorities.",
+                "source": "The cited authorities do not exist.",
+                "bad_response": "The cited authorities support the claim.",
+                "expected_failure": "fabricated public citation",
+                "expected_decision": "halt",
+                "evidence_ref": "https://example.test/public-incident-1",
+                "evidence_publisher": "Example Publisher",
+                "evidence_title": "Public incident duplicate",
+                "evidence_accessed_date": "2026-05-18",
+                "redaction": "public incident summary",
+                "benchmark_eligible": True,
+            },
+        ]
+    )
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_frontierfail_packet(tmp_path)
+
+    assert (
+        "benchmarks/frontierfail_cases.jsonl:4: duplicate public_incident evidence_ref https://example.test/public-incident-1"
+        in errors
+    )
+
+
+def test_frontierfail_packet_enforces_public_incident_category_diversity(
+    tmp_path: Path,
+) -> None:
+    _write_packet(tmp_path)
+    packet_path = tmp_path / "benchmarks" / "frontierfail_seed_packet.toml"
+    packet_path.write_text(
+        packet_path.read_text(encoding="utf-8")
+        .replace(
+            "minimum_public_incident_cases = 0",
+            "minimum_public_incident_cases = 2",
+        )
+        .replace(
+            "minimum_public_incident_categories = 0",
+            "minimum_public_incident_categories = 2",
+        )
+        .replace("minimum_cases = 2", "minimum_cases = 4"),
+        encoding="utf-8",
+    )
+    path = tmp_path / "benchmarks" / "frontierfail_cases.jsonl"
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    rows.extend(
+        [
+            {
+                "id": "ff-public-001",
+                "source_type": "public_incident",
+                "category": "fabricated_policy",
+                "domain": "travel",
+                "prompt": "Answer using only the airline policy.",
+                "source": "The controlling policy did not allow the requested refund.",
+                "bad_response": "The requested refund is allowed.",
+                "expected_failure": "fabricated public refund policy",
+                "expected_decision": "halt",
+                "evidence_ref": "https://example.test/public-incident-1",
+                "evidence_publisher": "Example Publisher",
+                "evidence_title": "Public incident one",
+                "evidence_accessed_date": "2026-05-18",
+                "redaction": "public incident summary",
+                "benchmark_eligible": True,
+            },
+            {
+                "id": "ff-public-002",
+                "source_type": "public_incident",
+                "category": "fabricated_policy",
+                "domain": "public_services",
+                "prompt": "Answer using only official guidance.",
+                "source": "The official guidance disallowed the exception.",
+                "bad_response": "The exception is allowed.",
+                "expected_failure": "fabricated public compliance policy",
+                "expected_decision": "halt",
+                "evidence_ref": "https://example.test/public-incident-2",
+                "evidence_publisher": "Example Publisher",
+                "evidence_title": "Public incident two",
+                "evidence_accessed_date": "2026-05-18",
+                "redaction": "public incident summary",
+                "benchmark_eligible": True,
+            },
+        ]
+    )
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_frontierfail_packet(tmp_path)
+
+    assert (
+        "benchmarks/frontierfail_seed_packet.toml: expected at least 2 public_incident benchmark-eligible categories, found 1"
+        in errors
+    )
+
+
+def test_frontierfail_packet_enforces_public_incident_domain_diversity(
+    tmp_path: Path,
+) -> None:
+    _write_packet(tmp_path)
+    packet_path = tmp_path / "benchmarks" / "frontierfail_seed_packet.toml"
+    packet_path.write_text(
+        packet_path.read_text(encoding="utf-8")
+        .replace(
+            "minimum_public_incident_cases = 0",
+            "minimum_public_incident_cases = 2",
+        )
+        .replace(
+            "minimum_public_incident_categories = 0",
+            "minimum_public_incident_categories = 2",
+        )
+        .replace(
+            "minimum_public_incident_domains = 0",
+            "minimum_public_incident_domains = 2",
+        )
+        .replace("minimum_cases = 2", "minimum_cases = 4"),
+        encoding="utf-8",
+    )
+    path = tmp_path / "benchmarks" / "frontierfail_cases.jsonl"
+    rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+    rows.extend(
+        [
+            {
+                "id": "ff-public-001",
+                "source_type": "public_incident",
+                "category": "fabricated_policy",
+                "domain": "customer_support",
+                "prompt": "Answer using only the airline policy.",
+                "source": "The controlling policy did not allow the requested refund.",
+                "bad_response": "The requested refund is allowed.",
+                "expected_failure": "fabricated public refund policy",
+                "expected_decision": "halt",
+                "evidence_ref": "https://example.test/public-incident-1",
+                "evidence_publisher": "Example Publisher",
+                "evidence_title": "Public incident one",
+                "evidence_accessed_date": "2026-05-18",
+                "redaction": "public incident summary",
+                "benchmark_eligible": True,
+            },
+            {
+                "id": "ff-public-002",
+                "source_type": "public_incident",
+                "category": "unsupported_citation",
+                "domain": "customer_support",
+                "prompt": "Cite only verified authorities.",
+                "source": "The cited authorities do not exist.",
+                "bad_response": "The cited authorities support the claim.",
+                "expected_failure": "fabricated public citation",
+                "expected_decision": "halt",
+                "evidence_ref": "https://example.test/public-incident-2",
+                "evidence_publisher": "Example Publisher",
+                "evidence_title": "Public incident two",
+                "evidence_accessed_date": "2026-05-18",
+                "redaction": "public incident summary",
+                "benchmark_eligible": True,
+            },
+        ]
+    )
+    path.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n",
+        encoding="utf-8",
+    )
+
+    errors = validate_frontierfail_packet(tmp_path)
+
+    assert (
+        "benchmarks/frontierfail_seed_packet.toml: expected at least 2 public_incident benchmark-eligible domains, found 1"
         in errors
     )

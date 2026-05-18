@@ -7,6 +7,9 @@ cases = "benchmarks/frontierfail_cases.jsonl"
 public_benchmark_eligible = false
 claim_boundary = "Seed regression and intake packet only; not an externally validated FrontierFail benchmark or public production-failure score."
 minimum_cases = 10
+minimum_public_incident_cases = 4
+minimum_public_incident_categories = 3
+minimum_public_incident_domains = 4
 required_categories = [
   "numeric_contradiction",
   "fabricated_policy",
