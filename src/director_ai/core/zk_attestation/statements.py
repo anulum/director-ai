@@ -40,12 +40,18 @@ class AttestationStatement(Protocol):
     """
 
     @property
-    def kind(self) -> str: ...
+    def kind(self) -> str:
+        """Return the stable backend dispatch key for this statement."""
+        ...
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """Return the human-readable claim name embedded in passports."""
+        ...
 
-    def evaluate_sample(self, sample: HistorySample) -> float: ...
+    def evaluate_sample(self, sample: HistorySample) -> float:
+        """Return this statement's numeric contribution for one sample."""
+        ...
 
     def accepts(self, aggregate: float, total_samples: int) -> bool:
         """Given the prover's aggregate and sample count, decide
@@ -69,6 +75,7 @@ class MinimumCoherence:
     kind: str = field(default="minimum_coherence", init=False)
 
     def __post_init__(self) -> None:
+        """Validate claim identity, threshold bounds, and sample minimum."""
         if not self.name:
             raise ValueError("MinimumCoherence.name must be non-empty")
         if not 0.0 <= self.threshold <= 1.0:
@@ -77,12 +84,14 @@ class MinimumCoherence:
             raise ValueError("samples_min must be positive")
 
     def evaluate_sample(self, sample: HistorySample) -> float:
+        """Read a bounded coherence contribution from one history sample."""
         coherence = sample.get("coherence", 0.0)
         if not isinstance(coherence, (int, float)):
             return 0.0
         return float(coherence)
 
     def accepts(self, aggregate: float, total_samples: int) -> bool:
+        """Accept when enough samples meet the minimum mean coherence."""
         if total_samples < self.samples_min:
             return False
         mean = aggregate / total_samples
@@ -101,6 +110,7 @@ class MaximumHaltRate:
     kind: str = field(default="maximum_halt_rate", init=False)
 
     def __post_init__(self) -> None:
+        """Validate claim identity, rate bounds, and sample minimum."""
         if not self.name:
             raise ValueError("MaximumHaltRate.name must be non-empty")
         if not 0.0 <= self.max_rate <= 1.0:
@@ -109,10 +119,12 @@ class MaximumHaltRate:
             raise ValueError("samples_min must be positive")
 
     def evaluate_sample(self, sample: HistorySample) -> float:
+        """Return one halt-count contribution from a history sample."""
         halted = sample.get("halted", False)
         return 1.0 if bool(halted) else 0.0
 
     def accepts(self, aggregate: float, total_samples: int) -> bool:
+        """Accept when the observed halt rate is at or below max_rate."""
         if total_samples < self.samples_min:
             return False
         rate = aggregate / total_samples
@@ -132,6 +144,7 @@ class DomainExperience:
     kind: str = field(default="domain_experience", init=False)
 
     def __post_init__(self) -> None:
+        """Validate claim identity, target domain, and minimum hours."""
         if not self.name:
             raise ValueError("DomainExperience.name must be non-empty")
         if not self.domain:
@@ -140,6 +153,7 @@ class DomainExperience:
             raise ValueError("hours_min must be positive")
 
     def evaluate_sample(self, sample: HistorySample) -> float:
+        """Return non-negative seconds only for matching-domain samples."""
         if sample.get("domain") != self.domain:
             return 0.0
         duration = sample.get("duration_seconds", 0)
@@ -148,6 +162,7 @@ class DomainExperience:
         return max(0.0, float(duration))
 
     def accepts(self, aggregate: float, total_samples: int) -> bool:
+        """Accept when accumulated matching-domain time reaches hours_min."""
         del total_samples
         hours = aggregate / 3600.0
         return hours >= self.hours_min
@@ -164,13 +179,16 @@ class NoBreakoutEvents:
     kind: str = field(default="no_breakout_events", init=False)
 
     def __post_init__(self) -> None:
+        """Validate claim identity and required sample count."""
         if not self.name:
             raise ValueError("NoBreakoutEvents.name must be non-empty")
         if self.samples_min <= 0:
             raise ValueError("samples_min must be positive")
 
     def evaluate_sample(self, sample: HistorySample) -> float:
+        """Return one breakout-count contribution from a history sample."""
         return 1.0 if bool(sample.get("breakout", False)) else 0.0
 
     def accepts(self, aggregate: float, total_samples: int) -> bool:
+        """Accept when enough samples were observed and none broke out."""
         return total_samples >= self.samples_min and aggregate == 0.0
