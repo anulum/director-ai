@@ -72,6 +72,33 @@ benchmarks/run_vertex_benchmarks.sh \
   --strict
 ```
 
+## Credibility Campaign
+
+The external-credibility benchmark queue is tracked in
+`benchmarks/vertex_credibility_campaign.toml` and validated by
+`python -m benchmarks.credibility_campaign`.
+
+```bash
+# Show structural findings and the next dependency-ready stage.
+PYTHONPATH=src python -m benchmarks.credibility_campaign --root .
+
+# Machine-readable view for autonomous execution.
+PYTHONPATH=src python -m benchmarks.credibility_campaign --root . --json
+
+# Include gated/prediction-dependent stages only after access and
+# prediction provenance are ready.
+PYTHONPATH=src python -m benchmarks.credibility_campaign \
+  --root . \
+  --completed aggrefact_anchor_vertex,ragtruth_vertex,halueval_vertex,financebench_vertex,legal_contractnli_vertex,medical_mednli_pubmedqa_vertex,patronus_halubench_wire \
+  --include-gated
+```
+
+Campaign stages are intentionally one-at-a-time. The planner does not
+launch cloud work by itself; it provides the next stage, command,
+claim boundary, expected outputs, and Vertex target so the operator can
+submit a controlled CustomJob after checking live quota and any
+currently running training job.
+
 ## Monitoring
 
 ```bash

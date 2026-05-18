@@ -57,9 +57,34 @@ graph LR
 
 - **Token-level streaming halt** — severs output mid-generation when coherence degrades. Not post-hoc review.
 - **Dual-entropy scoring** — NLI contradiction detection (0.4B DeBERTa) + RAG fact-checking against your knowledge base.
+- **Selectable scorer models** — choose a benchmarked local scorer profile for the latency/accuracy trade-off you need, without changing the guarded LLM provider.
 - **Structured output verification** — JSON schema validation, numeric consistency, reasoning chain verification, temporal freshness scoring. Stdlib-only, zero dependencies.
 - **Intent-grounded injection detection** — two-stage pipeline: regex pattern matching (fast) + bidirectional NLI divergence scoring (semantic). Detects the *effect* of injection in the output.
 - **12 Rust-accelerated compute functions** — 9.4× geometric mean speedup over Python paths. Transparent fallback when Rust kernel is not installed.
+
+### Selectable scorer models
+
+Director-AI guards any upstream LLM, but the guardrail scorer itself is
+configurable. Stable runtime choices are exposed through
+`GET /v1/scorer/models` and selected with `DIRECTOR_SCORER_MODEL`:
+
+| Alias | Runtime source | Status | General BA | Use when |
+|-------|----------------|--------|-----------:|----------|
+| `balanced-default` | managed FactCG DeBERTa v3 large artefact | stable | 0.752 | default balanced accuracy/latency profile |
+| `deberta-small` | managed DeBERTa v3 small artefact | stable | 0.747 | lower-cost deployments close to default accuracy |
+| `deberta-large-nli` | managed DeBERTa v3 large NLI artefact | stable | 0.740 | alternate large-NLI baseline |
+
+```bash
+DIRECTOR_SCORER_MODEL=balanced-default director-ai serve
+DIRECTOR_SCORER_MODEL=deberta-small director-ai serve
+```
+
+Domain-only and custom scorer models require explicit operator opt-in:
+`DIRECTOR_ALLOW_DOMAIN_ONLY_SCORER_MODEL=true` or
+`DIRECTOR_ALLOW_CUSTOM_SCORER_MODEL=true`. Each selectable scorer has a
+per-model benchmark package plan in
+[`benchmarks/model_benchmark_packages.toml`](benchmarks/model_benchmark_packages.toml);
+full external benchmark packages are required before public model-specific claims.
 
 ### Advanced RAG (6 pluggable retrieval strategies)
 

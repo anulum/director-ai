@@ -204,6 +204,35 @@ Domain-only choices require `DIRECTOR_ALLOW_DOMAIN_ONLY_SCORER_MODEL=true`.
 Custom model IDs or paths require `DIRECTOR_ALLOW_CUSTOM_SCORER_MODEL=true`
 and should pass the Vertex benchmark gate before production use.
 
+### Per-model benchmark packages
+
+Selectable scorer models are advertised only when they have a package
+entry in `benchmarks/model_benchmark_packages.toml`. The package
+manifest expands the stable runtime scorer aliases into the required
+evidence queue:
+
+- existing model-choice general gate,
+- AggreFact anchor,
+- RAGTruth,
+- HaluEval,
+- FinanceBench,
+- ContractNLI/CUAD,
+- MedNLI/PubMedQA,
+- PatronusAI/HaluBench text benchmark.
+
+Validate the package plan and inspect the next missing evidence item:
+
+```bash
+PYTHONPATH=src python -m benchmarks.model_benchmark_packages --root .
+PYTHONPATH=src python -m benchmarks.model_benchmark_packages --root . --json
+```
+
+The current stable packages are `pending_external_suite`: the managed
+general model-choice gate exists, but external benchmark packets still
+need to be generated per model before model-specific public claims are
+promoted. Domain-only models stay opt-in until their domain packet is
+complete and reviewed.
+
 ---
 
 *Generated from verified benchmark runs. Numbers are from local evaluation

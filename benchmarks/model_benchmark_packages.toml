@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-Class AI - per-model benchmark package plan
+
+schema_version = "1.0.0"
+package_id = "director-ai-model-benchmark-packages-2026-05"
+description = "Per-model evidence package plan for selectable runtime scorer models."
+default_status = "pending_external_suite"
+vertex_project = "gotm-director-ai"
+vertex_region = "europe-west4"
+result_prefix_template = "gs://gotm-director-ai-training/benchmarks/model-packages/{model_alias}/{stage_id}/{timestamp}-{git_sha}/"
+
+[[required_stages]]
+stage_id = "aggrefact_anchor_vertex"
+title = "AggreFact anchor"
+source_stage_id = "aggrefact_anchor_vertex"
+vertex_allowed = true
+required_for_public_claim = true
+
+[[required_stages]]
+stage_id = "ragtruth_vertex"
+title = "RAGTruth groundedness"
+source_stage_id = "ragtruth_vertex"
+vertex_allowed = true
+required_for_public_claim = true
+
+[[required_stages]]
+stage_id = "halueval_vertex"
+title = "HaluEval text hallucination"
+source_stage_id = "halueval_vertex"
+vertex_allowed = true
+required_for_public_claim = true
+
+[[required_stages]]
+stage_id = "financebench_vertex"
+title = "FinanceBench domain"
+source_stage_id = "financebench_vertex"
+vertex_allowed = true
+required_for_public_claim = true
+
+[[required_stages]]
+stage_id = "legal_contractnli_vertex"
+title = "Legal ContractNLI/CUAD"
+source_stage_id = "legal_contractnli_vertex"
+vertex_allowed = true
+required_for_public_claim = true
+
+[[required_stages]]
+stage_id = "medical_mednli_pubmedqa_vertex"
+title = "Medical MedNLI/PubMedQA"
+source_stage_id = "medical_mednli_pubmedqa_vertex"
+vertex_allowed = true
+required_for_public_claim = true
+
+[[required_stages]]
+stage_id = "patronus_halubench_wire"
+title = "Patronus HaluBench text"
+source_stage_id = "patronus_halubench_wire"
+vertex_allowed = true
+required_for_public_claim = true
+
+[[required_stages]]
+stage_id = "model_choice_general_gate"
+title = "Existing model-choice general gate"
+source_stage_id = ""
+vertex_allowed = false
+required_for_public_claim = true
+
+[[packages]]
+model_alias = "balanced-default"
+status = "pending_external_suite"
+public_claim = "Default balanced runtime scorer."
+
+[[packages]]
+model_alias = "deberta-small"
+status = "pending_external_suite"
+public_claim = "Lower-cost stable runtime scorer."
+
+[[packages]]
+model_alias = "deberta-large-nli"
+status = "pending_external_suite"
+public_claim = "Alternative stable large-NLI runtime scorer."

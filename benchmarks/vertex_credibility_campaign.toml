@@ -1,0 +1,151 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Director-Class AI - Vertex credibility benchmark campaign
+
+schema_version = "1.0.0"
+campaign_id = "director-ai-vertex-credibility-2026-05"
+description = "Ordered benchmark stages for credibility evidence runs. Stages are executed one at a time on Vertex unless marked local-only or gated."
+
+[vertex]
+project = "gotm-director-ai"
+region = "europe-west4"
+bucket = "gs://gotm-director-ai-training"
+machine_type = "n1-standard-8"
+accelerator = "NVIDIA_TESLA_T4"
+accelerator_count = 1
+image = "europe-west4-docker.pkg.dev/gotm-director-ai/director-ai-training/director-ai-benchmarks"
+run_prefix_template = "benchmarks/credibility/{stage_id}/{timestamp}-{git_sha}"
+
+[[stages]]
+stage_id = "aggrefact_anchor_vertex"
+title = "AggreFact anchor rerun"
+purpose = "Fresh Vertex rerun of the default FactCG factual-consistency anchor before promoting any new claim packet."
+dataset_ids = ["llm_aggrefact"]
+runner = "benchmarks/aggrefact_eval.py"
+command = "python -m benchmarks.aggrefact_eval --model yaxili96/FactCG-DeBERTa-v3-Large --threshold 0.46 --save-scores benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json"
+expected_outputs = ["benchmarks/results/aggrefact_yaxili96_FactCG-DeBERTa-v3-Large.json"]
+primary_metrics = ["avg_balanced_accuracy_pct", "threshold", "total_samples"]
+requires_gated_access = false
+requires_predictions = false
+vertex_allowed = true
+depends_on = []
+claim_boundary = "Default global-threshold FactCG NLI claim only."
+
+[[stages]]
+stage_id = "ragtruth_vertex"
+title = "RAGTruth groundedness rerun"
+purpose = "Fresh Vertex rerun of RAG hallucination detection evidence for retrieval-grounded claims."
+dataset_ids = ["ragtruth"]
+runner = "benchmarks/run_ragtruth_freshqa.py"
+command = "python benchmarks/run_ragtruth_freshqa.py"
+expected_outputs = ["benchmarks/results/ragtruth_nli_results.json"]
+primary_metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "total"]
+requires_gated_access = false
+requires_predictions = false
+vertex_allowed = true
+depends_on = ["aggrefact_anchor_vertex"]
+claim_boundary = "RAGTruth groundedness claim; not an AggreFact leaderboard claim."
+
+[[stages]]
+stage_id = "halueval_vertex"
+title = "HaluEval text hallucination rerun"
+purpose = "Fresh pure-NLI and local-judge text hallucination evidence on HaluEval traces."
+dataset_ids = ["halueval"]
+runner = "benchmarks/e2e_eval.py"
+command = "python -m benchmarks.e2e_eval --nli --max-samples 100 --threshold 0.35 --soft-limit 0.45 --output-json benchmarks/results/e2e_guardrail.json"
+expected_outputs = ["benchmarks/results/e2e_guardrail.json"]
+primary_metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency_ms"]
+requires_gated_access = false
+requires_predictions = false
+vertex_allowed = true
+depends_on = ["aggrefact_anchor_vertex"]
+claim_boundary = "Text hallucination guardrail claim; do not merge with multimodal HalluBench."
+
+[[stages]]
+stage_id = "financebench_vertex"
+title = "FinanceBench domain rerun"
+purpose = "Fresh finance-domain false-positive and groundedness evidence on SEC filing QA."
+dataset_ids = ["financebench"]
+runner = "benchmarks/finance_eval.py"
+command = "python -m benchmarks.finance_eval --dataset financebench --nli"
+expected_outputs = ["benchmarks/results/finance_eval.json"]
+primary_metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency_ms"]
+requires_gated_access = false
+requires_predictions = false
+vertex_allowed = true
+depends_on = ["aggrefact_anchor_vertex"]
+claim_boundary = "Finance-domain evidence only; do not generalise to legal or medical claims."
+
+[[stages]]
+stage_id = "legal_contractnli_vertex"
+title = "Legal ContractNLI/CUAD rerun"
+purpose = "Fresh legal-domain NLI and contract-grounded guardrail evidence."
+dataset_ids = ["contractnli", "cuad"]
+runner = "benchmarks/legal_eval.py"
+command = "python -m benchmarks.legal_eval --dataset all --nli"
+expected_outputs = ["benchmarks/results/legal_eval.json"]
+primary_metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency_ms"]
+requires_gated_access = false
+requires_predictions = false
+vertex_allowed = true
+depends_on = ["aggrefact_anchor_vertex", "financebench_vertex"]
+claim_boundary = "Legal-domain evidence only; requires dataset-source and license review before public claim promotion."
+
+[[stages]]
+stage_id = "medical_mednli_pubmedqa_vertex"
+title = "Medical MedNLI/PubMedQA rerun"
+purpose = "Fresh medical-domain NLI and biomedical QA guardrail evidence."
+dataset_ids = ["mednli", "pubmedqa"]
+runner = "benchmarks/medical_eval.py"
+command = "python -m benchmarks.medical_eval --dataset all --nli"
+expected_outputs = ["benchmarks/results/medical_eval.json"]
+primary_metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "avg_latency_ms"]
+requires_gated_access = false
+requires_predictions = false
+vertex_allowed = true
+depends_on = ["aggrefact_anchor_vertex", "financebench_vertex"]
+claim_boundary = "Medical-domain evidence only; not clinical validation or medical-device evidence."
+
+[[stages]]
+stage_id = "patronus_halubench_wire"
+title = "Patronus HaluBench wiring"
+purpose = "Add runner and manifest coverage for PatronusAI/HaluBench text hallucination benchmark before any public comparison."
+dataset_ids = ["patronus_halubench"]
+runner = "benchmarks/patronus_halubench_eval.py"
+command = "python -m benchmarks.patronus_halubench_eval --output-json benchmarks/results/patronus_halubench_eval.json"
+expected_outputs = ["benchmarks/results/patronus_halubench_eval.json"]
+primary_metrics = ["catch_rate", "false_positive_rate", "precision", "f1", "total"]
+requires_gated_access = false
+requires_predictions = false
+vertex_allowed = false
+depends_on = ["halueval_vertex"]
+claim_boundary = "Text HaluBench claim; separate from geospatial VLM HalluBench."
+
+[[stages]]
+stage_id = "auw_halubench_geospatial_vertex"
+title = "AuwAuwAuw HalluBench geospatial validation"
+purpose = "Run gated multimodal geospatial VLM-answer validation once dataset access and prediction provenance are ready."
+dataset_ids = ["hallubench"]
+runner = "benchmarks/hallubench_eval.py"
+command = "HF_TOKEN=HF_TOKEN python -m benchmarks.hallubench_eval --predictions-jsonl validation/hallubench_predictions.jsonl --output-json benchmarks/results/hallubench_internal_validation.json"
+expected_outputs = ["benchmarks/results/hallubench_internal_validation.json"]
+primary_metrics = ["accuracy", "exact_match_rate", "numeric_match_rate", "mean_token_f1", "missing_predictions"]
+requires_gated_access = true
+requires_predictions = true
+vertex_allowed = true
+depends_on = ["patronus_halubench_wire", "legal_contractnli_vertex", "medical_mednli_pubmedqa_vertex"]
+claim_boundary = "Gated internal multimodal validation only until access, model provenance, and metric review are recorded."
+
+[[stages]]
+stage_id = "validation_packet_freeze"
+title = "External validation packet freeze"
+purpose = "Freeze the external validation packet only after all non-gated text/domain evidence has fresh result artifacts."
+dataset_ids = []
+runner = "benchmarks/external_validation_packet.toml"
+command = "python -m pytest tests/test_public_benchmark_manifest.py -q"
+expected_outputs = ["benchmarks/external_validation_packet.toml", "benchmarks/public_accuracy_manifest.toml"]
+primary_metrics = ["manifest_consistency"]
+requires_gated_access = false
+requires_predictions = false
+vertex_allowed = false
+depends_on = ["ragtruth_vertex", "halueval_vertex", "financebench_vertex", "legal_contractnli_vertex", "medical_mednli_pubmedqa_vertex", "auw_halubench_geospatial_vertex"]
+claim_boundary = "Documentation and manifest freeze; no new metric claim without matching raw result evidence."
