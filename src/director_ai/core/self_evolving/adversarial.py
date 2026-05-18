@@ -57,7 +57,9 @@ class AdversarialGenerator(Protocol):
         *,
         max_samples: int,
         seed: int,
-    ) -> tuple[str, ...]: ...
+    ) -> tuple[str, ...]:
+        """Return bounded adversarial prompt variants from seed events."""
+        ...
 
 
 class PerturbativeAdversarialGenerator:
@@ -128,6 +130,7 @@ class PerturbativeAdversarialGenerator:
 
     @property
     def strategies(self) -> tuple[str, ...]:
+        """Return enabled mutation strategy names."""
         return tuple(name for name, _ in self._strategies)
 
     def generate(
@@ -137,6 +140,7 @@ class PerturbativeAdversarialGenerator:
         max_samples: int,
         seed: int,
     ) -> tuple[str, ...]:
+        """Generate deterministic adversarial prompt variants."""
         if max_samples <= 0:
             raise ValueError(f"max_samples must be positive; got {max_samples!r}")
         seed_prompts = [e.prompt for e in seeds if e.prompt]
@@ -161,12 +165,15 @@ class PerturbativeAdversarialGenerator:
     # --- marker / scaffold helpers close over the instance config ---
 
     def _marker_prefix(self, text: str, rng: random.Random) -> str:
+        """Prepend a configured injection-style marker."""
         return rng.choice(self._markers) + text
 
     def _marker_suffix(self, text: str, rng: random.Random) -> str:
+        """Append a configured injection-style marker."""
         return text + " " + rng.choice(self._markers).strip()
 
     def _paraphrase_scaffold(self, text: str, rng: random.Random) -> str:
+        """Wrap text in a configured paraphrase scaffold."""
         return rng.choice(self._scaffolds).format(text)
 
 
@@ -174,6 +181,7 @@ class PerturbativeAdversarialGenerator:
 
 
 def _char_swap(text: str, rng: random.Random) -> str:
+    """Swap one adjacent character pair."""
     if len(text) < 2:
         return text
     idx = rng.randrange(len(text) - 1)
@@ -181,6 +189,7 @@ def _char_swap(text: str, rng: random.Random) -> str:
 
 
 def _char_drop(text: str, rng: random.Random) -> str:
+    """Drop one random character."""
     if not text:
         return text
     idx = rng.randrange(len(text))
@@ -188,6 +197,7 @@ def _char_drop(text: str, rng: random.Random) -> str:
 
 
 def _casing_flip(text: str, rng: random.Random) -> str:
+    """Flip the case of one random character when possible."""
     if not text:
         return text
     idx = rng.randrange(len(text))
@@ -202,6 +212,7 @@ _LEET_MAP = {"a": "4", "e": "3", "i": "1", "o": "0", "s": "5"}
 
 
 def _leet_substitution(text: str, rng: random.Random) -> str:
+    """Replace one eligible character with a leetspeak equivalent."""
     candidates = [i for i, ch in enumerate(text) if ch.lower() in _LEET_MAP]
     if not candidates:
         return text
@@ -210,6 +221,7 @@ def _leet_substitution(text: str, rng: random.Random) -> str:
 
 
 def _token_drop(text: str, rng: random.Random) -> str:
+    """Drop one whitespace-delimited token."""
     tokens = text.split()
     if len(tokens) < 2:
         return text
@@ -218,6 +230,7 @@ def _token_drop(text: str, rng: random.Random) -> str:
 
 
 def _token_duplicate(text: str, rng: random.Random) -> str:
+    """Duplicate one whitespace-delimited token."""
     tokens = text.split()
     if not tokens:
         return text
@@ -226,6 +239,7 @@ def _token_duplicate(text: str, rng: random.Random) -> str:
 
 
 def _zero_width_inject(text: str, rng: random.Random) -> str:
+    """Inject a zero-width space into text."""
     if len(text) < 2:
         return text + "\u200b"
     idx = rng.randrange(1, len(text))
