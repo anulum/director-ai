@@ -21,6 +21,8 @@ logger = logging.getLogger("DirectorAI.DocRegistry")
 
 @dataclass
 class DocRecord:
+    """Metadata for one tenant-scoped ingested document."""
+
     doc_id: str
     source: str
     tenant_id: str
@@ -32,12 +34,14 @@ class DocRecord:
 
 
 def _require_non_empty_string(value: str, field_name: str) -> str:
+    """Return stripped text after enforcing a non-empty string."""
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field_name} must be a non-empty string")
     return value.strip()
 
 
 def _require_chunk_ids(chunk_ids: Sequence[str]) -> list[str]:
+    """Return validated non-empty chunk identifiers."""
     if isinstance(chunk_ids, str | bytes) or not isinstance(chunk_ids, Sequence):
         raise ValueError("chunk_ids must be a non-empty sequence of strings")
     normalized = list(chunk_ids)
@@ -51,6 +55,7 @@ def _require_chunk_ids(chunk_ids: Sequence[str]) -> list[str]:
 
 
 def _snapshot(record: DocRecord) -> DocRecord:
+    """Return a detached copy of a registry record."""
     return DocRecord(
         doc_id=record.doc_id,
         source=record.source,
@@ -79,6 +84,7 @@ class DocRegistry:
         *,
         content_hash: str = "",
     ) -> DocRecord:
+        """Register a new document and return a detached record snapshot."""
         doc_id = _require_non_empty_string(doc_id, "doc_id")
         source = _require_non_empty_string(source, "source")
         tenant_id = _require_non_empty_string(tenant_id, "tenant_id")
@@ -114,6 +120,7 @@ class DocRegistry:
         *,
         content_hash: str | None = None,
     ) -> DocRecord:
+        """Update document chunk metadata and return a detached snapshot."""
         doc_id = _require_non_empty_string(doc_id, "doc_id")
         normalized_chunk_ids = _require_chunk_ids(chunk_ids)
         if source is not None:
@@ -132,6 +139,7 @@ class DocRegistry:
             return _snapshot(record)
 
     def delete(self, doc_id: str) -> DocRecord | None:
+        """Delete a document record by id and return its last snapshot."""
         doc_id = _require_non_empty_string(doc_id, "doc_id")
         with self._lock:
             record = self._docs.pop(doc_id, None)
@@ -141,6 +149,7 @@ class DocRegistry:
         return None
 
     def get(self, doc_id: str, tenant_id: str) -> DocRecord | None:
+        """Return a document snapshot only when it belongs to the tenant."""
         doc_id = _require_non_empty_string(doc_id, "doc_id")
         tenant_id = _require_non_empty_string(tenant_id, "tenant_id")
         with self._lock:
@@ -150,6 +159,7 @@ class DocRegistry:
         return _snapshot(record)
 
     def list_for_tenant(self, tenant_id: str) -> list[DocRecord]:
+        """Return detached document snapshots for a tenant."""
         tenant_id = _require_non_empty_string(tenant_id, "tenant_id")
         with self._lock:
             return [
@@ -157,11 +167,13 @@ class DocRegistry:
             ]
 
     def exists(self, doc_id: str) -> bool:
+        """Return whether a document id is registered."""
         doc_id = _require_non_empty_string(doc_id, "doc_id")
         with self._lock:
             return doc_id in self._docs
 
     @property
     def count(self) -> int:
+        """Return the number of registered documents."""
         with self._lock:
             return len(self._docs)

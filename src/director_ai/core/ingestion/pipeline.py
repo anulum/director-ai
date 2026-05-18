@@ -42,9 +42,11 @@ class IngestionConfig:
     similarity_threshold: float = 0.3
 
     def __post_init__(self) -> None:
+        """Validate chunking parameters through ChunkConfig construction."""
         self.to_chunk_config()
 
     def to_chunk_config(self) -> ChunkConfig:
+        """Return the retrieval chunker configuration."""
         return ChunkConfig(
             chunk_size=self.chunk_size,
             overlap=self.overlap,
@@ -66,6 +68,7 @@ class IngestionResult:
 
     @property
     def chunk_count(self) -> int:
+        """Return the number of chunks stored for this document."""
         return len(self.chunk_ids)
 
 
@@ -220,6 +223,7 @@ class DocumentIngestionPipeline:
         prefix: str,
         config: IngestionConfig | None,
     ) -> list[str]:
+        """Chunk text and add every chunk to the backing vector store."""
         chunks = _chunk_text(text, config or self.config)
         chunk_ids = [f"{prefix}:chunk:{index}" for index in range(len(chunks))]
         added: list[str] = []
@@ -246,6 +250,7 @@ class DocumentIngestionPipeline:
         return chunk_ids
 
     def _delete_chunks(self, record: DocRecord) -> int:
+        """Delete all vector-store chunks for a registered document."""
         removed = 0
         for chunk_id in record.chunk_ids:
             delete_count = self.store.backend.delete([chunk_id])
@@ -261,6 +266,7 @@ class DocumentIngestionPipeline:
         return removed
 
     def _cleanup_chunks(self, chunk_ids: list[str]) -> None:
+        """Best-effort cleanup for chunks staged before a failure."""
         for chunk_id in chunk_ids:
             try:
                 self.store.backend.delete([chunk_id])
@@ -269,6 +275,7 @@ class DocumentIngestionPipeline:
 
 
 def _chunk_text(text: str, config: IngestionConfig) -> list[str]:
+    """Split non-empty text into ingestion chunks."""
     if not isinstance(text, str) or not text.strip():
         raise ValueError("text must be a non-empty string")
     chunks = split(text, config.to_chunk_config())
@@ -278,10 +285,12 @@ def _chunk_text(text: str, config: IngestionConfig) -> list[str]:
 
 
 def _content_hash(text: str) -> str:
+    """Return a stable SHA-256 hash for document content."""
     return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
 
 
 def _normalise_doc_id(doc_id: str) -> str:
+    """Return a validated document id that cannot encode a path."""
     clean = _require_non_empty(doc_id, "doc_id")
     if any(part in clean for part in ("/", "\\", "..")):
         raise ValueError("doc_id must not contain path separators")
@@ -289,12 +298,14 @@ def _normalise_doc_id(doc_id: str) -> str:
 
 
 def _normalise_tenant(tenant_id: str) -> str:
+    """Return a stripped tenant id or the default tenant."""
     if not isinstance(tenant_id, str):
         raise ValueError("tenant_id must be a string")
     return tenant_id.strip() or "default"
 
 
 def _require_non_empty(value: str, field_name: str) -> str:
+    """Return stripped text after rejecting empty/control-character values."""
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{field_name} must be a non-empty string")
     if any(ord(char) < 32 for char in value):
@@ -305,6 +316,7 @@ def _require_non_empty(value: str, field_name: str) -> str:
 def _result_from_record(
     record: DocRecord, *, unchanged: bool = False
 ) -> IngestionResult:
+    """Convert a registry record into an ingestion result."""
     return IngestionResult(
         doc_id=record.doc_id,
         source=record.source,
