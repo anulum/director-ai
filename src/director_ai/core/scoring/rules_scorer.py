@@ -84,6 +84,7 @@ class EntityGroundingRule(Rule):
     name = "entity_grounding"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        """Score how many hypothesis entities are grounded in premise."""
         if _RUST_AVAILABLE:
             score = _rust_entity_overlap(premise, hypothesis)
             return RuleResult(self.name, score)
@@ -105,6 +106,7 @@ class NumericConsistencyRule(Rule):
     _NUM_RE = re.compile(r"\b\d+(?:\.\d+)?(?:%|°[CF]?)?\b")
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        """Score whether hypothesis numbers are present in premise."""
         if _RUST_AVAILABLE:
             result = _rust_numerical_consistency(premise, hypothesis)
             if result is None:
@@ -131,6 +133,7 @@ class NegationFlipRule(Rule):
     name = "negation_flip"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        """Penalise premise/hypothesis negation asymmetry."""
         if _RUST_AVAILABLE:
             flipped = _rust_negation_flip(premise, hypothesis)
             if flipped:
@@ -151,6 +154,7 @@ class LengthRatioRule(Rule):
     name = "length_ratio"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        """Penalise hypotheses that are much longer than their premise."""
         p_len = max(len(premise.split()), 1)
         h_len = max(len(hypothesis.split()), 1)
         ratio = h_len / p_len
@@ -167,6 +171,7 @@ class WordOverlapRule(Rule):
     name = "word_overlap"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        """Score content-word F1 overlap after stop-word removal."""
         if _RUST_AVAILABLE:
             return RuleResult(self.name, _rust_word_overlap(premise, hypothesis))
         p_words = set(re.findall(r"\w+", premise.lower())) - STOP_WORDS
@@ -196,6 +201,7 @@ class ContradictionKeywordRule(Rule):
     )
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        """Penalise contradiction markers found in hypothesis text."""
         matches = self._MARKERS.findall(hypothesis)
         if not matches:
             return RuleResult(self.name, 1.0)
@@ -212,6 +218,7 @@ class SourceAttributionRule(Rule):
     )
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        """Require response references when the premise contains references."""
         premise_refs = self._REF_RE.findall(premise)
         if not premise_refs:
             return RuleResult(self.name, 1.0, "no refs in premise")
@@ -236,6 +243,7 @@ class ContentWordDivergenceRule(Rule):
     name = "content_word_divergence"
 
     def check(self, premise: str, hypothesis: str) -> RuleResult:
+        """Score the share of hypothesis content words grounded in premise."""
         p_words = set(re.findall(r"\w+", premise.lower())) - STOP_WORDS
         h_words = set(re.findall(r"\w+", hypothesis.lower())) - STOP_WORDS
         if not h_words:
@@ -339,6 +347,7 @@ class RulesBackend:
         rules: list[Rule] | None = None,
         rules_file: str = "",
     ) -> None:
+        """Initialise from explicit rules, a JSON file, or defaults."""
         if rules_file:
             self._rules = load_rules_from_file(rules_file)
         elif rules is not None:
