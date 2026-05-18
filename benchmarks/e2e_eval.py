@@ -628,5 +628,5 @@ if __name__ == "__main__":
         print_e2e_results(m)
         save_results(
             {"benchmark": "E2E-Guardrail", **m.to_dict()},
-            "e2e_guardrail.json",
+            args.output_json or "e2e_guardrail.json",
         )

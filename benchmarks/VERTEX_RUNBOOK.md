@@ -99,6 +99,53 @@ claim boundary, expected outputs, and Vertex target so the operator can
 submit a controlled CustomJob after checking live quota and any
 currently running training job.
 
+## Per-Model Package Campaign
+
+The per-model package runner executes every Vertex-eligible benchmark
+stage for every stable public scorer model, in manifest order, inside a
+single Vertex custom job:
+
+```bash
+python -m benchmarks.model_package_vertex_campaign \
+  --bucket gs://gotm-director-ai-training \
+  --prefix benchmarks/model-packages/campaigns/<timestamp>-<git-sha> \
+  --min-free-gb 25
+```
+
+The current package manifest expands to 21 stage executions:
+
+- 3 stable scorer aliases: `balanced-default`, `deberta-small`,
+  `deberta-large-nli`
+- 7 Vertex-eligible evidence stages per alias: AggreFact, RAGTruth,
+  HaluEval, FinanceBench, legal ContractNLI/CUAD, medical
+  MedNLI/PubMedQA, and Patronus HaluBench text
+
+Use a larger Vertex boot disk for the full package campaign. The job
+should be submitted with at least `500 GiB` SSD boot disk so managed
+model artefacts, Hugging Face datasets, and intermediate JSON outputs
+can coexist while the stages run one by one. The runner checks free
+space before and after every stage and fails loudly if available space
+falls below the configured threshold.
+
+Results are isolated by model alias and stage:
+
+```text
+gs://gotm-director-ai-training/benchmarks/model-packages/campaigns/<run>/
+  balanced-default/aggrefact_anchor_vertex/
+  balanced-default/ragtruth_vertex/
+  ...
+  deberta-large-nli/patronus_halubench_wire/
+  campaign_summary.json
+```
+
+Download after completion with:
+
+```bash
+gcloud storage cp -r \
+  gs://gotm-director-ai-training/benchmarks/model-packages/campaigns/<run>/ \
+  ./benchmarks/results/model-packages/<run>/
+```
+
 ## Monitoring
 
 ```bash

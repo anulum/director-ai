@@ -22,6 +22,7 @@ import csv
 import io
 import json
 import logging
+import os
 import sys
 import time
 import urllib.request
@@ -74,7 +75,12 @@ def bench_ragtruth_nli() -> None:
     items = list(ds)
     logger.info("Loaded %d RAGTruth samples", len(items))
 
-    scorer = CoherenceScorer(threshold=0.5, soft_limit=0.6, use_nli=True)
+    scorer = CoherenceScorer(
+        threshold=0.5,
+        soft_limit=0.6,
+        use_nli=True,
+        nli_model=os.environ.get("DIRECTOR_NLI_MODEL"),
+    )
 
     metrics = E2EMetrics()
     for i, item in enumerate(items):
@@ -153,7 +159,12 @@ def bench_freshqa_nli() -> None:
     items = list(reader)
     logger.info("Loaded %d FreshQA samples", len(items))
 
-    scorer = CoherenceScorer(threshold=0.5, soft_limit=0.6, use_nli=True)
+    scorer = CoherenceScorer(
+        threshold=0.5,
+        soft_limit=0.6,
+        use_nli=True,
+        nli_model=os.environ.get("DIRECTOR_NLI_MODEL"),
+    )
 
     metrics = E2EMetrics()
     for i, item in enumerate(items):
