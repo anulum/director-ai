@@ -61,6 +61,7 @@ class LaplaceMechanism:
         seed: int | None = None,
         allow_insecure_seed: bool = False,
     ) -> None:
+        """Initialise a Laplace mechanism with validated privacy parameters."""
         if epsilon <= 0:
             raise ValueError("epsilon must be positive")
         if sensitivity < 0:
@@ -72,10 +73,12 @@ class LaplaceMechanism:
 
     @property
     def epsilon(self) -> float:
+        """Return the pure-DP privacy loss parameter."""
         return self._params.epsilon
 
     @property
     def sensitivity(self) -> float:
+        """Return the declared L1 query sensitivity."""
         return self._params.sensitivity
 
     @property
@@ -131,6 +134,7 @@ class GaussianMechanism:
         seed: int | None = None,
         allow_insecure_seed: bool = False,
     ) -> None:
+        """Initialise a Gaussian mechanism with validated DP parameters."""
         if not 0.0 < epsilon < 1.0:
             raise ValueError("epsilon must be in (0, 1)")
         if not 0.0 < delta < 1.0:
@@ -144,14 +148,17 @@ class GaussianMechanism:
 
     @property
     def epsilon(self) -> float:
+        """Return the approximate-DP privacy loss parameter."""
         return self._params.epsilon
 
     @property
     def delta(self) -> float:
+        """Return the approximate-DP failure probability."""
         return self._params.delta
 
     @property
     def sensitivity(self) -> float:
+        """Return the declared L2 query sensitivity."""
         return self._params.sensitivity
 
     @property
@@ -166,12 +173,14 @@ class GaussianMechanism:
         )
 
     def noise(self) -> float:
+        """Draw one Gaussian sample with mean 0 and calibrated sigma."""
         sigma = self.sigma
         if sigma == 0.0:
             return 0.0
         return self._rng.gauss(0.0, sigma)
 
     def apply(self, value: float) -> float:
+        """Return ``value + Gaussian(0, sigma)``."""
         return value + self.noise()
 
 
