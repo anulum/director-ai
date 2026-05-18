@@ -49,6 +49,7 @@ class Vec3:
     z: float
 
     def __post_init__(self) -> None:
+        """Reject non-finite coordinates before geometry calculations."""
         for component in (self.x, self.y, self.z):
             if not math.isfinite(component):
                 raise ValueError(f"Vec3 components must be finite; got {component!r}")
@@ -63,12 +64,15 @@ class Vec3:
         return Vec3(self.x * scalar, self.y * scalar, self.z * scalar)
 
     def dot(self, other: Vec3) -> float:
+        """Return the Euclidean dot product with another vector."""
         return self.x * other.x + self.y * other.y + self.z * other.z
 
     def norm(self) -> float:
+        """Return the Euclidean vector length."""
         return math.sqrt(self.dot(self))
 
     def distance(self, other: Vec3) -> float:
+        """Return the Euclidean distance to another point."""
         return (self - other).norm()
 
     def clamp(self, low: Vec3, high: Vec3) -> Vec3:
@@ -91,6 +95,7 @@ class AABB:
     max_corner: Vec3
 
     def __post_init__(self) -> None:
+        """Validate that min_corner is componentwise below max_corner."""
         if (
             self.min_corner.x > self.max_corner.x
             or self.min_corner.y > self.max_corner.y
@@ -99,6 +104,7 @@ class AABB:
             raise ValueError("AABB.min_corner must be componentwise <= max_corner")
 
     def contains(self, point: Vec3) -> bool:
+        """Return whether point lies inside or on the AABB boundary."""
         if _RUST_GEOM_AVAILABLE:
             # cast documents the narrowing at the PyO3 boundary —
             # the Rust function signature returns ``bool`` but the
@@ -118,6 +124,7 @@ class AABB:
         )
 
     def intersects(self, other: AABB) -> bool:
+        """Return whether two AABBs overlap or touch."""
         return not (
             self.max_corner.x < other.min_corner.x
             or self.min_corner.x > other.max_corner.x
@@ -138,6 +145,7 @@ class AABB:
 
     @property
     def centre(self) -> Vec3:
+        """Return the arithmetic centre of the box."""
         return Vec3(
             (self.min_corner.x + self.max_corner.x) / 2.0,
             (self.min_corner.y + self.max_corner.y) / 2.0,
@@ -153,10 +161,12 @@ class Sphere:
     radius: float
 
     def __post_init__(self) -> None:
+        """Validate the sphere radius before containment checks."""
         if self.radius < 0:
             raise ValueError(f"Sphere.radius must be non-negative; got {self.radius!r}")
 
     def contains(self, point: Vec3) -> bool:
+        """Return whether point lies inside or on the sphere boundary."""
         if _RUST_GEOM_AVAILABLE:
             return cast(
                 bool,
@@ -169,6 +179,7 @@ class Sphere:
         return self.centre.distance(point) <= self.radius
 
     def intersects(self, other: Sphere) -> bool:
+        """Return whether two spheres overlap or touch."""
         if _RUST_GEOM_AVAILABLE:
             return cast(
                 bool,
