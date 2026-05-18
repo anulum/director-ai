@@ -88,9 +88,11 @@ class OpenAIProvider(LLMProvider):
 
     @property
     def name(self) -> str:
+        """Return the provider/model label used in candidate metadata."""
         return f"openai/{self.model}"
 
     def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
+        """Generate candidates through a chat-completions API."""
         candidates = []
         url = f"{self.base_url}/chat/completions"
         headers = {
@@ -133,7 +135,7 @@ class OpenAIProvider(LLMProvider):
         return candidates
 
     def stream_generate(self, prompt: str):
-        """Yield tokens from OpenAI streaming completion (SSE)."""
+        """Yield tokens from a streaming chat completion response."""
         import json as _json
 
         url = f"{self.base_url}/chat/completions"
@@ -203,9 +205,11 @@ class AnthropicProvider(LLMProvider):
 
     @property
     def name(self) -> str:
+        """Return the provider/model label used in candidate metadata."""
         return f"anthropic/{self.model}"
 
     def _fetch_one(self, prompt: str) -> dict[str, str]:
+        """Request one vendor message completion."""
         url = "https://api.anthropic.com/v1/messages"
         headers = {
             "x-api-key": self.api_key,
@@ -245,6 +249,7 @@ class AnthropicProvider(LLMProvider):
             return {"text": "[Parse Error]", "source": "error"}
 
     def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
+        """Generate one or more vendor message candidates concurrently."""
         if n == 1:
             return [self._fetch_one(prompt)]
         results: list[dict[str, str]] = [{}] * n
@@ -278,9 +283,11 @@ class HuggingFaceProvider(LLMProvider):
 
     @property
     def name(self) -> str:
+        """Return the provider/model label used in candidate metadata."""
         return f"huggingface/{self.model}"
 
     def _fetch_one(self, prompt: str) -> dict[str, str]:
+        """Request one HuggingFace inference completion."""
         url = f"https://api-inference.huggingface.co/models/{self.model}"
         headers = {"Authorization": f"Bearer {self.api_key}"}
         try:
@@ -311,6 +318,7 @@ class HuggingFaceProvider(LLMProvider):
             return {"text": "[Parse Error]", "source": "error"}
 
     def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
+        """Generate one or more HuggingFace candidates concurrently."""
         if n == 1:
             return [self._fetch_one(prompt)]
         results: list[dict[str, str]] = [{}] * n
@@ -348,9 +356,11 @@ class LocalProvider(LLMProvider):
 
     @property
     def name(self) -> str:
+        """Return the provider/model label used in candidate metadata."""
         return f"local/{self.model or 'default'}"
 
     def generate_candidates(self, prompt: str, n: int = 3) -> list[dict[str, str]]:
+        """Generate candidates through a local chat-completions endpoint."""
         candidates = []
         payload: dict = {
             "messages": [{"role": "user", "content": prompt}],

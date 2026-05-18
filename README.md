@@ -34,7 +34,7 @@ The system was built to solve a specific internal need: **real-time hallucinatio
 
 **Team:** ANULUM maintains a research team (intentionally undisclosed). GitHub automation and repository maintenance are handled by the owner. Contributions are welcome under AGPL v3 terms.
 
-> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), 7-SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, SaaS middleware (API keys + rate limiting), advanced RAG (6 pluggable retrieval backends), multi-agent swarm guardian (4 framework adapters), config wizard, and compliance reports are functional and tested (5300+ passing tests). Rust-accelerated compute paths ship as of v3.12.0.
+> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), 7-SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, SaaS middleware (API keys + rate limiting), advanced RAG (6 pluggable retrieval backends), multi-agent swarm guardian (4 framework adapters), config wizard, and compliance reports are functional and tested (5300+ passing tests). Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current v3.14 release surface.
 
 ---
 
@@ -269,7 +269,7 @@ Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison
 
 **Optional — Gemma 4 E4B Q6 with per-task-family routing.** A zero-training LLM-as-judge alternative for users who prefer LLM-as-judge architectures over NLI. Per-task-family prompts (`summ` / `rag` / `claim`) bring the routed Gemma judge to 75.55% per-dataset mean BA on the AggreFact 29K test set, comparable to the FactCG default. The routed judge is opt-in (`--backend llama-cpp`); FactCG remains the default.
 
-### Rust compute acceleration (v3.12.0)
+### Rust compute acceleration (shipped in v3.12, current in v3.14)
 
 12 functions, 5000 iterations each. Geometric mean: **9.4× speedup**.
 

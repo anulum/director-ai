@@ -23,6 +23,8 @@ _MAX_RESPONSE_CHARS = 500_000
 
 
 class ReviewRequest(BaseModel):
+    """Request body for scoring one prompt/response pair."""
+
     prompt: str = Field(
         ..., min_length=1, max_length=_MAX_PROMPT_CHARS, description="Input prompt"
     )
@@ -36,12 +38,16 @@ class ReviewRequest(BaseModel):
 
 
 class ProcessRequest(BaseModel):
+    """Request body for guarded generation from one prompt."""
+
     prompt: str = Field(
         ..., min_length=1, max_length=_MAX_PROMPT_CHARS, description="Input prompt"
     )
 
 
 class BatchRequest(BaseModel):
+    """Request body for batched process or review operations."""
+
     task: _Literal["process", "review"] = Field(
         "process", description="Task type: process or review"
     )
@@ -52,6 +58,8 @@ class BatchRequest(BaseModel):
 
 
 class ReviewResponse(BaseModel):
+    """Coherence review result returned by ``/v1/review``."""
+
     approved: bool
     coherence: float
     h_logical: float
@@ -61,6 +69,8 @@ class ReviewResponse(BaseModel):
 
 
 class FeedbackRequest(BaseModel):
+    """Human feedback record for threshold calibration."""
+
     prompt: str = Field(
         ..., min_length=1, max_length=_MAX_PROMPT_CHARS, description="Original prompt"
     )
@@ -78,6 +88,8 @@ class FeedbackRequest(BaseModel):
 
 
 class FeedbackResponse(BaseModel):
+    """Acknowledgement for an accepted feedback correction."""
+
     accepted: bool
     correction_count: int
     disagreement: bool
@@ -86,6 +98,8 @@ class FeedbackResponse(BaseModel):
 
 
 class FeedbackCalibrationResponse(BaseModel):
+    """Current calibration metrics derived from feedback records."""
+
     correction_count: int
     optimal_threshold: float | None
     current_accuracy: float
@@ -98,6 +112,8 @@ class FeedbackCalibrationResponse(BaseModel):
 
 
 class ProcessResponse(BaseModel):
+    """Guarded generation result returned by ``/v1/process``."""
+
     output: str
     coherence: float | None
     halted: bool
@@ -109,6 +125,8 @@ class ProcessResponse(BaseModel):
 
 
 class BatchResponse(BaseModel):
+    """Aggregate result for a batch request."""
+
     results: list[dict[str, Any]]
     errors: list[dict]
     total: int
@@ -118,6 +136,8 @@ class BatchResponse(BaseModel):
 
 
 class InjectionRequest(BaseModel):
+    """Request body for output-side prompt-injection detection."""
+
     system_prompt: str = Field(
         "", max_length=_MAX_PROMPT_CHARS, description="System prompt / task description"
     )
@@ -136,6 +156,8 @@ class InjectionRequest(BaseModel):
 
 
 class InjectionClaimResponse(BaseModel):
+    """Per-claim injection-drift evidence."""
+
     claim: str
     claim_index: int
     intent_divergence: float
@@ -148,6 +170,8 @@ class InjectionClaimResponse(BaseModel):
 
 
 class InjectionResponse(BaseModel):
+    """Injection detection summary with per-claim evidence."""
+
     injection_detected: bool
     injection_risk: float
     intent_coverage: float
@@ -161,6 +185,8 @@ class InjectionResponse(BaseModel):
 
 
 class VerifyResponse(BaseModel):
+    """Generic verification response for structured guard checks."""
+
     approved: bool
     overall_score: float
     confidence: str = ""
@@ -169,6 +195,8 @@ class VerifyResponse(BaseModel):
 
 
 class TextRequest(BaseModel):
+    """Request body carrying one text blob for verification."""
+
     text: str = Field(
         ...,
         min_length=1,
@@ -178,6 +206,8 @@ class TextRequest(BaseModel):
 
 
 class NumericIssueResponse(BaseModel):
+    """One numeric consistency issue found in text."""
+
     issue_type: str
     description: str
     severity: str
@@ -185,6 +215,8 @@ class NumericIssueResponse(BaseModel):
 
 
 class NumericVerifyResponse(BaseModel):
+    """Numeric consistency verification result."""
+
     claims_found: int
     issues: list[NumericIssueResponse]
     valid: bool
@@ -193,6 +225,8 @@ class NumericVerifyResponse(BaseModel):
 
 
 class ReasoningVerdictResponse(BaseModel):
+    """Verdict for one reasoning-chain step."""
+
     step_index: int
     step_text: str
     verdict: str
@@ -202,6 +236,8 @@ class ReasoningVerdictResponse(BaseModel):
 
 
 class ReasoningVerifyResponse(BaseModel):
+    """Reasoning-chain verification summary."""
+
     steps_found: int
     verdicts: list[ReasoningVerdictResponse]
     chain_valid: bool
@@ -209,6 +245,8 @@ class ReasoningVerifyResponse(BaseModel):
 
 
 class FreshnessClaimResponse(BaseModel):
+    """Temporal freshness risk for one dated claim."""
+
     text: str
     claim_type: str
     staleness_risk: float
@@ -218,6 +256,8 @@ class FreshnessClaimResponse(BaseModel):
 
 
 class FreshnessStatusResponse(BaseModel):
+    """External citation or source-status risk for one source."""
+
     source_id: str
     status: str
     risk: float
@@ -226,6 +266,8 @@ class FreshnessStatusResponse(BaseModel):
 
 
 class FreshnessResponse(BaseModel):
+    """Temporal and external-status freshness summary."""
+
     claims: list[FreshnessClaimResponse]
     citation_statuses: list[FreshnessStatusResponse] = Field(default_factory=list)
     overall_staleness_risk: float
@@ -236,11 +278,15 @@ class FreshnessResponse(BaseModel):
 
 
 class ConsensusResponseItem(BaseModel):
+    """One model response supplied to consensus scoring."""
+
     model: str
     response: str
 
 
 class PairwiseAgreementResponse(BaseModel):
+    """Pairwise divergence between two model responses."""
+
     model_a: str
     model_b: str
     divergence: float
@@ -248,6 +294,8 @@ class PairwiseAgreementResponse(BaseModel):
 
 
 class ConsensusResponse(BaseModel):
+    """Cross-model consensus summary."""
+
     responses: list[ConsensusResponseItem]
     pairs: list[PairwiseAgreementResponse]
     agreement_score: float
@@ -257,12 +305,16 @@ class ConsensusResponse(BaseModel):
 
 
 class ConsensusRequest(BaseModel):
+    """Request body for cross-model consensus scoring."""
+
     responses: list[ConsensusResponseItem] = Field(
         ..., min_length=2, description="Responses from different models"
     )
 
 
 class AdversarialPatternResponse(BaseModel):
+    """Detection outcome for one adversarial test pattern."""
+
     name: str
     category: str
     transform: str
@@ -272,6 +324,8 @@ class AdversarialPatternResponse(BaseModel):
 
 
 class AdversarialResponse(BaseModel):
+    """Adversarial robustness test summary."""
+
     total_patterns: int
     detected: int
     bypassed: int
@@ -282,6 +336,8 @@ class AdversarialResponse(BaseModel):
 
 
 class ConformalRequest(BaseModel):
+    """Request body for conformal uncertainty estimation."""
+
     score: float = Field(..., ge=0.0, le=1.0, description="Guardrail coherence score")
     calibration_scores: list[float] = Field(
         default_factory=list, description="Historical scores for calibration"
@@ -294,6 +350,8 @@ class ConformalRequest(BaseModel):
 
 
 class ConformalResponse(BaseModel):
+    """Conformal prediction interval for hallucination risk."""
+
     point_estimate: float
     lower: float
     upper: float
@@ -303,6 +361,8 @@ class ConformalResponse(BaseModel):
 
 
 class FeedbackLoopCheckRequest(BaseModel):
+    """Request body for detecting repeated-output feedback loops."""
+
     input_text: str = Field(..., min_length=1, description="Current input to check")
     previous_outputs: list[str] = Field(
         default_factory=list, description="Previous AI outputs to match against"
@@ -311,6 +371,8 @@ class FeedbackLoopCheckRequest(BaseModel):
 
 
 class FeedbackLoopResponse(BaseModel):
+    """Feedback-loop detection result."""
+
     loop_detected: bool
     similarity: float
     severity: str = ""
@@ -318,6 +380,8 @@ class FeedbackLoopResponse(BaseModel):
 
 
 class AgenticStepRequest(BaseModel):
+    """Request body for one agent action safety check."""
+
     goal: str = Field(..., min_length=1, description="Agent's original objective")
     action: str = Field(..., min_length=1, description="Current tool/function name")
     args: str = Field("", description="Serialized arguments")
@@ -331,6 +395,8 @@ class AgenticStepRequest(BaseModel):
 
 
 class AgenticStepResponse(BaseModel):
+    """Agent action safety verdict."""
+
     step_number: int
     should_halt: bool
     should_warn: bool
@@ -340,6 +406,8 @@ class AgenticStepResponse(BaseModel):
 
 
 class HealthResponse(BaseModel):
+    """Operational health response for the REST service."""
+
     status: str = "ok"
     version: str
     mode: str
@@ -351,11 +419,15 @@ class HealthResponse(BaseModel):
 
 
 class ReadyResponse(BaseModel):
+    """Readiness response for deployment probes."""
+
     ready: bool
     reason: str = ""
 
 
 class SourceResponse(BaseModel):
+    """AGPL source-compliance response."""
+
     license: str
     version: str
     licensee: str = ""
@@ -367,10 +439,14 @@ class SourceResponse(BaseModel):
 
 
 class ConfigResponse(BaseModel):
+    """Sanitised runtime configuration response."""
+
     config: dict
 
 
 class TenantFactRequest(BaseModel):
+    """Request body for writing one tenant-scoped fact."""
+
     key: str = Field(..., min_length=1)
     value: str = Field(..., min_length=1)
     signature: str = Field("", max_length=256)
@@ -378,6 +454,8 @@ class TenantFactRequest(BaseModel):
 
 
 class TenantVectorFactRequest(BaseModel):
+    """Request body for writing one tenant-scoped vector fact."""
+
     key: str = Field(..., min_length=1)
     value: str = Field(..., min_length=1)
     backend_type: str = Field("memory", description="Vector backend type")
@@ -386,15 +464,21 @@ class TenantVectorFactRequest(BaseModel):
 
 
 class TenantInfo(BaseModel):
+    """Tenant inventory row."""
+
     id: str
     fact_count: int
 
 
 class TenantListResponse(BaseModel):
+    """Tenant inventory response."""
+
     tenants: list[TenantInfo]
 
 
 class StatusResponse(BaseModel):
+    """Generic status/count response for tenant operations."""
+
     status: str
     tenant_id: str = ""
     key: str = ""
@@ -403,6 +487,8 @@ class StatusResponse(BaseModel):
 
 
 class TurnInfo(BaseModel):
+    """One stored conversation turn."""
+
     prompt: str
     response: str
     score: float
@@ -410,17 +496,23 @@ class TurnInfo(BaseModel):
 
 
 class SessionResponse(BaseModel):
+    """Conversation session state response."""
+
     session_id: str
     turn_count: int
     turns: list[TurnInfo]
 
 
 class DeletedResponse(BaseModel):
+    """Deletion acknowledgement for session operations."""
+
     status: str
     session_id: str
 
 
 class StatsResponse(BaseModel):
+    """Aggregate runtime scoring statistics."""
+
     total: int = 0
     approved: int = 0
     rejected: int = 0
@@ -430,6 +522,8 @@ class StatsResponse(BaseModel):
 
 
 class HourlyDataPoint(BaseModel):
+    """Hourly statistics row."""
+
     hour: str = ""
     total: int = 0
     approved: int = 0
@@ -437,11 +531,15 @@ class HourlyDataPoint(BaseModel):
 
 
 class HourlyResponse(BaseModel):
+    """Hourly statistics response."""
+
     data: list[dict] = []
     note: str = ""
 
 
 class ModelMetricsResponse(BaseModel):
+    """Per-model compliance metrics row."""
+
     model: str
     total_requests: int
     hallucination_rate: float
@@ -452,6 +550,8 @@ class ModelMetricsResponse(BaseModel):
 
 
 class ComplianceReportResponse(BaseModel):
+    """Compliance report summary returned by REST endpoints."""
+
     report_timestamp: float
     period_start: float
     period_end: float
@@ -470,6 +570,8 @@ class ComplianceReportResponse(BaseModel):
 
 
 class WindowStats(BaseModel):
+    """One comparison window used for drift detection."""
+
     start: float
     end: float
     total: int
@@ -478,6 +580,8 @@ class WindowStats(BaseModel):
 
 
 class DriftResponse(BaseModel):
+    """Drift detection result across comparison windows."""
+
     detected: bool
     severity: str
     z_score: float
@@ -487,6 +591,8 @@ class DriftResponse(BaseModel):
 
 
 class PeriodMetrics(BaseModel):
+    """Compliance metrics for one reporting period."""
+
     total: int
     hallucination_rate: float
     avg_score: float

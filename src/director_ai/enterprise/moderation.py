@@ -54,6 +54,7 @@ class ContentModerationFinding:
         cls,
         finding: PIIRedactionFinding,
     ) -> ContentModerationFinding:
+        """Convert a PII redaction finding into moderation metadata."""
         return cls(
             detector=finding.detector,
             category=finding.category,
@@ -71,6 +72,7 @@ class ContentModerationFinding:
         *,
         action: ModerationAction,
     ) -> ContentModerationFinding:
+        """Convert a detector match into a tenant-safe moderation finding."""
         return cls(
             detector=match.detector,
             category=match.category.lower(),
@@ -81,6 +83,7 @@ class ContentModerationFinding:
         )
 
     def to_dict(self) -> dict[str, object]:
+        """Serialise finding metadata without raw matched text."""
         payload: dict[str, object] = {
             "action": self.action.value,
             "category": self.category,
@@ -104,13 +107,16 @@ class ContentModerationResult:
 
     @property
     def blocked(self) -> bool:
+        """Whether the moderation result blocks downstream release."""
         return self.action is ModerationAction.BLOCK
 
     @property
     def category_counts(self) -> dict[str, int]:
+        """Return stable finding counts grouped by category."""
         return dict(sorted(Counter(f.category for f in self.findings).items()))
 
     def to_dict(self) -> dict[str, object]:
+        """Serialise a tenant-safe moderation report."""
         return {
             "action": self.action.value,
             "blocked": self.blocked,
@@ -191,6 +197,7 @@ class ContentModerator:
 
 
 def _build_default_toxicity_detector(*, prefer_rust: bool) -> ModerationDetector:
+    """Build the default dependency-light toxicity detector."""
     from director_ai.core.safety.moderation import KeywordToxicityDetector
 
     return KeywordToxicityDetector(prefer_rust=prefer_rust)

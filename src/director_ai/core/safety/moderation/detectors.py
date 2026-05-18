@@ -52,6 +52,7 @@ class ModerationResult:
 
     @property
     def flagged(self) -> bool:
+        """Whether the detector produced one or more matches."""
         return bool(self.matches)
 
 

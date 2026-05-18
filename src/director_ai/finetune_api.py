@@ -59,6 +59,8 @@ _SAFE_TENANT_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,127}$")
 
 @dataclass
 class FinetuneJob:
+    """In-process state for one local fine-tuning job."""
+
     job_id: str
     state: str = (
         "pending"  # pending, validating, training, benchmarking, completed, failed
@@ -85,6 +87,7 @@ class _JobStore:
         self._lock = threading.Lock()
 
     def create(self, config: dict) -> FinetuneJob:
+        """Create a job unless the in-process concurrency cap is reached."""
         with self._lock:
             active = sum(
                 1
@@ -105,20 +108,25 @@ class _JobStore:
         return job
 
     def get(self, job_id: str) -> FinetuneJob | None:
+        """Return a job by id, or ``None`` when it is unknown."""
         with self._lock:
             return self._jobs.get(job_id)
 
     def list_all(self) -> list[FinetuneJob]:
+        """Return a snapshot of all known jobs."""
         with self._lock:
             return list(self._jobs.values())
 
     def delete(self, job_id: str) -> bool:
+        """Delete a job record and report whether it existed."""
         with self._lock:
             return self._jobs.pop(job_id, None) is not None
 
 
 @dataclass
 class ManagedTrainingRecord:
+    """Ledger entry for one managed training submission."""
+
     job_id: str
     backend: str
     state: str
@@ -139,10 +147,12 @@ class _ManagedJobStore:
         self._lock = threading.Lock()
 
     def add(self, record: ManagedTrainingRecord) -> None:
+        """Store or replace a managed-training record by job id."""
         with self._lock:
             self._jobs[record.job_id] = record
 
     def get(self, tenant_id: str, job_id: str) -> ManagedTrainingRecord | None:
+        """Return a tenant-owned managed-training record."""
         with self._lock:
             record = self._jobs.get(job_id)
         if record is None or record.tenant_id != tenant_id:
@@ -150,6 +160,7 @@ class _ManagedJobStore:
         return record
 
     def list_for_tenant(self, tenant_id: str) -> list[ManagedTrainingRecord]:
+        """Return all managed-training records visible to one tenant."""
         with self._lock:
             return [
                 record
@@ -165,6 +176,7 @@ class _ManagedJobStore:
         *,
         error: str = "",
     ) -> ManagedTrainingRecord | None:
+        """Update a tenant-owned record state and optional error."""
         with self._lock:
             record = self._jobs.get(job_id)
             if record is None or record.tenant_id != tenant_id:
@@ -179,10 +191,14 @@ class _ManagedJobStore:
 if _FASTAPI_AVAILABLE:
 
     class ValidateRequest(BaseModel):
+        """Validation parameters for uploaded fine-tuning JSONL."""
+
         epochs: int = Field(3, ge=1, le=20)
         batch_size: int = Field(16, ge=1, le=128)
 
     class StartRequest(BaseModel):
+        """Configuration for starting a local fine-tuning job."""
+
         base_model: str = "factcg-deberta-v3-large"
         allow_experimental_model: bool = False
         epochs: int = Field(3, ge=1, le=20)
@@ -196,6 +212,8 @@ if _FASTAPI_AVAILABLE:
         auto_onnx_export: bool = False
 
     class JobStatus(BaseModel):
+        """Public job progress response."""
+
         job_id: str
         state: str
         progress: float
@@ -204,6 +222,8 @@ if _FASTAPI_AVAILABLE:
         error: str = ""
 
     class ModelInfo(BaseModel):
+        """Stored fine-tuned model metadata."""
+
         job_id: str
         model_path: str
         activated: bool
@@ -212,6 +232,8 @@ if _FASTAPI_AVAILABLE:
         regression_report: dict = {}
 
     class ManagedTrainingRequest(BaseModel):
+        """Managed-training submission request."""
+
         backend: str = "vertex"
         dry_run: bool = True
         display_name: str = "director-ai-managed-training"
@@ -236,10 +258,14 @@ if _FASTAPI_AVAILABLE:
         suite: str = ""
 
     class ManagedTrainingLookupRequest(BaseModel):
+        """Managed-training job lookup request."""
+
         backend: str = "vertex"
         job_id: str = Field(..., min_length=1, max_length=500)
 
     class ManagedModelBenchmarkRequest(BaseModel):
+        """Managed-model benchmark request."""
+
         model_artifacts: dict[str, str]
         general_path: str | None = None
         eval_path: str | None = None
@@ -345,6 +371,7 @@ async def _read_upload_with_limit(file: UploadFile) -> bytes:
 
 
 def _tenant_from_request(request: Request) -> str:
+    """Return a validated tenant id from request headers."""
     tenant_id = str(request.headers.get("X-Tenant-ID", ""))
     if not tenant_id:
         return ""
@@ -358,6 +385,7 @@ def _tenant_from_request(request: Request) -> str:
 
 
 def _managed_record_to_dict(record: ManagedTrainingRecord) -> dict:
+    """Serialise a managed training record for REST responses."""
     return {
         "job_id": record.job_id,
         "backend": record.backend,

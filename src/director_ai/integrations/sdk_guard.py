@@ -229,6 +229,7 @@ def _extract_prompt(messages: list[dict]) -> str:
 
 
 def _handle_failure(on_fail, query, response_text, score):
+    """Apply the configured hallucination failure policy."""
     if on_fail == "raise":
         raise HallucinationError(query, response_text, score)
     if on_fail == "log":
@@ -266,6 +267,7 @@ def _check_injection(on_fail, query, response_text, cs, injection_threshold):
 
 
 def _score_and_gate(scorer, on_fail, query, response_text, *, injection_threshold=None):
+    """Synchronously score a response and enforce hallucination/injection gates."""
     result = scorer.review(query, response_text)
     if asyncio.iscoroutine(result):
         try:
@@ -293,6 +295,7 @@ def _score_and_gate(scorer, on_fail, query, response_text, *, injection_threshol
 async def _ascore_and_gate(
     scorer, on_fail, query, response_text, *, injection_threshold=None
 ):
+    """Asynchronously score a response and enforce hallucination/injection gates."""
     result = scorer.review(query, response_text)
     if asyncio.iscoroutine(result):
         approved, cs = await result
@@ -330,6 +333,7 @@ class _OpenAICompletionsProxy:
         )
 
     def _sync_create(self, **kwargs):
+        """Create a guarded synchronous chat completion."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
         response = self._original.create(**kwargs)
@@ -354,11 +358,13 @@ class _OpenAICompletionsProxy:
         return response
 
     async def _acreate_entry(self, **kwargs):
+        """Create a guarded asynchronous chat completion."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
         return await self._acreate(prompt, streaming, kwargs)
 
     async def _acreate(self, prompt, streaming, kwargs):
+        """Await the original chat-completion call and gate the response."""
         response = await self._original.create(**kwargs)
         if streaming:
             return _GuardedOpenAIStream(
@@ -383,12 +389,14 @@ class _OpenAICompletionsProxy:
 
 
 def _openai_response_text(response) -> str:
+    """Extract assistant text from a chat completion response."""
     with contextlib.suppress(IndexError, AttributeError):
         return response.choices[0].message.content or ""
     return ""
 
 
 def _extract_stream_delta(chunk) -> str | None:
+    """Extract text delta content from a streaming chat chunk."""
     with contextlib.suppress(IndexError, AttributeError):
         delta = chunk.choices[0].delta.content
         return str(delta) if delta is not None else None
@@ -422,6 +430,7 @@ class _GuardedOpenAIStream:
         return self._aiter_impl()
 
     async def _aiter_impl(self):
+        """Iterate an async chat stream while buffering emitted text."""
         async for chunk in self._stream:
             delta = _extract_stream_delta(chunk)
             if delta:
@@ -433,10 +442,12 @@ class _GuardedOpenAIStream:
         await self._afinal_check()
 
     async def _aperiodic_check(self):
+        """Run an asynchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
     async def _afinal_check(self):
+        """Run the final asynchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
             await _ascore_and_gate(
@@ -448,12 +459,14 @@ class _GuardedOpenAIStream:
             )
 
     def _periodic_check(self):
+        """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
     def _final_check(self):
+        """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
             _score_and_gate(
@@ -487,6 +500,7 @@ class _AnthropicMessagesProxy:
         )
 
     def _sync_create(self, **kwargs):
+        """Create a guarded synchronous vendor message."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
         response = self._original.create(**kwargs)
@@ -511,11 +525,13 @@ class _AnthropicMessagesProxy:
         return response
 
     async def _acreate_entry(self, **kwargs):
+        """Create a guarded asynchronous vendor message."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         streaming = kwargs.get("stream", False)
         return await self._acreate(prompt, streaming, kwargs)
 
     async def _acreate(self, prompt, streaming, kwargs):
+        """Await the original vendor-message call and gate the response."""
         response = await self._original.create(**kwargs)
         if streaming:
             return _GuardedAnthropicStream(
@@ -540,12 +556,14 @@ class _AnthropicMessagesProxy:
 
 
 def _anthropic_response_text(response) -> str:
+    """Extract text from a vendor message response."""
     with contextlib.suppress(IndexError, AttributeError):
         return response.content[0].text or ""
     return ""
 
 
 def _extract_anthropic_event_text(event) -> str | None:
+    """Extract text content from a vendor stream event."""
     text = getattr(event, "text", None)
     if text:
         return str(text)
@@ -583,6 +601,7 @@ class _GuardedAnthropicStream:
         return self._aiter_impl()
 
     async def _aiter_impl(self):
+        """Iterate an async vendor stream while buffering emitted text."""
         async for event in self._stream:
             text = _extract_anthropic_event_text(event)
             if text:
@@ -594,10 +613,12 @@ class _GuardedAnthropicStream:
         await self._afinal_check()
 
     async def _aperiodic_check(self):
+        """Run an asynchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         await _ascore_and_gate(self._scorer, self._on_fail, self._prompt, text)
 
     async def _afinal_check(self):
+        """Run the final asynchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
             await _ascore_and_gate(
@@ -609,12 +630,14 @@ class _GuardedAnthropicStream:
             )
 
     def _periodic_check(self):
+        """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
     def _final_check(self):
+        """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
             _score_and_gate(
@@ -644,6 +667,7 @@ def _bedrock_response_text(response: dict) -> str:
 
 
 def _extract_bedrock_prompt(messages: list[dict]) -> str:
+    """Extract the user prompt from Bedrock Converse messages."""
     for msg in reversed(messages):
         if msg.get("role") == "user":
             content = msg.get("content", [])
@@ -657,6 +681,7 @@ def _extract_bedrock_prompt(messages: list[dict]) -> str:
 
 
 def _extract_bedrock_stream_delta(event: dict) -> str | None:
+    """Extract text delta content from a Bedrock stream event."""
     with contextlib.suppress(KeyError, TypeError):
         val = event["contentBlockDelta"]["delta"]["text"]
         return str(val) if val is not None else None
@@ -673,6 +698,7 @@ class _BedrockProxy:
         self._injection_threshold = injection_threshold
 
     def converse(self, **kwargs):
+        """Call Bedrock Converse and gate the returned message."""
         prompt = _extract_bedrock_prompt(kwargs.get("messages", []))
         response = self._client.converse(**kwargs)
         text = _bedrock_response_text(response)
@@ -686,6 +712,7 @@ class _BedrockProxy:
         return response
 
     def converse_stream(self, **kwargs):
+        """Call Bedrock Converse streaming and wrap emitted events."""
         prompt = _extract_bedrock_prompt(kwargs.get("messages", []))
         response = self._client.converse_stream(**kwargs)
         return _GuardedBedrockStream(
@@ -728,6 +755,7 @@ class _GuardedBedrockStream:
         return self._aiter_impl()
 
     async def _aiter_impl(self):
+        """Iterate an async Bedrock stream while buffering emitted text."""
         stream = self._response.get("stream", self._response)
         async for event in stream:
             delta = _extract_bedrock_stream_delta(event)
@@ -753,12 +781,14 @@ class _GuardedBedrockStream:
             )
 
     def _periodic_check(self):
+        """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
     def _final_check(self):
+        """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
             _score_and_gate(
@@ -779,6 +809,7 @@ def _has_gemini_shape(client) -> bool:
 
 
 def _extract_gemini_prompt(args: tuple, kwargs: dict) -> str:
+    """Extract prompt text from generate_content inputs."""
     contents = args[0] if args else kwargs.get("contents", "")
     if isinstance(contents, str):
         return contents
@@ -806,6 +837,7 @@ class _GeminiProxy:
         self._injection_threshold = injection_threshold
 
     def generate_content(self, *args, **kwargs):
+        """Call generate_content and gate the response or stream."""
         prompt = _extract_gemini_prompt(args, kwargs)
         streaming = kwargs.get("stream", False)
         response = self._client.generate_content(*args, **kwargs)
@@ -858,6 +890,7 @@ class _GuardedGeminiStream:
         return self._aiter_impl()
 
     async def _aiter_impl(self):
+        """Iterate an async generate_content stream while buffering text."""
         async for chunk in self._stream:
             text = getattr(chunk, "text", None)
             if text:
@@ -882,12 +915,14 @@ class _GuardedGeminiStream:
             )
 
     def _periodic_check(self):
+        """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
     def _final_check(self):
+        """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
             _score_and_gate(
@@ -928,6 +963,7 @@ class _MistralChatProxy:
         )
 
     def _sync_complete(self, **kwargs):
+        """Call a synchronous Mistral chat completion and gate it."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         response = self._original.complete(**kwargs)
         text = _mistral_response_text(response)
@@ -941,6 +977,7 @@ class _MistralChatProxy:
         return response
 
     async def _acomplete_entry(self, **kwargs):
+        """Call an asynchronous Mistral chat completion and gate it."""
         prompt = _extract_prompt(kwargs.get("messages", []))
         response = await self._original.complete(**kwargs)
         text = _mistral_response_text(response)
@@ -958,6 +995,7 @@ class _MistralChatProxy:
 
 
 def _mistral_response_text(response) -> str:
+    """Extract assistant text from a Mistral chat completion response."""
     with contextlib.suppress(IndexError, AttributeError):
         content = response.choices[0].message.content
         if isinstance(content, str):
@@ -1000,6 +1038,7 @@ class _PydanticAIProxy:
         self._injection_threshold = injection_threshold
 
     def run_sync(self, *args, **kwargs):
+        """Run a synchronous Pydantic AI agent call and gate its output."""
         prompt = _extract_pydantic_ai_prompt(args, kwargs)
         result = self._agent.run_sync(*args, **kwargs)
         text = _pydantic_ai_output_text(result)
@@ -1013,6 +1052,7 @@ class _PydanticAIProxy:
         return result
 
     async def run(self, *args, **kwargs):
+        """Run an asynchronous Pydantic AI agent call and gate its output."""
         prompt = _extract_pydantic_ai_prompt(args, kwargs)
         result = await self._agent.run(*args, **kwargs)
         text = _pydantic_ai_output_text(result)
@@ -1030,6 +1070,7 @@ class _PydanticAIProxy:
 
 
 def _extract_pydantic_ai_prompt(args, kwargs) -> str:
+    """Extract prompt text from Pydantic AI run arguments."""
     prompt = kwargs.get("user_prompt")
     if prompt is None and args:
         prompt = args[0]
@@ -1043,6 +1084,7 @@ def _extract_pydantic_ai_prompt(args, kwargs) -> str:
 
 
 def _pydantic_ai_content_text(content) -> str:
+    """Return text for one Pydantic AI prompt content part."""
     if isinstance(content, str):
         return content
     text = getattr(content, "content", None)
@@ -1052,6 +1094,7 @@ def _pydantic_ai_content_text(content) -> str:
 
 
 def _pydantic_ai_output_text(result) -> str:
+    """Serialise Pydantic AI run output for guard scoring."""
     output = getattr(result, "output", result)
     if isinstance(output, str):
         return output
@@ -1087,6 +1130,7 @@ class _CohereProxy:
         self._injection_threshold = injection_threshold
 
     def chat(self, **kwargs):
+        """Call a Cohere chat completion and gate the response."""
         prompt = kwargs.get("message", "")
         response = self._client.chat(**kwargs)
         text = getattr(response, "text", "") or ""
@@ -1100,6 +1144,7 @@ class _CohereProxy:
         return response
 
     def chat_stream(self, **kwargs):
+        """Call a Cohere streaming chat completion and wrap emitted events."""
         prompt = kwargs.get("message", "")
         response = self._client.chat_stream(**kwargs)
         return _GuardedCohereStream(
@@ -1141,6 +1186,7 @@ class _GuardedCohereStream:
         return self._aiter_impl()
 
     async def _aiter_impl(self):
+        """Iterate an async Cohere stream while buffering emitted text."""
         async for event in self._stream:
             text = getattr(event, "text", None)
             if text:
@@ -1165,12 +1211,14 @@ class _GuardedCohereStream:
             )
 
     def _periodic_check(self):
+        """Run a synchronous periodic score check for buffered text."""
         text = "".join(self._buffer)
         approved, cs = self._scorer.review(self._prompt, text)
         if not approved:
             _handle_failure(self._on_fail, self._prompt, text, cs)
 
     def _final_check(self):
+        """Run the final synchronous score check for buffered text."""
         text = "".join(self._buffer)
         if text:
             _score_and_gate(

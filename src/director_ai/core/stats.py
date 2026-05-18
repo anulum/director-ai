@@ -4,6 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
+"""SQLite-backed review statistics store."""
+
 from __future__ import annotations
 
 import sqlite3
@@ -46,6 +48,7 @@ class StatsStore:
         latency_ms: float | None = None,
         halted: bool = False,
     ) -> None:
+        """Persist one review outcome and optional latency/score fields."""
         self._conn.execute(
             "INSERT INTO reviews "
             "(timestamp, approved, score, h_logical, h_factual, latency_ms, halted) "
@@ -63,6 +66,7 @@ class StatsStore:
         self._conn.commit()
 
     def summary(self, since: float | None = None) -> dict:
+        """Return aggregate review counters since the optional timestamp."""
         clause = "WHERE timestamp >= ?" if since else ""
         params = (since,) if since else ()
         row = self._conn.execute(
@@ -86,6 +90,7 @@ class StatsStore:
         }
 
     def hourly_breakdown(self, days: int = 7) -> list[dict]:
+        """Return hourly review aggregates for the trailing day window."""
         since = time.time() - days * 86400
         rows = self._conn.execute(
             "SELECT CAST((timestamp - ?) / 3600 AS INTEGER) as hour_bucket, "
@@ -107,4 +112,5 @@ class StatsStore:
         ]
 
     def close(self) -> None:
+        """Close the underlying SQLite connection."""
         self._conn.close()

@@ -34,16 +34,19 @@ class _Counter:
     multi_labels: dict[str, float] = field(default_factory=dict)
 
     def inc(self, amount: float = 1.0, label: str = "") -> None:
+        """Increment the unlabelled or single-label counter value."""
         if label:
             self.labels[label] = self.labels.get(label, 0.0) + amount
         else:
             self.value += amount
 
     def inc_labeled(self, labels: dict[str, str], amount: float = 1.0) -> None:
+        """Increment a counter series identified by multiple labels."""
         key = ",".join(f'{k}="{v}"' for k, v in sorted(labels.items()))
         self.multi_labels[key] = self.multi_labels.get(key, 0.0) + amount
 
     def total(self) -> float:
+        """Return the sum across unlabelled and labelled series."""
         return self.value + sum(self.labels.values()) + sum(self.multi_labels.values())
 
 
@@ -67,6 +70,7 @@ class _Histogram:
     max_samples: int = HISTOGRAM_MAX_SAMPLES
 
     def observe(self, value: float) -> None:
+        """Append an observation while bounding retained sample history."""
         self._values.append(value)
         if len(self._values) > self.max_samples:
             # Keep the last half to preserve recent distribution
@@ -74,14 +78,17 @@ class _Histogram:
 
     @property
     def count(self) -> int:
+        """Return the number of retained observations."""
         return len(self._values)
 
     @property
     def total(self) -> float:
+        """Return the sum of retained observations."""
         return sum(self._values) if self._values else 0.0
 
     @property
     def mean(self) -> float:
+        """Return the arithmetic mean of retained observations."""
         return self.total / self.count if self.count else 0.0
 
     def _sorted_snapshot(self) -> list[float]:
@@ -123,12 +130,15 @@ class _Gauge:
     value: float = 0.0
 
     def set(self, value: float) -> None:
+        """Set the gauge to an absolute value."""
         self.value = value
 
     def inc(self, amount: float = 1.0) -> None:
+        """Increase the gauge by an amount."""
         self.value += amount
 
     def dec(self, amount: float = 1.0) -> None:
+        """Decrease the gauge by an amount."""
         self.value -= amount
 
 

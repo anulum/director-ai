@@ -77,6 +77,7 @@ class ElevenLabsAdapter(TTSAdapter):
         self._client = None
 
     def _get_client(self) -> Any:
+        """Return a cached ElevenLabs async client."""
         if self._client is not None:
             return self._client
         try:
@@ -93,6 +94,7 @@ class ElevenLabsAdapter(TTSAdapter):
         return self._client
 
     async def synthesise(self, text: str) -> AsyncIterator[bytes]:
+        """Stream ElevenLabs audio bytes for approved text."""
         client = self._get_client()
         audio_stream = await client.text_to_speech.convert(
             text=text,
@@ -106,6 +108,7 @@ class ElevenLabsAdapter(TTSAdapter):
             yield audio_stream
 
     async def close(self) -> None:
+        """Drop the cached ElevenLabs client reference."""
         self._client = None
 
 
@@ -138,6 +141,7 @@ class OpenAITTSAdapter(TTSAdapter):
         self._client: Any = None
 
     def _get_client(self) -> Any:
+        """Return a cached async TTS client."""
         if self._client is not None:
             return self._client
         try:
@@ -152,6 +156,7 @@ class OpenAITTSAdapter(TTSAdapter):
         return self._client
 
     async def synthesise(self, text: str) -> AsyncIterator[bytes]:
+        """Stream TTS audio bytes for approved text."""
         client = self._get_client()
         response = await client.audio.speech.create(
             model=self._model,
@@ -163,6 +168,7 @@ class OpenAITTSAdapter(TTSAdapter):
             yield chunk
 
     async def close(self) -> None:
+        """Close the cached async TTS client."""
         if self._client is not None:
             await self._client.close()
             self._client = None
@@ -191,6 +197,7 @@ class DeepgramAdapter(TTSAdapter):
         self._client = None
 
     def _get_client(self) -> Any:
+        """Return a cached Deepgram client."""
         if self._client is not None:
             return self._client
         try:
@@ -207,6 +214,7 @@ class DeepgramAdapter(TTSAdapter):
         return self._client
 
     async def synthesise(self, text: str) -> AsyncIterator[bytes]:
+        """Stream Deepgram audio bytes for approved text."""
         client = self._get_client()
         options = {"model": self._model, "text": text}
         response = await client.speak.asyncrest.v("1").stream_raw(options)
@@ -220,4 +228,5 @@ class DeepgramAdapter(TTSAdapter):
             yield response.content if hasattr(response, "content") else bytes(response)
 
     async def close(self) -> None:
+        """Drop the cached Deepgram client reference."""
         self._client = None

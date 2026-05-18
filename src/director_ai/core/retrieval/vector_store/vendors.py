@@ -61,6 +61,7 @@ class PineconeBackend(VectorBackend):
         self._texts: dict[str, str] = {}
 
     def _embed(self, text: str) -> list[float]:
+        """Embed text using the configured Pinecone embedding callback."""
         if self._embed_fn is None:
             raise ValueError("PineconeBackend requires embed_fn for text embedding")
         result: list[float] = self._embed_fn(text)
@@ -72,6 +73,7 @@ class PineconeBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Upsert one document vector into Pinecone."""
 
         vector = self._embed(text)
         meta = {**(metadata or {}), "text": text}
@@ -87,6 +89,7 @@ class PineconeBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Query Pinecone and return normalised vector result dictionaries."""
 
         vector = self._embed(text)
 
@@ -115,6 +118,7 @@ class PineconeBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
+        """Return Pinecone vector count for the configured namespace."""
         stats = self._index.describe_index_stats()
         ns_stats = stats.get("namespaces", {}).get(self._namespace, {})
         return int(ns_stats.get("vector_count", 0))
@@ -152,6 +156,7 @@ class WeaviateBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Create one Weaviate object with optional explicit vector."""
 
         props = {"text": text, "doc_id": doc_id, **(metadata or {})}
         kwargs: dict[str, Any] = {
@@ -170,6 +175,7 @@ class WeaviateBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Query Weaviate with near-vector or near-text search."""
 
         where_filter = None
         if tenant_id:
@@ -211,6 +217,7 @@ class WeaviateBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
+        """Return the in-process count of added Weaviate objects."""
         return self._count
 
 
@@ -242,6 +249,7 @@ class QdrantBackend(VectorBackend):
         self._ensure_collection()
 
     def _ensure_collection(self) -> None:
+        """Create the Qdrant collection when it is not present."""
         from qdrant_client.models import Distance, VectorParams
 
         try:
@@ -261,6 +269,7 @@ class QdrantBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Upsert one embedded point into Qdrant."""
 
         from qdrant_client.models import PointStruct
 
@@ -277,6 +286,7 @@ class QdrantBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Search Qdrant with an optional tenant filter."""
 
         from qdrant_client.models import FieldCondition, Filter, MatchValue
 
@@ -314,6 +324,7 @@ class QdrantBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
+        """Return Qdrant point count for the configured collection."""
         info = self._client.get_collection(self._collection)
         return int(info.points_count)
 
@@ -356,6 +367,7 @@ class FAISSBackend(VectorBackend):
         self._lock = threading.Lock()
 
     def _embed(self, text: str) -> Any:
+        """Embed and L2-normalise text for FAISS inner-product search."""
         if self._embed_fn is None:
             raise ValueError("FAISSBackend requires embed_fn for text embedding")
         import numpy as np
@@ -370,6 +382,7 @@ class FAISSBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Add one embedded document to the FAISS index."""
         vec = self._embed(text)
         with self._lock:
             if self._needs_training and not self._trained:
@@ -384,6 +397,7 @@ class FAISSBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Search FAISS and apply tenant filtering in metadata."""
         vec = self._embed(text)
         with self._lock:
             if not self._docs:
@@ -405,6 +419,7 @@ class FAISSBackend(VectorBackend):
         return results
 
     def count(self) -> int:
+        """Return the number of documents tracked beside the FAISS index."""
         with self._lock:
             return len(self._docs)
 
@@ -447,6 +462,7 @@ class ElasticsearchBackend(VectorBackend):
         self._ensure_index()
 
     def _ensure_index(self) -> None:
+        """Create the Elasticsearch index and dense-vector mapping if needed."""
         if self._client.indices.exists(index=self._index):
             return
         mappings: dict[str, Any] = {
@@ -471,6 +487,7 @@ class ElasticsearchBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Index one document into Elasticsearch."""
         body: dict[str, Any] = {"text": text, "doc_id": doc_id, **(metadata or {})}
         if self._embed_fn:
             body["embedding"] = self._embed_fn(text)
@@ -483,6 +500,7 @@ class ElasticsearchBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Search Elasticsearch using hybrid or BM25 retrieval."""
         filters: list[dict[str, Any]] = []
         if tenant_id:
             filters.append({"term": {"tenant_id": tenant_id}})
@@ -539,6 +557,7 @@ class ElasticsearchBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
+        """Return the in-process count of indexed Elasticsearch documents."""
         return self._count
 
 
@@ -578,6 +597,7 @@ class ColBERTBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Stage one document for the ColBERT late-interaction index."""
         with self._lock:
             self._docs.append(
                 {
@@ -589,6 +609,7 @@ class ColBERTBackend(VectorBackend):
             self._indexed = False
 
     def _ensure_index(self) -> None:
+        """Build or refresh the ColBERT index when staged docs changed."""
         if self._indexed or not self._docs:
             return
         texts = [d["text"] for d in self._docs]
@@ -610,6 +631,7 @@ class ColBERTBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Search the ColBERT index and return normalised result dictionaries."""
         with self._lock:
             self._ensure_index()
             if not self._indexed:
@@ -632,5 +654,6 @@ class ColBERTBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
+        """Return the number of staged ColBERT documents."""
         with self._lock:
             return len(self._docs)

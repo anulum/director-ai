@@ -99,6 +99,7 @@ class RegexPIIDetector(ModerationDetector):
         )
 
     def analyse(self, text: str) -> ModerationResult:
+        """Return every PII match found in ``text``."""
         if not text:
             return ModerationResult(detector=self.name, matches=[])
         if self._rust_scanner is not None:
@@ -202,6 +203,7 @@ class PresidioPIIDetector(ModerationDetector):
         return cls(analyzer=AnalyzerEngine(), **kwargs)
 
     def analyse(self, text: str) -> ModerationResult:
+        """Return Presidio findings that pass the configured score threshold."""
         if not text:
             return ModerationResult(detector=self.name, matches=[])
         call_kwargs: dict[str, Any] = {

@@ -124,6 +124,7 @@ class KeywordToxicityDetector(ModerationDetector):
         )
 
     def analyse(self, text: str) -> ModerationResult:
+        """Return keyword and pattern toxicity matches for ``text``."""
         if not text:
             return ModerationResult(detector=self.name, matches=[])
         if self._rust_scanner is not None:
@@ -212,6 +213,7 @@ class DetoxifyDetector(ModerationDetector):
         return cls(classifier=Detoxify(model_type), **kwargs)
 
     def analyse(self, text: str) -> ModerationResult:
+        """Return classifier categories whose score exceeds the threshold."""
         if not text:
             return ModerationResult(detector=self.name, matches=[])
         try:

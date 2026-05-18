@@ -60,6 +60,7 @@ class VoiceDemoResult:
 
     @property
     def total_audio_bytes(self) -> int:
+        """Total number of dry-run audio bytes emitted by the demo."""
         return sum(len(chunk) for chunk in self.audio_chunks)
 
 
@@ -72,10 +73,12 @@ class DryRunTTSAdapter(TTSAdapter):
     closed: bool = False
 
     async def synthesise(self, text: str) -> AsyncIterator[bytes]:
+        """Record text and emit deterministic dry-run audio bytes."""
         self.texts.append(text)
         yield self.prefix + text.encode("utf-8")
 
     async def close(self) -> None:
+        """Mark the dry-run adapter as closed."""
         self.closed = True
 
 
@@ -119,6 +122,7 @@ async def run_voice_demo(
     halt_event: VoiceToken | None = None
 
     def on_halt(vtoken: VoiceToken) -> None:
+        """Capture the first guard halt event for the demo result."""
         nonlocal halt_event
         halt_event = vtoken
 
@@ -149,6 +153,7 @@ async def run_voice_demo(
 
 
 def _build_parser() -> argparse.ArgumentParser:
+    """Build the credential-free demo CLI parser."""
     parser = argparse.ArgumentParser(
         description="Run a credential-free Director-AI voice pipeline demo.",
     )
@@ -173,6 +178,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 async def _amain(argv: list[str] | None = None) -> int:
+    """Run the async implementation for the voice demo CLI."""
     args = _build_parser().parse_args(argv)
     result = await run_voice_demo(
         tokens=scripted_tokens(args.response),

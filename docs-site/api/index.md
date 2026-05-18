@@ -1,6 +1,9 @@
 # API Reference
 
-Complete reference for every public class, function, and dataclass in Director-AI.
+Primary reference for the supported public classes, functions, dataclasses, and
+operator-facing APIs in Director-AI. Internal helpers, generated protobuf
+stubs, and compatibility shims are intentionally excluded unless they define a
+supported integration boundary.
 
 ## Quick Navigation
 
@@ -75,7 +78,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`SustainabilityTelemetry`](sustainability-scoring.md) | `director_ai.core.sustainability` | Per-tenant sustainability summaries and threshold alerts |
 | [`AgentPassportRegistry`](agent-passport-registry.md) | `director_ai.core.agent_identity` | Signed agent identity, capability policy, revocation, and coherence history |
 
-### Verification Gems (v3.10.0)
+### Verification And Guard APIs
 
 | Symbol | Module | Purpose |
 |--------|--------|---------|
@@ -108,7 +111,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 | [`ValidationError`](exceptions.md#validationerror) | Invalid configuration or input |
 | [`DependencyError`](exceptions.md#dependencyerror) | Required optional package missing |
 
-### Meta-Confidence & Contradiction (v3.10.0)
+### Meta-Confidence And Contradiction APIs
 
 | Symbol | Module | Purpose |
 |--------|--------|---------|
@@ -121,7 +124,7 @@ Complete reference for every public class, function, and dataclass in Director-A
 
 See [Meta-Confidence Guide](../guide/meta-confidence.md).
 
-### Structured Output Verification (v3.10.0)
+### Structured Output Verification APIs
 
 | Function | Module | Purpose |
 |----------|--------|---------|
@@ -133,7 +136,7 @@ Result types: `StructuredVerificationResult`, `ToolCallResult`, `CodeCheckResult
 
 See [Structured Verification Guide](../guide/structured-verification.md).
 
-### Online Calibration (v3.10.0)
+### Online Calibration APIs
 
 | Class | Module | Purpose |
 |-------|--------|---------|
@@ -145,7 +148,7 @@ See [Structured Verification Guide](../guide/structured-verification.md).
 
 See [Online Calibration Guide](../guide/online-calibration.md).
 
-### EU AI Act Compliance (v3.10.0+)
+### Compliance APIs
 
 | Class | Module | Purpose |
 |-------|--------|---------|

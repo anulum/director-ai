@@ -124,6 +124,7 @@ class DirectorGuard:
         body_sent = False
 
         async def replay_receive():
+            """Replay the buffered request body to the downstream ASGI app."""
             nonlocal body_sent
             if not body_sent:
                 body_sent = True
@@ -140,6 +141,7 @@ class DirectorGuard:
         response_body = bytearray()
 
         async def buffered_send(message):
+            """Capture downstream response events for guard scoring."""
             nonlocal response_status, response_headers_raw
             if message["type"] == "http.response.start":
                 response_status = message.get("status", 200)
@@ -283,6 +285,7 @@ def _extract_system_prompt(body: bytes) -> str:
 
 
 def _extract_request_prompt(body: bytes) -> str:
+    """Extract the user prompt from common JSON request shapes."""
     try:
         data = json.loads(body)
     except (json.JSONDecodeError, UnicodeDecodeError):
@@ -304,6 +307,7 @@ def _extract_request_prompt(body: bytes) -> str:
 
 
 def _extract_response_text(body: bytes) -> str:
+    """Extract assistant text from common JSON response shapes."""
     try:
         data = json.loads(body)
     except (json.JSONDecodeError, UnicodeDecodeError):

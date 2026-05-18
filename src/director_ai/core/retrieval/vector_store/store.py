@@ -37,12 +37,14 @@ __all__ = ["VectorGroundTruthStore"]
 
 
 def _is_vector_backend_like(backend: object) -> bool:
+    """Return whether an object exposes the VectorBackend method surface."""
     return all(
         callable(getattr(backend, method, None)) for method in ("add", "query", "count")
     )
 
 
 def _require_non_negative_top_k(top_k: int) -> int:
+    """Validate a non-negative integer retrieval limit."""
     if not isinstance(top_k, int) or isinstance(top_k, bool):
         raise ValueError("top_k must be an integer")
     if top_k < 0:
@@ -51,12 +53,14 @@ def _require_non_negative_top_k(top_k: int) -> int:
 
 
 def _require_string(field_name: str, value: str) -> str:
+    """Validate that a field is a string without normalising it."""
     if not isinstance(value, str):
         raise ValueError(f"{field_name} must be a string")
     return value
 
 
 def _require_numeric_timestamp(field_name: str, value: str) -> float:
+    """Validate and parse a timestamp-like metadata field."""
     try:
         return float(value)
     except (TypeError, ValueError) as exc:
@@ -96,6 +100,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         self._conflict_records: list[dict[str, str]] = []
 
     def _resolved_tenant_id(self, tenant_id: str = "") -> str:
+        """Return the explicit tenant id or the store default tenant id."""
         if not isinstance(tenant_id, str):
             raise ValueError("tenant_id must be a string")
         return (tenant_id or self.tenant_id).strip()
@@ -398,6 +403,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         metadata: dict[str, Any] | None = None,
         tenant_id: str = "",
     ) -> None:
+        """Add one fact to the vector backend with version metadata."""
         import time
 
         tenant_id = self._resolved_tenant_id(tenant_id)
@@ -456,6 +462,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         requested_bump: str,
         chunk_index: int,
     ) -> dict[str, str]:
+        """Build semantic-version metadata for a fact or chunk write."""
         version_key = self._version_key(key, tenant_id)
         previous = self._version_records.get(version_key)
         content_hash = self._content_hash(value)
@@ -485,6 +492,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         metadata: dict[str, Any],
         tenant_id: str,
     ) -> None:
+        """Persist immutable-facing version metadata for a stored record."""
         version_key = self._version_key(key, tenant_id)
         self._version_records[version_key] = {
             "key": key,
@@ -537,6 +545,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     @staticmethod
     def _normalised_claim_metadata(metadata: dict[str, Any]) -> dict[str, str]:
+        """Return stable claim reference fields from mixed metadata keys."""
         return {
             "claim_id": str(metadata.get("kb_claim_id", metadata.get("claim_id", ""))),
             "claim_source": str(
@@ -559,6 +568,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         metadata: dict[str, Any],
         tenant_id: str,
     ) -> list[dict[str, str]]:
+        """Build tenant-safe conflict reports for a pending fact write."""
         reports: list[dict[str, str]] = []
         reports.extend(self._retraction_conflicts(key, metadata, tenant_id))
         reports.extend(self._protected_claim_conflicts(key, metadata, tenant_id))
@@ -571,6 +581,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         metadata: dict[str, Any],
         tenant_id: str,
     ) -> list[dict[str, str]]:
+        """Return conflicts between an incoming fact and retraction records."""
         incoming_refs = self._record_refs(key, metadata)
         reports = []
         for event in self.retraction_records(tenant_id):
@@ -595,6 +606,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         metadata: dict[str, Any],
         tenant_id: str,
     ) -> list[dict[str, str]]:
+        """Return conflicts against signed or passport-backed claim state."""
         incoming_hash = str(metadata["kb_content_hash"])
         incoming_refs = self._record_refs(key, metadata)
         reports = []
@@ -626,6 +638,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         metadata: dict[str, Any],
         tenant_id: str,
     ) -> list[dict[str, str]]:
+        """Return conflicts declared through explicit metadata references."""
         targets = self._metadata_list(metadata.get("contradicts", ()))
         if not targets:
             return []
@@ -652,6 +665,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         existing: dict[str, Any],
         incoming: dict[str, Any],
     ) -> str:
+        """Classify protected-claim conflict type for two records."""
         source = str(
             existing.get("claim_source", "") or incoming.get("claim_source", "")
         )
@@ -676,6 +690,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         incoming: dict[str, Any],
         reason: str,
     ) -> dict[str, str]:
+        """Build a tenant-safe conflict record without raw fact payloads."""
         return {
             "event": "kb_conflict",
             "key": key,
@@ -699,6 +714,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     @classmethod
     def _record_refs(cls, key: str, record: dict[str, Any]) -> set[str]:
+        """Return all stable reference identifiers for a record."""
         refs = {key}
         for field in (
             "source_id",
@@ -714,11 +730,13 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     @classmethod
     def _first_ref(cls, record: dict[str, Any]) -> str:
+        """Return the lexicographically first stable reference for a record."""
         refs = sorted(cls._record_refs(str(record.get("key", "")), record))
         return refs[0] if refs else ""
 
     @staticmethod
     def _metadata_list(value: Any) -> set[str]:
+        """Normalise comma-separated or iterable metadata references."""
         if value in (None, ""):
             return set()
         if isinstance(value, str):
@@ -729,6 +747,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     @staticmethod
     def _dedupe_conflicts(records: list[dict[str, str]]) -> list[dict[str, str]]:
+        """Remove duplicate conflict reports while preserving order."""
         seen: set[tuple[str, str, str, str]] = set()
         out: list[dict[str, str]] = []
         for record in records:
@@ -746,14 +765,17 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     @staticmethod
     def _version_key(key: str, tenant_id: str) -> str:
+        """Return the tenant-qualified key used for version bookkeeping."""
         return f"{tenant_id}::{key}" if tenant_id else key
 
     @staticmethod
     def _content_hash(value: str) -> str:
+        """Return a stable SHA-256 hash for fact content."""
         return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
     @staticmethod
     def _snapshot_leaf(record: dict[str, str]) -> bytes:
+        """Return a domain-separated Merkle leaf digest for a record."""
         payload = json.dumps(record, sort_keys=True, separators=(",", ":")).encode(
             "utf-8"
         )
@@ -761,6 +783,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     @staticmethod
     def _merkle_root_hex(leaves: list[bytes]) -> str:
+        """Return the Merkle root for snapshot leaves as hex."""
         if not leaves:
             return hashlib.sha256(b"director-ai/kb-snapshot/v1/empty").hexdigest()
         level = list(leaves)
@@ -777,6 +800,7 @@ class VectorGroundTruthStore(GroundTruthStore):
 
     @staticmethod
     def _next_semver(current: str, requested_bump: str) -> str:
+        """Return the next semantic version for a requested bump type."""
         parts = current.split(".")
         if len(parts) != 3:
             raise ValueError(f"invalid semantic version {current!r}")
@@ -949,6 +973,7 @@ class VectorGroundTruthStore(GroundTruthStore):
         results: list[dict[str, Any]],
         tenant_id: str,
     ) -> list[dict[str, Any]]:
+        """Filter stale or retracted vector results before returning evidence."""
         active: list[dict[str, Any]] = []
         for result in results:
             metadata = result.get("metadata", {})

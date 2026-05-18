@@ -140,6 +140,7 @@ except ImportError:
 
 
 def _check_fastapi() -> None:
+    """Raise an install hint when FastAPI server extras are unavailable."""
     if not _FASTAPI_AVAILABLE:  # pragma: no cover
         raise ImportError(
             "FastAPI is required for the server. "
@@ -488,6 +489,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
             @app.exception_handler(RateLimitExceeded)
             async def _rate_limit_handler(request: Request, exc: RateLimitExceeded):
+                """Render SlowAPI rate-limit failures as JSON responses."""
                 return JSONResponse(  # pragma: no cover Ă˘â‚¬â€ť ASGI runtime handler
                     status_code=429,
                     content={"detail": "Rate limit exceeded"},
@@ -507,6 +509,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.middleware("http")
     async def _http_middleware(request: Request, call_next):
+        """Apply request IDs, API-key auth, tenant binding, and metrics."""
         request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
         request.state.request_id = request_id
         REQUEST_ID_CTX.set(request_id)
@@ -602,6 +605,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/health", response_model=HealthResponse)
     async def health(request: Request):
+        """Return liveness, version, router, licence, and revision status."""
         import director_ai
 
         lic = getattr(request.app.state, "_license", None)
@@ -649,6 +653,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/source", response_model=SourceResponse)
     async def source(request: Request):
+        """Return source-availability metadata for AGPL or commercial mode."""
         import director_ai
 
         lic = getattr(request.app.state, "_license", None)
@@ -1215,6 +1220,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/tenants", response_model=TenantListResponse)
     async def list_tenants(request: Request):
+        """List tenants visible to the authenticated caller."""
         router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
@@ -1229,11 +1235,13 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         }
 
     def _enforce_tenant_binding(request: Request, tenant_id: str) -> None:
+        """Reject cross-tenant writes for tenant-bound API keys."""
         bound = getattr(request.state, "tenant_id", "")
         if bound and bound != tenant_id:
             raise HTTPException(403, "API key not authorized for this tenant")
 
     def _enforce_kb_write_access(request: Request, tenant_id: str) -> None:
+        """Enforce configured knowledge-base write access controls."""
         try:
             check_kb_write_access(
                 require_auth=cfg.knowledge_write_require_auth,
@@ -1254,6 +1262,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         signature: str,
         key_id: str,
     ) -> dict[str, object]:
+        """Verify tenant knowledge writes and return signature metadata."""
         clean_signature = signature.strip()
         clean_key_id = key_id.strip()
         if not clean_signature:
@@ -1275,6 +1284,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.post("/v1/tenants/{tenant_id}/facts", response_model=StatusResponse)
     async def add_tenant_fact(request: Request, tenant_id: str, req: TenantFactRequest):
+        """Add a scalar tenant fact after tenant and write checks."""
         router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
@@ -1300,6 +1310,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         tenant_id: str,
         req: TenantVectorFactRequest,
     ):
+        """Add a tenant-scoped vector fact to the configured vector store."""
         router = request.app.state._state.get("tenant_router")
         if not router:
             raise HTTPException(404, "Tenant routing not enabled")
@@ -1333,6 +1344,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/sessions/{session_id}", response_model=SessionResponse)
     async def get_session(request: Request, session_id: str):
+        """Return a session only to its owning API-key identity."""
         caller_hash = getattr(request.state, "api_key_hash", "")
         async with request.app.state._state["sessions_lock"]:
             sessions = request.app.state._state["sessions"]
@@ -1359,6 +1371,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.delete("/v1/sessions/{session_id}", response_model=DeletedResponse)
     async def delete_session(request: Request, session_id: str):
+        """Delete a session owned by the authenticated API-key identity."""
         caller_hash = getattr(request.state, "api_key_hash", "")
         async with request.app.state._state["sessions_lock"]:
             sessions = request.app.state._state["sessions"]
@@ -1376,20 +1389,24 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/metrics")
     async def get_metrics(request: Request):
+        """Return structured in-process metrics."""
         return metrics.get_metrics()
 
     @app.get("/v1/metrics/prometheus", response_class=PlainTextResponse)
     async def get_prometheus(request: Request):
+        """Return metrics in Prometheus text exposition format."""
         return metrics.prometheus_format()
 
     # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Config Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
 
     @app.get("/v1/config", response_model=ConfigResponse)
     async def get_config():
+        """Return the effective non-secret server configuration."""
         return ConfigResponse(config=cfg.to_dict())
 
     @app.get("/v1/scorer/models")
     async def list_scorer_models(include_domain_only: bool = False):
+        """Return current scorer settings and available scorer choices."""
         from .core.scoring.model_choices import scorer_model_choices_to_dict
 
         return {
@@ -1433,6 +1450,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/stats", response_model=StatsResponse)
     async def get_stats(request: Request):
+        """Return review statistics from SQLite or Prometheus counters."""
         stats_store = request.app.state._state.get("stats")
         if stats_store:
             return stats_store.summary()
@@ -1440,6 +1458,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/stats/hourly")
     async def get_stats_hourly(request: Request, days: int = 7):
+        """Return hourly review statistics when SQLite stats are enabled."""
         stats_store = request.app.state._state.get("stats")
         if stats_store:
             result = stats_store.hourly_breakdown(days=days)
@@ -1453,6 +1472,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/dashboard", response_class=PlainTextResponse)
     async def dashboard(request: Request):
+        """Render the built-in operational statistics dashboard."""
         stats_store = request.app.state._state.get("stats")
         s = stats_store.summary() if stats_store else _prometheus_summary()
         approval_rate = (
@@ -1486,6 +1506,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         domain: str | None = None,
         fmt: str = "json",
     ):
+        """Return an EU AI Act Article 15 compliance report."""
         reporter = request.app.state._state.get("compliance_reporter")
         if reporter is None:
             raise HTTPException(
@@ -1528,6 +1549,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/compliance/drift", response_model=DriftResponse)
     async def compliance_drift(request: Request):
+        """Return compliance drift analysis for recent review windows."""
         detector = request.app.state._state.get("compliance_drift")
         if detector is None:
             raise HTTPException(
@@ -1555,6 +1577,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.get("/v1/compliance/dashboard")
     async def compliance_dashboard(request: Request):
+        """Return 24-hour, 7-day, and 30-day compliance dashboard data."""
         reporter = request.app.state._state.get("compliance_reporter")
         if reporter is None:
             raise HTTPException(
@@ -1729,6 +1752,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             raise HTTPException(503, "Scorer not initialised")
 
         def review_fn(prompt: str, response: str):
+            """Adapt the configured scorer to the adversarial tester API."""
             approved, score = app_scorer.review(prompt, response)
             return approved, score.score
 
@@ -1848,6 +1872,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
     @app.websocket("/v1/stream")
     async def stream(ws: WebSocket):
+        """Handle multiplexed WebSocket agent sessions."""
         ws_tenant_id = ""
         if cfg.api_keys:
             provided = ws.headers.get("X-API-Key", "")
@@ -1873,10 +1898,12 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         active_tasks: dict[str, tuple[asyncio.Task, threading.Event]] = {}
 
         async def _send(payload: dict) -> None:
+            """Serialise WebSocket writes through a per-connection lock."""
             async with send_lock:
                 await ws.send_json(payload)
 
         async def _handle_session(session_id: str, data: dict) -> None:
+            """Process one WebSocket session payload."""
             prompt = data.get("prompt", "")
 
             sanitizer = ws.app.state._state.get("sanitizer")
@@ -1972,6 +1999,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             )
 
         async def _run_session(session_id: str, data: dict) -> None:
+            """Run a session under the per-connection concurrency limit."""
             async with semaphore:
                 try:
                     await _handle_session(session_id, data)

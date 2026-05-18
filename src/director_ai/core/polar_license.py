@@ -426,6 +426,7 @@ def validate_polar_deployment_env() -> PolarDeploymentReport:
 
 
 def _env_timeout_seconds() -> float:
+    """Return the configured Polar HTTP timeout with a safe floor."""
     raw = os.environ.get("DIRECTOR_AI_POLAR_TIMEOUT_SECONDS", "").strip()
     if not raw:
         return POLAR_DEFAULT_TIMEOUT_SECONDS
@@ -437,17 +438,20 @@ def _env_timeout_seconds() -> float:
 
 
 def _polar_api_url(path: str) -> str:
+    """Build an absolute Polar API URL for a relative path."""
     base = os.environ.get("DIRECTOR_AI_POLAR_API_BASE", "https://api.polar.sh/v1")
     return base.rstrip("/") + "/" + path.lstrip("/")
 
 
 def _polar_endpoint(path: str) -> str:
+    """Return server or customer-portal endpoint based on auth mode."""
     if _polar_access_token():
         return _polar_api_url(path)
     return _polar_api_url(POLAR_CUSTOMER_PORTAL_PREFIX + path)
 
 
 def _validate_url_from_env() -> str:
+    """Return the effective Polar licence validation endpoint."""
     explicit = os.environ.get("DIRECTOR_AI_POLAR_VALIDATE_URL", "").strip()
     if explicit:
         return explicit
@@ -457,6 +461,7 @@ def _validate_url_from_env() -> str:
 
 
 def _polar_access_token() -> str:
+    """Return the configured server-side Polar access token."""
     return (
         os.environ.get("DIRECTOR_AI_POLAR_ACCESS_TOKEN", "").strip()
         or os.environ.get("POLAR_ACCESS_TOKEN", "").strip()
@@ -464,6 +469,7 @@ def _polar_access_token() -> str:
 
 
 def _auth_headers(url: str) -> dict[str, str]:
+    """Return bearer auth headers when endpoint mode requires them."""
     token = _polar_access_token()
     if not token:
         return {}
@@ -473,6 +479,8 @@ def _auth_headers(url: str) -> dict[str, str]:
 
 
 class _ConditionsInfo:
+    """Validated Polar conditions parsed from environment JSON."""
+
     def __init__(
         self,
         *,
@@ -486,6 +494,7 @@ class _ConditionsInfo:
 
 
 def _conditions_from_env() -> _ConditionsInfo:
+    """Parse and validate Polar condition metadata from the environment."""
     raw = os.environ.get("DIRECTOR_AI_POLAR_CONDITIONS", "").strip()
     if not raw:
         return _ConditionsInfo(valid=True)
@@ -501,6 +510,7 @@ def _conditions_from_env() -> _ConditionsInfo:
 
 
 def _map_info(name: str, parsed: object) -> _ConditionsInfo:
+    """Validate a Polar conditions JSON object and scalar values."""
     if not isinstance(parsed, dict):
         return _ConditionsInfo(valid=False, message=f"{name} must be a JSON object")
     if len(parsed) > 50:
@@ -531,6 +541,7 @@ def _post_polar(
     request_body: dict[str, object],
     timeout_seconds: float | None,
 ) -> requests.Response | LicenseInfo:
+    """POST to Polar and convert network failures into LicenseInfo."""
     timeout = (
         float(timeout_seconds)
         if timeout_seconds is not None
@@ -551,6 +562,7 @@ def _post_polar(
 
 
 def _response_payload(response: requests.Response) -> dict[str, Any] | None:
+    """Return a JSON object payload or None for invalid response bodies."""
     if response.status_code == 204:
         return {}
     try:
@@ -561,10 +573,12 @@ def _response_payload(response: requests.Response) -> dict[str, Any] | None:
 
 
 def _activation_error(message: str, label: str = "") -> PolarActivationInfo:
+    """Return a Polar activation result that carries an error message."""
     return PolarActivationInfo("", "", label, LicenseInfo(message=message), {})
 
 
 def _header_value(headers: Mapping[str, str], name: str) -> str:
+    """Return a case-insensitive Standard Webhooks header value."""
     wanted = name.lower()
     for key, value in headers.items():
         if key.lower() == wanted:
@@ -573,6 +587,7 @@ def _header_value(headers: Mapping[str, str], name: str) -> str:
 
 
 def _decode_webhook_secret(secret: str) -> bytes:
+    """Decode and validate a Standard Webhooks secret."""
     clean = secret.strip()
     if not clean:
         raise ValueError("DIRECTOR_AI_POLAR_WEBHOOK_SECRET is not configured")
@@ -590,6 +605,7 @@ def _decode_webhook_secret(secret: str) -> bytes:
 
 
 def _signature_matches(signature_header: str, expected: bytes) -> bool:
+    """Return whether any v1 signature matches the expected digest."""
     for item in signature_header.split():
         if "," not in item:
             continue
@@ -606,6 +622,7 @@ def _signature_matches(signature_header: str, expected: bytes) -> bool:
 
 
 def _license_info_from_payload(key: str, payload: dict[str, Any]) -> LicenseInfo:
+    """Convert a Polar validation payload into LicenseInfo."""
     status = str(payload.get("status", "")).lower()
     if status != "granted":
         return LicenseInfo(message=f"Polar license status: {status or 'unknown'}")
@@ -639,6 +656,7 @@ def _license_info_from_payload(key: str, payload: dict[str, Any]) -> LicenseInfo
 
 
 def _resolve_tier(key: str, payload: dict[str, Any]) -> str:
+    """Resolve Director-AI tier from benefit, metadata, key, or default."""
     mapped_tier = _tier_from_benefit_map(_string_field(payload, "benefit_id"))
     if mapped_tier:
         return mapped_tier
@@ -657,6 +675,7 @@ def _resolve_tier(key: str, payload: dict[str, Any]) -> str:
 
 
 def _tier_from_benefit_map(benefit_id: str) -> str:
+    """Map a Polar benefit id to a configured Director-AI tier."""
     if not benefit_id:
         return ""
     raw_map = os.environ.get("DIRECTOR_AI_POLAR_BENEFIT_TIERS", "").strip()
@@ -675,6 +694,7 @@ def _tier_from_benefit_map(benefit_id: str) -> str:
 
 
 def _metadata_tier(payload: dict[str, Any]) -> str:
+    """Extract tier metadata from known Polar metadata fields."""
     for key in ("director_ai_tier", "tier", "license_tier"):
         value = payload.get(key)
         if isinstance(value, str) and value.strip():
@@ -683,6 +703,7 @@ def _metadata_tier(payload: dict[str, Any]) -> str:
 
 
 def _customer_metadata(payload: dict[str, Any]) -> dict[str, Any]:
+    """Return nested Polar customer metadata when available."""
     customer = payload.get("customer")
     if not isinstance(customer, dict):
         return {}
@@ -691,6 +712,7 @@ def _customer_metadata(payload: dict[str, Any]) -> dict[str, Any]:
 
 
 def _is_expired(expires_at: str) -> bool:
+    """Return whether an ISO expiry timestamp is in the past."""
     if not expires_at:
         return False
     try:
@@ -703,10 +725,12 @@ def _is_expired(expires_at: str) -> bool:
 
 
 def _string_field(payload: dict[str, Any], key: str) -> str:
+    """Return a string payload field or an empty string."""
     value = payload.get(key, "")
     return value if isinstance(value, str) else ""
 
 
 def _int_field(payload: dict[str, Any], key: str) -> int:
+    """Return an integer payload field or zero."""
     value = payload.get(key, 0)
     return value if isinstance(value, int) else 0

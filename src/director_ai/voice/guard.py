@@ -107,10 +107,12 @@ class AsyncVoiceGuard:
 
     @property
     def accumulated_text(self) -> str:
+        """Text accumulated for the current utterance."""
         return "".join(self._tokens)
 
     @property
     def halted(self) -> bool:
+        """Whether the current utterance has already halted."""
         return self._halted
 
     def set_prompt(self, prompt: str) -> None:

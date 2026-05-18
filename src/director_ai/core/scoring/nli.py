@@ -49,6 +49,7 @@ except ImportError:
     _RUST_NLI = False
 
     def rust_softmax(_flat: list[float], _cols: int) -> list[float]:
+        """Raise when the Rust NLI softmax accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_softmax is unavailable")
 
     def rust_probs_to_divergence(
@@ -57,9 +58,11 @@ except ImportError:
         _contradiction_idx: int,
         _neutral_idx: int,
     ) -> list[float]:
+        """Raise when the Rust divergence accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_probs_to_divergence is unavailable")
 
     def rust_probs_to_confidence(_flat: list[float], _ncols: int) -> list[float]:
+        """Raise when the Rust confidence accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_probs_to_confidence is unavailable")
 
 
@@ -122,6 +125,7 @@ def _split_gs_uri(uri: str) -> tuple[str, str]:
 
 
 def _safe_cache_name(uri: str) -> str:
+    """Return a filesystem-safe deterministic cache directory name."""
     slug = re.sub(r"[^A-Za-z0-9._-]+", "-", uri[5:] if uri.startswith("gs://") else uri)
     slug = slug.strip("-")[:80] or "model"
     digest = hashlib.sha256(uri.encode("utf-8")).hexdigest()[:16]
@@ -129,6 +133,7 @@ def _safe_cache_name(uri: str) -> str:
 
 
 def _should_skip_artifact(rel_path: str) -> bool:
+    """Return whether a managed model artifact file should be ignored."""
     parts = Path(rel_path).parts
     if any(part.startswith("checkpoint-") for part in parts):
         return True
@@ -176,6 +181,7 @@ def _download_gcs_model_artifact(uri: str) -> str:
 
 
 def _resolve_model_source(model_name: str) -> str:
+    """Return a local model source path, downloading GCS artifacts when needed."""
     if model_name.startswith("gs://"):
         return _download_gcs_model_artifact(model_name)
     return model_name
@@ -478,6 +484,7 @@ class NLIScorer:
 
     @property
     def _backend_ready(self) -> bool:
+        """Return whether the selected scoring backend is ready for inference."""
         if self._custom_backend is not None:
             return True
         if self.backend == "lite":
@@ -546,17 +553,21 @@ class NLIScorer:
 
     @property
     def model_available(self) -> bool:
+        """Return whether model-backed scoring is available after lazy loading."""
         return self._ensure_model()
 
     @property
     def last_token_count(self) -> int:
+        """Return the number of tokens processed since the last reset."""
         return self._last_token_count
 
     @property
     def last_estimated_cost(self) -> float:
+        """Return estimated inference cost for the accumulated token count."""
         return self._last_token_count * self._cost_per_token
 
     def reset_token_counter(self) -> None:
+        """Reset accumulated token accounting for this scorer instance."""
         self._last_token_count = 0
 
     def score(self, premise: str, hypothesis: str) -> float:
@@ -613,6 +624,7 @@ class NLIScorer:
     # â"€â"€ MiniCheck backend â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _ensure_minicheck(self) -> bool:
+        """Load the MiniCheck backend if available."""
         if self._minicheck_loaded:
             return self._minicheck is not None
         self._minicheck_loaded = True
@@ -695,6 +707,7 @@ class NLIScorer:
             return False
 
     def _minicheck_score(self, premise: str, hypothesis: str) -> float:
+        """Score one pair through MiniCheck or fall back heuristically."""
         if not getattr(self, "use_model", True) and not self._minicheck_loaded:
             return self._heuristic_score(premise, hypothesis)
         if not self._ensure_minicheck() or self._minicheck is None:
@@ -718,6 +731,7 @@ class NLIScorer:
         return float(1.0 - result[0])
 
     def _minicheck_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Score pairs through MiniCheck or fall back heuristically."""
         if not getattr(self, "use_model", True) and not self._minicheck_loaded:
             return [self._heuristic_score(p, h) for p, h in pairs]
         if not self._ensure_minicheck() or self._minicheck is None:
@@ -749,6 +763,7 @@ class NLIScorer:
 
     @property
     def _is_factcg(self) -> bool:
+        """Return whether the configured model expects the FactCG prompt template."""
         return "factcg" in self._model_name.lower()
 
     def _model_score(self, premise: str, hypothesis: str) -> float:
@@ -1397,16 +1412,19 @@ class NLIScorer:
     # â"€â"€ Lite backend â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€â"€
 
     def _ensure_lite(self) -> None:
+        """Initialise the lightweight lexical scorer backend."""
         if self._lite_scorer is None:
             from .lite_scorer import LiteScorer
 
             self._lite_scorer = LiteScorer()
 
     def _lite_score(self, premise: str, hypothesis: str) -> float:
+        """Score one pair with the lightweight lexical backend."""
         self._ensure_lite()
         return float(self._lite_scorer.score(premise, hypothesis))
 
     def _lite_score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Score pairs with the lightweight lexical backend."""
         self._ensure_lite()
         return [float(v) for v in self._lite_scorer.score_batch(pairs)]
 

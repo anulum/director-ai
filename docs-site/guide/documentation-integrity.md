@@ -1,0 +1,65 @@
+# Documentation Integrity
+
+This page records the repository-wide documentation contract used before public
+claims, releases, and customer-facing changes.
+
+## Sources Of Truth
+
+- `pyproject.toml` owns the package version and optional dependency extras.
+- `ROADMAP.md` owns public shipped/planned status.
+- `docs/internal/AUDIT_INDEX.md` owns ignored internal audit reconciliation.
+- `benchmarks/*_packet.toml` files own benchmark evidence readiness and claim
+  boundaries.
+- `mkdocs.yml` owns the published documentation navigation.
+
+Do not mark roadmap or benchmark work complete from prose alone. A public claim
+needs a code path, a validator or test, and a tracked evidence artefact.
+
+## Required Local Checks
+
+Run these before claiming documentation is current:
+
+```bash
+PYTHONPATH=src uv run --frozen python -m mkdocs build --strict
+uv run --frozen ruff check README.md mkdocs.yml docs-site src/director_ai
+git diff --check -- README.md mkdocs.yml docs-site src/director_ai
+```
+
+For API pages that use mkdocstrings, run a focused import smoke when a module
+or public symbol changes:
+
+```bash
+PYTHONPATH=src uv run --frozen python - <<'PY'
+import importlib
+
+for name in (
+    "director_ai",
+    "director_ai.core.ingestion",
+    "director_ai.enterprise",
+    "director_ai.voice.demo",
+):
+    importlib.import_module(name)
+print("doc_api_imports_ok")
+PY
+```
+
+## Public API Documentation Rules
+
+- Use API overview pages for primary supported surfaces, not every internal
+  helper.
+- Keep generated protobuf files and compatibility wrappers out of manual
+  docstring cleanup unless their generation pipeline changes.
+- Public dataclasses, enums, and wrappers exposed through mkdocstrings must
+  explain what is safe to serialise and what stays out of tenant-safe metadata.
+- Deployment and benchmark pages must say when an artefact is a fixture,
+  replication packet, or unofficial smoke result.
+
+## Current Known Boundaries
+
+- Lite Scorer v2 evidence remains a staged pipeline until a trained student
+  artefact, held-out evaluation, ONNX export, latency measurement, and evidence
+  packet are recorded.
+- The independent external security report remains open until a returned
+  `security-validation/` evidence directory passes the validator.
+- `docs/ROADMAP_2026_2027.md` is strategic context; `ROADMAP.md` is the
+  execution roadmap.

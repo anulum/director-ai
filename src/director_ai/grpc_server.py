@@ -44,6 +44,7 @@ class _GrpcTokenBucket:
         self._lock = threading.Lock()
 
     def consume(self, cost: int = 1) -> bool:
+        """Consume tokens if capacity is available after refill."""
         cost = max(1, int(cost))
         with self._lock:
             now = time.monotonic()
@@ -73,9 +74,11 @@ class _GrpcTenantRateLimiter:
 
     @property
     def enabled(self) -> bool:
+        """Return whether tenant rate limiting is active."""
         return self._rpm > 0
 
     def allow(self, tenant_id: str, *, cost: int = 1) -> bool:
+        """Return whether a tenant may spend the requested RPC cost."""
         if not self.enabled:
             return True
         key = tenant_id or "anonymous"
@@ -155,6 +158,7 @@ def create_grpc_server(
     _bg_thread.start()
 
     def _tenant_from_context(context) -> str:
+        """Resolve the effective tenant from gRPC metadata."""
         metadata = dict(context.invocation_metadata())
         api_key: str = metadata.get("x-api-key", "")
         if _api_key_tenant_map and api_key:
@@ -162,6 +166,7 @@ def create_grpc_server(
         return str(metadata.get("x-tenant-id", ""))
 
     def _enforce_rate_limit(context, tenant_id: str, *, cost: int = 1) -> None:
+        """Abort the RPC when the tenant rate limit is exhausted."""
         if _rate_limiter.allow(tenant_id, cost=cost):
             return
         context.abort(
@@ -182,6 +187,7 @@ def create_grpc_server(
         """
 
         def review(self, request, context):
+            """Score one prompt/response pair."""
             tid = _tenant_from_context(context)
             _enforce_rate_limit(context, tid)
             approved, score = scorer.review(
@@ -198,6 +204,7 @@ def create_grpc_server(
             )
 
         def process(self, request, context):
+            """Generate and score one agent response."""
             tid = _tenant_from_context(context)
             _enforce_rate_limit(context, tid)
             result = agent.process(request.prompt, tenant_id=tid)
@@ -211,6 +218,7 @@ def create_grpc_server(
             )
 
         def review_batch(self, request, context):
+            """Score a bounded batch of prompt/response pairs."""
             if len(request.requests) > 1000:
                 context.abort(
                     grpc.StatusCode.INVALID_ARGUMENT,
@@ -238,6 +246,7 @@ def create_grpc_server(
             return batch_resp(responses=responses)
 
         def stream_tokens(self, request, context):
+            """Stream generated tokens with per-token coherence metadata."""
             import queue
 
             tid = _tenant_from_context(context)
@@ -245,6 +254,7 @@ def create_grpc_server(
             q: queue.Queue[tuple[str, float] | None] = queue.Queue()
 
             async def _produce():
+                """Bridge async agent streaming into the synchronous RPC iterator."""
                 try:
                     async for tok, coh in agent.stream(request.prompt, tenant_id=tid):
                         q.put((tok, coh))
@@ -280,7 +290,10 @@ def create_grpc_server(
 
     # Auth interceptor
     class _AuthInterceptor(grpc.ServerInterceptor):
+        """Validate gRPC API keys before dispatching service handlers."""
+
         def intercept_service(self, continuation, handler_call_details):
+            """Return an authenticated handler or an aborting RPC handler."""
             if not cfg.api_keys:
                 return continuation(handler_call_details)
             metadata = dict(handler_call_details.invocation_metadata)
@@ -288,6 +301,7 @@ def create_grpc_server(
             if not any(hmac.compare_digest(provided, k) for k in cfg.api_keys):
 
                 def _abort(req, ctx):
+                    """Abort unauthenticated RPCs with a stable status code."""
                     ctx.abort(grpc.StatusCode.UNAUTHENTICATED, "invalid API key")
 
                 # Detect RPC type from method name to return correct handler

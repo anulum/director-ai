@@ -32,6 +32,7 @@ __all__ = [
 
 
 def _validate_probability(value: float, name: str) -> float:
+    """Return a validated finite probability value."""
     if not math.isfinite(value) or not 0.0 <= value <= 1.0:
         raise ValueError(f"{name} must be a finite value in [0, 1]")
     return float(value)
@@ -47,6 +48,7 @@ class ThresholdFeedback:
     metadata: dict[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate feedback score and replay weight."""
         _validate_probability(self.score, "score")
         if not math.isfinite(self.weight) or self.weight <= 0.0:
             raise ValueError("weight must be finite and positive")
@@ -67,41 +69,50 @@ class AdaptiveThresholdArm:
     false_negatives: int = 0
 
     def __post_init__(self) -> None:
+        """Validate arm threshold and Beta prior parameters."""
         _validate_probability(self.threshold, "threshold")
         if self.alpha_prior <= 0.0 or self.beta_prior <= 0.0:
             raise ValueError("Beta priors must be positive")
 
     @property
     def failures(self) -> int:
+        """Return the number of replayed samples this arm misclassified."""
         return self.pulls - self.successes
 
     @property
     def alpha(self) -> float:
+        """Return posterior alpha after successful classifications."""
         return self.alpha_prior + self.successes
 
     @property
     def beta(self) -> float:
+        """Return posterior beta after failed classifications."""
         return self.beta_prior + self.failures
 
     @property
     def posterior_mean(self) -> float:
+        """Return the posterior expected success probability."""
         return self.alpha / (self.alpha + self.beta)
 
     @property
     def accuracy(self) -> float:
+        """Return empirical accuracy across replayed feedback."""
         return self.successes / self.pulls if self.pulls else 0.0
 
     @property
     def false_positive_rate(self) -> float:
+        """Return the false-positive rate for human-rejected samples."""
         denom = self.false_positives + self.true_negatives
         return self.false_positives / denom if denom else 0.0
 
     @property
     def false_negative_rate(self) -> float:
+        """Return the false-negative rate for human-approved samples."""
         denom = self.false_negatives + self.true_positives
         return self.false_negatives / denom if denom else 0.0
 
     def observe(self, feedback: ThresholdFeedback) -> None:
+        """Replay one labelled score against this threshold arm."""
         predicted_approved = feedback.score >= self.threshold
         self.pulls += 1
         correct = predicted_approved == feedback.human_approved
@@ -117,9 +128,11 @@ class AdaptiveThresholdArm:
             self.true_negatives += 1
 
     def sample_success_probability(self, rng: random.Random) -> float:
+        """Sample a Thompson posterior success probability for this arm."""
         return rng.betavariate(self.alpha, self.beta)
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialise this arm's posterior and confusion metrics."""
         return {
             "threshold": self.threshold,
             "pulls": self.pulls,
@@ -145,6 +158,7 @@ class AdaptiveThresholdReport:
     arms: tuple[AdaptiveThresholdArm, ...]
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialise the threshold replay report."""
         return {
             "total_feedback": self.total_feedback,
             "current_threshold": self.current_threshold,
@@ -168,6 +182,7 @@ class AdaptiveThresholdRecommendation:
     safety_constraints: dict[str, float] = field(default_factory=dict)
 
     def to_profile_overlay(self, *, profile: str = "adaptive") -> dict[str, object]:
+        """Return a profile overlay that can be reviewed before promotion."""
         threshold = (
             self.current_threshold
             if self.recommended_threshold is None
@@ -254,6 +269,7 @@ class AdaptiveThresholdLearner:
         self._feedback_count = 0
 
     def arm(self, threshold: float) -> AdaptiveThresholdArm:
+        """Return the candidate arm for a validated threshold."""
         key = _validate_probability(threshold, "threshold")
         try:
             return self._arms[key]
@@ -261,6 +277,7 @@ class AdaptiveThresholdLearner:
             raise KeyError(f"unknown threshold arm {threshold}") from exc
 
     def observe(self, score: float, human_approved: bool) -> AdaptiveThresholdReport:
+        """Replay one labelled score across all candidate thresholds."""
         feedback = ThresholdFeedback(score=score, human_approved=human_approved)
         for arm in self._arms.values():
             arm.observe(feedback)
@@ -271,6 +288,7 @@ class AdaptiveThresholdLearner:
         self,
         feedback: list[ThresholdFeedback] | tuple[ThresholdFeedback, ...],
     ) -> AdaptiveThresholdReport:
+        """Replay a batch of labelled feedback across all candidate thresholds."""
         for item in feedback:
             for arm in self._arms.values():
                 arm.observe(item)
@@ -278,6 +296,7 @@ class AdaptiveThresholdLearner:
         return self.report()
 
     def report(self) -> AdaptiveThresholdReport:
+        """Return the current replay summary without making a recommendation."""
         eligible = [arm for arm in self._arms.values() if arm.pulls > 0]
         best = (
             max(eligible, key=lambda arm: arm.accuracy).threshold if eligible else None
@@ -290,6 +309,7 @@ class AdaptiveThresholdLearner:
         )
 
     def recommend(self) -> AdaptiveThresholdRecommendation:
+        """Return a human-gated threshold recommendation from replayed evidence."""
         current = self._current_arm_or_nearest()
         constraints = {
             "max_false_positive_rate": self.max_false_positive_rate,
@@ -357,6 +377,7 @@ class AdaptiveThresholdLearner:
         )
 
     def _current_arm_or_nearest(self) -> AdaptiveThresholdArm:
+        """Return the exact current-threshold arm or nearest candidate."""
         if self.current_threshold in self._arms:
             return self._arms[self.current_threshold]
         return min(

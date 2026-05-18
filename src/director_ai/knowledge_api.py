@@ -76,6 +76,8 @@ except ImportError:
 if _FASTAPI_AVAILABLE:
 
     class IngestRequest(BaseModel):
+        """Request body for tenant-scoped raw-text knowledge ingestion."""
+
         text: str = Field(..., min_length=1, max_length=10_000_000)
         source: str = Field("text", max_length=500)
         doc_id: str | None = None
@@ -86,6 +88,7 @@ if _FASTAPI_AVAILABLE:
 
 
 def _get_tenant(request: Request) -> str:
+    """Return the validated tenant id from request state or headers."""
     tenant_id = getattr(request.state, "tenant_id", "") or request.headers.get(
         "X-Tenant-ID", ""
     )
@@ -93,6 +96,7 @@ def _get_tenant(request: Request) -> str:
 
 
 def _validate_optional_identifier(name: str, value: str | None) -> str:
+    """Validate an optional tenant, document, or signature identifier."""
     if value is None or value == "":
         return ""
     if not _SAFE_ID_RE.fullmatch(value):
@@ -104,6 +108,7 @@ def _validate_optional_identifier(name: str, value: str | None) -> str:
 
 
 def _validate_source(source: str) -> str:
+    """Validate and normalise the user-visible document source label."""
     clean = source.strip()
     if not clean:
         raise HTTPException(400, "source must be non-empty")
@@ -113,11 +118,13 @@ def _validate_source(source: str) -> str:
 
 
 def _validate_chunking(chunk_size: int, overlap: int) -> None:
+    """Reject chunking settings that would make progress impossible."""
     if overlap >= chunk_size:
         raise HTTPException(400, "overlap must be smaller than chunk_size")
 
 
 def _validate_content_length(raw_value: str | None) -> None:
+    """Validate the upload Content-Length header before reading the body."""
     if not raw_value:
         return
     try:
@@ -133,12 +140,14 @@ def _validate_content_length(raw_value: str | None) -> None:
 
 
 def _file_extension(filename: str) -> str:
+    """Return the lower-case filename extension without the leading dot."""
     if "." not in filename:
         return ""
     return filename.rsplit(".", 1)[-1].lower()
 
 
 def _validate_upload_type(filename: str, content_type: str | None) -> str:
+    """Validate upload extension and MIME type consistency."""
     ext = _file_extension(filename)
     if ext not in _ALLOWED_EXTENSIONS:
         raise HTTPException(
@@ -160,6 +169,7 @@ def _validate_upload_type(filename: str, content_type: str | None) -> str:
 
 
 def _get_registry(request: Request):
+    """Return the configured document registry or raise service unavailable."""
 
     reg = request.app.state._state.get("doc_registry")
     if reg is None:
@@ -168,6 +178,7 @@ def _get_registry(request: Request):
 
 
 def _get_store(request: Request):
+    """Return the configured vector ground-truth store."""
     from .core.retrieval.vector_store import VectorGroundTruthStore
 
     scorer = request.app.state._state.get("scorer")
@@ -183,12 +194,14 @@ def _get_store(request: Request):
 
 
 def _get_config(request: Request):
+    """Return the active Director configuration from FastAPI state."""
     return getattr(request.app.state, "config", None) or request.app.state._state.get(
         "config"
     )
 
 
 def _require_write_access(request: Request, tenant_id: str) -> None:
+    """Enforce configured knowledge-base write authorisation rules."""
     cfg = _get_config(request)
     require_auth = bool(getattr(cfg, "knowledge_write_require_auth", False))
     require_binding = bool(getattr(cfg, "knowledge_write_require_tenant_binding", True))
@@ -213,6 +226,7 @@ def _signature_metadata(
     signature: str = "",
     key_id: str = "",
 ) -> dict[str, object]:
+    """Verify optional HMAC write signatures and return audit metadata."""
     cfg = _get_config(request)
     require_signature = bool(getattr(cfg, "knowledge_write_require_signature", False))
     keys = parse_hmac_keys(str(getattr(cfg, "knowledge_write_hmac_keys", "")))
@@ -247,6 +261,7 @@ def _chunk_and_store(
     signature_metadata: dict[str, object] | None = None,
     chunk_id_prefix: str | None = None,
 ) -> list[str]:
+    """Split text into chunks, store them, and roll back partial writes."""
     from .core.retrieval.doc_chunker import ChunkConfig, split
 
     chunks = split(text, ChunkConfig(chunk_size=chunk_size, overlap=overlap))
@@ -275,10 +290,12 @@ def _chunk_and_store(
 
 
 def _content_hash(text: str) -> str:
+    """Return a stable SHA-256 hash for ingested text content."""
     return hashlib.sha256(text.encode("utf-8", errors="replace")).hexdigest()
 
 
 def _cleanup_chunk_ids(chunk_ids: list[str], store) -> None:
+    """Best-effort rollback for chunks staged before an ingestion failure."""
     for cid in chunk_ids:
         try:
             store.backend.delete([cid])
@@ -289,6 +306,7 @@ def _cleanup_chunk_ids(chunk_ids: list[str], store) -> None:
 
 
 def _delete_chunks(record, store) -> int:
+    """Delete all vector chunks for a registry record."""
     removed = 0
     for cid in record.chunk_ids:
         try:

@@ -53,6 +53,7 @@ def halt_evidence_to_dict(halt_ev) -> dict | None:
 
 
 def _fact_change_to_dict(change) -> dict | None:
+    """Convert a counterfactual fact-change candidate to JSON-safe data."""
     if change is None:
         return None
     return {

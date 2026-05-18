@@ -23,6 +23,8 @@ __all__ = ["ScoreCache"]
 
 @dataclass(frozen=True)
 class _CacheEntry:
+    """Cached score payload bound to the current cache generation."""
+
     score: float
     h_logical: float
     h_factual: float
@@ -56,6 +58,7 @@ class ScoreCache:
         tenant_id: str = "",
         scope: str = "",
     ) -> str:
+        """Return a tenant- and scope-aware cache key digest."""
         h = hashlib.blake2b(digest_size=16)
         h.update(query.encode("utf-8", errors="replace"))
         h.update(b"\x00")
@@ -73,6 +76,7 @@ class ScoreCache:
         tenant_id: str = "",
         scope: str = "",
     ) -> _CacheEntry | None:
+        """Return a live cache entry or record a miss."""
         k = self._key(query, prefix, tenant_id, scope)
         with self._lock:
             entry = self._store.get(k)
@@ -101,6 +105,7 @@ class ScoreCache:
         tenant_id: str = "",
         scope: str = "",
     ) -> None:
+        """Store a score payload and evict least-recently-used entries."""
         k = self._key(query, prefix, tenant_id, scope)
         with self._lock:
             entry = _CacheEntry(
@@ -117,11 +122,13 @@ class ScoreCache:
 
     @property
     def size(self) -> int:
+        """Return the number of currently retained entries."""
         with self._lock:
             return len(self._store)
 
     @property
     def hit_rate(self) -> float:
+        """Return the cumulative hit ratio since the last clear."""
         total = self.hits + self.misses
         return self.hits / total if total > 0 else 0.0
 
@@ -132,9 +139,11 @@ class ScoreCache:
 
     @property
     def generation(self) -> int:
+        """Return the current invalidation generation."""
         return self._generation
 
     def clear(self) -> None:
+        """Remove all entries and reset hit/miss counters."""
         with self._lock:
             self._store.clear()
             self.hits = 0

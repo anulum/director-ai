@@ -58,6 +58,7 @@ class TrainingHardware:
     boot_disk_type: str = "pd-ssd"
 
     def validate(self) -> None:
+        """Validate machine, accelerator, and boot-disk constraints."""
         if not self.machine_type:
             raise ValueError("machine_type is required")
         if self.accelerator_count < 0:
@@ -95,6 +96,7 @@ class TrainingJobSpec:
     args: list[str] = field(default_factory=list)
 
     def validate(self, backend: str) -> None:
+        """Validate cross-backend and backend-specific training inputs."""
         if backend not in _VALID_BACKENDS:
             raise ValueError(f"backend must be one of {_VALID_BACKENDS}")
         if self.caller not in _VALID_CALLERS:
@@ -132,14 +134,17 @@ class TrainingJobSpec:
 
     @property
     def dataset_hash(self) -> str:
+        """Return a stable short hash for the configured dataset URI."""
         return hashlib.sha256(self.dataset_uri.encode("utf-8")).hexdigest()[:16]
 
     @property
     def config_hash(self) -> str:
+        """Return a stable short hash for the redacted job configuration."""
         payload = json.dumps(self.to_redacted_dict(), sort_keys=True)
         return hashlib.sha256(payload.encode("utf-8")).hexdigest()[:16]
 
     def to_redacted_dict(self) -> dict[str, Any]:
+        """Return a serialisable job spec with sensitive env values removed."""
         env = {
             key: ("<redacted>" if _looks_secret(key) else value)
             for key, value in self.env.items()
@@ -235,6 +240,7 @@ class LocalTrainingBackend:
     name = _LOCAL_BACKEND
 
     def submit(self, spec: TrainingJobSpec, *, dry_run: bool) -> TrainingJobSubmission:
+        """Submit or dry-run a local managed training job."""
         spec.validate(self.name)
         command = _local_command(spec)
         request = {
@@ -257,9 +263,11 @@ class LocalTrainingBackend:
         )
 
     def status(self, job_id: str) -> TrainingJobStatus:
+        """Return an unknown status because local jobs are synchronous."""
         return TrainingJobStatus(backend=self.name, job_id=job_id, state="unknown")
 
     def cancel(self, job_id: str) -> TrainingJobStatus:
+        """Return an unsupported cancellation result for local jobs."""
         return TrainingJobStatus(
             backend=self.name,
             job_id=job_id,
@@ -274,6 +282,7 @@ class VertexTrainingBackend:
     name = _VERTEX_BACKEND
 
     def submit(self, spec: TrainingJobSpec, *, dry_run: bool) -> TrainingJobSubmission:
+        """Submit or dry-run a Vertex custom training job."""
         spec.validate(self.name)
         request = build_vertex_custom_job_request(spec)
         job_id = (
@@ -314,12 +323,14 @@ class VertexTrainingBackend:
         )
 
     def status(self, job_id: str) -> TrainingJobStatus:
+        """Fetch Vertex custom job state by resource name."""
         aiplatform = importlib.import_module("google.cloud.aiplatform")
         job = aiplatform.CustomJob.get(job_id)
         state = str(getattr(job, "state", "unknown"))
         return TrainingJobStatus(backend=self.name, job_id=job_id, state=state)
 
     def cancel(self, job_id: str) -> TrainingJobStatus:
+        """Cancel a Vertex custom job by resource name."""
         aiplatform = importlib.import_module("google.cloud.aiplatform")
         job = aiplatform.CustomJob.get(job_id)
         job.cancel()
@@ -453,6 +464,7 @@ def submission_to_json(submission: TrainingJobSubmission) -> str:
 
 
 def _vertex_finetune_command(spec: TrainingJobSpec) -> list[str]:
+    """Build the container command for Vertex fine-tuning jobs."""
     model_profile = spec.resolved_model_profile()
     args = [
         "python",
@@ -477,12 +489,14 @@ def _vertex_finetune_command(spec: TrainingJobSpec) -> list[str]:
 
 
 def _local_command(spec: TrainingJobSpec) -> list[str]:
+    """Build the local command for a suite or fine-tuning job."""
     if spec.task_type == "suite":
         return list(spec.args)
     return _local_finetune_command(spec)
 
 
 def _local_finetune_command(spec: TrainingJobSpec) -> list[str]:
+    """Build the local CLI command for fine-tuning jobs."""
     model_profile = spec.resolved_model_profile()
     args = [
         "director-ai",
@@ -505,6 +519,7 @@ def _local_finetune_command(spec: TrainingJobSpec) -> list[str]:
 
 
 def _run_local_job(spec: TrainingJobSpec) -> None:
+    """Execute a local suite or fine-tuning job synchronously."""
     if spec.task_type == "suite":
         import pytest
 
@@ -529,15 +544,18 @@ def _run_local_job(spec: TrainingJobSpec) -> None:
 
 
 def _require_gcs_uri(name: str, uri: str) -> None:
+    """Require a Vertex-bound URI to use the gs:// scheme."""
     if not uri.startswith("gs://"):
         raise ValueError(f"{name} must be a gs:// URI for vertex backend")
 
 
 def _vertex_accelerator_type(accelerator_type: str) -> str:
+    """Return the Vertex API accelerator enum for a public alias."""
     return _VERTEX_ACCELERATOR_ALIASES.get(accelerator_type, accelerator_type)
 
 
 def _vertex_console_uri(project: str | None, region: str, job_id: str) -> str:
+    """Build a Google Cloud Console URI for a Vertex custom job."""
     job_number = job_id.rsplit("/", 1)[-1]
     return (
         "https://console.cloud.google.com/ai/platform/locations/"
@@ -546,11 +564,13 @@ def _vertex_console_uri(project: str | None, region: str, job_id: str) -> str:
 
 
 def _looks_secret(key: str) -> bool:
+    """Return whether an environment key name appears sensitive."""
     normalised = key.lower()
     return any(part in normalised for part in ("token", "secret", "password", "key"))
 
 
 def _normalise_labels(labels: dict[str, str]) -> dict[str, str]:
+    """Return labels normalised for Vertex key and value constraints."""
     result: dict[str, str] = {}
     for key, value in labels.items():
         clean_key = key.lower().replace("_", "-")[:63]

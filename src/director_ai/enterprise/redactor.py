@@ -38,6 +38,7 @@ _REPLACEMENTS: dict[str, str] = {
 
 
 def _stable_category(category: str) -> str:
+    """Normalise detector categories to stable public labels."""
     normalised = category.lower()
     if normalised == "credit_card":
         return "card"
@@ -45,6 +46,7 @@ def _stable_category(category: str) -> str:
 
 
 def _replacement_for(category: str) -> str:
+    """Return the redaction token for a detector category."""
     stable = _stable_category(category)
     return _REPLACEMENTS.get(stable, f"[{stable.upper()}]")
 
@@ -62,6 +64,7 @@ class PIIRedactionFinding:
 
     @classmethod
     def from_match(cls, match: Any) -> PIIRedactionFinding:
+        """Build a redaction finding from a moderation detector match."""
         category = _stable_category(match.category)
         return cls(
             detector=match.detector,
@@ -93,10 +96,12 @@ class PIIRedactionReport:
 
     @property
     def redacted(self) -> bool:
+        """Whether at least one PII span was replaced."""
         return bool(self.findings)
 
     @property
     def category_counts(self) -> dict[str, int]:
+        """Return stable redaction counts grouped by category."""
         return dict(sorted(Counter(f.category for f in self.findings).items()))
 
     def to_dict(self) -> dict[str, object]:
@@ -116,6 +121,7 @@ class PIIRedactionReport:
 def _select_non_overlapping(
     findings: Iterable[PIIRedactionFinding],
 ) -> tuple[PIIRedactionFinding, ...]:
+    """Keep the earliest non-overlapping redaction spans."""
     ordered = sorted(findings, key=lambda f: (f.start, -(f.end - f.start), f.category))
     selected: list[PIIRedactionFinding] = []
     occupied: list[tuple[int, int]] = []
@@ -179,6 +185,7 @@ class PIIRedactor:
 
 
 def _build_default_regex_detector(*, prefer_rust: bool) -> ModerationDetector:
+    """Build the default dependency-light regex PII detector."""
     from director_ai.core.safety.moderation import RegexPIIDetector
 
     return RegexPIIDetector(prefer_rust=prefer_rust)
