@@ -61,6 +61,7 @@ class FeedbackEvent:
     timestamp: float = field(default_factory=lambda: time.time())
 
     def __post_init__(self) -> None:
+        """Validate label and prompt invariants."""
         if self.label not in _VALID_LABELS:
             raise ValueError(
                 f"FeedbackEvent.label must be one of {sorted(_VALID_LABELS)}; "
@@ -70,10 +71,12 @@ class FeedbackEvent:
             raise ValueError("FeedbackEvent.prompt must be non-empty")
 
     def to_json(self) -> str:
+        """Serialise this event as deterministic JSON."""
         return json.dumps(asdict(self), sort_keys=True)
 
     @classmethod
     def from_json(cls, raw: str) -> FeedbackEvent:
+        """Parse a feedback event from one JSON line."""
         data = json.loads(raw)
         return cls(**data)
 
@@ -82,11 +85,17 @@ class FeedbackEvent:
 class FeedbackStore(Protocol):
     """Append-only event store."""
 
-    def append(self, event: FeedbackEvent) -> None: ...
+    def append(self, event: FeedbackEvent) -> None:
+        """Append one feedback event."""
+        ...
 
-    def iter_all(self) -> Iterator[FeedbackEvent]: ...
+    def iter_all(self) -> Iterator[FeedbackEvent]:
+        """Iterate all retained events."""
+        ...
 
-    def iter_labelled(self, label: FeedbackLabel) -> Iterator[FeedbackEvent]: ...
+    def iter_labelled(self, label: FeedbackLabel) -> Iterator[FeedbackEvent]:
+        """Iterate retained events for one label."""
+        ...
 
     def __len__(self) -> int: ...
 
@@ -112,6 +121,7 @@ class InMemoryFeedbackStore:
         }
 
     def append(self, event: FeedbackEvent) -> None:
+        """Append one event, evicting the oldest when capacity is full."""
         with self._lock:
             if len(self._events) == self._capacity:
                 dropped = self._events[0]
@@ -128,11 +138,13 @@ class InMemoryFeedbackStore:
             self._by_label[event.label].append(event)
 
     def iter_all(self) -> Iterator[FeedbackEvent]:
+        """Iterate a point-in-time snapshot of all events."""
         with self._lock:
             snapshot = tuple(self._events)
         yield from snapshot
 
     def iter_labelled(self, label: FeedbackLabel) -> Iterator[FeedbackEvent]:
+        """Iterate a point-in-time snapshot for one label."""
         if label not in _VALID_LABELS:
             raise ValueError(f"unknown label {label!r}")
         with self._lock:
@@ -140,6 +152,7 @@ class InMemoryFeedbackStore:
         yield from snapshot
 
     def __len__(self) -> int:
+        """Return the number of retained in-memory events."""
         with self._lock:
             return len(self._events)
 
@@ -173,6 +186,7 @@ class JSONLFeedbackStore:
                     self._cached_count += 1
 
     def append(self, event: FeedbackEvent) -> None:
+        """Append one event to the JSONL file."""
         line = event.to_json() + "\n"
         with self._lock:
             self._maybe_rotate()
@@ -184,6 +198,7 @@ class JSONLFeedbackStore:
             self._cached_count += 1
 
     def iter_all(self) -> Iterator[FeedbackEvent]:
+        """Iterate all currently persisted JSONL events."""
         with self._lock:
             if not os.path.exists(self._path):
                 return
@@ -195,6 +210,7 @@ class JSONLFeedbackStore:
                 yield FeedbackEvent.from_json(raw)
 
     def iter_labelled(self, label: FeedbackLabel) -> Iterator[FeedbackEvent]:
+        """Iterate persisted events for one label."""
         if label not in _VALID_LABELS:
             raise ValueError(f"unknown label {label!r}")
         for event in self.iter_all():
@@ -202,10 +218,12 @@ class JSONLFeedbackStore:
                 yield event
 
     def __len__(self) -> int:
+        """Return the cached number of events in the active file."""
         with self._lock:
             return self._cached_count
 
     def _maybe_rotate(self) -> None:
+        """Rotate the active JSONL file when it exceeds max_bytes."""
         if not os.path.exists(self._path):
             return
         if os.path.getsize(self._path) < self._max_bytes:
