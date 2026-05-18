@@ -144,7 +144,13 @@ def _validate_numbers(data: dict[str, Any], label: str) -> list[str]:
     return errors
 
 
-def _validate_paths(root: Path, data: dict[str, Any], label: str) -> list[str]:
+def _validate_paths(
+    root: Path,
+    data: dict[str, Any],
+    label: str,
+    *,
+    require_local_inputs: bool,
+) -> list[str]:
     errors: list[str] = []
     for field in sorted(PATH_FIELDS):
         value = data.get(field)
@@ -161,26 +167,29 @@ def _validate_paths(root: Path, data: dict[str, Any], label: str) -> list[str]:
         and not (root / script).is_file()
     ):
         errors.append(f"{label}: training_script does not exist")
-    student_base = data.get("student_base_model")
-    if (
-        isinstance(student_base, str)
-        and _is_safe_relative_path(student_base)
-        and not (root / student_base).exists()
-    ):
-        errors.append(f"{label}: student_base_model does not exist")
-    heldout_source = data.get("heldout_source_dataset")
-    if (
-        isinstance(heldout_source, str)
-        and _is_safe_relative_path(heldout_source)
-        and not (root / heldout_source).exists()
-    ):
-        errors.append(f"{label}: heldout_source_dataset does not exist")
+    if require_local_inputs:
+        student_base = data.get("student_base_model")
+        if (
+            isinstance(student_base, str)
+            and _is_safe_relative_path(student_base)
+            and not (root / student_base).exists()
+        ):
+            errors.append(f"{label}: student_base_model does not exist")
+        heldout_source = data.get("heldout_source_dataset")
+        if (
+            isinstance(heldout_source, str)
+            and _is_safe_relative_path(heldout_source)
+            and not (root / heldout_source).exists()
+        ):
+            errors.append(f"{label}: heldout_source_dataset does not exist")
     return errors
 
 
 def validate_lite_scorer_v2_run_manifest(
     root: Path,
     manifest_path: Path = MANIFEST,
+    *,
+    require_local_inputs: bool = False,
 ) -> list[str]:
     root = root.resolve()
     manifest = manifest_path if manifest_path.is_absolute() else root / manifest_path
@@ -211,7 +220,14 @@ def validate_lite_scorer_v2_run_manifest(
         and target_rows % 2 != 0
     ):
         errors.append(f"{label}: heldout_target_rows must be even")
-    errors.extend(_validate_paths(root, data, label))
+    errors.extend(
+        _validate_paths(
+            root,
+            data,
+            label,
+            require_local_inputs=require_local_inputs,
+        )
+    )
     return errors
 
 

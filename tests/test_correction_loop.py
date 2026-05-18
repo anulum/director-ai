@@ -10,9 +10,10 @@ from __future__ import annotations
 
 import pytest
 
-from director_ai.core.guard_control import RiskEnvelope, VerifierSignal
+from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 from director_ai.core.runtime.correction import (
     CorrectionLoop,
+    CorrectionProposal,
     GroundedCorrectionDraft,
     HaltCorrectionContext,
 )
@@ -222,6 +223,124 @@ def test_correction_proposal_blocks_unsafe_consensus():
         loop.approve(proposal, approval_id="review-unsafe")
     with pytest.raises(PermissionError, match="not approved"):
         loop.release(proposal)
+
+
+def test_correction_dataclasses_validate_required_fields():
+    with pytest.raises(ValueError, match="halt_reason"):
+        HaltCorrectionContext(
+            halt_reason=" ",
+            last_score=0.4,
+            evidence_texts=("source",),
+            source_refs=("kb://fact",),
+        )
+    with pytest.raises(ValueError, match="evidence_texts"):
+        HaltCorrectionContext(
+            halt_reason="halt",
+            last_score=0.4,
+            evidence_texts=(" ",),
+            source_refs=("kb://fact",),
+        )
+    with pytest.raises(ValueError, match="candidate_text"):
+        GroundedCorrectionDraft(
+            candidate_text=" ",
+            verifier_signals=(_supported_signal(),),
+            evidence_refs=("kb://fact",),
+        )
+    with pytest.raises(ValueError, match="verifier_signals"):
+        GroundedCorrectionDraft(
+            candidate_text="Candidate.",
+            verifier_signals=(),
+            evidence_refs=("kb://fact",),
+        )
+    with pytest.raises(ValueError, match="proposal_id"):
+        CorrectionProposal(
+            proposal_id=" ",
+            candidate_text="Candidate.",
+            evidence_refs=("kb://fact",),
+            guard_decision=loop_decision("allow"),
+        )
+    with pytest.raises(ValueError, match="approval_id"):
+        CorrectionProposal(
+            proposal_id="correction-1",
+            candidate_text="Candidate.",
+            evidence_refs=("kb://fact",),
+            guard_decision=loop_decision("allow"),
+            approved=True,
+        )
+
+
+def test_correction_loop_blocks_physical_or_irreversible_domains():
+    for envelope in [
+        RiskEnvelope(
+            action_category="physical",
+            reversibility="reversible",
+            domain="regulated",
+            calibrated_threshold=0.65,
+            no_go_threshold=0.9,
+        ),
+        RiskEnvelope(
+            action_category="text",
+            reversibility="irreversible",
+            domain="regulated",
+            calibrated_threshold=0.65,
+            no_go_threshold=0.9,
+        ),
+        RiskEnvelope(
+            action_category="text",
+            reversibility="reversible",
+            domain="physical",
+            calibrated_threshold=0.65,
+            no_go_threshold=0.9,
+        ),
+    ]:
+        loop = CorrectionLoop(
+            consensus=CrossVerifierConsensus(),
+            risk_envelope=envelope,
+            policy_id="policy.correction.regulated",
+        )
+        with pytest.raises(ValueError, match="physical or irreversible"):
+            loop.propose(
+                candidate_text="Candidate.",
+                signals=[_supported_signal()],
+                evidence_refs=("kb://fact",),
+            )
+
+
+def test_correction_loop_rejects_blank_policy_and_bad_approval():
+    with pytest.raises(ValueError, match="policy_id"):
+        CorrectionLoop(
+            consensus=CrossVerifierConsensus(),
+            risk_envelope=_text_envelope(),
+            policy_id=" ",
+        )
+    loop = CorrectionLoop(
+        consensus=CrossVerifierConsensus(),
+        risk_envelope=_text_envelope(),
+        policy_id="policy.correction.regulated",
+    )
+    proposal = loop.propose(
+        candidate_text="Candidate.",
+        signals=[_supported_signal()],
+        evidence_refs=("kb://fact",),
+    )
+    with pytest.raises(ValueError, match="approval_id"):
+        loop.approve(proposal, approval_id=" ")
+
+
+def loop_decision(decision: str):
+    signal = _supported_signal()
+    return GuardDecision(
+        decision=decision,
+        risk_score=0.08,
+        confidence_low=0.02,
+        confidence_high=0.15,
+        policy_id="policy.correction.regulated",
+        reason="supported",
+        tenant_safe_explanation="Review approved evidence.",
+        evidence_refs=("kb://fact",),
+        verifier_signals=(signal,),
+        risk_envelope=_text_envelope(),
+    )
 
 
 @pytest.mark.parametrize(

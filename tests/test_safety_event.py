@@ -248,6 +248,43 @@ class TestSafetyEventSchema:
         with pytest.raises(ValueError, match="threshold"):
             validate_safety_event_payload(payload)
 
+    def test_validate_payload_rejects_missing_and_wrong_typed_fields(self):
+        payload = _event().to_dict()
+        del payload["hook_id"]
+        with pytest.raises(ValueError, match="missing required"):
+            validate_safety_event_payload(payload)
+
+        payload = _event().to_dict()
+        payload["event_id"] = 7
+        with pytest.raises(ValueError, match="event_id"):
+            validate_safety_event_payload(payload)
+
+        payload = _event().to_dict()
+        payload["latency_ms"] = True
+        with pytest.raises(ValueError, match="latency_ms"):
+            validate_safety_event_payload(payload)
+
+        payload = _event().to_dict()
+        payload["latency_ms"] = -0.1
+        with pytest.raises(ValueError, match="latency_ms"):
+            validate_safety_event_payload(payload)
+
+    def test_validate_payload_rejects_malformed_evidence_and_attributes(self):
+        payload = _event().to_dict()
+        payload["evidence_refs"] = "kb://fact"
+        with pytest.raises(ValueError, match="evidence_refs"):
+            validate_safety_event_payload(payload)
+
+        payload = _event().to_dict()
+        payload["evidence_refs"] = [1]
+        with pytest.raises(ValueError, match="evidence_refs entries"):
+            validate_safety_event_payload(payload)
+
+        payload = _event().to_dict()
+        payload["attributes"] = []
+        with pytest.raises(ValueError, match="attributes"):
+            validate_safety_event_payload(payload)
+
     def test_validate_payload_rejects_raw_or_secret_telemetry_refs(self):
         payload = _event(
             evidence_refs=("raw_prompt:abc",),
@@ -261,6 +298,36 @@ class TestSafetyEventSchema:
             attributes={"api_token": "should-not-ship"},
         ).to_dict()
         with pytest.raises(ValueError, match="tenant-safe"):
+            validate_safety_event_payload(payload)
+
+    def test_validate_payload_rejects_bad_trace_payloads(self):
+        payload = _event().to_dict()
+        payload["trace_attribution"] = "trace"
+        with pytest.raises(ValueError, match="trace_attribution"):
+            validate_safety_event_payload(payload)
+
+        payload = _event().to_dict()
+        payload["trace_attribution"] = {
+            "fact_source": "kb://fact",
+            "retrieval_path": "hybrid",
+            "scorer_path": "nli",
+            "token_offset": "7",
+            "threshold": 0.5,
+            "causal_contribution": 0.2,
+        }
+        with pytest.raises(ValueError, match="token_offset"):
+            validate_safety_event_payload(payload)
+
+        payload = _event().to_dict()
+        payload["trace_attribution"] = {
+            "fact_source": "kb://fact",
+            "retrieval_path": "hybrid",
+            "scorer_path": "nli",
+            "token_offset": None,
+            "threshold": None,
+            "causal_contribution": None,
+        }
+        with pytest.raises(ValueError, match="causal_contribution"):
             validate_safety_event_payload(payload)
 
     def test_lazy_import_export(self):

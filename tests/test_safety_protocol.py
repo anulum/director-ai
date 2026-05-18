@@ -80,6 +80,42 @@ def test_protocol_signal_requires_stable_transport_identity() -> None:
         )
 
 
+def test_protocol_signal_requires_protocol_identity_fields() -> None:
+    for field, message in [
+        ("protocol_version", "protocol_version"),
+        ("signal_id", "signal_id"),
+        ("emitted_at", "emitted_at"),
+        ("framework", "framework"),
+    ]:
+        kwargs = {
+            "signal_id": "dsp_test",
+            "emitted_at": "2026-05-13T06:00:00Z",
+            "producer_id": "runtime-alpha",
+            "framework": "generic-agent",
+            "event": _event(),
+        }
+        if field == "protocol_version":
+            kwargs[field] = "v0"
+        else:
+            kwargs[field] = ""
+        with pytest.raises(ValueError, match=message):
+            DirectorSafetySignal(**kwargs)
+
+
+def test_protocol_signal_rejects_sensitive_refs_and_extensions() -> None:
+    with pytest.raises(ValueError, match="tenant-safe"):
+        director_safety_signal_from_event(
+            _event(evidence_refs=("raw_prompt:abc",)),
+            producer_id="runtime-alpha",
+        )
+    with pytest.raises(ValueError, match="tenant-safe"):
+        director_safety_signal_from_event(
+            _event(),
+            producer_id="runtime-alpha",
+            extensions={"api_token": "abc"},
+        )
+
+
 def test_transport_payload_is_canonical_json_safe() -> None:
     signal = director_safety_signal_from_event(
         _event(policy_decision="warn", halt_reason="numeric_uncertain"),
@@ -95,6 +131,40 @@ def test_transport_payload_is_canonical_json_safe() -> None:
     assert encoded == json.dumps(decoded, sort_keys=True, separators=(",", ":"))
     assert decoded["signal_id"] == "dsp_fixed"
     assert decoded["interoperability"]["severity"] == "advisory"
+
+
+def test_validate_protocol_payload_rejects_transport_contract_mismatches() -> None:
+    payload = director_safety_signal_from_event(
+        _event(policy_decision="allow"),
+        producer_id="runtime-alpha",
+    ).to_transport_dict()
+
+    bad = dict(payload, protocol_version="v0")
+    with pytest.raises(ValueError, match="protocol_version"):
+        validate_director_safety_signal(bad)
+
+    bad = dict(payload, event="not-an-object")
+    with pytest.raises(ValueError, match="event payload"):
+        validate_director_safety_signal(bad)
+
+    bad = dict(payload, privacy={})
+    with pytest.raises(ValueError, match="tenant-safe"):
+        validate_director_safety_signal(bad)
+
+    bad = dict(payload, privacy={**payload["privacy"], "raw_payload_included": True})
+    with pytest.raises(ValueError, match="raw payloads"):
+        validate_director_safety_signal(bad)
+
+    bad = dict(payload, interoperability={})
+    with pytest.raises(ValueError, match="unsupported severity"):
+        validate_director_safety_signal(bad)
+
+    bad = dict(
+        payload,
+        interoperability={**payload["interoperability"], "severity": "terminal"},
+    )
+    with pytest.raises(ValueError, match="severity does not match"):
+        validate_director_safety_signal(bad)
 
 
 def test_lazy_import_export() -> None:

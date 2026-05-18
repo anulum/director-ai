@@ -161,6 +161,76 @@ def test_attach_guardrails_validator_uses_guard_use(monkeypatch):
     assert len(guard.validators) == 1
 
 
+def test_attach_guardrails_validator_rejects_guard_without_use(monkeypatch):
+    _install_fake_guardrails(monkeypatch)
+    from director_ai.integrations.guardrails_ai import attach_guardrails_validator
+
+    with pytest.raises(TypeError, match="use"):
+        attach_guardrails_validator(object())
+
+
+def test_guardrails_validator_reads_chat_metadata_and_coerces_values(monkeypatch):
+    _install_fake_guardrails(monkeypatch)
+    from director_ai.core import CoherenceScorer
+    from director_ai.integrations.guardrails_ai import build_guardrails_validator
+
+    validator = build_guardrails_validator(threshold=0.4, use_nli=False)
+
+    def review(self, prompt, response, session=None, tenant_id=""):
+        assert prompt == "What is the support SLA? Include escalation."
+        assert response == ""
+        assert tenant_id == ""
+        cs = CoherenceScore(score=0.93, approved=True, h_logical=0.01, h_factual=0.02)
+        return True, cs
+
+    with patch.object(CoherenceScorer, "review", review):
+        result = validator.validate(
+            None,
+            {
+                "messages": [
+                    {"role": "assistant", "content": "Ignored."},
+                    {
+                        "role": "user",
+                        "content": [
+                            {"text": "What is the support SLA?"},
+                            {"text": "Include escalation."},
+                        ],
+                    },
+                ],
+            },
+        )
+
+    assert result.outcome == "pass"
+
+
+def test_guardrails_result_fallback_supports_minimal_result_constructors(monkeypatch):
+    registered = _install_fake_guardrails(monkeypatch)
+
+    class MinimalFailResult:
+        def __init__(self, error_message=""):
+            self.outcome = "fail"
+            self.error_message = error_message
+
+    import guardrails.validators as validators
+
+    validators.FailResult = MinimalFailResult
+
+    from director_ai.core import CoherenceScorer
+    from director_ai.integrations.guardrails_ai import build_guardrails_validator
+
+    validator = build_guardrails_validator(threshold=0.4, use_nli=False)
+
+    with patch.object(CoherenceScorer, "review", _fake_review_fail):
+        result = validator.validate(
+            "The SLA is one minute and includes free refunds.",
+            {"input": "What is the support SLA?", "tenant_id": "tenant-a"},
+        )
+
+    assert registered["director-ai-coherence"][1].registered_name
+    assert result.outcome == "fail"
+    assert result.error_message.startswith("Director-AI coherence validation failed")
+
+
 def test_guardrails_adapter_raises_actionable_error_without_optional_dependency(
     monkeypatch,
 ):

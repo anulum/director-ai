@@ -93,6 +93,27 @@ def test_lite_scorer_v2_run_manifest_validates_current_package() -> None:
     assert validate_lite_scorer_v2_run_manifest(ROOT) == []
 
 
+def test_lite_scorer_v2_run_manifest_can_require_local_training_inputs(
+    tmp_path: Path,
+) -> None:
+    _write_training_script(tmp_path)
+    manifest = _write_manifest(
+        tmp_path,
+        student_base_model="training/output/missing",
+        heldout_source_dataset="training/data/missing",
+    )
+
+    assert validate_lite_scorer_v2_run_manifest(tmp_path, manifest) == []
+    assert validate_lite_scorer_v2_run_manifest(
+        tmp_path,
+        manifest,
+        require_local_inputs=True,
+    ) == [
+        "benchmarks/lite_scorer_v2_run_manifest.toml: student_base_model does not exist",
+        "benchmarks/lite_scorer_v2_run_manifest.toml: heldout_source_dataset does not exist",
+    ]
+
+
 def test_lite_scorer_v2_run_plan_emits_ordered_argv_commands(tmp_path: Path) -> None:
     _write_training_script(tmp_path)
     manifest = _write_manifest(tmp_path)
@@ -172,7 +193,11 @@ def test_lite_scorer_v2_run_plan_rejects_unsupported_student(tmp_path: Path) -> 
     _write_training_script(tmp_path)
     manifest = _write_manifest(tmp_path, student_candidate="unsupported")
 
-    errors = validate_lite_scorer_v2_run_manifest(tmp_path, manifest)
+    errors = validate_lite_scorer_v2_run_manifest(
+        tmp_path,
+        manifest,
+        require_local_inputs=True,
+    )
 
     assert errors == [
         "benchmarks/lite_scorer_v2_run_manifest.toml: unsupported student_candidate 'unsupported'"
@@ -183,7 +208,11 @@ def test_lite_scorer_v2_run_plan_rejects_path_traversal(tmp_path: Path) -> None:
     _write_training_script(tmp_path)
     manifest = _write_manifest(tmp_path, train_output_dir="../outside")
 
-    errors = validate_lite_scorer_v2_run_manifest(tmp_path, manifest)
+    errors = validate_lite_scorer_v2_run_manifest(
+        tmp_path,
+        manifest,
+        require_local_inputs=True,
+    )
 
     assert errors == [
         "benchmarks/lite_scorer_v2_run_manifest.toml: train_output_dir must be a relative path inside the repository"
@@ -196,7 +225,11 @@ def test_lite_scorer_v2_run_plan_rejects_missing_heldout_source(
     _write_training_script(tmp_path)
     manifest = _write_manifest(tmp_path, heldout_source_dataset="training/data/missing")
 
-    errors = validate_lite_scorer_v2_run_manifest(tmp_path, manifest)
+    errors = validate_lite_scorer_v2_run_manifest(
+        tmp_path,
+        manifest,
+        require_local_inputs=True,
+    )
 
     assert errors == [
         "benchmarks/lite_scorer_v2_run_manifest.toml: heldout_source_dataset does not exist"
@@ -209,7 +242,11 @@ def test_lite_scorer_v2_run_plan_rejects_missing_student_base(
     _write_training_script(tmp_path)
     manifest = _write_manifest(tmp_path, student_base_model="training/output/missing")
 
-    errors = validate_lite_scorer_v2_run_manifest(tmp_path, manifest)
+    errors = validate_lite_scorer_v2_run_manifest(
+        tmp_path,
+        manifest,
+        require_local_inputs=True,
+    )
 
     assert errors == [
         "benchmarks/lite_scorer_v2_run_manifest.toml: student_base_model does not exist"

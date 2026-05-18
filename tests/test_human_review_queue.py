@@ -13,7 +13,11 @@ import pytest
 
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 from director_ai.core.runtime.correction import CorrectionProposal
-from director_ai.core.runtime.human_review import HumanReviewQueue
+from director_ai.core.runtime.human_review import (
+    HumanReviewCase,
+    HumanReviewDecision,
+    HumanReviewQueue,
+)
 from director_ai.core.safety_event import SafetyEvent
 
 
@@ -216,6 +220,101 @@ def test_review_queue_rejects_invalid_transitions_and_reviewers(tmp_path):
 
     with pytest.raises(PermissionError, match="already released"):
         queue.decide(case.case_id, reviewer_id="reviewer-1", action="reject")
+
+
+def test_review_queue_validates_case_inputs_and_filters(tmp_path):
+    queue = HumanReviewQueue(tmp_path / "review.db")
+
+    with pytest.raises(ValueError, match="candidate_text"):
+        queue.enqueue_case(candidate_text=" ", evidence_refs=("kb://fact",))
+    with pytest.raises(ValueError, match="evidence_refs"):
+        queue.enqueue_case(candidate_text="Candidate.", evidence_refs=("",))
+    with pytest.raises(ValueError, match="unsupported review status"):
+        HumanReviewCase(
+            case_id="case-1",
+            status="queued",
+            source_kind="halt",
+            candidate_text="Candidate.",
+            evidence_refs=("kb://fact",),
+        )
+    with pytest.raises(ValueError, match="source_kind"):
+        HumanReviewCase(
+            case_id="case-1",
+            status="pending",
+            source_kind=" ",
+            candidate_text="Candidate.",
+            evidence_refs=("kb://fact",),
+        )
+
+    newest = queue.enqueue_case(
+        candidate_text="Newest candidate.",
+        evidence_refs=("kb://new",),
+        tenant_id="tenant-a",
+    )
+    queue.enqueue_case(
+        candidate_text="Older candidate.",
+        evidence_refs=("kb://old",),
+        tenant_id="tenant-b",
+    )
+
+    assert queue.list_cases(tenant_id="tenant-a", limit=1)[0].case_id == (
+        newest.case_id
+    )
+    with pytest.raises(ValueError, match="unsupported review status"):
+        queue.list_cases(status="queued")
+
+
+def test_review_queue_blocks_repeat_decisions_and_invalid_release_inputs(tmp_path):
+    queue = HumanReviewQueue(tmp_path / "review.db")
+    case = queue.enqueue_case(
+        candidate_text="Candidate.",
+        evidence_refs=("kb://fact-6",),
+    )
+
+    with pytest.raises(KeyError):
+        queue.get_case("missing")
+    with pytest.raises(ValueError, match="reviewer_id"):
+        queue.release(case.case_id, reviewer_id="", release_id="rel-6")
+    with pytest.raises(ValueError, match="release_id"):
+        queue.release(case.case_id, reviewer_id="reviewer-1", release_id="")
+
+    queue.decide(case.case_id, reviewer_id="reviewer-1", action="reject")
+    with pytest.raises(PermissionError, match="already rejected"):
+        queue.decide(case.case_id, reviewer_id="reviewer-1", action="approve")
+
+
+def test_review_queue_close_is_idempotent_and_blocks_operations(tmp_path):
+    queue = HumanReviewQueue(tmp_path / "review.db")
+    queue.close()
+    queue.close()
+
+    with pytest.raises(RuntimeError, match="closed"):
+        queue.list_cases()
+
+
+def test_review_queue_decision_and_case_serialisation_normalise_metadata():
+    decision = HumanReviewDecision(
+        decision_id="decision-1",
+        case_id="case-1",
+        reviewer_id="reviewer-1",
+        action="approve",
+        metadata={"attempt": 2, "approved": True},
+    )
+    case = HumanReviewCase(
+        case_id="case-1",
+        status="pending",
+        source_kind="halt",
+        candidate_text="Candidate.",
+        evidence_refs=("kb://fact", "", "kb://fact-2"),
+        metadata={"priority": 1},
+    )
+
+    assert decision.to_dict()["metadata"] == {
+        "attempt": "2",
+        "approved": "True",
+    }
+    assert case.evidence_refs == ("kb://fact", "kb://fact-2")
+    assert case.to_dict(include_candidate=True)["metadata"] == {"priority": "1"}
 
 
 def test_human_review_queue_public_exports():
