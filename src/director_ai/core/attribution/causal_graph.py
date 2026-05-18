@@ -52,6 +52,7 @@ SCHEMA_VERSION = "director.causal_attribution.v1"
 
 
 def _finite_or_none(value: float | None, *, field_name: str) -> float | None:
+    """Return a finite float or None for optional numeric fields."""
     if value is None:
         return None
     if not math.isfinite(value):
@@ -60,12 +61,14 @@ def _finite_or_none(value: float | None, *, field_name: str) -> float | None:
 
 
 def _clamp_weight(value: float) -> float:
+    """Return a finite edge weight clamped to the unit interval."""
     if not math.isfinite(value):
         raise ValueError("edge weight must be finite")
     return max(0.0, min(1.0, float(value)))
 
 
 def _metadata_without_none(data: Mapping[str, Any]) -> dict[str, Any]:
+    """Return metadata with None-valued entries removed."""
     return {key: value for key, value in data.items() if value is not None}
 
 
@@ -86,6 +89,7 @@ class AttributionNode:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate required node fields and optional score."""
         if not self.node_id:
             raise ValueError("node_id must be non-empty")
         if not self.label:
@@ -93,6 +97,7 @@ class AttributionNode:
         _finite_or_none(self.score, field_name="node score")
 
     def to_dict(self, *, include_text: bool = False) -> dict[str, Any]:
+        """Serialise the node with raw text redacted by default."""
         return {
             "id": self.node_id,
             "kind": self.kind,
@@ -114,6 +119,7 @@ class AttributionEdge:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate edge endpoints and normalise edge weight."""
         if not self.source or not self.target:
             raise ValueError("edge endpoints must be non-empty")
         if self.source == self.target:
@@ -121,6 +127,7 @@ class AttributionEdge:
         object.__setattr__(self, "weight", _clamp_weight(self.weight))
 
     def to_dict(self) -> dict[str, Any]:
+        """Serialise the attribution edge."""
         return {
             "source": self.source,
             "target": self.target,
@@ -140,6 +147,7 @@ class CausalAttributionGraph:
     schema_version: str = SCHEMA_VERSION
 
     def __post_init__(self) -> None:
+        """Freeze graph collections and validate DAG integrity."""
         nodes = tuple(self.nodes)
         edges = tuple(self.edges)
         object.__setattr__(self, "nodes", nodes)
@@ -165,6 +173,7 @@ class CausalAttributionGraph:
         nodes: tuple[AttributionNode, ...],
         edges: tuple[AttributionEdge, ...],
     ) -> None:
+        """Raise when edges introduce a cycle."""
         indegree = {node.node_id: 0 for node in nodes}
         children: dict[str, list[str]] = defaultdict(list)
         for edge in edges:
@@ -183,6 +192,7 @@ class CausalAttributionGraph:
             raise ValueError("cycle detected in causal attribution graph")
 
     def node(self, node_id: str) -> AttributionNode:
+        """Return one graph node by id."""
         for node in self.nodes:
             if node.node_id == node_id:
                 return node
@@ -198,6 +208,7 @@ class CausalAttributionGraph:
         )
 
     def to_dict(self, *, include_text: bool = False) -> dict[str, Any]:
+        """Serialise the graph with raw text redacted by default."""
         return {
             "schema_version": self.schema_version,
             "root_id": self.root_id,
@@ -228,6 +239,7 @@ def build_causal_attribution_graph(
 
 
 def _build_score_graph(score: CoherenceScore) -> CausalAttributionGraph:
+    """Build an attribution graph for a coherence score."""
     nodes: list[AttributionNode] = []
     edges: list[AttributionEdge] = []
     evidence = score.evidence
@@ -275,6 +287,7 @@ def _append_claim_attribution_nodes(
     edges: list[AttributionEdge],
     attributions: tuple[ClaimAttribution, ...],
 ) -> None:
+    """Append claim/evidence nodes and support edges from attributions."""
     for attribution in attributions:
         evidence_id = f"evidence:{attribution.source_index}"
         claim_id = f"claim:{attribution.claim_index}"
@@ -322,6 +335,7 @@ def _append_chunk_nodes(
     edges: list[AttributionEdge],
     chunks: tuple[EvidenceChunk, ...],
 ) -> None:
+    """Append retrieval evidence chunk nodes."""
     for index, chunk in enumerate(chunks):
         nodes.append(
             AttributionNode(
@@ -340,6 +354,7 @@ def _append_chunk_nodes(
 
 
 def _node_contribution_weight(node: AttributionNode) -> float:
+    """Return the direct contribution weight for a graph node."""
     if node.score is not None:
         return _clamp_weight(node.score)
     divergence = node.metadata.get("divergence")
@@ -349,6 +364,7 @@ def _node_contribution_weight(node: AttributionNode) -> float:
 
 
 def _build_halt_graph(evidence: HaltEvidence) -> CausalAttributionGraph:
+    """Build an attribution graph for a halt decision."""
     nodes: list[AttributionNode] = []
     edges: list[AttributionEdge] = []
     for index, chunk in enumerate(evidence.evidence_chunks):
@@ -440,6 +456,7 @@ def _build_halt_graph(evidence: HaltEvidence) -> CausalAttributionGraph:
 def _counterfactual_node(
     node_id: str, change: CounterfactualFactChange
 ) -> AttributionNode:
+    """Build a counterfactual change node."""
     return AttributionNode(
         node_id=node_id,
         kind="counterfactual",
