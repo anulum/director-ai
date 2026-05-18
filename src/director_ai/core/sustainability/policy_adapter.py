@@ -35,6 +35,7 @@ class HardwareProfile:
     provenance: EstimateProvenance
 
     def __post_init__(self) -> None:
+        """Validate profile identity, non-negative factors, and provenance."""
         if not self.profile_id.strip():
             raise ValueError("profile_id must be non-empty")
         _validate_non_negative(
@@ -58,6 +59,7 @@ class HardwareProfileRegistry:
     """Thread-safe registry for deployment hardware profiles."""
 
     def __init__(self, profiles: tuple[HardwareProfile, ...] = ()) -> None:
+        """Create a registry and register the supplied hardware profiles."""
         self._lock = threading.Lock()
         self._profiles: dict[str, HardwareProfile] = {}
         for profile in profiles:
@@ -107,6 +109,7 @@ class SustainabilityEstimate:
     hardware_profile_id: str
 
     def __post_init__(self) -> None:
+        """Validate token accounting, estimate magnitudes, and provenance."""
         _validate_token_count("input_tokens", self.input_tokens)
         _validate_token_count("output_tokens", self.output_tokens)
         _validate_token_count("total_tokens", self.total_tokens)
@@ -143,16 +146,19 @@ class TokenEnergyCostEstimator:
         hardware_profile: HardwareProfile,
         cost_per_1k_tokens: float,
     ) -> None:
+        """Bind estimator policy to one hardware profile and token price."""
         _validate_non_negative("cost_per_1k_tokens", cost_per_1k_tokens)
         self._hardware_profile = hardware_profile
         self._cost_per_1k_tokens = cost_per_1k_tokens
 
     @property
     def hardware_profile(self) -> HardwareProfile:
+        """Return the hardware profile used for estimates."""
         return self._hardware_profile
 
     @property
     def cost_per_1k_tokens(self) -> float:
+        """Return the configured cost per thousand tokens."""
         return self._cost_per_1k_tokens
 
     def estimate(
@@ -194,6 +200,7 @@ class SustainabilityTelemetrySummary:
     alerts: tuple[str, ...]
 
     def __post_init__(self) -> None:
+        """Validate aggregate telemetry counters and tenant identity."""
         if not self.tenant_id.strip():
             raise ValueError("tenant_id must be non-empty")
         if self.request_count < 0:
@@ -226,6 +233,7 @@ class SustainabilityTelemetry:
         cost_alert_threshold: float,
         carbon_alert_threshold: float,
     ) -> None:
+        """Create an in-memory telemetry collector with alert thresholds."""
         _validate_token_count("token_alert_threshold", token_alert_threshold)
         _validate_non_negative("cost_alert_threshold", cost_alert_threshold)
         _validate_non_negative("carbon_alert_threshold", carbon_alert_threshold)
@@ -282,6 +290,7 @@ class SustainabilityPolicyAdapter:
         carbon_defer_kg: float,
         forecast_headroom_ratio: float = 0.1,
     ) -> None:
+        """Create a sustainability guard adapter with quota and carbon policy."""
         if not policy_id.strip():
             raise ValueError("policy_id must be non-empty")
         _validate_non_negative("carbon_defer_kg", carbon_defer_kg)
