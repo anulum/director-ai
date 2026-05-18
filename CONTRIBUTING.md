@@ -46,7 +46,7 @@ runtime work still uses the dedicated targets: `make test-rust`,
 | `make preflight-fast` | `preflight.py --no-tests` | Lint-only (~5s) |
 | `make docs` | `mkdocs serve` | Local docs server |
 | `make build` | `python -m build` | Build sdist + wheel |
-| `make install-hooks` | `git config core.hooksPath .githooks` | Install pre-push hook |
+| `make install-hooks` | `git config core.hooksPath .githooks` | Install local git hooks |
 | `make clean` | Remove dist/, build/, __pycache__ | Clean build artifacts |
 
 ## Code Style

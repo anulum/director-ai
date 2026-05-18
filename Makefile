@@ -79,9 +79,9 @@ bench: ## Run regression benchmark suite
 build: ## Build sdist + wheel
 	python -m build
 
-install-hooks: ## Install pre-push hook
+install-hooks: ## Install local git hooks
 	git config core.hooksPath .githooks
-	@echo "Git hooks installed (.githooks/pre-push)"
+	@echo "Git hooks installed (.githooks)"
 
 docker-build: ## Build Docker image
 	docker build -t director-ai:latest .

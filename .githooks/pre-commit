@@ -14,7 +14,7 @@ allowed_patterns='(^|/)discord-bot/\.env\.example$|(^|/)src/.*/secret_sharing\.p
 agent_identity_patterns='\b(C[o]dex|OpenA[I]|ChatG[P]T|Cl[a]ude|G[e]mini|Anthr[o]pic)\b'
 google_api_prefix='AI''za'
 oauth_prefix='ya''29\.'
-generic_api_prefix='s''k-'
+generic_api_key_pattern='(^|[^0-9A-Za-z_-])s''k-[0-9A-Za-z_-]{20,}'
 github_prefix='gh''p_'
 ghpat_prefix='github''_pat_'
 slack_prefix='xo''x[baprs]-'
@@ -22,7 +22,7 @@ polar_prefix='polar''_oat_'
 private_key_pattern='BEGIN (RSA|OPENSSH|PRIV''ATE) KEY'
 license_signing_var='DIRECTOR_LICENSE_SIGNING''_KEY'
 admin_key_var='DIRECTOR_ADMIN''_KEY'
-secret_patterns="${google_api_prefix}[0-9A-Za-z_-]{20,}|${oauth_prefix}[0-9A-Za-z_-]{20,}|${generic_api_prefix}[0-9A-Za-z_-]{20,}|${github_prefix}[0-9A-Za-z_]{20,}|${ghpat_prefix}[0-9A-Za-z_]{20,}|${slack_prefix}[0-9A-Za-z-]{20,}|${polar_prefix}[0-9A-Za-z_]{20,}|${private_key_pattern}|${license_signing_var}=[^[:space:]]{8,}|${admin_key_var}=[^[:space:]]{8,}"
+secret_patterns="${google_api_prefix}[0-9A-Za-z_-]{20,}|${oauth_prefix}[0-9A-Za-z_-]{20,}|${generic_api_key_pattern}|${github_prefix}[0-9A-Za-z_]{20,}|${ghpat_prefix}[0-9A-Za-z_]{20,}|${slack_prefix}[0-9A-Za-z-]{20,}|${polar_prefix}[0-9A-Za-z_]{20,}|${private_key_pattern}|${license_signing_var}=[^[:space:]]{8,}|${admin_key_var}=[^[:space:]]{8,}"
 
 blocked=''
 while IFS= read -r path; do

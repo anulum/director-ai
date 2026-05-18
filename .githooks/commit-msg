@@ -1,0 +1,37 @@
+#!/usr/bin/env sh
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# (c) Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Local commit message attribution guard
+
+set -eu
+
+message_file="${1:?commit message file required}"
+required_trailer='Co-Authored-By: Arcane Sapience <protoscience@anulum.li>'
+agent_identity_patterns='\b(C[o]dex|OpenA[I]|ChatG[P]T|Cl[a]ude|G[e]mini|Anthr[o]pic)\b'
+
+if [ ! -f "$message_file" ]; then
+  printf '%s\n' "ERROR: commit message file is missing." >&2
+  exit 1
+fi
+
+required_count="$(grep -F -c "$required_trailer" "$message_file" || true)"
+if [ "$required_count" -ne 1 ]; then
+  printf '%s\n' "ERROR: commit message must contain exactly one required attribution trailer:" >&2
+  printf '%s\n' "$required_trailer" >&2
+  exit 1
+fi
+
+coauthored_count="$(grep -E -c '^Co-Authored-By:' "$message_file" || true)"
+if [ "$coauthored_count" -ne 1 ]; then
+  printf '%s\n' "ERROR: commit message must contain exactly one Co-Authored-By trailer." >&2
+  exit 1
+fi
+
+if grep -E "$agent_identity_patterns" "$message_file" >/dev/null; then
+  printf '%s\n' "ERROR: commit message contains blocked implementation-agent identity text." >&2
+  exit 1
+fi

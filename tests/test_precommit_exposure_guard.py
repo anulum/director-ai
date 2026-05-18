@@ -84,6 +84,20 @@ def test_precommit_blocks_credential_like_content(tmp_path: Path) -> None:
     assert "blocked staged credential-like content" in result.stderr
 
 
+def test_precommit_allows_fixture_identifier_containing_sk_dash(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _stage(
+        repo,
+        "tests/example.py",
+        'REGISTER_ID = "risk-register-bank-alpha-20260518"\n',
+    )
+
+    result = _hook(repo)
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
 def test_precommit_allows_plain_public_changes(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     _stage(repo, "docs/example.md", "Documented public configuration names only.\n")
