@@ -38,6 +38,7 @@ class SwarmEvent:
     action: str = ""
 
     def __post_init__(self) -> None:
+        """Validate event endpoints and monotonic timestamp domain."""
         if not self.source:
             raise ValueError("source must be non-empty")
         if not self.target:
@@ -62,6 +63,7 @@ class InteractionGraph:
 
     @classmethod
     def from_events(cls, events: Iterable[SwarmEvent]) -> InteractionGraph:
+        """Build a weighted interaction graph from an event stream."""
         graph = cls()
         for event in events:
             graph._add_edge(event.source, event.target)
@@ -75,6 +77,7 @@ class InteractionGraph:
 
     @property
     def node_count(self) -> int:
+        """Return the number of distinct agents in the graph."""
         return len(self._nodes)
 
     @property
@@ -84,21 +87,27 @@ class InteractionGraph:
         return len(self._edges)
 
     def nodes(self) -> tuple[str, ...]:
+        """Return graph nodes in stable sorted order."""
         return tuple(sorted(self._nodes))
 
     def edges(self) -> tuple[tuple[str, str, int], ...]:
+        """Return weighted directed edges in insertion order."""
         return tuple((src, dst, weight) for (src, dst), weight in self._edges.items())
 
     def edge_weight(self, source: str, target: str) -> int:
+        """Return the interaction count for one directed edge."""
         return self._edges.get((source, target), 0)
 
     def out_neighbours(self, node: str) -> tuple[str, ...]:
+        """Return direct outgoing neighbours for node."""
         return tuple(dst for (src, dst) in self._edges if src == node)
 
     def out_weight(self, node: str) -> int:
+        """Return the total outgoing weighted degree for node."""
         return sum(w for (src, _), w in self._edges.items() if src == node)
 
     def in_weight(self, node: str) -> int:
+        """Return the total incoming weighted degree for node."""
         return sum(w for (_, dst), w in self._edges.items() if dst == node)
 
     def density(self) -> float:
@@ -137,6 +146,7 @@ class InteractionGraph:
         return (2 * triangles) / (k * (k - 1))
 
     def mean_clustering(self) -> float:
+        """Return the average local clustering over all graph nodes."""
         if self.node_count == 0:
             return 0.0
         return sum(self.local_clustering(n) for n in self._nodes) / self.node_count
