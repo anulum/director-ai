@@ -239,7 +239,7 @@ class CoherenceScorer:
             )
         self._privacy_mode = privacy_mode
         self._redactor = PIIRedactor(enabled=privacy_mode)
-        self._parallel_pool = ThreadPoolExecutor(max_workers=2)
+        self._parallel_pool: ThreadPoolExecutor | None = None
         self._fact_inner_agg = "max"
         self._fact_outer_agg = "max"
         self._logic_inner_agg = "max"
@@ -359,12 +359,20 @@ class CoherenceScorer:
 
     def close(self) -> None:
         """Shut down internal thread pool."""
-        self._parallel_pool.shutdown(wait=False)
+        if self._parallel_pool is not None:
+            self._parallel_pool.shutdown(wait=False)
+            self._parallel_pool = None
 
     def __del__(self) -> None:
         pool = getattr(self, "_parallel_pool", None)
         if pool is not None:
             pool.shutdown(wait=False)
+
+    def _get_parallel_pool(self) -> ThreadPoolExecutor:
+        """Create the review parallelism pool only when parallel scoring is used."""
+        if self._parallel_pool is None:
+            self._parallel_pool = ThreadPoolExecutor(max_workers=2)
+        return self._parallel_pool
 
     _BUNDLED_CLASSIFIER = "models/dataset_type_classifier.pkl"
 
@@ -1155,14 +1163,15 @@ class CoherenceScorer:
                 _outer_agg=fact_oa,
             )
         else:
-            future_logic = self._parallel_pool.submit(
+            pool = self._get_parallel_pool()
+            future_logic = pool.submit(
                 self.calculate_logical_divergence,
                 prompt,
                 action,
                 _inner_agg=logic_ia,
                 _outer_agg=logic_oa,
             )
-            future_fact = self._parallel_pool.submit(
+            future_fact = pool.submit(
                 self.calculate_factual_divergence_with_evidence,
                 prompt,
                 action,

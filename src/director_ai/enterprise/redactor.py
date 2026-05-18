@@ -18,6 +18,7 @@ from __future__ import annotations
 from collections import Counter
 from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
+from functools import lru_cache
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
@@ -146,11 +147,8 @@ class PIIRedactor:
         prefer_rust: bool = True,
     ) -> None:
         self.enabled = enabled
-        self._detectors = (
-            tuple(detectors)
-            if detectors is not None
-            else (_build_default_regex_detector(prefer_rust=prefer_rust),)
-        )
+        self._prefer_rust = prefer_rust
+        self._detectors = tuple(detectors) if detectors is not None else None
 
     def redact_with_report(self, text: str) -> PIIRedactionReport:
         """Redact PII and return a tenant-safe structured report."""
@@ -158,7 +156,7 @@ class PIIRedactor:
             return PIIRedactionReport(redacted_text=text, findings=())
 
         findings: list[PIIRedactionFinding] = []
-        for detector in self._detectors:
+        for detector in self._resolve_detectors():
             result = detector.analyse(text)
             findings.extend(
                 PIIRedactionFinding.from_match(match) for match in result.matches
@@ -183,9 +181,26 @@ class PIIRedactor:
     def __call__(self, text: str) -> str:
         return self.redact(text)
 
+    def _resolve_detectors(self) -> tuple[ModerationDetector, ...]:
+        """Return configured detectors, building defaults only when needed."""
+        if self._detectors is not None:
+            return self._detectors
+        return (_cached_default_regex_detector(prefer_rust=self._prefer_rust),)
+
 
 def _build_default_regex_detector(*, prefer_rust: bool) -> ModerationDetector:
     """Build the default dependency-light regex PII detector."""
     from director_ai.core.safety.moderation import RegexPIIDetector
 
     return RegexPIIDetector(prefer_rust=prefer_rust)
+
+
+@lru_cache(maxsize=2)
+def _cached_default_regex_detector(*, prefer_rust: bool) -> ModerationDetector:
+    """Return the process-wide default regex detector for redaction.
+
+    Regex detectors are immutable after construction, so sharing the default
+    instance avoids rebuilding the optional Rust scanner for every scorer or
+    moderation pipeline object.
+    """
+    return _build_default_regex_detector(prefer_rust=prefer_rust)

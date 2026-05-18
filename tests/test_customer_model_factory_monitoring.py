@@ -139,6 +139,33 @@ def test_monitoring_manifest_recommends_retraining_on_threshold_breaches():
     }
 
 
+def test_monitoring_manifest_recommends_retraining_on_all_operational_breaches():
+    manifest = build_monitoring_manifest(
+        monitoring_id="monitor-bank-alpha-all-breaches",
+        runtime_package=_runtime_package(),
+        metrics=_metrics(
+            source_corpus_drift_score=0.26,
+            abstention_rate=0.31,
+            escalation_rate=0.41,
+            cost_per_1k_decisions=2.75,
+        ),
+        thresholds=_thresholds(),
+        observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
+        monitored_at="2026-05-18T12:05:00Z",
+        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+    )
+
+    assert manifest.ready is True
+    assert manifest.health_status == "review_required"
+    assert {item["code"] for item in manifest.recommendations} >= {
+        "source_corpus_drift_threshold_breached",
+        "abstention_threshold_breached",
+        "escalation_threshold_breached",
+        "cost_threshold_breached",
+    }
+
+
 def test_monitoring_manifest_blocks_health_claim_without_decision_log_evidence():
     manifest = build_monitoring_manifest(
         monitoring_id="monitor-bank-alpha-no-log",
@@ -156,6 +183,39 @@ def test_monitoring_manifest_blocks_health_claim_without_decision_log_evidence()
     assert any(
         finding["code"] == "decision_log_missing" for finding in manifest.findings
     )
+
+
+def test_monitoring_manifest_blocks_missing_identity_and_queue_evidence():
+    runtime = _runtime_package()
+    runtime = CustomerRuntimePackage(
+        **{
+            **runtime.to_dict(),
+            "ready": False,
+            "findings": [{"code": "deployment_not_ready"}],
+        }
+    )
+
+    manifest = build_monitoring_manifest(
+        monitoring_id=" ",
+        runtime_package=runtime,
+        metrics=_metrics(),
+        thresholds=_thresholds(),
+        observation_window=" ",
+        monitored_at=" ",
+        review_queue_uri=" ",
+        incident_queue_uri=" ",
+    )
+
+    assert manifest.ready is False
+    assert manifest.health_status == "evidence_blocked"
+    assert {finding["code"] for finding in manifest.findings} >= {
+        "monitoring_id_missing",
+        "runtime_package_not_ready",
+        "observation_window_missing",
+        "monitored_at_missing",
+        "review_queue_missing",
+        "incident_queue_missing",
+    }
 
 
 def test_monitoring_manifest_blocks_tenant_boundary_mismatch():
@@ -177,6 +237,35 @@ def test_monitoring_manifest_blocks_tenant_boundary_mismatch():
     assert any(
         finding["code"] == "tenant_boundary_mismatch" for finding in manifest.findings
     )
+
+
+def test_monitoring_manifest_blocks_all_runtime_boundary_mismatches():
+    runtime = _runtime_package()
+    runtime.runtime_config.update(
+        {
+            "customer_id": "wrong-customer",
+            "workspace_id": "wrong-workspace",
+            "deployment_id": "wrong-deployment",
+        }
+    )
+
+    manifest = build_monitoring_manifest(
+        monitoring_id="monitor-bank-alpha-mismatches",
+        runtime_package=runtime,
+        metrics=_metrics(),
+        thresholds=_thresholds(),
+        observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
+        monitored_at="2026-05-18T12:05:00Z",
+        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+    )
+
+    assert manifest.ready is False
+    assert {finding["code"] for finding in manifest.findings} >= {
+        "customer_boundary_mismatch",
+        "workspace_boundary_mismatch",
+        "deployment_boundary_mismatch",
+    }
 
 
 def test_monitoring_manifest_serialises_and_round_trips(tmp_path: Path):

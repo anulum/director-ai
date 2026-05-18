@@ -35,7 +35,7 @@ from dataclasses import dataclass, field
 __all__ = ["InputSanitizer", "SanitizeResult"]
 
 try:
-    from backfire_kernel import rust_has_suspicious_unicode, rust_sanitizer_score
+    from backfire_kernel import rust_has_suspicious_unicode
 
     _RUST_SANITIZER = True
 except ImportError:
@@ -214,28 +214,10 @@ class InputSanitizer:
 
         base64_payload = _contains_base64_payload(text)
 
-        # Rust fast path: use when no custom patterns or allowlist.  Base64
-        # detection stays in Python so padding and validation policy remain
-        # identical across wheel and fallback deployments.
-        if (
-            _RUST_SANITIZER
-            and not self._allowlist
-            and len(self._patterns) == len(_INJECTION_PATTERNS)
-        ):
-            clamped, matched = rust_sanitizer_score(text)
-            if base64_payload and "base64_payload" not in matched:
-                matched = [*matched, "base64_payload"]
-                clamped = min(1.0, clamped + self._weights["base64_payload"])
-            blocked = clamped >= self.block_threshold
-            return SanitizeResult(
-                blocked=blocked,
-                reason=matched[0] if matched else "",
-                pattern=matched[0] if matched else "",
-                suspicion_score=clamped,
-                matches=matched,
-            )
-
-        # Python fallback
+        # Python remains the authoritative sanitizer policy. The Rust extension
+        # may expose broader accelerator patterns for standalone compute tests,
+        # but production blocking must follow the curated allow/deny contract
+        # below to avoid false positives and missed multilingual seeds.
         allowlisted = self._is_allowlisted(text)
         py_matched: list[str] = []
         total = 0.0

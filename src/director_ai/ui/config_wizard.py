@@ -547,7 +547,7 @@ def launch_gradio(port: int = 7860, share: bool = False) -> None:
 
         with gr.Tab("Facts"):
             facts_input = gr.Textbox(label="Facts", lines=12)
-            facts_output = gr.Code(label="facts.txt", language="text")
+            facts_output = gr.Code(label="facts.txt", language=None)
             facts_count = gr.Number(label="Fact count", value=0)
             facts_btn = gr.Button("Prepare Facts")
             facts_btn.click(

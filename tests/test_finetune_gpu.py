@@ -21,12 +21,29 @@ import pytest
 torch = pytest.importorskip("torch")
 transformers = pytest.importorskip("transformers")
 
+
+def _torch_cuda_device_is_supported() -> bool:
+    """Return True only when PyTorch can execute kernels on this CUDA device."""
+    if not torch.cuda.is_available():
+        return False
+    try:
+        major, minor = torch.cuda.get_device_capability()
+        supported_arches = set(torch.cuda.get_arch_list())
+    except Exception:
+        return False
+    return f"sm_{major}{minor}" in supported_arches
+
+
 pytestmark = [
     pytest.mark.gpu,
-    pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA required"),
+    pytest.mark.skipif(
+        not _torch_cuda_device_is_supported(),
+        reason="CUDA device supported by this PyTorch build required",
+    ),
 ]
 
 _SMALL_MODEL = "microsoft/deberta-v3-base"
+_SMALL_MODEL_REVISION = "8ccc9b6f36199bec6961081d44eb72fb3f7353f3"
 _FACTCG_MODEL = "yaxili96/FactCG-DeBERTa-v3-Large"
 _NON_FACTCG_MODEL = "microsoft/deberta-v3-base"
 
@@ -174,7 +191,10 @@ class TestPrepareDataset:
     def test_factcg_template(self):
         from director_ai.core.finetune import _prepare_dataset
 
-        tok = transformers.AutoTokenizer.from_pretrained(_SMALL_MODEL)
+        tok = transformers.AutoTokenizer.from_pretrained(
+            _SMALL_MODEL,
+            revision=_SMALL_MODEL_REVISION,
+        )
         rows = _make_nli_data(10, 10)
         ds = _prepare_dataset(rows, tok, max_length=128, is_factcg=True)
         assert len(ds) == 20
@@ -184,7 +204,10 @@ class TestPrepareDataset:
     def test_pair_template(self):
         from director_ai.core.finetune import _prepare_dataset
 
-        tok = transformers.AutoTokenizer.from_pretrained(_SMALL_MODEL)
+        tok = transformers.AutoTokenizer.from_pretrained(
+            _SMALL_MODEL,
+            revision=_SMALL_MODEL_REVISION,
+        )
         rows = _make_nli_data(10, 10)
         ds = _prepare_dataset(rows, tok, max_length=128, is_factcg=False)
         assert len(ds) == 20

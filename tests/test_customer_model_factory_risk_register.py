@@ -175,6 +175,82 @@ def test_risk_register_blocks_unlinked_or_mismatched_artifact_hashes():
     }
 
 
+def test_risk_register_blocks_missing_identity_not_ready_and_boundary_mismatches():
+    evidence_pack = CustomerEvidencePackManifest(
+        **{
+            **_evidence_pack().to_dict(),
+            "ready": False,
+            "findings": [{"code": "evidence_pack_missing"}],
+        }
+    )
+    monitoring = CustomerMonitoringManifest(
+        **{
+            **_monitoring_manifest().to_dict(),
+            "ready": False,
+            "customer_id": "wrong-customer",
+            "workspace_id": "wrong-workspace",
+            "tenant_id": "wrong-tenant",
+            "deployment_id": "wrong-deployment",
+            "evidence_hash": "f" * 64,
+            "findings": [{"code": "decision_log_missing"}],
+        }
+    )
+
+    register = build_risk_register(
+        register_id=" ",
+        evidence_pack=evidence_pack,
+        monitoring_manifest=monitoring,
+        risks=(),
+        generated_at=" ",
+    )
+
+    assert register.ready is False
+    assert {finding["code"] for finding in register.findings} >= {
+        "register_id_missing",
+        "generated_at_missing",
+        "evidence_pack_not_ready",
+        "monitoring_manifest_not_ready",
+        "customer_boundary_mismatch",
+        "workspace_boundary_mismatch",
+        "tenant_boundary_mismatch",
+        "deployment_boundary_mismatch",
+        "evidence_hash_mismatch",
+    }
+
+
+def test_risk_register_rejects_unknown_status_and_missing_expiry():
+    rejected = _risk(
+        status="rejected", owner="", expires_at="", compensating_controls=()
+    )
+    unsupported = _risk(status="waived")
+    accepted_missing_expiry = _risk(expires_at="")
+
+    register = build_risk_register(
+        register_id="risk_register_bank_alpha-statuses",
+        evidence_pack=_evidence_pack(),
+        monitoring_manifest=_monitoring_manifest(),
+        risks=(rejected, unsupported, accepted_missing_expiry),
+        generated_at="2026-05-18",
+    )
+
+    assert register.ready is False
+    assert {finding["code"] for finding in register.findings} >= {
+        "risk_status_unknown",
+        "accepted_risk_expiry_missing",
+    }
+    assert "accepted_risk_owner_missing" not in {
+        finding["code"] for finding in register.findings
+    }
+
+
+def test_risk_exception_round_trips_from_dict():
+    risk = _risk()
+
+    restored = CustomerRiskException.from_dict(risk.to_dict())
+
+    assert restored == risk
+
+
 def test_risk_register_serialises_and_round_trips(tmp_path: Path):
     register = build_risk_register(
         register_id="risk_register_bank_alpha-20260518",

@@ -74,7 +74,7 @@ class ElevenLabsAdapter(TTSAdapter):
         self._voice_id = voice_id
         self._model_id = model_id
         self._api_key = api_key
-        self._client = None
+        self._client: Any = None
 
     def _get_client(self) -> Any:
         """Return a cached ElevenLabs async client."""
@@ -87,7 +87,7 @@ class ElevenLabsAdapter(TTSAdapter):
                 "ElevenLabsAdapter requires the elevenlabs package: "
                 "pip install elevenlabs"
             ) from None
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if self._api_key:
             kwargs["api_key"] = self._api_key
         self._client = AsyncElevenLabs(**kwargs)
@@ -194,7 +194,7 @@ class DeepgramAdapter(TTSAdapter):
     ):
         self._model = model
         self._api_key = api_key
-        self._client = None
+        self._client: Any = None
 
     def _get_client(self) -> Any:
         """Return a cached Deepgram client."""
@@ -207,7 +207,7 @@ class DeepgramAdapter(TTSAdapter):
                 "DeepgramAdapter requires the deepgram-sdk package: "
                 "pip install deepgram-sdk"
             ) from None
-        kwargs = {}
+        kwargs: dict[str, Any] = {}
         if self._api_key:
             kwargs["api_key"] = self._api_key
         self._client = DeepgramClient(**kwargs)

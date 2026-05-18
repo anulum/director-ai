@@ -26,6 +26,7 @@ MODEL_REVISION_REGISTRY: dict[str, str] = {
         "b3546ea6b0346eb6f8d5d68b13c7dc6d0376b3d7"
     ),
     "roberta-large-mnli": "2a8f12d27941090092df78e4ba6f0928eb5eac98",
+    "microsoft/deberta-v3-base": "8ccc9b6f36199bec6961081d44eb72fb3f7353f3",
     "microsoft/deberta-v3-small": "a36c739020e01763fe789b4b85e2df55d6180012",
     "distilroberta-base": "fb53ab8802853c8e4fbdbcd0529f21fc6f459b2b",
 }

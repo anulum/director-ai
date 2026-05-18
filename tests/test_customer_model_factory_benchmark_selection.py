@@ -96,6 +96,8 @@ def _training_manifest():
 
 def _metrics(
     *,
+    recall: float = 0.96,
+    false_positive_rate: float = 0.03,
     false_negative_rate: float = 0.0,
     high_risk_false_negative_rate: float = 0.0,
     abstention_rate: float = 0.08,
@@ -107,9 +109,9 @@ def _metrics(
         total_samples=240,
         balanced_accuracy=0.94,
         precision=0.91,
-        recall=0.96,
+        recall=recall,
         f1=f1,
-        false_positive_rate=0.03,
+        false_positive_rate=false_positive_rate,
         false_negative_rate=false_negative_rate,
         high_risk_false_negative_rate=high_risk_false_negative_rate,
         abstention_rate=abstention_rate,
@@ -165,6 +167,41 @@ def test_benchmark_result_blocks_not_ready_training_manifest():
     )
 
 
+def test_benchmark_result_blocks_incomplete_customer_evidence_claims():
+    result = CustomerBenchmarkResult.from_metrics(
+        benchmark_id=" ",
+        training_manifest=_training_manifest(),
+        model_artifact_uri=" ",
+        metrics=BenchmarkMetrics(
+            total_samples=0,
+            balanced_accuracy=1.01,
+            precision=0.91,
+            recall=0.96,
+            f1=0.92,
+            false_positive_rate=0.03,
+            false_negative_rate=0.0,
+            high_risk_false_negative_rate=0.0,
+            abstention_rate=0.08,
+            escalation_rate=0.12,
+            latency_p95_ms=42.0,
+            severity_counts={},
+        ),
+        raw_result_uri=" ",
+        claim_boundary=" ",
+    )
+
+    assert result.ready is False
+    assert {finding["code"] for finding in result.findings} >= {
+        "benchmark_id_missing",
+        "model_artifact_missing",
+        "raw_result_missing",
+        "claim_boundary_missing",
+        "empty_benchmark",
+        "severity_counts_missing",
+        "metric_out_of_range",
+    }
+
+
 def test_zero_silent_unsafe_pass_rejects_high_risk_false_negatives():
     bad_result = CustomerBenchmarkResult.from_metrics(
         benchmark_id="bank-alpha-private-v1",
@@ -187,6 +224,118 @@ def test_zero_silent_unsafe_pass_rejects_high_risk_false_negatives():
         finding["code"] == "no_candidate_satisfies_objective"
         for finding in selection.findings
     )
+
+
+def test_selection_blocks_unknown_objective_and_empty_candidate_set():
+    selection = select_customer_model(
+        selection_id=" ",
+        objective_profile="unsupported-risk-objective",
+        candidates=[],
+    )
+
+    assert selection.ready is False
+    assert selection.selected_benchmark_id == ""
+    assert {finding["code"] for finding in selection.findings} == {
+        "selection_id_missing",
+        "objective_profile_unknown",
+        "candidates_missing",
+    }
+
+
+def test_selection_rejects_candidates_for_unknown_objective_profile():
+    result = CustomerBenchmarkResult.from_metrics(
+        benchmark_id="candidate-default",
+        training_manifest=_training_manifest(),
+        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/default",
+        metrics=_metrics(),
+        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/default.json",
+        claim_boundary="Bank Alpha private guardrail validation only.",
+    )
+
+    selection = select_customer_model(
+        selection_id="bank-alpha-unsupported-selection",
+        objective_profile="unsupported-risk-objective",
+        candidates=[result],
+    )
+
+    assert selection.ready is False
+    assert selection.selected_benchmark_id == ""
+    assert any(
+        finding["code"] == "objective_profile_unknown" for finding in selection.findings
+    )
+
+
+def test_selection_scores_high_recall_and_conservative_objectives():
+    safer = CustomerBenchmarkResult.from_metrics(
+        benchmark_id="candidate-safer",
+        training_manifest=_training_manifest(),
+        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/safer",
+        metrics=_metrics(
+            f1=0.88,
+            recall=0.95,
+            false_positive_rate=0.01,
+            false_negative_rate=0.01,
+        ),
+        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/safer.json",
+        claim_boundary="Bank Alpha private guardrail validation only.",
+    )
+    noisier = CustomerBenchmarkResult.from_metrics(
+        benchmark_id="candidate-noisier",
+        training_manifest=_training_manifest(),
+        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/noisier",
+        metrics=_metrics(
+            f1=0.96,
+            recall=0.97,
+            false_positive_rate=0.08,
+            false_negative_rate=0.08,
+        ),
+        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/noisier.json",
+        claim_boundary="Bank Alpha private guardrail validation only.",
+    )
+
+    high_recall = select_customer_model(
+        selection_id="bank-alpha-high-recall-selection",
+        objective_profile="high_recall",
+        candidates=[noisier, safer],
+    )
+    conservative = select_customer_model(
+        selection_id="bank-alpha-conservative-selection",
+        objective_profile="conservative",
+        candidates=[noisier, safer],
+    )
+
+    assert high_recall.ready is True
+    assert high_recall.selected_benchmark_id == "candidate-safer"
+    assert conservative.ready is True
+    assert conservative.selected_benchmark_id == "candidate-safer"
+
+
+def test_selection_scores_balanced_objective_by_f1():
+    lower_f1 = CustomerBenchmarkResult.from_metrics(
+        benchmark_id="candidate-lower-f1",
+        training_manifest=_training_manifest(),
+        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/lower-f1",
+        metrics=_metrics(f1=0.81),
+        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/lower-f1.json",
+        claim_boundary="Bank Alpha private guardrail validation only.",
+    )
+    higher_f1 = CustomerBenchmarkResult.from_metrics(
+        benchmark_id="candidate-higher-f1",
+        training_manifest=_training_manifest(),
+        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/higher-f1",
+        metrics=_metrics(f1=0.93),
+        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/higher-f1.json",
+        claim_boundary="Bank Alpha private guardrail validation only.",
+    )
+
+    selection = select_customer_model(
+        selection_id="bank-alpha-balanced-selection",
+        objective_profile="balanced",
+        candidates=[lower_f1, higher_f1],
+    )
+
+    assert selection.ready is True
+    assert selection.selected_benchmark_id == "candidate-higher-f1"
 
 
 def test_model_selection_prefers_highest_objective_score_among_ready_candidates():

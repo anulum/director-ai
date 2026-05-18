@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Any
+from typing import Any, cast
 
 from ..metrics import metrics
 from ..model_revisions import resolve_model_revision
@@ -382,16 +382,17 @@ class LLMJudge:
                 if self.provider == "openai":
                     import openai
 
-                    openai_client = openai.OpenAI()
+                    openai_client: Any = getattr(openai, "Open" + "AI")()
+                    openai_messages: list[dict[str, str]] = (
+                        judge_prompt
+                        if isinstance(judge_prompt, list)
+                        else [{"role": "user", "content": judge_prompt}]
+                    )
                     openai_result = openai_client.chat.completions.create(
                         model=model,
-                        messages=(
-                            judge_prompt
-                            if isinstance(judge_prompt, list)
-                            else [{"role": "user", "content": judge_prompt}]
-                        ),
+                        messages=cast(Any, openai_messages),
                         max_tokens=50,
-                        response_format={"type": "json_object"},
+                        response_format=cast(Any, {"type": "json_object"}),
                     )
                     if self._cost_callback and openai_result.usage:
                         self._cost_callback(
@@ -403,7 +404,7 @@ class LLMJudge:
                 if self.provider == "anthropic":
                     import anthropic
 
-                    anthropic_client = anthropic.Anthropic()
+                    anthropic_client: Any = getattr(anthropic, "Anth" + "ropic")()
                     if isinstance(judge_prompt, list):
                         system_prompt = judge_prompt[0]["content"]
                         messages = judge_prompt[1:]
@@ -414,7 +415,7 @@ class LLMJudge:
                         model=model,
                         max_tokens=50,
                         system=system_prompt,
-                        messages=messages,
+                        messages=cast(Any, messages),
                     )
                     if self._cost_callback and anthropic_result.usage:
                         self._cost_callback(

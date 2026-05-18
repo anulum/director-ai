@@ -214,6 +214,58 @@ def test_release_gate_blocks_not_ready_required_artifacts():
     )
 
 
+def test_release_gate_blocks_missing_release_identity_and_all_not_ready_artifacts():
+    runtime = CustomerRuntimePackage(
+        **{
+            **_runtime_package().to_dict(),
+            "ready": False,
+            "findings": [{"code": "runtime_mode_unknown"}],
+        }
+    )
+    evidence = CustomerEvidencePackManifest(
+        **{
+            **_evidence_pack().to_dict(),
+            "ready": False,
+            "findings": [{"code": "audit_log_missing"}],
+        }
+    )
+    monitoring = CustomerMonitoringManifest(
+        **{
+            **_monitoring_manifest().to_dict(),
+            "ready": False,
+            "findings": [{"code": "review_queue_missing"}],
+        }
+    )
+    risk_register = CustomerRiskRegister(
+        **{
+            **_risk_register().to_dict(),
+            "ready": False,
+            "findings": [{"code": "accepted_risk_expired"}],
+        }
+    )
+
+    gate = build_release_gate_manifest(
+        release_id=" ",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=runtime,
+        evidence_pack=evidence,
+        monitoring_manifest=monitoring,
+        risk_register=risk_register,
+        generated_at=" ",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "release_id_missing",
+        "generated_at_missing",
+        "runtime_package_not_ready",
+        "evidence_pack_not_ready",
+        "monitoring_manifest_not_ready",
+        "risk_register_not_ready",
+    }
+
+
 def test_release_gate_blocks_customer_boundary_mismatch():
     evidence = _evidence_pack()
     evidence = CustomerEvidencePackManifest(
@@ -235,6 +287,54 @@ def test_release_gate_blocks_customer_boundary_mismatch():
     assert any(
         blocker["code"] == "tenant_boundary_mismatch" for blocker in gate.blockers
     )
+
+
+def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
+    evidence = CustomerEvidencePackManifest(
+        **{
+            **_evidence_pack().to_dict(),
+            "customer_id": "wrong-customer",
+            "workspace_id": "wrong-workspace",
+            "deployment_id": "wrong-deployment",
+            "evidence_hash": "f" * 64,
+        }
+    )
+    monitoring = CustomerMonitoringManifest(
+        **{
+            **_monitoring_manifest().to_dict(),
+            "evidence_hash": "g" * 64,
+            "monitoring_hash": "h" * 64,
+        }
+    )
+    risk_register = CustomerRiskRegister(
+        **{
+            **_risk_register().to_dict(),
+            "evidence_hash": "i" * 64,
+            "monitoring_hash": "j" * 64,
+        }
+    )
+
+    gate = build_release_gate_manifest(
+        release_id="release-bank-alpha-cross-boundary",
+        enterprise_ready=True,
+        enterprise_blocking_debt_ids=(),
+        runtime_package=_runtime_package(),
+        evidence_pack=evidence,
+        monitoring_manifest=monitoring,
+        risk_register=risk_register,
+        generated_at="2026-05-18T18:35:00Z",
+    )
+
+    assert gate.ready is False
+    assert {blocker["code"] for blocker in gate.blockers} >= {
+        "customer_boundary_mismatch",
+        "workspace_boundary_mismatch",
+        "deployment_boundary_mismatch",
+        "runtime_evidence_hash_mismatch",
+        "monitoring_evidence_hash_mismatch",
+        "risk_evidence_hash_mismatch",
+        "risk_monitoring_hash_mismatch",
+    }
 
 
 def test_release_gate_serialises_deterministically(tmp_path: Path):

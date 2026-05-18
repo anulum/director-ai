@@ -19,6 +19,15 @@ def test_known_remote_model_resolves_pinned_revision() -> None:
     )
 
 
+def test_training_baseline_resolves_pinned_revision() -> None:
+    from director_ai.core.model_revisions import resolve_model_revision
+
+    assert (
+        resolve_model_revision("microsoft/deberta-v3-base")
+        == "8ccc9b6f36199bec6961081d44eb72fb3f7353f3"
+    )
+
+
 def test_explicit_revision_overrides_registry_pin() -> None:
     from director_ai.core.model_revisions import resolve_model_revision
 

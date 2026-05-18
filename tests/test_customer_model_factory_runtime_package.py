@@ -228,6 +228,36 @@ def test_runtime_package_blocks_mismatched_customer_boundaries():
     )
 
 
+def test_runtime_package_blocks_missing_identity_unknown_mode_and_all_boundaries():
+    deployment = _deployment()
+    evidence_payload = _evidence_pack().to_dict()
+    evidence_payload.update(
+        {
+            "customer_id": "wrong-customer",
+            "workspace_id": "wrong-workspace",
+            "tenant_id": "wrong-tenant",
+            "deployment_id": "wrong-deployment",
+        }
+    )
+
+    package = build_customer_runtime_package(
+        runtime_id=" ",
+        deployment_manifest=deployment,
+        evidence_pack=CustomerRuntimePackage.evidence_pack_from_dict(evidence_payload),
+        runtime_mode="unsupported_mode",
+    )
+
+    assert package.ready is False
+    assert {finding["code"] for finding in package.findings} >= {
+        "runtime_id_missing",
+        "runtime_mode_unknown",
+        "customer_boundary_mismatch",
+        "workspace_boundary_mismatch",
+        "tenant_boundary_mismatch",
+        "deployment_boundary_mismatch",
+    }
+
+
 def test_runtime_package_serialises_and_round_trips(tmp_path: Path):
     package = build_customer_runtime_package(
         runtime_id="runtime-bank-alpha-20260518",
