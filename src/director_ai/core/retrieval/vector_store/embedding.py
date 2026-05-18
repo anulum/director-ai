@@ -33,6 +33,7 @@ class SentenceTransformerBackend(VectorBackend):
     """
 
     def __init__(self, model_name: str = "BAAI/bge-large-en-v1.5") -> None:
+        """Load the embedding model and initialise the in-memory index."""
         try:
             from sentence_transformers import SentenceTransformer
         except ImportError as e:
@@ -51,6 +52,7 @@ class SentenceTransformerBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Embed and append one document with optional metadata."""
         import numpy as _np
 
         emb = self._model.encode(text, normalize_embeddings=True)
@@ -64,6 +66,7 @@ class SentenceTransformerBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Return positive-similarity nearest documents, optionally tenant-scoped."""
         import numpy as _np
 
         with self._lock:
@@ -102,10 +105,12 @@ class SentenceTransformerBackend(VectorBackend):
         return results
 
     def count(self) -> int:
+        """Return the number of retained in-memory documents."""
         with self._lock:
             return len(self._docs)
 
     def delete(self, doc_ids: list[str]) -> int:
+        """Delete matching document IDs while keeping embeddings aligned."""
         if not isinstance(doc_ids, list):
             raise ValueError("doc_ids must be a list of non-empty strings")
         if any(not isinstance(doc_id, str) or not doc_id.strip() for doc_id in doc_ids):
@@ -140,6 +145,7 @@ class ChromaBackend(VectorBackend):
         persist_directory: str | None = None,
         embedding_model: str | None = None,
     ) -> None:
+        """Create or open a Chroma collection with optional persistence."""
         try:
             import chromadb
         except ImportError as e:
@@ -176,6 +182,7 @@ class ChromaBackend(VectorBackend):
         text: str,
         metadata: dict[str, Any] | None = None,
     ) -> None:
+        """Add one document to the Chroma collection."""
 
         self._collection.add(
             ids=[doc_id],
@@ -189,6 +196,7 @@ class ChromaBackend(VectorBackend):
         n_results: int = 3,
         tenant_id: str = "",
     ) -> list[dict[str, Any]]:
+        """Query Chroma and normalise result rows to VectorBackend shape."""
 
         where: dict[str, Any] | None = {"tenant_id": tenant_id} if tenant_id else None
         count = self._collection.count()
@@ -220,9 +228,11 @@ class ChromaBackend(VectorBackend):
         return docs
 
     def count(self) -> int:
+        """Return Chroma's current collection count."""
         return int(self._collection.count())
 
     def delete(self, doc_ids: list[str]) -> int:
+        """Delete document IDs from Chroma and return the removed count."""
         if not isinstance(doc_ids, list):
             raise ValueError("doc_ids must be a list of non-empty strings")
         if any(not isinstance(doc_id, str) or not doc_id.strip() for doc_id in doc_ids):
