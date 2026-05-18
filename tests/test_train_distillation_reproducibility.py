@@ -14,6 +14,14 @@ import sys
 from pathlib import Path
 from typing import Any
 
+import pytest
+
+pytest.importorskip("torch", reason="torch required for distillation trainer")
+pytest.importorskip("datasets", reason="datasets required for distillation trainer")
+pytest.importorskip(
+    "transformers", reason="transformers required for distillation trainer"
+)
+
 ROOT = Path(__file__).resolve().parents[1]
 TRAINER = ROOT / "training" / "train_distillation.py"
 SPEC = importlib.util.spec_from_file_location("train_distillation", TRAINER)

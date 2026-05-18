@@ -1,0 +1,47 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial license available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Director-Class AI - Typos configuration
+
+[files]
+extend-exclude = [
+  "benchmarks/*.jsonl",
+  "benchmarks/models/**",
+  "benchmarks/results/**",
+  "benchmarks/scores/**",
+  "notebooks/**",
+]
+
+[default.extend-words]
+aadd = "aadd"
+anc = "anc"
+alle = "alle"
+appareil = "appareil"
+arange = "arange"
+BA = "BA"
+ba = "ba"
+cliente = "cliente"
+comando = "comando"
+daty = "daty"
+entreprise = "entreprise"
+FPR = "FPR"
+fo = "fo"
+fpr = "fpr"
+garantie = "garantie"
+groth = "groth"
+hel = "hel"
+ignora = "ignora"
+Mata = "Mata"
+Missings = "Missings"
+ND = "ND"
+responde = "responde"
+Responde = "Responde"
+Rispondi = "Rispondi"
+strat = "strat"
+summar = "summar"
+Tage = "Tage"
+thr = "thr"
+Wice = "Wice"
