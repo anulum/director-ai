@@ -99,12 +99,15 @@ def load_package_manifest(path: Path = PACKAGE_MANIFEST_PATH) -> ModelPackageMan
             title=stage["title"],
             source_stage_id=stage.get("source_stage_id", ""),
             vertex_allowed=bool(stage.get("vertex_allowed", False)),
-            required_for_public_claim=bool(stage.get("required_for_public_claim", True)),
+            required_for_public_claim=bool(
+                stage.get("required_for_public_claim", True)
+            ),
         )
         for stage in raw["required_stages"]
     )
     choices = {
-        choice.alias: choice for choice in list_scorer_model_choices(include_domain_only=True)
+        choice.alias: choice
+        for choice in list_scorer_model_choices(include_domain_only=True)
     }
     campaign = load_campaign()
     campaign_stages = {stage.stage_id: stage for stage in campaign.stages}
@@ -161,7 +164,9 @@ def validate_package_manifest(
     package_aliases = {package.model_alias for package in manifest.packages}
     missing_aliases = stable_aliases - package_aliases
     if missing_aliases:
-        findings.append(f"stable scorer aliases missing packages: {sorted(missing_aliases)}")
+        findings.append(
+            f"stable scorer aliases missing packages: {sorted(missing_aliases)}"
+        )
 
     stage_ids = {stage.stage_id for stage in manifest.required_stages}
     if len(stage_ids) != len(manifest.required_stages):
@@ -255,7 +260,9 @@ def _build_evidence_item(
         model_alias=model.alias,
         stage_id=required_stage.stage_id,
         title=required_stage.title,
-        status="complete" if required_stage.stage_id == "model_choice_general_gate" else package_status,
+        status="complete"
+        if required_stage.stage_id == "model_choice_general_gate"
+        else package_status,
         command=command,
         vertex_allowed=required_stage.vertex_allowed,
         required_for_public_claim=required_stage.required_for_public_claim,

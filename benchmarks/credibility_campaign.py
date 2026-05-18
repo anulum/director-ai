@@ -127,7 +127,9 @@ def validate_campaign(campaign: CredibilityCampaign, *, root: Path) -> list[str]
         if not stage.claim_boundary.strip():
             findings.append(f"{stage.stage_id}: missing claim_boundary")
         if any(sentinel in stage.command for sentinel in _TOKEN_SENTINELS):
-            findings.append(f"{stage.stage_id}: command contains literal token sentinel")
+            findings.append(
+                f"{stage.stage_id}: command contains literal token sentinel"
+            )
 
         runner_path = root / stage.runner
         if not runner_path.exists():
@@ -160,7 +162,9 @@ def next_runnable_stages(
             continue
         if not set(stage.depends_on) <= completed:
             continue
-        if (stage.requires_gated_access or stage.requires_predictions) and not include_gated:
+        if (
+            stage.requires_gated_access or stage.requires_predictions
+        ) and not include_gated:
             continue
         ready.append(stage)
     return tuple(ready)

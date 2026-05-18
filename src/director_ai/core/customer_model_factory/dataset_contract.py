@@ -329,7 +329,7 @@ def _validate_banking_metadata(
         return
     metadata = row.get("metadata")
     if not isinstance(metadata, dict):
-        missing = BANKING_REQUIRED_METADATA
+        missing = set(BANKING_REQUIRED_METADATA)
     else:
         missing = {
             field

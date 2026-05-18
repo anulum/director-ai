@@ -14,6 +14,12 @@ import types
 
 import pytest
 
+ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+SRC = os.path.join(ROOT, "src")
+for import_path in (SRC, ROOT):
+    if import_path not in sys.path:
+        sys.path.insert(0, import_path)
+
 from director_ai.core import (
     CoherenceAgent,
     CoherenceScorer,
