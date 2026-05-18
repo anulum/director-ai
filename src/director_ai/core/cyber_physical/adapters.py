@@ -57,6 +57,7 @@ class Ros2Adapter:
     inverse_kinematics: Callable[[Vec3], tuple[float, ...] | None] | None = None
 
     def __post_init__(self) -> None:
+        """Validate the ROS node handle and topic configuration."""
         if self.node is None:
             raise ValueError("node is required")
         if not self.joint_positions_topic:
@@ -72,6 +73,7 @@ class Ros2Adapter:
         joint_positions_topic: str = "/joint_states",
         collision_topic: str = "/collision_objects",
     ) -> Ros2Adapter:
+        """Create an adapter from a live ROS 2 runtime."""
         try:
             import rclpy
             from rclpy.node import Node
@@ -90,6 +92,7 @@ class Ros2Adapter:
         )
 
     def forward(self, joint_angles: Sequence[float]) -> Vec3:
+        """Delegate forward kinematics to the configured ROS-backed callable."""
         if self.forward_kinematics is None:
             raise UnsupportedKinematicsError(
                 "Ros2Adapter.forward requires a configured FK callable "
@@ -99,6 +102,7 @@ class Ros2Adapter:
         return self.forward_kinematics(joint_angles)
 
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
+        """Delegate inverse kinematics and normalise returned joint angles."""
         if self.inverse_kinematics is None:
             raise UnsupportedKinematicsError(
                 "Ros2Adapter.inverse requires a configured IK callable "
@@ -139,11 +143,13 @@ class MuJoCoAdapter:
     inverse_solver: Callable[[Any, Any, Vec3], Sequence[float] | None] | None = None
 
     def __post_init__(self) -> None:
+        """Validate that both MuJoCo model and data handles are present."""
         if self.model is None or self.data is None:
             raise ValueError("MuJoCoAdapter requires both model and data")
 
     @classmethod
     def from_mjcf(cls, mjcf_path: str) -> MuJoCoAdapter:
+        """Load a MuJoCo model and data buffer from an MJCF XML path."""
         try:
             import mujoco
         except ImportError as exc:
@@ -158,6 +164,7 @@ class MuJoCoAdapter:
         return cls(model=model, data=data)
 
     def forward(self, joint_angles: Sequence[float]) -> Vec3:
+        """Run MuJoCo forward kinematics and return the end-effector site."""
         try:
             import mujoco
         except ImportError as exc:  # pragma: no cover — covered by from_mjcf
@@ -178,6 +185,7 @@ class MuJoCoAdapter:
         )
 
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
+        """Run the deployment-provided numerical IK solver when configured."""
         if self.inverse_solver is None:
             raise UnsupportedKinematicsError(
                 "MuJoCoAdapter.inverse requires a configured inverse_solver "
@@ -194,6 +202,7 @@ class MuJoCoAdapter:
         obstacles_aabb: Sequence[AABB] = (),
         obstacles_sphere: Sequence[Sphere] = (),
     ) -> bool:
+        """Check supplied obstacles and the live MuJoCo contact counter."""
         for box in obstacles_aabb:
             if box.contains(point):
                 return True
@@ -220,6 +229,7 @@ class CarlaAdapter:
     world: Any
 
     def __post_init__(self) -> None:
+        """Validate CARLA client and world handles."""
         if self.client is None or self.world is None:
             raise ValueError("CarlaAdapter requires both client and world")
 
@@ -230,6 +240,7 @@ class CarlaAdapter:
         port: int = 2000,
         timeout_seconds: float = 10.0,
     ) -> CarlaAdapter:
+        """Connect to a running CARLA simulator and capture its world."""
         try:
             import carla
         except ImportError as exc:
@@ -247,6 +258,7 @@ class CarlaAdapter:
         return cls(client=client, world=client.get_world())
 
     def forward(self, joint_angles: Sequence[float]) -> Vec3:
+        """Reject robot-joint forward kinematics for CARLA vehicle worlds."""
         _ = joint_angles
         raise UnsupportedKinematicsError(
             "CarlaAdapter does not support joint-space forward kinematics; "
@@ -254,6 +266,7 @@ class CarlaAdapter:
         )
 
     def inverse(self, target: Vec3) -> tuple[float, ...] | None:
+        """Reject robot-joint inverse kinematics for CARLA vehicle worlds."""
         _ = target
         raise UnsupportedKinematicsError(
             "CarlaAdapter does not support joint-space inverse kinematics; "
@@ -266,6 +279,7 @@ class CarlaAdapter:
         obstacles_aabb: Sequence[AABB] = (),
         obstacles_sphere: Sequence[Sphere] = (),
     ) -> bool:
+        """Check a point against caller-supplied CARLA obstacle geometry."""
         if any(box.contains(point) for box in obstacles_aabb):
             return True
         return any(sphere.contains(point) for sphere in obstacles_sphere)
