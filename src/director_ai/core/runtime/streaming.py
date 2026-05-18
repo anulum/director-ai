@@ -113,6 +113,7 @@ class StreamSession:
 
     @property
     def output(self) -> str:
+        """Return generated output with hard-halted tokens removed."""
         if self.soft_halted:
             return "".join(self.tokens)
         if self.halted and self.halt_index >= 0:
@@ -121,22 +122,26 @@ class StreamSession:
 
     @property
     def token_count(self) -> int:
+        """Return the number of observed stream tokens."""
         return len(self.tokens)
 
     @property
     def avg_coherence(self) -> float:
+        """Return the average coherence score across observed tokens."""
         if not self.coherence_history:
             return 0.0
         return sum(self.coherence_history) / len(self.coherence_history)
 
     @property
     def min_coherence(self) -> float:
+        """Return the minimum coherence score across observed tokens."""
         if not self.coherence_history:
             return 0.0
         return min(self.coherence_history)
 
     @property
     def duration_ms(self) -> float:
+        """Return session duration in milliseconds."""
         return (self.end_time - self.start_time) * 1000
 
 
@@ -222,6 +227,7 @@ class StreamingKernel(HaltMonitor):
 
     @staticmethod
     def _suggested_action(reason: str) -> str:
+        """Return tenant-safe remediation guidance for a halt reason."""
         if "hard_limit" in reason:
             return "Reduce generation temperature or add KB facts."
         if "window_avg" in reason:
@@ -232,11 +238,13 @@ class StreamingKernel(HaltMonitor):
 
     @staticmethod
     def _scorer_path(scorer: object) -> str:
+        """Return a stable dotted path for scorer review attribution."""
         scorer_type = type(scorer)
         return f"{scorer_type.__module__}.{scorer_type.__qualname__}.review"
 
     @staticmethod
     def _fact_source(chunks: Sequence[EvidenceChunk]) -> str:
+        """Return a comma-separated list of unique evidence sources."""
         sources: list[str] = []
         for chunk in chunks:
             source_value = getattr(chunk, "source", "")
@@ -249,6 +257,7 @@ class StreamingKernel(HaltMonitor):
 
     @staticmethod
     def _retrieval_path(chunks: Sequence[EvidenceChunk]) -> str:
+        """Return the retrieval path used for halt trace attribution."""
         if chunks:
             return "scorer.review.evidence.chunks"
         return "scorer.review.no_chunks"
@@ -260,6 +269,7 @@ class StreamingKernel(HaltMonitor):
         history: list[float],
         window: deque[float],
     ) -> tuple[float | None, float]:
+        """Return threshold and margin values for a halt reason."""
         if "hard_limit" in reason:
             return self.hard_limit, max(0.0, self.hard_limit - event.coherence)
         if "window_avg" in reason:
@@ -273,6 +283,7 @@ class StreamingKernel(HaltMonitor):
 
     @staticmethod
     def _set_halt_otel_attributes(span: object, evidence: HaltEvidence | None) -> None:
+        """Attach halt and counterfactual attributes to an OTEL span."""
         setter = getattr(span, "set_attribute", None)
         if setter is None or evidence is None:
             return
@@ -390,6 +401,7 @@ class StreamingKernel(HaltMonitor):
                 )
 
         def _finalize_halt(event: TokenEvent, reason: str) -> None:
+            """Populate session, safety, and structured evidence for a halt."""
             event.halted = True
             session.halted = True
             if session.halt_index < 0:
@@ -485,6 +497,7 @@ class StreamingKernel(HaltMonitor):
             session.safety_events.append(event.safety_event)
 
         def _is_sentence_boundary(tok: str) -> bool:
+            """Return whether a token ends a sentence for soft halts."""
             stripped = tok.rstrip()
             return bool(stripped) and stripped[-1] in self._SENTENCE_ENDS
 
