@@ -37,7 +37,11 @@ def test_campaign_commands_pass_resolved_model_to_model_sensitive_runners(
     tmp_path: Path,
 ):
     items = build_run_items(output_root=tmp_path)
-    commands = {item.stage_id: item.command for item in items if item.model_alias == "balanced-default"}
+    commands = {
+        item.stage_id: item.command
+        for item in items
+        if item.model_alias == "balanced-default"
+    }
 
     assert "--model" in commands["aggrefact_anchor_vertex"]
     assert "--nli-model" in commands["halueval_vertex"]
