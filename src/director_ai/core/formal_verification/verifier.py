@@ -36,6 +36,7 @@ class ReasoningStep:
     formula: Formula
 
     def __post_init__(self) -> None:
+        """Validate the externally visible reasoning-step label."""
         if not self.label:
             raise ValueError("ReasoningStep.label must be non-empty")
 
@@ -51,6 +52,7 @@ class ReasoningVerdict:
 
     @property
     def contradictory(self) -> bool:
+        """Return whether the verified reasoning chain is inconsistent."""
         return not self.consistent
 
 
@@ -60,7 +62,9 @@ class VerifierBackend(Protocol):
 
     name: str
 
-    def solve(self, formula: Formula) -> Solution: ...
+    def solve(self, formula: Formula) -> Solution:
+        """Return a satisfiability result for one formula tree."""
+        ...
 
 
 class ReasoningVerifier:
@@ -74,9 +78,11 @@ class ReasoningVerifier:
     """
 
     def __init__(self, *, backend: VerifierBackend | None = None) -> None:
+        """Initialise the verifier with a backend or the DPLL default."""
         self._backend: VerifierBackend = backend or _DpllBackend()
 
     def verify(self, steps: Sequence[ReasoningStep]) -> ReasoningVerdict:
+        """Conjoin reasoning steps and solve them with the configured backend."""
         if not steps:
             raise ValueError("steps must be non-empty")
         conjunction = steps[0].formula
@@ -97,10 +103,12 @@ class _DpllBackend:
     name = "dpll"
 
     def __init__(self, *, solver: DpllSolver | None = None) -> None:
+        """Initialise the DPLL backend with its CNF converter."""
         self._solver = solver or DpllSolver()
         self._converter = CnfConverter()
 
     def solve(self, formula: Formula) -> Solution:
+        """Convert a formula to CNF and solve it with DPLL."""
         clauses = self._converter.convert(formula)
         return self._solver.solve(clauses)
 
@@ -117,12 +125,14 @@ class Z3Backend:
     name = "z3"
 
     def __init__(self, *, z3_solver: Any) -> None:
+        """Store an already-configured Z3 solver instance."""
         if z3_solver is None:
             raise ValueError("z3_solver is required")
         self._solver = z3_solver
 
     @classmethod
     def from_z3(cls) -> Z3Backend:
+        """Construct a Z3 backend after importing the optional dependency."""
         try:
             import z3
         except ImportError as exc:
@@ -133,6 +143,7 @@ class Z3Backend:
         return cls(z3_solver=z3.Solver())
 
     def solve(self, formula: Formula) -> Solution:
+        """Evaluate one formula in Z3 and convert its model to booleans."""
         try:
             import z3
         except ImportError as exc:  # pragma: no cover — covered by from_z3
@@ -194,6 +205,7 @@ class LeanBackend:
     name = "lean"
 
     def __init__(self, *, runner: Any) -> None:
+        """Store the caller-provided Lean runner callable."""
         if runner is None:
             raise ValueError("runner is required")
         if not callable(runner):
@@ -201,6 +213,7 @@ class LeanBackend:
         self._runner = runner
 
     def solve(self, formula: Formula) -> Solution:
+        """Render a formula for Lean and validate the runner response."""
         lean_source = _formula_to_lean(formula)
         response = self._runner(lean_source)
         if not isinstance(response, dict):
@@ -220,6 +233,7 @@ def _formula_to_lean(formula: Formula) -> str:
     from .formula import Iff, Implies, Not, Or, Variable
 
     def render(f: Formula) -> str:
+        """Render one local formula node as a Lean expression."""
         if isinstance(f, Variable):
             return f.name
         if isinstance(f, Not):
