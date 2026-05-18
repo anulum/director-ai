@@ -55,6 +55,7 @@ class RedisGroundTruthStore(GroundTruthStore):
         redis_url: str = "redis://localhost:6379/0",
         prefix: str = "dai:facts:",
     ):
+        """Connect to Redis and initialize a tenant-scoped fact store."""
         if redis is None:
             raise ImportError(
                 "redis package required. Run: pip install director-ai[enterprise]",
@@ -74,6 +75,7 @@ class RedisGroundTruthStore(GroundTruthStore):
         return f"{self.prefix}{tenant_id or '_default'}:hash"
 
     def add(self, key: str, value: str, tenant_id: str = "") -> None:
+        """Persist one fact in local memory and the tenant Redis hash."""
         tenant_id = _validate_redis_tenant_id(tenant_id)
         super().add(key, value, tenant_id=tenant_id)
         self.client.hset(self._hash_key(tenant_id), key, value)
@@ -92,6 +94,7 @@ class RedisGroundTruthStore(GroundTruthStore):
         return len(facts)
 
     def retrieve_context(self, query: str, tenant_id: str = "") -> str | None:
+        """Return Redis-backed fact context matching query terms for a tenant."""
         tenant_id = _validate_redis_tenant_id(tenant_id)
         facts_dict = self.client.hgetall(self._hash_key(tenant_id))
         if not facts_dict:
@@ -106,6 +109,7 @@ class RedisGroundTruthStore(GroundTruthStore):
         return "; ".join(context) if context else None
 
     def count(self, tenant_id: str = "") -> int:
+        """Return the number of stored facts for a tenant."""
         tenant_id = _validate_redis_tenant_id(tenant_id)
         return int(self.client.hlen(self._hash_key(tenant_id)))
 
@@ -122,6 +126,7 @@ class RedisScoreCache(ScoreCache):
         prefix: str = "dai:cache:",
         ttl_seconds: float = 300.0,
     ):
+        """Connect to Redis and initialize a distributed score cache."""
         if redis is None:
             raise ImportError(
                 "redis wrapper requires the 'redis' package. "
@@ -148,6 +153,7 @@ class RedisScoreCache(ScoreCache):
         tenant_id: str = "",
         scope: str = "",
     ):
+        """Load a cached score entry, enforcing generation and JSON integrity."""
         # Local import to construct the expected _CacheEntry format transparently
         from director_ai.core.cache import _CacheEntry
 
@@ -191,6 +197,7 @@ class RedisScoreCache(ScoreCache):
         tenant_id: str = "",
         scope: str = "",
     ) -> None:
+        """Store a coherence score entry under the configured Redis TTL."""
         tenant_id = _validate_redis_tenant_id(tenant_id)
         k = self._key(query, prefix, tenant_id, scope)
         redis_key = f"{self.prefix}{k}"
@@ -210,6 +217,7 @@ class RedisScoreCache(ScoreCache):
 
     @property
     def size(self) -> int:
+        """Return the count of Redis keys currently owned by this cache prefix."""
         count = 0
         cursor = 0
         while True:
@@ -220,6 +228,7 @@ class RedisScoreCache(ScoreCache):
         return count
 
     def clear(self) -> None:
+        """Delete all score-cache Redis keys under this prefix and reset metrics."""
         cursor = 0
         while True:
             cursor, keys = self.client.scan(cursor, match=f"{self.prefix}*", count=100)
