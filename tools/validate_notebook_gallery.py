@@ -65,24 +65,36 @@ def _validate_entry_schema(entry: dict[str, Any], index: int) -> list[str]:
         errors.append(f"{prefix}: duration_minutes must be a positive integer")
 
     extras = entry["extras"]
-    if not isinstance(extras, list) or not all(isinstance(item, str) for item in extras):
+    if not isinstance(extras, list) or not all(
+        isinstance(item, str) for item in extras
+    ):
         errors.append(f"{prefix}: extras must be a list of strings")
 
     return errors
 
 
-def _safe_relative_path(root: Path, value: str, index: int) -> tuple[Path | None, list[str]]:
+def _safe_relative_path(
+    root: Path, value: str, index: int
+) -> tuple[Path | None, list[str]]:
     relative = Path(value)
     if relative.is_absolute() or ".." in relative.parts:
-        return None, [f"{MANIFEST}: notebook[{index}]: path must stay inside repository"]
-    if relative.suffix != ".ipynb" or not relative.parts or relative.parts[0] != "notebooks":
+        return None, [
+            f"{MANIFEST}: notebook[{index}]: path must stay inside repository"
+        ]
+    if (
+        relative.suffix != ".ipynb"
+        or not relative.parts
+        or relative.parts[0] != "notebooks"
+    ):
         return None, [f"{MANIFEST}: notebook[{index}]: path must be notebooks/*.ipynb"]
     return root / relative, []
 
 
 def _validate_notebook_file(root: Path, entry: dict[str, Any], index: int) -> list[str]:
     errors: list[str] = []
-    notebook_path, path_errors = _safe_relative_path(root, str(entry.get("path", "")), index)
+    notebook_path, path_errors = _safe_relative_path(
+        root, str(entry.get("path", "")), index
+    )
     errors.extend(path_errors)
     if notebook_path is None:
         return errors
@@ -103,7 +115,10 @@ def _validate_notebook_file(root: Path, entry: dict[str, Any], index: int) -> li
 
 def _validate_manifest_coverage(root: Path, entries: list[dict[str, Any]]) -> list[str]:
     errors: list[str] = []
-    actual = {path.relative_to(root).as_posix() for path in sorted((root / "notebooks").glob("*.ipynb"))}
+    actual = {
+        path.relative_to(root).as_posix()
+        for path in sorted((root / "notebooks").glob("*.ipynb"))
+    }
     declared: list[str] = []
     ids: set[str] = set()
     for entry in entries:

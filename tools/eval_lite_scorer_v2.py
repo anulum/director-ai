@@ -66,7 +66,9 @@ def load_lite_scorer_v2_dataset(path: Path) -> tuple[list[EvalRow], list[str]]:
         return [], [f"{path}: dataset does not exist"]
     rows: list[EvalRow] = []
     errors: list[str] = []
-    for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, line in enumerate(
+        path.read_text(encoding="utf-8").splitlines(), 1
+    ):
         if not line.strip():
             errors.append(_row_error(path, line_number, "blank lines are not allowed"))
             continue
@@ -82,11 +84,19 @@ def load_lite_scorer_v2_dataset(path: Path) -> tuple[list[EvalRow], list[str]]:
         hypothesis = raw.get("hypothesis")
         label = _parse_label(raw.get("label"))
         if not isinstance(premise, str) or not premise.strip():
-            errors.append(_row_error(path, line_number, "premise must be a non-empty string"))
+            errors.append(
+                _row_error(path, line_number, "premise must be a non-empty string")
+            )
         if not isinstance(hypothesis, str) or not hypothesis.strip():
-            errors.append(_row_error(path, line_number, "hypothesis must be a non-empty string"))
+            errors.append(
+                _row_error(path, line_number, "hypothesis must be a non-empty string")
+            )
         if label is None:
-            errors.append(_row_error(path, line_number, "label must be boolean or supported/unsupported"))
+            errors.append(
+                _row_error(
+                    path, line_number, "label must be boolean or supported/unsupported"
+                )
+            )
         if (
             isinstance(premise, str)
             and premise.strip()
@@ -98,18 +108,30 @@ def load_lite_scorer_v2_dataset(path: Path) -> tuple[list[EvalRow], list[str]]:
     if not errors and rows:
         labels = {row.label for row in rows}
         if labels != {False, True}:
-            errors.append(f"{path}: dataset must contain supported and unsupported rows")
+            errors.append(
+                f"{path}: dataset must contain supported and unsupported rows"
+            )
     if not errors and not rows:
         errors.append(f"{path}: dataset must contain at least one row")
     return rows, errors
 
 
-def _balanced_accuracy(labels: list[bool], scores: list[float], threshold: float) -> tuple[float, float, float]:
+def _balanced_accuracy(
+    labels: list[bool], scores: list[float], threshold: float
+) -> tuple[float, float, float]:
     positives = [index for index, label in enumerate(labels) if label]
     negatives = [index for index, label in enumerate(labels) if not label]
-    true_positive_rate = sum(scores[index] >= threshold for index in positives) / len(positives)
-    true_negative_rate = sum(scores[index] < threshold for index in negatives) / len(negatives)
-    return (true_positive_rate + true_negative_rate) / 2.0, true_positive_rate, true_negative_rate
+    true_positive_rate = sum(scores[index] >= threshold for index in positives) / len(
+        positives
+    )
+    true_negative_rate = sum(scores[index] < threshold for index in negatives) / len(
+        negatives
+    )
+    return (
+        (true_positive_rate + true_negative_rate) / 2.0,
+        true_positive_rate,
+        true_negative_rate,
+    )
 
 
 def _candidate_thresholds(scores: list[float]) -> list[float]:
@@ -121,7 +143,9 @@ def _candidate_thresholds(scores: list[float]) -> list[float]:
     return sorted(candidates)
 
 
-def _select_threshold(labels: list[bool], scores: list[float]) -> tuple[float, float, float, float]:
+def _select_threshold(
+    labels: list[bool], scores: list[float]
+) -> tuple[float, float, float, float]:
     ranked: list[tuple[float, float, float, float, float]] = []
     for threshold in _candidate_thresholds(scores):
         balanced_accuracy, true_positive_rate, true_negative_rate = _balanced_accuracy(
@@ -185,7 +209,9 @@ def _measure_latency(
         if elapsed_ms <= 0.0:
             raise ValueError("latency clock produced non-positive duration")
         timings_ms.append(round(elapsed_ms, 6))
-    return round(statistics.median(timings_ms), 6), round(_percentile(timings_ms, 0.95), 6)
+    return round(statistics.median(timings_ms), 6), round(
+        _percentile(timings_ms, 0.95), 6
+    )
 
 
 def _write_result(path: Path, result: LiteScorerV2EvalResult) -> None:
@@ -195,7 +221,9 @@ def _write_result(path: Path, result: LiteScorerV2EvalResult) -> None:
     payload["heldout_eval_balanced_accuracy"] = result.balanced_accuracy
     payload["heldout_eval_threshold"] = result.threshold
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
 
 
 def evaluate_lite_scorer_v2(
@@ -214,7 +242,12 @@ def evaluate_lite_scorer_v2(
     scores = _score_rows(rows, scorer)
 
     if threshold is None:
-        selected_threshold, balanced_accuracy, true_positive_rate, true_negative_rate = _select_threshold(
+        (
+            selected_threshold,
+            balanced_accuracy,
+            true_positive_rate,
+            true_negative_rate,
+        ) = _select_threshold(
             labels,
             scores,
         )

@@ -41,9 +41,7 @@ def test_api_reference_gate_rejects_missing_markdown_target(tmp_path: Path) -> N
 
     errors = validate_api_reference(tmp_path)
 
-    assert errors == [
-        "docs-site/api/index.md:5: missing markdown target missing.md"
-    ]
+    assert errors == ["docs-site/api/index.md:5: missing markdown target missing.md"]
 
 
 def test_api_reference_gate_rejects_missing_importable_symbol(tmp_path: Path) -> None:

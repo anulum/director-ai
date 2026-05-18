@@ -60,7 +60,7 @@ files = ["app.py", "requirements.txt", "README.md"]
         "import gradio as gr\n\n"
         "def build_app() -> gr.Blocks:\n"
         "    return gr.Blocks()\n\n"
-        "if __name__ == \"__main__\":\n"
+        'if __name__ == "__main__":\n'
         "    build_app().launch()\n",
         encoding="utf-8",
     )
@@ -83,7 +83,9 @@ def test_hf_space_demo_rejects_implicit_git_add(tmp_path: Path) -> None:
 
     errors = validate_hf_space_demo(tmp_path)
 
-    assert "demo/push_to_hf.sh: use explicit Space files instead of git add -A" in errors
+    assert (
+        "demo/push_to_hf.sh: use explicit Space files instead of git add -A" in errors
+    )
 
 
 def test_hf_space_demo_rejects_missing_app_file_metadata(tmp_path: Path) -> None:
@@ -97,7 +99,7 @@ def test_hf_space_demo_rejects_missing_app_file_metadata(tmp_path: Path) -> None
     )
     readme = tmp_path / "demo" / "README_HF.md"
     readme.write_text(
-        readme.read_text(encoding="utf-8").replace('app_file: app.py\n', ''),
+        readme.read_text(encoding="utf-8").replace("app_file: app.py\n", ""),
         encoding="utf-8",
     )
 

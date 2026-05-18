@@ -57,7 +57,10 @@ def test_multilingual_corpus_rejects_missing_language_coverage(tmp_path: Path) -
     errors = validate_multilingual_corpus(tmp_path)
 
     assert "benchmarks/multilingual_corpus.jsonl: expected 200 rows, found 1" in errors
-    assert "benchmarks/multilingual_corpus.jsonl: language en has 1 rows, expected 25" in errors
+    assert (
+        "benchmarks/multilingual_corpus.jsonl: language en has 1 rows, expected 25"
+        in errors
+    )
 
 
 def test_multilingual_corpus_rejects_invalid_decision_for_label(tmp_path: Path) -> None:

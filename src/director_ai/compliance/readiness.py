@@ -19,7 +19,7 @@ from typing import Any, cast
 class ReadinessStatus(StrEnum):
     """Readiness status for a control row."""
 
-    PASS = "passed"
+    PASS = "passed"  # nosec B105 - readiness status label, not a password.
     WARNING = "warning"
     FAIL = "failing"
     NOT_APPLICABLE = "not_applicable"

@@ -127,7 +127,9 @@ def _validate_app(root: Path) -> list[str]:
     except SyntaxError as exc:
         return [f"{APP}: invalid Python syntax: {exc}"]
 
-    functions = {node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
+    functions = {
+        node.name for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)
+    }
     imports_gradio = any(
         isinstance(node, ast.Import)
         and any(alias.name == "gradio" for alias in node.names)
@@ -152,10 +154,14 @@ def _validate_push_script(root: Path) -> list[str]:
         errors.append(f"{PUSH_SCRIPT}: must start with a bash shebang")
     for pattern in (r"\bgit\s+add\s+-A\b", r"\bgit\s+add\s+\.\b"):
         if re.search(pattern, text):
-            errors.append(f"{PUSH_SCRIPT}: use explicit Space files instead of git add -A")
+            errors.append(
+                f"{PUSH_SCRIPT}: use explicit Space files instead of git add -A"
+            )
             break
     if "git add app.py requirements.txt README.md" not in text:
-        errors.append(f"{PUSH_SCRIPT}: must stage only app.py requirements.txt README.md")
+        errors.append(
+            f"{PUSH_SCRIPT}: must stage only app.py requirements.txt README.md"
+        )
     for source, target in (
         ("app.py", "app.py"),
         ("requirements.txt", "requirements.txt"),

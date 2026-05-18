@@ -87,7 +87,9 @@ def _validate_plan(data: dict[str, Any]) -> list[str]:
 
     candidates = data["student_candidates"]
     if not isinstance(candidates, list) or set(candidates) != REQUIRED_STUDENTS:
-        errors.append(f"{PLAN}: student_candidates must be {sorted(REQUIRED_STUDENTS)!r}")
+        errors.append(
+            f"{PLAN}: student_candidates must be {sorted(REQUIRED_STUDENTS)!r}"
+        )
 
     for key in (
         "teacher_artifact_required",
@@ -106,10 +108,14 @@ def _validate_plan(data: dict[str, Any]) -> list[str]:
     if status not in ALLOWED_STATUS:
         errors.append(f"{PLAN}: unsupported status {status!r}")
     if status == "validated" and data["public_score_claim"] is not True:
-        errors.append(f"{PLAN}: validated status requires a separate scored release plan")
+        errors.append(
+            f"{PLAN}: validated status requires a separate scored release plan"
+        )
 
     if data["evidence_packet"] != DEFAULT_EVIDENCE_PACKET.as_posix():
-        errors.append(f"{PLAN}: evidence_packet must be {DEFAULT_EVIDENCE_PACKET.as_posix()}")
+        errors.append(
+            f"{PLAN}: evidence_packet must be {DEFAULT_EVIDENCE_PACKET.as_posix()}"
+        )
 
     return errors
 
@@ -177,7 +183,9 @@ def _validate_recorded_evidence(
 
     if packet["student_artifact_status"] in RECORDED_STATUS:
         errors.extend(
-            _require_string(packet, label, "student_artifact_status", "student_candidate")
+            _require_string(
+                packet, label, "student_artifact_status", "student_candidate"
+            )
         )
         if packet.get("student_candidate") not in REQUIRED_STUDENTS:
             errors.append(
@@ -291,7 +299,9 @@ def _validate_recorded_evidence(
             and not isinstance(p95, bool)
             and float(p95) < float(p50)
         ):
-            errors.append(f"{label}: latency_p95_ms must be greater than latency_p50_ms")
+            errors.append(
+                f"{label}: latency_p95_ms must be greater than latency_p50_ms"
+            )
 
     return errors
 

@@ -130,7 +130,9 @@ CONTRADICTIONS = {
 def build_rows() -> list[dict[str, object]]:
     rows: list[dict[str, object]] = []
     for language, terms in LANGUAGES.items():
-        for index, (category, key, label, decision, risk_tag) in enumerate(SCENARIOS, 1):
+        for index, (category, key, label, decision, risk_tag) in enumerate(
+            SCENARIOS, 1
+        ):
             source = terms[key]
             response = source if label == "supported" else CONTRADICTIONS[key]
             rows.append(
@@ -163,7 +165,8 @@ def main() -> int:
     rows = build_rows()
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(
-        "\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows) + "\n",
+        "\n".join(json.dumps(row, ensure_ascii=False, sort_keys=True) for row in rows)
+        + "\n",
         encoding="utf-8",
     )
     print(f"wrote {len(rows)} rows to {args.output}")

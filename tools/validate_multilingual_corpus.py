@@ -50,7 +50,9 @@ def _load_rows(corpus_path: Path) -> tuple[list[dict[str, Any]], list[str]]:
 
     rows: list[dict[str, Any]] = []
     errors: list[str] = []
-    for line_number, line in enumerate(corpus_path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, line in enumerate(
+        corpus_path.read_text(encoding="utf-8").splitlines(), 1
+    ):
         if not line.strip():
             errors.append(f"{CORPUS}:{line_number}: blank lines are not allowed")
             continue
@@ -97,7 +99,11 @@ def _validate_row(row: dict[str, Any], line_number: int) -> list[str]:
         errors.append(f"{prefix}: unsupported language {language!r}")
 
     row_id = row.get("id")
-    if isinstance(row_id, str) and isinstance(language, str) and not row_id.startswith(f"{language}-"):
+    if (
+        isinstance(row_id, str)
+        and isinstance(language, str)
+        and not row_id.startswith(f"{language}-")
+    ):
         errors.append(f"{prefix}: id must start with language prefix {language}-")
 
     category = row.get("category")
@@ -145,7 +151,9 @@ def validate_multilingual_corpus(root: Path) -> list[str]:
         return errors
 
     if len(rows) != EXPECTED_TOTAL_ROWS:
-        errors.append(f"{CORPUS}: expected {EXPECTED_TOTAL_ROWS} rows, found {len(rows)}")
+        errors.append(
+            f"{CORPUS}: expected {EXPECTED_TOTAL_ROWS} rows, found {len(rows)}"
+        )
 
     seen_ids: set[str] = set()
     for line_number, row in enumerate(rows, 1):

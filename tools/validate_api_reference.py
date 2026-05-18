@@ -34,14 +34,24 @@ def _split_markdown_row(line: str) -> list[str]:
 
 def _parse_reference_rows(index_path: Path) -> list[ReferenceRow]:
     rows: list[ReferenceRow] = []
-    for line_number, line in enumerate(index_path.read_text(encoding="utf-8").splitlines(), 1):
+    for line_number, line in enumerate(
+        index_path.read_text(encoding="utf-8").splitlines(), 1
+    ):
         stripped = line.strip()
-        if not stripped.startswith("|") or set(stripped.replace("|", "").strip()) <= {"-"}:
+        if not stripped.startswith("|") or set(stripped.replace("|", "").strip()) <= {
+            "-"
+        }:
             continue
         cells = _split_markdown_row(stripped)
         if len(cells) < 2:
             continue
-        if cells[0].lower() in {"symbol", "class", "function", "interface", "exception"}:
+        if cells[0].lower() in {
+            "symbol",
+            "class",
+            "function",
+            "interface",
+            "exception",
+        }:
             continue
         rows.append(ReferenceRow(line_number, cells[0], cells[1]))
     return rows
@@ -121,19 +131,25 @@ def _validate_markdown_link(
     try:
         target_path.relative_to(root.resolve())
     except ValueError:
-        return [f"{REFERENCE_INDEX}:{line_number}: markdown target escapes repository {raw_link}"]
+        return [
+            f"{REFERENCE_INDEX}:{line_number}: markdown target escapes repository {raw_link}"
+        ]
 
     if not target_path.exists():
         display = raw_link.split("#", 1)[0] or f"#{fragment}"
         return [f"{REFERENCE_INDEX}:{line_number}: missing markdown target {display}"]
 
     if fragment and fragment not in _heading_anchors(target_path):
-        return [f"{REFERENCE_INDEX}:{line_number}: missing anchor #{fragment} in {path or REFERENCE_INDEX}"]
+        return [
+            f"{REFERENCE_INDEX}:{line_number}: missing anchor #{fragment} in {path or REFERENCE_INDEX}"
+        ]
 
     return []
 
 
-def _validate_importable_symbol(line_number: int, module_name: str, symbol: str) -> list[str]:
+def _validate_importable_symbol(
+    line_number: int, module_name: str, symbol: str
+) -> list[str]:
     if not module_name.startswith("director_ai"):
         return []
     try:
@@ -142,7 +158,9 @@ def _validate_importable_symbol(line_number: int, module_name: str, symbol: str)
         return [f"{REFERENCE_INDEX}:{line_number}: cannot import {module_name}: {exc}"]
 
     if not hasattr(module, symbol):
-        return [f"{REFERENCE_INDEX}:{line_number}: {module_name} does not expose {symbol}"]
+        return [
+            f"{REFERENCE_INDEX}:{line_number}: {module_name} does not expose {symbol}"
+        ]
     return []
 
 
@@ -167,7 +185,9 @@ def validate_api_reference(root: Path) -> list[str]:
         module_name = _extract_module(row.module_cell)
         symbol = _extract_symbol(row.symbol_cell)
         if module_name and symbol:
-            errors.extend(_validate_importable_symbol(row.line_number, module_name, symbol))
+            errors.extend(
+                _validate_importable_symbol(row.line_number, module_name, symbol)
+            )
 
     return errors
 

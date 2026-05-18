@@ -110,7 +110,9 @@ def test_lite_scorer_v2_eval_rejects_single_class_dataset(tmp_path: Path) -> Non
         {"premise": "A", "hypothesis": "A", "label": True},
         {"premise": "B", "hypothesis": "B", "label": True},
     ]
-    dataset.write_text("\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8")
+    dataset.write_text(
+        "\n".join(json.dumps(row) for row in rows) + "\n", encoding="utf-8"
+    )
 
     errors = load_lite_scorer_v2_dataset(dataset)[1]
 

@@ -113,7 +113,9 @@ def _validate_record_inputs(root: Path, record: EvidenceRecord) -> list[str]:
     if not record.latency_device.strip():
         errors.append(f"{DEFAULT_EVIDENCE_PACKET}: latency_device must be non-empty")
     if record.latency_sample_count < 100:
-        errors.append(f"{DEFAULT_EVIDENCE_PACKET}: latency_sample_count must be at least 100")
+        errors.append(
+            f"{DEFAULT_EVIDENCE_PACKET}: latency_sample_count must be at least 100"
+        )
     if record.latency_p50_ms <= 0.0:
         errors.append(
             f"{DEFAULT_EVIDENCE_PACKET}: quantized_latency_status recorded requires latency_p50_ms"
@@ -123,14 +125,28 @@ def _validate_record_inputs(root: Path, record: EvidenceRecord) -> list[str]:
             f"{DEFAULT_EVIDENCE_PACKET}: quantized_latency_status recorded requires latency_p95_ms"
         )
     if record.latency_p95_ms < record.latency_p50_ms:
-        errors.append(f"{DEFAULT_EVIDENCE_PACKET}: latency_p95_ms must be greater than latency_p50_ms")
+        errors.append(
+            f"{DEFAULT_EVIDENCE_PACKET}: latency_p95_ms must be greater than latency_p50_ms"
+        )
     return errors
 
 
 def _render_packet(root: Path, record: EvidenceRecord) -> str:
-    student_artifact = record.student_artifact if record.student_artifact.is_absolute() else root / record.student_artifact
-    teacher_artifact = record.teacher_artifact if record.teacher_artifact.is_absolute() else root / record.teacher_artifact
-    onnx_artifact = record.onnx_artifact if record.onnx_artifact.is_absolute() else root / record.onnx_artifact
+    student_artifact = (
+        record.student_artifact
+        if record.student_artifact.is_absolute()
+        else root / record.student_artifact
+    )
+    teacher_artifact = (
+        record.teacher_artifact
+        if record.teacher_artifact.is_absolute()
+        else root / record.teacher_artifact
+    )
+    onnx_artifact = (
+        record.onnx_artifact
+        if record.onnx_artifact.is_absolute()
+        else root / record.onnx_artifact
+    )
 
     fields: list[tuple[str, str]] = [
         ("schema_version", _toml_string("1.0.0")),
@@ -138,10 +154,16 @@ def _render_packet(root: Path, record: EvidenceRecord) -> str:
         ("public_score_claim", "false"),
         ("student_artifact_status", _toml_string("recorded")),
         ("student_candidate", _toml_string(record.student_candidate)),
-        ("student_artifact_path", _toml_string(_display_path(root, record.student_artifact))),
+        (
+            "student_artifact_path",
+            _toml_string(_display_path(root, record.student_artifact)),
+        ),
         ("student_artifact_sha256", _toml_string(_sha256(student_artifact))),
         ("teacher_artifact_status", _toml_string("recorded")),
-        ("teacher_artifact_path", _toml_string(_display_path(root, record.teacher_artifact))),
+        (
+            "teacher_artifact_path",
+            _toml_string(_display_path(root, record.teacher_artifact)),
+        ),
         ("teacher_artifact_sha256", _toml_string(_sha256(teacher_artifact))),
         ("heldout_eval_status", _toml_string("recorded")),
         (
@@ -301,7 +323,9 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("root", type=Path, help="Repository root")
     parser.add_argument("--eval-result", type=Path)
-    parser.add_argument("--student-candidate", required=True, choices=sorted(REQUIRED_STUDENTS))
+    parser.add_argument(
+        "--student-candidate", required=True, choices=sorted(REQUIRED_STUDENTS)
+    )
     parser.add_argument("--student-artifact", required=True, type=Path)
     parser.add_argument("--teacher-artifact", required=True, type=Path)
     parser.add_argument("--heldout-eval-dataset", type=Path)
@@ -328,7 +352,11 @@ def _missing_manual_args(args: argparse.Namespace) -> list[str]:
         "latency_p50_ms",
         "latency_p95_ms",
     )
-    return [f"--{field.replace('_', '-')}" for field in required if getattr(args, field) is None]
+    return [
+        f"--{field.replace('_', '-')}"
+        for field in required
+        if getattr(args, field) is None
+    ]
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -354,7 +382,10 @@ def main(argv: list[str] | None = None) -> int:
 
     missing = _missing_manual_args(args)
     if missing:
-        print(f"missing required arguments without --eval-result: {', '.join(missing)}", file=sys.stderr)
+        print(
+            f"missing required arguments without --eval-result: {', '.join(missing)}",
+            file=sys.stderr,
+        )
         return 1
     record = EvidenceRecord(
         student_candidate=args.student_candidate,
