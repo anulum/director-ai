@@ -234,15 +234,15 @@ required_evidence = [
 
 [[required_outputs]]
 path = "security-validation/environment.json"
-description = "Runtime, package, server config, and enabled optional extras fingerprint."
+description = "Full 40-hex target commit, non-empty runtime, package, server config, tester identity, enabled optional extras, config fingerprint, and ordered ISO-8601 UTC run timestamps."
 
 [[required_outputs]]
 path = "security-validation/http_transcripts/"
-description = "HTTP requests and responses with credentials redacted."
+description = "Non-empty HTTP requests and responses with credentials redacted; files must resolve inside the evidence directory."
 
 [[required_outputs]]
 path = "security-validation/websocket_frames.jsonl"
-description = "Ordered WebSocket frames for accepted, rejected, halted, and cancelled streams."
+description = "Ordered WebSocket frames with non-empty session ids and no unknown frame classes for accepted, rejected, halted, and cancelled streams."
 
 [[required_outputs]]
 path = "security-validation/tenant_matrix.csv"
@@ -266,8 +266,8 @@ description = "Python, Rust, Go, and protobuf boundary cases."
 
 [[required_outputs]]
 path = "security-validation/findings.jsonl"
-description = "One finding per line with severity, surface, reproduction, and evidence path."
+description = "One finding per line with packet track_id, canonical lower-case severity, declared track surface, reproduction, evidence path, and high/critical full-SHA fix_commit or owner/rationale accepted_risk disposition."
 
 [[required_outputs]]
 path = "security-validation/summary.md"
-description = "Pass/fail summary for each track, residual risk, and recommended fixes."
+description = "Canonical lower-case summary for each packet track with exact colon-space separators; pass/fail lines contain only status, blocked/skipped lines include reasons, and unknown track status lines are rejected."

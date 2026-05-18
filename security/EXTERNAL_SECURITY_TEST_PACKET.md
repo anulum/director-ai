@@ -152,23 +152,48 @@ Required evidence:
 
 | Output path | Contents |
 |---|---|
-| `security-validation/environment.json` | Runtime, package, server config, and optional extras fingerprint |
-| `security-validation/http_transcripts/` | HTTP requests and responses with credentials redacted |
-| `security-validation/websocket_frames.jsonl` | Accepted, rejected, halted, and cancelled stream frames |
+| `security-validation/environment.json` | Full 40-hex target commit, non-empty runtime, package, server config, optional extras, tester identity, and ordered ISO-8601 UTC run timestamps |
+| `security-validation/http_transcripts/` | Non-empty HTTP requests and responses with credentials redacted |
+| `security-validation/websocket_frames.jsonl` | Accepted, rejected, halted, and cancelled stream frames with non-empty session ids and no unknown frame classes |
 | `security-validation/tenant_matrix.csv` | Tenant read, write, list, stream, and gRPC access matrix |
 | `security-validation/ingestion_matrix.csv` | Accepted and rejected ingestion payload cases |
 | `security-validation/physical_matrix.csv` | Physical action, budget, adapter, and tenant-isolation cases |
 | `security-validation/attestation_matrix.csv` | Merkle opening, passport, issuer, and backend cases |
 | `security-validation/contract_matrix.csv` | Python, Rust, Go, and protobuf boundary cases |
-| `security-validation/findings.jsonl` | Finding severity, surface, reproduction, and evidence path |
+| `security-validation/findings.jsonl` | Finding track id, severity, surface, reproduction, evidence path, and high/critical disposition |
 | `security-validation/summary.md` | Pass/fail summary per track, residual risk, and fixes |
 
 ## Report Rules
 
 1. Do not include raw prompts, credentials, cookies, or bearer tokens in output
    files.
-2. Preserve exact HTTP status codes, WebSocket close codes, and response bodies
-   after redaction.
-3. State which optional extras were installed for each run.
-4. Mark skipped checks with the missing dependency or disabled config flag.
-5. Include one replay command or script path for every finding.
+2. Keep every returned file and directory resolved inside
+   `security-validation/`; symlinks or path aliases that point outside the
+   evidence bundle are rejected.
+3. Preserve exact HTTP status codes, WebSocket close codes, and response bodies
+   after redaction. Transcript files must be non-empty.
+4. Keep every matrix row self-consistent: each `actual_status` or
+   `actual_decision` value must match the corresponding expected value after
+   case and surrounding-whitespace normalisation. Required matrix cells must be
+   non-empty.
+5. State which optional extras were installed for each run.
+6. In `summary.md`, write one `- <track_id>: <status>` line for each track;
+   accepted statuses are the lower-case tokens `pass`, `fail`, `blocked`, and
+   `skipped`; mixed-case variants are rejected. Each track may appear once, and
+   track-shaped status lines for unknown track ids are rejected. `pass` and
+   `fail` lines must contain only the status token; `blocked` and `skipped`
+   lines must include a reason after the status token. The `target_commit` line
+   must exactly match `environment.json`; the space after each colon is
+   required, target-commit alias lines are rejected, and prefix-only matches are
+   rejected.
+7. Include a known packet `track_id` in every finding record. Every track marked
+   `fail` in `summary.md` must have at least one matching finding above `info`
+   severity, and tracks marked `pass` may not carry findings above `info`.
+   Finding `surface` values must be declared under the finding track; `surface`,
+   `reproduction`, and `evidence_path` values must be non-empty, and
+   `evidence_path` must point to a file inside the returned evidence directory.
+   Every `high` or `critical` finding must include a full 40-hex `fix_commit`
+   or a non-empty `accepted_risk` disposition that describes owner and
+   rationale.
+8. Mark skipped checks with the missing dependency or disabled config flag.
+9. Include one replay command or script path for every finding.
