@@ -37,6 +37,7 @@ class BehaviorObservation:
     source: str = ""
 
     def __post_init__(self) -> None:
+        """Validate that feature names and numeric values are usable."""
         if not self.features:
             raise ValueError("BehaviorObservation.features must be non-empty")
         for name, value in self.features.items():
@@ -53,6 +54,7 @@ class _WelfordState:
     m2: float = 0.0
 
     def update(self, value: float) -> None:
+        """Fold one value into the running Welford accumulator."""
         self.n += 1
         delta = value - self.mean
         self.mean += delta / self.n
@@ -61,10 +63,12 @@ class _WelfordState:
 
     @property
     def variance(self) -> float:
+        """Return the population variance for the accumulated values."""
         return self.m2 / self.n if self.n > 1 else 0.0
 
     @property
     def stddev(self) -> float:
+        """Return the standard deviation for the accumulated values."""
         return math.sqrt(self.variance)
 
 
@@ -84,30 +88,36 @@ class BehavioralFingerprint:
     _state: dict[str, _WelfordState] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate the minimum sample gate for z-score trust."""
         if self.min_samples <= 0:
             raise ValueError(f"min_samples must be positive; got {self.min_samples}")
 
     def update(self, observation: BehaviorObservation) -> None:
+        """Update all feature distributions from one observation."""
         for name, raw in observation.features.items():
             value = float(raw)
             state = self._state.setdefault(name, _WelfordState())
             state.update(value)
 
     def update_many(self, observations: list[BehaviorObservation]) -> None:
+        """Update the fingerprint from a batch of ordered observations."""
         for obs in observations:
             self.update(obs)
 
     def sample_count(self, feature: str | None = None) -> int:
+        """Return samples for one feature or the largest feature count."""
         if feature is None:
             return max((s.n for s in self._state.values()), default=0)
         return self._state[feature].n if feature in self._state else 0
 
     def mean(self, feature: str) -> float:
+        """Return the running mean for a tracked feature."""
         if feature not in self._state or self._state[feature].n == 0:
             raise KeyError(f"no samples for feature {feature!r}")
         return self._state[feature].mean
 
     def stddev(self, feature: str) -> float:
+        """Return the running standard deviation for a tracked feature."""
         if feature not in self._state:
             raise KeyError(f"no samples for feature {feature!r}")
         return self._state[feature].stddev
@@ -164,10 +174,12 @@ class IdentityMonitor:
     update_on_anomaly: bool = False
 
     def __post_init__(self) -> None:
+        """Validate the anomaly threshold before monitoring starts."""
         if self.z_threshold <= 0:
             raise ValueError(f"z_threshold must be positive; got {self.z_threshold}")
 
     def evaluate(self, observation: BehaviorObservation) -> IdentityAnomaly | None:
+        """Return the largest threshold breach, updating baseline when allowed."""
         worst: tuple[str, float] | None = None
         for name, raw in observation.features.items():
             z = self.fingerprint.z_score(name, float(raw))
