@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anulum.li/schemas/director-ai/customer-model-factory-release-gate.schema.json",
+  "title": "DIRECTOR-AI Customer Model Factory Release Gate",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "release_id",
+    "ready",
+    "promotion_allowed",
+    "customer_id",
+    "workspace_id",
+    "tenant_id",
+    "deployment_id",
+    "generated_at",
+    "enterprise_ready",
+    "enterprise_blocking_debt_ids",
+    "artifact_hashes",
+    "blockers",
+    "release_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "release_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "promotion_allowed": {
+      "type": "boolean"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "workspace_id": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "deployment_id": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "enterprise_ready": {
+      "type": "boolean"
+    },
+    "enterprise_blocking_debt_ids": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "artifact_hashes": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "blockers": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "release_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

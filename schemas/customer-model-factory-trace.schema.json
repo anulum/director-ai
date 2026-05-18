@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anulum.li/schemas/director-ai/customer-model-factory-trace.schema.json",
+  "title": "DIRECTOR-AI Customer Model Factory Trace",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "trace_id",
+    "customer_id",
+    "tenant_id",
+    "split",
+    "prompt",
+    "response",
+    "expected_decision",
+    "severity",
+    "label",
+    "source_refs",
+    "policy_refs",
+    "reviewer_role",
+    "observed_at"
+  ],
+  "properties": {
+    "trace_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "customer_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "split": {
+      "type": "string",
+      "enum": ["train", "eval", "test"]
+    },
+    "prompt": {
+      "type": "string",
+      "minLength": 1
+    },
+    "response": {
+      "type": "string",
+      "minLength": 1
+    },
+    "expected_decision": {
+      "type": "string",
+      "enum": ["approve", "block", "abstain", "escalate"]
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["low", "medium", "high", "critical"]
+    },
+    "label": {
+      "type": "string",
+      "minLength": 1
+    },
+    "source_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "policy_refs": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "reviewer_role": {
+      "type": "string",
+      "minLength": 1
+    },
+    "observed_at": {
+      "type": "string",
+      "minLength": 1
+    },
+    "contains_pii": {
+      "type": "boolean"
+    },
+    "contains_secret": {
+      "type": "boolean"
+    },
+    "redaction_status": {
+      "type": "string",
+      "enum": ["not_required", "redacted", "pending"]
+    },
+    "vertical": {
+      "type": "string"
+    },
+    "metadata": {
+      "type": "object"
+    }
+  }
+}

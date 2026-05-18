@@ -1,0 +1,69 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anulum.li/schemas/director-ai/customer-model-factory-banking-metadata.schema.json",
+  "title": "DIRECTOR-AI Customer Model Factory Banking Metadata",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "business_line",
+    "regulated_category",
+    "jurisdiction",
+    "requires_citation",
+    "evidence_refs",
+    "requires_escalation"
+  ],
+  "properties": {
+    "business_line": {
+      "type": "string",
+      "enum": [
+        "corporate_banking",
+        "private_banking",
+        "retail_banking",
+        "risk_compliance",
+        "wealth_management"
+      ]
+    },
+    "regulated_category": {
+      "type": "string",
+      "enum": [
+        "complaints_disputes",
+        "credit_risk",
+        "fees_rates_terms",
+        "financial_advice_boundary",
+        "investment_suitability",
+        "kyc_aml",
+        "product_disclosure"
+      ]
+    },
+    "jurisdiction": {
+      "type": "string",
+      "minLength": 2
+    },
+    "requires_citation": {
+      "type": "boolean"
+    },
+    "evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "numeric_evidence_refs": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "requires_escalation": {
+      "type": "boolean"
+    },
+    "customer_segment": {
+      "type": "string"
+    },
+    "product_family": {
+      "type": "string"
+    }
+  }
+}

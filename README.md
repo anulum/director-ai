@@ -58,6 +58,7 @@ graph LR
 - **Token-level streaming halt** — severs output mid-generation when coherence degrades. Not post-hoc review.
 - **Dual-entropy scoring** — NLI contradiction detection (0.4B DeBERTa) + RAG fact-checking against your knowledge base.
 - **Selectable scorer models** — choose a benchmarked local scorer profile for the latency/accuracy trade-off you need, without changing the guarded LLM provider.
+- **Customer Model Factory** — validate customer-owned guardrail traces, bind training/benchmark/deployment evidence, add sector packs such as Banking, and export runtime packages for private customer implementation.
 - **Structured output verification** — JSON schema validation, numeric consistency, reasoning chain verification, temporal freshness scoring. Stdlib-only, zero dependencies.
 - **Intent-grounded injection detection** — two-stage pipeline: regex pattern matching (fast) + bidirectional NLI divergence scoring (semantic). Detects the *effect* of injection in the output.
 - **12 Rust-accelerated compute functions** — 9.4× geometric mean speedup over Python paths. Transparent fallback when Rust kernel is not installed.
@@ -85,6 +86,37 @@ Domain-only and custom scorer models require explicit operator opt-in:
 per-model benchmark package plan in
 [`benchmarks/model_benchmark_packages.toml`](benchmarks/model_benchmark_packages.toml);
 full external benchmark packages are required before public model-specific claims.
+
+### Customer Model Factory
+
+Director-AI can package customer-specific guardrail scorers without changing
+the guarded application provider. The implemented factory primitives cover:
+
+- customer trace validation with split, leakage, tenant-boundary, severity,
+  reference, and secrets/redaction checks;
+- training manifests with immutable base-model provenance and Vertex,
+  customer-cloud, on-prem, or local-pilot lanes;
+- benchmark selection with conservative, balanced, low-latency, high-recall,
+  and zero silent unsafe passes objective profiles;
+- deployment, evidence-pack, and runtime-package manifests with deterministic
+  hashes, audit-log URIs, rollback URIs, customer-controlled telemetry, and no
+  external callback by default;
+- Banking as the first vertical pack, including regulated-category taxonomy,
+  citation evidence, numeric evidence, escalation, and regulation mapping.
+
+Customer examples are local helpers that consume the generated runtime package
+shape without opening network connections:
+
+```bash
+python examples/customer_model_factory_runtime.py
+python examples/customer_model_factory_rest_payload.py
+```
+
+The runtime package schema is
+[`schemas/customer-model-factory-runtime-package.schema.json`](schemas/customer-model-factory-runtime-package.schema.json).
+Customer-specific accuracy claims require package-specific benchmark evidence;
+the factory exposes the controls needed to pursue high-assurance deployments
+without making unscoped accuracy promises.
 
 ### Advanced RAG (6 pluggable retrieval strategies)
 

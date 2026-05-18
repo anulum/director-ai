@@ -135,6 +135,7 @@ nav:
       - Threshold Tuning: guide/threshold-tuning.md
       - KB Ingestion: guide/kb-ingestion.md
       - Evidence & Fallback: guide/evidence.md
+      - Customer Model Factory: guide/customer-model-factory.md
       - Domain Presets: guide/presets.md
       - Configuration: guide/config.md
       - Error Handling: guide/error-handling.md
@@ -221,6 +222,7 @@ nav:
       - REST Server: api/server.md
       - gRPC Server: api/grpc.md
       - CLI: api/cli.md
+      - Customer Model Factory: api/customer-model-factory.md
       - Cyber-Physical Grounding: api/cyber-physical.md
       - Containment & Reality Anchor: api/containment.md
       - Cross-Org Passport: api/zk-attestation.md

@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anulum.li/schemas/director-ai/customer-model-factory-training-manifest.schema.json",
+  "title": "DIRECTOR-AI Customer Model Factory Training Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_id",
+    "ready",
+    "customer_id",
+    "workspace_id",
+    "tenant_id",
+    "dataset_hash",
+    "dataset_ready",
+    "lane",
+    "base_model_id",
+    "base_model_revision",
+    "base_model_artifact_uri",
+    "output_uri",
+    "hyperparameters",
+    "objective_profile",
+    "requires_private_execution",
+    "findings",
+    "manifest_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "package_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "customer_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "workspace_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "tenant_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "dataset_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "dataset_ready": {
+      "type": "boolean"
+    },
+    "lane": {
+      "type": "string",
+      "enum": ["vertex", "customer_cloud", "on_prem", "local_pilot"]
+    },
+    "base_model_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "base_model_revision": {
+      "type": "string"
+    },
+    "base_model_artifact_uri": {
+      "type": "string"
+    },
+    "output_uri": {
+      "type": "string",
+      "minLength": 1
+    },
+    "hyperparameters": {
+      "type": "object"
+    },
+    "objective_profile": {
+      "type": "string",
+      "enum": [
+        "conservative",
+        "balanced",
+        "low_latency",
+        "high_recall",
+        "zero_silent_unsafe_pass"
+      ]
+    },
+    "requires_private_execution": {
+      "type": "boolean"
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "manifest_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

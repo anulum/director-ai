@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anulum.li/schemas/director-ai/customer-model-factory-runtime-package.schema.json",
+  "title": "DIRECTOR-AI Customer Model Factory Runtime Package",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "runtime_id",
+    "ready",
+    "customer_id",
+    "workspace_id",
+    "tenant_id",
+    "deployment_id",
+    "evidence_hash",
+    "runtime_mode",
+    "runtime_config",
+    "findings",
+    "runtime_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "runtime_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "workspace_id": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "deployment_id": {
+      "type": "string"
+    },
+    "evidence_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "runtime_mode": {
+      "type": "string",
+      "enum": ["offline_private", "customer_cloud_private", "on_prem"]
+    },
+    "runtime_config": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "runtime_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

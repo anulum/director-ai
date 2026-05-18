@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anulum.li/schemas/director-ai/customer-model-factory-evidence-pack.schema.json",
+  "title": "DIRECTOR-AI Customer Model Factory Evidence Pack",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "package_id",
+    "ready",
+    "customer_id",
+    "workspace_id",
+    "tenant_id",
+    "deployment_id",
+    "environment",
+    "classification",
+    "export_uri",
+    "external_callbacks_allowed",
+    "callback_endpoints",
+    "artefacts",
+    "control_evidence",
+    "findings",
+    "evidence_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "package_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "workspace_id": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "deployment_id": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["development", "staging", "production"]
+    },
+    "classification": {
+      "type": "string",
+      "enum": ["internal", "confidential", "restricted"]
+    },
+    "export_uri": {
+      "type": "string",
+      "minLength": 1
+    },
+    "external_callbacks_allowed": {
+      "type": "boolean"
+    },
+    "callback_endpoints": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "artefacts": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "control_evidence": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "evidence_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anulum.li/schemas/director-ai/customer-model-factory-monitoring.schema.json",
+  "title": "DIRECTOR-AI Customer Model Factory Monitoring Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "monitoring_id",
+    "ready",
+    "health_status",
+    "customer_id",
+    "workspace_id",
+    "tenant_id",
+    "runtime_id",
+    "deployment_id",
+    "evidence_hash",
+    "decision_log_uri",
+    "review_queue_uri",
+    "incident_queue_uri",
+    "observation_window",
+    "monitored_at",
+    "metrics",
+    "thresholds",
+    "package_version",
+    "retraining_recommended",
+    "recommendations",
+    "findings",
+    "monitoring_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "monitoring_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "health_status": {
+      "type": "string",
+      "enum": ["within_control", "review_required", "evidence_blocked"]
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "workspace_id": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "runtime_id": {
+      "type": "string"
+    },
+    "deployment_id": {
+      "type": "string"
+    },
+    "evidence_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "decision_log_uri": {
+      "type": "string"
+    },
+    "review_queue_uri": {
+      "type": "string"
+    },
+    "incident_queue_uri": {
+      "type": "string"
+    },
+    "observation_window": {
+      "type": "string"
+    },
+    "monitored_at": {
+      "type": "string"
+    },
+    "metrics": {
+      "type": "object"
+    },
+    "thresholds": {
+      "type": "object"
+    },
+    "package_version": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      }
+    },
+    "retraining_recommended": {
+      "type": "boolean"
+    },
+    "recommendations": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "monitoring_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anulum.li/schemas/director-ai/customer-model-factory-selection.schema.json",
+  "title": "DIRECTOR-AI Customer Model Factory Selection Report",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "selection_id",
+    "ready",
+    "objective_profile",
+    "selected_benchmark_id",
+    "selected_model_artifact_uri",
+    "candidates",
+    "findings",
+    "selection_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "selection_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "objective_profile": {
+      "type": "string",
+      "enum": [
+        "conservative",
+        "balanced",
+        "low_latency",
+        "high_recall",
+        "zero_silent_unsafe_pass"
+      ]
+    },
+    "selected_benchmark_id": {
+      "type": "string"
+    },
+    "selected_model_artifact_uri": {
+      "type": "string"
+    },
+    "candidates": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      }
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "selection_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}

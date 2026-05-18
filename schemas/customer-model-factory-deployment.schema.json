@@ -1,0 +1,138 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://anulum.li/schemas/director-ai/customer-model-factory-deployment.schema.json",
+  "title": "DIRECTOR-AI Customer Model Factory Deployment Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "deployment_id",
+    "ready",
+    "customer_id",
+    "workspace_id",
+    "tenant_id",
+    "selection_hash",
+    "selected_benchmark_id",
+    "selected_model_artifact_uri",
+    "policy",
+    "environment",
+    "package_uri",
+    "findings",
+    "deployment_hash"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0"
+    },
+    "deployment_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "ready": {
+      "type": "boolean"
+    },
+    "customer_id": {
+      "type": "string"
+    },
+    "workspace_id": {
+      "type": "string"
+    },
+    "tenant_id": {
+      "type": "string"
+    },
+    "selection_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "selected_benchmark_id": {
+      "type": "string"
+    },
+    "selected_model_artifact_uri": {
+      "type": "string"
+    },
+    "policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "threshold",
+        "abstention_threshold",
+        "escalation_threshold",
+        "require_citations",
+        "audit_log_uri",
+        "evidence_pack_uri",
+        "rollback_package_uri",
+        "retention_days",
+        "telemetry_mode"
+      ],
+      "properties": {
+        "threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "abstention_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "escalation_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "require_citations": {
+          "type": "boolean"
+        },
+        "audit_log_uri": {
+          "type": "string"
+        },
+        "evidence_pack_uri": {
+          "type": "string"
+        },
+        "rollback_package_uri": {
+          "type": "string"
+        },
+        "retention_days": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "telemetry_mode": {
+          "type": "string",
+          "enum": ["disabled", "customer_controlled", "internal_only"]
+        }
+      }
+    },
+    "environment": {
+      "type": "string",
+      "enum": ["development", "staging", "production"]
+    },
+    "package_uri": {
+      "type": "string",
+      "minLength": 1
+    },
+    "findings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["code", "severity", "message"],
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "severity": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "deployment_hash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    }
+  }
+}
