@@ -32,6 +32,7 @@ def _write_training_script(root: Path) -> None:
         encoding="utf-8",
     )
     (root / "training" / "data" / "eval").mkdir(parents=True)
+    (root / "training" / "output" / "minilm-safetensors").mkdir(parents=True)
 
 
 def _write_manifest(root: Path, **overrides: object) -> Path:
@@ -42,7 +43,7 @@ def _write_manifest(root: Path, **overrides: object) -> Path:
         "student_candidate": "minilm_l6",
         "teacher_model": "training/output/deberta-v3-base-hallucination",
         "teacher_artifact": "training/output/deberta-v3-base-hallucination/model.safetensors",
-        "student_base_model": "microsoft/MiniLM-L6-H384-uncased",
+        "student_base_model": "training/output/minilm-safetensors",
         "training_script": "training/train_distillation.py",
         "train_output_dir": "MODELS/lite-scorer-v2/student",
         "student_artifact": "MODELS/lite-scorer-v2/student/model.safetensors",
@@ -199,6 +200,19 @@ def test_lite_scorer_v2_run_plan_rejects_missing_heldout_source(
 
     assert errors == [
         "benchmarks/lite_scorer_v2_run_manifest.toml: heldout_source_dataset does not exist"
+    ]
+
+
+def test_lite_scorer_v2_run_plan_rejects_missing_student_base(
+    tmp_path: Path,
+) -> None:
+    _write_training_script(tmp_path)
+    manifest = _write_manifest(tmp_path, student_base_model="training/output/missing")
+
+    errors = validate_lite_scorer_v2_run_manifest(tmp_path, manifest)
+
+    assert errors == [
+        "benchmarks/lite_scorer_v2_run_manifest.toml: student_base_model does not exist"
     ]
 
 

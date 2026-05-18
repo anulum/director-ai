@@ -64,6 +64,7 @@ REQUIRED_FLOATS = {
 }
 PATH_FIELDS = {
     "teacher_artifact",
+    "student_base_model",
     "training_script",
     "train_output_dir",
     "student_artifact",
@@ -160,6 +161,13 @@ def _validate_paths(root: Path, data: dict[str, Any], label: str) -> list[str]:
         and not (root / script).is_file()
     ):
         errors.append(f"{label}: training_script does not exist")
+    student_base = data.get("student_base_model")
+    if (
+        isinstance(student_base, str)
+        and _is_safe_relative_path(student_base)
+        and not (root / student_base).exists()
+    ):
+        errors.append(f"{label}: student_base_model does not exist")
     heldout_source = data.get("heldout_source_dataset")
     if (
         isinstance(heldout_source, str)

@@ -163,7 +163,9 @@ selected row counts, model parameter counts, device, and claim boundary in
 `training_run_manifest.json` inside the student output directory. Its
 `--device auto` mode probes CUDA before loading training data or models and
 falls back to CPU when the local PyTorch build cannot execute on the visible
-GPU.
+GPU. The run manifest points at the local
+`training/output/minilm-safetensors` student base so training does not depend on
+remote model lookup during evidence production.
 
 ## Customizing Weights
 
