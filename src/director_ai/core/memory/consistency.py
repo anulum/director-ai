@@ -33,6 +33,7 @@ _TENANT_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 
 
 def _validate_tenant_id(tenant_id: str) -> str:
+    """Return a validated tenant identifier for storage queries."""
     value = str(tenant_id).strip()
     if not _TENANT_ID_RE.fullmatch(value):
         raise ValueError("tenant_id must match ^[A-Za-z0-9_-]{1,64}$")
@@ -40,6 +41,7 @@ def _validate_tenant_id(tenant_id: str) -> str:
 
 
 def _validate_non_empty(name: str, value: str) -> str:
+    """Return stripped text after enforcing a non-empty value."""
     text = str(value).strip()
     if not text:
         raise ValueError(f"{name} must be non-empty")
@@ -47,12 +49,14 @@ def _validate_non_empty(name: str, value: str) -> str:
 
 
 def _validate_score(score: float) -> float:
+    """Return a finite unit-interval consistency score."""
     if not math.isfinite(score) or not 0.0 <= score <= 1.0:
         raise ValueError("consistency score must be finite and in [0, 1]")
     return float(score)
 
 
 def _content_hash(text: str) -> str:
+    """Return a stable tenant-safe content fingerprint."""
     return hashlib.blake2b(text.encode("utf-8"), digest_size=16).hexdigest()
 
 
@@ -68,6 +72,7 @@ class StoredDocument:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def to_dict(self, *, include_text: bool = False) -> dict[str, Any]:
+        """Serialise the stored document with optional raw text."""
         return {
             "tenant_id": self.tenant_id,
             "document_id": self.document_id,
@@ -92,9 +97,11 @@ class CrossDocumentConflict:
     incoming_text: str = ""
 
     def __post_init__(self) -> None:
+        """Validate conflict score after dataclass construction."""
         _validate_score(self.score)
 
     def to_dict(self, *, include_text: bool = False) -> dict[str, Any]:
+        """Serialise the conflict with optional raw document text."""
         return {
             "tenant_id": self.tenant_id,
             "incoming_document_id": self.incoming_document_id,
@@ -119,15 +126,18 @@ class CrossDocumentConsistencyReport:
     conflicts: tuple[CrossDocumentConflict, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
+        """Validate decision state and freeze conflict ordering."""
         if self.decision not in {"allow", "warn", "block"}:
             raise ValueError(f"unsupported decision {self.decision!r}")
         object.__setattr__(self, "conflicts", tuple(self.conflicts))
 
     @property
     def blocked(self) -> bool:
+        """Return whether the incoming document must not be recorded."""
         return self.decision == "block"
 
     def to_dict(self, *, include_text: bool = False) -> dict[str, Any]:
+        """Serialise the consistency decision for API or audit output."""
         return {
             "decision": self.decision,
             "tenant_id": self.tenant_id,
@@ -153,6 +163,7 @@ class CrossDocumentConsistencyMemory:
         contradiction_threshold: float = 0.85,
         max_documents_per_tenant: int = 1_000,
     ) -> None:
+        """Initialise SQLite storage and retention policy settings."""
         self.db_path = str(db_path)
         self.score_fn = score_fn
         self.warn_threshold = _validate_score(warn_threshold)
@@ -167,6 +178,7 @@ class CrossDocumentConsistencyMemory:
         self._init_schema()
 
     def _init_schema(self) -> None:
+        """Create the durable cross-document memory schema."""
         self._conn.execute(
             """
             CREATE TABLE IF NOT EXISTS cross_document_memory (
@@ -194,6 +206,7 @@ class CrossDocumentConsistencyMemory:
         document_id: str,
         text: str,
     ) -> CrossDocumentConsistencyReport:
+        """Evaluate an incoming document against tenant memory."""
         tenant = _validate_tenant_id(tenant_id)
         doc_id = _validate_non_empty("document_id", document_id)
         incoming_text = _validate_non_empty("text", text)
@@ -239,6 +252,7 @@ class CrossDocumentConsistencyMemory:
         text: str,
         metadata: Mapping[str, Any] | None = None,
     ) -> CrossDocumentConsistencyReport:
+        """Record a document unless consistency checks block it."""
         report = self.check_document(tenant_id, document_id, text)
         if report.blocked:
             return report
@@ -262,6 +276,7 @@ class CrossDocumentConsistencyMemory:
         return report
 
     def get_document(self, tenant_id: str, document_id: str) -> StoredDocument | None:
+        """Return one stored tenant document by identifier."""
         tenant = _validate_tenant_id(tenant_id)
         doc_id = _validate_non_empty("document_id", document_id)
         row = self._conn.execute(
@@ -275,6 +290,7 @@ class CrossDocumentConsistencyMemory:
         return _row_to_document(row) if row is not None else None
 
     def list_documents(self, tenant_id: str) -> tuple[StoredDocument, ...]:
+        """Return stored documents for a tenant in retention order."""
         tenant = _validate_tenant_id(tenant_id)
         rows = self._conn.execute(
             """
@@ -288,6 +304,7 @@ class CrossDocumentConsistencyMemory:
         return tuple(_row_to_document(row) for row in rows)
 
     def count(self, *, tenant_id: str | None = None) -> int:
+        """Return total document count globally or for one tenant."""
         if tenant_id is None:
             row = self._conn.execute(
                 "SELECT COUNT(*) AS n FROM cross_document_memory"
@@ -300,6 +317,7 @@ class CrossDocumentConsistencyMemory:
         return int(row["n"])
 
     def delete_tenant(self, tenant_id: str) -> int:
+        """Delete all documents for a tenant and return the removed count."""
         tenant = _validate_tenant_id(tenant_id)
         before = self.count(tenant_id=tenant)
         self._conn.execute(
@@ -310,9 +328,11 @@ class CrossDocumentConsistencyMemory:
         return before
 
     def close(self) -> None:
+        """Close the backing SQLite connection."""
         self._conn.close()
 
     def _enforce_retention(self, tenant_id: str) -> None:
+        """Delete oldest tenant documents above the retention limit."""
         rows = self._conn.execute(
             """
             SELECT document_id
@@ -337,6 +357,7 @@ class CrossDocumentConsistencyMemory:
 
 
 def _row_to_document(row: sqlite3.Row) -> StoredDocument:
+    """Convert a SQLite row into a StoredDocument."""
     return StoredDocument(
         tenant_id=row["tenant_id"],
         document_id=row["document_id"],

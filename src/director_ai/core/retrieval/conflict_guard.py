@@ -53,6 +53,7 @@ class KnowledgeFact:
     metadata: Mapping[str, Any] = field(default_factory=dict)
 
     def __post_init__(self) -> None:
+        """Validate fact fields and normalise tenant-safe metadata."""
         object.__setattr__(self, "key", _require_non_empty_string("key", self.key))
         object.__setattr__(
             self,
@@ -77,6 +78,7 @@ class KnowledgeConflict:
     reason: str
 
     def __post_init__(self) -> None:
+        """Validate conflict type, score, and evidence references."""
         if not self.conflict_type.strip():
             raise ValueError("conflict_type is required")
         _validate_unit_interval("score", self.score)
@@ -108,6 +110,7 @@ class KnowledgeConflictCheck:
     evidence_refs: tuple[str, ...] = field(default_factory=tuple)
 
     def __post_init__(self) -> None:
+        """Validate the decision and freeze conflict/reference tuples."""
         if self.decision not in {"allow", "warn", "block"}:
             raise ValueError(f"unsupported decision {self.decision!r}")
         object.__setattr__(self, "conflicts", tuple(self.conflicts))
@@ -143,6 +146,7 @@ class ConflictAwareKnowledgeGuard:
         block_on_same_key_mismatch: bool = True,
         block_on_explicit_contradiction: bool = True,
     ) -> None:
+        """Initialise conflict thresholds and store integration policy."""
         self.store = store
         self.score_fn = score_fn
         self.warn_threshold = _validate_unit_interval("warn_threshold", warn_threshold)
@@ -182,6 +186,7 @@ class ConflictAwareKnowledgeGuard:
         return result
 
     def _add_to_store(self, fact: KnowledgeFact, metadata: dict[str, Any]) -> None:
+        """Add a permitted fact while preserving store API compatibility."""
         add_fact: Any = self.store.add_fact
         add_fact_params = inspect.signature(add_fact).parameters
         if metadata and "metadata" in add_fact_params:
@@ -207,6 +212,7 @@ class ConflictAwareKnowledgeGuard:
         )
 
     def _same_key_conflicts(self, fact: KnowledgeFact) -> list[KnowledgeConflict]:
+        """Return conflicts caused by changing an existing fact key."""
         existing = self._existing_fact_value(fact)
         if existing is None or _normalise_fact(existing) == _normalise_fact(fact.value):
             return []
@@ -224,6 +230,7 @@ class ConflictAwareKnowledgeGuard:
         ]
 
     def _explicit_conflicts(self, fact: KnowledgeFact) -> list[KnowledgeConflict]:
+        """Return conflicts declared by incoming contradiction metadata."""
         targets = _metadata_refs(fact.metadata.get("contradicts", ()))
         if not targets:
             return []
@@ -248,6 +255,7 @@ class ConflictAwareKnowledgeGuard:
         return conflicts
 
     def _semantic_conflicts(self, fact: KnowledgeFact) -> list[KnowledgeConflict]:
+        """Return score-function conflicts against existing tenant facts."""
         if self.score_fn is None:
             return []
         conflicts = []
@@ -277,6 +285,7 @@ class ConflictAwareKnowledgeGuard:
         return conflicts
 
     def _decision(self, conflicts: list[KnowledgeConflict]) -> str:
+        """Return allow, warn, or block for collected conflicts."""
         if not conflicts:
             return "allow"
         for conflict in conflicts:
@@ -295,16 +304,19 @@ class ConflictAwareKnowledgeGuard:
         return "warn"
 
     def _existing_fact_value(self, fact: KnowledgeFact) -> str | None:
+        """Return an existing same-key fact value from simple stores."""
         key = f"{fact.tenant_id}:{fact.key}" if fact.tenant_id else fact.key
         value = getattr(self.store, "facts", {}).get(key)
         return str(value) if value is not None else None
 
     def _iter_existing_facts(self, tenant_id: str) -> list[tuple[str, str, set[str]]]:
+        """Return tenant facts from either versioned or plain stores."""
         if hasattr(self.store, "version_manifest"):
             return self._iter_version_manifest(tenant_id)
         return self._iter_plain_facts(tenant_id)
 
     def _iter_plain_facts(self, tenant_id: str) -> list[tuple[str, str, set[str]]]:
+        """Return tenant facts from an in-memory facts mapping."""
         rows = []
         prefix = f"{tenant_id}:" if tenant_id else ""
         for stored_key, value in getattr(self.store, "facts", {}).items():
@@ -317,6 +329,7 @@ class ConflictAwareKnowledgeGuard:
         return rows
 
     def _iter_version_manifest(self, tenant_id: str) -> list[tuple[str, str, set[str]]]:
+        """Return tenant facts from a version-manifest capable store."""
         manifest = self.store.version_manifest(tenant_id)  # type: ignore[attr-defined]
         rows = []
         for record in manifest.values():
@@ -326,6 +339,7 @@ class ConflictAwareKnowledgeGuard:
         return rows
 
     def _value_for_record(self, key: str, tenant_id: str) -> str:
+        """Return fact text or content hash for a versioned record."""
         fact_key = f"{tenant_id}:{key}" if tenant_id else key
         value = getattr(self.store, "facts", {}).get(fact_key)
         if value is not None:
@@ -337,20 +351,24 @@ class ConflictAwareKnowledgeGuard:
 
 
 def _content_hash(value: str) -> str:
+    """Return a stable SHA-256 fingerprint for fact values."""
     return hashlib.sha256(value.encode("utf-8")).hexdigest()
 
 
 def _normalise_fact(value: str) -> str:
+    """Return canonical fact text for same-key comparison."""
     return " ".join(value.casefold().split())
 
 
 def _validate_unit_interval(name: str, value: float) -> float:
+    """Return a finite unit-interval value."""
     if not math.isfinite(value) or value < 0.0 or value > 1.0:
         raise ValueError(f"{name} must be finite and in [0, 1]")
     return value
 
 
 def _metadata_refs(value: Any) -> set[str]:
+    """Return normalized metadata reference identifiers."""
     if value in (None, ""):
         return set()
     if isinstance(value, str):
@@ -361,6 +379,7 @@ def _metadata_refs(value: Any) -> set[str]:
 
 
 def _record_refs(key: str, record: Mapping[str, Any]) -> set[str]:
+    """Return identifiers that can be used as contradiction targets."""
     refs = {key}
     for ref_field in (
         "source_id",
@@ -376,6 +395,7 @@ def _record_refs(key: str, record: Mapping[str, Any]) -> set[str]:
 
 
 def _tenant_safe_metadata(metadata: Mapping[str, Any]) -> dict[str, Any]:
+    """Return metadata with sensitive attribute names removed."""
     safe = {}
     for key, value in metadata.items():
         key_s = str(key)
@@ -387,6 +407,7 @@ def _tenant_safe_metadata(metadata: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _dedupe_conflicts(conflicts: list[KnowledgeConflict]) -> list[KnowledgeConflict]:
+    """Return conflicts with duplicate evidence markers removed."""
     seen = set()
     deduped = []
     for conflict in conflicts:
