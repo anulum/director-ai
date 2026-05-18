@@ -61,5 +61,10 @@ PY
   packet are recorded.
 - The independent external security report remains open until a returned
   `security-validation/` evidence directory passes the validator.
+- Repo-wide public docstring debt remains open and should resume after the
+  active Vertex Lite Scorer v2 run is evaluated. The live 2026-05-18 audit
+  counted 611 missing normal-source public docstrings across 219 files, plus 11
+  generated/proto docstring gaps across 2 files. Keep generated protobuf files
+  out of manual cleanup unless the generation pipeline changes.
 - `docs/ROADMAP_2026_2027.md` is strategic context; `ROADMAP.md` is the
   execution roadmap.
