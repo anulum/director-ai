@@ -52,6 +52,7 @@ class SkillNode:
     description: str = ""
 
     def __post_init__(self) -> None:
+        """Validate the stable skill identifier."""
         if not self.id:
             raise ValueError("SkillNode.id must be non-empty")
 
@@ -79,6 +80,7 @@ class SkillEdge:
     tenant_id: str = ""
 
     def __post_init__(self) -> None:
+        """Validate endpoints and non-negative traversal cost."""
         if not self.source or not self.target:
             raise ValueError("SkillEdge source/target must be non-empty")
         if self.source == self.target:
@@ -103,12 +105,14 @@ class KnowledgeGraph:
     _all_edges: list[SkillEdge] = field(default_factory=list)
 
     def add_node(self, node: SkillNode) -> None:
+        """Add one skill node, rejecting duplicate IDs."""
         if node.id in self._nodes:
             raise ValueError(f"duplicate skill {node.id!r}")
         self._nodes[node.id] = node
         self._edges_by_source.setdefault(node.id, [])
 
     def add_edge(self, edge: SkillEdge) -> None:
+        """Add one edge after endpoint and duplicate-edge validation."""
         if edge.source not in self._nodes:
             raise ValueError(f"unknown source skill {edge.source!r}")
         if edge.target not in self._nodes:
@@ -126,20 +130,25 @@ class KnowledgeGraph:
         self._all_edges.append(edge)
 
     def node(self, node_id: str) -> SkillNode:
+        """Return one node by ID or raise KeyError when absent."""
         if node_id not in self._nodes:
             raise KeyError(f"unknown skill {node_id!r}")
         return self._nodes[node_id]
 
     def nodes(self) -> tuple[SkillNode, ...]:
+        """Return nodes in insertion order."""
         return tuple(self._nodes.values())
 
     def edges(self) -> tuple[SkillEdge, ...]:
+        """Return edges in insertion order."""
         return tuple(self._all_edges)
 
     def outgoing(self, source: str) -> tuple[SkillEdge, ...]:
+        """Return edges whose source matches source."""
         return tuple(self._edges_by_source.get(source, ()))
 
     def skills_with_capability(self, capability: str) -> tuple[SkillNode, ...]:
+        """Return all nodes advertising capability."""
         return tuple(n for n in self._nodes.values() if capability in n.capabilities)
 
     def shortest_sanctioned_path(
