@@ -111,14 +111,17 @@ class DeBERTaBackend(ScorerBackend):
     """Wraps PyTorch NLI inference."""
 
     def __init__(self, **kwargs) -> None:
+        """Initialise the PyTorch-backed NLI scorer."""
         from .nli import NLIScorer
 
         self._nli = NLIScorer(backend="deberta", **kwargs)
 
     def score(self, premise: str, hypothesis: str) -> float:
+        """Forward one pair to the wrapped NLI scorer."""
         return self._nli.score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Forward pairs to the wrapped NLI scorer."""
         return self._nli.score_batch(pairs)
 
 
@@ -126,14 +129,17 @@ class OnnxBackend(ScorerBackend):
     """Wraps ONNX Runtime inference."""
 
     def __init__(self, **kwargs) -> None:
+        """Initialise the ONNX-backed NLI scorer."""
         from .nli import NLIScorer
 
         self._nli = NLIScorer(backend="onnx", **kwargs)
 
     def score(self, premise: str, hypothesis: str) -> float:
+        """Forward one pair to the wrapped ONNX scorer."""
         return self._nli.score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Forward pairs to the wrapped ONNX scorer."""
         return self._nli.score_batch(pairs)
 
 
@@ -141,14 +147,17 @@ class MiniCheckBackend(ScorerBackend):
     """Wraps MiniCheck inference."""
 
     def __init__(self, **kwargs) -> None:
+        """Initialise the MiniCheck-backed NLI scorer."""
         from .nli import NLIScorer
 
         self._nli = NLIScorer(backend="minicheck", **kwargs)
 
     def score(self, premise: str, hypothesis: str) -> float:
+        """Forward one pair to the wrapped MiniCheck scorer."""
         return self._nli.score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Forward pairs to the wrapped MiniCheck scorer."""
         return self._nli.score_batch(pairs)
 
 
@@ -156,14 +165,17 @@ class LiteBackend(ScorerBackend):
     """Wraps LiteScorer (no ML dependencies)."""
 
     def __init__(self) -> None:
+        """Initialise the lightweight lexical scorer."""
         from .lite_scorer import LiteScorer
 
         self._scorer = LiteScorer()
 
     def score(self, premise: str, hypothesis: str) -> float:
+        """Forward one pair to the lightweight scorer."""
         return self._scorer.score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Forward pairs to the lightweight scorer."""
         return self._scorer.score_batch(pairs)
 
 
@@ -171,6 +183,7 @@ class RustBackend(ScorerBackend):
     """Wraps backfire_kernel.RustCoherenceScorer (heuristic-only, sub-1ms)."""
 
     def __init__(self, **kwargs) -> None:
+        """Initialise the Rust coherence scorer wrapper."""
         from backfire_kernel import BackfireConfig, RustCoherenceScorer
 
         self._scorer = RustCoherenceScorer(
@@ -179,10 +192,12 @@ class RustBackend(ScorerBackend):
         )
 
     def score(self, premise: str, hypothesis: str) -> float:
+        """Return the Rust scorer divergence value for one pair."""
         approved, score_obj = self._scorer.review(premise, hypothesis)
         return score_obj.score if hasattr(score_obj, "score") else float(score_obj)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Score pairs sequentially through the Rust wrapper."""
         return [self.score(p, h) for p, h in pairs]
 
 
@@ -190,6 +205,7 @@ class RulesBackendWrapper(ScorerBackend):
     """Wraps RulesBackend (zero ML deps, <1ms, rule-based)."""
 
     def __init__(self, **kwargs) -> None:
+        """Initialise the rule-based scorer wrapper."""
         from .rules_scorer import RulesBackend
 
         self._scorer = RulesBackend(
@@ -197,9 +213,11 @@ class RulesBackendWrapper(ScorerBackend):
         )
 
     def score(self, premise: str, hypothesis: str) -> float:
+        """Forward one pair to the rule-based scorer."""
         return self._scorer.score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Forward pairs to the rule-based scorer."""
         return self._scorer.score_batch(pairs)
 
 
@@ -215,6 +233,7 @@ class EmbedBackendWrapper(ScorerBackend):
     """Wraps EmbedBackend (sentence-transformers, ~65% BA, 3ms CPU)."""
 
     def __init__(self, **kwargs) -> None:
+        """Initialise the embedding-backed scorer wrapper."""
         from .embed_scorer import EmbedBackend
 
         self._scorer = EmbedBackend(
@@ -224,9 +243,11 @@ class EmbedBackendWrapper(ScorerBackend):
         )
 
     def score(self, premise: str, hypothesis: str) -> float:
+        """Forward one pair to the embedding scorer."""
         return self._scorer.score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Forward pairs to the embedding scorer."""
         return self._scorer.score_batch(pairs)
 
 
@@ -243,6 +264,7 @@ class DistilledNLIBackendWrapper(ScorerBackend):
     """Wraps DistilledNLIBackend for validated local or remote artefacts."""
 
     def __init__(self, **kwargs) -> None:
+        """Initialise the distilled NLI scorer wrapper."""
         from .distilled_scorer import DistilledNLIBackend
 
         self._scorer = DistilledNLIBackend(
@@ -252,9 +274,11 @@ class DistilledNLIBackendWrapper(ScorerBackend):
         )
 
     def score(self, premise: str, hypothesis: str) -> float:
+        """Forward one pair to the distilled scorer."""
         return self._scorer.score(premise, hypothesis)
 
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """Forward pairs to the distilled scorer."""
         return self._scorer.score_batch(pairs)
 
 

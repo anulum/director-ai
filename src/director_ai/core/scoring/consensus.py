@@ -76,6 +76,7 @@ class ConsensusResult:
 
     @property
     def has_consensus(self) -> bool:
+        """Return whether aggregate agreement clears the consensus threshold."""
         return self.agreement_score > 0.7
 
 
@@ -113,6 +114,7 @@ class BFTConsensusResult:
     risk_score: float = 0.0
 
     def to_dict(self) -> dict[str, object]:
+        """Serialise the quorum result with tenant-safe evidence references."""
         return {
             "decision": self.decision,
             "reason": self.reason,
@@ -147,6 +149,7 @@ class ByzantineFaultTolerantConsensus:
         *,
         policy_id: str,
     ) -> BFTConsensusResult:
+        """Return a PBFT-style quorum decision for verifier votes."""
         vote_tuple = tuple(votes)
         verifiers = [vote.verifier for vote in vote_tuple]
         if len(verifiers) != len(set(verifiers)):
@@ -313,6 +316,7 @@ class ConsensusScorer:
         )
 
     def _gather_responses(self, prompt: str) -> list[ModelResponse]:
+        """Generate one response per configured model."""
         if self._generate is None:
             raise ValueError("generate_fn is required for score()")
         return [
@@ -322,6 +326,7 @@ class ConsensusScorer:
 
     @staticmethod
     def _jaccard_divergence(a: str, b: str) -> float:
+        """Return lexical Jaccard divergence for fallback consensus scoring."""
         wa = set(a.lower().split())
         wb = set(b.lower().split())
         if not wa or not wb:
@@ -511,6 +516,7 @@ class CrossVerifierConsensus:
         )
 
     def _finalize(self, decision: GuardDecision) -> GuardDecision:
+        """Apply the no-go policy to a consensus decision when configured."""
         if self._no_go is None:
             return decision
         verdict = self._no_go.evaluate(decision)
@@ -539,9 +545,11 @@ class CrossVerifierConsensus:
         )
 
     def _conservative_risk(self, signals: tuple[VerifierSignal, ...]) -> float:
+        """Return the highest verifier risk score."""
         return max(signal.score for signal in signals)
 
     def _weighted_risk(self, signals: tuple[VerifierSignal, ...]) -> float:
+        """Return weighted verifier risk with unit-interval clamping."""
         weighted_sum = 0.0
         weight_total = 0.0
         for signal in signals:
@@ -558,6 +566,7 @@ class CrossVerifierConsensus:
         self,
         signals: tuple[VerifierSignal, ...],
     ) -> VerifierSignal | None:
+        """Return the first high-confidence unsafe verifier signal."""
         unsafe_verdicts = {
             "block",
             "blocked",
@@ -575,6 +584,7 @@ class CrossVerifierConsensus:
 
 
 def _collect_evidence_refs(signals: tuple[VerifierSignal, ...]) -> tuple[str, ...]:
+    """Return de-duplicated evidence references in signal order."""
     refs: list[str] = []
     seen: set[str] = set()
     for signal in signals:
@@ -586,6 +596,7 @@ def _collect_evidence_refs(signals: tuple[VerifierSignal, ...]) -> tuple[str, ..
 
 
 def _forecast_attributes(verdict: NoGoVerdict) -> dict[str, str]:
+    """Return tenant-safe forecast attributes for a no-go verdict."""
     if verdict.forecast is None:
         return {}
     forecast = verdict.forecast
@@ -605,6 +616,7 @@ def _forecast_attributes(verdict: NoGoVerdict) -> dict[str, str]:
 def _action_sequence_attributes(
     action_sequence: Sequence[str] | None,
 ) -> dict[str, str]:
+    """Return serialised action-sequence attributes when provided."""
     if action_sequence is None:
         return {}
     actions = tuple(
@@ -619,6 +631,7 @@ def _fused_interval(
     signals: tuple[VerifierSignal, ...],
     weights: dict[str, float],
 ) -> tuple[float, float]:
+    """Return weighted low/high confidence interval bounds."""
     if not signals:
         return (0.0, 1.0)
     low = _weighted_value(signals, weights, "confidence_low")
@@ -631,6 +644,7 @@ def _weighted_value(
     weights: dict[str, float],
     field_name: str,
 ) -> float:
+    """Return a weighted average for one verifier signal field."""
     if not signals:
         return 0.0
     weighted_sum = 0.0
@@ -651,6 +665,7 @@ def _critical_risk_score(
     signals: tuple[VerifierSignal, ...],
     weights: dict[str, float],
 ) -> float:
+    """Return the critical-domain risk score after interval fusion."""
     weighted = _weighted_value(signals, weights, "score")
     if decision.decision in {"halt", "block"}:
         return max(decision.risk_score, weighted)
@@ -658,4 +673,5 @@ def _critical_risk_score(
 
 
 def _tenant_safe_ref(ref: str) -> str:
+    """Redact evidence reference schemes that can expose raw tenant data."""
     return "redacted" if ref.startswith(("secret://", "raw://", "prompt://")) else ref
