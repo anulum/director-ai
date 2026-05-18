@@ -35,13 +35,17 @@ class PhysicalConstraint(Protocol):
     """
 
     @property
-    def name(self) -> str: ...
+    def name(self) -> str:
+        """Return the stable constraint name used in halt evidence."""
+        ...
 
     def evaluate(
         self,
         action: PhysicalAction,
         model: KinematicModel,
-    ) -> str | None: ...
+    ) -> str | None:
+        """Return None for an allowed action or a tenant-safe failure reason."""
+        ...
 
 
 @dataclass(frozen=True)
@@ -55,6 +59,7 @@ class SpatialConstraint:
     obstacles_sphere: tuple[Sphere, ...] = ()
 
     def __post_init__(self) -> None:
+        """Validate the constraint name and require at least one obstacle."""
         if not self.name:
             raise ValueError("SpatialConstraint.name must be non-empty")
         if not self.obstacles_aabb and not self.obstacles_sphere:
@@ -65,6 +70,7 @@ class SpatialConstraint:
         action: PhysicalAction,
         model: KinematicModel,
     ) -> str | None:
+        """Reject actions whose target collides with the obstacle set."""
         if model.collides_with(
             action.target_position,
             obstacles_aabb=self.obstacles_aabb,
@@ -85,6 +91,7 @@ class WorkspaceConstraint:
     envelope: AABB
 
     def __post_init__(self) -> None:
+        """Validate the workspace constraint name."""
         if not self.name:
             raise ValueError("WorkspaceConstraint.name must be non-empty")
 
@@ -93,6 +100,7 @@ class WorkspaceConstraint:
         action: PhysicalAction,
         model: KinematicModel,
     ) -> str | None:
+        """Reject actions outside the inclusive workspace envelope."""
         _ = model  # unused — workspace is a pure geometric check
         if not self.envelope.contains(action.target_position):
             return (
@@ -111,6 +119,7 @@ class VelocityConstraint:
     max_velocity: float
 
     def __post_init__(self) -> None:
+        """Validate the velocity constraint name and non-negative limit."""
         if not self.name:
             raise ValueError("VelocityConstraint.name must be non-empty")
         if self.max_velocity < 0:
@@ -121,6 +130,7 @@ class VelocityConstraint:
         action: PhysicalAction,
         model: KinematicModel,
     ) -> str | None:
+        """Reject actions whose velocity magnitude exceeds max_velocity."""
         _ = model
         if action.velocity_magnitude > self.max_velocity:
             return (
@@ -138,6 +148,7 @@ class TorqueConstraint:
     max_torque: float
 
     def __post_init__(self) -> None:
+        """Validate the torque constraint name and non-negative limit."""
         if not self.name:
             raise ValueError("TorqueConstraint.name must be non-empty")
         if self.max_torque < 0:
@@ -148,6 +159,7 @@ class TorqueConstraint:
         action: PhysicalAction,
         model: KinematicModel,
     ) -> str | None:
+        """Reject actions whose torque magnitude exceeds max_torque."""
         _ = model
         if action.torque_magnitude > self.max_torque:
             return (
