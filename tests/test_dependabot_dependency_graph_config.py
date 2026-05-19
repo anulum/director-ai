@@ -10,7 +10,6 @@ from __future__ import annotations
 import pathlib
 import tomllib
 
-
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 
