@@ -1,0 +1,39 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+project_label = "Director-AI"
+schema_version = "capability-manifest.v1"
+exclude_doc_parts = ["internal", "_generated", "archive"]
+exclude_source_parts = [
+  "__pycache__",
+  "director_pb2.py",
+  "director_pb2_grpc.py",
+  "director_pb2.pyi",
+]
+
+[paths]
+json_output = "docs/_generated/capability_manifest.json"
+markdown_output = "docs/_generated/capability_snapshot.md"
+package_root = "src/director_ai"
+model_sources = "src/director_ai"
+model_docs = "docs-site/api"
+tests_root = "tests"
+docs_root = "docs-site"
+workflows_root = ".github/workflows"
+rust_wrappers = "backfire-kernel/crates/backfire-ffi/src"
+
+[readme]
+path = "README.md"
+marker_start = "<!-- capability-snapshot:start -->"
+marker_end = "<!-- capability-snapshot:end -->"
+
+[labels]
+version = "Package version"
+public_api_exports = "Public API exports"
+python_model_source_modules = "Python capability source modules"
+python_model_classes = "Python capability classes"
+model_documentation_pages = "API documentation pages"
+rust_pyo3_model_wrappers = "Rust PyO3 bindings"
+optional_extras = "Optional extras"
+test_files = "Python test files"
+public_documentation_pages = "Public documentation pages"
+github_workflows = "GitHub Actions workflows"

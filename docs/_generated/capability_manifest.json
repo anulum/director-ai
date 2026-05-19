@@ -1,0 +1,4131 @@
+{
+  "SPDX-License-Identifier": "AGPL-3.0-or-later",
+  "counts": {
+    "github_workflows": 11,
+    "model_documentation_pages": 49,
+    "optional_extras": 53,
+    "public_api_exports": 214,
+    "public_documentation_pages": 138,
+    "python_model_classes": 701,
+    "python_model_source_modules": 310,
+    "rust_pyo3_model_wrappers": 59,
+    "test_files": 422
+  },
+  "documentation": {
+    "public_pages": [
+      "docs-site/api/adaptive-threshold.md",
+      "docs-site/api/agent-passport-registry.md",
+      "docs-site/api/agent.md",
+      "docs-site/api/batch.md",
+      "docs-site/api/byzantine-consensus.md",
+      "docs-site/api/cache.md",
+      "docs-site/api/causal-attribution.md",
+      "docs-site/api/cli.md",
+      "docs-site/api/config.md",
+      "docs-site/api/conflict-aware-knowledge.md",
+      "docs-site/api/containment.md",
+      "docs-site/api/correction-loop.md",
+      "docs-site/api/cross-document-memory.md",
+      "docs-site/api/customer-model-factory.md",
+      "docs-site/api/cyber-physical.md",
+      "docs-site/api/defence-update-pipeline.md",
+      "docs-site/api/director-safety-protocol.md",
+      "docs-site/api/enterprise.md",
+      "docs-site/api/exceptions.md",
+      "docs-site/api/federated-safety-signals.md",
+      "docs-site/api/formal-code-verifiers.md",
+      "docs-site/api/grpc.md",
+      "docs-site/api/guard-control.md",
+      "docs-site/api/guard.md",
+      "docs-site/api/human-review.md",
+      "docs-site/api/index.md",
+      "docs-site/api/ingestion.md",
+      "docs-site/api/injection-detector.md",
+      "docs-site/api/interlock-kernel.md",
+      "docs-site/api/knowledge.md",
+      "docs-site/api/meta-guard.md",
+      "docs-site/api/multimodal-checks.md",
+      "docs-site/api/neuro-symbolic-verifier.md",
+      "docs-site/api/nli.md",
+      "docs-site/api/policy-evaluation.md",
+      "docs-site/api/private-score-release.md",
+      "docs-site/api/safety-event-schema.md",
+      "docs-site/api/sanitizer.md",
+      "docs-site/api/scorer.md",
+      "docs-site/api/self-improving-guard-loop.md",
+      "docs-site/api/server.md",
+      "docs-site/api/streaming.md",
+      "docs-site/api/sustainability-scoring.md",
+      "docs-site/api/synthetic-distillation.md",
+      "docs-site/api/trajectory-preflight.md",
+      "docs-site/api/types.md",
+      "docs-site/api/vector-store.md",
+      "docs-site/api/verified-scorer.md",
+      "docs-site/api/zk-attestation.md",
+      "docs-site/benchmarks/frontierfail-seed.md",
+      "docs-site/benchmarks/multilingual-corpus.md",
+      "docs-site/benchmarks/pint-replication.md",
+      "docs-site/benchmarks.md",
+      "docs-site/changelog.md",
+      "docs-site/cookbook/agent-trajectory-preflight.md",
+      "docs-site/cookbook/case-studies.md",
+      "docs-site/cookbook/customer-support.md",
+      "docs-site/cookbook/finance.md",
+      "docs-site/cookbook/halt-recovery-patterns.md",
+      "docs-site/cookbook/legal.md",
+      "docs-site/cookbook/long-context-rag-drift.md",
+      "docs-site/cookbook/medical.md",
+      "docs-site/cookbook/multi-agent-handoff-failures.md",
+      "docs-site/cookbook/streaming-halt-guide.md",
+      "docs-site/deployment/airgap.md",
+      "docs-site/deployment/checklist.md",
+      "docs-site/deployment/cors-reverse-proxy.md",
+      "docs-site/deployment/docker.md",
+      "docs-site/deployment/helm.md",
+      "docs-site/deployment/huggingface-space.md",
+      "docs-site/deployment/metrics.md",
+      "docs-site/deployment/monitoring.md",
+      "docs-site/deployment/observability.md",
+      "docs-site/deployment/onnx-artefacts.md",
+      "docs-site/deployment/production.md",
+      "docs-site/deployment/public-endpoints.md",
+      "docs-site/deployment/runbooks.md",
+      "docs-site/deployment/rust-kernel-extraction.md",
+      "docs-site/deployment/safety-dashboard.md",
+      "docs-site/deployment/supply-chain.md",
+      "docs-site/deployment/wasm-runtime.md",
+      "docs-site/glossary.md",
+      "docs-site/guide/agpl-compliance.md",
+      "docs-site/guide/architecture.md",
+      "docs-site/guide/compliance-reporting.md",
+      "docs-site/guide/config.md",
+      "docs-site/guide/customer-model-factory.md",
+      "docs-site/guide/documentation-integrity.md",
+      "docs-site/guide/enterprise.md",
+      "docs-site/guide/error-handling.md",
+      "docs-site/guide/eu-ai-act-whitepaper.md",
+      "docs-site/guide/evidence.md",
+      "docs-site/guide/failure-case-studies.md",
+      "docs-site/guide/feature-depth-assessment.md",
+      "docs-site/guide/kb-ingestion.md",
+      "docs-site/guide/meta-confidence.md",
+      "docs-site/guide/migration-v2-v3.md",
+      "docs-site/guide/online-calibration.md",
+      "docs-site/guide/onnx-export.md",
+      "docs-site/guide/presets.md",
+      "docs-site/guide/production-guard.md",
+      "docs-site/guide/quantization.md",
+      "docs-site/guide/runtime-boundaries.md",
+      "docs-site/guide/runtime-extraction-evaluation.md",
+      "docs-site/guide/rust-acceleration.md",
+      "docs-site/guide/rust-benchmarks.md",
+      "docs-site/guide/rust-ffi.md",
+      "docs-site/guide/scoring.md",
+      "docs-site/guide/streaming-overhead.md",
+      "docs-site/guide/streaming.md",
+      "docs-site/guide/structured-verification.md",
+      "docs-site/guide/threshold-tuning.md",
+      "docs-site/guide/troubleshooting.md",
+      "docs-site/guide/verification-gems.md",
+      "docs-site/guide/voice-ai.md",
+      "docs-site/guide/voice-demo.md",
+      "docs-site/guide/vs-prompt-engineering.md",
+      "docs-site/guide/why-director-ai.md",
+      "docs-site/index.md",
+      "docs-site/installation.md",
+      "docs-site/integrations/autogen.md",
+      "docs-site/integrations/crewai.md",
+      "docs-site/integrations/dspy.md",
+      "docs-site/integrations/fastapi-guard.md",
+      "docs-site/integrations/guardrails-ai.md",
+      "docs-site/integrations/haystack.md",
+      "docs-site/integrations/langchain.md",
+      "docs-site/integrations/langgraph.md",
+      "docs-site/integrations/llamaindex.md",
+      "docs-site/integrations/sdk-guard.md",
+      "docs-site/integrations/semantic-kernel.md",
+      "docs-site/integrations/vercel-ai.md",
+      "docs-site/licensing.md",
+      "docs-site/notebook-gallery.md",
+      "docs-site/privacy.md",
+      "docs-site/quickstart.md",
+      "docs-site/specs/director-safety-telemetry-v1.md",
+      "docs-site/tutorials.md"
+    ]
+  },
+  "evidence_boundary": "Counts are file-system and static-source inventory only; benchmark, coverage, hardware, and scientific-fidelity claims remain governed by their dedicated evidence artifacts.",
+  "generated_from": {
+    "config": "tools/capability_manifest.toml",
+    "generator": "tools/capability_manifest.py"
+  },
+  "labels": {
+    "github_workflows": "GitHub Actions workflows",
+    "model_documentation_pages": "API documentation pages",
+    "optional_extras": "Optional extras",
+    "public_api_exports": "Public API exports",
+    "public_documentation_pages": "Public documentation pages",
+    "python_model_classes": "Python capability classes",
+    "python_model_source_modules": "Python capability source modules",
+    "rust_pyo3_model_wrappers": "Rust PyO3 bindings",
+    "test_files": "Python test files",
+    "version": "Package version"
+  },
+  "models": {
+    "documentation_pages": [
+      "adaptive-threshold.md",
+      "agent-passport-registry.md",
+      "agent.md",
+      "batch.md",
+      "byzantine-consensus.md",
+      "cache.md",
+      "causal-attribution.md",
+      "cli.md",
+      "config.md",
+      "conflict-aware-knowledge.md",
+      "containment.md",
+      "correction-loop.md",
+      "cross-document-memory.md",
+      "customer-model-factory.md",
+      "cyber-physical.md",
+      "defence-update-pipeline.md",
+      "director-safety-protocol.md",
+      "enterprise.md",
+      "exceptions.md",
+      "federated-safety-signals.md",
+      "formal-code-verifiers.md",
+      "grpc.md",
+      "guard-control.md",
+      "guard.md",
+      "human-review.md",
+      "index.md",
+      "ingestion.md",
+      "injection-detector.md",
+      "interlock-kernel.md",
+      "knowledge.md",
+      "meta-guard.md",
+      "multimodal-checks.md",
+      "neuro-symbolic-verifier.md",
+      "nli.md",
+      "policy-evaluation.md",
+      "private-score-release.md",
+      "safety-event-schema.md",
+      "sanitizer.md",
+      "scorer.md",
+      "self-improving-guard-loop.md",
+      "server.md",
+      "streaming.md",
+      "sustainability-scoring.md",
+      "synthetic-distillation.md",
+      "trajectory-preflight.md",
+      "types.md",
+      "vector-store.md",
+      "verified-scorer.md",
+      "zk-attestation.md"
+    ],
+    "python_classes": [
+      {
+        "name": "AABB",
+        "path": "src/director_ai/core/cyber_physical/geometry.py"
+      },
+      {
+        "name": "APIKeyMiddleware",
+        "path": "src/director_ai/middleware/api_key.py"
+      },
+      {
+        "name": "AccountantEntry",
+        "path": "src/director_ai/core/federated_privacy/accountant.py"
+      },
+      {
+        "name": "Action",
+        "path": "src/director_ai/core/multi_scale_alignment/scorer.py"
+      },
+      {
+        "name": "Actor",
+        "path": "src/director_ai/core/trajectory/simulator.py"
+      },
+      {
+        "name": "AdaptiveRouter",
+        "path": "src/director_ai/core/retrieval/adaptive_router.py"
+      },
+      {
+        "name": "AdaptiveThresholdArm",
+        "path": "src/director_ai/core/calibration/adaptive_threshold.py"
+      },
+      {
+        "name": "AdaptiveThresholdLearner",
+        "path": "src/director_ai/core/calibration/adaptive_threshold.py"
+      },
+      {
+        "name": "AdaptiveThresholdRecommendation",
+        "path": "src/director_ai/core/calibration/adaptive_threshold.py"
+      },
+      {
+        "name": "AdaptiveThresholdReport",
+        "path": "src/director_ai/core/calibration/adaptive_threshold.py"
+      },
+      {
+        "name": "AdversarialCase",
+        "path": "src/director_ai/core/continual_adversarial/suite.py"
+      },
+      {
+        "name": "AdversarialGenerator",
+        "path": "src/director_ai/core/self_evolving/adversarial.py"
+      },
+      {
+        "name": "AdversarialGenome",
+        "path": "src/director_ai/core/defense_genome/genome.py"
+      },
+      {
+        "name": "AdversarialPattern",
+        "path": "src/director_ai/testing/adversarial_suite.py"
+      },
+      {
+        "name": "AdversarialPatternResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "AdversarialResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "AdversarialResult",
+        "path": "src/director_ai/testing/adversarial_suite.py"
+      },
+      {
+        "name": "AdversarialSuite",
+        "path": "src/director_ai/core/continual_adversarial/suite.py"
+      },
+      {
+        "name": "AdversarialTester",
+        "path": "src/director_ai/testing/adversarial_suite.py"
+      },
+      {
+        "name": "AdversaryScorer",
+        "path": "src/director_ai/core/continual_adversarial/scorer.py"
+      },
+      {
+        "name": "AgentEconomicState",
+        "path": "src/director_ai/core/swarm_economics/pool.py"
+      },
+      {
+        "name": "AgentPassport",
+        "path": "src/director_ai/core/agent_identity/passport.py"
+      },
+      {
+        "name": "AgentPassportRegistry",
+        "path": "src/director_ai/core/agent_identity/registry.py"
+      },
+      {
+        "name": "AgentProfile",
+        "path": "src/director_ai/agentic/agent_profile.py"
+      },
+      {
+        "name": "AgentState",
+        "path": "src/director_ai/agentic/swarm_guardian.py"
+      },
+      {
+        "name": "AgenticStepRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "AgenticStepResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "AlignmentReport",
+        "path": "src/director_ai/core/multi_scale_alignment/aligner.py"
+      },
+      {
+        "name": "AnchorVerification",
+        "path": "src/director_ai/core/containment/anchor.py"
+      },
+      {
+        "name": "And",
+        "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "AnthropicProvider",
+        "path": "src/director_ai/integrations/providers.py"
+      },
+      {
+        "name": "ArchitectureMutation",
+        "path": "src/director_ai/core/autopoietic/blueprint.py"
+      },
+      {
+        "name": "Article15Report",
+        "path": "src/director_ai/compliance/reporter.py"
+      },
+      {
+        "name": "Article15TemplateContext",
+        "path": "src/director_ai/compliance/reporter.py"
+      },
+      {
+        "name": "Assertion",
+        "path": "src/director_ai/core/ontology/checker.py"
+      },
+      {
+        "name": "AsyncStreamingKernel",
+        "path": "src/director_ai/core/runtime/async_streaming.py"
+      },
+      {
+        "name": "AsyncVoiceGuard",
+        "path": "src/director_ai/voice/guard.py"
+      },
+      {
+        "name": "AttestationBackend",
+        "path": "src/director_ai/core/zk_attestation/backends.py"
+      },
+      {
+        "name": "AttestationStatement",
+        "path": "src/director_ai/core/zk_attestation/statements.py"
+      },
+      {
+        "name": "AttributionEdge",
+        "path": "src/director_ai/core/attribution/causal_graph.py"
+      },
+      {
+        "name": "AttributionNode",
+        "path": "src/director_ai/core/attribution/causal_graph.py"
+      },
+      {
+        "name": "AuditChain",
+        "path": "src/director_ai/core/agent_identity/audit.py"
+      },
+      {
+        "name": "AuditEntry",
+        "path": "src/director_ai/compliance/audit_log.py"
+      },
+      {
+        "name": "AuditEntry",
+        "path": "src/director_ai/core/agent_identity/audit.py"
+      },
+      {
+        "name": "AuditEntry",
+        "path": "src/director_ai/core/safety/audit.py"
+      },
+      {
+        "name": "AuditLog",
+        "path": "src/director_ai/compliance/audit_log.py"
+      },
+      {
+        "name": "AuditLogger",
+        "path": "src/director_ai/core/safety/audit.py"
+      },
+      {
+        "name": "AutoGenReplyGuard",
+        "path": "src/director_ai/integrations/autogen_swarm.py"
+      },
+      {
+        "name": "AutopoieticEngine",
+        "path": "src/director_ai/core/autopoietic/engine.py"
+      },
+      {
+        "name": "BFTConsensusResult",
+        "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "BFTConsensusVote",
+        "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "BankingRegulationMapping",
+        "path": "src/director_ai/core/customer_model_factory/banking_pack.py"
+      },
+      {
+        "name": "BargainingSolution",
+        "path": "src/director_ai/core/swarm_economics/bargaining.py"
+      },
+      {
+        "name": "BatchProcessor",
+        "path": "src/director_ai/core/runtime/batch.py"
+      },
+      {
+        "name": "BatchRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "BatchResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "BatchResult",
+        "path": "src/director_ai/core/runtime/batch.py"
+      },
+      {
+        "name": "BehaviorObservation",
+        "path": "src/director_ai/core/agent_identity/fingerprint.py"
+      },
+      {
+        "name": "BehavioralFingerprint",
+        "path": "src/director_ai/core/agent_identity/fingerprint.py"
+      },
+      {
+        "name": "BenchmarkMetrics",
+        "path": "src/director_ai/core/customer_model_factory/benchmark_selection.py"
+      },
+      {
+        "name": "BoundaryExample",
+        "path": "src/director_ai/core/training/tuner.py"
+      },
+      {
+        "name": "BoundedSandbox",
+        "path": "src/director_ai/core/autopoietic/builder.py"
+      },
+      {
+        "name": "BreakoutDetector",
+        "path": "src/director_ai/core/containment/detector.py"
+      },
+      {
+        "name": "BreakoutFinding",
+        "path": "src/director_ai/core/containment/detector.py"
+      },
+      {
+        "name": "BudgetEntry",
+        "path": "src/director_ai/core/routing/budget.py"
+      },
+      {
+        "name": "BudgetVerdict",
+        "path": "src/director_ai/core/sustainability/budget.py"
+      },
+      {
+        "name": "BuildError",
+        "path": "src/director_ai/core/autopoietic/builder.py"
+      },
+      {
+        "name": "ByzantineFaultTolerantConsensus",
+        "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "CalibrationReport",
+        "path": "src/director_ai/core/calibration/online_calibrator.py"
+      },
+      {
+        "name": "CarbonIntensityTracker",
+        "path": "src/director_ai/core/sustainability/carbon.py"
+      },
+      {
+        "name": "CarbonReading",
+        "path": "src/director_ai/core/sustainability/carbon.py"
+      },
+      {
+        "name": "CarlaAdapter",
+        "path": "src/director_ai/core/cyber_physical/adapters.py"
+      },
+      {
+        "name": "CausalAttributionGraph",
+        "path": "src/director_ai/core/attribution/causal_graph.py"
+      },
+      {
+        "name": "CausalGraph",
+        "path": "src/director_ai/core/causal_verifier/graph.py"
+      },
+      {
+        "name": "ChromaBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/embedding.py"
+      },
+      {
+        "name": "ChunkConfig",
+        "path": "src/director_ai/core/retrieval/doc_chunker.py"
+      },
+      {
+        "name": "CitationFact",
+        "path": "src/director_ai/core/provenance/facts.py"
+      },
+      {
+        "name": "CitationStatusSignal",
+        "path": "src/director_ai/core/scoring/temporal_freshness.py"
+      },
+      {
+        "name": "CitationStatusVerdict",
+        "path": "src/director_ai/core/scoring/temporal_freshness.py"
+      },
+      {
+        "name": "Claim",
+        "path": "src/director_ai/core/symbolic_chain/claims.py"
+      },
+      {
+        "name": "ClaimAttribution",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "ClaimRelation",
+        "path": "src/director_ai/core/symbolic_chain/claims.py"
+      },
+      {
+        "name": "ClaimVerdict",
+        "path": "src/director_ai/core/scoring/verified_scorer.py"
+      },
+      {
+        "name": "CnfConverter",
+        "path": "src/director_ai/core/formal_verification/cnf.py"
+      },
+      {
+        "name": "CodeCheckResult",
+        "path": "src/director_ai/core/verification/types.py"
+      },
+      {
+        "name": "CoherenceAgent",
+        "path": "src/director_ai/core/agent.py"
+      },
+      {
+        "name": "CoherenceCallbackHandler",
+        "path": "src/director_ai/integrations/langchain_callback.py"
+      },
+      {
+        "name": "CoherenceError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "CoherenceHistoryEntry",
+        "path": "src/director_ai/core/agent_identity/registry.py"
+      },
+      {
+        "name": "CoherenceScore",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "CoherenceScorer",
+        "path": "src/director_ai/core/scoring/scorer.py"
+      },
+      {
+        "name": "CoherenceScoringService",
+        "path": "src/director_ai/grpc_scoring.py"
+      },
+      {
+        "name": "ColBERTBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
+      },
+      {
+        "name": "CommitmentBackend",
+        "path": "src/director_ai/core/zk_attestation/backends.py"
+      },
+      {
+        "name": "CommitmentProof",
+        "path": "src/director_ai/core/zk_attestation/commitment.py"
+      },
+      {
+        "name": "CommunityAssignment",
+        "path": "src/director_ai/core/emergence_oracle/spectrum.py"
+      },
+      {
+        "name": "CommunityDetector",
+        "path": "src/director_ai/core/emergence_oracle/spectrum.py"
+      },
+      {
+        "name": "CompiledRule",
+        "path": "src/director_ai/core/policy_compiler/rule.py"
+      },
+      {
+        "name": "ComplianceDashboardResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ComplianceReportResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ComplianceReporter",
+        "path": "src/director_ai/compliance/reporter.py"
+      },
+      {
+        "name": "ComputeQuota",
+        "path": "src/director_ai/core/sustainability/quota.py"
+      },
+      {
+        "name": "ConfigResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ConflictAwareKnowledgeGuard",
+        "path": "src/director_ai/core/retrieval/conflict_guard.py"
+      },
+      {
+        "name": "ConformalCalibrator",
+        "path": "src/director_ai/core/self_evolving/calibration.py"
+      },
+      {
+        "name": "ConformalDemandForecaster",
+        "path": "src/director_ai/core/sustainability/forecaster.py"
+      },
+      {
+        "name": "ConformalPredictor",
+        "path": "src/director_ai/core/calibration/conformal.py"
+      },
+      {
+        "name": "ConformalRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ConformalResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ConformalResult",
+        "path": "src/director_ai/core/self_evolving/calibration.py"
+      },
+      {
+        "name": "ConsensusRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ConsensusResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ConsensusResponseItem",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ConsensusResult",
+        "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "ConsensusScorer",
+        "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "ConsistencyReport",
+        "path": "src/director_ai/core/symbolic_chain/prover.py"
+      },
+      {
+        "name": "ConsumptionRecord",
+        "path": "src/director_ai/core/swarm_economics/pool.py"
+      },
+      {
+        "name": "ContainmentAttestor",
+        "path": "src/director_ai/core/containment/anchor.py"
+      },
+      {
+        "name": "ContainmentGuard",
+        "path": "src/director_ai/core/containment/guard.py"
+      },
+      {
+        "name": "ContainmentVerdict",
+        "path": "src/director_ai/core/containment/guard.py"
+      },
+      {
+        "name": "ContentModerationFinding",
+        "path": "src/director_ai/enterprise/moderation.py"
+      },
+      {
+        "name": "ContentModerationResult",
+        "path": "src/director_ai/enterprise/moderation.py"
+      },
+      {
+        "name": "ContentModerator",
+        "path": "src/director_ai/enterprise/moderation.py"
+      },
+      {
+        "name": "ContentWordDivergenceRule",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "ContextualCompressionBackend",
+        "path": "src/director_ai/core/retrieval/contextual_compression.py"
+      },
+      {
+        "name": "ContinualEngine",
+        "path": "src/director_ai/core/continual_adversarial/engine.py"
+      },
+      {
+        "name": "ContradictionKeywordRule",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "ContradictionPair",
+        "path": "src/director_ai/core/runtime/contradiction_tracker.py"
+      },
+      {
+        "name": "ContradictionReport",
+        "path": "src/director_ai/core/runtime/contradiction_tracker.py"
+      },
+      {
+        "name": "ContradictionTracker",
+        "path": "src/director_ai/core/runtime/contradiction_tracker.py"
+      },
+      {
+        "name": "ConversationSession",
+        "path": "src/director_ai/core/runtime/session.py"
+      },
+      {
+        "name": "Correction",
+        "path": "src/director_ai/core/calibration/feedback_store.py"
+      },
+      {
+        "name": "CorrectionLoop",
+        "path": "src/director_ai/core/runtime/correction.py"
+      },
+      {
+        "name": "CorrectionProposal",
+        "path": "src/director_ai/core/runtime/correction.py"
+      },
+      {
+        "name": "CostAnalyser",
+        "path": "src/director_ai/compliance/cost_analyser.py"
+      },
+      {
+        "name": "CostRecord",
+        "path": "src/director_ai/compliance/cost_analyser.py"
+      },
+      {
+        "name": "CounterRelease",
+        "path": "src/director_ai/core/federated_privacy/aggregator.py"
+      },
+      {
+        "name": "CounterfactualBranch",
+        "path": "src/director_ai/core/causal_verifier/counterfactual.py"
+      },
+      {
+        "name": "CounterfactualFactChange",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "CounterfactualHaltDiagnostic",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "CounterfactualVerifier",
+        "path": "src/director_ai/core/causal_verifier/counterfactual.py"
+      },
+      {
+        "name": "CrewGuardian",
+        "path": "src/director_ai/integrations/crewai_swarm.py"
+      },
+      {
+        "name": "CriticalConsensusProfile",
+        "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "CrossDocumentConflict",
+        "path": "src/director_ai/core/memory/consistency.py"
+      },
+      {
+        "name": "CrossDocumentConsistencyMemory",
+        "path": "src/director_ai/core/memory/consistency.py"
+      },
+      {
+        "name": "CrossDocumentConsistencyReport",
+        "path": "src/director_ai/core/memory/consistency.py"
+      },
+      {
+        "name": "CrossModalVerifier",
+        "path": "src/director_ai/core/multimodal_guard/verifier.py"
+      },
+      {
+        "name": "CrossOrgPassport",
+        "path": "src/director_ai/core/zk_attestation/passport.py"
+      },
+      {
+        "name": "CrossVerifierConsensus",
+        "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "CustomRule",
+        "path": "src/director_ai/enterprise/rules_dsl.py"
+      },
+      {
+        "name": "CustomRuleset",
+        "path": "src/director_ai/enterprise/rules_dsl.py"
+      },
+      {
+        "name": "CustomerBenchmarkResult",
+        "path": "src/director_ai/core/customer_model_factory/benchmark_selection.py"
+      },
+      {
+        "name": "CustomerDatasetValidationReport",
+        "path": "src/director_ai/core/customer_model_factory/dataset_contract.py"
+      },
+      {
+        "name": "CustomerDeploymentManifest",
+        "path": "src/director_ai/core/customer_model_factory/deployment_manifest.py"
+      },
+      {
+        "name": "CustomerEvidencePackManifest",
+        "path": "src/director_ai/core/customer_model_factory/evidence_pack.py"
+      },
+      {
+        "name": "CustomerModelSelectionReport",
+        "path": "src/director_ai/core/customer_model_factory/benchmark_selection.py"
+      },
+      {
+        "name": "CustomerMonitoringManifest",
+        "path": "src/director_ai/core/customer_model_factory/monitoring_manifest.py"
+      },
+      {
+        "name": "CustomerReleaseGateManifest",
+        "path": "src/director_ai/core/customer_model_factory/release_gate.py"
+      },
+      {
+        "name": "CustomerRiskException",
+        "path": "src/director_ai/core/customer_model_factory/risk_register.py"
+      },
+      {
+        "name": "CustomerRiskRegister",
+        "path": "src/director_ai/core/customer_model_factory/risk_register.py"
+      },
+      {
+        "name": "CustomerRuntimePackage",
+        "path": "src/director_ai/core/customer_model_factory/runtime_package.py"
+      },
+      {
+        "name": "CustomerTraceFinding",
+        "path": "src/director_ai/core/customer_model_factory/dataset_contract.py"
+      },
+      {
+        "name": "CustomerTrainingManifest",
+        "path": "src/director_ai/core/customer_model_factory/training_manifest.py"
+      },
+      {
+        "name": "CustomerWorkspace",
+        "path": "src/director_ai/core/customer_model_factory/dataset_contract.py"
+      },
+      {
+        "name": "DailyUsage",
+        "path": "src/director_ai/core/sustainability/quota.py"
+      },
+      {
+        "name": "DataQualityReport",
+        "path": "src/director_ai/core/training/finetune_validator.py"
+      },
+      {
+        "name": "DatasetTypeClassifier",
+        "path": "src/director_ai/core/scoring/meta_classifier.py"
+      },
+      {
+        "name": "DeBERTaBackend",
+        "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "DecisionLog",
+        "path": "src/director_ai/core/meta_guard/log.py"
+      },
+      {
+        "name": "DeepgramAdapter",
+        "path": "src/director_ai/voice/adapters.py"
+      },
+      {
+        "name": "Defense",
+        "path": "src/director_ai/core/defense_genome/registry.py"
+      },
+      {
+        "name": "DefenseRegistry",
+        "path": "src/director_ai/core/defense_genome/registry.py"
+      },
+      {
+        "name": "DefenseSnapshot",
+        "path": "src/director_ai/core/defense_genome/registry.py"
+      },
+      {
+        "name": "DefenseUpdatePipeline",
+        "path": "src/director_ai/core/defense_genome/update_pipeline.py"
+      },
+      {
+        "name": "DefenseUpdateReport",
+        "path": "src/director_ai/core/defense_genome/update_pipeline.py"
+      },
+      {
+        "name": "DeletedDocument",
+        "path": "src/director_ai/core/ingestion/pipeline.py"
+      },
+      {
+        "name": "DeletedResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "DependencyError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "DeploymentPolicy",
+        "path": "src/director_ai/core/customer_model_factory/deployment_manifest.py"
+      },
+      {
+        "name": "DetoxifyDetector",
+        "path": "src/director_ai/core/safety/moderation/toxicity.py"
+      },
+      {
+        "name": "DifferentialPrivacyScoreReleaser",
+        "path": "src/director_ai/core/federated_privacy/score_release.py"
+      },
+      {
+        "name": "DirectorAIChecker",
+        "path": "src/director_ai/integrations/haystack.py"
+      },
+      {
+        "name": "DirectorAIError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "DirectorAIFilter",
+        "path": "src/director_ai/integrations/semantic_kernel.py"
+      },
+      {
+        "name": "DirectorAIGuard",
+        "path": "src/director_ai/integrations/langchain.py"
+      },
+      {
+        "name": "DirectorAIPostprocessor",
+        "path": "src/director_ai/integrations/llamaindex.py"
+      },
+      {
+        "name": "DirectorAITool",
+        "path": "src/director_ai/integrations/crewai.py"
+      },
+      {
+        "name": "DirectorConfig",
+        "path": "src/director_ai/core/config.py"
+      },
+      {
+        "name": "DirectorGuard",
+        "path": "src/director_ai/integrations/fastapi_guard.py"
+      },
+      {
+        "name": "DirectorSafetySignal",
+        "path": "src/director_ai/core/safety_protocol.py"
+      },
+      {
+        "name": "DisagreementPoint",
+        "path": "src/director_ai/core/swarm_economics/bargaining.py"
+      },
+      {
+        "name": "DistilledNLIBackend",
+        "path": "src/director_ai/core/scoring/distilled_scorer.py"
+      },
+      {
+        "name": "DistilledNLIBackendWrapper",
+        "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "DocRecord",
+        "path": "src/director_ai/core/retrieval/doc_registry.py"
+      },
+      {
+        "name": "DocRegistry",
+        "path": "src/director_ai/core/retrieval/doc_registry.py"
+      },
+      {
+        "name": "DocumentIngestionPipeline",
+        "path": "src/director_ai/core/ingestion/pipeline.py"
+      },
+      {
+        "name": "DomainExperience",
+        "path": "src/director_ai/core/zk_attestation/statements.py"
+      },
+      {
+        "name": "DpllSolver",
+        "path": "src/director_ai/core/formal_verification/dpll.py"
+      },
+      {
+        "name": "DriftDetector",
+        "path": "src/director_ai/compliance/drift_detector.py"
+      },
+      {
+        "name": "DriftResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "DriftResult",
+        "path": "src/director_ai/compliance/drift_detector.py"
+      },
+      {
+        "name": "DryRunTTSAdapter",
+        "path": "src/director_ai/voice/demo.py"
+      },
+      {
+        "name": "EconomicRiskScorer",
+        "path": "src/director_ai/core/swarm_economics/scorer.py"
+      },
+      {
+        "name": "EconomicVerdict",
+        "path": "src/director_ai/core/swarm_economics/scorer.py"
+      },
+      {
+        "name": "ElasticsearchBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
+      },
+      {
+        "name": "ElevenLabsAdapter",
+        "path": "src/director_ai/voice/adapters.py"
+      },
+      {
+        "name": "EmbedBackend",
+        "path": "src/director_ai/core/scoring/embed_scorer.py"
+      },
+      {
+        "name": "EmbedBackendWrapper",
+        "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "EmergenceOracle",
+        "path": "src/director_ai/core/emergence_oracle/oracle.py"
+      },
+      {
+        "name": "EmergenceVerdict",
+        "path": "src/director_ai/core/emergence_oracle/oracle.py"
+      },
+      {
+        "name": "EnsembleComponent",
+        "path": "src/director_ai/core/autopoietic/blueprint.py"
+      },
+      {
+        "name": "EntityGroundingRule",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "EvidenceChunk",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "EvolutionCycle",
+        "path": "src/director_ai/core/autopoietic/engine.py"
+      },
+      {
+        "name": "EvolutionEngine",
+        "path": "src/director_ai/core/defense_genome/engine.py"
+      },
+      {
+        "name": "EvolutionReport",
+        "path": "src/director_ai/core/defense_genome/engine.py"
+      },
+      {
+        "name": "EvolutionReport",
+        "path": "src/director_ai/core/self_evolving/evolver.py"
+      },
+      {
+        "name": "EvolveReport",
+        "path": "src/director_ai/core/continual_adversarial/engine.py"
+      },
+      {
+        "name": "FAISSBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
+      },
+      {
+        "name": "FactVerdict",
+        "path": "src/director_ai/core/provenance/verifier.py"
+      },
+      {
+        "name": "FactVerificationError",
+        "path": "src/director_ai/core/provenance/facts.py"
+      },
+      {
+        "name": "FailureEvent",
+        "path": "src/director_ai/core/continual_adversarial/failure.py"
+      },
+      {
+        "name": "FailurePattern",
+        "path": "src/director_ai/core/continual_adversarial/miner.py"
+      },
+      {
+        "name": "FailureStore",
+        "path": "src/director_ai/core/continual_adversarial/failure.py"
+      },
+      {
+        "name": "FederatedCounter",
+        "path": "src/director_ai/core/federated_privacy/aggregator.py"
+      },
+      {
+        "name": "FederatedHistogram",
+        "path": "src/director_ai/core/federated_privacy/aggregator.py"
+      },
+      {
+        "name": "FederatedSafetySignalAggregator",
+        "path": "src/director_ai/core/federated_privacy/signal_sharing.py"
+      },
+      {
+        "name": "FederatedSafetySignalRelease",
+        "path": "src/director_ai/core/federated_privacy/signal_sharing.py"
+      },
+      {
+        "name": "FeedbackCalibrationResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "FeedbackEvent",
+        "path": "src/director_ai/core/self_evolving/feedback.py"
+      },
+      {
+        "name": "FeedbackLoopAlert",
+        "path": "src/director_ai/compliance/feedback_loop_detector.py"
+      },
+      {
+        "name": "FeedbackLoopCheckRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "FeedbackLoopDetector",
+        "path": "src/director_ai/compliance/feedback_loop_detector.py"
+      },
+      {
+        "name": "FeedbackLoopResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "FeedbackRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "FeedbackResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "FeedbackStore",
+        "path": "src/director_ai/core/calibration/feedback_store.py"
+      },
+      {
+        "name": "FeedbackStore",
+        "path": "src/director_ai/core/self_evolving/feedback.py"
+      },
+      {
+        "name": "FieldMeta",
+        "path": "src/director_ai/ui/_field_groups.py"
+      },
+      {
+        "name": "FieldVerdict",
+        "path": "src/director_ai/core/verification/types.py"
+      },
+      {
+        "name": "FinetuneConfig",
+        "path": "src/director_ai/core/training/finetune.py"
+      },
+      {
+        "name": "FinetuneJob",
+        "path": "src/director_ai/finetune_api.py"
+      },
+      {
+        "name": "FinetuneResult",
+        "path": "src/director_ai/core/training/finetune.py"
+      },
+      {
+        "name": "Forecast",
+        "path": "src/director_ai/core/irreversibility/forecaster.py"
+      },
+      {
+        "name": "FormalCodeVerificationResult",
+        "path": "src/director_ai/core/formal_verification/adapter.py"
+      },
+      {
+        "name": "FormalCodeVerifierAdapter",
+        "path": "src/director_ai/core/formal_verification/adapter.py"
+      },
+      {
+        "name": "FreshnessClaim",
+        "path": "src/director_ai/core/scoring/temporal_freshness.py"
+      },
+      {
+        "name": "FreshnessClaimResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "FreshnessResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "FreshnessResult",
+        "path": "src/director_ai/core/scoring/temporal_freshness.py"
+      },
+      {
+        "name": "FreshnessStatusResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "GaussianMechanism",
+        "path": "src/director_ai/core/federated_privacy/mechanisms.py"
+      },
+      {
+        "name": "Gene",
+        "path": "src/director_ai/core/defense_genome/genome.py"
+      },
+      {
+        "name": "GeneratorError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "GenomePopulation",
+        "path": "src/director_ai/core/defense_genome/engine.py"
+      },
+      {
+        "name": "GoogleDrivePlugin",
+        "path": "src/director_ai/core/retrieval/ingestion/gdrive.py"
+      },
+      {
+        "name": "GraphCycleError",
+        "path": "src/director_ai/core/causal_verifier/graph.py"
+      },
+      {
+        "name": "GraphProver",
+        "path": "src/director_ai/core/symbolic_chain/prover.py"
+      },
+      {
+        "name": "GroundTruthStore",
+        "path": "src/director_ai/core/retrieval/knowledge.py"
+      },
+      {
+        "name": "GroundedCorrectionDraft",
+        "path": "src/director_ai/core/runtime/correction.py"
+      },
+      {
+        "name": "GroundingHook",
+        "path": "src/director_ai/core/cyber_physical/hook.py"
+      },
+      {
+        "name": "GroundingVerdict",
+        "path": "src/director_ai/core/cyber_physical/hook.py"
+      },
+      {
+        "name": "GroupChatGuardian",
+        "path": "src/director_ai/integrations/autogen_swarm.py"
+      },
+      {
+        "name": "GuardDecision",
+        "path": "src/director_ai/core/guard_control/decision.py"
+      },
+      {
+        "name": "GuardLoopProposal",
+        "path": "src/director_ai/core/self_evolving/guard_loop.py"
+      },
+      {
+        "name": "GuardResult",
+        "path": "src/director_ai/guard.py"
+      },
+      {
+        "name": "GuardedHandoff",
+        "path": "src/director_ai/integrations/openai_swarm.py"
+      },
+      {
+        "name": "GuardianNodeResult",
+        "path": "src/director_ai/integrations/langgraph_swarm.py"
+      },
+      {
+        "name": "GuardrailTrainer",
+        "path": "src/director_ai/core/self_evolving/trainer.py"
+      },
+      {
+        "name": "HallucinationError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "HaltCorrectionContext",
+        "path": "src/director_ai/core/runtime/correction.py"
+      },
+      {
+        "name": "HaltDashboardRecord",
+        "path": "src/director_ai/ui/safety_dashboard.py"
+      },
+      {
+        "name": "HaltEvidence",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "HaltMonitor",
+        "path": "src/director_ai/core/runtime/kernel.py"
+      },
+      {
+        "name": "HaltTraceAttribution",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "HandoffCheckResult",
+        "path": "src/director_ai/integrations/openai_swarm.py"
+      },
+      {
+        "name": "HandoffResult",
+        "path": "src/director_ai/agentic/swarm_guardian.py"
+      },
+      {
+        "name": "HandoffScore",
+        "path": "src/director_ai/agentic/handoff_scorer.py"
+      },
+      {
+        "name": "HandoffScorer",
+        "path": "src/director_ai/agentic/handoff_scorer.py"
+      },
+      {
+        "name": "HardwareProfile",
+        "path": "src/director_ai/core/sustainability/policy_adapter.py"
+      },
+      {
+        "name": "HardwareProfileRegistry",
+        "path": "src/director_ai/core/sustainability/policy_adapter.py"
+      },
+      {
+        "name": "HashBagCrossModalVerifier",
+        "path": "src/director_ai/core/multimodal_guard/verifier.py"
+      },
+      {
+        "name": "HashBagEmbedder",
+        "path": "src/director_ai/core/trace_safe/embedder.py"
+      },
+      {
+        "name": "HashBagImageEncoder",
+        "path": "src/director_ai/core/multimodal_guard/encoders.py"
+      },
+      {
+        "name": "HealthResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "HierarchicalAligner",
+        "path": "src/director_ai/core/multi_scale_alignment/aligner.py"
+      },
+      {
+        "name": "HistogramRelease",
+        "path": "src/director_ai/core/federated_privacy/aggregator.py"
+      },
+      {
+        "name": "HmacChainError",
+        "path": "src/director_ai/core/provenance/chain.py"
+      },
+      {
+        "name": "HourlyDataPoint",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "HourlyResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "HttpEmbeddingConnectionError",
+        "path": "src/director_ai/core/retrieval/vector_store/http_embedding.py"
+      },
+      {
+        "name": "HttpEmbeddingDimensionError",
+        "path": "src/director_ai/core/retrieval/vector_store/http_embedding.py"
+      },
+      {
+        "name": "HttpEmbeddingError",
+        "path": "src/director_ai/core/retrieval/vector_store/http_embedding.py"
+      },
+      {
+        "name": "HttpEmbeddingFunction",
+        "path": "src/director_ai/core/retrieval/vector_store/http_embedding.py"
+      },
+      {
+        "name": "HttpEmbeddingResponseError",
+        "path": "src/director_ai/core/retrieval/vector_store/http_embedding.py"
+      },
+      {
+        "name": "HuggingFaceProvider",
+        "path": "src/director_ai/integrations/providers.py"
+      },
+      {
+        "name": "HumanReviewCase",
+        "path": "src/director_ai/core/runtime/human_review.py"
+      },
+      {
+        "name": "HumanReviewDecision",
+        "path": "src/director_ai/core/runtime/human_review.py"
+      },
+      {
+        "name": "HumanReviewQueue",
+        "path": "src/director_ai/core/runtime/human_review.py"
+      },
+      {
+        "name": "HyDEBackend",
+        "path": "src/director_ai/core/retrieval/hyde.py"
+      },
+      {
+        "name": "HybridBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/composite.py"
+      },
+      {
+        "name": "IdentityAnomaly",
+        "path": "src/director_ai/core/agent_identity/fingerprint.py"
+      },
+      {
+        "name": "IdentityMonitor",
+        "path": "src/director_ai/core/agent_identity/fingerprint.py"
+      },
+      {
+        "name": "Iff",
+        "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "ImageEncoder",
+        "path": "src/director_ai/core/multimodal_guard/encoders.py"
+      },
+      {
+        "name": "Implies",
+        "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "InMemoryBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/base.py"
+      },
+      {
+        "name": "InMemoryFeedbackStore",
+        "path": "src/director_ai/core/self_evolving/feedback.py"
+      },
+      {
+        "name": "InferenceHookDecision",
+        "path": "src/director_ai/integrations/inference_server_hooks.py"
+      },
+      {
+        "name": "InferenceHookRequest",
+        "path": "src/director_ai/integrations/inference_server_hooks.py"
+      },
+      {
+        "name": "InferenceServerHook",
+        "path": "src/director_ai/integrations/inference_server_hooks.py"
+      },
+      {
+        "name": "InferenceServerHookPolicy",
+        "path": "src/director_ai/integrations/inference_server_hooks.py"
+      },
+      {
+        "name": "IngestedDocument",
+        "path": "src/director_ai/core/retrieval/ingestion/base.py"
+      },
+      {
+        "name": "IngestionConfig",
+        "path": "src/director_ai/core/ingestion/pipeline.py"
+      },
+      {
+        "name": "IngestionPlugin",
+        "path": "src/director_ai/core/retrieval/ingestion/base.py"
+      },
+      {
+        "name": "IngestionResult",
+        "path": "src/director_ai/core/ingestion/pipeline.py"
+      },
+      {
+        "name": "InjectedClaim",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "InjectionAdversarialTester",
+        "path": "src/director_ai/testing/adversarial_suite.py"
+      },
+      {
+        "name": "InjectionClaimResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "InjectionDetectedError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "InjectionDetector",
+        "path": "src/director_ai/core/safety/injection.py"
+      },
+      {
+        "name": "InjectionRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "InjectionResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "InjectionResult",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "InputSanitizer",
+        "path": "src/director_ai/core/safety/sanitizer.py"
+      },
+      {
+        "name": "InteractionGraph",
+        "path": "src/director_ai/core/emergence_oracle/graph.py"
+      },
+      {
+        "name": "InterlockDecision",
+        "path": "src/director_ai/interlock.py"
+      },
+      {
+        "name": "InterlockKernel",
+        "path": "src/director_ai/interlock.py"
+      },
+      {
+        "name": "InterlockPolicy",
+        "path": "src/director_ai/interlock.py"
+      },
+      {
+        "name": "Intervention",
+        "path": "src/director_ai/core/causal_verifier/intervention.py"
+      },
+      {
+        "name": "IrreversibilityForecaster",
+        "path": "src/director_ai/core/irreversibility/forecaster.py"
+      },
+      {
+        "name": "JSONLFeedbackStore",
+        "path": "src/director_ai/core/self_evolving/feedback.py"
+      },
+      {
+        "name": "JointChain",
+        "path": "src/director_ai/core/cyber_physical/kinematics.py"
+      },
+      {
+        "name": "KBHealthCheck",
+        "path": "src/director_ai/core/retrieval/kb_health.py"
+      },
+      {
+        "name": "KBHealthReport",
+        "path": "src/director_ai/core/retrieval/kb_health.py"
+      },
+      {
+        "name": "KBWriteAccessError",
+        "path": "src/director_ai/core/kb_write_security.py"
+      },
+      {
+        "name": "KernelHaltError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "KeywordToxicityDetector",
+        "path": "src/director_ai/core/safety/moderation/toxicity.py"
+      },
+      {
+        "name": "KinematicModel",
+        "path": "src/director_ai/core/cyber_physical/kinematics.py"
+      },
+      {
+        "name": "KnowledgeConflict",
+        "path": "src/director_ai/core/retrieval/conflict_guard.py"
+      },
+      {
+        "name": "KnowledgeConflictCheck",
+        "path": "src/director_ai/core/retrieval/conflict_guard.py"
+      },
+      {
+        "name": "KnowledgeFact",
+        "path": "src/director_ai/core/retrieval/conflict_guard.py"
+      },
+      {
+        "name": "KnowledgeGraph",
+        "path": "src/director_ai/core/knowledge_graph/graph.py"
+      },
+      {
+        "name": "KnowledgeGraphCycleError",
+        "path": "src/director_ai/core/knowledge_graph/graph.py"
+      },
+      {
+        "name": "LLMGenerator",
+        "path": "src/director_ai/core/actor.py"
+      },
+      {
+        "name": "LLMJudge",
+        "path": "src/director_ai/core/scoring/_llm_judge.py"
+      },
+      {
+        "name": "LLMProvider",
+        "path": "src/director_ai/integrations/providers.py"
+      },
+      {
+        "name": "LabelledPolicySample",
+        "path": "src/director_ai/core/evaluation/policy.py"
+      },
+      {
+        "name": "LangfuseTokenCallback",
+        "path": "src/director_ai/core/observability/callbacks.py"
+      },
+      {
+        "name": "LaplaceMechanism",
+        "path": "src/director_ai/core/federated_privacy/mechanisms.py"
+      },
+      {
+        "name": "LeanBackend",
+        "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "LengthRatioRule",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "LicenseInfo",
+        "path": "src/director_ai/core/license.py"
+      },
+      {
+        "name": "LiteBackend",
+        "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "LiteScorer",
+        "path": "src/director_ai/core/scoring/lite_scorer.py"
+      },
+      {
+        "name": "Literal",
+        "path": "src/director_ai/core/formal_verification/cnf.py"
+      },
+      {
+        "name": "LocalProvider",
+        "path": "src/director_ai/integrations/providers.py"
+      },
+      {
+        "name": "LocalTrainingBackend",
+        "path": "src/director_ai/core/training/jobs.py"
+      },
+      {
+        "name": "LoopMonitor",
+        "path": "src/director_ai/agentic/loop_monitor.py"
+      },
+      {
+        "name": "LoopStatus",
+        "path": "src/director_ai/agentic/loop_monitor.py"
+      },
+      {
+        "name": "LoraGuardrailTrainer",
+        "path": "src/director_ai/core/self_evolving/trainer.py"
+      },
+      {
+        "name": "ManagedTrainingRecord",
+        "path": "src/director_ai/finetune_api.py"
+      },
+      {
+        "name": "MaximumHaltRate",
+        "path": "src/director_ai/core/zk_attestation/statements.py"
+      },
+      {
+        "name": "MerkleCommitment",
+        "path": "src/director_ai/core/zk_attestation/commitment.py"
+      },
+      {
+        "name": "MerkleProof",
+        "path": "src/director_ai/core/provenance/merkle.py"
+      },
+      {
+        "name": "MerkleTree",
+        "path": "src/director_ai/core/provenance/merkle.py"
+      },
+      {
+        "name": "MessageFilterResult",
+        "path": "src/director_ai/integrations/autogen_swarm.py"
+      },
+      {
+        "name": "MetaAnalysis",
+        "path": "src/director_ai/core/meta_guard/analyzer.py"
+      },
+      {
+        "name": "MetaAnalyzer",
+        "path": "src/director_ai/core/meta_guard/analyzer.py"
+      },
+      {
+        "name": "MetaGuard",
+        "path": "src/director_ai/core/meta_guard/guard.py"
+      },
+      {
+        "name": "MetaGuardProductionPolicy",
+        "path": "src/director_ai/core/meta_guard/guard.py"
+      },
+      {
+        "name": "MetaVerdict",
+        "path": "src/director_ai/core/meta_guard/guard.py"
+      },
+      {
+        "name": "MetricsCollector",
+        "path": "src/director_ai/core/metrics.py"
+      },
+      {
+        "name": "MiniCheckBackend",
+        "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "MinimumCoherence",
+        "path": "src/director_ai/core/zk_attestation/statements.py"
+      },
+      {
+        "name": "MockGenerator",
+        "path": "src/director_ai/core/actor.py"
+      },
+      {
+        "name": "ModelBenchmarkReport",
+        "path": "src/director_ai/core/training/finetune_benchmark.py"
+      },
+      {
+        "name": "ModelBenchmarkResult",
+        "path": "src/director_ai/core/training/finetune_benchmark.py"
+      },
+      {
+        "name": "ModelMetrics",
+        "path": "src/director_ai/compliance/reporter.py"
+      },
+      {
+        "name": "ModelMetricsResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ModelPricing",
+        "path": "src/director_ai/compliance/cost_analyser.py"
+      },
+      {
+        "name": "ModelResponse",
+        "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "ModelVersion",
+        "path": "src/director_ai/core/tenant.py"
+      },
+      {
+        "name": "ModerationAction",
+        "path": "src/director_ai/enterprise/moderation.py"
+      },
+      {
+        "name": "ModerationDetector",
+        "path": "src/director_ai/core/safety/moderation/detectors.py"
+      },
+      {
+        "name": "ModerationMatch",
+        "path": "src/director_ai/core/safety/moderation/detectors.py"
+      },
+      {
+        "name": "ModerationResult",
+        "path": "src/director_ai/core/safety/moderation/detectors.py"
+      },
+      {
+        "name": "ModuleBlueprint",
+        "path": "src/director_ai/core/autopoietic/blueprint.py"
+      },
+      {
+        "name": "ModuleBuilder",
+        "path": "src/director_ai/core/autopoietic/builder.py"
+      },
+      {
+        "name": "ModuleRegistry",
+        "path": "src/director_ai/core/autopoietic/engine.py"
+      },
+      {
+        "name": "ModuleTestSuite",
+        "path": "src/director_ai/core/autopoietic/testsuite.py"
+      },
+      {
+        "name": "MonitoringMetrics",
+        "path": "src/director_ai/core/customer_model_factory/monitoring_manifest.py"
+      },
+      {
+        "name": "MonitoringThresholds",
+        "path": "src/director_ai/core/customer_model_factory/monitoring_manifest.py"
+      },
+      {
+        "name": "MuJoCoAdapter",
+        "path": "src/director_ai/core/cyber_physical/adapters.py"
+      },
+      {
+        "name": "MultiVectorBackend",
+        "path": "src/director_ai/core/retrieval/multi_vector.py"
+      },
+      {
+        "name": "MultimodalCheckRequest",
+        "path": "src/director_ai/core/multimodal_guard/adapter.py"
+      },
+      {
+        "name": "MultimodalCheckResult",
+        "path": "src/director_ai/core/multimodal_guard/adapter.py"
+      },
+      {
+        "name": "MultimodalClaim",
+        "path": "src/director_ai/core/multimodal_guard/claim.py"
+      },
+      {
+        "name": "MultimodalGuard",
+        "path": "src/director_ai/core/multimodal_guard/guard.py"
+      },
+      {
+        "name": "MultimodalVerdict",
+        "path": "src/director_ai/core/multimodal_guard/guard.py"
+      },
+      {
+        "name": "MultimodalVerifierAdapter",
+        "path": "src/director_ai/core/multimodal_guard/adapter.py"
+      },
+      {
+        "name": "NLIScorer",
+        "path": "src/director_ai/core/scoring/nli.py"
+      },
+      {
+        "name": "NashBargainingSolver",
+        "path": "src/director_ai/core/swarm_economics/bargaining.py"
+      },
+      {
+        "name": "NashEquilibrium",
+        "path": "src/director_ai/core/swarm_equilibrium/solvers.py"
+      },
+      {
+        "name": "NashSolver",
+        "path": "src/director_ai/core/swarm_equilibrium/solvers.py"
+      },
+      {
+        "name": "NegationFlipRule",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "NeuralSymbolicVerifier",
+        "path": "src/director_ai/core/symbolic_chain/verifier.py"
+      },
+      {
+        "name": "NeuroSymbolicVerificationResult",
+        "path": "src/director_ai/core/verification/neuro_symbolic.py"
+      },
+      {
+        "name": "NeuroSymbolicVerifier",
+        "path": "src/director_ai/core/verification/neuro_symbolic.py"
+      },
+      {
+        "name": "NeuroSymbolicVerifierInput",
+        "path": "src/director_ai/core/verification/neuro_symbolic.py"
+      },
+      {
+        "name": "NoBreakoutEvents",
+        "path": "src/director_ai/core/zk_attestation/statements.py"
+      },
+      {
+        "name": "NoGoPolicy",
+        "path": "src/director_ai/core/guard_control/no_go.py"
+      },
+      {
+        "name": "NoGoVerdict",
+        "path": "src/director_ai/core/guard_control/no_go.py"
+      },
+      {
+        "name": "NormalFormGame",
+        "path": "src/director_ai/core/swarm_equilibrium/game.py"
+      },
+      {
+        "name": "Not",
+        "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "NotionPlugin",
+        "path": "src/director_ai/core/retrieval/ingestion/notion.py"
+      },
+      {
+        "name": "NumericClaim",
+        "path": "src/director_ai/core/verification/numeric_verifier.py"
+      },
+      {
+        "name": "NumericConsistencyRule",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "NumericIssue",
+        "path": "src/director_ai/core/verification/numeric_verifier.py"
+      },
+      {
+        "name": "NumericIssueResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "NumericVerificationResult",
+        "path": "src/director_ai/core/verification/numeric_verifier.py"
+      },
+      {
+        "name": "NumericVerifyResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "NumericalError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "OnlineCalibrator",
+        "path": "src/director_ai/core/calibration/online_calibrator.py"
+      },
+      {
+        "name": "OnnxBackend",
+        "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "OnnxDynamicBatcher",
+        "path": "src/director_ai/core/scoring/_nli_export.py"
+      },
+      {
+        "name": "OntologyChecker",
+        "path": "src/director_ai/core/ontology/checker.py"
+      },
+      {
+        "name": "OntologyCycleError",
+        "path": "src/director_ai/core/ontology/graph.py"
+      },
+      {
+        "name": "OntologyGraph",
+        "path": "src/director_ai/core/ontology/graph.py"
+      },
+      {
+        "name": "OntologyViolation",
+        "path": "src/director_ai/core/ontology/checker.py"
+      },
+      {
+        "name": "OpenAIProvider",
+        "path": "src/director_ai/integrations/providers.py"
+      },
+      {
+        "name": "OpenAITTSAdapter",
+        "path": "src/director_ai/voice/adapters.py"
+      },
+      {
+        "name": "Or",
+        "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "PIIRedactionFinding",
+        "path": "src/director_ai/enterprise/redactor.py"
+      },
+      {
+        "name": "PIIRedactionReport",
+        "path": "src/director_ai/enterprise/redactor.py"
+      },
+      {
+        "name": "PIIRedactor",
+        "path": "src/director_ai/enterprise/redactor.py"
+      },
+      {
+        "name": "PairwiseAgreement",
+        "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "PairwiseAgreementResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ParentChildBackend",
+        "path": "src/director_ai/core/retrieval/parent_child.py"
+      },
+      {
+        "name": "PassportActionVerdict",
+        "path": "src/director_ai/core/agent_identity/registry.py"
+      },
+      {
+        "name": "PassportIssuer",
+        "path": "src/director_ai/core/zk_attestation/passport.py"
+      },
+      {
+        "name": "PassportSigner",
+        "path": "src/director_ai/core/agent_identity/passport.py"
+      },
+      {
+        "name": "PassportVerdict",
+        "path": "src/director_ai/core/zk_attestation/passport.py"
+      },
+      {
+        "name": "PassportVerificationError",
+        "path": "src/director_ai/core/agent_identity/passport.py"
+      },
+      {
+        "name": "PassportVerifier",
+        "path": "src/director_ai/core/zk_attestation/passport.py"
+      },
+      {
+        "name": "PatternMiner",
+        "path": "src/director_ai/core/continual_adversarial/miner.py"
+      },
+      {
+        "name": "PayoffError",
+        "path": "src/director_ai/core/swarm_equilibrium/game.py"
+      },
+      {
+        "name": "PerceptronAdversaryScorer",
+        "path": "src/director_ai/core/continual_adversarial/scorer.py"
+      },
+      {
+        "name": "PerceptronGuardrailTrainer",
+        "path": "src/director_ai/core/self_evolving/trainer.py"
+      },
+      {
+        "name": "PeriodMetrics",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "PeriodMetrics",
+        "path": "src/director_ai/compliance/reporter.py"
+      },
+      {
+        "name": "PerturbativeAdversarialGenerator",
+        "path": "src/director_ai/core/self_evolving/adversarial.py"
+      },
+      {
+        "name": "PhysicalAction",
+        "path": "src/director_ai/core/cyber_physical/kinematics.py"
+      },
+      {
+        "name": "PhysicalBudgetExceededError",
+        "path": "src/director_ai/core/cyber_physical/budget.py"
+      },
+      {
+        "name": "PhysicalBudgetLimits",
+        "path": "src/director_ai/core/cyber_physical/budget.py"
+      },
+      {
+        "name": "PhysicalConstraint",
+        "path": "src/director_ai/core/cyber_physical/constraints.py"
+      },
+      {
+        "name": "PhysicalGroundingEvaluation",
+        "path": "src/director_ai/core/cyber_physical/closed_loop.py"
+      },
+      {
+        "name": "PhysicalGroundingEvaluator",
+        "path": "src/director_ai/core/cyber_physical/closed_loop.py"
+      },
+      {
+        "name": "PhysicalGroundingLoop",
+        "path": "src/director_ai/core/cyber_physical/closed_loop.py"
+      },
+      {
+        "name": "PhysicalGroundingLoopResult",
+        "path": "src/director_ai/core/cyber_physical/closed_loop.py"
+      },
+      {
+        "name": "PhysicalGroundingViolation",
+        "path": "src/director_ai/core/cyber_physical/closed_loop.py"
+      },
+      {
+        "name": "PhysicsError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "PineconeBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
+      },
+      {
+        "name": "PolarActivationInfo",
+        "path": "src/director_ai/core/polar_license.py"
+      },
+      {
+        "name": "PolarCustomerPortalSession",
+        "path": "src/director_ai/core/polar_license.py"
+      },
+      {
+        "name": "PolarDeploymentReport",
+        "path": "src/director_ai/core/polar_license.py"
+      },
+      {
+        "name": "PolarOperationResult",
+        "path": "src/director_ai/core/polar_license.py"
+      },
+      {
+        "name": "PolarWebhookEvent",
+        "path": "src/director_ai/core/polar_license.py"
+      },
+      {
+        "name": "Policy",
+        "path": "src/director_ai/core/safety/policy.py"
+      },
+      {
+        "name": "PolicyBundle",
+        "path": "src/director_ai/core/policy_compiler/compiler.py"
+      },
+      {
+        "name": "PolicyComparisonReport",
+        "path": "src/director_ai/core/evaluation/policy.py"
+      },
+      {
+        "name": "PolicyCompiler",
+        "path": "src/director_ai/core/policy_compiler/compiler.py"
+      },
+      {
+        "name": "PolicyEvaluationReport",
+        "path": "src/director_ai/core/evaluation/policy.py"
+      },
+      {
+        "name": "PolicyRegistry",
+        "path": "src/director_ai/core/policy_compiler/registry.py"
+      },
+      {
+        "name": "PolicyVariant",
+        "path": "src/director_ai/core/evaluation/policy.py"
+      },
+      {
+        "name": "PolicyVariantResult",
+        "path": "src/director_ai/core/evaluation/policy.py"
+      },
+      {
+        "name": "PoolError",
+        "path": "src/director_ai/core/swarm_economics/pool.py"
+      },
+      {
+        "name": "PostgresAuditSink",
+        "path": "src/director_ai/enterprise/audit_pg.py"
+      },
+      {
+        "name": "PreHaltSteeringDecision",
+        "path": "src/director_ai/core/trajectory/steering.py"
+      },
+      {
+        "name": "PredictionInterval",
+        "path": "src/director_ai/core/calibration/conformal.py"
+      },
+      {
+        "name": "PredictionInterval",
+        "path": "src/director_ai/core/sustainability/forecaster.py"
+      },
+      {
+        "name": "PredictivePreHaltSteering",
+        "path": "src/director_ai/core/trajectory/steering.py"
+      },
+      {
+        "name": "PreflightVerdict",
+        "path": "src/director_ai/core/trajectory/simulator.py"
+      },
+      {
+        "name": "PresidioPIIDetector",
+        "path": "src/director_ai/core/safety/moderation/pii.py"
+      },
+      {
+        "name": "Principal",
+        "path": "src/director_ai/core/knowledge_graph/policy.py"
+      },
+      {
+        "name": "PrivacyAccountant",
+        "path": "src/director_ai/core/federated_privacy/accountant.py"
+      },
+      {
+        "name": "PrivacyScoreRelease",
+        "path": "src/director_ai/core/federated_privacy/score_release.py"
+      },
+      {
+        "name": "ProcessRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ProcessResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ProductionGuard",
+        "path": "src/director_ai/guard.py"
+      },
+      {
+        "name": "ProductionMetaGuardDecision",
+        "path": "src/director_ai/core/meta_guard/guard.py"
+      },
+      {
+        "name": "ProfileMetadata",
+        "path": "src/director_ai/core/config.py"
+      },
+      {
+        "name": "PromptRiskScorer",
+        "path": "src/director_ai/core/routing/scorer.py"
+      },
+      {
+        "name": "ProvenanceChain",
+        "path": "src/director_ai/core/provenance/chain.py"
+      },
+      {
+        "name": "ProvenanceEntry",
+        "path": "src/director_ai/core/provenance/chain.py"
+      },
+      {
+        "name": "ProvenanceVerdict",
+        "path": "src/director_ai/core/provenance/verifier.py"
+      },
+      {
+        "name": "ProvenanceVerifier",
+        "path": "src/director_ai/core/provenance/verifier.py"
+      },
+      {
+        "name": "ProverBackend",
+        "path": "src/director_ai/core/symbolic_chain/prover.py"
+      },
+      {
+        "name": "QdrantBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
+      },
+      {
+        "name": "QueryDecompositionBackend",
+        "path": "src/director_ai/core/retrieval/query_decomposition.py"
+      },
+      {
+        "name": "QuotaError",
+        "path": "src/director_ai/core/sustainability/quota.py"
+      },
+      {
+        "name": "RandomWalkSpectrum",
+        "path": "src/director_ai/core/emergence_oracle/spectrum.py"
+      },
+      {
+        "name": "RateLimitMiddleware",
+        "path": "src/director_ai/middleware/rate_limit.py"
+      },
+      {
+        "name": "ReadinessStatus",
+        "path": "src/director_ai/compliance/readiness.py"
+      },
+      {
+        "name": "ReadyResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "RealityAnchor",
+        "path": "src/director_ai/core/containment/anchor.py"
+      },
+      {
+        "name": "ReasoningChainResult",
+        "path": "src/director_ai/core/verification/reasoning_verifier.py"
+      },
+      {
+        "name": "ReasoningStep",
+        "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "ReasoningStep",
+        "path": "src/director_ai/core/verification/reasoning_verifier.py"
+      },
+      {
+        "name": "ReasoningVerdict",
+        "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "ReasoningVerdict",
+        "path": "src/director_ai/core/verification/reasoning_verifier.py"
+      },
+      {
+        "name": "ReasoningVerdictResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ReasoningVerifier",
+        "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "ReasoningVerifyResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "RedisGroundTruthStore",
+        "path": "src/director_ai/enterprise/redis.py"
+      },
+      {
+        "name": "RedisScoreCache",
+        "path": "src/director_ai/enterprise/redis.py"
+      },
+      {
+        "name": "RegexPIIDetector",
+        "path": "src/director_ai/core/safety/moderation/pii.py"
+      },
+      {
+        "name": "RegexRuleExtractor",
+        "path": "src/director_ai/core/policy_compiler/extractor.py"
+      },
+      {
+        "name": "RegressionReport",
+        "path": "src/director_ai/core/training/finetune_benchmark.py"
+      },
+      {
+        "name": "RemanentiaBackendError",
+        "path": "src/director_ai/core/retrieval/vector_store/remanentia.py"
+      },
+      {
+        "name": "RemanentiaVectorBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/remanentia.py"
+      },
+      {
+        "name": "RerankedBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/composite.py"
+      },
+      {
+        "name": "ResourcePool",
+        "path": "src/director_ai/core/swarm_economics/pool.py"
+      },
+      {
+        "name": "ReversibilityEstimator",
+        "path": "src/director_ai/core/irreversibility/reversibility.py"
+      },
+      {
+        "name": "ReversibilityScore",
+        "path": "src/director_ai/core/irreversibility/reversibility.py"
+      },
+      {
+        "name": "ReviewQueue",
+        "path": "src/director_ai/core/runtime/review_queue.py"
+      },
+      {
+        "name": "ReviewRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ReviewResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ReviewResult",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "ReviewedFeedbackManifest",
+        "path": "src/director_ai/core/self_evolving/guard_loop.py"
+      },
+      {
+        "name": "ReviewedIrreversibilityThreshold",
+        "path": "src/director_ai/core/guard_control/no_go.py"
+      },
+      {
+        "name": "RiskBudget",
+        "path": "src/director_ai/core/routing/budget.py"
+      },
+      {
+        "name": "RiskComponents",
+        "path": "src/director_ai/core/routing/scorer.py"
+      },
+      {
+        "name": "RiskEnvelope",
+        "path": "src/director_ai/core/guard_control/decision.py"
+      },
+      {
+        "name": "RiskRouter",
+        "path": "src/director_ai/core/routing/router.py"
+      },
+      {
+        "name": "RiskScorerProtocol",
+        "path": "src/director_ai/core/routing/router.py"
+      },
+      {
+        "name": "RobustnessReport",
+        "path": "src/director_ai/testing/adversarial_suite.py"
+      },
+      {
+        "name": "Ros2Adapter",
+        "path": "src/director_ai/core/cyber_physical/adapters.py"
+      },
+      {
+        "name": "RoutingDecision",
+        "path": "src/director_ai/core/retrieval/adaptive_router.py"
+      },
+      {
+        "name": "RoutingDecision",
+        "path": "src/director_ai/core/routing/router.py"
+      },
+      {
+        "name": "Rule",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "RuleExtractor",
+        "path": "src/director_ai/core/policy_compiler/extractor.py"
+      },
+      {
+        "name": "RuleResult",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "RuleReversibility",
+        "path": "src/director_ai/core/irreversibility/reversibility.py"
+      },
+      {
+        "name": "RulesBackend",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "RulesBackendWrapper",
+        "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "RulesConfig",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "RulesDslError",
+        "path": "src/director_ai/enterprise/rules_dsl.py"
+      },
+      {
+        "name": "RustBackend",
+        "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "S3Plugin",
+        "path": "src/director_ai/core/retrieval/ingestion/s3.py"
+      },
+      {
+        "name": "SafetyEvent",
+        "path": "src/director_ai/core/safety_event.py"
+      },
+      {
+        "name": "SandboxTimeoutError",
+        "path": "src/director_ai/core/autopoietic/builder.py"
+      },
+      {
+        "name": "SanitizeResult",
+        "path": "src/director_ai/core/safety/sanitizer.py"
+      },
+      {
+        "name": "ScaleConflict",
+        "path": "src/director_ai/core/multi_scale_alignment/conflict.py"
+      },
+      {
+        "name": "ScaleConflictDetector",
+        "path": "src/director_ai/core/multi_scale_alignment/conflict.py"
+      },
+      {
+        "name": "ScaleScoreTable",
+        "path": "src/director_ai/core/multi_scale_alignment/aligner.py"
+      },
+      {
+        "name": "ScaleScorer",
+        "path": "src/director_ai/core/multi_scale_alignment/scorer.py"
+      },
+      {
+        "name": "ScoreCache",
+        "path": "src/director_ai/core/cache.py"
+      },
+      {
+        "name": "ScoredSample",
+        "path": "src/director_ai/core/autopoietic/testsuite.py"
+      },
+      {
+        "name": "ScorerBackend",
+        "path": "src/director_ai/core/scoring/backends.py"
+      },
+      {
+        "name": "ScorerModelChoice",
+        "path": "src/director_ai/core/scoring/model_choices.py"
+      },
+      {
+        "name": "ScoringDecision",
+        "path": "src/director_ai/core/meta_guard/log.py"
+      },
+      {
+        "name": "ScoringEvidence",
+        "path": "src/director_ai/core/types.py"
+      },
+      {
+        "name": "SecretShare",
+        "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
+      },
+      {
+        "name": "SecureAggregator",
+        "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
+      },
+      {
+        "name": "SelfEvolver",
+        "path": "src/director_ai/core/self_evolving/evolver.py"
+      },
+      {
+        "name": "SelfImprovingGuardLoop",
+        "path": "src/director_ai/core/self_evolving/guard_loop.py"
+      },
+      {
+        "name": "SensorStateSnapshot",
+        "path": "src/director_ai/core/cyber_physical/closed_loop.py"
+      },
+      {
+        "name": "SentenceTransformerBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/embedding.py"
+      },
+      {
+        "name": "SessionResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ShardedNLIScorer",
+        "path": "src/director_ai/core/scoring/sharded_nli.py"
+      },
+      {
+        "name": "ShareError",
+        "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
+      },
+      {
+        "name": "SimpleKinematicModel",
+        "path": "src/director_ai/core/cyber_physical/kinematics.py"
+      },
+      {
+        "name": "SkillEdge",
+        "path": "src/director_ai/core/knowledge_graph/graph.py"
+      },
+      {
+        "name": "SkillNode",
+        "path": "src/director_ai/core/knowledge_graph/graph.py"
+      },
+      {
+        "name": "Soc2IsoControl",
+        "path": "src/director_ai/compliance/readiness.py"
+      },
+      {
+        "name": "Soc2IsoReadinessReport",
+        "path": "src/director_ai/compliance/readiness.py"
+      },
+      {
+        "name": "Solution",
+        "path": "src/director_ai/core/formal_verification/dpll.py"
+      },
+      {
+        "name": "SourceAttributionRule",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "SourceCredibility",
+        "path": "src/director_ai/core/provenance/credibility.py"
+      },
+      {
+        "name": "SourceResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "SourceScore",
+        "path": "src/director_ai/core/provenance/credibility.py"
+      },
+      {
+        "name": "SourceSpan",
+        "path": "src/director_ai/core/scoring/verified_scorer.py"
+      },
+      {
+        "name": "SpatialConstraint",
+        "path": "src/director_ai/core/cyber_physical/constraints.py"
+      },
+      {
+        "name": "Sphere",
+        "path": "src/director_ai/core/cyber_physical/geometry.py"
+      },
+      {
+        "name": "StabilityReport",
+        "path": "src/director_ai/core/swarm_equilibrium/scorer.py"
+      },
+      {
+        "name": "StackelbergSolver",
+        "path": "src/director_ai/core/swarm_equilibrium/solvers.py"
+      },
+      {
+        "name": "StationaryDistribution",
+        "path": "src/director_ai/core/emergence_oracle/spectrum.py"
+      },
+      {
+        "name": "StatsResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "StatsStore",
+        "path": "src/director_ai/core/stats.py"
+      },
+      {
+        "name": "StatusResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "StepVerdict",
+        "path": "src/director_ai/agentic/loop_monitor.py"
+      },
+      {
+        "name": "StoredDocument",
+        "path": "src/director_ai/core/memory/consistency.py"
+      },
+      {
+        "name": "StrategyProfile",
+        "path": "src/director_ai/core/swarm_equilibrium/game.py"
+      },
+      {
+        "name": "StreamSession",
+        "path": "src/director_ai/core/runtime/streaming.py"
+      },
+      {
+        "name": "StreamingKernel",
+        "path": "src/director_ai/core/runtime/streaming.py"
+      },
+      {
+        "name": "StructuredRecoveryConfig",
+        "path": "src/director_ai/core/runtime/structured_recovery.py"
+      },
+      {
+        "name": "StructuredRecoveryResult",
+        "path": "src/director_ai/core/runtime/structured_recovery.py"
+      },
+      {
+        "name": "StructuredRecoveryState",
+        "path": "src/director_ai/core/runtime/structured_recovery.py"
+      },
+      {
+        "name": "StructuredVerificationResult",
+        "path": "src/director_ai/core/verification/types.py"
+      },
+      {
+        "name": "SuiteResult",
+        "path": "src/director_ai/core/autopoietic/testsuite.py"
+      },
+      {
+        "name": "SuiteVersion",
+        "path": "src/director_ai/core/continual_adversarial/suite.py"
+      },
+      {
+        "name": "SustainabilityBudget",
+        "path": "src/director_ai/core/sustainability/budget.py"
+      },
+      {
+        "name": "SustainabilityEstimate",
+        "path": "src/director_ai/core/sustainability/policy_adapter.py"
+      },
+      {
+        "name": "SustainabilityPolicyAdapter",
+        "path": "src/director_ai/core/sustainability/policy_adapter.py"
+      },
+      {
+        "name": "SustainabilityTelemetry",
+        "path": "src/director_ai/core/sustainability/policy_adapter.py"
+      },
+      {
+        "name": "SustainabilityTelemetrySummary",
+        "path": "src/director_ai/core/sustainability/policy_adapter.py"
+      },
+      {
+        "name": "SwarmEquilibriumScorer",
+        "path": "src/director_ai/core/swarm_equilibrium/scorer.py"
+      },
+      {
+        "name": "SwarmEvent",
+        "path": "src/director_ai/core/emergence_oracle/graph.py"
+      },
+      {
+        "name": "SwarmGraphBuilder",
+        "path": "src/director_ai/integrations/langgraph_swarm.py"
+      },
+      {
+        "name": "SwarmGuardian",
+        "path": "src/director_ai/agentic/swarm_guardian.py"
+      },
+      {
+        "name": "SwarmMetrics",
+        "path": "src/director_ai/agentic/swarm_metrics.py"
+      },
+      {
+        "name": "SyntheticDistillationBuilder",
+        "path": "src/director_ai/core/self_evolving/synthetic_distillation.py"
+      },
+      {
+        "name": "SyntheticDistillationManifest",
+        "path": "src/director_ai/core/self_evolving/synthetic_distillation.py"
+      },
+      {
+        "name": "SyntheticDistillationPlan",
+        "path": "src/director_ai/core/self_evolving/synthetic_distillation.py"
+      },
+      {
+        "name": "SyntheticExample",
+        "path": "src/director_ai/core/self_evolving/synthetic_distillation.py"
+      },
+      {
+        "name": "TTSAdapter",
+        "path": "src/director_ai/voice/adapters.py"
+      },
+      {
+        "name": "TaskGuardResult",
+        "path": "src/director_ai/integrations/crewai_swarm.py"
+      },
+      {
+        "name": "TemporalConsistencyGuard",
+        "path": "src/director_ai/core/multimodal_guard/guard.py"
+      },
+      {
+        "name": "TenantFactRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "TenantInfo",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "TenantListResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "TenantPhysicalBudget",
+        "path": "src/director_ai/core/cyber_physical/budget.py"
+      },
+      {
+        "name": "TenantRouter",
+        "path": "src/director_ai/core/tenant.py"
+      },
+      {
+        "name": "TenantVectorFactRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "TextRequest",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "ThresholdAdjuster",
+        "path": "src/director_ai/core/meta_guard/adjuster.py"
+      },
+      {
+        "name": "ThresholdBundle",
+        "path": "src/director_ai/core/meta_guard/adjuster.py"
+      },
+      {
+        "name": "ThresholdCandidate",
+        "path": "src/director_ai/core/training/tuner.py"
+      },
+      {
+        "name": "ThresholdFeedback",
+        "path": "src/director_ai/core/calibration/adaptive_threshold.py"
+      },
+      {
+        "name": "TokenEnergyCostEstimator",
+        "path": "src/director_ai/core/sustainability/policy_adapter.py"
+      },
+      {
+        "name": "TokenEvent",
+        "path": "src/director_ai/core/runtime/streaming.py"
+      },
+      {
+        "name": "TokenTraceCallback",
+        "path": "src/director_ai/core/observability/callbacks.py"
+      },
+      {
+        "name": "TokenTraceEmitter",
+        "path": "src/director_ai/core/observability/callbacks.py"
+      },
+      {
+        "name": "TokenTraceEvent",
+        "path": "src/director_ai/core/observability/callbacks.py"
+      },
+      {
+        "name": "ToolCallResult",
+        "path": "src/director_ai/core/verification/types.py"
+      },
+      {
+        "name": "TorchCLIPCrossModalVerifier",
+        "path": "src/director_ai/core/multimodal_guard/verifier.py"
+      },
+      {
+        "name": "TorchCLIPImageEncoder",
+        "path": "src/director_ai/core/multimodal_guard/encoders.py"
+      },
+      {
+        "name": "TorqueConstraint",
+        "path": "src/director_ai/core/cyber_physical/constraints.py"
+      },
+      {
+        "name": "TraceEmbedder",
+        "path": "src/director_ai/core/trace_safe/embedder.py"
+      },
+      {
+        "name": "TraceSafeOracle",
+        "path": "src/director_ai/core/trace_safe/oracle.py"
+      },
+      {
+        "name": "TraceSample",
+        "path": "src/director_ai/core/trace_safe/oracle.py"
+      },
+      {
+        "name": "TraceVerdict",
+        "path": "src/director_ai/core/trace_safe/oracle.py"
+      },
+      {
+        "name": "TraceabilityScorer",
+        "path": "src/director_ai/core/scoring/verified_scorer.py"
+      },
+      {
+        "name": "TragedyDetector",
+        "path": "src/director_ai/core/swarm_economics/detector.py"
+      },
+      {
+        "name": "TragedySignal",
+        "path": "src/director_ai/core/swarm_economics/detector.py"
+      },
+      {
+        "name": "TrainedAdversaryScorer",
+        "path": "src/director_ai/core/continual_adversarial/scorer.py"
+      },
+      {
+        "name": "TrainedGuardrail",
+        "path": "src/director_ai/core/self_evolving/trainer.py"
+      },
+      {
+        "name": "TrainingDatasetSplit",
+        "path": "src/director_ai/core/training/sweeps.py"
+      },
+      {
+        "name": "TrainingHardware",
+        "path": "src/director_ai/core/training/jobs.py"
+      },
+      {
+        "name": "TrainingHarvestReport",
+        "path": "src/director_ai/core/training/results.py"
+      },
+      {
+        "name": "TrainingJobBackend",
+        "path": "src/director_ai/core/training/jobs.py"
+      },
+      {
+        "name": "TrainingJobSpec",
+        "path": "src/director_ai/core/training/jobs.py"
+      },
+      {
+        "name": "TrainingJobStatus",
+        "path": "src/director_ai/core/training/jobs.py"
+      },
+      {
+        "name": "TrainingJobSubmission",
+        "path": "src/director_ai/core/training/jobs.py"
+      },
+      {
+        "name": "TrainingLane",
+        "path": "src/director_ai/core/customer_model_factory/training_manifest.py"
+      },
+      {
+        "name": "TrainingModelProfile",
+        "path": "src/director_ai/core/training/model_registry.py"
+      },
+      {
+        "name": "TrainingResultRecord",
+        "path": "src/director_ai/core/training/results.py"
+      },
+      {
+        "name": "TrainingScenario",
+        "path": "src/director_ai/core/training/sweeps.py"
+      },
+      {
+        "name": "TrainingSweepPlan",
+        "path": "src/director_ai/core/training/sweeps.py"
+      },
+      {
+        "name": "TrajectoryResult",
+        "path": "src/director_ai/core/trajectory/simulator.py"
+      },
+      {
+        "name": "TrajectorySimulator",
+        "path": "src/director_ai/core/trajectory/simulator.py"
+      },
+      {
+        "name": "TraversalPolicy",
+        "path": "src/director_ai/core/knowledge_graph/policy.py"
+      },
+      {
+        "name": "TraversalStep",
+        "path": "src/director_ai/core/knowledge_graph/validator.py"
+      },
+      {
+        "name": "TraversalValidator",
+        "path": "src/director_ai/core/knowledge_graph/validator.py"
+      },
+      {
+        "name": "TraversalVerdict",
+        "path": "src/director_ai/core/knowledge_graph/validator.py"
+      },
+      {
+        "name": "TrustConsoleReport",
+        "path": "src/director_ai/ui/safety_dashboard.py"
+      },
+      {
+        "name": "TrustControl",
+        "path": "src/director_ai/ui/safety_dashboard.py"
+      },
+      {
+        "name": "TuneResult",
+        "path": "src/director_ai/core/retrieval/embedding_tuner.py"
+      },
+      {
+        "name": "TuneResult",
+        "path": "src/director_ai/core/training/tuner.py"
+      },
+      {
+        "name": "Turn",
+        "path": "src/director_ai/core/runtime/session.py"
+      },
+      {
+        "name": "TurnInfo",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "UnsupportedKinematicsError",
+        "path": "src/director_ai/core/cyber_physical/kinematics.py"
+      },
+      {
+        "name": "ValidationError",
+        "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "ValueLatticeScorer",
+        "path": "src/director_ai/core/multi_scale_alignment/scorer.py"
+      },
+      {
+        "name": "ValueVector",
+        "path": "src/director_ai/core/multi_scale_alignment/scorer.py"
+      },
+      {
+        "name": "Variable",
+        "path": "src/director_ai/core/formal_verification/formula.py"
+      },
+      {
+        "name": "Vec3",
+        "path": "src/director_ai/core/cyber_physical/geometry.py"
+      },
+      {
+        "name": "VectorBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/base.py"
+      },
+      {
+        "name": "VectorGroundTruthStore",
+        "path": "src/director_ai/core/retrieval/vector_store/store.py"
+      },
+      {
+        "name": "VelocityConstraint",
+        "path": "src/director_ai/core/cyber_physical/constraints.py"
+      },
+      {
+        "name": "Verdict",
+        "path": "src/director_ai/core/causal_verifier/counterfactual.py"
+      },
+      {
+        "name": "VerdictProducer",
+        "path": "src/director_ai/core/trajectory/simulator.py"
+      },
+      {
+        "name": "VerificationResult",
+        "path": "src/director_ai/core/scoring/verified_scorer.py"
+      },
+      {
+        "name": "VerifiedScorer",
+        "path": "src/director_ai/core/scoring/verified_scorer.py"
+      },
+      {
+        "name": "VerifierBackend",
+        "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "VerifierSignal",
+        "path": "src/director_ai/core/guard_control/decision.py"
+      },
+      {
+        "name": "VerifyResponse",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "VertexTrainingBackend",
+        "path": "src/director_ai/core/training/jobs.py"
+      },
+      {
+        "name": "Violation",
+        "path": "src/director_ai/core/cyber_physical/hook.py"
+      },
+      {
+        "name": "Violation",
+        "path": "src/director_ai/core/safety/policy.py"
+      },
+      {
+        "name": "VoiceDemoResult",
+        "path": "src/director_ai/voice/demo.py"
+      },
+      {
+        "name": "VoiceGuard",
+        "path": "src/director_ai/integrations/voice.py"
+      },
+      {
+        "name": "VoiceToken",
+        "path": "src/director_ai/integrations/voice.py"
+      },
+      {
+        "name": "WeaviateBackend",
+        "path": "src/director_ai/core/retrieval/vector_store/vendors.py"
+      },
+      {
+        "name": "WindowStats",
+        "path": "src/director_ai/_server_models.py"
+      },
+      {
+        "name": "WindowStats",
+        "path": "src/director_ai/compliance/drift_detector.py"
+      },
+      {
+        "name": "WordOverlapRule",
+        "path": "src/director_ai/core/scoring/rules_scorer.py"
+      },
+      {
+        "name": "WorkspaceConstraint",
+        "path": "src/director_ai/core/cyber_physical/constraints.py"
+      },
+      {
+        "name": "Z3Backend",
+        "path": "src/director_ai/core/formal_verification/verifier.py"
+      },
+      {
+        "name": "ZkSnarkBackend",
+        "path": "src/director_ai/core/zk_attestation/backends.py"
+      }
+    ],
+    "python_source_modules": [
+      "src/director_ai/_cli_bench.py",
+      "src/director_ai/_cli_ingest.py",
+      "src/director_ai/_cli_serve.py",
+      "src/director_ai/_cli_train.py",
+      "src/director_ai/_cli_verify.py",
+      "src/director_ai/_server_helpers.py",
+      "src/director_ai/_server_models.py",
+      "src/director_ai/agentic/agent_profile.py",
+      "src/director_ai/agentic/handoff_scorer.py",
+      "src/director_ai/agentic/loop_monitor.py",
+      "src/director_ai/agentic/swarm_guardian.py",
+      "src/director_ai/agentic/swarm_metrics.py",
+      "src/director_ai/cli.py",
+      "src/director_ai/compliance/audit_log.py",
+      "src/director_ai/compliance/cost_analyser.py",
+      "src/director_ai/compliance/drift_detector.py",
+      "src/director_ai/compliance/feedback_loop_detector.py",
+      "src/director_ai/compliance/readiness.py",
+      "src/director_ai/compliance/report_templates.py",
+      "src/director_ai/compliance/reporter.py",
+      "src/director_ai/core/_device.py",
+      "src/director_ai/core/_heuristics.py",
+      "src/director_ai/core/actor.py",
+      "src/director_ai/core/agent.py",
+      "src/director_ai/core/agent_identity/audit.py",
+      "src/director_ai/core/agent_identity/fingerprint.py",
+      "src/director_ai/core/agent_identity/passport.py",
+      "src/director_ai/core/agent_identity/registry.py",
+      "src/director_ai/core/async_streaming.py",
+      "src/director_ai/core/attribution/causal_graph.py",
+      "src/director_ai/core/audit.py",
+      "src/director_ai/core/autopoietic/blueprint.py",
+      "src/director_ai/core/autopoietic/builder.py",
+      "src/director_ai/core/autopoietic/engine.py",
+      "src/director_ai/core/autopoietic/testsuite.py",
+      "src/director_ai/core/backends.py",
+      "src/director_ai/core/batch.py",
+      "src/director_ai/core/cache.py",
+      "src/director_ai/core/calibration/adaptive_threshold.py",
+      "src/director_ai/core/calibration/conformal.py",
+      "src/director_ai/core/calibration/feedback_store.py",
+      "src/director_ai/core/calibration/online_calibrator.py",
+      "src/director_ai/core/causal_verifier/counterfactual.py",
+      "src/director_ai/core/causal_verifier/graph.py",
+      "src/director_ai/core/causal_verifier/intervention.py",
+      "src/director_ai/core/config.py",
+      "src/director_ai/core/containment/anchor.py",
+      "src/director_ai/core/containment/detector.py",
+      "src/director_ai/core/containment/guard.py",
+      "src/director_ai/core/containment/scope.py",
+      "src/director_ai/core/continual_adversarial/engine.py",
+      "src/director_ai/core/continual_adversarial/failure.py",
+      "src/director_ai/core/continual_adversarial/miner.py",
+      "src/director_ai/core/continual_adversarial/scorer.py",
+      "src/director_ai/core/continual_adversarial/suite.py",
+      "src/director_ai/core/customer_model_factory/banking_pack.py",
+      "src/director_ai/core/customer_model_factory/benchmark_selection.py",
+      "src/director_ai/core/customer_model_factory/dataset_contract.py",
+      "src/director_ai/core/customer_model_factory/deployment_manifest.py",
+      "src/director_ai/core/customer_model_factory/evidence_pack.py",
+      "src/director_ai/core/customer_model_factory/monitoring_manifest.py",
+      "src/director_ai/core/customer_model_factory/release_gate.py",
+      "src/director_ai/core/customer_model_factory/risk_register.py",
+      "src/director_ai/core/customer_model_factory/runtime_package.py",
+      "src/director_ai/core/customer_model_factory/training_manifest.py",
+      "src/director_ai/core/cyber_physical/adapters.py",
+      "src/director_ai/core/cyber_physical/budget.py",
+      "src/director_ai/core/cyber_physical/closed_loop.py",
+      "src/director_ai/core/cyber_physical/constraints.py",
+      "src/director_ai/core/cyber_physical/geometry.py",
+      "src/director_ai/core/cyber_physical/hook.py",
+      "src/director_ai/core/cyber_physical/kinematics.py",
+      "src/director_ai/core/defense_genome/engine.py",
+      "src/director_ai/core/defense_genome/genome.py",
+      "src/director_ai/core/defense_genome/registry.py",
+      "src/director_ai/core/defense_genome/update_pipeline.py",
+      "src/director_ai/core/doc_chunker.py",
+      "src/director_ai/core/doc_parser.py",
+      "src/director_ai/core/doc_registry.py",
+      "src/director_ai/core/embedding_tuner.py",
+      "src/director_ai/core/emergence_oracle/graph.py",
+      "src/director_ai/core/emergence_oracle/oracle.py",
+      "src/director_ai/core/emergence_oracle/spectrum.py",
+      "src/director_ai/core/evaluation/policy.py",
+      "src/director_ai/core/exceptions.py",
+      "src/director_ai/core/federated_privacy/accountant.py",
+      "src/director_ai/core/federated_privacy/aggregator.py",
+      "src/director_ai/core/federated_privacy/mechanisms.py",
+      "src/director_ai/core/federated_privacy/score_release.py",
+      "src/director_ai/core/federated_privacy/secret_sharing.py",
+      "src/director_ai/core/federated_privacy/signal_sharing.py",
+      "src/director_ai/core/finetune.py",
+      "src/director_ai/core/finetune_benchmark.py",
+      "src/director_ai/core/finetune_validator.py",
+      "src/director_ai/core/formal_verification/adapter.py",
+      "src/director_ai/core/formal_verification/cnf.py",
+      "src/director_ai/core/formal_verification/dpll.py",
+      "src/director_ai/core/formal_verification/formula.py",
+      "src/director_ai/core/formal_verification/verifier.py",
+      "src/director_ai/core/guard_control/decision.py",
+      "src/director_ai/core/guard_control/no_go.py",
+      "src/director_ai/core/ingestion/pipeline.py",
+      "src/director_ai/core/irreversibility/forecaster.py",
+      "src/director_ai/core/irreversibility/reversibility.py",
+      "src/director_ai/core/kb_write_security.py",
+      "src/director_ai/core/kernel.py",
+      "src/director_ai/core/knowledge.py",
+      "src/director_ai/core/knowledge_graph/graph.py",
+      "src/director_ai/core/knowledge_graph/policy.py",
+      "src/director_ai/core/knowledge_graph/validator.py",
+      "src/director_ai/core/license.py",
+      "src/director_ai/core/lite_scorer.py",
+      "src/director_ai/core/memory/consistency.py",
+      "src/director_ai/core/meta_classifier.py",
+      "src/director_ai/core/meta_guard/adjuster.py",
+      "src/director_ai/core/meta_guard/analyzer.py",
+      "src/director_ai/core/meta_guard/guard.py",
+      "src/director_ai/core/meta_guard/log.py",
+      "src/director_ai/core/metrics.py",
+      "src/director_ai/core/model_revisions.py",
+      "src/director_ai/core/multi_scale_alignment/aligner.py",
+      "src/director_ai/core/multi_scale_alignment/conflict.py",
+      "src/director_ai/core/multi_scale_alignment/scorer.py",
+      "src/director_ai/core/multimodal_guard/adapter.py",
+      "src/director_ai/core/multimodal_guard/claim.py",
+      "src/director_ai/core/multimodal_guard/encoders.py",
+      "src/director_ai/core/multimodal_guard/guard.py",
+      "src/director_ai/core/multimodal_guard/verifier.py",
+      "src/director_ai/core/nli.py",
+      "src/director_ai/core/observability/callbacks.py",
+      "src/director_ai/core/observability/tracing.py",
+      "src/director_ai/core/ontology/checker.py",
+      "src/director_ai/core/ontology/graph.py",
+      "src/director_ai/core/otel.py",
+      "src/director_ai/core/polar_license.py",
+      "src/director_ai/core/policy.py",
+      "src/director_ai/core/policy_compiler/compiler.py",
+      "src/director_ai/core/policy_compiler/extractor.py",
+      "src/director_ai/core/policy_compiler/registry.py",
+      "src/director_ai/core/policy_compiler/rule.py",
+      "src/director_ai/core/provenance/chain.py",
+      "src/director_ai/core/provenance/credibility.py",
+      "src/director_ai/core/provenance/facts.py",
+      "src/director_ai/core/provenance/merkle.py",
+      "src/director_ai/core/provenance/verifier.py",
+      "src/director_ai/core/retrieval/adaptive_router.py",
+      "src/director_ai/core/retrieval/conflict_guard.py",
+      "src/director_ai/core/retrieval/contextual_compression.py",
+      "src/director_ai/core/retrieval/doc_chunker.py",
+      "src/director_ai/core/retrieval/doc_parser.py",
+      "src/director_ai/core/retrieval/doc_registry.py",
+      "src/director_ai/core/retrieval/embedding_tuner.py",
+      "src/director_ai/core/retrieval/hyde.py",
+      "src/director_ai/core/retrieval/ingestion/base.py",
+      "src/director_ai/core/retrieval/ingestion/gdrive.py",
+      "src/director_ai/core/retrieval/ingestion/notion.py",
+      "src/director_ai/core/retrieval/ingestion/s3.py",
+      "src/director_ai/core/retrieval/kb_health.py",
+      "src/director_ai/core/retrieval/knowledge.py",
+      "src/director_ai/core/retrieval/multi_vector.py",
+      "src/director_ai/core/retrieval/parent_child.py",
+      "src/director_ai/core/retrieval/query_decomposition.py",
+      "src/director_ai/core/retrieval/vector_store/base.py",
+      "src/director_ai/core/retrieval/vector_store/composite.py",
+      "src/director_ai/core/retrieval/vector_store/embedding.py",
+      "src/director_ai/core/retrieval/vector_store/http_embedding.py",
+      "src/director_ai/core/retrieval/vector_store/remanentia.py",
+      "src/director_ai/core/retrieval/vector_store/store.py",
+      "src/director_ai/core/retrieval/vector_store/vendors.py",
+      "src/director_ai/core/review_queue.py",
+      "src/director_ai/core/routing/budget.py",
+      "src/director_ai/core/routing/router.py",
+      "src/director_ai/core/routing/scorer.py",
+      "src/director_ai/core/runtime/async_streaming.py",
+      "src/director_ai/core/runtime/batch.py",
+      "src/director_ai/core/runtime/contradiction_tracker.py",
+      "src/director_ai/core/runtime/correction.py",
+      "src/director_ai/core/runtime/human_review.py",
+      "src/director_ai/core/runtime/kernel.py",
+      "src/director_ai/core/runtime/review_queue.py",
+      "src/director_ai/core/runtime/session.py",
+      "src/director_ai/core/runtime/streaming.py",
+      "src/director_ai/core/runtime/structured_recovery.py",
+      "src/director_ai/core/safety/audit.py",
+      "src/director_ai/core/safety/audit_salt.py",
+      "src/director_ai/core/safety/injection.py",
+      "src/director_ai/core/safety/moderation/detectors.py",
+      "src/director_ai/core/safety/moderation/pii.py",
+      "src/director_ai/core/safety/moderation/toxicity.py",
+      "src/director_ai/core/safety/policy.py",
+      "src/director_ai/core/safety/sanitizer.py",
+      "src/director_ai/core/safety_event.py",
+      "src/director_ai/core/safety_protocol.py",
+      "src/director_ai/core/sanitizer.py",
+      "src/director_ai/core/scorer.py",
+      "src/director_ai/core/scoring/_heuristics.py",
+      "src/director_ai/core/scoring/_llm_judge.py",
+      "src/director_ai/core/scoring/_nli_export.py",
+      "src/director_ai/core/scoring/_task_scoring.py",
+      "src/director_ai/core/scoring/backends.py",
+      "src/director_ai/core/scoring/consensus.py",
+      "src/director_ai/core/scoring/distilled_scorer.py",
+      "src/director_ai/core/scoring/embed_scorer.py",
+      "src/director_ai/core/scoring/lite_scorer.py",
+      "src/director_ai/core/scoring/meta_classifier.py",
+      "src/director_ai/core/scoring/meta_confidence.py",
+      "src/director_ai/core/scoring/model_choices.py",
+      "src/director_ai/core/scoring/nli.py",
+      "src/director_ai/core/scoring/rules_scorer.py",
+      "src/director_ai/core/scoring/scorer.py",
+      "src/director_ai/core/scoring/sharded_nli.py",
+      "src/director_ai/core/scoring/temporal_freshness.py",
+      "src/director_ai/core/scoring/verified_scorer.py",
+      "src/director_ai/core/self_evolving/adversarial.py",
+      "src/director_ai/core/self_evolving/calibration.py",
+      "src/director_ai/core/self_evolving/evolver.py",
+      "src/director_ai/core/self_evolving/feedback.py",
+      "src/director_ai/core/self_evolving/guard_loop.py",
+      "src/director_ai/core/self_evolving/synthetic_distillation.py",
+      "src/director_ai/core/self_evolving/trainer.py",
+      "src/director_ai/core/session.py",
+      "src/director_ai/core/sharded_nli.py",
+      "src/director_ai/core/stats.py",
+      "src/director_ai/core/streaming.py",
+      "src/director_ai/core/sustainability/budget.py",
+      "src/director_ai/core/sustainability/carbon.py",
+      "src/director_ai/core/sustainability/forecaster.py",
+      "src/director_ai/core/sustainability/policy_adapter.py",
+      "src/director_ai/core/sustainability/quota.py",
+      "src/director_ai/core/swarm_economics/bargaining.py",
+      "src/director_ai/core/swarm_economics/detector.py",
+      "src/director_ai/core/swarm_economics/pool.py",
+      "src/director_ai/core/swarm_economics/scorer.py",
+      "src/director_ai/core/swarm_equilibrium/game.py",
+      "src/director_ai/core/swarm_equilibrium/scorer.py",
+      "src/director_ai/core/swarm_equilibrium/solvers.py",
+      "src/director_ai/core/symbolic_chain/claims.py",
+      "src/director_ai/core/symbolic_chain/prover.py",
+      "src/director_ai/core/symbolic_chain/verifier.py",
+      "src/director_ai/core/tenant.py",
+      "src/director_ai/core/trace_safe/embedder.py",
+      "src/director_ai/core/trace_safe/oracle.py",
+      "src/director_ai/core/training/finetune.py",
+      "src/director_ai/core/training/finetune_benchmark.py",
+      "src/director_ai/core/training/finetune_validator.py",
+      "src/director_ai/core/training/jobs.py",
+      "src/director_ai/core/training/model_registry.py",
+      "src/director_ai/core/training/results.py",
+      "src/director_ai/core/training/sweeps.py",
+      "src/director_ai/core/training/tuner.py",
+      "src/director_ai/core/training/vertex_runner.py",
+      "src/director_ai/core/trajectory/simulator.py",
+      "src/director_ai/core/trajectory/steering.py",
+      "src/director_ai/core/tuner.py",
+      "src/director_ai/core/types.py",
+      "src/director_ai/core/vector_store.py",
+      "src/director_ai/core/verification/code_verifier.py",
+      "src/director_ai/core/verification/json_verifier.py",
+      "src/director_ai/core/verification/neuro_symbolic.py",
+      "src/director_ai/core/verification/numeric_verifier.py",
+      "src/director_ai/core/verification/reasoning_verifier.py",
+      "src/director_ai/core/verification/tool_call_verifier.py",
+      "src/director_ai/core/verification/types.py",
+      "src/director_ai/core/verified_scorer.py",
+      "src/director_ai/core/zk_attestation/backends.py",
+      "src/director_ai/core/zk_attestation/commitment.py",
+      "src/director_ai/core/zk_attestation/passport.py",
+      "src/director_ai/core/zk_attestation/statements.py",
+      "src/director_ai/enterprise/audit_pg.py",
+      "src/director_ai/enterprise/moderation.py",
+      "src/director_ai/enterprise/redactor.py",
+      "src/director_ai/enterprise/redis.py",
+      "src/director_ai/enterprise/rules_dsl.py",
+      "src/director_ai/finetune_api.py",
+      "src/director_ai/grpc_scoring.py",
+      "src/director_ai/grpc_server.py",
+      "src/director_ai/guard.py",
+      "src/director_ai/integrations/autogen_swarm.py",
+      "src/director_ai/integrations/crewai.py",
+      "src/director_ai/integrations/crewai_swarm.py",
+      "src/director_ai/integrations/dspy.py",
+      "src/director_ai/integrations/fastapi_guard.py",
+      "src/director_ai/integrations/guardrails_ai.py",
+      "src/director_ai/integrations/haystack.py",
+      "src/director_ai/integrations/inference_server_hooks.py",
+      "src/director_ai/integrations/langchain.py",
+      "src/director_ai/integrations/langchain_callback.py",
+      "src/director_ai/integrations/langgraph.py",
+      "src/director_ai/integrations/langgraph_swarm.py",
+      "src/director_ai/integrations/llamaindex.py",
+      "src/director_ai/integrations/openai_swarm.py",
+      "src/director_ai/integrations/providers.py",
+      "src/director_ai/integrations/sdk_guard.py",
+      "src/director_ai/integrations/semantic_kernel.py",
+      "src/director_ai/integrations/voice.py",
+      "src/director_ai/interlock.py",
+      "src/director_ai/knowledge_api.py",
+      "src/director_ai/middleware/api_key.py",
+      "src/director_ai/middleware/rate_limit.py",
+      "src/director_ai/proto/converters.py",
+      "src/director_ai/proxy.py",
+      "src/director_ai/server.py",
+      "src/director_ai/testing/adversarial_suite.py",
+      "src/director_ai/ui/_field_groups.py",
+      "src/director_ai/ui/config_wizard.py",
+      "src/director_ai/ui/safety_dashboard.py",
+      "src/director_ai/voice/adapters.py",
+      "src/director_ai/voice/demo.py",
+      "src/director_ai/voice/guard.py",
+      "src/director_ai/voice/pipeline.py"
+    ],
+    "rust_pyo3_wrappers": [
+      "BackfireConfig",
+      "CoherenceScore",
+      "PiiScanner",
+      "PyBM25",
+      "PyBackfireConfig",
+      "PyCoherenceScore",
+      "PyCoherenceScorer",
+      "PyL16Controller",
+      "PyPGBOEngine",
+      "PyPiiScanner",
+      "PySECFunctional",
+      "PySSGFEngine",
+      "PySafetyKernel",
+      "PyStreamSession",
+      "PyStreamingKernel",
+      "PyTCBOController",
+      "PyTCBOObserver",
+      "PyUPDEStepper",
+      "RustBM25",
+      "RustCoherenceScorer",
+      "RustL16Controller",
+      "RustPGBOEngine",
+      "RustSECFunctional",
+      "RustSSGFEngine",
+      "RustSafetyKernel",
+      "RustStreamingKernel",
+      "RustTCBOController",
+      "RustTCBOObserver",
+      "RustUPDEStepper",
+      "StreamSession",
+      "rust_aabb_contains",
+      "rust_bidirectional_divergence",
+      "rust_derive_challenge_indices",
+      "rust_detect_task_type",
+      "rust_entity_overlap",
+      "rust_extract_reasoning_steps",
+      "rust_has_suspicious_unicode",
+      "rust_injection_verdict",
+      "rust_lite_score",
+      "rust_lite_score_batch",
+      "rust_merkle_auth_path",
+      "rust_merkle_root",
+      "rust_merkle_walk_path",
+      "rust_negation_flip",
+      "rust_numerical_consistency",
+      "rust_probs_to_confidence",
+      "rust_probs_to_divergence",
+      "rust_sanitizer_score",
+      "rust_score_temporal_freshness",
+      "rust_softmax",
+      "rust_sphere_contains",
+      "rust_sphere_intersects_aabb",
+      "rust_sphere_intersects_sphere",
+      "rust_traceability",
+      "rust_trend_drop",
+      "rust_two_link_ik",
+      "rust_verify_numeric",
+      "rust_verify_reality_anchor_mac",
+      "rust_word_overlap"
+    ]
+  },
+  "package_exports": [
+    "AdaptiveRouter",
+    "AdaptiveThresholdArm",
+    "AdaptiveThresholdLearner",
+    "AdaptiveThresholdRecommendation",
+    "AdaptiveThresholdReport",
+    "AdversarialTester",
+    "AgentProfile",
+    "Article15Report",
+    "Article15TemplateContext",
+    "AsyncStreamingKernel",
+    "AsyncVoiceGuard",
+    "AttributionEdge",
+    "AttributionNode",
+    "AuditEntry",
+    "AuditLog",
+    "BFTConsensusResult",
+    "BFTConsensusVote",
+    "BatchProcessor",
+    "BatchResult",
+    "ByzantineFaultTolerantConsensus",
+    "CalibrationReport",
+    "CausalAttributionGraph",
+    "ChromaBackend",
+    "CitationStatusSignal",
+    "CitationStatusVerdict",
+    "ClaimAttribution",
+    "ClaimVerdict",
+    "CodeCheckResult",
+    "CoherenceAgent",
+    "CoherenceCallbackHandler",
+    "CoherenceError",
+    "CoherenceScore",
+    "CoherenceScorer",
+    "ColBERTBackend",
+    "ComplianceReporter",
+    "ConflictAwareKnowledgeGuard",
+    "ConformalPredictor",
+    "ConsensusScorer",
+    "ContentModerationFinding",
+    "ContentModerationResult",
+    "ContentModerator",
+    "ContextualCompressionBackend",
+    "ContradictionReport",
+    "ContradictionTracker",
+    "ConversationSession",
+    "CostAnalyser",
+    "CounterfactualFactChange",
+    "CounterfactualHaltDiagnostic",
+    "CriticalConsensusProfile",
+    "CrossDocumentConflict",
+    "CrossDocumentConsistencyMemory",
+    "CrossDocumentConsistencyReport",
+    "CrossVerifierConsensus",
+    "CustomRule",
+    "CustomRuleset",
+    "DIRECTOR_SAFETY_PROTOCOL_VERSION",
+    "DataQualityReport",
+    "DatasetTypeClassifier",
+    "DeepgramAdapter",
+    "DependencyError",
+    "DifferentialPrivacyScoreReleaser",
+    "DirectorAIError",
+    "DirectorConfig",
+    "DirectorSafetySignal",
+    "DriftDetector",
+    "DriftResult",
+    "ElasticsearchBackend",
+    "ElevenLabsAdapter",
+    "EvidenceChunk",
+    "FAISSBackend",
+    "FederatedSafetySignalAggregator",
+    "FederatedSafetySignalRelease",
+    "FeedbackLoopDetector",
+    "FeedbackStore",
+    "FieldVerdict",
+    "FinetuneConfig",
+    "FinetuneResult",
+    "GeneratorError",
+    "GroundTruthStore",
+    "HallucinationError",
+    "HaltEvidence",
+    "HaltMonitor",
+    "HaltTraceAttribution",
+    "HandoffScorer",
+    "HumanReviewCase",
+    "HumanReviewDecision",
+    "HumanReviewQueue",
+    "HyDEBackend",
+    "HybridBackend",
+    "InMemoryBackend",
+    "InferenceHookDecision",
+    "InferenceHookRequest",
+    "InferenceServerHook",
+    "InferenceServerHookPolicy",
+    "InjectedClaim",
+    "InjectionDetector",
+    "InjectionResult",
+    "InputSanitizer",
+    "InterlockDecision",
+    "InterlockKernel",
+    "InterlockPolicy",
+    "KBHealthCheck",
+    "KBHealthReport",
+    "KernelHaltError",
+    "KnowledgeConflict",
+    "KnowledgeConflictCheck",
+    "KnowledgeFact",
+    "LLMGenerator",
+    "LabelledPolicySample",
+    "LiteScorer",
+    "LoopMonitor",
+    "MetaClassifier",
+    "MockGenerator",
+    "ModelResponse",
+    "ModerationAction",
+    "MultiVectorBackend",
+    "NLIScorer",
+    "NeuroSymbolicVerificationResult",
+    "NeuroSymbolicVerifier",
+    "NeuroSymbolicVerifierInput",
+    "NumericVerificationResult",
+    "NumericalError",
+    "OnlineCalibrator",
+    "OpenAITTSAdapter",
+    "ParentChildBackend",
+    "PhysicsError",
+    "PineconeBackend",
+    "PolicyComparisonReport",
+    "PolicyEvaluationReport",
+    "PolicyVariant",
+    "PolicyVariantResult",
+    "PredictionInterval",
+    "PrivacyScoreRelease",
+    "ProfileMetadata",
+    "QdrantBackend",
+    "QueryDecompositionBackend",
+    "ReadinessStatus",
+    "RegressionReport",
+    "RerankedBackend",
+    "ReviewQueue",
+    "ReviewResult",
+    "RulesDslError",
+    "SAFETY_EVENT_JSON_SCHEMA",
+    "SafetyEvent",
+    "SafetyKernel",
+    "SanitizeResult",
+    "ScoreCache",
+    "ScorerBackend",
+    "ScoringEvidence",
+    "SentenceTransformerBackend",
+    "ShardedNLIScorer",
+    "Soc2IsoControl",
+    "Soc2IsoReadinessReport",
+    "StoredDocument",
+    "StreamSession",
+    "StreamingKernel",
+    "StructuredRecoveryConfig",
+    "StructuredRecoveryResult",
+    "StructuredVerificationResult",
+    "SwarmGuardian",
+    "SwarmMetrics",
+    "TTSAdapter",
+    "ThresholdFeedback",
+    "TokenEvent",
+    "ToolCallResult",
+    "TuneResult",
+    "Turn",
+    "ValidationError",
+    "VectorBackend",
+    "VectorGroundTruthStore",
+    "VerificationResult",
+    "VerifiedScorer",
+    "VoiceGuard",
+    "VoiceToken",
+    "WeaviateBackend",
+    "benchmark_finetuned_model",
+    "build_causal_attribution_graph",
+    "build_inference_server_hook",
+    "build_soc2_iso_readiness_report",
+    "clear_model_cache",
+    "compare_policy_variants",
+    "compute_meta_confidence",
+    "create_app",
+    "create_grpc_server",
+    "create_knowledge_router",
+    "director_safety_signal_from_event",
+    "evaluate_policy_variants",
+    "export_onnx",
+    "export_tensorrt",
+    "finetune_nli",
+    "get_backend",
+    "get_score",
+    "get_vector_backend",
+    "guard",
+    "list_backends",
+    "list_vector_backends",
+    "new_director_safety_signal_id",
+    "new_safety_event_id",
+    "nli_available",
+    "register_backend",
+    "register_vector_backend",
+    "score",
+    "score_temporal_freshness",
+    "tune",
+    "utc_timestamp",
+    "validate_director_safety_signal",
+    "validate_finetune_data",
+    "validate_safety_event_payload",
+    "verify_code",
+    "verify_json",
+    "verify_numeric",
+    "verify_reasoning_chain",
+    "verify_tool_call",
+    "voice_pipeline"
+  ],
+  "packaging": {
+    "optional_extras": [
+      "anthropic",
+      "auto-kb",
+      "autogen",
+      "colbert",
+      "crewai",
+      "demo",
+      "dev",
+      "docs",
+      "elasticsearch",
+      "embed",
+      "embeddings",
+      "enterprise",
+      "faiss",
+      "finetune",
+      "formal",
+      "grpc",
+      "guardrails",
+      "haystack",
+      "ingestion",
+      "ingestion-gdrive",
+      "ingestion-notion",
+      "ingestion-s3",
+      "langchain",
+      "langfuse",
+      "langgraph",
+      "license",
+      "llamaindex",
+      "managed-training",
+      "minicheck",
+      "moderation",
+      "nli",
+      "nli-lite",
+      "onnx",
+      "openai",
+      "otel",
+      "physical",
+      "pinecone",
+      "presidio",
+      "qdrant",
+      "quantize",
+      "reports",
+      "reranker",
+      "research",
+      "rust",
+      "security",
+      "server",
+      "tensorrt",
+      "toxicity",
+      "train",
+      "ui",
+      "vector",
+      "voice",
+      "weaviate"
+    ],
+    "shipped_package_data": [
+      "core/models/*.pkl"
+    ]
+  },
+  "project": {
+    "license": {
+      "text": "AGPL-3.0-or-later"
+    },
+    "name": "director-ai",
+    "readme": "README.md",
+    "requires_python": ">=3.11",
+    "version": "3.14.0"
+  },
+  "project_label": "Director-AI",
+  "quality_gates": {
+    "github_workflows": [
+      ".github/workflows/ci.yml",
+      ".github/workflows/codeql.yml",
+      ".github/workflows/docker.yml",
+      ".github/workflows/docs.yml",
+      ".github/workflows/nightly-red-team.yml",
+      ".github/workflows/pre-commit.yml",
+      ".github/workflows/publish.yml",
+      ".github/workflows/release.yml",
+      ".github/workflows/scorecard.yml",
+      ".github/workflows/stale.yml",
+      ".github/workflows/wheels.yml"
+    ],
+    "test_files": [
+      "tests/conftest.py",
+      "tests/test_accuracy_improvements.py",
+      "tests/test_actor.py",
+      "tests/test_adaptive_router.py",
+      "tests/test_adaptive_threshold.py",
+      "tests/test_advanced_coherence.py",
+      "tests/test_adversarial_suite.py",
+      "tests/test_agent.py",
+      "tests/test_agent_identity.py",
+      "tests/test_agent_passport_registry.py",
+      "tests/test_agent_profile.py",
+      "tests/test_agent_providers.py",
+      "tests/test_agent_safety_hooks.py",
+      "tests/test_aggrefact_save_scores.py",
+      "tests/test_airgap_install_example.py",
+      "tests/test_api_reference_index.py",
+      "tests/test_async_streaming.py",
+      "tests/test_async_streaming_edge.py",
+      "tests/test_audit.py",
+      "tests/test_audit_log.py",
+      "tests/test_audit_pg_sql_safety.py",
+      "tests/test_audit_salt.py",
+      "tests/test_autogen_swarm.py",
+      "tests/test_autopoietic.py",
+      "tests/test_backends.py",
+      "tests/test_backfire_kernel_release_contract.py",
+      "tests/test_batch.py",
+      "tests/test_build_judge_dataset.py",
+      "tests/test_byzantine_consensus.py",
+      "tests/test_cache.py",
+      "tests/test_cache_concurrent.py",
+      "tests/test_causal_attribution_graph.py",
+      "tests/test_causal_verifier.py",
+      "tests/test_chroma_integration.py",
+      "tests/test_chunked_nli.py",
+      "tests/test_ci_optional_extras_matrix.py",
+      "tests/test_claim_coverage.py",
+      "tests/test_claim_provenance.py",
+      "tests/test_cli.py",
+      "tests/test_cli_bench_paths.py",
+      "tests/test_cli_ingest_formats.py",
+      "tests/test_cli_new_commands.py",
+      "tests/test_cli_serve_paths.py",
+      "tests/test_cli_verify_deep.py",
+      "tests/test_code_verifier.py",
+      "tests/test_commit_message_guard.py",
+      "tests/test_competitor_aggrefact.py",
+      "tests/test_competitor_aggrefact_suite.py",
+      "tests/test_competitor_suite.py",
+      "tests/test_compliance_cli.py",
+      "tests/test_compliance_reporter.py",
+      "tests/test_config.py",
+      "tests/test_config_wizard.py",
+      "tests/test_conflict_aware_knowledge.py",
+      "tests/test_conformal.py",
+      "tests/test_consensus.py",
+      "tests/test_consumer_api.py",
+      "tests/test_containment.py",
+      "tests/test_containment_timing_parity.py",
+      "tests/test_content_moderation_wrapper.py",
+      "tests/test_contextual_compression.py",
+      "tests/test_continual_adversarial.py",
+      "tests/test_contradiction_tracker.py",
+      "tests/test_correction_loop.py",
+      "tests/test_cors_reverse_proxy_policy.py",
+      "tests/test_cost_analyser.py",
+      "tests/test_cost_and_attribution.py",
+      "tests/test_cost_integration.py",
+      "tests/test_cov_100.py",
+      "tests/test_cov_batch_actor.py",
+      "tests/test_cov_cli_deep.py",
+      "tests/test_cov_final_gaps.py",
+      "tests/test_cov_final_push.py",
+      "tests/test_cov_grpc_deep.py",
+      "tests/test_cov_grpc_servicer.py",
+      "tests/test_cov_micro_gaps.py",
+      "tests/test_cov_misc_gaps.py",
+      "tests/test_cov_nli_deep.py",
+      "tests/test_cov_remaining.py",
+      "tests/test_cov_sdk_guard.py",
+      "tests/test_cov_server_deep.py",
+      "tests/test_cov_v3101_modules.py",
+      "tests/test_cov_v3101_push.py",
+      "tests/test_cov_vector_vendors.py",
+      "tests/test_coverage_actor.py",
+      "tests/test_coverage_actor_extra.py",
+      "tests/test_coverage_async_extra.py",
+      "tests/test_coverage_async_streaming.py",
+      "tests/test_coverage_backends.py",
+      "tests/test_coverage_backends_extra.py",
+      "tests/test_coverage_cli.py",
+      "tests/test_coverage_cli_extra.py",
+      "tests/test_coverage_cli_serve.py",
+      "tests/test_coverage_fastapi_guard.py",
+      "tests/test_coverage_final.py",
+      "tests/test_coverage_finetune.py",
+      "tests/test_coverage_finetune_benchmark.py",
+      "tests/test_coverage_grpc.py",
+      "tests/test_coverage_grpc_extra.py",
+      "tests/test_coverage_grpc_gaps.py",
+      "tests/test_coverage_knowledge_api.py",
+      "tests/test_coverage_langchain.py",
+      "tests/test_coverage_nli.py",
+      "tests/test_coverage_nli_extra.py",
+      "tests/test_coverage_nli_gaps.py",
+      "tests/test_coverage_nli_model.py",
+      "tests/test_coverage_providers.py",
+      "tests/test_coverage_proxy.py",
+      "tests/test_coverage_scorer.py",
+      "tests/test_coverage_scorer_extra.py",
+      "tests/test_coverage_scorer_gaps.py",
+      "tests/test_coverage_scorer_judge.py",
+      "tests/test_coverage_sdk_guard.py",
+      "tests/test_coverage_sdk_guard_gaps.py",
+      "tests/test_coverage_server.py",
+      "tests/test_coverage_server_extra.py",
+      "tests/test_coverage_server_gaps.py",
+      "tests/test_coverage_streaming.py",
+      "tests/test_coverage_vector_backends.py",
+      "tests/test_credibility_campaign.py",
+      "tests/test_crewai_integration.py",
+      "tests/test_crewai_swarm.py",
+      "tests/test_cross_document_memory.py",
+      "tests/test_cross_language_contracts.py",
+      "tests/test_custom_rules_dsl.py",
+      "tests/test_customer_model_factory_banking_pack.py",
+      "tests/test_customer_model_factory_benchmark_selection.py",
+      "tests/test_customer_model_factory_compliance_gate.py",
+      "tests/test_customer_model_factory_dataset_contract.py",
+      "tests/test_customer_model_factory_deployment_manifest.py",
+      "tests/test_customer_model_factory_docs_compliance.py",
+      "tests/test_customer_model_factory_e2e_fixture.py",
+      "tests/test_customer_model_factory_evidence_pack.py",
+      "tests/test_customer_model_factory_examples.py",
+      "tests/test_customer_model_factory_monitoring.py",
+      "tests/test_customer_model_factory_readiness.py",
+      "tests/test_customer_model_factory_release_cli.py",
+      "tests/test_customer_model_factory_release_gate.py",
+      "tests/test_customer_model_factory_risk_register.py",
+      "tests/test_customer_model_factory_runtime_package.py",
+      "tests/test_customer_model_factory_training_manifest.py",
+      "tests/test_cyber_physical.py",
+      "tests/test_cyber_physical_halt_contract.py",
+      "tests/test_data_pipeline.py",
+      "tests/test_deception_detection.py",
+      "tests/test_defense_genome.py",
+      "tests/test_defense_update_pipeline.py",
+      "tests/test_demo_streaming_halt_live.py",
+      "tests/test_device_selection.py",
+      "tests/test_dialogue_fpr.py",
+      "tests/test_distilled_scorer.py",
+      "tests/test_doc_modules.py",
+      "tests/test_drift_detector.py",
+      "tests/test_dry_run_production.py",
+      "tests/test_e2e_eval.py",
+      "tests/test_e2e_feature_matrix.py",
+      "tests/test_e2e_rust_compute.py",
+      "tests/test_embed_scorer.py",
+      "tests/test_embedding_tuner.py",
+      "tests/test_emergence_oracle.py",
+      "tests/test_enterprise.py",
+      "tests/test_enterprise_modules.py",
+      "tests/test_evidence.py",
+      "tests/test_exceptions.py",
+      "tests/test_experimental_deployment_docs.py",
+      "tests/test_experimental_namespace.py",
+      "tests/test_explainability.py",
+      "tests/test_external_security_packet.py",
+      "tests/test_fastapi_guard.py",
+      "tests/test_federated_privacy.py",
+      "tests/test_feedback_loop_detector.py",
+      "tests/test_feedback_store.py",
+      "tests/test_ffi_bindings.py",
+      "tests/test_field_groups.py",
+      "tests/test_finetune.py",
+      "tests/test_finetune_api.py",
+      "tests/test_finetune_benchmark.py",
+      "tests/test_finetune_gpu.py",
+      "tests/test_finetune_validator.py",
+      "tests/test_forge.py",
+      "tests/test_formal_code_adapter.py",
+      "tests/test_formal_verification.py",
+      "tests/test_frontierfail_packet.py",
+      "tests/test_fuzz.py",
+      "tests/test_gem_cli.py",
+      "tests/test_gem_endpoints.py",
+      "tests/test_gemma_aggrefact_cot.py",
+      "tests/test_gemma_aggrefact_eval.py",
+      "tests/test_gemma_aggrefact_hiss.py",
+      "tests/test_gemma_aggrefact_hiss_routed.py",
+      "tests/test_gemma_aggrefact_logprob.py",
+      "tests/test_gemma_aggrefact_logprob_routed.py",
+      "tests/test_gemma_aggrefact_routed.py",
+      "tests/test_gemma_aggrefact_self_consistency.py",
+      "tests/test_grpc_scoring.py",
+      "tests/test_grpc_server.py",
+      "tests/test_guard_control.py",
+      "tests/test_guardrails_ai_integration.py",
+      "tests/test_hallubench_eval.py",
+      "tests/test_halt_evidence.py",
+      "tests/test_handoff_scorer.py",
+      "tests/test_hardened_auto.py",
+      "tests/test_haystack_integration.py",
+      "tests/test_heavy_dependency_supply_chain.py",
+      "tests/test_hf_space_app_safety.py",
+      "tests/test_hf_space_demo.py",
+      "tests/test_human_review_queue.py",
+      "tests/test_hybrid_backend.py",
+      "tests/test_hybrid_hardening.py",
+      "tests/test_hyde_backend.py",
+      "tests/test_import_guard.py",
+      "tests/test_inference_server_hooks.py",
+      "tests/test_ingest.py",
+      "tests/test_ingestion_pipeline.py",
+      "tests/test_ingestion_plugins.py",
+      "tests/test_injection_detector.py",
+      "tests/test_injection_integration.py",
+      "tests/test_injection_phase3.py",
+      "tests/test_injection_phase4.py",
+      "tests/test_integrations.py",
+      "tests/test_integrations_dspy.py",
+      "tests/test_integrations_semantic_kernel.py",
+      "tests/test_interlock_kernel.py",
+      "tests/test_irreversibility.py",
+      "tests/test_json_verifier.py",
+      "tests/test_judge_common.py",
+      "tests/test_kb_health.py",
+      "tests/test_kernel.py",
+      "tests/test_kernel_validation.py",
+      "tests/test_knowledge.py",
+      "tests/test_knowledge_edge_cases.py",
+      "tests/test_knowledge_graph.py",
+      "tests/test_knowledge_write_security.py",
+      "tests/test_langchain_callback.py",
+      "tests/test_langchain_real_sdk.py",
+      "tests/test_langgraph_integration.py",
+      "tests/test_langgraph_swarm.py",
+      "tests/test_lazy_enterprise_import.py",
+      "tests/test_license.py",
+      "tests/test_license_edge_cases.py",
+      "tests/test_lite_scorer.py",
+      "tests/test_lite_scorer_v2_eval.py",
+      "tests/test_lite_scorer_v2_eval_runner.py",
+      "tests/test_lite_scorer_v2_export_runner.py",
+      "tests/test_lite_scorer_v2_heldout_builder.py",
+      "tests/test_lite_scorer_v2_launcher.py",
+      "tests/test_lite_scorer_v2_plan.py",
+      "tests/test_lite_scorer_v2_record_evidence.py",
+      "tests/test_lite_scorer_v2_run_plan.py",
+      "tests/test_lite_scorer_v2_training_status.py",
+      "tests/test_lite_scorer_v2_vertex_runner.py",
+      "tests/test_live_red_team.py",
+      "tests/test_llamaindex.py",
+      "tests/test_llamaindex_real_sdk.py",
+      "tests/test_local_judge.py",
+      "tests/test_log_json.py",
+      "tests/test_loop_monitor.py",
+      "tests/test_managed_training_jobs.py",
+      "tests/test_meta_classifier.py",
+      "tests/test_meta_confidence.py",
+      "tests/test_meta_guard.py",
+      "tests/test_metrics.py",
+      "tests/test_middleware.py",
+      "tests/test_model_benchmark_packages.py",
+      "tests/test_model_package_vertex_campaign.py",
+      "tests/test_model_revision_policy.py",
+      "tests/test_moderation.py",
+      "tests/test_multi_hook_trace_attribution.py",
+      "tests/test_multi_scale_alignment.py",
+      "tests/test_multi_vector.py",
+      "tests/test_multilingual_corpus.py",
+      "tests/test_multimodal_check_adapter.py",
+      "tests/test_multimodal_guard.py",
+      "tests/test_neuro_symbolic_verifier.py",
+      "tests/test_new_integrations.py",
+      "tests/test_nli_integration.py",
+      "tests/test_nli_minicheck.py",
+      "tests/test_nli_scorer.py",
+      "tests/test_no_kb_calibration.py",
+      "tests/test_notebook_gallery.py",
+      "tests/test_numeric_verifier.py",
+      "tests/test_observability.py",
+      "tests/test_online_calibrator.py",
+      "tests/test_onnx_artefact_guidance.py",
+      "tests/test_onnx_backend.py",
+      "tests/test_onnx_batcher.py",
+      "tests/test_ontology.py",
+      "tests/test_openai_swarm.py",
+      "tests/test_optional_extra_lock_policy.py",
+      "tests/test_orchestrator_environment_vertex_metadata.py",
+      "tests/test_otel.py",
+      "tests/test_paladin_mini.py",
+      "tests/test_parent_child_backend.py",
+      "tests/test_phase2_hardening.py",
+      "tests/test_phase3_hardening.py",
+      "tests/test_phase4_hardening.py",
+      "tests/test_phase5_hardening.py",
+      "tests/test_physical_budget.py",
+      "tests/test_physical_extra_boundary.py",
+      "tests/test_physical_grounding_evaluator.py",
+      "tests/test_pii_redactor.py",
+      "tests/test_pilot_onboarding_example.py",
+      "tests/test_pint_replication_packet.py",
+      "tests/test_pint_seed_smoke_runner.py",
+      "tests/test_polar_license.py",
+      "tests/test_policy.py",
+      "tests/test_policy_compiler.py",
+      "tests/test_policy_evaluation.py",
+      "tests/test_pre_halt_steering.py",
+      "tests/test_precommit_exposure_guard.py",
+      "tests/test_prepare_threshold_data.py",
+      "tests/test_private_score_release.py",
+      "tests/test_production_asserts.py",
+      "tests/test_production_guard.py",
+      "tests/test_prompt_risk_routing.py",
+      "tests/test_proto_roundtrip.py",
+      "tests/test_provenance.py",
+      "tests/test_providers.py",
+      "tests/test_proxy.py",
+      "tests/test_proxy_audit.py",
+      "tests/test_proxy_facts_path_security.py",
+      "tests/test_proxy_full.py",
+      "tests/test_public_api.py",
+      "tests/test_public_benchmark_manifest.py",
+      "tests/test_public_endpoint_exposure_policy.py",
+      "tests/test_python_only_contributor_path.py",
+      "tests/test_query_decomposition.py",
+      "tests/test_rag_integration.py",
+      "tests/test_reasoning_verifier.py",
+      "tests/test_redis_enterprise.py",
+      "tests/test_report_generator.py",
+      "tests/test_report_templates.py",
+      "tests/test_reranker.py",
+      "tests/test_retrieval_benchmark_quality.py",
+      "tests/test_review_batch.py",
+      "tests/test_review_queue.py",
+      "tests/test_roadmap_reconciliation.py",
+      "tests/test_rules_scorer.py",
+      "tests/test_run_judge_benchmark.py",
+      "tests/test_rust_compute.py",
+      "tests/test_rust_fallback_paths.py",
+      "tests/test_rust_kernel_extraction_plan.py",
+      "tests/test_rust_parity_safety.py",
+      "tests/test_rust_pipeline_integration.py",
+      "tests/test_rust_signals.py",
+      "tests/test_safety_contracts.py",
+      "tests/test_safety_dashboard.py",
+      "tests/test_safety_event.py",
+      "tests/test_safety_ops_mixin.py",
+      "tests/test_safety_protocol.py",
+      "tests/test_sanitizer.py",
+      "tests/test_scorer_backend.py",
+      "tests/test_scorer_edge_cases.py",
+      "tests/test_scorer_model_choices.py",
+      "tests/test_scorer_validation.py",
+      "tests/test_sdk_guard.py",
+      "tests/test_sdk_guard_real_sdk.py",
+      "tests/test_security_hardening.py",
+      "tests/test_security_physical_risks.py",
+      "tests/test_self_evolving.py",
+      "tests/test_self_improving_guard_loop.py",
+      "tests/test_sentinel_judge_analyser.py",
+      "tests/test_server.py",
+      "tests/test_server_audit.py",
+      "tests/test_server_auth.py",
+      "tests/test_server_compliance.py",
+      "tests/test_server_feedback.py",
+      "tests/test_server_tenant.py",
+      "tests/test_server_ws_mux.py",
+      "tests/test_session.py",
+      "tests/test_sharded_nli.py",
+      "tests/test_soc2_iso_readiness.py",
+      "tests/test_starter_presets.py",
+      "tests/test_stats.py",
+      "tests/test_streaming.py",
+      "tests/test_streaming_debug.py",
+      "tests/test_streaming_false_halt_benchmark_quality.py",
+      "tests/test_streaming_halt_evidence.py",
+      "tests/test_streaming_nli_failure.py",
+      "tests/test_stress_cli.py",
+      "tests/test_structured_halt_recovery.py",
+      "tests/test_summarization_bidir.py",
+      "tests/test_sustainability.py",
+      "tests/test_sustainability_policy_adapter.py",
+      "tests/test_swarm_economics.py",
+      "tests/test_swarm_equilibrium.py",
+      "tests/test_swarm_guardian.py",
+      "tests/test_swarm_metrics.py",
+      "tests/test_symbolic_chain.py",
+      "tests/test_synthetic_distillation.py",
+      "tests/test_task_scoring_paths.py",
+      "tests/test_temporal_freshness.py",
+      "tests/test_tenant.py",
+      "tests/test_tensorrt_export.py",
+      "tests/test_tool_call_verifier.py",
+      "tests/test_tools/test_capability_manifest.py",
+      "tests/test_trace_safe.py",
+      "tests/test_train_distillation_reproducibility.py",
+      "tests/test_training_model_registry.py",
+      "tests/test_trajectory_simulator.py",
+      "tests/test_tune.py",
+      "tests/test_types.py",
+      "tests/test_v320_hardening.py",
+      "tests/test_v330_hardening.py",
+      "tests/test_validate_external_security_run.py",
+      "tests/test_vector_store.py",
+      "tests/test_vector_store_backends.py",
+      "tests/test_vector_store_http_embedding.py",
+      "tests/test_vector_store_reranker.py",
+      "tests/test_verified_scorer.py",
+      "tests/test_verified_scorer_escalation.py",
+      "tests/test_vertex_container_cuda_policy.py",
+      "tests/test_vertex_model_benchmark.py",
+      "tests/test_voice_adapters.py",
+      "tests/test_voice_adapters_sdk.py",
+      "tests/test_voice_async_guard.py",
+      "tests/test_voice_demo.py",
+      "tests/test_voice_guard.py",
+      "tests/test_voice_pipeline.py",
+      "tests/test_wasm_runtime_priority.py",
+      "tests/test_zk_attestation.py",
+      "tests/test_zk_attestation_fuzz.py"
+    ]
+  },
+  "schema_version": "capability-manifest.v1"
+}

@@ -38,6 +38,9 @@ jobs:
           echo "pyproject.toml=$V_TOML  __init__.py=$V_INIT  CITATION.cff=$V_CFF"
           [ "$V_TOML" = "$V_INIT" ] && [ "$V_TOML" = "$V_CFF" ] || { echo "::error::Version mismatch"; exit 1; }
 
+      - name: Capability manifest drift
+        run: python tools/capability_manifest.py --check
+
       - name: Check formatting (ruff)
         run: ruff format --check src/ tests/ examples/
 
