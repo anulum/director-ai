@@ -20,16 +20,19 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 import director_ai._cli_train as cli_train
+import director_ai.core.training as training_api
 import director_ai.core.training.results as training_results
 from director_ai.cli import main
 from director_ai.core.training.jobs import (
     LocalTrainingBackend,
+    PortableTrainingBackend,
     TrainingHardware,
     TrainingJobSpec,
     TrainingJobStatus,
     TrainingJobSubmission,
     VertexTrainingBackend,
     build_internal_suite_spec,
+    build_portable_container_job_request,
     build_vertex_custom_job_request,
     get_training_backend,
     shell_join,
@@ -261,9 +264,62 @@ class TestVertexRequest:
 class TestBackends:
     def test_get_backend(self):
         assert isinstance(get_training_backend("local"), LocalTrainingBackend)
+        assert isinstance(get_training_backend("portable"), PortableTrainingBackend)
         assert isinstance(get_training_backend("vertex"), VertexTrainingBackend)
         with pytest.raises(ValueError):
             get_training_backend("missing")
+
+    def test_portable_dry_run_emits_provider_neutral_container_contract(self):
+        spec = _vertex_spec(
+            dataset_uri="s3://director-data/train.jsonl",
+            eval_uri="azure://director-data/eval.jsonl",
+            output_uri="file:///mnt/provider/director-ai/job-1",
+            project=None,
+            region="eu-west-1",
+            hardware=TrainingHardware(
+                machine_type="gpu-standard-8",
+                accelerator_type="NVIDIA_L4",
+                accelerator_count=1,
+                boot_disk_gb=500,
+            ),
+        )
+
+        result = submit_training_job(spec, backend="portable", dry_run=True)
+
+        assert result.backend == "portable"
+        assert result.state == "dry_run"
+        request = result.request
+        assert request["schema"] == "director-ai.portable-training-job.v1"
+        assert request["container"]["image_uri"] == spec.container_image_uri
+        assert request["resources"]["accelerator_type"] == "NVIDIA_L4"
+        assert request["inputs"]["dataset_uri"] == "s3://director-data/train.jsonl"
+        assert request["outputs"]["output_uri"] == (
+            "file:///mnt/provider/director-ai/job-1"
+        )
+
+    def test_portable_execute_is_external_orchestrator_only(self):
+        with pytest.raises(RuntimeError, match="external orchestrator"):
+            submit_training_job(
+                _vertex_spec(project=None), backend="portable", dry_run=False
+            )
+
+    def test_portable_request_redacts_secret_env(self):
+        spec = _vertex_spec(
+            project=None,
+            env={"API_TOKEN": "secret-token", "MODE": "train"},
+        )
+
+        request = build_portable_container_job_request(spec)
+
+        assert request["container"]["env"]["API_TOKEN"] == "<redacted>"
+        assert request["container"]["env"]["MODE"] == "train"
+
+    def test_portable_backend_exports_from_training_package(self):
+        assert training_api.PortableTrainingBackend is PortableTrainingBackend
+        assert (
+            training_api.build_portable_container_job_request
+            is build_portable_container_job_request
+        )
 
     def test_vertex_dry_run_does_not_import_cloud_sdk(self):
         with patch("importlib.import_module") as mock_import:
@@ -898,6 +954,34 @@ class TestManagedTrainingCLI:
         assert body["backend"] == "vertex"
         assert body["dry_run"] is True
         assert body["request"]["job_spec"]["worker_pool_specs"]
+
+    def test_cli_portable_dry_run_outputs_container_contract(self, capsys):
+        main(
+            [
+                "train",
+                "submit",
+                "--backend",
+                "portable",
+                "--dataset-uri",
+                "s3://director-data/train.jsonl",
+                "--output-uri",
+                "file:///mnt/director-artifacts/job-1",
+                "--eval-uri",
+                "azure://director-data/eval.jsonl",
+                "--image",
+                "registry.example.com/director-ai/train:latest",
+            ]
+        )
+        captured = capsys.readouterr()
+        body = json.loads(captured.out)
+        assert body["backend"] == "portable"
+        assert body["request"]["schema"] == "director-ai.portable-training-job.v1"
+        assert body["request"]["inputs"]["dataset_uri"].startswith("s3://")
+
+    def test_train_help_mentions_portable_backend(self, capsys):
+        main(["train"])
+
+        assert "--backend local|portable|vertex" in capsys.readouterr().out
 
     def test_cli_submit_rejects_experimental_without_flag(self, capsys, tmp_path):
         with pytest.raises(SystemExit) as excinfo:

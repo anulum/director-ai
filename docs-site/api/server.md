@@ -161,8 +161,11 @@ The queue collects concurrent `/v1/review` requests and flushes them as a single
 Managed training endpoints submit customer-owned fine-tuning jobs through the
 same backend as the CLI. Scope requests with `X-Tenant-ID`; list, status, and
 cancel only return jobs submitted by the same tenant during the server process.
-Install the `managed-training` extra to include the Vertex AI SDK; the lock is
-kept at the patched `google-cloud-aiplatform>=1.133` floor.
+The `local` backend runs on the current host, the `portable` backend returns a
+provider-neutral container job request for a customer-owned orchestrator, and
+the `vertex` backend submits directly to Vertex AI. Install the
+`managed-training` extra when using the Vertex backend; the lock is kept at the
+patched `google-cloud-aiplatform>=1.133` floor.
 
 ```bash
 curl -X POST http://localhost:8080/v1/finetune/managed/submit \
@@ -190,6 +193,13 @@ curl -X POST http://localhost:8080/v1/finetune/managed/status \
   -H 'X-Tenant-ID: acme' \
   -d '{"backend": "vertex", "job_id": "projects/.../customJobs/..."}'
 ```
+
+For AWS, Azure, Kubernetes, Slurm, or air-gapped execution, submit with
+`"backend": "portable"` and `"dry_run": true`. The response contains a
+`director-ai.portable-training-job.v1` container contract with input URIs,
+output URI, image, command, resources, labels, provenance, and redacted
+environment variables. DIRECTOR-AI does not claim lifecycle control for those
+jobs; status and cancellation remain owned by the external orchestrator.
 
 Experimental model choices require `allow_experimental_model: true`. Promotion
 still requires `/v1/finetune/managed/benchmark-models`; submitted or harvested

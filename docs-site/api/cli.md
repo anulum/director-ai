@@ -90,6 +90,46 @@ director-ai export --format tensorrt --output ./models/trt/
 director-ai finetune train.jsonl --output ./models/custom/
 ```
 
+### Managed Training
+
+Managed training submissions use one CLI contract across local, portable, and
+Vertex execution lanes. `local` runs on the current machine. `portable` emits a
+provider-neutral container job request for AWS, Azure, Slurm, Kubernetes, or
+other customer-owned orchestrators. `vertex` submits directly to Vertex AI when
+the `managed-training` extra and cloud credentials are installed.
+
+```bash
+# Local dry run
+director-ai train submit \
+  --backend local \
+  --dataset-uri ./train.jsonl \
+  --output-uri ./artifacts/customer-run-001 \
+  --dry-run
+
+# Portable external-orchestrator contract
+director-ai train submit \
+  --backend portable \
+  --dataset-uri s3://customer-data/train.jsonl \
+  --eval-uri azure://customer-data/eval.jsonl \
+  --output-uri file:///mnt/customer-artifacts/director-ai/run-001 \
+  --image registry.example.com/director-ai/train:2026-05 \
+  --dry-run
+
+# Vertex managed submission
+director-ai train submit \
+  --backend vertex \
+  --dataset-uri gs://customer-data/train.jsonl \
+  --eval-uri gs://customer-data/eval.jsonl \
+  --output-uri gs://customer-artifacts/director-ai/run-001 \
+  --project customer-project \
+  --region europe-west4 \
+  --image europe-west4-docker.pkg.dev/customer-project/director/train:2026-05
+```
+
+The portable backend is dry-run only by design. It redacts secret-looking
+environment variables in the emitted request and leaves live job lifecycle
+control to the customer's external orchestrator.
+
 ### Threshold Tuning
 
 ```bash

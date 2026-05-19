@@ -31,8 +31,9 @@ from .model_registry import (
 )
 
 _LOCAL_BACKEND = "local"
+_PORTABLE_BACKEND = "portable"
 _VERTEX_BACKEND = "vertex"
-_VALID_BACKENDS = (_LOCAL_BACKEND, _VERTEX_BACKEND)
+_VALID_BACKENDS = (_LOCAL_BACKEND, _PORTABLE_BACKEND, _VERTEX_BACKEND)
 _VALID_CALLERS = ("product", "internal")
 _VALID_TASKS = ("finetune-nli", "suite")
 _DEFAULT_CONTAINER_IMAGE = "python:3.12-slim"
@@ -122,6 +123,10 @@ class TrainingJobSpec:
                 f"timeout_minutes must be between 1 and {_MAX_TIMEOUT_MINUTES}"
             )
         self.hardware.validate()
+        if backend == _PORTABLE_BACKEND and self.container_image_uri == (
+            _DEFAULT_CONTAINER_IMAGE
+        ):
+            raise ValueError("container_image_uri must be a training image")
         if backend == _VERTEX_BACKEND:
             if not self.project:
                 raise ValueError("project is required for vertex backend")
@@ -337,6 +342,49 @@ class VertexTrainingBackend:
         return TrainingJobStatus(backend=self.name, job_id=job_id, state="cancelled")
 
 
+class PortableTrainingBackend:
+    """Dry-run backend for external cloud or on-prem orchestrators."""
+
+    name = _PORTABLE_BACKEND
+
+    def submit(self, spec: TrainingJobSpec, *, dry_run: bool) -> TrainingJobSubmission:
+        """Return a portable container-job request for external execution."""
+        spec.validate(self.name)
+        request = build_portable_container_job_request(spec)
+        job_id = f"portable-{spec.config_hash}"
+        if not dry_run:
+            raise RuntimeError(
+                "portable backend is dry-run only; submit the emitted request "
+                "through an external orchestrator"
+            )
+        return TrainingJobSubmission(
+            backend=self.name,
+            job_id=job_id,
+            state="dry_run",
+            dry_run=True,
+            request=request,
+            submitted_at=time.time(),
+        )
+
+    def status(self, job_id: str) -> TrainingJobStatus:
+        """Return unsupported status; external orchestrators own live jobs."""
+        return TrainingJobStatus(
+            backend=self.name,
+            job_id=job_id,
+            state="external",
+            error="portable jobs are tracked by the external orchestrator",
+        )
+
+    def cancel(self, job_id: str) -> TrainingJobStatus:
+        """Return unsupported cancellation for external orchestrator jobs."""
+        return TrainingJobStatus(
+            backend=self.name,
+            job_id=job_id,
+            state="unsupported",
+            error="portable jobs must be cancelled by the external orchestrator",
+        )
+
+
 def submit_training_job(
     spec: TrainingJobSpec,
     *,
@@ -353,6 +401,8 @@ def get_training_backend(name: str) -> TrainingJobBackend:
 
     if name == _LOCAL_BACKEND:
         return LocalTrainingBackend()
+    if name == _PORTABLE_BACKEND:
+        return PortableTrainingBackend()
     if name == _VERTEX_BACKEND:
         return VertexTrainingBackend()
     raise ValueError(f"backend must be one of {_VALID_BACKENDS}")
@@ -445,6 +495,55 @@ def build_vertex_custom_job_request(spec: TrainingJobSpec) -> dict[str, Any]:
     }
 
 
+def build_portable_container_job_request(spec: TrainingJobSpec) -> dict[str, Any]:
+    """Build a provider-neutral container job request without submitting it."""
+
+    spec.validate(_PORTABLE_BACKEND)
+    container_command = spec.args or _portable_finetune_command(spec)
+    executable = container_command[:1]
+    container_args = container_command[1:]
+    env = {
+        key: ("<redacted>" if _looks_secret(key) else value)
+        for key, value in spec.env.items()
+    }
+    model_profile = (
+        spec.resolved_model_profile() if spec.task_type == "finetune-nli" else None
+    )
+    return {
+        "schema": "director-ai.portable-training-job.v1",
+        "display_name": spec.display_name,
+        "task_type": spec.task_type,
+        "caller": spec.caller,
+        "inputs": {
+            "dataset_uri": spec.dataset_uri,
+            "eval_uri": spec.eval_uri,
+        },
+        "outputs": {
+            "output_uri": spec.output_uri,
+        },
+        "container": {
+            "image_uri": spec.container_image_uri,
+            "command": executable,
+            "args": container_args,
+            "env": env,
+        },
+        "resources": {
+            "machine_type": spec.hardware.machine_type,
+            "accelerator_type": spec.hardware.accelerator_type,
+            "accelerator_count": spec.hardware.accelerator_count,
+            "boot_disk_gb": spec.hardware.boot_disk_gb,
+            "boot_disk_type": spec.hardware.boot_disk_type,
+            "timeout_minutes": spec.timeout_minutes,
+        },
+        "model": model_profile.to_dict() if model_profile else {},
+        "labels": _normalise_labels(dict(spec.labels)),
+        "provenance": {
+            "dataset_hash": spec.dataset_hash,
+            "config_hash": spec.config_hash,
+        },
+    }
+
+
 def submission_to_json(submission: TrainingJobSubmission) -> str:
     """Serialise a submission result for CLI/API output."""
 
@@ -465,6 +564,31 @@ def submission_to_json(submission: TrainingJobSubmission) -> str:
 
 def _vertex_finetune_command(spec: TrainingJobSpec) -> list[str]:
     """Build the container command for Vertex fine-tuning jobs."""
+    model_profile = spec.resolved_model_profile()
+    args = [
+        "python",
+        "-m",
+        "director_ai.core.training.vertex_runner",
+        "--train-uri",
+        spec.dataset_uri,
+        "--output-uri",
+        spec.output_uri,
+        "--epochs",
+        str(spec.epochs),
+        "--batch-size",
+        str(spec.batch_size),
+        "--lr",
+        str(spec.learning_rate),
+        "--base-model",
+        model_profile.model_id,
+    ]
+    if spec.eval_uri:
+        args.extend(["--eval-uri", spec.eval_uri])
+    return args
+
+
+def _portable_finetune_command(spec: TrainingJobSpec) -> list[str]:
+    """Build the container command for provider-managed fine-tuning jobs."""
     model_profile = spec.resolved_model_profile()
     args = [
         "python",

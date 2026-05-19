@@ -7,11 +7,13 @@
 """Training helpers and managed job backends."""
 
 from .jobs import (
+    PortableTrainingBackend,
     TrainingHardware,
     TrainingJobSpec,
     TrainingJobStatus,
     TrainingJobSubmission,
     build_internal_suite_spec,
+    build_portable_container_job_request,
     build_vertex_custom_job_request,
     get_training_backend,
     submit_training_job,
@@ -37,6 +39,7 @@ from .sweeps import (
 
 __all__ = [
     "DEFAULT_FINE_TUNE_MODEL_ALIAS",
+    "PortableTrainingBackend",
     "TrainingDatasetSplit",
     "TrainingHardware",
     "TrainingJobSpec",
@@ -48,6 +51,7 @@ __all__ = [
     "TrainingScenario",
     "TrainingSweepPlan",
     "build_internal_suite_spec",
+    "build_portable_container_job_request",
     "build_training_sweep_plan",
     "build_vertex_custom_job_request",
     "finetune_model_registry_to_dict",

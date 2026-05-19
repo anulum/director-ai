@@ -6,7 +6,7 @@
     "optional_extras": 53,
     "public_api_exports": 214,
     "public_documentation_pages": 138,
-    "python_model_classes": 701,
+    "python_model_classes": 702,
     "python_model_source_modules": 310,
     "rust_pyo3_model_wrappers": 59,
     "test_files": 423
@@ -2130,6 +2130,10 @@
       {
         "name": "PoolError",
         "path": "src/director_ai/core/swarm_economics/pool.py"
+      },
+      {
+        "name": "PortableTrainingBackend",
+        "path": "src/director_ai/core/training/jobs.py"
       },
       {
         "name": "PostgresAuditSink",

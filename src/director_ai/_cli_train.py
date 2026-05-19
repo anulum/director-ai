@@ -588,7 +588,7 @@ def _print_train_help() -> None:
         "  harvest  Collect training_result.json artifacts from a sweep prefix\n"
         "\n"
         "Submit options:\n"
-        "  --backend local|vertex       Backend (default: vertex)\n"
+        "  --backend local|portable|vertex  Backend (default: vertex)\n"
         "  --dataset-uri URI            Training data URI or local path\n"
         "  --output-uri URI             Artifact output URI or local directory\n"
         "  --project ID                 Cloud project for vertex backend\n"
