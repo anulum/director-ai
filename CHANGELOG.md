@@ -5,7 +5,9 @@ All notable changes to Director-Class AI will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased] — 2026-04-18
+## [Unreleased]
+
+## [3.15.0] — 2026-05-19
 
 ### Added — safety operations retuning (2026-05-06)
 - The Gradio wizard Safety Ops tab now includes a one-click retune action
