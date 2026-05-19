@@ -16,6 +16,7 @@ set -euo pipefail
 
 OUTPUT_DIR=/workspace/output
 mkdir -p "${OUTPUT_DIR}"
+DIRECTOR_OUTPUT_ALREADY_UPLOADED=0
 
 EXTRA_ARGS=()
 if [[ -n "${DIRECTOR_BENCH_ONLY:-}" ]]; then
@@ -66,6 +67,29 @@ if [[ "${DIRECTOR_MODEL_BENCHMARK:-}" == "1" ]]; then
     echo "=== managed model-choice benchmark ==="
     python -m training.vertex_model_benchmark --output-dir "${OUTPUT_DIR}"
     ORCHESTRATOR_EXIT=$?
+elif [[ "${DIRECTOR_MODEL_PACKAGE_CAMPAIGN:-}" == "1" ]]; then
+    echo "=== per-model benchmark package campaign ==="
+    PACKAGE_ARGS=(
+        --output-root "${OUTPUT_DIR}"
+        --min-free-gb "${DIRECTOR_MODEL_PACKAGE_MIN_FREE_GB:-25}"
+    )
+    if [[ "${DIRECTOR_MODEL_PACKAGE_NO_UPLOAD:-0}" == "1" ]]; then
+        PACKAGE_ARGS+=(--no-upload)
+    else
+        PACKAGE_ARGS+=(
+            --bucket "${DIRECTOR_BENCH_BUCKET:?DIRECTOR_BENCH_BUCKET is required}"
+            --prefix "${DIRECTOR_BENCH_PREFIX:?DIRECTOR_BENCH_PREFIX is required}"
+        )
+    fi
+    if [[ -n "${DIRECTOR_MODEL_PACKAGE_ALIASES:-}" ]]; then
+        PACKAGE_ARGS+=(--model-aliases "${DIRECTOR_MODEL_PACKAGE_ALIASES}")
+    fi
+    if [[ -n "${DIRECTOR_MODEL_PACKAGE_STAGE_IDS:-}" ]]; then
+        PACKAGE_ARGS+=(--stage-ids "${DIRECTOR_MODEL_PACKAGE_STAGE_IDS}")
+    fi
+    python -m benchmarks.model_package_campaign "${PACKAGE_ARGS[@]}"
+    ORCHESTRATOR_EXIT=$?
+    DIRECTOR_OUTPUT_ALREADY_UPLOADED=1
 else
     echo "=== orchestrator run ==="
     python -m benchmarks.orchestrator \
@@ -78,7 +102,7 @@ else
     ORCHESTRATOR_EXIT=$?
 fi
 
-if [[ -n "${DIRECTOR_BENCH_BUCKET:-}" && -n "${DIRECTOR_BENCH_PREFIX:-}" ]]; then
+if [[ "${DIRECTOR_OUTPUT_ALREADY_UPLOADED:-0}" != "1" && -n "${DIRECTOR_BENCH_BUCKET:-}" && -n "${DIRECTOR_BENCH_PREFIX:-}" ]]; then
     DEST="${DIRECTOR_BENCH_BUCKET}/${DIRECTOR_BENCH_PREFIX}"
     echo ""
     echo "=== uploading ${OUTPUT_DIR}/ → ${DEST} ==="

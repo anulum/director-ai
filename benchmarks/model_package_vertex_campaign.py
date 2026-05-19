@@ -4,9 +4,9 @@
 # © Code 2020-2026 Miroslav Sotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Vertex model package campaign runner
+# Director-Class AI - model package campaign runner
 
-"""Run every Vertex-eligible per-model benchmark package stage sequentially."""
+"""Run every managed per-model benchmark package stage sequentially."""
 
 from __future__ import annotations
 
@@ -192,11 +192,17 @@ def run_campaign(
     min_free_gb: float,
     model_aliases: set[str] | None = None,
     stage_ids: set[str] | None = None,
+    upload: bool = True,
 ) -> tuple[StageResult, ...]:
-    """Run and upload every selected model package stage."""
+    """Run every selected model package stage and optionally upload outputs."""
 
     output_root.mkdir(parents=True, exist_ok=True)
     _require_free_disk(output_root, min_free_gb)
+    if upload and (not _is_supported_upload_uri(bucket_uri) or not prefix.strip()):
+        raise ValueError(
+            "upload requires a gs://, file://, or local destination URI "
+            "and non-empty prefix"
+        )
     items = build_run_items(
         output_root=output_root,
         model_aliases=model_aliases,
@@ -205,11 +211,13 @@ def run_campaign(
     results: list[StageResult] = []
     for item in items:
         result = _run_one(item, output_root=output_root)
-        uploaded = _upload_tree(
-            bucket_uri=bucket_uri,
-            prefix=f"{prefix}/{item.model_alias}/{item.stage_id}",
-            root=item.output_dir,
-        )
+        uploaded = ()
+        if upload:
+            uploaded = _upload_tree(
+                bucket_uri=bucket_uri,
+                prefix=f"{prefix}/{item.model_alias}/{item.stage_id}",
+                root=item.output_dir,
+            )
         results.append(
             StageResult(
                 model_alias=result.model_alias,
@@ -228,7 +236,8 @@ def run_campaign(
         json.dumps([asdict(result) for result in results], indent=2),
         encoding="utf-8",
     )
-    _upload_tree(bucket_uri=bucket_uri, prefix=prefix, root=output_root)
+    if upload:
+        _upload_tree(bucket_uri=bucket_uri, prefix=prefix, root=output_root)
     return tuple(results)
 
 
@@ -332,6 +341,14 @@ def _move_stage_outputs(stage_id: str, output_dir: Path) -> None:
 
 
 def _upload_tree(*, bucket_uri: str, prefix: str, root: Path) -> tuple[str, ...]:
+    if bucket_uri.startswith("file://") or "://" not in bucket_uri:
+        return _copy_tree_to_local_destination(
+            destination_uri=bucket_uri,
+            prefix=prefix,
+            root=root,
+        )
+    if not bucket_uri.startswith("gs://"):
+        raise ValueError(f"unsupported upload destination URI: {bucket_uri!r}")
     from google.cloud import storage
 
     bucket_name = bucket_uri.removeprefix("gs://").strip("/")
@@ -346,6 +363,40 @@ def _upload_tree(*, bucket_uri: str, prefix: str, root: Path) -> tuple[str, ...]
         bucket.blob(blob_name).upload_from_filename(str(path))
         uploaded.append(f"gs://{bucket_name}/{blob_name}")
     return tuple(uploaded)
+
+
+def _copy_tree_to_local_destination(
+    *,
+    destination_uri: str,
+    prefix: str,
+    root: Path,
+) -> tuple[str, ...]:
+    destination_root = _local_destination_path(destination_uri)
+    clean_prefix = prefix.strip("/")
+    uploaded: list[str] = []
+    for path in sorted(root.rglob("*")):
+        if not path.is_file():
+            continue
+        rel = path.relative_to(root)
+        target = destination_root / clean_prefix / rel
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+        uploaded.append(target.resolve().as_uri())
+    return tuple(uploaded)
+
+
+def _local_destination_path(destination_uri: str) -> Path:
+    if destination_uri.startswith("file://"):
+        return Path(destination_uri.removeprefix("file://")).expanduser()
+    return Path(destination_uri).expanduser()
+
+
+def _is_supported_upload_uri(destination_uri: str) -> bool:
+    return (
+        destination_uri.startswith("gs://")
+        or destination_uri.startswith("file://")
+        or "://" not in destination_uri
+    )
 
 
 def _free_gb(path: Path) -> float:
@@ -375,24 +426,42 @@ def _summarise(results: Iterable[StageResult]) -> int:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output-root", type=Path, default=Path("/workspace/output"))
+    parser.add_argument(
+        "--upload-uri",
+        default=os.environ.get("DIRECTOR_BENCH_UPLOAD_URI", ""),
+        help=(
+            "Artefact destination root. Supports gs://, file://, or a local "
+            "path. Overrides --bucket when provided."
+        ),
+    )
     parser.add_argument("--bucket", default=os.environ.get("DIRECTOR_BENCH_BUCKET", ""))
     parser.add_argument("--prefix", default=os.environ.get("DIRECTOR_BENCH_PREFIX", ""))
     parser.add_argument("--model-aliases", default="")
     parser.add_argument("--stage-ids", default="")
     parser.add_argument("--min-free-gb", type=float, default=25.0)
+    parser.add_argument(
+        "--no-upload",
+        action="store_true",
+        help="Run locally and keep outputs on disk without uploading artefacts.",
+    )
     args = parser.parse_args(argv)
 
-    if not args.bucket.startswith("gs://"):
-        raise SystemExit("--bucket or DIRECTOR_BENCH_BUCKET must be a gs:// URI")
-    if not args.prefix.strip():
+    upload_uri = args.upload_uri or args.bucket
+    if not args.no_upload and not _is_supported_upload_uri(upload_uri):
+        raise SystemExit(
+            "--upload-uri, --bucket, or DIRECTOR_BENCH_UPLOAD_URI must be "
+            "a gs://, file://, or local destination"
+        )
+    if not args.no_upload and not args.prefix.strip():
         raise SystemExit("--prefix or DIRECTOR_BENCH_PREFIX is required")
     results = run_campaign(
         output_root=args.output_root,
-        bucket_uri=args.bucket,
+        bucket_uri=upload_uri,
         prefix=args.prefix,
         min_free_gb=args.min_free_gb,
         model_aliases=_parse_csv(args.model_aliases),
         stage_ids=_parse_csv(args.stage_ids),
+        upload=not args.no_upload,
     )
     return _summarise(results)
 

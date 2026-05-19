@@ -4,7 +4,7 @@
 # © Code 2020-2026 Miroslav Sotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI - Vertex model package campaign tests
+# Director-Class AI - model package campaign tests
 
 from __future__ import annotations
 
@@ -15,6 +15,7 @@ from pathlib import Path
 from benchmarks import model_package_vertex_campaign as campaign
 from benchmarks.model_package_vertex_campaign import (
     _result_filename,
+    _upload_tree,
     _validate_stage_output,
     build_run_items,
 )
@@ -154,3 +155,87 @@ def test_run_one_exports_scorer_template_to_subprocess(
     assert recorded["command"][recorded["command"].index("--scorer-template") + 1] == (
         "factcg"
     )
+
+
+def test_campaign_can_run_local_output_only_without_cloud_upload(
+    tmp_path: Path,
+    monkeypatch,
+):
+    item = campaign.CampaignRunItem(
+        model_alias="balanced-default",
+        runtime_model="/models/factcg",
+        scorer_template="factcg",
+        stage_id="aggrefact_anchor_vertex",
+        evidence_id="aggrefact_anchor",
+        command=("python", "-m", "benchmarks.aggrefact_eval"),
+        output_dir=tmp_path / "balanced-default" / "aggrefact_anchor_vertex",
+    )
+
+    monkeypatch.setattr(campaign, "build_run_items", lambda **kwargs: (item,))
+    monkeypatch.setattr(campaign, "_require_free_disk", lambda *args, **kwargs: None)
+    monkeypatch.setattr(
+        campaign,
+        "_run_one",
+        lambda item, output_root: campaign.StageResult(
+            model_alias=item.model_alias,
+            stage_id=item.stage_id,
+            evidence_id=item.evidence_id,
+            returncode=0,
+            elapsed_seconds=1.0,
+            output_dir=str(item.output_dir),
+            uploaded_files=(),
+        ),
+    )
+    monkeypatch.setattr(
+        campaign,
+        "_upload_tree",
+        lambda **kwargs: (_ for _ in ()).throw(AssertionError("unexpected upload")),
+    )
+
+    results = campaign.run_campaign(
+        output_root=tmp_path,
+        bucket_uri="",
+        prefix="",
+        min_free_gb=0.0,
+        upload=False,
+    )
+
+    assert len(results) == 1
+    assert results[0].uploaded_files == ()
+    assert (tmp_path / "campaign_summary.json").exists()
+
+
+def test_upload_tree_supports_file_destination(tmp_path: Path):
+    root = tmp_path / "root"
+    destination = tmp_path / "provider-mounted-artifacts"
+    (root / "nested").mkdir(parents=True)
+    (root / "nested" / "result.json").write_text('{"ok": true}', encoding="utf-8")
+
+    uploaded = _upload_tree(
+        bucket_uri=f"file://{destination}",
+        prefix="campaign/run",
+        root=root,
+    )
+
+    copied = destination / "campaign" / "run" / "nested" / "result.json"
+    assert copied.read_text(encoding="utf-8") == '{"ok": true}'
+    assert uploaded == (copied.as_uri(),)
+
+
+def test_provider_neutral_campaign_entrypoint_exposes_help():
+    completed = subprocess.run(
+        [
+            "python",
+            "-m",
+            "benchmarks.model_package_campaign",
+            "--help",
+        ],
+        cwd=Path(__file__).resolve().parents[1],
+        text=True,
+        check=False,
+        capture_output=True,
+    )
+
+    assert completed.returncode == 0
+    assert "--upload-uri" in completed.stdout
+    assert "--no-upload" in completed.stdout

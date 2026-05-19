@@ -101,15 +101,25 @@ currently running training job.
 
 ## Per-Model Package Campaign
 
-The per-model package runner executes every Vertex-eligible benchmark
-stage for every stable public scorer model, in manifest order, inside a
-single Vertex custom job:
+The per-model package runner executes every managed benchmark package
+stage for every stable public scorer model, in manifest order. On Vertex,
+submit it with the dedicated wrapper so the
+image is rebuilt remotely, CUDA is required, immutable git provenance is
+injected, and the worker receives a `500 GiB` boot disk:
 
 ```bash
-python -m benchmarks.model_package_vertex_campaign \
-  --bucket gs://gotm-director-ai-training \
-  --prefix benchmarks/model-packages/campaigns/<timestamp>-<git-sha> \
-  --min-free-gb 25
+benchmarks/run_vertex_model_package_campaign.sh \
+  --suffix full-stable-package
+```
+
+Inspect the exact Vertex CustomJob config before launching a long run:
+
+```bash
+benchmarks/run_vertex_model_package_campaign.sh \
+  --dry-run \
+  --config-out /tmp/director-model-package-campaign.json \
+  --skip-build \
+  --suffix full-stable-package
 ```
 
 For production runs, pass immutable provenance into the container so
@@ -125,11 +135,55 @@ python -m benchmarks.model_package_vertex_campaign \
   --min-free-gb 25
 ```
 
-The current package manifest expands to 21 stage executions:
+The direct Python form is for local/container smoke tests only. For
+Vertex submission, prefer `benchmarks/run_vertex_model_package_campaign.sh`.
+It accepts `--model-aliases`, `--stage-ids`, `--min-free-gb`,
+`--boot-disk-size`, `--accelerator`, `--machine-type`, `--skip-build`,
+`--dry-run`, `--config-out`, `--prefix`, and `--suffix` for controlled
+retries.
+
+The same campaign core can run locally without any cloud upload. This is
+the path for workstation/ML350 smoke runs and for non-GCS provider
+wrappers that handle artefact transfer themselves:
+
+```bash
+benchmarks/run_model_package_campaign.sh \
+  --output-root ./benchmarks/results/model-packages/local-smoke \
+  --model-aliases balanced-default \
+  --stage-ids aggrefact_anchor_vertex \
+  --min-free-gb 25
+```
+
+Preview the local/provider-managed command without running benchmarks:
+
+```bash
+benchmarks/run_model_package_campaign.sh \
+  --dry-run \
+  --model-aliases balanced-default \
+  --stage-ids aggrefact_anchor_vertex
+```
+
+Copy artefacts to a mounted provider path or local synchronisation target
+instead of leaving them only in the output directory:
+
+```bash
+benchmarks/run_model_package_campaign.sh \
+  --upload-uri file:///mnt/provider-artifacts/director-ai \
+  --prefix model-packages/<run-id> \
+  --model-aliases balanced-default \
+  --stage-ids aggrefact_anchor_vertex
+```
+
+Inside a container, set `DIRECTOR_MODEL_PACKAGE_CAMPAIGN=1` and
+`DIRECTOR_MODEL_PACKAGE_NO_UPLOAD=1` to keep outputs on local disk
+instead of using the GCS upload path.
+
+The current package manifest expands to 21 stage executions that are
+eligible for the full managed package lane:
 
 - 3 stable scorer aliases: `balanced-default`, `deberta-small`,
   `deberta-large-nli`
-- 7 Vertex-eligible evidence stages per alias: AggreFact, RAGTruth,
+- 7 evidence stages per alias: AggreFact, RAGTruth,
   HaluEval, FinanceBench, legal ContractNLI/CUAD, medical
   MedNLI/PubMedQA, and Patronus HaluBench text
 
