@@ -28,10 +28,10 @@ _HAS_GRPC = __import__("importlib").util.find_spec("grpc") is not None
 
 
 class TestVersionSync:
-    def test_version_is_3_3_0(self):
+    def test_version_is_current_release(self):
         from director_ai import __version__
 
-        assert __version__ == "3.14.0"
+        assert __version__ == "3.15.0"
 
 
 # â”€â”€ Item 3: gRPC proto stubs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
