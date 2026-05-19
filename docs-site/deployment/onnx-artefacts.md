@@ -101,8 +101,8 @@ read-only.
 ## Wheel Target Matrix
 
 `requirements/onnx_wheel_targets.toml` is the tracked source for these targets.
-`requirements/docker-gpu-export.txt` pins the `onnx` and `onnxruntime`
-build-time wheels.
+`requirements/docker-gpu-export.txt` pins the `onnx`, `onnxruntime`,
+`onnxscript`, `onnx_ir`, `ml_dtypes`, and `protobuf` build-time wheels.
 
 | Target id | Platform | Extra | Runtime package | Execution provider | Status |
 |-----------|----------|-------|-----------------|--------------------|--------|

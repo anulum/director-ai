@@ -76,8 +76,12 @@ that are safe to keep hash-pinned outside the default service image:
 
 | Package | File | Controls |
 |---------|------|----------|
+| `ml_dtypes` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
 | `onnx` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
+| `onnx_ir` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
 | `onnxruntime` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
+| `onnxscript` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
+| `protobuf` | `requirements/docker-gpu-export.txt` | hash-pin, isolated-build-stage |
 
 Legacy exporter packages that force `transformers<5` are not installed. That
 keeps the model-loader stack on the audited `transformers>=5.0.0rc3,<6` line.

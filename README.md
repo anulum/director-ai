@@ -72,7 +72,7 @@ graph LR
 
 | Surface | Current inventory |
 |---|---:|
-| Package version | 3.15.0 |
+| Package version | 3.15.1 |
 | Public API exports | 214 |
 | Python capability source modules | 310 |
 | Python capability classes | 701 |
@@ -412,7 +412,7 @@ Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstor
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.15.0},
+  version   = {3.15.1},
   license   = {AGPL-3.0-or-later}
 }
 ```

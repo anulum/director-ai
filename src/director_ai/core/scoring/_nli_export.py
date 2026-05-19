@@ -12,6 +12,7 @@ Extracted from nli.py to reduce module size.
 
 from __future__ import annotations
 
+import inspect
 import logging
 import os
 from collections.abc import Callable
@@ -224,16 +225,22 @@ def export_onnx(
     dynamic_axes["logits"] = {0: "batch"}
     model_file = output_path / "model.onnx"
 
+    export_kwargs: dict[str, Any] = {
+        "input_names": input_names,
+        "output_names": ["logits"],
+        "dynamic_axes": dynamic_axes,
+        "opset_version": 17,
+        "do_constant_folding": True,
+    }
+    if "dynamo" in inspect.signature(torch.onnx.export).parameters:
+        export_kwargs["dynamo"] = False
+
     with torch.no_grad():
         torch.onnx.export(
             _SequenceClassifierOnnxWrapper(model, input_names),
             tuple(encoded[name] for name in input_names),
             str(model_file),
-            input_names=input_names,
-            output_names=["logits"],
-            dynamic_axes=dynamic_axes,
-            opset_version=17,
-            do_constant_folding=True,
+            **export_kwargs,
         )
 
     model.config.save_pretrained(output_path)

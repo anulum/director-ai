@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.15.1] — 2026-05-19
+
+- Add the hash-pinned PyTorch ONNX exporter stack required by the GPU Docker
+  model-builder stage.
+- Update ONNX export supply-chain policy, artefact guidance, and regression
+  coverage for the GPU release image.
+
 ## [3.15.0] — 2026-05-19
 
 ### Added — safety operations retuning (2026-05-06)

@@ -148,6 +148,84 @@ class TestExportOnnx:
         _, _, exported_path = fake_torch.onnx.export.call_args.args
         assert exported_path.endswith("model.onnx")
 
+    def test_export_disables_dynamo_when_dynamic_axes_are_used(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        fake_torch = ModuleType("torch")
+        fake_torch.long = object()
+        fake_torch.no_grad = MagicMock(return_value=nullcontext())
+        fake_torch.ones = MagicMock(
+            side_effect=lambda shape, dtype=None: {"shape": shape, "dtype": dtype},
+        )
+        fake_torch.nn = SimpleNamespace(Module=object)
+        captured: dict[str, object] = {}
+
+        def export(
+            model,
+            args,
+            f,
+            *,
+            input_names,
+            output_names,
+            dynamic_axes,
+            opset_version,
+            do_constant_folding,
+            dynamo,
+        ):
+            captured.update(
+                {
+                    "model": model,
+                    "args": args,
+                    "f": f,
+                    "input_names": input_names,
+                    "output_names": output_names,
+                    "dynamic_axes": dynamic_axes,
+                    "opset_version": opset_version,
+                    "do_constant_folding": do_constant_folding,
+                    "dynamo": dynamo,
+                },
+            )
+
+        fake_torch.onnx = SimpleNamespace(export=export)
+        fake_transformers = ModuleType("transformers")
+        fake_transformers.AutoTokenizer = SimpleNamespace(from_pretrained=MagicMock())
+        fake_transformers.AutoModelForSequenceClassification = SimpleNamespace(
+            from_pretrained=MagicMock()
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+        monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+
+        model = MagicMock()
+        model.config.save_pretrained = MagicMock()
+        tokenizer = MagicMock()
+        tokenizer.return_value = {
+            "input_ids": fake_torch.ones((1, 4), dtype=fake_torch.long),
+            "attention_mask": fake_torch.ones((1, 4), dtype=fake_torch.long),
+        }
+
+        with (
+            patch.object(
+                fake_transformers.AutoTokenizer,
+                "from_pretrained",
+                return_value=tokenizer,
+            ),
+            patch.object(
+                fake_transformers.AutoModelForSequenceClassification,
+                "from_pretrained",
+                return_value=model,
+            ),
+        ):
+            export_onnx(
+                model_name="test/model",
+                output_dir=str(tmp_path),
+                revision="abc123",
+            )
+
+        assert captured["dynamo"] is False
+        assert captured["dynamic_axes"]["input_ids"] == {0: "batch", 1: "sequence"}
+
 
 # ── ONNX runtime ─────────────────────────────────────────────────
 

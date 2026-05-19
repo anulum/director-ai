@@ -47,6 +47,7 @@ def test_export_wheel_file_is_pinned() -> None:
 
     assert "onnx==" in text
     assert "onnxruntime==" in text
+    assert "onnxscript==" in text
     assert "--hash=sha256:" in text
 
 
