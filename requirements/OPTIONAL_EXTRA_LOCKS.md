@@ -14,6 +14,11 @@ Director-Class AI — optional extra lock notes
 `[nli]`, `[onnx]`, `[vector]`, `[ui]`, `[server]`, `[physical]`, and
 `[enterprise]`.
 
+`requirements/pyproject.toml` and `requirements/uv.lock` are intentionally
+empty, non-package graph markers for GitHub's uv dependency grapher. The
+dependency authority for this directory remains the hashed `*.txt` files and
+their checked-in `*.in` sources.
+
 The top-level packages for those extras must keep an upper bound unless
 `requirements/uv_extra_lock_policy.toml` records a deliberate exception. The
 policy file lists the package names checked by
