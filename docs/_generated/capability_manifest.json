@@ -9,7 +9,7 @@
     "python_model_classes": 701,
     "python_model_source_modules": 310,
     "rust_pyo3_model_wrappers": 59,
-    "test_files": 422
+    "test_files": 420
   },
   "documentation": {
     "public_pages": [
@@ -3992,7 +3992,6 @@
       "tests/test_ontology.py",
       "tests/test_openai_swarm.py",
       "tests/test_optional_extra_lock_policy.py",
-      "tests/test_orchestrator_environment_vertex_metadata.py",
       "tests/test_otel.py",
       "tests/test_paladin_mini.py",
       "tests/test_parent_child_backend.py",
@@ -4114,7 +4113,6 @@
       "tests/test_vector_store_reranker.py",
       "tests/test_verified_scorer.py",
       "tests/test_verified_scorer_escalation.py",
-      "tests/test_vertex_container_cuda_policy.py",
       "tests/test_vertex_model_benchmark.py",
       "tests/test_voice_adapters.py",
       "tests/test_voice_adapters_sdk.py",

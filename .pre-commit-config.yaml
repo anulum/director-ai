@@ -28,3 +28,5 @@ repos:
     rev: v1.29.5
     hooks:
       - id: typos
+        args: [--config, .typos.toml]
+        exclude: ^benchmarks/models/

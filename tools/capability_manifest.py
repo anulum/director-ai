@@ -20,6 +20,7 @@ import argparse
 import ast
 import json
 import re
+import subprocess
 import sys
 from collections.abc import Iterable
 from dataclasses import dataclass
@@ -544,7 +545,9 @@ def _python_model_sources(
         return []
     return [
         _rel(path, repo)
-        for path in sorted(models_root.rglob("*.py"))
+        for path in _tracked_or_discovered_files(
+            models_root, repo=repo, suffixes=(".py",)
+        )
         if path.name != "__init__.py"
         and not _excluded_source_path(path, models_root, exclude_parts)
     ]
@@ -559,7 +562,7 @@ def _python_model_classes(
     if not models_root.exists():
         return []
     rows: list[dict[str, str]] = []
-    for path in sorted(models_root.rglob("*.py")):
+    for path in _tracked_or_discovered_files(models_root, repo=repo, suffixes=(".py",)):
         if path.name == "__init__.py" or _excluded_source_path(
             path, models_root, exclude_parts
         ):
@@ -608,8 +611,10 @@ def _workflow_files(workflows_root: Path, *, repo: Path) -> list[str]:
         return []
     return [
         _rel(path, repo)
-        for path in sorted(
-            list(workflows_root.glob("*.yml")) + list(workflows_root.glob("*.yaml"))
+        for path in _tracked_or_discovered_files(
+            workflows_root,
+            repo=repo,
+            suffixes=(".yml", ".yaml"),
         )
     ]
 
@@ -617,7 +622,10 @@ def _workflow_files(workflows_root: Path, *, repo: Path) -> list[str]:
 def _python_files(root: Path, *, repo: Path) -> list[str]:
     if not root.exists():
         return []
-    return [_rel(path, repo) for path in sorted(root.rglob("*.py"))]
+    return [
+        _rel(path, repo)
+        for path in _tracked_or_discovered_files(root, repo=repo, suffixes=(".py",))
+    ]
 
 
 def _markdown_docs(
@@ -632,9 +640,55 @@ def _markdown_docs(
     relative_root = display_root or repo
     return [
         _rel(path, relative_root)
-        for path in sorted(root.rglob("*.md"))
+        for path in _tracked_or_discovered_files(root, repo=repo, suffixes=(".md",))
         if not set(path.relative_to(root).parts).intersection(exclude_parts)
     ]
+
+
+def _tracked_or_discovered_files(
+    root: Path,
+    *,
+    repo: Path,
+    suffixes: tuple[str, ...],
+) -> list[Path]:
+    """Return tracked files below root, falling back to discovery outside Git.
+
+    The public manifest is a release artifact. Counting untracked files makes
+    a developer's dirty checkout disagree with clean CI, so Git-tracked files
+    are the authoritative source whenever the repository metadata is present.
+    """
+
+    tracked = _git_tracked_files(root, repo=repo, suffixes=suffixes)
+    if tracked is not None:
+        return tracked
+    return sorted(
+        path for path in root.rglob("*") if path.is_file() and path.suffix in suffixes
+    )
+
+
+def _git_tracked_files(
+    root: Path,
+    *,
+    repo: Path,
+    suffixes: tuple[str, ...],
+) -> list[Path] | None:
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo), "ls-files", "--", _rel(root, repo)],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    return sorted(
+        repo / line
+        for line in result.stdout.splitlines()
+        if line and Path(line).suffix in suffixes
+    )
 
 
 def _rel(path: Path, root: Path) -> str:
