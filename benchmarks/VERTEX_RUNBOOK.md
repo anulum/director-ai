@@ -112,6 +112,19 @@ python -m benchmarks.model_package_vertex_campaign \
   --min-free-gb 25
 ```
 
+For production runs, pass immutable provenance into the container so
+detached Vertex checkouts do not report ambiguous git metadata:
+
+```bash
+DIRECTOR_GIT_COMMIT="$(git rev-parse HEAD)" \
+DIRECTOR_GIT_BRANCH="$(git branch --show-current || echo detached)" \
+DIRECTOR_RUN_ENV=vertex \
+python -m benchmarks.model_package_vertex_campaign \
+  --bucket gs://gotm-director-ai-training \
+  --prefix benchmarks/model-packages/campaigns/<timestamp>-<git-sha> \
+  --min-free-gb 25
+```
+
 The current package manifest expands to 21 stage executions:
 
 - 3 stable scorer aliases: `balanced-default`, `deberta-small`,
@@ -126,6 +139,22 @@ model artefacts, Hugging Face datasets, and intermediate JSON outputs
 can coexist while the stages run one by one. The runner checks free
 space before and after every stage and fails loudly if available space
 falls below the configured threshold.
+
+The campaign runner now preserves each model package's scorer template
+after managed artefacts are resolved from GCS to local cache paths. In
+practice this means `balanced-default` still uses the FactCG
+instruction-plus-SummaC scoring path even when
+`DIRECTOR_RESOLVED_NLI_MODEL` points to `/workspace/cache/...` instead
+of a Hugging Face model ID. The same value is passed as
+`--scorer-template` and exported as `DIRECTOR_SCORER_TEMPLATE` for
+subprocesses.
+
+AggreFact package stages have a production quality gate. The runner
+fails the stage when the expected result file is missing, when
+`balanced-default` drops below `0.700` global balanced accuracy, or when
+binary predictions collapse above a `0.950` majority share. These gates
+catch misrouted templates and broken model loads before weak evidence is
+uploaded as a benchmark package.
 
 Results are isolated by model alias and stage:
 
@@ -267,7 +296,10 @@ historical versions.
 | Vertex job stays `PENDING` > 10 min | Capacity wait or Vertex CustomJob accelerator quota | Check `gcloud ai custom-jobs describe <job-id> --region=europe-west4`; Compute Engine quota alone is not enough. |
 | `unknown enum label "NVIDIA_T4"` | Vertex SDK expects Tesla names for older GPUs | Use current CLI; it normalises `NVIDIA_T4` to `NVIDIA_TESLA_T4`. |
 | `custom_model_training_nvidia_*_gpus` quota exceeded | Vertex CustomJob quota missing for that accelerator | Use T4/L4 or request Vertex CustomJob quota increase. |
+| Vertex benchmark or distillation image starts on CPU | Container CUDA wheel / driver mismatch or no GPU was attached | Rebuild from the CUDA 12.1 PyTorch override image and keep `DIRECTOR_REQUIRE_CUDA=1`; the entrypoint probes `torch.cuda.is_available()` and a one-element CUDA tensor before downloads or scoring. |
 | CUDA OOM early in fine-tuning | Batch size too high for model/GPU | Use `--batch-size 1` for large DeBERTa/RoBERTa smoke runs on T4. |
+| Lite Scorer v2 loss becomes `nan` | Non-finite teacher/student logits or mixed-precision teacher instability | Current distillation loads the teacher in float32 and aborts on non-finite tensors or loss; inspect the first failing batch before queueing a replacement run. |
+| Managed FactCG artefact scores far below the baseline | GCS artefact resolved to a local path and auto-template detection no longer saw `FactCG` in the model name | Use package metadata or `DIRECTOR_SCORER_TEMPLATE=factcg`; the campaign runner passes this automatically for stable model packages. |
 | Repeated `huggingface/tokenizers` fork warnings | Tokenizer parallelism was initialised before dataloader workers forked | Current runner sets `TOKENIZERS_PARALLELISM=false`; rebuild the image before expecting this in Vertex logs. |
 | Text model import fails with `operator torchvision::nms does not exist` | The PyTorch base image carried an incompatible inherited `torchvision` package, and Transformers imported optional vision helpers before loading text model classes | Rebuild from an image whose Dockerfile uninstalls inherited `torchvision` after the pinned dependency install; confirm the replacement benchmark is run on Vertex AI before promoting any model. |
 | `DIRECTOR_BENCH_BASELINE` download fails | Incorrect GCS path or no read-access | Path is `gs://…` not a bare name; container SA needs `storage.objectViewer`. |

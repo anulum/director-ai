@@ -73,6 +73,22 @@ def test_precommit_blocks_public_implementation_agent_names(tmp_path: Path) -> N
     assert "blocked staged public implementation-agent identity text" in result.stderr
 
 
+def test_precommit_allows_provider_sdk_names_in_code(tmp_path: Path) -> None:
+    repo = _repo(tmp_path)
+    _stage(
+        repo,
+        "src/example.py",
+        "client = openai.OpenAI()\n"
+        "fallback = anthropic.Anthropic()\n"
+        'provider = "Claude-compatible gateway"\n',
+    )
+
+    result = _hook(repo)
+
+    assert result.returncode == 0
+    assert result.stderr == ""
+
+
 def test_precommit_blocks_credential_like_content(tmp_path: Path) -> None:
     repo = _repo(tmp_path)
     synthetic_key = "sk-" + ("a" * 28)

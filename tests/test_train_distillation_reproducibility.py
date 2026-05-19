@@ -34,6 +34,8 @@ SPEC.loader.exec_module(MODULE)
 TrainingRunConfig = MODULE.TrainingRunConfig
 build_parser = MODULE.build_parser
 build_subset = MODULE.build_subset
+distillation_loss = MODULE.distillation_loss
+load_teacher_model = MODULE.load_teacher_model
 resolve_training_device = MODULE.resolve_training_device
 validate_training_run_config = MODULE.validate_training_run_config
 write_training_run_manifest = MODULE.write_training_run_manifest
@@ -98,6 +100,60 @@ def test_training_parser_exposes_reproducibility_controls() -> None:
     assert args.eval_limit == 5000
     assert args.num_workers == 2
     assert args.device == "auto"
+    assert args.lr == 2e-5
+
+
+def test_distillation_loss_rejects_non_finite_logits() -> None:
+    torch = pytest.importorskip("torch")
+    student_logits = torch.tensor([[0.0, float("nan"), 1.0]])
+    teacher_logits = torch.tensor([[0.2, 0.3, 0.5]])
+    labels = torch.tensor([2])
+
+    with pytest.raises(FloatingPointError, match="student logits"):
+        distillation_loss(student_logits, teacher_logits, labels)
+
+
+def test_distillation_loss_rejects_mismatched_label_spaces() -> None:
+    torch = pytest.importorskip("torch")
+    student_logits = torch.tensor([[0.0, 1.0, 2.0]])
+    teacher_logits = torch.tensor([[0.2, 0.8]])
+    labels = torch.tensor([1])
+
+    with pytest.raises(ValueError, match="identical shapes"):
+        distillation_loss(student_logits, teacher_logits, labels)
+
+
+def test_distillation_loss_rejects_invalid_labels() -> None:
+    torch = pytest.importorskip("torch")
+    student_logits = torch.tensor([[0.0, 1.0, 2.0]])
+    teacher_logits = torch.tensor([[0.2, 0.3, 0.5]])
+    labels = torch.tensor([3])
+
+    with pytest.raises(ValueError, match="label range"):
+        distillation_loss(student_logits, teacher_logits, labels)
+
+
+def test_teacher_model_load_forces_float32_dtype(monkeypatch) -> None:
+    torch = pytest.importorskip("torch")
+    calls: list[dict[str, Any]] = []
+
+    class _AutoModel:
+        @staticmethod
+        def from_pretrained(*args: Any, **kwargs: Any) -> object:
+            calls.append({"args": args, "kwargs": kwargs})
+            return object()
+
+    monkeypatch.setattr(MODULE, "AutoModelForSequenceClassification", _AutoModel)
+
+    result = load_teacher_model("/tmp/teacher")
+
+    assert result is not None
+    assert calls == [
+        {
+            "args": ("/tmp/teacher",),
+            "kwargs": {"num_labels": 3, "dtype": torch.float32},
+        }
+    ]
 
 
 def test_resolve_training_device_falls_back_when_cuda_probe_fails() -> None:

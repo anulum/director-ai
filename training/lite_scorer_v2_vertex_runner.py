@@ -210,6 +210,8 @@ def run_vertex_training(
     errors = validate_config(config)
     if errors:
         raise ValueError("; ".join(errors))
+    if os.environ.get("DIRECTOR_REQUIRE_CUDA") == "1":
+        _require_cuda_runtime()
 
     data_dir = config.work_dir / "data"
     teacher_dir = config.work_dir / "teacher"
@@ -282,7 +284,7 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--max-length", type=int, default=256)
     parser.add_argument("--temperature", type=float, default=3.0)
     parser.add_argument("--alpha", type=float, default=0.5)
-    parser.add_argument("--lr", type=float, default=5e-5)
+    parser.add_argument("--lr", type=float, default=2e-5)
     parser.add_argument("--seed", type=int, default=20260518)
     parser.add_argument("--eval-limit", type=int, default=5000)
     parser.add_argument("--num-workers", type=int, default=2)
@@ -290,6 +292,18 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--summ-target", type=int, default=15000)
     parser.add_argument("--general-target", type=int, default=15000)
     return parser.parse_args(argv)
+
+
+def _require_cuda_runtime() -> None:
+    import torch
+
+    if not torch.cuda.is_available():
+        raise RuntimeError("DIRECTOR_REQUIRE_CUDA=1 but CUDA is not available")
+    try:
+        probe = torch.ones(1, device="cuda")
+        _ = float(probe.cpu()[0])
+    except Exception as exc:
+        raise RuntimeError("DIRECTOR_REQUIRE_CUDA=1 but CUDA probe failed") from exc
 
 
 def config_from_args(args: argparse.Namespace) -> LiteScorerV2VertexConfig:

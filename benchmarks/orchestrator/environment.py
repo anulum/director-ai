@@ -74,6 +74,10 @@ def capture_environment(runner: str = "local") -> EnvironmentRecord:
 
 
 def _git_state() -> tuple[str, bool, str]:
+    env_commit = os.environ.get("DIRECTOR_GIT_COMMIT", "").strip()
+    env_branch = os.environ.get("DIRECTOR_GIT_BRANCH", "").strip()
+    if env_commit:
+        return env_commit, False, env_branch or "detached"
     try:
         commit = subprocess.check_output(
             ["git", "rev-parse", "HEAD"],

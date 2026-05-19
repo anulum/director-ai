@@ -382,7 +382,7 @@ class LLMJudge:
                 if self.provider == "openai":
                     import openai
 
-                    openai_client: Any = getattr(openai, "Open" + "AI")()
+                    openai_client: Any = openai.OpenAI()
                     openai_messages: list[dict[str, str]] = (
                         judge_prompt
                         if isinstance(judge_prompt, list)
@@ -404,7 +404,7 @@ class LLMJudge:
                 if self.provider == "anthropic":
                     import anthropic
 
-                    anthropic_client: Any = getattr(anthropic, "Anth" + "ropic")()
+                    anthropic_client: Any = anthropic.Anthropic()
                     if isinstance(judge_prompt, list):
                         system_prompt = judge_prompt[0]["content"]
                         messages = judge_prompt[1:]

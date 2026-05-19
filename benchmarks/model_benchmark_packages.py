@@ -58,6 +58,7 @@ class ModelBenchmarkPackage:
     model_alias: str
     model_id: str
     runtime_model: str
+    template: str
     status: str
     public_claim: str
     evidence: tuple[ModelEvidenceItem, ...]
@@ -129,6 +130,7 @@ def load_package_manifest(path: Path = PACKAGE_MANIFEST_PATH) -> ModelPackageMan
                 model_alias=alias,
                 model_id=choice.model_id,
                 runtime_model=choice.runtime_model,
+                template=choice.template,
                 status=package_raw.get("status", raw["default_status"]),
                 public_claim=package_raw["public_claim"],
                 evidence=evidence,

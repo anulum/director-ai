@@ -35,6 +35,7 @@ class CampaignRunItem:
 
     model_alias: str
     runtime_model: str
+    scorer_template: str
     stage_id: str
     evidence_id: str
     command: tuple[str, ...]
@@ -93,6 +94,8 @@ def _build_run_item(
             "benchmarks.aggrefact_eval",
             "--model",
             model_var,
+            "--scorer-template",
+            package.template,
             "--threshold",
             "0.46",
             "--save-scores",
@@ -161,6 +164,7 @@ def _build_run_item(
     return CampaignRunItem(
         model_alias=package.model_alias,
         runtime_model=package.runtime_model,
+        scorer_template=package.template,
         stage_id=evidence.stage_id,
         evidence_id=evidence.evidence_id,
         command=commands[evidence.stage_id],
@@ -233,6 +237,7 @@ def _run_one(item: CampaignRunItem, *, output_root: Path) -> StageResult:
     env = os.environ.copy()
     env["DIRECTOR_SCORER_MODEL"] = item.model_alias
     env["DIRECTOR_NLI_MODEL"] = item.runtime_model
+    env["DIRECTOR_SCORER_TEMPLATE"] = item.scorer_template
     env["DIRECTOR_RESOLVED_NLI_MODEL"] = _resolve_model_source(item.runtime_model)
     env.setdefault("HF_HOME", "/workspace/cache/huggingface")
     env.setdefault("HF_DATASETS_CACHE", "/workspace/cache/hf-datasets")
@@ -253,16 +258,24 @@ def _run_one(item: CampaignRunItem, *, output_root: Path) -> StageResult:
     )
     elapsed = time.perf_counter() - start
     _move_stage_outputs(item.stage_id, item.output_dir)
+    validation_error = _validate_stage_output(item)
+    returncode = completed.returncode if completed.returncode != 0 else 0
+    error = "" if completed.returncode == 0 else f"returncode={completed.returncode}"
+    if completed.returncode == 0 and validation_error:
+        returncode = 1
+        error = validation_error
     metadata = {
         "model_alias": item.model_alias,
         "runtime_model": item.runtime_model,
+        "scorer_template": item.scorer_template,
         "resolved_model": env["DIRECTOR_RESOLVED_NLI_MODEL"],
         "stage_id": item.stage_id,
         "evidence_id": item.evidence_id,
         "command": list(command),
-        "returncode": completed.returncode,
+        "returncode": returncode,
         "elapsed_seconds": elapsed,
         "disk_free_gb": _free_gb(output_root),
+        "validation_error": validation_error,
     }
     (item.output_dir / "stage_metadata.json").write_text(
         json.dumps(metadata, indent=2),
@@ -272,12 +285,36 @@ def _run_one(item: CampaignRunItem, *, output_root: Path) -> StageResult:
         model_alias=item.model_alias,
         stage_id=item.stage_id,
         evidence_id=item.evidence_id,
-        returncode=completed.returncode,
+        returncode=returncode,
         elapsed_seconds=elapsed,
         output_dir=str(item.output_dir),
         uploaded_files=(),
-        error="" if completed.returncode == 0 else f"returncode={completed.returncode}",
+        error=error,
     )
+
+
+def _validate_stage_output(item: CampaignRunItem) -> str:
+    if item.stage_id != "aggrefact_anchor_vertex":
+        return ""
+    result_path = item.output_dir / _result_filename(item.stage_id)
+    if not result_path.exists():
+        return f"{item.stage_id}: missing result file {result_path}"
+    result = json.loads(result_path.read_text(encoding="utf-8"))
+    score = float(result.get("global_balanced_accuracy", 0.0))
+    if item.model_alias == "balanced-default" and score < 0.70:
+        return (
+            "balanced-default AggreFact evidence below quality gate: "
+            f"{score:.3f} < 0.700"
+        )
+    predictions = result.get("predictions", [])
+    if predictions:
+        majority = max(predictions.count(0), predictions.count(1)) / len(predictions)
+        if majority > 0.95:
+            return (
+                f"{item.stage_id}: collapsed predictions; majority share "
+                f"{majority:.3f} > 0.950"
+            )
+    return ""
 
 
 def _move_stage_outputs(stage_id: str, output_dir: Path) -> None:

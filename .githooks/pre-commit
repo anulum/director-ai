@@ -11,7 +11,8 @@ set -eu
 
 blocked_patterns='(^|/)(\.coordination|docs/internal|04_ARCANE_SAPIENCE|ARCHIVE|BACKUP|MODELS)(/|$)|(^|/)\.env($|\.)|(^|/)\.coverage($|\.)|(^|/)coverage\.xml$|(^|/).*\.(pem|key|log)$|(^|/)id_(rsa|ed25519)$|(^|/)(credentials?|secrets?|tokens?)(/|$|[._-])'
 allowed_patterns='(^|/)discord-bot/\.env\.example$|(^|/)src/.*/secret_sharing\.py$|(^|/)benchmarks/models/.*/tokenizer(_config)?\.json$'
-agent_identity_patterns='\b(C[o]dex|OpenA[I]|ChatG[P]T|Cl[a]ude|G[e]mini|Anthr[o]pic)\b'
+agent_identity_names='C[o]dex|OpenA[I]|ChatG[P]T|Cl[a]ude|G[e]mini|Anthr[o]pic'
+agent_identity_patterns="(^|[^[:alnum:]_])(generated|written|created|implemented|authored|produced|made)[[:space:]]+(by|with|using)[[:space:]]+(${agent_identity_names})([^[:alnum:]_]|$)|(^|[^[:alnum:]_])(${agent_identity_names})[[:space:]]+(generated|wrote|created|implemented|authored|produced|made)([^[:alnum:]_]|$)"
 google_api_prefix='AI''za'
 oauth_prefix='ya''29\.'
 generic_api_key_pattern='(^|[^0-9A-Za-z_-])s''k-[0-9A-Za-z_-]{20,}'
@@ -49,7 +50,7 @@ staged_additions="$(git diff --cached -U0 --no-ext-diff -- . \
   ':(exclude)04_ARCANE_SAPIENCE/**' \
   | grep -E '^\+[^+]' || true)"
 
-if printf '%s\n' "$staged_additions" | grep -E "$agent_identity_patterns" >/dev/null; then
+if printf '%s\n' "$staged_additions" | grep -Ei "$agent_identity_patterns" >/dev/null; then
   printf '%s\n' "ERROR: enterprise-trust blocked staged public implementation-agent identity text." >&2
   printf '%s\n' "Use Arcane Sapience in public tracked files and keep implementation attribution internal." >&2
   exit 1

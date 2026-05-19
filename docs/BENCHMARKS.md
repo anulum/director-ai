@@ -227,6 +227,16 @@ PYTHONPATH=src python -m benchmarks.model_benchmark_packages --root .
 PYTHONPATH=src python -m benchmarks.model_benchmark_packages --root . --json
 ```
 
+Vertex package execution preserves each package's scorer template in
+`DIRECTOR_SCORER_TEMPLATE` and passes the same value to
+`benchmarks.aggrefact_eval --scorer-template`. This is required for
+managed FactCG artefacts because Vertex resolves GCS model URIs to local
+cache paths, where automatic model-name detection cannot infer the
+FactCG instruction template reliably. AggreFact package stages fail
+closed when the result file is missing, when `balanced-default` drops
+below `0.700` global balanced accuracy, or when predictions collapse
+above a `0.950` majority share.
+
 The current stable packages are `pending_external_suite`: the managed
 general model-choice gate exists, but external benchmark packets still
 need to be generated per model before model-specific public claims are

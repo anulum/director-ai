@@ -169,6 +169,31 @@ def test_vertex_runner_downloads_trains_and_uploads(
     assert recorded["benchmark_eligible"] is False
 
 
+def test_vertex_runner_requires_cuda_before_downloading_when_configured(
+    tmp_path: Path, monkeypatch: Any
+) -> None:
+    config = _config(tmp_path)
+    downloads: list[tuple[str, Path]] = []
+
+    def fake_download(uri: str, destination: Path) -> None:
+        downloads.append((uri, destination))
+
+    def fail_cuda() -> None:
+        raise RuntimeError("DIRECTOR_REQUIRE_CUDA=1 but CUDA is not available")
+
+    monkeypatch.setenv("DIRECTOR_REQUIRE_CUDA", "1")
+    monkeypatch.setattr(MODULE, "_require_cuda_runtime", fail_cuda)
+
+    try:
+        run_vertex_training(config, download_prefix=fake_download)
+    except RuntimeError as exc:
+        assert "CUDA is not available" in str(exc)
+    else:
+        raise AssertionError("CUDA-required Vertex run must fail before downloads")
+
+    assert downloads == []
+
+
 def test_vertex_runner_parse_args_uses_t4_safe_defaults(tmp_path: Path) -> None:
     args = parse_args(
         [
@@ -187,4 +212,5 @@ def test_vertex_runner_parse_args_uses_t4_safe_defaults(tmp_path: Path) -> None:
 
     assert args.batch_size == 32
     assert args.device == "auto"
+    assert args.lr == 2e-5
     assert args.num_workers == 2

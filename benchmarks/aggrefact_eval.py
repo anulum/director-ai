@@ -184,6 +184,33 @@ _FACTCG_TEMPLATE = (
 )
 
 
+def _normalise_scorer_template(template: str | None) -> str:
+    value = (template or os.environ.get("DIRECTOR_SCORER_TEMPLATE", "auto")).strip()
+    if not value:
+        return "auto"
+    allowed = {"auto", "factcg", "sequence-pair"}
+    if value not in allowed:
+        raise ValueError(
+            f"scorer template must be one of auto, factcg, sequence-pair; got {value!r}"
+        )
+    return value
+
+
+def _uses_factcg_template(
+    model_name: str,
+    model_config: object,
+    template: str | None,
+) -> bool:
+    mode = _normalise_scorer_template(template)
+    if mode == "factcg":
+        return True
+    if mode == "sequence-pair":
+        return False
+    return "factcg" in model_name.lower() or bool(
+        getattr(model_config, "factcg", False)
+    )
+
+
 def _chunk_source(text: str, max_tokens: int = 550) -> list[str]:
     """Split source document into sentence-level chunks (SummaC-style)."""
     import nltk
@@ -216,7 +243,12 @@ class _BinaryNLIPredictor:
     FactCG models use instruction template + SummaC-style source chunking.
     """
 
-    def __init__(self, model_name: str | None = None, max_length: int = 2048):
+    def __init__(
+        self,
+        model_name: str | None = None,
+        max_length: int = 2048,
+        scorer_template: str | None = None,
+    ):
         import torch
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
@@ -233,8 +265,10 @@ class _BinaryNLIPredictor:
         self.max_length = max_length
         self._torch = torch
         self._num_labels = self.model.config.num_labels
-        self._is_factcg = "factcg" in self.model_name.lower() or getattr(
-            self.model.config, "factcg", False
+        self._is_factcg = _uses_factcg_template(
+            self.model_name,
+            self.model.config,
+            scorer_template,
         )
         logger.info(
             "Model loaded on %s (%s, %d labels, factcg=%s)",
@@ -417,6 +451,7 @@ def score_and_save(
     max_samples: int | None = None,
     model_name: str | None = None,
     max_length: int = 2048,
+    scorer_template: str | None = None,
 ) -> Path:
     """Score all samples once and save in the ensemble-compatible JSON schema.
 
@@ -443,7 +478,11 @@ def score_and_save(
     The file is also readable by ``load_cached_scores()`` (schema-version
     aware — old v1 files keep loading too).
     """
-    predictor = _BinaryNLIPredictor(model_name=model_name, max_length=max_length)
+    predictor = _BinaryNLIPredictor(
+        model_name=model_name,
+        max_length=max_length,
+        scorer_template=scorer_template,
+    )
     rows = _load_aggrefact(max_samples)
 
     scores: list[float] = []
@@ -674,6 +713,7 @@ def run_aggrefact_benchmark(
     model_name: str | None = None,
     bidirectional: bool = False,
     overlap_ratio: float = 0.0,
+    scorer_template: str | None = None,
 ) -> AggreFactMetrics:
     if bidirectional:
         predictor = _NLIScorerPredictor(
@@ -681,7 +721,10 @@ def run_aggrefact_benchmark(
             overlap_ratio=overlap_ratio,
         )
     else:
-        predictor = _BinaryNLIPredictor(model_name=model_name)
+        predictor = _BinaryNLIPredictor(
+            model_name=model_name,
+            scorer_template=scorer_template,
+        )
     rows = _load_aggrefact(max_samples)
 
     # Collect predictions grouped by dataset
@@ -727,9 +770,13 @@ def run_aggrefact_benchmark(
 def sweep_thresholds(
     max_samples: int | None = None,
     model_name: str | None = None,
+    scorer_template: str | None = None,
 ) -> tuple[float, AggreFactMetrics]:
     """Find the threshold that maximises average balanced accuracy."""
-    predictor = _BinaryNLIPredictor(model_name=model_name)
+    predictor = _BinaryNLIPredictor(
+        model_name=model_name,
+        scorer_template=scorer_template,
+    )
     rows = _load_aggrefact(max_samples)
 
     by_dataset: dict[str, list[tuple[int, float]]] = {}
@@ -783,6 +830,7 @@ def sweep_thresholds(
 def sweep_thresholds_per_dataset(
     max_samples: int | None = None,
     model_name: str | None = None,
+    scorer_template: str | None = None,
 ) -> tuple[dict[str, float], AggreFactMetrics]:
     """Sweep thresholds independently per dataset (oracle upper bound).
 
@@ -790,7 +838,10 @@ def sweep_thresholds_per_dataset(
     is the mean of per-dataset BAs at their respective optimal thresholds.
     This measures the ceiling achievable with per-dataset calibration.
     """
-    predictor = _BinaryNLIPredictor(model_name=model_name)
+    predictor = _BinaryNLIPredictor(
+        model_name=model_name,
+        scorer_template=scorer_template,
+    )
     rows = _load_aggrefact(max_samples)
 
     by_dataset: dict[str, list[tuple[int, float]]] = {}
@@ -1083,6 +1134,15 @@ if __name__ == "__main__":
         default=2048,
         help="Max NLI tokenizer length per chunk (lower = less VRAM, default 2048)",
     )
+    parser.add_argument(
+        "--scorer-template",
+        choices=("auto", "factcg", "sequence-pair"),
+        default=os.environ.get("DIRECTOR_SCORER_TEMPLATE", "auto"),
+        help=(
+            "Scorer input template. Use factcg for managed FactCG artefacts "
+            "after cloud storage resolution to a local cache path."
+        ),
+    )
     args = parser.parse_args()
 
     if args.save_scores:
@@ -1091,6 +1151,7 @@ if __name__ == "__main__":
             max_samples=args.max_samples,
             model_name=args.model,
             max_length=args.max_length,
+            scorer_template=args.scorer_template,
         )
         print(f"\nEnsemble-compatible results saved to {out}")
         # Print summary from the saved JSON
@@ -1136,6 +1197,7 @@ if __name__ == "__main__":
         per_ds_t, m = sweep_thresholds_per_dataset(
             max_samples=args.max_samples,
             model_name=args.model,
+            scorer_template=args.scorer_template,
         )
         print("\nPer-dataset optimal thresholds:")
         for ds, t in sorted(per_ds_t.items()):
@@ -1146,6 +1208,7 @@ if __name__ == "__main__":
         best_global, m_global = sweep_thresholds(
             max_samples=args.max_samples,
             model_name=args.model,
+            scorer_template=args.scorer_template,
         )
         print(f"\n{'=' * 60}")
         print("  Comparison: Per-Dataset vs Global Threshold")
@@ -1167,6 +1230,7 @@ if __name__ == "__main__":
         results = sweep_aggregation(
             max_samples=args.max_samples,
             model_name=args.model,
+            scorer_template=args.scorer_template,
         )
         print(f"\n{'=' * 60}")
         print("  Aggregation Strategy Comparison")
@@ -1193,6 +1257,7 @@ if __name__ == "__main__":
             max_samples=args.max_samples,
             model_name=args.model,
             bidirectional=False,
+            scorer_template=args.scorer_template,
         )
         _print_aggrefact_results(m_summac, "SummaC chunking")
         m_bidir = run_aggrefact_benchmark(
@@ -1224,6 +1289,7 @@ if __name__ == "__main__":
             threshold=args.threshold,
             max_samples=args.max_samples,
             model_name=args.model,
+            scorer_template=args.scorer_template,
         )
         _print_aggrefact_results(m, args.model or "default")
 

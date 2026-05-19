@@ -11,7 +11,8 @@ set -eu
 
 message_file="${1:?commit message file required}"
 required_trailer='Co-Authored-By: Arcane Sapience <protoscience@anulum.li>'
-agent_identity_patterns='\b(C[o]dex|OpenA[I]|ChatG[P]T|Cl[a]ude|G[e]mini|Anthr[o]pic)\b'
+agent_identity_names='C[o]dex|OpenA[I]|ChatG[P]T|Cl[a]ude|G[e]mini|Anthr[o]pic'
+agent_identity_patterns="(^|[^[:alnum:]_])(generated|written|created|implemented|authored|produced|made)[[:space:]]+(by|with|using)[[:space:]]+(${agent_identity_names})([^[:alnum:]_]|$)|(^|[^[:alnum:]_])(${agent_identity_names})[[:space:]]+(generated|wrote|created|implemented|authored|produced|made)([^[:alnum:]_]|$)"
 
 if [ ! -f "$message_file" ]; then
   printf '%s\n' "ERROR: commit message file is missing." >&2
@@ -31,7 +32,7 @@ if [ "$coauthored_count" -ne 1 ]; then
   exit 1
 fi
 
-if grep -E "$agent_identity_patterns" "$message_file" >/dev/null; then
+if grep -Ei "$agent_identity_patterns" "$message_file" >/dev/null; then
   printf '%s\n' "ERROR: commit message contains blocked implementation-agent identity text." >&2
   exit 1
 fi

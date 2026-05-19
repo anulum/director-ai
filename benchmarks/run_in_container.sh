@@ -48,6 +48,18 @@ echo "=== environment ==="
 python -c 'import sys; print("python", sys.version)'
 python -c 'import torch; print("torch", torch.__version__, "cuda", torch.cuda.is_available())'
 nvidia-smi --query-gpu=name,memory.total --format=csv,noheader || true
+if [[ "${DIRECTOR_REQUIRE_CUDA:-0}" == "1" ]]; then
+    python - <<'PY'
+import sys
+import torch
+
+if not torch.cuda.is_available():
+    raise SystemExit("DIRECTOR_REQUIRE_CUDA=1 but torch.cuda.is_available() is false")
+probe = torch.ones(1, device="cuda")
+_ = float(probe.cpu()[0])
+print(f"cuda smoke ok: {torch.cuda.get_device_name(0)}", file=sys.stderr)
+PY
+fi
 echo ""
 
 if [[ "${DIRECTOR_MODEL_BENCHMARK:-}" == "1" ]]; then

@@ -86,7 +86,7 @@ def build_parser() -> argparse.ArgumentParser:
         default="microsoft/MiniLM-L6-H384-uncased",
         help="Student base model",
     )
-    parser.add_argument("--lr", type=float, default=5e-5)
+    parser.add_argument("--lr", type=float, default=2e-5)
     parser.add_argument("--epochs", type=int, default=5)
     parser.add_argument("--batch-size", type=int, default=32)
     parser.add_argument("--max-length", type=int, default=256)
@@ -284,13 +284,56 @@ def distillation_loss(
     alpha: float = 0.5,
 ) -> torch.Tensor:
     """Combined KL divergence soft loss and hard-label cross-entropy."""
+    if student_logits.shape != teacher_logits.shape:
+        raise ValueError(
+            "student and teacher logits must have identical shapes, got "
+            f"{tuple(student_logits.shape)} and {tuple(teacher_logits.shape)}"
+        )
+    if labels.numel() and (
+        int(labels.min().item()) < 0
+        or int(labels.max().item()) >= student_logits.shape[-1]
+    ):
+        raise ValueError("labels must be within the classifier label range")
+    _assert_finite_tensor("student logits", student_logits)
+    _assert_finite_tensor("teacher logits", teacher_logits)
     soft_teacher = functional.log_softmax(teacher_logits / temperature, dim=-1)
     soft_student = functional.log_softmax(student_logits / temperature, dim=-1)
     kl_loss = functional.kl_div(
         soft_student, soft_teacher.exp(), reduction="batchmean"
     ) * (temperature**2)
     ce_loss = functional.cross_entropy(student_logits, labels)
-    return alpha * kl_loss + (1.0 - alpha) * ce_loss
+    loss = alpha * kl_loss + (1.0 - alpha) * ce_loss
+    _assert_finite_tensor("distillation loss", loss)
+    return loss
+
+
+def _assert_finite_tensor(name: str, value: torch.Tensor) -> None:
+    if not torch.isfinite(value).all():
+        raise FloatingPointError(f"{name} contains non-finite values")
+
+
+def load_teacher_model(model_path: str) -> Any:
+    """Load the teacher in float32 so soft-label generation stays finite on GPU."""
+    return AutoModelForSequenceClassification.from_pretrained(
+        model_path,
+        num_labels=3,
+        dtype=torch.float32,
+    )
+
+
+def load_student_model(model_path: str) -> Any:
+    """Load the trainable student classifier with the repository label contract."""
+    return AutoModelForSequenceClassification.from_pretrained(
+        model_path,
+        num_labels=3,
+    )
+
+
+def _module_dtype(model: Any) -> torch.dtype | None:
+    try:
+        return next(model.parameters()).dtype
+    except StopIteration:
+        return None
 
 
 def _classification_metrics(labels: np.ndarray, preds: np.ndarray) -> dict[str, float]:
@@ -413,21 +456,18 @@ def main(argv: list[str] | None = None) -> int:
 
     logger.info("Loading teacher: %s", config.teacher)
     teacher_tok = AutoTokenizer.from_pretrained(config.teacher, use_fast=False)
-    teacher = AutoModelForSequenceClassification.from_pretrained(
-        config.teacher,
-        num_labels=3,
-    )
+    teacher = load_teacher_model(config.teacher)
     teacher.to(device)
     teacher.eval()
     for param in teacher.parameters():
         param.requires_grad = False
+    teacher_dtype = _module_dtype(teacher)
+    if teacher_dtype is not None:
+        logger.info("Teacher dtype: %s", teacher_dtype)
 
     logger.info("Loading student: %s", config.student)
     student_tok = AutoTokenizer.from_pretrained(config.student)
-    student = AutoModelForSequenceClassification.from_pretrained(
-        config.student,
-        num_labels=3,
-    )
+    student = load_student_model(config.student)
     student.to(device)
 
     teacher_params = sum(param.numel() for param in teacher.parameters())
