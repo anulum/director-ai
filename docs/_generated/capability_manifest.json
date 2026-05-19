@@ -9,7 +9,7 @@
     "python_model_classes": 701,
     "python_model_source_modules": 310,
     "rust_pyo3_model_wrappers": 59,
-    "test_files": 420
+    "test_files": 421
   },
   "documentation": {
     "public_pages": [
@@ -3851,6 +3851,7 @@
       "tests/test_defense_genome.py",
       "tests/test_defense_update_pipeline.py",
       "tests/test_demo_streaming_halt_live.py",
+      "tests/test_dependabot_dependency_graph_config.py",
       "tests/test_device_selection.py",
       "tests/test_dialogue_fpr.py",
       "tests/test_distilled_scorer.py",
