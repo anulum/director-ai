@@ -11,6 +11,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HOOK = ROOT / ".githooks" / "pre-commit"
+BOUNDARY_VERIFIER = ROOT / "tools" / "verify_public_sector_boundary.py"
+PRE_COMMIT_CONFIG = ROOT / ".pre-commit-config.yaml"
+PYPROJECT = ROOT / "pyproject.toml"
 
 
 def _run(command: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -27,7 +30,9 @@ def _repo(tmp_path: Path) -> Path:
     )
     assert _run(["git", "config", "user.name", "Test User"], repo).returncode == 0
     (repo / ".githooks").mkdir()
+    (repo / "tools").mkdir()
     shutil.copy2(HOOK, repo / ".githooks" / "pre-commit")
+    shutil.copy2(BOUNDARY_VERIFIER, repo / "tools" / "verify_public_sector_boundary.py")
     return repo
 
 
@@ -105,13 +110,86 @@ def test_precommit_allows_fixture_identifier_containing_sk_dash(tmp_path: Path) 
     _stage(
         repo,
         "tests/example.py",
-        'REGISTER_ID = "risk-register-bank-alpha-20260518"\n',
+        'REGISTER_ID = "risk-register-customer-alpha-20260518"\n',
     )
 
     result = _hook(repo)
 
     assert result.returncode == 0
     assert result.stderr == ""
+
+
+def test_precommit_blocks_public_proprietary_sector_pack_tokens(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path)
+    private_schema = "customer-model-factory-" + "bank" + "ing-metadata.schema.json"
+    private_customer = "bank" + "-alpha"
+    _stage(
+        repo,
+        "docs/customer-model-factory.md",
+        f"Use {private_schema} for {private_customer}.\n",
+    )
+
+    result = _hook(repo)
+
+    assert result.returncode == 1
+    assert "blocked staged proprietary sector-pack boundary" in result.stderr
+
+
+def test_precommit_blocks_future_public_sector_pack_modules(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path)
+    _stage(
+        repo,
+        "src/director_ai/core/customer_model_factory/insurance_pack.py",
+        "def build_private_pack():\n    return {}\n",
+    )
+
+    result = _hook(repo)
+
+    assert result.returncode == 1
+    assert "blocked staged proprietary sector-pack boundary" in result.stderr
+
+
+def test_precommit_blocks_future_public_sector_metadata_schemas(
+    tmp_path: Path,
+) -> None:
+    repo = _repo(tmp_path)
+    _stage(
+        repo,
+        "schemas/customer-model-factory-insurance-metadata.schema.json",
+        "{}\n",
+    )
+
+    result = _hook(repo)
+
+    assert result.returncode == 1
+    assert "blocked staged proprietary sector-pack boundary" in result.stderr
+
+
+def test_precommit_ci_runs_enterprise_trust_exposure_guard() -> None:
+    config = PRE_COMMIT_CONFIG.read_text(encoding="utf-8")
+
+    assert "enterprise-trust exposure guard" in config
+    assert "tools/verify_public_sector_boundary.py --root ." in config
+    assert "language: system" in config
+    assert "pass_filenames: false" in config
+
+
+def test_local_precommit_uses_public_sector_boundary_verifier() -> None:
+    hook = HOOK.read_text(encoding="utf-8")
+
+    assert "tools/verify_public_sector_boundary.py --root . --staged" in hook
+    assert "sector_pack_patterns=" not in hook
+    assert "customer-model-factory-*-metadata.schema.json" not in hook
+
+
+def test_dev_extra_declares_precommit_runner() -> None:
+    pyproject = PYPROJECT.read_text(encoding="utf-8")
+
+    assert '"pre-commit>=' in pyproject
 
 
 def test_precommit_allows_plain_public_changes(tmp_path: Path) -> None:

@@ -14,14 +14,14 @@ import argparse
 import json
 from pathlib import Path
 
-from director_ai.core.customer_model_factory.banking_pack import (
-    BankingRegulationMapping,
-)
 from director_ai.core.customer_model_factory.deployment_manifest import (
     CustomerDeploymentManifest,
 )
 from director_ai.core.customer_model_factory.evidence_pack import (
     build_customer_evidence_pack,
+)
+from director_ai.core.customer_model_factory.sector_extension import (
+    SectorEvidenceMapping,
 )
 
 
@@ -30,7 +30,13 @@ def main(argv: list[str] | None = None) -> int:
 
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--deployment-manifest", type=Path, required=True)
-    parser.add_argument("--regulation-mapping", type=Path, required=True)
+    parser.add_argument(
+        "--sector-evidence-mapping",
+        "--regulation-mapping",
+        dest="sector_evidence_mapping",
+        type=Path,
+        required=True,
+    )
     parser.add_argument("--package-id", required=True)
     parser.add_argument("--classification", required=True)
     parser.add_argument("--export-uri", required=True)
@@ -42,8 +48,8 @@ def main(argv: list[str] | None = None) -> int:
     deployment = CustomerDeploymentManifest.from_dict(
         json.loads(args.deployment_manifest.read_text(encoding="utf-8"))
     )
-    mapping = BankingRegulationMapping.from_dict(
-        json.loads(args.regulation_mapping.read_text(encoding="utf-8"))
+    mapping = SectorEvidenceMapping.from_dict(
+        json.loads(args.sector_evidence_mapping.read_text(encoding="utf-8"))
     )
     manifest = build_customer_evidence_pack(
         package_id=args.package_id,

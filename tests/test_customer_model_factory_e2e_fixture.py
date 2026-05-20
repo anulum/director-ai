@@ -23,7 +23,7 @@ EXPECTED_MANIFESTS = {
     "benchmark_result.json",
     "selection_report.json",
     "deployment_manifest.json",
-    "banking_regulation_mapping.json",
+    "sector_evidence_mapping.json",
     "evidence_pack.json",
     "runtime_package.json",
     "monitoring_manifest.json",
@@ -59,8 +59,8 @@ def test_e2e_fixture_generator_writes_all_release_artifacts(tmp_path: Path):
         release_gate["artifact_hashes"]["risk_register_hash"]
         == risk_register["register_hash"]
     )
-    assert release_gate["customer_id"] == "bank-alpha"
-    assert release_gate["tenant_id"] == "bank-alpha-tenant"
+    assert release_gate["customer_id"] == "customer-alpha"
+    assert release_gate["tenant_id"] == "customer-alpha-tenant"
 
 
 def test_e2e_fixture_generator_is_deterministic(tmp_path: Path):

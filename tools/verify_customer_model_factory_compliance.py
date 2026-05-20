@@ -24,6 +24,7 @@ class CustomerFactoryControl:
     test_path: str
     schema_paths: tuple[str, ...]
     guide_tokens: tuple[str, ...]
+    public_api_doc: bool = True
 
 
 @dataclass(frozen=True)
@@ -66,10 +67,10 @@ CONTROL_MATRIX = (
         guide_tokens=("Deployment manifest",),
     ),
     CustomerFactoryControl(
-        module="banking_pack",
-        test_path="tests/test_customer_model_factory_banking_pack.py",
-        schema_paths=("schemas/customer-model-factory-banking-metadata.schema.json",),
-        guide_tokens=("Banking pack",),
+        module="sector_extension",
+        test_path="tests/test_customer_model_factory_sector_extension.py",
+        schema_paths=("schemas/customer-model-factory-sector-metadata.schema.json",),
+        guide_tokens=("Sector-extension boundary",),
     ),
     CustomerFactoryControl(
         module="evidence_pack",
@@ -141,9 +142,10 @@ def evaluate_compliance(root: Path) -> CustomerFactoryComplianceResult:
         for token in control.guide_tokens:
             if token not in guide:
                 findings.append(f"{control.module}:missing_guide_token:{token}")
-        api_token = f"director_ai.core.customer_model_factory.{control.module}"
-        if api_token not in api_page:
-            findings.append(f"{control.module}:missing_api_doc")
+        if control.public_api_doc:
+            api_token = f"director_ai.core.customer_model_factory.{control.module}"
+            if api_token not in api_page:
+                findings.append(f"{control.module}:missing_api_doc")
         findings.extend(_public_docstring_findings(control.module, module_path))
         findings.extend(_export_findings(control.module, module_path, exported_symbols))
 

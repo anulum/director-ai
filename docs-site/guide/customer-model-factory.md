@@ -25,11 +25,12 @@ that is a scoped package control, not a universal accuracy claim.
 4. **Deployment manifest** binds the selected model to thresholds, abstention
    and escalation policy, audit log URI, evidence URI, rollback URI, retention,
    telemetry mode, and environment.
-5. **Banking pack** is the first vertical layer. It adds banking business-line
-   and regulated-category taxonomy, citation evidence requirements, numeric
-   evidence controls, escalation controls, and regulation mapping.
+5. **Sector-extension boundary** records where customer-specific sector packs,
+   database-class mappings, private retrieval schemas, tuning recipes, and
+   customer benchmark packages attach without publishing those commercial
+   assets in the public repository.
 6. **Evidence pack** binds deployment, selection, selected benchmark, selected
-   model, audit-log, rollback, telemetry, and regulation-mapping artefacts into
+   model, audit-log, rollback, telemetry, and reviewed sector artefacts into
    one deterministic export manifest.
 7. **Runtime package** produces a customer-implementable private runtime
    configuration from the deployment and evidence pack.
@@ -69,7 +70,7 @@ Assemble the final release gate from manifests:
 
 ```bash
 PYTHONPATH=src python tools/assemble_customer_model_factory_release.py \
-  --release-id release-bank-alpha-20260518 \
+  --release-id release-customer-20260518 \
   --generated-at 2026-05-18T18:45:00Z \
   --enterprise-readiness /tmp/director-ai-cmf-fixture/enterprise_readiness.json \
   --runtime-package /tmp/director-ai-cmf-fixture/runtime_package.json \
@@ -83,6 +84,13 @@ Verify public documentation, examples, schemas, and CLI names remain aligned:
 
 ```bash
 PYTHONPATH=src python tools/verify_customer_model_factory_docs_freeze.py --root .
+```
+
+Verify public open-core files do not expose proprietary sector-pack modules,
+sector-specific metadata schemas, or private customer fixture identifiers:
+
+```bash
+PYTHONPATH=src python tools/verify_public_sector_boundary.py --root .
 ```
 
 Verify implementation, tests, schemas, API docs, guide coverage, package
@@ -100,7 +108,7 @@ The public schema files live under `schemas/`:
 - `customer-model-factory-training-manifest.schema.json`
 - `customer-model-factory-selection.schema.json`
 - `customer-model-factory-deployment.schema.json`
-- `customer-model-factory-banking-metadata.schema.json`
+- `customer-model-factory-sector-metadata.schema.json`
 - `customer-model-factory-evidence-pack.schema.json`
 - `customer-model-factory-runtime-package.schema.json`
 - `customer-model-factory-monitoring.schema.json`

@@ -21,9 +21,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _workspace() -> CustomerWorkspace:
     return CustomerWorkspace(
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
         data_classification="confidential",
         allowed_splits=("train", "eval", "test"),
         regulation_mappings=("SOC2", "ISO27001", "ISO42001", "EU_AI_ACT"),
@@ -33,28 +33,28 @@ def _workspace() -> CustomerWorkspace:
 def _row(trace_id: str, split: str, *, severity: str = "medium") -> dict:
     return {
         "trace_id": trace_id,
-        "customer_id": "bank-alpha",
-        "tenant_id": "bank-alpha-tenant",
+        "customer_id": "customer-alpha",
+        "tenant_id": "customer-alpha-tenant",
         "split": split,
         "prompt": f"What should the advisor say for case {trace_id}?",
         "response": f"Escalate regulated case {trace_id} to compliance.",
         "expected_decision": "escalate",
         "severity": severity,
         "label": "grounded",
-        "source_refs": [f"policy://bank-alpha/{trace_id}"],
-        "policy_refs": ["policy://bank-alpha/advice-boundary"],
+        "source_refs": [f"policy://customer-alpha/{trace_id}"],
+        "policy_refs": ["policy://customer-alpha/advice-boundary"],
         "reviewer_role": "compliance_reviewer",
         "observed_at": "2026-05-18T12:00:00Z",
         "contains_pii": False,
         "contains_secret": False,
         "redaction_status": "not_required",
-        "vertical": "banking",
+        "vertical": "regulated-sector",
         "metadata": {
-            "business_line": "retail_banking",
-            "regulated_category": "financial_advice_boundary",
+            "sector_class": "customer_policy",
+            "knowledge_class": "advice_boundary",
             "requires_citation": True,
             "jurisdiction": "CH",
-            "evidence_refs": ["policy://bank-alpha/advice-boundary"],
+            "evidence_refs": ["policy://customer-alpha/advice-boundary"],
             "numeric_evidence_refs": [],
             "requires_escalation": True,
             "customer_segment": "retail",
@@ -71,7 +71,7 @@ def test_valid_customer_dataset_produces_ready_report():
     ]
 
     report = validate_customer_trace_dataset(
-        rows, _workspace(), vertical_profile="banking"
+        rows, _workspace(), vertical_profile="regulated-sector"
     )
 
     assert report.ready is True
@@ -80,7 +80,7 @@ def test_valid_customer_dataset_produces_ready_report():
     assert report.split_counts == {"eval": 1, "test": 1, "train": 1}
     assert report.high_risk_count == 2
     assert len(report.dataset_hash) == 64
-    assert report.customer_id == "bank-alpha"
+    assert report.customer_id == "customer-alpha"
 
 
 def test_dataset_missing_required_field_blocks_readiness():
@@ -88,7 +88,7 @@ def test_dataset_missing_required_field_blocks_readiness():
     row.pop("source_refs")
 
     report = validate_customer_trace_dataset(
-        [row], _workspace(), vertical_profile="banking"
+        [row], _workspace(), vertical_profile="regulated-sector"
     )
 
     assert report.ready is False
@@ -109,7 +109,7 @@ def test_dataset_rejects_mixed_customer_or_tenant_rows():
     report = validate_customer_trace_dataset(
         [bad_customer, bad_tenant],
         _workspace(),
-        vertical_profile="banking",
+        vertical_profile="regulated-sector",
     )
 
     assert report.ready is False
@@ -128,26 +128,26 @@ def test_dataset_blocks_exact_cross_split_leakage():
     report = validate_customer_trace_dataset(
         [train, eval_row],
         _workspace(),
-        vertical_profile="banking",
+        vertical_profile="regulated-sector",
     )
 
     assert report.ready is False
     assert any(finding.code == "cross_split_duplicate" for finding in report.findings)
 
 
-def test_banking_profile_requires_banking_metadata_for_high_risk_rows():
+def test_sector_profile_requires_sector_metadata_for_high_risk_rows():
     high_risk = _row("trace-001", "eval", severity="critical")
-    high_risk["metadata"] = {"business_line": "retail_banking"}
+    high_risk["metadata"] = {"sector_class": "customer_policy"}
 
     report = validate_customer_trace_dataset(
         [high_risk],
         _workspace(),
-        vertical_profile="banking",
+        vertical_profile="regulated-sector",
     )
 
     assert report.ready is False
     assert {finding.code for finding in report.findings} >= {
-        "banking_metadata_missing",
+        "sector_metadata_missing",
         "split_missing",
     }
 
@@ -172,7 +172,7 @@ def test_report_serialises_to_stable_manifest_shape():
     payload = report.to_dict()
 
     assert payload["schema_version"] == "1.0.0"
-    assert payload["workspace_id"] == "bank-alpha-prod"
+    assert payload["workspace_id"] == "customer-alpha-prod"
     assert payload["split_counts"] == {"eval": 1, "train": 1}
     assert "findings" in payload
     assert "dataset_hash" in payload

@@ -8,13 +8,6 @@
 
 """Customer-owned guardrail training and evidence package primitives."""
 
-from .banking_pack import (
-    BANKING_BUSINESS_LINES,
-    BANKING_REGULATED_CATEGORIES,
-    BankingRegulationMapping,
-    build_banking_regulation_mapping,
-    validate_banking_trace_metadata,
-)
 from .benchmark_selection import (
     BenchmarkMetrics,
     CustomerBenchmarkResult,
@@ -55,6 +48,12 @@ from .runtime_package import (
     CustomerRuntimePackage,
     build_customer_runtime_package,
 )
+from .sector_extension import (
+    SECTOR_REQUIRED_METADATA,
+    SectorEvidenceMapping,
+    build_sector_evidence_mapping,
+    validate_sector_trace_metadata,
+)
 from .training_manifest import (
     CustomerTrainingManifest,
     TrainingLane,
@@ -63,9 +62,6 @@ from .training_manifest import (
 
 __all__ = [
     "BenchmarkMetrics",
-    "BANKING_BUSINESS_LINES",
-    "BANKING_REGULATED_CATEGORIES",
-    "BankingRegulationMapping",
     "CustomerBenchmarkResult",
     "CustomerDatasetValidationReport",
     "CustomerDeploymentManifest",
@@ -82,16 +78,18 @@ __all__ = [
     "DeploymentPolicy",
     "MonitoringMetrics",
     "MonitoringThresholds",
+    "SECTOR_REQUIRED_METADATA",
+    "SectorEvidenceMapping",
     "TrainingLane",
-    "build_banking_regulation_mapping",
     "build_customer_evidence_pack",
     "build_customer_runtime_package",
     "build_deployment_manifest",
     "build_monitoring_manifest",
     "build_risk_register",
     "build_release_gate_manifest",
+    "build_sector_evidence_mapping",
     "build_training_manifest",
     "select_customer_model",
-    "validate_banking_trace_metadata",
     "validate_customer_trace_dataset",
+    "validate_sector_trace_metadata",
 ]

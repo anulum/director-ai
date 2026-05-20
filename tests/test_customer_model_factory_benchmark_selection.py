@@ -31,9 +31,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _workspace() -> CustomerWorkspace:
     return CustomerWorkspace(
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
         data_classification="confidential",
         allowed_splits=("train", "eval", "test"),
         regulation_mappings=("SOC2", "ISO27001", "ISO42001", "EU_AI_ACT"),
@@ -43,27 +43,27 @@ def _workspace() -> CustomerWorkspace:
 def _row(trace_id: str, split: str) -> dict:
     return {
         "trace_id": trace_id,
-        "customer_id": "bank-alpha",
-        "tenant_id": "bank-alpha-tenant",
+        "customer_id": "customer-alpha",
+        "tenant_id": "customer-alpha-tenant",
         "split": split,
-        "prompt": f"Review bank communication {trace_id}",
+        "prompt": f"Review customer communication {trace_id}",
         "response": f"Escalate {trace_id} to compliance.",
         "expected_decision": "escalate",
         "severity": "high",
         "label": "policy_violation",
-        "source_refs": [f"policy://bank-alpha/{trace_id}"],
-        "policy_refs": ["policy://bank-alpha/advice-boundary"],
+        "source_refs": [f"policy://customer-alpha/{trace_id}"],
+        "policy_refs": ["policy://customer-alpha/advice-boundary"],
         "reviewer_role": "compliance_reviewer",
         "observed_at": "2026-05-18T12:00:00Z",
         "contains_pii": False,
         "contains_secret": False,
         "redaction_status": "not_required",
         "metadata": {
-            "business_line": "retail_banking",
-            "regulated_category": "financial_advice_boundary",
+            "sector_class": "customer_policy",
+            "knowledge_class": "advice_boundary",
             "requires_citation": True,
             "jurisdiction": "CH",
-            "evidence_refs": ["policy://bank-alpha/advice-boundary"],
+            "evidence_refs": ["policy://customer-alpha/advice-boundary"],
             "numeric_evidence_refs": [],
             "requires_escalation": True,
             "customer_segment": "retail",
@@ -80,15 +80,15 @@ def _training_manifest():
             _row("trace-003", "test"),
         ],
         _workspace(),
-        vertical_profile="banking",
+        vertical_profile="regulated-sector",
     )
     return build_training_manifest(
-        package_id="cmf-bank-alpha-20260518",
+        package_id="cmf-customer-alpha-20260518",
         dataset_report=report,
         lane=TrainingLane.VERTEX,
         base_model_id="microsoft/deberta-v3-small",
         base_model_revision="abcdef1234567890abcdef1234567890abcdef12",
-        output_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-20260518",
+        output_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-20260518",
         hyperparameters={"epochs": 3, "batch_size": 8, "learning_rate": 1e-5},
         objective_profile="zero_silent_unsafe_pass",
     )
@@ -123,12 +123,12 @@ def _metrics(
 
 def test_benchmark_result_is_ready_when_training_manifest_and_metrics_are_ready():
     result = CustomerBenchmarkResult.from_metrics(
-        benchmark_id="bank-alpha-private-v1",
+        benchmark_id="customer-alpha-private-v1",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-20260518",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-20260518",
         metrics=_metrics(),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/private-v1.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/private-v1.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
 
     assert result.ready is True
@@ -153,12 +153,12 @@ def test_benchmark_result_blocks_not_ready_training_manifest():
     )
 
     result = CustomerBenchmarkResult.from_metrics(
-        benchmark_id="bank-alpha-private-v1",
+        benchmark_id="customer-alpha-private-v1",
         training_manifest=invalid_training,
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/invalid",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/invalid",
         metrics=_metrics(),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/private-v1.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/private-v1.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
 
     assert result.ready is False
@@ -204,16 +204,16 @@ def test_benchmark_result_blocks_incomplete_customer_evidence_claims():
 
 def test_zero_silent_unsafe_pass_rejects_high_risk_false_negatives():
     bad_result = CustomerBenchmarkResult.from_metrics(
-        benchmark_id="bank-alpha-private-v1",
+        benchmark_id="customer-alpha-private-v1",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-20260518",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-20260518",
         metrics=_metrics(high_risk_false_negative_rate=0.01),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/private-v1.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/private-v1.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
 
     selection = select_customer_model(
-        selection_id="bank-alpha-selection-20260518",
+        selection_id="customer-alpha-selection-20260518",
         objective_profile="zero_silent_unsafe_pass",
         candidates=[bad_result],
     )
@@ -246,14 +246,14 @@ def test_selection_rejects_candidates_for_unknown_objective_profile():
     result = CustomerBenchmarkResult.from_metrics(
         benchmark_id="candidate-default",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/default",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/default",
         metrics=_metrics(),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/default.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/default.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
 
     selection = select_customer_model(
-        selection_id="bank-alpha-unsupported-selection",
+        selection_id="customer-alpha-unsupported-selection",
         objective_profile="unsupported-risk-objective",
         candidates=[result],
     )
@@ -269,37 +269,37 @@ def test_selection_scores_high_recall_and_conservative_objectives():
     safer = CustomerBenchmarkResult.from_metrics(
         benchmark_id="candidate-safer",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/safer",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/safer",
         metrics=_metrics(
             f1=0.88,
             recall=0.95,
             false_positive_rate=0.01,
             false_negative_rate=0.01,
         ),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/safer.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/safer.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
     noisier = CustomerBenchmarkResult.from_metrics(
         benchmark_id="candidate-noisier",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/noisier",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/noisier",
         metrics=_metrics(
             f1=0.96,
             recall=0.97,
             false_positive_rate=0.08,
             false_negative_rate=0.08,
         ),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/noisier.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/noisier.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
 
     high_recall = select_customer_model(
-        selection_id="bank-alpha-high-recall-selection",
+        selection_id="customer-alpha-high-recall-selection",
         objective_profile="high_recall",
         candidates=[noisier, safer],
     )
     conservative = select_customer_model(
-        selection_id="bank-alpha-conservative-selection",
+        selection_id="customer-alpha-conservative-selection",
         objective_profile="conservative",
         candidates=[noisier, safer],
     )
@@ -314,22 +314,22 @@ def test_selection_scores_balanced_objective_by_f1():
     lower_f1 = CustomerBenchmarkResult.from_metrics(
         benchmark_id="candidate-lower-f1",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/lower-f1",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/lower-f1",
         metrics=_metrics(f1=0.81),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/lower-f1.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/lower-f1.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
     higher_f1 = CustomerBenchmarkResult.from_metrics(
         benchmark_id="candidate-higher-f1",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/higher-f1",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/higher-f1",
         metrics=_metrics(f1=0.93),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/higher-f1.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/higher-f1.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
 
     selection = select_customer_model(
-        selection_id="bank-alpha-balanced-selection",
+        selection_id="customer-alpha-balanced-selection",
         objective_profile="balanced",
         candidates=[lower_f1, higher_f1],
     )
@@ -342,22 +342,22 @@ def test_model_selection_prefers_highest_objective_score_among_ready_candidates(
     slower = CustomerBenchmarkResult.from_metrics(
         benchmark_id="candidate-slower",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/slower",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/slower",
         metrics=_metrics(f1=0.94, latency_p95_ms=120.0),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/slower.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/slower.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
     faster = CustomerBenchmarkResult.from_metrics(
         benchmark_id="candidate-faster",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/faster",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/faster",
         metrics=_metrics(f1=0.91, latency_p95_ms=25.0),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/faster.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/faster.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
 
     selection = select_customer_model(
-        selection_id="bank-alpha-selection-20260518",
+        selection_id="customer-alpha-selection-20260518",
         objective_profile="low_latency",
         candidates=[slower, faster],
     )
@@ -366,7 +366,7 @@ def test_model_selection_prefers_highest_objective_score_among_ready_candidates(
     assert selection.selected_benchmark_id == "candidate-faster"
     assert (
         selection.selected_model_artifact_uri
-        == "gs://customer-artifacts/bank-alpha/models/faster"
+        == "gs://customer-artifacts/customer-alpha/models/faster"
     )
     assert len(selection.selection_hash) == 64
 
@@ -375,13 +375,13 @@ def test_selection_report_serialises_and_writes_stable_json(tmp_path: Path):
     result = CustomerBenchmarkResult.from_metrics(
         benchmark_id="candidate-default",
         training_manifest=_training_manifest(),
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/default",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/default",
         metrics=_metrics(),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/default.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/default.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
     selection = select_customer_model(
-        selection_id="bank-alpha-selection-20260518",
+        selection_id="customer-alpha-selection-20260518",
         objective_profile="high_recall",
         candidates=[result],
     )

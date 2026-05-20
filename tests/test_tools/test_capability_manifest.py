@@ -199,6 +199,31 @@ def test_cli_uses_portable_config_and_refreshes_readme() -> None:
         ).read_text(encoding="utf-8")
 
 
+def test_git_scanner_reflects_pending_adds_and_deletes() -> None:
+    tool = _load_tool()
+    with _tempdir() as repo:
+        subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+        source_root = repo / "src/demo"
+        _write_file(source_root / "old_module.py", "class OldModule:\n    pass\n")
+        subprocess.run(
+            ["git", "add", "src/demo/old_module.py"],
+            cwd=repo,
+            check=True,
+            capture_output=True,
+        )
+
+        (source_root / "old_module.py").unlink()
+        _write_file(source_root / "new_module.py", "class NewModule:\n    pass\n")
+
+        paths = tool._tracked_or_discovered_files(
+            source_root,
+            repo=repo,
+            suffixes=(".py",),
+        )
+
+        assert paths == [source_root / "new_module.py"]
+
+
 @contextmanager
 def _tempdir() -> Iterator[Path]:
     with tempfile.TemporaryDirectory() as directory:

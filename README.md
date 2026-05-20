@@ -35,6 +35,16 @@ The system was built to solve a specific internal need: **real-time hallucinatio
 
 **Team:** ANULUM maintains a research team (intentionally undisclosed). GitHub automation and repository maintenance are handled by the owner. Contributions are welcome under AGPL v3 terms.
 
+**Distribution boundary:** this public repository contains the open core,
+public SDKs, public integrations, baseline evaluation surfaces, and general
+documentation. The complete Director-Class AI product also includes proprietary
+commercial extensions that are not published here, including customer-specific
+implementation packages, sector-specific tuning/evaluation packs, private
+deployment recipes, and customer-owned knowledge-base adaptation work. Those
+materials are provided only under separate commercial agreements and must be
+validated against the customer's own governed data, controls, and acceptance
+criteria before any customer-specific performance claim is made.
+
 > **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), 7-SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, SaaS middleware (API keys + rate limiting), advanced RAG (6 pluggable retrieval backends), multi-agent swarm guardian (4 framework adapters), config wizard, and compliance reports are functional and tested (5300+ passing tests). Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current v3.14 release surface.
 
 ---
@@ -59,7 +69,11 @@ graph LR
 - **Token-level streaming halt** — severs output mid-generation when coherence degrades. Not post-hoc review.
 - **Dual-entropy scoring** — NLI contradiction detection (0.4B DeBERTa) + RAG fact-checking against your knowledge base.
 - **Selectable scorer models** — choose a benchmarked local scorer profile for the latency/accuracy trade-off you need, without changing the guarded LLM provider.
-- **Customer Model Factory** — validate customer-owned guardrail traces, bind training/benchmark/deployment evidence, add sector packs such as Banking, and export runtime packages for private customer implementation.
+- **Customer Model Factory primitives** — validate customer-owned guardrail
+  traces, bind training/benchmark/deployment evidence, and export runtime
+  package manifests. Customer-specific sector packs, tuning recipes, and
+  implementation packages are proprietary commercial extensions and are not
+  published in this repository.
 - **Structured output verification** — JSON schema validation, numeric consistency, reasoning chain verification, temporal freshness scoring. Stdlib-only, zero dependencies.
 - **Intent-grounded injection detection** — two-stage pipeline: regex pattern matching (fast) + bidirectional NLI divergence scoring (semantic). Detects the *effect* of injection in the output.
 - **12 Rust-accelerated compute functions** — 9.4× geometric mean speedup over Python paths. Transparent fallback when Rust kernel is not installed.
@@ -79,8 +93,8 @@ graph LR
 | API documentation pages | 49 |
 | Rust PyO3 bindings | 59 |
 | Optional extras | 53 |
-| Python test files | 423 |
-| Public documentation pages | 138 |
+| Python test files | 425 |
+| Public documentation pages | 139 |
 | GitHub Actions workflows | 11 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artifacts.
@@ -110,10 +124,11 @@ per-model benchmark package plan in
 [`benchmarks/model_benchmark_packages.toml`](benchmarks/model_benchmark_packages.toml);
 full external benchmark packages are required before public model-specific claims.
 
-### Customer Model Factory
+### Customer Model Factory Public Core
 
-Director-AI can package customer-specific guardrail scorers without changing
-the guarded application provider. The implemented factory primitives cover:
+Director-AI exposes the public core primitives needed to package guardrail
+scorers without changing the guarded application provider. The implemented
+public factory primitives cover:
 
 - customer trace validation with split, leakage, tenant-boundary, severity,
   reference, and secrets/redaction checks;
@@ -123,9 +138,14 @@ the guarded application provider. The implemented factory primitives cover:
   and zero silent unsafe passes objective profiles;
 - deployment, evidence-pack, and runtime-package manifests with deterministic
   hashes, audit-log URIs, rollback URIs, customer-controlled telemetry, and no
-  external callback by default;
-- Banking as the first vertical pack, including regulated-category taxonomy,
-  citation evidence, numeric evidence, escalation, and regulation mapping.
+  external callback by default.
+
+Sector-specific packages, customer database-class mappings, customer-private
+retrieval schemas, tuning recipes, and customer-specific benchmark packages are
+commercial extensions outside the public repository. The public repository
+documents the interfaces and evidence boundaries; customer-specific packages
+must be built and measured against the customer's own governed knowledge base
+and approval criteria.
 
 Customer examples are local helpers that consume the generated runtime package
 shape without opening network connections:

@@ -32,30 +32,30 @@ def _load_example(path: Path) -> ModuleType:
 def _runtime_package(tmp_path: Path) -> Path:
     package = CustomerRuntimePackage(
         schema_version="1.0.0",
-        runtime_id="runtime-bank-alpha-20260518",
+        runtime_id="runtime-customer-alpha-20260518",
         ready=True,
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
-        deployment_id="bank-alpha-prod-20260518",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
+        deployment_id="customer-alpha-prod-20260518",
         evidence_hash="a" * 64,
         runtime_mode="offline_private",
         runtime_config={
-            "customer_id": "bank-alpha",
-            "workspace_id": "bank-alpha-prod",
-            "tenant_id": "bank-alpha-tenant",
-            "deployment_id": "bank-alpha-prod-20260518",
+            "customer_id": "customer-alpha",
+            "workspace_id": "customer-alpha-prod",
+            "tenant_id": "customer-alpha-tenant",
+            "deployment_id": "customer-alpha-prod-20260518",
             "deployment_hash": "b" * 64,
             "evidence_hash": "a" * 64,
-            "selected_benchmark_id": "bank-alpha-private-v1",
-            "selected_model_artifact_uri": "gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha",
+            "selected_benchmark_id": "customer-alpha-private-v1",
+            "selected_model_artifact_uri": "gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha",
             "threshold": 0.72,
             "abstention_threshold": 0.58,
             "escalation_threshold": 0.40,
             "require_citations": True,
-            "audit_log_uri": "gs://customer-artifacts/bank-alpha/audit/decision-log.jsonl",
-            "evidence_pack_uri": "gs://customer-artifacts/bank-alpha/evidence/pack",
-            "rollback_package_uri": "gs://customer-artifacts/bank-alpha/deployments/previous.json",
+            "audit_log_uri": "gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
+            "evidence_pack_uri": "gs://customer-artifacts/customer-alpha/evidence/pack",
+            "rollback_package_uri": "gs://customer-artifacts/customer-alpha/deployments/previous.json",
             "retention_days": 365,
             "telemetry_mode": "customer_controlled",
             "external_callbacks_allowed": False,
@@ -76,19 +76,19 @@ def test_python_runtime_example_builds_local_score_request(tmp_path: Path):
         package,
         prompt="Can I promise this mortgage rate?",
         response="Escalate the rate promise to compliance before sending.",
-        source_refs=["policy://bank-alpha/mortgage-rates"],
+        source_refs=["policy://customer-alpha/mortgage-rates"],
     )
 
-    assert package.runtime_id == "runtime-bank-alpha-20260518"
-    assert request["tenant_id"] == "bank-alpha-tenant"
-    assert request["selected_model_artifact_uri"].endswith("cmf-bank-alpha")
+    assert package.runtime_id == "runtime-customer-alpha-20260518"
+    assert request["tenant_id"] == "customer-alpha-tenant"
+    assert request["selected_model_artifact_uri"].endswith("cmf-customer-alpha")
     assert request["thresholds"] == {
         "approve": 0.72,
         "abstain": 0.58,
         "escalate": 0.4,
     }
     assert request["external_callbacks_allowed"] is False
-    assert request["source_refs"] == ["policy://bank-alpha/mortgage-rates"]
+    assert request["source_refs"] == ["policy://customer-alpha/mortgage-rates"]
 
 
 def test_rest_payload_example_builds_customer_scoring_payload(tmp_path: Path):
@@ -101,17 +101,17 @@ def test_rest_payload_example_builds_customer_scoring_payload(tmp_path: Path):
         package_path,
         prompt="Can I say the fee is waived forever?",
         response="Do not claim the fee is waived forever without policy evidence.",
-        source_refs=["policy://bank-alpha/fees"],
+        source_refs=["policy://customer-alpha/fees"],
     )
 
     assert payload["method"] == "POST"
     assert payload["path"] == "/v1/score"
-    assert payload["headers"]["X-Director-Customer"] == "bank-alpha"
-    assert payload["headers"]["X-Director-Tenant"] == "bank-alpha-tenant"
-    assert payload["json"]["runtime_id"] == "runtime-bank-alpha-20260518"
+    assert payload["headers"]["X-Director-Customer"] == "customer-alpha"
+    assert payload["headers"]["X-Director-Tenant"] == "customer-alpha-tenant"
+    assert payload["json"]["runtime_id"] == "runtime-customer-alpha-20260518"
     assert payload["json"]["telemetry_mode"] == "customer_controlled"
     assert payload["json"]["external_callbacks_allowed"] is False
-    assert payload["json"]["source_refs"] == ["policy://bank-alpha/fees"]
+    assert payload["json"]["source_refs"] == ["policy://customer-alpha/fees"]
 
 
 def test_customer_examples_do_not_import_network_clients():

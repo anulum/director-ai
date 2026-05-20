@@ -31,7 +31,7 @@ def test_customer_model_factory_guide_documents_operator_workflow():
         "Training manifest",
         "Benchmark selection",
         "Deployment manifest",
-        "Banking pack",
+        "Sector-extension boundary",
         "Evidence pack",
         "Runtime package",
         "Monitoring manifest",
@@ -41,6 +41,7 @@ def test_customer_model_factory_guide_documents_operator_workflow():
         "tools/assemble_customer_model_factory_release.py",
         "tools/verify_customer_model_factory_compliance.py",
         "tools/verify_customer_model_factory_docs_freeze.py",
+        "tools/verify_public_sector_boundary.py",
         "customer-specific accuracy claims require package-specific benchmark evidence",
     }
     assert required_tokens <= set(_matched_tokens(guide, required_tokens))
@@ -56,7 +57,7 @@ def test_customer_model_factory_api_page_documents_all_new_modules():
         "training_manifest",
         "benchmark_selection",
         "deployment_manifest",
-        "banking_pack",
+        "sector_extension",
         "evidence_pack",
         "runtime_package",
         "monitoring_manifest",

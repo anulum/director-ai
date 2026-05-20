@@ -14,9 +14,6 @@ import argparse
 import json
 from pathlib import Path
 
-from director_ai.core.customer_model_factory.banking_pack import (
-    build_banking_regulation_mapping,
-)
 from director_ai.core.customer_model_factory.benchmark_selection import (
     BenchmarkMetrics,
     CustomerBenchmarkResult,
@@ -45,6 +42,9 @@ from director_ai.core.customer_model_factory.risk_register import build_risk_reg
 from director_ai.core.customer_model_factory.runtime_package import (
     build_customer_runtime_package,
 )
+from director_ai.core.customer_model_factory.sector_extension import (
+    build_sector_evidence_mapping,
+)
 from director_ai.core.customer_model_factory.training_manifest import (
     TrainingLane,
     build_training_manifest,
@@ -72,9 +72,9 @@ def main(argv: list[str] | None = None) -> int:
 
 def _build_manifests() -> dict[str, dict]:
     workspace = CustomerWorkspace(
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
         data_classification="restricted",
         allowed_splits=("train", "eval", "test"),
         regulation_mappings=("SOC2", "ISO27001", "ISO42001", "EU_AI_ACT", "FINMA"),
@@ -86,22 +86,22 @@ def _build_manifests() -> dict[str, dict]:
             _row("trace-003", "test"),
         ],
         workspace,
-        vertical_profile="banking",
+        vertical_profile="regulated-sector",
     )
     training_manifest = build_training_manifest(
-        package_id="cmf-bank-alpha-20260518",
+        package_id="cmf-customer-alpha-20260518",
         dataset_report=dataset_report,
         lane=TrainingLane.VERTEX,
         base_model_id="microsoft/deberta-v3-small",
         base_model_revision="abcdef1234567890abcdef1234567890abcdef12",
-        output_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-20260518",
+        output_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-20260518",
         hyperparameters={"batch_size": 8, "epochs": 3, "learning_rate": 1e-5},
         objective_profile="zero_silent_unsafe_pass",
     )
     benchmark_result = CustomerBenchmarkResult.from_metrics(
-        benchmark_id="bank-alpha-private-v1",
+        benchmark_id="customer-alpha-private-v1",
         training_manifest=training_manifest,
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-20260518",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-20260518",
         metrics=BenchmarkMetrics(
             total_samples=240,
             balanced_accuracy=0.94,
@@ -116,50 +116,51 @@ def _build_manifests() -> dict[str, dict]:
             latency_p95_ms=42.0,
             severity_counts={"critical": 40, "high": 80, "low": 40, "medium": 80},
         ),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/private-v1.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/private-v1.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
     selection_report = select_customer_model(
-        selection_id="bank-alpha-selection-20260518",
+        selection_id="customer-alpha-selection-20260518",
         objective_profile="zero_silent_unsafe_pass",
         candidates=[benchmark_result],
     )
     deployment_manifest = build_deployment_manifest(
-        deployment_id="bank-alpha-prod-20260518",
+        deployment_id="customer-alpha-prod-20260518",
         selection_report=selection_report,
         policy=DeploymentPolicy(
             threshold=0.72,
             abstention_threshold=0.58,
             escalation_threshold=0.40,
             require_citations=True,
-            audit_log_uri="gs://customer-artifacts/bank-alpha/audit/decision-log.jsonl",
-            evidence_pack_uri="gs://customer-artifacts/bank-alpha/evidence/pack-20260518",
-            rollback_package_uri="gs://customer-artifacts/bank-alpha/deployments/previous.json",
+            audit_log_uri="gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
+            evidence_pack_uri="gs://customer-artifacts/customer-alpha/evidence/pack-20260518",
+            rollback_package_uri="gs://customer-artifacts/customer-alpha/deployments/previous.json",
             retention_days=365,
             telemetry_mode="customer_controlled",
         ),
         environment="production",
-        package_uri="gs://customer-artifacts/bank-alpha/deployments/bank-alpha-prod-20260518.json",
+        package_uri="gs://customer-artifacts/customer-alpha/deployments/customer-alpha-prod-20260518.json",
     )
-    banking_mapping = build_banking_regulation_mapping(
+    sector_mapping = build_sector_evidence_mapping(
+        sector_id="regulated-sector",
         jurisdiction="CH",
-        evidence_pack_uri="gs://customer-artifacts/bank-alpha/evidence/pack-20260518",
+        evidence_pack_uri="gs://customer-artifacts/customer-alpha/evidence/pack-20260518",
     )
     evidence_pack = build_customer_evidence_pack(
-        package_id="evidence-bank-alpha-20260518",
+        package_id="evidence-customer-alpha-20260518",
         deployment_manifest=deployment_manifest,
-        regulation_mapping=banking_mapping,
+        regulation_mapping=sector_mapping,
         classification="restricted",
-        export_uri="gs://customer-artifacts/bank-alpha/evidence/pack-20260518",
+        export_uri="gs://customer-artifacts/customer-alpha/evidence/pack-20260518",
     )
     runtime_package = build_customer_runtime_package(
-        runtime_id="runtime-bank-alpha-20260518",
+        runtime_id="runtime-customer-alpha-20260518",
         deployment_manifest=deployment_manifest,
         evidence_pack=evidence_pack,
         runtime_mode="offline_private",
     )
     monitoring_manifest = build_monitoring_manifest(
-        monitoring_id="monitor-bank-alpha-20260518",
+        monitoring_id="monitor-customer-alpha-20260518",
         runtime_package=runtime_package,
         metrics=MonitoringMetrics(
             total_decisions=1200,
@@ -183,11 +184,11 @@ def _build_manifests() -> dict[str, dict]:
         ),
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
     )
     risk_register = build_risk_register(
-        register_id="risk_register_bank_alpha-20260518",
+        register_id="risk_register_customer_alpha-20260518",
         evidence_pack=evidence_pack,
         monitoring_manifest=monitoring_manifest,
         risks=(),
@@ -195,7 +196,7 @@ def _build_manifests() -> dict[str, dict]:
     )
     enterprise_readiness = {"ready": True, "blocking_debt_ids": []}
     release_gate = build_release_gate_manifest(
-        release_id="release-bank-alpha-20260518",
+        release_id="release-customer-alpha-20260518",
         enterprise_ready=True,
         enterprise_blocking_debt_ids=(),
         runtime_package=runtime_package,
@@ -210,7 +211,7 @@ def _build_manifests() -> dict[str, dict]:
         "benchmark_result.json": benchmark_result.to_dict(),
         "selection_report.json": selection_report.to_dict(),
         "deployment_manifest.json": deployment_manifest.to_dict(),
-        "banking_regulation_mapping.json": banking_mapping.to_dict(),
+        "sector_evidence_mapping.json": sector_mapping.to_dict(),
         "evidence_pack.json": evidence_pack.to_dict(),
         "runtime_package.json": runtime_package.to_dict(),
         "monitoring_manifest.json": monitoring_manifest.to_dict(),
@@ -223,27 +224,27 @@ def _build_manifests() -> dict[str, dict]:
 def _row(trace_id: str, split: str) -> dict[str, object]:
     return {
         "trace_id": trace_id,
-        "customer_id": "bank-alpha",
-        "tenant_id": "bank-alpha-tenant",
+        "customer_id": "customer-alpha",
+        "tenant_id": "customer-alpha-tenant",
         "split": split,
-        "prompt": f"Review bank communication {trace_id}",
+        "prompt": f"Review customer communication {trace_id}",
         "response": f"Escalate {trace_id} to compliance.",
         "expected_decision": "escalate",
         "severity": "high",
         "label": "policy_violation",
-        "source_refs": [f"policy://bank-alpha/{trace_id}"],
-        "policy_refs": ["policy://bank-alpha/advice-boundary"],
+        "source_refs": [f"policy://customer-alpha/{trace_id}"],
+        "policy_refs": ["policy://customer-alpha/advice-boundary"],
         "reviewer_role": "compliance_reviewer",
         "observed_at": "2026-05-18T12:00:00Z",
         "contains_pii": False,
         "contains_secret": False,
         "redaction_status": "not_required",
         "metadata": {
-            "business_line": "retail_banking",
-            "regulated_category": "financial_advice_boundary",
+            "sector_class": "customer_policy",
+            "knowledge_class": "advice_boundary",
             "requires_citation": True,
             "jurisdiction": "CH",
-            "evidence_refs": ["policy://bank-alpha/advice-boundary"],
+            "evidence_refs": ["policy://customer-alpha/advice-boundary"],
             "numeric_evidence_refs": [],
             "requires_escalation": True,
             "customer_segment": "retail",

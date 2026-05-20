@@ -16,8 +16,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from .banking_pack import BankingRegulationMapping
 from .deployment_manifest import CustomerDeploymentManifest
+from .sector_extension import SectorEvidenceMapping
 
 SCHEMA_VERSION = "1.0.0"
 ALLOWED_CLASSIFICATIONS = frozenset({"internal", "confidential", "restricted"})
@@ -110,7 +110,7 @@ def build_customer_evidence_pack(
     *,
     package_id: str,
     deployment_manifest: CustomerDeploymentManifest,
-    regulation_mapping: BankingRegulationMapping,
+    regulation_mapping: SectorEvidenceMapping,
     classification: str,
     export_uri: str,
     external_callbacks_allowed: bool = False,
@@ -167,7 +167,7 @@ def build_customer_evidence_pack(
 
 def _artefacts(
     deployment_manifest: CustomerDeploymentManifest,
-    regulation_mapping: BankingRegulationMapping,
+    regulation_mapping: SectorEvidenceMapping,
 ) -> dict[str, str]:
     return {
         "audit_log_uri": deployment_manifest.policy.audit_log_uri,
@@ -187,7 +187,7 @@ def _collect_findings(
     *,
     package_id: str,
     deployment_manifest: CustomerDeploymentManifest,
-    regulation_mapping: BankingRegulationMapping,
+    regulation_mapping: SectorEvidenceMapping,
     classification: str,
     export_uri: str,
     external_callbacks_allowed: bool,

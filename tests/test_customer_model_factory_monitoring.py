@@ -25,34 +25,34 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _runtime_package(
     *,
-    audit_log_uri: str = "gs://customer-artifacts/bank-alpha/audit/decision-log.jsonl",
+    audit_log_uri: str = "gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
 ):
     return CustomerRuntimePackage(
         schema_version="1.0.0",
-        runtime_id="runtime-bank-alpha-20260518",
+        runtime_id="runtime-customer-alpha-20260518",
         ready=True,
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
-        deployment_id="bank-alpha-prod-20260518",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
+        deployment_id="customer-alpha-prod-20260518",
         evidence_hash="a" * 64,
         runtime_mode="offline_private",
         runtime_config={
-            "customer_id": "bank-alpha",
-            "workspace_id": "bank-alpha-prod",
-            "tenant_id": "bank-alpha-tenant",
-            "deployment_id": "bank-alpha-prod-20260518",
+            "customer_id": "customer-alpha",
+            "workspace_id": "customer-alpha-prod",
+            "tenant_id": "customer-alpha-tenant",
+            "deployment_id": "customer-alpha-prod-20260518",
             "deployment_hash": "b" * 64,
             "evidence_hash": "a" * 64,
-            "selected_benchmark_id": "bank-alpha-private-v1",
-            "selected_model_artifact_uri": "gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha",
+            "selected_benchmark_id": "customer-alpha-private-v1",
+            "selected_model_artifact_uri": "gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha",
             "threshold": 0.72,
             "abstention_threshold": 0.58,
             "escalation_threshold": 0.40,
             "require_citations": True,
             "audit_log_uri": audit_log_uri,
-            "evidence_pack_uri": "gs://customer-artifacts/bank-alpha/evidence/pack",
-            "rollback_package_uri": "gs://customer-artifacts/bank-alpha/deployments/previous.json",
+            "evidence_pack_uri": "gs://customer-artifacts/customer-alpha/evidence/pack",
+            "rollback_package_uri": "gs://customer-artifacts/customer-alpha/deployments/previous.json",
             "retention_days": 365,
             "telemetry_mode": "customer_controlled",
             "external_callbacks_allowed": False,
@@ -94,28 +94,28 @@ def _thresholds() -> MonitoringThresholds:
 
 def test_monitoring_manifest_reports_within_control_when_evidence_and_metrics_are_ready():
     manifest = build_monitoring_manifest(
-        monitoring_id="monitor-bank-alpha-20260518",
+        monitoring_id="monitor-customer-alpha-20260518",
         runtime_package=_runtime_package(),
         metrics=_metrics(),
         thresholds=_thresholds(),
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
     )
 
     assert manifest.ready is True
     assert manifest.health_status == "within_control"
     assert manifest.retraining_recommended is False
     assert manifest.recommendations == ()
-    assert manifest.package_version["runtime_id"] == "runtime-bank-alpha-20260518"
+    assert manifest.package_version["runtime_id"] == "runtime-customer-alpha-20260518"
     assert manifest.decision_log_uri.endswith("decision-log.jsonl")
     assert len(manifest.monitoring_hash) == 64
 
 
 def test_monitoring_manifest_recommends_retraining_on_threshold_breaches():
     manifest = build_monitoring_manifest(
-        monitoring_id="monitor-bank-alpha-incident",
+        monitoring_id="monitor-customer-alpha-incident",
         runtime_package=_runtime_package(),
         metrics=_metrics(
             input_drift_score=0.31,
@@ -125,8 +125,8 @@ def test_monitoring_manifest_recommends_retraining_on_threshold_breaches():
         thresholds=_thresholds(),
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
     )
 
     assert manifest.ready is True
@@ -141,7 +141,7 @@ def test_monitoring_manifest_recommends_retraining_on_threshold_breaches():
 
 def test_monitoring_manifest_recommends_retraining_on_all_operational_breaches():
     manifest = build_monitoring_manifest(
-        monitoring_id="monitor-bank-alpha-all-breaches",
+        monitoring_id="monitor-customer-alpha-all-breaches",
         runtime_package=_runtime_package(),
         metrics=_metrics(
             source_corpus_drift_score=0.26,
@@ -152,8 +152,8 @@ def test_monitoring_manifest_recommends_retraining_on_all_operational_breaches()
         thresholds=_thresholds(),
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
     )
 
     assert manifest.ready is True
@@ -168,14 +168,14 @@ def test_monitoring_manifest_recommends_retraining_on_all_operational_breaches()
 
 def test_monitoring_manifest_blocks_health_claim_without_decision_log_evidence():
     manifest = build_monitoring_manifest(
-        monitoring_id="monitor-bank-alpha-no-log",
+        monitoring_id="monitor-customer-alpha-no-log",
         runtime_package=_runtime_package(audit_log_uri=""),
         metrics=_metrics(),
         thresholds=_thresholds(),
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
     )
 
     assert manifest.ready is False
@@ -223,14 +223,14 @@ def test_monitoring_manifest_blocks_tenant_boundary_mismatch():
     runtime.runtime_config["tenant_id"] = "wrong-tenant"
 
     manifest = build_monitoring_manifest(
-        monitoring_id="monitor-bank-alpha-mismatch",
+        monitoring_id="monitor-customer-alpha-mismatch",
         runtime_package=runtime,
         metrics=_metrics(),
         thresholds=_thresholds(),
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
     )
 
     assert manifest.ready is False
@@ -250,14 +250,14 @@ def test_monitoring_manifest_blocks_all_runtime_boundary_mismatches():
     )
 
     manifest = build_monitoring_manifest(
-        monitoring_id="monitor-bank-alpha-mismatches",
+        monitoring_id="monitor-customer-alpha-mismatches",
         runtime_package=runtime,
         metrics=_metrics(),
         thresholds=_thresholds(),
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
     )
 
     assert manifest.ready is False
@@ -270,14 +270,14 @@ def test_monitoring_manifest_blocks_all_runtime_boundary_mismatches():
 
 def test_monitoring_manifest_serialises_and_round_trips(tmp_path: Path):
     manifest = build_monitoring_manifest(
-        monitoring_id="monitor-bank-alpha-20260518",
+        monitoring_id="monitor-customer-alpha-20260518",
         runtime_package=_runtime_package(),
         metrics=_metrics(),
         thresholds=_thresholds(),
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
     )
 
     output = manifest.write_json(tmp_path / "monitoring_manifest.json")

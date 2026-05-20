@@ -34,9 +34,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _workspace() -> CustomerWorkspace:
     return CustomerWorkspace(
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
         data_classification="confidential",
         allowed_splits=("train", "eval", "test"),
         regulation_mappings=("SOC2", "ISO27001", "ISO42001", "EU_AI_ACT"),
@@ -46,27 +46,27 @@ def _workspace() -> CustomerWorkspace:
 def _row(trace_id: str, split: str) -> dict:
     return {
         "trace_id": trace_id,
-        "customer_id": "bank-alpha",
-        "tenant_id": "bank-alpha-tenant",
+        "customer_id": "customer-alpha",
+        "tenant_id": "customer-alpha-tenant",
         "split": split,
-        "prompt": f"Review bank communication {trace_id}",
+        "prompt": f"Review customer communication {trace_id}",
         "response": f"Escalate {trace_id} to compliance.",
         "expected_decision": "escalate",
         "severity": "high",
         "label": "policy_violation",
-        "source_refs": [f"policy://bank-alpha/{trace_id}"],
-        "policy_refs": ["policy://bank-alpha/advice-boundary"],
+        "source_refs": [f"policy://customer-alpha/{trace_id}"],
+        "policy_refs": ["policy://customer-alpha/advice-boundary"],
         "reviewer_role": "compliance_reviewer",
         "observed_at": "2026-05-18T12:00:00Z",
         "contains_pii": False,
         "contains_secret": False,
         "redaction_status": "not_required",
         "metadata": {
-            "business_line": "retail_banking",
-            "regulated_category": "financial_advice_boundary",
+            "sector_class": "customer_policy",
+            "knowledge_class": "advice_boundary",
             "requires_citation": True,
             "jurisdiction": "CH",
-            "evidence_refs": ["policy://bank-alpha/advice-boundary"],
+            "evidence_refs": ["policy://customer-alpha/advice-boundary"],
             "numeric_evidence_refs": [],
             "requires_escalation": True,
             "customer_segment": "retail",
@@ -83,22 +83,22 @@ def _selection():
             _row("trace-003", "test"),
         ],
         _workspace(),
-        vertical_profile="banking",
+        vertical_profile="regulated-sector",
     )
     training = build_training_manifest(
-        package_id="cmf-bank-alpha-20260518",
+        package_id="cmf-customer-alpha-20260518",
         dataset_report=dataset_report,
         lane=TrainingLane.VERTEX,
         base_model_id="microsoft/deberta-v3-small",
         base_model_revision="abcdef1234567890abcdef1234567890abcdef12",
-        output_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-20260518",
+        output_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-20260518",
         hyperparameters={"epochs": 3, "batch_size": 8},
         objective_profile="zero_silent_unsafe_pass",
     )
     benchmark = CustomerBenchmarkResult.from_metrics(
-        benchmark_id="bank-alpha-private-v1",
+        benchmark_id="customer-alpha-private-v1",
         training_manifest=training,
-        model_artifact_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-20260518",
+        model_artifact_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-20260518",
         metrics=BenchmarkMetrics(
             total_samples=240,
             balanced_accuracy=0.94,
@@ -113,11 +113,11 @@ def _selection():
             latency_p95_ms=42.0,
             severity_counts={"critical": 40, "high": 80, "medium": 80, "low": 40},
         ),
-        raw_result_uri="gs://customer-artifacts/bank-alpha/benchmarks/private-v1.json",
-        claim_boundary="Bank Alpha private guardrail validation only.",
+        raw_result_uri="gs://customer-artifacts/customer-alpha/benchmarks/private-v1.json",
+        claim_boundary="Customer Alpha private guardrail validation only.",
     )
     return select_customer_model(
-        selection_id="bank-alpha-selection-20260518",
+        selection_id="customer-alpha-selection-20260518",
         objective_profile="zero_silent_unsafe_pass",
         candidates=[benchmark],
     )
@@ -129,9 +129,9 @@ def _policy() -> DeploymentPolicy:
         abstention_threshold=0.58,
         escalation_threshold=0.40,
         require_citations=True,
-        audit_log_uri="gs://customer-artifacts/bank-alpha/audit/decision-log.jsonl",
-        evidence_pack_uri="gs://customer-artifacts/bank-alpha/evidence/pack-20260518",
-        rollback_package_uri="gs://customer-artifacts/bank-alpha/deployments/previous.json",
+        audit_log_uri="gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
+        evidence_pack_uri="gs://customer-artifacts/customer-alpha/evidence/pack-20260518",
+        rollback_package_uri="gs://customer-artifacts/customer-alpha/deployments/previous.json",
         retention_days=365,
         telemetry_mode="customer_controlled",
     )
@@ -139,18 +139,18 @@ def _policy() -> DeploymentPolicy:
 
 def test_deployment_manifest_ready_for_ready_selection_and_complete_policy():
     manifest = build_deployment_manifest(
-        deployment_id="bank-alpha-prod-20260518",
+        deployment_id="customer-alpha-prod-20260518",
         selection_report=_selection(),
         policy=_policy(),
         environment="production",
-        package_uri="gs://customer-artifacts/bank-alpha/deployments/bank-alpha-prod-20260518.json",
+        package_uri="gs://customer-artifacts/customer-alpha/deployments/customer-alpha-prod-20260518.json",
     )
 
     assert manifest.ready is True
     assert manifest.findings == ()
-    assert manifest.customer_id == "bank-alpha"
-    assert manifest.tenant_id == "bank-alpha-tenant"
-    assert manifest.selected_model_artifact_uri.endswith("cmf-bank-alpha-20260518")
+    assert manifest.customer_id == "customer-alpha"
+    assert manifest.tenant_id == "customer-alpha-tenant"
+    assert manifest.selected_model_artifact_uri.endswith("cmf-customer-alpha-20260518")
     assert manifest.policy.require_citations is True
     assert len(manifest.deployment_hash) == 64
 
@@ -167,7 +167,7 @@ def test_deployment_manifest_blocks_not_ready_selection():
         selection_report=selection,
         policy=_policy(),
         environment="production",
-        package_uri="gs://customer-artifacts/bank-alpha/deployments/bad.json",
+        package_uri="gs://customer-artifacts/customer-alpha/deployments/bad.json",
     )
 
     assert manifest.ready is False
@@ -182,9 +182,9 @@ def test_deployment_manifest_blocks_unsafe_threshold_ordering():
         abstention_threshold=0.60,
         escalation_threshold=0.70,
         require_citations=True,
-        audit_log_uri="gs://customer-artifacts/bank-alpha/audit/decision-log.jsonl",
-        evidence_pack_uri="gs://customer-artifacts/bank-alpha/evidence/pack-20260518",
-        rollback_package_uri="gs://customer-artifacts/bank-alpha/deployments/previous.json",
+        audit_log_uri="gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
+        evidence_pack_uri="gs://customer-artifacts/customer-alpha/evidence/pack-20260518",
+        rollback_package_uri="gs://customer-artifacts/customer-alpha/deployments/previous.json",
         retention_days=365,
         telemetry_mode="customer_controlled",
     )
@@ -194,7 +194,7 @@ def test_deployment_manifest_blocks_unsafe_threshold_ordering():
         selection_report=_selection(),
         policy=bad_policy,
         environment="production",
-        package_uri="gs://customer-artifacts/bank-alpha/deployments/bad-thresholds.json",
+        package_uri="gs://customer-artifacts/customer-alpha/deployments/bad-thresholds.json",
     )
 
     assert manifest.ready is False
@@ -221,7 +221,7 @@ def test_deployment_manifest_requires_audit_evidence_and_rollback_for_production
         selection_report=_selection(),
         policy=bad_policy,
         environment="production",
-        package_uri="gs://customer-artifacts/bank-alpha/deployments/missing-evidence.json",
+        package_uri="gs://customer-artifacts/customer-alpha/deployments/missing-evidence.json",
     )
 
     assert manifest.ready is False
@@ -234,11 +234,11 @@ def test_deployment_manifest_requires_audit_evidence_and_rollback_for_production
 
 def test_deployment_manifest_serialises_and_writes_stable_json(tmp_path: Path):
     manifest = build_deployment_manifest(
-        deployment_id="bank-alpha-prod-20260518",
+        deployment_id="customer-alpha-prod-20260518",
         selection_report=_selection(),
         policy=_policy(),
         environment="production",
-        package_uri="gs://customer-artifacts/bank-alpha/deployments/bank-alpha-prod-20260518.json",
+        package_uri="gs://customer-artifacts/customer-alpha/deployments/customer-alpha-prod-20260518.json",
     )
 
     output = manifest.write_json(tmp_path / "deployment.json")

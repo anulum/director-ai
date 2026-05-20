@@ -30,15 +30,15 @@ ROOT = Path(__file__).resolve().parents[1]
 def _evidence_pack() -> CustomerEvidencePackManifest:
     return CustomerEvidencePackManifest(
         schema_version="1.0.0",
-        package_id="evidence-bank-alpha-20260518",
+        package_id="evidence-customer-alpha-20260518",
         ready=True,
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
-        deployment_id="bank-alpha-prod-20260518",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
+        deployment_id="customer-alpha-prod-20260518",
         environment="production",
         classification="restricted",
-        export_uri="gs://customer-artifacts/bank-alpha/evidence/pack",
+        export_uri="gs://customer-artifacts/customer-alpha/evidence/pack",
         external_callbacks_allowed=False,
         callback_endpoints=(),
         artefacts={"deployment_hash": "b" * 64},
@@ -51,18 +51,18 @@ def _evidence_pack() -> CustomerEvidencePackManifest:
 def _monitoring_manifest() -> CustomerMonitoringManifest:
     return CustomerMonitoringManifest(
         schema_version="1.0.0",
-        monitoring_id="monitor-bank-alpha-20260518",
+        monitoring_id="monitor-customer-alpha-20260518",
         ready=True,
         health_status="within_control",
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
-        runtime_id="runtime-bank-alpha-20260518",
-        deployment_id="bank-alpha-prod-20260518",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
+        runtime_id="runtime-customer-alpha-20260518",
+        deployment_id="customer-alpha-prod-20260518",
         evidence_hash="a" * 64,
-        decision_log_uri="gs://customer-artifacts/bank-alpha/audit/decision-log.jsonl",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        decision_log_uri="gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
         metrics=MonitoringMetrics(
@@ -85,7 +85,7 @@ def _monitoring_manifest() -> CustomerMonitoringManifest:
             max_latency_p95_ms=250.0,
             max_cost_per_1k_decisions=1.50,
         ),
-        package_version={"runtime_id": "runtime-bank-alpha-20260518"},
+        package_version={"runtime_id": "runtime-customer-alpha-20260518"},
         retraining_recommended=False,
         recommendations=(),
         findings=(),
@@ -95,10 +95,10 @@ def _monitoring_manifest() -> CustomerMonitoringManifest:
 
 def _risk(**overrides: object) -> CustomerRiskException:
     payload = {
-        "risk_id": "risk-bank-alpha-001",
+        "risk_id": "risk-customer-alpha-001",
         "status": "accepted",
         "severity": "medium",
-        "owner": "bank-alpha-risk-owner",
+        "owner": "customer-alpha-risk-owner",
         "accepted_at": "2026-05-18",
         "expires_at": "2026-06-18",
         "compensating_controls": ("manual review of escalated cases",),
@@ -114,7 +114,7 @@ def _risk(**overrides: object) -> CustomerRiskException:
 
 def test_risk_register_ready_when_accepted_risks_have_owner_expiry_and_controls():
     register = build_risk_register(
-        register_id="risk_register_bank_alpha-20260518",
+        register_id="risk_register_customer_alpha-20260518",
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risks=(_risk(),),
@@ -123,14 +123,14 @@ def test_risk_register_ready_when_accepted_risks_have_owner_expiry_and_controls(
 
     assert register.ready is True
     assert register.findings == ()
-    assert register.customer_id == "bank-alpha"
-    assert register.tenant_id == "bank-alpha-tenant"
+    assert register.customer_id == "customer-alpha"
+    assert register.tenant_id == "customer-alpha-tenant"
     assert len(register.register_hash) == 64
 
 
 def test_risk_register_blocks_expired_accepted_risks():
     register = build_risk_register(
-        register_id="risk_register_bank_alpha-expired",
+        register_id="risk_register_customer_alpha-expired",
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risks=(_risk(expires_at="2026-05-01"),),
@@ -145,7 +145,7 @@ def test_risk_register_blocks_expired_accepted_risks():
 
 def test_risk_register_blocks_missing_owner_or_controls():
     register = build_risk_register(
-        register_id="risk_register_bank_alpha-incomplete",
+        register_id="risk_register_customer_alpha-incomplete",
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risks=(_risk(owner="", compensating_controls=()),),
@@ -161,7 +161,7 @@ def test_risk_register_blocks_missing_owner_or_controls():
 
 def test_risk_register_blocks_unlinked_or_mismatched_artifact_hashes():
     register = build_risk_register(
-        register_id="risk_register_bank_alpha-unlinked",
+        register_id="risk_register_customer_alpha-unlinked",
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risks=(_risk(linked_artifact_hashes={"evidence_hash": "wrong"}),),
@@ -226,7 +226,7 @@ def test_risk_register_rejects_unknown_status_and_missing_expiry():
     accepted_missing_expiry = _risk(expires_at="")
 
     register = build_risk_register(
-        register_id="risk_register_bank_alpha-statuses",
+        register_id="risk_register_customer_alpha-statuses",
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risks=(rejected, unsupported, accepted_missing_expiry),
@@ -253,7 +253,7 @@ def test_risk_exception_round_trips_from_dict():
 
 def test_risk_register_serialises_and_round_trips(tmp_path: Path):
     register = build_risk_register(
-        register_id="risk_register_bank_alpha-20260518",
+        register_id="risk_register_customer_alpha-20260518",
         evidence_pack=_evidence_pack(),
         monitoring_manifest=_monitoring_manifest(),
         risks=(_risk(),),

@@ -5,11 +5,11 @@
     "model_documentation_pages": 49,
     "optional_extras": 53,
     "public_api_exports": 214,
-    "public_documentation_pages": 138,
+    "public_documentation_pages": 139,
     "python_model_classes": 702,
     "python_model_source_modules": 310,
     "rust_pyo3_model_wrappers": 59,
-    "test_files": 423
+    "test_files": 425
   },
   "documentation": {
     "public_pages": [
@@ -89,6 +89,7 @@
       "docs-site/deployment/onnx-artefacts.md",
       "docs-site/deployment/production.md",
       "docs-site/deployment/public-endpoints.md",
+      "docs-site/deployment/repository-backups.md",
       "docs-site/deployment/runbooks.md",
       "docs-site/deployment/rust-kernel-extraction.md",
       "docs-site/deployment/safety-dashboard.md",
@@ -426,10 +427,6 @@
       {
         "name": "BFTConsensusVote",
         "path": "src/director_ai/core/scoring/consensus.py"
-      },
-      {
-        "name": "BankingRegulationMapping",
-        "path": "src/director_ai/core/customer_model_factory/banking_pack.py"
       },
       {
         "name": "BargainingSolution",
@@ -2484,6 +2481,10 @@
         "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
       },
       {
+        "name": "SectorEvidenceMapping",
+        "path": "src/director_ai/core/customer_model_factory/sector_extension.py"
+      },
+      {
         "name": "SecureAggregator",
         "path": "src/director_ai/core/federated_privacy/secret_sharing.py"
       },
@@ -3088,7 +3089,6 @@
       "src/director_ai/core/continual_adversarial/miner.py",
       "src/director_ai/core/continual_adversarial/scorer.py",
       "src/director_ai/core/continual_adversarial/suite.py",
-      "src/director_ai/core/customer_model_factory/banking_pack.py",
       "src/director_ai/core/customer_model_factory/benchmark_selection.py",
       "src/director_ai/core/customer_model_factory/dataset_contract.py",
       "src/director_ai/core/customer_model_factory/deployment_manifest.py",
@@ -3097,6 +3097,7 @@
       "src/director_ai/core/customer_model_factory/release_gate.py",
       "src/director_ai/core/customer_model_factory/risk_register.py",
       "src/director_ai/core/customer_model_factory/runtime_package.py",
+      "src/director_ai/core/customer_model_factory/sector_extension.py",
       "src/director_ai/core/customer_model_factory/training_manifest.py",
       "src/director_ai/core/cyber_physical/adapters.py",
       "src/director_ai/core/cyber_physical/budget.py",
@@ -3832,7 +3833,6 @@
       "tests/test_cross_document_memory.py",
       "tests/test_cross_language_contracts.py",
       "tests/test_custom_rules_dsl.py",
-      "tests/test_customer_model_factory_banking_pack.py",
       "tests/test_customer_model_factory_benchmark_selection.py",
       "tests/test_customer_model_factory_compliance_gate.py",
       "tests/test_customer_model_factory_dataset_contract.py",
@@ -3847,6 +3847,7 @@
       "tests/test_customer_model_factory_release_gate.py",
       "tests/test_customer_model_factory_risk_register.py",
       "tests/test_customer_model_factory_runtime_package.py",
+      "tests/test_customer_model_factory_sector_extension.py",
       "tests/test_customer_model_factory_training_manifest.py",
       "tests/test_cyber_physical.py",
       "tests/test_cyber_physical_halt_contract.py",
@@ -4033,6 +4034,7 @@
       "tests/test_public_api.py",
       "tests/test_public_benchmark_manifest.py",
       "tests/test_public_endpoint_exposure_policy.py",
+      "tests/test_public_sector_boundary.py",
       "tests/test_python_only_contributor_path.py",
       "tests/test_query_decomposition.py",
       "tests/test_rag_integration.py",
@@ -4119,6 +4121,7 @@
       "tests/test_vector_store_reranker.py",
       "tests/test_verified_scorer.py",
       "tests/test_verified_scorer_escalation.py",
+      "tests/test_verify_repository_backup.py",
       "tests/test_vertex_container_cuda_policy.py",
       "tests/test_vertex_model_benchmark.py",
       "tests/test_voice_adapters.py",

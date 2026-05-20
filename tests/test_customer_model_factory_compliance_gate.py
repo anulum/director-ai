@@ -24,7 +24,7 @@ def test_compliance_gate_covers_every_customer_model_factory_phase_artifact():
 
     assert result.findings == ()
     assert {control.module for control in CONTROL_MATRIX} == {
-        "banking_pack",
+        "sector_extension",
         "benchmark_selection",
         "dataset_contract",
         "deployment_manifest",

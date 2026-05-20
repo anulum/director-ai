@@ -26,9 +26,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def _workspace() -> CustomerWorkspace:
     return CustomerWorkspace(
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
         data_classification="confidential",
         allowed_splits=("train", "eval", "test"),
         regulation_mappings=("SOC2", "ISO27001", "ISO42001", "EU_AI_ACT"),
@@ -38,27 +38,27 @@ def _workspace() -> CustomerWorkspace:
 def _row(trace_id: str, split: str) -> dict:
     return {
         "trace_id": trace_id,
-        "customer_id": "bank-alpha",
-        "tenant_id": "bank-alpha-tenant",
+        "customer_id": "customer-alpha",
+        "tenant_id": "customer-alpha-tenant",
         "split": split,
-        "prompt": f"Review bank communication {trace_id}",
+        "prompt": f"Review customer communication {trace_id}",
         "response": f"Escalate {trace_id} to compliance.",
         "expected_decision": "escalate",
         "severity": "high",
         "label": "policy_violation",
-        "source_refs": [f"policy://bank-alpha/{trace_id}"],
-        "policy_refs": ["policy://bank-alpha/advice-boundary"],
+        "source_refs": [f"policy://customer-alpha/{trace_id}"],
+        "policy_refs": ["policy://customer-alpha/advice-boundary"],
         "reviewer_role": "compliance_reviewer",
         "observed_at": "2026-05-18T12:00:00Z",
         "contains_pii": False,
         "contains_secret": False,
         "redaction_status": "not_required",
         "metadata": {
-            "business_line": "retail_banking",
-            "regulated_category": "financial_advice_boundary",
+            "sector_class": "customer_policy",
+            "knowledge_class": "advice_boundary",
             "requires_citation": True,
             "jurisdiction": "CH",
-            "evidence_refs": ["policy://bank-alpha/advice-boundary"],
+            "evidence_refs": ["policy://customer-alpha/advice-boundary"],
             "numeric_evidence_refs": [],
             "requires_escalation": True,
             "customer_segment": "retail",
@@ -75,7 +75,7 @@ def _ready_report():
             _row("trace-003", "test"),
         ],
         _workspace(),
-        vertical_profile="banking",
+        vertical_profile="regulated-sector",
     )
 
 
@@ -83,19 +83,19 @@ def test_training_manifest_is_ready_for_valid_dataset_and_immutable_base_model()
     report = _ready_report()
 
     manifest = build_training_manifest(
-        package_id="cmf-bank-alpha-20260518",
+        package_id="cmf-customer-alpha-20260518",
         dataset_report=report,
         lane=TrainingLane.VERTEX,
         base_model_id="microsoft/deberta-v3-small",
         base_model_revision="abcdef1234567890abcdef1234567890abcdef12",
-        output_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-20260518",
+        output_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-20260518",
         hyperparameters={"epochs": 3, "batch_size": 8, "learning_rate": 1e-5},
         objective_profile="zero_silent_unsafe_pass",
     )
 
     assert manifest.ready is True
     assert manifest.findings == ()
-    assert manifest.customer_id == "bank-alpha"
+    assert manifest.customer_id == "customer-alpha"
     assert manifest.dataset_hash == report.dataset_hash
     assert manifest.lane == TrainingLane.VERTEX
     assert manifest.requires_private_execution is True
@@ -106,16 +106,16 @@ def test_training_manifest_blocks_invalid_dataset_report():
     invalid_report = validate_customer_trace_dataset(
         [_row("trace-001", "train")],
         _workspace(),
-        vertical_profile="banking",
+        vertical_profile="regulated-sector",
     )
 
     manifest = build_training_manifest(
-        package_id="cmf-bank-alpha-invalid",
+        package_id="cmf-customer-alpha-invalid",
         dataset_report=invalid_report,
         lane=TrainingLane.LOCAL_PILOT,
         base_model_id="microsoft/deberta-v3-small",
         base_model_revision="abcdef1234567890abcdef1234567890abcdef12",
-        output_uri="file:///tmp/cmf-bank-alpha-invalid",
+        output_uri="file:///tmp/cmf-customer-alpha-invalid",
         hyperparameters={"epochs": 1},
         objective_profile="balanced",
     )
@@ -126,12 +126,12 @@ def test_training_manifest_blocks_invalid_dataset_report():
 
 def test_training_manifest_requires_base_model_revision_or_managed_artifact():
     manifest = build_training_manifest(
-        package_id="cmf-bank-alpha-unpinned",
+        package_id="cmf-customer-alpha-unpinned",
         dataset_report=_ready_report(),
         lane=TrainingLane.VERTEX,
         base_model_id="microsoft/deberta-v3-small",
         base_model_revision="",
-        output_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-unpinned",
+        output_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-unpinned",
         hyperparameters={"epochs": 3},
         objective_profile="balanced",
     )
@@ -144,7 +144,7 @@ def test_training_manifest_requires_base_model_revision_or_managed_artifact():
 
 def test_training_manifest_requires_lane_compatible_output_uri():
     manifest = build_training_manifest(
-        package_id="cmf-bank-alpha-bad-output",
+        package_id="cmf-customer-alpha-bad-output",
         dataset_report=_ready_report(),
         lane=TrainingLane.VERTEX,
         base_model_id="microsoft/deberta-v3-small",
@@ -162,12 +162,12 @@ def test_training_manifest_requires_lane_compatible_output_uri():
 
 def test_training_manifest_serialises_and_writes_stable_json(tmp_path: Path):
     manifest = build_training_manifest(
-        package_id="cmf-bank-alpha-20260518",
+        package_id="cmf-customer-alpha-20260518",
         dataset_report=_ready_report(),
         lane=TrainingLane.CUSTOMER_CLOUD,
         base_model_id="gs://gotm-director-ai-training/managed-training/base-model",
         base_model_revision="",
-        output_uri="gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha-20260518",
+        output_uri="gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha-20260518",
         hyperparameters={"epochs": 2, "batch_size": 4},
         objective_profile="high_recall",
     )
@@ -186,12 +186,12 @@ def test_training_manifest_serialises_and_writes_stable_json(tmp_path: Path):
 
 def test_training_manifest_dataclass_can_roundtrip_from_dict():
     manifest = build_training_manifest(
-        package_id="cmf-bank-alpha-20260518",
+        package_id="cmf-customer-alpha-20260518",
         dataset_report=_ready_report(),
         lane=TrainingLane.ON_PREM,
         base_model_id="/models/deberta-v3-small",
         base_model_revision="local-sha256:abc123",
-        output_uri="file:///customer/models/cmf-bank-alpha-20260518",
+        output_uri="file:///customer/models/cmf-customer-alpha-20260518",
         hyperparameters={"epochs": 1},
         objective_profile="conservative",
     )

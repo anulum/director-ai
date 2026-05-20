@@ -35,24 +35,24 @@ ROOT = Path(__file__).resolve().parents[1]
 def _runtime_package() -> CustomerRuntimePackage:
     return CustomerRuntimePackage(
         schema_version="1.0.0",
-        runtime_id="runtime-bank-alpha-20260518",
+        runtime_id="runtime-customer-alpha-20260518",
         ready=True,
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
-        deployment_id="bank-alpha-prod-20260518",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
+        deployment_id="customer-alpha-prod-20260518",
         evidence_hash="a" * 64,
         runtime_mode="offline_private",
         runtime_config={
-            "customer_id": "bank-alpha",
-            "workspace_id": "bank-alpha-prod",
-            "tenant_id": "bank-alpha-tenant",
-            "deployment_id": "bank-alpha-prod-20260518",
+            "customer_id": "customer-alpha",
+            "workspace_id": "customer-alpha-prod",
+            "tenant_id": "customer-alpha-tenant",
+            "deployment_id": "customer-alpha-prod-20260518",
             "deployment_hash": "b" * 64,
             "evidence_hash": "a" * 64,
-            "selected_model_artifact_uri": "gs://customer-artifacts/bank-alpha/models/cmf-bank-alpha",
-            "audit_log_uri": "gs://customer-artifacts/bank-alpha/audit/decision-log.jsonl",
-            "evidence_pack_uri": "gs://customer-artifacts/bank-alpha/evidence/pack",
+            "selected_model_artifact_uri": "gs://customer-artifacts/customer-alpha/models/cmf-customer-alpha",
+            "audit_log_uri": "gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
+            "evidence_pack_uri": "gs://customer-artifacts/customer-alpha/evidence/pack",
             "telemetry_mode": "customer_controlled",
             "external_callbacks_allowed": False,
         },
@@ -64,15 +64,15 @@ def _runtime_package() -> CustomerRuntimePackage:
 def _evidence_pack() -> CustomerEvidencePackManifest:
     return CustomerEvidencePackManifest(
         schema_version="1.0.0",
-        package_id="evidence-bank-alpha-20260518",
+        package_id="evidence-customer-alpha-20260518",
         ready=True,
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
-        deployment_id="bank-alpha-prod-20260518",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
+        deployment_id="customer-alpha-prod-20260518",
         environment="production",
         classification="restricted",
-        export_uri="gs://customer-artifacts/bank-alpha/evidence/pack",
+        export_uri="gs://customer-artifacts/customer-alpha/evidence/pack",
         external_callbacks_allowed=False,
         callback_endpoints=(),
         artefacts={"deployment_hash": "b" * 64},
@@ -85,18 +85,18 @@ def _evidence_pack() -> CustomerEvidencePackManifest:
 def _monitoring_manifest() -> CustomerMonitoringManifest:
     return CustomerMonitoringManifest(
         schema_version="1.0.0",
-        monitoring_id="monitor-bank-alpha-20260518",
+        monitoring_id="monitor-customer-alpha-20260518",
         ready=True,
         health_status="within_control",
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
-        runtime_id="runtime-bank-alpha-20260518",
-        deployment_id="bank-alpha-prod-20260518",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
+        runtime_id="runtime-customer-alpha-20260518",
+        deployment_id="customer-alpha-prod-20260518",
         evidence_hash="a" * 64,
-        decision_log_uri="gs://customer-artifacts/bank-alpha/audit/decision-log.jsonl",
-        review_queue_uri="gs://customer-artifacts/bank-alpha/review/fp.jsonl",
-        incident_queue_uri="gs://customer-artifacts/bank-alpha/incidents/fn.jsonl",
+        decision_log_uri="gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
+        review_queue_uri="gs://customer-artifacts/customer-alpha/review/fp.jsonl",
+        incident_queue_uri="gs://customer-artifacts/customer-alpha/incidents/fn.jsonl",
         observation_window="2026-05-18T00:00:00Z/2026-05-18T12:00:00Z",
         monitored_at="2026-05-18T12:05:00Z",
         metrics=MonitoringMetrics(
@@ -119,7 +119,7 @@ def _monitoring_manifest() -> CustomerMonitoringManifest:
             max_latency_p95_ms=250.0,
             max_cost_per_1k_decisions=1.50,
         ),
-        package_version={"runtime_id": "runtime-bank-alpha-20260518"},
+        package_version={"runtime_id": "runtime-customer-alpha-20260518"},
         retraining_recommended=False,
         recommendations=(),
         findings=(),
@@ -130,12 +130,12 @@ def _monitoring_manifest() -> CustomerMonitoringManifest:
 def _risk_register() -> CustomerRiskRegister:
     return CustomerRiskRegister(
         schema_version="1.0.0",
-        register_id="risk_register_bank_alpha-20260518",
+        register_id="risk_register_customer_alpha-20260518",
         ready=True,
-        customer_id="bank-alpha",
-        workspace_id="bank-alpha-prod",
-        tenant_id="bank-alpha-tenant",
-        deployment_id="bank-alpha-prod-20260518",
+        customer_id="customer-alpha",
+        workspace_id="customer-alpha-prod",
+        tenant_id="customer-alpha-tenant",
+        deployment_id="customer-alpha-prod-20260518",
         evidence_hash="a" * 64,
         monitoring_hash="d" * 64,
         generated_at="2026-05-18",
@@ -147,7 +147,7 @@ def _risk_register() -> CustomerRiskRegister:
 
 def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     gate = build_release_gate_manifest(
-        release_id="release-bank-alpha-20260518",
+        release_id="release-customer-alpha-20260518",
         enterprise_ready=True,
         enterprise_blocking_debt_ids=(),
         runtime_package=_runtime_package(),
@@ -160,7 +160,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
     assert gate.ready is True
     assert gate.promotion_allowed is True
     assert gate.blockers == ()
-    assert gate.customer_id == "bank-alpha"
+    assert gate.customer_id == "customer-alpha"
     assert gate.artifact_hashes["runtime_hash"] == "c" * 64
     assert gate.artifact_hashes["evidence_hash"] == "a" * 64
     assert gate.artifact_hashes["monitoring_hash"] == "d" * 64
@@ -170,7 +170,7 @@ def test_release_gate_allows_promotion_when_all_artifacts_are_ready():
 
 def test_release_gate_blocks_enterprise_trust_debt():
     gate = build_release_gate_manifest(
-        release_id="release-bank-alpha-blocked",
+        release_id="release-customer-alpha-blocked",
         enterprise_ready=False,
         enterprise_blocking_debt_ids=("TRUST-DEBT-0002",),
         runtime_package=_runtime_package(),
@@ -198,7 +198,7 @@ def test_release_gate_blocks_not_ready_required_artifacts():
     )
 
     gate = build_release_gate_manifest(
-        release_id="release-bank-alpha-risk-blocked",
+        release_id="release-customer-alpha-risk-blocked",
         enterprise_ready=True,
         enterprise_blocking_debt_ids=(),
         runtime_package=_runtime_package(),
@@ -273,7 +273,7 @@ def test_release_gate_blocks_customer_boundary_mismatch():
     )
 
     gate = build_release_gate_manifest(
-        release_id="release-bank-alpha-mismatch",
+        release_id="release-customer-alpha-mismatch",
         enterprise_ready=True,
         enterprise_blocking_debt_ids=(),
         runtime_package=_runtime_package(),
@@ -315,7 +315,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
     )
 
     gate = build_release_gate_manifest(
-        release_id="release-bank-alpha-cross-boundary",
+        release_id="release-customer-alpha-cross-boundary",
         enterprise_ready=True,
         enterprise_blocking_debt_ids=(),
         runtime_package=_runtime_package(),
@@ -339,7 +339,7 @@ def test_release_gate_blocks_cross_artifact_boundary_and_hash_mismatches():
 
 def test_release_gate_serialises_deterministically(tmp_path: Path):
     gate = build_release_gate_manifest(
-        release_id="release-bank-alpha-20260518",
+        release_id="release-customer-alpha-20260518",
         enterprise_ready=True,
         enterprise_blocking_debt_ids=(),
         runtime_package=_runtime_package(),

@@ -44,6 +44,11 @@ if [ -n "$blocked" ]; then
   exit 1
 fi
 
+if ! python3 tools/verify_public_sector_boundary.py --root . --staged; then
+  printf '%s\n' "ERROR: enterprise-trust blocked staged proprietary sector-pack boundary." >&2
+  exit 1
+fi
+
 staged_additions="$(git diff --cached -U0 --no-ext-diff -- . \
   ':(exclude)docs/internal/**' \
   ':(exclude).coordination/**' \

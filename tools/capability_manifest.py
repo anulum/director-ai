@@ -651,16 +651,18 @@ def _tracked_or_discovered_files(
     repo: Path,
     suffixes: tuple[str, ...],
 ) -> list[Path]:
-    """Return tracked files below root, falling back to discovery outside Git.
+    """Return Git-visible files below root, falling back to discovery outside Git.
 
     The public manifest is a release artifact. Counting untracked files makes
-    a developer's dirty checkout disagree with clean CI, so Git-tracked files
-    are the authoritative source whenever the repository metadata is present.
+    a developer's dirty checkout disagree with clean CI, so ignored files stay
+    excluded. Pending tracked deletions and non-ignored pending additions are
+    still worktree state and must be reflected before a release manifest check.
     """
 
     tracked = _git_tracked_files(root, repo=repo, suffixes=suffixes)
     if tracked is not None:
-        return tracked
+        pending = _git_untracked_files(root, repo=repo, suffixes=suffixes)
+        return sorted(set(tracked).union(pending or []))
     return sorted(
         path for path in root.rglob("*") if path.is_file() and path.suffix in suffixes
     )
@@ -687,7 +689,41 @@ def _git_tracked_files(
     return sorted(
         repo / line
         for line in result.stdout.splitlines()
-        if line and Path(line).suffix in suffixes
+        if line and Path(line).suffix in suffixes and (repo / line).is_file()
+    )
+
+
+def _git_untracked_files(
+    root: Path,
+    *,
+    repo: Path,
+    suffixes: tuple[str, ...],
+) -> list[Path] | None:
+    try:
+        result = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(repo),
+                "ls-files",
+                "--others",
+                "--exclude-standard",
+                "--",
+                _rel(root, repo),
+            ],
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if result.returncode != 0:
+        return None
+    return sorted(
+        repo / line
+        for line in result.stdout.splitlines()
+        if line and Path(line).suffix in suffixes and (repo / line).is_file()
     )
 
 

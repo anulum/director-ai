@@ -39,8 +39,8 @@ REQUIRED_FIELDS = frozenset(
 ALLOWED_DECISIONS = frozenset({"approve", "block", "abstain", "escalate"})
 ALLOWED_SEVERITIES = frozenset({"low", "medium", "high", "critical"})
 HIGH_RISK_SEVERITIES = frozenset({"high", "critical"})
-BANKING_REQUIRED_METADATA = frozenset(
-    {"business_line", "regulated_category", "requires_citation", "jurisdiction"}
+SECTOR_REQUIRED_METADATA = frozenset(
+    {"sector_class", "knowledge_class", "requires_citation", "jurisdiction"}
 )
 
 
@@ -138,7 +138,7 @@ def validate_customer_trace_dataset(
         _validate_decision(row, trace_id, findings)
         _validate_refs(row, trace_id, findings)
         _validate_secret_redaction(row, trace_id, findings)
-        _validate_banking_metadata(row, trace_id, vertical_profile, findings)
+        _validate_sector_metadata(row, trace_id, vertical_profile, findings)
 
         split = _string(row.get("split"))
         if split:
@@ -319,29 +319,29 @@ def _validate_secret_redaction(
         )
 
 
-def _validate_banking_metadata(
+def _validate_sector_metadata(
     row: dict[str, Any],
     trace_id: str,
     vertical_profile: str | None,
     findings: list[CustomerTraceFinding],
 ) -> None:
-    if vertical_profile != "banking":
+    if not vertical_profile:
         return
     metadata = row.get("metadata")
     if not isinstance(metadata, dict):
-        missing = set(BANKING_REQUIRED_METADATA)
+        missing = set(SECTOR_REQUIRED_METADATA)
     else:
         missing = {
             field
-            for field in BANKING_REQUIRED_METADATA
+            for field in SECTOR_REQUIRED_METADATA
             if field not in metadata or metadata[field] in ("", None)
         }
     for field in sorted(missing):
         findings.append(
             CustomerTraceFinding(
-                code="banking_metadata_missing",
+                code="sector_metadata_missing",
                 severity="error",
-                message=f"banking profile requires metadata.{field}",
+                message=f"sector profile requires metadata.{field}",
                 trace_id=trace_id,
                 field=f"metadata.{field}",
             )
@@ -349,10 +349,10 @@ def _validate_banking_metadata(
     if missing or not isinstance(metadata, dict):
         return
 
-    from .banking_pack import validate_banking_trace_metadata
+    from .sector_extension import validate_sector_trace_metadata
 
     findings.extend(
-        validate_banking_trace_metadata(
+        validate_sector_trace_metadata(
             metadata,
             trace_id=trace_id,
             expected_decision=_string(row.get("expected_decision")),
