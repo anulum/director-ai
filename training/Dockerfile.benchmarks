@@ -40,20 +40,19 @@ ENV RUSTUP_HOME=/opt/rustup \
 RUN curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
       | sh -s -- -y --default-toolchain 1.88.0 --profile minimal
 
-# Python deps — identical hash-pinned set used by the distillation
-# image, including the patched torch, transformers, and sentencepiece
-# floors used by managed training jobs.
-# maturin is added explicitly for the Rust wheel build.
+# Python deps - identical hash-pinned set used by the distillation
+# image, plus the CUDA 12.1 torch override required by the managed
+# GPU runtime and benchmark build/test tooling for the Rust wheel path.
 COPY training/requirements-distil.txt training/requirements-distil.txt
+COPY training/requirements-cuda121-torch.txt training/requirements-cuda121-torch.txt
+COPY training/requirements-benchmark-tools.txt training/requirements-benchmark-tools.txt
 # nosemgrep: PinnedDependenciesID -- build tooling is version-pinned for this container layer.
 RUN pip install --no-cache-dir --require-hashes \
       -r training/requirements-distil.txt \
-    && pip install --no-cache-dir --force-reinstall \
-         --index-url https://download.pytorch.org/whl/cu121 \
-         --extra-index-url https://pypi.org/simple \
-         'torch==2.5.1+cu121' \
-    && pip install --no-cache-dir maturin==1.12.6 pytest==9.0.2 \
-         hypothesis==6.151.10 pytest-cov==7.1.0 \
+    && pip install --no-cache-dir --no-deps --force-reinstall --require-hashes \
+         -r training/requirements-cuda121-torch.txt \
+    && pip install --no-cache-dir --require-hashes \
+         -r training/requirements-benchmark-tools.txt \
     && pip uninstall -y torchvision
 
 # Copy source. Kept as late layers to maximise cache hits on the

@@ -1,0 +1,10 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Commercial licence available
+# Concepts 1996-2026 Miroslav Sotek. All rights reserved.
+# Code 2020-2026 Miroslav Sotek. All rights reserved.
+# ORCID: 0009-0009-3560-0851
+# Contact: www.anulum.li | protoscience@anulum.li
+# Hash-pinned CUDA 12.1 torch override for Vertex GPU containers.
+
+torch @ https://download-r2.pytorch.org/whl/cu121/torch-2.5.1%2Bcu121-cp311-cp311-linux_x86_64.whl#sha256=c8ab8c92eab928a93c483f83ca8c63f13dafc10fc93ad90ed2dcb7c82ea50410 ; python_version == "3.11" and sys_platform == "linux" and platform_machine == "x86_64"
+torch @ https://download-r2.pytorch.org/whl/cu121/torch-2.5.1%2Bcu121-cp312-cp312-linux_x86_64.whl#sha256=222be02548c2e74a21a8fbc8e5b8d2eef9f9faee865d70385d2eb1b9aabcbc76 ; python_version == "3.12" and sys_platform == "linux" and platform_machine == "x86_64"

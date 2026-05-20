@@ -14,11 +14,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends git curl && \
     rm -rf /var/lib/apt/lists/*
 
 COPY training/requirements-distil.txt training/requirements-distil.txt
+COPY training/requirements-cuda121-torch.txt training/requirements-cuda121-torch.txt
 RUN pip install --no-cache-dir --require-hashes -r training/requirements-distil.txt \
-    && pip install --no-cache-dir --force-reinstall \
-        --index-url https://download.pytorch.org/whl/cu121 \
-        --extra-index-url https://pypi.org/simple \
-        'torch==2.5.1+cu121' \
+    && pip install --no-cache-dir --no-deps --force-reinstall --require-hashes \
+        -r training/requirements-cuda121-torch.txt \
     && pip uninstall -y torchvision
 
 COPY pyproject.toml ./
