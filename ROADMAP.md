@@ -1,6 +1,10 @@
 # Roadmap
 
-Last updated: 2026-05-13
+Last updated: 2026-05-20
+
+Current open-item reconciliation lives in `docs/ROADMAP_STATUS.md`. Treat
+unchecked boxes in older internal notes as archival until they are reconciled
+there or promoted into this roadmap with a concrete acceptance gate.
 
 ## Shipped Today - 2026-04-29
 
@@ -451,10 +455,11 @@ Last updated: 2026-05-13
   signed fact, passport claim, or retraction record.
 
 ### Future Differentiators (Planned)
-2026-05-13 reconciliation: sustainability scoring, agent passport registry,
+2026-05-20 reconciliation: sustainability scoring, agent passport registry,
 and the closed-loop physical grounding evaluator are implemented and marked
-complete below. The remaining unchecked entries in this section are the active
-future-differentiator queue.
+complete below. Future differentiator phases that are not listed as unchecked
+here require phase-by-phase reconciliation in `docs/ROADMAP_STATUS.md` before
+they are treated as active engineering work.
 
 - [x] Prototype native inference-server hooks for vLLM, TGI, and llama.cpp so the
   guard can intervene before unsafe tokens are sampled.

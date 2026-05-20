@@ -26,3 +26,25 @@ def test_self_improving_guard_loop_roadmap_has_public_api_docs() -> None:
     assert "reviewer_id" in api_doc
     assert "LoRA jobs are proposal-only" in api_doc
     assert "It does not mutate runtime configuration." in api_doc
+
+
+def test_roadmap_status_lists_only_current_open_actionable_items() -> None:
+    roadmap = _read("ROADMAP.md")
+    status = _read("docs/ROADMAP_STATUS.md")
+
+    assert (
+        "Current open-item reconciliation lives in `docs/ROADMAP_STATUS.md`" in roadmap
+    )
+    assert "| R1 | Independent external security test" in status
+    assert "| R8 | Internal roadmap/audit-note reconciliation" in status
+    assert "Future differentiator programme phases" in status
+    assert "Older unchecked internal checklists" in status
+
+
+def test_public_roadmap_has_single_unchecked_item_after_reconciliation() -> None:
+    roadmap = _read("ROADMAP.md")
+    unchecked = [line for line in roadmap.splitlines() if line.startswith("- [ ] ")]
+
+    assert unchecked == [
+        "- [ ] Run an external security test focused on streaming paths and tenant isolation"
+    ]
