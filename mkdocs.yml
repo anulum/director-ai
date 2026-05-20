@@ -242,6 +242,7 @@ nav:
       - Monitoring: deployment/monitoring.md
       - Production Checklist: deployment/checklist.md
       - Operational Runbooks: deployment/runbooks.md
+      - Repository Backups: deployment/repository-backups.md
       - Helm Chart: deployment/helm.md
       - Observability Pack: deployment/observability.md
       - Hugging Face Space: deployment/huggingface-space.md

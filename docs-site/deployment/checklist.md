@@ -34,3 +34,10 @@ Before deploying Director-AI to production, verify each item:
 - [ ] Run SAST: `bandit -r src/director_ai/`
 - [ ] Review CORS origins — default is empty; public browser deployments need exact `https://` origins
 - [ ] Ensure caller credentials are not logged or exposed in responses
+
+## Recovery
+
+- [ ] Create a git bundle backup before release or incident-response changes.
+- [ ] Verify the backup checksum file.
+- [ ] Restore-test the bundle with `tools/verify_repository_backup.py`.
+- [ ] Store the JSON verification report with the release or incident evidence.
