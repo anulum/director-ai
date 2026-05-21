@@ -24,7 +24,10 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 try:
-    from backfire_kernel import rust_wilson_score_interval
+    from backfire_kernel import (
+        rust_standard_normal_quantile,
+        rust_wilson_score_interval,
+    )
 
     _RUST_IRREVERSIBILITY = True
 except Exception:  # pragma: no cover - optional dependency
@@ -36,6 +39,9 @@ except Exception:  # pragma: no cover - optional dependency
         _confidence: float,
     ) -> tuple[float, float]:
         raise RuntimeError("backfire_kernel rust_wilson_score_interval is unavailable")
+
+    def rust_standard_normal_quantile(_p: float) -> float:
+        raise RuntimeError("backfire_kernel rust_standard_normal_quantile is unavailable")
 
 from .reversibility import ReversibilityEstimator, RuleReversibility
 
@@ -168,6 +174,11 @@ def _standard_normal_quantile(p: float) -> float:
     """
     if not 0.0 < p < 1.0:
         raise ValueError(f"p must be in (0, 1); got {p!r}")
+    if _RUST_IRREVERSIBILITY:
+        try:
+            return float(rust_standard_normal_quantile(p))
+        except Exception:
+            pass
     # Beasley-Springer coefficients.
     a = (
         -3.969683028665376e01,
