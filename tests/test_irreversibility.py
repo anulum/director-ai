@@ -242,6 +242,34 @@ class TestWilsonScore:
 
 
 class TestStandardNormalQuantile:
+    def test_rust_quantile_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", True)
+        called = {"count": 0}
+
+        def _quantile(_p: float) -> float:
+            called["count"] += 1
+            return 1.23
+
+        monkeypatch.setattr(
+            forecaster_mod,
+            "rust_standard_normal_quantile",
+            _quantile,
+            raising=True,
+        )
+        assert _standard_normal_quantile(0.8) == pytest.approx(1.23)
+        assert called["count"] == 1
+
+    def test_rust_quantile_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", True)
+        monkeypatch.setattr(
+            forecaster_mod,
+            "rust_standard_normal_quantile",
+            lambda _p: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        q = _standard_normal_quantile(0.975)
+        assert math.isclose(q, 1.9600, abs_tol=1e-3)
+
     def test_symmetry_around_median(self):
         q = _standard_normal_quantile(0.5)
         assert math.isclose(q, 0.0, abs_tol=1e-3)
