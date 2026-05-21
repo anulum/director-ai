@@ -108,6 +108,17 @@ class TestEntityOverlap:
         score = _entity_overlap("Met Paris and Berlin", "Met Paris and London")
         assert 0.0 <= score <= 1.0
 
+    def test_rust_non_runtime_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_entity_overlap",
+            lambda _a, _b: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        score = _entity_overlap("Met Paris and Berlin", "Met Paris and London")
+        assert 0.0 <= score <= 1.0
+
 
 class TestNumericalConsistency:
     def test_matching(self):
