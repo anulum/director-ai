@@ -18,6 +18,7 @@ from typing import Any, cast
 
 import pytest
 
+import director_ai.core.multi_scale_alignment.aligner as aligner_mod
 from director_ai.core.multi_scale_alignment import (
     Action,
     AlignmentReport,
@@ -263,6 +264,30 @@ class TestAligner:
                     "planetary": 0.0,
                 },
             )
+
+
+class TestAlignerRustSums:
+    def test_rust_sum_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(aligner_mod, "_RUST_MULTI_SCALE", True)
+        called = {"count": 0}
+
+        def _sum(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(aligner_mod, "rust_sum_f64", _sum, raising=True)
+        assert aligner_mod._sum_float([0.2, 0.3, 0.5]) == pytest.approx(1.0)
+        assert called["count"] == 1
+
+    def test_rust_sum_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(aligner_mod, "_RUST_MULTI_SCALE", True)
+        monkeypatch.setattr(
+            aligner_mod,
+            "rust_sum_f64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        assert aligner_mod._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.0)
 
     def test_scales_property_sorted(self):
         aligner = HierarchicalAligner(scorers=_four_scorers())
