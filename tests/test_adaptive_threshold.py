@@ -8,6 +8,7 @@
 
 import pytest
 
+import director_ai.core.calibration.adaptive_threshold as adaptive_mod
 from director_ai.core import (
     AdaptiveThresholdLearner,
     ThresholdFeedback,
@@ -115,3 +116,40 @@ def test_rejects_invalid_candidates_and_feedback():
     )
     with pytest.raises(ValueError, match="score"):
         learner.observe(score=float("nan"), human_approved=True)
+
+
+def test_rust_posterior_kernel_is_used_when_available(monkeypatch):
+    monkeypatch.setattr(adaptive_mod, "_RUST_ADAPTIVE", True)
+    calls = {"count": 0}
+
+    def _posterior(alpha_prior, beta_prior, successes, pulls):
+        calls["count"] += 1
+        return (alpha_prior + successes) / (
+            alpha_prior + beta_prior + pulls
+        )
+
+    monkeypatch.setattr(
+        adaptive_mod,
+        "rust_beta_posterior_mean",
+        _posterior,
+        raising=True,
+    )
+    learner = AdaptiveThresholdLearner(candidate_thresholds=[0.4], current_threshold=0.4)
+    learner.observe_batch(_feedback())
+    value = learner.arm(0.4).posterior_mean
+    assert value > 0.0
+    assert calls["count"] >= 1
+
+
+def test_rust_posterior_type_error_falls_back_to_python(monkeypatch):
+    monkeypatch.setattr(adaptive_mod, "_RUST_ADAPTIVE", True)
+    monkeypatch.setattr(
+        adaptive_mod,
+        "rust_beta_posterior_mean",
+        lambda *_args: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+        raising=True,
+    )
+    learner = AdaptiveThresholdLearner(candidate_thresholds=[0.4], current_threshold=0.4)
+    learner.observe_batch(_feedback())
+    value = learner.arm(0.4).posterior_mean
+    assert 0.0 <= value <= 1.0
