@@ -198,6 +198,19 @@ class TestNegationFlip:
             "The product supports multi-user mode fully",
         )
 
+    def test_rust_negation_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_negation_flip",
+            lambda _claim, _source: (_ for _ in ()).throw(TypeError("ffi fail")),
+            raising=False,
+        )
+        assert _negation_flip(
+            "The product does not support multi-user mode",
+            "The product supports multi-user mode fully",
+        )
+
 
 class TestTraceability:
     def test_full_trace(self):
