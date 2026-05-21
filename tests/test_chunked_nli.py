@@ -482,3 +482,20 @@ class TestScoreChunked:
         agg, per_hyp = scorer.score_chunked_confidence_weighted(long_prem, long_hyp, inner_agg="max")
         assert per_hyp
         assert 0.0 <= agg <= 1.0
+
+    def test_confidence_weighted_falls_back_on_rust_type_error(self, monkeypatch):
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Source {i} content" for i in range(20)) + "."
+        long_hyp = ". ".join(f"Claim {i} detail" for i in range(20)) + "."
+
+        monkeypatch.setattr(
+            "director_ai.core.scoring.nli.rust_aggregate_chunk_scores_confidence_weighted",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                TypeError("ffi signature mismatch")
+            ),
+        )
+        agg, per_hyp = scorer.score_chunked_confidence_weighted(
+            long_prem, long_hyp, inner_agg="max"
+        )
+        assert per_hyp
+        assert 0.0 <= agg <= 1.0
