@@ -26,6 +26,13 @@ from __future__ import annotations
 import math
 from typing import Any, Protocol, runtime_checkable
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_f64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 # FNV-1a parameters for 64-bit hashing of byte chunks.
 _FNV_OFFSET = 0xCBF29CE484222325
 _FNV_PRIME = 0x100000001B3
@@ -165,8 +172,15 @@ def _fnv1a_64(data: bytes) -> int:
 
 
 def _normalise(vec: tuple[float, ...]) -> tuple[float, ...]:
-    norm = math.sqrt(sum(x * x for x in vec))
+    norm = math.sqrt(_sum_float([x * x for x in vec]))
     if norm == 0.0:
         return vec
     inv = 1.0 / norm
     return tuple(x * inv for x in vec)
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
