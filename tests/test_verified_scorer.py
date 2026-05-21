@@ -153,6 +153,16 @@ class TestNumericalConsistency:
         )
         assert _numerical_consistency("costs $99", "costs $49") is False
 
+    def test_rust_numerical_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_numerical_consistency",
+            lambda _a, _b: (_ for _ in ()).throw(TypeError("ffi fail")),
+            raising=False,
+        )
+        assert _numerical_consistency("costs $99", "costs $49") is False
+
 
 class TestNegationFlip:
     def test_flip(self):
