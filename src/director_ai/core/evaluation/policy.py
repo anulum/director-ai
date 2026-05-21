@@ -16,7 +16,10 @@ from typing import Any
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
+
+    _RUST_POLICY_EVAL = True
 except ImportError:  # pragma: no cover - fallback path
+    _RUST_POLICY_EVAL = False
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
@@ -335,7 +338,9 @@ def _safe_div(num: int, den: int) -> float:
 
 
 def _sum_int(values: list[int]) -> int:
-    try:
-        return int(rust_sum_i64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_POLICY_EVAL:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
