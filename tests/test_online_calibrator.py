@@ -21,6 +21,41 @@ from director_ai.core.calibration.online_calibrator import OnlineCalibrator
 
 
 class TestCalibrationReport:
+    def test_rust_confusion_kernel_is_used_in_threshold_sweep(self, monkeypatch):
+        monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", True)
+        called = {"count": 0}
+
+        def _conf(scores: list[float], labels: list[bool], threshold: float):
+            called["count"] += 1
+            tp = sum(1 for s, h in zip(scores, labels, strict=True) if s >= threshold and h)
+            tn = sum(1 for s, h in zip(scores, labels, strict=True) if s < threshold and not h)
+            fp = sum(1 for s, h in zip(scores, labels, strict=True) if s >= threshold and not h)
+            fn = sum(1 for s, h in zip(scores, labels, strict=True) if s < threshold and h)
+            return tp, tn, fp, fn
+
+        monkeypatch.setattr(
+            calibrator_mod,
+            "rust_confusion_counts_threshold",
+            _conf,
+            raising=True,
+        )
+        scored = [(0.9, True), (0.8, True), (0.2, False), (0.3, False)]
+        best = OnlineCalibrator._sweep_threshold(scored)
+        assert best is not None
+        assert called["count"] > 0
+
+    def test_rust_confusion_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", True)
+        monkeypatch.setattr(
+            calibrator_mod,
+            "rust_confusion_counts_threshold",
+            lambda *_args: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        scored = [(0.9, True), (0.8, True), (0.2, False), (0.3, False)]
+        best = OnlineCalibrator._sweep_threshold(scored)
+        assert best is not None
+
     def test_rust_wilson_kernel_is_used_when_available(self, monkeypatch):
         monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", True)
         called = {"count": 0}
