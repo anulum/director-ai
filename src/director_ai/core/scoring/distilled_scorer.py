@@ -39,6 +39,13 @@ import numpy as np
 
 logger = logging.getLogger("DirectorAI.DistilledNLI")
 
+try:
+    from backfire_kernel import rust_softmax
+
+    _RUST_DISTILLED = True
+except ImportError:
+    _RUST_DISTILLED = False
+
 DEFAULT_DISTILLED_MODEL = "anulum/director-ai-nli-lite"
 DEFAULT_DISTILLED_REVISION = "f88222676f64b698c1fcb394f4eeb8da40405027"
 
@@ -207,6 +214,10 @@ class DistilledNLIBackend:
 
 def _softmax(logits: np.ndarray) -> np.ndarray:
     """Numerically stable softmax."""
+    if _RUST_DISTILLED:
+        flat = [float(v) for v in np.asarray(logits, dtype=float).ravel()]
+        probs = rust_softmax(flat, len(flat))
+        return np.asarray(probs, dtype=float)
     e: np.ndarray = np.exp(logits - np.max(logits))
     result: np.ndarray = e / e.sum()
     return result

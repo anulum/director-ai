@@ -20,6 +20,7 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
+import director_ai.core.scoring.distilled_scorer as distilled_mod
 from director_ai.core.scoring.distilled_scorer import (
     DEFAULT_DISTILLED_MODEL,
     DistilledNLIBackend,
@@ -47,6 +48,17 @@ class TestSoftmax:
         result = _softmax(np.array([-10.0, -5.0]))
         assert result.sum() - 1.0 < 1e-6
         assert result[1] > result[0]
+
+    def test_rust_softmax_delegation(self, monkeypatch):
+        monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", True)
+        monkeypatch.setattr(
+            distilled_mod,
+            "rust_softmax",
+            lambda flat, cols: [0.8, 0.2],
+            raising=False,
+        )
+        result = _softmax(np.array([1.0, -1.0]))
+        np.testing.assert_allclose(result, [0.8, 0.2])
 
 
 # ── Construction ────────────────────────────────────────────────────────

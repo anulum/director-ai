@@ -513,6 +513,7 @@ Tests cover:
 - `verification/reasoning_verifier` sentence-fallback decomposition: Rust sentence splitting acceleration
 - `retrieval/contextual_compression` keyword-overlap scoring: Rust `word_overlap` acceleration
 - `agentic/loop_monitor` goal-drift Jaccard scoring: Rust `word_overlap` acceleration
+- `scoring/distilled_scorer` ONNX-path softmax helper: Rust `softmax` acceleration
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 
