@@ -115,6 +115,31 @@ class TestExtractSteps:
         )
         assert len(steps) == 2
 
+    def test_sentence_fallback_reverts_to_python_on_rust_type_error(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_extract_reasoning_steps",
+            lambda text: [],
+            raising=False,
+        )
+
+        def _raise_type_error(text):
+            raise TypeError("ffi signature mismatch")
+
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_split_sentences",
+            _raise_type_error,
+            raising=False,
+        )
+        steps = extract_steps(
+            "The economy grew by 3% last year. This growth was driven by exports."
+        )
+        assert len(steps) == 2
+
     def test_extract_steps_reverts_to_python_when_rust_extractor_raises(
         self, monkeypatch
     ):
