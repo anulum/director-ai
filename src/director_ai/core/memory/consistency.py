@@ -21,6 +21,16 @@ from pathlib import Path
 from time import time
 from typing import Any
 
+try:
+    from backfire_kernel import rust_word_overlap
+
+    _RUST_CONSISTENCY = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_CONSISTENCY = False
+
+    def rust_word_overlap(_text_a: str, _text_b: str) -> float:
+        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
+
 __all__ = [
     "CrossDocumentConflict",
     "CrossDocumentConsistencyMemory",
@@ -159,6 +169,7 @@ class CrossDocumentConsistencyMemory:
         db_path: str | Path = ":memory:",
         *,
         score_fn: ConsistencyScoreFn | None = None,
+        use_builtin_similarity: bool = False,
         warn_threshold: float = 0.65,
         contradiction_threshold: float = 0.85,
         max_documents_per_tenant: int = 1_000,
@@ -166,6 +177,7 @@ class CrossDocumentConsistencyMemory:
         """Initialise SQLite storage and retention policy settings."""
         self.db_path = str(db_path)
         self.score_fn = score_fn
+        self._use_builtin_similarity = bool(use_builtin_similarity)
         self.warn_threshold = _validate_score(warn_threshold)
         self.contradiction_threshold = _validate_score(contradiction_threshold)
         if self.warn_threshold > self.contradiction_threshold:
@@ -176,6 +188,25 @@ class CrossDocumentConsistencyMemory:
         self._conn = sqlite3.connect(self.db_path)
         self._conn.row_factory = sqlite3.Row
         self._init_schema()
+
+    @staticmethod
+    def _python_word_overlap(text_a: str, text_b: str) -> float:
+        words_a = set(text_a.lower().split())
+        words_b = set(text_b.lower().split())
+        if not words_a or not words_b:
+            return 0.0
+        union = words_a | words_b
+        if not union:
+            return 0.0
+        return len(words_a & words_b) / len(union)
+
+    def _builtin_similarity(self, text_a: str, text_b: str) -> float:
+        if _RUST_CONSISTENCY:
+            try:
+                return _validate_score(float(rust_word_overlap(text_a, text_b)))
+            except Exception:
+                pass
+        return _validate_score(self._python_word_overlap(text_a, text_b))
 
     def _init_schema(self) -> None:
         """Create the durable cross-document memory schema."""
@@ -213,11 +244,12 @@ class CrossDocumentConsistencyMemory:
         incoming_hash = _content_hash(incoming_text)
         existing = self.list_documents(tenant)
         conflicts: list[CrossDocumentConflict] = []
-        if self.score_fn is not None:
+        if self.score_fn is not None or self._use_builtin_similarity:
+            score_fn = self.score_fn or self._builtin_similarity
             for document in existing:
                 if document.document_id == doc_id:
                     continue
-                score = _validate_score(self.score_fn(document.text, incoming_text))
+                score = _validate_score(score_fn(document.text, incoming_text))
                 if score >= self.warn_threshold:
                     conflicts.append(
                         CrossDocumentConflict(

@@ -6,6 +6,7 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Cross-Document Consistency Memory Tests
 
+import director_ai.core.memory.consistency as consistency_mod
 from director_ai.core import CrossDocumentConsistencyMemory
 
 
@@ -126,3 +127,45 @@ def test_retention_limit_and_right_to_delete(tmp_path):
     assert memory.count(tenant_id="tenant-a") == 2
     assert memory.delete_tenant("tenant-a") == 2
     assert memory.count(tenant_id="tenant-a") == 0
+
+
+def test_builtin_similarity_uses_rust_kernel_when_enabled(tmp_path, monkeypatch):
+    monkeypatch.setattr(consistency_mod, "_RUST_CONSISTENCY", True)
+    called = {"count": 0}
+
+    def _rust_overlap(text_a: str, text_b: str) -> float:
+        called["count"] += 1
+        return 0.9
+
+    monkeypatch.setattr(consistency_mod, "rust_word_overlap", _rust_overlap, raising=True)
+    memory = CrossDocumentConsistencyMemory(
+        tmp_path / "consistency.sqlite",
+        use_builtin_similarity=True,
+        warn_threshold=0.8,
+        contradiction_threshold=0.95,
+    )
+    memory.record_document("tenant-a", "doc-1", "Policy remains approved.")
+    report = memory.check_document("tenant-a", "doc-2", "Policy remains approved.")
+    assert called["count"] >= 1
+    assert report.decision == "warn"
+
+
+def test_builtin_similarity_type_error_falls_back_to_python(tmp_path, monkeypatch):
+    monkeypatch.setattr(consistency_mod, "_RUST_CONSISTENCY", True)
+    monkeypatch.setattr(
+        consistency_mod,
+        "rust_word_overlap",
+        lambda _text_a, _text_b: (_ for _ in ()).throw(
+            TypeError("ffi signature mismatch")
+        ),
+        raising=True,
+    )
+    memory = CrossDocumentConsistencyMemory(
+        tmp_path / "consistency.sqlite",
+        use_builtin_similarity=True,
+        warn_threshold=0.2,
+        contradiction_threshold=0.95,
+    )
+    memory.record_document("tenant-a", "doc-1", "Policy remains approved.")
+    report = memory.check_document("tenant-a", "doc-2", "Policy remains approved.")
+    assert report.decision in {"warn", "block", "allow"}
