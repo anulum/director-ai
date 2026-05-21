@@ -25,6 +25,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_SWARM_ECON = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_SWARM_ECON = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 from .bargaining import BargainingSolution
 from .detector import TragedyDetector, TragedySignal
 from .pool import ResourcePool
@@ -72,7 +82,7 @@ class EconomicRiskScorer:
         for w in weights:
             if w < 0:
                 raise ValueError("weights must be non-negative")
-        total = sum(weights)
+        total = _sum_float(list(weights))
         if not 0.999 <= total <= 1.001:
             raise ValueError(f"weights must sum to 1.0; got {total}")
         self._pool = pool
@@ -89,10 +99,12 @@ class EconomicRiskScorer:
         exhaustion = 1.0 - (self._pool.balance() / self._pool.capacity)
         fairness_gap = bargaining.fairness_gap if bargaining is not None else 0.0
         tragedy: TragedySignal = self._detector.check()
-        risk = (
-            self._w_exh * exhaustion
-            + self._w_fair * fairness_gap
-            + self._w_trag * tragedy.pressure
+        risk = _sum_float(
+            [
+                self._w_exh * exhaustion,
+                self._w_fair * fairness_gap,
+                self._w_trag * tragedy.pressure,
+            ]
         )
         risk = max(0.0, min(1.0, risk))
         return EconomicVerdict(
@@ -102,3 +114,14 @@ class EconomicRiskScorer:
             tragedy_pressure=tragedy.pressure,
             tragedy_firing=tragedy.firing,
         )
+
+
+def _sum_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_SWARM_ECON:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
