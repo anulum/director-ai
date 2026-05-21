@@ -15,6 +15,16 @@ import threading
 from dataclasses import dataclass
 from typing import Any, Literal
 
+try:
+    from backfire_kernel import rust_mean
+
+    _RUST_AGENT_IDENTITY = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_AGENT_IDENTITY = False
+
+    def rust_mean(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
 from director_ai.core.guard_control import (
     GuardDecision,
     NoGoPolicy,
@@ -349,7 +359,7 @@ def _coherence_summary(scores: list[float]) -> dict[str, float | int]:
     return {
         "count": len(scores),
         "minimum": min(scores),
-        "mean": sum(scores) / len(scores),
+        "mean": _mean_float(scores),
         "latest": scores[-1],
     }
 
@@ -357,3 +367,14 @@ def _coherence_summary(scores: list[float]) -> dict[str, float | int]:
 def _validate_unit_interval(name: str, value: float) -> None:
     if not math.isfinite(value) or value < 0.0 or value > 1.0:
         raise ValueError(f"{name} must be finite and in [0, 1]")
+
+
+def _mean_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_AGENT_IDENTITY:
+        try:
+            return float(rust_mean(values))
+        except Exception:
+            pass
+    return sum(values) / len(values)
