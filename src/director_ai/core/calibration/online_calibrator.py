@@ -216,11 +216,11 @@ class OnlineCalibrator:
                         t,
                     )
                 except Exception:
-                    tp = sum(1 for s, h in scored if s >= t and h)
-                    tn = sum(1 for s, h in scored if s < t and not h)
+                    tp = _sum_int([1 if s >= t and h else 0 for s, h in scored])
+                    tn = _sum_int([1 if s < t and not h else 0 for s, h in scored])
             else:
-                tp = sum(1 for s, h in scored if s >= t and h)
-                tn = sum(1 for s, h in scored if s < t and not h)
+                tp = _sum_int([1 if s >= t and h else 0 for s, h in scored])
+                tn = _sum_int([1 if s < t and not h else 0 for s, h in scored])
             tpr = tp / pos
             tnr = tn / neg
             ba = (tpr + tnr) / 2
