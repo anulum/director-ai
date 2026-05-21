@@ -60,6 +60,18 @@ class TestSoftmax:
         result = _softmax(np.array([1.0, -1.0]))
         np.testing.assert_allclose(result, [0.8, 0.2])
 
+    def test_rust_softmax_non_runtime_fallback(self, monkeypatch):
+        monkeypatch.setattr(distilled_mod, "_RUST_DISTILLED", True)
+        monkeypatch.setattr(
+            distilled_mod,
+            "rust_softmax",
+            lambda _flat, _cols: (_ for _ in ()).throw(ValueError("ffi unavailable")),
+            raising=False,
+        )
+        result = _softmax(np.array([1.0, -1.0]))
+        assert result[0] > result[1]
+        assert abs(result.sum() - 1.0) < 1e-6
+
 
 # ── Construction ────────────────────────────────────────────────────────
 

@@ -215,9 +215,12 @@ class DistilledNLIBackend:
 def _softmax(logits: np.ndarray) -> np.ndarray:
     """Numerically stable softmax."""
     if _RUST_DISTILLED:
-        flat = [float(v) for v in np.asarray(logits, dtype=float).ravel()]
-        probs = rust_softmax(flat, len(flat))
-        return np.asarray(probs, dtype=float)
+        try:
+            flat = [float(v) for v in np.asarray(logits, dtype=float).ravel()]
+            probs = rust_softmax(flat, len(flat))
+            return np.asarray(probs, dtype=float)
+        except Exception:
+            pass
     e: np.ndarray = np.exp(logits - np.max(logits))
     result: np.ndarray = e / e.sum()
     return result
