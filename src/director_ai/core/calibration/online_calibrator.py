@@ -231,7 +231,9 @@ class OnlineCalibrator:
 
 
 def _sum_int(values: list[int]) -> int:
-    try:
-        return int(rust_sum_i64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_ONLINE_CALIBRATOR:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
