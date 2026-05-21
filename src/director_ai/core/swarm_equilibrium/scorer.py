@@ -29,6 +29,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+try:
+    from backfire_kernel import rust_mean
+
+    _RUST_SWARM_EQ = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_SWARM_EQ = False
+
+    def rust_mean(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
 from .game import NormalFormGame, StrategyProfile
 from .solvers import NashEquilibrium, NashSolver, StackelbergSolver
 
@@ -116,4 +126,10 @@ class SwarmEquilibriumScorer:
         if not pures:
             return float("nan")
         idx = game.players.index(player)
-        return sum(eq.expected_payoffs[idx] for eq in pures) / len(pures)
+        payoffs = [eq.expected_payoffs[idx] for eq in pures]
+        if _RUST_SWARM_EQ:
+            try:
+                return float(rust_mean(payoffs))
+            except Exception:
+                pass
+        return sum(payoffs) / len(payoffs)
