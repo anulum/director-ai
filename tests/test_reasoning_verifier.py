@@ -136,6 +136,27 @@ class TestExtractSteps:
         )
         assert len(steps) >= 2
 
+    def test_extract_steps_reverts_to_python_when_rust_extractor_raises_non_runtime(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_extract_reasoning_steps",
+            lambda _text: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_split_sentences",
+            lambda _text: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        steps = extract_steps(
+            "1. We gather data. 2. We validate results. 3. Therefore we deploy."
+        )
+        assert len(steps) >= 2
+
 
 class TestVerifyReasoningChain:
     def test_coherent_chain(self):
