@@ -192,7 +192,7 @@ def _community_imbalance(
         return 0.0
     sizes = [len(members) for members in buckets.values()]
     probs = [size / n for size in sizes]
-    entropy = -sum(p * math.log(p) for p in probs if p > 0)
+    entropy = -_sum_float([p * math.log(p) for p in probs if p > 0])
     max_entropy = math.log(len(buckets))
     if max_entropy <= 0:
         return 0.0
