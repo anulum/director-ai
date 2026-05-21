@@ -24,10 +24,13 @@ import numpy as np
 logger = logging.getLogger("DirectorAI.MetaClassifier")
 
 try:
-    from backfire_kernel import rust_word_overlap
+    from backfire_kernel import rust_sum_f64, rust_word_overlap
 
     _RUST_META = True
 except ImportError:
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
     _RUST_META = False
 
 try:
@@ -149,9 +152,11 @@ def extract_features(
         "hypothesis_sent_count": (
             hypothesis.count(".") + hypothesis.count("!") + hypothesis.count("?")
         ),
-        "avg_word_len_premise": (sum(len(w) for w in p_words) / max(len(p_words), 1)),
+        "avg_word_len_premise": (
+            _sum_float([float(len(w)) for w in p_words]) / max(len(p_words), 1)
+        ),
         "avg_word_len_hypothesis": (
-            sum(len(w) for w in h_words) / max(len(h_words), 1)
+            _sum_float([float(len(w)) for w in h_words]) / max(len(h_words), 1)
         ),
     }
 
@@ -159,6 +164,13 @@ def extract_features(
 def extract_text_features(premise: str, hypothesis: str) -> dict:
     """Extract text-only features (no NLI score needed)."""
     return extract_features(premise, hypothesis, nli_score=0.0, confidence=0.0)
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
 
 
 class DatasetTypeClassifier:
@@ -237,7 +249,6 @@ class DatasetTypeClassifier:
         probs = self._clf.predict_proba(x_scaled)[0]
         pred_idx = int(np.argmax(probs))
         conf = float(probs[pred_idx])
-
         if conf < self._confidence_gate:
             return None, conf
 
