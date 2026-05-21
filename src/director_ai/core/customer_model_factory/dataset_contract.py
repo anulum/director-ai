@@ -17,6 +17,13 @@ from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_i64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 SCHEMA_VERSION = "1.0.0"
 
 REQUIRED_FIELDS = frozenset(
@@ -171,8 +178,8 @@ def validate_customer_trace_dataset(
 
     _validate_required_splits(workspace, split_counts, findings)
     _validate_cross_split_leakage(fingerprints_by_split, findings)
-    high_risk_count = sum(
-        severity_counts[severity] for severity in HIGH_RISK_SEVERITIES
+    high_risk_count = _sum_int(
+        [severity_counts[severity] for severity in HIGH_RISK_SEVERITIES]
     )
     ready = not any(finding.severity == "error" for finding in findings)
     return CustomerDatasetValidationReport(
@@ -417,3 +424,10 @@ def _non_empty_string_list(value: Any) -> bool:
         and bool(value)
         and all(isinstance(item, str) and bool(item.strip()) for item in value)
     )
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
