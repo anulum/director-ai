@@ -1562,6 +1562,58 @@ fn rust_standard_normal_quantile(p: f64) -> PyResult<f64> {
         / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0))
 }
 
+#[pyfunction]
+fn rust_sum_f64(values: Vec<f64>) -> PyResult<f64> {
+    if values.iter().any(|v| !v.is_finite()) {
+        return Err(PyValueError::new_err("values must be finite"));
+    }
+    Ok(values.iter().sum())
+}
+
+#[pyfunction]
+fn rust_sum_i64(values: Vec<i64>) -> i64 {
+    values.iter().sum()
+}
+
+#[pyfunction]
+fn rust_product_f64(values: Vec<f64>) -> PyResult<f64> {
+    if values.iter().any(|v| !v.is_finite()) {
+        return Err(PyValueError::new_err("values must be finite"));
+    }
+    Ok(values.iter().product())
+}
+
+#[pyfunction]
+fn rust_confusion_counts_threshold(
+    scores: Vec<f64>,
+    labels: Vec<bool>,
+    threshold: f64,
+) -> PyResult<(usize, usize, usize, usize)> {
+    if scores.len() != labels.len() {
+        return Err(PyValueError::new_err("scores and labels must have same length"));
+    }
+    if !threshold.is_finite() {
+        return Err(PyValueError::new_err("threshold must be finite"));
+    }
+    if scores.iter().any(|s| !s.is_finite()) {
+        return Err(PyValueError::new_err("scores must be finite"));
+    }
+    let mut tp = 0usize;
+    let mut tn = 0usize;
+    let mut fp = 0usize;
+    let mut fnn = 0usize;
+    for (score, label) in scores.iter().zip(labels.iter()) {
+        let predicted_positive = *score >= threshold;
+        match (predicted_positive, *label) {
+            (true, true) => tp += 1,
+            (true, false) => fp += 1,
+            (false, true) => fnn += 1,
+            (false, false) => tn += 1,
+        }
+    }
+    Ok((tp, tn, fp, fnn))
+}
+
 #[pymodule]
 fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -1624,6 +1676,10 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_percentile_rank, m)?)?;
     m.add_function(wrap_pyfunction!(rust_mean, m)?)?;
     m.add_function(wrap_pyfunction!(rust_standard_normal_quantile, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_sum_f64, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_sum_i64, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_product_f64, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_confusion_counts_threshold, m)?)?;
     // PII regex multi-pattern scanner
     m.add_class::<PyPiiScanner>()?;
     // Safety-hook acceleration (cyber-physical geometry/IK +
