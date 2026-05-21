@@ -60,6 +60,17 @@ class TestSplitSentences:
         result = NLIScorer._split_sentences("Hello world. How are you?")
         assert len(result) == 2
 
+    def test_split_sentences_falls_back_on_rust_type_error(self, monkeypatch):
+        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(
+            nli_mod,
+            "rust_split_sentences",
+            lambda _text: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        result = NLIScorer._split_sentences("Hello world. How are you?")
+        assert len(result) == 2
+
 
 class TestEstimateTokens:
     def test_short_text(self):
