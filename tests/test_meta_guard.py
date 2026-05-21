@@ -20,6 +20,7 @@ from typing import Any, cast
 
 import pytest
 
+import director_ai.core.meta_guard.analyzer as analyzer_mod
 from director_ai.core.meta_guard import (
     DecisionLog,
     MetaAnalyzer,
@@ -317,6 +318,34 @@ class TestMetaAnalyzer:
         bad = cast(Any, {"allow": 0.5, "block": 0.5})
         with pytest.raises(ValueError, match="unknown action"):
             MetaAnalyzer(reference_mean=0.5, reference_action_rates=bad)
+
+
+class TestMetaAnalyzerRustKernels:
+    def test_rust_mean_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(analyzer_mod, "_RUST_META_GUARD", True)
+        called = {"mean": 0}
+
+        def _mean(values: list[float]) -> float:
+            called["mean"] += 1
+            return sum(values) / len(values)
+
+        monkeypatch.setattr(analyzer_mod, "rust_mean", _mean, raising=True)
+        analyzer = MetaAnalyzer(reference_mean=0.3, min_window=4)
+        analysis = analyzer.analyse(_steady_window(8, score=0.4))
+        assert analysis.mean_score == pytest.approx(0.4)
+        assert called["mean"] >= 1
+
+    def test_rust_mean_type_error_falls_back(self, monkeypatch):
+        monkeypatch.setattr(analyzer_mod, "_RUST_META_GUARD", True)
+        monkeypatch.setattr(
+            analyzer_mod,
+            "rust_mean",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        analyzer = MetaAnalyzer(reference_mean=0.3, min_window=4)
+        analysis = analyzer.analyse(_steady_window(8, score=0.4))
+        assert analysis.mean_score == pytest.approx(0.4)
 
 
 # --- ThresholdAdjuster ---------------------------------------------
