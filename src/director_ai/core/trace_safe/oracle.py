@@ -43,7 +43,10 @@ from typing import Literal
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
+
+    _RUST_TRACE_ORACLE = True
 except ImportError:  # pragma: no cover - fallback path
+    _RUST_TRACE_ORACLE = False
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -237,7 +240,9 @@ def _cosine(a: tuple[float, ...], b: tuple[float, ...]) -> float:
 
 
 def _sum_float(values: list[float]) -> float:
-    try:
-        return float(rust_sum_f64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_TRACE_ORACLE:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
