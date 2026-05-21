@@ -13,6 +13,7 @@ pipeline integration with CoherenceScorer, and performance documentation.
 
 from __future__ import annotations
 
+import director_ai.core.runtime.contradiction_tracker as tracker_mod
 from director_ai.core.runtime.contradiction_tracker import ContradictionTracker
 
 
@@ -148,3 +149,34 @@ class TestContradictionTrackerWithContentScorer:
         tracker.update("Python is a programming language", _content_scorer)
         report = tracker.update("Elephants roam the savanna", _content_scorer)
         assert report.contradiction_index > 0.7
+
+
+class TestContradictionRustMean:
+    def test_rust_mean_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(tracker_mod, "_RUST_CONTRADICTION", True)
+        called = {"count": 0}
+
+        def _mean(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values) / len(values)
+
+        monkeypatch.setattr(tracker_mod, "rust_mean", _mean, raising=True)
+        tracker = ContradictionTracker()
+        for i in range(5):
+            tracker.update(f"turn {i}", _fake_scorer(0.4))
+        report = tracker.get_report()
+        assert abs(report.trend) < 0.01
+        assert called["count"] >= 1
+
+    def test_rust_mean_type_error_falls_back(self, monkeypatch):
+        monkeypatch.setattr(tracker_mod, "_RUST_CONTRADICTION", True)
+        monkeypatch.setattr(
+            tracker_mod,
+            "rust_mean",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        tracker = ContradictionTracker()
+        for i in range(5):
+            tracker.update(f"turn {i}", _fake_scorer(0.4))
+        assert abs(tracker.get_report().trend) < 0.01
