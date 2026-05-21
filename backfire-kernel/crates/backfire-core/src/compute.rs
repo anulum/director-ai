@@ -29,6 +29,7 @@
 //! - [`probs_to_confidence`] — NLI probability → confidence score
 //! - [`aggregate_chunk_scores`] — chunk score matrix aggregation
 //! - [`aggregate_chunk_scores_confidence_weighted`] — confidence-weighted aggregation
+//! - [`coverage_from_divergences`] — claim support/coverage reduction
 //! - [`lite_score`] — lightweight heuristic divergence (no-NLI fallback)
 //! - [`lite_score_batch`] — batch version of lite_score
 //! - [`heuristic_logical_divergence`] — keyword+overlap logical fallback
@@ -920,6 +921,22 @@ pub fn aggregate_chunk_scores_confidence_weighted(
     (agg, per_hyp)
 }
 
+/// Compute claim coverage from per-claim divergences and a support threshold.
+///
+/// Returns `(coverage, supported_count)` where a claim is considered supported
+/// when `divergence < support_threshold`.
+pub fn coverage_from_divergences(divergences: &[f64], support_threshold: f64) -> (f64, usize) {
+    if divergences.is_empty() {
+        return (0.0, 0);
+    }
+    let supported = divergences
+        .iter()
+        .filter(|d| **d < support_threshold)
+        .count();
+    let coverage = supported as f64 / divergences.len() as f64;
+    (coverage, supported)
+}
+
 // ── Lite scorer ────────────────────────────────────────────────────
 
 static LITE_WORD_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b\w+\b").unwrap());
@@ -1495,6 +1512,14 @@ mod tests {
         assert!((per_hyp[0] - 0.4).abs() < 1e-12);
         assert!((per_hyp[1] - 0.8).abs() < 1e-12);
         assert!(agg >= 0.4 && agg <= 0.8);
+    }
+
+    #[test]
+    fn test_coverage_from_divergences() {
+        let divs = vec![0.1, 0.3, 0.8, 0.2];
+        let (coverage, supported) = coverage_from_divergences(&divs, 0.5);
+        assert_eq!(supported, 3);
+        assert!((coverage - 0.75).abs() < 1e-12);
     }
 
     #[test]

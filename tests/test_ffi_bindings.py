@@ -308,6 +308,21 @@ class TestRustAggregateChunkScoresConfidenceWeighted:
         assert 0.0 <= agg <= 1.0
 
 
+class TestRustCoverageFromDivergences:
+    def test_basic(self):
+        coverage, supported = backfire_kernel.rust_coverage_from_divergences(
+            [0.2, 0.7, 0.1, 0.4],
+            0.5,
+        )
+        assert supported == 3
+        assert coverage == pytest.approx(0.75)
+
+    def test_empty(self):
+        coverage, supported = backfire_kernel.rust_coverage_from_divergences([], 0.6)
+        assert supported == 0
+        assert coverage == pytest.approx(0.0)
+
+
 # â”€â”€ RustUPDEStepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 

@@ -128,6 +128,52 @@ class TestScoreClaimCoverage:
         assert len(claims) == 1
         assert len(divs) == 1
 
+    def test_rust_coverage_reducer_path(self):
+        scorer = self._make_scorer(
+            {
+                "Claim A.": 0.2,
+                "Claim B.": 0.8,
+                "Claim C.": 0.1,
+            },
+        )
+        with patch(
+            "director_ai.core.scoring.nli._RUST_NLI",
+            True,
+        ), patch(
+            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+            return_value=(2.0 / 3.0, 2),
+        ) as rust_reduce:
+            cov, divs, claims = scorer.score_claim_coverage(
+                "Source.",
+                "Claim A. Claim B. Claim C.",
+                support_threshold=0.6,
+            )
+        rust_reduce.assert_called_once()
+        assert cov == pytest.approx(2.0 / 3.0)
+        assert len(divs) == 3
+        assert len(claims) == 3
+
+    def test_rust_coverage_reducer_runtime_fallback(self):
+        scorer = self._make_scorer(
+            {
+                "Claim A.": 0.2,
+                "Claim B.": 0.8,
+            },
+        )
+        with patch(
+            "director_ai.core.scoring.nli._RUST_NLI",
+            True,
+        ), patch(
+            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+            side_effect=RuntimeError("ffi unavailable"),
+        ):
+            cov, _divs, _claims = scorer.score_claim_coverage(
+                "Source.",
+                "Claim A. Claim B.",
+                support_threshold=0.6,
+            )
+        assert cov == pytest.approx(0.5)
+
 
 # â”€â”€ Config wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

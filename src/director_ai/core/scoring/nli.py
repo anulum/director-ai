@@ -43,6 +43,7 @@ try:
         rust_aggregate_chunk_scores,
         rust_aggregate_chunk_scores_confidence_weighted,
         rust_build_chunks,
+        rust_coverage_from_divergences,
         rust_probs_to_confidence,
         rust_probs_to_divergence,
         rust_softmax,
@@ -91,6 +92,13 @@ except ImportError:
         raise RuntimeError(
             "backfire_kernel rust_aggregate_chunk_scores_confidence_weighted is unavailable"
         )
+
+    def rust_coverage_from_divergences(
+        _divergences: list[float],
+        _support_threshold: float,
+    ) -> tuple[float, int]:
+        """Raise when Rust claim coverage reducer is unavailable."""
+        raise RuntimeError("backfire_kernel rust_coverage_from_divergences is unavailable")
 
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise when Rust sentence splitter accelerator is unavailable."""
@@ -1427,6 +1435,15 @@ class NLIScorer:
             )
             divs.append(div)
 
+        if _RUST_NLI:
+            try:
+                coverage, _supported = rust_coverage_from_divergences(
+                    [float(d) for d in divs],
+                    float(support_threshold),
+                )
+                return float(coverage), divs, claims
+            except RuntimeError:
+                pass
         supported = sum(1 for d in divs if d < support_threshold)
         coverage = supported / len(claims)
         return coverage, divs, claims
@@ -1498,6 +1515,15 @@ class NLIScorer:
                 ),
             )
 
+        if _RUST_NLI:
+            try:
+                coverage, _supported = rust_coverage_from_divergences(
+                    [float(d) for d in per_claim_divs],
+                    float(support_threshold),
+                )
+                return float(coverage), per_claim_divs, claims, attributions
+            except RuntimeError:
+                pass
         supported = sum(1 for d in per_claim_divs if d < support_threshold)
         coverage = supported / len(claims)
         return coverage, per_claim_divs, claims, attributions
