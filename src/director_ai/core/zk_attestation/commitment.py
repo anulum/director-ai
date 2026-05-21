@@ -261,7 +261,10 @@ def _hash_node(left: bytes, right: bytes) -> bytes:
 
 def _merkle_root(leaves: Sequence[bytes]) -> bytes:
     if _RUST_MERKLE_AVAILABLE:
-        return bytes(_rust_merkle_root(list(leaves)))
+        try:
+            return bytes(_rust_merkle_root(list(leaves)))
+        except Exception:
+            pass
     level = list(leaves)
     while len(level) > 1:
         nxt: list[bytes] = []
@@ -278,7 +281,10 @@ def _merkle_root(leaves: Sequence[bytes]) -> bytes:
 def _auth_path(leaves: Sequence[bytes], index: int) -> list[bytes]:
     """Sibling hashes from *index* up to the root (exclusive)."""
     if _RUST_MERKLE_AVAILABLE:
-        return [bytes(b) for b in _rust_merkle_auth_path(list(leaves), index)]
+        try:
+            return [bytes(b) for b in _rust_merkle_auth_path(list(leaves), index)]
+        except Exception:
+            pass
     path: list[bytes] = []
     level = list(leaves)
     i = index
@@ -302,7 +308,10 @@ def _auth_path(leaves: Sequence[bytes], index: int) -> list[bytes]:
 
 def _walk_path(leaf: bytes, index: int, siblings: Sequence[bytes]) -> bytes:
     if _RUST_MERKLE_AVAILABLE:
-        return bytes(_rust_merkle_walk_path(leaf, index, [bytes(s) for s in siblings]))
+        try:
+            return bytes(_rust_merkle_walk_path(leaf, index, [bytes(s) for s in siblings]))
+        except Exception:
+            pass
     node = leaf
     i = index
     for sibling in siblings:

@@ -503,6 +503,50 @@ class TestMerkleCommitment:
         assert commitment.root == root.hex()
         assert calls == ["root:2", "path:2:1", "walk:1:2"]
 
+    def test_rust_merkle_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(commitment_mod, "_RUST_MERKLE_AVAILABLE", True)
+        monkeypatch.setattr(
+            commitment_mod,
+            "_rust_merkle_root",
+            lambda _leaves: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            commitment_mod,
+            "_rust_merkle_auth_path",
+            lambda _leaves, _index: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            commitment_mod,
+            "_rust_merkle_walk_path",
+            lambda _leaf, _index, _siblings: (_ for _ in ()).throw(
+                RuntimeError("ffi fail")
+            ),
+            raising=False,
+        )
+
+        samples = [{"coherence": 0.88}, {"coherence": 0.92}]
+        commitment, leaves, blinds = commit_samples(
+            samples,
+            key=_KEY_A,
+            rng=_DeterministicRng(seed=21),
+        )
+        proof = open_indices(
+            indices=[1],
+            samples=samples,
+            leaves=leaves,
+            blinds=blinds,
+            aggregate=1.8,
+            commitment=commitment,
+        )
+        ok, reason = verify_opening(
+            proof,
+            key=_KEY_A,
+            per_sample_evaluator=lambda sample: cast(float, sample["coherence"]),
+        )
+        assert ok, reason
+
     def test_verify_rejects_short_key_and_bad_evaluator_without_opening(self):
         proof = self._single_leaf_proof(serialised='{"coherence":0.8}', aggregate=0.8)
 
