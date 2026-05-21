@@ -23,6 +23,13 @@ import threading
 from collections.abc import Callable
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_word_overlap
+
+    _RUST_AUTOPOIETIC = True
+except ImportError:
+    _RUST_AUTOPOIETIC = False
+
 from .blueprint import ModuleBlueprint
 
 Scorer = Callable[[str], float]
@@ -74,6 +81,7 @@ class ModuleBuilder:
 
     def _build_ngram_overlap(self, blueprint: ModuleBlueprint) -> Scorer:
         reference = frozenset(blueprint.reference_vocabulary)
+        reference_tokens = " ".join(gram.replace(" ", "_") for gram in reference)
         n = blueprint.ngram_size
 
         def scorer(prompt: str) -> float:
@@ -85,6 +93,9 @@ class ModuleBuilder:
             )
             if not grams:
                 return 0.0
+            if _RUST_AUTOPOIETIC:
+                gram_tokens = " ".join(gram.replace(" ", "_") for gram in grams)
+                return float(rust_word_overlap(gram_tokens, reference_tokens))
             intersection = grams & reference
             union = grams | reference
             if not union:

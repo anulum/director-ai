@@ -20,6 +20,7 @@ from typing import Any, cast
 
 import pytest
 
+import director_ai.core.autopoietic.builder as builder_mod
 from director_ai.core.autopoietic import (
     ArchitectureMutation,
     AutopoieticEngine,
@@ -229,6 +230,22 @@ class TestBuilder:
         )
         scorer = ModuleBuilder().build(bp)
         assert scorer("x y") == 0.0
+
+    def test_ngram_overlap_rust_delegation(self, monkeypatch):
+        monkeypatch.setattr(builder_mod, "_RUST_AUTOPOIETIC", True)
+        monkeypatch.setattr(
+            builder_mod,
+            "rust_word_overlap",
+            lambda grams, reference: 0.77 if grams and reference else 0.0,
+            raising=False,
+        )
+        bp = ModuleBlueprint(
+            kind="ngram_overlap",
+            ngram_size=2,
+            reference_vocabulary=("the quick", "quick brown"),
+        )
+        scorer = ModuleBuilder().build(bp)
+        assert scorer("the quick brown fox") == pytest.approx(0.77)
 
     def test_ensemble_scorer_is_weighted_mean(self):
         length = ModuleBlueprint(kind="length", length_saturation=10)
