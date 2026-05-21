@@ -1338,6 +1338,34 @@ fn rust_coverage_from_divergences(
 }
 
 #[pyfunction]
+fn rust_reduce_claim_attribution(
+    flat_divergences: Vec<f64>,
+    n_claims: usize,
+    n_src: usize,
+) -> PyResult<(Vec<f64>, Vec<usize>)> {
+    if n_claims == 0 {
+        return Err(PyValueError::new_err("n_claims must be >= 1"));
+    }
+    if n_src == 0 {
+        return Err(PyValueError::new_err("n_src must be >= 1"));
+    }
+    let expected = n_claims
+        .checked_mul(n_src)
+        .ok_or_else(|| PyValueError::new_err("n_claims * n_src overflow"))?;
+    if flat_divergences.len() != expected {
+        return Err(PyValueError::new_err(format!(
+            "flat_divergences length mismatch: expected {expected}, got {}",
+            flat_divergences.len()
+        )));
+    }
+    Ok(backfire_core::compute::reduce_claim_attribution(
+        &flat_divergences,
+        n_claims,
+        n_src,
+    ))
+}
+
+#[pyfunction]
 fn rust_lite_score(premise: &str, hypothesis: &str) -> f64 {
     backfire_core::compute::lite_score(premise, hypothesis)
 }
@@ -1407,6 +1435,7 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
         m
     )?)?;
     m.add_function(wrap_pyfunction!(rust_coverage_from_divergences, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_reduce_claim_attribution, m)?)?;
     m.add_function(wrap_pyfunction!(rust_lite_score, m)?)?;
     m.add_function(wrap_pyfunction!(rust_lite_score_batch, m)?)?;
     m.add_function(wrap_pyfunction!(rust_heuristic_logical_divergence, m)?)?;

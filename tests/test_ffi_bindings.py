@@ -323,6 +323,19 @@ class TestRustCoverageFromDivergences:
         assert coverage == pytest.approx(0.0)
 
 
+class TestRustReduceClaimAttribution:
+    def test_basic(self):
+        # 2 claims × 3 source sentences, row-major by claim.
+        flat = [0.6, 0.2, 0.5, 0.7, 0.4, 0.9]
+        divs, idxs = backfire_kernel.rust_reduce_claim_attribution(flat, 2, 3)
+        assert divs == pytest.approx([0.2, 0.4])
+        assert idxs == [1, 1]
+
+    def test_invalid_shape_rejected(self):
+        with pytest.raises(ValueError):
+            backfire_kernel.rust_reduce_claim_attribution([0.1, 0.2], 2, 2)
+
+
 # â”€â”€ RustUPDEStepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 

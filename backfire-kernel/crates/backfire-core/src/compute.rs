@@ -30,6 +30,7 @@
 //! - [`aggregate_chunk_scores`] — chunk score matrix aggregation
 //! - [`aggregate_chunk_scores_confidence_weighted`] — confidence-weighted aggregation
 //! - [`coverage_from_divergences`] — claim support/coverage reduction
+//! - [`reduce_claim_attribution`] — per-claim best source attribution reduction
 //! - [`lite_score`] — lightweight heuristic divergence (no-NLI fallback)
 //! - [`lite_score_batch`] — batch version of lite_score
 //! - [`heuristic_logical_divergence`] — keyword+overlap logical fallback
@@ -937,6 +938,39 @@ pub fn coverage_from_divergences(divergences: &[f64], support_threshold: f64) ->
     (coverage, supported)
 }
 
+/// Reduce a flat claim×source divergence matrix into per-claim best attributions.
+///
+/// The input is row-major by claim:
+/// `flat_divs[claim_idx * n_src + src_idx]`.
+///
+/// Returns `(per_claim_best_divergence, per_claim_best_source_index)`.
+pub fn reduce_claim_attribution(
+    flat_divs: &[f64],
+    n_claims: usize,
+    n_src: usize,
+) -> (Vec<f64>, Vec<usize>) {
+    let mut per_claim_divs = Vec::with_capacity(n_claims);
+    let mut best_source_indices = Vec::with_capacity(n_claims);
+
+    for claim_idx in 0..n_claims {
+        let row_start = claim_idx * n_src;
+        let row_end = row_start + n_src;
+        let row = &flat_divs[row_start..row_end];
+        let mut best_idx = 0usize;
+        let mut best_div = row[0];
+        for (src_idx, div) in row.iter().enumerate().skip(1) {
+            if *div < best_div {
+                best_div = *div;
+                best_idx = src_idx;
+            }
+        }
+        per_claim_divs.push(best_div);
+        best_source_indices.push(best_idx);
+    }
+
+    (per_claim_divs, best_source_indices)
+}
+
 // ── Lite scorer ────────────────────────────────────────────────────
 
 static LITE_WORD_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b\w+\b").unwrap());
@@ -1520,6 +1554,19 @@ mod tests {
         let (coverage, supported) = coverage_from_divergences(&divs, 0.5);
         assert_eq!(supported, 3);
         assert!((coverage - 0.75).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_reduce_claim_attribution() {
+        // 3 claims × 4 source sentences (row-major by claim)
+        let flat = vec![
+            0.4, 0.2, 0.7, 0.3, // claim 0 -> best src 1 (0.2)
+            0.8, 0.6, 0.5, 0.9, // claim 1 -> best src 2 (0.5)
+            0.1, 0.2, 0.3, 0.4, // claim 2 -> best src 0 (0.1)
+        ];
+        let (divs, idxs) = reduce_claim_attribution(&flat, 3, 4);
+        assert_eq!(divs, vec![0.2, 0.5, 0.1]);
+        assert_eq!(idxs, vec![1, 2, 0]);
     }
 
     #[test]

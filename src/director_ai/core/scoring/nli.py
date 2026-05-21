@@ -46,6 +46,7 @@ try:
         rust_coverage_from_divergences,
         rust_probs_to_confidence,
         rust_probs_to_divergence,
+        rust_reduce_claim_attribution,
         rust_softmax,
         rust_split_sentences,
     )
@@ -99,6 +100,14 @@ except ImportError:
     ) -> tuple[float, int]:
         """Raise when Rust claim coverage reducer is unavailable."""
         raise RuntimeError("backfire_kernel rust_coverage_from_divergences is unavailable")
+
+    def rust_reduce_claim_attribution(
+        _flat_divergences: list[float],
+        _n_claims: int,
+        _n_src: int,
+    ) -> tuple[list[float], list[int]]:
+        """Raise when Rust claim attribution reducer is unavailable."""
+        raise RuntimeError("backfire_kernel rust_reduce_claim_attribution is unavailable")
 
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise when Rust sentence splitter accelerator is unavailable."""
@@ -1494,16 +1503,31 @@ class NLIScorer:
         all_divs = self.score_batch(pairs)
 
         n_src = len(source_sents)
-        per_claim_divs: list[float] = []
+        if _RUST_NLI:
+            try:
+                per_claim_divs, best_indices = rust_reduce_claim_attribution(
+                    [float(v) for v in all_divs],
+                    len(claims),
+                    n_src,
+                )
+            except RuntimeError:
+                per_claim_divs, best_indices = [], []
+        else:
+            per_claim_divs, best_indices = [], []
+
+        if not per_claim_divs:
+            per_claim_divs = []
+            best_indices = []
+            for c_idx in range(len(claims)):
+                claim_scores = all_divs[c_idx * n_src : (c_idx + 1) * n_src]
+                best_idx = int(np.argmin(claim_scores))
+                per_claim_divs.append(claim_scores[best_idx])
+                best_indices.append(best_idx)
+
         attributions: list[ClaimAttribution] = []
-
         for c_idx, claim in enumerate(claims):
-            # Slice this claim's scores across all source sentences
-            claim_scores = all_divs[c_idx * n_src : (c_idx + 1) * n_src]
-            best_idx = int(np.argmin(claim_scores))
-            best_div = claim_scores[best_idx]
-            per_claim_divs.append(best_div)
-
+            best_idx = int(best_indices[c_idx])
+            best_div = float(per_claim_divs[c_idx])
             attributions.append(
                 ClaimAttribution(
                     claim=claim,
