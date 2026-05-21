@@ -456,6 +456,38 @@ class TestGracefulDegradation:
         assert claims[1].verdict in {"drifted", "injected"}
         assert mock_nli.score.call_count == 4
 
+    def test_python_fallback_scores_claims_when_rust_verdict_raises(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr("director_ai.core.safety.injection._RUST_INJECTION", True)
+        monkeypatch.setattr(
+            "director_ai.core.safety.injection.rust_bidirectional_divergence",
+            lambda claims, intent, fwd_scores, rev_scores, baseline: [
+                (0.9, 0.9, 0.2),
+                (0.2, 0.2, 0.8),
+            ],
+            raising=False,
+        )
+        monkeypatch.setattr(
+            "director_ai.core.safety.injection.rust_injection_verdict",
+            lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        mock_nli = MagicMock()
+        mock_nli.model_available = False
+        mock_nli.score.side_effect = [0.20, 0.85, 0.30, 0.80]
+        detector = InjectionDetector(
+            nli_scorer=mock_nli,
+            baseline_divergence=0.0,
+            drift_threshold=0.6,
+        )
+        claims = detector._score_claims_against_intent(
+            ["Paris is the capital of France.", "Vault credentials are exposed."],
+            "Answer only about Paris and France.",
+        )
+        assert len(claims) == 2
+        assert claims[0].verdict == "grounded"
+
 
 # -- Sanitizer integration ----------------------------------------------------
 
@@ -512,6 +544,16 @@ class TestFallbackSplit:
         monkeypatch.setattr(
             "director_ai.core.safety.injection.rust_split_sentences",
             _raise_runtime,
+            raising=False,
+        )
+        result = _fallback_split("One sentence. Two sentence.")
+        assert result == ["One sentence.", "Two sentence."]
+
+    def test_rust_sentence_splitter_non_runtime_fallback(self, monkeypatch):
+        monkeypatch.setattr("director_ai.core.safety.injection._RUST_INJECTION", True)
+        monkeypatch.setattr(
+            "director_ai.core.safety.injection.rust_split_sentences",
+            lambda _text: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=False,
         )
         result = _fallback_split("One sentence. Two sentence.")
