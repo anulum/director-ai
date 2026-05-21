@@ -25,6 +25,7 @@ from dataclasses import dataclass
 
 try:
     from backfire_kernel import (
+        rust_product_f64,
         rust_standard_normal_quantile,
         rust_wilson_score_interval,
     )
@@ -42,6 +43,9 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_standard_normal_quantile(_p: float) -> float:
         raise RuntimeError("backfire_kernel rust_standard_normal_quantile is unavailable")
+
+    def rust_product_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_product_f64 is unavailable")
 
 from .reversibility import ReversibilityEstimator, RuleReversibility
 
@@ -121,9 +125,17 @@ class IrreversibilityForecaster:
         if not actions:
             raise ValueError("actions must be non-empty")
         per_action = [self._estimator.score(a).score for a in actions]
-        cumulative_reversible = 1.0
-        for s in per_action:
-            cumulative_reversible *= s
+        if _RUST_IRREVERSIBILITY:
+            try:
+                cumulative_reversible = float(rust_product_f64(per_action))
+            except Exception:
+                cumulative_reversible = 1.0
+                for s in per_action:
+                    cumulative_reversible *= s
+        else:
+            cumulative_reversible = 1.0
+            for s in per_action:
+                cumulative_reversible *= s
         # Deterministic seeded RNG so regression tests are stable.
         rng = random.Random(seed)
         crossed = 0
