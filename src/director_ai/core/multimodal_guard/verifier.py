@@ -23,6 +23,13 @@ from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_f64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 from .encoders import _fnv1a_64, _normalise
 
 
@@ -169,5 +176,12 @@ class TorchCLIPCrossModalVerifier:
 def _cosine(a: tuple[float, ...], b: tuple[float, ...]) -> float:
     if len(a) != len(b):
         return 0.0
-    dot = sum(x * y for x, y in zip(a, b, strict=True))
+    dot = _sum_float([x * y for x, y in zip(a, b, strict=True)])
     return max(-1.0, min(1.0, dot))
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
