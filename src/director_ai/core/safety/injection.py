@@ -35,10 +35,14 @@ try:
         rust_bidirectional_divergence,
         rust_injection_verdict,
         rust_split_sentences,
+        rust_sum_f64,
     )
 
     _RUST_INJECTION = True
 except ImportError:
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
     _RUST_INJECTION = False
 
 _VERDICTS = frozenset({"grounded", "drifted", "injected"})
@@ -180,20 +184,26 @@ class InjectionDetector:
             scored_claims, sanitizer_score
         )
 
-        n_grounded = sum(1 for c in scored_claims if c.verdict == "grounded")
-        n_drifted = sum(1 for c in scored_claims if c.verdict == "drifted")
-        n_injected = sum(1 for c in scored_claims if c.verdict == "injected")
+        n_grounded = _sum_float(
+            [1.0 if c.verdict == "grounded" else 0.0 for c in scored_claims]
+        )
+        n_drifted = _sum_float(
+            [1.0 if c.verdict == "drifted" else 0.0 for c in scored_claims]
+        )
+        n_injected = _sum_float(
+            [1.0 if c.verdict == "injected" else 0.0 for c in scored_claims]
+        )
         total = len(scored_claims)
-        coverage = n_grounded / total if total else 1.0
+        coverage = float(n_grounded) / total if total else 1.0
 
         return InjectionResult(
             injection_detected=combined >= self._cfg.injection_threshold,
             injection_risk=injection_risk,
             intent_coverage=coverage,
             total_claims=total,
-            grounded_claims=n_grounded,
-            drifted_claims=n_drifted,
-            injected_claims=n_injected,
+            grounded_claims=int(n_grounded),
+            drifted_claims=int(n_drifted),
+            injected_claims=int(n_injected),
             claims=scored_claims,
             input_sanitizer_score=sanitizer_score,
             combined_score=combined,
@@ -418,9 +428,11 @@ class InjectionDetector:
             return 0.0, self._cfg.stage1_weight * sanitizer_score
 
         total = len(claims)
-        weighted = sum(
-            1.0 if c.verdict == "injected" else 0.4 if c.verdict == "drifted" else 0.0
-            for c in claims
+        weighted = _sum_float(
+            [
+                1.0 if c.verdict == "injected" else 0.4 if c.verdict == "drifted" else 0.0
+                for c in claims
+            ]
         )
         injection_risk = weighted / total
 
@@ -443,3 +455,10 @@ def _fallback_split(text: str) -> list[str]:
             pass
     sentences = [s.strip() + "." for s in text.split(".") if s.strip()]
     return sentences if sentences else [text.strip()] if text.strip() else []
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
