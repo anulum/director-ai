@@ -43,7 +43,7 @@ from dataclasses import dataclass
 from typing import Any
 
 try:
-    from backfire_kernel import rust_sum_f64
+    from backfire_kernel import rust_sum_f64, rust_sum_i64
 
     _RUST_ROUTING = True
 except Exception:  # pragma: no cover - optional dependency
@@ -51,6 +51,9 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 logger = logging.getLogger("DirectorAI.Routing.Scorer")
 
@@ -163,7 +166,7 @@ class PromptRiskScorer:
     def _heuristic(self, prompt: str) -> float:
         length = len(prompt)
         length_ratio = min(1.0, length / float(self._max_safe_length))
-        structural = sum(prompt.count(ch) for ch in _STRUCTURAL_CHARS)
+        structural = _sum_int([prompt.count(ch) for ch in _STRUCTURAL_CHARS])
         structural_density = structural / max(length, 1)
         structural_risk = min(1.0, structural_density * 40.0)
         marker_hits = self._count_marker_hits(prompt)
@@ -185,7 +188,7 @@ class PromptRiskScorer:
             if not matches:
                 return 0
             return len({m[0] for m in matches})
-        return sum(1 for p in _SYSTEM_STYLE_MARKERS if p.search(prompt))
+        return _sum_int([1 if pattern.search(prompt) else 0 for pattern in _SYSTEM_STYLE_MARKERS])
 
     @property
     def backend(self) -> str:
@@ -235,6 +238,17 @@ def _sum_float(values: list[float]) -> float:
     if _RUST_ROUTING:
         try:
             return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
+
+
+def _sum_int(values: list[int]) -> int:
+    if not values:
+        return 0
+    if _RUST_ROUTING:
+        try:
+            return int(rust_sum_i64(values))
         except Exception:
             pass
     return sum(values)
