@@ -11,6 +11,13 @@ from __future__ import annotations
 from dataclasses import dataclass, field, replace
 from typing import Protocol, cast
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_i64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 from ..scoring.scorer import CoherenceScorer
 
 __all__ = [
@@ -390,7 +397,7 @@ def tune(
     if best is None:
         raise ValueError("No valid tuning result — check that samples is non-empty")
 
-    positives = sum(1 for s in best_samples if s.label)
+    positives = _sum_int([1 if s.label else 0 for s in best_samples])
     negatives = len(best_samples) - positives
     ranked_candidates = tuple(_rank_candidates(evaluated))
     selection_margin = _selection_margin(best, ranked_candidates)
@@ -642,3 +649,10 @@ def _yaml_scalar(value: object) -> str:
     text = str(value)
     escaped = text.replace("\\", "\\\\").replace('"', '\\"')
     return f'"{escaped}"'
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
