@@ -128,20 +128,23 @@ class KeywordToxicityDetector(ModerationDetector):
         if not text:
             return ModerationResult(detector=self.name, matches=[])
         if self._rust_scanner is not None:
-            raw = self._rust_scanner.scan(text)
-            return ModerationResult(
-                detector=self.name,
-                matches=[
-                    ModerationMatch(
-                        detector=self.name,
-                        category=category,
-                        start=start,
-                        end=end,
-                        text=text,
-                    )
-                    for category, start, end in raw
-                ],
-            )
+            try:
+                raw = self._rust_scanner.scan(text)
+                return ModerationResult(
+                    detector=self.name,
+                    matches=[
+                        ModerationMatch(
+                            detector=self.name,
+                            category=category,
+                            start=start,
+                            end=end,
+                            text=text,
+                        )
+                        for category, start, end in raw
+                    ],
+                )
+            except Exception:
+                pass
         matches: list[ModerationMatch] = []
         for category, pattern in self._keyword_patterns:
             for m in pattern.finditer(text):
