@@ -32,6 +32,13 @@ import time
 from collections import Counter
 from dataclasses import dataclass, field
 
+try:
+    from backfire_kernel import rust_word_overlap
+
+    _RUST_LOOP_MONITOR = True
+except ImportError:
+    _RUST_LOOP_MONITOR = False
+
 __all__ = ["LoopMonitor", "StepVerdict", "LoopStatus"]
 
 
@@ -230,11 +237,14 @@ class LoopMonitor:
         Returns 0.0 (perfectly aligned) to 1.0 (completely off-topic).
         For production use, replace with NLI-based scorer.
         """
-        goal_words = set(goal.lower().split())
-        action_words = set(action_desc.lower().split())
-        if not goal_words or not action_words:
-            return 1.0
-        intersection = goal_words & action_words
-        union = goal_words | action_words
-        similarity = len(intersection) / len(union) if union else 0.0
+        if _RUST_LOOP_MONITOR:
+            similarity = float(rust_word_overlap(goal, action_desc))
+        else:
+            goal_words = set(goal.lower().split())
+            action_words = set(action_desc.lower().split())
+            if not goal_words or not action_words:
+                return 1.0
+            intersection = goal_words & action_words
+            union = goal_words | action_words
+            similarity = len(intersection) / len(union) if union else 0.0
         return 1.0 - similarity

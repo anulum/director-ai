@@ -10,6 +10,9 @@ from __future__ import annotations
 
 import hashlib
 
+import pytest
+
+import director_ai.agentic.loop_monitor as loop_monitor_mod
 from director_ai.agentic.loop_monitor import LoopMonitor
 
 
@@ -188,3 +191,24 @@ class TestJaccardDrift:
     def test_empty_strings(self):
         assert LoopMonitor._jaccard_drift("", "test") == 1.0
         assert LoopMonitor._jaccard_drift("test", "") == 1.0
+
+    def test_rust_delegation(self, monkeypatch):
+        monkeypatch.setattr(loop_monitor_mod, "_RUST_LOOP_MONITOR", True)
+        monkeypatch.setattr(
+            loop_monitor_mod,
+            "rust_word_overlap",
+            lambda goal, action: 0.8 if goal and action else 0.0,
+            raising=False,
+        )
+        score = LoopMonitor._jaccard_drift("find revenue", "find revenue quickly")
+        assert score == pytest.approx(0.2)
+
+    def test_rust_delegation_empty_inputs(self, monkeypatch):
+        monkeypatch.setattr(loop_monitor_mod, "_RUST_LOOP_MONITOR", True)
+        monkeypatch.setattr(
+            loop_monitor_mod,
+            "rust_word_overlap",
+            lambda goal, action: 0.0,
+            raising=False,
+        )
+        assert LoopMonitor._jaccard_drift("", "test") == 1.0
