@@ -170,9 +170,9 @@ class RandomWalkSpectrum:
             rust_total: float | None = None
             with contextlib.suppress(Exception):
                 rust_total = float(rust_sum_f64(distribution))
-            total = rust_total if rust_total is not None else sum(distribution)
+            total = rust_total if rust_total is not None else _sum_float(distribution)
         else:
-            total = sum(distribution)
+            total = _sum_float(distribution)
         if total > 0:
             distribution = [p / total for p in distribution]
         probabilities = {node: distribution[i] for i, node in enumerate(nodes)}
@@ -182,6 +182,15 @@ class RandomWalkSpectrum:
             converged=converged,
             spectral_gap=spectral_gap,
         )
+
+
+def _sum_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_SPECTRUM:
+        with contextlib.suppress(Exception):
+            return float(rust_sum_f64(values))
+    return sum(values)
 
 
 @dataclass(frozen=True)
