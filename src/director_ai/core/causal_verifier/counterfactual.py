@@ -23,6 +23,16 @@ from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
 from typing import Literal
 
+try:
+    from backfire_kernel import rust_sum_i64
+
+    _RUST_COUNTERFACTUAL = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_COUNTERFACTUAL = False
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 from ..types import (
     CounterfactualFactChange,
     CounterfactualHaltDiagnostic,
@@ -129,7 +139,7 @@ class CounterfactualVerifier:
             raise ValueError("at least one branch is required")
         return Verdict(
             total=len(results),
-            safe=sum(1 for b in results if b.outcome == "safe"),
+            safe=_sum_int([1 if b.outcome == "safe" else 0 for b in results]),
             unsafe_branches=tuple(unsafe_results),
         )
 
@@ -207,3 +217,12 @@ class CounterfactualVerifier:
             best_change=best_change,
             candidates=candidates,
         )
+
+
+def _sum_int(values: list[int]) -> int:
+    if _RUST_COUNTERFACTUAL:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
