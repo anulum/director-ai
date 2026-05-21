@@ -31,6 +31,16 @@ from typing import Any, cast
 
 from .types import FieldVerdict, StructuredVerificationResult
 
+try:
+    from backfire_kernel import rust_sum_i64
+
+    _RUST_JSON_VERIFY = True
+except ImportError:  # pragma: no cover - optional dependency
+    _RUST_JSON_VERIFY = False
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 __all__ = ["verify_json"]
 
 _NUMERIC_RE = re.compile(r"^-?\d+(\.\d+)?([eE][+-]?\d+)?$")
@@ -297,7 +307,7 @@ def verify_json(
                     )
                 )
 
-    error_count = sum(1 for v in verdicts if v.verdict != "valid")
+    error_count = _sum_int([1 if verdict.verdict != "valid" else 0 for verdict in verdicts])
 
     return StructuredVerificationResult(
         valid_json=True,
@@ -305,3 +315,12 @@ def verify_json(
         field_verdicts=verdicts,
         error_count=error_count,
     )
+
+
+def _sum_int(values: list[int]) -> int:
+    if _RUST_JSON_VERIFY:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
