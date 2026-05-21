@@ -30,6 +30,13 @@ import logging
 import time
 from dataclasses import dataclass, field
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_mean
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_mean(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
 __all__ = ["KBHealthCheck", "KBHealthReport"]
 
 logger = logging.getLogger("DirectorAI.KBHealth")
@@ -212,7 +219,7 @@ class KBHealthCheck:
                 self._store.retrieve_context(query)
             latencies.append((time.perf_counter() - t0) * 1000)
 
-        return sum(latencies) / len(latencies) if latencies else 0.0
+        return _mean_float(latencies) if latencies else 0.0
 
     def _check_retrieval_results(self) -> bool:
         """Check if at least one probe query returns results."""
@@ -243,3 +250,10 @@ class KBHealthCheck:
                 return int(self._store.backend.count())
             return self._check_document_count()
         return 0
+
+
+def _mean_float(values: list[float]) -> float:
+    try:
+        return float(rust_mean(values))
+    except Exception:
+        return sum(values) / len(values)
