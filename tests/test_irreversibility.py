@@ -190,6 +190,52 @@ class TestForecaster:
         forecast = f.forecast(["delete all staging data"], seed=0)
         assert isinstance(forecast, Forecast)
 
+    def test_rust_product_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", True)
+        called = {"count": 0}
+
+        def _product(values: list[float]) -> float:
+            called["count"] += 1
+            assert values == [0.5, 0.5]
+            return 0.25
+
+        monkeypatch.setattr(
+            forecaster_mod,
+            "rust_product_f64",
+            _product,
+            raising=True,
+        )
+
+        class _Half:
+            def score(
+                self, action: str, *, context: Mapping[str, object] | None = None
+            ) -> ReversibilityScore:
+                return ReversibilityScore(score=0.5, reason="half")
+
+        f = IrreversibilityForecaster(estimator=_Half(), n_samples=16, threshold=0.5)
+        forecast = f.forecast(["a", "b"], seed=3)
+        assert called["count"] == 1
+        assert forecast.samples == 16
+
+    def test_rust_product_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", True)
+        monkeypatch.setattr(
+            forecaster_mod,
+            "rust_product_f64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+
+        class _Half:
+            def score(
+                self, action: str, *, context: Mapping[str, object] | None = None
+            ) -> ReversibilityScore:
+                return ReversibilityScore(score=0.5, reason="half")
+
+        f = IrreversibilityForecaster(estimator=_Half(), n_samples=64, threshold=0.5)
+        forecast = f.forecast(["a", "b"], seed=9)
+        assert forecast.p_irreversible >= 0.6
+
 
 # --- Internal helpers -----------------------------------------------
 
