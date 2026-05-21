@@ -23,9 +23,30 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_MULTI_SCALE = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_MULTI_SCALE = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 from .scorer import Action, AlignmentScale, ScaleScorer
 
 _ORDER: tuple[AlignmentScale, ...] = ("agent", "swarm", "org", "planetary")
+
+
+def _sum_float(values: Sequence[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_MULTI_SCALE:
+        try:
+            return float(rust_sum_f64(list(values)))
+        except Exception:
+            pass
+    return sum(values)
 
 
 @dataclass(frozen=True)
@@ -116,7 +137,7 @@ class HierarchicalAligner:
                 raise ValueError(f"weight for unknown scale {scale!r}")
             if weight < 0:
                 raise ValueError(f"weight for scale {scale!r} must be non-negative")
-        total = sum(weights.get(scale, 0.0) for scale in self._scorers)
+        total = _sum_float([weights.get(scale, 0.0) for scale in self._scorers])
         if total <= 0:
             raise ValueError("weights must sum to a positive number")
         return {scale: weights.get(scale, 0.0) / total for scale in self._scorers}
@@ -126,7 +147,9 @@ class HierarchicalAligner:
         for scale, scorer in self._scorers.items():
             raw = float(scorer.score(action))
             scores[scale] = max(0.0, min(1.0, raw))
-        composite = sum(scores[scale] * self._weights[scale] for scale in self._scorers)
+        composite = _sum_float(
+            [scores[scale] * self._weights[scale] for scale in self._scorers]
+        )
         failing = tuple(
             scale
             for scale in _ORDER
