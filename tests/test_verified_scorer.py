@@ -259,6 +259,17 @@ class TestTraceability:
         score = _traceability("The sky is blue", "The sky is blue")
         assert 0.0 <= score <= 1.0
 
+    def test_rust_traceability_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_traceability",
+            lambda _a, _b: (_ for _ in ()).throw(TypeError("ffi fail")),
+            raising=False,
+        )
+        score = _traceability("The sky is blue", "The sky is blue")
+        assert 0.0 <= score <= 1.0
+
 
 class TestVerifiedScorer:
     def test_correct_claim_approved(self):
