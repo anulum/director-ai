@@ -131,6 +131,21 @@ class TestBuildChunks:
         chunks = scorer._build_chunks(sentences, budget=20, overlap_ratio=0.0)
         assert chunks
 
+    def test_build_chunks_falls_back_on_rust_type_error(self, monkeypatch):
+        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(
+            nli_mod,
+            "rust_build_chunks",
+            lambda _sentences, _budget, _overlap_ratio: (_ for _ in ()).throw(
+                TypeError("ffi signature mismatch")
+            ),
+            raising=True,
+        )
+        scorer = NLIScorer(use_model=False)
+        sentences = [f"Sentence {i} with enough words." for i in range(8)]
+        chunks = scorer._build_chunks(sentences, budget=20, overlap_ratio=0.0)
+        assert chunks
+
 
 class TestScoreChunked:
     def test_short_text_bypasses_chunking(self):
