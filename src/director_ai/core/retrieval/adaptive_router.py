@@ -177,7 +177,10 @@ def _detect_task_type_safe(query: str, response: str) -> str:
     (transparent Rust fast-path, ~2µs vs ~50µs Python regex).
     """
     if _RUST_AVAILABLE and _rust_task_type is not None:
-        return str(_rust_task_type(query, response))
+        try:
+            return str(_rust_task_type(query, response))
+        except Exception:
+            pass
     try:
         from director_ai.core.scoring._task_scoring import detect_task_type
 
