@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.emergence_oracle.oracle as oracle_mod
 from director_ai.core.emergence_oracle import (
     CommunityDetector,
     EmergenceOracle,
@@ -355,3 +356,28 @@ class TestEmergenceOracle:
     def test_constructor_validation(self, kwargs: dict, match: str):
         with pytest.raises(ValueError, match=match):
             EmergenceOracle(**kwargs)
+
+
+class TestEmergenceRustSums:
+    def test_rust_sum_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(oracle_mod, "_RUST_EMERGENCE", True)
+        called = {"count": 0}
+
+        def _sum(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(oracle_mod, "rust_sum_f64", _sum, raising=True)
+        total = oracle_mod._sum_float([0.25, 0.75])
+        assert total == pytest.approx(1.0)
+        assert called["count"] == 1
+
+    def test_rust_sum_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(oracle_mod, "_RUST_EMERGENCE", True)
+        monkeypatch.setattr(
+            oracle_mod,
+            "rust_sum_f64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        assert oracle_mod._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.0)
