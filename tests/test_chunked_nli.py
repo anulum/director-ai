@@ -80,6 +80,19 @@ class TestBuildChunks:
             second_words = set(chunks[1].split())
             assert first_words & second_words  # overlap exists
 
+    def test_rust_build_chunks_parity_when_available(self):
+        try:
+            from backfire_kernel import rust_build_chunks
+        except Exception:
+            pytest.skip("backfire_kernel rust_build_chunks unavailable")
+
+        scorer = NLIScorer(use_model=False)
+        sentences = [f"Sentence {i} with enough words." for i in range(8)]
+        for overlap_ratio in (0.0, 0.5):
+            py_chunks = scorer._build_chunks(sentences, budget=20, overlap_ratio=overlap_ratio)
+            rust_chunks = rust_build_chunks(sentences, 20, overlap_ratio)
+            assert list(rust_chunks) == py_chunks
+
 
 class TestScoreChunked:
     def test_short_text_bypasses_chunking(self):

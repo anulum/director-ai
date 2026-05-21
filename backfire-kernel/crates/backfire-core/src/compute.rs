@@ -22,6 +22,7 @@
 //! - [`score_temporal_freshness`] — temporal claim staleness risk
 //! - [`extract_reasoning_steps`] — reasoning chain step extraction
 //! - [`split_sentences`] — chunking sentence segmentation helper
+//! - [`build_chunks`] — chunk builder with optional overlap
 //! - [`word_overlap`] — Jaccard word overlap (heuristic NLI)
 //! - [`softmax`] — row-wise softmax for NLI logits
 //! - [`probs_to_divergence`] — NLI probability → divergence score
@@ -527,6 +528,78 @@ pub fn split_sentences(text: &str) -> Vec<String> {
     }
 
     out.into_iter().filter(|s| !s.trim().is_empty()).collect()
+}
+
+fn estimate_tokens(text: &str) -> usize {
+    text.len() / 4 + 1
+}
+
+/// Build sentence chunks under a token budget with optional overlap ratio.
+///
+/// Mirrors `NLIScorer._build_chunks()` and overlap behaviour in
+/// `NLIScorer._build_chunks_overlap()`.
+pub fn build_chunks(sentences: &[String], budget: usize, overlap_ratio: f64) -> Vec<String> {
+    if overlap_ratio > 0.0 {
+        let mut chunks: Vec<String> = Vec::new();
+        let mut i = 0usize;
+        while i < sentences.len() {
+            let mut current: Vec<String> = Vec::new();
+            let mut current_tokens = 0usize;
+            let mut j = i;
+
+            while j < sentences.len() {
+                let st = estimate_tokens(&sentences[j]);
+                if !current.is_empty() && current_tokens + st > budget {
+                    break;
+                }
+                current.push(sentences[j].clone());
+                current_tokens += st;
+                j += 1;
+            }
+
+            if current.is_empty() {
+                current.push(sentences[i].clone());
+            }
+
+            chunks.push(current.join(" "));
+            let stride = ((current.len() as f64) * (1.0 - overlap_ratio)).floor() as usize;
+            i += stride.max(1);
+        }
+
+        if chunks.is_empty() {
+            return vec![sentences.join(" ")];
+        }
+        return chunks;
+    }
+
+    let mut chunks: Vec<String> = Vec::new();
+    let mut current: Vec<String> = Vec::new();
+    let mut current_tokens = 0usize;
+
+    for sent in sentences {
+        let sent_tokens = estimate_tokens(sent);
+        if !current.is_empty() && current_tokens + sent_tokens > budget {
+            chunks.push(current.join(" "));
+            let prev_last = current
+                .last()
+                .cloned()
+                .expect("non-empty current must have a last sentence");
+            current = vec![prev_last];
+            current_tokens = estimate_tokens(&current[0]);
+        }
+        current.push(sent.clone());
+        current_tokens += sent_tokens;
+    }
+
+    if !current.is_empty() {
+        chunks.push(current.join(" "));
+    }
+
+    if chunks.is_empty() {
+        vec![sentences.join(" ")]
+    } else {
+        chunks
+    }
 }
 
 // ── Reasoning verifier helpers ──────────────────────────────────────
@@ -1373,5 +1446,34 @@ mod tests {
         let s = split_sentences("Dr. Smith arrived. We started.");
         assert_eq!(s.len(), 2);
         assert_eq!(s[0], "Dr. Smith arrived.");
+    }
+
+    #[test]
+    fn test_build_chunks_non_overlap() {
+        let sentences = vec![
+            "Sentence one is long enough.".to_string(),
+            "Sentence two is long enough.".to_string(),
+            "Sentence three is long enough.".to_string(),
+        ];
+        let chunks = build_chunks(&sentences, 10, 0.0);
+        assert!(!chunks.is_empty());
+    }
+
+    #[test]
+    fn test_build_chunks_overlap() {
+        let sentences = vec![
+            "One.".to_string(),
+            "Two.".to_string(),
+            "Three.".to_string(),
+            "Four.".to_string(),
+        ];
+        let chunks = build_chunks(&sentences, 5, 0.5);
+        assert!(!chunks.is_empty());
+    }
+
+    #[test]
+    fn test_build_chunks_empty() {
+        let chunks = build_chunks(&[], 100, 0.0);
+        assert_eq!(chunks, vec!["".to_string()]);
     }
 }

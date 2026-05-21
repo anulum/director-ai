@@ -499,6 +499,7 @@ Tests cover:
 - `rust_heuristic_logical_divergence`: fallback logical-divergence parity
 - `rust_heuristic_factual_divergence`: fallback factual-divergence parity
 - `rust_split_sentences`: NLI chunking sentence splitter fast-path
+- `rust_build_chunks`: NLI chunk builder fast-path with overlap routing
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 

@@ -267,6 +267,18 @@ class TestRustSplitSentences:
         assert result[0] == "Dr. Smith arrived."
 
 
+class TestRustBuildChunks:
+    def test_non_overlap(self):
+        sentences = ["One sentence.", "Two sentence.", "Three sentence."]
+        result = backfire_kernel.rust_build_chunks(sentences, 10, 0.0)
+        assert len(result) >= 1
+
+    def test_overlap(self):
+        sentences = ["One sentence.", "Two sentence.", "Three sentence.", "Four sentence."]
+        result = backfire_kernel.rust_build_chunks(sentences, 10, 0.5)
+        assert len(result) >= 1
+
+
 # â”€â”€ RustUPDEStepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 

@@ -40,6 +40,7 @@ from ..model_revisions import (
 
 try:
     from backfire_kernel import (
+        rust_build_chunks,
         rust_probs_to_confidence,
         rust_probs_to_divergence,
         rust_softmax,
@@ -70,6 +71,14 @@ except ImportError:
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise when Rust sentence splitter accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
+
+    def rust_build_chunks(
+        _sentences: list[str],
+        _budget: int,
+        _overlap_ratio: float,
+    ) -> list[str]:
+        """Raise when Rust chunk builder accelerator is unavailable."""
+        raise RuntimeError("backfire_kernel rust_build_chunks is unavailable")
 
 
 from ._nli_export import (
@@ -952,6 +961,11 @@ class NLIScorer:
         ``(1 - overlap_ratio) * chunk_length`` position. With the
         default ``overlap_ratio=0``, uses 1-sentence overlap (legacy).
         """
+        if _RUST_NLI:
+            try:
+                return list(rust_build_chunks(sentences, budget, overlap_ratio))
+            except RuntimeError:
+                pass
         if overlap_ratio > 0:
             return self._build_chunks_overlap(sentences, budget, overlap_ratio)
 
@@ -979,6 +993,11 @@ class NLIScorer:
         overlap_ratio: float,
     ) -> list[str]:
         """Sliding-window chunking with configurable token overlap."""
+        if _RUST_NLI:
+            try:
+                return list(rust_build_chunks(sentences, budget, overlap_ratio))
+            except RuntimeError:
+                pass
         chunks: list[str] = []
         i = 0
         while i < len(sentences):
