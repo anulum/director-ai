@@ -33,7 +33,7 @@ from collections.abc import AsyncIterator, Awaitable, Callable
 from typing import cast
 
 from .kernel import HaltMonitor
-from .streaming import StreamSession, TokenEvent, _trend_drop
+from .streaming import StreamSession, TokenEvent, _mean, _trend_drop
 
 logger = logging.getLogger("DirectorAI.AsyncStreaming")
 
@@ -184,7 +184,7 @@ class AsyncStreamingKernel(HaltMonitor):
                     score = last_score
                 last_score = score
                 if self.adaptive:
-                    w_avg = sum(window) / len(window) if window else score
+                    w_avg = _mean(window) if window else score
                     if w_avg > self.soft_limit and cadence < self.max_cadence:
                         cadence = min(cadence + 1, self.max_cadence)
                     elif score < self.soft_limit:
@@ -245,7 +245,7 @@ class AsyncStreamingKernel(HaltMonitor):
             # Sliding window average
             halt_reason = ""
             if len(window) >= self.window_size:
-                avg = sum(window) / len(window)
+                avg = _mean(window)
                 if avg < self.window_threshold:
                     halt_reason = "window_avg"
 
@@ -254,7 +254,7 @@ class AsyncStreamingKernel(HaltMonitor):
                 recent = coherence_history[-self.trend_window :]
                 n = len(recent)
                 x_mean = (n - 1) / 2.0
-                y_mean = sum(recent) / n
+                y_mean = _mean(recent)
                 num = sum((j - x_mean) * (y - y_mean) for j, y in enumerate(recent))
                 den = sum((j - x_mean) ** 2 for j in range(n))
                 slope = num / den if den > 1e-12 else 0.0
@@ -314,7 +314,7 @@ class AsyncStreamingKernel(HaltMonitor):
             return f"hard_limit ({event.coherence:.4f} < {self.hard_limit})"
         if len(session.coherence_history) >= self.window_size:
             window = session.coherence_history[-self.window_size :]
-            avg = sum(window) / len(window)
+            avg = _mean(window)
             if avg < self.window_threshold:  # pragma: no branch
                 return f"window_avg ({avg:.4f} < {self.window_threshold})"
         if len(session.coherence_history) >= self.trend_window:
