@@ -23,6 +23,16 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_CONTINUAL_ADV = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_CONTINUAL_ADV = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 from .suite import AdversarialCase
 
 _FNV_OFFSET = 0xCBF29CE484222325
@@ -42,8 +52,8 @@ class TrainedAdversaryScorer:
 
     def score(self, prompt: str) -> float:
         features = _hash_bag(prompt, self.dim)
-        margin = self.bias + sum(
-            w * f for w, f in zip(self.weights, features, strict=True)
+        margin = self.bias + _sum_float(
+            [w * f for w, f in zip(self.weights, features, strict=True)]
         )
         return 1.0 / (1.0 + math.exp(-margin))
 
@@ -112,8 +122,8 @@ class PerceptronAdversaryScorer:
         for _ in range(self._epochs):
             for prompt, target in labelled:
                 features = _hash_bag(prompt, self._dim)
-                margin = bias + sum(
-                    w * f for w, f in zip(weights, features, strict=True)
+                margin = bias + _sum_float(
+                    [w * f for w, f in zip(weights, features, strict=True)]
                 )
                 prediction = 1.0 / (1.0 + math.exp(-margin))
                 error = float(target) - prediction
@@ -123,9 +133,15 @@ class PerceptronAdversaryScorer:
                 bias += self._lr * error
         correct = 0
         for prompt, target in labelled:
-            margin = bias + sum(
-                w * f
-                for w, f in zip(weights, _hash_bag(prompt, self._dim), strict=True)
+            margin = bias + _sum_float(
+                [
+                    w * f
+                    for w, f in zip(
+                        weights,
+                        _hash_bag(prompt, self._dim),
+                        strict=True,
+                    )
+                ]
             )
             pred = 1 if margin >= 0 else 0
             if pred == target:
@@ -150,8 +166,19 @@ def _hash_bag(text: str, dim: int) -> tuple[float, ...]:
             h ^= byte
             h = (h * _FNV_PRIME) & _UINT64_MASK
         bag[h % dim] += 1.0
-    norm = math.sqrt(sum(x * x for x in bag))
+    norm = math.sqrt(_sum_float([x * x for x in bag]))
     if norm == 0.0:
         return tuple(bag)
     inv = 1.0 / norm
     return tuple(x * inv for x in bag)
+
+
+def _sum_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_CONTINUAL_ADV:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
