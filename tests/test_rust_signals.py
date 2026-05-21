@@ -13,6 +13,7 @@ and against the Rust implementation when it is.
 
 from __future__ import annotations
 
+import director_ai.core.runtime.streaming as streaming_mod
 from director_ai.core.runtime.streaming import _trend_drop
 from director_ai.core.scoring.verified_scorer import (
     _entity_overlap,
@@ -144,6 +145,17 @@ class TestTrendDrop:
 
     def test_empty(self):
         assert _trend_drop([]) == 0.0
+
+    def test_rust_trend_drop_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
+        monkeypatch.setattr(
+            streaming_mod,
+            "_rust_trend_drop",
+            lambda _values: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        drop = _trend_drop([0.9, 0.7, 0.5, 0.3, 0.1])
+        assert drop > 0.5
 
 
 class TestRustDispatch:
