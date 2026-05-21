@@ -1133,7 +1133,7 @@ class NLIScorer:
                 metrics.observe("nli_premise_chunks", n_prem)
                 metrics.observe("nli_hypothesis_chunks", n_hyp)
                 return float(agg_rust), [float(v) for v in per_hyp_rust], n_prem, n_hyp
-            except RuntimeError:
+            except Exception:
                 pass
 
         per_hyp: list[float] = []
@@ -1353,7 +1353,7 @@ class NLIScorer:
                     inner_agg,
                 )
                 return float(agg_rust), [float(v) for v in per_hyp_rust]
-            except RuntimeError:
+            except Exception:
                 pass
 
         per_hyp: list[float] = []

@@ -309,6 +309,21 @@ class TestScoreChunked:
         assert float(agg_rust) == pytest.approx(agg_py, abs=1e-12)
         assert [float(v) for v in per_hyp_rust] == pytest.approx(per_hyp_py, abs=1e-12)
 
+    def test_chunk_aggregation_falls_back_on_non_runtime_rust_error(self, monkeypatch):
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Evidence {i} text" for i in range(20)) + "."
+        long_hyp = ". ".join(f"Claim {i} text" for i in range(20)) + "."
+
+        monkeypatch.setattr(
+            "director_ai.core.scoring.nli.rust_aggregate_chunk_scores",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("boom")),
+        )
+        agg, per_hyp, np, nh = scorer._score_chunked_with_counts(long_prem, long_hyp)
+        assert np > 1
+        assert nh > 1
+        assert len(per_hyp) == nh
+        assert 0.0 <= agg <= 1.0
+
     def test_premise_ratio_reduces_premise_chunks(self):
         """Higher premise_ratio gives more premise budget â†’ fewer premise chunks."""
         scorer = NLIScorer(use_model=False, max_length=64)
@@ -411,3 +426,16 @@ class TestScoreChunked:
 
         assert float(agg_rust) == pytest.approx(agg_py, abs=1e-12)
         assert [float(v) for v in per_hyp_rust] == pytest.approx(per_hyp_py, abs=1e-12)
+
+    def test_confidence_weighted_falls_back_on_non_runtime_rust_error(self, monkeypatch):
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Source {i} content" for i in range(20)) + "."
+        long_hyp = ". ".join(f"Claim {i} detail" for i in range(20)) + "."
+
+        monkeypatch.setattr(
+            "director_ai.core.scoring.nli.rust_aggregate_chunk_scores_confidence_weighted",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("boom")),
+        )
+        agg, per_hyp = scorer.score_chunked_confidence_weighted(long_prem, long_hyp, inner_agg="max")
+        assert per_hyp
+        assert 0.0 <= agg <= 1.0
