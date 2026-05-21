@@ -35,11 +35,14 @@ from dataclasses import dataclass, field
 __all__ = ["InputSanitizer", "SanitizeResult"]
 
 try:
-    from backfire_kernel import rust_has_suspicious_unicode
+    from backfire_kernel import rust_has_suspicious_unicode, rust_sum_i64
 
     _RUST_SANITIZER = True
 except ImportError:
     _RUST_SANITIZER = False
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     (
@@ -311,7 +314,9 @@ def _is_base64_payload_token(token: str) -> bool:
         return False
     if len(decoded) < 24:
         return False
-    printable = sum(byte in b"\n\r\t" or 32 <= byte <= 126 for byte in decoded)
+    printable = _sum_int(
+        [1 if (byte in b"\n\r\t" or 32 <= byte <= 126) else 0 for byte in decoded]
+    )
     if printable / len(decoded) < 0.85:
         return False
     decoded_text = decoded.decode("utf-8", errors="ignore").lower()
@@ -321,3 +326,12 @@ def _is_base64_payload_token(token: str) -> bool:
     ):
         return True
     return len(decoded) >= 32
+
+
+def _sum_int(values: list[int]) -> int:
+    if _RUST_SANITIZER:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
