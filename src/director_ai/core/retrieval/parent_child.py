@@ -33,6 +33,13 @@ import logging
 import threading
 from typing import Any
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_i64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 from director_ai.core.retrieval.doc_chunker import ChunkConfig, split
 from director_ai.core.retrieval.vector_store import VectorBackend
 
@@ -134,7 +141,7 @@ class ParentChildBackend(VectorBackend):
             "Added %s: %d parents, %d total children",
             doc_id,
             len(parents),
-            sum(len(split(p, child_cfg)) for p in parents),
+            _sum_int([len(split(parent_text, child_cfg)) for parent_text in parents]),
         )
 
     def query(
@@ -208,3 +215,10 @@ def _validate_chunk_window(size: int, overlap: int, label: str) -> None:
         raise ValueError(f"{label}_overlap must be non-negative")
     if overlap >= size:
         raise ValueError(f"{label}_overlap must be smaller than {label}_size")
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
