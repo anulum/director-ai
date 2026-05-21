@@ -34,6 +34,16 @@ import math
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_EMERGENCE = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_EMERGENCE = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 from .graph import InteractionGraph, SwarmEvent
 from .spectrum import (
     CommunityAssignment,
@@ -41,6 +51,17 @@ from .spectrum import (
     RandomWalkSpectrum,
     StationaryDistribution,
 )
+
+
+def _sum_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_EMERGENCE:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 @dataclass(frozen=True)
@@ -102,7 +123,7 @@ class EmergenceOracle:
         for w in weights:
             if w < 0:
                 raise ValueError("weights must be non-negative")
-        total = sum(weights)
+        total = _sum_float(list(weights))
         if not 0.999 <= total <= 1.001:
             raise ValueError(f"weights must sum to 1.0; got {total}")
         self._spectrum = spectrum or RandomWalkSpectrum()
@@ -128,7 +149,7 @@ class EmergenceOracle:
                 top_hubs=(),
             )
         top_hubs = stationary.top_nodes(k=min(self._top_k, graph.node_count))
-        attractor_mass = sum(p for _, p in top_hubs)
+        attractor_mass = _sum_float([p for _, p in top_hubs])
         # Normalised deviation above a uniform expectation — so a
         # uniform distribution returns 0 and full concentration
         # returns ~1.
@@ -137,10 +158,12 @@ class EmergenceOracle:
             1.0 - expected_mass, 1e-9
         )
         imbalance = _community_imbalance(communities, graph)
-        risk = (
-            self._weight_attractor * attractor_excess
-            + self._weight_cycle * (1.0 if cycle_detected else 0.0)
-            + self._weight_imbalance * imbalance
+        risk = _sum_float(
+            [
+                self._weight_attractor * attractor_excess,
+                self._weight_cycle * (1.0 if cycle_detected else 0.0),
+                self._weight_imbalance * imbalance,
+            ]
         )
         risk = max(0.0, min(1.0, risk))
         return EmergenceVerdict(
