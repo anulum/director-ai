@@ -192,3 +192,14 @@ class TestRustUnicodeFallback:
         )
         text = "\u200b" * 20 + "hello"
         assert InputSanitizer._has_suspicious_unicode(text) is True
+
+    def test_rust_unicode_non_runtime_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(sanitizer_mod, "_RUST_SANITIZER", True)
+        monkeypatch.setattr(
+            sanitizer_mod,
+            "rust_has_suspicious_unicode",
+            lambda _text: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        text = "\u200b" * 20 + "hello"
+        assert InputSanitizer._has_suspicious_unicode(text) is True
