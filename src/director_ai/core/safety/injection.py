@@ -34,6 +34,7 @@ try:
     from backfire_kernel import (
         rust_bidirectional_divergence,
         rust_injection_verdict,
+        rust_split_sentences,
     )
 
     _RUST_INJECTION = True
@@ -430,5 +431,12 @@ class InjectionDetector:
 
 def _fallback_split(text: str) -> list[str]:
     """Sentence splitting without NLI scorer — period-based fallback."""
+    if _RUST_INJECTION:
+        try:
+            sentences = [s for s in rust_split_sentences(text) if s.strip()]
+            if sentences:
+                return sentences
+        except RuntimeError:
+            pass
     sentences = [s.strip() + "." for s in text.split(".") if s.strip()]
     return sentences if sentences else [text.strip()] if text.strip() else []

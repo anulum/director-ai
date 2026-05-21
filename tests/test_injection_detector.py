@@ -493,6 +493,30 @@ class TestFallbackSplit:
         result = _fallback_split("No periods here")
         assert result == ["No periods here."]
 
+    def test_rust_sentence_splitter_path(self, monkeypatch):
+        monkeypatch.setattr("director_ai.core.safety.injection._RUST_INJECTION", True)
+        monkeypatch.setattr(
+            "director_ai.core.safety.injection.rust_split_sentences",
+            lambda text: ["Rust split A.", "Rust split B."],
+            raising=False,
+        )
+        result = _fallback_split("ignored")
+        assert result == ["Rust split A.", "Rust split B."]
+
+    def test_rust_sentence_splitter_runtime_fallback(self, monkeypatch):
+        monkeypatch.setattr("director_ai.core.safety.injection._RUST_INJECTION", True)
+
+        def _raise_runtime(text):
+            raise RuntimeError("ffi unavailable")
+
+        monkeypatch.setattr(
+            "director_ai.core.safety.injection.rust_split_sentences",
+            _raise_runtime,
+            raising=False,
+        )
+        result = _fallback_split("One sentence. Two sentence.")
+        assert result == ["One sentence.", "Two sentence."]
+
 
 # -- Performance (mock) -------------------------------------------------------
 
