@@ -25,6 +25,16 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import TypedDict
 
+try:
+    from backfire_kernel import rust_sum_i64
+
+    _RUST_META_GUARD = True
+except ImportError:  # pragma: no cover - optional dependency
+    _RUST_META_GUARD = False
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 from .adjuster import ThresholdAdjuster, ThresholdBundle
 from .analyzer import MetaAnalysis, MetaAnalyzer
 from .log import DecisionLog, ScoringAction, ScoringDecision
@@ -250,7 +260,7 @@ def _window_metrics(window: Sequence[ScoringDecision]) -> _WindowMetrics:
             "duplicate_prompt_fraction": 0.0,
             "evasion_score": 0.0,
         }
-    labelled = sum(1 for decision in window if decision.ground_truth is not None)
+    labelled = _sum_int([1 if decision.ground_truth is not None else 0 for decision in window])
     tenant_counts = Counter(decision.tenant_id for decision in window)
     prompt_counts = Counter(decision.prompt_hash for decision in window)
     single_tenant_fraction = max(tenant_counts.values()) / size
@@ -268,3 +278,12 @@ def _window_metrics(window: Sequence[ScoringDecision]) -> _WindowMetrics:
 def _validate_fraction(name: str, value: float) -> None:
     if not 0.0 <= value <= 1.0:
         raise ValueError(f"{name} must be in [0, 1]")
+
+
+def _sum_int(values: list[int]) -> int:
+    if _RUST_META_GUARD:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
