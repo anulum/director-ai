@@ -24,6 +24,7 @@ try:
     from backfire_kernel import (
         rust_coverage_from_divergences,
         rust_detect_task_type,
+        rust_sum_i64,
         rust_split_sentences,
     )
 
@@ -41,6 +42,10 @@ except ImportError:
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise when the Rust sentence splitter is unavailable."""
         raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        """Raise when the Rust integer adder is unavailable."""
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 logger = logging.getLogger("DirectorAI")
 
@@ -315,6 +320,13 @@ def minicheck_claim_coverage(
             return float(coverage), divs, sentences
         except Exception:
             pass
-    supported = sum(1 for d in divs if d < 0.5)
+    supported = _sum_int([1 if d < 0.5 else 0 for d in divs])
     coverage = supported / len(sentences)
     return coverage, divs, sentences
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
