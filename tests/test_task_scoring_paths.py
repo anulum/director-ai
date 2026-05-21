@@ -66,6 +66,18 @@ class TestTaskDetectionFallback:
         )
         assert detect_task_type("What is the deployment status?", "Answer") == "qa"
 
+    def test_rust_detector_non_runtime_exception_falls_back_to_python(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(
+            _task_scoring,
+            "rust_detect_task_type",
+            lambda _prompt, _response: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        assert detect_task_type("What is the deployment status?", "Answer") == "qa"
+
     def test_python_dialogue_detection_precedes_summarisation(self, monkeypatch):
         monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
 
