@@ -1035,6 +1035,28 @@ class TestCommitmentBackend:
         assert first == second
         assert len(set(first)) == 5
 
+    def test_rust_challenge_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(backends_mod, "_RUST_CHALLENGE_AVAILABLE", True)
+        monkeypatch.setattr(
+            backends_mod,
+            "_rust_derive_challenge_indices",
+            lambda *_args: (_ for _ in ()).throw(TypeError("ffi fail")),
+            raising=False,
+        )
+
+        first = CommitmentBackend._pick_challenge(
+            seed_material=b"root-c",
+            sample_count=17,
+            challenge_size=5,
+        )
+        second = CommitmentBackend._pick_challenge(
+            seed_material=b"root-c",
+            sample_count=17,
+            challenge_size=5,
+        )
+        assert first == second
+        assert len(set(first)) == 5
+
     @staticmethod
     def _single_leaf_proof_for_backend(serialised: str) -> CommitmentProof:
         blind = b"C" * 16
