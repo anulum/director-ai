@@ -193,6 +193,19 @@ class TestChunker:
         assert calls == [text]
         assert chunks
 
+    def test_semantic_mode_rust_sentence_split_exception_falls_back(self, monkeypatch):
+        def _boom(_text: str) -> list[str]:
+            raise RuntimeError("ffi fail")
+
+        monkeypatch.setattr(doc_chunker, "_RUST_DOC_CHUNKER", True)
+        monkeypatch.setattr(doc_chunker, "rust_split_sentences", _boom)
+        monkeypatch.setattr(doc_chunker, "_embed_sentences", lambda _s: None)
+
+        text = "Alpha sentence. Beta sentence. Gamma sentence."
+        chunks = split(text, ChunkConfig(chunk_size=25, overlap=0, semantic=True))
+
+        assert chunks
+
 
 class TestParser:
     @pytest.mark.parametrize(

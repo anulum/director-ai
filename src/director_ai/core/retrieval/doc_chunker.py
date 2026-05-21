@@ -159,7 +159,10 @@ def _semantic_split(text: str, cfg: ChunkConfig) -> list[str]:
     import numpy as np
 
     if _RUST_DOC_CHUNKER:
-        sentences = [s.strip() for s in rust_split_sentences(text) if s.strip()]
+        try:
+            sentences = [s.strip() for s in rust_split_sentences(text) if s.strip()]
+        except Exception:
+            sentences = [s.strip() for s in _SENT_RE.split(text) if s.strip()]
     else:
         sentences = [s.strip() for s in _SENT_RE.split(text) if s.strip()]
     if len(sentences) <= 1:
