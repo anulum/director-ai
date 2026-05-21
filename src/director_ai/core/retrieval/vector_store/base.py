@@ -235,7 +235,13 @@ class InMemoryBackend(VectorBackend):
         scored: list[tuple[float, dict[str, Any]]] = []
         for doc in docs:
             if _RUST_VECTOR_BASE:
-                similarity = float(rust_word_overlap(text, doc["text"]))
+                try:
+                    similarity = float(rust_word_overlap(text, doc["text"]))
+                except Exception:
+                    doc_words = set(_strip.sub("", doc["text"]).lower().split())
+                    overlap = len(query_words & doc_words)
+                    total = max(len(query_words | doc_words), 1)
+                    similarity = overlap / total
             else:
                 doc_words = set(_strip.sub("", doc["text"]).lower().split())
                 overlap = len(query_words & doc_words)
