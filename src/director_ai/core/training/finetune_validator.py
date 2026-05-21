@@ -28,6 +28,13 @@ from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_i64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 logger = logging.getLogger("DirectorAI.FinetuneValidator")
 
 MIN_SAMPLES = 500
@@ -174,8 +181,10 @@ def validate_finetune_data(
     report.class_balance_ratio = min_class / max_class if max_class > 0 else 0.0
 
     # Length stats
-    report.avg_premise_tokens = sum(premise_lengths) // len(premise_lengths)
-    report.avg_hypothesis_tokens = sum(hypothesis_lengths) // len(hypothesis_lengths)
+    report.avg_premise_tokens = _sum_int(premise_lengths) // len(premise_lengths)
+    report.avg_hypothesis_tokens = _sum_int(hypothesis_lengths) // len(
+        hypothesis_lengths
+    )
     report.max_premise_tokens = max(premise_lengths)
     report.max_hypothesis_tokens = max(hypothesis_lengths)
 
@@ -234,3 +243,10 @@ def validate_finetune_data(
         len(report.errors),
     )
     return report
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
