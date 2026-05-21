@@ -252,13 +252,7 @@ class AsyncStreamingKernel(HaltMonitor):
             # Downward trend (linear regression, matching sync kernel)
             if not halt_reason and len(coherence_history) >= self.trend_window:
                 recent = coherence_history[-self.trend_window :]
-                n = len(recent)
-                x_mean = (n - 1) / 2.0
-                y_mean = _mean(recent)
-                num = sum((j - x_mean) * (y - y_mean) for j, y in enumerate(recent))
-                den = sum((j - x_mean) ** 2 for j in range(n))
-                slope = num / den if den > 1e-12 else 0.0
-                if -slope * (n - 1) > self.trend_threshold:
+                if _trend_drop(recent) > self.trend_threshold:
                     halt_reason = "downward_trend"
 
             if halt_reason:
