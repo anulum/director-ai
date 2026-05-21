@@ -41,6 +41,19 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
 
+try:
+    from backfire_kernel import rust_sum_f64, rust_sum_i64
+
+    _RUST_FINETUNE = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_FINETUNE = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 from ..model_revisions import resolve_model_revision
 
 logger = logging.getLogger("DirectorAI.FineTune")
@@ -175,7 +188,7 @@ def _mix_general_data(
 def _compute_class_weights(rows: list[dict]) -> list[float]:
     """Compute inverse-frequency class weights for imbalanced datasets."""
     counts = Counter(r["label"] for r in rows)
-    total = sum(counts.values())
+    total = _sum_int(list(counts.values()))
     n_classes = len(counts)
     weights = []
     for label in sorted(counts.keys()):
@@ -262,7 +275,7 @@ def _balanced_accuracy(labels, preds) -> float:
             recalls.append(0.0)
             continue
         recalls.append(float((preds_arr[mask] == cls).sum()) / denom)
-    return float(sum(recalls) / len(recalls))
+    return float(_sum_float(recalls) / len(recalls))
 
 
 def _binary_f1_score(labels, preds) -> float:
@@ -282,6 +295,24 @@ def _binary_f1_score(labels, preds) -> float:
     if precision + recall == 0:
         return 0.0
     return float(2 * precision * recall / (precision + recall))
+
+
+def _sum_int(values: list[int]) -> int:
+    if _RUST_FINETUNE:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
+
+
+def _sum_float(values: list[float]) -> float:
+    if _RUST_FINETUNE:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 def _make_weighted_trainer_class(class_weights: list[float]):
