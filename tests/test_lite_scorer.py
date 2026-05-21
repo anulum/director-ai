@@ -195,3 +195,14 @@ class TestLiteScorerRustFallback:
         result = LiteScorer().score_batch([("a", "b"), ("x", "y")])
         assert len(result) == 2
         assert all(0.0 <= value <= 1.0 for value in result)
+
+    def test_batch_falls_back_when_rust_ffi_raises_type_error(self, monkeypatch):
+        monkeypatch.setattr(lite_mod, "_RUST_LITE", True)
+
+        def _boom(_pairs):
+            raise TypeError("ffi fail")
+
+        monkeypatch.setattr(lite_mod, "rust_lite_score_batch", _boom, raising=False)
+        result = LiteScorer().score_batch([("a", "b"), ("x", "y")])
+        assert len(result) == 2
+        assert all(0.0 <= value <= 1.0 for value in result)
