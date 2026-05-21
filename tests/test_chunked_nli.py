@@ -348,3 +348,39 @@ class TestScoreChunked:
         )
         assert len(per_hyp) == 1
         assert agg == per_hyp[0]
+
+    def test_rust_confidence_weighted_aggregation_parity_when_available(self):
+        try:
+            from backfire_kernel import rust_aggregate_chunk_scores_confidence_weighted
+        except Exception:
+            pytest.skip(
+                "backfire_kernel rust_aggregate_chunk_scores_confidence_weighted unavailable"
+            )
+
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Source {i} content" for i in range(20)) + "."
+        long_hyp = ". ".join(f"Claim {i} detail" for i in range(20)) + "."
+        agg_py, per_hyp_py = scorer.score_chunked_confidence_weighted(
+            long_prem,
+            long_hyp,
+            inner_agg="max",
+        )
+
+        hyp_budget = int(scorer.max_length * (1 - 0.4))
+        prem_budget = int(scorer.max_length * 0.4)
+        hyp_chunks = scorer._build_chunks(scorer._split_sentences(long_hyp), hyp_budget, 0.0)
+        prem_chunks = scorer._build_chunks(scorer._split_sentences(long_prem), prem_budget, 0.0)
+        pairs = [(pc, hc) for pc in prem_chunks for hc in hyp_chunks]
+        with_conf = scorer.score_batch_with_confidence(pairs)
+        flat_scores = [float(s) for s, _ in with_conf]
+        flat_conf = [float(c) for _, c in with_conf]
+        agg_rust, per_hyp_rust = rust_aggregate_chunk_scores_confidence_weighted(
+            flat_scores,
+            flat_conf,
+            len(prem_chunks),
+            len(hyp_chunks),
+            "max",
+        )
+
+        assert float(agg_rust) == pytest.approx(agg_py, abs=1e-12)
+        assert [float(v) for v in per_hyp_rust] == pytest.approx(per_hyp_py, abs=1e-12)

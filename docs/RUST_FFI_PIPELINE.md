@@ -501,6 +501,7 @@ Tests cover:
 - `rust_split_sentences`: NLI chunking sentence splitter fast-path
 - `rust_build_chunks`: NLI chunk builder fast-path with overlap routing
 - `rust_aggregate_chunk_scores`: NLI chunk matrix aggregation fast-path
+- `rust_aggregate_chunk_scores_confidence_weighted`: weighted chunk aggregation fast-path
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 

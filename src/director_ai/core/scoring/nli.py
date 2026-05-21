@@ -41,6 +41,7 @@ from ..model_revisions import (
 try:
     from backfire_kernel import (
         rust_aggregate_chunk_scores,
+        rust_aggregate_chunk_scores_confidence_weighted,
         rust_build_chunks,
         rust_probs_to_confidence,
         rust_probs_to_divergence,
@@ -78,6 +79,18 @@ except ImportError:
     ) -> tuple[float, list[float]]:
         """Raise when Rust chunk aggregator accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_aggregate_chunk_scores is unavailable")
+
+    def rust_aggregate_chunk_scores_confidence_weighted(
+        _flat_scores: list[float],
+        _flat_confidences: list[float],
+        _n_prem: int,
+        _n_hyp: int,
+        _inner_agg: str,
+    ) -> tuple[float, list[float]]:
+        """Raise when Rust weighted chunk aggregator is unavailable."""
+        raise RuntimeError(
+            "backfire_kernel rust_aggregate_chunk_scores_confidence_weighted is unavailable"
+        )
 
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise when Rust sentence splitter accelerator is unavailable."""
@@ -1311,6 +1324,21 @@ class NLIScorer:
 
         n_prem = len(prem_chunks)
         n_hyp = len(hyp_chunks)
+        if _RUST_NLI:
+            try:
+                flat_scores = [float(v[0]) for v in results_with_conf]
+                flat_conf = [float(v[1]) for v in results_with_conf]
+                agg_rust, per_hyp_rust = rust_aggregate_chunk_scores_confidence_weighted(
+                    flat_scores,
+                    flat_conf,
+                    n_prem,
+                    n_hyp,
+                    inner_agg,
+                )
+                return float(agg_rust), [float(v) for v in per_hyp_rust]
+            except RuntimeError:
+                pass
+
         per_hyp: list[float] = []
         per_hyp_conf: list[float] = []
 

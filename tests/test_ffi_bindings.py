@@ -293,6 +293,21 @@ class TestRustAggregateChunkScores:
         assert 0.0 <= agg <= 1.0
 
 
+class TestRustAggregateChunkScoresConfidenceWeighted:
+    def test_weighted(self):
+        flat_scores = [0.2, 0.8, 0.4, 0.6]
+        flat_conf = [0.9, 0.1, 0.7, 0.3]
+        agg, per_hyp = backfire_kernel.rust_aggregate_chunk_scores_confidence_weighted(
+            flat_scores,
+            flat_conf,
+            2,
+            2,
+            "max",
+        )
+        assert len(per_hyp) == 2
+        assert 0.0 <= agg <= 1.0
+
+
 # â”€â”€ RustUPDEStepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 

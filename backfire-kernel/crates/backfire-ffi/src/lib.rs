@@ -1313,6 +1313,23 @@ fn rust_aggregate_chunk_scores(
 }
 
 #[pyfunction]
+fn rust_aggregate_chunk_scores_confidence_weighted(
+    flat_scores: Vec<f64>,
+    flat_confidences: Vec<f64>,
+    n_prem: usize,
+    n_hyp: usize,
+    inner_agg: &str,
+) -> (f64, Vec<f64>) {
+    backfire_core::compute::aggregate_chunk_scores_confidence_weighted(
+        &flat_scores,
+        &flat_confidences,
+        n_prem,
+        n_hyp,
+        inner_agg,
+    )
+}
+
+#[pyfunction]
 fn rust_lite_score(premise: &str, hypothesis: &str) -> f64 {
     backfire_core::compute::lite_score(premise, hypothesis)
 }
@@ -1377,6 +1394,10 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_probs_to_divergence, m)?)?;
     m.add_function(wrap_pyfunction!(rust_probs_to_confidence, m)?)?;
     m.add_function(wrap_pyfunction!(rust_aggregate_chunk_scores, m)?)?;
+    m.add_function(wrap_pyfunction!(
+        rust_aggregate_chunk_scores_confidence_weighted,
+        m
+    )?)?;
     m.add_function(wrap_pyfunction!(rust_lite_score, m)?)?;
     m.add_function(wrap_pyfunction!(rust_lite_score_batch, m)?)?;
     m.add_function(wrap_pyfunction!(rust_heuristic_logical_divergence, m)?)?;
