@@ -143,13 +143,15 @@ class PerceptronGuardrailTrainer:
                     if f != 0.0:
                         weights[i] += self._lr * (error * f - self._l2 * weights[i])
                 bias += self._lr * error
-        correct = 0
-        for prompt, target_int in labelled:
-            target_float = float(target_int)
-            margin = bias + _dot(weights, _hash_bag(prompt, self._dim))
-            pred = 1.0 if margin >= 0.0 else 0.0
-            if pred == target_float:
-                correct += 1
+        correct = _sum_float(
+            [
+                1.0
+                if (bias + _dot(weights, _hash_bag(prompt, self._dim)) >= 0.0)
+                == (float(target_int) >= 0.5)
+                else 0.0
+                for prompt, target_int in labelled
+            ]
+        )
         accuracy = correct / len(labelled)
         return TrainedGuardrail(
             weights=tuple(weights),
