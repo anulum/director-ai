@@ -343,7 +343,10 @@ class ConsensusScorer:
 def _word_overlap(text_a: str, text_b: str) -> float:
     """Return lexical Jaccard overlap in ``[0, 1]``."""
     if _RUST_CONSENSUS:
-        return float(rust_word_overlap(text_a, text_b))
+        try:
+            return float(rust_word_overlap(text_a, text_b))
+        except Exception:
+            pass
     words_a = set(text_a.lower().split())
     words_b = set(text_b.lower().split())
     if not words_a or not words_b:
