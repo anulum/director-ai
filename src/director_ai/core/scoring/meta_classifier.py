@@ -24,6 +24,13 @@ import numpy as np
 logger = logging.getLogger("DirectorAI.MetaClassifier")
 
 try:
+    from backfire_kernel import rust_word_overlap
+
+    _RUST_META = True
+except ImportError:
+    _RUST_META = False
+
+try:
     from sklearn.exceptions import InconsistentVersionWarning
 except Exception:  # pragma: no cover - sklearn absent handled by runtime import boundaries
     class InconsistentVersionWarning(UserWarning):
@@ -89,6 +96,17 @@ TEXT_FEATURE_COLS = [
     if c not in ("nli_score", "confidence", "score_distance_from_half")
 ]
 
+def _word_overlap(text_a: str, text_b: str) -> float:
+    """Return lexical Jaccard overlap in ``[0, 1]``."""
+    if _RUST_META:
+        return float(rust_word_overlap(text_a, text_b))
+    words_a = set(text_a.lower().split())
+    words_b = set(text_b.lower().split())
+    if not words_a or not words_b:
+        return 0.0
+    union = words_a | words_b
+    return len(words_a & words_b) / len(union) if union else 0.0
+
 
 def extract_features(
     premise: str,
@@ -110,7 +128,7 @@ def extract_features(
         "hypothesis_len": len(hypothesis),
         "premise_word_count": len(p_set),
         "hypothesis_word_count": len(h_set),
-        "word_overlap": len(p_set & h_set) / max(len(p_set | h_set), 1),
+        "word_overlap": _word_overlap(premise, hypothesis),
         "has_negation_premise": int(bool(p_set & NEGATION_WORDS)),
         "has_negation_hypothesis": int(bool(h_set & NEGATION_WORDS)),
         "negation_asymmetry": int(

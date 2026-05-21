@@ -507,6 +507,7 @@ Tests cover:
 - `_task_scoring.minicheck_claim_coverage`: Rust sentence split + Rust coverage reduction
 - `verified_scorer` lexical fallback matching: Rust `word_overlap` acceleration
 - `consensus` lexical divergence scoring: Rust `word_overlap` acceleration
+- `meta_classifier` lexical `word_overlap` feature extraction: Rust acceleration
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 

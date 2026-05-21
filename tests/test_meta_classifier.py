@@ -23,6 +23,7 @@ import pytest
 from director_ai.core.meta_classifier import (
     DatasetTypeClassifier,
     MetaClassifier,
+    _word_overlap,
     extract_features,
     extract_text_features,
 )
@@ -116,6 +117,39 @@ class TestExtractFeatures:
         feat = extract_text_features("premise", "hypothesis")
         assert feat["nli_score"] == 0.0
         assert feat["confidence"] == 0.0
+
+
+class TestWordOverlapRustDelegation:
+    def test_python_fallback_overlap(self, monkeypatch):
+        import director_ai.core.meta_classifier as meta_mod
+
+        monkeypatch.setattr(meta_mod, "_RUST_META", False)
+        assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
+        assert _word_overlap("", "alpha gamma") == 0.0
+
+    def test_rust_overlap_delegation(self, monkeypatch):
+        import director_ai.core.meta_classifier as meta_mod
+
+        monkeypatch.setattr(meta_mod, "_RUST_META", True)
+        monkeypatch.setattr(
+            meta_mod,
+            "rust_word_overlap",
+            lambda text_a, text_b: 0.75 if text_a and text_b else 0.0,
+            raising=False,
+        )
+        assert _word_overlap("alpha", "beta") == 0.75
+
+    def test_extract_features_uses_overlap_helper(self, monkeypatch):
+        import director_ai.core.meta_classifier as meta_mod
+
+        monkeypatch.setattr(
+            meta_mod,
+            "_word_overlap",
+            lambda premise, hypothesis: 0.42,
+            raising=True,
+        )
+        feat = extract_features("Premise text", "Hypothesis text", 0.5, 0.6)
+        assert feat["word_overlap"] == 0.42
 
 
 def _make_binary_bundle(tmp_path):
