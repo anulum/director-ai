@@ -126,18 +126,21 @@ def extract_steps(text: str) -> list[ReasoningStep]:
     the label tokens.
     """
     if _RUST_REASONING:
-        raw_steps = rust_extract_reasoning_steps(text)
-        if len(raw_steps) >= 2 or (
-            len(raw_steps) == 1 and raw_steps[0] != text.strip()
-        ):
-            return [
-                ReasoningStep(
-                    index=i,
-                    text=_strip_step_label(s),
-                    is_conclusion=bool(_CONCLUSION_MARKERS.match(s)),
-                )
-                for i, s in enumerate(raw_steps)
-            ]
+        try:
+            raw_steps = rust_extract_reasoning_steps(text)
+            if len(raw_steps) >= 2 or (
+                len(raw_steps) == 1 and raw_steps[0] != text.strip()
+            ):
+                return [
+                    ReasoningStep(
+                        index=i,
+                        text=_strip_step_label(s),
+                        is_conclusion=bool(_CONCLUSION_MARKERS.match(s)),
+                    )
+                    for i, s in enumerate(raw_steps)
+                ]
+        except Exception:
+            pass
 
     # Python fallback
     # Try numbered steps first
