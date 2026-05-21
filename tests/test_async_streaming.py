@@ -14,6 +14,7 @@ CoherenceScorer, and performance documentation.
 
 import pytest
 
+import director_ai.core.runtime.async_streaming as async_streaming_mod
 from director_ai.core.async_streaming import AsyncStreamingKernel
 
 
@@ -245,3 +246,26 @@ class TestAsyncStreamingKernel:
         )
         assert events[-1].halted
         assert len(events) == 2
+
+    async def test_uses_shared_mean_helper_for_window_halt(self, monkeypatch):
+        call_count = {"count": 0}
+        original_mean = async_streaming_mod._mean
+
+        def _counting_mean(values):
+            call_count["count"] += 1
+            return original_mean(values)
+
+        monkeypatch.setattr(async_streaming_mod, "_mean", _counting_mean, raising=True)
+        kernel = AsyncStreamingKernel(
+            hard_limit=0.1,
+            window_size=3,
+            window_threshold=0.5,
+        )
+        scores = iter([0.4, 0.4, 0.4, 0.4])
+        events = await self._collect_events(
+            kernel,
+            ["a", "b", "c", "d"],
+            lambda _t: next(scores),
+        )
+        assert events[-1].halted
+        assert call_count["count"] >= 1
