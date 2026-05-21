@@ -190,24 +190,27 @@ def score_temporal_freshness(
         and not citation_statuses
         and not domain
     ):
-        raw_claims, _overall, _has = rust_score_temporal_freshness(text)
-        rust_claims = [
-            FreshnessClaim(
-                text=t,
-                claim_type=ct,
-                staleness_risk=risk,
-                reason=_CLAIM_REASONS.get(ct, "Temporal claim"),
+        try:
+            raw_claims, _overall, _has = rust_score_temporal_freshness(text)
+            rust_claims = [
+                FreshnessClaim(
+                    text=t,
+                    claim_type=ct,
+                    staleness_risk=risk,
+                    reason=_CLAIM_REASONS.get(ct, "Temporal claim"),
+                )
+                for t, ct, risk in raw_claims
+            ]
+            rust_overall = max((c.staleness_risk for c in rust_claims), default=0.0)
+            return FreshnessResult(
+                claims=rust_claims,
+                overall_staleness_risk=max(rust_overall, external_status_risk),
+                external_status_risk=external_status_risk,
+                citation_status_verdicts=status_verdicts,
+                has_temporal_claims=len(rust_claims) > 0,
             )
-            for t, ct, risk in raw_claims
-        ]
-        rust_overall = max((c.staleness_risk for c in rust_claims), default=0.0)
-        return FreshnessResult(
-            claims=rust_claims,
-            overall_staleness_risk=max(rust_overall, external_status_risk),
-            external_status_risk=external_status_risk,
-            citation_status_verdicts=status_verdicts,
-            has_temporal_claims=len(rust_claims) > 0,
-        )
+        except Exception:
+            pass
 
     claims: list[FreshnessClaim] = []
 

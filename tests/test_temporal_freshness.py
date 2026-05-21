@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import time
 
+import director_ai.core.scoring.temporal_freshness as temporal_mod
 from director_ai.core.scoring.temporal_freshness import (
     CitationStatusSignal,
     score_temporal_freshness,
@@ -51,6 +52,22 @@ class TestCurrentReference:
 
     def test_as_of_flag(self):
         result = score_temporal_freshness("As of 2024, the market share was 15%.")
+        assert any(c.claim_type == "current_reference" for c in result.claims)
+
+    def test_rust_exception_falls_back_to_python_detection(self, monkeypatch):
+        monkeypatch.setattr(temporal_mod, "_RUST_TEMPORAL", True)
+        monkeypatch.setattr(
+            temporal_mod,
+            "rust_score_temporal_freshness",
+            lambda _text: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        result = score_temporal_freshness(
+            "As of 2024, the market share was 15%.",
+            source_timestamp=None,
+            citation_statuses=None,
+            domain="",
+        )
         assert any(c.claim_type == "current_reference" for c in result.claims)
 
 
