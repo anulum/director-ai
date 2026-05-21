@@ -103,6 +103,23 @@ class TestInMemoryBackend:
         assert results
         assert results[0]["id"] == "doc1"
 
+    def test_query_falls_back_when_rust_overlap_raises_non_runtime(self, monkeypatch):
+        backend = InMemoryBackend()
+        backend.add("doc1", "The sky is blue")
+        backend.add("doc2", "Water is wet")
+
+        def _boom(_query: str, _text: str) -> float:
+            raise ValueError("ffi fail")
+
+        import director_ai.core.retrieval.vector_store.base as base_mod
+
+        monkeypatch.setattr(base_mod, "_RUST_VECTOR_BASE", True)
+        monkeypatch.setattr(base_mod, "rust_word_overlap", _boom)
+
+        results = backend.query("sky question", n_results=2)
+        assert results
+        assert results[0]["id"] == "doc1"
+
     @pytest.mark.parametrize("n_results", [-1, 1.5, True])
     def test_query_rejects_invalid_n_results(self, n_results):
         backend = InMemoryBackend()
