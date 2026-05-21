@@ -25,6 +25,16 @@ import random
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_mean
+
+    _RUST_DEFENSE_GENOME = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_DEFENSE_GENOME = False
+
+    def rust_mean(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
 from .genome import AdversarialGenome, Gene, GeneOperator
 from .registry import Defense
 
@@ -93,7 +103,14 @@ class GenomePopulation:
     def fitness_summary(self) -> tuple[float, float, float]:
         """``(min, mean, max)`` fitness across the current population."""
         fits = [s.fitness for s in self._scored]
-        return min(fits), sum(fits) / len(fits), max(fits)
+        if _RUST_DEFENSE_GENOME:
+            try:
+                mean_fit = float(rust_mean(fits))
+            except Exception:
+                mean_fit = sum(fits) / len(fits)
+        else:
+            mean_fit = sum(fits) / len(fits)
+        return min(fits), mean_fit, max(fits)
 
     def tournament(self, *, k: int, rng: random.Random) -> AdversarialGenome:
         """Pick the fittest genome from a random sample of ``k``."""
