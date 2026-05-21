@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.emergence_oracle.graph as graph_mod
 import director_ai.core.emergence_oracle.oracle as oracle_mod
 import director_ai.core.emergence_oracle.spectrum as spectrum_mod
 from director_ai.core.emergence_oracle import (
@@ -410,3 +411,29 @@ class TestSpectrumRustSums:
         graph = InteractionGraph.from_events(_cycle_events())
         result = RandomWalkSpectrum().stationary(graph)
         assert result.probabilities
+
+
+class TestGraphRustSums:
+    def test_graph_rust_sum_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(graph_mod, "_RUST_GRAPH", True)
+        called = {"count": 0}
+
+        def _sum(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(graph_mod, "rust_sum_f64", _sum, raising=True)
+        graph = InteractionGraph.from_events(_pipeline_events())
+        assert graph.out_weight("a") == 1
+        assert called["count"] >= 1
+
+    def test_graph_rust_sum_type_error_falls_back(self, monkeypatch):
+        monkeypatch.setattr(graph_mod, "_RUST_GRAPH", True)
+        monkeypatch.setattr(
+            graph_mod,
+            "rust_sum_f64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        graph = InteractionGraph.from_events(_pipeline_events())
+        assert graph.in_weight("b") == 1
