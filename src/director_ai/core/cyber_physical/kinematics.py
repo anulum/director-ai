@@ -177,14 +177,17 @@ class SimpleKinematicModel:
         l1, l2 = links
         elbow_up = self.branch == "elbow_up"
         if _RUST_IK_AVAILABLE:
-            result = _rust_two_link_ik(
-                l1,
-                l2,
-                (self.chain.base.x, self.chain.base.y),
-                (target.x, target.y),
-                elbow_up,
-            )
-            return None if result is None else result
+            try:
+                result = _rust_two_link_ik(
+                    l1,
+                    l2,
+                    (self.chain.base.x, self.chain.base.y),
+                    (target.x, target.y),
+                    elbow_up,
+                )
+                return None if result is None else result
+            except Exception:
+                pass
         dx = target.x - self.chain.base.x
         dy = target.y - self.chain.base.y
         distance = math.sqrt(dx * dx + dy * dy)

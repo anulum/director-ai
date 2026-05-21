@@ -253,6 +253,19 @@ class TestSimpleKinematicModel:
 
         assert self._two_link().inverse(Vec3(5.0, 5.0, 0.0)) is None
 
+    def test_inverse_rust_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.kinematics._RUST_IK_AVAILABLE", True
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.kinematics._rust_two_link_ik",
+            lambda *args: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+
+        solution = self._two_link().inverse(Vec3(1.0, 1.0, 0.0))
+        assert solution is not None
+
     def test_inverse_long_chain_raises(self):
         model = SimpleKinematicModel(
             chain=JointChain(base=Vec3(0.0, 0.0, 0.0), link_lengths=(1.0, 1.0, 1.0)),
