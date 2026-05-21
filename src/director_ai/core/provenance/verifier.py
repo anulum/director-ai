@@ -24,6 +24,13 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_mean
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_mean(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
 from .chain import ProvenanceChain, ProvenanceEntry
 from .credibility import SourceCredibility
 from .facts import CitationFact, FactVerificationError
@@ -88,7 +95,7 @@ class ProvenanceVerifier:
             raise ValueError("facts must be non-empty")
         verdicts: list[FactVerdict] = []
         failures: list[FactVerdict] = []
-        trust_sum = 0.0
+        trust_values: list[float] = []
         for fact in facts:
             integrity_ok = True
             reason = ""
@@ -106,12 +113,12 @@ class ProvenanceVerifier:
                 or ("below minimum" if score < self._min_source_score else ""),
             )
             verdicts.append(verdict)
-            trust_sum += score
+            trust_values.append(score)
             if not integrity_ok or score < self._min_source_score:
                 failures.append(verdict)
         tree = MerkleTree(tuple(facts))
         chain_entry = self._chain.append(merkle_root=tree.root)
-        trust_score = trust_sum / len(facts)
+        trust_score = _mean_float(trust_values)
         return ProvenanceVerdict(
             merkle_root=tree.root,
             chain_entry=chain_entry,
@@ -119,3 +126,10 @@ class ProvenanceVerifier:
             trust_score=trust_score,
             failures=tuple(failures),
         )
+
+
+def _mean_float(values: list[float]) -> float:
+    try:
+        return float(rust_mean(values))
+    except Exception:
+        return sum(values) / len(values)
