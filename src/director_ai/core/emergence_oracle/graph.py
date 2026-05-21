@@ -20,6 +20,16 @@ from __future__ import annotations
 from collections.abc import Iterable
 from dataclasses import dataclass, field
 
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_GRAPH = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_GRAPH = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 @dataclass(frozen=True)
 class SwarmEvent:
@@ -104,11 +114,13 @@ class InteractionGraph:
 
     def out_weight(self, node: str) -> int:
         """Return the total outgoing weighted degree for node."""
-        return sum(w for (src, _), w in self._edges.items() if src == node)
+        values = [float(w) for (src, _), w in self._edges.items() if src == node]
+        return int(_sum_float(values))
 
     def in_weight(self, node: str) -> int:
         """Return the total incoming weighted degree for node."""
-        return sum(w for (_, dst), w in self._edges.items() if dst == node)
+        values = [float(w) for (_, dst), w in self._edges.items() if dst == node]
+        return int(_sum_float(values))
 
     def density(self) -> float:
         """Edge density of the underlying simple graph — ratio of
@@ -149,7 +161,7 @@ class InteractionGraph:
         """Return the average local clustering over all graph nodes."""
         if self.node_count == 0:
             return 0.0
-        return sum(self.local_clustering(n) for n in self._nodes) / self.node_count
+        return _sum_float([self.local_clustering(n) for n in self._nodes]) / self.node_count
 
     def has_cycle(self) -> bool:
         """DFS-based cycle detection."""
@@ -175,3 +187,14 @@ class InteractionGraph:
                     color[nxt] = 1
                     stack.append((nxt, list(self.out_neighbours(nxt))))
         return False
+
+
+def _sum_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_GRAPH:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
