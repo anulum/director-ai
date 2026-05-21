@@ -189,6 +189,18 @@ class TestWordOverlapRule:
         assert 0.0 < partial.score < 1.0
         assert none.score == 0.0
 
+    def test_rust_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(rules_mod, "_RUST_AVAILABLE", True)
+
+        def _boom(_premise, _hypothesis):
+            raise RuntimeError("ffi fail")
+
+        monkeypatch.setattr(rules_mod, "_rust_word_overlap", _boom, raising=False)
+
+        result = WordOverlapRule().check("alpha beta", "alpha gamma")
+
+        assert 0.0 <= result.score <= 1.0
+
 
 # ── ContradictionKeywordRule ────────────────────────────────────────────
 
