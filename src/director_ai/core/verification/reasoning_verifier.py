@@ -162,7 +162,7 @@ def extract_steps(text: str) -> list[ReasoningStep]:
     if _RUST_REASONING:
         try:
             sentences = [s.strip() for s in rust_split_sentences(text) if len(s.strip()) > 10]
-        except RuntimeError:
+        except Exception:
             sentences = []
     if not sentences:
         sentences = [s.strip() for s in re.split(r"[.!?]\s+", text) if len(s.strip()) > 10]
