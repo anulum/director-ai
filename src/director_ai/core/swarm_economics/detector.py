@@ -26,6 +26,13 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_f64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 from .pool import ResourcePool
 
 
@@ -87,7 +94,7 @@ class TragedyDetector:
     def check(self) -> TragedySignal:
         sustainable = self._pool.regeneration_rate
         recent = self._pool.recent(since_seconds=self._window)
-        drawn = sum(record.amount for record in recent)
+        drawn = _sum_float([record.amount for record in recent])
         observed_rate = drawn / self._window
         now = float(self._clock())
         pressure = _pressure(observed_rate, sustainable, self._grace_factor)
@@ -139,3 +146,10 @@ def _pressure(
     # rate doubles the threshold.
     excess = min(1.0, (observed_rate - threshold) / threshold)
     return 0.5 + 0.5 * excess
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
