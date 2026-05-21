@@ -8,6 +8,9 @@
 
 from __future__ import annotations
 
+import pytest
+
+import director_ai.core.agent_identity.registry as registry_mod
 from director_ai.core.agent_identity import (
     AgentPassportRegistry,
     PassportSigner,
@@ -202,3 +205,69 @@ def test_event_linked_coherence_history_exports_without_payloads() -> None:
     assert "prompt" not in rendered.lower()
     assert "credential" not in rendered.lower()
     assert "secret" not in rendered.lower()
+
+
+def test_registry_uses_rust_mean_when_available(monkeypatch) -> None:
+    monkeypatch.setattr(registry_mod, "_RUST_AGENT_IDENTITY", True)
+    called = {"count": 0}
+
+    def _mean(values: list[float]) -> float:
+        called["count"] += 1
+        return sum(values) / len(values)
+
+    monkeypatch.setattr(registry_mod, "rust_mean", _mean, raising=True)
+
+    registry = _registry()
+    passport = registry.issue_passport(
+        agent_id="tenant-a/worker/tool",
+        role="worker",
+        tenant_id="tenant-a",
+        capabilities=("tool:search",),
+    )
+    registry.record_coherence(
+        agent_id=passport.agent_id,
+        event_ref="event://score-1",
+        coherence_score=0.91,
+        decision="allow",
+    )
+    registry.record_coherence(
+        agent_id=passport.agent_id,
+        event_ref="event://score-2",
+        coherence_score=0.61,
+        decision="warn",
+    )
+    exported = registry.export_agent(passport.agent_id)
+    assert exported["coherence_summary"]["mean"] == pytest.approx(0.76)
+    assert called["count"] >= 1
+
+
+def test_registry_rust_mean_type_error_falls_back(monkeypatch) -> None:
+    monkeypatch.setattr(registry_mod, "_RUST_AGENT_IDENTITY", True)
+    monkeypatch.setattr(
+        registry_mod,
+        "rust_mean",
+        lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+        raising=True,
+    )
+
+    registry = _registry()
+    passport = registry.issue_passport(
+        agent_id="tenant-a/worker/tool",
+        role="worker",
+        tenant_id="tenant-a",
+        capabilities=("tool:search",),
+    )
+    registry.record_coherence(
+        agent_id=passport.agent_id,
+        event_ref="event://score-1",
+        coherence_score=0.8,
+        decision="allow",
+    )
+    registry.record_coherence(
+        agent_id=passport.agent_id,
+        event_ref="event://score-2",
+        coherence_score=0.6,
+        decision="warn",
+    )
+    exported = registry.export_agent(passport.agent_id)
+    assert exported["coherence_summary"]["mean"] == pytest.approx(0.7)
