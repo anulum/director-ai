@@ -192,7 +192,29 @@ class TestScorerInjectionHook:
         assert counter["total"] == 1.0
         assert counter["multi_labels"].get('reason="RuntimeError"') == 1.0
 
+    def test_enable_failure_clears_existing_detector_state(self):
+        scorer = CoherenceScorer(use_nli=False)
+        scorer.enable_injection_detection(
+            injection_threshold=0.8,
+            fail_closed_on_error=True,
+        )
+        assert scorer._get_injection_detector() is not None
+        assert scorer._injection_fail_closed is True
+
+        with pytest.raises(RuntimeError, match="model-backed NLI"):
+            scorer.enable_injection_detection(
+                require_model_backed_nli=True,
+                fail_closed_on_error=True,
+            )
+
+        assert scorer._get_injection_detector() is None
+        assert scorer._injection_fail_closed is False
+        detector, fail_closed = scorer._get_injection_runtime_state()
+        assert detector is None
+        assert fail_closed is False
+
     def test_config_build_scorer_fails_fast_when_injection_model_backed_required(self):
+        metrics.reset()
         cfg = DirectorConfig(
             use_nli=False,
             scorer_backend="lite",
@@ -204,6 +226,10 @@ class TestScorerInjectionHook:
             match="model-backed NLI",
         ):
             cfg.build_scorer()
+        snapshot = metrics.get_metrics()
+        startup_counter = snapshot["counters"]["injection_startup_failures_total"]
+        assert startup_counter["total"] == 1.0
+        assert startup_counter["multi_labels"].get('reason="RuntimeError"') == 1.0
 
 
 # ── Server endpoint ──────────────────────────────────────────────

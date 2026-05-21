@@ -15,9 +15,12 @@ performance characteristics.
 
 from __future__ import annotations
 
+import threading
+
 import pytest
 
 from director_ai.core import CoherenceScorer
+from director_ai.core.metrics import metrics
 
 # ── Fixtures ────────────────────────────────────────────────────────
 
@@ -244,3 +247,33 @@ class TestPerformanceDoc:
         assert isinstance(result, tuple)
         assert len(result) == 2
         assert isinstance(result[0], bool)
+
+
+class TestFallbackIncidentConcurrency:
+    """Fallback incident emission must be thread-safe and once-per-stage."""
+
+    def test_fallback_incident_emitted_once_per_stage_under_contention(self):
+        metrics.reset()
+        scorer = CoherenceScorer(use_nli=False)
+
+        def _emit() -> None:
+            scorer._record_nli_fallback_incident(
+                stage="logical",
+                reason="nli_unavailable_using_heuristic",
+            )
+
+        threads = [threading.Thread(target=_emit) for _ in range(32)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+        snapshot = metrics.get_metrics()
+        counter = snapshot["counters"]["nli_fallback_incidents_total"]
+        assert counter["total"] == 1.0
+        assert (
+            counter["multi_labels"].get(
+                'reason="nli_unavailable_using_heuristic",stage="logical"'
+            )
+            == 1.0
+        )

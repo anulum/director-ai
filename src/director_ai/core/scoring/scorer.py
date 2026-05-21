@@ -272,6 +272,7 @@ class CoherenceScorer:
         self._confidence_weighted_agg = False
         self._meta_classifier_path = ""
         self._meta_classifier = None
+        self._meta_classifier_lock = threading.Lock()
         self._adaptive_router = None  # set via enable_adaptive_retrieval()
         self._adaptive_threshold_fail_closed = False
         self._dry_run = False  # when True, log but never reject
@@ -296,8 +297,10 @@ class CoherenceScorer:
         self._llm_judge_threshold = llm_judge_confidence_threshold
 
         # Injection detection: set via enable_injection_detection()
+        self._injection_lock = threading.Lock()
         self._injection_detector = None
         self._injection_fail_closed = False
+        self._nli_fallback_lock = threading.Lock()
         self._nli_fallback_incident_stages: set[str] = set()
 
     # -- Backward-compat proxies for judge internals (used by tests) ----
@@ -388,48 +391,52 @@ class CoherenceScorer:
         if self._meta_classifier is not None:
             return self._meta_classifier
 
-        path = self._meta_classifier_path
-        if not path and self._adaptive_threshold_enabled:
-            bundled = Path(__file__).parent.parent / self._BUNDLED_CLASSIFIER
-            if bundled.exists():
-                path = str(bundled)
+        with self._meta_classifier_lock:
+            if self._meta_classifier is not None:
+                return self._meta_classifier
 
-        if not path:
-            return None
-        try:
-            from .meta_classifier import DatasetTypeClassifier
+            path = self._meta_classifier_path
+            if not path and self._adaptive_threshold_enabled:
+                bundled = Path(__file__).parent.parent / self._BUNDLED_CLASSIFIER
+                if bundled.exists():
+                    path = str(bundled)
 
-            self._meta_classifier = DatasetTypeClassifier(path)
-            return self._meta_classifier
-        except (ImportError, FileNotFoundError, ValueError) as exc:
-            metrics.inc_labeled(
-                "adaptive_threshold_classifier_load_failures_total",
-                labels={"reason": type(exc).__name__},
-            )
-            if self._adaptive_threshold_fail_closed:
-                raise RuntimeError(
-                    f"Adaptive threshold classifier unavailable at {path}: {exc}",
-                ) from exc
-            self.logger.warning("Meta-classifier unavailable at %s: %s", path, exc)
-            self._meta_classifier_path = ""
-            return None
-        except Exception as exc:
-            metrics.inc_labeled(
-                "adaptive_threshold_classifier_load_failures_total",
-                labels={"reason": type(exc).__name__},
-            )
-            if self._adaptive_threshold_fail_closed:
-                raise RuntimeError(
-                    f"Adaptive threshold classifier unavailable at {path}: {exc}",
-                ) from exc
-            self.logger.warning(
-                "Meta-classifier load failed unexpectedly at %s (%s): %s",
-                path,
-                type(exc).__name__,
-                exc,
-            )
-            self._meta_classifier_path = ""
-            return None
+            if not path:
+                return None
+            try:
+                from .meta_classifier import DatasetTypeClassifier
+
+                self._meta_classifier = DatasetTypeClassifier(path)
+                return self._meta_classifier
+            except (ImportError, FileNotFoundError, ValueError) as exc:
+                metrics.inc_labeled(
+                    "adaptive_threshold_classifier_load_failures_total",
+                    labels={"reason": type(exc).__name__},
+                )
+                if self._adaptive_threshold_fail_closed:
+                    raise RuntimeError(
+                        f"Adaptive threshold classifier unavailable at {path}: {exc}",
+                    ) from exc
+                self.logger.warning("Meta-classifier unavailable at %s: %s", path, exc)
+                self._meta_classifier_path = ""
+                return None
+            except Exception as exc:
+                metrics.inc_labeled(
+                    "adaptive_threshold_classifier_load_failures_total",
+                    labels={"reason": type(exc).__name__},
+                )
+                if self._adaptive_threshold_fail_closed:
+                    raise RuntimeError(
+                        f"Adaptive threshold classifier unavailable at {path}: {exc}",
+                    ) from exc
+                self.logger.warning(
+                    "Meta-classifier load failed unexpectedly at %s (%s): %s",
+                    path,
+                    type(exc).__name__,
+                    exc,
+                )
+                self._meta_classifier_path = ""
+                return None
 
     def _should_escalate(self, nli_score: float, task_type: str = "default") -> bool:
         """Delegate to LLMJudge.should_escalate()."""
@@ -618,7 +625,7 @@ class CoherenceScorer:
             self.logger.debug("InputSanitizer unavailable for injection detection")
 
         try:
-            self._injection_detector = InjectionDetector(
+            detector = InjectionDetector(
                 nli_scorer=self._nli,
                 sanitizer=sanitizer,
                 injection_threshold=injection_threshold,
@@ -633,15 +640,26 @@ class CoherenceScorer:
                 "injection_detector_init_failures_total",
                 labels={"reason": type(exc).__name__},
             )
+            with self._injection_lock:
+                self._injection_detector = None
+                self._injection_fail_closed = False
             raise
-        self._injection_fail_closed = fail_closed_on_error
+        with self._injection_lock:
+            self._injection_detector = detector
+            self._injection_fail_closed = fail_closed_on_error
         self.logger.info(
             "Injection detection enabled (threshold=%.2f)", injection_threshold
         )
 
     def _get_injection_detector(self):
         """Return the InjectionDetector if enabled, else None."""
-        return self._injection_detector
+        with self._injection_lock:
+            return self._injection_detector
+
+    def _get_injection_runtime_state(self):
+        """Return (detector, fail_closed) snapshot atomically."""
+        with self._injection_lock:
+            return self._injection_detector, self._injection_fail_closed
 
     def _has_model_backed_nli(self) -> bool:
         """Return True when scoring has a model-backed contradiction path."""
@@ -1144,9 +1162,10 @@ class CoherenceScorer:
 
     def _record_nli_fallback_incident(self, *, stage: str, reason: str) -> None:
         """Emit a once-per-stage incident when model-backed NLI is unavailable."""
-        if stage in self._nli_fallback_incident_stages:
-            return
-        self._nli_fallback_incident_stages.add(stage)
+        with self._nli_fallback_lock:
+            if stage in self._nli_fallback_incident_stages:
+                return
+            self._nli_fallback_incident_stages.add(stage)
         metrics.inc_labeled(
             "nli_fallback_incidents_total",
             labels={"stage": stage, "reason": reason},
@@ -1630,13 +1649,13 @@ class CoherenceScorer:
                         )
                 session.add_turn(prompt, action, result[1].score)
             # Injection detection (when enabled)
-            inj_detector = self._get_injection_detector()
+            inj_detector, inj_fail_closed = self._get_injection_runtime_state()
             if inj_detector is not None:
                 try:
                     inj = inj_detector.detect(intent=prompt, response=action)
                     result[1].injection_risk = inj.injection_risk
                 except Exception:
-                    if self._injection_fail_closed:
+                    if inj_fail_closed:
                         raise
                     self.logger.warning("Injection detection failed", exc_info=True)
 

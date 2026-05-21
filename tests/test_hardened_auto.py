@@ -13,6 +13,7 @@ and combined config behaviour.
 from __future__ import annotations
 
 from director_ai.core.config import DirectorConfig
+from director_ai.core.metrics import metrics
 
 # ── Hardened mode ──────────────────────────────────────────────────────
 
@@ -55,6 +56,20 @@ class TestHardenedMode:
         assert cfg.adaptive_threshold_enabled is True
         assert cfg.adaptive_threshold_fail_closed is True
 
+    def test_hardened_rejects_dry_run(self):
+        import pytest
+
+        with pytest.raises(
+            ValueError,
+            match="requires dry_run=False",
+        ):
+            DirectorConfig(
+                hardened=True,
+                dry_run=True,
+                api_keys='["sk-test"]',
+                llm_api_url="https://llm.internal.example/v1",
+            )
+
     def test_hardened_overrides_disabled_adaptive_threshold(self):
         cfg = DirectorConfig(
             hardened=True,
@@ -79,6 +94,34 @@ class TestHardenedMode:
                 use_nli=False,
                 hybrid_retrieval=False,
                 reranker_enabled=False,
+                api_keys='["sk-test"]',
+                llm_api_url="https://llm.internal.example/v1",
+            )
+
+    def test_production_rejects_dry_run(self):
+        import pytest
+
+        with pytest.raises(
+            ValueError,
+            match="requires dry_run=False",
+        ):
+            DirectorConfig(
+                production_mode=True,
+                dry_run=True,
+                api_keys='["sk-test"]',
+                llm_api_url="https://llm.internal.example/v1",
+            )
+
+    def test_production_requires_input_sanitisation(self):
+        import pytest
+
+        with pytest.raises(
+            ValueError,
+            match="requires sanitize_inputs=True",
+        ):
+            DirectorConfig(
+                production_mode=True,
+                sanitize_inputs=False,
                 api_keys='["sk-test"]',
                 llm_api_url="https://llm.internal.example/v1",
             )
@@ -121,6 +164,7 @@ class TestAutoScorer:
     def test_build_scorer_fails_when_model_backed_nli_required_but_unavailable(self):
         import pytest
 
+        metrics.reset()
         cfg = DirectorConfig(
             use_nli=False,
             scorer_backend="lite",
@@ -128,10 +172,21 @@ class TestAutoScorer:
         )
         with pytest.raises(RuntimeError, match="model-backed NLI backend"):
             cfg.build_scorer()
+        snapshot = metrics.get_metrics()
+        startup_counter = snapshot["counters"]["scorer_startup_failures_total"]
+        assert (
+            startup_counter["multi_labels"].get(
+                'component="coherence",reason="model_backed_nli_unavailable"'
+            )
+            == 1.0
+        )
+        counter = snapshot["counters"]["model_backed_nli_startup_failures_total"]
+        assert counter["multi_labels"].get('stage="coherence"') == 1.0
 
     def test_build_scorer_fails_when_injection_model_backed_nli_unavailable(self):
         import pytest
 
+        metrics.reset()
         cfg = DirectorConfig(
             use_nli=False,
             scorer_backend="lite",
@@ -143,3 +198,16 @@ class TestAutoScorer:
             match="model-backed NLI",
         ):
             cfg.build_scorer()
+        snapshot = metrics.get_metrics()
+        scorer_startup = snapshot["counters"]["scorer_startup_failures_total"]
+        assert (
+            scorer_startup["multi_labels"].get(
+                'component="injection",reason="detector_init_runtime_error"'
+            )
+            == 1.0
+        )
+        startup_counter = snapshot["counters"]["injection_startup_failures_total"]
+        assert startup_counter["total"] == 1.0
+        assert startup_counter["multi_labels"].get('reason="RuntimeError"') == 1.0
+        counter = snapshot["counters"]["model_backed_nli_startup_failures_total"]
+        assert counter["multi_labels"].get('stage="injection"') == 1.0

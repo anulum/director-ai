@@ -313,6 +313,23 @@ class TestMetaClassifierConfig:
         counter = snapshot["counters"]["adaptive_threshold_classifier_load_failures_total"]
         assert counter["total"] == 1.0
         assert counter["multi_labels"].get('reason="FileNotFoundError"') == 1.0
+        startup_counter = snapshot["counters"][
+            "adaptive_threshold_startup_failures_total"
+        ]
+        assert startup_counter["total"] == 1.0
+        assert (
+            startup_counter["multi_labels"].get(
+                'reason="exception_during_classifier_init"'
+            )
+            == 1.0
+        )
+        scorer_startup = snapshot["counters"]["scorer_startup_failures_total"]
+        assert (
+            scorer_startup["multi_labels"].get(
+                'component="adaptive_threshold",reason="classifier_init_runtime_error"'
+            )
+            == 1.0
+        )
 
 
 class TestMetaClassifierIntegration:

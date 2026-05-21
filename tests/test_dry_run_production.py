@@ -109,12 +109,13 @@ class TestProductionMode:
 
 class TestCombined:
     def test_dry_run_and_production(self):
-        # Both can be active — production enforces auth, dry-run skips halts
-        cfg = DirectorConfig(
-            dry_run=True,
-            production_mode=True,
-            api_keys='["sk-test"]',
-            llm_api_url="https://llm.internal.example/v1",
-        )
-        assert cfg.dry_run is True
-        assert cfg.production_mode is True
+        with pytest.raises(
+            ValueError,
+            match="requires dry_run=False",
+        ):
+            DirectorConfig(
+                dry_run=True,
+                production_mode=True,
+                api_keys='["sk-test"]',
+                llm_api_url="https://llm.internal.example/v1",
+            )

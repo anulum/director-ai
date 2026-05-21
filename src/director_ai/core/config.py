@@ -483,6 +483,14 @@ class DirectorConfig:
 
         # Production mode enforcements
         if self.production_mode:
+            if self.dry_run:
+                raise ValueError(
+                    "production_mode requires dry_run=False (fail-open dry-run is not permitted)",
+                )
+            if not self.sanitize_inputs:
+                raise ValueError(
+                    "production_mode requires sanitize_inputs=True",
+                )
             object.__setattr__(self, "knowledge_write_require_auth", True)
             if not self.api_keys and not self.api_key_tenant_map:
                 raise ValueError(
@@ -1005,6 +1013,7 @@ class DirectorConfig:
 
     def build_scorer(self, store=None):
         """Construct a CoherenceScorer wired to all relevant config fields."""
+        from .metrics import metrics
         from .scoring.scorer import CoherenceScorer
 
         if store is None:
@@ -1092,15 +1101,34 @@ class DirectorConfig:
         scorer._confidence_weighted_agg = self.nli_confidence_weighted_agg
         scorer._retrieval_abstention_threshold = self.retrieval_abstention_threshold
         if self.injection_detection_enabled:
-            scorer.enable_injection_detection(
-                injection_threshold=self.injection_threshold,
-                drift_threshold=self.injection_drift_threshold,
-                injection_claim_threshold=self.injection_claim_threshold,
-                baseline_divergence=self.injection_baseline_divergence,
-                stage1_weight=self.injection_stage1_weight,
-                require_model_backed_nli=self.injection_require_model_backed_nli,
-                fail_closed_on_error=self.injection_fail_closed_on_error,
-            )
+            try:
+                scorer.enable_injection_detection(
+                    injection_threshold=self.injection_threshold,
+                    drift_threshold=self.injection_drift_threshold,
+                    injection_claim_threshold=self.injection_claim_threshold,
+                    baseline_divergence=self.injection_baseline_divergence,
+                    stage1_weight=self.injection_stage1_weight,
+                    require_model_backed_nli=self.injection_require_model_backed_nli,
+                    fail_closed_on_error=self.injection_fail_closed_on_error,
+                )
+            except RuntimeError as exc:
+                metrics.inc_labeled(
+                    "scorer_startup_failures_total",
+                    labels={
+                        "component": "injection",
+                        "reason": "detector_init_runtime_error",
+                    },
+                )
+                metrics.inc_labeled(
+                    "injection_startup_failures_total",
+                    labels={"reason": type(exc).__name__},
+                )
+                if self.injection_require_model_backed_nli:
+                    metrics.inc_labeled(
+                        "model_backed_nli_startup_failures_total",
+                        labels={"stage": "injection"},
+                    )
+                raise
         if self.lora_adapter_path and scorer._nli is not None:
             if hasattr(scorer._nli, "_load_lora_adapter"):
                 scorer._nli._load_lora_adapter(self.lora_adapter_path)
@@ -1115,15 +1143,38 @@ class DirectorConfig:
             scorer.enable_adaptive_retrieval(
                 threshold=self.adaptive_retrieval_threshold,
             )
-        if (
-            scorer._adaptive_threshold_enabled
-            and scorer._adaptive_threshold_fail_closed
-            and scorer._get_meta_classifier() is None
-        ):
-            raise RuntimeError(
-                "adaptive_threshold_fail_closed=True requires a loadable meta-classifier "
-                "(set meta_classifier_path or provide a compatible bundled artefact)",
-            )
+        if scorer._adaptive_threshold_enabled and scorer._adaptive_threshold_fail_closed:
+            try:
+                meta_classifier = scorer._get_meta_classifier()
+            except RuntimeError:
+                metrics.inc_labeled(
+                    "scorer_startup_failures_total",
+                    labels={
+                        "component": "adaptive_threshold",
+                        "reason": "classifier_init_runtime_error",
+                    },
+                )
+                metrics.inc_labeled(
+                    "adaptive_threshold_startup_failures_total",
+                    labels={"reason": "exception_during_classifier_init"},
+                )
+                raise
+            if meta_classifier is None:
+                metrics.inc_labeled(
+                    "scorer_startup_failures_total",
+                    labels={
+                        "component": "adaptive_threshold",
+                        "reason": "classifier_missing_or_unloadable",
+                    },
+                )
+                metrics.inc_labeled(
+                    "adaptive_threshold_startup_failures_total",
+                    labels={"reason": "missing_or_unloadable_classifier"},
+                )
+                raise RuntimeError(
+                    "adaptive_threshold_fail_closed=True requires a loadable meta-classifier "
+                    "(set meta_classifier_path or provide a compatible bundled artefact)",
+                )
         if self.dry_run:
             scorer._dry_run = True
             logger.info("Dry-run mode: scoring but never rejecting")
@@ -1139,6 +1190,17 @@ class DirectorConfig:
             scorer._judge._cost_callback = _cost_cb
             logger.info("Cost tracking enabled on scorer")
         if self.coherence_require_model_backed_nli and not scorer._has_model_backed_nli():
+            metrics.inc_labeled(
+                "scorer_startup_failures_total",
+                labels={
+                    "component": "coherence",
+                    "reason": "model_backed_nli_unavailable",
+                },
+            )
+            metrics.inc_labeled(
+                "model_backed_nli_startup_failures_total",
+                labels={"stage": "coherence"},
+            )
             raise RuntimeError(
                 "Configured coherence_require_model_backed_nli=True, but scorer could not initialize a model-backed NLI backend",
             )
@@ -1147,6 +1209,17 @@ class DirectorConfig:
             and self.injection_require_model_backed_nli
             and not scorer._has_model_backed_nli()
         ):
+            metrics.inc_labeled(
+                "scorer_startup_failures_total",
+                labels={
+                    "component": "injection",
+                    "reason": "model_backed_nli_unavailable",
+                },
+            )
+            metrics.inc_labeled(
+                "model_backed_nli_startup_failures_total",
+                labels={"stage": "injection"},
+            )
             raise RuntimeError(
                 "Configured injection_require_model_backed_nli=True, but scorer could not initialize a model-backed NLI backend for injection detection",
             )
