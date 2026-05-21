@@ -247,6 +247,23 @@ class TestBuilder:
         scorer = ModuleBuilder().build(bp)
         assert scorer("the quick brown fox") == pytest.approx(0.77)
 
+    def test_ngram_overlap_rust_exception_falls_back(self, monkeypatch):
+        monkeypatch.setattr(builder_mod, "_RUST_AUTOPOIETIC", True)
+        monkeypatch.setattr(
+            builder_mod,
+            "rust_word_overlap",
+            lambda _grams, _reference: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        bp = ModuleBlueprint(
+            kind="ngram_overlap",
+            ngram_size=2,
+            reference_vocabulary=("the quick", "quick brown"),
+        )
+        scorer = ModuleBuilder().build(bp)
+        score = scorer("the quick brown fox")
+        assert 0.0 <= score <= 1.0
+
     def test_ensemble_scorer_is_weighted_mean(self):
         length = ModuleBlueprint(kind="length", length_saturation=10)
         markers = ModuleBlueprint(

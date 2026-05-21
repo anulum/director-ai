@@ -95,7 +95,10 @@ class ModuleBuilder:
                 return 0.0
             if _RUST_AUTOPOIETIC:
                 gram_tokens = " ".join(gram.replace(" ", "_") for gram in grams)
-                return float(rust_word_overlap(gram_tokens, reference_tokens))
+                try:
+                    return float(rust_word_overlap(gram_tokens, reference_tokens))
+                except Exception:
+                    pass
             intersection = grams & reference
             union = grams | reference
             if not union:
