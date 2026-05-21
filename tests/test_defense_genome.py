@@ -21,6 +21,7 @@ from typing import Any, cast
 
 import pytest
 
+import director_ai.core.defense_genome.engine as engine_mod
 from director_ai.core.defense_genome import (
     AdversarialGenome,
     Defense,
@@ -202,6 +203,32 @@ class TestPopulation:
     def test_protocol_runtime_check(self):
         assert isinstance(_AlwaysSafe(), Defense)
         assert isinstance(_KeywordBlocker(()), Defense)
+
+    def test_fitness_summary_uses_rust_mean_when_available(self, monkeypatch):
+        pop = self._population()
+        monkeypatch.setattr(engine_mod, "_RUST_DEFENSE_GENOME", True)
+        called = {"count": 0}
+
+        def _mean(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values) / len(values)
+
+        monkeypatch.setattr(engine_mod, "rust_mean", _mean, raising=True)
+        low, avg, high = pop.fitness_summary()
+        assert low <= avg <= high
+        assert called["count"] == 1
+
+    def test_fitness_summary_rust_type_error_falls_back(self, monkeypatch):
+        pop = self._population()
+        monkeypatch.setattr(engine_mod, "_RUST_DEFENSE_GENOME", True)
+        monkeypatch.setattr(
+            engine_mod,
+            "rust_mean",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        low, avg, high = pop.fitness_summary()
+        assert low <= avg <= high
 
 
 class TestEngine:
