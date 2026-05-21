@@ -31,6 +31,16 @@ from __future__ import annotations
 from dataclasses import dataclass, replace
 from typing import Literal
 
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_BLUEPRINT = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_BLUEPRINT = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 BlueprintKind = Literal["length", "marker_count", "ngram_overlap", "ensemble"]
 
 _VALID_KINDS: frozenset[BlueprintKind] = frozenset(
@@ -124,7 +134,7 @@ class ModuleBlueprint:
         elif self.kind == "ensemble":
             if not self.components:
                 raise ValueError("kind 'ensemble' requires at least one component")
-            total = sum(c.weight for c in self.components)
+            total = _sum_float([c.weight for c in self.components])
             if not 0.999 <= total <= 1.001:
                 raise ValueError(f"ensemble weights must sum to 1.0; got {total}")
 
@@ -215,7 +225,7 @@ def _rebalance(blueprint: ModuleBlueprint, index: int, delta: float) -> ModuleBl
                     EnsembleComponent(weight=new_weight, blueprint=component.blueprint)
                 )
     # Re-normalise to absorb floating-point drift.
-    total = sum(c.weight for c in new_components)
+    total = _sum_float([c.weight for c in new_components])
     if total <= 0:
         # Pathological rebalance — fall back to uniform weights.
         uniform = 1.0 / len(new_components)
@@ -232,3 +242,12 @@ def _rebalance(blueprint: ModuleBlueprint, index: int, delta: float) -> ModuleBl
         kind="ensemble",
         components=tuple(new_components),
     )
+
+
+def _sum_float(values: list[float]) -> float:
+    if _RUST_BLUEPRINT:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
