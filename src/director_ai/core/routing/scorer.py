@@ -42,6 +42,16 @@ import re
 from dataclasses import dataclass
 from typing import Any
 
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_ROUTING = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_ROUTING = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 logger = logging.getLogger("DirectorAI.Routing.Scorer")
 
 # Cheap-to-match markers of system-prompt exfiltration attempts.
@@ -116,7 +126,7 @@ class PromptRiskScorer:
     ) -> None:
         if max_safe_length <= 0:
             raise ValueError(f"max_safe_length must be positive; got {max_safe_length}")
-        total = sum(weights)
+        total = _sum_float(list(weights))
         if not 0.999 <= total <= 1.001:
             raise ValueError(f"weights must sum to 1.0; got {total}")
         self._sanitiser = sanitiser
@@ -217,6 +227,17 @@ def _clip01(value: Any) -> float:
     if as_float > 1.0:
         return 1.0
     return as_float
+
+
+def _sum_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_ROUTING:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 def _build_rust_marker_scanner() -> Any | None:
