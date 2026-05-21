@@ -16,7 +16,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 try:
-    from backfire_kernel import rust_mean
+    from backfire_kernel import rust_mean, rust_sum_f64
 
     _RUST_CONTRADICTION = True
 except Exception:  # pragma: no cover - optional dependency
@@ -24,6 +24,9 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 __all__ = ["ContradictionReport", "ContradictionTracker"]
 
@@ -166,4 +169,11 @@ def _mean_float(values: list[float]) -> float:
             return float(rust_mean(values))
         except Exception:
             pass
-    return sum(values) / len(values)
+    return _sum_float(values) / len(values)
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
