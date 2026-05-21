@@ -24,6 +24,16 @@ import threading
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
 
+try:
+    from backfire_kernel import rust_sum_i64
+
+    _RUST_AGGREGATOR = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_AGGREGATOR = False
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 from .accountant import AccountantEntry, PrivacyAccountant
 from .mechanisms import LaplaceMechanism
 
@@ -107,7 +117,7 @@ class FederatedCounter:
         the Laplace mechanism, and clears the per-tenant
         contributions so the next release starts fresh."""
         with self._lock:
-            raw_sum = sum(self._contributions.values())
+            raw_sum = _sum_int(list(self._contributions.values()))
             submissions = len(self._contributions)
             self._contributions.clear()
         if self._accountant is not None:
@@ -219,7 +229,7 @@ class FederatedHistogram:
     def release(self) -> HistogramRelease:
         with self._lock:
             raw_counts = dict(self._contributions)
-            submissions = sum(raw_counts.values())
+            submissions = _sum_int(list(raw_counts.values()))
             for c in self._categories:
                 self._contributions[c] = 0
         if self._accountant is not None:
@@ -241,3 +251,14 @@ class FederatedHistogram:
             submissions=submissions,
             categories=self._categories,
         )
+
+
+def _sum_int(values: list[int]) -> int:
+    if not values:
+        return 0
+    if _RUST_AGGREGATOR:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
