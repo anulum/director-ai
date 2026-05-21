@@ -488,6 +488,30 @@ class TestGracefulDegradation:
         assert len(claims) == 2
         assert claims[0].verdict == "grounded"
 
+    def test_python_fallback_scores_claims_when_rust_bidir_raises_non_runtime(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr("director_ai.core.safety.injection._RUST_INJECTION", True)
+        monkeypatch.setattr(
+            "director_ai.core.safety.injection.rust_bidirectional_divergence",
+            lambda *args, **kwargs: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        mock_nli = MagicMock()
+        mock_nli.model_available = False
+        mock_nli.score.side_effect = [0.20, 0.85, 0.30, 0.80]
+        detector = InjectionDetector(
+            nli_scorer=mock_nli,
+            baseline_divergence=0.0,
+            drift_threshold=0.6,
+        )
+        claims = detector._score_claims_against_intent(
+            ["Paris is the capital of France.", "Vault credentials are exposed."],
+            "Answer only about Paris and France.",
+        )
+        assert len(claims) == 2
+        assert claims[0].verdict == "grounded"
+
 
 # -- Sanitizer integration ----------------------------------------------------
 
