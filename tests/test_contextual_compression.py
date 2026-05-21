@@ -101,6 +101,22 @@ class TestKeywordOverlap:
             1.0 / 3.0
         )
 
+    def test_rust_overlap_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
+
+        def _boom(_query, _sentence):
+            raise TypeError("ffi signature mismatch")
+
+        monkeypatch.setattr(
+            compression_mod,
+            "rust_word_overlap",
+            _boom,
+            raising=False,
+        )
+        assert _keyword_overlap("refund policy", "refund process") == pytest.approx(
+            1.0 / 3.0
+        )
+
 
 # ── Heuristic compression ─────────────────────────────────────────────
 
