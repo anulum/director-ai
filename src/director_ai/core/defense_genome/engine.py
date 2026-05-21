@@ -26,7 +26,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 
 try:
-    from backfire_kernel import rust_mean
+    from backfire_kernel import rust_mean, rust_sum_f64
 
     _RUST_DEFENSE_GENOME = True
 except Exception:  # pragma: no cover - optional dependency
@@ -34,6 +34,9 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 from .genome import AdversarialGenome, Gene, GeneOperator
 from .registry import Defense
@@ -107,9 +110,9 @@ class GenomePopulation:
             try:
                 mean_fit = float(rust_mean(fits))
             except Exception:
-                mean_fit = sum(fits) / len(fits)
+                mean_fit = _sum_float(fits) / len(fits)
         else:
-            mean_fit = sum(fits) / len(fits)
+            mean_fit = _sum_float(fits) / len(fits)
         return min(fits), mean_fit, max(fits)
 
     def tournament(self, *, k: int, rng: random.Random) -> AdversarialGenome:
@@ -136,6 +139,13 @@ class GenomePopulation:
 
     def members(self) -> tuple[AdversarialGenome, ...]:
         return tuple(s.genome for s in self._scored)
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
 
 
 class EvolutionEngine:
