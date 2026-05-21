@@ -117,6 +117,19 @@ class TestAABB:
         with pytest.raises(ValueError, match="min_corner"):
             AABB(min_corner=Vec3(1.0, 0.0, 0.0), max_corner=Vec3(0.0, 0.0, 0.0))
 
+    def test_contains_rust_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._RUST_GEOM_AVAILABLE",
+            True,
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._rust_aabb_contains",
+            lambda *args: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
+        assert box.contains(Vec3(0.5, 0.5, 0.5))
+
 
 # --- Sphere ---------------------------------------------------------
 
@@ -163,6 +176,33 @@ class TestSphere:
     def test_negative_radius(self):
         with pytest.raises(ValueError, match="radius"):
             Sphere(centre=Vec3(0.0, 0.0, 0.0), radius=-1.0)
+
+    def test_sphere_rust_exceptions_fall_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._RUST_GEOM_AVAILABLE",
+            True,
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._rust_sphere_contains",
+            lambda *args: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._rust_sphere_intersects_sphere",
+            lambda *args: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._rust_sphere_intersects_aabb",
+            lambda *args: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        sphere = Sphere(centre=Vec3(0.0, 0.0, 0.0), radius=1.0)
+        other = Sphere(centre=Vec3(1.5, 0.0, 0.0), radius=1.0)
+        box = AABB(min_corner=Vec3(1.0, -0.1, -0.1), max_corner=Vec3(1.5, 0.1, 0.1))
+        assert sphere.contains(Vec3(0.5, 0.0, 0.0))
+        assert sphere.intersects(other)
+        assert sphere.intersects_aabb(box)
 
 
 # --- JointChain + SimpleKinematicModel ------------------------------

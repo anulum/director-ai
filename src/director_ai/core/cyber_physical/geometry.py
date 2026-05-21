@@ -106,17 +106,20 @@ class AABB:
     def contains(self, point: Vec3) -> bool:
         """Return whether point lies inside or on the AABB boundary."""
         if _RUST_GEOM_AVAILABLE:
-            # cast documents the narrowing at the PyO3 boundary —
-            # the Rust function signature returns ``bool`` but the
-            # FFI binding is untyped at the Python level.
-            return cast(
-                bool,
-                _rust_aabb_contains(
-                    (self.min_corner.x, self.min_corner.y, self.min_corner.z),
-                    (self.max_corner.x, self.max_corner.y, self.max_corner.z),
-                    (point.x, point.y, point.z),
-                ),
-            )
+            try:
+                # cast documents the narrowing at the PyO3 boundary —
+                # the Rust function signature returns ``bool`` but the
+                # FFI binding is untyped at the Python level.
+                return cast(
+                    bool,
+                    _rust_aabb_contains(
+                        (self.min_corner.x, self.min_corner.y, self.min_corner.z),
+                        (self.max_corner.x, self.max_corner.y, self.max_corner.z),
+                        (point.x, point.y, point.z),
+                    ),
+                )
+            except Exception:
+                pass
         return (
             self.min_corner.x <= point.x <= self.max_corner.x
             and self.min_corner.y <= point.y <= self.max_corner.y
@@ -168,41 +171,50 @@ class Sphere:
     def contains(self, point: Vec3) -> bool:
         """Return whether point lies inside or on the sphere boundary."""
         if _RUST_GEOM_AVAILABLE:
-            return cast(
-                bool,
-                _rust_sphere_contains(
-                    (self.centre.x, self.centre.y, self.centre.z),
-                    self.radius,
-                    (point.x, point.y, point.z),
-                ),
-            )
+            try:
+                return cast(
+                    bool,
+                    _rust_sphere_contains(
+                        (self.centre.x, self.centre.y, self.centre.z),
+                        self.radius,
+                        (point.x, point.y, point.z),
+                    ),
+                )
+            except Exception:
+                pass
         return self.centre.distance(point) <= self.radius
 
     def intersects(self, other: Sphere) -> bool:
         """Return whether two spheres overlap or touch."""
         if _RUST_GEOM_AVAILABLE:
-            return cast(
-                bool,
-                _rust_sphere_intersects_sphere(
-                    (self.centre.x, self.centre.y, self.centre.z),
-                    self.radius,
-                    (other.centre.x, other.centre.y, other.centre.z),
-                    other.radius,
-                ),
-            )
+            try:
+                return cast(
+                    bool,
+                    _rust_sphere_intersects_sphere(
+                        (self.centre.x, self.centre.y, self.centre.z),
+                        self.radius,
+                        (other.centre.x, other.centre.y, other.centre.z),
+                        other.radius,
+                    ),
+                )
+            except Exception:
+                pass
         return self.centre.distance(other.centre) <= self.radius + other.radius
 
     def intersects_aabb(self, box: AABB) -> bool:
         """Closest-point-to-sphere test."""
         if _RUST_GEOM_AVAILABLE:
-            return cast(
-                bool,
-                _rust_sphere_intersects_aabb(
-                    (self.centre.x, self.centre.y, self.centre.z),
-                    self.radius,
-                    (box.min_corner.x, box.min_corner.y, box.min_corner.z),
-                    (box.max_corner.x, box.max_corner.y, box.max_corner.z),
-                ),
-            )
+            try:
+                return cast(
+                    bool,
+                    _rust_sphere_intersects_aabb(
+                        (self.centre.x, self.centre.y, self.centre.z),
+                        self.radius,
+                        (box.min_corner.x, box.min_corner.y, box.min_corner.z),
+                        (box.max_corner.x, box.max_corner.y, box.max_corner.z),
+                    ),
+                )
+            except Exception:
+                pass
         closest = self.centre.clamp(box.min_corner, box.max_corner)
         return self.centre.distance(closest) <= self.radius
