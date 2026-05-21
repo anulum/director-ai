@@ -24,6 +24,16 @@ from dataclasses import dataclass
 
 __all__ = ["ConformalPredictor", "PredictionInterval"]
 
+try:
+    from backfire_kernel import rust_conformal_quantile
+
+    _RUST_CONFORMAL = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_CONFORMAL = False
+
+    def rust_conformal_quantile(_residuals: list[float], _coverage: float) -> float:
+        raise RuntimeError("backfire_kernel rust_conformal_quantile is unavailable")
+
 
 @dataclass
 class PredictionInterval:
@@ -154,9 +164,13 @@ class ConformalPredictor:
             actual = 1.0 if lab else 0.0
             residuals.append(abs(pred_prob - actual))
 
-        residuals.sort()
+        if _RUST_CONFORMAL:
+            try:
+                return float(rust_conformal_quantile(residuals, self._coverage))
+            except Exception:
+                pass
 
-        # Conformal quantile: ceil((n+1) * coverage) / n
+        residuals.sort()
         q_idx = math.ceil((n + 1) * self._coverage) - 1
         q_idx = min(q_idx, n - 1)
         return residuals[q_idx]
