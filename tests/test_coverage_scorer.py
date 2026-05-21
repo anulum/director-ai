@@ -273,6 +273,25 @@ class TestScorerHeuristicFactual:
         )
         assert div > 0.3
 
+    def test_rust_heuristic_factual_type_error_falls_back_to_python(
+        self, monkeypatch
+    ):
+        import director_ai.core.scoring.scorer as scorer_mod
+
+        monkeypatch.setattr(
+            scorer_mod,
+            "rust_heuristic_factual_divergence",
+            lambda *_args: (_ for _ in ()).throw(
+                TypeError("ffi signature mismatch")
+            ),
+            raising=False,
+        )
+        div = CoherenceScorer._heuristic_factual(
+            "The sky is blue.",
+            "Planet Mars is red.",
+        )
+        assert div > 0.3
+
 
 class TestScorerParseJudgeReply:
     def test_json_yes(self):
