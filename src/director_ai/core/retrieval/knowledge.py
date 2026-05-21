@@ -12,6 +12,13 @@ import hashlib
 import logging
 from typing import Any
 
+try:
+    from backfire_kernel import rust_word_overlap
+
+    _RUST_KNOWLEDGE = True
+except ImportError:
+    _RUST_KNOWLEDGE = False
+
 __all__ = ["GroundTruthStore"]
 
 
@@ -116,7 +123,7 @@ class GroundTruthStore:
             return None
 
         query_lower = query.lower()
-        context = []
+        ranked: list[tuple[float, str]] = []
 
         for key, value in self.facts.items():
             search_key = key
@@ -127,9 +134,12 @@ class GroundTruthStore:
                 search_key = key[len(prefix) :]
             key_words = search_key.lower().split()
             if any(word in query_lower for word in key_words):
-                context.append(value)
+                overlap = _word_overlap(query, search_key)
+                ranked.append((overlap, value))
 
-        if context:
+        if ranked:
+            ranked.sort(key=lambda item: item[0], reverse=True)
+            context = [value for _, value in ranked]
             if top_k > 0:
                 context = context[:top_k]
             retrieved = "; ".join(context)
@@ -149,3 +159,15 @@ def _require_non_empty_string(name: str, value: str) -> str:
     if not isinstance(value, str) or not value.strip():
         raise ValueError(f"{name} must be a non-empty string")
     return value.strip()
+
+
+def _word_overlap(text_a: str, text_b: str) -> float:
+    """Return lexical Jaccard overlap in ``[0, 1]``."""
+    if _RUST_KNOWLEDGE:
+        return float(rust_word_overlap(text_a, text_b))
+    words_a = set(text_a.lower().split())
+    words_b = set(text_b.lower().split())
+    if not words_a or not words_b:
+        return 0.0
+    union = words_a | words_b
+    return len(words_a & words_b) / len(union) if union else 0.0

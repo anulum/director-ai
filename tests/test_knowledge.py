@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.knowledge as knowledge_mod
 from director_ai.core.knowledge import GroundTruthStore
 
 
@@ -122,3 +123,24 @@ class TestGroundTruthStore:
         store = GroundTruthStore.with_demo_facts()
         with pytest.raises(ValueError, match="top_k"):
             store.retrieve_context("sky", top_k=-1)
+
+    def test_retrieve_ranks_by_overlap(self):
+        store = GroundTruthStore()
+        store.add("refund policy", "policy hit")
+        store.add("refund process details", "process hit")
+        result = store.retrieve_context("refund policy details", top_k=1)
+        assert result == "policy hit"
+
+    def test_rust_overlap_delegation(self, monkeypatch):
+        monkeypatch.setattr(knowledge_mod, "_RUST_KNOWLEDGE", True)
+        monkeypatch.setattr(
+            knowledge_mod,
+            "rust_word_overlap",
+            lambda text_a, text_b: 0.9 if "policy" in text_b else 0.1,
+            raising=False,
+        )
+        store = GroundTruthStore()
+        store.add("refund policy", "policy first")
+        store.add("refund timeline", "timeline second")
+        result = store.retrieve_context("refund details", top_k=1)
+        assert result == "policy first"
