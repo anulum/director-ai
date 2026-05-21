@@ -27,6 +27,7 @@ from dataclasses import dataclass
 try:
     from backfire_kernel import (
         rust_confusion_counts_threshold,
+        rust_sum_i64,
         rust_wilson_score_interval,
     )
 
@@ -47,6 +48,9 @@ except Exception:  # pragma: no cover - optional dependency
         raise RuntimeError(
             "backfire_kernel rust_confusion_counts_threshold is unavailable"
         )
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 from .feedback_store import FeedbackStore
 
@@ -124,15 +128,32 @@ class OnlineCalibrator:
             )
 
         # Confusion matrix from guardrail vs human verdicts
-        tp = sum(1 for c in corrections if c.guardrail_approved and c.human_approved)
-        tn = sum(
-            1 for c in corrections if not c.guardrail_approved and not c.human_approved
+        tp = _sum_int(
+            [1 if c.guardrail_approved and c.human_approved else 0 for c in corrections]
         )
-        fp = sum(
-            1 for c in corrections if c.guardrail_approved and not c.human_approved
+        tn = _sum_int(
+            [
+                1
+                if not c.guardrail_approved and not c.human_approved
+                else 0
+                for c in corrections
+            ]
         )
-        fn = sum(
-            1 for c in corrections if not c.guardrail_approved and c.human_approved
+        fp = _sum_int(
+            [
+                1
+                if c.guardrail_approved and not c.human_approved
+                else 0
+                for c in corrections
+            ]
+        )
+        fn = _sum_int(
+            [
+                1
+                if not c.guardrail_approved and c.human_approved
+                else 0
+                for c in corrections
+            ]
         )
 
         accuracy = (tp + tn) / n if n > 0 else 0.0
@@ -176,7 +197,7 @@ class OnlineCalibrator:
         Returns None if the data has only one class (no calibration signal).
         Sweeps thresholds from 0.05 to 0.95 in 1% steps.
         """
-        pos = sum(1 for _, h in scored if h)
+        pos = _sum_int([1 if h else 0 for _, h in scored])
         neg = len(scored) - pos
         if pos == 0 or neg == 0:
             return None
@@ -207,3 +228,10 @@ class OnlineCalibrator:
                 best_ba = ba
                 best_t = t
         return best_t
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
