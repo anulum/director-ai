@@ -28,6 +28,7 @@
 //! - [`lite_score`] — lightweight heuristic divergence (no-NLI fallback)
 //! - [`lite_score_batch`] — batch version of lite_score
 //! - [`heuristic_logical_divergence`] — keyword+overlap logical fallback
+//! - [`heuristic_factual_divergence`] — overlap+negation+entity factual fallback
 
 use std::collections::HashSet;
 
@@ -703,6 +704,31 @@ static LITE_NEGATION_WORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
     .collect()
 });
 
+static LITE_STOP_WORDS: Lazy<HashSet<&'static str>> = Lazy::new(|| {
+    [
+        "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any",
+        "are", "aren't", "as", "at", "be", "because", "been", "before", "being", "below",
+        "between", "both", "but", "by", "can", "can't", "cannot", "could", "couldn't", "did",
+        "didn't", "do", "does", "doesn't", "doing", "don't", "down", "during", "each", "few",
+        "for", "from", "further", "had", "hadn't", "has", "hasn't", "have", "haven't", "having",
+        "he", "he'd", "he'll", "he's", "her", "here", "here's", "hers", "herself", "him",
+        "himself", "his", "how", "how's", "i", "i'd", "i'll", "i'm", "i've", "if", "in", "into",
+        "is", "isn't", "it", "it's", "its", "itself", "let's", "me", "more", "most", "mustn't",
+        "my", "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or", "other",
+        "ought", "our", "ours", "ourselves", "out", "over", "own", "same", "shan't", "she",
+        "she'd", "she'll", "she's", "should", "shouldn't", "so", "some", "such", "than", "that",
+        "that's", "the", "their", "theirs", "them", "themselves", "then", "there", "there's",
+        "these", "they", "they'd", "they'll", "they're", "they've", "this", "those", "through",
+        "to", "too", "under", "until", "up", "very", "was", "wasn't", "we", "we'd", "we'll",
+        "we're", "we've", "were", "weren't", "what", "what's", "when", "when's", "where",
+        "where's", "which", "while", "who", "who's", "whom", "why", "why's", "with", "won't",
+        "would", "wouldn't", "you", "you'd", "you'll", "you're", "you've", "your", "yours",
+        "yourself", "yourselves",
+    ]
+    .into_iter()
+    .collect()
+});
+
 /// Lightweight divergence scorer using word overlap, length ratio,
 /// named entity heuristics, and negation asymmetry.
 ///
@@ -818,6 +844,66 @@ pub fn heuristic_logical_divergence(text_output: &str, prompt: &str) -> f64 {
         return 0.5;
     }
     (1.0 - intersection as f64 / union as f64).clamp(0.0, 1.0)
+}
+
+/// Factual divergence fallback used when model-backed NLI is unavailable.
+///
+/// Mirrors `CoherenceScorer._heuristic_factual()` from `scorer.py`.
+pub fn heuristic_factual_divergence(context: &str, text_output: &str) -> f64 {
+    let ctx_raw: HashSet<String> = LITE_WORD_RE
+        .find_iter(&context.to_lowercase())
+        .map(|m| m.as_str().to_string())
+        .collect();
+    let out_raw: HashSet<String> = LITE_WORD_RE
+        .find_iter(&text_output.to_lowercase())
+        .map(|m| m.as_str().to_string())
+        .collect();
+
+    let ctx_words: HashSet<String> = ctx_raw
+        .iter()
+        .filter(|w| !LITE_STOP_WORDS.contains(w.as_str()))
+        .cloned()
+        .collect();
+    let out_words: HashSet<String> = out_raw
+        .iter()
+        .filter(|w| !LITE_STOP_WORDS.contains(w.as_str()))
+        .cloned()
+        .collect();
+
+    if ctx_words.is_empty() || out_words.is_empty() {
+        return 0.5;
+    }
+
+    let overlap = ctx_words.intersection(&out_words).count() as f64;
+    let recall = overlap / ctx_words.len() as f64;
+    let precision = overlap / out_words.len() as f64;
+    let similarity = recall.max(precision);
+    let mut divergence = 1.0 - similarity;
+
+    let ctx_neg = ctx_raw
+        .iter()
+        .any(|w| LITE_NEGATION_WORDS.contains(w.as_str()));
+    let out_neg = out_raw
+        .iter()
+        .any(|w| LITE_NEGATION_WORDS.contains(w.as_str()));
+    if ctx_neg != out_neg {
+        divergence += 0.25;
+    }
+
+    let ctx_ents: HashSet<String> = LITE_ENTITY_RE
+        .find_iter(context)
+        .map(|m| m.as_str().to_string())
+        .collect();
+    let out_ents: HashSet<String> = LITE_ENTITY_RE
+        .find_iter(text_output)
+        .map(|m| m.as_str().to_string())
+        .collect();
+    let novel_ents_count = out_ents.difference(&ctx_ents).count();
+    if novel_ents_count > 0 {
+        divergence += 0.15;
+    }
+
+    divergence.clamp(0.0, 1.0)
 }
 
 // ── Tests ───────────────────────────────────────────────────────────
@@ -1198,5 +1284,23 @@ mod tests {
     fn test_heuristic_logical_no_prompt() {
         let s = heuristic_logical_divergence("some text", "");
         assert_eq!(s, 0.5);
+    }
+
+    #[test]
+    fn test_heuristic_factual_empty_inputs() {
+        let s = heuristic_factual_divergence("", "something");
+        assert_eq!(s, 0.5);
+    }
+
+    #[test]
+    fn test_heuristic_factual_negation_asymmetry() {
+        let s = heuristic_factual_divergence("The sky is blue.", "The sky is not blue.");
+        assert!(s > 0.2);
+    }
+
+    #[test]
+    fn test_heuristic_factual_novel_entities() {
+        let s = heuristic_factual_divergence("The sky is blue.", "Planet Mars is red.");
+        assert!(s > 0.3);
     }
 }

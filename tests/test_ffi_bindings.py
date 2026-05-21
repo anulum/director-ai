@@ -214,6 +214,49 @@ class TestRustCoherenceScorer:
         assert s.history_len >= 0
 
 
+class TestRustHeuristicLogicalDivergence:
+    def test_keyword_aligned(self):
+        score = backfire_kernel.rust_heuristic_logical_divergence(
+            "This is consistent with reality.",
+            "prompt",
+        )
+        assert score == pytest.approx(0.1)
+
+    def test_keyword_contradicted(self):
+        score = backfire_kernel.rust_heuristic_logical_divergence(
+            "The opposite is true.",
+            "prompt",
+        )
+        assert score == pytest.approx(0.9)
+
+    def test_keyword_neutral(self):
+        score = backfire_kernel.rust_heuristic_logical_divergence(
+            "depends on your perspective",
+            "prompt",
+        )
+        assert score == pytest.approx(0.5)
+
+
+class TestRustHeuristicFactualDivergence:
+    def test_negation_asymmetry(self):
+        score = backfire_kernel.rust_heuristic_factual_divergence(
+            "The sky is blue.",
+            "The sky is not blue.",
+        )
+        assert score > 0.2
+
+    def test_novel_entities(self):
+        score = backfire_kernel.rust_heuristic_factual_divergence(
+            "The sky is blue.",
+            "Planet Mars is red.",
+        )
+        assert score > 0.3
+
+    def test_empty_context(self):
+        score = backfire_kernel.rust_heuristic_factual_divergence("", "something")
+        assert score == pytest.approx(0.5)
+
+
 # â”€â”€ RustUPDEStepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 

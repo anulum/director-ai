@@ -208,6 +208,24 @@ class TestScorerHeuristicFactual:
         div = CoherenceScorer._heuristic_factual("", "something")
         assert div == 0.5
 
+    def test_rust_heuristic_factual_parity_when_available(self):
+        try:
+            from backfire_kernel import rust_heuristic_factual_divergence
+        except Exception:
+            pytest.skip("backfire_kernel rust_heuristic_factual_divergence unavailable")
+
+        samples = [
+            ("The sky is blue.", "The sky is not blue."),
+            ("The sky is blue.", "Planet Mars is red."),
+            ("", "something"),
+            ("Economic growth increased by 3 percent.", "Growth increased by 3 percent."),
+        ]
+
+        for context, output in samples:
+            py_score = CoherenceScorer._heuristic_factual(context, output)
+            rust_score = float(rust_heuristic_factual_divergence(context, output))
+            assert rust_score == pytest.approx(py_score, abs=1e-12)
+
 
 class TestScorerParseJudgeReply:
     def test_json_yes(self):

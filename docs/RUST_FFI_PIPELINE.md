@@ -496,6 +496,8 @@ Tests cover:
 - `StreamSession`: token management, halt tracking
 - `RustSafetyKernel`: review with callbacks
 - `RustStreamingKernel`: streaming with halt detection
+- `rust_heuristic_logical_divergence`: fallback logical-divergence parity
+- `rust_heuristic_factual_divergence`: fallback factual-divergence parity
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 
@@ -536,6 +538,7 @@ scoring path.
 | FFI bindings              | `backfire-kernel/crates/backfire-ffi/src/lib.rs` |
 | Core scorer               | `backfire-kernel/crates/backfire-core/src/scorer.rs` |
 | Safety/streaming kernel   | `backfire-kernel/crates/backfire-core/src/kernel.rs` |
+| Compute accelerators      | `backfire-kernel/crates/backfire-core/src/compute.rs` |
 | Verification signals      | `backfire-kernel/crates/backfire-core/src/signals.rs` |
 | Shared types              | `backfire-kernel/crates/backfire-types/`       |
 | Python integration tests  | `tests/test_rust_pipeline_integration.py`      |

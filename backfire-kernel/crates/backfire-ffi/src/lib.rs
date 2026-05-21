@@ -1300,6 +1300,11 @@ fn rust_heuristic_logical_divergence(text_output: &str, prompt: &str) -> f64 {
     backfire_core::compute::heuristic_logical_divergence(text_output, prompt)
 }
 
+#[pyfunction]
+fn rust_heuristic_factual_divergence(context: &str, text_output: &str) -> f64 {
+    backfire_core::compute::heuristic_factual_divergence(context, text_output)
+}
+
 #[pymodule]
 fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -1345,6 +1350,7 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_lite_score, m)?)?;
     m.add_function(wrap_pyfunction!(rust_lite_score_batch, m)?)?;
     m.add_function(wrap_pyfunction!(rust_heuristic_logical_divergence, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_heuristic_factual_divergence, m)?)?;
     // PII regex multi-pattern scanner
     m.add_class::<PyPiiScanner>()?;
     // Safety-hook acceleration (cyber-physical geometry/IK +

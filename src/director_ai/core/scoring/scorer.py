@@ -37,8 +37,12 @@ from ._task_scoring import (
 from .nli import NLIScorer, nli_available
 
 try:
-    from backfire_kernel import rust_heuristic_logical_divergence
+    from backfire_kernel import (
+        rust_heuristic_factual_divergence,
+        rust_heuristic_logical_divergence,
+    )
 except Exception:  # pragma: no cover - optional accelerator may be unavailable
+    rust_heuristic_factual_divergence = None
     rust_heuristic_logical_divergence = None
 
 __all__ = ["CoherenceScorer", "_DIALOGUE_TURN_RE"]
@@ -1087,6 +1091,11 @@ class CoherenceScorer:
 
         Install [nli] for production scoring.
         """
+        if rust_heuristic_factual_divergence is not None:
+            try:
+                return float(rust_heuristic_factual_divergence(context, text_output))
+            except Exception:
+                pass
         from ._heuristics import ENTITY_RE, NEGATION_WORDS, STOP_WORDS
 
         ctx_raw = set(re.findall(r"\w+", context.lower()))
