@@ -15,11 +15,43 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.calibration.online_calibrator as calibrator_mod
 from director_ai.core.calibration.feedback_store import FeedbackStore
 from director_ai.core.calibration.online_calibrator import OnlineCalibrator
 
 
 class TestCalibrationReport:
+    def test_rust_wilson_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", True)
+        called = {"count": 0}
+
+        def _wilson(_p_hat: float, _n: int, _confidence: float):
+            called["count"] += 1
+            return (0.2, 0.8)
+
+        monkeypatch.setattr(
+            calibrator_mod,
+            "rust_wilson_score_interval",
+            _wilson,
+            raising=True,
+        )
+        spread = calibrator_mod._wilson_ci(20, 40)
+        assert spread == pytest.approx(0.3)
+        assert called["count"] == 1
+
+    def test_rust_wilson_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", True)
+        monkeypatch.setattr(
+            calibrator_mod,
+            "rust_wilson_score_interval",
+            lambda _p_hat, _n, _confidence: (_ for _ in ()).throw(
+                TypeError("ffi signature mismatch")
+            ),
+            raising=True,
+        )
+        spread = calibrator_mod._wilson_ci(20, 40)
+        assert 0.0 <= spread <= 0.5
+
     def test_empty_store(self, tmp_path):
         store = FeedbackStore(tmp_path / "test.db")
         cal = OnlineCalibrator(store)
