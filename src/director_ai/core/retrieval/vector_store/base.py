@@ -22,6 +22,14 @@ import threading
 from abc import ABC, abstractmethod
 from typing import Any
 
+try:
+    from backfire_kernel import rust_word_overlap
+
+    _RUST_VECTOR_BASE = True
+except ImportError:  # pragma: no cover
+    rust_word_overlap = None
+    _RUST_VECTOR_BASE = False
+
 logger = logging.getLogger("DirectorAI.VectorStore")
 
 # Re-export recommended model name for documentation
@@ -226,10 +234,13 @@ class InMemoryBackend(VectorBackend):
         query_words = set(_strip.sub("", text).lower().split())
         scored: list[tuple[float, dict[str, Any]]] = []
         for doc in docs:
-            doc_words = set(_strip.sub("", doc["text"]).lower().split())
-            overlap = len(query_words & doc_words)
-            total = max(len(query_words | doc_words), 1)
-            similarity = overlap / total
+            if _RUST_VECTOR_BASE:
+                similarity = float(rust_word_overlap(text, doc["text"]))
+            else:
+                doc_words = set(_strip.sub("", doc["text"]).lower().split())
+                overlap = len(query_words & doc_words)
+                total = max(len(query_words | doc_words), 1)
+                similarity = overlap / total
             scored.append((similarity, doc))
         scored.sort(key=lambda x: x[0], reverse=True)
         results: list[dict[str, Any]] = []

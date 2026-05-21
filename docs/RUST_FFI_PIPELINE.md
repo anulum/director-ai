@@ -516,6 +516,7 @@ Tests cover:
 - `scoring/distilled_scorer` ONNX-path softmax helper: Rust `softmax` acceleration
 - `retrieval/knowledge` keyword-store overlap ranking: Rust `word_overlap` acceleration
 - `autopoietic/builder` n-gram overlap scorer: Rust `word_overlap` acceleration
+- `retrieval/vector_store/base` in-memory ranking overlap: Rust `word_overlap` acceleration
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 
