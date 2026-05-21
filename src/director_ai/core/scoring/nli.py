@@ -334,8 +334,11 @@ def _probs_to_confidence(probs: np.ndarray) -> list[float]:
     """
     ncols = probs.shape[1]
     if _RUST_NLI and probs.shape[0] >= 10:
-        flat = probs.flatten().tolist()
-        return [float(v) for v in rust_probs_to_confidence(flat, ncols)]
+        try:
+            flat = probs.flatten().tolist()
+            return [float(v) for v in rust_probs_to_confidence(flat, ncols)]
+        except Exception:
+            pass
     log_k = float(np.log(ncols)) if ncols > 1 else 1.0
     result: list[float] = []
     for row in probs:
