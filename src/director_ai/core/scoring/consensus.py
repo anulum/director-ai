@@ -33,10 +33,13 @@ from director_ai.core.guard_control import (
 )
 
 try:
-    from backfire_kernel import rust_word_overlap
+    from backfire_kernel import rust_sum_f64, rust_word_overlap
 
     _RUST_CONSENSUS = True
 except ImportError:
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
     _RUST_CONSENSUS = False
 
 __all__ = [
@@ -307,7 +310,7 @@ class ConsensusScorer:
                     disagreements.append(pa)
 
         if pairs:
-            avg_agreement = 1.0 - sum(p.divergence for p in pairs) / len(pairs)
+            avg_agreement = 1.0 - _sum_float([p.divergence for p in pairs]) / len(pairs)
             lowest = 1.0 - max(p.divergence for p in pairs)
         else:
             avg_agreement = 1.0
@@ -353,6 +356,13 @@ def _word_overlap(text_a: str, text_b: str) -> float:
         return 0.0
     union = words_a | words_b
     return len(words_a & words_b) / len(union) if union else 0.0
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
 
 
 class CrossVerifierConsensus:
