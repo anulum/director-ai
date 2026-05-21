@@ -24,6 +24,18 @@ from __future__ import annotations
 import math
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_wilson_score_interval
+
+    _RUST_ONLINE_CALIBRATOR = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_ONLINE_CALIBRATOR = False
+
+    def rust_wilson_score_interval(
+        _p_hat: float, _n: int, _confidence: float
+    ) -> tuple[float, float]:
+        raise RuntimeError("backfire_kernel rust_wilson_score_interval is unavailable")
+
 from .feedback_store import FeedbackStore
 
 __all__ = ["CalibrationReport", "OnlineCalibrator"]
@@ -34,6 +46,14 @@ def _wilson_ci(successes: int, total: int, z: float = 1.96) -> float:
     if total == 0:
         return 1.0
     p = successes / total
+    if _RUST_ONLINE_CALIBRATOR and abs(z - 1.96) < 1e-6:
+        try:
+            low, high = rust_wilson_score_interval(p, total, 0.95)
+            centre = (low + high) / 2.0
+            spread = min(high - centre, centre - low)
+            return min(spread, centre, 1 - centre)
+        except Exception:
+            pass
     denom = 1 + z * z / total
     center = (p + z * z / (2 * total)) / denom
     spread = z * math.sqrt((p * (1 - p) + z * z / (4 * total)) / total) / denom
