@@ -1451,7 +1451,7 @@ class NLIScorer:
                     float(support_threshold),
                 )
                 return float(coverage), divs, claims
-            except RuntimeError:
+            except Exception:
                 pass
         supported = sum(1 for d in divs if d < support_threshold)
         coverage = supported / len(claims)
@@ -1510,7 +1510,7 @@ class NLIScorer:
                     len(claims),
                     n_src,
                 )
-            except RuntimeError:
+            except Exception:
                 per_claim_divs, best_indices = [], []
         else:
             per_claim_divs, best_indices = [], []
@@ -1546,7 +1546,7 @@ class NLIScorer:
                     float(support_threshold),
                 )
                 return float(coverage), per_claim_divs, claims, attributions
-            except RuntimeError:
+            except Exception:
                 pass
         supported = sum(1 for d in per_claim_divs if d < support_threshold)
         coverage = supported / len(claims)

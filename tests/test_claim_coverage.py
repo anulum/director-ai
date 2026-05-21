@@ -174,6 +174,27 @@ class TestScoreClaimCoverage:
             )
         assert cov == pytest.approx(0.5)
 
+    def test_rust_coverage_reducer_non_runtime_fallback(self):
+        scorer = self._make_scorer(
+            {
+                "Claim A.": 0.2,
+                "Claim B.": 0.8,
+            },
+        )
+        with patch(
+            "director_ai.core.scoring.nli._RUST_NLI",
+            True,
+        ), patch(
+            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+            side_effect=ValueError("ffi unavailable"),
+        ):
+            cov, _divs, _claims = scorer.score_claim_coverage(
+                "Source.",
+                "Claim A. Claim B.",
+                support_threshold=0.6,
+            )
+        assert cov == pytest.approx(0.5)
+
 
 # â”€â”€ Config wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
