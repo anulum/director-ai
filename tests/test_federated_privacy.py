@@ -20,6 +20,7 @@ import threading
 
 import pytest
 
+import director_ai.core.federated_privacy.accountant as accountant_mod
 from director_ai.core.federated_privacy import (
     AccountantEntry,
     FederatedCounter,
@@ -304,6 +305,36 @@ class TestAccountant:
             PrivacyAccountant(max_epsilon=0.0)
         with pytest.raises(ValueError, match="max_delta"):
             PrivacyAccountant(max_epsilon=1.0, max_delta=0.0)
+
+
+class TestAccountantRustSums:
+    def test_rust_sum_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(accountant_mod, "_RUST_ACCOUNTANT", True)
+        called = {"count": 0}
+
+        def _sum(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(accountant_mod, "rust_sum_f64", _sum, raising=True)
+        acc = PrivacyAccountant(max_epsilon=10.0)
+        acc.charge(AccountantEntry(label="q1", epsilon=0.1, delta=1e-6))
+        acc.charge(AccountantEntry(label="q2", epsilon=0.2, delta=2e-6))
+        assert acc.cumulative_epsilon() == pytest.approx(0.3)
+        assert called["count"] >= 1
+
+    def test_rust_sum_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(accountant_mod, "_RUST_ACCOUNTANT", True)
+        monkeypatch.setattr(
+            accountant_mod,
+            "rust_sum_f64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        acc = PrivacyAccountant(max_epsilon=10.0)
+        acc.charge(AccountantEntry(label="q1", epsilon=0.1, delta=1e-6))
+        acc.charge(AccountantEntry(label="q2", epsilon=0.2, delta=2e-6))
+        assert acc.cumulative_delta() == pytest.approx(3e-6)
 
 
 # --- SecretShare + SecureAggregator -------------------------------
