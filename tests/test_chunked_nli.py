@@ -248,6 +248,40 @@ class TestScoreChunked:
         assert len(per_hyp) == nh
         assert 0.0 <= agg <= 1.0
 
+    def test_rust_chunk_aggregation_parity_when_available(self):
+        try:
+            from backfire_kernel import rust_aggregate_chunk_scores
+        except Exception:
+            pytest.skip("backfire_kernel rust_aggregate_chunk_scores unavailable")
+
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Evidence {i} text" for i in range(20)) + "."
+        long_hyp = ". ".join(f"Claim {i} text" for i in range(20)) + "."
+
+        prem_chunks = scorer._build_chunks(scorer._split_sentences(long_prem), 25, 0.0)
+        hyp_chunks = scorer._build_chunks(scorer._split_sentences(long_hyp), 35, 0.0)
+        pairs = [(pc, hc) for pc in prem_chunks for hc in hyp_chunks]
+        all_scores = scorer.score_batch(pairs)
+
+        n_prem = len(prem_chunks)
+        n_hyp = len(hyp_chunks)
+
+        per_hyp_py: list[float] = []
+        for h_idx in range(n_hyp):
+            scores_h = [all_scores[p * n_hyp + h_idx] for p in range(n_prem)]
+            per_hyp_py.append(max(scores_h))
+        agg_py = max(per_hyp_py)
+
+        agg_rust, per_hyp_rust = rust_aggregate_chunk_scores(
+            [float(v) for v in all_scores],
+            n_prem,
+            n_hyp,
+            "max",
+            "max",
+        )
+        assert float(agg_rust) == pytest.approx(agg_py, abs=1e-12)
+        assert [float(v) for v in per_hyp_rust] == pytest.approx(per_hyp_py, abs=1e-12)
+
     def test_premise_ratio_reduces_premise_chunks(self):
         """Higher premise_ratio gives more premise budget â†’ fewer premise chunks."""
         scorer = NLIScorer(use_model=False, max_length=64)

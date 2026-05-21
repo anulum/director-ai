@@ -27,6 +27,7 @@
 //! - [`softmax`] — row-wise softmax for NLI logits
 //! - [`probs_to_divergence`] — NLI probability → divergence score
 //! - [`probs_to_confidence`] — NLI probability → confidence score
+//! - [`aggregate_chunk_scores`] — chunk score matrix aggregation
 //! - [`lite_score`] — lightweight heuristic divergence (no-NLI fallback)
 //! - [`lite_score_batch`] — batch version of lite_score
 //! - [`heuristic_logical_divergence`] — keyword+overlap logical fallback
@@ -792,6 +793,64 @@ pub fn probs_to_confidence(probs: &[f64], cols: usize) -> Vec<f64> {
     result
 }
 
+/// Aggregate chunk-level score matrix into per-hypothesis and global scores.
+///
+/// `flat_scores` is row-major with shape `(n_prem, n_hyp)` where index is
+/// `p * n_hyp + h`.
+///
+/// Mirrors aggregation semantics in `NLIScorer._score_chunked_with_counts()`.
+pub fn aggregate_chunk_scores(
+    flat_scores: &[f64],
+    n_prem: usize,
+    n_hyp: usize,
+    inner_agg: &str,
+    outer_agg: &str,
+) -> (f64, Vec<f64>) {
+    if n_prem == 0 || n_hyp == 0 || flat_scores.is_empty() {
+        return (0.5, vec![0.5]);
+    }
+
+    let mut per_hyp: Vec<f64> = Vec::with_capacity(n_hyp);
+    for h_idx in 0..n_hyp {
+        let mut scores_h: Vec<f64> = Vec::with_capacity(n_prem);
+        for p in 0..n_prem {
+            let idx = p * n_hyp + h_idx;
+            if idx < flat_scores.len() {
+                scores_h.push(flat_scores[idx]);
+            }
+        }
+        if scores_h.is_empty() {
+            per_hyp.push(0.5);
+            continue;
+        }
+        let value = if inner_agg == "min" {
+            scores_h.iter().copied().fold(f64::INFINITY, f64::min)
+        } else if inner_agg == "mean" {
+            scores_h.iter().sum::<f64>() / scores_h.len() as f64
+        } else {
+            scores_h.iter().copied().fold(f64::NEG_INFINITY, f64::max)
+        };
+        per_hyp.push(value);
+    }
+
+    if per_hyp.is_empty() {
+        return (0.5, vec![0.5]);
+    }
+
+    let agg = if outer_agg == "max" {
+        per_hyp.iter().copied().fold(f64::NEG_INFINITY, f64::max)
+    } else if outer_agg == "trimmed_mean" {
+        let mut sorted_scores = per_hyp.clone();
+        sorted_scores.sort_by(|a, b| a.total_cmp(b));
+        let keep = ((sorted_scores.len() as f64) * 0.75).floor() as usize;
+        let keep = keep.max(1);
+        sorted_scores.iter().take(keep).sum::<f64>() / keep as f64
+    } else {
+        per_hyp.iter().sum::<f64>() / per_hyp.len() as f64
+    };
+    (agg, per_hyp)
+}
+
 // ── Lite scorer ────────────────────────────────────────────────────
 
 static LITE_WORD_RE: Lazy<Regex> = Lazy::new(|| Regex::new(r"\b\w+\b").unwrap());
@@ -1322,6 +1381,33 @@ mod tests {
         let probs = vec![0.001, 0.999];
         let confs = probs_to_confidence(&probs, 2);
         assert!(confs[0] > 0.95);
+    }
+
+    #[test]
+    fn test_aggregate_chunk_scores_inner_min_outer_max() {
+        // n_prem=2, n_hyp=3 (row-major)
+        let flat = vec![
+            0.2, 0.8, 0.4, // prem 0
+            0.6, 0.3, 0.9, // prem 1
+        ];
+        let (agg, per_hyp) = aggregate_chunk_scores(&flat, 2, 3, "min", "max");
+        assert_eq!(per_hyp.len(), 3);
+        assert!((per_hyp[0] - 0.2).abs() < 1e-12);
+        assert!((per_hyp[1] - 0.3).abs() < 1e-12);
+        assert!((per_hyp[2] - 0.4).abs() < 1e-12);
+        assert!((agg - 0.4).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_aggregate_chunk_scores_trimmed_mean() {
+        let flat = vec![
+            0.1, 0.9, 0.2, 0.8, // prem 0
+            0.2, 0.8, 0.3, 0.7, // prem 1
+        ];
+        let (agg_mean, _per_hyp) = aggregate_chunk_scores(&flat, 2, 4, "min", "mean");
+        let (agg_trimmed, _per_hyp_t) =
+            aggregate_chunk_scores(&flat, 2, 4, "min", "trimmed_mean");
+        assert!(agg_trimmed <= agg_mean);
     }
 
     #[test]

@@ -279,6 +279,20 @@ class TestRustBuildChunks:
         assert len(result) >= 1
 
 
+class TestRustAggregateChunkScores:
+    def test_max_max(self):
+        flat = [0.2, 0.8, 0.4, 0.6, 0.3, 0.9]
+        agg, per_hyp = backfire_kernel.rust_aggregate_chunk_scores(
+            flat,
+            2,
+            3,
+            "min",
+            "max",
+        )
+        assert len(per_hyp) == 3
+        assert 0.0 <= agg <= 1.0
+
+
 # â”€â”€ RustUPDEStepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
