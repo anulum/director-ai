@@ -15,6 +15,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_mean
+
+    _RUST_CONTRADICTION = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_CONTRADICTION = False
+
+    def rust_mean(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
 __all__ = ["ContradictionReport", "ContradictionTracker"]
 
 
@@ -127,8 +137,8 @@ class ContradictionTracker:
         trend = 0.0
         if len(all_divs) >= 3:
             mid = len(all_divs) // 2
-            old_avg = sum(all_divs[:mid]) / mid
-            new_avg = sum(all_divs[mid:]) / (len(all_divs) - mid)
+            old_avg = _mean_float(all_divs[:mid])
+            new_avg = _mean_float(all_divs[mid:])
             trend = new_avg - old_avg
 
         return ContradictionReport(
@@ -146,3 +156,14 @@ class ContradictionTracker:
         """Clear all tracked turns."""
         self._responses.clear()
         self._matrix.clear()
+
+
+def _mean_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_CONTRADICTION:
+        try:
+            return float(rust_mean(values))
+        except Exception:
+            pass
+    return sum(values) / len(values)
