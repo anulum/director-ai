@@ -46,6 +46,9 @@ try:
         rust_mean as _rust_mean,
     )
     from backfire_kernel import (
+        rust_sum_f64 as _rust_sum_f64,
+    )
+    from backfire_kernel import (
         rust_trend_drop as _rust_trend_drop,
     )
 
@@ -55,6 +58,9 @@ except ImportError:
 
     def _rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
+    def _rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 __all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
 
@@ -73,7 +79,7 @@ def _mean(values: Sequence[float] | deque[float]) -> float:
             return float(_rust_mean(list(values)))
         except Exception:
             pass
-    return sum(values) / len(values)
+    return _sum_float([float(v) for v in values]) / len(values)
 
 
 def _trend_drop(values: list[float] | deque) -> float:
@@ -92,10 +98,19 @@ def _trend_drop(values: list[float] | deque) -> float:
         return 0.0
     x_mean = (n - 1) / 2.0
     y_mean = _mean(values)
-    num = sum((i - x_mean) * (y - y_mean) for i, y in enumerate(values))
-    den = sum((i - x_mean) ** 2 for i in range(n))
+    num = _sum_float([(i - x_mean) * (y - y_mean) for i, y in enumerate(values)])
+    den = _sum_float([(i - x_mean) ** 2 for i in range(n)])
     slope = num / den if den > 1e-12 else 0.0
     return -slope * (n - 1)
+
+
+def _sum_float(values: list[float]) -> float:
+    if _RUST_TREND:
+        try:
+            return float(_rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 @dataclass
