@@ -282,6 +282,17 @@ class TestKeywordToxicity:
         res = det.analyse("i will kill you next time")
         assert any(m.category == "threat" for m in res.matches)
 
+    def test_rust_scanner_type_error_falls_back_to_python(self):
+        class Scanner:
+            def scan(self, _text):
+                raise TypeError("ffi fail")
+
+        det = KeywordToxicityDetector(prefer_rust=False)
+        det._rust_scanner = Scanner()
+
+        res = det.analyse("i will kill you next time")
+        assert any(m.category == "threat" for m in res.matches)
+
     def test_case_insensitive_default(self):
         det = KeywordToxicityDetector()
         assert det.analyse("I WILL KILL YOU").flagged
