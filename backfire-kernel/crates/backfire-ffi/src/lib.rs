@@ -1295,6 +1295,11 @@ fn rust_lite_score_batch(pairs: Vec<(String, String)>) -> Vec<f64> {
     backfire_core::compute::lite_score_batch(&pairs)
 }
 
+#[pyfunction]
+fn rust_heuristic_logical_divergence(text_output: &str, prompt: &str) -> f64 {
+    backfire_core::compute::heuristic_logical_divergence(text_output, prompt)
+}
+
 #[pymodule]
 fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -1339,6 +1344,7 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_probs_to_confidence, m)?)?;
     m.add_function(wrap_pyfunction!(rust_lite_score, m)?)?;
     m.add_function(wrap_pyfunction!(rust_lite_score_batch, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_heuristic_logical_divergence, m)?)?;
     // PII regex multi-pattern scanner
     m.add_class::<PyPiiScanner>()?;
     // Safety-hook acceleration (cyber-physical geometry/IK +

@@ -169,6 +169,25 @@ class TestScorerLogical:
         div = scorer.calculate_logical_divergence("q", "a")
         assert div == 0.9
 
+    def test_rust_heuristic_logical_parity_when_available(self):
+        try:
+            from backfire_kernel import rust_heuristic_logical_divergence
+        except Exception:
+            pytest.skip("backfire_kernel rust_heuristic_logical_divergence unavailable")
+
+        samples = [
+            ("consistent with reality", "prompt"),
+            ("the opposite is true", "prompt"),
+            ("depends on your perspective", "prompt"),
+            ("some unrelated output", ""),
+            ("alpha beta gamma", "alpha theta"),
+        ]
+
+        for output, prompt in samples:
+            py_score = CoherenceScorer._heuristic_logical(output, prompt)
+            rust_score = float(rust_heuristic_logical_divergence(output, prompt))
+            assert rust_score == pytest.approx(py_score, abs=1e-12)
+
 
 class TestScorerHeuristicFactual:
     def test_negation_asymmetry(self):

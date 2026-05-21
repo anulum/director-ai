@@ -27,6 +27,7 @@
 //! - [`probs_to_confidence`] — NLI probability → confidence score
 //! - [`lite_score`] — lightweight heuristic divergence (no-NLI fallback)
 //! - [`lite_score_batch`] — batch version of lite_score
+//! - [`heuristic_logical_divergence`] — keyword+overlap logical fallback
 
 use std::collections::HashSet;
 
@@ -780,6 +781,45 @@ pub fn lite_score_batch(pairs: &[(String, String)]) -> Vec<f64> {
     pairs.iter().map(|(p, h)| lite_score(p, h)).collect()
 }
 
+/// Logical divergence fallback used when model-backed NLI is unavailable.
+///
+/// Mirrors `CoherenceScorer._heuristic_logical()` from `scorer.py`.
+pub fn heuristic_logical_divergence(text_output: &str, prompt: &str) -> f64 {
+    let out = text_output.to_lowercase();
+    if out.contains("consistent with reality") {
+        return 0.1;
+    }
+    if out.contains("opposite is true") {
+        return 0.9;
+    }
+    if out.contains("depends on your perspective") {
+        return 0.5;
+    }
+    if prompt.is_empty() {
+        return 0.5;
+    }
+
+    let p_words: HashSet<String> = LITE_WORD_RE
+        .find_iter(&prompt.to_lowercase())
+        .map(|m| m.as_str().to_string())
+        .collect();
+    let o_words: HashSet<String> = LITE_WORD_RE
+        .find_iter(&out)
+        .map(|m| m.as_str().to_string())
+        .collect();
+
+    if p_words.is_empty() || o_words.is_empty() {
+        return 0.5;
+    }
+
+    let intersection = p_words.intersection(&o_words).count();
+    let union = p_words.union(&o_words).count();
+    if union == 0 {
+        return 0.5;
+    }
+    (1.0 - intersection as f64 / union as f64).clamp(0.0, 1.0)
+}
+
 // ── Tests ───────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -1134,5 +1174,29 @@ mod tests {
         let results = lite_score_batch(&pairs);
         assert_eq!(results.len(), 2);
         assert!(results[0] < results[1], "identical < contradicted");
+    }
+
+    #[test]
+    fn test_heuristic_logical_aligned_keyword() {
+        let s = heuristic_logical_divergence("This is consistent with reality.", "q");
+        assert_eq!(s, 0.1);
+    }
+
+    #[test]
+    fn test_heuristic_logical_contradicted_keyword() {
+        let s = heuristic_logical_divergence("The opposite is true.", "q");
+        assert_eq!(s, 0.9);
+    }
+
+    #[test]
+    fn test_heuristic_logical_neutral_keyword() {
+        let s = heuristic_logical_divergence("depends on your perspective", "q");
+        assert_eq!(s, 0.5);
+    }
+
+    #[test]
+    fn test_heuristic_logical_no_prompt() {
+        let s = heuristic_logical_divergence("some text", "");
+        assert_eq!(s, 0.5);
     }
 }

@@ -36,6 +36,11 @@ from ._task_scoring import (
 )
 from .nli import NLIScorer, nli_available
 
+try:
+    from backfire_kernel import rust_heuristic_logical_divergence
+except Exception:  # pragma: no cover - optional accelerator may be unavailable
+    rust_heuristic_logical_divergence = None
+
 __all__ = ["CoherenceScorer", "_DIALOGUE_TURN_RE"]
 
 # Heuristic divergence defaults (used when NLI model unavailable)
@@ -1184,6 +1189,11 @@ class CoherenceScorer:
 
         Install [nli] for production-grade scoring.
         """
+        if rust_heuristic_logical_divergence is not None:
+            try:
+                return float(rust_heuristic_logical_divergence(text_output, prompt))
+            except Exception:
+                pass
         out = text_output.lower()
         if "consistent with reality" in out:
             return DIVERGENCE_ALIGNED
