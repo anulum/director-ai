@@ -30,11 +30,14 @@ __all__ = [
 ]
 
 try:
-    from backfire_kernel import rust_verify_numeric
+    from backfire_kernel import rust_sum_i64, rust_verify_numeric
 
     _RUST_NUMERIC = True
 except ImportError:
     _RUST_NUMERIC = False
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 _PERCENT_PATTERN = re.compile(
     r"(?:grew|increased|decreased|dropped|rose|fell|declined|changed|gained|lost)"
@@ -97,11 +100,20 @@ class NumericVerificationResult:
 
     @property
     def error_count(self) -> int:
-        return sum(1 for i in self.issues if i.severity == "error")
+        return _sum_int([1 if issue.severity == "error" else 0 for issue in self.issues])
 
     @property
     def warning_count(self) -> int:
-        return sum(1 for i in self.issues if i.severity == "warning")
+        return _sum_int([1 if issue.severity == "warning" else 0 for issue in self.issues])
+
+
+def _sum_int(values: list[int]) -> int:
+    if _RUST_NUMERIC:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 def verify_numeric(text: str) -> NumericVerificationResult:
