@@ -35,6 +35,8 @@ try:
         rust_negation_flip,
         rust_numerical_consistency,
         rust_split_sentences,
+        rust_sum_f64,
+        rust_sum_i64,
         rust_traceability,
         rust_word_overlap,
     )
@@ -42,6 +44,12 @@ try:
     _RUST_SIGNALS = True
 except ImportError:
     _RUST_SIGNALS = False
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 _CLAUSE_SPLIT = re.compile(
@@ -306,17 +314,20 @@ class VerifiedScorer:
                 confidence="low",
             )
 
-        supported = sum(1 for c in claims if c.verdict == "supported")
-        contradicted = sum(1 for c in claims if c.verdict == "contradicted")
-        fabricated = sum(1 for c in claims if c.verdict == "fabricated")
-        unverifiable = sum(1 for c in claims if c.verdict == "unverifiable")
+        supported = _sum_int([1 if c.verdict == "supported" else 0 for c in claims])
+        contradicted = _sum_int([1 if c.verdict == "contradicted" else 0 for c in claims])
+        fabricated = _sum_int([1 if c.verdict == "fabricated" else 0 for c in claims])
+        unverifiable = _sum_int([1 if c.verdict == "unverifiable" else 0 for c in claims])
         coverage = supported / len(claims)
 
         # Fail if ANY claim is contradicted/fabricated with high confidence
-        high_conf_failures = sum(
-            1
-            for c in claims
-            if c.verdict in ("contradicted", "fabricated") and c.confidence >= 0.6
+        high_conf_failures = _sum_int(
+            [
+                1
+                if c.verdict in ("contradicted", "fabricated") and c.confidence >= 0.6
+                else 0
+                for c in claims
+            ]
         )
         approved = high_conf_failures == 0
 
@@ -329,10 +340,10 @@ class VerifiedScorer:
                 scores.append(0.0)
             else:
                 scores.append(0.5)
-        overall = sum(scores) / len(scores) if scores else 0.5
+        overall = _sum_float(scores) / len(scores) if scores else 0.5
 
         # Confidence level
-        avg_conf = sum(c.confidence for c in claims) / len(claims)
+        avg_conf = _sum_float([c.confidence for c in claims]) / len(claims)
         if avg_conf >= 0.7:
             conf_level = "high"
         elif avg_conf >= 0.4:
@@ -704,3 +715,17 @@ def _word_overlap(text_a: str, text_b: str) -> float:
         return 0.0
     union = words_a | words_b
     return len(words_a & words_b) / len(union) if union else 0.0
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
