@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.sustainability.forecaster as forecaster_mod
 from director_ai.core.sustainability import (
     BudgetVerdict,
     CarbonIntensityTracker,
@@ -232,6 +233,52 @@ class TestCarbonTracker:
 
 
 class TestForecaster:
+    def test_rust_ema_update_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_FORECAST", True)
+        calls = {"count": 0}
+
+        def _ema(previous, value, alpha):
+            calls["count"] += 1
+            return value if previous is None else alpha * value + (1.0 - alpha) * previous
+
+        monkeypatch.setattr(forecaster_mod, "rust_ema_update", _ema, raising=True)
+        fc = ConformalDemandForecaster(alpha=0.5, min_samples=2)
+        fc.observe(10.0)
+        fc.observe(12.0)
+        assert calls["count"] >= 2
+
+    def test_rust_ema_runtime_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_FORECAST", True)
+        monkeypatch.setattr(
+            forecaster_mod,
+            "rust_ema_update",
+            lambda _previous, _value, _alpha: (_ for _ in ()).throw(
+                RuntimeError("ffi unavailable")
+            ),
+            raising=True,
+        )
+        fc = ConformalDemandForecaster(alpha=0.5, min_samples=2)
+        fc.observe(10.0)
+        fc.observe(12.0)
+        assert fc.last_forecast == pytest.approx(11.0)
+
+    def test_rust_quantile_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_FORECAST", True)
+        monkeypatch.setattr(
+            forecaster_mod,
+            "rust_conformal_quantile",
+            lambda _residuals, _coverage: (_ for _ in ()).throw(
+                TypeError("ffi signature mismatch")
+            ),
+            raising=True,
+        )
+        fc = ConformalDemandForecaster(alpha=0.5, min_samples=2)
+        fc.observe(10.0)
+        fc.observe(12.0)
+        fc.observe(14.0)
+        interval = fc.predict(coverage=0.9)
+        assert interval.width >= 0.0
+
     def test_first_observation_sets_ema(self):
         fc = ConformalDemandForecaster(alpha=0.5)
         fc.observe(100.0)
