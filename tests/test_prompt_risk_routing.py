@@ -17,6 +17,7 @@ from dataclasses import dataclass
 
 import pytest
 
+import director_ai.core.routing.scorer as scorer_mod
 from director_ai.core.routing import (
     BudgetEntry,
     PromptRiskScorer,
@@ -147,6 +148,30 @@ class TestPromptRiskScorer:
         assert res.sanitiser == 1.0
         s2 = PromptRiskScorer(sanitiser=_FakeSanitiser(-0.3))
         assert s2.score("prompt").sanitiser == 0.0
+
+
+class TestRoutingRustSums:
+    def test_rust_sum_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(scorer_mod, "_RUST_ROUTING", True)
+        called = {"count": 0}
+
+        def _sum(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(scorer_mod, "rust_sum_f64", _sum, raising=True)
+        assert scorer_mod._sum_float([0.2, 0.3, 0.5]) == pytest.approx(1.0)
+        assert called["count"] == 1
+
+    def test_rust_sum_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(scorer_mod, "_RUST_ROUTING", True)
+        monkeypatch.setattr(
+            scorer_mod,
+            "rust_sum_f64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        assert scorer_mod._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.0)
 
 
 # --- RiskBudget -----------------------------------------------------
