@@ -43,6 +43,7 @@ try:
         rust_probs_to_confidence,
         rust_probs_to_divergence,
         rust_softmax,
+        rust_split_sentences,
     )
 
     _RUST_NLI = True
@@ -65,6 +66,10 @@ except ImportError:
     def rust_probs_to_confidence(_flat: list[float], _ncols: int) -> list[float]:
         """Raise when the Rust confidence accelerator is unavailable."""
         raise RuntimeError("backfire_kernel rust_probs_to_confidence is unavailable")
+
+    def rust_split_sentences(_text: str) -> list[str]:
+        """Raise when Rust sentence splitter accelerator is unavailable."""
+        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
 
 
 from ._nli_export import (
@@ -910,6 +915,11 @@ class NLIScorer:
         Avoids splitting after abbreviations (e.g. U.S., Dr., etc.)
         and decimal numbers (e.g. 2.3%).
         """
+        if _RUST_NLI:
+            try:
+                return [s.strip() for s in rust_split_sentences(text) if s.strip()]
+            except RuntimeError:
+                pass
         abbrev_re = re.compile(
             r"(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Inc|Ltd|Corp|vs|etc|e\.g|i\.e|U\.S|U\.K)\.\s+",
             re.IGNORECASE,

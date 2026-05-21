@@ -1261,6 +1261,11 @@ fn rust_extract_reasoning_steps(text: &str) -> Vec<String> {
 }
 
 #[pyfunction]
+fn rust_split_sentences(text: &str) -> Vec<String> {
+    backfire_core::compute::split_sentences(text)
+}
+
+#[pyfunction]
 fn rust_word_overlap(text_a: &str, text_b: &str) -> f64 {
     backfire_core::compute::word_overlap(text_a, text_b)
 }
@@ -1343,6 +1348,7 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_verify_numeric, m)?)?;
     m.add_function(wrap_pyfunction!(rust_score_temporal_freshness, m)?)?;
     m.add_function(wrap_pyfunction!(rust_extract_reasoning_steps, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_split_sentences, m)?)?;
     m.add_function(wrap_pyfunction!(rust_word_overlap, m)?)?;
     m.add_function(wrap_pyfunction!(rust_softmax, m)?)?;
     m.add_function(wrap_pyfunction!(rust_probs_to_divergence, m)?)?;

@@ -31,6 +31,23 @@ class TestSplitSentences:
         result = NLIScorer._split_sentences("Just one sentence.")
         assert len(result) == 1
 
+    def test_rust_split_sentences_parity_when_available(self):
+        try:
+            from backfire_kernel import rust_split_sentences
+        except Exception:
+            pytest.skip("backfire_kernel rust_split_sentences unavailable")
+
+        samples = [
+            "Hello world. How are you? Fine!",
+            "Dr. Smith arrived. We started.",
+            "Revenue grew from 2.3 million to 2.5 million. Good quarter.",
+            "",
+        ]
+        for text in samples:
+            py_result = NLIScorer._split_sentences(text)
+            rust_result = [s.strip() for s in rust_split_sentences(text) if s.strip()]
+            assert rust_result == py_result
+
 
 class TestEstimateTokens:
     def test_short_text(self):

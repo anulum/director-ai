@@ -257,6 +257,16 @@ class TestRustHeuristicFactualDivergence:
         assert score == pytest.approx(0.5)
 
 
+class TestRustSplitSentences:
+    def test_basic(self):
+        result = backfire_kernel.rust_split_sentences("Hello world. How are you? Fine!")
+        assert len(result) == 3
+
+    def test_abbreviation(self):
+        result = backfire_kernel.rust_split_sentences("Dr. Smith arrived. We started.")
+        assert result[0] == "Dr. Smith arrived."
+
+
 # â”€â”€ RustUPDEStepper â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 

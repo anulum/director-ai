@@ -498,6 +498,7 @@ Tests cover:
 - `RustStreamingKernel`: streaming with halt detection
 - `rust_heuristic_logical_divergence`: fallback logical-divergence parity
 - `rust_heuristic_factual_divergence`: fallback factual-divergence parity
+- `rust_split_sentences`: NLI chunking sentence splitter fast-path
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 
