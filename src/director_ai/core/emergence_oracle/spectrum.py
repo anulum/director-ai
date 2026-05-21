@@ -141,24 +141,12 @@ class RandomWalkSpectrum:
                 for i in range(n):
                     acc += distribution[i] * transition[i][j]
                 new_distribution[j] = acc
-            delta = sum(
-                abs(a - b) for a, b in zip(distribution, new_distribution, strict=False)
+            delta = _sum_float(
+                [
+                    abs(a - b)
+                    for a, b in zip(distribution, new_distribution, strict=False)
+                ]
             )
-            if _RUST_SPECTRUM:
-                rust_delta: float | None = None
-                with contextlib.suppress(Exception):
-                    rust_delta = float(
-                        rust_sum_f64(
-                            [
-                                abs(a - b)
-                                for a, b in zip(
-                                    distribution, new_distribution, strict=False
-                                )
-                            ]
-                        )
-                    )
-                if rust_delta is not None:
-                    delta = rust_delta
             if previous_delta > 0:
                 spectral_gap = max(0.0, 1.0 - delta / previous_delta)
             previous_delta = delta
