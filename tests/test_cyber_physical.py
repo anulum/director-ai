@@ -219,6 +219,35 @@ class TestSphere:
         assert sphere.intersects(other)
         assert sphere.intersects_aabb(box)
 
+    def test_sphere_rust_non_runtime_exceptions_fall_back_to_python(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._RUST_GEOM_AVAILABLE",
+            True,
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._rust_sphere_contains",
+            lambda *args: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._rust_sphere_intersects_sphere",
+            lambda *args: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._rust_sphere_intersects_aabb",
+            lambda *args: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        sphere = Sphere(centre=Vec3(0.0, 0.0, 0.0), radius=1.0)
+        other = Sphere(centre=Vec3(1.5, 0.0, 0.0), radius=1.0)
+        box = AABB(min_corner=Vec3(1.0, -0.1, -0.1), max_corner=Vec3(1.5, 0.1, 0.1))
+        assert sphere.contains(Vec3(0.5, 0.0, 0.0))
+        assert sphere.intersects(other)
+        assert sphere.intersects_aabb(box)
+
 
 # --- JointChain + SimpleKinematicModel ------------------------------
 
