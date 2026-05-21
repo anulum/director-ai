@@ -43,7 +43,10 @@ class LiteScorer:
     def score(self, premise: str, hypothesis: str) -> float:
         """Compute divergence in [0, 1]. 0 = aligned, 1 = contradicted."""
         if _RUST_LITE:
-            return float(rust_lite_score(premise, hypothesis))
+            try:
+                return float(rust_lite_score(premise, hypothesis))
+            except Exception:
+                pass
 
         if not premise or not hypothesis:
             return 0.5
@@ -92,7 +95,10 @@ class LiteScorer:
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Score multiple (premise, hypothesis) pairs."""
         if _RUST_LITE:
-            return [float(v) for v in rust_lite_score_batch(pairs)]
+            try:
+                return [float(v) for v in rust_lite_score_batch(pairs)]
+            except Exception:
+                pass
         return [self.score(p, h) for p, h in pairs]
 
     def review(

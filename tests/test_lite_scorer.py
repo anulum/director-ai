@@ -14,6 +14,7 @@ parametrised inputs, determinism, and performance documentation.
 
 import pytest
 
+import director_ai.core.lite_scorer as lite_mod
 from director_ai.core.lite_scorer import LiteScorer
 
 
@@ -140,3 +141,26 @@ class TestLiteScorerPerformanceDoc:
         s1 = scorer.score("X", "Y")
         s2 = scorer.score("X", "Y")
         assert s1 == s2
+
+
+class TestLiteScorerRustFallback:
+    def test_score_falls_back_when_rust_ffi_raises(self, monkeypatch):
+        monkeypatch.setattr(lite_mod, "_RUST_LITE", True)
+
+        def _boom(_premise: str, _hypothesis: str) -> float:
+            raise RuntimeError("ffi fail")
+
+        monkeypatch.setattr(lite_mod, "rust_lite_score", _boom, raising=False)
+        score = LiteScorer().score("alpha beta", "alpha gamma")
+        assert 0.0 <= score <= 1.0
+
+    def test_batch_falls_back_when_rust_ffi_raises(self, monkeypatch):
+        monkeypatch.setattr(lite_mod, "_RUST_LITE", True)
+
+        def _boom(_pairs):
+            raise RuntimeError("ffi fail")
+
+        monkeypatch.setattr(lite_mod, "rust_lite_score_batch", _boom, raising=False)
+        result = LiteScorer().score_batch([("a", "b"), ("x", "y")])
+        assert len(result) == 2
+        assert all(0.0 <= value <= 1.0 for value in result)
