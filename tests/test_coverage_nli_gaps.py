@@ -217,6 +217,21 @@ class TestRustAcceleratedMathBranches:
         assert result.shape == logits.shape
         np.testing.assert_allclose(result.sum(axis=1), np.array([1.0, 1.0]), atol=1e-12)
 
+    def test_rust_softmax_type_error_falls_back_to_numpy(self, monkeypatch):
+        import director_ai.core.scoring.nli as nli_mod
+
+        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(
+            nli_mod,
+            "rust_softmax",
+            lambda _flat, _cols: (_ for _ in ()).throw(TypeError("ffi fail")),
+        )
+
+        logits = np.array([[1.0, 0.0, -1.0], [2.0, 0.0, -2.0]], dtype=np.float64)
+        result = _softmax_np(logits)
+        assert result.shape == logits.shape
+        np.testing.assert_allclose(result.sum(axis=1), np.array([1.0, 1.0]), atol=1e-12)
+
     def test_rust_divergence_non_runtime_exception_falls_back_to_python(self, monkeypatch):
         import director_ai.core.scoring.nli as nli_mod
 
