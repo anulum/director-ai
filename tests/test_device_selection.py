@@ -16,6 +16,7 @@ from __future__ import annotations
 import logging
 import sys
 import types
+import warnings
 
 import pytest
 
@@ -160,6 +161,29 @@ class TestSelectDevice:
         fake_torch.cuda.is_available = lambda: False
         assert _device._visible_device_count() == 0
 
+    def test_visible_device_count_suppresses_cuda_initialisation_warning(
+        self,
+        monkeypatch,
+        recwarn,
+    ):
+        def _warn_then_false():
+            warnings.warn(
+                "CUDA initialization: Unexpected driver mismatch",
+                UserWarning,
+                stacklevel=1,
+            )
+            return False
+
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=_warn_then_false,
+            device_count=lambda: 4,
+        )
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        assert _device._visible_device_count() == 0
+        assert not [w for w in recwarn if "CUDA initialization:" in str(w.message)]
+
     def test_cuda_usable_for_default_and_indexed_devices(self, monkeypatch):
         fake_torch = types.ModuleType("torch")
         fake_torch.cuda = types.SimpleNamespace(
@@ -201,3 +225,33 @@ class TestSelectDevice:
         _device.release_torch_cuda()
 
         assert calls == ["collect", "empty_cache"]
+
+    def test_release_torch_cuda_suppresses_cuda_initialisation_warning(
+        self,
+        monkeypatch,
+        recwarn,
+    ):
+        calls: list[str] = []
+        fake_gc = types.ModuleType("gc")
+        fake_gc.collect = lambda: calls.append("collect")
+
+        def _warn_then_false():
+            warnings.warn(
+                "CUDA initialization: Unsupported HW",
+                UserWarning,
+                stacklevel=1,
+            )
+            return False
+
+        fake_torch = types.ModuleType("torch")
+        fake_torch.cuda = types.SimpleNamespace(
+            is_available=_warn_then_false,
+            empty_cache=lambda: calls.append("empty_cache"),
+        )
+        monkeypatch.setitem(sys.modules, "gc", fake_gc)
+        monkeypatch.setitem(sys.modules, "torch", fake_torch)
+
+        _device.release_torch_cuda()
+
+        assert calls == ["collect"]
+        assert not [w for w in recwarn if "CUDA initialization:" in str(w.message)]

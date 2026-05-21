@@ -31,6 +31,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+import warnings
 
 logger = logging.getLogger("DirectorAI.Device")
 
@@ -92,7 +93,7 @@ def _visible_device_count() -> int:
     try:
         import torch
 
-        if not torch.cuda.is_available():
+        if not _cuda_available(torch):
             return 0
         return int(torch.cuda.device_count())
     except Exception:  # pragma: no cover — defensive
@@ -139,7 +140,7 @@ def release_torch_cuda() -> None:
         gc.collect()
         import torch
 
-        if torch.cuda.is_available():
+        if _cuda_available(torch):
             torch.cuda.empty_cache()
     except Exception:  # pragma: no cover — best-effort cleanup
         return
@@ -149,7 +150,7 @@ def _cuda_usable_for(device: str) -> bool:
     try:
         import torch
 
-        if not torch.cuda.is_available():
+        if not _cuda_available(torch):
             return False
         idx = int(device.split(":", 1)[1]) if ":" in device else 0
         if idx >= torch.cuda.device_count():
@@ -161,6 +162,17 @@ def _cuda_usable_for(device: str) -> bool:
         return cap >= _minimum_capability()
     except Exception:  # pragma: no cover — defensive
         return False
+
+
+def _cuda_available(torch_mod) -> bool:
+    """Probe CUDA availability without surfacing noisy driver-init warnings."""
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore",
+            message=r"CUDA initialization:.*",
+            category=UserWarning,
+        )
+        return bool(torch_mod.cuda.is_available())
 
 
 def _warn_once_unsupported(count: int, min_cap: tuple[int, int]) -> None:

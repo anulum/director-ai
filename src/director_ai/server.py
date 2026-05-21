@@ -988,6 +988,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             injection_claim_threshold=getattr(cfg, "injection_claim_threshold", 0.75),
             baseline_divergence=getattr(cfg, "injection_baseline_divergence", 0.4),
             stage1_weight=getattr(cfg, "injection_stage1_weight", 0.3),
+            require_model_backed_nli=getattr(
+                cfg,
+                "injection_require_model_backed_nli",
+                False,
+            ),
         )
 
         intent = req.intent or ""

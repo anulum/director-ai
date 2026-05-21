@@ -9,11 +9,13 @@
 
 from __future__ import annotations
 
+import warnings
 from unittest.mock import MagicMock
 
 import pytest
 
 from director_ai.core.config import DirectorConfig
+from director_ai.core.metrics import metrics
 from director_ai.core.safety.injection import InjectionDetector
 from director_ai.core.scoring.scorer import CoherenceScorer
 from director_ai.core.types import InjectionResult
@@ -42,6 +44,8 @@ class TestConfigInjectionFields:
         assert cfg.injection_claim_threshold == 0.75
         assert cfg.injection_baseline_divergence == 0.4
         assert cfg.injection_stage1_weight == 0.3
+        assert cfg.injection_require_model_backed_nli is False
+        assert cfg.injection_fail_closed_on_error is False
 
     def test_custom_values(self):
         cfg = DirectorConfig(
@@ -51,6 +55,8 @@ class TestConfigInjectionFields:
             injection_claim_threshold=0.9,
             injection_baseline_divergence=0.3,
             injection_stage1_weight=0.2,
+            injection_require_model_backed_nli=True,
+            injection_fail_closed_on_error=True,
         )
         assert cfg.injection_detection_enabled is True
         assert cfg.injection_threshold == 0.8
@@ -58,13 +64,37 @@ class TestConfigInjectionFields:
         assert cfg.injection_claim_threshold == 0.9
         assert cfg.injection_baseline_divergence == 0.3
         assert cfg.injection_stage1_weight == 0.2
+        assert cfg.injection_require_model_backed_nli is True
+        assert cfg.injection_fail_closed_on_error is True
 
     def test_from_env_picks_up_injection_fields(self, monkeypatch):
         monkeypatch.setenv("DIRECTOR_INJECTION_DETECTION_ENABLED", "true")
         monkeypatch.setenv("DIRECTOR_INJECTION_THRESHOLD", "0.85")
+        monkeypatch.setenv("DIRECTOR_INJECTION_REQUIRE_MODEL_BACKED_NLI", "true")
         cfg = DirectorConfig.from_env()
         assert cfg.injection_detection_enabled is True
         assert cfg.injection_threshold == 0.85
+        assert cfg.injection_require_model_backed_nli is True
+
+    def test_require_model_backed_nli_requires_injection_detection_enabled(self):
+        with pytest.raises(
+            ValueError,
+            match="injection_require_model_backed_nli=True requires injection_detection_enabled=True",
+        ):
+            DirectorConfig(
+                injection_detection_enabled=False,
+                injection_require_model_backed_nli=True,
+            )
+
+    def test_fail_closed_requires_injection_detection_enabled(self):
+        with pytest.raises(
+            ValueError,
+            match="injection_fail_closed_on_error=True requires injection_detection_enabled=True",
+        ):
+            DirectorConfig(
+                injection_detection_enabled=False,
+                injection_fail_closed_on_error=True,
+            )
 
 
 # ── Scorer integration ───────────────────────────────────────────
@@ -141,6 +171,40 @@ class TestScorerInjectionHook:
         assert det._cfg.baseline_divergence == 0.35
         assert det._cfg.stage1_weight == 0.4
 
+    def test_enable_fails_when_model_backed_nli_required_but_unavailable(self):
+        scorer = CoherenceScorer(use_nli=False)
+        with pytest.raises(RuntimeError, match="model-backed NLI"):
+            scorer.enable_injection_detection(
+                require_model_backed_nli=True,
+                fail_closed_on_error=True,
+            )
+
+    def test_enable_failure_emits_injection_init_failure_metric(self):
+        metrics.reset()
+        scorer = CoherenceScorer(use_nli=False)
+        with pytest.raises(RuntimeError, match="model-backed NLI"):
+            scorer.enable_injection_detection(
+                require_model_backed_nli=True,
+                fail_closed_on_error=True,
+            )
+        snapshot = metrics.get_metrics()
+        counter = snapshot["counters"]["injection_detector_init_failures_total"]
+        assert counter["total"] == 1.0
+        assert counter["multi_labels"].get('reason="RuntimeError"') == 1.0
+
+    def test_config_build_scorer_fails_fast_when_injection_model_backed_required(self):
+        cfg = DirectorConfig(
+            use_nli=False,
+            scorer_backend="lite",
+            injection_detection_enabled=True,
+            injection_require_model_backed_nli=True,
+        )
+        with pytest.raises(
+            RuntimeError,
+            match="model-backed NLI",
+        ):
+            cfg.build_scorer()
+
 
 # ── Server endpoint ──────────────────────────────────────────────
 
@@ -165,6 +229,23 @@ class TestServerInjectionEndpoint:
                 "response": "The answer is 4.",
             },
         )
+        assert resp.status_code == 200
+
+    def test_endpoint_ignores_third_party_torchscript_deprecation(self, client):
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "error",
+                message=r"`torch\.jit\.script` is deprecated\..*",
+                category=DeprecationWarning,
+            )
+            resp = client.post(
+                "/v1/injection/detect",
+                json={
+                    "system_prompt": "You are a helpful assistant.",
+                    "user_query": "What is 2+2?",
+                    "response": "The answer is 4.",
+                },
+            )
         assert resp.status_code == 200
 
     def test_response_schema(self, client):

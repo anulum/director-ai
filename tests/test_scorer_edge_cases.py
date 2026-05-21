@@ -203,6 +203,24 @@ class TestStrictMode:
     def test_non_strict_default(self, scorer):
         assert scorer.strict_mode is False
 
+    def test_require_model_backed_nli_fails_closed_without_model_backend(self):
+        scorer = CoherenceScorer(
+            use_nli=False,
+            strict_mode=True,
+            require_model_backed_nli=True,
+        )
+        with pytest.raises(RuntimeError, match="model-backed NLI"):
+            scorer.review("What is 2+2?", "The answer is 4.")
+
+    def test_require_model_backed_nli_batch_fails_closed_without_model_backend(self):
+        scorer = CoherenceScorer(
+            use_nli=False,
+            strict_mode=True,
+            require_model_backed_nli=True,
+        )
+        with pytest.raises(RuntimeError, match="model-backed NLI"):
+            scorer.review_batch([("Q1", "A1"), ("Q2", "A2")])
+
 
 # ── Performance characteristics ─────────────────────────────────────
 

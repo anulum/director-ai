@@ -51,6 +51,7 @@ class _DetectorConfig:
     baseline_divergence: float = 0.4
     stage1_weight: float = 0.3
     traceability_floor: float = 0.15
+    require_model_backed_nli: bool = False
 
 
 class InjectionDetector:
@@ -87,6 +88,7 @@ class InjectionDetector:
         injection_claim_threshold: float = 0.75,
         baseline_divergence: float = 0.4,
         stage1_weight: float = 0.3,
+        require_model_backed_nli: bool = False,
     ) -> None:
         self._nli = nli_scorer
         self._sanitizer = sanitizer
@@ -96,7 +98,12 @@ class InjectionDetector:
             injection_claim_threshold=injection_claim_threshold,
             baseline_divergence=baseline_divergence,
             stage1_weight=stage1_weight,
+            require_model_backed_nli=require_model_backed_nli,
         )
+        if self._cfg.require_model_backed_nli and not self._has_model_backed_nli():
+            raise RuntimeError(
+                "InjectionDetector requires model-backed NLI, but no model-backed backend is available",
+            )
 
     # -- Public API -----------------------------------------------------------
 
@@ -126,6 +133,10 @@ class InjectionDetector:
         InjectionResult
             Structured result with per-claim attribution.
         """
+        if self._cfg.require_model_backed_nli and not self._has_model_backed_nli():
+            raise RuntimeError(
+                "InjectionDetector requires model-backed NLI, but no model-backed backend is available",
+            )
         effective_intent = self._build_intent(intent, user_query, system_prompt)
 
         # Stage 1: fast pattern-based check
@@ -215,6 +226,10 @@ class InjectionDetector:
 
     def _decompose(self, response: str) -> list[str]:
         """Split response into atomic claims."""
+        if self._cfg.require_model_backed_nli and not self._has_model_backed_nli():
+            raise RuntimeError(
+                "InjectionDetector requires model-backed NLI for claim decomposition",
+            )
         if self._nli is not None:
             return list(self._nli.decompose_claims(response))
         # Fallback: sentence splitting without NLI scorer
@@ -306,6 +321,10 @@ class InjectionDetector:
         self, intent: str, claims: list[str]
     ) -> tuple[list[float], list[float]]:
         """Two batched NLI passes: forward (intent→claim) and reverse."""
+        if self._cfg.require_model_backed_nli and not self._has_model_backed_nli():
+            raise RuntimeError(
+                "InjectionDetector requires model-backed NLI for bidirectional scoring",
+            )
         if self._nli is None or not self._nli.model_available:
             # Heuristic fallback
             fwd = (
@@ -325,6 +344,13 @@ class InjectionDetector:
         fwd_scores = self._nli.score_batch(fwd_pairs)
         rev_scores = self._nli.score_batch(rev_pairs)
         return fwd_scores, rev_scores
+
+    def _has_model_backed_nli(self) -> bool:
+        """Return whether the configured scorer has a loaded model backend."""
+        if self._nli is None or not self._nli.model_available:
+            return False
+        backend = getattr(self._nli, "backend", "")
+        return backend != "lite"
 
     # -- Baseline calibration -------------------------------------------------
 

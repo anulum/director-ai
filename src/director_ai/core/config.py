@@ -253,10 +253,13 @@ class DirectorConfig:
     injection_claim_threshold: float = 0.75
     injection_baseline_divergence: float = 0.4
     injection_stage1_weight: float = 0.3
+    injection_require_model_backed_nli: bool = False
+    injection_fail_closed_on_error: bool = False
 
     # Scoring weights (0.0 = use CoherenceScorer class defaults)
     w_logic: float = 0.0
     w_fact: float = 0.0
+    coherence_require_model_backed_nli: bool = False
 
     # Metrics auth: when True, /v1/metrics/prometheus requires API key
     metrics_require_auth: bool = True
@@ -310,6 +313,7 @@ class DirectorConfig:
     # Coherence values derived from optimal NLI thresholds:
     #   coherence = 0.4 + 0.6 * nli_threshold (W_LOGIC=0.6 pure-NLI case)
     adaptive_threshold_enabled: bool = True
+    adaptive_threshold_fail_closed: bool = False
     threshold_summarization: float = 0.72  # NLI=0.54, AggreFact/TofuEval
     threshold_qa: float = 0.69  # NLI=0.48, ExpertQA/Lfqa
     threshold_fact_check: float = (
@@ -450,11 +454,32 @@ class DirectorConfig:
         if self.hardened:
             object.__setattr__(self, "production_mode", True)
             object.__setattr__(self, "use_nli", True)
+            object.__setattr__(self, "coherence_require_model_backed_nli", True)
+            object.__setattr__(self, "adaptive_threshold_enabled", True)
+            object.__setattr__(self, "adaptive_threshold_fail_closed", True)
             object.__setattr__(self, "injection_detection_enabled", True)
+            object.__setattr__(self, "injection_require_model_backed_nli", True)
+            object.__setattr__(self, "injection_fail_closed_on_error", True)
             object.__setattr__(self, "sanitize_inputs", True)
             object.__setattr__(self, "redact_pii", True)
             object.__setattr__(self, "strict_mode", True)
             logger.info("Hardened mode: all safety features enforced")
+
+        if (
+            self.injection_require_model_backed_nli
+            and not self.injection_detection_enabled
+        ):
+            raise ValueError(
+                "injection_require_model_backed_nli=True requires injection_detection_enabled=True",
+            )
+        if self.injection_fail_closed_on_error and not self.injection_detection_enabled:
+            raise ValueError(
+                "injection_fail_closed_on_error=True requires injection_detection_enabled=True",
+            )
+        if self.adaptive_threshold_fail_closed and not self.adaptive_threshold_enabled:
+            raise ValueError(
+                "adaptive_threshold_fail_closed=True requires adaptive_threshold_enabled=True",
+            )
 
         # Production mode enforcements
         if self.production_mode:
@@ -469,6 +494,10 @@ class DirectorConfig:
                 )
             if self.llm_provider == "local" and not self.llm_api_url.strip():
                 raise ValueError("production_mode local LLM requires llm_api_url")
+            if self.coherence_require_model_backed_nli and not self.use_nli:
+                raise ValueError(
+                    "production_mode with coherence_require_model_backed_nli=True requires use_nli=True",
+                )
             # Ruff S104 fires on the literal "0.0.0.0"; the host
             # value is compared, not bound, so assembling the
             # wildcard from parts keeps the check intact.
@@ -990,6 +1019,7 @@ class DirectorConfig:
         kw: dict = {
             "threshold": self.coherence_threshold,
             "use_nli": self.use_nli,
+            "require_model_backed_nli": self.coherence_require_model_backed_nli,
             "scorer_backend": resolved_backend,
             "soft_limit": self.soft_limit,
             "nli_model": self.nli_model,
@@ -1049,6 +1079,7 @@ class DirectorConfig:
         )
         scorer._verified_scorer_min_coverage = self.verified_scorer_min_coverage
         scorer._adaptive_threshold_enabled = self.adaptive_threshold_enabled
+        scorer._adaptive_threshold_fail_closed = self.adaptive_threshold_fail_closed
         scorer._task_type_thresholds = {
             "summarization": self.threshold_summarization,
             "qa": self.threshold_qa,
@@ -1060,6 +1091,16 @@ class DirectorConfig:
         scorer._qa_premise_ratio = self.nli_qa_premise_ratio
         scorer._confidence_weighted_agg = self.nli_confidence_weighted_agg
         scorer._retrieval_abstention_threshold = self.retrieval_abstention_threshold
+        if self.injection_detection_enabled:
+            scorer.enable_injection_detection(
+                injection_threshold=self.injection_threshold,
+                drift_threshold=self.injection_drift_threshold,
+                injection_claim_threshold=self.injection_claim_threshold,
+                baseline_divergence=self.injection_baseline_divergence,
+                stage1_weight=self.injection_stage1_weight,
+                require_model_backed_nli=self.injection_require_model_backed_nli,
+                fail_closed_on_error=self.injection_fail_closed_on_error,
+            )
         if self.lora_adapter_path and scorer._nli is not None:
             if hasattr(scorer._nli, "_load_lora_adapter"):
                 scorer._nli._load_lora_adapter(self.lora_adapter_path)
@@ -1073,6 +1114,15 @@ class DirectorConfig:
         if self.adaptive_retrieval_enabled:
             scorer.enable_adaptive_retrieval(
                 threshold=self.adaptive_retrieval_threshold,
+            )
+        if (
+            scorer._adaptive_threshold_enabled
+            and scorer._adaptive_threshold_fail_closed
+            and scorer._get_meta_classifier() is None
+        ):
+            raise RuntimeError(
+                "adaptive_threshold_fail_closed=True requires a loadable meta-classifier "
+                "(set meta_classifier_path or provide a compatible bundled artefact)",
             )
         if self.dry_run:
             scorer._dry_run = True
@@ -1088,6 +1138,18 @@ class DirectorConfig:
 
             scorer._judge._cost_callback = _cost_cb
             logger.info("Cost tracking enabled on scorer")
+        if self.coherence_require_model_backed_nli and not scorer._has_model_backed_nli():
+            raise RuntimeError(
+                "Configured coherence_require_model_backed_nli=True, but scorer could not initialize a model-backed NLI backend",
+            )
+        if (
+            self.injection_detection_enabled
+            and self.injection_require_model_backed_nli
+            and not scorer._has_model_backed_nli()
+        ):
+            raise RuntimeError(
+                "Configured injection_require_model_backed_nli=True, but scorer could not initialize a model-backed NLI backend for injection detection",
+            )
         return scorer
 
     def model_revision_health(self) -> dict[str, object]:

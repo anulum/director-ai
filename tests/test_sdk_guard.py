@@ -509,9 +509,156 @@ class TestScore:
         )
         assert isinstance(cs, CoherenceScore)
 
+    def test_score_with_profile_rejects_model_backed_without_nli(self):
+        with pytest.raises(
+            ValueError,
+            match="require_model_backed_nli=True requires use_nli=True",
+        ):
+            score(
+                "What color is the sky?",
+                "The sky is blue.",
+                profile="fast",
+                require_model_backed_nli=True,
+            )
+
+    def test_score_with_profile_applies_model_backed_override(self, monkeypatch):
+        captured: dict[str, object] = {}
+
+        class _FakeCfg:
+            use_nli = False
+            coherence_require_model_backed_nli = False
+
+            def build_scorer(self, store=None):
+                captured["use_nli"] = self.use_nli
+                captured["require_model_backed_nli"] = (
+                    self.coherence_require_model_backed_nli
+                )
+
+                class _FakeScorer:
+                    def review(self, _prompt, _response):
+                        return True, CoherenceScore(
+                            score=1.0,
+                            approved=True,
+                            h_logical=0.0,
+                            h_factual=0.0,
+                        )
+
+                return _FakeScorer()
+
+        monkeypatch.setattr(
+            "director_ai.core.config.DirectorConfig.from_profile",
+            lambda _name: _FakeCfg(),
+        )
+
+        cs = score(
+            "Summarise this",
+            "Summary text.",
+            profile="fast",
+            use_nli=True,
+            require_model_backed_nli=True,
+        )
+        assert isinstance(cs, CoherenceScore)
+        assert captured["use_nli"] is True
+        assert captured["require_model_backed_nli"] is True
+
     def test_score_returns_coherence_score(self):
         cs = score("Hello", "Hi there!", use_nli=False)
         assert isinstance(cs, CoherenceScore)
         assert hasattr(cs, "score")
         assert hasattr(cs, "h_logical")
         assert hasattr(cs, "h_factual")
+
+    def test_score_forwards_require_model_backed_nli(self, monkeypatch):
+        captured: dict[str, object] = {}
+
+        class _FakeScorer:
+            def __init__(self, **kwargs):
+                captured["init_kwargs"] = kwargs
+
+            def review(self, _prompt, _response):
+                return True, CoherenceScore(
+                    score=1.0,
+                    approved=True,
+                    h_logical=0.0,
+                    h_factual=0.0,
+                )
+
+        monkeypatch.setattr("director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer)
+
+        cs = score(
+            "What color is the sky?",
+            "The sky is blue.",
+            use_nli=False,
+            require_model_backed_nli=True,
+        )
+        assert isinstance(cs, CoherenceScore)
+        assert captured["init_kwargs"]["require_model_backed_nli"] is True
+
+    def test_score_forwards_injection_fail_closed_flags(self, monkeypatch):
+        captured: dict[str, object] = {}
+
+        class _FakeScorer:
+            def __init__(self, **kwargs):
+                captured["init_kwargs"] = kwargs
+
+            def enable_injection_detection(self, **kwargs):
+                captured["injection_kwargs"] = kwargs
+
+            def review(self, _prompt, _response):
+                return True, CoherenceScore(
+                    score=1.0,
+                    approved=True,
+                    h_logical=0.0,
+                    h_factual=0.0,
+                )
+
+        monkeypatch.setattr("director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer)
+
+        cs = score(
+            "What color is the sky?",
+            "The sky is blue.",
+            use_nli=False,
+            injection_detection=True,
+            injection_require_model_backed_nli=True,
+            injection_fail_closed_on_error=True,
+        )
+        assert isinstance(cs, CoherenceScore)
+        assert captured["injection_kwargs"]["require_model_backed_nli"] is True
+        assert captured["injection_kwargs"]["fail_closed_on_error"] is True
+
+    def test_guard_forwards_hardening_flags_to_scorer(self, monkeypatch):
+        captured: dict[str, object] = {}
+
+        class _FakeScorer:
+            def __init__(self, **kwargs):
+                captured["init_kwargs"] = kwargs
+
+            def enable_injection_detection(self, **kwargs):
+                captured["injection_kwargs"] = kwargs
+
+            def review(self, _prompt, _response):
+                return True, CoherenceScore(
+                    score=1.0,
+                    approved=True,
+                    h_logical=0.0,
+                    h_factual=0.0,
+                )
+
+        monkeypatch.setattr("director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer)
+        client, _ = _make_openai_client("The sky is blue.")
+        guarded = guard(
+            client,
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+            injection_detection=True,
+            require_model_backed_nli=True,
+            injection_require_model_backed_nli=True,
+            injection_fail_closed_on_error=True,
+        )
+        guarded.chat.completions.create(
+            messages=[{"role": "user", "content": "What color is the sky?"}],
+        )
+
+        assert captured["init_kwargs"]["require_model_backed_nli"] is True
+        assert captured["injection_kwargs"]["require_model_backed_nli"] is True
+        assert captured["injection_kwargs"]["fail_closed_on_error"] is True

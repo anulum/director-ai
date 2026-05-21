@@ -200,6 +200,11 @@ class ProductionGuard:
                 injection_claim_threshold=cfg.injection_claim_threshold,
                 baseline_divergence=cfg.injection_baseline_divergence,
                 stage1_weight=cfg.injection_stage1_weight,
+                require_model_backed_nli=getattr(
+                    cfg,
+                    "injection_require_model_backed_nli",
+                    False,
+                ),
             )
             logger.info(
                 "Injection detector initialised (threshold=%.2f)",

@@ -23,6 +23,7 @@ import hashlib
 import logging
 import os
 import re
+import warnings
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -324,39 +325,48 @@ def _load_nli_model(
             device,
             rev[:12] if rev else "latest",
         )
-        tokenizer = AutoTokenizer.from_pretrained(
-            model_source, use_fast=False, revision=rev
-        )
+        # Third-party transformers DeBERTa import path currently emits
+        # torch.jit.script deprecation warnings. Suppress only that exact
+        # warning while bootstrapping the model.
+        with warnings.catch_warnings():
+            warnings.filterwarnings(
+                "ignore",
+                message=r"`torch\.jit\.script` is deprecated\..*",
+                category=DeprecationWarning,
+            )
+            tokenizer = AutoTokenizer.from_pretrained(
+                model_source, use_fast=False, revision=rev
+            )
 
-        load_kwargs: dict = {}
-        if torch_dtype:
-            dtype_map = {
-                "float16": torch.float16,
-                "bfloat16": torch.bfloat16,
-                "float32": torch.float32,
-            }
-            load_kwargs["torch_dtype"] = dtype_map.get(torch_dtype, torch.float32)
+            load_kwargs: dict = {}
+            if torch_dtype:
+                dtype_map = {
+                    "float16": torch.float16,
+                    "bfloat16": torch.bfloat16,
+                    "float32": torch.float32,
+                }
+                load_kwargs["torch_dtype"] = dtype_map.get(torch_dtype, torch.float32)
 
-        if quantize_8bit:
-            try:
-                from transformers import BitsAndBytesConfig
+            if quantize_8bit:
+                try:
+                    from transformers import BitsAndBytesConfig
 
-                load_kwargs["quantization_config"] = BitsAndBytesConfig(
-                    load_in_8bit=True,
-                )
-                load_kwargs["device_map"] = "auto"
-                logger.info("Loading with 8-bit quantization")
-            except ImportError:
-                logger.warning(
-                    "bitsandbytes not installed — loading without quantization",
-                )
+                    load_kwargs["quantization_config"] = BitsAndBytesConfig(
+                        load_in_8bit=True,
+                    )
+                    load_kwargs["device_map"] = "auto"
+                    logger.info("Loading with 8-bit quantization")
+                except ImportError:
+                    logger.warning(
+                        "bitsandbytes not installed — loading without quantization",
+                    )
 
-        load_kwargs.setdefault("low_cpu_mem_usage", False)
-        model = AutoModelForSequenceClassification.from_pretrained(
-            model_source,
-            revision=rev,
-            **load_kwargs,
-        )
+            load_kwargs.setdefault("low_cpu_mem_usage", False)
+            model = AutoModelForSequenceClassification.from_pretrained(
+                model_source,
+                revision=rev,
+                **load_kwargs,
+            )
 
         if device and "device_map" not in load_kwargs:
             model = model.to(device)

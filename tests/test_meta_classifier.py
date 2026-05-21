@@ -15,6 +15,7 @@ and performance documentation.
 from __future__ import annotations
 
 import pickle
+import warnings
 
 import numpy as np
 import pytest
@@ -181,6 +182,43 @@ def _make_dataset_type_bundle(tmp_path):
 
 
 class TestDatasetTypeClassifier:
+    def test_inconsistent_sklearn_version_warning_is_rejected(self, tmp_path, monkeypatch):
+        monkeypatch.setattr(
+            "director_ai.core.meta_classifier.InconsistentVersionWarning",
+            UserWarning,
+        )
+        path = _write_bundle(
+            tmp_path,
+            {
+                "classifier": _DeterministicClassifier(
+                    probabilities=[0.5, 0.5],
+                    prediction=1,
+                ),
+                "scaler": _IdentityScaler(),
+                "feature_cols": ["nli_score", "confidence"],
+            },
+        )
+
+        def _warn_then_load(_raw):
+            warnings.warn(
+                "sklearn version mismatch",
+                category=UserWarning,
+                stacklevel=1,
+            )
+            return {
+                "classifier": _DeterministicClassifier(
+                    probabilities=[0.5, 0.5],
+                    prediction=1,
+                ),
+                "scaler": _IdentityScaler(),
+                "feature_cols": ["nli_score", "confidence"],
+            }
+
+        monkeypatch.setattr("director_ai.core.meta_classifier.pickle.loads", _warn_then_load)
+
+        with pytest.raises(ValueError, match="Incompatible sklearn artefact"):
+            DatasetTypeClassifier(path)
+
     def test_invalid_bundle_rejected_with_path_context(self, tmp_path):
         path = _write_bundle(tmp_path, {"scaler": _IdentityScaler()})
 

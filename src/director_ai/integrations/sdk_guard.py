@@ -52,6 +52,9 @@ def score(
     profile: str | None = None,
     injection_detection: bool = False,
     injection_threshold: float = 0.7,
+    require_model_backed_nli: bool = False,
+    injection_require_model_backed_nli: bool = False,
+    injection_fail_closed_on_error: bool = False,
 ) -> CoherenceScore:
     """Score a single prompt/response pair for hallucination.
 
@@ -63,6 +66,15 @@ def score(
         from director_ai.core.config import DirectorConfig
 
         cfg = DirectorConfig.from_profile(profile)
+        if use_nli is not None:
+            cfg.use_nli = use_nli
+        if require_model_backed_nli:
+            cfg.coherence_require_model_backed_nli = True
+        if cfg.coherence_require_model_backed_nli and not cfg.use_nli:
+            raise ValueError(
+                "require_model_backed_nli=True requires use_nli=True "
+                "when scoring with a profile",
+            )
         gts = store or GroundTruthStore()
         if facts:
             for k, v in facts.items():
@@ -77,9 +89,14 @@ def score(
             threshold=threshold,
             ground_truth_store=gts,
             use_nli=use_nli,
+            require_model_backed_nli=require_model_backed_nli,
         )
     if injection_detection:
-        scorer.enable_injection_detection(injection_threshold=injection_threshold)
+        scorer.enable_injection_detection(
+            injection_threshold=injection_threshold,
+            require_model_backed_nli=injection_require_model_backed_nli,
+            fail_closed_on_error=injection_fail_closed_on_error,
+        )
     _approved, cs = scorer.review(prompt, response)
     return cast(CoherenceScore, cs)
 
@@ -94,6 +111,9 @@ def guard(
     on_fail: str = "raise",
     injection_detection: bool = False,
     injection_threshold: float = 0.7,
+    require_model_backed_nli: bool = False,
+    injection_require_model_backed_nli: bool = False,
+    injection_fail_closed_on_error: bool = False,
 ) -> Any:
     """Wrap an LLM SDK client with coherence scoring.
 
@@ -130,10 +150,15 @@ def guard(
         threshold=threshold,
         ground_truth_store=gts,
         use_nli=use_nli,
+        require_model_backed_nli=require_model_backed_nli,
     )
     inj_threshold = injection_threshold if injection_detection else None
     if injection_detection:
-        scorer.enable_injection_detection(injection_threshold=injection_threshold)
+        scorer.enable_injection_detection(
+            injection_threshold=injection_threshold,
+            require_model_backed_nli=injection_require_model_backed_nli,
+            fail_closed_on_error=injection_fail_closed_on_error,
+        )
 
     if _has_openai_shape(client):
         client.chat.completions = _OpenAICompletionsProxy(

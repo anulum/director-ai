@@ -17,10 +17,17 @@ from __future__ import annotations
 import logging
 import pickle  # nosec B403 — intentional; runtime warns on untrusted paths
 import re
+import warnings
 
 import numpy as np
 
 logger = logging.getLogger("DirectorAI.MetaClassifier")
+
+try:
+    from sklearn.exceptions import InconsistentVersionWarning
+except Exception:  # pragma: no cover - sklearn absent handled by runtime import boundaries
+    class InconsistentVersionWarning(UserWarning):
+        """Fallback warning type when sklearn is unavailable at import time."""
 
 NEGATION_WORDS = frozenset(
     {
@@ -153,7 +160,14 @@ class DatasetTypeClassifier:
             raw = f.read()
         sha = hashlib.sha256(raw).hexdigest()[:16]
         logger.info("Model SHA256 prefix: %s (%d bytes)", sha, len(raw))
-        bundle = pickle.loads(raw)  # nosec B301 — warned above; hash logged for auditability
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("error", InconsistentVersionWarning)
+                bundle = pickle.loads(raw)  # nosec B301 — warned above; hash logged for auditability
+        except InconsistentVersionWarning as exc:
+            raise ValueError(
+                f"Incompatible sklearn artefact at {model_path}: {exc}",
+            ) from exc
         if not isinstance(bundle, dict) or "classifier" not in bundle:
             raise ValueError(
                 f"Invalid model bundle at {model_path}: missing 'classifier' key"

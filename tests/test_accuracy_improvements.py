@@ -22,6 +22,7 @@ import numpy as np
 import pytest
 
 from director_ai.core.config import DirectorConfig
+from director_ai.core.metrics import metrics
 
 # â”€â”€ Phase 1: Task-type detection & adaptive thresholds â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -246,11 +247,36 @@ class TestMetaClassifierConfig:
     def test_config_field_exists(self):
         cfg = DirectorConfig()
         assert cfg.meta_classifier_path == ""
+        assert cfg.adaptive_threshold_fail_closed is False
+
+    def test_adaptive_fail_closed_requires_adaptive_threshold_enabled(self):
+        with pytest.raises(
+            ValueError,
+            match="adaptive_threshold_fail_closed=True requires adaptive_threshold_enabled=True",
+        ):
+            DirectorConfig(
+                adaptive_threshold_enabled=False,
+                adaptive_threshold_fail_closed=True,
+            )
 
     def test_scorer_meta_classifier_path(self):
         cfg = DirectorConfig(meta_classifier_path="/path/to/model.pkl")
         scorer = cfg.build_scorer()
         assert scorer._meta_classifier_path == "/path/to/model.pkl"
+
+    def test_scorer_receives_adaptive_fail_closed_config(self):
+        cfg = DirectorConfig(adaptive_threshold_fail_closed=True)
+        try:
+            scorer = cfg.build_scorer()
+        except RuntimeError as exc:
+            text = str(exc)
+            assert (
+                "adaptive_threshold_fail_closed=True requires a loadable meta-classifier"
+                in text
+                or "Adaptive threshold classifier unavailable" in text
+            )
+            return
+        assert scorer._adaptive_threshold_fail_closed is True
 
     def test_scorer_lazy_load_returns_none_for_missing(self):
         from director_ai.core.scorer import CoherenceScorer
@@ -258,6 +284,35 @@ class TestMetaClassifierConfig:
         scorer = CoherenceScorer(use_nli=False)
         scorer._meta_classifier_path = ""
         assert scorer._get_meta_classifier() is None
+
+    def test_scorer_lazy_load_raises_when_fail_closed_and_missing(self):
+        from director_ai.core.scorer import CoherenceScorer
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._meta_classifier_path = "/nonexistent/meta_classifier.pkl"
+        scorer._adaptive_threshold_fail_closed = True
+        with pytest.raises(
+            RuntimeError,
+            match="Adaptive threshold classifier unavailable",
+        ):
+            scorer._get_meta_classifier()
+
+    def test_build_scorer_fail_fast_when_adaptive_fail_closed_and_missing(self):
+        metrics.reset()
+        cfg = DirectorConfig(
+            adaptive_threshold_enabled=True,
+            adaptive_threshold_fail_closed=True,
+            meta_classifier_path="/nonexistent/meta_classifier.pkl",
+        )
+        with pytest.raises(
+            RuntimeError,
+            match="Adaptive threshold classifier unavailable",
+        ):
+            cfg.build_scorer()
+        snapshot = metrics.get_metrics()
+        counter = snapshot["counters"]["adaptive_threshold_classifier_load_failures_total"]
+        assert counter["total"] == 1.0
+        assert counter["multi_labels"].get('reason="FileNotFoundError"') == 1.0
 
 
 class TestMetaClassifierIntegration:

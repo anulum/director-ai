@@ -30,7 +30,12 @@ class TestHardenedMode:
         )
         assert cfg.production_mode is True
         assert cfg.use_nli is True
+        assert cfg.coherence_require_model_backed_nli is True
+        assert cfg.adaptive_threshold_enabled is True
+        assert cfg.adaptive_threshold_fail_closed is True
         assert cfg.injection_detection_enabled is True
+        assert cfg.injection_require_model_backed_nli is True
+        assert cfg.injection_fail_closed_on_error is True
         assert cfg.sanitize_inputs is True
         assert cfg.redact_pii is True
 
@@ -47,6 +52,36 @@ class TestHardenedMode:
             llm_api_url="https://llm.internal.example/v1",
         )
         assert cfg.hardened is True
+        assert cfg.adaptive_threshold_enabled is True
+        assert cfg.adaptive_threshold_fail_closed is True
+
+    def test_hardened_overrides_disabled_adaptive_threshold(self):
+        cfg = DirectorConfig(
+            hardened=True,
+            adaptive_threshold_enabled=False,
+            api_keys='["sk-test"]',
+            llm_api_url="https://llm.internal.example/v1",
+        )
+        assert cfg.adaptive_threshold_enabled is True
+        assert cfg.adaptive_threshold_fail_closed is True
+
+    def test_production_rejects_model_backed_requirement_without_nli(self):
+        import pytest
+
+        with pytest.raises(
+            ValueError,
+            match="coherence_require_model_backed_nli=True requires use_nli=True",
+        ):
+            DirectorConfig(
+                mode="auto",
+                production_mode=True,
+                coherence_require_model_backed_nli=True,
+                use_nli=False,
+                hybrid_retrieval=False,
+                reranker_enabled=False,
+                api_keys='["sk-test"]',
+                llm_api_url="https://llm.internal.example/v1",
+            )
 
 
 # ── Auto scorer backend ───────────────────────────────────────────────
@@ -82,3 +117,29 @@ class TestAutoScorer:
     def test_explicit_lite(self):
         cfg = DirectorConfig(scorer_backend="lite")
         assert cfg._resolve_scorer_backend() == "lite"
+
+    def test_build_scorer_fails_when_model_backed_nli_required_but_unavailable(self):
+        import pytest
+
+        cfg = DirectorConfig(
+            use_nli=False,
+            scorer_backend="lite",
+            coherence_require_model_backed_nli=True,
+        )
+        with pytest.raises(RuntimeError, match="model-backed NLI backend"):
+            cfg.build_scorer()
+
+    def test_build_scorer_fails_when_injection_model_backed_nli_unavailable(self):
+        import pytest
+
+        cfg = DirectorConfig(
+            use_nli=False,
+            scorer_backend="lite",
+            injection_detection_enabled=True,
+            injection_require_model_backed_nli=True,
+        )
+        with pytest.raises(
+            RuntimeError,
+            match="model-backed NLI",
+        ):
+            cfg.build_scorer()

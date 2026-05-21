@@ -67,6 +67,8 @@ class CoherenceScorer:
     strict_mode : bool – when True, disables heuristic fallbacks entirely.
         If NLI model is unavailable and strict_mode is True, divergence
         returns 0.9 (reject) and sets ``strict_mode_rejected=True``.
+    require_model_backed_nli : bool – when True, fail closed unless a
+        model-backed NLI backend is available (DeBERTa/ONNX/MiniCheck/Rust).
     history_window : int – rolling history size.
     use_nli : bool | None – True forces NLI, False disables it,
         None (default) auto-detects based on installed packages.
@@ -101,6 +103,7 @@ class CoherenceScorer:
         w_logic=None,
         w_fact=None,
         strict_mode=False,
+        require_model_backed_nli=False,
         cache_size=0,
         cache_ttl=300.0,
         nli_quantize_8bit=False,
@@ -136,6 +139,7 @@ class CoherenceScorer:
             )
 
         self.strict_mode = strict_mode
+        self.require_model_backed_nli = require_model_backed_nli
         self.scorer_backend = scorer_backend
         self.onnx_path = onnx_path
         self._onnx_batch_size = onnx_batch_size
@@ -269,6 +273,7 @@ class CoherenceScorer:
         self._meta_classifier_path = ""
         self._meta_classifier = None
         self._adaptive_router = None  # set via enable_adaptive_retrieval()
+        self._adaptive_threshold_fail_closed = False
         self._dry_run = False  # when True, log but never reject
         self._cost_analyser = (
             None  # set by config.build_scorer() when cost_tracking_enabled
@@ -292,6 +297,8 @@ class CoherenceScorer:
 
         # Injection detection: set via enable_injection_detection()
         self._injection_detector = None
+        self._injection_fail_closed = False
+        self._nli_fallback_incident_stages: set[str] = set()
 
     # -- Backward-compat proxies for judge internals (used by tests) ----
 
@@ -394,8 +401,33 @@ class CoherenceScorer:
 
             self._meta_classifier = DatasetTypeClassifier(path)
             return self._meta_classifier
-        except (ImportError, FileNotFoundError, Exception):
-            self.logger.debug("Meta-classifier unavailable at %s", path)
+        except (ImportError, FileNotFoundError, ValueError) as exc:
+            metrics.inc_labeled(
+                "adaptive_threshold_classifier_load_failures_total",
+                labels={"reason": type(exc).__name__},
+            )
+            if self._adaptive_threshold_fail_closed:
+                raise RuntimeError(
+                    f"Adaptive threshold classifier unavailable at {path}: {exc}",
+                ) from exc
+            self.logger.warning("Meta-classifier unavailable at %s: %s", path, exc)
+            self._meta_classifier_path = ""
+            return None
+        except Exception as exc:
+            metrics.inc_labeled(
+                "adaptive_threshold_classifier_load_failures_total",
+                labels={"reason": type(exc).__name__},
+            )
+            if self._adaptive_threshold_fail_closed:
+                raise RuntimeError(
+                    f"Adaptive threshold classifier unavailable at {path}: {exc}",
+                ) from exc
+            self.logger.warning(
+                "Meta-classifier load failed unexpectedly at %s (%s): %s",
+                path,
+                type(exc).__name__,
+                exc,
+            )
             self._meta_classifier_path = ""
             return None
 
@@ -571,6 +603,8 @@ class CoherenceScorer:
         injection_claim_threshold: float = 0.75,
         baseline_divergence: float = 0.4,
         stage1_weight: float = 0.3,
+        require_model_backed_nli: bool = False,
+        fail_closed_on_error: bool = False,
     ) -> None:
         """Enable output-side injection detection on every review() call."""
         from ..safety.injection import InjectionDetector
@@ -583,15 +617,24 @@ class CoherenceScorer:
         except Exception:
             self.logger.debug("InputSanitizer unavailable for injection detection")
 
-        self._injection_detector = InjectionDetector(
-            nli_scorer=self._nli,
-            sanitizer=sanitizer,
-            injection_threshold=injection_threshold,
-            drift_threshold=drift_threshold,
-            injection_claim_threshold=injection_claim_threshold,
-            baseline_divergence=baseline_divergence,
-            stage1_weight=stage1_weight,
-        )
+        try:
+            self._injection_detector = InjectionDetector(
+                nli_scorer=self._nli,
+                sanitizer=sanitizer,
+                injection_threshold=injection_threshold,
+                drift_threshold=drift_threshold,
+                injection_claim_threshold=injection_claim_threshold,
+                baseline_divergence=baseline_divergence,
+                stage1_weight=stage1_weight,
+                require_model_backed_nli=require_model_backed_nli,
+            )
+        except RuntimeError as exc:
+            metrics.inc_labeled(
+                "injection_detector_init_failures_total",
+                labels={"reason": type(exc).__name__},
+            )
+            raise
+        self._injection_fail_closed = fail_closed_on_error
         self.logger.info(
             "Injection detection enabled (threshold=%.2f)", injection_threshold
         )
@@ -599,6 +642,31 @@ class CoherenceScorer:
     def _get_injection_detector(self):
         """Return the InjectionDetector if enabled, else None."""
         return self._injection_detector
+
+    def _has_model_backed_nli(self) -> bool:
+        """Return True when scoring has a model-backed contradiction path."""
+        if self._rust_scorer is not None:
+            return True
+        if self._nli is None or not self._nli.model_available:
+            return False
+        return getattr(self._nli, "backend", "") != "lite"
+
+    def _enforce_model_backed_nli_requirement(self) -> None:
+        """Fail closed when model-backed NLI is required but unavailable."""
+        if not self.require_model_backed_nli:
+            return
+        if self._has_model_backed_nli():
+            return
+        metrics.inc_labeled(
+            "nli_fallback_incidents_total",
+            labels={
+                "stage": "coherence",
+                "reason": "required_model_backed_nli_unavailable",
+            },
+        )
+        raise RuntimeError(
+            "CoherenceScorer requires model-backed NLI, but only heuristic/lite scoring is available",
+        )
 
     def enable_adaptive_retrieval(
         self,
@@ -936,6 +1004,10 @@ class CoherenceScorer:
         elif self.strict_mode:
             nli_score = DIVERGENCE_CONTRADICTED
         else:
+            self._record_nli_fallback_incident(
+                stage="factual",
+                reason="nli_unavailable_using_heuristic",
+            )
             nli_score = self._heuristic_factual(context, text_output)
 
         if self._should_escalate(nli_score, task_type=task_type):
@@ -1064,7 +1136,28 @@ class CoherenceScorer:
         if self.strict_mode:
             return DIVERGENCE_CONTRADICTED
 
+        self._record_nli_fallback_incident(
+            stage="logical",
+            reason="nli_unavailable_using_heuristic",
+        )
         return self._heuristic_logical(text_output, prompt)
+
+    def _record_nli_fallback_incident(self, *, stage: str, reason: str) -> None:
+        """Emit a once-per-stage incident when model-backed NLI is unavailable."""
+        if stage in self._nli_fallback_incident_stages:
+            return
+        self._nli_fallback_incident_stages.add(stage)
+        metrics.inc_labeled(
+            "nli_fallback_incidents_total",
+            labels={"stage": stage, "reason": reason},
+        )
+        self.logger.error(
+            "NLI fallback incident: stage=%s reason=%s strict_mode=%s backend=%s",
+            stage,
+            reason,
+            self.strict_mode,
+            self.scorer_backend,
+        )
 
     @staticmethod
     def _heuristic_logical(text_output, prompt=""):
@@ -1401,6 +1494,7 @@ class CoherenceScorer:
 
         """
         with trace_review() as span:
+            self._enforce_model_backed_nli_requirement()
             # Rust fast-path: delegate full review to backfire_kernel
             if self._rust_scorer is not None:
                 approved_r, score_obj = self._rust_scorer.review(prompt, action)
@@ -1542,6 +1636,8 @@ class CoherenceScorer:
                     inj = inj_detector.detect(intent=prompt, response=action)
                     result[1].injection_risk = inj.injection_risk
                 except Exception:
+                    if self._injection_fail_closed:
+                        raise
                     self.logger.warning("Injection detection failed", exc_info=True)
 
             span.set_attribute("coherence.score", result[1].score)
@@ -1569,6 +1665,7 @@ class CoherenceScorer:
         items that need special handling (dialogue, summarization, rust
         backend, or when NLI is unavailable).
         """
+        self._enforce_model_backed_nli_requirement()
         if not items:
             return []
         nli_ok = (
