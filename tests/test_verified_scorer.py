@@ -82,6 +82,17 @@ class TestEntityOverlap:
     def test_no_overlap(self):
         assert _entity_overlap("Paris France", "London Berlin") == 0.0
 
+    def test_rust_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_entity_overlap",
+            lambda _a, _b: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        score = _entity_overlap("Met Paris and Berlin", "Met Paris and London")
+        assert 0.0 <= score <= 1.0
+
 
 class TestNumericalConsistency:
     def test_matching(self):
@@ -136,6 +147,17 @@ class TestTraceability:
 
     def test_empty_claim(self):
         assert _traceability("", "some source") == 1.0
+
+    def test_rust_traceability_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_traceability",
+            lambda _a, _b: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        score = _traceability("The sky is blue", "The sky is blue")
+        assert 0.0 <= score <= 1.0
 
 
 class TestVerifiedScorer:
