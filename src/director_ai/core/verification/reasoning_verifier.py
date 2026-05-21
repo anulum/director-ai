@@ -182,7 +182,10 @@ def _word_overlap(a: str, b: str) -> float:
     reduce the overlap score.
     """
     if _RUST_REASONING:
-        return float(rust_word_overlap(a, b))
+        try:
+            return float(rust_word_overlap(a, b))
+        except Exception:
+            pass
     wa = {w.strip(".,;:!?\"'()[]") for w in a.lower().split()} - {""}
     wb = {w.strip(".,;:!?\"'()[]") for w in b.lower().split()} - {""}
     if not wa or not wb:
