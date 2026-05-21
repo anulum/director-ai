@@ -22,6 +22,21 @@ import random
 from dataclasses import dataclass, field
 from typing import Any
 
+try:
+    from backfire_kernel import rust_beta_posterior_mean
+
+    _RUST_ADAPTIVE = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_ADAPTIVE = False
+
+    def rust_beta_posterior_mean(
+        _alpha_prior: float,
+        _beta_prior: float,
+        _successes: int,
+        _pulls: int,
+    ) -> float:
+        raise RuntimeError("backfire_kernel rust_beta_posterior_mean is unavailable")
+
 __all__ = [
     "AdaptiveThresholdArm",
     "AdaptiveThresholdLearner",
@@ -92,6 +107,18 @@ class AdaptiveThresholdArm:
     @property
     def posterior_mean(self) -> float:
         """Return the posterior expected success probability."""
+        if _RUST_ADAPTIVE:
+            try:
+                return float(
+                    rust_beta_posterior_mean(
+                        self.alpha_prior,
+                        self.beta_prior,
+                        self.successes,
+                        self.pulls,
+                    )
+                )
+            except Exception:
+                pass
         return self.alpha / (self.alpha + self.beta)
 
     @property
