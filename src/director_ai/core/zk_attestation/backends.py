@@ -32,11 +32,17 @@ from typing import Protocol, runtime_checkable
 try:
     from backfire_kernel import (
         rust_derive_challenge_indices as _rust_derive_challenge_indices,
+        rust_sum_f64,
     )
 
     _RUST_CHALLENGE_AVAILABLE = True
+    _RUST_ZK_ATTESTATION = True
 except ImportError:  # pragma: no cover — optional accelerator
     _RUST_CHALLENGE_AVAILABLE = False
+    _RUST_ZK_ATTESTATION = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 from .commitment import (
     CommitmentProof,
@@ -114,7 +120,7 @@ class CommitmentBackend:
         if not samples:
             raise ValueError("samples must be non-empty")
         commitment, leaves, blinds = commit_samples(samples, key=self.key, rng=self.rng)
-        aggregate = sum(statement.evaluate_sample(s) for s in samples)
+        aggregate = _sum_float([statement.evaluate_sample(s) for s in samples])
         indices = self._pick_challenge(
             seed_material=commitment.root.encode("utf-8"),
             sample_count=len(samples),
@@ -236,6 +242,17 @@ class ZkSnarkBackend(Protocol):
         statement: AttestationStatement,
         proof_bytes: bytes,
     ) -> tuple[bool, str]: ...
+
+
+def _sum_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_ZK_ATTESTATION:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 __all__ = [
