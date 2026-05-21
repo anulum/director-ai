@@ -181,6 +181,17 @@ class TestTaskType:
         decision = AdaptiveRouter().should_retrieve("What is the refund policy?")
         assert decision.task_type
 
+    def test_rust_task_type_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(router_mod, "_RUST_AVAILABLE", True)
+        monkeypatch.setattr(
+            router_mod,
+            "_rust_task_type",
+            lambda _query, _response: (_ for _ in ()).throw(TypeError("ffi fail")),
+            raising=True,
+        )
+        decision = AdaptiveRouter().should_retrieve("What is the refund policy?")
+        assert decision.task_type
+
 
 # ── Edge cases ──────────────────────────────────────────────────────────
 
