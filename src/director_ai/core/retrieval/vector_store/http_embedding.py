@@ -24,6 +24,13 @@ from collections.abc import Sequence
 from typing import overload
 from urllib.parse import urlparse
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_f64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 __all__ = [
     "HttpEmbeddingConnectionError",
     "HttpEmbeddingDimensionError",
@@ -231,7 +238,7 @@ class HttpEmbeddingFunction:
         if not self._normalize:
             return values
 
-        norm = math.sqrt(sum(value * value for value in values))
+        norm = math.sqrt(_sum_float([value * value for value in values]))
         if norm == 0.0:
             raise HttpEmbeddingDimensionError("embedding vector norm must be non-zero")
         return [value / norm for value in values]
@@ -249,3 +256,10 @@ def _embedding_path(base_path: str, endpoint_path: str) -> str:
     if clean_endpoint.startswith(f"{clean_base}/"):
         return clean_endpoint
     return f"{clean_base}{clean_endpoint}"
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
