@@ -41,6 +41,13 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Literal
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_f64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 from .embedder import TraceEmbedder
 
 TraceLabel = Literal["safe", "unsafe", "uncertain"]
@@ -216,7 +223,7 @@ def _mean(vectors: list[tuple[float, ...]]) -> tuple[float, ...]:
 def _normalise(vec: tuple[float, ...]) -> tuple[float, ...]:
     if not vec:
         return ()
-    norm = math.sqrt(sum(x * x for x in vec))
+    norm = math.sqrt(_sum_float([x * x for x in vec]))
     if norm == 0.0:
         return vec
     inv = 1.0 / norm
@@ -226,4 +233,11 @@ def _normalise(vec: tuple[float, ...]) -> tuple[float, ...]:
 def _cosine(a: tuple[float, ...], b: tuple[float, ...]) -> float:
     if not a or not b or len(a) != len(b):
         return 0.0
-    return sum(x * y for x, y in zip(a, b, strict=True))
+    return _sum_float([x * y for x, y in zip(a, b, strict=True)])
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
