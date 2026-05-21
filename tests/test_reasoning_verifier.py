@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import director_ai.core.verification.reasoning_verifier as reasoning_mod
 from director_ai.core.verification.reasoning_verifier import (
     ReasoningChainResult,
     extract_steps,
@@ -41,6 +42,53 @@ class TestExtractSteps:
         text = "The economy grew by 3% last year. This growth was driven by exports. Consequently unemployment fell."
         steps = extract_steps(text)
         assert len(steps) >= 2
+
+    def test_sentence_fallback_uses_rust_splitter_when_available(self, monkeypatch):
+        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_extract_reasoning_steps",
+            lambda text: [],
+            raising=False,
+        )
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_split_sentences",
+            lambda text: [
+                "The economy grew by 3% last year.",
+                "This growth was driven by exports.",
+                "Consequently unemployment fell.",
+            ],
+            raising=False,
+        )
+        steps = extract_steps("ignored")
+        assert len(steps) == 3
+        assert steps[0].text == "The economy grew by 3% last year."
+
+    def test_sentence_fallback_reverts_to_python_on_rust_runtime_error(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_extract_reasoning_steps",
+            lambda text: [],
+            raising=False,
+        )
+
+        def _raise_runtime(text):
+            raise RuntimeError("ffi unavailable")
+
+        monkeypatch.setattr(
+            reasoning_mod,
+            "rust_split_sentences",
+            _raise_runtime,
+            raising=False,
+        )
+        steps = extract_steps(
+            "The economy grew by 3% last year. This growth was driven by exports."
+        )
+        assert len(steps) == 2
 
 
 class TestVerifyReasoningChain:

@@ -510,6 +510,7 @@ Tests cover:
 - `meta_classifier` lexical `word_overlap` feature extraction: Rust acceleration
 - `safety/injection` claim fallback decomposition: Rust sentence splitting acceleration
 - `verified_scorer` response/source sentence decomposition: Rust sentence splitting acceleration
+- `verification/reasoning_verifier` sentence-fallback decomposition: Rust sentence splitting acceleration
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 

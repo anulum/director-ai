@@ -28,7 +28,11 @@ __all__ = [
 ]
 
 try:
-    from backfire_kernel import rust_extract_reasoning_steps, rust_word_overlap
+    from backfire_kernel import (
+        rust_extract_reasoning_steps,
+        rust_split_sentences,
+        rust_word_overlap,
+    )
 
     _RUST_REASONING = True
 except ImportError:
@@ -151,7 +155,14 @@ def extract_steps(text: str) -> list[ReasoningStep]:
             return steps
 
     # Fallback: split on sentence boundaries with "because" decomposition
-    sentences = [s.strip() for s in re.split(r"[.!?]\s+", text) if len(s.strip()) > 10]
+    sentences: list[str] = []
+    if _RUST_REASONING:
+        try:
+            sentences = [s.strip() for s in rust_split_sentences(text) if len(s.strip()) > 10]
+        except RuntimeError:
+            sentences = []
+    if not sentences:
+        sentences = [s.strip() for s in re.split(r"[.!?]\s+", text) if len(s.strip()) > 10]
     if len(sentences) >= 2:
         steps = []
         for i, s in enumerate(sentences):
