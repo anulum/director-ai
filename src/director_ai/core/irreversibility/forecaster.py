@@ -23,6 +23,20 @@ import random
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_wilson_score_interval
+
+    _RUST_IRREVERSIBILITY = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_IRREVERSIBILITY = False
+
+    def rust_wilson_score_interval(
+        _p_hat: float,
+        _n: int,
+        _confidence: float,
+    ) -> tuple[float, float]:
+        raise RuntimeError("backfire_kernel rust_wilson_score_interval is unavailable")
+
 from .reversibility import ReversibilityEstimator, RuleReversibility
 
 
@@ -132,6 +146,12 @@ def _wilson_score(p_hat: float, n: int, confidence: float) -> tuple[float, float
     """
     if n <= 0:
         return (0.0, 0.0)
+    if _RUST_IRREVERSIBILITY:
+        try:
+            low, high = rust_wilson_score_interval(p_hat, n, confidence)
+            return (float(low), float(high))
+        except Exception:
+            pass
     z = _standard_normal_quantile((1.0 + confidence) / 2.0)
     denominator = 1.0 + z * z / n
     centre = (p_hat + z * z / (2 * n)) / denominator
