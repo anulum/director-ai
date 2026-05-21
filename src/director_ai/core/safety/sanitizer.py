@@ -272,7 +272,10 @@ class InputSanitizer:
         Cn (unassigned) count as suspicious.
         """
         if _RUST_SANITIZER:
-            return bool(rust_has_suspicious_unicode(text))
+            try:
+                return bool(rust_has_suspicious_unicode(text))
+            except Exception:
+                pass
         if not text:
             return False
         suspicious = 0

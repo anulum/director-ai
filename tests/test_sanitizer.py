@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.safety.sanitizer as sanitizer_mod
 from director_ai.core.sanitizer import InputSanitizer, SanitizeResult
 
 
@@ -178,3 +179,16 @@ class TestInputSanitizerScrub:
 
     def test_empty_string(self):
         assert InputSanitizer.scrub("") == ""
+
+
+class TestRustUnicodeFallback:
+    def test_rust_unicode_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(sanitizer_mod, "_RUST_SANITIZER", True)
+        monkeypatch.setattr(
+            sanitizer_mod,
+            "rust_has_suspicious_unicode",
+            lambda _text: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+        text = "\u200b" * 20 + "hello"
+        assert InputSanitizer._has_suspicious_unicode(text) is True
