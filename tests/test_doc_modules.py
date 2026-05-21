@@ -174,6 +174,25 @@ class TestChunker:
 
         assert doc_chunker._embed_sentences(["Alpha."]) is None
 
+    def test_semantic_mode_delegates_sentence_split_to_rust_when_available(
+        self, monkeypatch
+    ):
+        calls: list[str] = []
+
+        def _fake_rust_split(text: str) -> list[str]:
+            calls.append(text)
+            return ["Alpha.", "Beta.", "Gamma."]
+
+        monkeypatch.setattr(doc_chunker, "_RUST_DOC_CHUNKER", True)
+        monkeypatch.setattr(doc_chunker, "rust_split_sentences", _fake_rust_split)
+        monkeypatch.setattr(doc_chunker, "_embed_sentences", lambda _s: None)
+
+        text = "Alpha. Beta. Gamma."
+        chunks = split(text, ChunkConfig(chunk_size=10, overlap=0, semantic=True))
+
+        assert calls == [text]
+        assert chunks
+
 
 class TestParser:
     @pytest.mark.parametrize(

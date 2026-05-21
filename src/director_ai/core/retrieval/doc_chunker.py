@@ -18,6 +18,14 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_split_sentences
+
+    _RUST_DOC_CHUNKER = True
+except ImportError:  # pragma: no cover
+    rust_split_sentences = None
+    _RUST_DOC_CHUNKER = False
+
 
 @dataclass(frozen=True)
 class ChunkConfig:
@@ -150,7 +158,10 @@ def _semantic_split(text: str, cfg: ChunkConfig) -> list[str]:
     """
     import numpy as np
 
-    sentences = [s.strip() for s in _SENT_RE.split(text) if s.strip()]
+    if _RUST_DOC_CHUNKER:
+        sentences = [s.strip() for s in rust_split_sentences(text) if s.strip()]
+    else:
+        sentences = [s.strip() for s in _SENT_RE.split(text) if s.strip()]
     if len(sentences) <= 1:
         return _recursive_split(text, cfg.separators, cfg.chunk_size, cfg.overlap)
 
