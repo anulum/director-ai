@@ -24,11 +24,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 try:
-    from backfire_kernel import rust_word_overlap
+    from backfire_kernel import rust_sum_i64, rust_word_overlap
 
     _RUST_AUTOPOIETIC = True
 except ImportError:
     _RUST_AUTOPOIETIC = False
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 from .blueprint import ModuleBlueprint
 
@@ -74,7 +77,7 @@ class ModuleBuilder:
 
         def scorer(prompt: str) -> float:
             lowered = prompt.lower()
-            count = sum(lowered.count(m) for m in markers)
+            count = _sum_int([lowered.count(marker) for marker in markers])
             return max(0.0, min(1.0, count / expected))
 
         return scorer
@@ -176,3 +179,10 @@ class BoundedSandbox:
         if result.value is None:
             raise BuildError("scorer returned None")
         return max(0.0, min(1.0, result.value))
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
