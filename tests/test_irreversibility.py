@@ -19,6 +19,7 @@ from collections.abc import Mapping
 
 import pytest
 
+import director_ai.core.irreversibility.forecaster as forecaster_mod
 from director_ai.core.irreversibility import (
     Forecast,
     IrreversibilityForecaster,
@@ -194,6 +195,38 @@ class TestForecaster:
 
 
 class TestWilsonScore:
+    def test_rust_wilson_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", True)
+        called = {"count": 0}
+
+        def _interval(p_hat: float, n: int, confidence: float):
+            called["count"] += 1
+            return (0.1, 0.9)
+
+        monkeypatch.setattr(
+            forecaster_mod,
+            "rust_wilson_score_interval",
+            _interval,
+            raising=True,
+        )
+        low, high = _wilson_score(0.5, n=100, confidence=0.95)
+        assert called["count"] == 1
+        assert low == pytest.approx(0.1)
+        assert high == pytest.approx(0.9)
+
+    def test_rust_wilson_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", True)
+        monkeypatch.setattr(
+            forecaster_mod,
+            "rust_wilson_score_interval",
+            lambda _p_hat, _n, _confidence: (_ for _ in ()).throw(
+                TypeError("ffi signature mismatch")
+            ),
+            raising=True,
+        )
+        low, high = _wilson_score(0.5, n=100, confidence=0.95)
+        assert low < 0.5 < high
+
     def test_bounds_contain_phat(self):
         low, high = _wilson_score(0.5, n=100, confidence=0.95)
         assert low < 0.5 < high
