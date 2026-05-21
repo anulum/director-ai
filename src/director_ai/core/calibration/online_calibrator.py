@@ -25,7 +25,10 @@ import math
 from dataclasses import dataclass
 
 try:
-    from backfire_kernel import rust_wilson_score_interval
+    from backfire_kernel import (
+        rust_confusion_counts_threshold,
+        rust_wilson_score_interval,
+    )
 
     _RUST_ONLINE_CALIBRATOR = True
 except Exception:  # pragma: no cover - optional dependency
@@ -35,6 +38,15 @@ except Exception:  # pragma: no cover - optional dependency
         _p_hat: float, _n: int, _confidence: float
     ) -> tuple[float, float]:
         raise RuntimeError("backfire_kernel rust_wilson_score_interval is unavailable")
+
+    def rust_confusion_counts_threshold(
+        _scores: list[float],
+        _labels: list[bool],
+        _threshold: float,
+    ) -> tuple[int, int, int, int]:
+        raise RuntimeError(
+            "backfire_kernel rust_confusion_counts_threshold is unavailable"
+        )
 
 from .feedback_store import FeedbackStore
 
@@ -171,10 +183,23 @@ class OnlineCalibrator:
 
         best_t = 0.5
         best_ba = 0.0
+        scores = [score for score, _ in scored]
+        labels = [label for _, label in scored]
         for t_int in range(5, 96):
             t = t_int / 100.0
-            tp = sum(1 for s, h in scored if s >= t and h)
-            tn = sum(1 for s, h in scored if s < t and not h)
+            if _RUST_ONLINE_CALIBRATOR:
+                try:
+                    tp, tn, _fp, _fn = rust_confusion_counts_threshold(
+                        scores,
+                        labels,
+                        t,
+                    )
+                except Exception:
+                    tp = sum(1 for s, h in scored if s >= t and h)
+                    tn = sum(1 for s, h in scored if s < t and not h)
+            else:
+                tp = sum(1 for s, h in scored if s >= t and h)
+                tn = sum(1 for s, h in scored if s < t and not h)
             tpr = tp / pos
             tnr = tn / neg
             ba = (tpr + tnr) / 2
