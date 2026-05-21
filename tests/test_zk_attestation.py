@@ -801,6 +801,28 @@ class TestCommitmentBackend:
         assert CommitmentBackend._pick_challenge(b"root-b", 5, 2) == [2, 0]
         assert calls == [(b"root-b", 5, 2)]
 
+    def test_rust_challenge_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(backends_mod, "_RUST_CHALLENGE_AVAILABLE", True)
+        monkeypatch.setattr(
+            backends_mod,
+            "_rust_derive_challenge_indices",
+            lambda *_args: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+
+        first = CommitmentBackend._pick_challenge(
+            seed_material=b"root-c",
+            sample_count=17,
+            challenge_size=5,
+        )
+        second = CommitmentBackend._pick_challenge(
+            seed_material=b"root-c",
+            sample_count=17,
+            challenge_size=5,
+        )
+        assert first == second
+        assert len(set(first)) == 5
+
     @staticmethod
     def _single_leaf_proof_for_backend(serialised: str) -> CommitmentProof:
         blind = b"C" * 16

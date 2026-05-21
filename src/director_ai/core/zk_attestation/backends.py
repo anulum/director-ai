@@ -178,11 +178,14 @@ class CommitmentBackend:
         the root.
         """
         if _RUST_CHALLENGE_AVAILABLE:
-            return list(
-                _rust_derive_challenge_indices(
-                    seed_material, sample_count, challenge_size
-                ),
-            )
+            try:
+                return list(
+                    _rust_derive_challenge_indices(
+                        seed_material, sample_count, challenge_size
+                    ),
+                )
+            except Exception:
+                pass
         indices: list[int] = []
         seen: set[int] = set()
         counter = 0
