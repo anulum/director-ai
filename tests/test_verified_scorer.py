@@ -130,6 +130,18 @@ class TestNumericalConsistency:
     def test_no_numbers(self):
         assert _numerical_consistency("hello world", "hello world") is None
 
+    def test_rust_numerical_non_runtime_exception_falls_back_to_python(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_numerical_consistency",
+            lambda _a, _b: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        assert _numerical_consistency("costs $99", "costs $49") is False
+
 
 class TestNegationFlip:
     def test_flip(self):
