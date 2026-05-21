@@ -24,7 +24,7 @@ from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
 try:
-    from backfire_kernel import rust_sum_f64
+    from backfire_kernel import rust_sum_f64, rust_sum_i64
 
     _RUST_CONTINUAL_ADV = True
 except Exception:  # pragma: no cover - optional dependency
@@ -32,6 +32,9 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 from .suite import AdversarialCase
 
@@ -131,7 +134,7 @@ class PerceptronAdversaryScorer:
                     if f != 0.0:
                         weights[i] += self._lr * (error * f - self._l2 * weights[i])
                 bias += self._lr * error
-        correct = 0
+        correct_flags: list[int] = []
         for prompt, target in labelled:
             margin = bias + _sum_float(
                 [
@@ -144,8 +147,8 @@ class PerceptronAdversaryScorer:
                 ]
             )
             pred = 1 if margin >= 0 else 0
-            if pred == target:
-                correct += 1
+            correct_flags.append(1 if pred == target else 0)
+        correct = _sum_int(correct_flags)
         accuracy = correct / len(labelled)
         return TrainedAdversaryScorer(
             weights=tuple(weights),
@@ -179,6 +182,15 @@ def _sum_float(values: list[float]) -> float:
     if _RUST_CONTINUAL_ADV:
         try:
             return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
+
+
+def _sum_int(values: list[int]) -> int:
+    if _RUST_CONTINUAL_ADV:
+        try:
+            return int(rust_sum_i64(values))
         except Exception:
             pass
     return sum(values)
