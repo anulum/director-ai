@@ -240,6 +240,23 @@ class TestScorerHeuristicFactual:
             rust_score = float(rust_heuristic_factual_divergence(context, output))
             assert rust_score == pytest.approx(py_score, abs=1e-12)
 
+    def test_rust_heuristic_factual_non_runtime_exception_falls_back_to_python(
+        self, monkeypatch
+    ):
+        import director_ai.core.scoring.scorer as scorer_mod
+
+        monkeypatch.setattr(
+            scorer_mod,
+            "rust_heuristic_factual_divergence",
+            lambda *_args: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        div = CoherenceScorer._heuristic_factual(
+            "The sky is blue.",
+            "Planet Mars is red.",
+        )
+        assert div > 0.3
+
 
 class TestScorerParseJudgeReply:
     def test_json_yes(self):
