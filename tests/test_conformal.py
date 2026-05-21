@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.calibration.conformal as conformal_mod
 from director_ai.core.calibration.conformal import (
     ConformalPredictor,
     PredictionInterval,
@@ -48,6 +49,56 @@ class FeedbackStore:
 
 
 class TestConformalPredictor:
+    def test_rust_quantile_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", True)
+        called = {"count": 0}
+
+        def _quantile(residuals, coverage):
+            called["count"] += 1
+            return 0.2
+
+        monkeypatch.setattr(
+            conformal_mod,
+            "rust_conformal_quantile",
+            _quantile,
+            raising=True,
+        )
+        cp = ConformalPredictor(coverage=0.8, min_samples=1)
+        cp.calibrate([0.9, 0.8], [False, True])
+        pi = cp.predict(0.7)
+        assert called["count"] == 1
+        assert pi.upper - pi.point_estimate == pytest.approx(0.2)
+
+    def test_rust_quantile_runtime_error_falls_back_to_python(self, monkeypatch):
+        cp = ConformalPredictor(coverage=0.8, min_samples=1)
+        cp.calibrate([0.9, 0.8], [False, True])
+        monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", True)
+        monkeypatch.setattr(
+            conformal_mod,
+            "rust_conformal_quantile",
+            lambda _residuals, _coverage: (_ for _ in ()).throw(
+                RuntimeError("ffi unavailable")
+            ),
+            raising=True,
+        )
+        pi = cp.predict(0.7)
+        assert 0.0 <= pi.lower <= pi.point_estimate <= pi.upper <= 1.0
+
+    def test_rust_quantile_type_error_falls_back_to_python(self, monkeypatch):
+        cp = ConformalPredictor(coverage=0.8, min_samples=1)
+        cp.calibrate([0.9, 0.8], [False, True])
+        monkeypatch.setattr(conformal_mod, "_RUST_CONFORMAL", True)
+        monkeypatch.setattr(
+            conformal_mod,
+            "rust_conformal_quantile",
+            lambda _residuals, _coverage: (_ for _ in ()).throw(
+                TypeError("ffi signature mismatch")
+            ),
+            raising=True,
+        )
+        pi = cp.predict(0.7)
+        assert 0.0 <= pi.lower <= pi.point_estimate <= pi.upper <= 1.0
+
     def test_uncalibrated_returns_full_interval(self):
         cp = ConformalPredictor()
         pi = cp.predict(0.7)
