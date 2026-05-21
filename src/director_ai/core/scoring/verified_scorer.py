@@ -35,6 +35,7 @@ try:
         rust_negation_flip,
         rust_numerical_consistency,
         rust_traceability,
+        rust_word_overlap,
     )
 
     _RUST_SIGNALS = True
@@ -364,11 +365,8 @@ class VerifiedScorer:
 
         # Fallback: word overlap
         best_idx, best_overlap = 0, 0.0
-        claim_words = set(claim.lower().split())
         for i, src in enumerate(source_sents):
-            src_words = set(src.lower().split())
-            union = claim_words | src_words
-            overlap = len(claim_words & src_words) / len(union) if union else 0
+            overlap = _word_overlap(claim, src)
             if overlap > best_overlap:
                 best_overlap = overlap
                 best_idx = i
@@ -397,12 +395,9 @@ class VerifiedScorer:
             ]
 
         # Fallback: word overlap
-        claim_words = set(claim.lower().split())
         scored = []
         for i, src in enumerate(source_sents):
-            src_words = set(src.lower().split())
-            union = claim_words | src_words
-            overlap = len(claim_words & src_words) / len(union) if union else 0
+            overlap = _word_overlap(claim, src)
             scored.append((i, 1.0 - overlap))
         scored.sort(key=lambda x: x[1])
         return [
@@ -673,3 +668,15 @@ def _traceability(claim: str, source: str) -> float:
     if not claim_words:
         return 1.0
     return len(claim_words & source_words) / len(claim_words)
+
+
+def _word_overlap(text_a: str, text_b: str) -> float:
+    """Jaccard lexical overlap in ``[0, 1]`` for two texts."""
+    if _RUST_SIGNALS:
+        return float(rust_word_overlap(text_a, text_b))
+    words_a = set(text_a.lower().split())
+    words_b = set(text_b.lower().split())
+    if not words_a or not words_b:
+        return 0.0
+    union = words_a | words_b
+    return len(words_a & words_b) / len(union) if union else 0.0
