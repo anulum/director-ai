@@ -114,6 +114,23 @@ def test_rust_mac_non_runtime_exception_falls_back_to_python(monkeypatch) -> Non
     assert anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
 
 
+def test_rust_mac_arithmetic_exception_falls_back_to_python(monkeypatch) -> None:
+    attestor = ContainmentAttestor(
+        key=KEY,
+        issuer="host",
+        clock=lambda: 1_700_000_000,
+    )
+    anchor = attestor.mint(session_id="session", scope="sandbox")
+
+    monkeypatch.setattr(
+        anchor_mod,
+        "_rust_anchor_mac",
+        lambda _key, _payload, _mac: (_ for _ in ()).throw(ArithmeticError("ffi fail")),
+    )
+
+    assert anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
+
+
 def test_rust_containment_mac_helper_is_registered() -> None:
     source = (
         ROOT / "backfire-kernel" / "crates" / "backfire-ffi" / "src" / "safety_hooks.rs"
