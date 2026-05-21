@@ -21,7 +21,11 @@ import re
 from ..types import ScoringEvidence
 
 try:
-    from backfire_kernel import rust_coverage_from_divergences, rust_detect_task_type
+    from backfire_kernel import (
+        rust_coverage_from_divergences,
+        rust_detect_task_type,
+        rust_split_sentences,
+    )
 
     _RUST_TASK = True
 except ImportError:
@@ -33,6 +37,10 @@ except ImportError:
     ) -> tuple[float, int]:
         """Raise when the Rust claim coverage reducer is unavailable."""
         raise RuntimeError("backfire_kernel rust_coverage_from_divergences is unavailable")
+
+    def rust_split_sentences(_text: str) -> list[str]:
+        """Raise when the Rust sentence splitter is unavailable."""
+        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
 
 logger = logging.getLogger("DirectorAI")
 
@@ -277,12 +285,20 @@ def minicheck_claim_coverage(
     Returns (coverage, per_sentence_divergences, sentences).
     Coverage = fraction of sentences with divergence < 0.5.
     """
-    try:
-        from nltk.tokenize import sent_tokenize
+    if _RUST_TASK:
+        try:
+            sentences = [s for s in rust_split_sentences(summary) if s.strip()]
+        except RuntimeError:
+            sentences = []
+    else:
+        sentences = []
+    if not sentences:
+        try:
+            from nltk.tokenize import sent_tokenize
 
-        sentences = sent_tokenize(summary)
-    except (ImportError, LookupError):
-        sentences = [s.strip() + "." for s in summary.split(".") if s.strip()]
+            sentences = sent_tokenize(summary)
+        except (ImportError, LookupError):
+            sentences = [s.strip() + "." for s in summary.split(".") if s.strip()]
     if not sentences:
         return 1.0, [], []
 

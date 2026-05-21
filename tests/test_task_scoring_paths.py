@@ -359,3 +359,63 @@ class TestMiniCheckClaimCoverage:
         assert coverage == pytest.approx(0.5)
         assert divs == [0.2, 0.9]
         assert sentences == ["One claim.", "Two claim."]
+
+    def test_rust_sentence_splitter_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+        monkeypatch.setattr(
+            _task_scoring,
+            "rust_split_sentences",
+            lambda text: ["Claim from rust A.", "Claim from rust B."],
+            raising=True,
+        )
+        monkeypatch.setattr(
+            _task_scoring,
+            "rust_coverage_from_divergences",
+            lambda divs, threshold: (0.5, 1),
+            raising=True,
+        )
+
+        scorer = SimpleNamespace(
+            score=lambda source, sentence: 0.2 if "A" in sentence else 0.9
+        )
+        coverage, divs, sentences = minicheck_claim_coverage(
+            scorer,
+            "source",
+            "ignored by rust splitter",
+        )
+
+        assert coverage == pytest.approx(0.5)
+        assert divs == [0.2, 0.9]
+        assert sentences == ["Claim from rust A.", "Claim from rust B."]
+
+    def test_sentence_splitter_fallback_when_rust_runtime_error(self, monkeypatch):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+
+        def _raise_runtime(text):
+            raise RuntimeError("ffi unavailable")
+
+        monkeypatch.setattr(
+            _task_scoring,
+            "rust_split_sentences",
+            _raise_runtime,
+            raising=True,
+        )
+        monkeypatch.setattr(
+            _task_scoring,
+            "rust_coverage_from_divergences",
+            lambda divs, threshold: (0.5, 1),
+            raising=True,
+        )
+
+        scorer = SimpleNamespace(
+            score=lambda source, sentence: 0.2 if "One" in sentence else 0.9
+        )
+        coverage, divs, sentences = minicheck_claim_coverage(
+            scorer,
+            "source",
+            "One claim. Two claim.",
+        )
+
+        assert coverage == pytest.approx(0.5)
+        assert divs == [0.2, 0.9]
+        assert sentences == ["One claim.", "Two claim."]
