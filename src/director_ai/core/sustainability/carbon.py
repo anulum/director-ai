@@ -27,6 +27,19 @@ from collections import deque
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_mean, rust_percentile_rank
+
+    _RUST_CARBON = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_CARBON = False
+
+    def rust_percentile_rank(_values: list[float], _value: float) -> float:
+        raise RuntimeError("backfire_kernel rust_percentile_rank is unavailable")
+
+    def rust_mean(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
 
 @dataclass(frozen=True)
 class CarbonReading:
@@ -104,11 +117,23 @@ class CarbonIntensityTracker:
         with self._lock:
             if not self._readings:
                 return 1.0
-            below = sum(1 for r in self._readings if r.intensity <= value)
-            return below / len(self._readings)
+            intensities = [r.intensity for r in self._readings]
+            if _RUST_CARBON:
+                try:
+                    return float(rust_percentile_rank(intensities, value))
+                except Exception:
+                    pass
+            below = sum(1 for intensity in intensities if intensity <= value)
+            return below / len(intensities)
 
     def mean(self) -> float:
         with self._lock:
             if not self._readings:
                 return self._fallback
-            return sum(r.intensity for r in self._readings) / len(self._readings)
+            intensities = [r.intensity for r in self._readings]
+            if _RUST_CARBON:
+                try:
+                    return float(rust_mean(intensities))
+                except Exception:
+                    pass
+            return sum(intensities) / len(intensities)
