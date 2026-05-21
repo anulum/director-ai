@@ -26,6 +26,19 @@ import threading
 from collections import deque
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_conformal_quantile, rust_ema_update
+
+    _RUST_FORECAST = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_FORECAST = False
+
+    def rust_conformal_quantile(_residuals: list[float], _coverage: float) -> float:
+        raise RuntimeError("backfire_kernel rust_conformal_quantile is unavailable")
+
+    def rust_ema_update(_previous: float | None, _value: float, _alpha: float) -> float:
+        raise RuntimeError("backfire_kernel rust_ema_update is unavailable")
+
 
 @dataclass(frozen=True)
 class PredictionInterval:
@@ -117,10 +130,19 @@ class ConformalDemandForecaster:
                 coverage=coverage,
                 residual_sample_size=len(residuals),
             )
-        sorted_residuals = sorted(residuals)
-        n = len(sorted_residuals)
-        q_index = min(max(int(coverage * (n + 1) - 1), 0), n - 1)
-        width = sorted_residuals[q_index]
+        if _RUST_FORECAST:
+            try:
+                width = float(rust_conformal_quantile(residuals, coverage))
+            except Exception:
+                sorted_residuals = sorted(residuals)
+                n = len(sorted_residuals)
+                q_index = min(max(int(coverage * (n + 1) - 1), 0), n - 1)
+                width = sorted_residuals[q_index]
+        else:
+            sorted_residuals = sorted(residuals)
+            n = len(sorted_residuals)
+            q_index = min(max(int(coverage * (n + 1) - 1), 0), n - 1)
+            width = sorted_residuals[q_index]
         return PredictionInterval(
             point=point,
             lower=max(0.0, point - width),
@@ -135,7 +157,14 @@ class ConformalDemandForecaster:
             self._ema = None
 
     def _update_locked(self, demand: float) -> None:
+        if _RUST_FORECAST:
+            try:
+                self._ema = float(rust_ema_update(self._ema, demand, self._alpha))
+                return
+            except Exception:
+                pass
+
         if self._ema is None:
             self._ema = demand
-        else:
-            self._ema = self._alpha * demand + (1.0 - self._alpha) * self._ema
+            return
+        self._ema = self._alpha * demand + (1.0 - self._alpha) * self._ema
