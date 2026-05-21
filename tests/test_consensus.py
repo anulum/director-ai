@@ -27,6 +27,7 @@ from director_ai.core.scoring.consensus import (
     CriticalConsensusProfile,
     CrossVerifierConsensus,
     ModelResponse,
+    _word_overlap,
 )
 
 
@@ -190,6 +191,29 @@ class TestConsensusPerformanceDoc:
         scorer.score_responses(responses)
         elapsed_ms = (time.perf_counter() - t0) * 1000
         assert elapsed_ms < 1000, f"Consensus scoring took {elapsed_ms:.0f}ms"
+
+
+class TestConsensusRustDelegation:
+    def test_python_word_overlap_fallback(self, monkeypatch):
+        from director_ai.core.scoring import consensus as consensus_mod
+
+        monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", False)
+        assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
+        assert _word_overlap("", "alpha gamma") == 0.0
+
+    def test_rust_word_overlap_delegation(self, monkeypatch):
+        from director_ai.core.scoring import consensus as consensus_mod
+
+        monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", True)
+        monkeypatch.setattr(
+            consensus_mod,
+            "rust_word_overlap",
+            lambda text_a, text_b: 0.6 if text_a and text_b else 0.0,
+            raising=False,
+        )
+        assert _word_overlap("x", "y") == 0.6
+        divergence = ConsensusScorer._jaccard_divergence("x", "y")
+        assert divergence == pytest.approx(0.4)
 
 
 class TestCrossVerifierConsensus:

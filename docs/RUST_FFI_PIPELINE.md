@@ -506,6 +506,7 @@ Tests cover:
 - `rust_reduce_claim_attribution`: claim×source attribution argmin reducer fast-path
 - `_task_scoring.minicheck_claim_coverage`: Rust sentence split + Rust coverage reduction
 - `verified_scorer` lexical fallback matching: Rust `word_overlap` acceleration
+- `consensus` lexical divergence scoring: Rust `word_overlap` acceleration
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 

@@ -32,6 +32,13 @@ from director_ai.core.guard_control import (
     VerifierSignal,
 )
 
+try:
+    from backfire_kernel import rust_word_overlap
+
+    _RUST_CONSENSUS = True
+except ImportError:
+    _RUST_CONSENSUS = False
+
 __all__ = [
     "BFTConsensusResult",
     "BFTConsensusVote",
@@ -327,11 +334,22 @@ class ConsensusScorer:
     @staticmethod
     def _jaccard_divergence(a: str, b: str) -> float:
         """Return lexical Jaccard divergence for fallback consensus scoring."""
-        wa = set(a.lower().split())
-        wb = set(b.lower().split())
-        if not wa or not wb:
+        overlap = _word_overlap(a, b)
+        if overlap <= 0.0:
             return 1.0
-        return 1.0 - len(wa & wb) / len(wa | wb)
+        return 1.0 - overlap
+
+
+def _word_overlap(text_a: str, text_b: str) -> float:
+    """Return lexical Jaccard overlap in ``[0, 1]``."""
+    if _RUST_CONSENSUS:
+        return float(rust_word_overlap(text_a, text_b))
+    words_a = set(text_a.lower().split())
+    words_b = set(text_b.lower().split())
+    if not words_a or not words_b:
+        return 0.0
+    union = words_a | words_b
+    return len(words_a & words_b) / len(union) if union else 0.0
 
 
 class CrossVerifierConsensus:
