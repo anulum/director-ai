@@ -175,6 +175,16 @@ class TestLiteScorerRustFallback:
         score = LiteScorer().score("alpha beta", "alpha gamma")
         assert 0.0 <= score <= 1.0
 
+    def test_score_falls_back_when_rust_ffi_raises_type_error(self, monkeypatch):
+        monkeypatch.setattr(lite_mod, "_RUST_LITE", True)
+
+        def _boom(_premise: str, _hypothesis: str) -> float:
+            raise TypeError("ffi fail")
+
+        monkeypatch.setattr(lite_mod, "rust_lite_score", _boom, raising=False)
+        score = LiteScorer().score("alpha beta", "alpha gamma")
+        assert 0.0 <= score <= 1.0
+
     def test_batch_falls_back_when_rust_ffi_raises_non_runtime(self, monkeypatch):
         monkeypatch.setattr(lite_mod, "_RUST_LITE", True)
 
