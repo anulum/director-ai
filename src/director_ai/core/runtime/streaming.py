@@ -42,11 +42,19 @@ from .structured_recovery import (
 )
 
 try:
-    from backfire_kernel import rust_trend_drop as _rust_trend_drop
+    from backfire_kernel import (
+        rust_mean as _rust_mean,
+    )
+    from backfire_kernel import (
+        rust_trend_drop as _rust_trend_drop,
+    )
 
     _RUST_TREND = True
 except ImportError:
     _RUST_TREND = False
+
+    def _rust_mean(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
 __all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
 
@@ -54,6 +62,18 @@ if TYPE_CHECKING:  # pragma: no cover
     from ..scoring.scorer import CoherenceScorer
 
 logger = logging.getLogger("DirectorAI.Streaming")
+
+
+def _mean(values: Sequence[float] | deque[float]) -> float:
+    """Return arithmetic mean with optional Rust kernel acceleration."""
+    if not values:
+        return 0.0
+    if _RUST_TREND:
+        try:
+            return float(_rust_mean(list(values)))
+        except Exception:
+            pass
+    return sum(values) / len(values)
 
 
 def _trend_drop(values: list[float] | deque) -> float:
@@ -71,7 +91,7 @@ def _trend_drop(values: list[float] | deque) -> float:
     if n < 2:
         return 0.0
     x_mean = (n - 1) / 2.0
-    y_mean = sum(values) / n
+    y_mean = _mean(values)
     num = sum((i - x_mean) * (y - y_mean) for i, y in enumerate(values))
     den = sum((i - x_mean) ** 2 for i in range(n))
     slope = num / den if den > 1e-12 else 0.0
@@ -131,9 +151,7 @@ class StreamSession:
     @property
     def avg_coherence(self) -> float:
         """Return the average coherence score across observed tokens."""
-        if not self.coherence_history:
-            return 0.0
-        return sum(self.coherence_history) / len(self.coherence_history)
+        return _mean(self.coherence_history)
 
     @property
     def min_coherence(self) -> float:
@@ -213,7 +231,7 @@ class StreamingKernel(HaltMonitor):
         if score < self.hard_limit:
             return True
         if len(self._window) >= self.window_size:
-            avg = sum(self._window) / len(self._window)
+            avg = _mean(self._window)
             if avg < self.window_threshold:
                 return True
         if len(self._history) >= self.trend_window:
@@ -276,7 +294,7 @@ class StreamingKernel(HaltMonitor):
         if "hard_limit" in reason:
             return self.hard_limit, max(0.0, self.hard_limit - event.coherence)
         if "window_avg" in reason:
-            avg = sum(window) / len(window) if window else event.coherence
+            avg = _mean(window) if window else event.coherence
             return self.window_threshold, max(0.0, self.window_threshold - avg)
         if "downward_trend" in reason:
             recent = history[-self.trend_window :]
@@ -525,7 +543,7 @@ class StreamingKernel(HaltMonitor):
                     break
                 last_score = score
                 if self.adaptive:
-                    w_avg = sum(window) / len(window) if window else score
+                    w_avg = _mean(window) if window else score
                     if w_avg > self.soft_limit and cadence < self.max_cadence:
                         cadence = min(cadence + 1, self.max_cadence)
                     elif score < self.soft_limit:
@@ -548,7 +566,7 @@ class StreamingKernel(HaltMonitor):
             window.append(score)
 
             if self.streaming_debug:
-                w_avg = sum(window) / len(window) if window else 0.0
+                w_avg = _mean(window) if window else 0.0
                 recent = session.coherence_history[-self.trend_window :]
                 t_drop = _trend_drop(recent)
                 snap = {
@@ -578,7 +596,7 @@ class StreamingKernel(HaltMonitor):
             if score < self.hard_limit:
                 halt_reason = f"hard_limit ({score:.4f} < {self.hard_limit})"
             elif len(window) >= self.window_size:
-                avg = sum(window) / len(window)
+                avg = _mean(window)
                 if avg < self.window_threshold:
                     halt_reason = f"window_avg ({avg:.4f} < {self.window_threshold})"
             if not halt_reason and len(session.coherence_history) >= self.trend_window:
