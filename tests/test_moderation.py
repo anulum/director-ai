@@ -123,6 +123,19 @@ class TestRegexPII:
         assert "credit_card" in cats
         assert "email" in cats
 
+    def test_rust_scanner_type_error_falls_back_to_python(self):
+        class _Scanner:
+            def scan(self, _text):
+                raise TypeError("ffi fail")
+
+        det = RegexPIIDetector(prefer_rust=False)
+        det._rust_scanner = _Scanner()
+
+        res = det.analyse("card 4111-1111-1111-1111 email a@b.co")
+        cats = {m.category for m in res.matches}
+        assert "credit_card" in cats
+        assert "email" in cats
+
 
 # --- Presidio adapter ------------------------------------------------
 
