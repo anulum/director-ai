@@ -88,6 +88,22 @@ class TestCurrentReference:
         )
         assert any(c.claim_type == "current_reference" for c in result.claims)
 
+    def test_rust_type_error_falls_back_to_python_detection(self, monkeypatch):
+        monkeypatch.setattr(temporal_mod, "_RUST_TEMPORAL", True)
+        monkeypatch.setattr(
+            temporal_mod,
+            "rust_score_temporal_freshness",
+            lambda _text: (_ for _ in ()).throw(TypeError("ffi fail")),
+            raising=False,
+        )
+        result = score_temporal_freshness(
+            "As of 2024, the market share was 15%.",
+            source_timestamp=None,
+            citation_statuses=None,
+            domain="",
+        )
+        assert any(c.claim_type == "current_reference" for c in result.claims)
+
 
 class TestRecordDetection:
     def test_world_record(self):
