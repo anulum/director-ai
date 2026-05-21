@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.sustainability.carbon as carbon_mod
 import director_ai.core.sustainability.forecaster as forecaster_mod
 from director_ai.core.sustainability import (
     BudgetVerdict,
@@ -160,6 +161,47 @@ class TestComputeQuota:
 
 
 class TestCarbonTracker:
+    def test_rust_percentile_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(carbon_mod, "_RUST_CARBON", True)
+        called = {"count": 0}
+
+        def _percentile(values, value):
+            called["count"] += 1
+            return 0.5
+
+        monkeypatch.setattr(
+            carbon_mod,
+            "rust_percentile_rank",
+            _percentile,
+            raising=True,
+        )
+        tracker = CarbonIntensityTracker()
+        tracker.record_many(
+            [
+                CarbonReading(timestamp=0.0, intensity=100.0),
+                CarbonReading(timestamp=1.0, intensity=200.0),
+            ]
+        )
+        assert tracker.percentile(150.0) == pytest.approx(0.5)
+        assert called["count"] == 1
+
+    def test_rust_mean_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(carbon_mod, "_RUST_CARBON", True)
+        monkeypatch.setattr(
+            carbon_mod,
+            "rust_mean",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        tracker = CarbonIntensityTracker()
+        tracker.record_many(
+            [
+                CarbonReading(timestamp=0.0, intensity=100.0),
+                CarbonReading(timestamp=1.0, intensity=200.0),
+            ]
+        )
+        assert tracker.mean() == pytest.approx(150.0)
+
     def test_fallback_when_empty(self):
         tracker = CarbonIntensityTracker(fallback_intensity=600.0)
         assert tracker.current() == 600.0
