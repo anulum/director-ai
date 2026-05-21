@@ -18,6 +18,7 @@ import pytest
 
 import director_ai.core.sustainability.carbon as carbon_mod
 import director_ai.core.sustainability.forecaster as forecaster_mod
+import director_ai.core.sustainability.policy_adapter as policy_adapter_mod
 from director_ai.core.sustainability import (
     BudgetVerdict,
     CarbonIntensityTracker,
@@ -504,3 +505,72 @@ class TestBudget:
         budget, *_ = self._budget()
         with pytest.raises(ValueError, match="amount"):
             budget.allow(tenant_id="t", amount=0.0)
+
+
+class TestTelemetryRustSums:
+    def test_rust_sum_kernels_are_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(policy_adapter_mod, "_RUST_SUSTAINABILITY_POLICY", True)
+        calls = {"i64": 0, "f64": 0}
+
+        def _sum_i64(values):
+            calls["i64"] += 1
+            return int(sum(values))
+
+        def _sum_f64(values):
+            calls["f64"] += 1
+            return float(sum(values))
+
+        monkeypatch.setattr(policy_adapter_mod, "rust_sum_i64", _sum_i64, raising=True)
+        monkeypatch.setattr(policy_adapter_mod, "rust_sum_f64", _sum_f64, raising=True)
+        telemetry = policy_adapter_mod.SustainabilityTelemetry(
+            token_alert_threshold=1_000,
+            cost_alert_threshold=10.0,
+            carbon_alert_threshold=1.0,
+        )
+        estimate = policy_adapter_mod.SustainabilityEstimate(
+            input_tokens=100,
+            output_tokens=50,
+            total_tokens=150,
+            energy_kwh=0.01,
+            carbon_kg=0.005,
+            cost=0.02,
+            provenance="configured",
+            hardware_profile_id="h1",
+        )
+        telemetry.record("tenant-a", estimate)
+        telemetry.summary("tenant-a")
+        assert calls["i64"] >= 1
+        assert calls["f64"] >= 1
+
+    def test_rust_sum_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(policy_adapter_mod, "_RUST_SUSTAINABILITY_POLICY", True)
+        monkeypatch.setattr(
+            policy_adapter_mod,
+            "rust_sum_i64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        monkeypatch.setattr(
+            policy_adapter_mod,
+            "rust_sum_f64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        telemetry = policy_adapter_mod.SustainabilityTelemetry(
+            token_alert_threshold=1_000,
+            cost_alert_threshold=10.0,
+            carbon_alert_threshold=1.0,
+        )
+        estimate = policy_adapter_mod.SustainabilityEstimate(
+            input_tokens=100,
+            output_tokens=50,
+            total_tokens=150,
+            energy_kwh=0.01,
+            carbon_kg=0.005,
+            cost=0.02,
+            provenance="configured",
+            hardware_profile_id="h1",
+        )
+        telemetry.record("tenant-a", estimate)
+        summary = telemetry.summary("tenant-a")
+        assert summary.total_tokens == 150
