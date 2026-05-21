@@ -17,6 +17,7 @@ from unittest.mock import MagicMock
 
 import pytest
 
+import director_ai.core.retrieval.contextual_compression as compression_mod
 from director_ai.core.retrieval.contextual_compression import (
     ContextualCompressionBackend,
     _heuristic_compress,
@@ -49,6 +50,22 @@ class TestKeywordOverlap:
 
     def test_empty_sentence(self):
         assert _keyword_overlap("query", "") == 0.0
+
+    def test_rust_overlap_delegation(self, monkeypatch):
+        monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
+        monkeypatch.setattr(
+            compression_mod,
+            "rust_word_overlap",
+            lambda query, sentence: 0.7 if query and sentence else 0.0,
+            raising=False,
+        )
+        assert _keyword_overlap("refund", "refund policy sentence") == 0.7
+
+    def test_python_overlap_fallback_when_rust_unavailable(self, monkeypatch):
+        monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", False)
+        assert _keyword_overlap("refund policy", "refund process") == pytest.approx(
+            1.0 / 3.0
+        )
 
 
 # ── Heuristic compression ─────────────────────────────────────────────

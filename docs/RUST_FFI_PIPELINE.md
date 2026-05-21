@@ -511,6 +511,7 @@ Tests cover:
 - `safety/injection` claim fallback decomposition: Rust sentence splitting acceleration
 - `verified_scorer` response/source sentence decomposition: Rust sentence splitting acceleration
 - `verification/reasoning_verifier` sentence-fallback decomposition: Rust sentence splitting acceleration
+- `retrieval/contextual_compression` keyword-overlap scoring: Rust `word_overlap` acceleration
 - Parametrised thresholds, streaming lengths, input variations
 - Performance: review latency <100 µs, throughput <50 µs/token
 

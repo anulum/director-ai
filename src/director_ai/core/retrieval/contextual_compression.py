@@ -39,6 +39,13 @@ from director_ai.core.retrieval.vector_store import VectorBackend
 
 logger = logging.getLogger("DirectorAI.Compression")
 
+try:
+    from backfire_kernel import rust_word_overlap
+
+    _RUST_COMPRESSION = True
+except ImportError:
+    _RUST_COMPRESSION = False
+
 __all__ = ["ContextualCompressionBackend"]
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
@@ -46,6 +53,8 @@ _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
 def _keyword_overlap(query: str, sentence: str) -> float:
     """Jaccard word overlap between query and sentence."""
+    if _RUST_COMPRESSION:
+        return float(rust_word_overlap(query, sentence))
     q_words = set(query.lower().split())
     s_words = set(sentence.lower().split())
     if not q_words or not s_words:
