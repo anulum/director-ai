@@ -313,8 +313,11 @@ def _probs_to_divergence(
     ncols = probs.shape[1]
     ci, ni = label_indices or (2, 1)
     if _RUST_NLI and probs.shape[0] >= 10:
-        flat = probs.flatten().tolist()
-        return [float(v) for v in rust_probs_to_divergence(flat, ncols, ci, ni)]
+        try:
+            flat = probs.flatten().tolist()
+            return [float(v) for v in rust_probs_to_divergence(flat, ncols, ci, ni)]
+        except Exception:
+            pass
     if ncols == 2:
         return [float(1.0 - row[1]) for row in probs]
     return [float(row[ci]) + float(row[ni]) * 0.5 for row in probs]

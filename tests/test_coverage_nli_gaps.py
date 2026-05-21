@@ -217,6 +217,20 @@ class TestRustAcceleratedMathBranches:
         assert result.shape == logits.shape
         np.testing.assert_allclose(result.sum(axis=1), np.array([1.0, 1.0]), atol=1e-12)
 
+    def test_rust_divergence_non_runtime_exception_falls_back_to_python(self, monkeypatch):
+        import director_ai.core.scoring.nli as nli_mod
+
+        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(
+            nli_mod,
+            "rust_probs_to_divergence",
+            lambda *_args: (_ for _ in ()).throw(ValueError("ffi fail")),
+        )
+
+        probs = np.full((10, 3), 1 / 3, dtype=np.float64)
+        result = _probs_to_divergence(probs, (0, 1))
+        assert result == [0.5] * 10
+
 
 class TestResolveLabelIndices:
     def test_no_config_returns_default(self):
