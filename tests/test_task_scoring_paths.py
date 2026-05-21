@@ -305,3 +305,57 @@ class TestMiniCheckClaimCoverage:
         assert coverage == 1.0
         assert divs == [0.4, 0.4]
         assert sentences == ["One claim.", "Two claim."]
+
+    def test_rust_reducer_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+
+        called = {"count": 0}
+
+        def _reduce(divs, threshold):
+            called["count"] += 1
+            assert threshold == 0.5
+            assert divs == [0.2, 0.9]
+            return 0.5, 1
+
+        monkeypatch.setattr(
+            _task_scoring,
+            "rust_coverage_from_divergences",
+            _reduce,
+            raising=True,
+        )
+
+        scorer = SimpleNamespace(score=lambda source, sentence: 0.2 if "One" in sentence else 0.9)
+        coverage, divs, sentences = minicheck_claim_coverage(
+            scorer,
+            "source",
+            "One claim. Two claim.",
+        )
+
+        assert called["count"] == 1
+        assert coverage == pytest.approx(0.5)
+        assert divs == [0.2, 0.9]
+        assert sentences == ["One claim.", "Two claim."]
+
+    def test_python_reducer_fallback_on_rust_runtime_error(self, monkeypatch):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
+
+        def _raise_runtime(divs, threshold):
+            raise RuntimeError("ffi unavailable")
+
+        monkeypatch.setattr(
+            _task_scoring,
+            "rust_coverage_from_divergences",
+            _raise_runtime,
+            raising=True,
+        )
+
+        scorer = SimpleNamespace(score=lambda source, sentence: 0.2 if "One" in sentence else 0.9)
+        coverage, divs, sentences = minicheck_claim_coverage(
+            scorer,
+            "source",
+            "One claim. Two claim.",
+        )
+
+        assert coverage == pytest.approx(0.5)
+        assert divs == [0.2, 0.9]
+        assert sentences == ["One claim.", "Two claim."]

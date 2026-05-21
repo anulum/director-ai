@@ -21,11 +21,18 @@ import re
 from ..types import ScoringEvidence
 
 try:
-    from backfire_kernel import rust_detect_task_type
+    from backfire_kernel import rust_coverage_from_divergences, rust_detect_task_type
 
     _RUST_TASK = True
 except ImportError:
     _RUST_TASK = False
+
+    def rust_coverage_from_divergences(
+        _divergences: list[float],
+        _support_threshold: float,
+    ) -> tuple[float, int]:
+        """Raise when the Rust claim coverage reducer is unavailable."""
+        raise RuntimeError("backfire_kernel rust_coverage_from_divergences is unavailable")
 
 logger = logging.getLogger("DirectorAI")
 
@@ -280,6 +287,15 @@ def minicheck_claim_coverage(
         return 1.0, [], []
 
     divs = [mc_scorer.score(source, sent) for sent in sentences]
+    if _RUST_TASK:
+        try:
+            coverage, _supported = rust_coverage_from_divergences(
+                [float(d) for d in divs],
+                0.5,
+            )
+            return float(coverage), divs, sentences
+        except RuntimeError:
+            pass
     supported = sum(1 for d in divs if d < 0.5)
-    coverage = supported / len(sentences) if sentences else 1.0
+    coverage = supported / len(sentences)
     return coverage, divs, sentences
