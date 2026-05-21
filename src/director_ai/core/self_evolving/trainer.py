@@ -29,7 +29,10 @@ from typing import Any, Protocol, runtime_checkable
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
+
+    _RUST_SELF_EVOLVING = True
 except ImportError:  # pragma: no cover - fallback path
+    _RUST_SELF_EVOLVING = False
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -348,7 +351,9 @@ def _dot(a: Sequence[float], b: Sequence[float]) -> float:
 
 
 def _sum_float(values: list[float]) -> float:
-    try:
-        return float(rust_sum_f64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_SELF_EVOLVING:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
