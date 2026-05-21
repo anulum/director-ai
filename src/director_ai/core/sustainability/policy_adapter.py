@@ -18,6 +18,19 @@ from typing import Literal
 
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 
+try:
+    from backfire_kernel import rust_sum_f64, rust_sum_i64
+
+    _RUST_SUSTAINABILITY_POLICY = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_SUSTAINABILITY_POLICY = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 EstimateProvenance = Literal["measured", "configured", "projected"]
 
 _VALID_PROVENANCE = frozenset({"measured", "configured", "projected"})
@@ -256,10 +269,10 @@ class SustainabilityTelemetry:
             raise ValueError("tenant_id must be non-empty")
         with self._lock:
             records = tuple(self._records.get(tenant_id, ()))
-        total_tokens = sum(estimate.total_tokens for estimate in records)
-        energy_kwh = sum(estimate.energy_kwh for estimate in records)
-        carbon_kg = sum(estimate.carbon_kg for estimate in records)
-        cost = sum(estimate.cost for estimate in records)
+        total_tokens = _sum_int([estimate.total_tokens for estimate in records])
+        energy_kwh = _sum_float([estimate.energy_kwh for estimate in records])
+        carbon_kg = _sum_float([estimate.carbon_kg for estimate in records])
+        cost = _sum_float([estimate.cost for estimate in records])
         alerts = _alerts(
             total_tokens=total_tokens,
             token_threshold=self._token_threshold,
@@ -519,3 +532,21 @@ def _validate_token_count(name: str, value: int) -> None:
 def _validate_non_negative(name: str, value: float) -> None:
     if not math.isfinite(value) or value < 0.0:
         raise ValueError(f"{name} must be finite and non-negative")
+
+
+def _sum_int(values: list[int]) -> int:
+    if _RUST_SUSTAINABILITY_POLICY:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
+
+
+def _sum_float(values: list[float]) -> float:
+    if _RUST_SUSTAINABILITY_POLICY:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
