@@ -29,6 +29,13 @@ import math
 import re
 from abc import ABC, abstractmethod
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_f64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 _FNV_OFFSET = 0xCBF29CE484222325
 _FNV_PRIME = 0x100000001B3
 _WORD_RE = re.compile(r"[a-z0-9]+")
@@ -86,7 +93,7 @@ class HashBagEmbedder(TraceEmbedder):
             for i in range(len(tokens) - n + 1):
                 gram = " ".join(tokens[i : i + n])
                 counts[_bucket(gram, self.dim)] += 1.0
-        norm = math.sqrt(sum(x * x for x in counts))
+        norm = math.sqrt(_sum_float([x * x for x in counts]))
         if norm == 0.0:
             return tuple(counts)
         inv = 1.0 / norm
@@ -105,3 +112,10 @@ def _bucket(token: str, dim: int) -> int:
         h ^= byte
         h = (h * _FNV_PRIME) & 0xFFFFFFFFFFFFFFFF
     return h % dim
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
