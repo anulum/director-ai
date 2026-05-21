@@ -130,6 +130,21 @@ class TestAABB:
         box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
         assert box.contains(Vec3(0.5, 0.5, 0.5))
 
+    def test_contains_rust_non_runtime_exception_falls_back_to_python(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._RUST_GEOM_AVAILABLE",
+            True,
+        )
+        monkeypatch.setattr(
+            "director_ai.core.cyber_physical.geometry._rust_aabb_contains",
+            lambda *args: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        box = AABB(min_corner=Vec3(0.0, 0.0, 0.0), max_corner=Vec3(1.0, 1.0, 1.0))
+        assert box.contains(Vec3(0.5, 0.5, 0.5))
+
 
 # --- Sphere ---------------------------------------------------------
 
