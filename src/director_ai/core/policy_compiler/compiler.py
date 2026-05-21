@@ -31,6 +31,16 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
+try:
+    from backfire_kernel import rust_conformal_quantile
+
+    _RUST_POLICY_COMPILER = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_POLICY_COMPILER = False
+
+    def rust_conformal_quantile(_residuals: list[float], _coverage: float) -> float:
+        raise RuntimeError("backfire_kernel rust_conformal_quantile is unavailable")
+
 from .extractor import RegexRuleExtractor, RuleExtractor
 from .rule import CompiledRule
 
@@ -165,9 +175,15 @@ def split_conformal_threshold(
     Scores outside ``[0, 1]`` are clipped — the rule threshold is
     stored in the same range.
     """
-    sorted_scores = sorted(max(0.0, min(1.0, s)) for s in scores)
+    clipped = [max(0.0, min(1.0, s)) for s in scores]
+    if _RUST_POLICY_COMPILER:
+        try:
+            return float(rust_conformal_quantile(clipped, target_coverage))
+        except Exception:
+            pass
+
+    sorted_scores = sorted(clipped)
     n = len(sorted_scores)
-    # q_index is 1-based on the sorted list; clamp to [0, n-1].
     q_index = min(max(int((target_coverage * (n + 1)) - 1), 0), n - 1)
     return float(sorted_scores[q_index])
 
