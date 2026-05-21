@@ -32,6 +32,19 @@ import math
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 
+try:
+    from backfire_kernel import rust_mean, rust_sum_f64
+
+    _RUST_META_GUARD = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_META_GUARD = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
+    def rust_mean(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
 from .log import ScoringAction, ScoringDecision
 
 _ACTIONS: tuple[ScoringAction, ...] = ("allow", "warn", "halt")
@@ -114,7 +127,7 @@ class MetaAnalyzer:
         if brier_tolerance < 0:
             raise ValueError("brier_tolerance must be non-negative")
         if reference_action_rates is not None:
-            total = sum(reference_action_rates.values())
+            total = _sum_float(list(reference_action_rates.values()))
             if not 0.999 <= total <= 1.001:
                 raise ValueError(f"reference_action_rates must sum to 1.0; got {total}")
             for action, rate in reference_action_rates.items():
@@ -151,7 +164,7 @@ class MetaAnalyzer:
                 brier_delta=None,
                 brier_alarm=False,
             )
-        mean_score = sum(d.score for d in window) / n
+        mean_score = _mean_float([d.score for d in window])
         ph_stat = self._page_hinkley(window)
         ph_alarm = n >= self._min_window and ph_stat > self._ph_threshold
         brier_score, brier_delta, brier_alarm = self._brier(window, n)
@@ -203,7 +216,7 @@ class MetaAnalyzer:
                 labelled.append((d.score, d.ground_truth))
         if len(labelled) < self._min_window:
             return None, None, False
-        brier = sum((s - g) ** 2 for s, g in labelled) / len(labelled)
+        brier = _mean_float([(s - g) ** 2 for s, g in labelled])
         delta = brier - self._reference_brier
         alarm = n >= self._min_window and delta > self._brier_tolerance
         return brier, delta, alarm
@@ -227,3 +240,25 @@ class MetaAnalyzer:
                 break
         alarm = n >= self._min_window and divergence > self._action_tolerance
         return rates, divergence, alarm
+
+
+def _sum_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_META_GUARD:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
+
+
+def _mean_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_META_GUARD:
+        try:
+            return float(rust_mean(values))
+        except Exception:
+            pass
+    return _sum_float(values) / len(values)
