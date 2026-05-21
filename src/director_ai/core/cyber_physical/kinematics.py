@@ -30,10 +30,13 @@ from typing import Protocol, runtime_checkable
 from .geometry import AABB, Sphere, Vec3
 
 try:
-    from backfire_kernel import rust_two_link_ik as _rust_two_link_ik
+    from backfire_kernel import rust_sum_f64, rust_two_link_ik as _rust_two_link_ik
 
     _RUST_IK_AVAILABLE = True
 except ImportError:  # pragma: no cover — optional accelerator
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
     _RUST_IK_AVAILABLE = False
 
 
@@ -89,7 +92,7 @@ class JointChain:
 
     @property
     def reach(self) -> float:
-        return sum(self.link_lengths)
+        return _sum_float(list(self.link_lengths))
 
 
 @runtime_checkable
@@ -190,7 +193,7 @@ class SimpleKinematicModel:
                 pass
         dx = target.x - self.chain.base.x
         dy = target.y - self.chain.base.y
-        distance = math.sqrt(dx * dx + dy * dy)
+        distance = math.sqrt(_sum_float([dx * dx, dy * dy]))
         if distance > l1 + l2 or distance < abs(l1 - l2):
             return None
         cos_theta2 = (distance * distance - l1 * l1 - l2 * l2) / (2.0 * l1 * l2)
@@ -228,3 +231,10 @@ class SimpleKinematicModel:
             return True
         all_sphere = tuple(obstacles_sphere) + self.extra_obstacles_sphere
         return any(envelope.intersects(sphere) for sphere in all_sphere)
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
