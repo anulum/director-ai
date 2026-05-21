@@ -583,6 +583,16 @@ class TestFallbackSplit:
         result = _fallback_split("One sentence. Two sentence.")
         assert result == ["One sentence.", "Two sentence."]
 
+    def test_rust_sentence_splitter_type_error_fallback(self, monkeypatch):
+        monkeypatch.setattr("director_ai.core.safety.injection._RUST_INJECTION", True)
+        monkeypatch.setattr(
+            "director_ai.core.safety.injection.rust_split_sentences",
+            lambda _text: (_ for _ in ()).throw(TypeError("ffi fail")),
+            raising=False,
+        )
+        result = _fallback_split("One sentence. Two sentence.")
+        assert result == ["One sentence.", "Two sentence."]
+
 
 # -- Performance (mock) -------------------------------------------------------
 
