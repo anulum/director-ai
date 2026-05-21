@@ -27,6 +27,16 @@ import math
 import threading
 from dataclasses import dataclass, field
 
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_ACCOUNTANT = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_ACCOUNTANT = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 @dataclass(frozen=True)
 class AccountantEntry:
@@ -147,10 +157,10 @@ class PrivacyAccountant:
 
     def _project_epsilon(self, entries: list[AccountantEntry]) -> float:
         if self._mode == "basic":
-            return sum(e.epsilon for e in entries)
+            return _sum_float([e.epsilon for e in entries])
         eps_values = {e.epsilon for e in entries}
         if len(eps_values) != 1:
-            return sum(e.epsilon for e in entries)
+            return _sum_float([e.epsilon for e in entries])
         eps_0 = next(iter(eps_values))
         k = len(entries)
         # The advanced bound needs an auxiliary δ_add; use half of the
@@ -160,7 +170,7 @@ class PrivacyAccountant:
         return _advanced_epsilon(eps_0=eps_0, k=k, delta_add=delta_add)
 
     def _project_delta(self, entries: list[AccountantEntry]) -> float:
-        return sum(e.delta for e in entries)
+        return _sum_float([e.delta for e in entries])
 
 
 def _advanced_epsilon(*, eps_0: float, k: int, delta_add: float) -> float:
@@ -170,3 +180,14 @@ def _advanced_epsilon(*, eps_0: float, k: int, delta_add: float) -> float:
     return math.sqrt(2.0 * k * math.log(1.0 / delta_add)) * eps_0 + k * eps_0 * (
         math.exp(eps_0) - 1.0
     )
+
+
+def _sum_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_ACCOUNTANT:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
