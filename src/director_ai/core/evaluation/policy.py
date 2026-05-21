@@ -14,6 +14,13 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_i64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 __all__ = [
     "LabelledPolicySample",
     "PolicyComparisonReport",
@@ -298,9 +305,12 @@ def _reject_duplicate_variants(variants: Sequence[PolicyVariant]) -> None:
 
 
 def _provenance_counts(samples: Sequence[LabelledPolicySample]) -> dict[str, int]:
-    synthetic = sum(1 for sample in samples if sample.synthetic)
-    benchmark = sum(
-        1 for sample in samples if sample.benchmark_evidence and not sample.synthetic
+    synthetic = _sum_int([1 if sample.synthetic else 0 for sample in samples])
+    benchmark = _sum_int(
+        [
+            1 if sample.benchmark_evidence and not sample.synthetic else 0
+            for sample in samples
+        ]
     )
     internal = len(samples) - synthetic - benchmark
     return {"benchmark": benchmark, "internal": internal, "synthetic": synthetic}
@@ -322,3 +332,10 @@ def _public_claim_status(
 
 def _safe_div(num: int, den: int) -> float:
     return float(num / den) if den else 0.0
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
