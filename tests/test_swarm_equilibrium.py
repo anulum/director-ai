@@ -18,6 +18,7 @@ import math
 
 import pytest
 
+import director_ai.core.swarm_equilibrium.scorer as scorer_mod
 from director_ai.core.swarm_equilibrium import (
     NashEquilibrium,
     NashSolver,
@@ -440,6 +441,32 @@ class TestScorer:
         scorer = SwarmEquilibriumScorer()
         payoff = scorer.mean_nash_payoff(_stag_hunt(), "row")
         # Two pure NE: (4, 4) and (2, 2). Mean row payoff = 3.
+        assert payoff == pytest.approx(3.0)
+
+    def test_rust_mean_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(scorer_mod, "_RUST_SWARM_EQ", True)
+        called = {"count": 0}
+
+        def _mean(values):
+            called["count"] += 1
+            return sum(values) / len(values)
+
+        monkeypatch.setattr(scorer_mod, "rust_mean", _mean, raising=True)
+        scorer = SwarmEquilibriumScorer()
+        payoff = scorer.mean_nash_payoff(_stag_hunt(), "row")
+        assert payoff == pytest.approx(3.0)
+        assert called["count"] >= 1
+
+    def test_rust_mean_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(scorer_mod, "_RUST_SWARM_EQ", True)
+        monkeypatch.setattr(
+            scorer_mod,
+            "rust_mean",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        scorer = SwarmEquilibriumScorer()
+        payoff = scorer.mean_nash_payoff(_stag_hunt(), "row")
         assert payoff == pytest.approx(3.0)
 
     def test_mean_nash_payoff_no_pure(self):
