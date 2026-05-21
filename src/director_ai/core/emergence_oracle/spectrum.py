@@ -24,8 +24,19 @@ runs.
 
 from __future__ import annotations
 
+import contextlib
 from collections.abc import Mapping
 from dataclasses import dataclass
+
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_SPECTRUM = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_SPECTRUM = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 from .graph import InteractionGraph
 
@@ -133,6 +144,21 @@ class RandomWalkSpectrum:
             delta = sum(
                 abs(a - b) for a, b in zip(distribution, new_distribution, strict=False)
             )
+            if _RUST_SPECTRUM:
+                rust_delta: float | None = None
+                with contextlib.suppress(Exception):
+                    rust_delta = float(
+                        rust_sum_f64(
+                            [
+                                abs(a - b)
+                                for a, b in zip(
+                                    distribution, new_distribution, strict=False
+                                )
+                            ]
+                        )
+                    )
+                if rust_delta is not None:
+                    delta = rust_delta
             if previous_delta > 0:
                 spectral_gap = max(0.0, 1.0 - delta / previous_delta)
             previous_delta = delta
@@ -140,7 +166,13 @@ class RandomWalkSpectrum:
             if delta < self._tolerance:
                 converged = True
                 break
-        total = sum(distribution)
+        if _RUST_SPECTRUM:
+            rust_total: float | None = None
+            with contextlib.suppress(Exception):
+                rust_total = float(rust_sum_f64(distribution))
+            total = rust_total if rust_total is not None else sum(distribution)
+        else:
+            total = sum(distribution)
         if total > 0:
             distribution = [p / total for p in distribution]
         probabilities = {node: distribution[i] for i, node in enumerate(nodes)}
