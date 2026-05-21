@@ -257,6 +257,9 @@ def _escape(field_value: str) -> str:
 
 def _verify_anchor_mac(key: bytes, payload: bytes, mac_hex: str) -> bool:
     if _rust_anchor_mac is not None:
-        return bool(_rust_anchor_mac(key, payload, mac_hex))
+        try:
+            return bool(_rust_anchor_mac(key, payload, mac_hex))
+        except Exception:
+            pass
     expected_mac = hmac.new(key, payload, sha256).hexdigest()
     return hmac.compare_digest(expected_mac, mac_hex)
