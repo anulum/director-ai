@@ -38,6 +38,32 @@ class TestSplitSentences:
     def test_empty(self):
         assert _split_sentences("") == []
 
+    def test_rust_sentence_splitter_delegation(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_split_sentences",
+            lambda text: ["Rust sentence one.", "Rust sentence two has enough words."],
+            raising=False,
+        )
+        result = _split_sentences("ignored")
+        assert result == ["Rust sentence one.", "Rust sentence two has enough words."]
+
+    def test_rust_sentence_splitter_runtime_fallback(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+
+        def _raise_runtime(text):
+            raise RuntimeError("ffi unavailable")
+
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_split_sentences",
+            _raise_runtime,
+            raising=False,
+        )
+        result = _split_sentences("Tiny. This is a fallback sentence.")
+        assert result == ["This is a fallback sentence."]
+
 
 class TestEntityOverlap:
     def test_full_match(self):

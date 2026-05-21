@@ -34,6 +34,7 @@ try:
         rust_entity_overlap,
         rust_negation_flip,
         rust_numerical_consistency,
+        rust_split_sentences,
         rust_traceability,
         rust_word_overlap,
     )
@@ -517,6 +518,14 @@ class VerifiedScorer:
 
 
 def _split_sentences(text: str) -> list[str]:
+    if _RUST_SIGNALS:
+        try:
+            sentences = [s.strip() for s in rust_split_sentences(text) if s.strip()]
+            filtered = [s for s in sentences if len(s.split()) >= 3]
+            if filtered:
+                return filtered
+        except RuntimeError:
+            pass
     return [
         s.strip() for s in _SENT_SPLIT.split(text) if s.strip() and len(s.split()) >= 3
     ]
