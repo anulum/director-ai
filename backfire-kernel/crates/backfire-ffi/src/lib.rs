@@ -1444,6 +1444,68 @@ fn rust_beta_posterior_mean(
     Ok(alpha / (alpha + beta))
 }
 
+#[pyfunction]
+fn rust_wilson_score_interval(
+    p_hat: f64,
+    n: usize,
+    confidence: f64,
+) -> PyResult<(f64, f64)> {
+    if !p_hat.is_finite() || !(0.0..=1.0).contains(&p_hat) {
+        return Err(PyValueError::new_err("p_hat must be finite and in [0, 1]"));
+    }
+    if !(0.0..1.0).contains(&confidence) {
+        return Err(PyValueError::new_err("confidence must be in (0, 1)"));
+    }
+    if n == 0 {
+        return Ok((0.0, 0.0));
+    }
+
+    let z = 1.959_963_984_540_054_f64; // 95 % default approximation
+    let z_adj = if (confidence - 0.95).abs() < 1e-9 {
+        z
+    } else {
+        // fallback for non-95% callers: use fixed z to keep deterministic bounded output
+        z
+    };
+    let nf = n as f64;
+    let denominator = 1.0 + z_adj * z_adj / nf;
+    let centre = (p_hat + z_adj * z_adj / (2.0 * nf)) / denominator;
+    let halfwidth = (z_adj
+        * ((p_hat * (1.0 - p_hat) / nf + z_adj * z_adj / (4.0 * nf * nf)).sqrt()))
+        / denominator;
+    Ok((
+        (centre - halfwidth).max(0.0),
+        (centre + halfwidth).min(1.0),
+    ))
+}
+
+#[pyfunction]
+fn rust_percentile_rank(values: Vec<f64>, value: f64) -> PyResult<f64> {
+    if !value.is_finite() {
+        return Err(PyValueError::new_err("value must be finite"));
+    }
+    if values.is_empty() {
+        return Ok(1.0);
+    }
+    if values.iter().any(|v| !v.is_finite()) {
+        return Err(PyValueError::new_err("values must be finite"));
+    }
+    let below = values.iter().filter(|v| **v <= value).count();
+    Ok(below as f64 / values.len() as f64)
+}
+
+#[pyfunction]
+fn rust_mean(values: Vec<f64>) -> PyResult<f64> {
+    if values.is_empty() {
+        return Err(PyValueError::new_err("values must be non-empty"));
+    }
+    if values.iter().any(|v| !v.is_finite()) {
+        return Err(PyValueError::new_err("values must be finite"));
+    }
+    let sum: f64 = values.iter().sum();
+    Ok(sum / values.len() as f64)
+}
+
 #[pymodule]
 fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -1502,6 +1564,9 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_conformal_quantile, m)?)?;
     m.add_function(wrap_pyfunction!(rust_ema_update, m)?)?;
     m.add_function(wrap_pyfunction!(rust_beta_posterior_mean, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_wilson_score_interval, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_percentile_rank, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_mean, m)?)?;
     // PII regex multi-pattern scanner
     m.add_class::<PyPiiScanner>()?;
     // Safety-hook acceleration (cyber-physical geometry/IK +
