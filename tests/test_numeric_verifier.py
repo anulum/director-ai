@@ -212,3 +212,17 @@ class TestRustNumericAdapter:
             "probability",
             "date_logic",
         ]
+
+    def test_rust_numeric_exception_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(numeric_verifier, "_RUST_NUMERIC", True)
+        monkeypatch.setattr(
+            numeric_verifier,
+            "rust_verify_numeric",
+            lambda _text, _current_year: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=False,
+        )
+
+        result = verify_numeric("Revenue grew 15% from $10,000 to $12,000.")
+
+        assert result.error_count >= 1
+        assert any(i.issue_type == "arithmetic" for i in result.issues)
