@@ -24,6 +24,13 @@ import threading
 import time
 from dataclasses import dataclass, field
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_f64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 @dataclass
 class _Counter:
@@ -47,7 +54,9 @@ class _Counter:
 
     def total(self) -> float:
         """Return the sum across unlabelled and labelled series."""
-        return self.value + sum(self.labels.values()) + sum(self.multi_labels.values())
+        return self.value + _sum_float(list(self.labels.values())) + _sum_float(
+            list(self.multi_labels.values())
+        )
 
 
 COHERENCE_SCORE_BUCKETS = (0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0)
@@ -84,7 +93,7 @@ class _Histogram:
     @property
     def total(self) -> float:
         """Return the sum of retained observations."""
-        return sum(self._values) if self._values else 0.0
+        return _sum_float(self._values) if self._values else 0.0
 
     @property
     def mean(self) -> float:
@@ -140,6 +149,13 @@ class _Gauge:
     def dec(self, amount: float = 1.0) -> None:
         """Decrease the gauge by an amount."""
         self.value -= amount
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
 
 
 class MetricsCollector:
