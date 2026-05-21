@@ -20,6 +20,13 @@ import logging
 import threading
 from typing import Any
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_i64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 from .base import VectorBackend
 
 __all__ = ["HybridBackend", "RerankedBackend"]
@@ -126,7 +133,7 @@ class HybridBackend(VectorBackend):
         for i, (doc, tf) in enumerate(zip(docs, tfs, strict=False)):
             if tenant_id and doc["metadata"].get("tenant_id") != tenant_id:
                 continue
-            dl = sum(tf.values())
+            dl = _sum_int(list(tf.values()))
             score = 0.0
             for qt in query_tokens:
                 f = tf.get(qt, 0)
@@ -284,3 +291,10 @@ def _validate_non_negative_weight(value: float, field_name: str) -> float:
     if value < 0.0:
         raise ValueError(f"{field_name} must be non-negative")
     return value
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
