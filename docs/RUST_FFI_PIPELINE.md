@@ -391,6 +391,32 @@ except ImportError:
 When `_RUST_SIGNALS is True`, the verified scorer dispatches individual
 signal computations to Rust. The Python fallbacks are used otherwise.
 
+### Domain Kernel Dispatch (Operational Modules)
+
+Beyond the scorer kernels, DIRECTOR-AI now dispatches selected operational
+math paths to `backfire_kernel` where available, with deterministic
+Python fallback on import or runtime FFI errors:
+
+| Module | Rust function(s) | Purpose |
+|---|---|---|
+| `core/calibration/online_calibrator.py` | `rust_confusion_counts_threshold` | threshold sweep confusion-matrix counts |
+| `core/sustainability/policy_adapter.py` | `rust_sum_i64`, `rust_sum_f64` | telemetry aggregate counters and mean calculations |
+| `core/swarm_equilibrium/scorer.py` | `rust_mean` | mean Nash-payoff aggregation |
+| `core/irreversibility/forecaster.py` | `rust_product_f64` | cumulative reversibility product across action chains |
+
+Coverage enforcement lives in dedicated module tests:
+
+- `tests/test_online_calibrator.py`
+- `tests/test_sustainability.py`
+- `tests/test_swarm_equilibrium.py`
+- `tests/test_irreversibility.py`
+
+Each suite contains explicit assertions for:
+
+1. Rust path invocation when kernel symbols are available.
+2. Python fallback behaviour when FFI raises `TypeError`/runtime errors.
+3. Stable semantic output under deterministic seeded execution where applicable.
+
 ---
 
 ## Installation
