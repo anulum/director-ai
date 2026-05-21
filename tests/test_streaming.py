@@ -16,6 +16,7 @@ import asyncio
 
 import pytest
 
+import director_ai.core.runtime.streaming as streaming_mod
 from director_ai.core.async_streaming import AsyncStreamingKernel
 from director_ai.core.streaming import StreamingKernel
 
@@ -256,6 +257,30 @@ class TestScoringCadence:
     def test_invalid_score_every_n_raises(self):
         with pytest.raises(ValueError, match="score_every_n"):
             StreamingKernel(score_every_n=0)
+
+
+class TestStreamingRustMean:
+    def test_rust_mean_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
+        called = {"count": 0}
+
+        def _mean(values: list[float]) -> float:
+            called["count"] += 1
+            return 0.75
+
+        monkeypatch.setattr(streaming_mod, "_rust_mean", _mean, raising=True)
+        assert streaming_mod._mean([0.5, 1.0]) == pytest.approx(0.75)
+        assert called["count"] == 1
+
+    def test_rust_mean_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
+        monkeypatch.setattr(
+            streaming_mod,
+            "_rust_mean",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        assert streaming_mod._mean([0.2, 0.4, 0.6]) == pytest.approx(0.4)
 
 
 @pytest.mark.consumer
