@@ -157,6 +157,19 @@ class TestTrendDrop:
         drop = _trend_drop([0.9, 0.7, 0.5, 0.3, 0.1])
         assert drop > 0.5
 
+    def test_rust_trend_drop_non_runtime_exception_falls_back_to_python(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(streaming_mod, "_RUST_TREND", True)
+        monkeypatch.setattr(
+            streaming_mod,
+            "_rust_trend_drop",
+            lambda _values: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        drop = _trend_drop([0.9, 0.7, 0.5, 0.3, 0.1])
+        assert drop > 0.5
+
 
 class TestRustDispatch:
     """Verify that the Rust dispatch flag exists and is consistent."""
