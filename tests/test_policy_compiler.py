@@ -20,6 +20,7 @@ from typing import Any, cast
 
 import pytest
 
+import director_ai.core.policy_compiler.compiler as compiler_mod
 from director_ai.core.policy_compiler import (
     CompiledRule,
     PolicyBundle,
@@ -271,6 +272,37 @@ class TestPolicyCompiler:
 
 
 class TestSplitConformal:
+    def test_rust_conformal_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(compiler_mod, "_RUST_POLICY_COMPILER", True)
+        called = {"count": 0}
+
+        def _kernel(scores, coverage):
+            called["count"] += 1
+            return 0.42
+
+        monkeypatch.setattr(
+            compiler_mod,
+            "rust_conformal_quantile",
+            _kernel,
+            raising=True,
+        )
+        q = split_conformal_threshold([0.1, 0.2, 0.3], target_coverage=0.9)
+        assert called["count"] == 1
+        assert q == pytest.approx(0.42)
+
+    def test_rust_conformal_type_error_falls_back_to_python(self, monkeypatch):
+        monkeypatch.setattr(compiler_mod, "_RUST_POLICY_COMPILER", True)
+        monkeypatch.setattr(
+            compiler_mod,
+            "rust_conformal_quantile",
+            lambda _scores, _coverage: (_ for _ in ()).throw(
+                TypeError("ffi signature mismatch")
+            ),
+            raising=True,
+        )
+        q = split_conformal_threshold([0.1, 0.2, 0.3], target_coverage=0.9)
+        assert q == pytest.approx(0.3)
+
     def test_half_coverage_returns_median(self):
         q = split_conformal_threshold([0.1, 0.2, 0.3, 0.4, 0.5], target_coverage=0.5)
         # (0.5 * 6 - 1) = 2 → sorted[2] = 0.3
