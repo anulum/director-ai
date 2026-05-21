@@ -291,7 +291,7 @@ def minicheck_claim_coverage(
     if _RUST_TASK:
         try:
             sentences = [s for s in rust_split_sentences(summary) if s.strip()]
-        except RuntimeError:
+        except Exception:
             sentences = []
     else:
         sentences = []
@@ -313,7 +313,7 @@ def minicheck_claim_coverage(
                 0.5,
             )
             return float(coverage), divs, sentences
-        except RuntimeError:
+        except Exception:
             pass
     supported = sum(1 for d in divs if d < 0.5)
     coverage = supported / len(sentences)
