@@ -27,6 +27,13 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
+try:  # pragma: no cover - optional acceleration
+    from backfire_kernel import rust_sum_f64
+except ImportError:  # pragma: no cover - fallback path
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 from ..model_revisions import resolve_model_revision
 from .feedback import FeedbackEvent
 
@@ -57,9 +64,7 @@ class TrainedGuardrail:
         """Return the probability that ``text`` is unsafe, in
         ``[0, 1]``."""
         features = _hash_bag(text, self.dim)
-        margin = self.bias + sum(
-            w * f for w, f in zip(self.weights, features, strict=True)
-        )
+        margin = self.bias + _dot(self.weights, features)
         return 1.0 / (1.0 + math.exp(-margin))
 
 
@@ -131,9 +136,7 @@ class PerceptronGuardrailTrainer:
             for prompt, target_int in labelled:
                 target_float = float(target_int)
                 features = _hash_bag(prompt, self._dim)
-                margin = bias + sum(
-                    w * f for w, f in zip(weights, features, strict=True)
-                )
+                margin = bias + _dot(weights, features)
                 prediction = 1.0 / (1.0 + math.exp(-margin))
                 error = target_float - prediction
                 for i, f in enumerate(features):
@@ -143,10 +146,7 @@ class PerceptronGuardrailTrainer:
         correct = 0
         for prompt, target_int in labelled:
             target_float = float(target_int)
-            margin = bias + sum(
-                w * f
-                for w, f in zip(weights, _hash_bag(prompt, self._dim), strict=True)
-            )
+            margin = bias + _dot(weights, _hash_bag(prompt, self._dim))
             pred = 1.0 if margin >= 0.0 else 0.0
             if pred == target_float:
                 correct += 1
@@ -309,7 +309,7 @@ def _hash_bag(text: str, dim: int) -> tuple[float, ...]:
             h ^= byte
             h = (h * _FNV_PRIME) & _UINT64_MASK
         bag[h % dim] += 1.0
-    norm = math.sqrt(sum(x * x for x in bag))
+    norm = math.sqrt(_sum_float([x * x for x in bag]))
     if norm == 0.0:
         return tuple(bag)
     inv = 1.0 / norm
@@ -339,3 +339,14 @@ def _extract_classifier_weights(model: Any) -> dict[str, Any]:
         "bias": bias,
         "dim": len(weights_vec),
     }
+
+
+def _dot(a: Sequence[float], b: Sequence[float]) -> float:
+    return _sum_float([x * y for x, y in zip(a, b, strict=True)])
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
