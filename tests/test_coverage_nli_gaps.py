@@ -202,6 +202,21 @@ class TestRustAcceleratedMathBranches:
         assert divergence_calls == [(30, 3, 0, 1)]
         assert confidence_calls == [(30, 3)]
 
+    def test_rust_softmax_non_runtime_exception_falls_back_to_numpy(self, monkeypatch):
+        import director_ai.core.scoring.nli as nli_mod
+
+        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(
+            nli_mod,
+            "rust_softmax",
+            lambda _flat, _cols: (_ for _ in ()).throw(ValueError("ffi fail")),
+        )
+
+        logits = np.array([[1.0, 0.0, -1.0], [2.0, 0.0, -2.0]], dtype=np.float64)
+        result = _softmax_np(logits)
+        assert result.shape == logits.shape
+        np.testing.assert_allclose(result.sum(axis=1), np.array([1.0, 1.0]), atol=1e-12)
+
 
 class TestResolveLabelIndices:
     def test_no_config_returns_default(self):

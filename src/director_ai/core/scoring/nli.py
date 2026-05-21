@@ -265,10 +265,13 @@ def _softmax_np(x: np.ndarray) -> np.ndarray:
     Uses Rust accelerator for large batches when available.
     """
     if _RUST_NLI and x.size >= 100:
-        flat = x.flatten().tolist()
-        cols = x.shape[1]
-        result = rust_softmax(flat, cols)
-        return np.array(result, dtype=np.float64).reshape(x.shape)
+        try:
+            flat = x.flatten().tolist()
+            cols = x.shape[1]
+            result = rust_softmax(flat, cols)
+            return np.array(result, dtype=np.float64).reshape(x.shape)
+        except Exception:
+            pass
     e = np.exp(x - x.max(axis=1, keepdims=True))
     s: np.ndarray = e / e.sum(axis=1, keepdims=True)
     return s
