@@ -28,7 +28,12 @@ from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 try:
-    from backfire_kernel import rust_mean, rust_percentile_rank
+    from backfire_kernel import (
+        rust_mean,
+        rust_percentile_rank,
+        rust_sum_f64,
+        rust_sum_i64,
+    )
 
     _RUST_CARBON = True
 except Exception:  # pragma: no cover - optional dependency
@@ -39,6 +44,12 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
+
+    def rust_sum_i64(_values: list[int]) -> int:
+        raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
 @dataclass(frozen=True)
@@ -123,7 +134,7 @@ class CarbonIntensityTracker:
                     return float(rust_percentile_rank(intensities, value))
                 except Exception:
                     pass
-            below = sum(1 for intensity in intensities if intensity <= value)
+            below = _sum_int([1 if intensity <= value else 0 for intensity in intensities])
             return below / len(intensities)
 
     def mean(self) -> float:
@@ -136,4 +147,18 @@ class CarbonIntensityTracker:
                     return float(rust_mean(intensities))
                 except Exception:
                     pass
-            return sum(intensities) / len(intensities)
+            return _sum_float(intensities) / len(intensities)
+
+
+def _sum_int(values: list[int]) -> int:
+    try:
+        return int(rust_sum_i64(values))
+    except Exception:
+        return sum(values)
+
+
+def _sum_float(values: list[float]) -> float:
+    try:
+        return float(rust_sum_f64(values))
+    except Exception:
+        return sum(values)
