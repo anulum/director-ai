@@ -1385,6 +1385,65 @@ fn rust_heuristic_factual_divergence(context: &str, text_output: &str) -> f64 {
     backfire_core::compute::heuristic_factual_divergence(context, text_output)
 }
 
+#[pyfunction]
+fn rust_conformal_quantile(residuals: Vec<f64>, coverage: f64) -> PyResult<f64> {
+    if !(0.0..1.0).contains(&coverage) {
+        return Err(PyValueError::new_err("coverage must be in (0, 1)"));
+    }
+    if residuals.is_empty() {
+        return Err(PyValueError::new_err("residuals must be non-empty"));
+    }
+    if residuals.iter().any(|value| !value.is_finite() || *value < 0.0) {
+        return Err(PyValueError::new_err(
+            "residuals must be finite and non-negative",
+        ));
+    }
+    let mut sorted = residuals;
+    sorted.sort_by(|a, b| a.total_cmp(b));
+    let n = sorted.len();
+    let q_idx = (((n + 1) as f64 * coverage).ceil() as isize - 1).clamp(0, (n - 1) as isize);
+    Ok(sorted[q_idx as usize])
+}
+
+#[pyfunction]
+fn rust_ema_update(previous: Option<f64>, value: f64, alpha: f64) -> PyResult<f64> {
+    if !value.is_finite() {
+        return Err(PyValueError::new_err("value must be finite"));
+    }
+    if !(0.0..=1.0).contains(&alpha) || alpha == 0.0 {
+        return Err(PyValueError::new_err("alpha must be in (0, 1]"));
+    }
+    if let Some(prev) = previous {
+        if !prev.is_finite() {
+            return Err(PyValueError::new_err("previous must be finite when provided"));
+        }
+        Ok(alpha * value + (1.0 - alpha) * prev)
+    } else {
+        Ok(value)
+    }
+}
+
+#[pyfunction]
+fn rust_beta_posterior_mean(
+    alpha_prior: f64,
+    beta_prior: f64,
+    successes: usize,
+    pulls: usize,
+) -> PyResult<f64> {
+    if alpha_prior <= 0.0 || !alpha_prior.is_finite() {
+        return Err(PyValueError::new_err("alpha_prior must be finite and > 0"));
+    }
+    if beta_prior <= 0.0 || !beta_prior.is_finite() {
+        return Err(PyValueError::new_err("beta_prior must be finite and > 0"));
+    }
+    if successes > pulls {
+        return Err(PyValueError::new_err("successes cannot exceed pulls"));
+    }
+    let alpha = alpha_prior + successes as f64;
+    let beta = beta_prior + (pulls - successes) as f64;
+    Ok(alpha / (alpha + beta))
+}
+
 #[pymodule]
 fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add("__version__", env!("CARGO_PKG_VERSION"))?;
@@ -1440,6 +1499,9 @@ fn backfire_kernel(m: &Bound<'_, PyModule>) -> PyResult<()> {
     m.add_function(wrap_pyfunction!(rust_lite_score_batch, m)?)?;
     m.add_function(wrap_pyfunction!(rust_heuristic_logical_divergence, m)?)?;
     m.add_function(wrap_pyfunction!(rust_heuristic_factual_divergence, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_conformal_quantile, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_ema_update, m)?)?;
+    m.add_function(wrap_pyfunction!(rust_beta_posterior_mean, m)?)?;
     // PII regex multi-pattern scanner
     m.add_class::<PyPiiScanner>()?;
     // Safety-hook acceleration (cyber-physical geometry/IK +
