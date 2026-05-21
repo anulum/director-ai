@@ -142,10 +142,12 @@ class GenomePopulation:
 
 
 def _sum_float(values: list[float]) -> float:
-    try:
-        return float(rust_sum_f64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_DEFENSE_GENOME:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 class EvolutionEngine:
