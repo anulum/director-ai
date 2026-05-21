@@ -188,6 +188,20 @@ class TestScorerLogical:
             rust_score = float(rust_heuristic_logical_divergence(output, prompt))
             assert rust_score == pytest.approx(py_score, abs=1e-12)
 
+    def test_rust_heuristic_logical_non_runtime_exception_falls_back_to_python(
+        self, monkeypatch
+    ):
+        import director_ai.core.scoring.scorer as scorer_mod
+
+        monkeypatch.setattr(
+            scorer_mod,
+            "rust_heuristic_logical_divergence",
+            lambda *_args: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=False,
+        )
+        result = CoherenceScorer._heuristic_logical("the opposite is true", "q")
+        assert result > 0.8
+
 
 class TestScorerHeuristicFactual:
     def test_negation_asymmetry(self):
