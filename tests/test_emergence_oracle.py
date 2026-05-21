@@ -17,6 +17,7 @@ from __future__ import annotations
 import pytest
 
 import director_ai.core.emergence_oracle.oracle as oracle_mod
+import director_ai.core.emergence_oracle.spectrum as spectrum_mod
 from director_ai.core.emergence_oracle import (
     CommunityDetector,
     EmergenceOracle,
@@ -381,3 +382,31 @@ class TestEmergenceRustSums:
             raising=True,
         )
         assert oracle_mod._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.0)
+
+
+class TestSpectrumRustSums:
+    def test_spectrum_rust_sum_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(spectrum_mod, "_RUST_SPECTRUM", True)
+        called = {"count": 0}
+
+        def _sum(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(spectrum_mod, "rust_sum_f64", _sum, raising=True)
+        graph = InteractionGraph.from_events(_hub_events())
+        result = RandomWalkSpectrum(max_iterations=3).stationary(graph)
+        assert called["count"] >= 1
+        assert sum(result.probabilities.values()) == pytest.approx(1.0)
+
+    def test_spectrum_rust_sum_type_error_falls_back(self, monkeypatch):
+        monkeypatch.setattr(spectrum_mod, "_RUST_SPECTRUM", True)
+        monkeypatch.setattr(
+            spectrum_mod,
+            "rust_sum_f64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        graph = InteractionGraph.from_events(_cycle_events())
+        result = RandomWalkSpectrum().stationary(graph)
+        assert result.probabilities
