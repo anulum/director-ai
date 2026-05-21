@@ -524,7 +524,7 @@ def _split_sentences(text: str) -> list[str]:
             filtered = [s for s in sentences if len(s.split()) >= 3]
             if filtered:
                 return filtered
-        except RuntimeError:
+        except Exception:
             pass
     return [
         s.strip() for s in _SENT_SPLIT.split(text) if s.strip() and len(s.split()) >= 3

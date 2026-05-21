@@ -64,6 +64,21 @@ class TestSplitSentences:
         result = _split_sentences("Tiny. This is a fallback sentence.")
         assert result == ["This is a fallback sentence."]
 
+    def test_rust_sentence_splitter_non_runtime_fallback(self, monkeypatch):
+        monkeypatch.setattr(verified_mod, "_RUST_SIGNALS", True)
+
+        def _raise_value_error(text):
+            raise ValueError("ffi unavailable")
+
+        monkeypatch.setattr(
+            verified_mod,
+            "rust_split_sentences",
+            _raise_value_error,
+            raising=False,
+        )
+        result = _split_sentences("Tiny. This is a fallback sentence.")
+        assert result == ["This is a fallback sentence."]
+
 
 class TestEntityOverlap:
     def test_full_match(self):
