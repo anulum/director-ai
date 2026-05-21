@@ -968,7 +968,7 @@ class NLIScorer:
         if _RUST_NLI:
             try:
                 return [s.strip() for s in rust_split_sentences(text) if s.strip()]
-            except RuntimeError:
+            except Exception:
                 pass
         abbrev_re = re.compile(
             r"(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Inc|Ltd|Corp|vs|etc|e\.g|i\.e|U\.S|U\.K)\.\s+",
@@ -1005,7 +1005,7 @@ class NLIScorer:
         if _RUST_NLI:
             try:
                 return list(rust_build_chunks(sentences, budget, overlap_ratio))
-            except RuntimeError:
+            except Exception:
                 pass
         if overlap_ratio > 0:
             return self._build_chunks_overlap(sentences, budget, overlap_ratio)
@@ -1037,7 +1037,7 @@ class NLIScorer:
         if _RUST_NLI:
             try:
                 return list(rust_build_chunks(sentences, budget, overlap_ratio))
-            except RuntimeError:
+            except Exception:
                 pass
         chunks: list[str] = []
         i = 0

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import pytest
 
+import director_ai.core.scoring.nli as nli_mod
 from director_ai.core.nli import NLIScorer
 
 
@@ -47,6 +48,17 @@ class TestSplitSentences:
             py_result = NLIScorer._split_sentences(text)
             rust_result = [s.strip() for s in rust_split_sentences(text) if s.strip()]
             assert rust_result == py_result
+
+    def test_split_sentences_falls_back_on_non_runtime_rust_error(self, monkeypatch):
+        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(
+            nli_mod,
+            "rust_split_sentences",
+            lambda _text: (_ for _ in ()).throw(ValueError("ffi fail")),
+            raising=True,
+        )
+        result = NLIScorer._split_sentences("Hello world. How are you?")
+        assert len(result) == 2
 
 
 class TestEstimateTokens:
@@ -92,6 +104,21 @@ class TestBuildChunks:
             py_chunks = scorer._build_chunks(sentences, budget=20, overlap_ratio=overlap_ratio)
             rust_chunks = rust_build_chunks(sentences, 20, overlap_ratio)
             assert list(rust_chunks) == py_chunks
+
+    def test_build_chunks_falls_back_on_non_runtime_rust_error(self, monkeypatch):
+        monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
+        monkeypatch.setattr(
+            nli_mod,
+            "rust_build_chunks",
+            lambda _sentences, _budget, _overlap_ratio: (_ for _ in ()).throw(
+                ValueError("ffi fail")
+            ),
+            raising=True,
+        )
+        scorer = NLIScorer(use_model=False)
+        sentences = [f"Sentence {i} with enough words." for i in range(8)]
+        chunks = scorer._build_chunks(sentences, budget=20, overlap_ratio=0.0)
+        assert chunks
 
 
 class TestScoreChunked:
