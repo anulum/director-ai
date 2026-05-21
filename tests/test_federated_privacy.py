@@ -21,6 +21,7 @@ import threading
 import pytest
 
 import director_ai.core.federated_privacy.accountant as accountant_mod
+import director_ai.core.federated_privacy.aggregator as aggregator_mod
 from director_ai.core.federated_privacy import (
     AccountantEntry,
     FederatedCounter,
@@ -626,6 +627,43 @@ class TestFederatedHistogram:
 
         assert release.raw_counts["a"] == 0
         assert acc.cumulative_epsilon() == pytest.approx(0.5)
+
+
+class TestAggregatorRustSums:
+    def test_rust_sum_i64_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(aggregator_mod, "_RUST_AGGREGATOR", True)
+        called = {"count": 0}
+
+        def _sum(values: list[int]) -> int:
+            called["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(aggregator_mod, "rust_sum_i64", _sum, raising=True)
+        counter = FederatedCounter(epsilon=0.5, seed=0, allow_insecure_seed=True)
+        counter.submit(tenant_id="t1", count=2)
+        counter.submit(tenant_id="t2", count=3)
+        release = counter.release()
+        assert release.raw_sum == 5
+        assert called["count"] >= 1
+
+    def test_rust_sum_i64_type_error_falls_back(self, monkeypatch):
+        monkeypatch.setattr(aggregator_mod, "_RUST_AGGREGATOR", True)
+        monkeypatch.setattr(
+            aggregator_mod,
+            "rust_sum_i64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+            raising=True,
+        )
+        hist = FederatedHistogram(
+            categories=("spam", "safe"),
+            epsilon=0.5,
+            seed=0,
+            allow_insecure_seed=True,
+        )
+        hist.submit(tenant_id="t1", category="spam", count=2)
+        hist.submit(tenant_id="t2", category="safe", count=3)
+        release = hist.release()
+        assert release.submissions == 5
 
 
 # --- FederatedSafetySignalAggregator ------------------------------
