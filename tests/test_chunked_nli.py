@@ -350,6 +350,23 @@ class TestScoreChunked:
         assert len(per_hyp) == nh
         assert 0.0 <= agg <= 1.0
 
+    def test_chunk_aggregation_falls_back_on_rust_type_error(self, monkeypatch):
+        scorer = NLIScorer(use_model=False, max_length=64)
+        long_prem = ". ".join(f"Evidence {i} text" for i in range(20)) + "."
+        long_hyp = ". ".join(f"Claim {i} text" for i in range(20)) + "."
+
+        monkeypatch.setattr(
+            "director_ai.core.scoring.nli.rust_aggregate_chunk_scores",
+            lambda *_args, **_kwargs: (_ for _ in ()).throw(
+                TypeError("ffi signature mismatch")
+            ),
+        )
+        agg, per_hyp, np, nh = scorer._score_chunked_with_counts(long_prem, long_hyp)
+        assert np > 1
+        assert nh > 1
+        assert len(per_hyp) == nh
+        assert 0.0 <= agg <= 1.0
+
     def test_premise_ratio_reduces_premise_chunks(self):
         """Higher premise_ratio gives more premise budget â†’ fewer premise chunks."""
         scorer = NLIScorer(use_model=False, max_length=64)
