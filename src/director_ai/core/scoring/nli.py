@@ -273,7 +273,11 @@ def _softmax_np(x: np.ndarray) -> np.ndarray:
         except Exception:
             pass
     e = np.exp(x - x.max(axis=1, keepdims=True))
-    s: np.ndarray = e / e.sum(axis=1, keepdims=True)
+    denom = np.asarray(
+        [_sum_float_list(row.tolist()) for row in e],
+        dtype=np.float64,
+    ).reshape(-1, 1)
+    s: np.ndarray = e / denom
     return s
 
 
