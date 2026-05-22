@@ -200,11 +200,7 @@ def _remove_missing_dependency_sentinels() -> None:
     """Remove ``sys.modules`` sentinels left by missing-dependency tests."""
     for name, module in list(sys.modules.items()):
         root = name.split(".", 1)[0]
-        if (
-            root in _DEPENDENCY_SENTINEL_PREFIXES
-            and module is None
-            and root not in sys.modules
-        ):
+        if root in _DEPENDENCY_SENTINEL_PREFIXES and module is None:
             del sys.modules[name]
 
 

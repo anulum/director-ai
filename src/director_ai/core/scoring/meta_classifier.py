@@ -40,18 +40,23 @@ except ImportError:
 
 try:
     from sklearn.exceptions import (
-        InconsistentVersionWarning,
+        InconsistentVersionWarning as _SklearnInconsistentVersionWarning,
     )
-
-    _INCONSISTENT_VERSION_WARNING: type[Warning] = InconsistentVersionWarning
 except (
     Exception
 ):  # pragma: no cover - sklearn absent handled by runtime import boundaries
 
-    class InconsistentVersionWarning(UserWarning):
+    class _FallbackInconsistentVersionWarning(UserWarning):
         """Fallback warning type when sklearn is unavailable at import time."""
 
-    _INCONSISTENT_VERSION_WARNING = InconsistentVersionWarning
+    _INCONSISTENT_VERSION_WARNING_TYPE: type[Warning] = (
+        _FallbackInconsistentVersionWarning
+    )
+else:
+    _INCONSISTENT_VERSION_WARNING_TYPE = _SklearnInconsistentVersionWarning
+
+InconsistentVersionWarning: type[Warning] = _INCONSISTENT_VERSION_WARNING_TYPE
+_INCONSISTENT_VERSION_WARNING: type[Warning] = InconsistentVersionWarning
 
 
 NEGATION_WORDS = frozenset(

@@ -42,7 +42,6 @@ def parse(content: bytes, filename: str) -> str:
 def _parse_pdf(content: bytes) -> str:
     try:
         from pypdf import PdfReader
-        from pypdf.errors import PdfReadError
     except ImportError as e:
         raise ImportError(
             "pypdf required for PDF parsing. Install: pip install director-ai[ingestion]"
@@ -50,8 +49,13 @@ def _parse_pdf(content: bytes) -> str:
 
     try:
         reader = PdfReader(io.BytesIO(content))
-    except PdfReadError as e:
-        raise ValueError("invalid PDF document") from e
+    except Exception as e:
+        exc_type = type(e)
+        if exc_type.__module__.startswith("pypdf") or exc_type.__name__.startswith(
+            "Pdf"
+        ):
+            raise ValueError("invalid PDF document") from e
+        raise
     pages = []
     for page in reader.pages:
         text = page.extract_text()

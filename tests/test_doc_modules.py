@@ -145,6 +145,7 @@ class TestChunker:
     def test_embed_sentences_uses_sentence_transformer_without_progress(
         self, monkeypatch
     ):
+        doc_chunker._sentence_transformer_model.cache_clear()
         calls: dict[str, object] = {}
 
         class FakeSentenceTransformer:
