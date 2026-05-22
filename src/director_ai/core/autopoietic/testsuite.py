@@ -26,6 +26,16 @@ from __future__ import annotations
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+try:
+    from backfire_kernel import rust_sum_f64
+
+    _RUST_TESTSUITE = True
+except Exception:  # pragma: no cover - optional dependency
+    _RUST_TESTSUITE = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 from .builder import BoundedSandbox, SandboxTimeoutError, Scorer
 
 
@@ -111,8 +121,8 @@ class ModuleTestSuite:
                 timed_out=timeouts,
                 exceptions=exceptions,
             )
-        mae = sum(
-            abs(p - lbl) for p, lbl in zip(predictions, labels, strict=True)
+        mae = _sum_float(
+            [abs(p - lbl) for p, lbl in zip(predictions, labels, strict=True)]
         ) / len(predictions)
         rho = _spearman(predictions, labels)
         return SuiteResult(
@@ -164,3 +174,12 @@ def _ranks(values: Sequence[float]) -> list[float]:
             ranks[indexed[k][0]] = average_rank
         i = j + 1
     return ranks
+
+
+def _sum_float(values: list[float]) -> float:
+    if _RUST_TESTSUITE:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
