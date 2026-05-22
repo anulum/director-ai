@@ -151,14 +151,18 @@ class CarbonIntensityTracker:
 
 
 def _sum_int(values: list[int]) -> int:
-    try:
-        return int(rust_sum_i64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_CARBON:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 def _sum_float(values: list[float]) -> float:
-    try:
-        return float(rust_sum_f64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_CARBON:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
