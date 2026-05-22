@@ -177,6 +177,27 @@ but never serialise raw matched values. This keeps redaction telemetry
 tenant-safe while allowing compliance dashboards to prove which categories were
 masked.
 
+## Rust vs Python E2E Comparison (Published Reproducible Packet)
+
+Use the dedicated E2E runner to benchmark Rust-accelerated and forced-Python
+execution paths side by side across a fixed deterministic scenario suite.
+
+Run:
+
+```bash
+PYTHONPATH=src uv run python -m benchmarks.rust_python_e2e_compare --iterations 200 --warmup 30
+```
+
+Outputs:
+
+- JSON artifact:
+  `benchmarks/results/rust_python_e2e_compare_<UTC_TIMESTAMP>.json`
+- publishable Markdown comparison report:
+  `benchmarks/results/rust_python_e2e_compare_<UTC_TIMESTAMP>.md`
+
+Each report includes per-scenario median and p95 latency for both modes,
+speedup ratio (`Py/Rust`), and checksum parity to prove result consistency.
+
 ---
 
 ## Runtime Scorer Model Choices
