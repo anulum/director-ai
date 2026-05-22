@@ -157,8 +157,8 @@ def _spearman(a: Sequence[float], b: Sequence[float]) -> float:
         )
         / n
     )
-    var_a = sum((x - mean_a) ** 2 for x in ranks_a) / n
-    var_b = sum((y - mean_b) ** 2 for y in ranks_b) / n
+    var_a = _sum_float([(x - mean_a) ** 2 for x in ranks_a]) / n
+    var_b = _sum_float([(y - mean_b) ** 2 for y in ranks_b]) / n
     denom = (var_a * var_b) ** 0.5
     if denom <= 0:
         return 0.0
