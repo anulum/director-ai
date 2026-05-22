@@ -284,7 +284,7 @@ def _softmax_np(x: np.ndarray) -> np.ndarray:
 def _sum_float_list(values: list[float]) -> float:
     if not values:
         return 0.0
-    return float(np.sum(np.asarray(values, dtype=np.float64)))
+    return float(np.asarray(values, dtype=np.float64).sum())
 
 
 def _mean_float(values: list[float]) -> float:
