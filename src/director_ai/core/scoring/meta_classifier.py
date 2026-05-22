@@ -167,10 +167,12 @@ def extract_text_features(premise: str, hypothesis: str) -> dict:
 
 
 def _sum_float(values: list[float]) -> float:
-    try:
-        return float(rust_sum_f64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_META:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 class DatasetTypeClassifier:
