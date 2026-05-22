@@ -146,10 +146,15 @@ def _spearman(a: Sequence[float], b: Sequence[float]) -> float:
     ranks_a = _ranks(a)
     ranks_b = _ranks(b)
     n = len(a)
-    mean_a = sum(ranks_a) / n
-    mean_b = sum(ranks_b) / n
+    mean_a = _sum_float(ranks_a) / n
+    mean_b = _sum_float(ranks_b) / n
     cov = (
-        sum((x - mean_a) * (y - mean_b) for x, y in zip(ranks_a, ranks_b, strict=True))
+        _sum_float(
+            [
+                (x - mean_a) * (y - mean_b)
+                for x, y in zip(ranks_a, ranks_b, strict=True)
+            ]
+        )
         / n
     )
     var_a = sum((x - mean_a) ** 2 for x in ranks_a) / n
