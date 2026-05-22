@@ -1386,21 +1386,23 @@ class NLIScorer:
             if inner_agg == "min":
                 per_hyp.append(min(divs))
             elif inner_agg == "mean":
-                per_hyp.append(sum(divs) / len(divs))
+                per_hyp.append(_mean_float(divs))
             else:
                 per_hyp.append(max(divs))
-            avg_conf = sum(s[1] for s in scores_h) / len(scores_h)
+            avg_conf = _mean_float([s[1] for s in scores_h])
             per_hyp_conf.append(avg_conf)
 
         # Confidence-weighted mean
-        total_weight = sum(per_hyp_conf)
+        total_weight = _sum_float_list(per_hyp_conf)
         if total_weight > 1e-9:
             agg = (
-                sum(d * c for d, c in zip(per_hyp, per_hyp_conf, strict=True))
+                _sum_float_list(
+                    [d * c for d, c in zip(per_hyp, per_hyp_conf, strict=True)]
+                )
                 / total_weight
             )
         else:
-            agg = sum(per_hyp) / len(per_hyp)
+            agg = _mean_float(per_hyp)
 
         return agg, per_hyp
 
