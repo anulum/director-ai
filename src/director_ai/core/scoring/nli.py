@@ -1578,7 +1578,7 @@ class NLIScorer:
                 return float(coverage), per_claim_divs, claims, attributions
             except Exception:
                 pass
-        supported = sum(1 for d in per_claim_divs if d < support_threshold)
+        supported = _count_below_threshold(per_claim_divs, support_threshold)
         coverage = supported / len(claims)
         return coverage, per_claim_divs, claims, attributions
 
