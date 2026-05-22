@@ -270,11 +270,11 @@ def _balanced_accuracy(labels, preds) -> float:
     recalls = []
     for cls in classes:
         mask = labels_arr == cls
-        denom = int(mask.sum())
+        denom = int(np.count_nonzero(mask))
         if denom == 0:
             recalls.append(0.0)
             continue
-        recalls.append(float((preds_arr[mask] == cls).sum()) / denom)
+        recalls.append(float(np.count_nonzero(preds_arr[mask] == cls)) / denom)
     return float(_sum_float(recalls) / len(recalls))
 
 
