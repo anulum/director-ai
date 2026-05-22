@@ -305,7 +305,7 @@ def _weighted_sum_float(values: list[float], weights: list[float]) -> float:
         return 0.0
     vec = np.asarray(values, dtype=np.float64)
     w = np.asarray(weights, dtype=np.float64)
-    return float(np.sum(vec * w))
+    return float((vec * w).sum())
 
 
 def _resolve_label_indices(model) -> tuple[int, int]:
