@@ -19,11 +19,15 @@ import re
 from dataclasses import dataclass
 
 try:
-    from backfire_kernel import rust_split_sentences
+    from backfire_kernel import rust_split_sentences, rust_sum_f64
 
     _RUST_DOC_CHUNKER = True
 except ImportError:  # pragma: no cover
     rust_split_sentences = None
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
     _RUST_DOC_CHUNKER = False
 
 
@@ -177,7 +181,13 @@ def _semantic_split(text: str, cfg: ChunkConfig) -> list[str]:
     norms = np.maximum(norms, 1e-10)
     normed = embeddings / norms
 
-    similarities = np.sum(normed[:-1] * normed[1:], axis=1)
+    similarities = np.asarray(
+        [
+            _sum_float_list((left * right).tolist())
+            for left, right in zip(normed[:-1], normed[1:], strict=False)
+        ],
+        dtype=np.float64,
+    )
 
     # Find split points where similarity drops below threshold
     split_indices = [0]
@@ -216,6 +226,17 @@ def _semantic_split(text: str, cfg: ChunkConfig) -> list[str]:
         chunks.append(current)
 
     return chunks
+
+
+def _sum_float_list(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    if _RUST_DOC_CHUNKER:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return float(sum(values))
 
 
 def _embed_sentences(sentences: list[str]):
