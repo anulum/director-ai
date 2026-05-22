@@ -13,6 +13,8 @@ pipeline integration with CoherenceScorer, and performance documentation.
 
 from __future__ import annotations
 
+import pytest
+
 import director_ai.core.runtime.contradiction_tracker as tracker_mod
 from director_ai.core.runtime.contradiction_tracker import ContradictionTracker
 
@@ -168,7 +170,7 @@ class TestContradictionRustMean:
         assert abs(report.trend) < 0.01
         assert called["count"] >= 1
 
-    def test_rust_mean_type_error_falls_back(self, monkeypatch):
+    def test_rust_mean_type_error_is_mandatory_failure(self, monkeypatch):
         monkeypatch.setattr(tracker_mod, "_RUST_CONTRADICTION", True)
         monkeypatch.setattr(
             tracker_mod,
@@ -177,6 +179,6 @@ class TestContradictionRustMean:
             raising=True,
         )
         tracker = ContradictionTracker()
-        for i in range(5):
-            tracker.update(f"turn {i}", _fake_scorer(0.4))
-        assert abs(tracker.get_report().trend) < 0.01
+        with pytest.raises(TypeError, match="ffi signature mismatch"):
+            for i in range(3):
+                tracker.update(f"turn {i}", _fake_scorer(0.4))

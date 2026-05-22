@@ -156,7 +156,7 @@ class TestScoreClaimCoverage:
         assert len(divs) == 3
         assert len(claims) == 3
 
-    def test_rust_coverage_reducer_runtime_fallback(self):
+    def test_rust_coverage_reducer_runtime_failure_is_mandatory(self):
         scorer = self._make_scorer(
             {
                 "Claim A.": 0.2,
@@ -172,15 +172,15 @@ class TestScoreClaimCoverage:
                 "director_ai.core.scoring.nli.rust_coverage_from_divergences",
                 side_effect=RuntimeError("ffi unavailable"),
             ),
+            pytest.raises(RuntimeError, match="ffi unavailable"),
         ):
-            cov, _divs, _claims = scorer.score_claim_coverage(
+            scorer.score_claim_coverage(
                 "Source.",
                 "Claim A. Claim B.",
                 support_threshold=0.6,
             )
-        assert cov == pytest.approx(0.5)
 
-    def test_rust_coverage_reducer_non_runtime_fallback(self):
+    def test_rust_coverage_reducer_non_runtime_failure_is_mandatory(self):
         scorer = self._make_scorer(
             {
                 "Claim A.": 0.2,
@@ -196,15 +196,15 @@ class TestScoreClaimCoverage:
                 "director_ai.core.scoring.nli.rust_coverage_from_divergences",
                 side_effect=ValueError("ffi unavailable"),
             ),
+            pytest.raises(ValueError, match="ffi unavailable"),
         ):
-            cov, _divs, _claims = scorer.score_claim_coverage(
+            scorer.score_claim_coverage(
                 "Source.",
                 "Claim A. Claim B.",
                 support_threshold=0.6,
             )
-        assert cov == pytest.approx(0.5)
 
-    def test_rust_coverage_reducer_type_error_fallback(self):
+    def test_rust_coverage_reducer_type_error_is_mandatory(self):
         scorer = self._make_scorer(
             {
                 "Claim A.": 0.2,
@@ -220,13 +220,13 @@ class TestScoreClaimCoverage:
                 "director_ai.core.scoring.nli.rust_coverage_from_divergences",
                 side_effect=TypeError("ffi unavailable"),
             ),
+            pytest.raises(TypeError, match="ffi unavailable"),
         ):
-            cov, _divs, _claims = scorer.score_claim_coverage(
+            scorer.score_claim_coverage(
                 "Source.",
                 "Claim A. Claim B.",
                 support_threshold=0.6,
             )
-        assert cov == pytest.approx(0.5)
 
 
 # â”€â”€ Config wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€

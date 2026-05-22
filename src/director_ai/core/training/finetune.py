@@ -547,15 +547,12 @@ def finetune_nli(
 
         # Phase E: auto ONNX export
         if config.auto_onnx_export:
-            try:
-                from director_ai.core.scoring.nli import export_onnx
+            from director_ai.core.scoring.nli import export_onnx
 
-                onnx_dir = str(Path(config.output_dir) / "onnx")
-                export_onnx(config.output_dir, onnx_dir)
-                result.onnx_path = onnx_dir
-                logger.info("ONNX exported to %s", onnx_dir)
-            except Exception as exc:
-                logger.warning("ONNX export failed: %s", exc)
+            onnx_dir = str(Path(config.output_dir) / "onnx")
+            export_onnx(config.output_dir, onnx_dir)
+            result.onnx_path = onnx_dir
+            logger.info("ONNX exported to %s", onnx_dir)
 
         return result
     finally:

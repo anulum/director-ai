@@ -70,7 +70,8 @@ class StatsStore:
         clause = "WHERE timestamp >= ?" if since else ""
         params = (since,) if since else ()
         row = self._conn.execute(
-            f"SELECT COUNT(*) as total, "  # nosec B608 — clause is literal WHERE/empty; user value via params
+            # Clause is a literal WHERE or empty string; user values remain bound params.
+            f"SELECT COUNT(*) as total, "  # nosec B608
             f"SUM(approved) as approved, "
             f"SUM(halted) as halted, "
             f"AVG(score) as avg_score, "

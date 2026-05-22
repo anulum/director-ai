@@ -49,7 +49,9 @@ class TestSplitSentences:
             rust_result = [s.strip() for s in rust_split_sentences(text) if s.strip()]
             assert rust_result == py_result
 
-    def test_split_sentences_falls_back_on_non_runtime_rust_error(self, monkeypatch):
+    def test_split_sentences_non_runtime_rust_error_is_mandatory_failure(
+        self, monkeypatch
+    ):
         monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
         monkeypatch.setattr(
             nli_mod,
@@ -57,10 +59,10 @@ class TestSplitSentences:
             lambda _text: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=True,
         )
-        result = NLIScorer._split_sentences("Hello world. How are you?")
-        assert len(result) == 2
+        with pytest.raises(ValueError, match="ffi"):
+            NLIScorer._split_sentences("Hello world. How are you?")
 
-    def test_split_sentences_falls_back_on_rust_type_error(self, monkeypatch):
+    def test_split_sentences_rust_type_error_is_mandatory_failure(self, monkeypatch):
         monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
         monkeypatch.setattr(
             nli_mod,
@@ -68,8 +70,8 @@ class TestSplitSentences:
             lambda _text: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
             raising=True,
         )
-        result = NLIScorer._split_sentences("Hello world. How are you?")
-        assert len(result) == 2
+        with pytest.raises(TypeError, match="ffi signature mismatch"):
+            NLIScorer._split_sentences("Hello world. How are you?")
 
 
 class TestEstimateTokens:
@@ -118,7 +120,9 @@ class TestBuildChunks:
             rust_chunks = rust_build_chunks(sentences, 20, overlap_ratio)
             assert list(rust_chunks) == py_chunks
 
-    def test_build_chunks_falls_back_on_non_runtime_rust_error(self, monkeypatch):
+    def test_build_chunks_non_runtime_rust_error_is_mandatory_failure(
+        self, monkeypatch
+    ):
         monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
         monkeypatch.setattr(
             nli_mod,
@@ -130,10 +134,10 @@ class TestBuildChunks:
         )
         scorer = NLIScorer(use_model=False)
         sentences = [f"Sentence {i} with enough words." for i in range(8)]
-        chunks = scorer._build_chunks(sentences, budget=20, overlap_ratio=0.0)
-        assert chunks
+        with pytest.raises(ValueError, match="ffi"):
+            scorer._build_chunks(sentences, budget=20, overlap_ratio=0.0)
 
-    def test_build_chunks_falls_back_on_rust_type_error(self, monkeypatch):
+    def test_build_chunks_rust_type_error_is_mandatory_failure(self, monkeypatch):
         monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
         monkeypatch.setattr(
             nli_mod,
@@ -145,8 +149,8 @@ class TestBuildChunks:
         )
         scorer = NLIScorer(use_model=False)
         sentences = [f"Sentence {i} with enough words." for i in range(8)]
-        chunks = scorer._build_chunks(sentences, budget=20, overlap_ratio=0.0)
-        assert chunks
+        with pytest.raises(TypeError, match="ffi signature mismatch"):
+            scorer._build_chunks(sentences, budget=20, overlap_ratio=0.0)
 
 
 class TestScoreChunked:
@@ -337,7 +341,9 @@ class TestScoreChunked:
         assert float(agg_rust) == pytest.approx(agg_py, abs=1e-12)
         assert [float(v) for v in per_hyp_rust] == pytest.approx(per_hyp_py, abs=1e-12)
 
-    def test_chunk_aggregation_falls_back_on_non_runtime_rust_error(self, monkeypatch):
+    def test_chunk_aggregation_non_runtime_rust_error_is_mandatory_failure(
+        self, monkeypatch
+    ):
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Evidence {i} text" for i in range(20)) + "."
         long_hyp = ". ".join(f"Claim {i} text" for i in range(20)) + "."
@@ -346,13 +352,10 @@ class TestScoreChunked:
             "director_ai.core.scoring.nli.rust_aggregate_chunk_scores",
             lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("boom")),
         )
-        agg, per_hyp, np, nh = scorer._score_chunked_with_counts(long_prem, long_hyp)
-        assert np > 1
-        assert nh > 1
-        assert len(per_hyp) == nh
-        assert 0.0 <= agg <= 1.0
+        with pytest.raises(ValueError, match="boom"):
+            scorer._score_chunked_with_counts(long_prem, long_hyp)
 
-    def test_chunk_aggregation_falls_back_on_rust_type_error(self, monkeypatch):
+    def test_chunk_aggregation_rust_type_error_is_mandatory_failure(self, monkeypatch):
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Evidence {i} text" for i in range(20)) + "."
         long_hyp = ". ".join(f"Claim {i} text" for i in range(20)) + "."
@@ -363,11 +366,8 @@ class TestScoreChunked:
                 TypeError("ffi signature mismatch")
             ),
         )
-        agg, per_hyp, np, nh = scorer._score_chunked_with_counts(long_prem, long_hyp)
-        assert np > 1
-        assert nh > 1
-        assert len(per_hyp) == nh
-        assert 0.0 <= agg <= 1.0
+        with pytest.raises(TypeError, match="ffi signature mismatch"):
+            scorer._score_chunked_with_counts(long_prem, long_hyp)
 
     def test_premise_ratio_reduces_premise_chunks(self):
         """Higher premise_ratio gives more premise budget â†’ fewer premise chunks."""
@@ -476,7 +476,7 @@ class TestScoreChunked:
         assert float(agg_rust) == pytest.approx(agg_py, abs=1e-12)
         assert [float(v) for v in per_hyp_rust] == pytest.approx(per_hyp_py, abs=1e-12)
 
-    def test_confidence_weighted_falls_back_on_non_runtime_rust_error(
+    def test_confidence_weighted_non_runtime_rust_error_is_mandatory_failure(
         self, monkeypatch
     ):
         scorer = NLIScorer(use_model=False, max_length=64)
@@ -487,13 +487,14 @@ class TestScoreChunked:
             "director_ai.core.scoring.nli.rust_aggregate_chunk_scores_confidence_weighted",
             lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("boom")),
         )
-        agg, per_hyp = scorer.score_chunked_confidence_weighted(
-            long_prem, long_hyp, inner_agg="max"
-        )
-        assert per_hyp
-        assert 0.0 <= agg <= 1.0
+        with pytest.raises(ValueError, match="boom"):
+            scorer.score_chunked_confidence_weighted(
+                long_prem, long_hyp, inner_agg="max"
+            )
 
-    def test_confidence_weighted_falls_back_on_rust_type_error(self, monkeypatch):
+    def test_confidence_weighted_rust_type_error_is_mandatory_failure(
+        self, monkeypatch
+    ):
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Source {i} content" for i in range(20)) + "."
         long_hyp = ". ".join(f"Claim {i} detail" for i in range(20)) + "."
@@ -504,8 +505,7 @@ class TestScoreChunked:
                 TypeError("ffi signature mismatch")
             ),
         )
-        agg, per_hyp = scorer.score_chunked_confidence_weighted(
-            long_prem, long_hyp, inner_agg="max"
-        )
-        assert per_hyp
-        assert 0.0 <= agg <= 1.0
+        with pytest.raises(TypeError, match="ffi signature mismatch"):
+            scorer.score_chunked_confidence_weighted(
+                long_prem, long_hyp, inner_agg="max"
+            )

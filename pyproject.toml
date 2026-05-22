@@ -243,6 +243,7 @@ dev = [
     "pre-commit>=4.0,<5",
     "ruff>=0.5,<1",
     "mypy>=1.10",
+    "maturin>=1.12,<2",
     "types-requests>=2.31",
     "types-PyYAML>=6.0",
     "hypothesis>=6.0",

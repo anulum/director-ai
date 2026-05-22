@@ -1696,7 +1696,7 @@ mod tests {
         assert_eq!(per_hyp.len(), 2);
         assert!((per_hyp[0] - 0.4).abs() < 1e-12);
         assert!((per_hyp[1] - 0.8).abs() < 1e-12);
-        assert!(agg >= 0.4 && agg <= 0.8);
+        assert!((0.4..=0.8).contains(&agg));
     }
 
     #[test]

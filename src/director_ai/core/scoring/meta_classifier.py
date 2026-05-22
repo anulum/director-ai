@@ -15,7 +15,9 @@ bundle and predicts per-input thresholds based on text features.
 from __future__ import annotations
 
 import logging
-import pickle  # nosec B403 — intentional; runtime warns on untrusted paths
+
+# Runtime emits an explicit warning for untrusted model artefact paths.
+import pickle  # nosec B403
 import re
 import warnings
 
@@ -208,7 +210,8 @@ class DatasetTypeClassifier:
         try:
             with warnings.catch_warnings():
                 warnings.simplefilter("error", _INCONSISTENT_VERSION_WARNING)
-                bundle = pickle.loads(raw)  # nosec B301 — warned above; hash logged for auditability
+                # The source path is warned above and the hash is logged for auditability.
+                bundle = pickle.loads(raw)  # nosec B301
         except _INCONSISTENT_VERSION_WARNING as exc:
             raise ValueError(
                 f"Incompatible sklearn artefact at {model_path}: {exc}",

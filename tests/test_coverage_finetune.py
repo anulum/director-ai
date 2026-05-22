@@ -749,6 +749,7 @@ class TestFinetuneNliPhaseE:
         ds_mod = _make_fake_datasets_module()
 
         onnx_mod = types.ModuleType("director_ai.core.scoring.nli")
+        onnx_mod.clear_model_cache = MagicMock()
         onnx_mod.export_onnx = MagicMock()
 
         with patch.dict(
@@ -763,9 +764,10 @@ class TestFinetuneNliPhaseE:
 
         expected = str(Path(cfg.output_dir) / "onnx")
         assert result.onnx_path == expected
+        onnx_mod.clear_model_cache.assert_called_once_with()
         onnx_mod.export_onnx.assert_called_once_with(cfg.output_dir, expected)
 
-    def test_auto_onnx_export_exception_swallowed(self, tmp_path, train_file):
+    def test_auto_onnx_export_failure_is_raised(self, tmp_path, train_file):
         from director_ai.core.training.finetune import FinetuneConfig, finetune_nli
 
         cfg = FinetuneConfig(
@@ -778,6 +780,7 @@ class TestFinetuneNliPhaseE:
         ds_mod = _make_fake_datasets_module()
 
         onnx_mod = types.ModuleType("director_ai.core.scoring.nli")
+        onnx_mod.clear_model_cache = MagicMock()
         onnx_mod.export_onnx = MagicMock(side_effect=RuntimeError("onnx broke"))
 
         with patch.dict(
@@ -788,9 +791,9 @@ class TestFinetuneNliPhaseE:
                 "director_ai.core.scoring.nli": onnx_mod,
             },
         ):
-            result = finetune_nli(train_file, config=cfg)
-
-        assert result.onnx_path == ""
+            with pytest.raises(RuntimeError, match="onnx broke"):
+                finetune_nli(train_file, config=cfg)
+        onnx_mod.clear_model_cache.assert_called_once_with()
 
     def test_save_strategy_steps_when_eval_present(
         self, tmp_path, train_file, eval_file

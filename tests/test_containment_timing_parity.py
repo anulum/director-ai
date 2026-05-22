@@ -12,6 +12,8 @@ import hmac
 from hashlib import sha256
 from pathlib import Path
 
+import pytest
+
 from director_ai.core.containment import anchor as anchor_mod
 from director_ai.core.containment.anchor import ContainmentAttestor
 
@@ -80,7 +82,7 @@ def test_rust_and_python_mac_paths_make_same_decisions(monkeypatch) -> None:
     assert accelerated == fallback == [True, False, False, False]
 
 
-def test_rust_mac_exception_falls_back_to_python(monkeypatch) -> None:
+def test_rust_mac_exception_is_mandatory_failure(monkeypatch) -> None:
     attestor = ContainmentAttestor(
         key=KEY,
         issuer="host",
@@ -94,10 +96,11 @@ def test_rust_mac_exception_falls_back_to_python(monkeypatch) -> None:
         lambda _key, _payload, _mac: (_ for _ in ()).throw(RuntimeError("ffi fail")),
     )
 
-    assert anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
+    with pytest.raises(RuntimeError, match="ffi"):
+        anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
 
 
-def test_rust_mac_non_runtime_exception_falls_back_to_python(monkeypatch) -> None:
+def test_rust_mac_non_runtime_exception_is_mandatory_failure(monkeypatch) -> None:
     attestor = ContainmentAttestor(
         key=KEY,
         issuer="host",
@@ -111,10 +114,11 @@ def test_rust_mac_non_runtime_exception_falls_back_to_python(monkeypatch) -> Non
         lambda _key, _payload, _mac: (_ for _ in ()).throw(ValueError("ffi fail")),
     )
 
-    assert anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
+    with pytest.raises(ValueError, match="ffi"):
+        anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
 
 
-def test_rust_mac_arithmetic_exception_falls_back_to_python(monkeypatch) -> None:
+def test_rust_mac_arithmetic_exception_is_mandatory_failure(monkeypatch) -> None:
     attestor = ContainmentAttestor(
         key=KEY,
         issuer="host",
@@ -128,10 +132,11 @@ def test_rust_mac_arithmetic_exception_falls_back_to_python(monkeypatch) -> None
         lambda _key, _payload, _mac: (_ for _ in ()).throw(ArithmeticError("ffi fail")),
     )
 
-    assert anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
+    with pytest.raises(ArithmeticError, match="ffi"):
+        anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
 
 
-def test_rust_mac_type_error_falls_back_to_python(monkeypatch) -> None:
+def test_rust_mac_type_error_is_mandatory_failure(monkeypatch) -> None:
     attestor = ContainmentAttestor(
         key=KEY,
         issuer="host",
@@ -145,7 +150,8 @@ def test_rust_mac_type_error_falls_back_to_python(monkeypatch) -> None:
         lambda _key, _payload, _mac: (_ for _ in ()).throw(TypeError("ffi fail")),
     )
 
-    assert anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
+    with pytest.raises(TypeError, match="ffi"):
+        anchor_mod._verify_anchor_mac(KEY, anchor.canonical_payload, anchor.mac)
 
 
 def test_rust_containment_mac_helper_is_registered() -> None:

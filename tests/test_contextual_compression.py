@@ -67,7 +67,7 @@ class TestKeywordOverlap:
             1.0 / 3.0
         )
 
-    def test_rust_overlap_exception_falls_back_to_python(self, monkeypatch):
+    def test_rust_overlap_exception_is_mandatory_failure(self, monkeypatch):
         monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
 
         def _boom(_query, _sentence):
@@ -79,11 +79,10 @@ class TestKeywordOverlap:
             _boom,
             raising=False,
         )
-        assert _keyword_overlap("refund policy", "refund process") == pytest.approx(
-            1.0 / 3.0
-        )
+        with pytest.raises(RuntimeError, match="ffi"):
+            _keyword_overlap("refund policy", "refund process")
 
-    def test_rust_overlap_non_runtime_exception_falls_back_to_python(self, monkeypatch):
+    def test_rust_overlap_non_runtime_exception_is_mandatory_failure(self, monkeypatch):
         monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
 
         def _boom(_query, _sentence):
@@ -95,11 +94,10 @@ class TestKeywordOverlap:
             _boom,
             raising=False,
         )
-        assert _keyword_overlap("refund policy", "refund process") == pytest.approx(
-            1.0 / 3.0
-        )
+        with pytest.raises(ValueError, match="ffi"):
+            _keyword_overlap("refund policy", "refund process")
 
-    def test_rust_overlap_type_error_falls_back_to_python(self, monkeypatch):
+    def test_rust_overlap_type_error_is_mandatory_failure(self, monkeypatch):
         monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
 
         def _boom(_query, _sentence):
@@ -111,9 +109,8 @@ class TestKeywordOverlap:
             _boom,
             raising=False,
         )
-        assert _keyword_overlap("refund policy", "refund process") == pytest.approx(
-            1.0 / 3.0
-        )
+        with pytest.raises(TypeError, match="ffi signature mismatch"):
+            _keyword_overlap("refund policy", "refund process")
 
 
 # ── Heuristic compression ─────────────────────────────────────────────

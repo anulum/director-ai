@@ -151,8 +151,8 @@ class TestProfileLoading:
         assert "FPR=1.0" in DirectorConfig.profile_metadata("medical").validation_status
         assert finance["fpr"] == pytest.approx(1.0)
         assert "FPR=1.0" in DirectorConfig.profile_metadata("finance").validation_status
-        assert legal["total"] == 0
-        assert "total=0" in DirectorConfig.profile_metadata("legal").validation_status
+        assert legal["fpr"] == pytest.approx(1.0)
+        assert "FPR=1.0" in DirectorConfig.profile_metadata("legal").validation_status
 
     def test_public_docs_do_not_claim_stock_regulated_profiles_are_measured(self):
         root = Path(__file__).resolve().parents[1]

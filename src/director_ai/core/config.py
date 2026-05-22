@@ -201,7 +201,8 @@ class DirectorConfig:
     cache_ttl: float = 300.0
 
     # Server
-    server_host: str = "0.0.0.0"  # nosec B104 — override via HOST env var; production behind reverse proxy
+    # Production deployments override this via HOST and run behind a reverse proxy.
+    server_host: str = "0.0.0.0"  # nosec B104
     server_port: int = 8080
     server_workers: int = 1
     cors_origins: str = ""
@@ -1409,7 +1410,7 @@ _PROFILE_METADATA: dict[str, ProfileMetadata] = {
     "legal": ProfileMetadata(
         name="legal",
         intended_workload="Legal reasoning chains over small curated KBs.",
-        validation_status="CUAD artifact has total=0; not independently validated",
+        validation_status="CUAD artifact shows FPR=1.0 at t=0.30; calibration required",
         expected_false_halt_risk="unknown; treat as high until tuned",
         required_dependencies=("nli",),
         notes="Thresholds are aligned with other high-stakes profiles pending eval.",

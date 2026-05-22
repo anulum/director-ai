@@ -241,7 +241,7 @@ def test_registry_uses_rust_mean_when_available(monkeypatch) -> None:
     assert called["count"] >= 1
 
 
-def test_registry_rust_mean_type_error_falls_back(monkeypatch) -> None:
+def test_registry_rust_mean_type_error_is_mandatory_failure(monkeypatch) -> None:
     monkeypatch.setattr(registry_mod, "_RUST_AGENT_IDENTITY", True)
     monkeypatch.setattr(
         registry_mod,
@@ -269,5 +269,5 @@ def test_registry_rust_mean_type_error_falls_back(monkeypatch) -> None:
         coherence_score=0.6,
         decision="warn",
     )
-    exported = registry.export_agent(passport.agent_id)
-    assert exported["coherence_summary"]["mean"] == pytest.approx(0.7)
+    with pytest.raises(TypeError, match="ffi signature mismatch"):
+        registry.export_agent(passport.agent_id)

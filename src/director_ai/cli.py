@@ -23,7 +23,9 @@ from __future__ import annotations
 
 import json
 import shutil
-import subprocess  # nosec B404 - explicit --run executes fixed docker compose argv.
+
+# Used only for explicit --run, executing a fixed docker compose argv.
+import subprocess  # nosec B404
 import sys
 from pathlib import Path
 
@@ -403,7 +405,8 @@ def _run_quickstart_compose(out_dir: Path) -> None:
         print("Error: docker compose is required for --run.")
         sys.exit(1)
     try:
-        subprocess.run(  # nosec B603 - fixed argv, no shell, new quickstart cwd.
+        # Fixed argv, no shell, and an explicit generated quickstart directory.
+        subprocess.run(  # nosec B603
             [docker, "compose", "up"],
             cwd=out_dir,
             check=True,

@@ -247,7 +247,7 @@ class TestBuilder:
         scorer = ModuleBuilder().build(bp)
         assert scorer("the quick brown fox") == pytest.approx(0.77)
 
-    def test_ngram_overlap_rust_exception_falls_back(self, monkeypatch):
+    def test_ngram_overlap_rust_exception_is_mandatory_failure(self, monkeypatch):
         monkeypatch.setattr(builder_mod, "_RUST_AUTOPOIETIC", True)
         monkeypatch.setattr(
             builder_mod,
@@ -261,10 +261,12 @@ class TestBuilder:
             reference_vocabulary=("the quick", "quick brown"),
         )
         scorer = ModuleBuilder().build(bp)
-        score = scorer("the quick brown fox")
-        assert 0.0 <= score <= 1.0
+        with pytest.raises(RuntimeError, match="ffi"):
+            scorer("the quick brown fox")
 
-    def test_ngram_overlap_rust_non_runtime_exception_falls_back(self, monkeypatch):
+    def test_ngram_overlap_rust_non_runtime_exception_is_mandatory_failure(
+        self, monkeypatch
+    ):
         monkeypatch.setattr(builder_mod, "_RUST_AUTOPOIETIC", True)
         monkeypatch.setattr(
             builder_mod,
@@ -278,8 +280,8 @@ class TestBuilder:
             reference_vocabulary=("the quick", "quick brown"),
         )
         scorer = ModuleBuilder().build(bp)
-        score = scorer("the quick brown fox")
-        assert 0.0 <= score <= 1.0
+        with pytest.raises(ValueError, match="ffi"):
+            scorer("the quick brown fox")
 
     def test_ensemble_scorer_is_weighted_mean(self):
         length = ModuleBlueprint(kind="length", length_saturation=10)

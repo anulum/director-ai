@@ -8,6 +8,7 @@
 
 import importlib.machinery
 import importlib.util
+import logging
 import os
 import sys
 import types
@@ -53,6 +54,47 @@ if "llama_cpp" not in sys.modules and importlib.util.find_spec("llama_cpp") is N
 # pytest.importorskip("datasets") and a global stub defeats that
 # guard. Benchmark tests that need to patch datasets.load_dataset
 # must use the ``_ensure_datasets_stub`` fixture below.
+
+# PyTorch is not safely re-importable after its package modules are removed
+# from ``sys.modules`` because its C extension keeps process-global state.
+# Tests may temporarily patch ``sys.modules["torch"] = None``; loading the
+# real module once here makes patch.dict restore the real package afterwards.
+try:  # pragma: no cover - exercised indirectly by dependency isolation tests
+    import torch  # noqa: F401
+except Exception as exc:  # pragma: no cover - only on dependency bootstrap faults
+    logging.getLogger(__name__).warning("Torch preload unavailable: %s", exc)
+
+_DEPENDENCY_SENTINEL_PREFIXES = (
+    "torch",
+    "transformers",
+    "sentence_transformers",
+)
+
+
+def _remove_missing_dependency_sentinels() -> None:
+    """Remove ``sys.modules`` sentinels left by missing-dependency tests."""
+    for name, module in list(sys.modules.items()):
+        root = name.split(".", 1)[0]
+        if (
+            root in _DEPENDENCY_SENTINEL_PREFIXES
+            and module is None
+            and root not in sys.modules
+        ):
+            del sys.modules[name]
+
+
+@pytest.fixture(autouse=True)
+def _isolate_missing_dependency_sentinels():
+    """Keep missing-dependency simulations from poisoning later tests.
+
+    Several tests intentionally set ``sys.modules["torch"] = None`` or the
+    equivalent for transformer stacks to exercise import-error paths. PyTorch
+    cannot be re-imported cleanly while those sentinels remain, so each test
+    gets a clean boundary.
+    """
+    _remove_missing_dependency_sentinels()
+    yield
+    _remove_missing_dependency_sentinels()
 
 
 @pytest.fixture(autouse=False)

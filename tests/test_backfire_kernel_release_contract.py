@@ -38,7 +38,13 @@ def test_release_contract_versions_are_aligned() -> None:
 
     assert workspace["workspace"]["package"]["version"] == version
     assert wheel["project"]["version"] == version
-    assert f"backfire-kernel{supported_range}" in pyproject
+    if "[tool.uv.sources]" in pyproject:
+        assert (
+            'backfire-kernel = { path = "backfire-kernel/crates/backfire-ffi" }'
+            in pyproject
+        )
+    else:
+        assert f"backfire-kernel{supported_range}" in pyproject
 
 
 def test_all_crates_use_workspace_version_and_licence() -> None:

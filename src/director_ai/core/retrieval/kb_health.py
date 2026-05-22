@@ -217,8 +217,11 @@ class KBHealthCheck:
         latencies: list[float] = []
         for query in self._probe_queries:
             t0 = time.perf_counter()
-            with mandatory_execution(__name__, component="mandatory accelerated path"):
+            try:
                 self._store.retrieve_context(query)
+            except Exception:
+                logger.exception("KB latency probe failed")
+                return float("inf")
             latencies.append((time.perf_counter() - t0) * 1000)
 
         return _mean_float(latencies) if latencies else 0.0
@@ -228,10 +231,13 @@ class KBHealthCheck:
         if not hasattr(self._store, "retrieve_context"):
             return False
         for query in self._probe_queries[:3]:
-            with mandatory_execution(__name__, component="mandatory accelerated path"):
+            try:
                 result = self._store.retrieve_context(query)
-                if result:
-                    return True
+            except Exception:
+                logger.exception("KB retrieval-result probe failed")
+                return False
+            if result:
+                return True
         return False
 
     def _check_no_empty_entries(self) -> bool:

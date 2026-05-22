@@ -215,7 +215,7 @@ class TestConsensusRustDelegation:
         divergence = ConsensusScorer._jaccard_divergence("x", "y")
         assert divergence == pytest.approx(0.4)
 
-    def test_rust_word_overlap_exception_falls_back_to_python(self, monkeypatch):
+    def test_rust_word_overlap_exception_is_mandatory_failure(self, monkeypatch):
         from director_ai.core.scoring import consensus as consensus_mod
 
         monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", True)
@@ -229,9 +229,10 @@ class TestConsensusRustDelegation:
             _boom,
             raising=False,
         )
-        assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
+        with pytest.raises(RuntimeError, match="ffi"):
+            _word_overlap("alpha beta", "alpha gamma")
 
-    def test_rust_word_overlap_non_runtime_exception_falls_back_to_python(
+    def test_rust_word_overlap_non_runtime_exception_is_mandatory_failure(
         self, monkeypatch
     ):
         from director_ai.core.scoring import consensus as consensus_mod
@@ -247,9 +248,10 @@ class TestConsensusRustDelegation:
             _boom,
             raising=False,
         )
-        assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
+        with pytest.raises(ValueError, match="ffi"):
+            _word_overlap("alpha beta", "alpha gamma")
 
-    def test_rust_word_overlap_type_error_falls_back_to_python(self, monkeypatch):
+    def test_rust_word_overlap_type_error_is_mandatory_failure(self, monkeypatch):
         from director_ai.core.scoring import consensus as consensus_mod
 
         monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", True)
@@ -263,7 +265,8 @@ class TestConsensusRustDelegation:
             _boom,
             raising=False,
         )
-        assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
+        with pytest.raises(TypeError, match="ffi"):
+            _word_overlap("alpha beta", "alpha gamma")
 
 
 class TestCrossVerifierConsensus:

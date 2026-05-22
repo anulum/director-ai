@@ -12,11 +12,19 @@ scoring, threshold behaviour, and pattern matching.
 
 from __future__ import annotations
 
+import pytest
+
 import director_ai.core.retrieval.adaptive_router as router_mod
 from director_ai.core.retrieval.adaptive_router import (
     AdaptiveRouter,
     RoutingDecision,
 )
+
+
+def _assert_mandatory_failure(exc_type, action) -> None:
+    with pytest.raises(exc_type, match="ffi"):
+        action()
+
 
 # ── Factual queries → should retrieve ──────────────────────────────────
 
@@ -157,7 +165,7 @@ class TestTaskType:
         assert d.task_type == "qa"
         assert d.confidence == 0.9
 
-    def test_rust_task_type_exception_falls_back_to_python(self, monkeypatch):
+    def test_rust_task_type_exception_is_mandatory_failure(self, monkeypatch):
         monkeypatch.setattr(router_mod, "_RUST_AVAILABLE", True)
         monkeypatch.setattr(
             router_mod,
@@ -165,10 +173,12 @@ class TestTaskType:
             lambda _query, _response: (_ for _ in ()).throw(RuntimeError("ffi fail")),
             raising=True,
         )
-        decision = AdaptiveRouter().should_retrieve("What is the refund policy?")
-        assert decision.task_type
+        _assert_mandatory_failure(
+            RuntimeError,
+            lambda: AdaptiveRouter().should_retrieve("What is the refund policy?"),
+        )
 
-    def test_rust_task_type_non_runtime_exception_falls_back_to_python(
+    def test_rust_task_type_non_runtime_exception_is_mandatory_failure(
         self, monkeypatch
     ):
         monkeypatch.setattr(router_mod, "_RUST_AVAILABLE", True)
@@ -178,10 +188,12 @@ class TestTaskType:
             lambda _query, _response: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=True,
         )
-        decision = AdaptiveRouter().should_retrieve("What is the refund policy?")
-        assert decision.task_type
+        _assert_mandatory_failure(
+            ValueError,
+            lambda: AdaptiveRouter().should_retrieve("What is the refund policy?"),
+        )
 
-    def test_rust_task_type_type_error_falls_back_to_python(self, monkeypatch):
+    def test_rust_task_type_type_error_is_mandatory_failure(self, monkeypatch):
         monkeypatch.setattr(router_mod, "_RUST_AVAILABLE", True)
         monkeypatch.setattr(
             router_mod,
@@ -189,8 +201,10 @@ class TestTaskType:
             lambda _query, _response: (_ for _ in ()).throw(TypeError("ffi fail")),
             raising=True,
         )
-        decision = AdaptiveRouter().should_retrieve("What is the refund policy?")
-        assert decision.task_type
+        _assert_mandatory_failure(
+            TypeError,
+            lambda: AdaptiveRouter().should_retrieve("What is the refund policy?"),
+        )
 
 
 # ── Edge cases ──────────────────────────────────────────────────────────

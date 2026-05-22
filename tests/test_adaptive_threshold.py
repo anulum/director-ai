@@ -141,7 +141,7 @@ def test_rust_posterior_kernel_is_used_when_available(monkeypatch):
     assert calls["count"] >= 1
 
 
-def test_rust_posterior_type_error_falls_back_to_python(monkeypatch):
+def test_rust_posterior_type_error_is_mandatory_failure(monkeypatch):
     monkeypatch.setattr(adaptive_mod, "_RUST_ADAPTIVE", True)
     monkeypatch.setattr(
         adaptive_mod,
@@ -153,5 +153,5 @@ def test_rust_posterior_type_error_falls_back_to_python(monkeypatch):
         candidate_thresholds=[0.4], current_threshold=0.4
     )
     learner.observe_batch(_feedback())
-    value = learner.arm(0.4).posterior_mean
-    assert 0.0 <= value <= 1.0
+    with pytest.raises(TypeError, match="ffi signature mismatch"):
+        _ = learner.arm(0.4).posterior_mean

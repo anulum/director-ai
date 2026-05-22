@@ -346,6 +346,8 @@ class VectorGroundTruthStore(GroundTruthStore):
         }
         self._replacement_records.append(dict(event))
         current["replacement_reason"] = reason
+        fact_key = f"{tenant_id}:{key}" if tenant_id else key
+        self.facts[fact_key] = value
         return event
 
     def add_fact(
