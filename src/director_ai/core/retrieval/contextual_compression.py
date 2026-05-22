@@ -33,6 +33,7 @@ from __future__ import annotations
 import logging
 import re
 from collections.abc import Callable
+from contextlib import suppress
 from typing import Any
 
 from director_ai.core.retrieval.vector_store import VectorBackend
@@ -54,10 +55,8 @@ _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 def _keyword_overlap(query: str, sentence: str) -> float:
     """Jaccard word overlap between query and sentence."""
     if _RUST_COMPRESSION:
-        try:
+        with suppress(Exception):
             return float(rust_word_overlap(query, sentence))
-        except Exception:
-            pass
     q_words = set(query.lower().split())
     s_words = set(sentence.lower().split())
     if not q_words or not s_words:

@@ -22,6 +22,7 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import TypedDict
 
@@ -34,6 +35,7 @@ except ImportError:  # pragma: no cover - optional dependency
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 from .adjuster import ThresholdAdjuster, ThresholdBundle
 from .analyzer import MetaAnalysis, MetaAnalyzer
@@ -260,7 +262,9 @@ def _window_metrics(window: Sequence[ScoringDecision]) -> _WindowMetrics:
             "duplicate_prompt_fraction": 0.0,
             "evasion_score": 0.0,
         }
-    labelled = _sum_int([1 if decision.ground_truth is not None else 0 for decision in window])
+    labelled = _sum_int(
+        [1 if decision.ground_truth is not None else 0 for decision in window]
+    )
     tenant_counts = Counter(decision.tenant_id for decision in window)
     prompt_counts = Counter(decision.prompt_hash for decision in window)
     single_tenant_fraction = max(tenant_counts.values()) / size
@@ -282,8 +286,6 @@ def _validate_fraction(name: str, value: float) -> None:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_META_GUARD:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

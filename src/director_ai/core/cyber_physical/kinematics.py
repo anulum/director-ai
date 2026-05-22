@@ -24,16 +24,19 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
 from .geometry import AABB, Sphere, Vec3
 
 try:
-    from backfire_kernel import rust_sum_f64, rust_two_link_ik as _rust_two_link_ik
+    from backfire_kernel import rust_sum_f64
+    from backfire_kernel import rust_two_link_ik as _rust_two_link_ik
 
     _RUST_IK_AVAILABLE = True
 except ImportError:  # pragma: no cover — optional accelerator
+
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
@@ -180,7 +183,7 @@ class SimpleKinematicModel:
         l1, l2 = links
         elbow_up = self.branch == "elbow_up"
         if _RUST_IK_AVAILABLE:
-            try:
+            with suppress(Exception):
                 result = _rust_two_link_ik(
                     l1,
                     l2,
@@ -189,8 +192,6 @@ class SimpleKinematicModel:
                     elbow_up,
                 )
                 return None if result is None else result
-            except Exception:
-                pass
         dx = target.x - self.chain.base.x
         dy = target.y - self.chain.base.y
         distance = math.sqrt(_sum_float([dx * dx, dy * dy]))
@@ -235,8 +236,6 @@ class SimpleKinematicModel:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_IK_AVAILABLE:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

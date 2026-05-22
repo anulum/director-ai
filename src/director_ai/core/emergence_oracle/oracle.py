@@ -32,6 +32,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
@@ -43,6 +44,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 from .graph import InteractionGraph, SwarmEvent
 from .spectrum import (
@@ -57,10 +59,8 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_EMERGENCE:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)
 
 

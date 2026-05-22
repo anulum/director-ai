@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import threading
 import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:  # pragma: no cover - optional acceleration
@@ -57,8 +58,10 @@ class _Counter:
 
     def total(self) -> float:
         """Return the sum across unlabelled and labelled series."""
-        return self.value + _sum_float(list(self.labels.values())) + _sum_float(
-            list(self.multi_labels.values())
+        return (
+            self.value
+            + _sum_float(list(self.labels.values()))
+            + _sum_float(list(self.multi_labels.values()))
         )
 
 
@@ -156,10 +159,8 @@ class _Gauge:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_METRICS:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)
 
 

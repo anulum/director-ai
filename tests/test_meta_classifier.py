@@ -150,9 +150,7 @@ class TestWordOverlapRustDelegation:
         monkeypatch.setattr(meta_mod, "rust_word_overlap", _boom, raising=False)
         assert _word_overlap("alpha beta", "alpha gamma") == pytest.approx(1.0 / 3.0)
 
-    def test_rust_overlap_non_runtime_exception_falls_back_to_python(
-        self, monkeypatch
-    ):
+    def test_rust_overlap_non_runtime_exception_falls_back_to_python(self, monkeypatch):
         import director_ai.core.meta_classifier as meta_mod
 
         monkeypatch.setattr(meta_mod, "_RUST_META", True)
@@ -251,7 +249,9 @@ def _make_dataset_type_bundle(tmp_path):
 
 
 class TestDatasetTypeClassifier:
-    def test_inconsistent_sklearn_version_warning_is_rejected(self, tmp_path, monkeypatch):
+    def test_inconsistent_sklearn_version_warning_is_rejected(
+        self, tmp_path, monkeypatch
+    ):
         monkeypatch.setattr(
             "director_ai.core.meta_classifier.InconsistentVersionWarning",
             UserWarning,
@@ -283,7 +283,9 @@ class TestDatasetTypeClassifier:
                 "feature_cols": ["nli_score", "confidence"],
             }
 
-        monkeypatch.setattr("director_ai.core.meta_classifier.pickle.loads", _warn_then_load)
+        monkeypatch.setattr(
+            "director_ai.core.meta_classifier.pickle.loads", _warn_then_load
+        )
 
         with pytest.raises(ValueError, match="Incompatible sklearn artefact"):
             DatasetTypeClassifier(path)

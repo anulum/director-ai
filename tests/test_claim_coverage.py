@@ -136,13 +136,16 @@ class TestScoreClaimCoverage:
                 "Claim C.": 0.1,
             },
         )
-        with patch(
-            "director_ai.core.scoring.nli._RUST_NLI",
-            True,
-        ), patch(
-            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
-            return_value=(2.0 / 3.0, 2),
-        ) as rust_reduce:
+        with (
+            patch(
+                "director_ai.core.scoring.nli._RUST_NLI",
+                True,
+            ),
+            patch(
+                "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+                return_value=(2.0 / 3.0, 2),
+            ) as rust_reduce,
+        ):
             cov, divs, claims = scorer.score_claim_coverage(
                 "Source.",
                 "Claim A. Claim B. Claim C.",
@@ -160,12 +163,15 @@ class TestScoreClaimCoverage:
                 "Claim B.": 0.8,
             },
         )
-        with patch(
-            "director_ai.core.scoring.nli._RUST_NLI",
-            True,
-        ), patch(
-            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
-            side_effect=RuntimeError("ffi unavailable"),
+        with (
+            patch(
+                "director_ai.core.scoring.nli._RUST_NLI",
+                True,
+            ),
+            patch(
+                "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+                side_effect=RuntimeError("ffi unavailable"),
+            ),
         ):
             cov, _divs, _claims = scorer.score_claim_coverage(
                 "Source.",
@@ -181,12 +187,15 @@ class TestScoreClaimCoverage:
                 "Claim B.": 0.8,
             },
         )
-        with patch(
-            "director_ai.core.scoring.nli._RUST_NLI",
-            True,
-        ), patch(
-            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
-            side_effect=ValueError("ffi unavailable"),
+        with (
+            patch(
+                "director_ai.core.scoring.nli._RUST_NLI",
+                True,
+            ),
+            patch(
+                "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+                side_effect=ValueError("ffi unavailable"),
+            ),
         ):
             cov, _divs, _claims = scorer.score_claim_coverage(
                 "Source.",
@@ -202,12 +211,15 @@ class TestScoreClaimCoverage:
                 "Claim B.": 0.8,
             },
         )
-        with patch(
-            "director_ai.core.scoring.nli._RUST_NLI",
-            True,
-        ), patch(
-            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
-            side_effect=TypeError("ffi unavailable"),
+        with (
+            patch(
+                "director_ai.core.scoring.nli._RUST_NLI",
+                True,
+            ),
+            patch(
+                "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+                side_effect=TypeError("ffi unavailable"),
+            ),
         ):
             cov, _divs, _claims = scorer.score_claim_coverage(
                 "Source.",

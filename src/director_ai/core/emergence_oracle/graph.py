@@ -18,6 +18,7 @@ clustering, cycle detection) runs in O(V + E).
 from __future__ import annotations
 
 from collections.abc import Iterable
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
@@ -161,7 +162,10 @@ class InteractionGraph:
         """Return the average local clustering over all graph nodes."""
         if self.node_count == 0:
             return 0.0
-        return _sum_float([self.local_clustering(n) for n in self._nodes]) / self.node_count
+        return (
+            _sum_float([self.local_clustering(n) for n in self._nodes])
+            / self.node_count
+        )
 
     def has_cycle(self) -> bool:
         """DFS-based cycle detection."""
@@ -193,8 +197,6 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_GRAPH:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

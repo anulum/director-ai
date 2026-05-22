@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from contextlib import suppress
 from typing import Any
 
 from .detectors import ModerationDetector, ModerationMatch, ModerationResult
@@ -103,7 +104,7 @@ class RegexPIIDetector(ModerationDetector):
         if not text:
             return ModerationResult(detector=self.name, matches=[])
         if self._rust_scanner is not None:
-            try:
+            with suppress(Exception):
                 raw = self._rust_scanner.scan(text)
                 rust_matches = [
                     ModerationMatch(
@@ -116,8 +117,6 @@ class RegexPIIDetector(ModerationDetector):
                     for category, start, end in raw
                 ]
                 return ModerationResult(detector=self.name, matches=rust_matches)
-            except Exception:
-                pass
         matches: list[ModerationMatch] = []
         for category, pattern in self._patterns:
             for m in pattern.finditer(text):

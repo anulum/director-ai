@@ -218,7 +218,9 @@ class TestRustNumericAdapter:
         monkeypatch.setattr(
             numeric_verifier,
             "rust_verify_numeric",
-            lambda _text, _current_year: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            lambda _text, _current_year: (_ for _ in ()).throw(
+                RuntimeError("ffi fail")
+            ),
             raising=False,
         )
 

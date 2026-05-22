@@ -29,6 +29,7 @@ Usage::
 from __future__ import annotations
 
 import re
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
 
@@ -177,10 +178,8 @@ def _detect_task_type_safe(query: str, response: str) -> str:
     (transparent Rust fast-path, ~2µs vs ~50µs Python regex).
     """
     if _RUST_AVAILABLE and _rust_task_type is not None:
-        try:
+        with suppress(Exception):
             return str(_rust_task_type(query, response))
-        except Exception:
-            pass
     try:
         from director_ai.core.scoring._task_scoring import detect_task_type
 

@@ -21,6 +21,7 @@ from __future__ import annotations
 import math
 import random
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -42,10 +43,13 @@ except Exception:  # pragma: no cover - optional dependency
         raise RuntimeError("backfire_kernel rust_wilson_score_interval is unavailable")
 
     def rust_standard_normal_quantile(_p: float) -> float:
-        raise RuntimeError("backfire_kernel rust_standard_normal_quantile is unavailable")
+        raise RuntimeError(
+            "backfire_kernel rust_standard_normal_quantile is unavailable"
+        )
 
     def rust_product_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_product_f64 is unavailable")
+
 
 from .reversibility import ReversibilityEstimator, RuleReversibility
 
@@ -165,11 +169,9 @@ def _wilson_score(p_hat: float, n: int, confidence: float) -> tuple[float, float
     if n <= 0:
         return (0.0, 0.0)
     if _RUST_IRREVERSIBILITY:
-        try:
+        with suppress(Exception):
             low, high = rust_wilson_score_interval(p_hat, n, confidence)
             return (float(low), float(high))
-        except Exception:
-            pass
     z = _standard_normal_quantile((1.0 + confidence) / 2.0)
     denominator = 1.0 + z * z / n
     centre = (p_hat + z * z / (2 * n)) / denominator
@@ -187,10 +189,8 @@ def _standard_normal_quantile(p: float) -> float:
     if not 0.0 < p < 1.0:
         raise ValueError(f"p must be in (0, 1); got {p!r}")
     if _RUST_IRREVERSIBILITY:
-        try:
+        with suppress(Exception):
             return float(rust_standard_normal_quantile(p))
-        except Exception:
-            pass
     # Beasley-Springer coefficients.
     a = (
         -3.969683028665376e01,

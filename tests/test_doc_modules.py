@@ -221,9 +221,7 @@ class TestChunker:
 
         assert chunks
 
-    def test_semantic_mode_rust_sentence_split_type_error_falls_back(
-        self, monkeypatch
-    ):
+    def test_semantic_mode_rust_sentence_split_type_error_falls_back(self, monkeypatch):
         def _boom(_text: str) -> list[str]:
             raise TypeError("ffi fail")
 

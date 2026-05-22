@@ -26,12 +26,15 @@ from __future__ import annotations
 import hashlib
 import hmac
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
 try:
     from backfire_kernel import (
         rust_derive_challenge_indices as _rust_derive_challenge_indices,
+    )
+    from backfire_kernel import (
         rust_sum_f64,
     )
 
@@ -43,6 +46,7 @@ except ImportError:  # pragma: no cover — optional accelerator
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 from .commitment import (
     CommitmentProof,
@@ -184,14 +188,12 @@ class CommitmentBackend:
         the root.
         """
         if _RUST_CHALLENGE_AVAILABLE:
-            try:
+            with suppress(Exception):
                 return list(
                     _rust_derive_challenge_indices(
                         seed_material, sample_count, challenge_size
                     ),
                 )
-            except Exception:
-                pass
         indices: list[int] = []
         seen: set[int] = set()
         counter = 0
@@ -248,10 +250,8 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_ZK_ATTESTATION:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)
 
 

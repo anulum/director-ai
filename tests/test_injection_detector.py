@@ -456,9 +456,7 @@ class TestGracefulDegradation:
         assert claims[1].verdict in {"drifted", "injected"}
         assert mock_nli.score.call_count == 4
 
-    def test_python_fallback_scores_claims_when_rust_verdict_raises(
-        self, monkeypatch
-    ):
+    def test_python_fallback_scores_claims_when_rust_verdict_raises(self, monkeypatch):
         monkeypatch.setattr("director_ai.core.safety.injection._RUST_INJECTION", True)
         monkeypatch.setattr(
             "director_ai.core.safety.injection.rust_bidirectional_divergence",

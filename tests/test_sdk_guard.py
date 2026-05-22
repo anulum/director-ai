@@ -583,7 +583,9 @@ class TestScore:
                     h_factual=0.0,
                 )
 
-        monkeypatch.setattr("director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer)
+        monkeypatch.setattr(
+            "director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer
+        )
 
         cs = score(
             "What color is the sky?",
@@ -612,7 +614,9 @@ class TestScore:
                     h_factual=0.0,
                 )
 
-        monkeypatch.setattr("director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer)
+        monkeypatch.setattr(
+            "director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer
+        )
 
         cs = score(
             "What color is the sky?",
@@ -644,7 +648,9 @@ class TestScore:
                     h_factual=0.0,
                 )
 
-        monkeypatch.setattr("director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer)
+        monkeypatch.setattr(
+            "director_ai.integrations.sdk_guard.CoherenceScorer", _FakeScorer
+        )
         client, _ = _make_openai_client("The sky is blue.")
         guarded = guard(
             client,

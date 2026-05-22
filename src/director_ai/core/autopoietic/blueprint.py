@@ -28,6 +28,7 @@ Four :data:`BlueprintKind` values ship:
 
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass, replace
 from typing import Literal
 
@@ -40,6 +41,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 BlueprintKind = Literal["length", "marker_count", "ngram_overlap", "ensemble"]
 
@@ -246,8 +248,6 @@ def _rebalance(blueprint: ModuleBlueprint, index: int, delta: float) -> ModuleBl
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_BLUEPRINT:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

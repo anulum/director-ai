@@ -21,6 +21,7 @@ import logging
 import time
 from collections import deque
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -62,6 +63,7 @@ except ImportError:
     def _rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
+
 __all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -75,10 +77,8 @@ def _mean(values: Sequence[float] | deque[float]) -> float:
     if not values:
         return 0.0
     if _RUST_TREND:
-        try:
+        with suppress(Exception):
             return float(_rust_mean(list(values)))
-        except Exception:
-            pass
     return _sum_float([float(v) for v in values]) / len(values)
 
 
@@ -89,10 +89,8 @@ def _trend_drop(values: list[float] | deque) -> float:
     Positive values indicate downward trend.
     """
     if _RUST_TREND:
-        try:
+        with suppress(Exception):
             return float(_rust_trend_drop(list(values)))
-        except Exception:
-            pass
     n = len(values)
     if n < 2:
         return 0.0
@@ -106,10 +104,8 @@ def _trend_drop(values: list[float] | deque) -> float:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_TREND:
-        try:
+        with suppress(Exception):
             return float(_rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)
 
 

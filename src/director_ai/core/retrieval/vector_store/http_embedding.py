@@ -21,6 +21,7 @@ import json
 import math
 import os
 from collections.abc import Sequence
+from contextlib import suppress
 from typing import overload
 from urllib.parse import urlparse
 
@@ -33,6 +34,7 @@ except ImportError:  # pragma: no cover - fallback path
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 __all__ = [
     "HttpEmbeddingConnectionError",
@@ -263,8 +265,6 @@ def _embedding_path(base_path: str, endpoint_path: str) -> str:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_HTTP_EMBED:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

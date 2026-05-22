@@ -23,6 +23,7 @@ encoded.  Per-claim attribution provides explainability.
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from dataclasses import dataclass
 
 from ..scoring.verified_scorer import _entity_overlap, _traceability
@@ -40,6 +41,7 @@ try:
 
     _RUST_INJECTION = True
 except ImportError:
+
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
@@ -257,7 +259,7 @@ class InjectionDetector:
 
         # Rust fast path: batch traceability + entity + calibration
         if _RUST_INJECTION:
-            try:
+            with suppress(Exception):
                 bidir_data = rust_bidirectional_divergence(
                     claims,
                     intent,
@@ -300,8 +302,6 @@ class InjectionDetector:
                         )
                     )
                 return result
-            except Exception:
-                pass
 
         # Python fallback path
         result = []
@@ -430,7 +430,11 @@ class InjectionDetector:
         total = len(claims)
         weighted = _sum_float(
             [
-                1.0 if c.verdict == "injected" else 0.4 if c.verdict == "drifted" else 0.0
+                1.0
+                if c.verdict == "injected"
+                else 0.4
+                if c.verdict == "drifted"
+                else 0.0
                 for c in claims
             ]
         )
@@ -447,20 +451,16 @@ class InjectionDetector:
 def _fallback_split(text: str) -> list[str]:
     """Sentence splitting without NLI scorer — period-based fallback."""
     if _RUST_INJECTION:
-        try:
+        with suppress(Exception):
             sentences = [s for s in rust_split_sentences(text) if s.strip()]
             if sentences:
                 return sentences
-        except Exception:
-            pass
     sentences = [s.strip() + "." for s in text.split(".") if s.strip()]
     return sentences if sentences else [text.strip()] if text.strip() else []
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_INJECTION:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

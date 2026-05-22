@@ -54,6 +54,7 @@ except Exception:  # pragma: no cover - optional dependency
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
+
 from ..model_revisions import resolve_model_revision
 
 logger = logging.getLogger("DirectorAI.FineTune")
@@ -299,19 +300,15 @@ def _binary_f1_score(labels, preds) -> float:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_FINETUNE:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_FINETUNE:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)
 
 

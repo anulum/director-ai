@@ -46,7 +46,11 @@ def test_run_campaign_strict_exit(monkeypatch) -> None:
         stdout_tail="",
         stderr_tail="",
     )
-    monkeypatch.setattr(campaign, "_campaign_cases", lambda: [campaign.CampaignCase("x", ["python"], 1, "y")])
+    monkeypatch.setattr(
+        campaign,
+        "_campaign_cases",
+        lambda: [campaign.CampaignCase("x", ["python"], 1, "y")],
+    )
     monkeypatch.setattr(campaign, "_run_case", lambda _case: fake)
     payload, code = campaign.run_campaign(strict=True)
     assert payload["benchmark"] == "full_benchmark_campaign"

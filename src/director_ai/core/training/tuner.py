@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass, field, replace
 from typing import Protocol, cast
 
@@ -20,6 +21,7 @@ except ImportError:  # pragma: no cover - fallback path
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 from ..scoring.scorer import CoherenceScorer
 
@@ -656,8 +658,6 @@ def _yaml_scalar(value: object) -> str:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_TUNER:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

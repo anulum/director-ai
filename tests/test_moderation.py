@@ -105,9 +105,7 @@ class TestRegexPII:
         py_cats = sorted(m.category for m in py.analyse(text).matches)
         assert rust_cats == py_cats
 
-    def test_rust_scanner_non_runtime_exception_falls_back_to_python(
-        self, monkeypatch
-    ):
+    def test_rust_scanner_non_runtime_exception_falls_back_to_python(self, monkeypatch):
         import director_ai.core.safety.moderation.pii as pii_mod
 
         class _Scanner:
@@ -116,7 +114,9 @@ class TestRegexPII:
 
         det = RegexPIIDetector(prefer_rust=False)
         det._rust_scanner = _Scanner()
-        monkeypatch.setattr(pii_mod, "_DEFAULT_REGEX_PATTERNS", pii_mod._DEFAULT_REGEX_PATTERNS)
+        monkeypatch.setattr(
+            pii_mod, "_DEFAULT_REGEX_PATTERNS", pii_mod._DEFAULT_REGEX_PATTERNS
+        )
 
         res = det.analyse("card 4111-1111-1111-1111 email a@b.co")
         cats = {m.category for m in res.matches}

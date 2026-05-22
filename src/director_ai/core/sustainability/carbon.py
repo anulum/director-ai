@@ -25,6 +25,7 @@ import threading
 import time
 from collections import deque
 from collections.abc import Callable, Iterable
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -130,11 +131,11 @@ class CarbonIntensityTracker:
                 return 1.0
             intensities = [r.intensity for r in self._readings]
             if _RUST_CARBON:
-                try:
+                with suppress(Exception):
                     return float(rust_percentile_rank(intensities, value))
-                except Exception:
-                    pass
-            below = _sum_int([1 if intensity <= value else 0 for intensity in intensities])
+            below = _sum_int(
+                [1 if intensity <= value else 0 for intensity in intensities]
+            )
             return below / len(intensities)
 
     def mean(self) -> float:
@@ -143,26 +144,20 @@ class CarbonIntensityTracker:
                 return self._fallback
             intensities = [r.intensity for r in self._readings]
             if _RUST_CARBON:
-                try:
+                with suppress(Exception):
                     return float(rust_mean(intensities))
-                except Exception:
-                    pass
             return _sum_float(intensities) / len(intensities)
 
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_CARBON:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_CARBON:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

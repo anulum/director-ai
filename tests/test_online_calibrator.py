@@ -27,10 +27,22 @@ class TestCalibrationReport:
 
         def _conf(scores: list[float], labels: list[bool], threshold: float):
             called["count"] += 1
-            tp = sum(1 for s, h in zip(scores, labels, strict=True) if s >= threshold and h)
-            tn = sum(1 for s, h in zip(scores, labels, strict=True) if s < threshold and not h)
-            fp = sum(1 for s, h in zip(scores, labels, strict=True) if s >= threshold and not h)
-            fn = sum(1 for s, h in zip(scores, labels, strict=True) if s < threshold and h)
+            tp = sum(
+                1 for s, h in zip(scores, labels, strict=True) if s >= threshold and h
+            )
+            tn = sum(
+                1
+                for s, h in zip(scores, labels, strict=True)
+                if s < threshold and not h
+            )
+            fp = sum(
+                1
+                for s, h in zip(scores, labels, strict=True)
+                if s >= threshold and not h
+            )
+            fn = sum(
+                1 for s, h in zip(scores, labels, strict=True) if s < threshold and h
+            )
             return tp, tn, fp, fn
 
         monkeypatch.setattr(

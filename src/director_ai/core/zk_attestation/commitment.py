@@ -40,6 +40,7 @@ import hmac
 import json
 import secrets
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -261,10 +262,8 @@ def _hash_node(left: bytes, right: bytes) -> bytes:
 
 def _merkle_root(leaves: Sequence[bytes]) -> bytes:
     if _RUST_MERKLE_AVAILABLE:
-        try:
+        with suppress(Exception):
             return bytes(_rust_merkle_root(list(leaves)))
-        except Exception:
-            pass
     level = list(leaves)
     while len(level) > 1:
         nxt: list[bytes] = []
@@ -281,10 +280,8 @@ def _merkle_root(leaves: Sequence[bytes]) -> bytes:
 def _auth_path(leaves: Sequence[bytes], index: int) -> list[bytes]:
     """Sibling hashes from *index* up to the root (exclusive)."""
     if _RUST_MERKLE_AVAILABLE:
-        try:
+        with suppress(Exception):
             return [bytes(b) for b in _rust_merkle_auth_path(list(leaves), index)]
-        except Exception:
-            pass
     path: list[bytes] = []
     level = list(leaves)
     i = index
@@ -308,10 +305,10 @@ def _auth_path(leaves: Sequence[bytes], index: int) -> list[bytes]:
 
 def _walk_path(leaf: bytes, index: int, siblings: Sequence[bytes]) -> bytes:
     if _RUST_MERKLE_AVAILABLE:
-        try:
-            return bytes(_rust_merkle_walk_path(leaf, index, [bytes(s) for s in siblings]))
-        except Exception:
-            pass
+        with suppress(Exception):
+            return bytes(
+                _rust_merkle_walk_path(leaf, index, [bytes(s) for s in siblings])
+            )
     node = leaf
     i = index
     for sibling in siblings:

@@ -27,6 +27,7 @@ Stackelberg leader. It reports:
 
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
@@ -41,6 +42,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 from .game import NormalFormGame, StrategyProfile
 from .solvers import NashEquilibrium, NashSolver, StackelbergSolver
@@ -131,17 +133,13 @@ class SwarmEquilibriumScorer:
         idx = game.players.index(player)
         payoffs = [eq.expected_payoffs[idx] for eq in pures]
         if _RUST_SWARM_EQ:
-            try:
+            with suppress(Exception):
                 return float(rust_mean(payoffs))
-            except Exception:
-                pass
         return _sum_float(payoffs) / len(payoffs)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_SWARM_EQ:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

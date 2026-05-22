@@ -24,6 +24,7 @@ import logging
 import os
 import re
 import warnings
+from contextlib import suppress
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
@@ -99,7 +100,9 @@ except ImportError:
         _support_threshold: float,
     ) -> tuple[float, int]:
         """Raise when Rust claim coverage reducer is unavailable."""
-        raise RuntimeError("backfire_kernel rust_coverage_from_divergences is unavailable")
+        raise RuntimeError(
+            "backfire_kernel rust_coverage_from_divergences is unavailable"
+        )
 
     def rust_reduce_claim_attribution(
         _flat_divergences: list[float],
@@ -107,7 +110,9 @@ except ImportError:
         _n_src: int,
     ) -> tuple[list[float], list[int]]:
         """Raise when Rust claim attribution reducer is unavailable."""
-        raise RuntimeError("backfire_kernel rust_reduce_claim_attribution is unavailable")
+        raise RuntimeError(
+            "backfire_kernel rust_reduce_claim_attribution is unavailable"
+        )
 
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise when Rust sentence splitter accelerator is unavailable."""
@@ -265,13 +270,11 @@ def _softmax_np(x: np.ndarray) -> np.ndarray:
     Uses Rust accelerator for large batches when available.
     """
     if _RUST_NLI and x.size >= 100:
-        try:
+        with suppress(Exception):
             flat = x.flatten().tolist()
             cols = x.shape[1]
             result = rust_softmax(flat, cols)
             return np.array(result, dtype=np.float64).reshape(x.shape)
-        except Exception:
-            pass
     e = np.exp(x - x.max(axis=1, keepdims=True))
     denom = np.asarray(
         [_sum_float_list(row.tolist()) for row in e],
@@ -344,11 +347,9 @@ def _probs_to_divergence(
     ncols = probs.shape[1]
     ci, ni = label_indices or (2, 1)
     if _RUST_NLI and probs.shape[0] >= 10:
-        try:
+        with suppress(Exception):
             flat = probs.flatten().tolist()
             return [float(v) for v in rust_probs_to_divergence(flat, ncols, ci, ni)]
-        except Exception:
-            pass
     if ncols == 2:
         return [float(1.0 - row[1]) for row in probs]
     return [float(row[ci]) + float(row[ni]) * 0.5 for row in probs]
@@ -365,11 +366,9 @@ def _probs_to_confidence(probs: np.ndarray) -> list[float]:
     """
     ncols = probs.shape[1]
     if _RUST_NLI and probs.shape[0] >= 10:
-        try:
+        with suppress(Exception):
             flat = probs.flatten().tolist()
             return [float(v) for v in rust_probs_to_confidence(flat, ncols)]
-        except Exception:
-            pass
     log_k = float(np.log(ncols)) if ncols > 1 else 1.0
     result: list[float] = []
     for row in probs:
@@ -1006,10 +1005,8 @@ class NLIScorer:
         and decimal numbers (e.g. 2.3%).
         """
         if _RUST_NLI:
-            try:
+            with suppress(Exception):
                 return [s.strip() for s in rust_split_sentences(text) if s.strip()]
-            except Exception:
-                pass
         abbrev_re = re.compile(
             r"(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Inc|Ltd|Corp|vs|etc|e\.g|i\.e|U\.S|U\.K)\.\s+",
             re.IGNORECASE,
@@ -1043,10 +1040,8 @@ class NLIScorer:
         default ``overlap_ratio=0``, uses 1-sentence overlap (legacy).
         """
         if _RUST_NLI:
-            try:
+            with suppress(Exception):
                 return list(rust_build_chunks(sentences, budget, overlap_ratio))
-            except Exception:
-                pass
         if overlap_ratio > 0:
             return self._build_chunks_overlap(sentences, budget, overlap_ratio)
 
@@ -1075,10 +1070,8 @@ class NLIScorer:
     ) -> list[str]:
         """Sliding-window chunking with configurable token overlap."""
         if _RUST_NLI:
-            try:
+            with suppress(Exception):
                 return list(rust_build_chunks(sentences, budget, overlap_ratio))
-            except Exception:
-                pass
         chunks: list[str] = []
         i = 0
         while i < len(sentences):
@@ -1162,7 +1155,7 @@ class NLIScorer:
         n_prem = len(prem_chunks)
         n_hyp = len(hyp_chunks)
         if _RUST_NLI:
-            try:
+            with suppress(Exception):
                 agg_rust, per_hyp_rust = rust_aggregate_chunk_scores(
                     [float(v) for v in all_scores],
                     n_prem,
@@ -1173,8 +1166,6 @@ class NLIScorer:
                 metrics.observe("nli_premise_chunks", n_prem)
                 metrics.observe("nli_hypothesis_chunks", n_hyp)
                 return float(agg_rust), [float(v) for v in per_hyp_rust], n_prem, n_hyp
-            except Exception:
-                pass
 
         per_hyp: list[float] = []
         for h_idx in range(n_hyp):
@@ -1382,19 +1373,19 @@ class NLIScorer:
         n_prem = len(prem_chunks)
         n_hyp = len(hyp_chunks)
         if _RUST_NLI:
-            try:
+            with suppress(Exception):
                 flat_scores = [float(v[0]) for v in results_with_conf]
                 flat_conf = [float(v[1]) for v in results_with_conf]
-                agg_rust, per_hyp_rust = rust_aggregate_chunk_scores_confidence_weighted(
-                    flat_scores,
-                    flat_conf,
-                    n_prem,
-                    n_hyp,
-                    inner_agg,
+                agg_rust, per_hyp_rust = (
+                    rust_aggregate_chunk_scores_confidence_weighted(
+                        flat_scores,
+                        flat_conf,
+                        n_prem,
+                        n_hyp,
+                        inner_agg,
+                    )
                 )
                 return float(agg_rust), [float(v) for v in per_hyp_rust]
-            except Exception:
-                pass
 
         per_hyp: list[float] = []
         per_hyp_conf: list[float] = []
@@ -1482,14 +1473,12 @@ class NLIScorer:
             divs.append(div)
 
         if _RUST_NLI:
-            try:
+            with suppress(Exception):
                 coverage, _supported = rust_coverage_from_divergences(
                     [float(d) for d in divs],
                     float(support_threshold),
                 )
                 return float(coverage), divs, claims
-            except Exception:
-                pass
         supported = _count_below_threshold(divs, support_threshold)
         coverage = supported / len(claims)
         return coverage, divs, claims
@@ -1577,14 +1566,12 @@ class NLIScorer:
             )
 
         if _RUST_NLI:
-            try:
+            with suppress(Exception):
                 coverage, _supported = rust_coverage_from_divergences(
                     [float(d) for d in per_claim_divs],
                     float(support_threshold),
                 )
                 return float(coverage), per_claim_divs, claims, attributions
-            except Exception:
-                pass
         supported = _count_below_threshold(per_claim_divs, support_threshold)
         coverage = supported / len(claims)
         return coverage, per_claim_divs, claims, attributions

@@ -18,6 +18,7 @@ import logging
 import pickle  # nosec B403 — intentional; runtime warns on untrusted paths
 import re
 import warnings
+from contextlib import suppress
 
 import numpy as np
 
@@ -28,6 +29,7 @@ try:
 
     _RUST_META = True
 except ImportError:
+
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
@@ -35,9 +37,13 @@ except ImportError:
 
 try:
     from sklearn.exceptions import InconsistentVersionWarning
-except Exception:  # pragma: no cover - sklearn absent handled by runtime import boundaries
+except (
+    Exception
+):  # pragma: no cover - sklearn absent handled by runtime import boundaries
+
     class InconsistentVersionWarning(UserWarning):
         """Fallback warning type when sklearn is unavailable at import time."""
+
 
 NEGATION_WORDS = frozenset(
     {
@@ -99,13 +105,12 @@ TEXT_FEATURE_COLS = [
     if c not in ("nli_score", "confidence", "score_distance_from_half")
 ]
 
+
 def _word_overlap(text_a: str, text_b: str) -> float:
     """Return lexical Jaccard overlap in ``[0, 1]``."""
     if _RUST_META:
-        try:
+        with suppress(Exception):
             return float(rust_word_overlap(text_a, text_b))
-        except Exception:
-            pass
     words_a = set(text_a.lower().split())
     words_b = set(text_b.lower().split())
     if not words_a or not words_b:
@@ -168,10 +173,8 @@ def extract_text_features(premise: str, hypothesis: str) -> dict:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_META:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)
 
 

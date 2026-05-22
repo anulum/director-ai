@@ -310,7 +310,9 @@ class TestMetaClassifierConfig:
         ):
             cfg.build_scorer()
         snapshot = metrics.get_metrics()
-        counter = snapshot["counters"]["adaptive_threshold_classifier_load_failures_total"]
+        counter = snapshot["counters"][
+            "adaptive_threshold_classifier_load_failures_total"
+        ]
         assert counter["total"] == 1.0
         assert counter["multi_labels"].get('reason="FileNotFoundError"') == 1.0
         startup_counter = snapshot["counters"][

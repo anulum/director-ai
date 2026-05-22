@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import re
+from contextlib import suppress
 
 from ..types import ScoringEvidence
 
@@ -24,8 +25,8 @@ try:
     from backfire_kernel import (
         rust_coverage_from_divergences,
         rust_detect_task_type,
-        rust_sum_i64,
         rust_split_sentences,
+        rust_sum_i64,
     )
 
     _RUST_TASK = True
@@ -37,7 +38,9 @@ except ImportError:
         _support_threshold: float,
     ) -> tuple[float, int]:
         """Raise when the Rust claim coverage reducer is unavailable."""
-        raise RuntimeError("backfire_kernel rust_coverage_from_divergences is unavailable")
+        raise RuntimeError(
+            "backfire_kernel rust_coverage_from_divergences is unavailable"
+        )
 
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise when the Rust sentence splitter is unavailable."""
@@ -47,7 +50,10 @@ except ImportError:
         """Raise when the Rust integer adder is unavailable."""
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
+
 logger = logging.getLogger("DirectorAI")
+
+_TERMINAL_SENTENCE_RE = re.compile(r"[.!?]\s*$")
 
 # Dialogue detection: ≥2 speaker-turn markers → dialogue task.
 _DIALOGUE_TURN_RE = re.compile(
@@ -76,10 +82,8 @@ def detect_task_type(prompt: str, response: str = "") -> str:
     unless dialogue markers are present.
     """
     if _RUST_TASK:
-        try:
+        with suppress(Exception):
             return str(rust_detect_task_type(prompt, response))
-        except Exception:
-            pass
     matches = _DIALOGUE_TURN_RE.findall(prompt)
     if len(matches) >= 2:
         return "dialogue"
@@ -295,7 +299,11 @@ def minicheck_claim_coverage(
     """
     if _RUST_TASK:
         try:
-            sentences = [s for s in rust_split_sentences(summary) if s.strip()]
+            sentences = [
+                _normalize_claim_sentence(s)
+                for s in rust_split_sentences(summary)
+                if s.strip()
+            ]
         except Exception:
             sentences = []
     else:
@@ -312,23 +320,27 @@ def minicheck_claim_coverage(
 
     divs = [mc_scorer.score(source, sent) for sent in sentences]
     if _RUST_TASK:
-        try:
+        with suppress(Exception):
             coverage, _supported = rust_coverage_from_divergences(
                 [float(d) for d in divs],
                 0.5,
             )
             return float(coverage), divs, sentences
-        except Exception:
-            pass
     supported = _sum_int([1 if d < 0.5 else 0 for d in divs])
     coverage = supported / len(sentences)
     return coverage, divs, sentences
 
 
+def _normalize_claim_sentence(sentence: str) -> str:
+    """Return a stripped claim sentence with stable terminal punctuation."""
+    normalized = sentence.strip()
+    if normalized and not _TERMINAL_SENTENCE_RE.search(normalized):
+        return f"{normalized}."
+    return normalized
+
+
 def _sum_int(values: list[int]) -> int:
     if _RUST_TASK:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

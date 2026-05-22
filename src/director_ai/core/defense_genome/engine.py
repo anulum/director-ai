@@ -23,6 +23,7 @@ from __future__ import annotations
 
 import random
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -37,6 +38,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 from .genome import AdversarialGenome, Gene, GeneOperator
 from .registry import Defense
@@ -143,10 +145,8 @@ class GenomePopulation:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_DEFENSE_GENOME:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)
 
 

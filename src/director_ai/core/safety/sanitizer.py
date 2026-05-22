@@ -30,6 +30,7 @@ import base64
 import binascii
 import re
 import unicodedata
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 __all__ = ["InputSanitizer", "SanitizeResult"]
@@ -43,6 +44,7 @@ except ImportError:
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 _INJECTION_PATTERNS: list[tuple[str, re.Pattern]] = [
     (
@@ -275,10 +277,8 @@ class InputSanitizer:
         Cn (unassigned) count as suspicious.
         """
         if _RUST_SANITIZER:
-            try:
+            with suppress(Exception):
                 return bool(rust_has_suspicious_unicode(text))
-            except Exception:
-                pass
         if not text:
             return False
         suspicious = 0
@@ -330,8 +330,6 @@ def _is_base64_payload_token(token: str) -> bool:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_SANITIZER:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

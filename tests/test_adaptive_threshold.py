@@ -124,9 +124,7 @@ def test_rust_posterior_kernel_is_used_when_available(monkeypatch):
 
     def _posterior(alpha_prior, beta_prior, successes, pulls):
         calls["count"] += 1
-        return (alpha_prior + successes) / (
-            alpha_prior + beta_prior + pulls
-        )
+        return (alpha_prior + successes) / (alpha_prior + beta_prior + pulls)
 
     monkeypatch.setattr(
         adaptive_mod,
@@ -134,7 +132,9 @@ def test_rust_posterior_kernel_is_used_when_available(monkeypatch):
         _posterior,
         raising=True,
     )
-    learner = AdaptiveThresholdLearner(candidate_thresholds=[0.4], current_threshold=0.4)
+    learner = AdaptiveThresholdLearner(
+        candidate_thresholds=[0.4], current_threshold=0.4
+    )
     learner.observe_batch(_feedback())
     value = learner.arm(0.4).posterior_mean
     assert value > 0.0
@@ -149,7 +149,9 @@ def test_rust_posterior_type_error_falls_back_to_python(monkeypatch):
         lambda *_args: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
         raising=True,
     )
-    learner = AdaptiveThresholdLearner(candidate_thresholds=[0.4], current_threshold=0.4)
+    learner = AdaptiveThresholdLearner(
+        candidate_thresholds=[0.4], current_threshold=0.4
+    )
     learner.observe_batch(_feedback())
     value = learner.arm(0.4).posterior_mean
     assert 0.0 <= value <= 1.0

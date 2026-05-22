@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
+from contextlib import suppress
 from typing import Any
 
 from .detectors import ModerationDetector, ModerationMatch, ModerationResult
@@ -128,7 +129,7 @@ class KeywordToxicityDetector(ModerationDetector):
         if not text:
             return ModerationResult(detector=self.name, matches=[])
         if self._rust_scanner is not None:
-            try:
+            with suppress(Exception):
                 raw = self._rust_scanner.scan(text)
                 return ModerationResult(
                     detector=self.name,
@@ -143,8 +144,6 @@ class KeywordToxicityDetector(ModerationDetector):
                         for category, start, end in raw
                     ],
                 )
-            except Exception:
-                pass
         matches: list[ModerationMatch] = []
         for category, pattern in self._keyword_patterns:
             for m in pattern.finditer(text):

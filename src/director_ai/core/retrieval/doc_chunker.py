@@ -16,6 +16,7 @@ between dissimilar consecutive sentences.
 from __future__ import annotations
 
 import re
+from contextlib import suppress
 from dataclasses import dataclass
 from functools import lru_cache
 
@@ -233,10 +234,8 @@ def _sum_float_list(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_DOC_CHUNKER:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return float(sum(values))
 
 

@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import threading
 from collections import deque
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -158,11 +159,9 @@ class ConformalDemandForecaster:
 
     def _update_locked(self, demand: float) -> None:
         if _RUST_FORECAST:
-            try:
+            with suppress(Exception):
                 self._ema = float(rust_ema_update(self._ema, demand, self._alpha))
                 return
-            except Exception:
-                pass
 
         if self._ema is None:
             self._ema = demand

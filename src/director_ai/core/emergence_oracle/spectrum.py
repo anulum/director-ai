@@ -38,6 +38,7 @@ except Exception:  # pragma: no cover - optional dependency
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
+
 from .graph import InteractionGraph
 
 

@@ -282,7 +282,9 @@ class TestForecaster:
 
         def _ema(previous, value, alpha):
             calls["count"] += 1
-            return value if previous is None else alpha * value + (1.0 - alpha) * previous
+            return (
+                value if previous is None else alpha * value + (1.0 - alpha) * previous
+            )
 
         monkeypatch.setattr(forecaster_mod, "rust_ema_update", _ema, raising=True)
         fc = ConformalDemandForecaster(alpha=0.5, min_samples=2)

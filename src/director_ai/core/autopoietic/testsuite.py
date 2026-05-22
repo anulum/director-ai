@@ -24,6 +24,7 @@ relative ranking over absolute calibration select accordingly.
 from __future__ import annotations
 
 from collections.abc import Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -35,6 +36,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 from .builder import BoundedSandbox, SandboxTimeoutError, Scorer
 
@@ -150,10 +152,7 @@ def _spearman(a: Sequence[float], b: Sequence[float]) -> float:
     mean_b = _sum_float(ranks_b) / n
     cov = (
         _sum_float(
-            [
-                (x - mean_a) * (y - mean_b)
-                for x, y in zip(ranks_a, ranks_b, strict=True)
-            ]
+            [(x - mean_a) * (y - mean_b) for x, y in zip(ranks_a, ranks_b, strict=True)]
         )
         / n
     )
@@ -183,8 +182,6 @@ def _ranks(values: Sequence[float]) -> list[float]:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_TESTSUITE:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

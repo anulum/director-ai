@@ -18,6 +18,7 @@ Uses NLI scoring when available, falls back to heuristic overlap.
 from __future__ import annotations
 
 import re
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 __all__ = [
@@ -126,7 +127,7 @@ def extract_steps(text: str) -> list[ReasoningStep]:
     the label tokens.
     """
     if _RUST_REASONING:
-        try:
+        with suppress(Exception):
             raw_steps = rust_extract_reasoning_steps(text)
             if len(raw_steps) >= 2 or (
                 len(raw_steps) == 1 and raw_steps[0] != text.strip()
@@ -139,8 +140,6 @@ def extract_steps(text: str) -> list[ReasoningStep]:
                     )
                     for i, s in enumerate(raw_steps)
                 ]
-        except Exception:
-            pass
 
     # Python fallback
     # Try numbered steps first
@@ -161,11 +160,15 @@ def extract_steps(text: str) -> list[ReasoningStep]:
     sentences: list[str] = []
     if _RUST_REASONING:
         try:
-            sentences = [s.strip() for s in rust_split_sentences(text) if len(s.strip()) > 10]
+            sentences = [
+                s.strip() for s in rust_split_sentences(text) if len(s.strip()) > 10
+            ]
         except Exception:
             sentences = []
     if not sentences:
-        sentences = [s.strip() for s in re.split(r"[.!?]\s+", text) if len(s.strip()) > 10]
+        sentences = [
+            s.strip() for s in re.split(r"[.!?]\s+", text) if len(s.strip()) > 10
+        ]
     if len(sentences) >= 2:
         steps = []
         for i, s in enumerate(sentences):
@@ -185,10 +188,8 @@ def _word_overlap(a: str, b: str) -> float:
     reduce the overlap score.
     """
     if _RUST_REASONING:
-        try:
+        with suppress(Exception):
             return float(rust_word_overlap(a, b))
-        except Exception:
-            pass
     wa = {w.strip(".,;:!?\"'()[]") for w in a.lower().split()} - {""}
     wb = {w.strip(".,;:!?\"'()[]") for w in b.lower().split()} - {""}
     if not wa or not wb:

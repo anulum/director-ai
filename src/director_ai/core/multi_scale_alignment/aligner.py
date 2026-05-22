@@ -21,6 +21,7 @@ against each, and folds the per-scale scores into:
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
@@ -33,6 +34,7 @@ except Exception:  # pragma: no cover - optional dependency
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
+
 from .scorer import Action, AlignmentScale, ScaleScorer
 
 _ORDER: tuple[AlignmentScale, ...] = ("agent", "swarm", "org", "planetary")
@@ -42,10 +44,8 @@ def _sum_float(values: Sequence[float]) -> float:
     if not values:
         return 0.0
     if _RUST_MULTI_SCALE:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(list(values)))
-        except Exception:
-            pass
     return sum(values)
 
 

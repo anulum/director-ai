@@ -137,7 +137,9 @@ def test_builtin_similarity_uses_rust_kernel_when_enabled(tmp_path, monkeypatch)
         called["count"] += 1
         return 0.9
 
-    monkeypatch.setattr(consistency_mod, "rust_word_overlap", _rust_overlap, raising=True)
+    monkeypatch.setattr(
+        consistency_mod, "rust_word_overlap", _rust_overlap, raising=True
+    )
     memory = CrossDocumentConsistencyMemory(
         tmp_path / "consistency.sqlite",
         use_builtin_similarity=True,

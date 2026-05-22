@@ -13,6 +13,7 @@ from __future__ import annotations
 import math
 import threading
 from collections import defaultdict
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Literal
 
@@ -30,6 +31,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 EstimateProvenance = Literal["measured", "configured", "projected"]
 
@@ -536,17 +538,13 @@ def _validate_non_negative(name: str, value: float) -> None:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_SUSTAINABILITY_POLICY:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_SUSTAINABILITY_POLICY:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

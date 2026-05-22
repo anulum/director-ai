@@ -138,7 +138,9 @@ def test_sector_evidence_mapping_is_machine_readable():
 
 
 def test_sector_metadata_schema_replaces_public_vertical_schema():
-    schema_path = ROOT / "schemas" / "customer-model-factory-sector-metadata.schema.json"
+    schema_path = (
+        ROOT / "schemas" / "customer-model-factory-sector-metadata.schema.json"
+    )
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
 
     assert schema["$schema"] == "https://json-schema.org/draft/2020-12/schema"

@@ -27,6 +27,7 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Mapping
+from contextlib import suppress
 from typing import Any, cast
 
 from .types import FieldVerdict, StructuredVerificationResult
@@ -40,6 +41,7 @@ except ImportError:  # pragma: no cover - optional dependency
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 __all__ = ["verify_json"]
 
@@ -307,7 +309,9 @@ def verify_json(
                     )
                 )
 
-    error_count = _sum_int([1 if verdict.verdict != "valid" else 0 for verdict in verdicts])
+    error_count = _sum_int(
+        [1 if verdict.verdict != "valid" else 0 for verdict in verdicts]
+    )
 
     return StructuredVerificationResult(
         valid_json=True,
@@ -319,8 +323,6 @@ def verify_json(
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_JSON_VERIFY:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

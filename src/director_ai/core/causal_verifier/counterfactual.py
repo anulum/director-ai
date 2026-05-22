@@ -20,6 +20,7 @@ can be composed on top of this verifier later.
 from __future__ import annotations
 
 from collections.abc import Callable, Iterable, Mapping
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Literal
 
@@ -32,6 +33,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 from ..types import (
     CounterfactualFactChange,
@@ -221,8 +223,6 @@ class CounterfactualVerifier:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_COUNTERFACTUAL:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

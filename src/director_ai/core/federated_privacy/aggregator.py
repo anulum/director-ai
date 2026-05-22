@@ -22,6 +22,7 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Iterable, Mapping
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
@@ -33,6 +34,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 from .accountant import AccountantEntry, PrivacyAccountant
 from .mechanisms import LaplaceMechanism
@@ -257,8 +259,6 @@ def _sum_int(values: list[int]) -> int:
     if not values:
         return 0
     if _RUST_AGGREGATOR:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

@@ -15,6 +15,7 @@ from __future__ import annotations
 import re
 import time
 from collections.abc import Mapping, Sequence
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -190,7 +191,7 @@ def score_temporal_freshness(
         and not citation_statuses
         and not domain
     ):
-        try:
+        with suppress(Exception):
             raw_claims, _overall, _has = rust_score_temporal_freshness(text)
             rust_claims = [
                 FreshnessClaim(
@@ -209,8 +210,6 @@ def score_temporal_freshness(
                 citation_status_verdicts=status_verdicts,
                 has_temporal_claims=len(rust_claims) > 0,
             )
-        except Exception:
-            pass
 
     claims: list[FreshnessClaim] = []
 

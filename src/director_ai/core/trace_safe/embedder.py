@@ -28,6 +28,7 @@ from __future__ import annotations
 import math
 import re
 from abc import ABC, abstractmethod
+from contextlib import suppress
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
@@ -38,6 +39,7 @@ except ImportError:  # pragma: no cover - fallback path
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 _FNV_OFFSET = 0xCBF29CE484222325
 _FNV_PRIME = 0x100000001B3
@@ -119,8 +121,6 @@ def _bucket(token: str, dim: int) -> int:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_TRACE_EMBEDDER:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

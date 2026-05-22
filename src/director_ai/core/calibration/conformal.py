@@ -20,6 +20,7 @@ Reference: Mohri & Hashimoto (ICML 2024), "Conformal Factuality."
 from __future__ import annotations
 
 import math
+from contextlib import suppress
 from dataclasses import dataclass
 
 __all__ = ["ConformalPredictor", "PredictionInterval"]
@@ -165,10 +166,8 @@ class ConformalPredictor:
             residuals.append(abs(pred_prob - actual))
 
         if _RUST_CONFORMAL:
-            try:
+            with suppress(Exception):
                 return float(rust_conformal_quantile(residuals, self._coverage))
-            except Exception:
-                pass
 
         residuals.sort()
         q_idx = math.ceil((n + 1) * self._coverage) - 1

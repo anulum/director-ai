@@ -112,7 +112,9 @@ class TestBuildChunks:
         scorer = NLIScorer(use_model=False)
         sentences = [f"Sentence {i} with enough words." for i in range(8)]
         for overlap_ratio in (0.0, 0.5):
-            py_chunks = scorer._build_chunks(sentences, budget=20, overlap_ratio=overlap_ratio)
+            py_chunks = scorer._build_chunks(
+                sentences, budget=20, overlap_ratio=overlap_ratio
+            )
             rust_chunks = rust_build_chunks(sentences, 20, overlap_ratio)
             assert list(rust_chunks) == py_chunks
 
@@ -453,8 +455,12 @@ class TestScoreChunked:
 
         hyp_budget = int(scorer.max_length * (1 - 0.4))
         prem_budget = int(scorer.max_length * 0.4)
-        hyp_chunks = scorer._build_chunks(scorer._split_sentences(long_hyp), hyp_budget, 0.0)
-        prem_chunks = scorer._build_chunks(scorer._split_sentences(long_prem), prem_budget, 0.0)
+        hyp_chunks = scorer._build_chunks(
+            scorer._split_sentences(long_hyp), hyp_budget, 0.0
+        )
+        prem_chunks = scorer._build_chunks(
+            scorer._split_sentences(long_prem), prem_budget, 0.0
+        )
         pairs = [(pc, hc) for pc in prem_chunks for hc in hyp_chunks]
         with_conf = scorer.score_batch_with_confidence(pairs)
         flat_scores = [float(s) for s, _ in with_conf]
@@ -470,7 +476,9 @@ class TestScoreChunked:
         assert float(agg_rust) == pytest.approx(agg_py, abs=1e-12)
         assert [float(v) for v in per_hyp_rust] == pytest.approx(per_hyp_py, abs=1e-12)
 
-    def test_confidence_weighted_falls_back_on_non_runtime_rust_error(self, monkeypatch):
+    def test_confidence_weighted_falls_back_on_non_runtime_rust_error(
+        self, monkeypatch
+    ):
         scorer = NLIScorer(use_model=False, max_length=64)
         long_prem = ". ".join(f"Source {i} content" for i in range(20)) + "."
         long_hyp = ". ".join(f"Claim {i} detail" for i in range(20)) + "."
@@ -479,7 +487,9 @@ class TestScoreChunked:
             "director_ai.core.scoring.nli.rust_aggregate_chunk_scores_confidence_weighted",
             lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("boom")),
         )
-        agg, per_hyp = scorer.score_chunked_confidence_weighted(long_prem, long_hyp, inner_agg="max")
+        agg, per_hyp = scorer.score_chunked_confidence_weighted(
+            long_prem, long_hyp, inner_agg="max"
+        )
         assert per_hyp
         assert 0.0 <= agg <= 1.0
 

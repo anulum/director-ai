@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import threading
+from contextlib import suppress
 from typing import Any
 
 try:  # pragma: no cover - optional acceleration
@@ -29,6 +30,7 @@ except ImportError:  # pragma: no cover - fallback path
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 from .base import VectorBackend
 
@@ -298,8 +300,6 @@ def _validate_non_negative_weight(value: float, field_name: str) -> float:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_COMPOSITE:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

@@ -274,7 +274,12 @@ class TestRustBuildChunks:
         assert len(result) >= 1
 
     def test_overlap(self):
-        sentences = ["One sentence.", "Two sentence.", "Three sentence.", "Four sentence."]
+        sentences = [
+            "One sentence.",
+            "Two sentence.",
+            "Three sentence.",
+            "Four sentence.",
+        ]
         result = backfire_kernel.rust_build_chunks(sentences, 10, 0.5)
         assert len(result) >= 1
 

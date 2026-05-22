@@ -199,20 +199,26 @@ class TestClaimCoverageAttribution:
 
     def test_attribution_reducer_falls_back_on_non_runtime_rust_error(self):
         scorer = self._mock_scorer([0.8, 0.3, 0.5, 0.7, 0.9, 0.1])
-        with patch(
-            "director_ai.core.scoring.nli._RUST_NLI",
-            True,
-        ), patch(
-            "director_ai.core.scoring.nli.rust_reduce_claim_attribution",
-            side_effect=ValueError("ffi unavailable"),
-        ), patch(
-            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
-            side_effect=ValueError("ffi unavailable"),
+        with (
+            patch(
+                "director_ai.core.scoring.nli._RUST_NLI",
+                True,
+            ),
+            patch(
+                "director_ai.core.scoring.nli.rust_reduce_claim_attribution",
+                side_effect=ValueError("ffi unavailable"),
+            ),
+            patch(
+                "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+                side_effect=ValueError("ffi unavailable"),
+            ),
         ):
-            coverage, divs, claims, attrs = scorer.score_claim_coverage_with_attribution(
-                source="Sentence A. Sentence B. Sentence C.",
-                summary="Claim one. Claim two.",
-                support_threshold=0.6,
+            coverage, divs, claims, attrs = (
+                scorer.score_claim_coverage_with_attribution(
+                    source="Sentence A. Sentence B. Sentence C.",
+                    summary="Claim one. Claim two.",
+                    support_threshold=0.6,
+                )
             )
         assert len(claims) == 2
         assert len(divs) == 2
@@ -221,20 +227,26 @@ class TestClaimCoverageAttribution:
 
     def test_attribution_reducer_falls_back_on_rust_type_error(self):
         scorer = self._mock_scorer([0.8, 0.3, 0.5, 0.7, 0.9, 0.1])
-        with patch(
-            "director_ai.core.scoring.nli._RUST_NLI",
-            True,
-        ), patch(
-            "director_ai.core.scoring.nli.rust_reduce_claim_attribution",
-            side_effect=TypeError("ffi signature mismatch"),
-        ), patch(
-            "director_ai.core.scoring.nli.rust_coverage_from_divergences",
-            side_effect=TypeError("ffi signature mismatch"),
+        with (
+            patch(
+                "director_ai.core.scoring.nli._RUST_NLI",
+                True,
+            ),
+            patch(
+                "director_ai.core.scoring.nli.rust_reduce_claim_attribution",
+                side_effect=TypeError("ffi signature mismatch"),
+            ),
+            patch(
+                "director_ai.core.scoring.nli.rust_coverage_from_divergences",
+                side_effect=TypeError("ffi signature mismatch"),
+            ),
         ):
-            coverage, divs, claims, attrs = scorer.score_claim_coverage_with_attribution(
-                source="Sentence A. Sentence B. Sentence C.",
-                summary="Claim one. Claim two.",
-                support_threshold=0.6,
+            coverage, divs, claims, attrs = (
+                scorer.score_claim_coverage_with_attribution(
+                    source="Sentence A. Sentence B. Sentence C.",
+                    summary="Claim one. Claim two.",
+                    support_threshold=0.6,
+                )
             )
         assert len(claims) == 2
         assert len(divs) == 2

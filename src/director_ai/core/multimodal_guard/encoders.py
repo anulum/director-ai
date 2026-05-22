@@ -24,6 +24,7 @@ Two real backends:
 from __future__ import annotations
 
 import math
+from contextlib import suppress
 from typing import Any, Protocol, runtime_checkable
 
 try:  # pragma: no cover - optional acceleration
@@ -35,6 +36,7 @@ except ImportError:  # pragma: no cover - fallback path
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 # FNV-1a parameters for 64-bit hashing of byte chunks.
 _FNV_OFFSET = 0xCBF29CE484222325
@@ -184,8 +186,6 @@ def _normalise(vec: tuple[float, ...]) -> tuple[float, ...]:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_MULTIMODAL_ENCODERS:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

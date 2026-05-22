@@ -19,6 +19,7 @@ Zero external dependencies — stdlib only.
 from __future__ import annotations
 
 import re
+from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime
 
@@ -38,6 +39,7 @@ except ImportError:
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 _PERCENT_PATTERN = re.compile(
     r"(?:grew|increased|decreased|dropped|rose|fell|declined|changed|gained|lost)"
@@ -100,19 +102,21 @@ class NumericVerificationResult:
 
     @property
     def error_count(self) -> int:
-        return _sum_int([1 if issue.severity == "error" else 0 for issue in self.issues])
+        return _sum_int(
+            [1 if issue.severity == "error" else 0 for issue in self.issues]
+        )
 
     @property
     def warning_count(self) -> int:
-        return _sum_int([1 if issue.severity == "warning" else 0 for issue in self.issues])
+        return _sum_int(
+            [1 if issue.severity == "warning" else 0 for issue in self.issues]
+        )
 
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_NUMERIC:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)
 
 
@@ -126,7 +130,7 @@ def verify_numeric(text: str) -> NumericVerificationResult:
     """
     if _RUST_NUMERIC:
         current_year = datetime.now().year
-        try:
+        with suppress(Exception):
             claims_found, raw_issues, valid = rust_verify_numeric(text, current_year)
             return NumericVerificationResult(
                 claims_found=claims_found,
@@ -141,8 +145,6 @@ def verify_numeric(text: str) -> NumericVerificationResult:
                 ],
                 valid=valid,
             )
-        except Exception:
-            pass
 
     issues: list[NumericIssue] = []
     claims_found = 0

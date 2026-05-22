@@ -13,6 +13,7 @@ import logging
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
+from contextlib import suppress
 from pathlib import Path
 from typing import cast
 
@@ -1092,10 +1093,8 @@ class CoherenceScorer:
         Install [nli] for production scoring.
         """
         if rust_heuristic_factual_divergence is not None:
-            try:
+            with suppress(Exception):
                 return float(rust_heuristic_factual_divergence(context, text_output))
-            except Exception:
-                pass
         from ._heuristics import ENTITY_RE, NEGATION_WORDS, STOP_WORDS
 
         ctx_raw = set(re.findall(r"\w+", context.lower()))
@@ -1199,10 +1198,8 @@ class CoherenceScorer:
         Install [nli] for production-grade scoring.
         """
         if rust_heuristic_logical_divergence is not None:
-            try:
+            with suppress(Exception):
                 return float(rust_heuristic_logical_divergence(text_output, prompt))
-            except Exception:
-                pass
         out = text_output.lower()
         if "consistent with reality" in out:
             return DIVERGENCE_ALIGNED

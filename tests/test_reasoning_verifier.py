@@ -115,9 +115,7 @@ class TestExtractSteps:
         )
         assert len(steps) == 2
 
-    def test_sentence_fallback_reverts_to_python_on_rust_type_error(
-        self, monkeypatch
-    ):
+    def test_sentence_fallback_reverts_to_python_on_rust_type_error(self, monkeypatch):
         monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
         monkeypatch.setattr(
             reasoning_mod,
@@ -318,9 +316,7 @@ class TestVerifyReasoningChain:
         result = verify_reasoning_chain(text, support_threshold=0.8)
         assert result.steps_found >= 2
 
-    def test_word_overlap_falls_back_when_rust_ffi_raises_type_error(
-        self, monkeypatch
-    ):
+    def test_word_overlap_falls_back_when_rust_ffi_raises_type_error(self, monkeypatch):
         monkeypatch.setattr(reasoning_mod, "_RUST_REASONING", True)
         monkeypatch.setattr(
             reasoning_mod,

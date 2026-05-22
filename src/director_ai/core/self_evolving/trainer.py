@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Sequence
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
@@ -36,6 +37,7 @@ except ImportError:  # pragma: no cover - fallback path
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 from ..model_revisions import resolve_model_revision
 from .feedback import FeedbackEvent
@@ -352,8 +354,6 @@ def _dot(a: Sequence[float], b: Sequence[float]) -> float:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_SELF_EVOLVING:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

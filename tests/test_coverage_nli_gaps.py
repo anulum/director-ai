@@ -232,7 +232,9 @@ class TestRustAcceleratedMathBranches:
         assert result.shape == logits.shape
         np.testing.assert_allclose(result.sum(axis=1), np.array([1.0, 1.0]), atol=1e-12)
 
-    def test_rust_divergence_non_runtime_exception_falls_back_to_python(self, monkeypatch):
+    def test_rust_divergence_non_runtime_exception_falls_back_to_python(
+        self, monkeypatch
+    ):
         import director_ai.core.scoring.nli as nli_mod
 
         monkeypatch.setattr(nli_mod, "_RUST_NLI", True)

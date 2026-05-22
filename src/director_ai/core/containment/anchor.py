@@ -27,6 +27,7 @@ from __future__ import annotations
 import hmac
 import secrets
 import time
+from contextlib import suppress
 from dataclasses import dataclass, field
 from hashlib import sha256
 
@@ -257,9 +258,7 @@ def _escape(field_value: str) -> str:
 
 def _verify_anchor_mac(key: bytes, payload: bytes, mac_hex: str) -> bool:
     if _rust_anchor_mac is not None:
-        try:
+        with suppress(Exception):
             return bool(_rust_anchor_mac(key, payload, mac_hex))
-        except Exception:
-            pass
     expected_mac = hmac.new(key, payload, sha256).hexdigest()
     return hmac.compare_digest(expected_mac, mac_hex)

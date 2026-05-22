@@ -37,6 +37,7 @@ except ImportError:  # pragma: no cover - fallback path
     def rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
+
 __all__ = ["KBHealthCheck", "KBHealthReport"]
 
 logger = logging.getLogger("DirectorAI.KBHealth")

@@ -16,6 +16,7 @@ import math
 import re
 import sqlite3
 from collections.abc import Callable, Mapping
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import time
@@ -30,6 +31,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_word_overlap(_text_a: str, _text_b: str) -> float:
         raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
+
 
 __all__ = [
     "CrossDocumentConflict",
@@ -202,10 +204,8 @@ class CrossDocumentConsistencyMemory:
 
     def _builtin_similarity(self, text_a: str, text_b: str) -> float:
         if _RUST_CONSISTENCY:
-            try:
+            with suppress(Exception):
                 return _validate_score(float(rust_word_overlap(text_a, text_b)))
-            except Exception:
-                pass
         return _validate_score(self._python_word_overlap(text_a, text_b))
 
     def _init_schema(self) -> None:

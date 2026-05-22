@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Callable
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -32,6 +33,7 @@ except ImportError:
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 from .blueprint import ModuleBlueprint
 
@@ -98,10 +100,8 @@ class ModuleBuilder:
                 return 0.0
             if _RUST_AUTOPOIETIC:
                 gram_tokens = " ".join(gram.replace(" ", "_") for gram in grams)
-                try:
+                with suppress(Exception):
                     return float(rust_word_overlap(gram_tokens, reference_tokens))
-                except Exception:
-                    pass
             intersection = grams & reference
             union = grams | reference
             if not union:
@@ -183,8 +183,6 @@ class BoundedSandbox:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_AUTOPOIETIC:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

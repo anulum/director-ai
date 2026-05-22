@@ -202,17 +202,13 @@ class TestScorerLogical:
         result = CoherenceScorer._heuristic_logical("the opposite is true", "q")
         assert result > 0.8
 
-    def test_rust_heuristic_logical_type_error_falls_back_to_python(
-        self, monkeypatch
-    ):
+    def test_rust_heuristic_logical_type_error_falls_back_to_python(self, monkeypatch):
         import director_ai.core.scoring.scorer as scorer_mod
 
         monkeypatch.setattr(
             scorer_mod,
             "rust_heuristic_logical_divergence",
-            lambda *_args: (_ for _ in ()).throw(
-                TypeError("ffi signature mismatch")
-            ),
+            lambda *_args: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
             raising=False,
         )
         result = CoherenceScorer._heuristic_logical("the opposite is true", "q")
@@ -248,7 +244,10 @@ class TestScorerHeuristicFactual:
             ("The sky is blue.", "The sky is not blue."),
             ("The sky is blue.", "Planet Mars is red."),
             ("", "something"),
-            ("Economic growth increased by 3 percent.", "Growth increased by 3 percent."),
+            (
+                "Economic growth increased by 3 percent.",
+                "Growth increased by 3 percent.",
+            ),
         ]
 
         for context, output in samples:
@@ -273,17 +272,13 @@ class TestScorerHeuristicFactual:
         )
         assert div > 0.3
 
-    def test_rust_heuristic_factual_type_error_falls_back_to_python(
-        self, monkeypatch
-    ):
+    def test_rust_heuristic_factual_type_error_falls_back_to_python(self, monkeypatch):
         import director_ai.core.scoring.scorer as scorer_mod
 
         monkeypatch.setattr(
             scorer_mod,
             "rust_heuristic_factual_divergence",
-            lambda *_args: (_ for _ in ()).throw(
-                TypeError("ffi signature mismatch")
-            ),
+            lambda *_args: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
             raising=False,
         )
         div = CoherenceScorer._heuristic_factual(

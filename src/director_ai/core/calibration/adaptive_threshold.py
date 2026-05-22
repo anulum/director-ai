@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import math
 import random
+from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -36,6 +37,7 @@ except Exception:  # pragma: no cover - optional dependency
         _pulls: int,
     ) -> float:
         raise RuntimeError("backfire_kernel rust_beta_posterior_mean is unavailable")
+
 
 __all__ = [
     "AdaptiveThresholdArm",
@@ -108,7 +110,7 @@ class AdaptiveThresholdArm:
     def posterior_mean(self) -> float:
         """Return the posterior expected success probability."""
         if _RUST_ADAPTIVE:
-            try:
+            with suppress(Exception):
                 return float(
                     rust_beta_posterior_mean(
                         self.alpha_prior,
@@ -117,8 +119,6 @@ class AdaptiveThresholdArm:
                         self.pulls,
                     )
                 )
-            except Exception:
-                pass
         return self.alpha / (self.alpha + self.beta)
 
     @property

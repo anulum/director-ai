@@ -83,9 +83,7 @@ class TestKeywordOverlap:
             1.0 / 3.0
         )
 
-    def test_rust_overlap_non_runtime_exception_falls_back_to_python(
-        self, monkeypatch
-    ):
+    def test_rust_overlap_non_runtime_exception_falls_back_to_python(self, monkeypatch):
         monkeypatch.setattr(compression_mod, "_RUST_COMPRESSION", True)
 
         def _boom(_query, _sentence):

@@ -1143,7 +1143,10 @@ class DirectorConfig:
             scorer.enable_adaptive_retrieval(
                 threshold=self.adaptive_retrieval_threshold,
             )
-        if scorer._adaptive_threshold_enabled and scorer._adaptive_threshold_fail_closed:
+        if (
+            scorer._adaptive_threshold_enabled
+            and scorer._adaptive_threshold_fail_closed
+        ):
             try:
                 meta_classifier = scorer._get_meta_classifier()
             except RuntimeError:
@@ -1189,7 +1192,10 @@ class DirectorConfig:
 
             scorer._judge._cost_callback = _cost_cb
             logger.info("Cost tracking enabled on scorer")
-        if self.coherence_require_model_backed_nli and not scorer._has_model_backed_nli():
+        if (
+            self.coherence_require_model_backed_nli
+            and not scorer._has_model_backed_nli()
+        ):
             metrics.inc_labeled(
                 "scorer_startup_failures_total",
                 labels={

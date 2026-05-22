@@ -42,7 +42,10 @@ def test_run_ragtruth_maps_labels_and_appends_samples(monkeypatch) -> None:
                 "context": "ctx",
                 "query": "q",
                 "output": "r",
-                "hallucination_labels_processed": {"evident_conflict": 1, "baseless_info": 0},
+                "hallucination_labels_processed": {
+                    "evident_conflict": 1,
+                    "baseless_info": 0,
+                },
             }
         ],
     )

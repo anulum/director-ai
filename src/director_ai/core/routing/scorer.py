@@ -39,6 +39,7 @@ from __future__ import annotations
 
 import logging
 import re
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
 
@@ -54,6 +55,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 logger = logging.getLogger("DirectorAI.Routing.Scorer")
 
@@ -188,7 +190,9 @@ class PromptRiskScorer:
             if not matches:
                 return 0
             return len({m[0] for m in matches})
-        return _sum_int([1 if pattern.search(prompt) else 0 for pattern in _SYSTEM_STYLE_MARKERS])
+        return _sum_int(
+            [1 if pattern.search(prompt) else 0 for pattern in _SYSTEM_STYLE_MARKERS]
+        )
 
     @property
     def backend(self) -> str:
@@ -236,10 +240,8 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_ROUTING:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)
 
 
@@ -247,10 +249,8 @@ def _sum_int(values: list[int]) -> int:
     if not values:
         return 0
     if _RUST_ROUTING:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)
 
 

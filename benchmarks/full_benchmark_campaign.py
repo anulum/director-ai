@@ -348,7 +348,9 @@ def main(argv: list[str] | None = None) -> int:
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     json_path = RESULTS_DIR / f"full_benchmark_campaign_{stamp}.json"
     md_path = RESULTS_DIR / f"full_benchmark_campaign_{stamp}.md"
-    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    json_path.write_text(
+        json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8"
+    )
     md_path.write_text(_render_markdown(payload), encoding="utf-8")
     print(f"Campaign JSON: {json_path}")
     print(f"Campaign Markdown: {md_path}")

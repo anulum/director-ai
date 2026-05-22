@@ -13,6 +13,7 @@ which specific turns contradict and how self-consistency evolves.
 
 from __future__ import annotations
 
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -27,6 +28,7 @@ except Exception:  # pragma: no cover - optional dependency
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 __all__ = ["ContradictionReport", "ContradictionTracker"]
 
@@ -165,17 +167,13 @@ def _mean_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_CONTRADICTION:
-        try:
+        with suppress(Exception):
             return float(rust_mean(values))
-        except Exception:
-            pass
     return _sum_float(values) / len(values)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_CONTRADICTION:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

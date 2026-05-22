@@ -32,6 +32,7 @@ Usage::
 from __future__ import annotations
 
 import logging
+from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
@@ -48,6 +49,7 @@ except ImportError:
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 DEFAULT_DISTILLED_MODEL = "anulum/director-ai-nli-lite"
 DEFAULT_DISTILLED_REVISION = "f88222676f64b698c1fcb394f4eeb8da40405027"
@@ -218,12 +220,10 @@ class DistilledNLIBackend:
 def _softmax(logits: np.ndarray) -> np.ndarray:
     """Numerically stable softmax."""
     if _RUST_DISTILLED:
-        try:
+        with suppress(Exception):
             flat = [float(v) for v in np.asarray(logits, dtype=float).ravel()]
             probs = rust_softmax(flat, len(flat))
             return np.asarray(probs, dtype=float)
-        except Exception:
-            pass
     e: np.ndarray = np.exp(logits - np.max(logits))
     denom = _sum_float_list(e.ravel().tolist())
     result: np.ndarray = e / denom
@@ -232,8 +232,6 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
 
 def _sum_float_list(values: list[float]) -> float:
     if _RUST_DISTILLED:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return float(sum(values))

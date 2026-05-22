@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 import logging
 from collections import Counter
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -37,6 +38,7 @@ except ImportError:  # pragma: no cover - fallback path
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 logger = logging.getLogger("DirectorAI.FinetuneValidator")
 
@@ -250,8 +252,6 @@ def validate_finetune_data(
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_FINETUNE_VALIDATOR:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

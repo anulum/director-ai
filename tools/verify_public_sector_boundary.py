@@ -166,7 +166,11 @@ def evaluate_staged_additions(root: Path) -> tuple[BoundaryFinding, ...]:
             continue
         if not line.startswith("+") or line.startswith("+++"):
             continue
-        if current_path and _public_path(current_path) and current_path not in EXCLUDED_PATHS:
+        if (
+            current_path
+            and _public_path(current_path)
+            and current_path not in EXCLUDED_PATHS
+        ):
             if current_path not in reported_path_findings:
                 findings.extend(_path_boundary_findings(current_path))
                 reported_path_findings.add(current_path)
@@ -186,9 +190,7 @@ def _tracked_public_files(root: Path) -> tuple[str, ...]:
     if result.returncode != 0:
         raise RuntimeError(result.stderr.strip() or "git ls-files failed")
     return tuple(
-        line
-        for line in result.stdout.splitlines()
-        if line and _public_path(line)
+        line for line in result.stdout.splitlines() if line and _public_path(line)
     )
 
 

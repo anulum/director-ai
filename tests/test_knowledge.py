@@ -163,9 +163,7 @@ class TestGroundTruthStore:
         result = store.retrieve_context("refund details", top_k=1)
         assert result == "policy first"
 
-    def test_rust_overlap_non_runtime_exception_falls_back_to_python(
-        self, monkeypatch
-    ):
+    def test_rust_overlap_non_runtime_exception_falls_back_to_python(self, monkeypatch):
         monkeypatch.setattr(knowledge_mod, "_RUST_KNOWLEDGE", True)
 
         def _boom(_text_a, _text_b):

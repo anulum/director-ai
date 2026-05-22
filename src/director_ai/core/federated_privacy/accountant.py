@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import math
 import threading
+from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
@@ -186,8 +187,6 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_ACCOUNTANT:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

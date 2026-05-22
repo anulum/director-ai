@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable
+from contextlib import suppress
 from dataclasses import dataclass
 from typing import Literal
 
@@ -50,6 +51,7 @@ except ImportError:  # pragma: no cover - fallback path
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
 
 from .embedder import TraceEmbedder
 
@@ -241,8 +243,6 @@ def _cosine(a: tuple[float, ...], b: tuple[float, ...]) -> float:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_TRACE_ORACLE:
-        try:
+        with suppress(Exception):
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
     return sum(values)

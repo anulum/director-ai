@@ -346,7 +346,9 @@ class TestMiniCheckClaimCoverage:
             raising=True,
         )
 
-        scorer = SimpleNamespace(score=lambda source, sentence: 0.2 if "One" in sentence else 0.9)
+        scorer = SimpleNamespace(
+            score=lambda source, sentence: 0.2 if "One" in sentence else 0.9
+        )
         coverage, divs, sentences = minicheck_claim_coverage(
             scorer,
             "source",
@@ -371,7 +373,9 @@ class TestMiniCheckClaimCoverage:
             raising=True,
         )
 
-        scorer = SimpleNamespace(score=lambda source, sentence: 0.2 if "One" in sentence else 0.9)
+        scorer = SimpleNamespace(
+            score=lambda source, sentence: 0.2 if "One" in sentence else 0.9
+        )
         coverage, divs, sentences = minicheck_claim_coverage(
             scorer,
             "source",
@@ -390,7 +394,9 @@ class TestMiniCheckClaimCoverage:
             lambda _divs, _threshold: (_ for _ in ()).throw(ValueError("ffi fail")),
             raising=True,
         )
-        scorer = SimpleNamespace(score=lambda source, sentence: 0.2 if "One" in sentence else 0.9)
+        scorer = SimpleNamespace(
+            score=lambda source, sentence: 0.2 if "One" in sentence else 0.9
+        )
         coverage, divs, sentences = minicheck_claim_coverage(
             scorer,
             "source",
@@ -410,7 +416,9 @@ class TestMiniCheckClaimCoverage:
             ),
             raising=True,
         )
-        scorer = SimpleNamespace(score=lambda source, sentence: 0.2 if "One" in sentence else 0.9)
+        scorer = SimpleNamespace(
+            score=lambda source, sentence: 0.2 if "One" in sentence else 0.9
+        )
         coverage, divs, sentences = minicheck_claim_coverage(
             scorer,
             "source",
@@ -480,9 +488,7 @@ class TestMiniCheckClaimCoverage:
         assert divs == [0.2, 0.9]
         assert sentences == ["One claim.", "Two claim."]
 
-    def test_sentence_splitter_fallback_when_rust_non_runtime_error(
-        self, monkeypatch
-    ):
+    def test_sentence_splitter_fallback_when_rust_non_runtime_error(self, monkeypatch):
         monkeypatch.setattr(_task_scoring, "_RUST_TASK", True)
         monkeypatch.setattr(
             _task_scoring,

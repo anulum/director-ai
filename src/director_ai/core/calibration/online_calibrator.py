@@ -22,6 +22,7 @@ Usage::
 from __future__ import annotations
 
 import math
+from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -52,6 +53,7 @@ except Exception:  # pragma: no cover - optional dependency
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
+
 from .feedback_store import FeedbackStore
 
 __all__ = ["CalibrationReport", "OnlineCalibrator"]
@@ -63,13 +65,11 @@ def _wilson_ci(successes: int, total: int, z: float = 1.96) -> float:
         return 1.0
     p = successes / total
     if _RUST_ONLINE_CALIBRATOR and abs(z - 1.96) < 1e-6:
-        try:
+        with suppress(Exception):
             low, high = rust_wilson_score_interval(p, total, 0.95)
             centre = (low + high) / 2.0
             spread = min(high - centre, centre - low)
             return min(spread, centre, 1 - centre)
-        except Exception:
-            pass
     denom = 1 + z * z / total
     center = (p + z * z / (2 * total)) / denom
     spread = z * math.sqrt((p * (1 - p) + z * z / (4 * total)) / total) / denom
@@ -133,25 +133,19 @@ class OnlineCalibrator:
         )
         tn = _sum_int(
             [
-                1
-                if not c.guardrail_approved and not c.human_approved
-                else 0
+                1 if not c.guardrail_approved and not c.human_approved else 0
                 for c in corrections
             ]
         )
         fp = _sum_int(
             [
-                1
-                if c.guardrail_approved and not c.human_approved
-                else 0
+                1 if c.guardrail_approved and not c.human_approved else 0
                 for c in corrections
             ]
         )
         fn = _sum_int(
             [
-                1
-                if not c.guardrail_approved and c.human_approved
-                else 0
+                1 if not c.guardrail_approved and c.human_approved else 0
                 for c in corrections
             ]
         )
@@ -232,8 +226,6 @@ class OnlineCalibrator:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_ONLINE_CALIBRATOR:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

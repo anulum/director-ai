@@ -31,6 +31,7 @@ except ImportError:  # pragma: no cover - fallback path
     def rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
+
 from .chain import ProvenanceChain, ProvenanceEntry
 from .credibility import SourceCredibility
 from .facts import CitationFact, FactVerificationError

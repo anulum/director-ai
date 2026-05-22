@@ -28,6 +28,7 @@ from __future__ import annotations
 import abc
 import json
 import re
+from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -86,11 +87,9 @@ class EntityGroundingRule(Rule):
     def check(self, premise: str, hypothesis: str) -> RuleResult:
         """Score how many hypothesis entities are grounded in premise."""
         if _RUST_AVAILABLE:
-            try:
+            with suppress(Exception):
                 score = _rust_entity_overlap(premise, hypothesis)
                 return RuleResult(self.name, score)
-            except Exception:
-                pass
         premise_ents = set(ENTITY_RE.findall(premise))
         hyp_ents = set(ENTITY_RE.findall(hypothesis))
         if not hyp_ents:
@@ -111,7 +110,7 @@ class NumericConsistencyRule(Rule):
     def check(self, premise: str, hypothesis: str) -> RuleResult:
         """Score whether hypothesis numbers are present in premise."""
         if _RUST_AVAILABLE:
-            try:
+            with suppress(Exception):
                 result = _rust_numerical_consistency(premise, hypothesis)
                 if result is None:
                     return RuleResult(self.name, 1.0, "no numbers")
@@ -120,8 +119,6 @@ class NumericConsistencyRule(Rule):
                     1.0 if result else 0.0,
                     "" if result else "numeric mismatch",
                 )
-            except Exception:
-                pass
         premise_nums = set(self._NUM_RE.findall(premise))
         hyp_nums = set(self._NUM_RE.findall(hypothesis))
         if not hyp_nums:
@@ -141,13 +138,11 @@ class NegationFlipRule(Rule):
     def check(self, premise: str, hypothesis: str) -> RuleResult:
         """Penalise premise/hypothesis negation asymmetry."""
         if _RUST_AVAILABLE:
-            try:
+            with suppress(Exception):
                 flipped = _rust_negation_flip(premise, hypothesis)
                 if flipped:
                     return RuleResult(self.name, 0.3, "negation mismatch")
                 return RuleResult(self.name, 1.0)
-            except Exception:
-                pass
         p_words = set(re.findall(r"\w+", premise.lower()))
         h_words = set(re.findall(r"\w+", hypothesis.lower()))
         p_neg = bool(p_words & NEGATION_WORDS)
@@ -182,10 +177,8 @@ class WordOverlapRule(Rule):
     def check(self, premise: str, hypothesis: str) -> RuleResult:
         """Score content-word F1 overlap after stop-word removal."""
         if _RUST_AVAILABLE:
-            try:
+            with suppress(Exception):
                 return RuleResult(self.name, _rust_word_overlap(premise, hypothesis))
-            except Exception:
-                pass
         p_words = set(re.findall(r"\w+", premise.lower())) - STOP_WORDS
         h_words = set(re.findall(r"\w+", hypothesis.lower())) - STOP_WORDS
         if not p_words or not h_words:

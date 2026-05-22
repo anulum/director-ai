@@ -13,6 +13,7 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter, defaultdict
+from contextlib import suppress
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ except ImportError:  # pragma: no cover - fallback path
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
 
 SCHEMA_VERSION = "1.0.0"
 
@@ -431,8 +433,6 @@ def _non_empty_string_list(value: Any) -> bool:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_DATASET_CONTRACT:
-        try:
+        with suppress(Exception):
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
     return sum(values)

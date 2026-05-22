@@ -219,9 +219,7 @@ class TestSphere:
         assert sphere.intersects(other)
         assert sphere.intersects_aabb(box)
 
-    def test_sphere_rust_non_runtime_exceptions_fall_back_to_python(
-        self, monkeypatch
-    ):
+    def test_sphere_rust_non_runtime_exceptions_fall_back_to_python(self, monkeypatch):
         monkeypatch.setattr(
             "director_ai.core.cyber_physical.geometry._RUST_GEOM_AVAILABLE",
             True,
@@ -350,9 +348,7 @@ class TestSimpleKinematicModel:
         solution = self._two_link().inverse(Vec3(1.0, 1.0, 0.0))
         assert solution is not None
 
-    def test_inverse_rust_non_runtime_exception_falls_back_to_python(
-        self, monkeypatch
-    ):
+    def test_inverse_rust_non_runtime_exception_falls_back_to_python(self, monkeypatch):
         monkeypatch.setattr(
             "director_ai.core.cyber_physical.kinematics._RUST_IK_AVAILABLE", True
         )
