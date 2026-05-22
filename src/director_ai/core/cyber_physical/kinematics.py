@@ -234,7 +234,9 @@ class SimpleKinematicModel:
 
 
 def _sum_float(values: list[float]) -> float:
-    try:
-        return float(rust_sum_f64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_IK_AVAILABLE:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
