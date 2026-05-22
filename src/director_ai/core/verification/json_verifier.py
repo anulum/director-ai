@@ -27,17 +27,17 @@ from __future__ import annotations
 import json
 import re
 from collections.abc import Mapping
-from contextlib import suppress
 from typing import Any, cast
 
+from ..mandatory import mandatory_execution
 from .types import FieldVerdict, StructuredVerificationResult
 
 try:
     from backfire_kernel import rust_sum_i64
 
     _RUST_JSON_VERIFY = True
-except ImportError:  # pragma: no cover - optional dependency
-    _RUST_JSON_VERIFY = False
+except ImportError:  # pragma: no cover - mandatory dependency
+    _RUST_JSON_VERIFY = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
@@ -323,6 +323,6 @@ def verify_json(
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_JSON_VERIFY:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

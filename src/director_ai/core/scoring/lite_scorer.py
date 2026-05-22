@@ -18,8 +18,7 @@ Usage::
 
 from __future__ import annotations
 
-from contextlib import suppress
-
+from ..mandatory import mandatory_execution
 from ..types import CoherenceScore
 from ._heuristics import ENTITY_RE as _ENTITY_RE
 from ._heuristics import NEGATION_WORDS as _NEGATION_WORDS
@@ -32,20 +31,26 @@ try:
 
     _RUST_LITE = True
 except ImportError:
-    _RUST_LITE = False
+    _RUST_LITE = True
+
+    def rust_lite_score(_premise: str, _hypothesis: str) -> float:
+        raise RuntimeError("backfire_kernel rust_lite_score is unavailable")
+
+    def rust_lite_score_batch(_pairs: list[tuple[str, str]]) -> list[float]:
+        raise RuntimeError("backfire_kernel rust_lite_score_batch is unavailable")
 
 
 class LiteScorer:
     """Fast divergence scorer without any ML model dependency.
 
-    Uses Rust accelerator when available for regex tokenisation
-    and set operations.
+    Uses the mandatory Rust accelerator for regex tokenisation and set
+    operations.
     """
 
     def score(self, premise: str, hypothesis: str) -> float:
         """Compute divergence in [0, 1]. 0 = aligned, 1 = contradicted."""
         if _RUST_LITE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return float(rust_lite_score(premise, hypothesis))
 
         if not premise or not hypothesis:
@@ -95,7 +100,7 @@ class LiteScorer:
     def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
         """Score multiple (premise, hypothesis) pairs."""
         if _RUST_LITE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return [float(v) for v in rust_lite_score_batch(pairs)]
         return [self.score(p, h) for p, h in pairs]
 

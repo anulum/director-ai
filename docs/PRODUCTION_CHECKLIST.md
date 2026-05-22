@@ -157,6 +157,14 @@ benchmarks, public defaults, or deployment boundaries:
   validation update when public claims changed.
 - [ ] `docs-site/` pages that link to those files still point at the same source
   of truth.
+- [ ] GitHub App installation-token compatibility check passes:
+  `python tools/validate_github_app_token_compat.py` (no fixed-length `ghs_`
+  assumptions; stateless token format accepted).
+- [ ] If this release mints GitHub App installation access tokens directly,
+  pre-rollout verification is executed against both formats on
+  `POST /app/installations/:installation_id/access_tokens`:
+  `X-GitHub-Stateless-S2S-Token: enabled` and
+  `X-GitHub-Stateless-S2S-Token: disabled`.
 
 ---
 

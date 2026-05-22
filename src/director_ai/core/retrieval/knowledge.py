@@ -10,15 +10,20 @@ from __future__ import annotations
 
 import hashlib
 import logging
-from contextlib import suppress
 from typing import Any
+
+from ..mandatory import mandatory_execution
 
 try:
     from backfire_kernel import rust_word_overlap
 
     _RUST_KNOWLEDGE = True
 except ImportError:
-    _RUST_KNOWLEDGE = False
+    _RUST_KNOWLEDGE = True
+
+    def rust_word_overlap(_text_a: str, _text_b: str) -> float:
+        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
+
 
 __all__ = ["GroundTruthStore"]
 
@@ -165,7 +170,7 @@ def _require_non_empty_string(name: str, value: str) -> str:
 def _word_overlap(text_a: str, text_b: str) -> float:
     """Return lexical Jaccard overlap in ``[0, 1]``."""
     if _RUST_KNOWLEDGE:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_word_overlap(text_a, text_b))
     words_a = set(text_a.lower().split())
     words_b = set(text_b.lower().split())

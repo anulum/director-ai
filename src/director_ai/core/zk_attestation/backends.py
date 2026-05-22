@@ -26,7 +26,6 @@ from __future__ import annotations
 import hashlib
 import hmac
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
@@ -40,14 +39,15 @@ try:
 
     _RUST_CHALLENGE_AVAILABLE = True
     _RUST_ZK_ATTESTATION = True
-except ImportError:  # pragma: no cover — optional accelerator
-    _RUST_CHALLENGE_AVAILABLE = False
-    _RUST_ZK_ATTESTATION = False
+except ImportError:  # pragma: no cover — mandatory accelerator
+    _RUST_CHALLENGE_AVAILABLE = True
+    _RUST_ZK_ATTESTATION = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .commitment import (
     CommitmentProof,
     commit_samples,
@@ -188,7 +188,7 @@ class CommitmentBackend:
         the root.
         """
         if _RUST_CHALLENGE_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return list(
                     _rust_derive_challenge_indices(
                         seed_material, sample_count, challenge_size
@@ -250,7 +250,7 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_ZK_ATTESTATION:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)
 

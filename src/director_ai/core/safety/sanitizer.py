@@ -30,8 +30,9 @@ import base64
 import binascii
 import re
 import unicodedata
-from contextlib import suppress
 from dataclasses import dataclass, field
+
+from ..mandatory import mandatory_execution
 
 __all__ = ["InputSanitizer", "SanitizeResult"]
 
@@ -40,7 +41,10 @@ try:
 
     _RUST_SANITIZER = True
 except ImportError:
-    _RUST_SANITIZER = False
+    _RUST_SANITIZER = True
+
+    def rust_has_suspicious_unicode(_text: str) -> bool:
+        raise RuntimeError("backfire_kernel rust_has_suspicious_unicode is unavailable")
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
@@ -277,7 +281,7 @@ class InputSanitizer:
         Cn (unassigned) count as suspicious.
         """
         if _RUST_SANITIZER:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return bool(rust_has_suspicious_unicode(text))
         if not text:
             return False
@@ -330,6 +334,6 @@ def _is_base64_payload_token(token: str) -> bool:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_SANITIZER:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

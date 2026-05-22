@@ -18,15 +18,16 @@ clustering, cycle detection) runs in O(V + E).
 from __future__ import annotations
 
 from collections.abc import Iterable
-from contextlib import suppress
 from dataclasses import dataclass, field
+
+from ..mandatory import mandatory_execution
 
 try:
     from backfire_kernel import rust_sum_f64
 
     _RUST_GRAPH = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_GRAPH = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_GRAPH = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -197,6 +198,6 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_GRAPH:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

@@ -297,16 +297,16 @@ class TestParser:
         assert "HĂ©llo" in result
 
     def test_pdf_missing_dep(self):
-        import contextlib
-
-        with contextlib.suppress(ImportError, Exception):
+        try:
             parse(b"not a pdf", "test.pdf")
+        except Exception as exc:
+            assert isinstance(exc, ImportError | ValueError | RuntimeError)
 
     def test_docx_missing_dep(self):
-        import contextlib
-
-        with contextlib.suppress(ImportError, Exception):
+        try:
             parse(b"not a docx", "test.docx")
+        except Exception as exc:
+            assert isinstance(exc, ImportError | ValueError | RuntimeError)
 
 
 class TestRegistry:

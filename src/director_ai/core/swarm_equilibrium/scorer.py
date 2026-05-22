@@ -27,15 +27,14 @@ Stackelberg leader. It reports:
 
 from __future__ import annotations
 
-from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
     from backfire_kernel import rust_mean, rust_sum_f64
 
     _RUST_SWARM_EQ = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_SWARM_EQ = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_SWARM_EQ = True
 
     def rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
@@ -44,6 +43,7 @@ except Exception:  # pragma: no cover - optional dependency
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .game import NormalFormGame, StrategyProfile
 from .solvers import NashEquilibrium, NashSolver, StackelbergSolver
 
@@ -133,13 +133,13 @@ class SwarmEquilibriumScorer:
         idx = game.players.index(player)
         payoffs = [eq.expected_payoffs[idx] for eq in pures]
         if _RUST_SWARM_EQ:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return float(rust_mean(payoffs))
         return _sum_float(payoffs) / len(payoffs)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_SWARM_EQ:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

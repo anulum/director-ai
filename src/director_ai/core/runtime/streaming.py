@@ -21,11 +21,11 @@ import logging
 import time
 from collections import deque
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
 from ..causal_verifier import CounterfactualVerifier
+from ..mandatory import mandatory_execution
 from ..observability.callbacks import (
     TokenTraceCallback,
     TokenTraceEmitter,
@@ -55,13 +55,16 @@ try:
 
     _RUST_TREND = True
 except ImportError:
-    _RUST_TREND = False
+    _RUST_TREND = True
 
     def _rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
     def _rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
+    def _rust_trend_drop(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_trend_drop is unavailable")
 
 
 __all__ = ["StreamSession", "StreamingKernel", "TokenEvent"]
@@ -77,7 +80,7 @@ def _mean(values: Sequence[float] | deque[float]) -> float:
     if not values:
         return 0.0
     if _RUST_TREND:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(_rust_mean(list(values)))
     return _sum_float([float(v) for v in values]) / len(values)
 
@@ -89,7 +92,7 @@ def _trend_drop(values: list[float] | deque) -> float:
     Positive values indicate downward trend.
     """
     if _RUST_TREND:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(_rust_trend_drop(list(values)))
     n = len(values)
     if n < 2:
@@ -104,7 +107,7 @@ def _trend_drop(values: list[float] | deque) -> float:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_TREND:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(_rust_sum_f64(values))
     return sum(values)
 

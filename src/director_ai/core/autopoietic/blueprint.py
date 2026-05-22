@@ -28,16 +28,17 @@ Four :data:`BlueprintKind` values ship:
 
 from __future__ import annotations
 
-from contextlib import suppress
 from dataclasses import dataclass, replace
 from typing import Literal
+
+from ..mandatory import mandatory_execution
 
 try:
     from backfire_kernel import rust_sum_f64
 
     _RUST_BLUEPRINT = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_BLUEPRINT = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_BLUEPRINT = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -248,6 +249,6 @@ def _rebalance(blueprint: ModuleBlueprint, index: int, delta: float) -> ModuleBl
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_BLUEPRINT:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

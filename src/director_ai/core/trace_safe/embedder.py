@@ -28,14 +28,15 @@ from __future__ import annotations
 import math
 import re
 from abc import ABC, abstractmethod
-from contextlib import suppress
+
+from ..mandatory import mandatory_execution
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
 
     _RUST_TRACE_EMBEDDER = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_TRACE_EMBEDDER = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_TRACE_EMBEDDER = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -121,6 +122,6 @@ def _bucket(token: str, dim: int) -> int:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_TRACE_EMBEDDER:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

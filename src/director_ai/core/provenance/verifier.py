@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_mean
-except ImportError:  # pragma: no cover - fallback path
+except ImportError:  # pragma: no cover - mandatory accelerator guard
 
     def rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")

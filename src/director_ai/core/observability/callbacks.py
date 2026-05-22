@@ -23,7 +23,6 @@ process crashes mid-stream; design them to be restartable.
 
 from __future__ import annotations
 
-import contextlib
 import hashlib
 import logging
 from abc import ABC, abstractmethod
@@ -116,7 +115,7 @@ class TokenTraceEmitter:
     def unregister(self, callback: TokenTraceCallback) -> None:
         """Remove a previously registered callback. Missing entries are
         silently ignored so idempotent lifecycle hooks remain safe."""
-        with contextlib.suppress(ValueError):
+        if callback in self._callbacks:
             self._callbacks.remove(callback)
 
     def __len__(self) -> int:

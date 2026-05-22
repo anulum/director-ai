@@ -23,15 +23,14 @@ from __future__ import annotations
 
 import random
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass
 
 try:
     from backfire_kernel import rust_mean, rust_sum_f64
 
     _RUST_DEFENSE_GENOME = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_DEFENSE_GENOME = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_DEFENSE_GENOME = True
 
     def rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
@@ -40,6 +39,7 @@ except Exception:  # pragma: no cover - optional dependency
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .genome import AdversarialGenome, Gene, GeneOperator
 from .registry import Defense
 
@@ -145,7 +145,7 @@ class GenomePopulation:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_DEFENSE_GENOME:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)
 

@@ -24,13 +24,13 @@ import logging
 import os
 import re
 import warnings
-from contextlib import suppress
 from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 
+from ..mandatory import mandatory_execution
 from ..metrics import metrics
 from ..model_revisions import (
     DEFAULT_NLI_MODEL,
@@ -54,7 +54,7 @@ try:
 
     _RUST_NLI = True
 except ImportError:
-    _RUST_NLI = False
+    _RUST_NLI = True
 
     def rust_softmax(_flat: list[float], _cols: int) -> list[float]:
         """Raise when the Rust NLI softmax accelerator is unavailable."""
@@ -270,7 +270,7 @@ def _softmax_np(x: np.ndarray) -> np.ndarray:
     Uses Rust accelerator for large batches when available.
     """
     if _RUST_NLI and x.size >= 100:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             flat = x.flatten().tolist()
             cols = x.shape[1]
             result = rust_softmax(flat, cols)
@@ -347,7 +347,7 @@ def _probs_to_divergence(
     ncols = probs.shape[1]
     ci, ni = label_indices or (2, 1)
     if _RUST_NLI and probs.shape[0] >= 10:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             flat = probs.flatten().tolist()
             return [float(v) for v in rust_probs_to_divergence(flat, ncols, ci, ni)]
     if ncols == 2:
@@ -366,7 +366,7 @@ def _probs_to_confidence(probs: np.ndarray) -> list[float]:
     """
     ncols = probs.shape[1]
     if _RUST_NLI and probs.shape[0] >= 10:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             flat = probs.flatten().tolist()
             return [float(v) for v in rust_probs_to_confidence(flat, ncols)]
     log_k = float(np.log(ncols)) if ncols > 1 else 1.0
@@ -1005,7 +1005,7 @@ class NLIScorer:
         and decimal numbers (e.g. 2.3%).
         """
         if _RUST_NLI:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return [s.strip() for s in rust_split_sentences(text) if s.strip()]
         abbrev_re = re.compile(
             r"(?:Mr|Mrs|Ms|Dr|Prof|Sr|Jr|St|Inc|Ltd|Corp|vs|etc|e\.g|i\.e|U\.S|U\.K)\.\s+",
@@ -1040,7 +1040,7 @@ class NLIScorer:
         default ``overlap_ratio=0``, uses 1-sentence overlap (legacy).
         """
         if _RUST_NLI:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return list(rust_build_chunks(sentences, budget, overlap_ratio))
         if overlap_ratio > 0:
             return self._build_chunks_overlap(sentences, budget, overlap_ratio)
@@ -1070,7 +1070,7 @@ class NLIScorer:
     ) -> list[str]:
         """Sliding-window chunking with configurable token overlap."""
         if _RUST_NLI:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return list(rust_build_chunks(sentences, budget, overlap_ratio))
         chunks: list[str] = []
         i = 0
@@ -1155,7 +1155,7 @@ class NLIScorer:
         n_prem = len(prem_chunks)
         n_hyp = len(hyp_chunks)
         if _RUST_NLI:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 agg_rust, per_hyp_rust = rust_aggregate_chunk_scores(
                     [float(v) for v in all_scores],
                     n_prem,
@@ -1373,7 +1373,7 @@ class NLIScorer:
         n_prem = len(prem_chunks)
         n_hyp = len(hyp_chunks)
         if _RUST_NLI:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 flat_scores = [float(v[0]) for v in results_with_conf]
                 flat_conf = [float(v[1]) for v in results_with_conf]
                 agg_rust, per_hyp_rust = (
@@ -1473,7 +1473,7 @@ class NLIScorer:
             divs.append(div)
 
         if _RUST_NLI:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 coverage, _supported = rust_coverage_from_divergences(
                     [float(d) for d in divs],
                     float(support_threshold),
@@ -1566,7 +1566,7 @@ class NLIScorer:
             )
 
         if _RUST_NLI:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 coverage, _supported = rust_coverage_from_divergences(
                     [float(d) for d in per_claim_divs],
                     float(support_threshold),

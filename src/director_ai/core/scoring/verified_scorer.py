@@ -24,9 +24,10 @@ from __future__ import annotations
 
 import logging
 import re
-from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Literal, Protocol, cast
+
+from ..mandatory import mandatory_execution
 
 logger = logging.getLogger("DirectorAI.VerifiedScorer")
 
@@ -44,13 +45,31 @@ try:
 
     _RUST_SIGNALS = True
 except ImportError:
-    _RUST_SIGNALS = False
+    _RUST_SIGNALS = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
+    def rust_entity_overlap(_claim: str, _source: str) -> float:
+        raise RuntimeError("backfire_kernel rust_entity_overlap is unavailable")
+
+    def rust_negation_flip(_claim: str, _source: str) -> bool:
+        raise RuntimeError("backfire_kernel rust_negation_flip is unavailable")
+
+    def rust_numerical_consistency(_claim: str, _source: str) -> bool:
+        raise RuntimeError("backfire_kernel rust_numerical_consistency is unavailable")
+
+    def rust_split_sentences(_text: str) -> list[str]:
+        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
+
+    def rust_traceability(_claim: str, _source: str) -> float:
+        raise RuntimeError("backfire_kernel rust_traceability is unavailable")
+
+    def rust_word_overlap(_text_a: str, _text_b: str) -> float:
+        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
 
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
@@ -536,7 +555,7 @@ class VerifiedScorer:
 
 def _split_sentences(text: str) -> list[str]:
     if _RUST_SIGNALS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             sentences = [s.strip() for s in rust_split_sentences(text) if s.strip()]
             filtered = [s for s in sentences if len(s.split()) >= 3]
             if filtered:
@@ -583,7 +602,7 @@ def _decompose_atomic(text: str) -> list[str]:
 
 def _entity_overlap(text_a: str, text_b: str) -> float:
     if _RUST_SIGNALS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_entity_overlap(text_a, text_b))
     ents_a = set(_ENTITY_RE.findall(text_a))
     ents_b = set(_ENTITY_RE.findall(text_b))
@@ -598,7 +617,7 @@ def _entity_overlap(text_a: str, text_b: str) -> float:
 def _numerical_consistency(text_a: str, text_b: str) -> bool | None:
     """Check if numbers in text_a match numbers in text_b."""
     if _RUST_SIGNALS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return cast("bool | None", rust_numerical_consistency(text_a, text_b))
     nums_a = set(_NUM_RE.findall(text_a))
     nums_b = set(_NUM_RE.findall(text_b))
@@ -612,7 +631,7 @@ def _numerical_consistency(text_a: str, text_b: str) -> bool | None:
 def _negation_flip(claim: str, source: str) -> bool:
     """Detect if claim negates something the source states positively, or vice versa."""
     if _RUST_SIGNALS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return cast(bool, rust_negation_flip(claim, source))
     claim_words = set(claim.lower().split())
     source_words = set(source.lower().split())
@@ -689,7 +708,7 @@ def _traceability(claim: str, source: str) -> float:
     information not present in the source (potential fabrication).
     """
     if _RUST_SIGNALS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_traceability(claim, source))
     claim_words = set(re.findall(r"\w+", claim.lower())) - _STOP_WORDS - _NEG_WORDS
     source_words = set(re.findall(r"\w+", source.lower())) - _STOP_WORDS - _NEG_WORDS
@@ -701,7 +720,7 @@ def _traceability(claim: str, source: str) -> float:
 def _word_overlap(text_a: str, text_b: str) -> float:
     """Jaccard lexical overlap in ``[0, 1]`` for two texts."""
     if _RUST_SIGNALS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_word_overlap(text_a, text_b))
     words_a = set(text_a.lower().split())
     words_b = set(text_b.lower().split())
@@ -713,13 +732,13 @@ def _word_overlap(text_a: str, text_b: str) -> float:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_SIGNALS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_SIGNALS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

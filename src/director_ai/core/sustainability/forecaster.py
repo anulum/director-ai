@@ -24,15 +24,16 @@ from __future__ import annotations
 
 import threading
 from collections import deque
-from contextlib import suppress
 from dataclasses import dataclass
+
+from ..mandatory import mandatory_execution
 
 try:
     from backfire_kernel import rust_conformal_quantile, rust_ema_update
 
     _RUST_FORECAST = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_FORECAST = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_FORECAST = True
 
     def rust_conformal_quantile(_residuals: list[float], _coverage: float) -> float:
         raise RuntimeError("backfire_kernel rust_conformal_quantile is unavailable")
@@ -159,7 +160,7 @@ class ConformalDemandForecaster:
 
     def _update_locked(self, demand: float) -> None:
         if _RUST_FORECAST:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 self._ema = float(rust_ema_update(self._ema, demand, self._alpha))
                 return
 

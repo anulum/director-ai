@@ -27,7 +27,7 @@ import subprocess
 import sys
 import time
 from collections.abc import Callable
-from contextlib import contextmanager, suppress
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -37,6 +37,7 @@ from typing import Any
 import numpy as np
 
 from benchmarks._common import RESULTS_DIR, save_results
+from director_ai.core.mandatory import mandatory_execution
 
 
 @dataclass(frozen=True)
@@ -83,13 +84,15 @@ def _force_python_flags(enabled: bool):
                 continue
             if isinstance(value, bool):
                 saved.append((mod, attr, value))
-                with suppress(Exception):
+                with mandatory_execution(
+                    __name__, component="mandatory accelerated path"
+                ):
                     setattr(mod, attr, False)
     try:
         yield
     finally:
         for mod, attr, value in saved:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 setattr(mod, attr, value)
 
 

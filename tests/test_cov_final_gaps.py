@@ -8,7 +8,6 @@
 
 from __future__ import annotations
 
-import contextlib
 import sys
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -431,15 +430,19 @@ class TestCliBenchEdges:
         pytest.importorskip("benchmarks", reason="benchmarks not on sys.path")
         from director_ai.cli import main
 
-        with contextlib.suppress(SystemExit):
+        try:
             main(["bench"])
+        except SystemExit as exc:
+            assert exc.code in (0, 1, None)
 
     def test_bench_with_seed(self, capsys):
         pytest.importorskip("benchmarks", reason="benchmarks not on sys.path")
         from director_ai.cli import main
 
-        with contextlib.suppress(SystemExit):
+        try:
             main(["bench", "--seed", "42"])
+        except SystemExit as exc:
+            assert exc.code in (0, 1, None)
 
 
 class TestCliIngestJsonDecodeDetail:

@@ -23,9 +23,9 @@ encoded.  Per-claim attribution provides explainability.
 from __future__ import annotations
 
 import logging
-from contextlib import suppress
 from dataclasses import dataclass
 
+from ..mandatory import mandatory_execution
 from ..scoring.verified_scorer import _entity_overlap, _traceability
 from ..types import InjectedClaim, InjectionResult
 
@@ -42,10 +42,33 @@ try:
     _RUST_INJECTION = True
 except ImportError:
 
+    def rust_bidirectional_divergence(
+        _claims: list[str],
+        _intent: str,
+        _forward_divs: list[float],
+        _reverse_divs: list[float],
+        _baseline: float,
+    ) -> list[tuple[float, float, float]]:
+        raise RuntimeError(
+            "backfire_kernel rust_bidirectional_divergence is unavailable"
+        )
+
+    def rust_injection_verdict(
+        _calibrated_divergences: list[float],
+        _traceabilities: list[float],
+        _entity_matches: list[float],
+        _sanitizer_score: float,
+        **_kwargs,
+    ) -> tuple[list[tuple[int, float]], float, float, bool]:
+        raise RuntimeError("backfire_kernel rust_injection_verdict is unavailable")
+
+    def rust_split_sentences(_text: str) -> list[str]:
+        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
+
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
-    _RUST_INJECTION = False
+    _RUST_INJECTION = True
 
 _VERDICTS = frozenset({"grounded", "drifted", "injected"})
 
@@ -259,7 +282,7 @@ class InjectionDetector:
 
         # Rust fast path: batch traceability + entity + calibration
         if _RUST_INJECTION:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 bidir_data = rust_bidirectional_divergence(
                     claims,
                     intent,
@@ -303,7 +326,7 @@ class InjectionDetector:
                     )
                 return result
 
-        # Python fallback path
+        # Python mandatory accelerator guard
         result = []
         for i, claim in enumerate(claims):
             fwd = fwd_scores[i]
@@ -451,7 +474,7 @@ class InjectionDetector:
 def _fallback_split(text: str) -> list[str]:
     """Sentence splitting without NLI scorer — period-based fallback."""
     if _RUST_INJECTION:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             sentences = [s for s in rust_split_sentences(text) if s.strip()]
             if sentences:
                 return sentences
@@ -461,6 +484,6 @@ def _fallback_split(text: str) -> list[str]:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_INJECTION:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

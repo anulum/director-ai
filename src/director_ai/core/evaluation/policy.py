@@ -11,16 +11,17 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping, Sequence
-from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
+
+from ..mandatory import mandatory_execution
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
 
     _RUST_POLICY_EVAL = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_POLICY_EVAL = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_POLICY_EVAL = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
@@ -341,6 +342,6 @@ def _safe_div(num: int, den: int) -> float:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_POLICY_EVAL:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

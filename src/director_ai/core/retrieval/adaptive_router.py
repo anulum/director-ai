@@ -29,9 +29,10 @@ Usage::
 from __future__ import annotations
 
 import re
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any
+
+from ..mandatory import mandatory_execution
 
 __all__ = ["AdaptiveRouter", "RoutingDecision"]
 
@@ -47,7 +48,7 @@ try:
     _RUST_AVAILABLE = True
 except ImportError:
     _rust_task_type = None
-    _RUST_AVAILABLE = False
+    _RUST_AVAILABLE = True
 
 # Task types that benefit from KB retrieval
 _RETRIEVAL_TYPES = frozenset({"rag", "fact_check", "qa"})
@@ -178,7 +179,7 @@ def _detect_task_type_safe(query: str, response: str) -> str:
     (transparent Rust fast-path, ~2µs vs ~50µs Python regex).
     """
     if _RUST_AVAILABLE and _rust_task_type is not None:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return str(_rust_task_type(query, response))
     try:
         from director_ai.core.scoring._task_scoring import detect_task_type

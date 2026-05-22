@@ -25,14 +25,15 @@ Usage::
 
 from __future__ import annotations
 
-import contextlib
 import logging
 import time
 from dataclasses import dataclass, field
 
+from ..mandatory import mandatory_execution
+
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_mean
-except ImportError:  # pragma: no cover - fallback path
+except ImportError:  # pragma: no cover - mandatory accelerator guard
 
     def rust_mean(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
@@ -216,7 +217,7 @@ class KBHealthCheck:
         latencies: list[float] = []
         for query in self._probe_queries:
             t0 = time.perf_counter()
-            with contextlib.suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 self._store.retrieve_context(query)
             latencies.append((time.perf_counter() - t0) * 1000)
 
@@ -227,7 +228,7 @@ class KBHealthCheck:
         if not hasattr(self._store, "retrieve_context"):
             return False
         for query in self._probe_queries[:3]:
-            with contextlib.suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 result = self._store.retrieve_context(query)
                 if result:
                     return True
@@ -244,7 +245,7 @@ class KBHealthCheck:
 
     def _get_total_entries(self) -> int:
         """Get total entry count (may differ from document count)."""
-        with contextlib.suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             if hasattr(self._store, "backend") and hasattr(
                 self._store.backend, "count"
             ):

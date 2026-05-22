@@ -9,23 +9,10 @@
 
 from __future__ import annotations
 
-import pytest
-
-try:
-    from backfire_kernel import (
-        rust_bidirectional_divergence,
-        rust_injection_verdict,
-    )
-
-    _RUST_AVAILABLE = True
-except ImportError:
-    _RUST_AVAILABLE = False
-
-pytestmark = pytest.mark.skipif(
-    not _RUST_AVAILABLE,
-    reason="backfire_kernel not installed",
+from backfire_kernel import (
+    rust_bidirectional_divergence,
+    rust_injection_verdict,
 )
-
 
 # ── rust_bidirectional_divergence ───────────────────────────────────
 
@@ -197,7 +184,7 @@ class TestRustInjectionVerdict:
 
 
 class TestRustPythonConsistency:
-    """Verify Rust path produces same results as Python fallback."""
+    """Verify Rust-backed detector behaviour through the public API."""
 
     def test_detector_produces_valid_results_with_rust(self):
         from director_ai.core.safety.injection import InjectionDetector
@@ -230,7 +217,7 @@ class TestRustPythonConsistency:
             user_query="What is the capital of France?",
             system_prompt="You are a geography expert.",
         )
-        # Heuristic fallback should still flag this
+        # Detector heuristics should still flag this adversarial response.
         assert result.injection_risk > 0.0
         assert result.total_claims >= 1
 

@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable, Sequence
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import Any, Protocol, runtime_checkable
 
@@ -32,13 +31,14 @@ try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
 
     _RUST_SELF_EVOLVING = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_SELF_EVOLVING = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_SELF_EVOLVING = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from ..model_revisions import resolve_model_revision
 from .feedback import FeedbackEvent
 
@@ -180,7 +180,7 @@ class LoraGuardrailTrainer:
 
     The constructor does not load anything; :meth:`train` loads
     lazily and raises :class:`ImportError` with install
-    instructions when the optional dependency group is missing.
+    instructions when the mandatory dependency group is missing.
     """
 
     def __init__(
@@ -354,6 +354,6 @@ def _dot(a: Sequence[float], b: Sequence[float]) -> float:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_SELF_EVOLVING:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

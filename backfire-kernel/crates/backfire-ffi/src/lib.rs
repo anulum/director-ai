@@ -1330,10 +1330,7 @@ fn rust_aggregate_chunk_scores_confidence_weighted(
 }
 
 #[pyfunction]
-fn rust_coverage_from_divergences(
-    divergences: Vec<f64>,
-    support_threshold: f64,
-) -> (f64, usize) {
+fn rust_coverage_from_divergences(divergences: Vec<f64>, support_threshold: f64) -> (f64, usize) {
     backfire_core::compute::coverage_from_divergences(&divergences, support_threshold)
 }
 
@@ -1393,7 +1390,10 @@ fn rust_conformal_quantile(residuals: Vec<f64>, coverage: f64) -> PyResult<f64> 
     if residuals.is_empty() {
         return Err(PyValueError::new_err("residuals must be non-empty"));
     }
-    if residuals.iter().any(|value| !value.is_finite() || *value < 0.0) {
+    if residuals
+        .iter()
+        .any(|value| !value.is_finite() || *value < 0.0)
+    {
         return Err(PyValueError::new_err(
             "residuals must be finite and non-negative",
         ));
@@ -1415,7 +1415,9 @@ fn rust_ema_update(previous: Option<f64>, value: f64, alpha: f64) -> PyResult<f6
     }
     if let Some(prev) = previous {
         if !prev.is_finite() {
-            return Err(PyValueError::new_err("previous must be finite when provided"));
+            return Err(PyValueError::new_err(
+                "previous must be finite when provided",
+            ));
         }
         Ok(alpha * value + (1.0 - alpha) * prev)
     } else {
@@ -1445,11 +1447,7 @@ fn rust_beta_posterior_mean(
 }
 
 #[pyfunction]
-fn rust_wilson_score_interval(
-    p_hat: f64,
-    n: usize,
-    confidence: f64,
-) -> PyResult<(f64, f64)> {
+fn rust_wilson_score_interval(p_hat: f64, n: usize, confidence: f64) -> PyResult<(f64, f64)> {
     if !p_hat.is_finite() || !(0.0..=1.0).contains(&p_hat) {
         return Err(PyValueError::new_err("p_hat must be finite and in [0, 1]"));
     }
@@ -1473,10 +1471,7 @@ fn rust_wilson_score_interval(
     let halfwidth = (z_adj
         * ((p_hat * (1.0 - p_hat) / nf + z_adj * z_adj / (4.0 * nf * nf)).sqrt()))
         / denominator;
-    Ok((
-        (centre - halfwidth).max(0.0),
-        (centre + halfwidth).min(1.0),
-    ))
+    Ok(((centre - halfwidth).max(0.0), (centre + halfwidth).min(1.0)))
 }
 
 #[pyfunction]
@@ -1558,8 +1553,10 @@ fn rust_standard_normal_quantile(p: f64) -> PyResult<f64> {
         );
     }
     let q = (-2.0 * (1.0 - p).ln()).sqrt();
-    Ok(-(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5])
-        / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0))
+    Ok(
+        -(((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5])
+            / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1.0),
+    )
 }
 
 #[pyfunction]
@@ -1590,7 +1587,9 @@ fn rust_confusion_counts_threshold(
     threshold: f64,
 ) -> PyResult<(usize, usize, usize, usize)> {
     if scores.len() != labels.len() {
-        return Err(PyValueError::new_err("scores and labels must have same length"));
+        return Err(PyValueError::new_err(
+            "scores and labels must have same length",
+        ));
     }
     if !threshold.is_finite() {
         return Err(PyValueError::new_err("threshold must be finite"));

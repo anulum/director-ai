@@ -22,7 +22,6 @@ Usage::
 from __future__ import annotations
 
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass, field
 
 from director_ai.core.guard_control import (
@@ -33,6 +32,8 @@ from director_ai.core.guard_control import (
     VerifierSignal,
 )
 
+from ..mandatory import mandatory_execution
+
 try:
     from backfire_kernel import rust_sum_f64, rust_word_overlap
 
@@ -42,7 +43,7 @@ except ImportError:
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
-    _RUST_CONSENSUS = False
+    _RUST_CONSENSUS = True
 
 __all__ = [
     "BFTConsensusResult",
@@ -348,7 +349,7 @@ class ConsensusScorer:
 def _word_overlap(text_a: str, text_b: str) -> float:
     """Return lexical Jaccard overlap in ``[0, 1]``."""
     if _RUST_CONSENSUS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_word_overlap(text_a, text_b))
     words_a = set(text_a.lower().split())
     words_b = set(text_b.lower().split())
@@ -360,7 +361,7 @@ def _word_overlap(text_a: str, text_b: str) -> float:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_CONSENSUS:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)
 

@@ -18,9 +18,10 @@ import logging
 import pickle  # nosec B403 — intentional; runtime warns on untrusted paths
 import re
 import warnings
-from contextlib import suppress
 
 import numpy as np
+
+from ..mandatory import mandatory_execution
 
 logger = logging.getLogger("DirectorAI.MetaClassifier")
 
@@ -33,16 +34,22 @@ except ImportError:
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
-    _RUST_META = False
+    _RUST_META = True
 
 try:
-    from sklearn.exceptions import InconsistentVersionWarning
+    from sklearn.exceptions import (
+        InconsistentVersionWarning as _SklearnVersionWarning,
+    )
+
+    _INCONSISTENT_VERSION_WARNING: type[Warning] = _SklearnVersionWarning
 except (
     Exception
 ):  # pragma: no cover - sklearn absent handled by runtime import boundaries
 
-    class InconsistentVersionWarning(UserWarning):
+    class _FallbackInconsistentVersionWarning(UserWarning):
         """Fallback warning type when sklearn is unavailable at import time."""
+
+    _INCONSISTENT_VERSION_WARNING = _FallbackInconsistentVersionWarning
 
 
 NEGATION_WORDS = frozenset(
@@ -109,7 +116,7 @@ TEXT_FEATURE_COLS = [
 def _word_overlap(text_a: str, text_b: str) -> float:
     """Return lexical Jaccard overlap in ``[0, 1]``."""
     if _RUST_META:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_word_overlap(text_a, text_b))
     words_a = set(text_a.lower().split())
     words_b = set(text_b.lower().split())
@@ -173,7 +180,7 @@ def extract_text_features(premise: str, hypothesis: str) -> dict:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_META:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)
 
@@ -200,9 +207,9 @@ class DatasetTypeClassifier:
         logger.info("Model SHA256 prefix: %s (%d bytes)", sha, len(raw))
         try:
             with warnings.catch_warnings():
-                warnings.simplefilter("error", InconsistentVersionWarning)
+                warnings.simplefilter("error", _INCONSISTENT_VERSION_WARNING)
                 bundle = pickle.loads(raw)  # nosec B301 — warned above; hash logged for auditability
-        except InconsistentVersionWarning as exc:
+        except _INCONSISTENT_VERSION_WARNING as exc:
             raise ValueError(
                 f"Incompatible sklearn artefact at {model_path}: {exc}",
             ) from exc

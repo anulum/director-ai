@@ -22,7 +22,6 @@ Usage::
 from __future__ import annotations
 
 import math
-from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -33,8 +32,8 @@ try:
     )
 
     _RUST_ONLINE_CALIBRATOR = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_ONLINE_CALIBRATOR = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_ONLINE_CALIBRATOR = True
 
     def rust_wilson_score_interval(
         _p_hat: float, _n: int, _confidence: float
@@ -54,6 +53,7 @@ except Exception:  # pragma: no cover - optional dependency
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .feedback_store import FeedbackStore
 
 __all__ = ["CalibrationReport", "OnlineCalibrator"]
@@ -65,11 +65,11 @@ def _wilson_ci(successes: int, total: int, z: float = 1.96) -> float:
         return 1.0
     p = successes / total
     if _RUST_ONLINE_CALIBRATOR and abs(z - 1.96) < 1e-6:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             low, high = rust_wilson_score_interval(p, total, 0.95)
             centre = (low + high) / 2.0
             spread = min(high - centre, centre - low)
-            return min(spread, centre, 1 - centre)
+            return float(min(spread, centre, 1 - centre))
     denom = 1 + z * z / total
     center = (p + z * z / (2 * total)) / denom
     spread = z * math.sqrt((p * (1 - p) + z * z / (4 * total)) / total) / denom
@@ -226,6 +226,6 @@ class OnlineCalibrator:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_ONLINE_CALIBRATOR:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

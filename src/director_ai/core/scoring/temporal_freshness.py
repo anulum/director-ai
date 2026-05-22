@@ -15,9 +15,10 @@ from __future__ import annotations
 import re
 import time
 from collections.abc import Mapping, Sequence
-from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
+
+from ..mandatory import mandatory_execution
 
 __all__ = [
     "CitationStatusSignal",
@@ -32,7 +33,18 @@ try:
 
     _RUST_TEMPORAL = True
 except ImportError:
-    _RUST_TEMPORAL = False
+    _RUST_TEMPORAL = True
+
+    def rust_score_temporal_freshness(
+        _claim_text: str,
+        _source_timestamp: float | None,
+        _now: float,
+        _domain: str | None,
+    ) -> tuple[float, str]:
+        raise RuntimeError(
+            "backfire_kernel rust_score_temporal_freshness is unavailable"
+        )
+
 
 _CLAIM_REASONS: dict[str, str] = {
     "position": "Leadership positions change frequently",
@@ -191,7 +203,7 @@ def score_temporal_freshness(
         and not citation_statuses
         and not domain
     ):
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             raw_claims, _overall, _has = rust_score_temporal_freshness(text)
             rust_claims = [
                 FreshnessClaim(

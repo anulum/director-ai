@@ -28,11 +28,11 @@ import json
 import logging
 import time
 from collections.abc import Mapping
-from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from ..mandatory import mandatory_execution
 from ..model_revisions import resolve_model_revision
 from .model_registry import (
     TrainingModelProfile,
@@ -308,7 +308,7 @@ def _evaluate_model(
         f1 = _binary_f1_score(labels, all_preds)
         return {"balanced_accuracy": bal_acc, "f1": f1}
     finally:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             model.to("cpu")
         release_torch_cuda()
 

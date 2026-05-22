@@ -21,7 +21,6 @@ from __future__ import annotations
 import math
 import random
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -32,8 +31,8 @@ try:
     )
 
     _RUST_IRREVERSIBILITY = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_IRREVERSIBILITY = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_IRREVERSIBILITY = True
 
     def rust_wilson_score_interval(
         _p_hat: float,
@@ -51,6 +50,7 @@ except Exception:  # pragma: no cover - optional dependency
         raise RuntimeError("backfire_kernel rust_product_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .reversibility import ReversibilityEstimator, RuleReversibility
 
 
@@ -169,7 +169,7 @@ def _wilson_score(p_hat: float, n: int, confidence: float) -> tuple[float, float
     if n <= 0:
         return (0.0, 0.0)
     if _RUST_IRREVERSIBILITY:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             low, high = rust_wilson_score_interval(p_hat, n, confidence)
             return (float(low), float(high))
     z = _standard_normal_quantile((1.0 + confidence) / 2.0)
@@ -189,7 +189,7 @@ def _standard_normal_quantile(p: float) -> float:
     if not 0.0 < p < 1.0:
         raise ValueError(f"p must be in (0, 1); got {p!r}")
     if _RUST_IRREVERSIBILITY:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_standard_normal_quantile(p))
     # Beasley-Springer coefficients.
     a = (

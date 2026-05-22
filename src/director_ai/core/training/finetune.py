@@ -36,7 +36,6 @@ import json
 import logging
 import random
 from collections import Counter
-from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, cast
@@ -45,8 +44,8 @@ try:
     from backfire_kernel import rust_sum_f64, rust_sum_i64
 
     _RUST_FINETUNE = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_FINETUNE = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_FINETUNE = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -55,6 +54,7 @@ except Exception:  # pragma: no cover - optional dependency
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from ..model_revisions import resolve_model_revision
 
 logger = logging.getLogger("DirectorAI.FineTune")
@@ -300,14 +300,14 @@ def _binary_f1_score(labels, preds) -> float:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_FINETUNE:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_FINETUNE:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)
 
@@ -386,10 +386,9 @@ def finetune_nli(
     except ImportError as exc:
         raise ImportError("pip install director-ai[finetune]") from exc
 
-    with suppress(ImportError, AttributeError):
-        from director_ai.core.scoring.nli import clear_model_cache
+    from director_ai.core.scoring.nli import clear_model_cache
 
-        clear_model_cache()
+    clear_model_cache()
 
     # Phase E: mix general data to prevent catastrophic forgetting
     n_general_mixed = 0
@@ -560,7 +559,7 @@ def finetune_nli(
 
         return result
     finally:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             trained_model = trainer.model
             if trained_model is not None:
                 cast(Any, trained_model).to("cpu")

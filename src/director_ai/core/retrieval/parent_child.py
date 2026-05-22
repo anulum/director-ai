@@ -31,15 +31,14 @@ from __future__ import annotations
 
 import logging
 import threading
-from contextlib import suppress
 from typing import Any
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
 
     _RUST_PARENT_CHILD = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_PARENT_CHILD = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_PARENT_CHILD = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
@@ -47,6 +46,8 @@ except ImportError:  # pragma: no cover - fallback path
 
 from director_ai.core.retrieval.doc_chunker import ChunkConfig, split
 from director_ai.core.retrieval.vector_store import VectorBackend
+
+from ..mandatory import mandatory_execution
 
 logger = logging.getLogger("DirectorAI.ParentChild")
 
@@ -224,6 +225,6 @@ def _validate_chunk_window(size: int, overlap: int, label: str) -> None:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_PARENT_CHILD:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

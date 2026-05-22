@@ -16,7 +16,6 @@ Usage::
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import inspect
 import json
 import logging
@@ -415,17 +414,22 @@ class _OpenAICompletionsProxy:
 
 def _openai_response_text(response) -> str:
     """Extract assistant text from a chat completion response."""
-    with contextlib.suppress(IndexError, AttributeError):
-        return response.choices[0].message.content or ""
-    return ""
+    choices = getattr(response, "choices", None)
+    if not choices:
+        return ""
+    message = getattr(choices[0], "message", None)
+    content = getattr(message, "content", None)
+    return content if isinstance(content, str) else ""
 
 
 def _extract_stream_delta(chunk) -> str | None:
     """Extract text delta content from a streaming chat chunk."""
-    with contextlib.suppress(IndexError, AttributeError):
-        delta = chunk.choices[0].delta.content
-        return str(delta) if delta is not None else None
-    return None
+    choices = getattr(chunk, "choices", None)
+    if not choices:
+        return None
+    delta_obj = getattr(choices[0], "delta", None)
+    delta = getattr(delta_obj, "content", None)
+    return str(delta) if delta is not None else None
 
 
 class _GuardedOpenAIStream:
@@ -582,9 +586,11 @@ class _AnthropicMessagesProxy:
 
 def _anthropic_response_text(response) -> str:
     """Extract text from a vendor message response."""
-    with contextlib.suppress(IndexError, AttributeError):
-        return response.content[0].text or ""
-    return ""
+    content = getattr(response, "content", None)
+    if not content:
+        return ""
+    text = getattr(content[0], "text", None)
+    return text if isinstance(text, str) else ""
 
 
 def _extract_anthropic_event_text(event) -> str | None:
@@ -686,9 +692,13 @@ def _has_bedrock_shape(client) -> bool:
 
 def _bedrock_response_text(response: dict) -> str:
     """Extract text from Bedrock Converse API response."""
-    with contextlib.suppress(KeyError, IndexError, TypeError):
-        return response["output"]["message"]["content"][0]["text"] or ""
-    return ""
+    output = response.get("output") if isinstance(response, dict) else None
+    message = output.get("message") if isinstance(output, dict) else None
+    content = message.get("content") if isinstance(message, dict) else None
+    if not isinstance(content, list) or not content or not isinstance(content[0], dict):
+        return ""
+    text = content[0].get("text")
+    return text if isinstance(text, str) else ""
 
 
 def _extract_bedrock_prompt(messages: list[dict]) -> str:
@@ -707,10 +717,10 @@ def _extract_bedrock_prompt(messages: list[dict]) -> str:
 
 def _extract_bedrock_stream_delta(event: dict) -> str | None:
     """Extract text delta content from a Bedrock stream event."""
-    with contextlib.suppress(KeyError, TypeError):
-        val = event["contentBlockDelta"]["delta"]["text"]
-        return str(val) if val is not None else None
-    return None
+    block = event.get("contentBlockDelta") if isinstance(event, dict) else None
+    delta = block.get("delta") if isinstance(block, dict) else None
+    val = delta.get("text") if isinstance(delta, dict) else None
+    return str(val) if val is not None else None
 
 
 class _BedrockProxy:
@@ -967,10 +977,7 @@ def _has_mistral_shape(client) -> bool:
     if _has_openai_shape(client):
         return False
     chat = getattr(client, "chat", None)
-    with contextlib.suppress(AttributeError):
-        inspect.getattr_static(chat, "complete")
-        return callable(getattr(chat, "complete", None))
-    return False
+    return chat is not None and callable(getattr(chat, "complete", None))
 
 
 class _MistralChatProxy:
@@ -1021,22 +1028,25 @@ class _MistralChatProxy:
 
 def _mistral_response_text(response) -> str:
     """Extract assistant text from a Mistral chat completion response."""
-    with contextlib.suppress(IndexError, AttributeError):
-        content = response.choices[0].message.content
-        if isinstance(content, str):
-            return content
-        if isinstance(content, list):
-            parts: list[str] = []
-            for chunk in content:
-                if isinstance(chunk, str):
-                    parts.append(chunk)
-                elif isinstance(chunk, dict) and "text" in chunk:
-                    parts.append(str(chunk["text"]))
-                else:
-                    text = getattr(chunk, "text", None)
-                    if text is not None:
-                        parts.append(str(text))
-            return "".join(parts)
+    choices = getattr(response, "choices", None)
+    if not choices:
+        return ""
+    message = getattr(choices[0], "message", None)
+    content = getattr(message, "content", None)
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for chunk in content:
+            if isinstance(chunk, str):
+                parts.append(chunk)
+            elif isinstance(chunk, dict) and "text" in chunk:
+                parts.append(str(chunk["text"]))
+            else:
+                text = getattr(chunk, "text", None)
+                if text is not None:
+                    parts.append(str(text))
+        return "".join(parts)
     return ""
 
 

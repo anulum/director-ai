@@ -17,7 +17,6 @@ not in the allowlist are skipped.
 
 from __future__ import annotations
 
-import contextlib
 import logging
 from collections.abc import Iterable, Iterator
 from typing import Any
@@ -146,8 +145,7 @@ class GoogleDrivePlugin(IngestionPlugin):
                 metadata["modified_time"] = modified
             size = file_meta.get("size")
             if size is not None:
-                with contextlib.suppress(TypeError, ValueError):
-                    metadata["size_bytes"] = int(size)
+                metadata["size_bytes"] = int(size)
             yield IngestedDocument(
                 key=f"gdrive:{file_id}",
                 text=text,

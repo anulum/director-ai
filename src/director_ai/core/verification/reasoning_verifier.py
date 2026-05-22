@@ -12,14 +12,16 @@ that each step follows from its premises. Detects:
 - Circular reasoning (step references itself)
 - Unsupported leaps (conclusion introduced without any premise)
 
-Uses NLI scoring when available, falls back to heuristic overlap.
+Uses NLI scoring for semantic entailment and mandatory Rust lexical kernels
+for deterministic overlap checks.
 """
 
 from __future__ import annotations
 
 import re
-from contextlib import suppress
 from dataclasses import dataclass, field
+
+from ..mandatory import mandatory_execution
 
 __all__ = [
     "ReasoningStep",
@@ -37,7 +39,19 @@ try:
 
     _RUST_REASONING = True
 except ImportError:
-    _RUST_REASONING = False
+    _RUST_REASONING = True
+
+    def rust_extract_reasoning_steps(_text: str) -> list[str]:
+        raise RuntimeError(
+            "backfire_kernel rust_extract_reasoning_steps is unavailable"
+        )
+
+    def rust_split_sentences(_text: str) -> list[str]:
+        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
+
+    def rust_word_overlap(_text_a: str, _text_b: str) -> float:
+        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
+
 
 _STEP_PATTERNS = [
     re.compile(
@@ -127,7 +141,7 @@ def extract_steps(text: str) -> list[ReasoningStep]:
     the label tokens.
     """
     if _RUST_REASONING:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             raw_steps = rust_extract_reasoning_steps(text)
             if len(raw_steps) >= 2 or (
                 len(raw_steps) == 1 and raw_steps[0] != text.strip()
@@ -188,7 +202,7 @@ def _word_overlap(a: str, b: str) -> float:
     reduce the overlap score.
     """
     if _RUST_REASONING:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_word_overlap(a, b))
     wa = {w.strip(".,;:!?\"'()[]") for w in a.lower().split()} - {""}
     wb = {w.strip(".,;:!?\"'()[]") for w in b.lower().split()} - {""}

@@ -32,12 +32,18 @@ import time
 from collections import Counter
 from dataclasses import dataclass, field
 
+from director_ai.core.mandatory import mandatory_execution
+
 try:
     from backfire_kernel import rust_word_overlap
 
     _RUST_LOOP_MONITOR = True
 except ImportError:
-    _RUST_LOOP_MONITOR = False
+    _RUST_LOOP_MONITOR = True
+
+    def rust_word_overlap(_goal: str, _action_desc: str) -> float:
+        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
+
 
 __all__ = ["LoopMonitor", "StepVerdict", "LoopStatus"]
 
@@ -232,13 +238,17 @@ class LoopMonitor:
 
     @staticmethod
     def _jaccard_drift(goal: str, action_desc: str) -> float:
-        """Simple Jaccard-distance heuristic for goal drift.
+        """Jaccard-distance heuristic for goal drift.
 
         Returns 0.0 (perfectly aligned) to 1.0 (completely off-topic).
         For production use, replace with NLI-based scorer.
         """
         if _RUST_LOOP_MONITOR:
-            similarity = float(rust_word_overlap(goal, action_desc))
+            with mandatory_execution(
+                __name__,
+                component="mandatory agentic loop Rust kernel",
+            ):
+                similarity = float(rust_word_overlap(goal, action_desc))
         else:
             goal_words = set(goal.lower().split())
             action_words = set(action_desc.lower().split())

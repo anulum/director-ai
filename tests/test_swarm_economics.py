@@ -14,7 +14,6 @@ composite under hot/cold scenarios."""
 
 from __future__ import annotations
 
-import contextlib
 import threading
 
 import pytest
@@ -151,8 +150,10 @@ class TestResourcePool:
 
         def writer(tag: str) -> None:
             for _ in range(100):
-                with contextlib.suppress(PoolError):
+                try:
                     pool.consume(agent_id=tag, amount=1.0)
+                except PoolError as exc:
+                    assert "capacity" in str(exc) or "balance" in str(exc)
 
         threads = [threading.Thread(target=writer, args=(f"t{i}",)) for i in range(8)]
         for t in threads:

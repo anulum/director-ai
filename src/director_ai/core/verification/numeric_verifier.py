@@ -13,15 +13,17 @@ Extracts numeric claims from text and checks internal consistency:
 - Cross-reference: numbers in different sentences that should agree
 - Unit sanity: negative counts, probabilities > 100%
 
-Zero external dependencies — stdlib only.
+Numeric extraction is stdlib-only; production consistency reducers use the
+mandatory Rust kernel.
 """
 
 from __future__ import annotations
 
 import re
-from contextlib import suppress
 from dataclasses import dataclass, field
 from datetime import datetime
+
+from ..mandatory import mandatory_execution
 
 __all__ = [
     "NumericClaim",
@@ -35,10 +37,15 @@ try:
 
     _RUST_NUMERIC = True
 except ImportError:
-    _RUST_NUMERIC = False
+    _RUST_NUMERIC = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
+
+    def rust_verify_numeric(
+        _text: str,
+    ) -> tuple[list[tuple[float, str, str]], list[str]]:
+        raise RuntimeError("backfire_kernel rust_verify_numeric is unavailable")
 
 
 _PERCENT_PATTERN = re.compile(
@@ -115,7 +122,7 @@ class NumericVerificationResult:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_NUMERIC:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)
 
@@ -130,7 +137,7 @@ def verify_numeric(text: str) -> NumericVerificationResult:
     """
     if _RUST_NUMERIC:
         current_year = datetime.now().year
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             claims_found, raw_issues, valid = rust_verify_numeric(text, current_year)
             return NumericVerificationResult(
                 claims_found=claims_found,

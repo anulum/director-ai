@@ -17,8 +17,8 @@ from __future__ import annotations
 
 import logging
 import re
-from contextlib import suppress
 
+from ..mandatory import mandatory_execution
 from ..types import ScoringEvidence
 
 try:
@@ -31,7 +31,7 @@ try:
 
     _RUST_TASK = True
 except ImportError:
-    _RUST_TASK = False
+    _RUST_TASK = True
 
     def rust_coverage_from_divergences(
         _divergences: list[float],
@@ -45,6 +45,10 @@ except ImportError:
     def rust_split_sentences(_text: str) -> list[str]:
         """Raise when the Rust sentence splitter is unavailable."""
         raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
+
+    def rust_detect_task_type(_prompt: str, _response: str) -> str:
+        """Raise when the Rust task classifier is unavailable."""
+        raise RuntimeError("backfire_kernel rust_detect_task_type is unavailable")
 
     def rust_sum_i64(_values: list[int]) -> int:
         """Raise when the Rust integer adder is unavailable."""
@@ -73,7 +77,7 @@ def detect_task_type(prompt: str, response: str = "") -> str:
     Returns one of: ``"dialogue"``, ``"summarization"``, ``"rag"``,
     ``"fact_check"``, ``"qa"``, or ``"default"``.
 
-    Uses Rust accelerator when available, Python fallback otherwise.
+    Uses the mandatory Rust accelerator for production-sized classification.
 
     When *response* is provided, a length-ratio heuristic detects
     summarisation even when the prompt lacks explicit keywords.
@@ -82,7 +86,7 @@ def detect_task_type(prompt: str, response: str = "") -> str:
     unless dialogue markers are present.
     """
     if _RUST_TASK:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return str(rust_detect_task_type(prompt, response))
     matches = _DIALOGUE_TURN_RE.findall(prompt)
     if len(matches) >= 2:
@@ -320,7 +324,7 @@ def minicheck_claim_coverage(
 
     divs = [mc_scorer.score(source, sent) for sent in sentences]
     if _RUST_TASK:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             coverage, _supported = rust_coverage_from_divergences(
                 [float(d) for d in divs],
                 0.5,
@@ -341,6 +345,6 @@ def _normalize_claim_sentence(sentence: str) -> str:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_TASK:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

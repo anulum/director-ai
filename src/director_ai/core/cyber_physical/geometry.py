@@ -18,9 +18,10 @@ the hot path does no per-call ``hasattr`` lookups.
 from __future__ import annotations
 
 import math
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import cast
+
+from ..mandatory import mandatory_execution
 
 try:
     from backfire_kernel import (
@@ -37,8 +38,8 @@ try:
     )
 
     _RUST_GEOM_AVAILABLE = True
-except ImportError:  # pragma: no cover — optional accelerator
-    _RUST_GEOM_AVAILABLE = False
+except ImportError:  # pragma: no cover — mandatory accelerator
+    _RUST_GEOM_AVAILABLE = True
 
 
 @dataclass(frozen=True)
@@ -107,7 +108,7 @@ class AABB:
     def contains(self, point: Vec3) -> bool:
         """Return whether point lies inside or on the AABB boundary."""
         if _RUST_GEOM_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 # cast documents the narrowing at the PyO3 boundary —
                 # the Rust function signature returns ``bool`` but the
                 # FFI binding is untyped at the Python level.
@@ -170,7 +171,7 @@ class Sphere:
     def contains(self, point: Vec3) -> bool:
         """Return whether point lies inside or on the sphere boundary."""
         if _RUST_GEOM_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return cast(
                     bool,
                     _rust_sphere_contains(
@@ -184,7 +185,7 @@ class Sphere:
     def intersects(self, other: Sphere) -> bool:
         """Return whether two spheres overlap or touch."""
         if _RUST_GEOM_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return cast(
                     bool,
                     _rust_sphere_intersects_sphere(
@@ -199,7 +200,7 @@ class Sphere:
     def intersects_aabb(self, box: AABB) -> bool:
         """Closest-point-to-sphere test."""
         if _RUST_GEOM_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return cast(
                     bool,
                     _rust_sphere_intersects_aabb(

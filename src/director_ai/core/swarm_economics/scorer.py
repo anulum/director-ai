@@ -23,20 +23,20 @@ The composite is a caller-weighted sum, clamped to ``[0, 1]``.
 
 from __future__ import annotations
 
-from contextlib import suppress
 from dataclasses import dataclass
 
 try:
     from backfire_kernel import rust_sum_f64
 
     _RUST_SWARM_ECON = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_SWARM_ECON = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_SWARM_ECON = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .bargaining import BargainingSolution
 from .detector import TragedyDetector, TragedySignal
 from .pool import ResourcePool
@@ -122,6 +122,6 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_SWARM_ECON:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

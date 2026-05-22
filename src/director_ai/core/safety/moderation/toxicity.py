@@ -25,9 +25,9 @@ from __future__ import annotations
 
 import re
 from collections.abc import Iterable
-from contextlib import suppress
 from typing import Any
 
+from ...mandatory import mandatory_execution
 from .detectors import ModerationDetector, ModerationMatch, ModerationResult
 
 # A short, deliberately non-exhaustive seed list. Operators who need
@@ -129,7 +129,7 @@ class KeywordToxicityDetector(ModerationDetector):
         if not text:
             return ModerationResult(detector=self.name, matches=[])
         if self._rust_scanner is not None:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 raw = self._rust_scanner.scan(text)
                 return ModerationResult(
                     detector=self.name,

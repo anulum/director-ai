@@ -38,7 +38,6 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import Literal
 
@@ -46,13 +45,14 @@ try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
 
     _RUST_TRACE_ORACLE = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_TRACE_ORACLE = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_TRACE_ORACLE = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .embedder import TraceEmbedder
 
 TraceLabel = Literal["safe", "unsafe", "uncertain"]
@@ -243,6 +243,6 @@ def _cosine(a: tuple[float, ...], b: tuple[float, ...]) -> float:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_TRACE_ORACLE:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

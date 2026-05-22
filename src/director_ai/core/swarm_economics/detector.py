@@ -24,20 +24,20 @@ from __future__ import annotations
 import threading
 import time
 from collections.abc import Callable
-from contextlib import suppress
 from dataclasses import dataclass
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
 
     _RUST_SWARM_ECON_DETECTOR = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_SWARM_ECON_DETECTOR = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_SWARM_ECON_DETECTOR = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .pool import ResourcePool
 
 
@@ -155,6 +155,6 @@ def _pressure(
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_SWARM_ECON_DETECTOR:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

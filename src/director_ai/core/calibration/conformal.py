@@ -20,8 +20,9 @@ Reference: Mohri & Hashimoto (ICML 2024), "Conformal Factuality."
 from __future__ import annotations
 
 import math
-from contextlib import suppress
 from dataclasses import dataclass
+
+from ..mandatory import mandatory_execution
 
 __all__ = ["ConformalPredictor", "PredictionInterval"]
 
@@ -29,8 +30,8 @@ try:
     from backfire_kernel import rust_conformal_quantile
 
     _RUST_CONFORMAL = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_CONFORMAL = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_CONFORMAL = True
 
     def rust_conformal_quantile(_residuals: list[float], _coverage: float) -> float:
         raise RuntimeError("backfire_kernel rust_conformal_quantile is unavailable")
@@ -166,7 +167,7 @@ class ConformalPredictor:
             residuals.append(abs(pred_prob - actual))
 
         if _RUST_CONFORMAL:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return float(rust_conformal_quantile(residuals, self._coverage))
 
         residuals.sort()

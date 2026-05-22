@@ -14,7 +14,6 @@ hallucination scoring with zero code changes::
     director-ai proxy --port 8080 --facts kb.txt --threshold 0.6
 """
 
-import contextlib
 import hmac
 import json
 import logging
@@ -26,6 +25,40 @@ from director_ai.core import CoherenceScorer, GroundTruthStore
 _log = logging.getLogger("DirectorAI.Proxy")
 
 STREAM_CHECK_INTERVAL = 8
+
+
+def _chat_completion_content(data: object) -> str:
+    """Extract OpenAI-compatible chat content without exception control flow."""
+    if not isinstance(data, dict):
+        return ""
+    choices = data.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return ""
+    first = choices[0]
+    if not isinstance(first, dict):
+        return ""
+    message = first.get("message")
+    if not isinstance(message, dict):
+        return ""
+    content = message.get("content")
+    return content if isinstance(content, str) else ""
+
+
+def _stream_delta_content(chunk: object) -> str:
+    """Extract OpenAI-compatible stream delta content without swallowing errors."""
+    if not isinstance(chunk, dict):
+        return ""
+    choices = chunk.get("choices")
+    if not isinstance(choices, list) or not choices:
+        return ""
+    first = choices[0]
+    if not isinstance(first, dict):
+        return ""
+    delta = first.get("delta")
+    if not isinstance(delta, dict):
+        return ""
+    content = delta.get("content")
+    return content if isinstance(content, str) else ""
 
 
 def create_proxy_app(
@@ -198,9 +231,7 @@ def create_proxy_app(
             return JSONResponse(content=resp.json(), status_code=resp.status_code)
 
         data = resp.json()
-        content = ""
-        with contextlib.suppress(KeyError, IndexError, TypeError):
-            content = data["choices"][0]["message"]["content"] or ""
+        content = _chat_completion_content(data)
 
         if not content:
             return JSONResponse(content=data)
@@ -314,9 +345,7 @@ async def _handle_streaming(
                     yield line + "\n"
                     continue
 
-                delta = ""
-                with contextlib.suppress(KeyError, IndexError, TypeError):
-                    delta = chunk["choices"][0]["delta"].get("content", "") or ""
+                delta = _stream_delta_content(chunk)
 
                 if delta:
                     buffer.append(delta)

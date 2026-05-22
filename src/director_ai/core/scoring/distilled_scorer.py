@@ -13,8 +13,8 @@ held-out evaluation packet plus ONNX and quantized latency evidence for
 the exact student artefact.
 
 The model is loaded from HuggingFace Hub (``anulum/director-ai-nli-lite``)
-or from a local path. ONNX Runtime is used for inference when available,
-with a PyTorch fallback.
+or from a local path. ONNX Runtime is used for inference; PyTorch execution
+remains available for environments that intentionally select it.
 
 Install::
 
@@ -32,11 +32,12 @@ Usage::
 from __future__ import annotations
 
 import logging
-from contextlib import suppress
 from pathlib import Path
 from typing import Any
 
 import numpy as np
+
+from ..mandatory import mandatory_execution
 
 logger = logging.getLogger("DirectorAI.DistilledNLI")
 
@@ -45,10 +46,13 @@ try:
 
     _RUST_DISTILLED = True
 except ImportError:
-    _RUST_DISTILLED = False
+    _RUST_DISTILLED = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
+
+    def rust_softmax(_flat: list[float], _cols: int) -> list[float]:
+        raise RuntimeError("backfire_kernel rust_softmax is unavailable")
 
 
 DEFAULT_DISTILLED_MODEL = "anulum/director-ai-nli-lite"
@@ -59,15 +63,14 @@ class DistilledNLIBackend:
     """Distilled NLI scorer for validated small-model artefacts.
 
     Loads a small NLI model distilled from a stronger NLI teacher.
-    Supports ONNX Runtime (preferred) and PyTorch fallback.
+    Supports ONNX Runtime and explicit PyTorch execution.
 
     Parameters
     ----------
     model_path : str
         HuggingFace model ID or local directory path.
     use_onnx : bool
-        If True (default), attempt ONNX Runtime inference. Falls back
-        to PyTorch if ONNX is unavailable.
+        If True (default), use ONNX Runtime inference.
     device : str
         ``"cpu"`` or ``"cuda"``. ONNX auto-detects; PyTorch uses this.
     max_length : int
@@ -220,7 +223,7 @@ class DistilledNLIBackend:
 def _softmax(logits: np.ndarray) -> np.ndarray:
     """Numerically stable softmax."""
     if _RUST_DISTILLED:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             flat = [float(v) for v in np.asarray(logits, dtype=float).ravel()]
             probs = rust_softmax(flat, len(flat))
             return np.asarray(probs, dtype=float)
@@ -232,6 +235,6 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
 
 def _sum_float_list(values: list[float]) -> float:
     if _RUST_DISTILLED:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return float(sum(values))

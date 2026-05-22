@@ -22,7 +22,6 @@ from __future__ import annotations
 
 from collections import Counter
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import TypedDict
 
@@ -30,13 +29,14 @@ try:
     from backfire_kernel import rust_sum_i64
 
     _RUST_META_GUARD = True
-except ImportError:  # pragma: no cover - optional dependency
-    _RUST_META_GUARD = False
+except ImportError:  # pragma: no cover - mandatory dependency
+    _RUST_META_GUARD = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .adjuster import ThresholdAdjuster, ThresholdBundle
 from .analyzer import MetaAnalysis, MetaAnalyzer
 from .log import DecisionLog, ScoringAction, ScoringDecision
@@ -286,6 +286,6 @@ def _validate_fraction(name: str, value: float) -> None:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_META_GUARD:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

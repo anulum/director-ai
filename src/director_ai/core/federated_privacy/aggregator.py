@@ -22,20 +22,20 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Iterable, Mapping
-from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
     from backfire_kernel import rust_sum_i64
 
     _RUST_AGGREGATOR = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_AGGREGATOR = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_AGGREGATOR = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .accountant import AccountantEntry, PrivacyAccountant
 from .mechanisms import LaplaceMechanism
 
@@ -259,6 +259,6 @@ def _sum_int(values: list[int]) -> int:
     if not values:
         return 0
     if _RUST_AGGREGATOR:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

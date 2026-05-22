@@ -16,18 +16,19 @@ import math
 import re
 import sqlite3
 from collections.abc import Callable, Mapping
-from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import time
 from typing import Any
 
+from ..mandatory import mandatory_execution
+
 try:
     from backfire_kernel import rust_word_overlap
 
     _RUST_CONSISTENCY = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_CONSISTENCY = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_CONSISTENCY = True
 
     def rust_word_overlap(_text_a: str, _text_b: str) -> float:
         raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
@@ -204,7 +205,7 @@ class CrossDocumentConsistencyMemory:
 
     def _builtin_similarity(self, text_a: str, text_b: str) -> float:
         if _RUST_CONSISTENCY:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return _validate_score(float(rust_word_overlap(text_a, text_b)))
         return _validate_score(self._python_word_overlap(text_a, text_b))
 

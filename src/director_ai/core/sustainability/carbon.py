@@ -25,8 +25,9 @@ import threading
 import time
 from collections import deque
 from collections.abc import Callable, Iterable
-from contextlib import suppress
 from dataclasses import dataclass
+
+from ..mandatory import mandatory_execution
 
 try:
     from backfire_kernel import (
@@ -37,8 +38,8 @@ try:
     )
 
     _RUST_CARBON = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_CARBON = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_CARBON = True
 
     def rust_percentile_rank(_values: list[float], _value: float) -> float:
         raise RuntimeError("backfire_kernel rust_percentile_rank is unavailable")
@@ -131,7 +132,9 @@ class CarbonIntensityTracker:
                 return 1.0
             intensities = [r.intensity for r in self._readings]
             if _RUST_CARBON:
-                with suppress(Exception):
+                with mandatory_execution(
+                    __name__, component="mandatory accelerated path"
+                ):
                     return float(rust_percentile_rank(intensities, value))
             below = _sum_int(
                 [1 if intensity <= value else 0 for intensity in intensities]
@@ -144,20 +147,22 @@ class CarbonIntensityTracker:
                 return self._fallback
             intensities = [r.intensity for r in self._readings]
             if _RUST_CARBON:
-                with suppress(Exception):
+                with mandatory_execution(
+                    __name__, component="mandatory accelerated path"
+                ):
                     return float(rust_mean(intensities))
             return _sum_float(intensities) / len(intensities)
 
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_CARBON:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_CARBON:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

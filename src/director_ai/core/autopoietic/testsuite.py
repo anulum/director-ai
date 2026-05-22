@@ -24,20 +24,20 @@ relative ranking over absolute calibration select accordingly.
 from __future__ import annotations
 
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass
 
 try:
     from backfire_kernel import rust_sum_f64
 
     _RUST_TESTSUITE = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_TESTSUITE = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_TESTSUITE = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .builder import BoundedSandbox, SandboxTimeoutError, Scorer
 
 
@@ -182,6 +182,6 @@ def _ranks(values: Sequence[float]) -> list[float]:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_TESTSUITE:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

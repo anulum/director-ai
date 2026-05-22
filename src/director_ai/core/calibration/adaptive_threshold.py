@@ -19,16 +19,17 @@ from __future__ import annotations
 
 import math
 import random
-from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Any
+
+from ..mandatory import mandatory_execution
 
 try:
     from backfire_kernel import rust_beta_posterior_mean
 
     _RUST_ADAPTIVE = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_ADAPTIVE = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_ADAPTIVE = True
 
     def rust_beta_posterior_mean(
         _alpha_prior: float,
@@ -110,7 +111,7 @@ class AdaptiveThresholdArm:
     def posterior_mean(self) -> float:
         """Return the posterior expected success probability."""
         if _RUST_ADAPTIVE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return float(
                     rust_beta_posterior_mean(
                         self.alpha_prior,

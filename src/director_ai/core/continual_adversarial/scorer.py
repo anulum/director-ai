@@ -20,7 +20,6 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
@@ -28,8 +27,8 @@ try:
     from backfire_kernel import rust_sum_f64, rust_sum_i64
 
     _RUST_CONTINUAL_ADV = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_CONTINUAL_ADV = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_CONTINUAL_ADV = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -38,6 +37,7 @@ except Exception:  # pragma: no cover - optional dependency
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .suite import AdversarialCase
 
 _FNV_OFFSET = 0xCBF29CE484222325
@@ -182,13 +182,13 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_CONTINUAL_ADV:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)
 
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_CONTINUAL_ADV:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

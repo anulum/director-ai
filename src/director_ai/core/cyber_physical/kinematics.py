@@ -24,10 +24,10 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import Protocol, runtime_checkable
 
+from ..mandatory import mandatory_execution
 from .geometry import AABB, Sphere, Vec3
 
 try:
@@ -35,12 +35,12 @@ try:
     from backfire_kernel import rust_two_link_ik as _rust_two_link_ik
 
     _RUST_IK_AVAILABLE = True
-except ImportError:  # pragma: no cover — optional accelerator
+except ImportError:  # pragma: no cover — mandatory accelerator
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
-    _RUST_IK_AVAILABLE = False
+    _RUST_IK_AVAILABLE = True
 
 
 class UnsupportedKinematicsError(NotImplementedError):
@@ -183,7 +183,7 @@ class SimpleKinematicModel:
         l1, l2 = links
         elbow_up = self.branch == "elbow_up"
         if _RUST_IK_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 result = _rust_two_link_ik(
                     l1,
                     l2,
@@ -236,6 +236,6 @@ class SimpleKinematicModel:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_IK_AVAILABLE:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

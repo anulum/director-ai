@@ -13,18 +13,19 @@ from __future__ import annotations
 import math
 import threading
 from collections import defaultdict
-from contextlib import suppress
 from dataclasses import dataclass
 from typing import Literal
 
 from director_ai.core.guard_control import GuardDecision, RiskEnvelope, VerifierSignal
 
+from ..mandatory import mandatory_execution
+
 try:
     from backfire_kernel import rust_sum_f64, rust_sum_i64
 
     _RUST_SUSTAINABILITY_POLICY = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_SUSTAINABILITY_POLICY = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_SUSTAINABILITY_POLICY = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -538,13 +539,13 @@ def _validate_non_negative(name: str, value: float) -> None:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_SUSTAINABILITY_POLICY:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)
 
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_SUSTAINABILITY_POLICY:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

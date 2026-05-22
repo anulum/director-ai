@@ -28,13 +28,13 @@ from __future__ import annotations
 import abc
 import json
 import re
-from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from ..mandatory import mandatory_execution
 from ._heuristics import ENTITY_RE, NEGATION_WORDS, STOP_WORDS
 
-# Rust fast-path: use backfire_kernel when available
+# Rust kernels are mandatory in production installs.
 try:
     from backfire_kernel import (
         rust_entity_overlap as _rust_entity_overlap,
@@ -51,7 +51,19 @@ try:
 
     _RUST_AVAILABLE = True
 except ImportError:
-    _RUST_AVAILABLE = False
+    _RUST_AVAILABLE = True
+
+    def _rust_entity_overlap(_premise: str, _hypothesis: str) -> float:
+        raise RuntimeError("backfire_kernel rust_entity_overlap is unavailable")
+
+    def _rust_negation_flip(_premise: str, _hypothesis: str) -> bool:
+        raise RuntimeError("backfire_kernel rust_negation_flip is unavailable")
+
+    def _rust_numerical_consistency(_premise: str, _hypothesis: str) -> bool:
+        raise RuntimeError("backfire_kernel rust_numerical_consistency is unavailable")
+
+    def _rust_word_overlap(_premise: str, _hypothesis: str) -> float:
+        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
 
 # ── Rule ABC + result ───────────────────────────────────────────────────
 
@@ -87,7 +99,7 @@ class EntityGroundingRule(Rule):
     def check(self, premise: str, hypothesis: str) -> RuleResult:
         """Score how many hypothesis entities are grounded in premise."""
         if _RUST_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 score = _rust_entity_overlap(premise, hypothesis)
                 return RuleResult(self.name, score)
         premise_ents = set(ENTITY_RE.findall(premise))
@@ -110,7 +122,7 @@ class NumericConsistencyRule(Rule):
     def check(self, premise: str, hypothesis: str) -> RuleResult:
         """Score whether hypothesis numbers are present in premise."""
         if _RUST_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 result = _rust_numerical_consistency(premise, hypothesis)
                 if result is None:
                     return RuleResult(self.name, 1.0, "no numbers")
@@ -138,7 +150,7 @@ class NegationFlipRule(Rule):
     def check(self, premise: str, hypothesis: str) -> RuleResult:
         """Penalise premise/hypothesis negation asymmetry."""
         if _RUST_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 flipped = _rust_negation_flip(premise, hypothesis)
                 if flipped:
                     return RuleResult(self.name, 0.3, "negation mismatch")
@@ -177,7 +189,7 @@ class WordOverlapRule(Rule):
     def check(self, premise: str, hypothesis: str) -> RuleResult:
         """Score content-word F1 overlap after stop-word removal."""
         if _RUST_AVAILABLE:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return RuleResult(self.name, _rust_word_overlap(premise, hypothesis))
         p_words = set(re.findall(r"\w+", premise.lower())) - STOP_WORDS
         h_words = set(re.findall(r"\w+", hypothesis.lower())) - STOP_WORDS

@@ -28,7 +28,6 @@ The compiler:
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
-from contextlib import suppress
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING
 
@@ -36,13 +35,14 @@ try:
     from backfire_kernel import rust_conformal_quantile
 
     _RUST_POLICY_COMPILER = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_POLICY_COMPILER = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_POLICY_COMPILER = True
 
     def rust_conformal_quantile(_residuals: list[float], _coverage: float) -> float:
         raise RuntimeError("backfire_kernel rust_conformal_quantile is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .extractor import RegexRuleExtractor, RuleExtractor
 from .rule import CompiledRule
 
@@ -179,7 +179,7 @@ def split_conformal_threshold(
     """
     clipped = [max(0.0, min(1.0, s)) for s in scores]
     if _RUST_POLICY_COMPILER:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_conformal_quantile(clipped, target_coverage))
 
     sorted_scores = sorted(clipped)

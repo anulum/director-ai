@@ -30,15 +30,14 @@ from __future__ import annotations
 
 import math
 from collections.abc import Sequence
-from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
     from backfire_kernel import rust_mean, rust_sum_f64
 
     _RUST_META_GUARD = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_META_GUARD = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_META_GUARD = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -47,6 +46,7 @@ except Exception:  # pragma: no cover - optional dependency
         raise RuntimeError("backfire_kernel rust_mean is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .log import ScoringAction, ScoringDecision
 
 _ACTIONS: tuple[ScoringAction, ...] = ("allow", "warn", "halt")
@@ -248,7 +248,7 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_META_GUARD:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)
 
@@ -257,6 +257,6 @@ def _mean_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_META_GUARD:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_mean(values))
     return _sum_float(values) / len(values)

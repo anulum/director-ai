@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import threading
 from collections.abc import Callable
-from contextlib import suppress
 from dataclasses import dataclass
 
 try:
@@ -29,12 +28,16 @@ try:
 
     _RUST_AUTOPOIETIC = True
 except ImportError:
-    _RUST_AUTOPOIETIC = False
+    _RUST_AUTOPOIETIC = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
 
+    def rust_word_overlap(_text_a: str, _text_b: str) -> float:
+        raise RuntimeError("backfire_kernel rust_word_overlap is unavailable")
 
+
+from ..mandatory import mandatory_execution
 from .blueprint import ModuleBlueprint
 
 Scorer = Callable[[str], float]
@@ -100,7 +103,9 @@ class ModuleBuilder:
                 return 0.0
             if _RUST_AUTOPOIETIC:
                 gram_tokens = " ".join(gram.replace(" ", "_") for gram in grams)
-                with suppress(Exception):
+                with mandatory_execution(
+                    __name__, component="mandatory accelerated path"
+                ):
                     return float(rust_word_overlap(gram_tokens, reference_tokens))
             intersection = grams & reference
             union = grams | reference
@@ -183,6 +188,6 @@ class BoundedSandbox:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_AUTOPOIETIC:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

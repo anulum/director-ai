@@ -21,16 +21,17 @@ import json
 import math
 import os
 from collections.abc import Sequence
-from contextlib import suppress
 from typing import overload
 from urllib.parse import urlparse
+
+from ...mandatory import mandatory_execution
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
 
     _RUST_HTTP_EMBED = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_HTTP_EMBED = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_HTTP_EMBED = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -265,6 +266,6 @@ def _embedding_path(base_path: str, endpoint_path: str) -> str:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_HTTP_EMBED:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)

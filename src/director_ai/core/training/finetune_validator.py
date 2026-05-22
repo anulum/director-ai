@@ -25,16 +25,17 @@ from __future__ import annotations
 import json
 import logging
 from collections import Counter
-from contextlib import suppress
 from dataclasses import dataclass, field
 from pathlib import Path
+
+from ..mandatory import mandatory_execution
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
 
     _RUST_FINETUNE_VALIDATOR = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_FINETUNE_VALIDATOR = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_FINETUNE_VALIDATOR = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
@@ -252,6 +253,6 @@ def validate_finetune_data(
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_FINETUNE_VALIDATOR:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

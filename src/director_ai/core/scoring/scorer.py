@@ -13,12 +13,12 @@ import logging
 import re
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import suppress
 from pathlib import Path
 from typing import cast
 
 from ...enterprise.redactor import PIIRedactor
 from ..cache import ScoreCache
+from ..mandatory import mandatory_execution
 from ..metrics import metrics
 from ..otel import (
     trace_cache,
@@ -42,7 +42,7 @@ try:
         rust_heuristic_factual_divergence,
         rust_heuristic_logical_divergence,
     )
-except Exception:  # pragma: no cover - optional accelerator may be unavailable
+except Exception:  # pragma: no cover - mandatory accelerator may be unavailable
     rust_heuristic_factual_divergence = None
     rust_heuristic_logical_divergence = None
 
@@ -1054,9 +1054,9 @@ class CoherenceScorer:
             and context
             and len(text_output) > 100
         ):
-            import contextlib
-
-            with contextlib.suppress(ValueError, RuntimeError):
+            with mandatory_execution(
+                __name__, component="mandatory claim attribution path"
+            ):
                 claim_coverage, per_claim_divs, claims_list, attributions = (
                     self._nli.score_claim_coverage_with_attribution(
                         context,
@@ -1093,7 +1093,7 @@ class CoherenceScorer:
         Install [nli] for production scoring.
         """
         if rust_heuristic_factual_divergence is not None:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return float(rust_heuristic_factual_divergence(context, text_output))
         from ._heuristics import ENTITY_RE, NEGATION_WORDS, STOP_WORDS
 
@@ -1198,7 +1198,7 @@ class CoherenceScorer:
         Install [nli] for production-grade scoring.
         """
         if rust_heuristic_logical_divergence is not None:
-            with suppress(Exception):
+            with mandatory_execution(__name__, component="mandatory accelerated path"):
                 return float(rust_heuristic_logical_divergence(text_output, prompt))
         out = text_output.lower()
         if "consistent with reality" in out:

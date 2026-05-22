@@ -60,6 +60,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          pip install --no-deps ./backfire-kernel/crates/backfire-ffi
           pip install --no-deps -e .
 
       - name: Install type stubs
@@ -145,9 +146,7 @@ jobs:
             UV_EXTRAS+=(--extra "$extra")
           done
           uv sync --locked "${UV_EXTRAS[@]}"
-          if [[ ",${{ matrix.extras }}," == *",rust,"* ]]; then
-            uv pip install --python .venv/bin/python --force-reinstall ./backfire-kernel/crates/backfire-ffi
-          fi
+          uv pip install --python .venv/bin/python --force-reinstall ./backfire-kernel/crates/backfire-ffi
 
       - name: Import smoke test
         run: uv run python -c "import director_ai; assert director_ai.__version__"

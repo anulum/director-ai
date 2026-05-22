@@ -23,7 +23,6 @@ Two real backends:
 
 from __future__ import annotations
 
-import contextlib
 import json
 import os
 import tempfile
@@ -132,7 +131,7 @@ class InMemoryFeedbackStore:
                 # The dropped event may already have been evicted from the
                 # per-label deque in a prior write; swallow the resulting
                 # ValueError from list.remove without masking anything else.
-                with contextlib.suppress(ValueError):
+                if dropped in bucket:
                     bucket.remove(dropped)
             self._events.append(event)
             self._by_label[event.label].append(event)

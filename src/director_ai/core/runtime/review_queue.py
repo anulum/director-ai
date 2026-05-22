@@ -27,7 +27,6 @@ Usage::
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import functools
 import logging
 
@@ -97,8 +96,11 @@ class ReviewQueue:
         self._running = False
         self._event.set()
         if self._task:
-            with contextlib.suppress(asyncio.CancelledError):
-                await asyncio.wait_for(self._task, timeout=2.0)
+            done, pending = await asyncio.wait({self._task}, timeout=2.0)
+            if pending:
+                raise TimeoutError("review queue worker did not stop within 2 seconds")
+            for task in done:
+                task.result()
         async with self._lock:
             if self._pending:
                 await self._flush()
@@ -126,8 +128,12 @@ class ReviewQueue:
         timeout_s = self.flush_timeout_ms / 1000.0
         while self._running:
             self._event.clear()
-            with contextlib.suppress(TimeoutError):
-                await asyncio.wait_for(self._event.wait(), timeout=timeout_s)
+            event_task = asyncio.create_task(self._event.wait())
+            done, pending = await asyncio.wait({event_task}, timeout=timeout_s)
+            for task in pending:
+                task.cancel()
+            for task in done:
+                task.result()
             async with self._lock:
                 if self._pending:
                     await self._flush()

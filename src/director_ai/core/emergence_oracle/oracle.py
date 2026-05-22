@@ -32,20 +32,20 @@ from __future__ import annotations
 
 import math
 from collections.abc import Iterable
-from contextlib import suppress
 from dataclasses import dataclass, field
 
 try:
     from backfire_kernel import rust_sum_f64
 
     _RUST_EMERGENCE = True
-except Exception:  # pragma: no cover - optional dependency
-    _RUST_EMERGENCE = False
+except Exception:  # pragma: no cover - mandatory dependency
+    _RUST_EMERGENCE = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .graph import InteractionGraph, SwarmEvent
 from .spectrum import (
     CommunityAssignment,
@@ -59,7 +59,7 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_EMERGENCE:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)
 

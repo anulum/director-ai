@@ -13,17 +13,18 @@ from __future__ import annotations
 import hashlib
 import json
 from collections import Counter, defaultdict
-from contextlib import suppress
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
+
+from ..mandatory import mandatory_execution
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
 
     _RUST_DATASET_CONTRACT = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_DATASET_CONTRACT = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_DATASET_CONTRACT = True
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
@@ -433,6 +434,6 @@ def _non_empty_string_list(value: Any) -> bool:
 
 def _sum_int(values: list[int]) -> int:
     if _RUST_DATASET_CONTRACT:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return int(rust_sum_i64(values))
     return sum(values)

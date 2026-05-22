@@ -27,19 +27,19 @@ from __future__ import annotations
 import hmac
 import secrets
 import time
-from contextlib import suppress
 from dataclasses import dataclass, field
 from hashlib import sha256
 
+from ..mandatory import mandatory_execution
 from .scope import ContainmentScope, validate_scope
 
 try:
     from backfire_kernel import rust_verify_reality_anchor_mac as _rust_anchor_mac
 
     _RUST_ANCHOR_MAC_AVAILABLE = True
-except ImportError:  # pragma: no cover - optional accelerator
+except ImportError:  # pragma: no cover - mandatory accelerator
     _rust_anchor_mac = None
-    _RUST_ANCHOR_MAC_AVAILABLE = False
+    _RUST_ANCHOR_MAC_AVAILABLE = True
 
 _MIN_KEY_LEN = 32
 _MAC_LEN_HEX = 64  # sha256 digest in hex
@@ -258,7 +258,7 @@ def _escape(field_value: str) -> str:
 
 def _verify_anchor_mac(key: bytes, payload: bytes, mac_hex: str) -> bool:
     if _rust_anchor_mac is not None:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return bool(_rust_anchor_mac(key, payload, mac_hex))
     expected_mac = hmac.new(key, payload, sha256).hexdigest()
     return hmac.compare_digest(expected_mac, mac_hex)

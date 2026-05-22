@@ -16,21 +16,24 @@ between dissimilar consecutive sentences.
 from __future__ import annotations
 
 import re
-from contextlib import suppress
 from dataclasses import dataclass
 from functools import lru_cache
+
+from ..mandatory import mandatory_execution
 
 try:
     from backfire_kernel import rust_split_sentences, rust_sum_f64
 
     _RUST_DOC_CHUNKER = True
 except ImportError:  # pragma: no cover
-    rust_split_sentences = None
+
+    def rust_split_sentences(_text: str) -> list[str]:
+        raise RuntimeError("backfire_kernel rust_split_sentences is unavailable")
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
-    _RUST_DOC_CHUNKER = False
+    _RUST_DOC_CHUNKER = True
 
 
 @dataclass(frozen=True)
@@ -234,7 +237,7 @@ def _sum_float_list(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_DOC_CHUNKER:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return float(sum(values))
 

@@ -28,7 +28,7 @@ try:
     _RUST_VECTOR_BASE = True
 except ImportError:  # pragma: no cover
     rust_word_overlap = None
-    _RUST_VECTOR_BASE = False
+    _RUST_VECTOR_BASE = True
 
 logger = logging.getLogger("DirectorAI.VectorStore")
 

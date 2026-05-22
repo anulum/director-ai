@@ -14,7 +14,6 @@ and performance documentation.
 
 from __future__ import annotations
 
-import contextlib
 import json
 from unittest.mock import patch
 
@@ -70,8 +69,10 @@ class TestIngestParsedFormats:
             "director_ai.core.retrieval.doc_parser.parse",
             side_effect=ImportError("pypdf required"),
         ):
-            with contextlib.suppress(SystemExit):
+            try:
                 main(["ingest", str(pdf_file)])
+            except SystemExit as exc:
+                assert exc.code in (0, 1, None)
             out = capsys.readouterr().out
             # Should warn about skipping, not crash
             assert "Warning" in out or "No supported" in out
@@ -85,8 +86,10 @@ class TestIngestParsedFormats:
             "director_ai.core.retrieval.doc_parser.parse",
             side_effect=ImportError("python-docx required"),
         ):
-            with contextlib.suppress(SystemExit):
+            try:
                 main(["ingest", str(docx_file)])
+            except SystemExit as exc:
+                assert exc.code in (0, 1, None)
             out = capsys.readouterr().out
             assert "Warning" in out or "No supported" in out
 
@@ -95,14 +98,14 @@ class TestIngestParsedFormats:
         csv_file = tmp_path / "empty.csv"
         csv_file.write_text("")
 
-        with (
-            patch(
-                "director_ai.core.retrieval.doc_parser.parse",
-                return_value="",
-            ),
-            contextlib.suppress(SystemExit),
+        with patch(
+            "director_ai.core.retrieval.doc_parser.parse",
+            return_value="",
         ):
-            main(["ingest", str(csv_file)])
+            try:
+                main(["ingest", str(csv_file)])
+            except SystemExit as exc:
+                assert exc.code in (0, 1, None)
 
     def test_ingest_directory_with_mixed_formats(self, capsys, tmp_path):
         """Directory with .txt and .csv files ingests both."""
@@ -199,8 +202,10 @@ class TestIngestEdgeCases:
                 self.st_mtime = real.st_mtime
 
         with patch.object(type(big_file), "stat", return_value=FakeStat()):
-            with contextlib.suppress(SystemExit):
+            try:
                 main(["ingest", str(big_file)])
+            except SystemExit as exc:
+                assert exc.code in (0, 1, None)
             out = capsys.readouterr().out
             assert "Warning" in out or "No supported" in out
 

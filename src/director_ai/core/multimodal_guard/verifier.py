@@ -21,20 +21,20 @@ Two real backends:
 
 from __future__ import annotations
 
-from contextlib import suppress
 from typing import Any, Protocol, runtime_checkable
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
 
     _RUST_MULTIMODAL_VERIFIER = True
-except ImportError:  # pragma: no cover - fallback path
-    _RUST_MULTIMODAL_VERIFIER = False
+except ImportError:  # pragma: no cover - mandatory accelerator guard
+    _RUST_MULTIMODAL_VERIFIER = True
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
+from ..mandatory import mandatory_execution
 from .encoders import _fnv1a_64, _normalise
 
 
@@ -187,6 +187,6 @@ def _cosine(a: tuple[float, ...], b: tuple[float, ...]) -> float:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_MULTIMODAL_VERIFIER:
-        with suppress(Exception):
+        with mandatory_execution(__name__, component="mandatory accelerated path"):
             return float(rust_sum_f64(values))
     return sum(values)
