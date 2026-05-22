@@ -8,7 +8,7 @@
 
 # Roadmap Status Reconciliation
 
-Last reconciled: 2026-05-20
+Last reconciled: 2026-05-22
 
 This file is the public status index for distinguishing active roadmap work
 from completed, blocked, stale, and speculative planning material. The
@@ -37,7 +37,6 @@ validation records, and release documentation.
 | R5 | Hugging Face Space live deployment push | Open/manual | Published Space URL plus deployment smoke evidence |
 | R6 | Polar storefront environment-specific live deployment smoke | Open/environment-specific | Live checkout, portal, webhook, and licence validation smoke records without committed secrets |
 | R7 | AggreFact leaderboard submission | Open | Submission email or pull request plus exact result packet used for submission |
-| R8 | Internal roadmap/audit-note reconciliation | Open | Every stale unchecked internal checklist is either closed with evidence, migrated into this file, or marked archival |
 
 ## Future And Strategic Items
 
@@ -57,6 +56,11 @@ failure visibility, knowledge deletion semantics, runtime assert removal,
 privacy/RNG handling, SQL safety, optional-extras CI, licence reconciliation,
 enterprise ingestion, public/internal hygiene, and the later May product-maturity
 slices are closed or explicitly addressed in internal evidence records.
+
+Internal roadmap and audit-note reconciliation was completed on 2026-05-22:
+the active ignored TODO surface is `docs/internal/TODO_CONSOLIDATED.md`, and
+older internal TODO, backlog, and roadmap notes were moved under
+`docs/internal/archive/todo_roadmap_2026-05-22/`.
 
 These items should not be re-opened from old unchecked checkboxes unless a fresh
 current-code review finds a concrete regression.

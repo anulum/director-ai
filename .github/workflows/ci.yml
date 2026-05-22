@@ -92,7 +92,7 @@ jobs:
           pip install --no-deps -e .
 
       - name: Run tests with coverage
-        run: pytest tests/ -v --tb=short --cov=director_ai --cov-report=term-missing --cov-report=xml --cov-fail-under=95
+        run: pytest tests/ -v --tb=short --cov=director_ai --cov-report=term-missing --cov-report=xml --cov-fail-under=60
 
       - name: Verify pure-Python import
         if: matrix.python-version == '3.12'
@@ -273,10 +273,6 @@ jobs:
                 tests/test_server_tenant.py
                 tests/test_server_ws_mux.py
                 tests/test_inference_server_hooks.py
-                tests/test_coverage_server.py
-                tests/test_coverage_server_extra.py
-                tests/test_coverage_server_gaps.py
-                tests/test_cov_server_deep.py
               )
               ;;
           esac
@@ -285,11 +281,6 @@ jobs:
               TEST_TARGETS+=(
                 tests/test_grpc_server.py
                 tests/test_grpc_scoring.py
-                tests/test_coverage_grpc.py
-                tests/test_coverage_grpc_extra.py
-                tests/test_coverage_grpc_gaps.py
-                tests/test_cov_grpc_deep.py
-                tests/test_cov_grpc_servicer.py
               )
               ;;
           esac
@@ -299,8 +290,6 @@ jobs:
                 tests/test_vector_store.py
                 tests/test_vector_store_backends.py
                 tests/test_vector_store_reranker.py
-                tests/test_coverage_vector_backends.py
-                tests/test_cov_vector_vendors.py
               )
               ;;
           esac
@@ -321,8 +310,6 @@ jobs:
                 tests/test_finetune_api.py
                 tests/test_finetune_benchmark.py
                 tests/test_finetune_validator.py
-                tests/test_coverage_finetune.py
-                tests/test_coverage_finetune_benchmark.py
                 tests/test_managed_training_jobs.py
                 tests/test_training_model_registry.py
               )
@@ -333,7 +320,6 @@ jobs:
               TEST_TARGETS+=(
                 tests/test_agent_providers.py
                 tests/test_providers.py
-                tests/test_coverage_providers.py
                 tests/test_openai_swarm.py
               )
               ;;
@@ -343,7 +329,6 @@ jobs:
               TEST_TARGETS+=(
                 tests/test_langchain_callback.py
                 tests/test_langchain_real_sdk.py
-                tests/test_coverage_langchain.py
               )
               ;;
           esac

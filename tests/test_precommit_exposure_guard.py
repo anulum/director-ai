@@ -14,6 +14,24 @@ HOOK = ROOT / ".githooks" / "pre-commit"
 BOUNDARY_VERIFIER = ROOT / "tools" / "verify_public_sector_boundary.py"
 PRE_COMMIT_CONFIG = ROOT / ".pre-commit-config.yaml"
 PYPROJECT = ROOT / "pyproject.toml"
+FORBIDDEN_COVERAGE_TEST_PATTERNS = (
+    "test_cov*.py",
+    "test_coverage*.py",
+    "*coverage_closure*.py",
+    "*final_gaps*.py",
+    "*remaining*.py",
+    "*final_push*.py",
+)
+FORBIDDEN_COVERAGE_BUCKET_PHRASES = (
+    "coverage closure",
+    "coverage gaps",
+    "coverage push",
+    "final coverage",
+    "final gaps",
+    "final push",
+    "pipeline integration and performance documentation",
+    "remaining coverage",
+)
 
 
 def _run(command: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -190,6 +208,34 @@ def test_dev_extra_declares_precommit_runner() -> None:
     pyproject = PYPROJECT.read_text(encoding="utf-8")
 
     assert '"pre-commit>=' in pyproject
+
+
+def test_repository_has_no_coverage_bucket_test_files() -> None:
+    offenders = sorted(
+        str(path.relative_to(ROOT))
+        for pattern in FORBIDDEN_COVERAGE_TEST_PATTERNS
+        for path in (ROOT / "tests").rglob(pattern)
+    )
+
+    assert offenders == []
+
+
+def test_active_public_paths_do_not_reference_coverage_bucket_tests() -> None:
+    active_paths = [
+        ROOT / ".github" / "workflows" / "ci.yml",
+        ROOT / "pyproject.toml",
+        ROOT / "tests" / "conftest.py",
+    ]
+    offenders: list[str] = []
+    for path in active_paths:
+        content = path.read_text(encoding="utf-8").lower()
+        for phrase in FORBIDDEN_COVERAGE_BUCKET_PHRASES:
+            if phrase in content:
+                offenders.append(f"{path.relative_to(ROOT)}: {phrase}")
+        if "test_cov" in content or "test_coverage" in content:
+            offenders.append(f"{path.relative_to(ROOT)}: forbidden coverage test name")
+
+    assert offenders == []
 
 
 def test_precommit_allows_plain_public_changes(tmp_path: Path) -> None:

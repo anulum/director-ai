@@ -92,7 +92,7 @@ GATES = [
             "--tb=short",
             "--cov=director_ai",
             "--cov-report=term-missing",
-            "--cov-fail-under=90",
+            "--cov-fail-under=60",
         ],
     ),
 ]

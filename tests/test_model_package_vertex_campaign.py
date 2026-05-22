@@ -9,7 +9,9 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 from benchmarks import model_package_vertex_campaign as campaign
@@ -223,14 +225,26 @@ def test_upload_tree_supports_file_destination(tmp_path: Path):
 
 
 def test_provider_neutral_campaign_entrypoint_exposes_help():
+    repo_root = Path(__file__).resolve().parents[1]
+    env = os.environ.copy()
+    env["PYTHONPATH"] = os.pathsep.join(
+        str(path)
+        for path in (
+            repo_root / "src",
+            repo_root,
+            env.get("PYTHONPATH", ""),
+        )
+        if str(path)
+    )
     completed = subprocess.run(
         [
-            "python",
+            sys.executable,
             "-m",
             "benchmarks.model_package_campaign",
             "--help",
         ],
-        cwd=Path(__file__).resolve().parents[1],
+        cwd=repo_root,
+        env=env,
         text=True,
         check=False,
         capture_output=True,
