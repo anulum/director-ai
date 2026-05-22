@@ -236,4 +236,4 @@ def _sum_float_list(values: list[float]) -> float:
             return float(rust_sum_f64(values))
         except Exception:
             pass
-    return float(np.sum(np.asarray(values, dtype=float)))
+    return float(sum(values))

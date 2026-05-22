@@ -284,7 +284,7 @@ def _softmax_np(x: np.ndarray) -> np.ndarray:
 def _sum_float_list(values: list[float]) -> float:
     if not values:
         return 0.0
-    return float(np.asarray(values, dtype=np.float64).sum())
+    return float(sum(values))
 
 
 def _mean_float(values: list[float]) -> float:
@@ -305,7 +305,7 @@ def _weighted_sum_float(values: list[float], weights: list[float]) -> float:
         return 0.0
     vec = np.asarray(values, dtype=np.float64)
     w = np.asarray(weights, dtype=np.float64)
-    return float((vec * w).sum())
+    return _sum_float_list((vec * w).tolist())
 
 
 def _resolve_label_indices(model) -> tuple[int, int]:
