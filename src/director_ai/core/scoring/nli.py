@@ -362,7 +362,7 @@ def _probs_to_confidence(probs: np.ndarray) -> list[float]:
     result: list[float] = []
     for row in probs:
         clipped = np.clip(row, 1e-10, 1.0)
-        entropy = -float(np.sum(clipped * np.log(clipped)))
+        entropy = -_sum_float_list((clipped * np.log(clipped)).tolist())
         result.append(max(0.0, 1.0 - entropy / log_k))
     return result
 
