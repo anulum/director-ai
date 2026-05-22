@@ -277,6 +277,18 @@ def _softmax_np(x: np.ndarray) -> np.ndarray:
     return s
 
 
+def _sum_float_list(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return float(np.sum(np.asarray(values, dtype=np.float64)))
+
+
+def _mean_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return _sum_float_list(values) / len(values)
+
+
 def _resolve_label_indices(model) -> tuple[int, int]:
     """Read model.config.id2label to find contradiction and neutral indices.
 
@@ -1151,7 +1163,7 @@ class NLIScorer:
             if inner_agg == "min":
                 per_hyp.append(min(scores_h))
             elif inner_agg == "mean":
-                per_hyp.append(sum(scores_h) / len(scores_h))
+                per_hyp.append(_mean_float(scores_h))
             else:
                 per_hyp.append(max(scores_h))
 
@@ -1162,9 +1174,9 @@ class NLIScorer:
             # More robust to outlier sentences that NLI can't match.
             sorted_scores = sorted(per_hyp)
             keep = max(1, int(len(sorted_scores) * 0.75))
-            agg = sum(sorted_scores[:keep]) / keep
+            agg = _sum_float_list(sorted_scores[:keep]) / keep
         else:
-            agg = sum(per_hyp) / len(per_hyp)
+            agg = _mean_float(per_hyp)
 
         metrics.observe("nli_premise_chunks", n_prem)
         metrics.observe("nli_hypothesis_chunks", n_hyp)
