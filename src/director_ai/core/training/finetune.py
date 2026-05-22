@@ -275,7 +275,7 @@ def _balanced_accuracy(labels, preds) -> float:
             recalls.append(0.0)
             continue
         recalls.append(float(np.count_nonzero(preds_arr[mask] == cls)) / denom)
-    return float(_sum_float(recalls) / len(recalls))
+    return _mean_float(recalls)
 
 
 def _binary_f1_score(labels, preds) -> float:
@@ -313,6 +313,12 @@ def _sum_float(values: list[float]) -> float:
         except Exception:
             pass
     return sum(values)
+
+
+def _mean_float(values: list[float]) -> float:
+    if not values:
+        return 0.0
+    return _sum_float(values) / len(values)
 
 
 def _make_weighted_trainer_class(class_weights: list[float]):
