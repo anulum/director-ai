@@ -296,6 +296,14 @@ def _count_below_threshold(values: list[float], threshold: float) -> int:
     return int(np.count_nonzero(flags))
 
 
+def _weighted_sum_float(values: list[float], weights: list[float]) -> float:
+    if not values:
+        return 0.0
+    vec = np.asarray(values, dtype=np.float64)
+    w = np.asarray(weights, dtype=np.float64)
+    return float(np.sum(vec * w))
+
+
 def _resolve_label_indices(model) -> tuple[int, int]:
     """Read model.config.id2label to find contradiction and neutral indices.
 
@@ -1402,12 +1410,7 @@ class NLIScorer:
         # Confidence-weighted mean
         total_weight = _sum_float_list(per_hyp_conf)
         if total_weight > 1e-9:
-            agg = (
-                _sum_float_list(
-                    [d * c for d, c in zip(per_hyp, per_hyp_conf, strict=True)]
-                )
-                / total_weight
-            )
+            agg = _weighted_sum_float(per_hyp, per_hyp_conf) / total_weight
         else:
             agg = _mean_float(per_hyp)
 
