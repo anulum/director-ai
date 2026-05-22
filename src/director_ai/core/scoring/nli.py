@@ -289,6 +289,13 @@ def _mean_float(values: list[float]) -> float:
     return _sum_float_list(values) / len(values)
 
 
+def _count_below_threshold(values: list[float], threshold: float) -> int:
+    if not values:
+        return 0
+    flags = np.asarray(values, dtype=np.float64) < float(threshold)
+    return int(np.count_nonzero(flags))
+
+
 def _resolve_label_indices(model) -> tuple[int, int]:
     """Read model.config.id2label to find contradiction and neutral indices.
 
@@ -1476,7 +1483,7 @@ class NLIScorer:
                 return float(coverage), divs, claims
             except Exception:
                 pass
-        supported = sum(1 for d in divs if d < support_threshold)
+        supported = _count_below_threshold(divs, support_threshold)
         coverage = supported / len(claims)
         return coverage, divs, claims
 
