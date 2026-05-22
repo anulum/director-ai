@@ -170,6 +170,7 @@ class TestChunker:
         np.testing.assert_allclose(result, [[1.0, 0.0], [0.0, 1.0]])
 
     def test_embed_sentences_returns_none_when_backend_missing(self, monkeypatch):
+        doc_chunker._sentence_transformer_model.cache_clear()
         monkeypatch.setitem(sys.modules, "sentence_transformers", None)
 
         assert doc_chunker._embed_sentences(["Alpha."]) is None

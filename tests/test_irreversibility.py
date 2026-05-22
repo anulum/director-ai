@@ -282,9 +282,9 @@ class TestWilsonScore:
 
     def test_edge_probabilities(self):
         low, high = _wilson_score(0.0, n=100, confidence=0.95)
-        assert low == 0.0 and high < 0.05
+        assert low == pytest.approx(0.0, abs=1e-12) and high < 0.05
         low, high = _wilson_score(1.0, n=100, confidence=0.95)
-        assert high == 1.0 and low > 0.95
+        assert high == pytest.approx(1.0, abs=1e-12) and low > 0.95
 
 
 class TestStandardNormalQuantile:

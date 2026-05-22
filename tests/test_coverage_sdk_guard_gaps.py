@@ -713,10 +713,11 @@ class TestGuardShapeDetection:
         assert isinstance(guarded, _BedrockProxy)
 
     def test_guard_cohere_shape(self):
-        client = MagicMock(spec=["chat"])
-        client.chat = MagicMock()
-        # no completions attribute to avoid openai-shape detection
-        type(client.chat).completions = property(lambda self: None)
+        class _CohereClient:
+            def chat(self, **_kwargs):
+                return SimpleNamespace(text="ok")
+
+        client = _CohereClient()
         guarded = guard(client, on_fail="log")
         assert isinstance(guarded, _CohereProxy)
 

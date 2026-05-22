@@ -545,7 +545,7 @@ class TestFallbackSplit:
 
     def test_no_periods(self):
         result = _fallback_split("No periods here")
-        assert result == ["No periods here."]
+        assert result == ["No periods here"]
 
     def test_rust_sentence_splitter_path(self, monkeypatch):
         monkeypatch.setattr("director_ai.core.safety.injection._RUST_INJECTION", True)

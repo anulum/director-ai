@@ -40,18 +40,18 @@ except ImportError:
 
 try:
     from sklearn.exceptions import (
-        InconsistentVersionWarning as _SklearnVersionWarning,
+        InconsistentVersionWarning,
     )
 
-    _INCONSISTENT_VERSION_WARNING: type[Warning] = _SklearnVersionWarning
+    _INCONSISTENT_VERSION_WARNING: type[Warning] = InconsistentVersionWarning
 except (
     Exception
 ):  # pragma: no cover - sklearn absent handled by runtime import boundaries
 
-    class _FallbackInconsistentVersionWarning(UserWarning):
+    class InconsistentVersionWarning(UserWarning):
         """Fallback warning type when sklearn is unavailable at import time."""
 
-    _INCONSISTENT_VERSION_WARNING = _FallbackInconsistentVersionWarning
+    _INCONSISTENT_VERSION_WARNING = InconsistentVersionWarning
 
 
 NEGATION_WORDS = frozenset(
@@ -209,10 +209,10 @@ class DatasetTypeClassifier:
         logger.info("Model SHA256 prefix: %s (%d bytes)", sha, len(raw))
         try:
             with warnings.catch_warnings():
-                warnings.simplefilter("error", _INCONSISTENT_VERSION_WARNING)
+                warnings.simplefilter("error", InconsistentVersionWarning)
                 # The source path is warned above and the hash is logged for auditability.
                 bundle = pickle.loads(raw)  # nosec B301
-        except _INCONSISTENT_VERSION_WARNING as exc:
+        except InconsistentVersionWarning as exc:
             raise ValueError(
                 f"Incompatible sklearn artefact at {model_path}: {exc}",
             ) from exc

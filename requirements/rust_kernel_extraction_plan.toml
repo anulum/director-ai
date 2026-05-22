@@ -24,7 +24,7 @@ evaluation_doc = "docs-site/guide/runtime-extraction-evaluation.md"
 crate_policy = "semver"
 current_version = "0.1.1"
 first_external_minor = "0.2"
-python_supported_range = ">=0.1.0,<0.2"
+python_supported_range = ">=0.1.1,<0.2"
 breakage_rule = "Breaking Rust API changes require a new minor release until the first stable release, then a new major release."
 python_rule = "director-ai keeps the Python fallback importable and pins an explicit supported backfire-kernel range."
 

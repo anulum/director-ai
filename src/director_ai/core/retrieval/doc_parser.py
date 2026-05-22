@@ -42,12 +42,16 @@ def parse(content: bytes, filename: str) -> str:
 def _parse_pdf(content: bytes) -> str:
     try:
         from pypdf import PdfReader
+        from pypdf.errors import PdfReadError
     except ImportError as e:
         raise ImportError(
             "pypdf required for PDF parsing. Install: pip install director-ai[ingestion]"
         ) from e
 
-    reader = PdfReader(io.BytesIO(content))
+    try:
+        reader = PdfReader(io.BytesIO(content))
+    except PdfReadError as e:
+        raise ValueError("invalid PDF document") from e
     pages = []
     for page in reader.pages:
         text = page.extract_text()
@@ -57,6 +61,8 @@ def _parse_pdf(content: bytes) -> str:
 
 
 def _parse_docx(content: bytes) -> str:
+    import zipfile
+
     try:
         from docx import Document
     except ImportError as e:
@@ -64,7 +70,10 @@ def _parse_docx(content: bytes) -> str:
             "python-docx required for DOCX parsing. Install: pip install director-ai[ingestion]"
         ) from e
 
-    doc = Document(io.BytesIO(content))
+    try:
+        doc = Document(io.BytesIO(content))
+    except (ValueError, zipfile.BadZipFile) as e:
+        raise ValueError("invalid DOCX document") from e
     return "\n\n".join(p.text for p in doc.paragraphs if p.text.strip())
 
 

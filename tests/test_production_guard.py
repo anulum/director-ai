@@ -256,6 +256,7 @@ def test_check_injection_lazily_reuses_scorer_nli_and_config_thresholds(
         "injection_claim_threshold": 0.8,
         "baseline_divergence": 0.1,
         "stage1_weight": 0.4,
+        "require_model_backed_nli": False,
     }
     assert detector_calls[1]["system_prompt"] == "Answer from policy."
     assert verdict == {"blocked": True, "intent": "Return only approved dosage."}

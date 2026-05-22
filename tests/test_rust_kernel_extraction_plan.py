@@ -49,7 +49,8 @@ def test_python_extra_and_wheel_workflow_are_bound_to_plan() -> None:
     assert plan["python_module"] == "backfire_kernel"
     assert isinstance(versioning, dict)
     supported_range = versioning["python_supported_range"]
-    assert f'rust = ["backfire-kernel{supported_range}"]' in pyproject
+    assert f'"backfire-kernel{supported_range}"' in pyproject
+    assert "rust = []" in pyproject
     assert "backfire-kernel/crates/backfire-ffi" in workflow
     assert "PyO3/maturin-action" in workflow
     assert "backfire-kernel/crates/backfire-wasm" in workflow

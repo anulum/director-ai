@@ -132,17 +132,16 @@ class ConformalDemandForecaster:
                 coverage=coverage,
                 residual_sample_size=len(residuals),
             )
+        n = len(residuals)
         if _RUST_FORECAST:
             try:
                 width = float(rust_conformal_quantile(residuals, coverage))
             except Exception:
                 sorted_residuals = sorted(residuals)
-                n = len(sorted_residuals)
                 q_index = min(max(int(coverage * (n + 1) - 1), 0), n - 1)
                 width = sorted_residuals[q_index]
         else:
             sorted_residuals = sorted(residuals)
-            n = len(sorted_residuals)
             q_index = min(max(int(coverage * (n + 1) - 1), 0), n - 1)
             width = sorted_residuals[q_index]
         return PredictionInterval(
