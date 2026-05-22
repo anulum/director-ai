@@ -26,7 +26,10 @@ from urllib.parse import urlparse
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_f64
+
+    _RUST_HTTP_EMBED = True
 except ImportError:  # pragma: no cover - fallback path
+    _RUST_HTTP_EMBED = False
 
     def rust_sum_f64(_values: list[float]) -> float:
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
@@ -259,7 +262,9 @@ def _embedding_path(base_path: str, endpoint_path: str) -> str:
 
 
 def _sum_float(values: list[float]) -> float:
-    try:
-        return float(rust_sum_f64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_HTTP_EMBED:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
