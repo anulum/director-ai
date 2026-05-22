@@ -359,10 +359,12 @@ def _word_overlap(text_a: str, text_b: str) -> float:
 
 
 def _sum_float(values: list[float]) -> float:
-    try:
-        return float(rust_sum_f64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_CONSENSUS:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return sum(values)
 
 
 class CrossVerifierConsensus:
