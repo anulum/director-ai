@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 
 try:
     from backfire_kernel import rust_split_sentences, rust_sum_f64
@@ -242,9 +243,14 @@ def _sum_float_list(values: list[float]) -> float:
 def _embed_sentences(sentences: list[str]):
     """Embed sentences using sentence-transformers. Returns None if unavailable."""
     try:
-        from sentence_transformers import SentenceTransformer
-
-        model = SentenceTransformer("all-MiniLM-L6-v2")
+        model = _sentence_transformer_model()
         return model.encode(sentences, show_progress_bar=False)
     except ImportError:
         return None
+
+
+@lru_cache(maxsize=1)
+def _sentence_transformer_model():
+    from sentence_transformers import SentenceTransformer
+
+    return SentenceTransformer("all-MiniLM-L6-v2")

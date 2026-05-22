@@ -198,6 +198,22 @@ Outputs:
 Each report includes per-scenario median and p95 latency for both modes,
 speedup ratio (`Py/Rust`), and checksum parity to prove result consistency.
 
+## Full Software Benchmark Campaign
+
+Run the consolidated benchmark campaign (quality, E2E, retrieval, load, latency,
+and Rust/Python comparison) as one reproducible packet:
+
+```bash
+PYTHONPATH=src python -m benchmarks.full_benchmark_campaign
+```
+
+Outputs:
+
+- `benchmarks/results/full_benchmark_campaign_<UTC_TIMESTAMP>.json`
+- `benchmarks/results/full_benchmark_campaign_<UTC_TIMESTAMP>.md`
+
+Use `--strict` to return non-zero when any case fails or times out.
+
 ---
 
 ## Runtime Scorer Model Choices

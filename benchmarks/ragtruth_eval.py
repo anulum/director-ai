@@ -6,10 +6,10 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — RAGTruth Evaluation
 
-"""Evaluate Director-AI on RAGTruth (ACL 2024) — per-sentence hallucination
-labels on RAG responses.
+"""Evaluate Director-AI on RAGTruth-style per-sample hallucination labels.
 
-Dataset: ``yixuantt/ragtruth`` on HuggingFace.
+Primary dataset source: ``wandb/RAGTruth-processed`` on HuggingFace.
+Fallback source: ``flowaicom/RAGTruth_test``.
 
 Usage::
 
@@ -32,8 +32,25 @@ def _load_ragtruth(max_samples: int | None = None) -> list[dict]:
     """Load RAGTruth dataset via HuggingFace datasets."""
     from datasets import load_dataset
 
-    ds = load_dataset("yixuantt/ragtruth", split="test", trust_remote_code=True)
-    items = list(ds)
+    candidates: list[tuple[str, str]] = [
+        ("wandb/RAGTruth-processed", "test"),
+        ("flowaicom/RAGTruth_test", "qa"),
+    ]
+    items: list[dict] = []
+    load_errors: list[str] = []
+    for dataset_id, split in candidates:
+        try:
+            ds = load_dataset(dataset_id, split=split)
+            items = list(ds)
+            if items:
+                break
+        except Exception as exc:
+            load_errors.append(f"{dataset_id}:{split} -> {exc}")
+    if not items:
+        raise RuntimeError(
+            "Could not load any RAGTruth dataset source. "
+            f"Attempts: {' | '.join(load_errors)}"
+        )
     if max_samples:
         items = items[:max_samples]
     return items
@@ -60,12 +77,25 @@ def run_ragtruth(
 
     for item in items:
         context = item.get("source_text", item.get("context", ""))
-        question = item.get("question", "")
-        response = item.get("response", "")
-        # Label: 1 = hallucinated, 0 = faithful
-        is_hallucinated = bool(item.get("label", item.get("is_hallucinated", 0)))
+        question = item.get("question", item.get("query", ""))
+        response = item.get("response", item.get("output", ""))
+        labels = item.get("hallucination_labels_processed", {}) or {}
+        # Label semantics:
+        # - wandb/RAGTruth-processed: counts in hallucination_labels_processed
+        # - fallback sets may expose explicit bool/int labels.
+        is_hallucinated = bool(
+            item.get("label", item.get("is_hallucinated", 0))
+            or labels.get("evident_conflict", 0)
+            or labels.get("baseless_info", 0)
+        )
+
+        if not response:
+            continue
 
         store = VectorGroundTruthStore()
+        if context:
+            store.ingest([context])
+
         scorer = CoherenceScorer(
             threshold=threshold,
             soft_limit=soft_limit,
@@ -74,9 +104,6 @@ def run_ragtruth(
             nli_model=nli_model,
         )
 
-        if context:
-            store.ingest([context])
-
         t0 = time.perf_counter()
         approved, score = scorer.review(question or response, response)
         elapsed = time.perf_counter() - t0
@@ -84,14 +111,13 @@ def run_ragtruth(
         sample = E2ESample(
             task="ragtruth",
             context=context,
-            question=question,
             response=response,
             is_hallucinated=is_hallucinated,
             approved=approved,
-            score=score.score,
+            coherence_score=score.score,
             latency_ms=elapsed * 1000,
         )
-        metrics.add(sample)
+        metrics.samples.append(sample)
 
     return metrics
 
@@ -106,5 +132,5 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     results = run_ragtruth(max_samples=args.max_samples, use_nli=args.nli)
-    print_e2e_results(results, "RAGTruth")
+    print_e2e_results(results)
     save_results(results.to_dict(), "ragtruth_results.json")
