@@ -40,11 +40,14 @@ import numpy as np
 logger = logging.getLogger("DirectorAI.DistilledNLI")
 
 try:
-    from backfire_kernel import rust_softmax
+    from backfire_kernel import rust_softmax, rust_sum_f64
 
     _RUST_DISTILLED = True
 except ImportError:
     _RUST_DISTILLED = False
+
+    def rust_sum_f64(_values: list[float]) -> float:
+        raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 DEFAULT_DISTILLED_MODEL = "anulum/director-ai-nli-lite"
 DEFAULT_DISTILLED_REVISION = "f88222676f64b698c1fcb394f4eeb8da40405027"
@@ -222,5 +225,15 @@ def _softmax(logits: np.ndarray) -> np.ndarray:
         except Exception:
             pass
     e: np.ndarray = np.exp(logits - np.max(logits))
-    result: np.ndarray = e / e.sum()
+    denom = _sum_float_list(e.ravel().tolist())
+    result: np.ndarray = e / denom
     return result
+
+
+def _sum_float_list(values: list[float]) -> float:
+    if _RUST_DISTILLED:
+        try:
+            return float(rust_sum_f64(values))
+        except Exception:
+            pass
+    return float(np.sum(np.asarray(values, dtype=float)))
