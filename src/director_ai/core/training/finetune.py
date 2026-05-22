@@ -283,9 +283,9 @@ def _binary_f1_score(labels, preds) -> float:
 
     labels_arr = np.asarray(labels)
     preds_arr = np.asarray(preds)
-    tp = int(((preds_arr == 1) & (labels_arr == 1)).sum())
-    fp = int(((preds_arr == 1) & (labels_arr != 1)).sum())
-    fn = int(((preds_arr != 1) & (labels_arr == 1)).sum())
+    tp = int(np.count_nonzero((preds_arr == 1) & (labels_arr == 1)))
+    fp = int(np.count_nonzero((preds_arr == 1) & (labels_arr != 1)))
+    fn = int(np.count_nonzero((preds_arr != 1) & (labels_arr == 1)))
 
     if tp == 0:
         return 0.0
