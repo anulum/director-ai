@@ -19,7 +19,10 @@ from typing import Any
 
 try:  # pragma: no cover - optional acceleration
     from backfire_kernel import rust_sum_i64
+
+    _RUST_DATASET_CONTRACT = True
 except ImportError:  # pragma: no cover - fallback path
+    _RUST_DATASET_CONTRACT = False
 
     def rust_sum_i64(_values: list[int]) -> int:
         raise RuntimeError("backfire_kernel rust_sum_i64 is unavailable")
@@ -427,7 +430,9 @@ def _non_empty_string_list(value: Any) -> bool:
 
 
 def _sum_int(values: list[int]) -> int:
-    try:
-        return int(rust_sum_i64(values))
-    except Exception:
-        return sum(values)
+    if _RUST_DATASET_CONTRACT:
+        try:
+            return int(rust_sum_i64(values))
+        except Exception:
+            pass
+    return sum(values)
