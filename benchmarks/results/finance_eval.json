@@ -12,6 +12,6 @@
     "precision": 0.0,
     "fpr": 1.0,
     "f1": 0.0,
-    "avg_latency_ms": 3938.08
+    "avg_latency_ms": 0.95
   }
 }
