@@ -40,10 +40,14 @@ COPY backfire-kernel/ backfire-kernel/
 
 ARG EXTRAS="server"
 ARG REQUIREMENTS="requirements/docker-server.txt"
-RUN pip install --no-cache-dir --require-hashes --no-deps --prefix=/install -r "$REQUIREMENTS" \
-    && pip wheel --no-cache-dir --no-deps --wheel-dir /tmp/backfire-wheel ./backfire-kernel/crates/backfire-ffi \
-    && pip install --no-cache-dir --no-deps --no-index --prefix=/install /tmp/backfire-wheel/backfire_kernel-0.1.1-*.whl \
-    && pip install --no-cache-dir --no-deps --prefix=/install .
+ARG BUILD_REQUIREMENTS="requirements/docker-build.txt"
+RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/install -r "$BUILD_REQUIREMENTS" \
+    && python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/install -r "$REQUIREMENTS" \
+    && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
+        python -m pip wheel --no-cache-dir --no-build-isolation --no-deps --wheel-dir /tmp/backfire-wheel ./backfire-kernel/crates/backfire-ffi \
+    && python -m pip install --no-cache-dir --no-deps --no-index --prefix=/install /tmp/backfire-wheel/backfire_kernel-0.1.1-*.whl \
+    && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
+        python -m pip install --no-cache-dir --no-build-isolation --no-deps --prefix=/install .
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
 
