@@ -422,6 +422,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out dist/backfire-kernel
+          pip install --no-deps --no-index --find-links dist/backfire-kernel 'backfire-kernel==0.1.1'
           pip install --no-deps -e .
           pip install --require-hashes -r requirements/ci-fuzz.txt
 
@@ -466,6 +468,8 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --require-hashes --no-deps -r requirements/ci-dev.txt
+          maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out dist/backfire-kernel
+          pip install --no-deps --no-index --find-links dist/backfire-kernel 'backfire-kernel==0.1.1'
           pip install --no-deps -e .
 
       - name: Run regression benchmarks

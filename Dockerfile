@@ -49,7 +49,9 @@ ENV PYTHONUNBUFFERED=1 \
     DIRECTOR_SERVER_HOST=0.0.0.0 \
     DIRECTOR_SERVER_PORT=8080
 
-RUN adduser --disabled-password --gecos "" appuser
+RUN adduser --disabled-password --gecos "" appuser \
+    && mkdir -p /app/director-models/_uploads \
+    && chown -R appuser:appuser /app/director-models
 USER appuser
 
 EXPOSE 8080
