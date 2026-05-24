@@ -9,7 +9,7 @@ Gates (must match ci.yml):
   4. mypy          — src/director_ai/
   5. bandit        — src/director_ai/
   6. spdx-guard    — all .py files in src/ tests/
-  7. pytest        — tests/ with coverage gate (90%)
+  7. pytest        — tests/ with the temporary CI coverage debt gate (60%)
 """
 
 import argparse

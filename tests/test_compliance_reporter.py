@@ -10,6 +10,8 @@ from __future__ import annotations
 
 import time
 
+import pytest
+
 from director_ai.compliance.audit_log import AuditEntry, AuditLog
 from director_ai.compliance.reporter import (
     Article15TemplateContext,
@@ -156,21 +158,9 @@ class TestReporterMarkdown:
 
 
 class TestArticle15Template:
-    def test_article15_template_contains_required_sections_without_raw_entries(
-        self, tmp_path
-    ):
-        log = AuditLog(tmp_path / "test.db")
-        log.log(
-            _entry(
-                score=0.92,
-                approved=True,
-                domain="medical",
-                human_override=False,
-            )
-        )
-        log.log(_entry(score=0.21, approved=False, domain="medical"))
-        report = ComplianceReporter(log).generate_report()
-        context = Article15TemplateContext(
+    @staticmethod
+    def _context() -> Article15TemplateContext:
+        return Article15TemplateContext(
             system_name="Director-AI hospital triage guard",
             intended_purpose=(
                 "Score generated triage advice against hospital knowledge-base facts."
@@ -202,6 +192,22 @@ class TestArticle15Template:
             ),
         )
 
+    def test_article15_template_contains_required_sections_without_raw_entries(
+        self, tmp_path
+    ):
+        log = AuditLog(tmp_path / "test.db")
+        log.log(
+            _entry(
+                score=0.92,
+                approved=True,
+                domain="medical",
+                human_override=False,
+            )
+        )
+        log.log(_entry(score=0.21, approved=False, domain="medical"))
+        report = ComplianceReporter(log).generate_report()
+        context = self._context()
+
         payload = report.to_article15_template(context)
         markdown = report.to_article15_markdown(context)
 
@@ -226,6 +232,23 @@ class TestArticle15Template:
         assert "EU AI Act Article 15 Technical Documentation" in markdown
         assert "Accuracy, Robustness, and Cybersecurity" in markdown
         assert "docs/PRODUCTION_CHECKLIST.md#compliance" in markdown
+        log.close()
+
+    def test_article15_markdown_rejects_invalid_template_payload_schema(self, tmp_path):
+        log = AuditLog(tmp_path / "test.db")
+        report = ComplianceReporter(log).generate_report()
+        original_template_payload = report.to_article15_template
+
+        def invalid_template_payload(context):
+            payload = original_template_payload(context)
+            payload["article_15_sections"] = "not-a-section-map"
+            return payload
+
+        report.to_article15_template = invalid_template_payload
+
+        with pytest.raises(TypeError, match="article_15_sections must be a dict"):
+            report.to_article15_markdown(self._context())
+
         log.close()
 
     def test_article15_template_rejects_missing_required_context(self, tmp_path):

@@ -13,6 +13,11 @@ repos:
         entry: python tools/verify_public_sector_boundary.py --root .
         language: system
         pass_filenames: false
+      - id: module-specific-test-surface-guard
+        name: module-specific test surface guard
+        entry: python tools/check_test_surface_policy.py --root .
+        language: system
+        pass_filenames: false
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.15.6
     hooks:

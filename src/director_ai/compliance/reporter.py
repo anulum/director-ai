@@ -22,6 +22,7 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass, field
+from typing import Any
 
 from .audit_log import AuditLog
 
@@ -43,6 +44,20 @@ def _wilson_ci(successes: int, total: int, z: float = 1.96) -> float:
     center = (p + z * z / (2 * total)) / denom
     spread = z * math.sqrt((p * (1 - p) + z * z / (4 * total)) / total) / denom
     return min(spread, center, 1 - center)
+
+
+def _require_dict(value: object, field_name: str) -> dict[str, Any]:
+    """Return a mapping payload field or raise a stable runtime error."""
+    if not isinstance(value, dict):
+        raise TypeError(f"{field_name} must be a dict")
+    return value
+
+
+def _require_list(value: object, field_name: str) -> list[Any]:
+    """Return a list payload field or raise a stable runtime error."""
+    if not isinstance(value, list):
+        raise TypeError(f"{field_name} must be a list")
+    return value
 
 
 @dataclass
@@ -253,24 +268,39 @@ class Article15Report:
     def to_article15_markdown(self, context: Article15TemplateContext) -> str:
         """Render the structured Article 15 template as Markdown."""
         payload = self.to_article15_template(context)
-        sections = payload["article_15_sections"]
-        assert isinstance(sections, dict)
-        accuracy = sections["accuracy"]
-        robustness = sections["robustness"]
-        cybersecurity = sections["cybersecurity"]
-        risk = sections["risk_management"]
-        data = sections["data_governance"]
-        oversight = sections["human_oversight"]
-        monitoring = sections["post_market_monitoring"]
-        residual = sections["residual_risk"]
-        assert isinstance(accuracy, dict)
-        assert isinstance(robustness, dict)
-        assert isinstance(cybersecurity, dict)
-        assert isinstance(risk, dict)
-        assert isinstance(data, dict)
-        assert isinstance(oversight, dict)
-        assert isinstance(monitoring, dict)
-        assert isinstance(residual, dict)
+        sections = _require_dict(
+            payload["article_15_sections"],
+            "article_15_sections",
+        )
+        accuracy = _require_dict(sections["accuracy"], "article_15_sections.accuracy")
+        robustness = _require_dict(
+            sections["robustness"],
+            "article_15_sections.robustness",
+        )
+        cybersecurity = _require_dict(
+            sections["cybersecurity"],
+            "article_15_sections.cybersecurity",
+        )
+        risk = _require_dict(
+            sections["risk_management"],
+            "article_15_sections.risk_management",
+        )
+        data = _require_dict(
+            sections["data_governance"],
+            "article_15_sections.data_governance",
+        )
+        oversight = _require_dict(
+            sections["human_oversight"],
+            "article_15_sections.human_oversight",
+        )
+        monitoring = _require_dict(
+            sections["post_market_monitoring"],
+            "article_15_sections.post_market_monitoring",
+        )
+        residual = _require_dict(
+            sections["residual_risk"],
+            "article_15_sections.residual_risk",
+        )
 
         lines = [
             "# EU AI Act Article 15 Technical Documentation",
@@ -317,17 +347,20 @@ class Article15Report:
             "## Residual Risk",
             "",
         ]
-        limitations = residual["known_limitations"]
-        risks = residual["residual_risks"]
-        assert isinstance(limitations, list)
-        assert isinstance(risks, list)
+        limitations = _require_list(
+            residual["known_limitations"],
+            "article_15_sections.residual_risk.known_limitations",
+        )
+        risks = _require_list(
+            residual["residual_risks"],
+            "article_15_sections.residual_risk.residual_risks",
+        )
         lines.extend(f"- Known limitation: {item}" for item in limitations)
         lines.extend(f"- Residual risk: {item}" for item in risks)
         if not limitations and not risks:
             lines.append("- No residual risks supplied in this template context.")
         lines.extend(["", "## Evidence References", ""])
-        evidence_refs = payload["evidence_refs"]
-        assert isinstance(evidence_refs, list)
+        evidence_refs = _require_list(payload["evidence_refs"], "evidence_refs")
         if evidence_refs:
             lines.extend(f"- {ref}" for ref in evidence_refs)
         else:

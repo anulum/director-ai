@@ -344,6 +344,43 @@ class TestTraceToken:
 
         assert tracer.context.span.attributes == {"token.index": 3}
 
+    def test_trace_token_reports_degraded_span_without_leaking_token(
+        self, monkeypatch, caplog
+    ):
+        class _Span:
+            def set_attribute(self, key: str, value: object) -> None:
+                raise AttributeError("span rejected attributes")
+
+        class _SpanContext:
+            def __init__(self) -> None:
+                self.span = _Span()
+
+            def __enter__(self):
+                return self.span
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+        tracer = SimpleNamespace(
+            context=_SpanContext(),
+            start_as_current_span=lambda name: tracer.context,
+        )
+        monkeypatch.setattr(tracing, "_get_tracer", lambda: tracer)
+
+        with (
+            caplog.at_level(
+                "WARNING",
+                logger="director_ai.core.observability.tracing",
+            ),
+            tracing.trace_token(3, token="sensitive-token-value") as span,
+        ):
+            assert span is tracer.context.span
+
+        assert (
+            "OpenTelemetry token span rejected non-sensitive attributes" in caplog.text
+        )
+        assert "sensitive-token-value" not in caplog.text
+
     def test_is_otel_available_returns_cached_probe_flag(self, monkeypatch):
         monkeypatch.setattr(tracing, "_OTEL_AVAILABLE", True)
 

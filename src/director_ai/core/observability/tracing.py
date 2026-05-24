@@ -21,11 +21,14 @@ not need their own branches.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
 from importlib.util import find_spec
 
 from ..otel import _get_tracer, _NoopSpan
+
+logger = logging.getLogger(__name__)
 
 
 def _probe_otel_available() -> bool:
@@ -76,8 +79,11 @@ def trace_token(
                 span.set_attribute("request.id", request_id)
             if token:
                 span.set_attribute("token.length", len(token))
-        except AttributeError:  # pragma: no cover — degraded span
-            pass
+        except AttributeError:
+            logger.warning(
+                "OpenTelemetry token span rejected non-sensitive attributes",
+                exc_info=True,
+            )
         yield span
 
 
