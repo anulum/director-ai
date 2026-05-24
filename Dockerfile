@@ -44,10 +44,13 @@ ARG BUILD_REQUIREMENTS="requirements/docker-build.txt"
 RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/install -r "$BUILD_REQUIREMENTS" \
     && python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/install -r "$REQUIREMENTS" \
     && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
-        python -m pip wheel --no-cache-dir --no-build-isolation --no-deps --wheel-dir /tmp/backfire-wheel ./backfire-kernel/crates/backfire-ffi \
-    && python -m pip install --no-cache-dir --no-deps --no-index --prefix=/install /tmp/backfire-wheel/backfire_kernel-0.1.1-*.whl \
+        maturin build --release --manifest-path backfire-kernel/crates/backfire-ffi/Cargo.toml --out /tmp/backfire-wheel \
+    && PYTHONPATH=/install/lib/python3.11/site-packages \
+        python -m installer --prefix=/install /tmp/backfire-wheel/backfire_kernel-0.1.1-*.whl \
     && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
-        python -m pip install --no-cache-dir --no-build-isolation --no-deps --prefix=/install .
+        python -m build --wheel --no-isolation --outdir /tmp/director-wheel . \
+    && PYTHONPATH=/install/lib/python3.11/site-packages \
+        python -m installer --prefix=/install /tmp/director-wheel/director_ai-3.15.1-py3-none-any.whl
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
 
