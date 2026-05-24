@@ -722,3 +722,20 @@ class TestWeightValidation:
         cfg = DirectorConfig(w_logic=0.7, w_fact=0.3)
         assert cfg.w_logic == pytest.approx(0.7)
         assert cfg.w_fact == pytest.approx(0.3)
+
+
+class TestClaimSupportConfigWiring:
+    """DirectorConfig claim-support settings must reach the scorer boundary."""
+
+    def test_claim_support_settings_are_wired_into_scorer(self):
+        cfg = DirectorConfig(
+            nli_claim_coverage_enabled=False,
+            nli_claim_support_threshold=0.7,
+            nli_claim_coverage_alpha=0.25,
+        )
+
+        scorer = cfg.build_scorer()
+
+        assert scorer._claim_coverage_enabled is False
+        assert scorer._claim_support_threshold == 0.7
+        assert scorer._claim_coverage_alpha == 0.25

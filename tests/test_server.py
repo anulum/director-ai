@@ -308,3 +308,89 @@ class TestWebSocketAgentError:
             ws.send_json({"prompt": "ok"})
             d2 = ws.receive_json()
             assert d2["type"] == "result"
+
+
+class TestServerClaimSupportEvidenceSerialization:
+    """Server evidence serialization preserves claim-support diagnostics."""
+
+    def test_evidence_without_claim_support_omits_claim_fields(self):
+        from director_ai.core.types import ScoringEvidence
+        from director_ai.server import _evidence_to_dict
+
+        evidence = ScoringEvidence(
+            chunks=[],
+            nli_premise="premise",
+            nli_hypothesis="hypothesis",
+            nli_score=0.5,
+        )
+
+        encoded = _evidence_to_dict(evidence)
+
+        assert "claim_coverage" not in encoded
+        assert "per_claim_divergences" not in encoded
+        assert "claims" not in encoded
+
+    def test_evidence_with_claim_support_preserves_claim_fields(self):
+        from director_ai.core.types import ScoringEvidence
+        from director_ai.server import _evidence_to_dict
+
+        evidence = ScoringEvidence(
+            chunks=[],
+            nli_premise="premise",
+            nli_hypothesis="hypothesis",
+            nli_score=0.5,
+            claim_coverage=0.75,
+            per_claim_divergences=[0.1, 0.8],
+            claims=["Supported claim.", "Unsupported claim."],
+        )
+
+        encoded = _evidence_to_dict(evidence)
+
+        assert encoded["claim_coverage"] == 0.75
+        assert encoded["per_claim_divergences"] == [0.1, 0.8]
+        assert encoded["claims"] == ["Supported claim.", "Unsupported claim."]
+
+
+class TestServerOperationalReadiness:
+    """Server health and readiness expose deployability boundaries."""
+
+    def test_health_reports_model_revision_registry_failures(self):
+        config = DirectorConfig(
+            use_nli=False,
+            nli_model="unverified-org/unverified-model",
+            nli_model_revision="",
+        )
+        app = create_app(config)
+
+        with TestClient(app) as client:
+            response = client.get("/v1/health")
+
+        assert response.status_code == 200
+        revision_health = response.json()["model_revisions"]
+        assert revision_health["ok"] is False
+        assert revision_health["checks"]["nli"]["status"] == "error"
+
+    def test_production_mode_requires_knowledge_router(self):
+        from unittest.mock import patch
+
+        config = DirectorConfig(
+            use_nli=False,
+            production_mode=True,
+            api_keys=["writer"],
+            llm_api_url="https://llm.internal.example/v1",
+        )
+
+        with (
+            patch.dict("sys.modules", {"director_ai.knowledge_api": None}),
+            pytest.raises(RuntimeError, match="knowledge API router"),
+        ):
+            create_app(config)
+
+    def test_ready_endpoint_is_available_without_nli(self):
+        app = create_app(DirectorConfig(use_nli=False))
+
+        with TestClient(app) as client:
+            response = client.get("/v1/ready")
+
+        assert response.status_code == 200
+        assert response.json()["ready"] is True

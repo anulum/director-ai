@@ -8,7 +8,7 @@
 
 """Multi-angle coverage for schemas/proto/director/v1/director.proto
 and director_ai.proto.converters: construction, serialisation,
-round-trip, deterministic bytes, streaming messages, tenant/audit
+serialization, deterministic bytes, streaming messages, tenant/audit
 records, and forward-compatibility (unknown halt-reason tolerated)."""
 
 from __future__ import annotations
@@ -33,7 +33,7 @@ from director_ai.proto.converters import (
 )
 
 
-class TestCoherenceVerdictRoundTrip:
+class TestCoherenceVerdictSerialization:
     def test_minimal_construct_and_serialise(self):
         v = verdict_to_proto(score=0.82, halted=False)
         buf = v.SerializeToString()
@@ -163,7 +163,7 @@ class TestPolicyDecisionMapping:
             assert policy_decision_from_string(policy_decision_to_string(code)) == code
 
 
-class TestSafetyEventRoundTrip:
+class TestSafetyEventSerialization:
     def test_construct_serialise_round_trip(self):
         event = SafetyEvent(
             event_id="sevt-1",

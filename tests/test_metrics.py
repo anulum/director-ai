@@ -420,3 +420,13 @@ class TestMetricsPerformance:
         m = global_metrics.get_metrics()
         assert m["counters"]["reviews_total"]["total"] == 1.0
         assert m["histograms"]["review_latency_seconds"]["count"] == 1
+
+
+def test_histogram_retains_bounded_sample_window() -> None:
+    from director_ai.core.metrics import _Histogram
+
+    histogram = _Histogram(max_samples=20)
+    for value in range(30):
+        histogram.observe(float(value))
+
+    assert histogram.count <= 20

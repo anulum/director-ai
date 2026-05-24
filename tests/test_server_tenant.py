@@ -132,3 +132,80 @@ class TestTenantPerformanceDoc:
         data = r.json()
         assert "tenants" in data
         assert isinstance(data["tenants"], list)
+
+
+def test_api_key_not_bound_to_tenant_map_is_forbidden():
+    import json
+
+    pytest.importorskip("multipart")
+
+    from fastapi.testclient import TestClient
+
+    from director_ai.core.config import DirectorConfig
+    from director_ai.server import create_app
+
+    config = DirectorConfig(
+        api_keys=["tenant-key"],
+        api_key_tenant_map=json.dumps({"other-key": "tenant-b"}),
+        use_nli=False,
+    )
+    with TestClient(create_app(config)) as client:
+        response = client.post(
+            "/v1/review",
+            json={"prompt": "q", "response": "a"},
+            headers={"X-API-Key": "tenant-key"},
+        )
+
+    assert response.status_code == 403
+    assert "not bound" in response.json()["detail"]
+
+
+def test_api_key_tenant_map_rejects_wrong_tenant_header():
+    import json
+
+    pytest.importorskip("multipart")
+
+    from fastapi.testclient import TestClient
+
+    from director_ai.core.config import DirectorConfig
+    from director_ai.server import create_app
+
+    config = DirectorConfig(
+        api_keys=["bound-key"],
+        api_key_tenant_map=json.dumps({"bound-key": "tenant-a"}),
+        use_nli=False,
+    )
+    with TestClient(create_app(config)) as client:
+        response = client.post(
+            "/v1/review",
+            json={"prompt": "q", "response": "a"},
+            headers={"X-API-Key": "bound-key", "X-Tenant-ID": "tenant-b"},
+        )
+
+    assert response.status_code == 403
+    assert "not authorized" in response.json()["detail"]
+
+
+def test_api_key_tenant_map_allows_bound_tenant_header():
+    import json
+
+    pytest.importorskip("multipart")
+
+    from fastapi.testclient import TestClient
+
+    from director_ai.core.config import DirectorConfig
+    from director_ai.server import create_app
+
+    config = DirectorConfig(
+        api_keys=["bound-key"],
+        api_key_tenant_map=json.dumps({"bound-key": "tenant-a"}),
+        use_nli=False,
+    )
+    with TestClient(create_app(config)) as client:
+        response = client.post(
+            "/v1/review",
+            json={"prompt": "q", "response": "a"},
+            headers={"X-API-Key": "bound-key", "X-Tenant-ID": "tenant-a"},
+        )
+
+    assert response.status_code == 200

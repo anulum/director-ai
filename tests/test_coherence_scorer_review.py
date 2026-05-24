@@ -4,8 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — Coalesced review_batch Tests
-"""Multi-angle tests for CoherenceScorer.review_batch() and BatchProcessor."""
+# Director-Class AI — CoherenceScorer Review Contracts
+"""Behavioural tests for CoherenceScorer multi-item review and request processing."""
 
 from __future__ import annotations
 
@@ -15,6 +15,16 @@ from director_ai.core.batch import BatchProcessor, BatchResult
 from director_ai.core.knowledge import GroundTruthStore
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.types import CoherenceScore
+
+
+@pytest.fixture(autouse=True)
+def _python_accelerator_fallbacks(monkeypatch):
+    import director_ai.core.retrieval.knowledge as knowledge
+    import director_ai.core.scoring._task_scoring as task_scoring
+
+    monkeypatch.setattr(task_scoring, "_RUST_TASK", False)
+    monkeypatch.setattr(knowledge, "_RUST_KNOWLEDGE", False)
+
 
 # â”€â”€ CoherenceScorer.review_batch â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

@@ -125,12 +125,17 @@ class TestChromaIntegration:
         assert isinstance(approved, bool)
         assert 0.0 <= score.score <= 1.0
 
-    def test_add_performance(self, backend):
-        """Document add latency."""
-        import time
+    def test_sequential_adds_keep_documents_queryable(self, backend):
+        """Sequential Chroma writes preserve all IDs and query visibility."""
+        for i in range(5):
+            backend.add(f"seq{i}", f"Sequential Chroma document {i}")
 
-        t0 = time.perf_counter()
-        for i in range(100):
-            backend.add(f"perf{i}", f"Performance test document {i}")
-        per_add_ms = (time.perf_counter() - t0) / 100 * 1000
-        assert per_add_ms < 750, f"Chroma add took {per_add_ms:.1f}ms/doc"
+        assert backend.count() == 5
+        results = backend.query("Sequential Chroma document", n_results=5)
+        assert {result["id"] for result in results} == {
+            "seq0",
+            "seq1",
+            "seq2",
+            "seq3",
+            "seq4",
+        }

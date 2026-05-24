@@ -19,6 +19,8 @@ import pytest
 from hypothesis import given, settings
 from hypothesis import strategies as st
 
+pytest.importorskip("google.protobuf")
+
 from director_ai.core.safety_event import SafetyEvent
 from director_ai.core.types import _clamp
 from director_ai.proto.converters import (

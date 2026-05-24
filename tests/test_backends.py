@@ -151,3 +151,26 @@ class TestEntryPointDiscovery:
 
         mod._load_entry_points()
         assert mod._ENTRY_POINTS_LOADED is True
+
+
+def test_backend_registry_allows_explicit_replacement() -> None:
+    from director_ai.core.backends import ScorerBackend, get_backend, register_backend
+
+    class FirstBackend(ScorerBackend):
+        def score(self, premise: str, hypothesis: str) -> float:
+            return 0.1
+
+        def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+            return [0.1] * len(pairs)
+
+    class SecondBackend(ScorerBackend):
+        def score(self, premise: str, hypothesis: str) -> float:
+            return 0.2
+
+        def score_batch(self, pairs: list[tuple[str, str]]) -> list[float]:
+            return [0.2] * len(pairs)
+
+    register_backend("test_replacement_contract", FirstBackend)
+    register_backend("test_replacement_contract", SecondBackend)
+
+    assert get_backend("test_replacement_contract") is SecondBackend

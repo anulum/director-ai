@@ -184,3 +184,54 @@ class TestLocalProvider:
         candidates = p.generate_candidates("Hello", n=1)
         assert len(candidates) == 1
         assert candidates[0]["text"] == "Local response"
+
+
+def test_openai_stream_skips_malformed_sse_payloads() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from director_ai.integrations.providers import OpenAIProvider
+
+    with patch("director_ai.integrations.providers.requests.post") as post:
+        response = MagicMock()
+        response.raise_for_status = MagicMock()
+        response.iter_lines.return_value = ["data: {bad json", "data: [DONE]"]
+        post.return_value = response
+
+        assert list(OpenAIProvider().stream_generate("prompt")) == []
+
+
+def test_local_provider_includes_configured_model_in_generation_payload() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from director_ai.integrations.providers import LocalProvider
+
+    with patch("director_ai.integrations.providers.requests.post") as post:
+        response = MagicMock()
+        response.raise_for_status = MagicMock()
+        response.json.return_value = {"choices": [{"message": {"content": "answer"}}]}
+        post.return_value = response
+
+        result = LocalProvider(model="llama3").generate_candidates("question", n=1)
+
+    assert result[0]["text"] == "answer"
+    assert post.call_args.kwargs["json"]["model"] == "llama3"
+
+
+def test_local_stream_skips_empty_delta_content() -> None:
+    from unittest.mock import MagicMock, patch
+
+    from director_ai.integrations.providers import LocalProvider
+
+    with patch("director_ai.integrations.providers.requests.post") as post:
+        response = MagicMock()
+        response.raise_for_status = MagicMock()
+        response.iter_lines.return_value = [
+            'data: {"choices":[{"delta":{"content":""}}]}',
+            'data: {"choices":[{"delta":{}}]}',
+            "data: [DONE]",
+        ]
+        post.return_value = response
+
+        tokens = list(LocalProvider().stream_generate("prompt"))
+
+    assert tokens == []

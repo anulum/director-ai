@@ -181,3 +181,26 @@ class TestCircuitBreaker:
         g.reset_circuit()
         assert g._circuit_open is False
         assert g._consecutive_failures == 0
+
+
+def test_llm_generator_stream_tokens_falls_back_to_generated_text() -> None:
+    import asyncio
+    from unittest.mock import MagicMock, patch
+
+    from director_ai.core.actor import LLMGenerator
+
+    async def collect_tokens() -> list[str]:
+        tokens: list[str] = []
+        async for token in LLMGenerator(api_url="http://test").stream_tokens("prompt"):
+            tokens.append(token)
+        return tokens
+
+    with patch("director_ai.core.actor.requests.post") as post:
+        response = MagicMock()
+        response.status_code = 200
+        response.json.return_value = {"content": "hello world"}
+        post.return_value = response
+
+        tokens = asyncio.run(collect_tokens())
+
+    assert tokens == ["hello", "world"]

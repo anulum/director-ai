@@ -55,14 +55,14 @@ The script:
 Round-trip tests exist in both ecosystems so a regeneration that
 silently drops or renames a field fails loud:
 
-- Python: `tests/test_proto_roundtrip.py` (27 cases)
+- Python: `tests/test_proto_serialization.py` (27 cases)
 - Go:     `gateway/go/proto/director/v1/roundtrip_test.go` (5 cases)
 
 Run locally:
 
 ```bash
 # Python
-make test        # or: pytest tests/test_proto_roundtrip.py
+make test        # or: pytest tests/test_proto_serialization.py
 
 # Go
 cd gateway/go && go test ./...

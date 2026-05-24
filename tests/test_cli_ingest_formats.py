@@ -172,7 +172,7 @@ class TestIngestEdgeCases:
         assert "Ingested" in out
         assert "2 chunks" in out
 
-    def test_ingest_jsonl_with_bad_lines(self, capsys, tmp_path):
+    def test_ingest_jsonl_rejects_bad_lines(self, tmp_path):
         jf = tmp_path / "mixed.jsonl"
         jf.write_text(
             json.dumps({"text": "Valid line."})
@@ -182,9 +182,8 @@ class TestIngestEdgeCases:
             + json.dumps({"text": "Another valid."})
             + "\n"
         )
-        main(["ingest", str(jf)])
-        out = capsys.readouterr().out
-        assert "Ingested" in out
+        with pytest.raises(ValueError, match=r"Invalid JSON document in .* line 2"):
+            main(["ingest", str(jf)])
 
     def test_ingest_large_file_skipped(self, capsys, tmp_path):
         """Files exceeding 100 MB are skipped with a warning."""

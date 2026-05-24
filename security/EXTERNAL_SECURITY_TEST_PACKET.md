@@ -30,12 +30,12 @@ Evidence validator:
 
 | Track id | Surface | Primary code paths | Existing regression tests |
 |---|---|---|---|
-| `streaming_interception` | `/v1/stream` WebSocket | `server.py`, `StreamingKernel`, `AsyncStreamingKernel` | `test_server_ws_mux.py`, `test_cov_server_deep.py`, `test_coverage_streaming.py`, `test_async_streaming.py` |
+| `streaming_interception` | `/v1/stream` WebSocket | `server.py`, `StreamingKernel`, `AsyncStreamingKernel` | `test_server_ws_mux.py`, `test_server.py`, `test_streaming.py`, `test_async_streaming.py` |
 | `multi_tenant_isolation` | tenant REST and gRPC routing | `server.py`, `grpc_server.py`, `TenantRouter` | `test_server_tenant.py`, `test_server_ws_mux.py`, `test_enterprise_modules.py`, `test_audit.py` |
-| `knowledge_ingestion` | `/v1/knowledge/*` routes | `knowledge_api.py`, document registry, ingestion plugins | `test_coverage_knowledge_api.py`, `test_knowledge_edge_cases.py`, `test_cli_ingest_formats.py` |
+| `knowledge_ingestion` | `/v1/knowledge/*` routes | `knowledge_api.py`, document registry, ingestion plugins | `test_knowledge.py`, `test_knowledge_edge_cases.py`, `test_cli_ingest_formats.py` |
 | `physical_hooks` | cyber-physical action screening | `CoherenceAgent.verify_physical_action`, `GroundingHook`, `TenantPhysicalBudget` | `test_agent_safety_hooks.py`, `test_cyber_physical.py`, `test_cyber_physical_halt_contract.py`, `test_physical_budget.py` |
 | `attestation` | Merkle commitments and passports | `MerkleCommitment`, `PassportIssuer`, `PassportVerifier` | `test_zk_attestation.py`, `test_agent_safety_hooks.py` |
-| `cross_language_trust_boundary` | Python, Rust, Go, and protobuf boundaries | `director.proto`, Python converters, Go generated bindings, Rust FFI | `test_cross_language_contracts.py`, `test_proto_roundtrip.py`, `test_rust_parity_safety.py` |
+| `cross_language_trust_boundary` | Python, Rust, Go, and protobuf boundaries | `director.proto`, Python converters, Go generated bindings, Rust FFI | `test_cross_language_contracts.py`, `test_proto_serialization.py`, `test_rust_parity_safety.py` |
 
 ## Streaming Interception Checks
 

@@ -416,3 +416,113 @@ class TestAsyncStreamingKernel:
         session = asyncio.run(run())
         assert not session.halted
         assert session.warning_count == 1
+
+
+class TestStreamSessionDerivedState:
+    """StreamSession derived fields preserve halt and timing semantics."""
+
+    def test_output_truncates_at_hard_halt_index(self):
+        from director_ai.core.streaming import StreamSession
+
+        session = StreamSession()
+        session.tokens = ["a", "b", "c"]
+        session.halted = True
+        session.halt_index = 2
+
+        assert session.output == "ab"
+
+    def test_output_keeps_full_sentence_for_soft_halt(self):
+        from director_ai.core.streaming import StreamSession
+
+        session = StreamSession()
+        session.tokens = ["a", "b", "c"]
+        session.halted = True
+        session.soft_halted = True
+        session.halt_index = 1
+
+        assert session.output == "abc"
+
+    def test_empty_session_metrics_are_zero(self):
+        from director_ai.core.streaming import StreamSession
+
+        session = StreamSession()
+
+        assert session.avg_coherence == 0.0
+        assert session.min_coherence == 0.0
+
+    def test_duration_ms_uses_recorded_start_and_end_times(self):
+        from director_ai.core.streaming import StreamSession
+
+        session = StreamSession()
+        session.start_time = 1.0
+        session.end_time = 1.5
+
+        assert session.duration_ms == 500.0
+
+
+class TestAsyncStreamingKernelContracts:
+    """AsyncStreamingKernel validates configuration and preserves halt state."""
+
+    @staticmethod
+    async def _tokens(values):
+        for value in values:
+            yield value
+
+    def test_async_streaming_rejects_invalid_configuration(self):
+        invalid_cases = [
+            ({"hard_limit": 1.5}, "hard_limit"),
+            ({"window_size": 0}, "window_size"),
+            ({"window_threshold": 2.0}, "window_threshold"),
+            ({"trend_window": 1}, "trend_window"),
+            ({"trend_threshold": -1.0}, "trend_threshold"),
+            ({"halt_mode": "unknown"}, "halt_mode"),
+            ({"score_every_n": 0}, "score_every_n"),
+            ({"max_cadence": 0}, "max_cadence"),
+        ]
+
+        for kwargs, message in invalid_cases:
+            with pytest.raises(ValueError, match=message):
+                AsyncStreamingKernel(**kwargs)
+
+    def test_async_stream_to_session_records_hard_halt_reason_and_tokens(self):
+        kernel = AsyncStreamingKernel(hard_limit=0.5)
+
+        async def run():
+            return await kernel.stream_to_session(
+                self._tokens(["a", "b"]),
+                lambda _token: 0.3,
+            )
+
+        session = asyncio.run(run())
+
+        assert session.halted
+        assert "hard_limit" in session.halt_reason
+        assert session.tokens
+
+    def test_async_stream_to_session_preserves_warning_count_without_halting(self):
+        kernel = AsyncStreamingKernel(hard_limit=0.1, soft_limit=0.8)
+
+        async def run():
+            return await kernel.stream_to_session(
+                self._tokens(["a", "b"]),
+                lambda _token: 0.5,
+            )
+
+        session = asyncio.run(run())
+
+        assert not session.halted
+        assert session.warning_count == 2
+
+    def test_async_streaming_accepts_sync_iterable_sources(self):
+        kernel = AsyncStreamingKernel()
+
+        async def run():
+            events = []
+            async for event in kernel.stream_tokens(["a", "b", "c"], lambda _t: 0.9):
+                events.append(event)
+            return events
+
+        events = asyncio.run(run())
+
+        assert [event.token for event in events] == ["a", "b", "c"]
+        assert all(not event.halted for event in events)

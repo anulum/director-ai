@@ -42,8 +42,8 @@ source_files = [
 ]
 existing_regression_tests = [
   "tests/test_server_ws_mux.py",
-  "tests/test_cov_server_deep.py",
-  "tests/test_coverage_streaming.py",
+  "tests/test_server.py",
+  "tests/test_streaming.py",
   "tests/test_async_streaming.py",
 ]
 required_checks = [
@@ -111,7 +111,7 @@ source_files = [
   "src/director_ai/core/retrieval/doc_parser.py",
 ]
 existing_regression_tests = [
-  "tests/test_coverage_knowledge_api.py",
+  "tests/test_knowledge.py",
   "tests/test_knowledge_edge_cases.py",
   "tests/test_cli_ingest_formats.py",
 ]
@@ -215,7 +215,7 @@ source_files = [
 ]
 existing_regression_tests = [
   "tests/test_cross_language_contracts.py",
-  "tests/test_proto_roundtrip.py",
+  "tests/test_proto_serialization.py",
   "tests/test_rust_parity_safety.py",
 ]
 required_checks = [

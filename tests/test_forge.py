@@ -23,6 +23,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "tools"))
 
 torch = pytest.importorskip("torch")
+pytest.importorskip("transformers")
 nn = torch.nn
 F = torch.nn.functional
 from forge import ForgeConfig, ForgeTrainer, focal_loss, model_soup, symmetric_kl  # noqa: E402, I001

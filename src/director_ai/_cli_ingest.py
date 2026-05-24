@@ -123,17 +123,24 @@ def _cmd_ingest(args: list[str]) -> None:
 
         if ext in (".json", ".jsonl"):
             docs = []
-            for line in text.splitlines():
+            for line_no, line in enumerate(text.splitlines(), start=1):
                 line = line.strip()
                 if not line:
                     continue
                 try:
                     data = json.loads(line)
-                    doc = data.get("text", data.get("content", ""))
-                    if doc:  # pragma: no branch
-                        docs.append(doc)
-                except json.JSONDecodeError:
-                    pass
+                except json.JSONDecodeError as exc:
+                    raise ValueError(
+                        f"Invalid JSON document in {path} line {line_no}: {exc.msg}"
+                    ) from exc
+                if not isinstance(data, dict):
+                    raise ValueError(
+                        f"Invalid JSON document in {path} line {line_no}: "
+                        "expected object"
+                    )
+                doc = data.get("text", data.get("content", ""))
+                if doc:  # pragma: no branch
+                    docs.append(str(doc))
             return docs
         return _chunk_paragraphs(text, chunk_size)
 

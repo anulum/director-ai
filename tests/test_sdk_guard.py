@@ -668,3 +668,104 @@ class TestScore:
         assert captured["init_kwargs"]["require_model_backed_nli"] is True
         assert captured["injection_kwargs"]["require_model_backed_nli"] is True
         assert captured["injection_kwargs"]["fail_closed_on_error"] is True
+
+
+class TestBedrockAdapterContracts:
+    """Bedrock SDK guard helpers preserve prompt and stream text contracts."""
+
+    def test_bedrock_response_text_extracts_first_text_block(self):
+        from director_ai.integrations.sdk_guard import _bedrock_response_text
+
+        response = {"output": {"message": {"content": [{"text": "Hello Bedrock"}]}}}
+
+        assert _bedrock_response_text(response) == "Hello Bedrock"
+
+    def test_bedrock_response_text_returns_empty_string_for_malformed_payload(self):
+        from director_ai.integrations.sdk_guard import _bedrock_response_text
+
+        assert _bedrock_response_text({}) == ""
+
+    def test_bedrock_prompt_prefers_user_text_blocks(self):
+        from director_ai.integrations.sdk_guard import _extract_bedrock_prompt
+
+        messages = [{"role": "user", "content": [{"text": "hello bedrock"}]}]
+
+        assert _extract_bedrock_prompt(messages) == "hello bedrock"
+
+    def test_bedrock_prompt_accepts_plain_user_content(self):
+        from director_ai.integrations.sdk_guard import _extract_bedrock_prompt
+
+        messages = [{"role": "user", "content": "plain string"}]
+
+        assert _extract_bedrock_prompt(messages) == "plain string"
+
+    def test_bedrock_prompt_ignores_non_user_or_non_text_content(self):
+        from director_ai.integrations.sdk_guard import _extract_bedrock_prompt
+
+        assert _extract_bedrock_prompt(
+            [{"role": "assistant", "content": [{"text": "answer"}]}],
+        ) == ""
+        assert _extract_bedrock_prompt(
+            [{"role": "user", "content": [{"image": "data"}]}],
+        ) == ""
+
+    def test_bedrock_stream_delta_extracts_text_chunk(self):
+        from director_ai.integrations.sdk_guard import _extract_bedrock_stream_delta
+
+        event = {"contentBlockDelta": {"delta": {"text": "chunk"}}}
+
+        assert _extract_bedrock_stream_delta(event) == "chunk"
+        assert _extract_bedrock_stream_delta({}) is None
+
+
+class TestGeminiAdapterPromptContracts:
+    """Gemini SDK guard prompt extraction handles supported content shapes."""
+
+    def test_gemini_prompt_uses_string_argument_or_keyword_contents(self):
+        from director_ai.integrations.sdk_guard import _extract_gemini_prompt
+
+        assert _extract_gemini_prompt(("tell me something",), {}) == "tell me something"
+        assert _extract_gemini_prompt((), {"contents": "from kwargs"}) == "from kwargs"
+
+    def test_gemini_prompt_uses_last_string_from_content_list(self):
+        from director_ai.integrations.sdk_guard import _extract_gemini_prompt
+
+        assert _extract_gemini_prompt((["first", "second"],), {}) == "second"
+
+    def test_gemini_prompt_extracts_text_from_parts(self):
+        from director_ai.integrations.sdk_guard import _extract_gemini_prompt
+
+        assert _extract_gemini_prompt(([{"parts": ["part text"]}],), {}) == "part text"
+        assert _extract_gemini_prompt(
+            ([{"parts": [{"text": "dict part"}]}],),
+            {},
+        ) == "dict part"
+
+    def test_gemini_prompt_falls_back_to_string_conversion(self):
+        from director_ai.integrations.sdk_guard import _extract_gemini_prompt
+
+        assert _extract_gemini_prompt((42,), {}) == "42"
+
+
+class TestCohereAdapterShapeContracts:
+    """Cohere detection must not capture OpenAI-compatible clients."""
+
+    def test_cohere_shape_accepts_chat_client_without_completions(self):
+        from unittest.mock import MagicMock
+
+        from director_ai.integrations.sdk_guard import _has_cohere_shape
+
+        client = MagicMock(spec=["chat"])
+        client.chat = MagicMock(spec=[])
+
+        assert _has_cohere_shape(client)
+
+    def test_cohere_shape_rejects_openai_compatible_chat_client(self):
+        from unittest.mock import MagicMock
+
+        from director_ai.integrations.sdk_guard import _has_cohere_shape
+
+        client = MagicMock()
+        client.chat.completions.create = MagicMock()
+
+        assert not _has_cohere_shape(client)

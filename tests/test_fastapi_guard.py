@@ -125,3 +125,58 @@ async def test_guard_ignores_get():
 
     assert resp.status_code == 200
     assert "x-director-score" not in resp.headers
+
+
+def test_fastapi_guard_extracts_latest_user_prompt_from_openai_messages() -> None:
+    import json
+
+    from director_ai.integrations.fastapi_guard import _extract_request_prompt
+
+    body = json.dumps(
+        {
+            "messages": [
+                {"role": "user", "content": "first"},
+                {"role": "assistant", "content": "reply"},
+                {"role": "user", "content": "second"},
+            ],
+        },
+    ).encode()
+
+    assert _extract_request_prompt(body) == "second"
+
+
+def test_fastapi_guard_request_prompt_rejects_invalid_json_shapes() -> None:
+    import json
+
+    from director_ai.integrations.fastapi_guard import _extract_request_prompt
+
+    assert _extract_request_prompt(b"not-json") == ""
+    assert _extract_request_prompt(json.dumps(["not", "object"]).encode()) == ""
+    assert _extract_request_prompt(json.dumps({"unknown": "not-list"}).encode()) == ""
+
+
+def test_fastapi_guard_extracts_response_from_openai_choice_or_standard_keys() -> None:
+    import json
+
+    from director_ai.integrations.fastapi_guard import _extract_response_text
+
+    openai_body = json.dumps(
+        {"choices": [{"message": {"content": "assistant text"}}]},
+    ).encode()
+    plain_body = json.dumps({"response": "plain response"}).encode()
+
+    assert _extract_response_text(openai_body) == "assistant text"
+    assert _extract_response_text(plain_body) == "plain response"
+
+
+def test_fastapi_guard_response_text_rejects_invalid_json_shapes() -> None:
+    import json
+
+    from director_ai.integrations.fastapi_guard import _extract_response_text
+
+    assert _extract_response_text(b"not-json") == ""
+    assert _extract_response_text(json.dumps(["not", "object"]).encode()) == ""
+    assert _extract_response_text(json.dumps({"choices": []}).encode()) == ""
+    assert _extract_response_text(
+        json.dumps({"choices": [{"message": {"content": 42}}]}).encode(),
+    ) == ""

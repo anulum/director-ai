@@ -447,3 +447,123 @@ class TestLocalJudgeFallbackPaths:
 
     def test_llm_judge_check_routes_local_fallback(self):
         assert self._scorer()._llm_judge_check("p", "r", 0.37) == 0.37
+
+
+class TestScorerClaimSupportIntegration:
+    """CoherenceScorer summarization contract for claim-support blending."""
+
+    @staticmethod
+    def _scorer_with_nli_claim_support(support: float, layer_a_divergence: float):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(
+            threshold=0.15,
+            use_nli=True,
+            w_logic=0.0,
+            w_fact=1.0,
+        )
+        scorer._use_prompt_as_premise = True
+        scorer._summarization_nli_baseline = 0.20
+        scorer._claim_coverage_enabled = True
+        scorer._claim_coverage_alpha = 0.4
+        scorer._claim_support_threshold = 0.6
+        scorer._minicheck_nli = None
+        scorer._detect_task_type = lambda _prompt, _response="": "summarization"
+
+        mock_nli = MagicMock()
+        mock_nli.model_available = True
+        mock_nli._score_chunked_with_counts.return_value = (
+            layer_a_divergence,
+            [layer_a_divergence],
+            1,
+            1,
+        )
+        mock_nli.score_chunked.return_value = (layer_a_divergence, [])
+
+        from director_ai.core.types import ClaimAttribution
+
+        claims = [f"Claim {idx}." for idx in range(5)]
+        supported_count = int(support * len(claims))
+        divergences = [0.1] * supported_count + [0.8] * (
+            len(claims) - supported_count
+        )
+        attributions = [
+            ClaimAttribution(
+                claim=claim,
+                claim_index=idx,
+                source_sentence="source",
+                source_index=0,
+                divergence=divergence,
+                supported=divergence < 0.6,
+            )
+            for idx, (claim, divergence) in enumerate(
+                zip(claims, divergences, strict=False),
+            )
+        ]
+        mock_nli.score_claim_coverage.return_value = (support, divergences, claims)
+        mock_nli.score_claim_coverage_with_attribution.return_value = (
+            support,
+            divergences,
+            claims,
+            attributions,
+        )
+        scorer._nli = mock_nli
+        return scorer
+
+    def test_claim_support_blends_with_summarization_divergence(self):
+        import pytest
+
+        scorer = self._scorer_with_nli_claim_support(
+            support=0.8,
+            layer_a_divergence=0.3,
+        )
+
+        divergence, _evidence = scorer._summarization_factual_divergence(
+            "source document",
+            "summary",
+        )
+
+        expected_layer_a = max(0.0, (0.3 - 0.20) / (1.0 - 0.20))
+        expected = 0.4 * (1.0 - 0.8) + 0.6 * expected_layer_a
+        assert divergence == pytest.approx(expected)
+
+    def test_disabling_claim_support_uses_summarization_divergence_only(self):
+        import pytest
+
+        scorer = self._scorer_with_nli_claim_support(
+            support=0.5,
+            layer_a_divergence=0.4,
+        )
+        scorer._claim_coverage_enabled = False
+
+        divergence, evidence = scorer._summarization_factual_divergence(
+            "source document",
+            "summary",
+        )
+
+        expected_layer_a = max(0.0, (0.4 - 0.20) / (1.0 - 0.20))
+        assert divergence == pytest.approx(expected_layer_a)
+        assert evidence.claim_coverage is None
+
+    def test_claim_support_evidence_preserves_claim_level_attribution(self):
+        import pytest
+
+        scorer = self._scorer_with_nli_claim_support(
+            support=0.6,
+            layer_a_divergence=0.25,
+        )
+
+        _divergence, evidence = scorer._summarization_factual_divergence(
+            "source document",
+            "summary",
+        )
+
+        assert evidence.claim_coverage == pytest.approx(0.6)
+        assert evidence.per_claim_divergences == [0.1, 0.1, 0.1, 0.8, 0.8]
+        assert evidence.claims == [
+            "Claim 0.",
+            "Claim 1.",
+            "Claim 2.",
+            "Claim 3.",
+            "Claim 4.",
+        ]

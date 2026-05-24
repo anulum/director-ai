@@ -247,7 +247,7 @@ def _embed_sentences(sentences: list[str]):
     try:
         model = _sentence_transformer_model()
         return model.encode(sentences, show_progress_bar=False)
-    except ImportError:
+    except Exception:
         return None
 
 
@@ -255,4 +255,11 @@ def _embed_sentences(sentences: list[str]):
 def _sentence_transformer_model():
     from sentence_transformers import SentenceTransformer
 
-    return SentenceTransformer("all-MiniLM-L6-v2")
+    try:
+        return SentenceTransformer("all-MiniLM-L6-v2", device="cpu")
+    except TypeError:
+        model = SentenceTransformer("all-MiniLM-L6-v2")
+        to_cpu = getattr(model, "to", None)
+        if callable(to_cpu):
+            to_cpu("cpu")
+        return model

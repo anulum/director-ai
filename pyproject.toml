@@ -327,7 +327,7 @@ ignore = ["E501"]
 # before the real imports so the whole suite does not fail when
 # the [grpc] / protobuf extras are not installed on a CI runner.
 "tests/test_grpc_scoring.py" = ["E402"]
-"tests/test_proto_roundtrip.py" = ["E402"]
+"tests/test_proto_serialization.py" = ["E402"]
 "tests/conftest.py" = ["E402"]
 
 [tool.pytest.ini_options]

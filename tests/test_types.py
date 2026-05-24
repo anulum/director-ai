@@ -108,3 +108,51 @@ class TestReviewResult:
         )
         assert rr.output == "ok"
         assert rr.fallback_used is False
+
+
+def test_coherence_score_exposes_claim_provenance_from_evidence() -> None:
+    from director_ai.core.types import (
+        ClaimAttribution,
+        CoherenceScore,
+        EvidenceChunk,
+        ScoringEvidence,
+    )
+
+    evidence = ScoringEvidence(
+        chunks=[EvidenceChunk(text="source sentence", distance=0.1)],
+        nli_premise="premise",
+        nli_hypothesis="hypothesis",
+        nli_score=0.9,
+        claims=["Supported claim.", "Unsupported claim."],
+        attributions=[
+            ClaimAttribution(
+                claim="Supported claim.",
+                claim_index=0,
+                source_sentence="source sentence",
+                source_index=0,
+                divergence=0.1,
+                supported=True,
+            ),
+            ClaimAttribution(
+                claim="Unsupported claim.",
+                claim_index=1,
+                source_sentence="different sentence",
+                source_index=1,
+                divergence=0.8,
+                supported=False,
+            ),
+        ],
+        claim_coverage=0.5,
+    )
+    score = CoherenceScore(
+        score=0.6,
+        approved=True,
+        h_logical=0.2,
+        h_factual=0.3,
+        evidence=evidence,
+    )
+
+    assert score.claims == ["Supported claim.", "Unsupported claim."]
+    assert score.claim_coverage == 0.5
+    assert [item.claim for item in score.unsupported_claims] == ["Unsupported claim."]
+    assert [item["supported"] for item in score.claim_provenance()] == [True, False]

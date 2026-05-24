@@ -276,3 +276,66 @@ class TestExports:
         assert callable(benchmark_model_candidates)
         assert RegressionReport is not None
         assert ModelBenchmarkReport is not None
+
+
+class TestBenchmarkBoundaryDecisions:
+    """Fine-tune benchmark gates preserve deployment threshold boundaries."""
+
+    @patch("director_ai.core.finetune_benchmark._evaluate_model")
+    def test_deploy_threshold_boundary(self, mock_eval, tmp_path):
+        general = _make_benchmark_file(tmp_path, "general-boundary.jsonl")
+
+        mock_eval.return_value = {"balanced_accuracy": 0.729, "f1": 0.75}
+        deploy = benchmark_finetuned_model(
+            "/fake/model",
+            general_path=general,
+            baseline_accuracy=0.758,
+        )
+
+        mock_eval.return_value = {"balanced_accuracy": 0.727, "f1": 0.75}
+        domain_only = benchmark_finetuned_model(
+            "/fake/model",
+            general_path=general,
+            baseline_accuracy=0.758,
+        )
+
+        assert deploy.recommendation == "deploy"
+        assert domain_only.recommendation == "deploy_domain_only"
+
+    @patch("director_ai.core.finetune_benchmark._evaluate_model")
+    def test_reject_threshold_boundary(self, mock_eval, tmp_path):
+        general = _make_benchmark_file(tmp_path, "general-reject-boundary.jsonl")
+
+        mock_eval.return_value = {"balanced_accuracy": 0.758 - 0.08, "f1": 0.75}
+        domain_only = benchmark_finetuned_model(
+            "/fake/model",
+            general_path=general,
+            baseline_accuracy=0.758,
+        )
+
+        mock_eval.return_value = {"balanced_accuracy": 0.758 - 0.0801, "f1": 0.75}
+        reject = benchmark_finetuned_model(
+            "/fake/model",
+            general_path=general,
+            baseline_accuracy=0.758,
+        )
+
+        assert domain_only.recommendation == "deploy_domain_only"
+        assert reject.recommendation == "reject"
+        assert reject.regression_acceptable is False
+
+    def test_candidate_sweep_records_model_errors_without_aborting(self, tmp_path):
+        report = benchmark_model_candidates(
+            {"org/custom-model": tmp_path / "custom-model"},
+            allow_experimental=False,
+            batch_size=8,
+        )
+
+        assert report.best_model_alias == ""
+        assert len(report.results) == 1
+        result = report.results[0]
+        assert result.requested_model == "org/custom-model"
+        assert result.status == "error"
+        assert result.recommendation == "reject"
+        assert result.recommended_batch_size == 8
+        assert "stable fine-tune registry" in result.error

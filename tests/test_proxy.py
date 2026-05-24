@@ -160,3 +160,72 @@ async def test_proxy_warn_mode():
     # Warn mode always forwards
     assert resp.status_code == 200
     assert "x-director-score" in resp.headers
+
+
+def test_proxy_prompt_extraction_prefers_most_recent_user_text_block() -> None:
+    from director_ai.proxy import _extract_prompt
+
+    messages = [
+        {"role": "user", "content": "first"},
+        {"role": "assistant", "content": "reply"},
+        {
+            "role": "user",
+            "content": [
+                {"type": "image_url", "url": "ignored"},
+                {"type": "text", "text": "caption"},
+            ],
+        },
+    ]
+
+    assert _extract_prompt(messages) == "caption"
+
+
+def test_proxy_prompt_extraction_handles_non_text_content_safely() -> None:
+    from director_ai.proxy import _extract_prompt
+
+    assert _extract_prompt([{"role": "system", "content": "sys prompt"}]) == ""
+    assert _extract_prompt([]) == ""
+    assert _extract_prompt([{"role": "user", "content": 42}]) == "42"
+
+
+def test_proxy_forwards_authorization_header_only() -> None:
+    from director_ai.proxy import _forward_headers
+
+    class RequestWithAuthorization:
+        class headers:
+            @staticmethod
+            def get(key: str):
+                return "Bearer sk-test" if key == "authorization" else None
+
+    class RequestWithoutAuthorization:
+        class headers:
+            @staticmethod
+            def get(_key: str):
+                return None
+
+    assert _forward_headers(RequestWithAuthorization()) == {
+        "Authorization": "Bearer sk-test",
+    }
+    assert _forward_headers(RequestWithoutAuthorization()) == {}
+
+
+def test_proxy_loads_key_value_facts_and_skips_comments(tmp_path) -> None:
+    from director_ai.core import GroundTruthStore
+    from director_ai.proxy import _load_facts
+
+    facts = tmp_path / "facts.txt"
+    facts.write_text("# comment\n\nsky: blue\nocean: salty\n", encoding="utf-8")
+    store = GroundTruthStore()
+
+    _load_facts(store, str(facts))
+
+    assert store.facts["sky"] == "blue"
+    assert store.facts["ocean"] == "salty"
+
+
+def test_proxy_missing_facts_file_fails_explicitly(tmp_path) -> None:
+    from director_ai.core import GroundTruthStore
+    from director_ai.proxy import _load_facts
+
+    with pytest.raises(FileNotFoundError):
+        _load_facts(GroundTruthStore(), str(tmp_path / "missing.txt"))

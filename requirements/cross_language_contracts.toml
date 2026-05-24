@@ -17,7 +17,7 @@ implementation = "src/director_ai/proto/converters.py"
 generated = "src/director_ai/proto/director/v1/director_pb2.py"
 tests = [
   "tests/test_cross_language_contracts.py",
-  "tests/test_proto_roundtrip.py",
+  "tests/test_proto_serialization.py",
 ]
 
 [[boundaries]]
@@ -42,7 +42,7 @@ tests = [
 
 [[gates]]
 id = "python-contracts"
-command = "pytest tests/test_cross_language_contracts.py tests/test_proto_roundtrip.py"
+command = "pytest tests/test_cross_language_contracts.py tests/test_proto_serialization.py"
 
 [[gates]]
 id = "go-contracts"

@@ -833,3 +833,48 @@ class TestBackendImportErrors:
                     else {"url": "http://localhost:9200"}
                 )
                 getattr(vector_store, cls_name)(**kwargs)
+
+
+def test_sentence_transformer_delete_keeps_documents_and_embeddings_aligned():
+    import threading
+
+    import numpy as np
+
+    from director_ai.core import vector_store
+
+    backend = vector_store.SentenceTransformerBackend.__new__(
+        vector_store.SentenceTransformerBackend,
+    )
+    backend._model = object()
+    backend._docs = [
+        {"id": "d1", "text": "alpha", "metadata": {}},
+        {"id": "d2", "text": "beta", "metadata": {}},
+    ]
+    backend._embeddings = [
+        np.asarray([1.0, 0.0], dtype=np.float32),
+        np.asarray([0.0, 1.0], dtype=np.float32),
+    ]
+    backend._lock = threading.Lock()
+
+    removed = backend.delete(["d1", "missing"])
+
+    assert removed == 1
+    assert [doc["id"] for doc in backend._docs] == ["d2"]
+    assert len(backend._embeddings) == 1
+    assert np.array_equal(backend._embeddings[0], np.asarray([0.0, 1.0]))
+
+
+def test_chroma_delete_delegates_ids_and_reports_removed_count():
+    from unittest.mock import MagicMock
+
+    from director_ai.core import vector_store
+
+    collection = MagicMock()
+    collection.count.side_effect = [3, 1]
+    backend = vector_store.ChromaBackend.__new__(vector_store.ChromaBackend)
+    backend._collection = collection
+
+    removed = backend.delete(["d1", "d2"])
+
+    assert removed == 2
+    collection.delete.assert_called_once_with(ids=["d1", "d2"])

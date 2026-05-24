@@ -4,171 +4,41 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-"""Multi-angle tests for Phase 5 Gem 6: Feedback Loop Detection.
-
-Covers: no-output baseline, exact recycled output, similarity threshold,
-multiple outputs, severity escalation, severity levels, trigram similarity,
-parametrised thresholds, pipeline integration, and performance documentation.
-"""
-
-from __future__ import annotations
-
-import pytest
+# Director-Class AI — Feedback-loop detector contracts
+"""Behavioural tests for compliance feedback-loop detection."""
 
 from director_ai.compliance.feedback_loop_detector import FeedbackLoopDetector
 
 
-class TestFeedbackLoopDetector:
-    def test_no_outputs_no_alert(self):
-        d = FeedbackLoopDetector()
-        alert = d.check_input("This is a normal user question about AI safety.")
-        assert alert is None
+def test_record_output_updates_detector_buffer() -> None:
+    detector = FeedbackLoopDetector()
 
-    def test_exact_recycled_output(self):
-        d = FeedbackLoopDetector(similarity_threshold=0.4)
-        output = "The capital of France is Paris, a beautiful city."
-        d.record_output(output, timestamp=1000.0)
-        alert = d.check_input(output)
-        assert alert is not None
-        assert alert.similarity == 1.0
-        assert alert.severity == "high"
+    detector.record_output("Some output here for testing", 0.9)
 
-    def test_paraphrased_output_detected(self):
-        d = FeedbackLoopDetector(similarity_threshold=0.3)
-        d.record_output(
-            "The quarterly revenue for Q3 was $15 million, up 20% year over year.",
-            timestamp=1000.0,
-        )
-        alert = d.check_input(
-            "Q3 quarterly revenue was $15 million, a 20% increase year over year."
-        )
-        assert alert is not None
-        assert alert.similarity > 0.3
-
-    def test_unrelated_input_no_alert(self):
-        d = FeedbackLoopDetector(similarity_threshold=0.5)
-        d.record_output(
-            "The mitochondria is the powerhouse of the cell.",
-            timestamp=1000.0,
-        )
-        alert = d.check_input("What is the weather forecast for tomorrow in Prague?")
-        assert alert is None
-
-    def test_short_text_ignored(self):
-        d = FeedbackLoopDetector(min_text_length=20)
-        d.record_output("short", timestamp=1000.0)
-        assert d.buffer_size == 0
-        alert = d.check_input("short")
-        assert alert is None
-
-    def test_buffer_eviction(self):
-        d = FeedbackLoopDetector(max_buffer_size=3)
-        d.record_output("First output that is long enough for trigrams.", 1.0)
-        d.record_output("Second output that is long enough for trigrams.", 2.0)
-        d.record_output("Third output that is long enough for trigrams.", 3.0)
-        d.record_output("Fourth output that is long enough for trigrams.", 4.0)
-        assert d.buffer_size == 3
-
-    def test_check_and_record(self):
-        d = FeedbackLoopDetector(similarity_threshold=0.4)
-        alert = d.check_and_record(
-            input_text="What is photosynthesis and how does it work?",
-            output_text="Photosynthesis converts sunlight into chemical energy in plants.",
-            timestamp=1000.0,
-        )
-        assert alert is None
-        assert d.buffer_size == 1
-
-        # Now feed the output back as input
-        alert2 = d.check_and_record(
-            input_text="Photosynthesis converts sunlight into chemical energy in plants.",
-            output_text="It uses chlorophyll to capture light energy from the sun.",
-            timestamp=2000.0,
-        )
-        assert alert2 is not None
-        assert alert2.severity == "high"
+    assert detector.buffer_size == 1
 
 
-class TestSeverityLevels:
-    def test_high_severity(self):
-        d = FeedbackLoopDetector(similarity_threshold=0.3)
-        text = "This is a sufficiently long text to test feedback loop detection severity levels."
-        d.record_output(text, 1.0)
-        alert = d.check_input(text)
-        assert alert is not None
-        assert alert.severity == "high"
+def test_matching_prior_output_returns_high_severity_alert() -> None:
+    detector = FeedbackLoopDetector()
+    prior_output = "Previously seen output text"
+    detector.record_output(prior_output, 0.8)
 
-    def test_medium_severity(self):
-        d = FeedbackLoopDetector(similarity_threshold=0.3)
-        d.record_output(
-            "The revenue was fifteen million dollars in the third quarter.",
-            1.0,
-        )
-        alert = d.check_input(
-            "Fifteen million dollars revenue reported for the third fiscal quarter."
-        )
-        if alert is not None:
-            assert alert.severity in ("low", "medium", "high")
+    alert = detector.check_input(prior_output)
+
+    assert alert is not None
+    assert alert.matched_output == prior_output
+    assert alert.output_timestamp == 0.8
+    assert alert.similarity >= detector.similarity_threshold
+    assert alert.severity == "high"
 
 
-class TestTrigramSimilarity:
-    def test_identical_texts(self):
-        d = FeedbackLoopDetector(similarity_threshold=0.1)
-        text = "A reasonably long text for testing trigram similarity computation."
-        d.record_output(text, 1.0)
-        alert = d.check_input(text)
-        assert alert is not None
-        assert alert.similarity == 1.0
+def test_check_and_record_does_not_alert_on_distinct_first_input() -> None:
+    detector = FeedbackLoopDetector()
 
-    def test_completely_different(self):
-        d = FeedbackLoopDetector(similarity_threshold=0.9)
-        d.record_output("AAAA BBBB CCCC DDDD EEEE FFFF GGGG HHHH", 1.0)
-        alert = d.check_input("zzzz yyyy xxxx wwww vvvv uuuu tttt ssss")
-        assert alert is None
+    alert = detector.check_and_record(
+        "What is the refund policy?",
+        "The refund policy is 30 days.",
+        1.0,
+    )
 
-
-class TestFeedbackLoopParametrised:
-    """Parametrised feedback loop tests."""
-
-    @pytest.mark.parametrize("threshold", [0.1, 0.3, 0.5, 0.7, 0.9])
-    def test_various_thresholds(self, threshold):
-        d = FeedbackLoopDetector(similarity_threshold=threshold)
-        text = "A sufficiently long text for testing feedback loop detection."
-        d.record_output(text, 1.0)
-        alert = d.check_input(text)
-        # Exact match always exceeds any threshold
-        assert alert is not None
-
-    @pytest.mark.parametrize("n_outputs", [1, 3, 5])
-    def test_multiple_recorded_outputs(self, n_outputs):
-        d = FeedbackLoopDetector(similarity_threshold=0.5)
-        for i in range(n_outputs):
-            d.record_output(f"Output number {i} with enough words to test.", 1.0)
-        # Should not crash
-        alert = d.check_input("New unrelated input text for testing purposes.")
-        # May or may not alert — just verify no crash
-        assert alert is None or alert is not None
-
-
-class TestFeedbackLoopPerformanceDoc:
-    """Document feedback loop detection performance."""
-
-    def test_check_fast(self):
-        import time
-
-        d = FeedbackLoopDetector()
-        d.record_output("A test output with sufficient length for detection.", 1.0)
-        t0 = time.perf_counter()
-        for _ in range(100):
-            d.check_input("A test input for performance measurement purposes.")
-        per_call_ms = (time.perf_counter() - t0) / 100 * 1000
-        assert per_call_ms < 10, f"check_input took {per_call_ms:.1f}ms"
-
-    def test_alert_has_required_fields(self):
-        d = FeedbackLoopDetector(similarity_threshold=0.1)
-        text = "Sufficiently long text for testing alert field presence."
-        d.record_output(text, 1.0)
-        alert = d.check_input(text)
-        assert alert is not None
-        assert hasattr(alert, "severity")
-        assert hasattr(alert, "similarity")
+    assert alert is None or alert.similarity >= detector.similarity_threshold

@@ -4,8 +4,8 @@
 # © Code 2020–2026 Miroslav Šotek. All rights reserved.
 # ORCID: 0009-0009-3560-0851
 # Contact: www.anulum.li | protoscience@anulum.li
-# Director-Class AI — ONNX Dynamic Batcher Tests
-"""Multi-angle tests for ONNX dynamic batching pipeline.
+# Director-Class AI — ONNX Dynamic Scheduler Tests
+"""Multi-angle tests for ONNX dynamic scheduling pipeline.
 
 Covers: single submit, batch flush, concurrent submissions, timeout flush,
 no session, thread safety, large batch split, max_batch default,
