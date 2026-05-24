@@ -107,7 +107,9 @@ class TestNLIClaimSupportScoring:
         def decompose_claims(text: str) -> list[str]:
             if not text:
                 return []
-            claims = [sentence.strip() for sentence in text.split(". ") if sentence.strip()]
+            claims = [
+                sentence.strip() for sentence in text.split(". ") if sentence.strip()
+            ]
             return [claim if claim.endswith(".") else claim + "." for claim in claims]
 
         scorer.score_chunked = score_chunked  # type: ignore[method-assign]
@@ -133,7 +135,9 @@ class TestNLIClaimSupportScoring:
         assert divergences == [0.1, 0.2, 0.9]
         assert support == pytest.approx(2.0 / 3.0)
 
-    def test_claim_support_threshold_boundary_is_strictly_less_than_threshold(self, monkeypatch):
+    def test_claim_support_threshold_boundary_is_strictly_less_than_threshold(
+        self, monkeypatch
+    ):
         monkeypatch.setattr("director_ai.core.scoring.nli._RUST_NLI", False)
         scorer = self._scorer_with_claim_scores({"Claim X.": 0.35})
 

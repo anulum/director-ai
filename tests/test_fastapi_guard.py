@@ -177,6 +177,9 @@ def test_fastapi_guard_response_text_rejects_invalid_json_shapes() -> None:
     assert _extract_response_text(b"not-json") == ""
     assert _extract_response_text(json.dumps(["not", "object"]).encode()) == ""
     assert _extract_response_text(json.dumps({"choices": []}).encode()) == ""
-    assert _extract_response_text(
-        json.dumps({"choices": [{"message": {"content": 42}}]}).encode(),
-    ) == ""
+    assert (
+        _extract_response_text(
+            json.dumps({"choices": [{"message": {"content": 42}}]}).encode(),
+        )
+        == ""
+    )

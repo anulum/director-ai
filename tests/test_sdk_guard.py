@@ -702,12 +702,18 @@ class TestBedrockAdapterContracts:
     def test_bedrock_prompt_ignores_non_user_or_non_text_content(self):
         from director_ai.integrations.sdk_guard import _extract_bedrock_prompt
 
-        assert _extract_bedrock_prompt(
-            [{"role": "assistant", "content": [{"text": "answer"}]}],
-        ) == ""
-        assert _extract_bedrock_prompt(
-            [{"role": "user", "content": [{"image": "data"}]}],
-        ) == ""
+        assert (
+            _extract_bedrock_prompt(
+                [{"role": "assistant", "content": [{"text": "answer"}]}],
+            )
+            == ""
+        )
+        assert (
+            _extract_bedrock_prompt(
+                [{"role": "user", "content": [{"image": "data"}]}],
+            )
+            == ""
+        )
 
     def test_bedrock_stream_delta_extracts_text_chunk(self):
         from director_ai.integrations.sdk_guard import _extract_bedrock_stream_delta
@@ -736,10 +742,13 @@ class TestGeminiAdapterPromptContracts:
         from director_ai.integrations.sdk_guard import _extract_gemini_prompt
 
         assert _extract_gemini_prompt(([{"parts": ["part text"]}],), {}) == "part text"
-        assert _extract_gemini_prompt(
-            ([{"parts": [{"text": "dict part"}]}],),
-            {},
-        ) == "dict part"
+        assert (
+            _extract_gemini_prompt(
+                ([{"parts": [{"text": "dict part"}]}],),
+                {},
+            )
+            == "dict part"
+        )
 
     def test_gemini_prompt_falls_back_to_string_conversion(self):
         from director_ai.integrations.sdk_guard import _extract_gemini_prompt

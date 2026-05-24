@@ -12,11 +12,8 @@ from __future__ import annotations
 import pytest
 
 backfire_kernel = pytest.importorskip("backfire_kernel")
-
-from backfire_kernel import (
-    rust_bidirectional_divergence,
-    rust_injection_verdict,
-)
+rust_bidirectional_divergence = backfire_kernel.rust_bidirectional_divergence
+rust_injection_verdict = backfire_kernel.rust_injection_verdict
 
 # ── rust_bidirectional_divergence ───────────────────────────────────
 

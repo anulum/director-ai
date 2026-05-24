@@ -191,17 +191,21 @@ def test_proxy_prompt_extraction_handles_non_text_content_safely() -> None:
 def test_proxy_forwards_authorization_header_only() -> None:
     from director_ai.proxy import _forward_headers
 
+    class AuthorizationHeaders:
+        @staticmethod
+        def get(key: str):
+            return "Bearer sk-test" if key == "authorization" else None
+
+    class EmptyHeaders:
+        @staticmethod
+        def get(_key: str):
+            return None
+
     class RequestWithAuthorization:
-        class headers:
-            @staticmethod
-            def get(key: str):
-                return "Bearer sk-test" if key == "authorization" else None
+        headers = AuthorizationHeaders
 
     class RequestWithoutAuthorization:
-        class headers:
-            @staticmethod
-            def get(_key: str):
-                return None
+        headers = EmptyHeaders
 
     assert _forward_headers(RequestWithAuthorization()) == {
         "Authorization": "Bearer sk-test",

@@ -484,9 +484,7 @@ class TestScorerClaimSupportIntegration:
 
         claims = [f"Claim {idx}." for idx in range(5)]
         supported_count = int(support * len(claims))
-        divergences = [0.1] * supported_count + [0.8] * (
-            len(claims) - supported_count
-        )
+        divergences = [0.1] * supported_count + [0.8] * (len(claims) - supported_count)
         attributions = [
             ClaimAttribution(
                 claim=claim,
