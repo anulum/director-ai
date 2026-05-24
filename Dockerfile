@@ -20,13 +20,24 @@ FROM python:3.11-slim@sha256:d6e4d224f70f9e0172a06a3a2eba2f768eb146811a349278b38
 
 WORKDIR /build
 
+ARG RUST_VERSION=1.95.0
+ENV PATH="/root/.cargo/bin:${PATH}"
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates curl build-essential \
+    && curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+        | sh -s -- -y --profile minimal --default-toolchain "${RUST_VERSION}" \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY pyproject.toml README.md LICENSE NOTICE.md ./
 COPY src/ src/
 COPY requirements/ requirements/
+COPY backfire-kernel/ backfire-kernel/
 
 ARG EXTRAS="server"
 ARG REQUIREMENTS="requirements/docker-server.txt"
 RUN pip install --no-cache-dir --require-hashes --no-deps --prefix=/install -r "$REQUIREMENTS" \
+    && pip install --no-cache-dir --no-deps --prefix=/install ./backfire-kernel/crates/backfire-ffi \
     && pip install --no-cache-dir --no-deps --prefix=/install .
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
