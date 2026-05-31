@@ -10,6 +10,8 @@
 from __future__ import annotations
 
 import json
+import sys
+import types
 from unittest.mock import patch
 
 import pytest
@@ -21,6 +23,7 @@ from director_ai.core.finetune_benchmark import (
     ModelBenchmarkReport,
     ModelBenchmarkResult,
     RegressionReport,
+    _evaluate_model,
     _load_benchmark_jsonl,
     benchmark_finetuned_model,
     benchmark_model_candidates,
@@ -82,6 +85,23 @@ class TestLoadBenchmarkJsonl:
         assert len(rows) == 1
         assert rows[0]["premise"] == "Source."
 
+    def test_rejects_directory_paths(self, tmp_path):
+        with pytest.raises(FileNotFoundError, match="not a file"):
+            _load_benchmark_jsonl(tmp_path)
+
+    def test_skips_invalid_json_and_accepts_response_field(self, tmp_path):
+        f = tmp_path / "mixed.jsonl"
+        f.write_text(
+            "{not-json}\n"
+            + json.dumps({"context": "Grounding.", "response": "Claim.", "label": "1"})
+            + "\n",
+            encoding="utf-8",
+        )
+
+        rows = _load_benchmark_jsonl(f)
+
+        assert rows == [{"premise": "Grounding.", "hypothesis": "Claim.", "label": 1}]
+
     def test_skips_incomplete(self, tmp_path):
         f = tmp_path / "partial.jsonl"
         f.write_text(
@@ -93,6 +113,171 @@ class TestLoadBenchmarkJsonl:
         )
         rows = _load_benchmark_jsonl(f)
         assert len(rows) == 1
+
+
+class _FakeTensor:
+    def __init__(self, value):
+        self.value = value
+
+    def to(self, device):
+        self.device = device
+        return self
+
+
+class _FakePredictions:
+    def __init__(self, values):
+        self._values = values
+
+    def cpu(self):
+        return self
+
+    def numpy(self):
+        return self
+
+    def flatten(self):
+        return self._values
+
+
+class _FakeNoGrad:
+    def __enter__(self):
+        return None
+
+    def __exit__(self, exc_type, exc, tb):
+        return False
+
+
+class _FakeTorch(types.SimpleNamespace):
+    def __init__(self, predictions):
+        super().__init__()
+        self.predictions = list(predictions)
+        self.devices = []
+
+    def device(self, name):
+        self.devices.append(name)
+        return name
+
+    def no_grad(self):
+        return _FakeNoGrad()
+
+    def argmax(self, logits, dim=-1):
+        return _FakePredictions(self.predictions.pop(0))
+
+
+class _FakeTokenizer:
+    sep_token = "[SEP]"
+    calls: list[list[str]] = []
+    revisions: list[str | None] = []
+
+    @classmethod
+    def from_pretrained(cls, model_source, revision=None):
+        cls.revisions.append(revision)
+        return cls()
+
+    def __call__(self, batch_texts, **kwargs):
+        self.calls.append(list(batch_texts))
+        assert kwargs["truncation"] is True
+        assert kwargs["padding"] is True
+        assert kwargs["max_length"] == 512
+        assert kwargs["return_tensors"] == "pt"
+        return {"input_ids": _FakeTensor(batch_texts)}
+
+
+class _FakeModel:
+    revisions: list[str | None] = []
+    moved_to: list[str] = []
+
+    @classmethod
+    def from_pretrained(cls, model_source, revision=None):
+        cls.revisions.append(revision)
+        return cls()
+
+    def eval(self):
+        self.evaluated = True
+
+    def to(self, device):
+        self.moved_to.append(str(device))
+        return self
+
+    def __call__(self, **encodings):
+        assert "input_ids" in encodings
+        return types.SimpleNamespace(logits=object())
+
+
+def _install_fake_inference_modules(monkeypatch, *, predictions):
+    _FakeTokenizer.calls = []
+    _FakeTokenizer.revisions = []
+    _FakeModel.revisions = []
+    _FakeModel.moved_to = []
+    fake_torch = _FakeTorch(predictions)
+    monkeypatch.setitem(sys.modules, "torch", fake_torch)
+    monkeypatch.setitem(
+        sys.modules,
+        "transformers",
+        types.SimpleNamespace(
+            AutoTokenizer=_FakeTokenizer,
+            AutoModelForSequenceClassification=_FakeModel,
+        ),
+    )
+    monkeypatch.setattr(
+        "director_ai.core.finetune_benchmark.resolve_model_revision",
+        lambda _model_source: "test-revision",
+    )
+    monkeypatch.setattr(
+        "director_ai.core._device.select_torch_device",
+        lambda: "cpu",
+    )
+    released = []
+    monkeypatch.setattr(
+        "director_ai.core._device.release_torch_cuda",
+        lambda: released.append(True),
+    )
+    return released
+
+
+class TestEvaluateModel:
+    def test_evaluate_model_batches_plain_nli_inputs_and_releases_device(self, monkeypatch):
+        released = _install_fake_inference_modules(
+            monkeypatch,
+            predictions=[[0, 1], [1]],
+        )
+        samples = [
+            {"premise": "A", "hypothesis": "A", "label": 0},
+            {"premise": "B", "hypothesis": "B", "label": 1},
+            {"premise": "C", "hypothesis": "C", "label": 1},
+        ]
+
+        metrics = _evaluate_model("plain-model", samples, batch_size=2)
+
+        assert metrics == {"balanced_accuracy": 1.0, "f1": 1.0}
+        assert _FakeTokenizer.revisions == ["test-revision"]
+        assert _FakeModel.revisions == ["test-revision"]
+        assert _FakeTokenizer.calls == [["A [SEP] A", "B [SEP] B"], ["C [SEP] C"]]
+        assert _FakeModel.moved_to == ["cpu", "cpu"]
+        assert released == [True]
+
+    def test_evaluate_model_uses_factcg_template(self, monkeypatch):
+        released = _install_fake_inference_modules(monkeypatch, predictions=[[1]])
+
+        metrics = _evaluate_model(
+            "factcg-model",
+            [{"premise": "Source.", "hypothesis": "Claim.", "label": 1}],
+            batch_size=4,
+        )
+
+        assert metrics["balanced_accuracy"] == 1.0
+        assert "Source." in _FakeTokenizer.calls[0][0]
+        assert '"Claim."' in _FakeTokenizer.calls[0][0]
+        assert "OPTIONS:" in _FakeTokenizer.calls[0][0]
+        assert released == [True]
+
+    def test_evaluate_model_reports_missing_finetune_extras(self, monkeypatch):
+        monkeypatch.setitem(sys.modules, "torch", None)
+
+        with pytest.raises(ImportError, match=r"director-ai\[finetune\]"):
+            _evaluate_model(
+                "plain-model",
+                [{"premise": "A", "hypothesis": "A", "label": 0}],
+            )
 
 
 class TestBenchmarkDecisionLogic:
@@ -261,6 +446,100 @@ class TestModelBenchmarkSweep:
     def test_sweep_requires_models(self):
         with pytest.raises(ValueError, match="at least one model"):
             benchmark_model_candidates({})
+
+    def test_report_without_deployable_candidates_has_no_winner(self):
+        report = ModelBenchmarkReport(
+            results=[
+                ModelBenchmarkResult(
+                    requested_model="bad",
+                    alias="bad",
+                    model_id="bad",
+                    model_path="/tmp/bad",
+                    status="error",
+                    template="unknown",
+                    label_count=0,
+                    baseline_accuracy=0.0,
+                    recommended_batch_size=0,
+                    error="failed",
+                )
+            ]
+        )
+
+        assert report.best_model_alias == ""
+        assert report.best_model_id == ""
+
+    def test_report_summary_includes_result_rows_and_errors(self):
+        report = ModelBenchmarkReport(
+            results=[
+                ModelBenchmarkResult(
+                    requested_model="candidate",
+                    alias="candidate",
+                    model_id="model-id",
+                    model_path="/tmp/model",
+                    status="stable",
+                    template="nli_pair",
+                    label_count=2,
+                    baseline_accuracy=0.75,
+                    recommended_batch_size=16,
+                    general_accuracy=0.8,
+                    domain_accuracy=0.9,
+                    recommendation="deploy",
+                ),
+                ModelBenchmarkResult(
+                    requested_model="broken",
+                    alias="broken",
+                    model_id="broken",
+                    model_path="/tmp/broken",
+                    status="error",
+                    template="unknown",
+                    label_count=0,
+                    baseline_accuracy=0.0,
+                    recommended_batch_size=0,
+                    error="load failed",
+                ),
+            ],
+            general_path="general.jsonl",
+            eval_path="domain.jsonl",
+        )
+
+        text = report.summary()
+
+        assert "General data: general.jsonl" in text
+        assert "Domain data: domain.jsonl" in text
+        assert "Best model: candidate" in text
+        assert "- broken: general=0.0%, domain=0.0%, rec=reject error=load failed" in text
+
+    def test_model_result_uses_requested_alias_for_custom_profiles(self):
+        from director_ai.core.training.model_registry import TrainingModelProfile
+
+        result = ModelBenchmarkResult.from_report(
+            requested_model="org/custom-nli",
+            profile=TrainingModelProfile(
+                alias="custom-experimental",
+                model_id="org/custom-nli",
+                template="nli_pair",
+                label_count=2,
+                status="experimental",
+                baseline_accuracy=0.7,
+                default_max_length=512,
+                recommended_batch_size=12,
+                recommended_learning_rate=1e-5,
+                hardware_profile="single-l4",
+            ),
+            model_path="/models/custom",
+            report=RegressionReport(
+                general_accuracy=0.78,
+                domain_accuracy=0.81,
+                recommendation="deploy",
+                details={"samples": 5},
+            ),
+            elapsed_seconds=1.25,
+        )
+
+        payload = result.to_dict()
+        assert result.alias == "org/custom-nli"
+        assert payload["details"] == {"samples": 5}
+        assert payload["elapsed_seconds"] == 1.25
 
 
 class TestExports:

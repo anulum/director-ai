@@ -449,6 +449,327 @@ class TestLocalJudgeFallbackPaths:
         assert self._scorer()._llm_judge_check("p", "r", 0.37) == 0.37
 
 
+class TestCoherenceScorerInternalContracts:
+    """Focused contracts for scorer-owned routing and compatibility surfaces."""
+
+    def test_judge_compatibility_properties_proxy_to_composed_judge(self):
+        model = object()
+        tokenizer = object()
+
+        scorer = CoherenceScorer(
+            use_nli=False,
+            llm_judge_enabled=True,
+            llm_judge_provider="local",
+        )
+        scorer._local_judge_model = model
+        scorer._local_judge_tokenizer = tokenizer
+        scorer._local_judge_device = "cpu"
+        scorer._judge.task_judge_thresholds["rag"] = 0.12
+
+        assert scorer._local_judge_model is model
+        assert scorer._local_judge_tokenizer is tokenizer
+        assert scorer._local_judge_device == "cpu"
+        assert scorer._judge_cache is scorer._judge._judge_cache
+        assert scorer._task_judge_thresholds["rag"] == 0.12
+
+    def test_close_shuts_down_lazy_parallel_pool(self):
+        scorer = CoherenceScorer(use_nli=False)
+
+        pool = scorer._get_parallel_pool()
+        assert scorer._parallel_pool is pool
+
+        scorer.close()
+
+        assert scorer._parallel_pool is None
+
+    def test_dialogue_aggregation_profile_only_applies_to_default_profile(
+        self,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(
+            "director_ai.core.scorer.detect_task_type",
+            lambda _prompt, _response="": "dialogue",
+        )
+        scorer = CoherenceScorer(use_nli=False)
+
+        assert scorer._resolve_agg_profile("User: hello\nAssistant: hi") == (
+            "min",
+            "mean",
+            "min",
+            "mean",
+        )
+
+        scorer._use_prompt_as_premise = True
+        assert scorer._resolve_agg_profile("User: hello\nAssistant: hi") == (
+            "max",
+            "max",
+            "max",
+            "max",
+        )
+
+    def test_prompt_premise_factual_divergence_uses_confidence_weighted_nli(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=True)
+        scorer._use_prompt_as_premise = True
+        scorer._confidence_weighted_agg = True
+        scorer._qa_premise_ratio = 0.7
+        scorer._detect_task_type = lambda _prompt, _response="": "qa"
+        scorer._should_escalate = lambda _score, task_type="default": False
+
+        nli = MagicMock()
+        nli.model_available = True
+        nli.score_chunked_confidence_weighted.return_value = (0.23, [0.23, 0.31])
+        scorer._nli = nli
+
+        assert scorer.calculate_factual_divergence("Question?", "Answer.") == 0.23
+        nli.score_chunked_confidence_weighted.assert_called_once_with(
+            "Question?",
+            "Answer.",
+            inner_agg="max",
+            premise_ratio=0.7,
+            overlap_ratio=0.5,
+        )
+
+    def test_prompt_premise_evidence_preserves_confidence_weighted_metadata(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=True)
+        scorer._use_prompt_as_premise = True
+        scorer._confidence_weighted_agg = True
+        scorer._detect_task_type = lambda _prompt, _response="": "summarization"
+        scorer._should_escalate = lambda _score, task_type="default": False
+
+        nli = MagicMock()
+        nli.model_available = True
+        nli.last_token_count = 19
+        nli.last_estimated_cost = 0.0019
+        nli.score_chunked_confidence_weighted.return_value = (0.18, [0.12, 0.18])
+        scorer._nli = nli
+
+        divergence, evidence = scorer.calculate_factual_divergence_with_evidence(
+            "Source document with enough context.",
+            "Faithful summary.",
+        )
+
+        assert divergence == 0.18
+        assert evidence is not None
+        assert evidence.nli_premise == "Source document with enough context."
+        assert evidence.chunk_scores == [0.12, 0.18]
+        assert evidence.premise_chunk_count == 1
+        assert evidence.hypothesis_chunk_count == 2
+        assert evidence.token_count == 19
+        assert evidence.estimated_cost_usd == 0.0019
+
+    def test_batch_requires_sequential_for_semantics_changing_modes(self):
+        scorer = CoherenceScorer(use_nli=True)
+        items = [("Question?", "Answer."), ("Another?", "Another answer.")]
+
+        scorer._adaptive_router = object()
+        assert scorer._review_batch_requires_sequential(items) is True
+        scorer._adaptive_router = None
+
+        scorer._retrieval_abstention_threshold = 0.2
+        assert scorer._review_batch_requires_sequential(items) is True
+        scorer._retrieval_abstention_threshold = 0.0
+
+        scorer._confidence_weighted_agg = True
+        assert scorer._review_batch_requires_sequential(items) is True
+        scorer._confidence_weighted_agg = False
+
+        scorer._fact_outer_agg = "mean"
+        assert scorer._review_batch_requires_sequential(items) is True
+        scorer._fact_outer_agg = "max"
+
+        assert (
+            scorer._review_batch_requires_sequential(
+                [("Question?", "Sentence. " * 12), ("Another?", "Short.")]
+            )
+            is True
+        )
+
+    def test_minicheck_claim_coverage_proxy_delegates_to_task_scoring(
+        self,
+        monkeypatch,
+    ):
+        calls = []
+
+        def fake_claim_coverage(mc_scorer, source, summary):
+            calls.append((mc_scorer, source, summary))
+            return 0.75, [0.1, 0.8], ["Claim one.", "Claim two."]
+
+        monkeypatch.setattr(
+            "director_ai.core.scoring._task_scoring.minicheck_claim_coverage",
+            fake_claim_coverage,
+        )
+        mc_scorer = object()
+
+        assert CoherenceScorer._minicheck_claim_coverage(
+            mc_scorer,
+            "source",
+            "summary",
+        ) == (0.75, [0.1, 0.8], ["Claim one.", "Claim two."])
+        assert calls == [(mc_scorer, "source", "summary")]
+
+    def test_get_minicheck_scorer_caches_success_and_failure(self, monkeypatch):
+        from unittest.mock import MagicMock
+
+        import director_ai.core.scoring.scorer as scorer_module
+
+        ready_mc = MagicMock()
+        ready_mc._ensure_minicheck.return_value = True
+        monkeypatch.setattr(scorer_module, "NLIScorer", lambda **_kwargs: ready_mc)
+
+        scorer = CoherenceScorer(use_nli=False)
+        assert scorer._get_minicheck_scorer() is ready_mc
+        assert scorer._get_minicheck_scorer() is ready_mc
+
+        unavailable_mc = MagicMock()
+        unavailable_mc._ensure_minicheck.return_value = False
+        monkeypatch.setattr(
+            scorer_module,
+            "NLIScorer",
+            lambda **_kwargs: unavailable_mc,
+        )
+        scorer = CoherenceScorer(use_nli=False)
+
+        assert scorer._get_minicheck_scorer() is None
+        assert scorer._get_minicheck_scorer() is None
+
+    def test_meta_classifier_loads_caches_and_fails_open_or_closed(
+        self,
+        monkeypatch,
+    ):
+        import types
+        from unittest.mock import patch
+
+        classifier = object()
+        fake_module = types.SimpleNamespace(
+            DatasetTypeClassifier=lambda _path: classifier,
+        )
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._meta_classifier_path = "classifier.pkl"
+        with patch.dict(
+            "sys.modules",
+            {"director_ai.core.scoring.meta_classifier": fake_module},
+        ):
+            assert scorer._get_meta_classifier() is classifier
+            assert scorer._get_meta_classifier() is classifier
+
+        class BrokenClassifier:
+            def __init__(self, _path):
+                raise RuntimeError("corrupt classifier")
+
+        broken_module = types.SimpleNamespace(DatasetTypeClassifier=BrokenClassifier)
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._meta_classifier_path = "broken.pkl"
+        with patch.dict(
+            "sys.modules",
+            {"director_ai.core.scoring.meta_classifier": broken_module},
+        ):
+            assert scorer._get_meta_classifier() is None
+        assert scorer._meta_classifier_path == ""
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._meta_classifier_path = "broken.pkl"
+        scorer._adaptive_threshold_fail_closed = True
+        with patch.dict(
+            "sys.modules",
+            {"director_ai.core.scoring.meta_classifier": broken_module},
+        ):
+            import pytest
+
+            with pytest.raises(RuntimeError, match="classifier unavailable"):
+                scorer._get_meta_classifier()
+
+    def test_dialogue_and_summarization_paths_require_model_backed_nli(self):
+        import pytest
+
+        scorer = CoherenceScorer(use_nli=False)
+        with pytest.raises(RuntimeError, match="dialogue factual divergence"):
+            scorer._dialogue_factual_divergence("User: hi", "Assistant: hi")
+        with pytest.raises(RuntimeError, match="summarization factual divergence"):
+            scorer._summarization_factual_divergence("source", "summary")
+
+    def test_python_heuristics_cover_factual_and_logical_edge_signals(
+        self,
+        monkeypatch,
+    ):
+        import pytest
+
+        import director_ai.core.scoring.scorer as scorer_module
+
+        monkeypatch.setattr(scorer_module, "rust_heuristic_factual_divergence", None)
+        monkeypatch.setattr(scorer_module, "rust_heuristic_logical_divergence", None)
+
+        assert CoherenceScorer._heuristic_factual("", "answer") == 0.5
+        assert CoherenceScorer._heuristic_logical("answer") == 0.5
+        assert CoherenceScorer._heuristic_logical(
+            "This is consistent with reality",
+        ) == pytest.approx(0.1)
+        assert CoherenceScorer._heuristic_logical("The opposite is true") == 0.9
+        assert CoherenceScorer._heuristic_logical(
+            "It depends on your perspective",
+        ) == 0.5
+
+        factual = CoherenceScorer._heuristic_factual(
+            "Paris is not in Germany.",
+            "Paris is in Germany and Mars approves.",
+        )
+        assert factual == pytest.approx(0.4)
+
+        logical = CoherenceScorer._heuristic_logical(
+            "Paris is in France.",
+            "Paris is in Europe.",
+        )
+        assert 0.0 <= logical <= 1.0
+
+    def test_logical_divergence_uses_model_backed_chunked_nli(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=True)
+        scorer._logic_inner_agg = "min"
+        scorer._logic_outer_agg = "mean"
+        nli = MagicMock()
+        nli.model_available = True
+        nli.score_chunked.return_value = (0.27, [0.27])
+        scorer._nli = nli
+
+        assert scorer.calculate_logical_divergence("prompt", "answer") == 0.27
+        nli.score_chunked.assert_called_once_with(
+            "prompt",
+            "answer",
+            inner_agg="min",
+            outer_agg="mean",
+            premise_ratio=0.4,
+        )
+
+    def test_compute_divergence_combines_current_component_scores(self):
+        import pytest
+
+        scorer = CoherenceScorer(use_nli=False, w_logic=0.25, w_fact=0.75)
+        scorer.calculate_logical_divergence = lambda _prompt, _action: 0.2
+        scorer.calculate_factual_divergence = lambda _prompt, _action: 0.6
+
+        assert scorer.compute_divergence("prompt", "action") == pytest.approx(0.5)
+
+    async def test_areview_delegates_to_sync_review_with_context(self):
+        from unittest.mock import MagicMock
+
+        scorer = CoherenceScorer(use_nli=False)
+        expected = (True, MagicMock())
+        scorer.review = MagicMock(return_value=expected)
+        session = object()
+
+        assert await scorer.areview("prompt", "action", session=session, tenant_id="t") == expected
+        scorer.review.assert_called_once_with(
+            "prompt",
+            "action",
+            session=session,
+            tenant_id="t",
+        )
+
+
 class TestScorerClaimSupportIntegration:
     """CoherenceScorer summarization contract for claim-support blending."""
 
