@@ -9,7 +9,7 @@
     "python_model_classes": 702,
     "python_model_source_modules": 311,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 382
+    "test_files": 386
   },
   "documentation": {
     "public_pages": [
@@ -3911,6 +3911,7 @@
       "tests/test_kernel.py",
       "tests/test_kernel_validation.py",
       "tests/test_knowledge.py",
+      "tests/test_knowledge_api.py",
       "tests/test_knowledge_edge_cases.py",
       "tests/test_knowledge_graph.py",
       "tests/test_knowledge_write_security.py",
@@ -3957,6 +3958,7 @@
       "tests/test_multimodal_guard.py",
       "tests/test_neuro_symbolic_verifier.py",
       "tests/test_new_integrations.py",
+      "tests/test_nli_backend_contracts.py",
       "tests/test_nli_integration.py",
       "tests/test_nli_minicheck.py",
       "tests/test_nli_scorer.py",
@@ -4051,7 +4053,9 @@
       "tests/test_server_audit.py",
       "tests/test_server_auth.py",
       "tests/test_server_compliance.py",
+      "tests/test_server_contracts.py",
       "tests/test_server_feedback.py",
+      "tests/test_server_helpers.py",
       "tests/test_server_tenant.py",
       "tests/test_server_ws_mux.py",
       "tests/test_session.py",
