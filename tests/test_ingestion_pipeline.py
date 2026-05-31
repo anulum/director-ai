@@ -9,7 +9,10 @@
 
 from __future__ import annotations
 
+import pytest
+
 from director_ai.core.ingestion import DocumentIngestionPipeline, IngestionConfig
+from director_ai.core.ingestion import pipeline as pipeline_module
 from director_ai.core.retrieval.vector_store import VectorGroundTruthStore
 
 
@@ -146,3 +149,147 @@ class TestDocumentIngestionPipeline:
             assert "overlap" in str(exc)
         else:
             raise AssertionError("invalid chunk configuration must fail")
+
+    def test_update_and_delete_reject_missing_document(self):
+        pipeline = DocumentIngestionPipeline(store=VectorGroundTruthStore())
+
+        with pytest.raises(KeyError, match="missing"):
+            pipeline.update_text("Replacement text.", doc_id="missing")
+
+        with pytest.raises(KeyError, match="missing"):
+            pipeline.delete("missing")
+
+    def test_update_rolls_back_staged_chunks_when_old_chunk_delete_fails(self):
+        store = _StoreWithBackend(_FailingDeleteBackend())
+        pipeline = DocumentIngestionPipeline(store=store)
+        original = pipeline.ingest_text(
+            "Original retention policy.",
+            doc_id="policy",
+            source="policy.md",
+        )
+
+        with pytest.raises(RuntimeError, match="delete failed"):
+            pipeline.update_text(
+                "Replacement retention policy.",
+                doc_id="policy",
+                source="policy-v2.md",
+            )
+
+        assert pipeline.registry.get("policy", "default").chunk_ids == original.chunk_ids
+        assert sorted(store.facts) == original.chunk_ids
+        assert any(":rev:" in chunk_id for chunk_id in store.backend.deleted)
+
+    def test_stage_chunks_cleans_previous_adds_when_backend_add_fails(self):
+        store = _StoreWithBackend(_FailingSecondAddBackend())
+        pipeline = DocumentIngestionPipeline(
+            store=store,
+            config=IngestionConfig(chunk_size=12, overlap=0),
+        )
+
+        with pytest.raises(RuntimeError, match="add failed"):
+            pipeline.ingest_text(
+                "Alpha text. Beta text. Gamma text.",
+                doc_id="policy",
+                source="policy.md",
+            )
+
+        assert store.facts == {}
+        assert store.backend.deleted == ["policy:chunk:0"]
+
+    def test_delete_accepts_backend_without_integer_delete_count(self):
+        store = _StoreWithBackend(_NonIntegerDeleteBackend())
+        pipeline = DocumentIngestionPipeline(store=store)
+        pipeline.ingest_text(
+            "Enterprise support policy.",
+            doc_id="support",
+            source="support.md",
+        )
+
+        deleted = pipeline.delete("support")
+
+        assert deleted.chunks_removed == 1
+        assert store.facts == {}
+
+    def test_delete_rejects_backend_count_mismatch(self):
+        store = _StoreWithBackend(_WrongCountDeleteBackend())
+        pipeline = DocumentIngestionPipeline(store=store)
+        pipeline.ingest_text(
+            "Enterprise support policy.",
+            doc_id="support",
+            source="support.md",
+        )
+
+        with pytest.raises(RuntimeError, match="reported 0 deletions"):
+            pipeline.delete("support")
+
+    def test_rejects_empty_text_no_chunks_and_invalid_identifiers(self, monkeypatch):
+        pipeline = DocumentIngestionPipeline(store=VectorGroundTruthStore())
+
+        with pytest.raises(ValueError, match="text must be a non-empty string"):
+            pipeline.ingest_text(" ", doc_id="empty")
+
+        monkeypatch.setattr(pipeline_module, "split", lambda text, config: [])
+        with pytest.raises(ValueError, match="produced no chunks"):
+            pipeline.ingest_text("Valid text.", doc_id="no-chunks")
+
+        with pytest.raises(ValueError, match="path separators"):
+            pipeline.ingest_text("Valid text.", doc_id="../escape")
+
+        with pytest.raises(ValueError, match="tenant_id must be a string"):
+            pipeline.ingest_text("Valid text.", doc_id="tenant", tenant_id=42)
+
+        with pytest.raises(ValueError, match="source must be a non-empty string"):
+            pipeline.ingest_text("Valid text.", doc_id="source", source=" ")
+
+        with pytest.raises(ValueError, match="source contains control characters"):
+            pipeline.ingest_text("Valid text.", doc_id="control", source="bad\nsource")
+
+
+class _StoreWithBackend:
+    def __init__(self, backend) -> None:
+        self.backend = backend
+        self.facts: dict[str, str] = {}
+
+
+class _RecordingBackend:
+    def __init__(self) -> None:
+        self.docs: dict[str, tuple[str, dict]] = {}
+        self.deleted: list[str] = []
+
+    def add(self, *, doc_id: str, text: str, metadata: dict) -> None:
+        self.docs[doc_id] = (text, metadata)
+
+    def delete(self, doc_ids: list[str]):
+        self.deleted.extend(doc_ids)
+        for doc_id in doc_ids:
+            self.docs.pop(doc_id, None)
+        return len(doc_ids)
+
+
+class _FailingDeleteBackend(_RecordingBackend):
+    def delete(self, doc_ids: list[str]):
+        self.deleted.extend(doc_ids)
+        if any(":rev:" not in doc_id for doc_id in doc_ids):
+            raise RuntimeError("delete failed")
+        for doc_id in doc_ids:
+            self.docs.pop(doc_id, None)
+        return len(doc_ids)
+
+
+class _FailingSecondAddBackend(_RecordingBackend):
+    def add(self, *, doc_id: str, text: str, metadata: dict) -> None:
+        if self.docs:
+            raise RuntimeError("add failed")
+        super().add(doc_id=doc_id, text=text, metadata=metadata)
+
+
+class _NonIntegerDeleteBackend(_RecordingBackend):
+    def delete(self, doc_ids: list[str]):
+        super().delete(doc_ids)
+        return None
+
+
+class _WrongCountDeleteBackend(_RecordingBackend):
+    def delete(self, doc_ids: list[str]):
+        self.deleted.extend(doc_ids)
+        return 0
