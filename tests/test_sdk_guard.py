@@ -9,6 +9,7 @@
 
 from __future__ import annotations
 
+import inspect
 import logging
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -778,3 +779,691 @@ class TestCohereAdapterShapeContracts:
         client.chat.completions.create = MagicMock()
 
         assert not _has_cohere_shape(client)
+
+
+def _passing_score(*, injection_risk: float | None = None) -> CoherenceScore:
+    return CoherenceScore(
+        score=1.0,
+        approved=True,
+        h_logical=0.0,
+        h_factual=0.0,
+        injection_risk=injection_risk,
+    )
+
+
+def _failing_score(*, injection_risk: float | None = None) -> CoherenceScore:
+    return CoherenceScore(
+        score=0.0,
+        approved=False,
+        h_logical=1.0,
+        h_factual=1.0,
+        injection_risk=injection_risk,
+    )
+
+
+class _FakeScorer:
+    def __init__(self, *, approved: bool = True, async_review: bool = False):
+        self.approved = approved
+        self.async_review = async_review
+        self.calls: list[tuple[str, str]] = []
+
+    def review(self, prompt, response):
+        self.calls.append((prompt, response))
+        result = (
+            self.approved,
+            _passing_score() if self.approved else _failing_score(),
+        )
+        if self.async_review:
+
+            async def _result():
+                return result
+
+            return _result()
+        return result
+
+
+class _AsyncIterable:
+    def __init__(self, items):
+        self._items = list(items)
+
+    def __aiter__(self):
+        self._iter = iter(self._items)
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self._iter)
+        except StopIteration as exc:
+            raise StopAsyncIteration from exc
+
+
+class TestSdkGuardCoverageEdges:
+    def test_guard_rejects_bad_on_fail_and_shape_helpers(self):
+        from director_ai.integrations.sdk_guard import (
+            _has_anthropic_shape,
+            _has_mistral_shape,
+            _has_openai_shape,
+            _has_pydantic_ai_shape,
+        )
+
+        with pytest.raises(ValueError, match="on_fail"):
+            guard(_FakeUnknown(), on_fail="ignore")
+
+        assert not _has_openai_shape(SimpleNamespace())
+        assert not _has_openai_shape(SimpleNamespace(chat=SimpleNamespace()))
+        assert not _has_anthropic_shape(SimpleNamespace(chat=object()))
+        assert not _has_anthropic_shape(SimpleNamespace())
+        assert not _has_mistral_shape(SimpleNamespace(chat=SimpleNamespace()))
+        assert not _has_pydantic_ai_shape(SimpleNamespace(run_sync=lambda: None))
+
+    def test_prompt_and_text_extractors_cover_empty_and_object_paths(self):
+        from director_ai.integrations.sdk_guard import (
+            _anthropic_response_text,
+            _extract_anthropic_event_text,
+            _extract_prompt,
+            _mistral_response_text,
+            _openai_response_text,
+            _pydantic_ai_output_text,
+        )
+
+        assert _extract_prompt([{"role": "user", "content": [{"type": "image"}]}]) == (
+            "[{'type': 'image'}]"
+        )
+        assert _openai_response_text(SimpleNamespace(choices=[])) == ""
+        assert _openai_response_text(
+            SimpleNamespace(
+                choices=[SimpleNamespace(message=SimpleNamespace(content=123))]
+            )
+        ) == ""
+        assert _anthropic_response_text(SimpleNamespace(content=[])) == ""
+        assert _anthropic_response_text(
+            SimpleNamespace(content=[SimpleNamespace(text=123)])
+        ) == ""
+        assert _extract_anthropic_event_text(SimpleNamespace(text="direct")) == "direct"
+        assert _extract_anthropic_event_text(
+            SimpleNamespace(delta={"text": "delta"})
+        ) == "delta"
+        assert _extract_anthropic_event_text(SimpleNamespace(delta={})) is None
+        assert _mistral_response_text(SimpleNamespace(choices=[])) == ""
+        assert _mistral_response_text(
+            SimpleNamespace(
+                choices=[
+                    SimpleNamespace(
+                        message=SimpleNamespace(content=["a", {"text": "b"}, object()])
+                    )
+                ]
+            )
+        ) == "ab"
+        assert _mistral_response_text(
+            SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=3))])
+        ) == ""
+        assert _pydantic_ai_output_text(SimpleNamespace(output=b"hi\xff")) == "hi�"
+        assert _pydantic_ai_output_text(SimpleNamespace(output={"b": 1, "a": 2})) == (
+            '{"a": 2, "b": 1}'
+        )
+
+    def test_failure_and_injection_policies(self, caplog):
+        from director_ai.core.exceptions import InjectionDetectedError
+        from director_ai.integrations.sdk_guard import (
+            _check_injection,
+            _handle_injection_failure,
+        )
+
+        cs = _passing_score(injection_risk=0.9)
+        with pytest.raises(InjectionDetectedError):
+            _handle_injection_failure("raise", "q", "r", cs)
+        with caplog.at_level(logging.WARNING, logger="DirectorAI.guard"):
+            _handle_injection_failure("log", "q", "r", cs)
+        assert "Injection detected" in caplog.text
+        _handle_injection_failure("metadata", "q", "r", cs)
+        assert get_score() is cs
+        _check_injection("metadata", "q", "r", _passing_score(), None)
+        _check_injection("metadata", "q", "r", _passing_score(injection_risk=0.1), 0.7)
+
+    @pytest.mark.asyncio
+    async def test_sync_and_async_gate_coroutine_paths(self):
+        from director_ai.integrations.sdk_guard import _ascore_and_gate, _score_and_gate
+
+        sync_scorer = _FakeScorer(async_review=True)
+        cs = _score_and_gate(sync_scorer, "metadata", "q", "r")
+        assert isinstance(cs, CoherenceScore)
+        assert get_score() is cs
+        assert sync_scorer.calls == [("q", "r")]
+
+        async_scorer = _FakeScorer(async_review=True)
+        async_cs = await _ascore_and_gate(async_scorer, "metadata", "q", "r")
+        assert get_score() is async_cs
+
+        failing = _FakeScorer(approved=False)
+        with pytest.raises(HallucinationError):
+            await _ascore_and_gate(failing, "raise", "q", "bad")
+
+    @pytest.mark.asyncio
+    async def test_async_openai_and_anthropic_create_and_stream_paths(self):
+        from director_ai.integrations.sdk_guard import (
+            _AnthropicMessagesProxy,
+            _OpenAICompletionsProxy,
+        )
+
+        openai_response = SimpleNamespace(
+            choices=[SimpleNamespace(message=SimpleNamespace(content="answer"))]
+        )
+        openai_original = SimpleNamespace(create=AsyncMock(return_value=openai_response))
+        openai_proxy = _OpenAICompletionsProxy(openai_original, _FakeScorer(), "raise")
+        result = await openai_proxy.create(messages=[{"role": "user", "content": "q"}])
+        assert result is openai_response
+        assert inspect.iscoroutinefunction(openai_proxy.create)
+        assert openai_proxy._original is openai_original
+
+        stream_chunk = SimpleNamespace(
+            choices=[SimpleNamespace(delta=SimpleNamespace(content="tok"))]
+        )
+        openai_original.create = AsyncMock(
+            return_value=_AsyncIterable([stream_chunk, SimpleNamespace(choices=[])])
+        )
+        stream = await openai_proxy.create(
+            messages=[{"role": "user", "content": "q"}],
+            stream=True,
+        )
+        assert [chunk async for chunk in stream] == [
+            stream_chunk,
+            SimpleNamespace(choices=[]),
+        ]
+
+        anthropic_response = SimpleNamespace(content=[SimpleNamespace(text="answer")])
+        anthropic_original = SimpleNamespace(
+            create=AsyncMock(return_value=anthropic_response)
+        )
+        anthropic_proxy = _AnthropicMessagesProxy(
+            anthropic_original,
+            _FakeScorer(),
+            "raise",
+        )
+        result = await anthropic_proxy.create(messages=[{"role": "user", "content": "q"}])
+        assert result is anthropic_response
+
+        anthropic_original.create = AsyncMock(
+            return_value=_AsyncIterable(
+                [SimpleNamespace(text="tok"), SimpleNamespace(delta={})]
+            )
+        )
+        stream = await anthropic_proxy.create(
+            messages=[{"role": "user", "content": "q"}],
+            stream=True,
+        )
+        assert [event async for event in stream] == [
+            SimpleNamespace(text="tok"),
+            SimpleNamespace(delta={}),
+        ]
+
+    @pytest.mark.asyncio
+    async def test_async_stream_wrappers_cover_periodic_and_final_paths(self):
+        from director_ai.integrations.sdk_guard import (
+            STREAM_CHECK_INTERVAL,
+            _GuardedBedrockStream,
+            _GuardedCohereStream,
+            _GuardedGeminiStream,
+            _GuardedOpenAIStream,
+        )
+
+        openai_chunks = [
+            SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=str(i)))]
+            )
+            for i in range(STREAM_CHECK_INTERVAL)
+        ]
+        scorer = _FakeScorer()
+        assert [
+            chunk async for chunk in _GuardedOpenAIStream(
+                _AsyncIterable(openai_chunks),
+                scorer,
+                "raise",
+                "prompt",
+            )
+        ] == openai_chunks
+        assert scorer.calls[-1][1] == "".join(str(i) for i in range(STREAM_CHECK_INTERVAL))
+
+        bedrock_events = [
+            {"contentBlockDelta": {"delta": {"text": str(i)}}}
+            for i in range(STREAM_CHECK_INTERVAL)
+        ]
+        scorer = _FakeScorer()
+        assert [
+            event async for event in _GuardedBedrockStream(
+                {"stream": _AsyncIterable(bedrock_events)},
+                scorer,
+                "raise",
+                "prompt",
+            )
+        ] == bedrock_events
+        assert scorer.calls
+
+        gemini_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        scorer = _FakeScorer()
+        assert [
+            event async for event in _GuardedGeminiStream(
+                _AsyncIterable(gemini_events),
+                scorer,
+                "raise",
+                "prompt",
+            )
+        ] == gemini_events
+        assert scorer.calls
+
+        cohere_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        scorer = _FakeScorer()
+        assert [
+            event async for event in _GuardedCohereStream(
+                _AsyncIterable(cohere_events),
+                scorer,
+                "raise",
+                "prompt",
+            )
+        ] == cohere_events
+        assert scorer.calls
+
+    def test_bedrock_gemini_and_cohere_proxy_sync_paths(self):
+        from director_ai.integrations.sdk_guard import (
+            _BedrockProxy,
+            _CohereProxy,
+            _GeminiProxy,
+        )
+
+        bedrock_client = SimpleNamespace(
+            converse=MagicMock(
+                return_value={
+                    "output": {"message": {"content": [{"text": "answer"}]}}
+                }
+            ),
+            converse_stream=MagicMock(
+                return_value={
+                    "stream": [
+                        {"contentBlockDelta": {"delta": {"text": "a"}}},
+                        {"not_text": True},
+                    ]
+                }
+            ),
+            extra="bedrock-extra",
+        )
+        bedrock = _BedrockProxy(bedrock_client, _FakeScorer(), "raise")
+        assert bedrock.converse(messages=[{"role": "user", "content": "q"}])
+        assert list(bedrock.converse_stream(messages=[{"role": "user", "content": "q"}]))
+        assert bedrock.extra == "bedrock-extra"
+
+        gemini_client = SimpleNamespace(
+            generate_content=MagicMock(return_value=SimpleNamespace(text="answer")),
+            extra="gemini-extra",
+        )
+        gemini = _GeminiProxy(gemini_client, _FakeScorer(), "raise")
+        assert gemini.generate_content("prompt").text == "answer"
+        gemini_client.generate_content.return_value = [
+            SimpleNamespace(text="a"),
+            SimpleNamespace(text=""),
+        ]
+        assert list(gemini.generate_content("prompt", stream=True))
+        assert gemini.extra == "gemini-extra"
+
+        cohere_client = SimpleNamespace(
+            chat=MagicMock(return_value=SimpleNamespace(text="answer")),
+            chat_stream=MagicMock(
+                return_value=[SimpleNamespace(text="a"), SimpleNamespace(text="")]
+            ),
+            extra="cohere-extra",
+        )
+        cohere = _CohereProxy(cohere_client, _FakeScorer(), "raise")
+        assert cohere.chat(message="prompt").text == "answer"
+        assert list(cohere.chat_stream(message="prompt"))
+        assert cohere.extra == "cohere-extra"
+
+    def test_guard_selects_bedrock_gemini_and_cohere_shapes(self):
+        bedrock_client = SimpleNamespace(
+            converse=MagicMock(
+                return_value={
+                    "output": {"message": {"content": [{"text": "answer"}]}}
+                }
+            ),
+            converse_stream=MagicMock(return_value={"stream": []}),
+            invoke_model=MagicMock(),
+        )
+        guarded = guard(
+            bedrock_client,
+            facts={"a": "answer"},
+            threshold=0.0,
+            use_nli=False,
+        )
+        assert guarded.converse(messages=[{"role": "user", "content": "q"}])
+
+        gemini_client = SimpleNamespace(
+            generate_content=MagicMock(return_value=SimpleNamespace(text="answer"))
+        )
+        guarded = guard(
+            gemini_client,
+            facts={"a": "answer"},
+            threshold=0.0,
+            use_nli=False,
+        )
+        assert guarded.generate_content("q").text == "answer"
+
+        cohere_client = SimpleNamespace(
+            chat=MagicMock(return_value=SimpleNamespace(text="answer"))
+        )
+        guarded = guard(
+            cohere_client,
+            facts={"a": "answer"},
+            threshold=0.0,
+            use_nli=False,
+        )
+        assert guarded.chat(message="q").text == "answer"
+
+    def test_guard_selects_cohere_branch_without_facts(self, monkeypatch):
+        class _CohereClient:
+            extra = "cohere"
+
+            def chat(self, **kwargs):
+                return SimpleNamespace(text="answer")
+
+        class _Scorer:
+            def __init__(self, **kwargs):
+                pass
+
+            def review(self, prompt, response):
+                return True, _passing_score()
+
+        monkeypatch.setattr("director_ai.integrations.sdk_guard.CoherenceScorer", _Scorer)
+
+        guarded = guard(_CohereClient(), use_nli=False)
+
+        assert guarded.chat(message="prompt").text == "answer"
+        assert guarded.extra == "cohere"
+
+    def test_score_and_gate_runs_coroutine_when_no_loop_is_running(self):
+        from director_ai.integrations.sdk_guard import _score_and_gate
+
+        scorer = _FakeScorer(async_review=True)
+
+        result = _score_and_gate(scorer, "raise", "q", "r")
+
+        assert isinstance(result, CoherenceScore)
+        assert scorer.calls == [("q", "r")]
+
+    def test_check_injection_high_risk_metadata_path(self):
+        from director_ai.integrations.sdk_guard import _check_injection
+
+        cs = _passing_score(injection_risk=0.95)
+
+        _check_injection("metadata", "q", "r", cs, 0.7)
+
+        assert get_score() is cs
+
+    def test_proxy_getattr_delegates_for_openai_anthropic_mistral_and_pydantic(self):
+        from director_ai.integrations.sdk_guard import (
+            _AnthropicMessagesProxy,
+            _MistralChatProxy,
+            _OpenAICompletionsProxy,
+            _PydanticAIProxy,
+        )
+
+        scorer = _FakeScorer()
+        original = SimpleNamespace(create=MagicMock(), extra="openai")
+        assert _OpenAICompletionsProxy(original, scorer, "raise").extra == "openai"
+
+        original = SimpleNamespace(create=MagicMock(), extra="anthropic")
+        assert _AnthropicMessagesProxy(original, scorer, "raise").extra == "anthropic"
+
+        original = SimpleNamespace(complete=MagicMock(), extra="mistral")
+        assert _MistralChatProxy(original, scorer, "raise").extra == "mistral"
+
+        agent = SimpleNamespace(run_sync=MagicMock(), run=AsyncMock(), extra="agent")
+        assert _PydanticAIProxy(agent, scorer, "raise").extra == "agent"
+
+    def test_sync_stream_periodic_failures_and_empty_final_paths(self):
+        from director_ai.integrations.sdk_guard import (
+            STREAM_CHECK_INTERVAL,
+            _GuardedAnthropicStream,
+            _GuardedBedrockStream,
+            _GuardedCohereStream,
+            _GuardedGeminiStream,
+            _GuardedOpenAIStream,
+        )
+
+        openai_chunks = [
+            SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=str(i)))]
+            )
+            for i in range(STREAM_CHECK_INTERVAL)
+        ]
+        with pytest.raises(HallucinationError):
+            list(_GuardedOpenAIStream(openai_chunks, _FakeScorer(approved=False), "raise", "p"))
+        assert list(_GuardedOpenAIStream([SimpleNamespace(choices=[])], _FakeScorer(), "raise", "p"))
+
+        anthropic_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        with pytest.raises(HallucinationError):
+            list(
+                _GuardedAnthropicStream(
+                    anthropic_events,
+                    _FakeScorer(approved=False),
+                    "raise",
+                    "p",
+                )
+            )
+        assert list(_GuardedAnthropicStream([SimpleNamespace(delta={})], _FakeScorer(), "raise", "p"))
+
+        bedrock_events = [
+            {"contentBlockDelta": {"delta": {"text": str(i)}}}
+            for i in range(STREAM_CHECK_INTERVAL)
+        ]
+        with pytest.raises(HallucinationError):
+            list(
+                _GuardedBedrockStream(
+                    {"stream": bedrock_events},
+                    _FakeScorer(approved=False),
+                    "raise",
+                    "p",
+                )
+            )
+        assert list(_GuardedBedrockStream({"stream": [{}]}, _FakeScorer(), "raise", "p"))
+
+        gemini_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        with pytest.raises(HallucinationError):
+            list(
+                _GuardedGeminiStream(
+                    gemini_events,
+                    _FakeScorer(approved=False),
+                    "raise",
+                    "p",
+                )
+            )
+        assert list(_GuardedGeminiStream([SimpleNamespace(text="")], _FakeScorer(), "raise", "p"))
+
+        cohere_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        with pytest.raises(HallucinationError):
+            list(
+                _GuardedCohereStream(
+                    cohere_events,
+                    _FakeScorer(approved=False),
+                    "raise",
+                    "p",
+                )
+            )
+        assert list(_GuardedCohereStream([SimpleNamespace(text="")], _FakeScorer(), "raise", "p"))
+
+    def test_sync_stream_periodic_approved_and_final_paths(self):
+        from director_ai.integrations.sdk_guard import (
+            STREAM_CHECK_INTERVAL,
+            _GuardedAnthropicStream,
+            _GuardedBedrockStream,
+            _GuardedCohereStream,
+            _GuardedGeminiStream,
+            _GuardedOpenAIStream,
+        )
+
+        openai_chunks = [
+            SimpleNamespace(
+                choices=[SimpleNamespace(delta=SimpleNamespace(content=str(i)))]
+            )
+            for i in range(STREAM_CHECK_INTERVAL)
+        ]
+        scorer = _FakeScorer()
+        list(_GuardedOpenAIStream(openai_chunks, scorer, "raise", "p"))
+        assert scorer.calls
+
+        anthropic_events = [SimpleNamespace(text=str(i)) for i in range(2)]
+        scorer = _FakeScorer()
+        list(_GuardedAnthropicStream(anthropic_events, scorer, "raise", "p"))
+        assert scorer.calls[-1] == ("p", "01")
+
+        bedrock_events = [
+            {"contentBlockDelta": {"delta": {"text": str(i)}}}
+            for i in range(STREAM_CHECK_INTERVAL)
+        ]
+        scorer = _FakeScorer()
+        list(_GuardedBedrockStream({"stream": bedrock_events}, scorer, "raise", "p"))
+        assert scorer.calls
+
+        gemini_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        scorer = _FakeScorer()
+        list(_GuardedGeminiStream(gemini_events, scorer, "raise", "p"))
+        assert scorer.calls
+
+        cohere_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        scorer = _FakeScorer()
+        list(_GuardedCohereStream(cohere_events, scorer, "raise", "p"))
+        assert scorer.calls
+
+    @pytest.mark.asyncio
+    async def test_anthropic_sync_stream_and_async_periodic_paths(self):
+        import director_ai.integrations.sdk_guard as sdk_guard
+
+        assert sdk_guard._extract_anthropic_event_text(
+            SimpleNamespace(delta="bad")
+        ) is None
+
+        original = SimpleNamespace(
+            create=MagicMock(return_value=[SimpleNamespace(text="tok")])
+        )
+        proxy = sdk_guard._AnthropicMessagesProxy(original, _FakeScorer(), "raise")
+        assert list(
+            proxy.create(messages=[{"role": "user", "content": "q"}], stream=True)
+        )
+
+        scorer = _FakeScorer()
+        events = [
+            SimpleNamespace(text=str(i))
+            for i in range(sdk_guard.STREAM_CHECK_INTERVAL)
+        ]
+        assert [
+            event async for event in sdk_guard._GuardedAnthropicStream(
+                _AsyncIterable(events),
+                scorer,
+                "raise",
+                "p",
+            )
+        ] == events
+        assert scorer.calls
+
+    @pytest.mark.asyncio
+    async def test_async_stream_empty_final_paths(self):
+        from director_ai.integrations.sdk_guard import (
+            _GuardedAnthropicStream,
+            _GuardedBedrockStream,
+            _GuardedCohereStream,
+            _GuardedGeminiStream,
+            _GuardedOpenAIStream,
+        )
+
+        assert [
+            chunk async for chunk in _GuardedOpenAIStream(
+                _AsyncIterable([SimpleNamespace(choices=[])]),
+                _FakeScorer(),
+                "raise",
+                "p",
+            )
+        ]
+        assert [
+            event async for event in _GuardedAnthropicStream(
+                _AsyncIterable([SimpleNamespace(delta={})]),
+                _FakeScorer(),
+                "raise",
+                "p",
+            )
+        ]
+        assert [
+            event async for event in _GuardedBedrockStream(
+                {"stream": _AsyncIterable([{}])},
+                _FakeScorer(),
+                "raise",
+                "p",
+            )
+        ]
+        assert [
+            event async for event in _GuardedGeminiStream(
+                _AsyncIterable([SimpleNamespace(text="")]),
+                _FakeScorer(),
+                "raise",
+                "p",
+            )
+        ]
+        assert [
+            event async for event in _GuardedCohereStream(
+                _AsyncIterable([SimpleNamespace(text="")]),
+                _FakeScorer(),
+                "raise",
+                "p",
+            )
+        ]
+
+    def test_pydantic_prompt_and_output_fallbacks(self):
+        from director_ai.integrations.sdk_guard import (
+            _extract_pydantic_ai_prompt,
+            _pydantic_ai_content_text,
+            _pydantic_ai_output_text,
+        )
+
+        assert _extract_pydantic_ai_prompt((), {}) == ""
+        assert _extract_pydantic_ai_prompt((["a", SimpleNamespace(content="b")],), {}) == "a b"
+        assert _extract_pydantic_ai_prompt((), {"user_prompt": 123}) == "123"
+        assert _pydantic_ai_content_text(SimpleNamespace()) == "namespace()"
+        assert _pydantic_ai_output_text(SimpleNamespace(output=object())).startswith(
+            "<object object"
+        )
+
+    def test_mistral_shape_rejects_openai_compatible_client_first(self):
+        from director_ai.integrations.sdk_guard import _has_mistral_shape
+
+        client = SimpleNamespace(
+            chat=SimpleNamespace(
+                completions=SimpleNamespace(create=MagicMock()),
+                complete=MagicMock(),
+            )
+        )
+
+        assert not _has_mistral_shape(client)
+
+    def test_remaining_prompt_extraction_branch_edges(self):
+        from director_ai.integrations.sdk_guard import (
+            _extract_gemini_prompt,
+            _extract_prompt,
+        )
+
+        assert _extract_prompt([{"role": "user", "content": []}]) == "[]"
+        assert _extract_prompt([{"role": "user", "content": {"kind": "tool"}}]) == (
+            "{'kind': 'tool'}"
+        )
+        fallback_contents = [{"parts": [{"no_text": "x"}, 3]}]
+        assert _extract_gemini_prompt((fallback_contents,), {}) == str(
+            fallback_contents
+        )
+        object_contents = [object()]
+        assert _extract_gemini_prompt((object_contents,), {}) == str(object_contents)
+
+    def test_anthropic_sync_periodic_approved_branch(self):
+        from director_ai.integrations.sdk_guard import (
+            STREAM_CHECK_INTERVAL,
+            _GuardedAnthropicStream,
+        )
+
+        scorer = _FakeScorer()
+        events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+
+        assert list(_GuardedAnthropicStream(events, scorer, "raise", "p")) == events
+        assert scorer.calls

@@ -1086,10 +1086,6 @@ class NLIScorer:
                 current_tokens += st
                 j += 1
 
-            if not current:
-                current.append(sentences[i])
-                j = i + 1
-
             chunks.append(" ".join(current))
             # Stride: advance by (1 - overlap_ratio) * num sentences in chunk
             stride = max(1, int(len(current) * (1.0 - overlap_ratio)))

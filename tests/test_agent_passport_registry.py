@@ -271,3 +271,132 @@ def test_registry_rust_mean_type_error_is_mandatory_failure(monkeypatch) -> None
     )
     with pytest.raises(TypeError, match="ffi signature mismatch"):
         registry.export_agent(passport.agent_id)
+
+
+def test_history_entry_rejects_empty_event_and_decision() -> None:
+    with pytest.raises(ValueError, match="event_ref"):
+        registry_mod.CoherenceHistoryEntry(
+            event_ref=" ",
+            coherence_score=0.5,
+            decision="allow",
+        )
+    with pytest.raises(ValueError, match="decision"):
+        registry_mod.CoherenceHistoryEntry(
+            event_ref="event://score",
+            coherence_score=0.5,
+            decision=" ",
+        )
+    with pytest.raises(ValueError, match="coherence_score"):
+        registry_mod.CoherenceHistoryEntry(
+            event_ref="event://score",
+            coherence_score=float("nan"),
+            decision="allow",
+        )
+
+
+def test_registry_rejects_bad_history_limit() -> None:
+    with pytest.raises(ValueError, match="history_limit"):
+        AgentPassportRegistry(
+            signer=PassportSigner(
+                active_key=b"p" * 32,
+                active_key_id="k1",
+                default_ttl_seconds=60.0,
+                clock=_ManualClock(),
+            ),
+            history_limit=0,
+        )
+
+
+def test_record_coherence_rejects_blank_agent_id_and_export_rejects_blank_id() -> None:
+    registry = _registry()
+
+    with pytest.raises(ValueError, match="agent_id"):
+        registry.record_coherence(
+            agent_id=" ",
+            event_ref="event://score",
+            coherence_score=0.5,
+            decision="allow",
+        )
+    with pytest.raises(ValueError, match="agent_id"):
+        registry.export_agent(" ")
+
+
+def test_history_limit_keeps_latest_event_summaries(monkeypatch) -> None:
+    monkeypatch.setattr(registry_mod, "_RUST_AGENT_IDENTITY", False)
+    registry = AgentPassportRegistry(
+        signer=PassportSigner(
+            active_key=b"p" * 32,
+            active_key_id="k1",
+            default_ttl_seconds=60.0,
+            clock=_ManualClock(),
+        ),
+        history_limit=2,
+    )
+    passport = registry.issue_passport(
+        agent_id="tenant-a/worker/tool",
+        role="worker",
+        tenant_id="tenant-a",
+        capabilities=("tool:search",),
+    )
+
+    for index, score in enumerate((0.1, 0.4, 0.9), start=1):
+        registry.record_coherence(
+            agent_id=passport.agent_id,
+            event_ref=f"event://score-{index}",
+            coherence_score=score,
+            decision="allow",
+        )
+
+    exported = registry.export_agent(passport.agent_id)
+    assert [row["event_ref"] for row in exported["coherence_history"]] == [
+        "event://score-2",
+        "event://score-3",
+    ]
+    assert exported["coherence_summary"] == {
+        "count": 2,
+        "minimum": 0.4,
+        "mean": pytest.approx(0.65),
+        "latest": 0.9,
+    }
+
+
+def test_registered_agent_without_history_exports_empty_summary() -> None:
+    registry = _registry()
+    passport = registry.issue_passport(
+        agent_id="tenant-a/worker/tool",
+        role="worker",
+        tenant_id="tenant-a",
+        capabilities=("tool:search",),
+    )
+
+    exported = registry.export_agent(passport.agent_id)
+
+    assert exported["coherence_history"] == []
+    assert exported["coherence_summary"] == {
+        "count": 0,
+        "minimum": 0.0,
+        "mean": 0.0,
+        "latest": 0.0,
+    }
+
+
+def test_python_mean_and_sum_helpers(monkeypatch) -> None:
+    monkeypatch.setattr(registry_mod, "_RUST_AGENT_IDENTITY", False)
+
+    assert registry_mod._mean_float([]) == 0.0
+    assert registry_mod._sum_float([0.2, 0.3, 0.4]) == pytest.approx(0.9)
+    assert registry_mod._mean_float([0.2, 0.3, 0.4]) == pytest.approx(0.3)
+
+
+def test_rust_sum_helper_is_used_when_available(monkeypatch) -> None:
+    monkeypatch.setattr(registry_mod, "_RUST_AGENT_IDENTITY", True)
+    called = {"count": 0}
+
+    def _sum(values: list[float]) -> float:
+        called["count"] += 1
+        return sum(values)
+
+    monkeypatch.setattr(registry_mod, "rust_sum_f64", _sum, raising=True)
+
+    assert registry_mod._sum_float([0.2, 0.3]) == pytest.approx(0.5)
+    assert called["count"] == 1

@@ -236,6 +236,25 @@ class TestForecaster:
         forecast = f.forecast(["a", "b"], seed=9)
         assert forecast.p_irreversible >= 0.6
 
+    def test_python_product_branch_multiplies_action_reversibility(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", False)
+
+        class _SequenceRisk:
+            def __init__(self):
+                self._scores = iter((0.5, 0.5))
+
+            def score(
+                self, action: str, *, context: Mapping[str, object] | None = None
+            ) -> ReversibilityScore:
+                return ReversibilityScore(score=next(self._scores), reason=action)
+
+        f = IrreversibilityForecaster(
+            estimator=_SequenceRisk(), n_samples=128, threshold=0.5
+        )
+        forecast = f.forecast(["stage", "commit"], seed=3)
+        assert forecast.samples == 128
+        assert forecast.p_irreversible > 0.65
+
 
 # --- Internal helpers -----------------------------------------------
 
@@ -286,6 +305,15 @@ class TestWilsonScore:
         low, high = _wilson_score(1.0, n=100, confidence=0.95)
         assert high == pytest.approx(1.0, abs=1e-12) and low > 0.95
 
+    def test_python_wilson_interval_contains_observed_rate(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", False)
+
+        low, high = _wilson_score(0.5, n=100, confidence=0.95)
+
+        assert low == pytest.approx(0.4038315302913319)
+        assert high == pytest.approx(0.5961684697086681)
+        assert low < 0.5 < high
+
 
 class TestStandardNormalQuantile:
     def test_rust_quantile_kernel_is_used_when_available(self, monkeypatch):
@@ -335,3 +363,12 @@ class TestStandardNormalQuantile:
             _standard_normal_quantile(0.0)
         with pytest.raises(ValueError):
             _standard_normal_quantile(1.0)
+
+    def test_python_quantile_covers_lower_central_and_upper_regions(self, monkeypatch):
+        monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", False)
+
+        assert _standard_normal_quantile(0.001) == pytest.approx(
+            -3.090232304709404
+        )
+        assert _standard_normal_quantile(0.5) == pytest.approx(0.0, abs=1e-12)
+        assert _standard_normal_quantile(0.999) == pytest.approx(3.090232304709404)

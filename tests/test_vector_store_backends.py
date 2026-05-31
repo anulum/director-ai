@@ -7,6 +7,8 @@
 # Director-Class AI — Vector Store Backend Tests
 """Multi-angle tests for vector store backend pipeline."""
 
+import sys
+import types
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -864,6 +866,76 @@ def test_sentence_transformer_delete_keeps_documents_and_embeddings_aligned():
     assert np.array_equal(backend._embeddings[0], np.asarray([0.0, 1.0]))
 
 
+def test_sentence_transformer_backend_import_error_is_actionable():
+    with (
+        patch.dict("sys.modules", {"sentence_transformers": None}),
+        pytest.raises(ImportError, match="requires sentence-transformers"),
+    ):
+        from director_ai.core import vector_store
+
+        vector_store.SentenceTransformerBackend()
+
+
+def test_sentence_transformer_backend_add_query_count_and_tenant_filter():
+    import numpy as np
+
+    from director_ai.core import vector_store
+
+    class _SentenceTransformer:
+        def __init__(self, model_name):
+            self.model_name = model_name
+
+        def encode(self, text, normalize_embeddings=True):
+            assert normalize_embeddings is True
+            vectors = {
+                "alpha text": [1.0, 0.0],
+                "beta text": [0.0, 1.0],
+                "alpha query": [1.0, 0.0],
+                "negative query": [-1.0, 0.0],
+            }
+            return np.asarray(vectors[text], dtype=np.float32)
+
+    fake_module = types.SimpleNamespace(SentenceTransformer=_SentenceTransformer)
+    with patch.dict("sys.modules", {"sentence_transformers": fake_module}):
+        backend = vector_store.SentenceTransformerBackend("local/model")
+
+    assert backend.count() == 0
+    assert backend.query("alpha query") == []
+
+    backend.add("a", "alpha text", {"tenant_id": "tenant-a"})
+    backend.add("b", "beta text", {"tenant_id": "tenant-b"})
+
+    assert backend.count() == 2
+    assert [row["id"] for row in backend.query("alpha query", n_results=2)] == [
+        "a"
+    ]
+    assert backend.query("alpha query", tenant_id="tenant-b") == []
+    assert backend.query("alpha query", tenant_id="missing") == []
+    assert backend.query("negative query") == []
+
+
+@pytest.mark.parametrize("bad_doc_ids", ("d1", ["ok", ""], ["ok", 3]))
+def test_sentence_transformer_delete_rejects_invalid_doc_ids(bad_doc_ids):
+    from director_ai.core import vector_store
+
+    backend = vector_store.SentenceTransformerBackend.__new__(
+        vector_store.SentenceTransformerBackend,
+    )
+
+    with pytest.raises(ValueError, match="doc_ids"):
+        backend.delete(bad_doc_ids)
+
+
+def test_sentence_transformer_delete_empty_list_is_noop():
+    from director_ai.core import vector_store
+
+    backend = vector_store.SentenceTransformerBackend.__new__(
+        vector_store.SentenceTransformerBackend,
+    )
+
+    assert backend.delete([]) == 0
+
+
 def test_chroma_delete_delegates_ids_and_reports_removed_count():
     from unittest.mock import MagicMock
 
@@ -878,3 +950,181 @@ def test_chroma_delete_delegates_ids_and_reports_removed_count():
 
     assert removed == 2
     collection.delete.assert_called_once_with(ids=["d1", "d2"])
+
+
+def test_chroma_backend_import_error_is_actionable():
+    with (
+        patch.dict("sys.modules", {"chromadb": None}),
+        pytest.raises(ImportError, match="requires chromadb"),
+    ):
+        from director_ai.core import vector_store
+
+        vector_store.ChromaBackend()
+
+
+def test_chroma_backend_initialises_persistent_collection_with_embedding_function():
+    from director_ai.core import vector_store
+
+    collection = MagicMock()
+    client = MagicMock()
+    client.get_or_create_collection.return_value = collection
+    chromadb = types.SimpleNamespace(PersistentClient=MagicMock(return_value=client))
+
+    class _EmbeddingFunction:
+        def __init__(self, model_name):
+            self.model_name = model_name
+
+    embedding_functions = types.ModuleType("chromadb.utils.embedding_functions")
+    embedding_functions.SentenceTransformerEmbeddingFunction = _EmbeddingFunction
+    utils_module = types.ModuleType("chromadb.utils")
+    utils_module.embedding_functions = embedding_functions
+
+    with patch.dict(
+        sys.modules,
+        {
+            "chromadb": chromadb,
+            "chromadb.utils": utils_module,
+            "chromadb.utils.embedding_functions": embedding_functions,
+        },
+    ):
+        backend = vector_store.ChromaBackend(
+            collection_name="facts",
+            persist_directory="/tmp/director-ai-chroma",
+            embedding_model="local/embedder",
+        )
+
+    chromadb.PersistentClient.assert_called_once_with(path="/tmp/director-ai-chroma")
+    kwargs = client.get_or_create_collection.call_args.kwargs
+    assert kwargs["name"] == "facts"
+    assert kwargs["embedding_function"].model_name == "local/embedder"
+    assert backend._collection is collection
+
+
+def test_chroma_backend_uses_ephemeral_client_and_warns_without_embedding_extra(
+    caplog,
+):
+    from director_ai.core import vector_store
+
+    collection = MagicMock()
+    client = MagicMock()
+    client.get_or_create_collection.return_value = collection
+    chromadb = types.SimpleNamespace(Client=MagicMock(return_value=client))
+
+    with patch.dict(
+        sys.modules,
+        {
+            "chromadb": chromadb,
+            "chromadb.utils.embedding_functions": None,
+        },
+    ):
+        backend = vector_store.ChromaBackend(embedding_model="local/embedder")
+
+    chromadb.Client.assert_called_once_with()
+    client.get_or_create_collection.assert_called_once_with(name="director_ai_facts")
+    assert "sentence-transformers not installed" in caplog.text
+    assert backend._collection is collection
+
+
+def test_chroma_backend_initialises_without_embedding_model():
+    from director_ai.core import vector_store
+
+    collection = MagicMock()
+    client = MagicMock()
+    client.get_or_create_collection.return_value = collection
+    chromadb = types.SimpleNamespace(Client=MagicMock(return_value=client))
+
+    with patch.dict(sys.modules, {"chromadb": chromadb}):
+        backend = vector_store.ChromaBackend(collection_name="facts")
+
+    chromadb.Client.assert_called_once_with()
+    client.get_or_create_collection.assert_called_once_with(name="facts")
+    assert backend._collection is collection
+
+
+def test_chroma_add_query_count_and_default_result_fields():
+    from director_ai.core import vector_store
+
+    collection = MagicMock()
+    collection.count.return_value = 2
+    collection.query.return_value = {
+        "documents": [["alpha", "beta"]],
+        "metadatas": [[{"tenant_id": "tenant-a"}, {"tenant_id": "tenant-b"}]],
+    }
+    backend = vector_store.ChromaBackend.__new__(vector_store.ChromaBackend)
+    backend._collection = collection
+
+    backend.add("a", "alpha", {"tenant_id": "tenant-a"})
+    backend.add("b", "beta")
+    results = backend.query("query", n_results=5, tenant_id="tenant-a")
+
+    assert backend.count() == 2
+    assert collection.add.call_args_list[0].kwargs == {
+        "ids": ["a"],
+        "documents": ["alpha"],
+        "metadatas": [{"tenant_id": "tenant-a"}],
+    }
+    assert collection.add.call_args_list[1].kwargs == {
+        "ids": ["b"],
+        "documents": ["beta"],
+        "metadatas": None,
+    }
+    collection.query.assert_called_once_with(
+        query_texts=["query"],
+        n_results=2,
+        where={"tenant_id": "tenant-a"},
+    )
+    assert results == [
+        {
+            "id": "doc_0",
+            "text": "alpha",
+            "metadata": {"tenant_id": "tenant-a"},
+            "distance": 0.0,
+        },
+        {
+            "id": "doc_1",
+            "text": "beta",
+            "metadata": {"tenant_id": "tenant-b"},
+            "distance": 0.0,
+        },
+    ]
+
+
+def test_chroma_query_empty_collection_returns_empty_without_query():
+    from director_ai.core import vector_store
+
+    collection = MagicMock()
+    collection.count.return_value = 0
+    backend = vector_store.ChromaBackend.__new__(vector_store.ChromaBackend)
+    backend._collection = collection
+
+    assert backend.query("query") == []
+    collection.query.assert_not_called()
+
+
+@pytest.mark.parametrize("bad_doc_ids", ("d1", ["ok", ""], ["ok", 3]))
+def test_chroma_delete_rejects_invalid_doc_ids(bad_doc_ids):
+    from director_ai.core import vector_store
+
+    backend = vector_store.ChromaBackend.__new__(vector_store.ChromaBackend)
+
+    with pytest.raises(ValueError, match="doc_ids"):
+        backend.delete(bad_doc_ids)
+
+
+def test_chroma_delete_empty_list_is_noop():
+    from director_ai.core import vector_store
+
+    backend = vector_store.ChromaBackend.__new__(vector_store.ChromaBackend)
+
+    assert backend.delete([]) == 0
+
+
+def test_chroma_delete_never_reports_negative_removed_count():
+    from director_ai.core import vector_store
+
+    collection = MagicMock()
+    collection.count.side_effect = [1, 3]
+    backend = vector_store.ChromaBackend.__new__(vector_store.ChromaBackend)
+    backend._collection = collection
+
+    assert backend.delete(["d1"]) == 0
