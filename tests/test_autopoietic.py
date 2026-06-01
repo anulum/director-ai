@@ -231,6 +231,18 @@ class TestBuilder:
         scorer = ModuleBuilder().build(bp)
         assert scorer("x y") == 0.0
 
+    def test_ngram_overlap_python_fallback_scores_jaccard(self, monkeypatch):
+        monkeypatch.setattr(builder_mod, "_RUST_AUTOPOIETIC", False)
+        bp = ModuleBlueprint(
+            kind="ngram_overlap",
+            ngram_size=2,
+            reference_vocabulary=("the quick", "quick brown"),
+        )
+
+        scorer = ModuleBuilder().build(bp)
+
+        assert scorer("the quick slow fox") == pytest.approx(1.0 / 4.0)
+
     def test_ngram_overlap_rust_delegation(self, monkeypatch):
         monkeypatch.setattr(builder_mod, "_RUST_AUTOPOIETIC", True)
         monkeypatch.setattr(
@@ -283,6 +295,45 @@ class TestBuilder:
         with pytest.raises(ValueError, match="ffi"):
             scorer("the quick brown fox")
 
+    def test_marker_count_uses_rust_sum_and_python_fallback(self, monkeypatch):
+        bp = ModuleBlueprint(
+            kind="marker_count",
+            markers=("risk", "halt"),
+            expected_markers=4,
+        )
+        monkeypatch.setattr(builder_mod, "_RUST_AUTOPOIETIC", True)
+        calls = []
+
+        def _sum(values):
+            calls.append(list(values))
+            return 3
+
+        monkeypatch.setattr(builder_mod, "rust_sum_i64", _sum, raising=True)
+        scorer = ModuleBuilder().build(bp)
+        assert scorer("risk risk halt") == pytest.approx(0.75)
+        assert calls == [[2, 1]]
+
+        monkeypatch.setattr(builder_mod, "_RUST_AUTOPOIETIC", False)
+        assert scorer("risk halt") == pytest.approx(0.5)
+
+    def test_marker_count_rust_sum_exception_is_mandatory_failure(self, monkeypatch):
+        bp = ModuleBlueprint(
+            kind="marker_count",
+            markers=("risk",),
+            expected_markers=1,
+        )
+        monkeypatch.setattr(builder_mod, "_RUST_AUTOPOIETIC", True)
+        monkeypatch.setattr(
+            builder_mod,
+            "rust_sum_i64",
+            lambda _values: (_ for _ in ()).throw(RuntimeError("ffi fail")),
+            raising=True,
+        )
+        scorer = ModuleBuilder().build(bp)
+
+        with pytest.raises(RuntimeError, match="ffi fail"):
+            scorer("risk")
+
     def test_ensemble_scorer_is_weighted_mean(self):
         length = ModuleBlueprint(kind="length", length_saturation=10)
         markers = ModuleBlueprint(
@@ -301,6 +352,12 @@ class TestBuilder:
         # len("SYSTEM:") = 7 → length score 0.7; marker score 1.0.
         # Weighted mean = 0.85.
         assert scorer("SYSTEM:") == pytest.approx(0.85, abs=0.01)
+
+    def test_unknown_blueprint_kind_raises_build_error(self):
+        bad = cast(Any, type("UnknownBlueprint", (), {"kind": "custom"})())
+
+        with pytest.raises(BuildError, match="unknown blueprint kind"):
+            ModuleBuilder().build(bad)
 
 
 # --- BoundedSandbox ------------------------------------------------
@@ -328,6 +385,24 @@ class TestSandbox:
     def test_negative_timeout_rejected(self):
         with pytest.raises(ValueError, match="timeout_seconds"):
             BoundedSandbox(timeout_seconds=0.0)
+
+    def test_scorer_exception_is_propagated(self):
+        sandbox = BoundedSandbox(timeout_seconds=1.0)
+
+        def broken(_: str) -> float:
+            raise RuntimeError("scorer failed")
+
+        with pytest.raises(RuntimeError, match="scorer failed"):
+            sandbox.run(broken, "x")
+
+    def test_none_result_type_error_is_propagated(self):
+        sandbox = BoundedSandbox(timeout_seconds=1.0)
+
+        def none_result(_: str):
+            return None
+
+        with pytest.raises(TypeError, match="NoneType"):
+            sandbox.run(none_result, "x")
 
 
 # --- ScoredSample + ModuleTestSuite -------------------------------
