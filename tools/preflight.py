@@ -9,7 +9,7 @@ Gates (must match ci.yml):
   4. mypy          — src/director_ai/
   5. bandit        — src/director_ai/
   6. spdx-guard    — all .py files in src/ tests/
-  7. pytest        — tests/ with the CI coverage gate (95%)
+  7. pytest        — tests/ with the CI coverage gate (97%)
 """
 
 import argparse
@@ -92,7 +92,7 @@ GATES = [
             "--tb=short",
             "--cov=director_ai",
             "--cov-report=term-missing",
-            "--cov-fail-under=95",
+            "--cov-fail-under=97",
         ],
     ),
 ]

@@ -6,7 +6,7 @@ help: ## Show available targets
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-18s\033[0m %s\n", $$1, $$2}'
 
 test: ## Run Python tests with coverage
-	pytest tests/ -v --cov=director_ai --cov-report=term --cov-fail-under=95
+	pytest tests/ -v --cov=director_ai --cov-report=term --cov-fail-under=97
 
 python-only-check: ## Run contributor checks without optional runtime toolchains
 	python tools/python_only_check.py
