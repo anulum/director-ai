@@ -17,6 +17,7 @@ from director_ai.core.customer_model_factory.dataset_contract import (
     validate_customer_trace_dataset,
 )
 from director_ai.core.customer_model_factory.sector_extension import (
+    _string,
     build_sector_evidence_mapping,
     validate_sector_trace_metadata,
 )
@@ -105,6 +106,22 @@ def test_sector_metadata_accepts_complete_citation_numeric_and_escalation_contro
     )
 
     assert findings == ()
+
+
+def test_sector_metadata_allows_non_escalation_rows_without_escalation_control():
+    findings = validate_sector_trace_metadata(
+        _metadata(requires_escalation=False),
+        trace_id="trace-001",
+        expected_decision="approve",
+    )
+
+    assert findings == ()
+
+
+def test_sector_string_helper_normalises_non_string_values():
+    assert _string("  regulated  ") == "regulated"
+    assert _string(None) == ""
+    assert _string(123) == ""
 
 
 def test_sector_metadata_reports_each_missing_required_field():
