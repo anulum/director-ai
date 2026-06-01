@@ -65,7 +65,9 @@ def test_environment_keeps_commit_when_git_status_fails(monkeypatch):
             raise FileNotFoundError("nvidia-smi")
         raise AssertionError(f"unexpected command: {cmd!r}")
 
-    monkeypatch.setattr(environment_module.subprocess, "check_output", fake_check_output)
+    monkeypatch.setattr(
+        environment_module.subprocess, "check_output", fake_check_output
+    )
 
     env = capture_environment(runner="ci")
 

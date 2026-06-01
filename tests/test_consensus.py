@@ -401,7 +401,9 @@ class TestCrossVerifierConsensus:
     def test_constructor_and_weight_validation_rejects_invalid_thresholds(self):
         with pytest.raises(ValueError, match="mode must be"):
             CrossVerifierConsensus(mode="average")
-        with pytest.raises(ValueError, match=r"contradiction_threshold must be in \[0, 1\]"):
+        with pytest.raises(
+            ValueError, match=r"contradiction_threshold must be in \[0, 1\]"
+        ):
             CrossVerifierConsensus(contradiction_threshold=1.1)
         with pytest.raises(ValueError, match=r"warn_threshold must be in \[0, 1\]"):
             CrossVerifierConsensus(warn_threshold=-0.1)

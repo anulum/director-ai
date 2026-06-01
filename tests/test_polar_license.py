@@ -715,9 +715,7 @@ def test_polar_activation_reports_network_http_and_payload_failures(monkeypatch)
     monkeypatch.setenv("DIRECTOR_AI_POLAR_ACTIVATION_LABEL", "env-node")
     monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
 
-    network = activate_polar_key(
-        "polar-key", "550e8400-e29b-41d4-a716-446655440000"
-    )
+    network = activate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
     http = activate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
     invalid_payload = activate_polar_key(
         "polar-key", "550e8400-e29b-41d4-a716-446655440000"
@@ -728,7 +726,9 @@ def test_polar_activation_reports_network_http_and_payload_failures(monkeypatch)
 
     assert "Polar request unavailable: offline" in network.license.message
     assert http.license.message == "Polar activation failed with HTTP 500"
-    assert invalid_payload.license.message == "Polar activation returned invalid payload"
+    assert (
+        invalid_payload.license.message == "Polar activation returned invalid payload"
+    )
     assert fallback_payload.activation_id == "activation-id"
     assert fallback_payload.label == "env-node"
     assert fallback_payload.license.valid

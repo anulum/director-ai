@@ -476,16 +476,22 @@ class TestScorerCoverageGaps:
                 del prompt, top_k, tenant_id
                 return "Saturn has rings. Mars has no global ocean."
 
-        strict = CoherenceScorer(use_nli=False, strict_mode=True, ground_truth_store=Store())
+        strict = CoherenceScorer(
+            use_nli=False, strict_mode=True, ground_truth_store=Store()
+        )
         non_strict = CoherenceScorer(use_nli=False, ground_truth_store=Store())
 
         assert strict.calculate_factual_divergence("Saturn", "Saturn is ringed.") == (
             scorer_module.DIVERGENCE_CONTRADICTED
         )
-        assert 0.0 <= non_strict.calculate_factual_divergence(
-            "Saturn",
-            "Saturn is ringed.",
-        ) <= 1.0
+        assert (
+            0.0
+            <= non_strict.calculate_factual_divergence(
+                "Saturn",
+                "Saturn is ringed.",
+            )
+            <= 1.0
+        )
 
     def test_factual_divergence_with_vector_abstention_returns_neutral(self):
         from director_ai.core.vector_store import (

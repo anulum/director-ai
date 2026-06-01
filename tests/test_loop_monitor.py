@@ -193,10 +193,14 @@ class TestJaccardDrift:
 
         assert LoopMonitor._jaccard_drift("find revenue", "find revenue") == 0.0
         assert LoopMonitor._jaccard_drift("find revenue", "delete database") == 1.0
-        assert 0.0 < LoopMonitor._jaccard_drift(
-            "find revenue data",
-            "find sales data",
-        ) < 1.0
+        assert (
+            0.0
+            < LoopMonitor._jaccard_drift(
+                "find revenue data",
+                "find sales data",
+            )
+            < 1.0
+        )
 
     def test_python_fallback_empty_inputs(self, monkeypatch):
         monkeypatch.setattr(loop_monitor_mod, "_RUST_LOOP_MONITOR", False)

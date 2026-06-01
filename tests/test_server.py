@@ -563,7 +563,9 @@ class TestServerCoverageGaps:
 
         assert no_scorer.status_code == 503
         assert no_context.status_code == 200
-        assert no_context.json()["reason"] == "No relevant context found in knowledge base"
+        assert (
+            no_context.json()["reason"] == "No relevant context found in knowledge base"
+        )
         assert blocked.status_code == 400
         assert "blocked" in blocked.json()["detail"]
 

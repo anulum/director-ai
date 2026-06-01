@@ -229,9 +229,7 @@ class TestRoutingRustSums:
         assert scorer_mod._clip01(None) == 0.0
         assert scorer_mod._clip01("not-a-number") == 0.0
 
-    def test_build_rust_marker_scanner_handles_constructor_failure(
-        self, monkeypatch
-    ):
+    def test_build_rust_marker_scanner_handles_constructor_failure(self, monkeypatch):
         class _BrokenScanner:
             def __init__(self, patterns):
                 assert patterns

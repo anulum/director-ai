@@ -200,11 +200,7 @@ class TestIngestEdgeCases:
 
     def test_ingest_ignores_blank_jsonl_lines(self, capsys, tmp_path):
         jf = tmp_path / "blank_lines.jsonl"
-        jf.write_text(
-            "\n"
-            + json.dumps({"text": "Fact after blank line."})
-            + "\n\n"
-        )
+        jf.write_text("\n" + json.dumps({"text": "Fact after blank line."}) + "\n\n")
         main(["ingest", str(jf)])
         assert "1 chunks" in capsys.readouterr().out
 

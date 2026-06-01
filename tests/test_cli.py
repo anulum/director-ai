@@ -202,7 +202,9 @@ class TestBatchCommand:
         capsys,
     ):
         input_path = tmp_path / "prompts.jsonl"
-        input_path.write_text("{not valid json}\n" + json.dumps({"prompt": "Q1"}) + "\n")
+        input_path.write_text(
+            "{not valid json}\n" + json.dumps({"prompt": "Q1"}) + "\n"
+        )
         seen = self._patch_batch_runtime(monkeypatch)
 
         main(["batch", str(input_path)])
@@ -239,8 +241,10 @@ class TestBatchCommand:
     ):
         input_path = tmp_path / "prompts.jsonl"
         input_path.write_text(
-            json.dumps({"prompt": "x" * 40}) + "\n"
-            + json.dumps({"prompt": "short"}) + "\n",
+            json.dumps({"prompt": "x" * 40})
+            + "\n"
+            + json.dumps({"prompt": "short"})
+            + "\n",
         )
         monkeypatch.setattr(cli_module, "_BATCH_MAX_LINE_SIZE", 30)
         seen = self._patch_batch_runtime(monkeypatch)
@@ -256,8 +260,7 @@ class TestBatchCommand:
     def test_batch_enforces_prompt_cap(self, tmp_path, monkeypatch, capsys):
         input_path = tmp_path / "prompts.jsonl"
         input_path.write_text(
-            json.dumps({"prompt": "Q1"}) + "\n"
-            + json.dumps({"prompt": "Q2"}) + "\n",
+            json.dumps({"prompt": "Q1"}) + "\n" + json.dumps({"prompt": "Q2"}) + "\n",
         )
         monkeypatch.setattr(cli_module, "_BATCH_MAX_PROMPTS", 1)
         seen = self._patch_batch_runtime(monkeypatch)
@@ -278,8 +281,7 @@ class TestBatchCommand:
     ):
         input_path = tmp_path / "prompts.jsonl"
         input_path.write_text(
-            json.dumps({"prompt": ""}) + "\n"
-            + json.dumps({"prompt": "usable"}) + "\n",
+            json.dumps({"prompt": ""}) + "\n" + json.dumps({"prompt": "usable"}) + "\n",
         )
         seen = self._patch_batch_runtime(monkeypatch)
 

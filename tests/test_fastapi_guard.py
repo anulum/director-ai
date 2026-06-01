@@ -264,7 +264,9 @@ async def test_guard_handles_client_disconnect_before_request_body() -> None:
     async def send(message):
         sent.append(message)
 
-    await guarded({"type": "http", "method": "POST", "path": "/api/chat"}, receive, send)
+    await guarded(
+        {"type": "http", "method": "POST", "path": "/api/chat"}, receive, send
+    )
 
     assert sent == [
         {"type": "http.response.start", "status": 204, "headers": []},

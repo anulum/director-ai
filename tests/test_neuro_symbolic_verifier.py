@@ -24,9 +24,13 @@ from director_ai.core.formal_verification import (
 def test_input_and_result_validation_reject_invalid_values():
     with pytest.raises(ValueError, match="text must be non-empty"):
         NeuroSymbolicVerifierInput(text=" ", neural_score=0.5)
-    with pytest.raises(ValueError, match=r"neural_score must be finite and in \[0, 1\]"):
+    with pytest.raises(
+        ValueError, match=r"neural_score must be finite and in \[0, 1\]"
+    ):
         NeuroSymbolicVerifierInput(text="claim", neural_score=float("nan"))
-    with pytest.raises(ValueError, match=r"neural_score must be finite and in \[0, 1\]"):
+    with pytest.raises(
+        ValueError, match=r"neural_score must be finite and in \[0, 1\]"
+    ):
         NeuroSymbolicVerifier(neural_accept_threshold=1.1)
     with pytest.raises(ValueError, match="unsupported decision"):
         NeuroSymbolicVerificationResult(

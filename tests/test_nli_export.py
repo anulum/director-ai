@@ -304,9 +304,7 @@ def test_export_tensorrt_builds_cache_with_int64_tokenizer_feed(
     assert provider == "TensorrtExecutionProvider"
     assert options["trt_engine_cache_path"] == str(tmp_path / "trt")
     assert options["trt_fp16_enable"] is False
-    assert options["trt_profile_opt_shapes"] == (
-        "input_ids=4x128,attention_mask=4x128"
-    )
+    assert options["trt_profile_opt_shapes"] == ("input_ids=4x128,attention_mask=4x128")
     assert captured["outputs"] is None
     feed = captured["feed"]
     assert set(feed) == {"input_ids", "attention_mask"}

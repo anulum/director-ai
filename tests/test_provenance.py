@@ -369,4 +369,6 @@ class TestProvenanceVerifier:
 
         verdict = verifier.verify([fact])
 
-        assert verdict.trust_score == pytest.approx(verdict.fact_verdicts[0].source_score)
+        assert verdict.trust_score == pytest.approx(
+            verdict.fact_verdicts[0].source_score
+        )

@@ -232,9 +232,7 @@ class TestTraceSafeOracleMath:
         assert oracle_module._cosine((), (1.0,)) == 0.0
         assert oracle_module._cosine((1.0,), (1.0, 0.0)) == 0.0
 
-    def test_oracle_sum_float_falls_back_when_accelerator_disabled(
-        self, monkeypatch
-    ):
+    def test_oracle_sum_float_falls_back_when_accelerator_disabled(self, monkeypatch):
         monkeypatch.setattr(oracle_module, "_RUST_TRACE_ORACLE", False)
 
         assert oracle_module._sum_float([0.25, 0.5, 1.25]) == pytest.approx(2.0)
