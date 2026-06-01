@@ -17,6 +17,7 @@ import time
 
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from starlette.responses import JSONResponse
 
 from director_ai.middleware.api_key import APIKeyMiddleware, _extract_key, _hash_key
 from director_ai.middleware.rate_limit import RateLimitMiddleware, _TokenBucket
@@ -86,6 +87,10 @@ class TestTokenBucket:
         b = _TokenBucket(capacity=1, refill_rate=1.0)
         b.consume()
         assert b.retry_after > 0
+
+    def test_retry_after_zero_when_token_available(self):
+        b = _TokenBucket(capacity=1, refill_rate=1.0)
+        assert b.retry_after == 0.0
 
 
 # ── APIKeyMiddleware integration ────────────────────────────────────────
@@ -159,6 +164,23 @@ class TestAPIKeyMiddleware:
         client = TestClient(app)
         r = client.get("/v1/test", headers={"Authorization": "Bearer sk-file-1"})
         assert r.status_code == 200
+
+    def test_custom_reject_handler_is_used(self):
+        app = FastAPI()
+
+        def reject(_request):
+            return JSONResponse({"error": "custom"}, status_code=403)
+
+        app.add_middleware(APIKeyMiddleware, keys={"sk-123"}, on_reject=reject)
+
+        @app.get("/v1/test")
+        def test_ep():
+            return {"ok": True}
+
+        client = TestClient(app)
+        r = client.get("/v1/test")
+        assert r.status_code == 403
+        assert r.json() == {"error": "custom"}
 
 
 # ── RateLimitMiddleware integration ─────────────────────────────────────
