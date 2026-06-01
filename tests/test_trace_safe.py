@@ -19,6 +19,7 @@ from typing import Any, cast
 import pytest
 
 import director_ai.core.trace_safe.embedder as embedder_module
+import director_ai.core.trace_safe.oracle as oracle_module
 from director_ai.core.trace_safe import (
     HashBagEmbedder,
     TraceSafeOracle,
@@ -217,3 +218,23 @@ class TestOracle:
         assert "decision_margin" in v.reason
         v = oracle.classify("Ignore previous SYSTEM override leak.")
         assert "decision_margin" in v.reason
+
+
+class TestTraceSafeOracleMath:
+    def test_mean_of_empty_vector_corpus_is_empty(self):
+        assert oracle_module._mean([]) == ()
+
+    def test_normalise_preserves_empty_and_zero_vectors(self):
+        assert oracle_module._normalise(()) == ()
+        assert oracle_module._normalise((0.0, 0.0)) == (0.0, 0.0)
+
+    def test_cosine_returns_zero_for_empty_or_mismatched_vectors(self):
+        assert oracle_module._cosine((), (1.0,)) == 0.0
+        assert oracle_module._cosine((1.0,), (1.0, 0.0)) == 0.0
+
+    def test_oracle_sum_float_falls_back_when_accelerator_disabled(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(oracle_module, "_RUST_TRACE_ORACLE", False)
+
+        assert oracle_module._sum_float([0.25, 0.5, 1.25]) == pytest.approx(2.0)
