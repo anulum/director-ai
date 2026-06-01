@@ -18,6 +18,7 @@ from typing import cast
 
 import pytest
 
+import director_ai.core.causal_verifier.counterfactual as counterfactual_module
 from director_ai.core.causal_verifier import (
     CausalGraph,
     CounterfactualVerifier,
@@ -256,3 +257,30 @@ class TestCounterfactualVerifier:
 
         assert diagnostic.best_change is None
         assert diagnostic.candidates == []
+
+    def test_halt_fact_change_diagnostic_clips_long_fact_text(self):
+        diagnostic = CounterfactualVerifier.explain_halt_fact_change(
+            observed_score=0.3,
+            threshold=0.5,
+            evidence_chunks=[
+                EvidenceChunk(text="original " * 100, distance=0.0, source="paper-1")
+            ],
+            proposed_fact="replacement " * 100,
+        )
+
+        candidate = diagnostic.candidates[0]
+        assert len(candidate.original_fact) == 500
+        assert candidate.original_fact.endswith("...")
+        assert len(candidate.proposed_fact) == 500
+        assert candidate.proposed_fact.endswith("...")
+
+    def test_counterfactual_float_rejects_non_numeric_values(self):
+        with pytest.raises(TypeError, match="not numeric"):
+            counterfactual_module._counterfactual_float({"score": object()}, "score")
+
+    def test_integer_sum_falls_back_to_python_when_accelerator_disabled(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(counterfactual_module, "_RUST_COUNTERFACTUAL", False)
+
+        assert counterfactual_module._sum_int([1, 0, 1]) == 2
