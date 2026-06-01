@@ -7,6 +7,8 @@
 # Director-Class AI — Server Tests
 """Multi-angle tests for FastAPI server pipeline."""
 
+from types import SimpleNamespace
+
 import pytest
 
 try:
@@ -394,3 +396,353 @@ class TestServerOperationalReadiness:
 
         assert response.status_code == 200
         assert response.json()["ready"] is True
+
+
+class TestServerCoverageGaps:
+    """Dedicated server endpoint branch coverage."""
+
+    @staticmethod
+    def _fast_config() -> DirectorConfig:
+        return DirectorConfig.from_profile("fast")
+
+    def test_health_reports_commercial_and_trial_license_branches(self):
+        app = create_app(self._fast_config())
+
+        with TestClient(app) as client:
+            client.app.state._license = SimpleNamespace(
+                is_commercial=True,
+                is_trial=False,
+                tier="enterprise",
+                licensee="ACME",
+            )
+            commercial = client.get("/v1/health").json()
+            client.app.state._license = SimpleNamespace(
+                is_commercial=False,
+                is_trial=True,
+                expires="2026-12-31",
+            )
+            trial = client.get("/v1/health").json()
+
+        assert commercial["status"] == "ok"
+        assert trial["status"] == "ok"
+
+    def test_source_endpoint_commercial_and_disabled_paths(self):
+        commercial_app = create_app(self._fast_config())
+        with TestClient(commercial_app) as client:
+            client.app.state._license = SimpleNamespace(
+                is_commercial=True,
+                is_trial=False,
+                tier="enterprise",
+                licensee="ACME",
+            )
+            response = client.get("/v1/source")
+            assert response.status_code == 200
+            assert response.json()["agpl_obligation"] == "waived"
+
+        disabled_cfg = self._fast_config()
+        disabled_cfg.source_endpoint_enabled = False
+        disabled_app = create_app(disabled_cfg)
+        with TestClient(disabled_app) as client:
+            response = client.get("/v1/source")
+            assert response.status_code == 404
+
+        disabled_commercial_cfg = self._fast_config()
+        disabled_commercial_cfg.source_endpoint_enabled = False
+        disabled_commercial_app = create_app(disabled_commercial_cfg)
+        with TestClient(disabled_commercial_app) as client:
+            client.app.state._license = SimpleNamespace(
+                is_commercial=True,
+                is_trial=False,
+                tier="enterprise",
+                licensee="ACME",
+            )
+            response = client.get("/v1/source")
+            assert response.status_code == 404
+            assert "commercial license" in response.json()["detail"]
+
+    def test_ready_reports_missing_scorer_and_unloaded_nli(self):
+        cfg = self._fast_config()
+        app = create_app(cfg)
+
+        with TestClient(app) as client:
+            client.app.state._state["scorer"] = None
+            missing = client.get("/v1/ready")
+            cfg.use_nli = True
+            client.app.state._state["scorer"] = SimpleNamespace(
+                _nli=SimpleNamespace(model_available=False)
+            )
+            unloaded = client.get("/v1/ready")
+
+        assert missing.status_code == 503
+        assert missing.json()["reason"] == "scorer not initialised"
+        assert unloaded.status_code == 503
+        assert unloaded.json()["reason"] == "NLI model not loaded"
+
+    def test_feedback_store_success_disagreement_and_calibration(self):
+        class FakeFeedbackStore:
+            def __init__(self):
+                self.reports = []
+
+            def report(self, **kwargs):
+                self.reports.append(kwargs)
+
+            def count(self, domain=None):
+                assert domain == "medical"
+                return len(self.reports)
+
+            def close(self):
+                self.closed = True
+
+        app = create_app(self._fast_config())
+        with TestClient(app) as client:
+            missing = client.post(
+                "/v1/feedback",
+                json={
+                    "prompt": "p",
+                    "response": "r",
+                    "guardrail_approved": True,
+                    "human_approved": False,
+                    "domain": "medical",
+                    "review_id": "r1",
+                },
+            )
+            client.app.state._state["feedback_store"] = FakeFeedbackStore()
+            accepted = client.post(
+                "/v1/feedback",
+                headers={"X-Tenant-ID": "tenant-a"},
+                json={
+                    "prompt": "p",
+                    "response": "r",
+                    "guardrail_approved": True,
+                    "human_approved": False,
+                    "guardrail_score": 0.8,
+                    "domain": "medical",
+                    "review_id": "r1",
+                },
+            )
+            bad_calibration = client.get("/v1/feedback/calibration?min_corrections=0")
+
+        assert missing.status_code == 503
+        assert accepted.status_code == 200
+        body = accepted.json()
+        assert body["accepted"] is True
+        assert body["disagreement"] is True
+        assert body["correction_count"] == 1
+        assert body["tenant_id"] == "tenant-a"
+        assert bad_calibration.status_code == 400
+
+    def test_verify_endpoint_no_scorer_sanitizer_and_no_context_paths(self):
+        app = create_app(self._fast_config())
+
+        class BlockingSanitizer:
+            def check(self, text):
+                del text
+                return SimpleNamespace(blocked=True, reason="blocked")
+
+        with TestClient(app) as client:
+            client.app.state._state["scorer"] = None
+            no_scorer = client.post(
+                "/v1/verify",
+                json={"prompt": "p", "response": "r"},
+            )
+            client.app.state._state["scorer"] = SimpleNamespace(
+                ground_truth_store=SimpleNamespace(
+                    retrieve_context=lambda *args, **kwargs: ""
+                ),
+                _nli=None,
+            )
+            no_context = client.post(
+                "/v1/verify",
+                json={"prompt": "p", "response": "r"},
+            )
+            client.app.state._state["sanitizer"] = BlockingSanitizer()
+            blocked = client.post(
+                "/v1/verify",
+                json={"prompt": "p", "response": "r"},
+            )
+
+        assert no_scorer.status_code == 503
+        assert no_context.status_code == 200
+        assert no_context.json()["reason"] == "No relevant context found in knowledge base"
+        assert blocked.status_code == 400
+        assert "blocked" in blocked.json()["detail"]
+
+    def test_process_redaction_and_internal_error_paths(self):
+        from director_ai.core.types import CoherenceScore, ReviewResult
+
+        class FakeRedactor:
+            enabled = True
+
+            def __call__(self, text):
+                return text.replace("secret", "[redacted]")
+
+            def redact(self, text):
+                return text.replace("secret", "[redacted]")
+
+        class FakeAgent:
+            async def aprocess(self, prompt, tenant_id=""):
+                assert prompt == "Tell me [redacted]"
+                assert tenant_id == "tenant-a"
+                return ReviewResult(
+                    output="answer with secret",
+                    coherence=CoherenceScore(
+                        score=0.91,
+                        approved=True,
+                        h_logical=0.1,
+                        h_factual=0.2,
+                    ),
+                    halted=False,
+                    candidates_evaluated=1,
+                    fallback_used=True,
+                )
+
+        class FailingAgent:
+            async def aprocess(self, prompt, tenant_id=""):
+                del prompt, tenant_id
+                raise RuntimeError("processor failed")
+
+        app = create_app(self._fast_config())
+        with TestClient(app) as client:
+            client.app.state._state["redactor"] = FakeRedactor()
+            client.app.state._state["agent"] = FakeAgent()
+            ok = client.post(
+                "/v1/process",
+                headers={"X-Tenant-ID": "tenant-a"},
+                json={"prompt": "Tell me secret"},
+            )
+            client.app.state._state["agent"] = FailingAgent()
+            failed = client.post("/v1/process", json={"prompt": "boom"})
+
+        assert ok.status_code == 200
+        body = ok.json()
+        assert body["output"] == "answer with [redacted]"
+        assert body["coherence"] == 0.91
+        assert body["fallback_used"] is True
+        assert failed.status_code == 500
+
+    def test_batch_review_process_redaction_and_error_paths(self):
+        from director_ai.core.types import CoherenceScore, ReviewResult
+
+        class FakeRedactor:
+            enabled = True
+
+            def redact(self, text):
+                return text.replace("secret", "[redacted]")
+
+        class FakeBatchResult:
+            def __init__(self, results, errors=()):
+                self.results = results
+                self.total = len(results) + len(errors)
+                self.succeeded = len(results)
+                self.failed = len(errors)
+                self.errors = list(errors)
+
+        class FakeBatcher:
+            async def review_batch_async(self, pairs, tenant_id=""):
+                assert pairs == [("p [redacted]", "r [redacted]")]
+                assert tenant_id == "tenant-a"
+                score = CoherenceScore(
+                    score=0.7,
+                    approved=True,
+                    h_logical=0.1,
+                    h_factual=0.2,
+                )
+                return FakeBatchResult([(True, score)])
+
+            async def process_batch_async(self, prompts, tenant_id=""):
+                assert prompts == ["p [redacted]"]
+                assert tenant_id == "tenant-a"
+                score = CoherenceScore(
+                    score=0.8,
+                    approved=True,
+                    h_logical=0.1,
+                    h_factual=0.1,
+                )
+                return FakeBatchResult(
+                    [
+                        ReviewResult(
+                            output="secret output",
+                            coherence=score,
+                            halted=False,
+                            candidates_evaluated=1,
+                        )
+                    ],
+                    errors=[(2, "late failure")],
+                )
+
+        class FailingBatcher:
+            async def review_batch_async(self, pairs, tenant_id=""):
+                del pairs, tenant_id
+                raise ValueError("bad batch")
+
+            async def process_batch_async(self, prompts, tenant_id=""):
+                del prompts, tenant_id
+                raise RuntimeError("batch failed")
+
+        app = create_app(self._fast_config())
+        with TestClient(app) as client:
+            mismatch = client.post(
+                "/v1/batch",
+                json={"task": "review", "prompts": ["p"], "responses": []},
+            )
+            client.app.state._state["redactor"] = FakeRedactor()
+            client.app.state._state["batch"] = FakeBatcher()
+            review_ok = client.post(
+                "/v1/batch",
+                headers={"X-Tenant-ID": "tenant-a"},
+                json={
+                    "task": "review",
+                    "prompts": ["p secret"],
+                    "responses": ["r secret"],
+                },
+            )
+            process_ok = client.post(
+                "/v1/batch",
+                headers={"X-Tenant-ID": "tenant-a"},
+                json={"task": "process", "prompts": ["p secret"]},
+            )
+            client.app.state._state["batch"] = FailingBatcher()
+            value_error = client.post(
+                "/v1/batch",
+                json={"task": "review", "prompts": ["p"], "responses": ["r"]},
+            )
+            internal = client.post(
+                "/v1/batch",
+                json={"task": "process", "prompts": ["p"]},
+            )
+
+        assert mismatch.status_code == 422
+        assert review_ok.status_code == 200
+        assert review_ok.json()["results"][0]["score"] == 0.7
+        assert process_ok.status_code == 200
+        assert process_ok.json()["results"][0]["output"] == "[redacted] output"
+        assert process_ok.json()["errors"] == [{"index": 2, "error": "late failure"}]
+        assert value_error.status_code == 422
+        assert internal.status_code == 500
+
+    def test_stats_store_summary_hourly_and_prometheus_summary(self):
+        class FakeStats:
+            def summary(self):
+                return {
+                    "total": 3,
+                    "approved": 2,
+                    "rejected": 1,
+                    "halted": 0,
+                    "avg_score": 0.75,
+                    "avg_latency_ms": 12.5,
+                }
+
+            def hourly_breakdown(self, days=7):
+                assert days == 2
+                return [{"hour": "2026-06-01T00:00:00Z", "total": 1}]
+
+        app = create_app(self._fast_config())
+        with TestClient(app) as client:
+            client.app.state._state["stats"] = FakeStats()
+            stats = client.get("/v1/stats")
+            hourly = client.get("/v1/stats/hourly?days=2")
+
+        assert stats.status_code == 200
+        assert stats.json()["total"] == 3
+        assert hourly.status_code == 200
+        assert hourly.json()["data"][0]["total"] == 1
