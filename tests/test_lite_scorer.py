@@ -82,6 +82,28 @@ class TestLiteScorer:
         text = "The quick brown fox jumps over the lazy dog."
         assert self.scorer.score(text, text) < 0.3
 
+    def test_python_path_handles_no_words_and_one_sided_entities(self, monkeypatch):
+        monkeypatch.setattr(lite_mod, "_RUST_LITE", False)
+        scorer = LiteScorer()
+
+        assert scorer.score("!!!", "???") == 0.5
+        assert 0.0 <= scorer.score("Alice approved deployment.", "approved") <= 1.0
+
+    def test_python_batch_path_uses_individual_scores(self, monkeypatch):
+        monkeypatch.setattr(lite_mod, "_RUST_LITE", False)
+        scorer = LiteScorer()
+
+        assert scorer.score_batch([("same words", "same words")]) == [
+            scorer.score("same words", "same words")
+        ]
+
+    def test_review_exposes_coherence_score_contract(self):
+        approved, score = self.scorer.review("The sky is blue.", "The sky is blue.")
+
+        assert approved is True
+        assert score.approved is True
+        assert score.h_logical == pytest.approx(score.h_factual)
+
 
 class TestLiteScorerIntegration:
     def test_coherence_scorer_lite_backend(self):

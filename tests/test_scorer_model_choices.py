@@ -12,6 +12,7 @@ from director_ai.core.config import DirectorConfig
 from director_ai.core.scoring import nli
 from director_ai.core.scoring.model_choices import (
     DEFAULT_SCORER_MODEL_ALIAS,
+    FINAL_VERTEX_REPORT_URI,
     list_scorer_model_choices,
     resolve_scorer_model_choice,
     scorer_model_choices_to_dict,
@@ -38,6 +39,36 @@ def test_scorer_choices_can_include_domain_only():
 def test_domain_only_choice_requires_opt_in():
     with pytest.raises(ValueError, match="domain-only"):
         resolve_scorer_model_choice("distilroberta-fast")
+
+
+def test_resolve_blank_and_model_id_paths():
+    default = resolve_scorer_model_choice(" ")
+    by_model = resolve_scorer_model_choice("microsoft/deberta-v3-small")
+
+    assert default.alias == DEFAULT_SCORER_MODEL_ALIAS
+    assert by_model.alias == "deberta-small"
+    assert by_model.requires_managed_artifact is True
+    assert by_model.runtime_model.startswith("gs://")
+    assert by_model.to_dict()["benchmark_report_uri"] == FINAL_VERTEX_REPORT_URI
+
+
+def test_resolve_domain_only_with_opt_in_and_custom_validation():
+    domain_only = resolve_scorer_model_choice(
+        "distilroberta-fast",
+        allow_domain_only=True,
+    )
+    custom = resolve_scorer_model_choice(
+        "customer/custom-model:v1",
+        allow_custom=True,
+    )
+
+    assert domain_only.is_domain_only is True
+    assert custom.status == "custom"
+    assert custom.requires_managed_artifact is False
+    assert custom.runtime_model == "customer/custom-model:v1"
+
+    with pytest.raises(ValueError, match="invalid custom scorer_model"):
+        resolve_scorer_model_choice("../bad", allow_custom=True)
 
 
 def test_config_scorer_alias_wires_managed_artifact():

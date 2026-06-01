@@ -84,6 +84,16 @@ def test_report_payload_excludes_raw_score_and_carries_privacy_metadata():
     assert payload["privacy"]["epsilon"] == 0.5
 
 
+def test_release_without_threshold_has_no_approval_decision():
+    releaser = DifferentialPrivacyScoreReleaser(epsilon=0.5, sensitivity=0.0)
+
+    release = releaser.release_score(0.3, label="analytics")
+
+    assert release.threshold is None
+    assert release.approved_at_threshold is None
+    assert release.to_dict()["approved_at_threshold"] is None
+
+
 def test_invalid_parameters_are_rejected():
     with pytest.raises(ValueError, match="epsilon"):
         DifferentialPrivacyScoreReleaser(epsilon=0.0)
@@ -95,3 +105,5 @@ def test_invalid_parameters_are_rejected():
         releaser.release_score(1.5, label="bad")
     with pytest.raises(ValueError, match="label"):
         releaser.release_score(0.5, label="")
+    with pytest.raises(ValueError, match="threshold"):
+        releaser.release_score(0.5, label="bad-threshold", threshold=float("nan"))
