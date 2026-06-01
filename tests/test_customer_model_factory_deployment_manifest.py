@@ -21,6 +21,7 @@ from director_ai.core.customer_model_factory.dataset_contract import (
     validate_customer_trace_dataset,
 )
 from director_ai.core.customer_model_factory.deployment_manifest import (
+    CustomerDeploymentManifest,
     DeploymentPolicy,
     build_deployment_manifest,
 )
@@ -232,6 +233,39 @@ def test_deployment_manifest_requires_audit_evidence_and_rollback_for_production
     }
 
 
+def test_deployment_manifest_reports_invalid_policy_and_package_fields():
+    bad_policy = DeploymentPolicy(
+        threshold=0.40,
+        abstention_threshold=1.2,
+        escalation_threshold=-0.1,
+        require_citations=True,
+        audit_log_uri="gs://customer-artifacts/customer-alpha/audit/decision-log.jsonl",
+        evidence_pack_uri="gs://customer-artifacts/customer-alpha/evidence/pack-20260518",
+        rollback_package_uri="",
+        retention_days=0,
+        telemetry_mode="external_vendor",
+    )
+
+    manifest = build_deployment_manifest(
+        deployment_id=" ",
+        selection_report=_selection(),
+        policy=bad_policy,
+        environment="sandbox",
+        package_uri=" ",
+    )
+
+    assert manifest.ready is False
+    assert {finding["code"] for finding in manifest.findings} >= {
+        "deployment_id_missing",
+        "environment_unknown",
+        "package_uri_missing",
+        "threshold_out_of_range",
+        "threshold_order_invalid",
+        "retention_invalid",
+        "telemetry_mode_unknown",
+    }
+
+
 def test_deployment_manifest_serialises_and_writes_stable_json(tmp_path: Path):
     manifest = build_deployment_manifest(
         deployment_id="customer-alpha-prod-20260518",
@@ -247,6 +281,20 @@ def test_deployment_manifest_serialises_and_writes_stable_json(tmp_path: Path):
     assert payload == manifest.to_dict()
     assert payload["schema_version"] == "1.0.0"
     assert payload["policy"]["telemetry_mode"] == "customer_controlled"
+
+
+def test_deployment_manifest_dataclass_can_roundtrip_from_dict():
+    manifest = build_deployment_manifest(
+        deployment_id="customer-alpha-prod-20260518",
+        selection_report=_selection(),
+        policy=_policy(),
+        environment="production",
+        package_uri="gs://customer-artifacts/customer-alpha/deployments/customer-alpha-prod-20260518.json",
+    )
+
+    restored = CustomerDeploymentManifest.from_dict(manifest.to_dict())
+
+    assert restored == manifest
 
 
 def test_deployment_manifest_schema_is_machine_readable():

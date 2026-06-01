@@ -229,6 +229,41 @@ def test_evidence_pack_blocks_unsanctioned_external_callbacks():
     )
 
 
+def test_evidence_pack_reports_package_classification_and_uri_findings():
+    manifest = build_customer_evidence_pack(
+        package_id=" ",
+        deployment_manifest=_deployment(),
+        regulation_mapping=_mapping(),
+        classification="public",
+        export_uri=" ",
+    )
+
+    assert manifest.ready is False
+    assert {finding["code"] for finding in manifest.findings} >= {
+        "package_id_missing",
+        "classification_unknown",
+        "export_uri_missing",
+        "evidence_uri_mismatch",
+        "regulation_mapping_uri_mismatch",
+    }
+
+
+def test_evidence_pack_allows_customer_approved_callback_endpoints():
+    manifest = build_customer_evidence_pack(
+        package_id="evidence-customer-alpha-callback-approved",
+        deployment_manifest=_deployment(),
+        regulation_mapping=_mapping(),
+        classification="confidential",
+        export_uri="gs://customer-artifacts/customer-alpha/evidence/pack-20260518",
+        external_callbacks_allowed=True,
+        callback_endpoints=("https://customer.example/evidence",),
+    )
+
+    assert manifest.ready is True
+    assert manifest.external_callbacks_allowed is True
+    assert manifest.callback_endpoints == ("https://customer.example/evidence",)
+
+
 def test_evidence_pack_serialises_and_round_trips(tmp_path: Path):
     manifest = build_customer_evidence_pack(
         package_id="evidence-customer-alpha-20260518",

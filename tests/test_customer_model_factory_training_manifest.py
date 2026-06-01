@@ -160,6 +160,45 @@ def test_training_manifest_requires_lane_compatible_output_uri():
     )
 
 
+def test_training_manifest_reports_missing_package_base_hparams_and_objective():
+    manifest = build_training_manifest(
+        package_id=" ",
+        dataset_report=_ready_report(),
+        lane=TrainingLane.LOCAL_PILOT,
+        base_model_id=" ",
+        base_model_revision="",
+        output_uri="/customer/models/local-pilot",
+        hyperparameters={},
+        objective_profile="unsafe_speed",
+    )
+
+    assert manifest.ready is False
+    assert manifest.requires_private_execution is False
+    assert {finding["code"] for finding in manifest.findings} >= {
+        "package_id_missing",
+        "base_model_missing",
+        "base_model_not_immutable",
+        "hyperparameters_missing",
+        "objective_profile_unknown",
+    }
+
+
+def test_training_manifest_accepts_s3_output_for_customer_cloud_lane():
+    manifest = build_training_manifest(
+        package_id="cmf-customer-alpha-s3",
+        dataset_report=_ready_report(),
+        lane=TrainingLane.CUSTOMER_CLOUD,
+        base_model_id="microsoft/deberta-v3-small",
+        base_model_revision="abcdef1234567890abcdef1234567890abcdef12",
+        output_uri="s3://customer-artifacts/customer-alpha/models/cmf",
+        hyperparameters={"epochs": 2},
+        objective_profile="balanced",
+    )
+
+    assert manifest.ready is True
+    assert manifest.requires_private_execution is True
+
+
 def test_training_manifest_serialises_and_writes_stable_json(tmp_path: Path):
     manifest = build_training_manifest(
         package_id="cmf-customer-alpha-20260518",
