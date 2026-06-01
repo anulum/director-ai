@@ -109,6 +109,19 @@ class TestRegexRuleExtractor:
         rules = e.extract("Must not share credentials.")
         assert all(r.source == "legal-2026.md" for r in rules)
 
+    def test_duplicate_phrases_in_one_document_emit_one_rule(self):
+        rules = RegexRuleExtractor().extract(
+            "Must not share credentials. Must not share credentials."
+        )
+
+        forbidden = [rule for rule in rules if rule.kind == "forbidden"]
+        assert len(forbidden) == 1
+
+    def test_punctuation_only_forbidden_match_is_ignored(self):
+        rules = RegexRuleExtractor().extract("Must not ,;;.")
+
+        assert [rule for rule in rules if rule.kind == "forbidden"] == []
+
 
 # --- PolicyCompiler --------------------------------------------------
 
