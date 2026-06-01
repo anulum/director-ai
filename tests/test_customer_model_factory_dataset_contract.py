@@ -11,6 +11,9 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+import pytest
+
+import director_ai.core.customer_model_factory.dataset_contract as contract_mod
 from director_ai.core.customer_model_factory.dataset_contract import (
     CustomerWorkspace,
     validate_customer_trace_dataset,
@@ -135,6 +138,32 @@ def test_dataset_blocks_exact_cross_split_leakage():
     assert any(finding.code == "cross_split_duplicate" for finding in report.findings)
 
 
+def test_dataset_reports_split_severity_decision_and_reference_contract_errors():
+    row = _row("trace-001", "holdout", severity="urgent")
+    row["expected_decision"] = "ship"
+    row["source_refs"] = []
+    row["policy_refs"] = [" "]
+
+    report = validate_customer_trace_dataset([row], _workspace())
+
+    assert report.ready is False
+    assert {finding.code for finding in report.findings} >= {
+        "split_not_allowed",
+        "severity_not_allowed",
+        "decision_not_allowed",
+        "invalid_reference_list",
+    }
+
+
+def test_dataset_warns_when_high_risk_row_is_labelled_approved():
+    row = _row("trace-001", "train", severity="critical")
+    row["expected_decision"] = "approve"
+
+    report = validate_customer_trace_dataset([row], _workspace())
+
+    assert any(finding.code == "high_risk_approve_label" for finding in report.findings)
+
+
 def test_sector_profile_requires_sector_metadata_for_high_risk_rows():
     high_risk = _row("trace-001", "eval", severity="critical")
     high_risk["metadata"] = {"sector_class": "customer_policy"}
@@ -161,6 +190,29 @@ def test_unredacted_secret_blocks_readiness():
 
     assert report.ready is False
     assert any(finding.code == "unredacted_secret" for finding in report.findings)
+
+
+def test_sector_profile_requires_metadata_object_before_sector_validation():
+    row = _row("trace-001", "train")
+    row["metadata"] = "not-a-dict"
+
+    report = validate_customer_trace_dataset(
+        [row],
+        _workspace(),
+        vertical_profile="regulated-sector",
+    )
+
+    assert report.ready is False
+    assert {
+        finding.field
+        for finding in report.findings
+        if finding.code == "sector_metadata_missing"
+    } >= {
+        "metadata.sector_class",
+        "metadata.knowledge_class",
+        "metadata.requires_citation",
+        "metadata.jurisdiction",
+    }
 
 
 def test_report_serialises_to_stable_manifest_shape():
@@ -216,3 +268,36 @@ def test_customer_trace_schema_is_machine_readable():
         "abstain",
         "escalate",
     ]
+
+
+def test_dataset_sum_uses_python_when_rust_disabled(monkeypatch):
+    monkeypatch.setattr(contract_mod, "_RUST_DATASET_CONTRACT", False)
+
+    assert contract_mod._sum_int([1, 2, 3]) == 6
+
+
+def test_dataset_sum_uses_rust_kernel_when_available(monkeypatch):
+    monkeypatch.setattr(contract_mod, "_RUST_DATASET_CONTRACT", True)
+    calls = {"count": 0}
+
+    def _sum(values: list[int]) -> int:
+        calls["count"] += 1
+        return sum(values)
+
+    monkeypatch.setattr(contract_mod, "rust_sum_i64", _sum, raising=True)
+
+    assert contract_mod._sum_int([2, 3]) == 5
+    assert calls["count"] == 1
+
+
+def test_dataset_sum_propagates_mandatory_rust_failure(monkeypatch):
+    monkeypatch.setattr(contract_mod, "_RUST_DATASET_CONTRACT", True)
+    monkeypatch.setattr(
+        contract_mod,
+        "rust_sum_i64",
+        lambda _values: (_ for _ in ()).throw(TypeError("ffi signature mismatch")),
+        raising=True,
+    )
+
+    with pytest.raises(TypeError, match="ffi signature mismatch"):
+        contract_mod._sum_int([1])

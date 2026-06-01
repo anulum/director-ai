@@ -94,6 +94,43 @@ def test_sector_metadata_validation_is_generic_and_evidence_oriented():
     }
 
 
+def test_sector_metadata_accepts_complete_citation_numeric_and_escalation_controls():
+    findings = validate_sector_trace_metadata(
+        _metadata(
+            requires_numeric_evidence=True,
+            numeric_evidence_refs=["metric://customer-alpha/error-rate"],
+        ),
+        trace_id="trace-001",
+        expected_decision="escalate",
+    )
+
+    assert findings == ()
+
+
+def test_sector_metadata_reports_each_missing_required_field():
+    findings = validate_sector_trace_metadata(
+        _metadata(
+            sector_class=" ",
+            knowledge_class=None,
+            jurisdiction="",
+            requires_citation=None,
+        ),
+        trace_id="trace-001",
+        expected_decision="escalate",
+    )
+
+    assert {
+        finding.field
+        for finding in findings
+        if finding.code == "sector_metadata_missing"
+    } == {
+        "metadata.jurisdiction",
+        "metadata.knowledge_class",
+        "metadata.requires_citation",
+        "metadata.sector_class",
+    }
+
+
 def test_sector_extension_findings_are_wired_into_dataset_validation():
     rows = [
         _row("trace-001", "train", _metadata()),
@@ -135,6 +172,23 @@ def test_sector_evidence_mapping_is_machine_readable():
     assert "dataset_lineage" in payload["control_evidence"]
     assert "human_escalation" in payload["control_evidence"]
     assert len(payload["mapping_hash"]) == 64
+
+
+def test_sector_evidence_mapping_round_trips_json_safe_payload():
+    mapping = build_sector_evidence_mapping(
+        sector_id="regulated-sector",
+        jurisdiction="customer-controlled",
+        evidence_pack_uri="gs://customer/evidence.json",
+        frameworks=("SOC2", "ISO27001", "SOC2"),
+        control_evidence={"z_control": ("field_b",), "a_control": ("field_a",)},
+    )
+    payload = mapping.to_dict()
+
+    rebuilt = type(mapping).from_dict(payload)
+
+    assert payload["frameworks"] == ["ISO27001", "SOC2"]
+    assert list(payload["control_evidence"]) == ["a_control", "z_control"]
+    assert rebuilt == mapping
 
 
 def test_sector_metadata_schema_replaces_public_vertical_schema():

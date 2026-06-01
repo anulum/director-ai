@@ -10,6 +10,7 @@ import pytest
 
 import director_ai.core.calibration.adaptive_threshold as adaptive_mod
 from director_ai.core import (
+    AdaptiveThresholdArm,
     AdaptiveThresholdLearner,
     ThresholdFeedback,
 )
@@ -43,6 +44,39 @@ def test_updates_all_threshold_arms_from_labelled_feedback():
     assert learner.arm(0.5).pulls == 8
     assert learner.arm(0.5).successes == 8
     assert learner.arm(0.7).false_negatives == 1
+
+
+def test_threshold_feedback_rejects_invalid_weight():
+    with pytest.raises(ValueError, match="weight"):
+        ThresholdFeedback(score=0.5, human_approved=True, weight=0.0)
+
+
+def test_adaptive_arm_rejects_invalid_priors_and_reports_empty_metrics():
+    with pytest.raises(ValueError, match="Beta priors"):
+        AdaptiveThresholdArm(threshold=0.5, alpha_prior=0.0)
+
+    arm = AdaptiveThresholdArm(threshold=0.5)
+
+    assert arm.accuracy == 0.0
+    assert arm.false_positive_rate == 0.0
+    assert arm.false_negative_rate == 0.0
+
+
+def test_adaptive_arm_observe_records_all_confusion_outcomes():
+    arm = AdaptiveThresholdArm(threshold=0.5)
+
+    arm.observe(ThresholdFeedback(score=0.9, human_approved=True))
+    arm.observe(ThresholdFeedback(score=0.9, human_approved=False))
+    arm.observe(ThresholdFeedback(score=0.1, human_approved=True))
+    arm.observe(ThresholdFeedback(score=0.1, human_approved=False))
+
+    assert arm.true_positives == 1
+    assert arm.false_positives == 1
+    assert arm.false_negatives == 1
+    assert arm.true_negatives == 1
+    assert arm.successes == 2
+    assert arm.false_positive_rate == pytest.approx(0.5)
+    assert arm.false_negative_rate == pytest.approx(0.5)
 
 
 def test_recommendation_requires_human_approval_and_has_rollback_overlay():
@@ -84,6 +118,30 @@ def test_returns_noop_when_data_is_insufficient():
     assert recommendation.requires_human_approval is True
 
 
+def test_no_candidate_satisfies_safety_constraints():
+    learner = AdaptiveThresholdLearner(
+        candidate_thresholds=[0.4, 0.8],
+        current_threshold=0.4,
+        min_samples=4,
+        max_false_positive_rate=0.0,
+        max_false_negative_rate=0.0,
+        random_seed=5,
+    )
+    learner.observe_batch(
+        [
+            ThresholdFeedback(score=0.9, human_approved=False),
+            ThresholdFeedback(score=0.85, human_approved=False),
+            ThresholdFeedback(score=0.2, human_approved=True),
+            ThresholdFeedback(score=0.25, human_approved=True),
+        ]
+    )
+
+    recommendation = learner.recommend()
+
+    assert recommendation.recommended_threshold is None
+    assert recommendation.reason == "no_candidate_satisfies_safety_constraints"
+
+
 def test_safety_constraints_block_high_false_negative_threshold():
     learner = AdaptiveThresholdLearner(
         candidate_thresholds=[0.4, 0.8],
@@ -110,12 +168,39 @@ def test_rejects_invalid_candidates_and_feedback():
         AdaptiveThresholdLearner(candidate_thresholds=[0.5, 0.5], current_threshold=0.5)
     with pytest.raises(ValueError, match="current_threshold"):
         AdaptiveThresholdLearner(candidate_thresholds=[0.4], current_threshold=1.5)
+    with pytest.raises(ValueError, match="min_samples"):
+        AdaptiveThresholdLearner(
+            candidate_thresholds=[0.4],
+            current_threshold=0.4,
+            min_samples=0,
+        )
 
     learner = AdaptiveThresholdLearner(
         candidate_thresholds=[0.4], current_threshold=0.4
     )
     with pytest.raises(ValueError, match="score"):
         learner.observe(score=float("nan"), human_approved=True)
+    with pytest.raises(KeyError, match="unknown threshold arm"):
+        learner.arm(0.6)
+
+
+def test_report_and_recommendation_serialise_stable_shapes():
+    learner = AdaptiveThresholdLearner(
+        candidate_thresholds=[0.4, 0.6],
+        current_threshold=0.5,
+        min_samples=2,
+        random_seed=13,
+    )
+    report = learner.observe_batch(_feedback()[:2])
+    recommendation = learner.recommend()
+
+    report_payload = report.to_dict()
+    overlay = recommendation.to_profile_overlay()
+
+    assert report_payload["current_threshold"] == 0.5
+    assert len(report_payload["arms"]) == 2
+    assert overlay["profile"] == "adaptive"
+    assert overlay["extra"]["adaptive_expected_lift"]
 
 
 def test_rust_posterior_kernel_is_used_when_available(monkeypatch):
