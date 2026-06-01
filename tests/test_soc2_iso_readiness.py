@@ -88,6 +88,40 @@ def test_default_catalogue_covers_product_readiness_surfaces() -> None:
     )
 
 
+def test_readiness_markdown_renders_summary_and_control_rows() -> None:
+    report = build_soc2_iso_readiness_report(
+        controls=[
+            Soc2IsoControl(
+                control_id="SEC-02",
+                title="Credential rotation",
+                soc2_criteria=("security",),
+                iso27001_refs=("A.5.17",),
+                status=ReadinessStatus.FAIL,
+                evidence_refs=("SECURITY.md#rotation",),
+            ),
+            Soc2IsoControl(
+                control_id="NA-01",
+                title="Legacy data centre controls",
+                soc2_criteria=("availability",),
+                iso27001_refs=("A.5.30",),
+                status=ReadinessStatus.NOT_APPLICABLE,
+                evidence_refs=("docs/PRODUCTION_CHECKLIST.md",),
+            ),
+        ],
+        generated_at="2026-05-17T13:00:00Z",
+    )
+
+    summary = report.summary()
+    markdown = report.to_markdown()
+
+    assert summary["risk_level"] == "critical"
+    assert summary["readiness_score"] == 0.0
+    assert "# SOC 2 / ISO 27001 Readiness" in markdown
+    assert "- Failures: 1" in markdown
+    assert "| SEC-02 | Credential rotation | failing | security | A.5.17 |" in markdown
+    assert "| NA-01 | Legacy data centre controls | not_applicable |" in markdown
+
+
 def test_report_is_tenant_safe_and_does_not_serialize_raw_evidence() -> None:
     report = build_soc2_iso_readiness_report(
         controls=[
@@ -114,6 +148,7 @@ def test_report_is_tenant_safe_and_does_not_serialize_raw_evidence() -> None:
     ("kwargs", "message"),
     [
         ({"control_id": "bad id"}, "control_id"),
+        ({"title": "  "}, "title"),
         ({"soc2_criteria": ("unknown",)}, "soc2"),
         ({"iso27001_refs": ("5.15",)}, "iso27001"),
         ({"evidence_refs": ()}, "evidence_refs"),
