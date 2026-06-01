@@ -906,9 +906,7 @@ def test_sentence_transformer_backend_add_query_count_and_tenant_filter():
     backend.add("b", "beta text", {"tenant_id": "tenant-b"})
 
     assert backend.count() == 2
-    assert [row["id"] for row in backend.query("alpha query", n_results=2)] == [
-        "a"
-    ]
+    assert [row["id"] for row in backend.query("alpha query", n_results=2)] == ["a"]
     assert backend.query("alpha query", tenant_id="tenant-b") == []
     assert backend.query("alpha query", tenant_id="missing") == []
     assert backend.query("negative query") == []

@@ -74,9 +74,7 @@ class _Registry:
 
     def list_for_tenant(self, tenant_id: str) -> list[_Record]:
         return [
-            record
-            for record in self.records.values()
-            if record.tenant_id == tenant_id
+            record for record in self.records.values() if record.tenant_id == tenant_id
         ]
 
     def get(self, doc_id: str, tenant_id: str) -> _Record | None:
@@ -248,7 +246,9 @@ def test_source_chunking_content_length_and_upload_type_validation() -> None:
 
     assert _file_extension("README") == ""
     assert _file_extension("Policy.PDF") == "pdf"
-    assert _validate_upload_type("policy.pdf", "application/pdf; charset=binary") == "pdf"
+    assert (
+        _validate_upload_type("policy.pdf", "application/pdf; charset=binary") == "pdf"
+    )
     assert _validate_upload_type("policy.md", "application/octet-stream") == "md"
     with pytest.raises(HTTPException) as excinfo:
         _validate_upload_type("policy.exe", "application/octet-stream")

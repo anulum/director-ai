@@ -380,14 +380,18 @@ async def test_proxy_models_forwards_authorization_header() -> None:
 
     transport = ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        resp = await client.get("/v1/models", headers={"Authorization": "Bearer upstream"})
+        resp = await client.get(
+            "/v1/models", headers={"Authorization": "Bearer upstream"}
+        )
 
     assert resp.status_code == 200
     assert resp.json()["data"][0]["id"] == "model-a"
 
 
 @pytest.mark.asyncio
-async def test_proxy_models_uses_default_async_client_when_no_transport(monkeypatch) -> None:
+async def test_proxy_models_uses_default_async_client_when_no_transport(
+    monkeypatch,
+) -> None:
     import httpx as httpx_module
 
     original_async_client = httpx_module.AsyncClient
@@ -624,7 +628,9 @@ async def test_proxy_stream_done_without_text_forwards_done(monkeypatch) -> None
 
 
 @pytest.mark.asyncio
-async def test_proxy_stream_empty_delta_is_forwarded_without_scoring(monkeypatch) -> None:
+async def test_proxy_stream_empty_delta_is_forwarded_without_scoring(
+    monkeypatch,
+) -> None:
     import director_ai.proxy as proxy
 
     scorer = _FixedScorer(approved=True, score=0.9)

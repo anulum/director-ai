@@ -440,7 +440,9 @@ class TestDatasetAndMetrics:
             pass
 
         monkeypatch.setitem(sys.modules, "torch", _Torch)
-        monkeypatch.setitem(sys.modules, "transformers", SimpleNamespace(Trainer=_Trainer))
+        monkeypatch.setitem(
+            sys.modules, "transformers", SimpleNamespace(Trainer=_Trainer)
+        )
         trainer_cls = _make_weighted_trainer_class([0.5, 2.0])
 
         class _Model:
@@ -588,9 +590,21 @@ class TestFinetuneNli:
             "resolve_model_revision",
             lambda model, revision: "resolved-revision",
         )
-        monkeypatch.setattr(nli_mod, "clear_model_cache", lambda: recorder.setdefault("cache_cleared", True))
-        monkeypatch.setattr(nli_mod, "export_onnx", lambda src, dst: recorder.setdefault("onnx", (src, dst)))
-        monkeypatch.setattr(device_mod, "release_torch_cuda", lambda: recorder.setdefault("released_cuda", True))
+        monkeypatch.setattr(
+            nli_mod,
+            "clear_model_cache",
+            lambda: recorder.setdefault("cache_cleared", True),
+        )
+        monkeypatch.setattr(
+            nli_mod,
+            "export_onnx",
+            lambda src, dst: recorder.setdefault("onnx", (src, dst)),
+        )
+        monkeypatch.setattr(
+            device_mod,
+            "release_torch_cuda",
+            lambda: recorder.setdefault("released_cuda", True),
+        )
         monkeypatch.setattr(
             finetune_mod,
             "_prepare_dataset",
@@ -654,12 +668,17 @@ class TestFinetuneNli:
         assert result.onnx_path == str(tmp_path / "model" / "onnx")
         assert result.mixed_general_samples == 1
         assert recorder["cache_cleared"] is True
-        assert recorder["tokenizer_from_pretrained"][1]["revision"] == "resolved-revision"
+        assert (
+            recorder["tokenizer_from_pretrained"][1]["revision"] == "resolved-revision"
+        )
         assert recorder["model_from_pretrained"][1]["num_labels"] == 2
         assert recorder["training_args"]["eval_strategy"] == "steps"
         assert recorder["training_args"]["load_best_model_at_end"] is True
         assert recorder["early_stopping"] == {"early_stopping_patience": 3}
-        assert recorder["trainer_kwargs"]["compute_metrics"] is finetune_mod._compute_metrics
+        assert (
+            recorder["trainer_kwargs"]["compute_metrics"]
+            is finetune_mod._compute_metrics
+        )
         assert recorder["trainer_kwargs"]["callbacks"]
         assert recorder["model_saved"] == cfg.output_dir
         assert recorder["tokenizer_saved"] == cfg.output_dir

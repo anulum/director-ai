@@ -175,7 +175,9 @@ class TestDocumentIngestionPipeline:
                 source="policy-v2.md",
             )
 
-        assert pipeline.registry.get("policy", "default").chunk_ids == original.chunk_ids
+        assert (
+            pipeline.registry.get("policy", "default").chunk_ids == original.chunk_ids
+        )
         assert sorted(store.facts) == original.chunk_ids
         assert any(":rev:" in chunk_id for chunk_id in store.backend.deleted)
 

@@ -870,33 +870,50 @@ class TestSdkGuardCoverageEdges:
             "[{'type': 'image'}]"
         )
         assert _openai_response_text(SimpleNamespace(choices=[])) == ""
-        assert _openai_response_text(
-            SimpleNamespace(
-                choices=[SimpleNamespace(message=SimpleNamespace(content=123))]
+        assert (
+            _openai_response_text(
+                SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content=123))]
+                )
             )
-        ) == ""
+            == ""
+        )
         assert _anthropic_response_text(SimpleNamespace(content=[])) == ""
-        assert _anthropic_response_text(
-            SimpleNamespace(content=[SimpleNamespace(text=123)])
-        ) == ""
+        assert (
+            _anthropic_response_text(
+                SimpleNamespace(content=[SimpleNamespace(text=123)])
+            )
+            == ""
+        )
         assert _extract_anthropic_event_text(SimpleNamespace(text="direct")) == "direct"
-        assert _extract_anthropic_event_text(
-            SimpleNamespace(delta={"text": "delta"})
-        ) == "delta"
+        assert (
+            _extract_anthropic_event_text(SimpleNamespace(delta={"text": "delta"}))
+            == "delta"
+        )
         assert _extract_anthropic_event_text(SimpleNamespace(delta={})) is None
         assert _mistral_response_text(SimpleNamespace(choices=[])) == ""
-        assert _mistral_response_text(
-            SimpleNamespace(
-                choices=[
-                    SimpleNamespace(
-                        message=SimpleNamespace(content=["a", {"text": "b"}, object()])
-                    )
-                ]
+        assert (
+            _mistral_response_text(
+                SimpleNamespace(
+                    choices=[
+                        SimpleNamespace(
+                            message=SimpleNamespace(
+                                content=["a", {"text": "b"}, object()]
+                            )
+                        )
+                    ]
+                )
             )
-        ) == "ab"
-        assert _mistral_response_text(
-            SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content=3))])
-        ) == ""
+            == "ab"
+        )
+        assert (
+            _mistral_response_text(
+                SimpleNamespace(
+                    choices=[SimpleNamespace(message=SimpleNamespace(content=3))]
+                )
+            )
+            == ""
+        )
         assert _pydantic_ai_output_text(SimpleNamespace(output=b"hi\xff")) == "hi�"
         assert _pydantic_ai_output_text(SimpleNamespace(output={"b": 1, "a": 2})) == (
             '{"a": 2, "b": 1}'
@@ -948,7 +965,9 @@ class TestSdkGuardCoverageEdges:
         openai_response = SimpleNamespace(
             choices=[SimpleNamespace(message=SimpleNamespace(content="answer"))]
         )
-        openai_original = SimpleNamespace(create=AsyncMock(return_value=openai_response))
+        openai_original = SimpleNamespace(
+            create=AsyncMock(return_value=openai_response)
+        )
         openai_proxy = _OpenAICompletionsProxy(openai_original, _FakeScorer(), "raise")
         result = await openai_proxy.create(messages=[{"role": "user", "content": "q"}])
         assert result is openai_response
@@ -979,7 +998,9 @@ class TestSdkGuardCoverageEdges:
             _FakeScorer(),
             "raise",
         )
-        result = await anthropic_proxy.create(messages=[{"role": "user", "content": "q"}])
+        result = await anthropic_proxy.create(
+            messages=[{"role": "user", "content": "q"}]
+        )
         assert result is anthropic_response
 
         anthropic_original.create = AsyncMock(
@@ -1014,14 +1035,17 @@ class TestSdkGuardCoverageEdges:
         ]
         scorer = _FakeScorer()
         assert [
-            chunk async for chunk in _GuardedOpenAIStream(
+            chunk
+            async for chunk in _GuardedOpenAIStream(
                 _AsyncIterable(openai_chunks),
                 scorer,
                 "raise",
                 "prompt",
             )
         ] == openai_chunks
-        assert scorer.calls[-1][1] == "".join(str(i) for i in range(STREAM_CHECK_INTERVAL))
+        assert scorer.calls[-1][1] == "".join(
+            str(i) for i in range(STREAM_CHECK_INTERVAL)
+        )
 
         bedrock_events = [
             {"contentBlockDelta": {"delta": {"text": str(i)}}}
@@ -1029,7 +1053,8 @@ class TestSdkGuardCoverageEdges:
         ]
         scorer = _FakeScorer()
         assert [
-            event async for event in _GuardedBedrockStream(
+            event
+            async for event in _GuardedBedrockStream(
                 {"stream": _AsyncIterable(bedrock_events)},
                 scorer,
                 "raise",
@@ -1038,10 +1063,13 @@ class TestSdkGuardCoverageEdges:
         ] == bedrock_events
         assert scorer.calls
 
-        gemini_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        gemini_events = [
+            SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)
+        ]
         scorer = _FakeScorer()
         assert [
-            event async for event in _GuardedGeminiStream(
+            event
+            async for event in _GuardedGeminiStream(
                 _AsyncIterable(gemini_events),
                 scorer,
                 "raise",
@@ -1050,10 +1078,13 @@ class TestSdkGuardCoverageEdges:
         ] == gemini_events
         assert scorer.calls
 
-        cohere_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        cohere_events = [
+            SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)
+        ]
         scorer = _FakeScorer()
         assert [
-            event async for event in _GuardedCohereStream(
+            event
+            async for event in _GuardedCohereStream(
                 _AsyncIterable(cohere_events),
                 scorer,
                 "raise",
@@ -1071,9 +1102,7 @@ class TestSdkGuardCoverageEdges:
 
         bedrock_client = SimpleNamespace(
             converse=MagicMock(
-                return_value={
-                    "output": {"message": {"content": [{"text": "answer"}]}}
-                }
+                return_value={"output": {"message": {"content": [{"text": "answer"}]}}}
             ),
             converse_stream=MagicMock(
                 return_value={
@@ -1087,7 +1116,9 @@ class TestSdkGuardCoverageEdges:
         )
         bedrock = _BedrockProxy(bedrock_client, _FakeScorer(), "raise")
         assert bedrock.converse(messages=[{"role": "user", "content": "q"}])
-        assert list(bedrock.converse_stream(messages=[{"role": "user", "content": "q"}]))
+        assert list(
+            bedrock.converse_stream(messages=[{"role": "user", "content": "q"}])
+        )
         assert bedrock.extra == "bedrock-extra"
 
         gemini_client = SimpleNamespace(
@@ -1118,9 +1149,7 @@ class TestSdkGuardCoverageEdges:
     def test_guard_selects_bedrock_gemini_and_cohere_shapes(self):
         bedrock_client = SimpleNamespace(
             converse=MagicMock(
-                return_value={
-                    "output": {"message": {"content": [{"text": "answer"}]}}
-                }
+                return_value={"output": {"message": {"content": [{"text": "answer"}]}}}
             ),
             converse_stream=MagicMock(return_value={"stream": []}),
             invoke_model=MagicMock(),
@@ -1169,7 +1198,9 @@ class TestSdkGuardCoverageEdges:
             def review(self, prompt, response):
                 return True, _passing_score()
 
-        monkeypatch.setattr("director_ai.integrations.sdk_guard.CoherenceScorer", _Scorer)
+        monkeypatch.setattr(
+            "director_ai.integrations.sdk_guard.CoherenceScorer", _Scorer
+        )
 
         guarded = guard(_CohereClient(), use_nli=False)
 
@@ -1233,10 +1264,20 @@ class TestSdkGuardCoverageEdges:
             for i in range(STREAM_CHECK_INTERVAL)
         ]
         with pytest.raises(HallucinationError):
-            list(_GuardedOpenAIStream(openai_chunks, _FakeScorer(approved=False), "raise", "p"))
-        assert list(_GuardedOpenAIStream([SimpleNamespace(choices=[])], _FakeScorer(), "raise", "p"))
+            list(
+                _GuardedOpenAIStream(
+                    openai_chunks, _FakeScorer(approved=False), "raise", "p"
+                )
+            )
+        assert list(
+            _GuardedOpenAIStream(
+                [SimpleNamespace(choices=[])], _FakeScorer(), "raise", "p"
+            )
+        )
 
-        anthropic_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        anthropic_events = [
+            SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)
+        ]
         with pytest.raises(HallucinationError):
             list(
                 _GuardedAnthropicStream(
@@ -1246,7 +1287,11 @@ class TestSdkGuardCoverageEdges:
                     "p",
                 )
             )
-        assert list(_GuardedAnthropicStream([SimpleNamespace(delta={})], _FakeScorer(), "raise", "p"))
+        assert list(
+            _GuardedAnthropicStream(
+                [SimpleNamespace(delta={})], _FakeScorer(), "raise", "p"
+            )
+        )
 
         bedrock_events = [
             {"contentBlockDelta": {"delta": {"text": str(i)}}}
@@ -1261,9 +1306,13 @@ class TestSdkGuardCoverageEdges:
                     "p",
                 )
             )
-        assert list(_GuardedBedrockStream({"stream": [{}]}, _FakeScorer(), "raise", "p"))
+        assert list(
+            _GuardedBedrockStream({"stream": [{}]}, _FakeScorer(), "raise", "p")
+        )
 
-        gemini_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        gemini_events = [
+            SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)
+        ]
         with pytest.raises(HallucinationError):
             list(
                 _GuardedGeminiStream(
@@ -1273,9 +1322,15 @@ class TestSdkGuardCoverageEdges:
                     "p",
                 )
             )
-        assert list(_GuardedGeminiStream([SimpleNamespace(text="")], _FakeScorer(), "raise", "p"))
+        assert list(
+            _GuardedGeminiStream(
+                [SimpleNamespace(text="")], _FakeScorer(), "raise", "p"
+            )
+        )
 
-        cohere_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        cohere_events = [
+            SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)
+        ]
         with pytest.raises(HallucinationError):
             list(
                 _GuardedCohereStream(
@@ -1285,7 +1340,11 @@ class TestSdkGuardCoverageEdges:
                     "p",
                 )
             )
-        assert list(_GuardedCohereStream([SimpleNamespace(text="")], _FakeScorer(), "raise", "p"))
+        assert list(
+            _GuardedCohereStream(
+                [SimpleNamespace(text="")], _FakeScorer(), "raise", "p"
+            )
+        )
 
     def test_sync_stream_periodic_approved_and_final_paths(self):
         from director_ai.integrations.sdk_guard import (
@@ -1320,12 +1379,16 @@ class TestSdkGuardCoverageEdges:
         list(_GuardedBedrockStream({"stream": bedrock_events}, scorer, "raise", "p"))
         assert scorer.calls
 
-        gemini_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        gemini_events = [
+            SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)
+        ]
         scorer = _FakeScorer()
         list(_GuardedGeminiStream(gemini_events, scorer, "raise", "p"))
         assert scorer.calls
 
-        cohere_events = [SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)]
+        cohere_events = [
+            SimpleNamespace(text=str(i)) for i in range(STREAM_CHECK_INTERVAL)
+        ]
         scorer = _FakeScorer()
         list(_GuardedCohereStream(cohere_events, scorer, "raise", "p"))
         assert scorer.calls
@@ -1334,9 +1397,10 @@ class TestSdkGuardCoverageEdges:
     async def test_anthropic_sync_stream_and_async_periodic_paths(self):
         import director_ai.integrations.sdk_guard as sdk_guard
 
-        assert sdk_guard._extract_anthropic_event_text(
-            SimpleNamespace(delta="bad")
-        ) is None
+        assert (
+            sdk_guard._extract_anthropic_event_text(SimpleNamespace(delta="bad"))
+            is None
+        )
 
         original = SimpleNamespace(
             create=MagicMock(return_value=[SimpleNamespace(text="tok")])
@@ -1348,11 +1412,11 @@ class TestSdkGuardCoverageEdges:
 
         scorer = _FakeScorer()
         events = [
-            SimpleNamespace(text=str(i))
-            for i in range(sdk_guard.STREAM_CHECK_INTERVAL)
+            SimpleNamespace(text=str(i)) for i in range(sdk_guard.STREAM_CHECK_INTERVAL)
         ]
         assert [
-            event async for event in sdk_guard._GuardedAnthropicStream(
+            event
+            async for event in sdk_guard._GuardedAnthropicStream(
                 _AsyncIterable(events),
                 scorer,
                 "raise",
@@ -1372,7 +1436,8 @@ class TestSdkGuardCoverageEdges:
         )
 
         assert [
-            chunk async for chunk in _GuardedOpenAIStream(
+            chunk
+            async for chunk in _GuardedOpenAIStream(
                 _AsyncIterable([SimpleNamespace(choices=[])]),
                 _FakeScorer(),
                 "raise",
@@ -1380,7 +1445,8 @@ class TestSdkGuardCoverageEdges:
             )
         ]
         assert [
-            event async for event in _GuardedAnthropicStream(
+            event
+            async for event in _GuardedAnthropicStream(
                 _AsyncIterable([SimpleNamespace(delta={})]),
                 _FakeScorer(),
                 "raise",
@@ -1388,7 +1454,8 @@ class TestSdkGuardCoverageEdges:
             )
         ]
         assert [
-            event async for event in _GuardedBedrockStream(
+            event
+            async for event in _GuardedBedrockStream(
                 {"stream": _AsyncIterable([{}])},
                 _FakeScorer(),
                 "raise",
@@ -1396,7 +1463,8 @@ class TestSdkGuardCoverageEdges:
             )
         ]
         assert [
-            event async for event in _GuardedGeminiStream(
+            event
+            async for event in _GuardedGeminiStream(
                 _AsyncIterable([SimpleNamespace(text="")]),
                 _FakeScorer(),
                 "raise",
@@ -1404,7 +1472,8 @@ class TestSdkGuardCoverageEdges:
             )
         ]
         assert [
-            event async for event in _GuardedCohereStream(
+            event
+            async for event in _GuardedCohereStream(
                 _AsyncIterable([SimpleNamespace(text="")]),
                 _FakeScorer(),
                 "raise",
@@ -1420,7 +1489,10 @@ class TestSdkGuardCoverageEdges:
         )
 
         assert _extract_pydantic_ai_prompt((), {}) == ""
-        assert _extract_pydantic_ai_prompt((["a", SimpleNamespace(content="b")],), {}) == "a b"
+        assert (
+            _extract_pydantic_ai_prompt((["a", SimpleNamespace(content="b")],), {})
+            == "a b"
+        )
         assert _extract_pydantic_ai_prompt((), {"user_prompt": 123}) == "123"
         assert _pydantic_ai_content_text(SimpleNamespace()) == "namespace()"
         assert _pydantic_ai_output_text(SimpleNamespace(output=object())).startswith(

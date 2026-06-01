@@ -319,9 +319,18 @@ class TestHuggingFaceProvider:
         )
 
         assert candidates == [
-            {"text": "Output text", "source": "huggingface/mistralai/Mistral-7B-Instruct-v0.3"},
-            {"text": "Output text", "source": "huggingface/mistralai/Mistral-7B-Instruct-v0.3"},
-            {"text": "Output text", "source": "huggingface/mistralai/Mistral-7B-Instruct-v0.3"},
+            {
+                "text": "Output text",
+                "source": "huggingface/mistralai/Mistral-7B-Instruct-v0.3",
+            },
+            {
+                "text": "Output text",
+                "source": "huggingface/mistralai/Mistral-7B-Instruct-v0.3",
+            },
+            {
+                "text": "Output text",
+                "source": "huggingface/mistralai/Mistral-7B-Instruct-v0.3",
+            },
         ]
 
 

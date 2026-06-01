@@ -235,7 +235,9 @@ def _install_fake_inference_modules(monkeypatch, *, predictions):
 
 
 class TestEvaluateModel:
-    def test_evaluate_model_batches_plain_nli_inputs_and_releases_device(self, monkeypatch):
+    def test_evaluate_model_batches_plain_nli_inputs_and_releases_device(
+        self, monkeypatch
+    ):
         released = _install_fake_inference_modules(
             monkeypatch,
             predictions=[[0, 1], [1]],
@@ -507,7 +509,9 @@ class TestModelBenchmarkSweep:
         assert "General data: general.jsonl" in text
         assert "Domain data: domain.jsonl" in text
         assert "Best model: candidate" in text
-        assert "- broken: general=0.0%, domain=0.0%, rec=reject error=load failed" in text
+        assert (
+            "- broken: general=0.0%, domain=0.0%, rec=reject error=load failed" in text
+        )
 
     def test_model_result_uses_requested_alias_for_custom_profiles(self):
         from director_ai.core.training.model_registry import TrainingModelProfile

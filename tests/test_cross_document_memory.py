@@ -260,9 +260,9 @@ def test_python_word_overlap_and_builtin_fallback_cover_empty_and_non_empty(
 
     assert memory._python_word_overlap("", "policy text") == 0.0
     assert memory._python_word_overlap("policy text", "") == 0.0
-    assert memory._python_word_overlap("policy text", "policy approved") == pytest.approx(
-        1 / 3
-    )
+    assert memory._python_word_overlap(
+        "policy text", "policy approved"
+    ) == pytest.approx(1 / 3)
 
     memory.record_document("tenant-a", "doc-1", "policy approved")
     report = memory.check_document("tenant-a", "doc-2", "policy pending")

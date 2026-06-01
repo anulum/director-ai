@@ -146,9 +146,7 @@ class TestOptionalDependencyDiagnostics:
             lambda name: "/usr/bin/" + name if name in {"docker", "lake"} else None,
         )
 
-        statuses = {
-            name: ok for name, ok, _detail in verify_cli._stack_status()
-        }
+        statuses = {name: ok for name, ok, _detail in verify_cli._stack_status()}
 
         assert statuses == {
             "Python-only core": True,
@@ -195,7 +193,10 @@ class TestDoctorCliBranches:
         monkeypatch.setattr(
             verify_cli,
             "_check_optional_module",
-            lambda name: (name != "slowapi", "installed" if name != "slowapi" else "not installed"),
+            lambda name: (
+                name != "slowapi",
+                "installed" if name != "slowapi" else "not installed",
+            ),
         )
         monkeypatch.setattr(
             "director_ai.core.scoring.nli.nli_available",
@@ -212,7 +213,9 @@ class TestDoctorCliBranches:
         monkeypatch.setattr(
             verify_cli,
             "_stack_warnings",
-            lambda stack: ["DIRECTOR_SCORER_BACKEND=rust but backfire_kernel is missing."],
+            lambda stack: [
+                "DIRECTOR_SCORER_BACKEND=rust but backfire_kernel is missing."
+            ],
         )
 
         verify_cli._cmd_doctor([])
@@ -689,7 +692,9 @@ class TestKnowledgeBaseHealthCliBranches:
         captured: dict[str, object] = {}
 
         class FakeKBHealthCheck:
-            def __init__(self, store, *, min_documents: int, max_query_latency_ms: float):
+            def __init__(
+                self, store, *, min_documents: int, max_query_latency_ms: float
+            ):
                 captured["store"] = store
                 captured["min_documents"] = min_documents
                 captured["max_query_latency_ms"] = max_query_latency_ms

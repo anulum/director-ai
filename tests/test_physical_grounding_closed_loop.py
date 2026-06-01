@@ -233,7 +233,9 @@ class _RejectingHook:
     def __init__(self, verdict: GroundingVerdict) -> None:
         self._verdict = verdict
 
-    def evaluate(self, action: PhysicalAction, *, tenant_id: str = "") -> GroundingVerdict:
+    def evaluate(
+        self, action: PhysicalAction, *, tenant_id: str = ""
+    ) -> GroundingVerdict:
         _ = action, tenant_id
         return self._verdict
 

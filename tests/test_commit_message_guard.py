@@ -11,7 +11,9 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 HOOK = ROOT / ".githooks" / "commit-msg"
-REQUIRED_AUTHORSHIP_LINE = "Authored by Anulum Fortis & Arcane Sapience (protoscience@anulum.li)"
+REQUIRED_AUTHORSHIP_LINE = (
+    "Authored by Anulum Fortis & Arcane Sapience (protoscience@anulum.li)"
+)
 
 
 def _run(command: list[str], cwd: Path) -> subprocess.CompletedProcess[str]:
@@ -36,7 +38,9 @@ def _hook(repo: Path, message_path: Path) -> subprocess.CompletedProcess[str]:
     return _run(["sh", ".githooks/commit-msg", str(message_path)], repo)
 
 
-def test_commit_message_requires_arcane_sapience_authorship_line(tmp_path: Path) -> None:
+def test_commit_message_requires_arcane_sapience_authorship_line(
+    tmp_path: Path,
+) -> None:
     repo = _repo(tmp_path)
     message_path = _message(repo, "Add feature\n")
 

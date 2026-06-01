@@ -189,7 +189,9 @@ class TestAsyncStreamingKernel:
                 raise TypeError("intentional")
             return 0.9
 
-        events = await self._collect_events_without_halt_break(kernel, [0, 1, 2], callback)
+        events = await self._collect_events_without_halt_break(
+            kernel, [0, 1, 2], callback
+        )
         assert events[-1].coherence == 0.9
         assert not any(e.halted for e in events)
         assert call_count == 3
@@ -209,7 +211,9 @@ class TestAsyncStreamingKernel:
             call_count += 1
             return 0.9
 
-        events = await self._collect_events(kernel, [str(i) for i in range(40)], callback)
+        events = await self._collect_events(
+            kernel, [str(i) for i in range(40)], callback
+        )
         assert not any(event.halted for event in events)
         assert call_count < len(events)
 
@@ -241,6 +245,7 @@ class TestAsyncStreamingKernel:
             if call_count == 2:
                 return 0.4
             return 0.9
+
         events = await self._collect_events_without_halt_break(
             kernel,
             [str(i) for i in range(40)],

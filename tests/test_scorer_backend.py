@@ -708,9 +708,12 @@ class TestCoherenceScorerInternalContracts:
             "This is consistent with reality",
         ) == pytest.approx(0.1)
         assert CoherenceScorer._heuristic_logical("The opposite is true") == 0.9
-        assert CoherenceScorer._heuristic_logical(
-            "It depends on your perspective",
-        ) == 0.5
+        assert (
+            CoherenceScorer._heuristic_logical(
+                "It depends on your perspective",
+            )
+            == 0.5
+        )
 
         factual = CoherenceScorer._heuristic_factual(
             "Paris is not in Germany.",
@@ -761,7 +764,10 @@ class TestCoherenceScorerInternalContracts:
         scorer.review = MagicMock(return_value=expected)
         session = object()
 
-        assert await scorer.areview("prompt", "action", session=session, tenant_id="t") == expected
+        assert (
+            await scorer.areview("prompt", "action", session=session, tenant_id="t")
+            == expected
+        )
         scorer.review.assert_called_once_with(
             "prompt",
             "action",

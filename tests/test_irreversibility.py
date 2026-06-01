@@ -367,8 +367,6 @@ class TestStandardNormalQuantile:
     def test_python_quantile_covers_lower_central_and_upper_regions(self, monkeypatch):
         monkeypatch.setattr(forecaster_mod, "_RUST_IRREVERSIBILITY", False)
 
-        assert _standard_normal_quantile(0.001) == pytest.approx(
-            -3.090232304709404
-        )
+        assert _standard_normal_quantile(0.001) == pytest.approx(-3.090232304709404)
         assert _standard_normal_quantile(0.5) == pytest.approx(0.0, abs=1e-12)
         assert _standard_normal_quantile(0.999) == pytest.approx(3.090232304709404)

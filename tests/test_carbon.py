@@ -66,7 +66,9 @@ def test_carbon_tracker_record_many_uses_insertion_order() -> None:
     assert tuple(reading.intensity for reading in tracker.window()) == (1.0, 2.0)
 
 
-def test_carbon_tracker_percentile_and_mean_fallback_paths(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_carbon_tracker_percentile_and_mean_fallback_paths(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     monkeypatch.setattr("director_ai.core.sustainability.carbon._RUST_CARBON", False)
 
     tracker = CarbonIntensityTracker(window_size=4)

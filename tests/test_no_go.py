@@ -196,7 +196,9 @@ def test_no_go_policy_skips_forecast_when_actions_are_absent() -> None:
         irreversibility_forecaster=forecaster,
     )
 
-    verdict = policy.evaluate(_decision(risk_score=0.7, attributes={"tool_action": "  "}))
+    verdict = policy.evaluate(
+        _decision(risk_score=0.7, attributes={"tool_action": "  "})
+    )
 
     assert verdict.decision == "warn"
     assert verdict.forecast is None

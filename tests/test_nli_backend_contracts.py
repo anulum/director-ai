@@ -96,7 +96,10 @@ class FakeOnnxSession:
         self.feed_seen: dict | None = None
 
     def get_inputs(self):
-        return [SimpleNamespace(name="input_ids"), SimpleNamespace(name="attention_mask")]
+        return [
+            SimpleNamespace(name="input_ids"),
+            SimpleNamespace(name="attention_mask"),
+        ]
 
     def run(self, _outputs, feed):
         self.feed_seen = feed
@@ -120,7 +123,9 @@ def _install_fake_torch(monkeypatch):
 
     fake_torch.no_grad = no_grad
     fake_torch.softmax = softmax
-    fake_torch.nn = SimpleNamespace(Softmax=lambda dim: lambda tensor: softmax(tensor, dim))
+    fake_torch.nn = SimpleNamespace(
+        Softmax=lambda dim: lambda tensor: softmax(tensor, dim)
+    )
     monkeypatch.setitem(sys.modules, "torch", fake_torch)
     return fake_torch
 
@@ -320,7 +325,9 @@ def test_nli_numeric_helpers_handle_empty_and_weighted_values() -> None:
 
 def test_nli_resolve_label_indices_uses_model_config() -> None:
     model = SimpleNamespace(
-        config=SimpleNamespace(id2label={0: "entailment", 1: "neutral", 2: "contradict"})
+        config=SimpleNamespace(
+            id2label={0: "entailment", 1: "neutral", 2: "contradict"}
+        )
     )
 
     assert nli_mod._resolve_label_indices(model) == (2, 1)
@@ -391,7 +398,10 @@ def test_nli_load_model_success_uses_revision_dtype_and_device(monkeypatch) -> N
     assert model is fake_model
     assert fake_model.moved_to == "cpu"
     assert fake_model.eval_called is True
-    assert loaded["tokenizer"] == ("model/name", {"use_fast": False, "revision": "abc123"})
+    assert loaded["tokenizer"] == (
+        "model/name",
+        {"use_fast": False, "revision": "abc123"},
+    )
     assert loaded["model"][1]["torch_dtype"] == "float16"
 
 
@@ -492,7 +502,9 @@ def test_nli_ensure_model_handles_disabled_and_onnx_missing_path() -> None:
 def test_nli_ensure_model_loads_onnx_session(monkeypatch) -> None:
     tokenizer = FakeTokenizer()
     session = FakeOnnxSession([[0.0, 2.0]])
-    monkeypatch.setattr(nli_mod, "_load_onnx_session", lambda *_args, **_kwargs: (tokenizer, session))
+    monkeypatch.setattr(
+        nli_mod, "_load_onnx_session", lambda *_args, **_kwargs: (tokenizer, session)
+    )
 
     scorer = NLIScorer(backend="onnx", onnx_path="model.onnx", onnx_batch_size=3)
 
@@ -505,7 +517,9 @@ def test_nli_ensure_model_loads_onnx_session(monkeypatch) -> None:
 def test_nli_ensure_model_loads_deberta_and_lora(monkeypatch) -> None:
     model = FakeModel([[3.0, 0.0, 1.0]])
     calls: list[str] = []
-    monkeypatch.setattr(nli_mod, "_load_nli_model", lambda *_args, **_kwargs: (FakeTokenizer(), model))
+    monkeypatch.setattr(
+        nli_mod, "_load_nli_model", lambda *_args, **_kwargs: (FakeTokenizer(), model)
+    )
     scorer = NLIScorer(lora_adapter_path="adapter")
     monkeypatch.setattr(scorer, "_load_lora_adapter", lambda path: calls.append(path))
 
@@ -515,7 +529,9 @@ def test_nli_ensure_model_loads_deberta_and_lora(monkeypatch) -> None:
 
 
 def test_nli_ensure_model_handles_unavailable_deberta(monkeypatch) -> None:
-    monkeypatch.setattr(nli_mod, "_load_nli_model", lambda *_args, **_kwargs: (None, None))
+    monkeypatch.setattr(
+        nli_mod, "_load_nli_model", lambda *_args, **_kwargs: (None, None)
+    )
     scorer = NLIScorer()
 
     assert scorer._ensure_model() is False
@@ -553,7 +569,9 @@ def test_nli_lora_adapter_logs_when_peft_missing_or_invalid(monkeypatch) -> None
 
     peft_module = ModuleType("peft")
     peft_module.PeftModel = SimpleNamespace(
-        from_pretrained=lambda *_args, **_kwargs: (_ for _ in ()).throw(ValueError("bad"))
+        from_pretrained=lambda *_args, **_kwargs: (_ for _ in ()).throw(
+            ValueError("bad")
+        )
     )
     monkeypatch.setitem(sys.modules, "peft", peft_module)
     scorer._load_lora_adapter("adapter")
@@ -561,7 +579,9 @@ def test_nli_lora_adapter_logs_when_peft_missing_or_invalid(monkeypatch) -> None
 
 def test_nli_lora_adapter_requires_loaded_base_model(monkeypatch) -> None:
     peft_module = ModuleType("peft")
-    peft_module.PeftModel = SimpleNamespace(from_pretrained=lambda *_args, **_kwargs: None)
+    peft_module.PeftModel = SimpleNamespace(
+        from_pretrained=lambda *_args, **_kwargs: None
+    )
     monkeypatch.setitem(sys.modules, "peft", peft_module)
     scorer = NLIScorer(use_model=False)
 
@@ -616,9 +636,9 @@ def test_nli_minicheck_success_tuple_and_list_results() -> None:
     scorer = NLIScorer(backend="minicheck")
     scorer._minicheck_loaded = True
     scorer._minicheck = SimpleNamespace(
-        score=lambda docs, claims: ([1], [0.8], [], [])
-        if len(docs) == 1
-        else [0.7, 0.2]
+        score=lambda docs, claims: (
+            ([1], [0.8], [], []) if len(docs) == 1 else [0.7, 0.2]
+        )
     )
 
     assert scorer.score("source", "claim") == pytest.approx(0.2)
@@ -744,7 +764,9 @@ def test_nli_factcg_model_batch_templates(monkeypatch) -> None:
     scorer._model = FakeModel([[0.0, 0.2, 0.8], [0.1, 0.3, 0.6]])
     scorer._label_indices = (2, 1)
 
-    scores = scorer._model_score_batch([("source one", "claim one"), ("source two", "claim two")])
+    scores = scorer._model_score_batch(
+        [("source one", "claim one"), ("source two", "claim two")]
+    )
     with_conf = scorer._model_score_batch_with_confidence(
         [("source one", "claim one"), ("source two", "claim two")]
     )
@@ -789,7 +811,9 @@ def test_nli_factcg_onnx_batch_templates(monkeypatch) -> None:
     scorer._onnx_session = FakeOnnxSession([[0.0, 0.2, 0.8], [0.1, 0.3, 0.6]])
     scorer._label_indices = (2, 1)
 
-    scores = scorer._onnx_score_batch([("source one", "claim one"), ("source two", "claim two")])
+    scores = scorer._onnx_score_batch(
+        [("source one", "claim one"), ("source two", "claim two")]
+    )
     with_conf = scorer._onnx_score_batch_with_confidence(
         [("source one", "claim one"), ("source two", "claim two")]
     )
@@ -813,7 +837,9 @@ def test_nli_score_routes_onnx_and_empty_batches(monkeypatch) -> None:
     scorer = NLIScorer(use_model=False, backend="onnx")
     scorer._model_loaded = True
     scorer._onnx_session = object()
-    monkeypatch.setattr(scorer, "_onnx_score_batch", lambda pairs: [0.33 for _ in pairs])
+    monkeypatch.setattr(
+        scorer, "_onnx_score_batch", lambda pairs: [0.33 for _ in pairs]
+    )
 
     assert scorer.score("p", "h") == pytest.approx(0.33)
     assert scorer.score_batch([("p", "h")]) == [0.33]
@@ -839,7 +865,9 @@ def test_nli_score_batch_with_confidence_routes_model(monkeypatch) -> None:
     scorer._model_loaded = True
     scorer._tokenizer = FakeTokenizer()
     scorer._model = FakeModel([[0.0, 1.0]])
-    monkeypatch.setattr(scorer, "_model_score_batch_with_confidence", lambda pairs: [(0.12, 0.98)])
+    monkeypatch.setattr(
+        scorer, "_model_score_batch_with_confidence", lambda pairs: [(0.12, 0.98)]
+    )
 
     assert scorer.score_batch_with_confidence([("p", "h")]) == [(0.12, 0.98)]
 
@@ -859,7 +887,9 @@ def test_nli_python_chunking_and_claim_paths(monkeypatch) -> None:
     long_summary = ". ".join(f"Claim sentence {idx} supports sky" for idx in range(6))
 
     chunks = scorer._build_chunks(["verylongsentencewithoutspaces"], budget=1)
-    overlap = scorer._build_chunks_overlap(["alpha", "beta", "gamma"], budget=100, overlap_ratio=0.5)
+    overlap = scorer._build_chunks_overlap(
+        ["alpha", "beta", "gamma"], budget=100, overlap_ratio=0.5
+    )
     agg, per_hyp, n_prem, n_hyp = scorer._score_chunked_with_counts(
         long_source,
         long_summary,
@@ -929,7 +959,10 @@ def test_nli_confidence_weighted_python_aggregation(monkeypatch) -> None:
     monkeypatch.setattr(
         scorer,
         "score_batch_with_confidence",
-        lambda pairs: [(0.2 + 0.1 * idx, 1.0 if idx % 2 == 0 else 0.5) for idx, _ in enumerate(pairs)],
+        lambda pairs: [
+            (0.2 + 0.1 * idx, 1.0 if idx % 2 == 0 else 0.5)
+            for idx, _ in enumerate(pairs)
+        ],
     )
     source = ". ".join(f"Source sentence {idx} with details" for idx in range(10))
     summary = ". ".join(f"Claim sentence {idx} with details" for idx in range(8))
@@ -977,7 +1010,9 @@ def test_nli_confidence_weighted_default_inner_max(monkeypatch) -> None:
     assert min(per_hyp) <= agg <= max(per_hyp)
 
 
-def test_nli_confidence_weighted_zero_confidence_falls_back_to_mean(monkeypatch) -> None:
+def test_nli_confidence_weighted_zero_confidence_falls_back_to_mean(
+    monkeypatch,
+) -> None:
     monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False, max_length=40)
     monkeypatch.setattr(
@@ -1023,7 +1058,9 @@ def test_nli_claim_attribution_python_fallback_and_limits(monkeypatch) -> None:
         scorer.score_claim_coverage_with_attribution(huge_source, huge_summary)
 
 
-def test_nli_claim_attribution_uses_source_when_sentence_split_empty(monkeypatch) -> None:
+def test_nli_claim_attribution_uses_source_when_sentence_split_empty(
+    monkeypatch,
+) -> None:
     monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False)
     monkeypatch.setattr(
@@ -1032,9 +1069,11 @@ def test_nli_claim_attribution_uses_source_when_sentence_split_empty(monkeypatch
         lambda text: ["claim"] if text == "summary" else [],
     )
 
-    _coverage, _divs, _claims, attributions = scorer.score_claim_coverage_with_attribution(
-        "",
-        "summary",
+    _coverage, _divs, _claims, attributions = (
+        scorer.score_claim_coverage_with_attribution(
+            "",
+            "summary",
+        )
     )
 
     assert attributions[0].source_sentence == ""
@@ -1071,8 +1110,16 @@ def test_nli_claim_empty_paths(monkeypatch) -> None:
 def test_nli_score_decomposed_single_and_multi_claims(monkeypatch) -> None:
     monkeypatch.setattr(nli_mod, "_RUST_NLI", False)
     scorer = NLIScorer(use_model=False)
-    monkeypatch.setattr(scorer, "decompose_claims", lambda text: ["claim"] if text == "one" else ["a", "b"])
-    monkeypatch.setattr(scorer, "score", lambda _premise, hypothesis: 0.2 if hypothesis == "claim" else 0.4)
+    monkeypatch.setattr(
+        scorer,
+        "decompose_claims",
+        lambda text: ["claim"] if text == "one" else ["a", "b"],
+    )
+    monkeypatch.setattr(
+        scorer,
+        "score",
+        lambda _premise, hypothesis: 0.2 if hypothesis == "claim" else 0.4,
+    )
     monkeypatch.setattr(scorer, "score_batch", lambda pairs: [0.3, 0.7])
 
     assert scorer.score_decomposed("source", "one") == (0.2, [0.2])
@@ -1081,7 +1128,9 @@ def test_nli_score_decomposed_single_and_multi_claims(monkeypatch) -> None:
 
 def test_nli_claim_coverage_uses_rust_reducer(monkeypatch) -> None:
     monkeypatch.setattr(nli_mod, "_RUST_NLI", True)
-    monkeypatch.setattr(nli_mod, "rust_coverage_from_divergences", lambda divs, threshold: (0.75, 3))
+    monkeypatch.setattr(
+        nli_mod, "rust_coverage_from_divergences", lambda divs, threshold: (0.75, 3)
+    )
     scorer = NLIScorer(use_model=False)
     monkeypatch.setattr(scorer, "decompose_claims", lambda _summary: ["a", "b"])
     monkeypatch.setattr(scorer, "score_chunked", lambda *_args, **_kwargs: (0.2, [0.2]))

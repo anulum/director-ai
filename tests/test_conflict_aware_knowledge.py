@@ -148,7 +148,9 @@ def test_guard_detects_explicit_contradiction_reference_before_vector_add() -> N
     assert store.conflict_reports() == []
 
 
-def test_guard_still_blocks_explicit_contradiction_by_score_when_flag_disabled() -> None:
+def test_guard_still_blocks_explicit_contradiction_by_score_when_flag_disabled() -> (
+    None
+):
     store = VectorGroundTruthStore(backend=InMemoryBackend())
     store.add_fact(
         "policy_v1",

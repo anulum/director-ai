@@ -55,7 +55,9 @@ def test_server_rejects_excessive_cors_origins() -> None:
     origins = ",".join(f"https://tenant-{idx}.example" for idx in range(101))
 
     with pytest.raises(ValueError, match="Too many CORS origins"):
-        create_app(DirectorConfig(api_keys=[], llm_provider="mock", cors_origins=origins))
+        create_app(
+            DirectorConfig(api_keys=[], llm_provider="mock", cors_origins=origins)
+        )
 
 
 def test_ready_reports_missing_scorer_after_startup() -> None:
@@ -297,7 +299,9 @@ def test_review_redacts_prompt_and_response_before_scoring() -> None:
             self.seen = (prompt, response)
             return True, _score()
 
-    cfg = DirectorConfig(api_keys=[], llm_provider="mock", use_nli=False, redact_pii=True)
+    cfg = DirectorConfig(
+        api_keys=[], llm_provider="mock", use_nli=False, redact_pii=True
+    )
     with _client(cfg) as client:
         scorer = CapturingScorer()
         client.app.state._state["scorer"] = scorer
@@ -327,7 +331,9 @@ def test_process_redacts_prompt_and_output() -> None:
                 candidates_evaluated=1,
             )
 
-    cfg = DirectorConfig(api_keys=[], llm_provider="mock", use_nli=False, redact_pii=True)
+    cfg = DirectorConfig(
+        api_keys=[], llm_provider="mock", use_nli=False, redact_pii=True
+    )
     with _client(cfg) as client:
         agent = CapturingAgent()
         client.app.state._state["agent"] = agent
@@ -378,7 +384,9 @@ def test_batch_redacts_process_and_review_payloads() -> None:
                 duration_seconds=0.01,
             )
 
-    cfg = DirectorConfig(api_keys=[], llm_provider="mock", use_nli=False, redact_pii=True)
+    cfg = DirectorConfig(
+        api_keys=[], llm_provider="mock", use_nli=False, redact_pii=True
+    )
     with _client(cfg) as client:
         batch = RedactionBatch()
         client.app.state._state["batch"] = batch
@@ -500,7 +508,9 @@ def test_server_tenant_fact_and_vector_writes() -> None:
 def test_server_session_get_delete_and_owner_isolation() -> None:
     session = ConversationSession(session_id="session-a")
     session.add_turn("prompt", "response", 0.7)
-    cfg = DirectorConfig(api_keys=["key-a", "key-b"], llm_provider="mock", use_nli=False)
+    cfg = DirectorConfig(
+        api_keys=["key-a", "key-b"], llm_provider="mock", use_nli=False
+    )
     with _client(cfg) as client:
         client.app.state._state["sessions"]["session-a"] = session
         response = client.get("/v1/config", headers={"X-API-Key": "key-a"})

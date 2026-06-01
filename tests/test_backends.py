@@ -372,7 +372,9 @@ class TestBackendWrappers:
             "batch": [("p", "h")],
         }
 
-    def test_optional_backend_registration_skips_missing_dependencies(self, monkeypatch):
+    def test_optional_backend_registration_skips_missing_dependencies(
+        self, monkeypatch
+    ):
         import director_ai.core.scoring.backends as backends_mod
 
         original_find_spec = importlib.util.find_spec

@@ -148,7 +148,9 @@ def test_builds_chunk_only_score_dag_from_scoring_evidence():
     evidence = ScoringEvidence(
         chunks=[
             EvidenceChunk(text="Paris is in France.", distance=0.25, source="kb://geo"),
-            EvidenceChunk(text="Berlin is in Germany.", distance=0.5, source="kb://geo"),
+            EvidenceChunk(
+                text="Berlin is in Germany.", distance=0.5, source="kb://geo"
+            ),
         ],
         nli_premise="geography facts",
         nli_hypothesis="candidate answer",
@@ -275,7 +277,9 @@ def test_graph_rejects_invalid_nodes_root_and_self_loops():
     with pytest.raises(ValueError, match="label"):
         AttributionNode(node_id="claim:1", kind="claim", label="")
     with pytest.raises(ValueError, match="node score"):
-        AttributionNode(node_id="claim:1", kind="claim", label="claim", score=float("inf"))
+        AttributionNode(
+            node_id="claim:1", kind="claim", label="claim", score=float("inf")
+        )
     with pytest.raises(ValueError, match="self-loop"):
         AttributionEdge("a", "a", "contributes_to", 0.5)
     with pytest.raises(ValueError, match="root_id"):
