@@ -10,7 +10,7 @@
 set -eu
 
 message_file="${1:?commit message file required}"
-required_trailer='Co-Authored-By: Arcane Sapience <protoscience@anulum.li>'
+required_authorship_line='Authored by Anulum Fortis & Arcane Sapience (protoscience@anulum.li)'
 agent_identity_names='C[o]dex|OpenA[I]|ChatG[P]T|Cl[a]ude|G[e]mini|Anthr[o]pic'
 agent_identity_patterns="(^|[^[:alnum:]_])(generated|written|created|implemented|authored|produced|made)[[:space:]]+(by|with|using)[[:space:]]+(${agent_identity_names})([^[:alnum:]_]|$)|(^|[^[:alnum:]_])(${agent_identity_names})[[:space:]]+(generated|wrote|created|implemented|authored|produced|made)([^[:alnum:]_]|$)"
 
@@ -19,16 +19,16 @@ if [ ! -f "$message_file" ]; then
   exit 1
 fi
 
-required_count="$(grep -F -c "$required_trailer" "$message_file" || true)"
+required_count="$(grep -F -x -c "$required_authorship_line" "$message_file" || true)"
 if [ "$required_count" -ne 1 ]; then
-  printf '%s\n' "ERROR: commit message must contain exactly one required attribution trailer:" >&2
-  printf '%s\n' "$required_trailer" >&2
+  printf '%s\n' "ERROR: commit message must contain exactly one required authorship line:" >&2
+  printf '%s\n' "$required_authorship_line" >&2
   exit 1
 fi
 
-coauthored_count="$(grep -E -c '^Co-Authored-By:' "$message_file" || true)"
-if [ "$coauthored_count" -ne 1 ]; then
-  printf '%s\n' "ERROR: commit message must contain exactly one Co-Authored-By trailer." >&2
+legacy_coauthored_count="$(grep -E -c '^Co-Authored-By:' "$message_file" || true)"
+if [ "$legacy_coauthored_count" -ne 0 ]; then
+  printf '%s\n' "ERROR: commit message must not use legacy Co-Authored-By trailers." >&2
   exit 1
 fi
 

@@ -253,7 +253,7 @@ def generate_report(
         "estimates, no tilde-prefixed numbers._"
     )
     lines.append("")
-    lines.append("Co-Authored-By: Arcane Sapience <protoscience@anulum.li>")
+    lines.append("Authored by Anulum Fortis & Arcane Sapience (protoscience@anulum.li)")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     output_path.write_text("\n".join(lines), encoding="utf-8")
