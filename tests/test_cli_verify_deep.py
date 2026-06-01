@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import json
+import sys
 from types import SimpleNamespace
 
 import pytest
@@ -121,8 +122,180 @@ class TestOptionalDependencyDiagnostics:
             "Model revision health failed for nli: remote model requires an immutable revision"
         ]
 
+        cfg.model_revision_health = lambda: {
+            "ok": False,
+            "checks": {"nli": {"status": "warning", "detail": "advisory only"}},
+        }
+        assert verify_cli._stack_warnings([("Rust kernel", True, "installed")]) == []
+
+        cfg.model_revision_health = lambda: {"ok": True, "checks": {}}
+        assert verify_cli._stack_warnings([("Rust kernel", True, "installed")]) == []
+
+    def test_stack_status_reports_optional_runtime_tools(self, monkeypatch):
+        import importlib.util
+        import shutil
+
+        monkeypatch.setattr(
+            importlib.util,
+            "find_spec",
+            lambda name: object() if name == "backfire_kernel" else None,
+        )
+        monkeypatch.setattr(
+            shutil,
+            "which",
+            lambda name: "/usr/bin/" + name if name in {"docker", "lake"} else None,
+        )
+
+        statuses = {
+            name: ok for name, ok, _detail in verify_cli._stack_status()
+        }
+
+        assert statuses == {
+            "Python-only core": True,
+            "Rust kernel": True,
+            "Docker Compose": True,
+            "Go gateway": False,
+            "Julia tuner": False,
+            "Lean verifier": True,
+        }
+
+    def test_stack_warnings_surface_missing_rust_kernel(self, monkeypatch):
+        from director_ai.core.config import DirectorConfig
+
+        cfg = SimpleNamespace(
+            use_nli=False,
+            scorer_backend="rust",
+            onnx_path="",
+            vector_backend="memory",
+        )
+        monkeypatch.setattr(DirectorConfig, "from_env", staticmethod(lambda: cfg))
+        monkeypatch.setattr(
+            verify_cli, "_check_optional_module", lambda name: (True, "installed")
+        )
+
+        warnings = verify_cli._stack_warnings([("Rust kernel", False, "missing")])
+
+        assert warnings == [
+            "DIRECTOR_SCORER_BACKEND=rust but backfire_kernel is missing."
+        ]
+
+
+class TestDoctorCliBranches:
+    def test_doctor_prints_dependency_stack_and_warnings(self, monkeypatch, capsys):
+        torch_mod = SimpleNamespace(
+            __version__="2.6.0",
+            cuda=SimpleNamespace(is_available=lambda: False),
+        )
+        ort_mod = SimpleNamespace(
+            __version__="1.20.0",
+            get_available_providers=lambda: ["CPUExecutionProvider"],
+        )
+        monkeypatch.setitem(sys.modules, "torch", torch_mod)
+        monkeypatch.setitem(sys.modules, "onnxruntime", ort_mod)
+        monkeypatch.setattr(
+            verify_cli,
+            "_check_optional_module",
+            lambda name: (name != "slowapi", "installed" if name != "slowapi" else "not installed"),
+        )
+        monkeypatch.setattr(
+            "director_ai.core.scoring.nli.nli_available",
+            lambda: True,
+        )
+        monkeypatch.setattr(
+            verify_cli,
+            "_stack_status",
+            lambda: [
+                ("Python-only core", True, "supported default"),
+                ("Rust kernel", False, "optional backfire_kernel"),
+            ],
+        )
+        monkeypatch.setattr(
+            verify_cli,
+            "_stack_warnings",
+            lambda stack: ["DIRECTOR_SCORER_BACKEND=rust but backfire_kernel is missing."],
+        )
+
+        verify_cli._cmd_doctor([])
+
+        out = capsys.readouterr().out
+        assert "director-ai" in out
+        assert "[+] torch: 2.6.0 (CUDA: False)" in out
+        assert "[+] onnxruntime: 1.20.0 (CPUExecutionProvider)" in out
+        assert "[-] slowapi: not installed" in out
+        assert "Runtime stack:" in out
+        assert "DIRECTOR_SCORER_BACKEND=rust" in out
+
+    def test_doctor_reports_nli_import_failure(self, monkeypatch, capsys):
+        monkeypatch.setattr(
+            verify_cli,
+            "_check_optional_module",
+            lambda name: (False, "not installed"),
+        )
+
+        def fail_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "director_ai.core.scoring.nli":
+                raise RuntimeError("nli backend exploded")
+            return original_import(name, globals, locals, fromlist, level)
+
+        original_import = __import__
+        monkeypatch.setattr("builtins.__import__", fail_import)
+        monkeypatch.setattr(verify_cli, "_stack_status", lambda: [])
+        monkeypatch.setattr(verify_cli, "_stack_warnings", lambda stack: [])
+
+        verify_cli._cmd_doctor([])
+
+        out = capsys.readouterr().out
+        assert "NLI model ready: nli backend exploded" in out
+
 
 class TestLicenseCliBranches:
+    def test_license_status_prints_loaded_license_metadata(self, monkeypatch, capsys):
+        import director_ai.core.license as license_mod
+
+        monkeypatch.setattr(
+            license_mod,
+            "load_license",
+            lambda: SimpleNamespace(
+                tier="enterprise",
+                valid=True,
+                licensee="Pilot Tenant",
+                expires="2027-06-01",
+                key="DIR-AI-ENTERPRISE-TEST-KEY",
+                message="active",
+            ),
+        )
+
+        verify_cli._cmd_license([])
+
+        out = capsys.readouterr().out
+        assert "Tier:     enterprise" in out
+        assert "Valid:    True" in out
+        assert "Licensee: Pilot Tenant" in out
+        assert "Expires:  2027-06-01" in out
+        assert "Key:      DIR-AI-ENTERPRISE-TE..." in out
+        assert "Message:  active" in out
+
+        monkeypatch.setattr(
+            license_mod,
+            "load_license",
+            lambda: SimpleNamespace(
+                tier="community",
+                valid=False,
+                licensee="",
+                expires=None,
+                key="",
+                message="missing",
+            ),
+        )
+
+        verify_cli._cmd_license(["status"])
+
+        out = capsys.readouterr().out
+        assert "Licensee: (community)" in out
+        assert "Message:  missing" in out
+        assert "Expires:" not in out
+        assert "Key:" not in out
+
     def test_license_generate_requires_admin_key(self, monkeypatch, capsys):
         monkeypatch.delenv("DIRECTOR_ADMIN_KEY", raising=False)
 
@@ -232,6 +405,16 @@ class TestLicenseCliBranches:
         assert "DIRECTOR_LICENSE_KEY is not configured" in out
         assert "DIRECTOR_AI_POLAR_WEBHOOK_SECRET is not configured" in out
 
+        ready_report = SimpleNamespace(ready=True, errors=[], warnings=[])
+        monkeypatch.setattr(
+            "director_ai.core.polar_license.validate_polar_deployment_env",
+            lambda: ready_report,
+        )
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_license(["polar-env"])
+        assert exc_info.value.code == 0
+        assert capsys.readouterr().out == "Ready:    True\n"
+
     def test_license_polar_env_json_is_machine_readable_without_secrets(
         self,
         monkeypatch,
@@ -264,6 +447,13 @@ class TestLicenseCliBranches:
 
 
 class TestComplianceCliBranches:
+    def test_compliance_help_returns_without_database_lookup(self, capsys):
+        verify_cli._cmd_compliance(["--help"])
+
+        out = capsys.readouterr().out
+        assert "Usage: director-ai compliance" in out
+        assert "report  [--db PATH]" in out
+
     def test_compliance_missing_database_exits(self, tmp_path, capsys):
         missing = tmp_path / "missing.db"
 
@@ -322,6 +512,7 @@ class TestComplianceCliBranches:
                 "20.25",
                 "--format",
                 "json",
+                "--ignored",
             ]
         )
 
@@ -330,6 +521,85 @@ class TestComplianceCliBranches:
         assert calls["closed"] == (None, None)
         assert payload["total_interactions"] == 12
         assert payload["drift_detected"] is True
+
+    def test_compliance_markdown_status_drift_and_unknown_subcommand(
+        self,
+        monkeypatch,
+        tmp_path,
+        capsys,
+    ):
+        import director_ai.compliance.audit_log as audit_mod
+        import director_ai.compliance.drift_detector as drift_mod
+        import director_ai.compliance.reporter as reporter_mod
+
+        db_file = tmp_path / "audit.db"
+        db_file.touch()
+        calls: list[str] = []
+
+        class FakeLog:
+            def __init__(self, path: str) -> None:
+                calls.append(f"log:{path}")
+
+            def close(self) -> None:
+                calls.append("closed")
+
+        class FakeReporter:
+            def __init__(self, log: FakeLog) -> None:
+                self.log = log
+
+            def generate_report(self, *, since=None, until=None):
+                calls.append(f"report:{since}:{until}")
+                return SimpleNamespace(
+                    total_interactions=1234,
+                    overall_hallucination_rate=0.031,
+                    overall_hallucination_rate_ci=(0.02, 0.04),
+                    avg_score=0.88,
+                    drift_detected=False,
+                    incident_count=7,
+                    to_markdown=lambda: "## Compliance\nNo drift.",
+                )
+
+        class FakeDriftDetector:
+            def __init__(self, log: FakeLog) -> None:
+                self.log = log
+
+            def analyze(self, *, since=None, until=None):
+                calls.append(f"drift:{since}:{until}")
+                return SimpleNamespace(
+                    detected=True,
+                    severity="high",
+                    z_score=2.5,
+                    p_value=0.0123,
+                    rate_change=0.042,
+                    windows=[1, 2],
+                )
+
+        monkeypatch.setattr(audit_mod, "AuditLog", FakeLog)
+        monkeypatch.setattr(reporter_mod, "ComplianceReporter", FakeReporter)
+        monkeypatch.setattr(drift_mod, "DriftDetector", FakeDriftDetector)
+
+        verify_cli._cmd_compliance(["report", "--db", str(db_file)])
+        assert "## Compliance" in capsys.readouterr().out
+
+        verify_cli._cmd_compliance(["status", "--db", str(db_file)])
+        status_out = capsys.readouterr().out
+        assert "Interactions: 1,234" in status_out
+        assert "Hallucination rate: 3.10%" in status_out
+        assert "Drift: no" in status_out
+
+        verify_cli._cmd_compliance(
+            ["drift", "--db", str(db_file), "--since", "1", "--until", "2"]
+        )
+        drift_out = capsys.readouterr().out
+        assert "Drift: DETECTED (high)" in drift_out
+        assert "z=2.50 p=0.0123" in drift_out
+        assert "Windows: 2" in drift_out
+
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_compliance(["rotate", "--db", str(db_file)])
+        assert exc_info.value.code == 1
+        assert "Unknown compliance subcommand: rotate" in capsys.readouterr().out
+        assert calls.count("closed") == 3
 
 
 class TestCostReportCliBranches:
@@ -395,7 +665,7 @@ class TestCostReportCliBranches:
             lambda payload: f"<html>{payload['currency']}</html>",
         )
 
-        verify_cli._cmd_cost_report(["--format", "json"])
+        verify_cli._cmd_cost_report(["--format", "json", "--ignored"])
         assert json.loads(capsys.readouterr().out)["total_tokens"] == 1234
 
         verify_cli._cmd_cost_report(["--format", "html"])
@@ -405,6 +675,251 @@ class TestCostReportCliBranches:
         out = capsys.readouterr().out
         assert "Total cost: CHF 1.250000" in out
         assert "local: 2 calls" in out
+
+
+class TestKnowledgeBaseHealthCliBranches:
+    def test_kb_health_ignores_unknown_args_and_prints_warnings(
+        self,
+        monkeypatch,
+        capsys,
+    ):
+        import director_ai.core.retrieval.kb_health as kb_mod
+        from director_ai.core.config import DirectorConfig
+
+        captured: dict[str, object] = {}
+
+        class FakeKBHealthCheck:
+            def __init__(self, store, *, min_documents: int, max_query_latency_ms: float):
+                captured["store"] = store
+                captured["min_documents"] = min_documents
+                captured["max_query_latency_ms"] = max_query_latency_ms
+
+            def run(self):
+                return SimpleNamespace(
+                    summary="KB HEALTHY",
+                    issues=[],
+                    warnings=["latency above warning floor"],
+                    healthy=True,
+                )
+
+        store = object()
+        monkeypatch.setattr(
+            DirectorConfig,
+            "from_env",
+            staticmethod(lambda: SimpleNamespace(build_store=lambda: store)),
+        )
+        monkeypatch.setattr(kb_mod, "KBHealthCheck", FakeKBHealthCheck)
+
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_kb_health(
+                ["--unknown", "--min-docs", "4", "--max-latency", "250"]
+            )
+
+        assert exc_info.value.code == 0
+        assert captured == {
+            "store": store,
+            "min_documents": 4,
+            "max_query_latency_ms": 250.0,
+        }
+        out = capsys.readouterr().out
+        assert "KB HEALTHY" in out
+        assert "WARNING: latency above warning floor" in out
+
+
+class TestVerificationCommandBranches:
+    def test_numeric_usage_and_issue_output(self, monkeypatch, capsys):
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_verify_numeric([])
+        assert exc_info.value.code == 1
+        assert "verify-numeric <text>" in capsys.readouterr().out
+
+        monkeypatch.setattr(
+            "director_ai.core.verification.numeric_verifier.verify_numeric",
+            lambda text: SimpleNamespace(
+                valid=False,
+                claims_found=2,
+                error_count=1,
+                warning_count=1,
+                issues=[
+                    SimpleNamespace(
+                        severity="error",
+                        issue_type="mismatch",
+                        description=f"bad claim in {text}",
+                    )
+                ],
+            ),
+        )
+
+        verify_cli._cmd_verify_numeric(["Revenue", "grew", "200%"])
+
+        out = capsys.readouterr().out
+        assert "Valid:    False" in out
+        assert "Claims:  2" in out
+        assert "[error] mismatch: bad claim in Revenue grew 200%" in out
+
+    def test_reasoning_usage_and_verdict_output(self, monkeypatch, capsys):
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_verify_reasoning([])
+        assert exc_info.value.code == 1
+        assert "verify-reasoning <text>" in capsys.readouterr().out
+
+        monkeypatch.setattr(
+            "director_ai.core.verification.reasoning_verifier.verify_reasoning_chain",
+            lambda text: SimpleNamespace(
+                chain_valid=False,
+                steps_found=2,
+                issues_found=1,
+                verdicts=[
+                    SimpleNamespace(
+                        step_index=1,
+                        verdict="invalid",
+                        confidence=0.83,
+                        reason=f"unsupported step in {text}",
+                    )
+                ],
+            ),
+        )
+
+        verify_cli._cmd_verify_reasoning(["Step", "1", "therefore", "Step", "2"])
+
+        out = capsys.readouterr().out
+        assert "Chain valid: False" in out
+        assert "Steps:       2" in out
+        assert "Step 1: invalid (0.83) unsupported step" in out
+
+    def test_temporal_freshness_usage_and_claim_output(self, monkeypatch, capsys):
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_temporal_freshness([])
+        assert exc_info.value.code == 1
+        assert "temporal-freshness <text>" in capsys.readouterr().out
+
+        monkeypatch.setattr(
+            "director_ai.core.scoring.temporal_freshness.score_temporal_freshness",
+            lambda text: SimpleNamespace(
+                has_temporal_claims=True,
+                overall_staleness_risk=0.72,
+                stale_claims=["old benchmark"],
+                claims=[
+                    SimpleNamespace(
+                        claim_type="benchmark",
+                        text=text,
+                        staleness_risk=0.72,
+                    )
+                ],
+            ),
+        )
+
+        verify_cli._cmd_temporal_freshness(["Latest", "score", "is", "stable"])
+
+        out = capsys.readouterr().out
+        assert "Has temporal claims: True" in out
+        assert "Staleness risk:      0.72" in out
+        assert "[benchmark] Latest score is stable (risk: 0.72)" in out
+
+    def test_check_step_usage_and_monitor_reasons(self, monkeypatch, capsys):
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_check_step(["goal-only"])
+        assert exc_info.value.code == 1
+        assert "check-step <goal> <action>" in capsys.readouterr().out
+
+        class FakeLoopMonitor:
+            def __init__(self, *, goal: str) -> None:
+                self.goal = goal
+
+            def check_step(self, *, action: str, args: str):
+                return SimpleNamespace(
+                    step_number=4,
+                    should_halt=True,
+                    should_warn=True,
+                    goal_drift_score=0.65,
+                    budget_remaining_pct=0.25,
+                    reasons=[f"{self.goal}:{action}:{args}"],
+                )
+
+        monkeypatch.setattr(
+            "director_ai.agentic.loop_monitor.LoopMonitor",
+            FakeLoopMonitor,
+        )
+
+        verify_cli._cmd_check_step(["publish audit", "send", "draft"])
+
+        out = capsys.readouterr().out
+        assert "Step:    4" in out
+        assert "Halt:    True" in out
+        assert "Budget:  25%" in out
+        assert "publish audit:send:draft" in out
+
+        class QuietLoopMonitor:
+            def __init__(self, *, goal: str) -> None:
+                self.goal = goal
+
+            def check_step(self, *, action: str, args: str):
+                return SimpleNamespace(
+                    step_number=1,
+                    should_halt=False,
+                    should_warn=False,
+                    goal_drift_score=0.0,
+                    budget_remaining_pct=1.0,
+                    reasons=[],
+                )
+
+        monkeypatch.setattr(
+            "director_ai.agentic.loop_monitor.LoopMonitor",
+            QuietLoopMonitor,
+        )
+        verify_cli._cmd_check_step(["goal", "action"])
+        quiet_out = capsys.readouterr().out
+        assert "Step:    1" in quiet_out
+        assert "->" not in quiet_out
+
+    def test_consensus_usage_invalid_argument_and_pair_output(
+        self,
+        monkeypatch,
+        capsys,
+    ):
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_consensus(["only-one"])
+        assert exc_info.value.code == 1
+        assert "director-ai consensus" in capsys.readouterr().out
+
+        with pytest.raises(SystemExit) as exc_info:
+            verify_cli._cmd_consensus(["judge-a:Paris", "missing-colon"])
+        assert exc_info.value.code == 1
+        assert "Invalid format: 'missing-colon'" in capsys.readouterr().out
+
+        class FakeConsensusScorer:
+            def __init__(self, *, models: list[str]) -> None:
+                self.models = models
+
+            def score_responses(self, responses):
+                assert self.models == ["judge-a", "judge-b"]
+                assert [item.response for item in responses] == ["Paris", "Paris"]
+                return SimpleNamespace(
+                    num_models=2,
+                    agreement_score=0.91,
+                    has_consensus=True,
+                    lowest_pair_agreement=0.82,
+                    pairs=[
+                        SimpleNamespace(
+                            model_a="judge-a",
+                            model_b="judge-b",
+                            agreed=True,
+                            divergence=0.18,
+                        )
+                    ],
+                )
+
+        monkeypatch.setattr(
+            "director_ai.core.scoring.consensus.ConsensusScorer",
+            FakeConsensusScorer,
+        )
+
+        verify_cli._cmd_consensus(["judge-a:Paris", "judge-b:Paris"])
+
+        out = capsys.readouterr().out
+        assert "Models:    2" in out
+        assert "Consensus: True" in out
+        assert "judge-a vs judge-b: agree (divergence=0.18)" in out
 
 
 class TestSafetyDashboardFallback:
@@ -427,3 +942,158 @@ class TestSafetyDashboardFallback:
         verify_cli._cmd_safety_dashboard(["--port", "9000", "--share"])
 
         assert "Gradio not installed" in capsys.readouterr().out
+
+    def test_safety_dashboard_text_mode_uses_files_and_thresholds(
+        self,
+        monkeypatch,
+        tmp_path,
+        capsys,
+    ):
+        import director_ai.ui.safety_dashboard as dashboard_mod
+
+        events = tmp_path / "events.jsonl"
+        feedback = tmp_path / "feedback.jsonl"
+        events.write_text('{"tenant_id":"alpha"}\n', encoding="utf-8")
+        feedback.write_text('{"label":"false_positive"}\n', encoding="utf-8")
+        calls: dict[str, object] = {}
+
+        def fake_dashboard(
+            events_jsonl: str,
+            feedback_jsonl: str,
+            halt_threshold: float,
+            false_positive_threshold: float,
+        ):
+            calls["payload"] = (
+                events_jsonl,
+                feedback_jsonl,
+                halt_threshold,
+                false_positive_threshold,
+            )
+            return (
+                "Safety Operations: OK",
+                [("tenant-a", 0.2)],
+                [("source-a", 3)],
+                [("halt-a", "evidence-a")],
+                "director-ai tune --threshold 0.2",
+            )
+
+        monkeypatch.setattr(dashboard_mod, "build_safety_dashboard", fake_dashboard)
+
+        verify_cli._cmd_safety_dashboard(
+            [
+                "--text",
+                "--events",
+                str(events),
+                "--feedback",
+                str(feedback),
+                "--halt-alert-threshold",
+                "0.2",
+                "--false-positive-alert-threshold",
+                "0.1",
+            ]
+        )
+
+        assert calls["payload"] == (
+            '{"tenant_id":"alpha"}\n',
+            '{"label":"false_positive"}\n',
+            0.2,
+            0.1,
+        )
+        out = capsys.readouterr().out
+        assert "Safety Operations: OK" in out
+        assert "tenant-a | 0.2" in out
+        assert "source-a | 3" in out
+        assert "halt-a | evidence-a" in out
+        assert "Retune: director-ai tune --threshold 0.2" in out
+
+
+class TestAdversarialCliBranches:
+    def test_adversarial_test_prints_guardrail_report(self, monkeypatch, capsys):
+        from director_ai.core.config import DirectorConfig
+
+        class FakeScore:
+            score = 0.87
+
+        class FakeScorer:
+            def review(self, prompt: str, response: str):
+                assert prompt == "Probe prompt"
+                assert response == "synthetic response"
+                return True, FakeScore()
+
+        class FakeTester:
+            def __init__(self, *, review_fn, prompt: str) -> None:
+                assert prompt == "Probe prompt"
+                approved, score = review_fn(prompt, "synthetic response")
+                assert approved is True
+                assert score == 0.87
+
+            def run(self):
+                return SimpleNamespace(
+                    total_patterns=5,
+                    detected=4,
+                    bypassed=1,
+                    detection_rate=0.8,
+                    is_robust=False,
+                    vulnerable_categories=["prompt injection"],
+                )
+
+        monkeypatch.setattr(
+            DirectorConfig,
+            "from_env",
+            staticmethod(lambda: SimpleNamespace(build_scorer=lambda: FakeScorer())),
+        )
+        monkeypatch.setattr(
+            "director_ai.testing.adversarial_suite.AdversarialTester",
+            FakeTester,
+        )
+
+        verify_cli._cmd_adversarial_test(["Probe prompt"])
+
+        out = capsys.readouterr().out
+        assert "Patterns:   5" in out
+        assert "Detected:   4" in out
+        assert "Rate:       80%" in out
+        assert "Robust:     False" in out
+        assert "Vulnerable: prompt injection" in out
+
+    def test_adversarial_test_omits_vulnerable_line_when_report_is_clean(
+        self,
+        monkeypatch,
+        capsys,
+    ):
+        from director_ai.core.config import DirectorConfig
+
+        class FakeScorer:
+            def review(self, prompt: str, response: str):
+                return True, SimpleNamespace(score=0.99)
+
+        class CleanTester:
+            def __init__(self, *, review_fn, prompt: str) -> None:
+                self.review_fn = review_fn
+                self.prompt = prompt
+
+            def run(self):
+                return SimpleNamespace(
+                    total_patterns=1,
+                    detected=1,
+                    bypassed=0,
+                    detection_rate=1.0,
+                    is_robust=True,
+                    vulnerable_categories=[],
+                )
+
+        monkeypatch.setattr(
+            DirectorConfig,
+            "from_env",
+            staticmethod(lambda: SimpleNamespace(build_scorer=lambda: FakeScorer())),
+        )
+        monkeypatch.setattr(
+            "director_ai.testing.adversarial_suite.AdversarialTester",
+            CleanTester,
+        )
+
+        verify_cli._cmd_adversarial_test([])
+
+        out = capsys.readouterr().out
+        assert "Robust:     True" in out
+        assert "Vulnerable:" not in out
