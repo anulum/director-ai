@@ -155,6 +155,7 @@ market claims:
 |---|---|---|
 | Evaluator | [Quickstart](../quickstart.md) | Score and guard a response in minutes |
 | Buyer | [Why Director-AI](why-director-ai.md) | Understand the business problem and alternatives |
+| Market reviewer | [Guardrail Landscape](guardrail-landscape.md) | Compare factuality, safety, streaming, and audit guardrail categories |
 | Developer | [API Reference](../api/index.md) | Choose the right API surface |
 | RAG engineer | [KB Ingestion](kb-ingestion.md) | Ground responses in private facts |
 | Operator | [Production Guide](../deployment/production.md) | Deploy, monitor, and audit the service |

@@ -3,7 +3,8 @@
 Reproducible, measured results across accuracy, latency, false-positive rate, and end-to-end guardrail performance. All numbers from our test suite unless marked "(est.)".
 
 Benchmark fixtures that are not leaderboard claims are documented separately,
-including the [multilingual corpus](benchmarks/multilingual-corpus.md) and
+including the [external validation report](benchmarks/external-validation-report.md),
+the [multilingual corpus](benchmarks/multilingual-corpus.md), and the
 [FrontierFail seed packet](benchmarks/frontierfail-seed.md). Prompt-injection
 replication setup is tracked in the
 [PINT replication packet](benchmarks/pint-replication.md).
@@ -29,7 +30,9 @@ Metric: macro-averaged balanced accuracy (standard for [LLM-AggreFact](https://l
 | 10 | AlignScore | 72.5–73.4% | 0.355B | No | — | MIT |
 | 11 | HHEM-2.1-Open (Vectara) | ~71.8% | 0.25B | No | ~200 ms (est.) | Apache 2.0 |
 
-Director-AI wraps the same FactCG-DeBERTa-L model that scores 77.2% in the NAACL 2025 paper. Our eval yields 75.86% — a 1.4pp gap from threshold tuning methodology and data split version.
+Director-AI wraps the same FactCG-DeBERTa-L model family. The local packet
+reports 75.86 percent in an earlier result set and 75.8 percent in the current
+submission packet; both are close to the public FactCG leaderboard row.
 
 ### Visual Comparison
 
@@ -41,8 +44,8 @@ xychart-beta
     bar [77.4, 77.2, 77.2, 76.5, 75.9, 75.86, 75.0, 74.1, 73.1, 72.5]
 ```
 
-!!! success "Director-AI beats all frontier LLMs at $0/call"
-    75.86% BA with a 0.4B parameter model — outperforming Claude Haiku 4.5 (75.10%), Claude Sonnet 4.6 (74.25%), GPT-4o (73.46%), and GPT-4o-mini (71.66%) on the same AggreFact test set. Zero API cost, sub-millisecond latency.
+!!! success "Near-top factuality with local scoring"
+    75.8-75.86 percent BA with a 0.4B parameter model, local execution, and no per-call API cost. The public leaderboard measures the scorer only; Director-AI adds streaming halt, RAG evidence, structured verification, and audit surfaces around that scorer.
 
 ### Per-Dataset Breakdown (threshold=0.46)
 
@@ -62,7 +65,9 @@ xychart-beta
 
 ### Director-AI vs Frontier LLMs (1K samples each)
 
-We evaluated frontier LLMs on the same AggreFact test set using three prompting modes: binary (yes/no), confidence (0–100 score with threshold sweep), and fewshot (3 labeled examples + confidence).
+We evaluated several frontier API judges on the same AggreFact test set using
+three prompting modes: binary yes/no, confidence score with threshold sweep,
+and fewshot examples plus confidence.
 
 | # | Model | Params | Confidence BA | Fewshot BA | Cost/1K calls |
 |---|-------|--------|---------------|------------|---------------|
@@ -72,7 +77,9 @@ We evaluated frontier LLMs on the same AggreFact test set using three prompting 
 | 3 | GPT-4o | ~200B | 73.46% (-2.40pp) | 71.69% (-4.17pp) | $1.16 |
 | 4 | GPT-4o-mini | ~8B | 71.66% (-4.20pp) | — | $0.07 |
 
-Director-AI beats all tested frontier LLMs on AggreFact at $0 per call and 0.5 ms latency.
+Director-AI outperformed these local comparison runs while keeping scoring
+local and avoiding per-call API cost. These rows are internal comparison
+evidence, not official leaderboard rows.
 
 ---
 
@@ -130,7 +137,7 @@ xychart-beta
 ```
 
 !!! info "Sub-millisecond: 0.5 ms/pair on L40S FP16"
-    Faster than a single OpenAI API round-trip by 3 orders of magnitude. Even a consumer GTX 1060 achieves 14.6 ms/pair with ONNX GPU batching.
+    Faster than a typical remote API round-trip by orders of magnitude. Even a consumer GTX 1060 achieves 14.6 ms/pair with ONNX GPU batching.
 
 ### Batch Coalescing
 
@@ -212,15 +219,18 @@ Evidence coverage: 100%. Avg latency: 15.8 ms (p95: 40 ms).
 | Judge | Task | N | Catch | FPR | Precision | F1 | Avg Latency |
 |-------|------|---|-------|-----|-----------|-----|-------------|
 | Claude Sonnet 4 | QA | 200 | 78.0% | 4.0% | 95.1% | 85.7% | 10.1 s |
-| Claude Sonnet 4 | Summarization | 200 | 95.0% | 93.0% | 50.5% | 66.0% | 26.3 s |
+| Claude Sonnet 4 | Summarisation | 200 | 95.0% | 93.0% | 50.5% | 66.0% | 26.3 s |
 | Claude Sonnet 4 | Dialogue | 200 | 99.0% | 95.0% | 51.0% | 67.4% | 6.2 s |
 | **Claude Sonnet 4** | **Overall** | **600** | **90.7%** | **64.0%** | **58.6%** | **71.2%** | **14.2 s** |
 | GPT-4o-mini | QA | 200 | 77.0% | 3.0% | 96.2% | 85.6% | 1.3 s |
-| GPT-4o-mini | Summarization | 200 | 95.0% | 93.0% | 50.5% | 66.0% | 4.3 s |
+| GPT-4o-mini | Summarisation | 200 | 95.0% | 93.0% | 50.5% | 66.0% | 4.3 s |
 | GPT-4o-mini | Dialogue | 200 | 99.0% | 95.0% | 51.0% | 67.4% | 1.3 s |
 | **GPT-4o-mini** | **Overall** | **600** | **90.3%** | **63.7%** | **58.7%** | **71.1%** | **2.3 s** |
 
-Hybrid mode improves catch rate from **46.7% to 90.7%** (+94% relative). QA task achieves production-grade precision (95–96%) at 3–4% FPR. GPT-4o-mini matches Claude at 6x lower latency.
+Hybrid mode improves catch rate from **46.7% to 90.7%** (+94% relative).
+QA task achieves production-grade precision (95-96%) at 3-4% FPR. The
+GPT-4o-mini matched Claude Sonnet 4 on this test set at lower response
+latency.
 
 ### Local Judge — DeBERTa Binary Classifier (L40S)
 
@@ -369,21 +379,21 @@ These systems publish results on benchmarks other than LLM-AggreFact. Scores are
 
 1. **Only streaming guardrail** — token-level halt, zero competitors offer this
 2. **Sub-millisecond latency** — 0.5 ms/pair on L40S FP16 (measured, batch=32)
-3. **Beats all frontier LLMs on AggreFact** — 75.86% BA > Claude Haiku (75.10%), Sonnet (74.25%), GPT-4o (73.46%) — using the FactCG-DeBERTa-v3-Large model (MIT)
+3. **Competitive against local frontier-judge comparisons** - 75.8-75.86% BA using the FactCG-DeBERTa-v3-Large model family
 4. **$0 per-call cost** — vs $0.07–$1.40/1K for API-based competitors
 5. **0.4B params** — runs on consumer hardware (GTX 1060: 14.6 ms/pair)
 6. **90.7% E2E catch rate (hybrid)** — NLI + LLM judge catches 9/10 hallucinations (HaluEval, 600 traces)
 7. **95–96% QA precision at 3–4% FPR** — production-grade on QA tasks (HaluEval hybrid mode)
-8. **Tested SDK integrations** — guard() verified with OpenAI and Anthropic SDKs (2026-03-20)
+8. **Tested SDK integrations** - guard() verified with OpenAI and Anthropic SDKs (2026-03-20)
 
 !!! warning "Honest Limitations"
     1. **NLI-only domain scoring is weak without KB** — PubMedQA F1=62.1%, FinanceBench 80%+ FPR. Load your domain knowledge into the vector store for meaningful scoring.
     2. **Summarization accuracy weakest** — AggreFact-CNN 68.8%, ExpertQA 59.1%. FPR at 10.5% (v3.5, bidirectional NLI)
     3. **ONNX CPU not competitive** — 383 ms/pair without CUDAExecutionProvider
     4. **Fine-tuned NLI models regress** — 22/23 fine-tunes hurt; only CommitmentBank (+0.54pp) helps. See [NLI fine-tuning survey](#nli-fine-tuning-survey-21-models)
-    5. **Hybrid mode requires LLM API** — NLI-only mode is fully local, but hybrid needs OpenAI/Anthropic
+    5. **Hybrid mode requires a remote judge API** - NLI-only mode is fully local, but hybrid uses OpenAI or Anthropic unless a local judge is configured.
     6. **Long documents OOM on consumer GPUs** — legal contracts (CUAD) exceed 6GB VRAM during chunked NLI. Needs ≥16GB.
-    7. **SDK integrations tested** — OpenAI and Anthropic guard() verified (2026-03-20). Bedrock, Gemini, Cohere use duck-type detection but not end-to-end tested.
+    7. **SDK integrations tested** - OpenAI and Anthropic guard() verified (2026-03-20). Bedrock, Gemini, Cohere use duck-type detection but not end-to-end tested.
 
 ---
 

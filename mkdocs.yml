@@ -129,6 +129,7 @@ nav:
       - Runtime Extraction Evaluation: guide/runtime-extraction-evaluation.md
       - Product Overview: guide/product-overview.md
       - Why Director-AI: guide/why-director-ai.md
+      - Guardrail Landscape: guide/guardrail-landscape.md
       - vs Prompt Engineering: guide/vs-prompt-engineering.md
       - Evaluation Onboarding: guide/onboarding.md
   - User Guide:
@@ -261,6 +262,7 @@ nav:
       - Case Studies: cookbook/case-studies.md
   - Benchmarks: benchmarks.md
   - Benchmark Fixtures:
+      - External Validation Report: benchmarks/external-validation-report.md
       - Multilingual Corpus: benchmarks/multilingual-corpus.md
       - FrontierFail Seed Packet: benchmarks/frontierfail-seed.md
       - PINT Replication Packet: benchmarks/pint-replication.md
