@@ -18,6 +18,7 @@ from typing import Any, cast
 
 import pytest
 
+import director_ai.core.trace_safe.embedder as embedder_module
 from director_ai.core.trace_safe import (
     HashBagEmbedder,
     TraceSafeOracle,
@@ -67,6 +68,23 @@ class TestHashBagEmbedder:
     def test_case_sensitive_flag(self):
         e = HashBagEmbedder(dim=64, lowercase=False)
         assert e.embed("Hello") != e.embed("hello")
+
+    def test_zero_norm_guard_returns_raw_counts(self, monkeypatch):
+        monkeypatch.setattr(embedder_module, "_sum_float", lambda _values: 0.0)
+        e = HashBagEmbedder(dim=16)
+
+        vec = e.embed("repeat repeat")
+
+        assert len(vec) == 16
+        assert sum(vec) > 0.0
+        assert max(vec) > 1.0
+
+    def test_sum_float_falls_back_to_python_when_accelerator_disabled(
+        self, monkeypatch
+    ):
+        monkeypatch.setattr(embedder_module, "_RUST_TRACE_EMBEDDER", False)
+
+        assert embedder_module._sum_float([1.5, 2.5, 3.0]) == pytest.approx(7.0)
 
 
 # --- TraceSafeOracle -------------------------------------------------
