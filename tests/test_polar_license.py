@@ -653,6 +653,87 @@ def test_polar_activation_uses_server_auth_conditions_and_meta(monkeypatch):
     }
 
 
+def test_polar_activation_rejects_bad_inputs_before_network(monkeypatch):
+    post = SimpleNamespace(called=False)
+
+    def fake_post(*args, **kwargs):
+        post.called = True
+        return _Response(200, {"id": "activation-id"})
+
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    blank_key = activate_polar_key(
+        " ",
+        "550e8400-e29b-41d4-a716-446655440000",
+        label="node-a",
+    )
+    blank_label = activate_polar_key(
+        "polar-key",
+        "550e8400-e29b-41d4-a716-446655440000",
+        label=" ",
+    )
+    missing_org = activate_polar_key("polar-key", "", label="node-a")
+    bad_conditions = activate_polar_key(
+        "polar-key",
+        "550e8400-e29b-41d4-a716-446655440000",
+        label="node-a",
+        conditions={"nested": {"bad": True}},
+    )
+    bad_meta = activate_polar_key(
+        "polar-key",
+        "550e8400-e29b-41d4-a716-446655440000",
+        label="node-a",
+        meta={"nested": {"bad": True}},
+    )
+
+    assert blank_key.license.message == "No Polar license key provided"
+    assert blank_label.license.message == "Polar activation label is required"
+    assert "ORG_ID" in missing_org.license.message
+    assert "Polar activation conditions values must be scalar" in (
+        bad_conditions.license.message
+    )
+    assert "Polar activation meta values must be scalar" in bad_meta.license.message
+    assert post.called is False
+
+
+def test_polar_activation_reports_network_http_and_payload_failures(monkeypatch):
+    responses = iter(
+        [
+            requests.ConnectionError("offline"),
+            _Response(500, {}),
+            _Response(200, ["not-object"]),
+            _Response(200, {"id": "activation-id", "status": "granted"}),
+        ]
+    )
+
+    def fake_post(*args, **kwargs):
+        response = next(responses)
+        if isinstance(response, BaseException):
+            raise response
+        return response
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_ACTIVATION_LABEL", "env-node")
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    network = activate_polar_key(
+        "polar-key", "550e8400-e29b-41d4-a716-446655440000"
+    )
+    http = activate_polar_key("polar-key", "550e8400-e29b-41d4-a716-446655440000")
+    invalid_payload = activate_polar_key(
+        "polar-key", "550e8400-e29b-41d4-a716-446655440000"
+    )
+    fallback_payload = activate_polar_key(
+        "polar-key", "550e8400-e29b-41d4-a716-446655440000"
+    )
+
+    assert "Polar request unavailable: offline" in network.license.message
+    assert http.license.message == "Polar activation failed with HTTP 500"
+    assert invalid_payload.license.message == "Polar activation returned invalid payload"
+    assert fallback_payload.activation_id == "activation-id"
+    assert fallback_payload.label == "env-node"
+    assert fallback_payload.license.valid
+
+
 def test_polar_deactivation_accepts_204_and_requires_activation_id(monkeypatch):
     captured = {}
 
@@ -688,6 +769,34 @@ def test_polar_deactivation_accepts_204_and_requires_activation_id(monkeypatch):
     )
     assert not missing.valid
     assert "activation_id" in missing.message
+
+
+def test_polar_deactivation_reports_preflight_and_http_failures(monkeypatch):
+    post = SimpleNamespace(called=False)
+
+    def fake_post(*args, **kwargs):
+        post.called = True
+        return _Response(409, {"detail": "already inactive"})
+
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    blank_key = deactivate_polar_key(
+        " ",
+        "activation-id",
+        "550e8400-e29b-41d4-a716-446655440000",
+    )
+    missing_org = deactivate_polar_key("polar-key", "activation-id", "")
+    failed = deactivate_polar_key(
+        "polar-key",
+        "activation-id",
+        "550e8400-e29b-41d4-a716-446655440000",
+    )
+
+    assert blank_key.message == "No Polar license key provided"
+    assert "ORG_ID" in missing_org.message
+    assert failed.status_code == 409
+    assert failed.payload == {"detail": "already inactive"}
+    assert post.called is True
 
 
 def test_polar_customer_portal_session_uses_org_token(monkeypatch):
@@ -727,6 +836,51 @@ def test_polar_customer_portal_session_uses_org_token(monkeypatch):
     }
 
 
+def test_polar_customer_portal_session_rejects_invalid_inputs(monkeypatch):
+    with pytest.raises(ValueError, match="ACCESS_TOKEN is required"):
+        create_polar_customer_portal_session(customer_id="customer-id")
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_ACCESS_TOKEN", "polar-token")
+    with pytest.raises(ValueError, match="provide exactly one"):
+        create_polar_customer_portal_session()
+    with pytest.raises(ValueError, match="provide exactly one"):
+        create_polar_customer_portal_session(
+            customer_id="customer-id",
+            customer_external_id="tenant-42",
+        )
+    with pytest.raises(ValueError, match="identifier must be non-empty"):
+        create_polar_customer_portal_session(customer_id=" ")
+
+
+def test_polar_customer_portal_session_reports_response_failures(monkeypatch):
+    responses = iter(
+        [
+            requests.ConnectionError("offline"),
+            _Response(403, {}),
+            _Response(201, ["not-object"]),
+            _Response(201, {"token": "missing-url"}),
+        ]
+    )
+
+    def fake_post(*args, **kwargs):
+        response = next(responses)
+        if isinstance(response, BaseException):
+            raise response
+        return response
+
+    monkeypatch.setenv("DIRECTOR_AI_POLAR_ACCESS_TOKEN", "polar-token")
+    monkeypatch.setattr("director_ai.core.polar_license.requests.post", fake_post)
+
+    with pytest.raises(ValueError, match="Polar request unavailable: offline"):
+        create_polar_customer_portal_session(customer_id="customer-id")
+    with pytest.raises(ValueError, match="failed with HTTP 403"):
+        create_polar_customer_portal_session(customer_id="customer-id")
+    with pytest.raises(ValueError, match="returned invalid payload"):
+        create_polar_customer_portal_session(customer_id="customer-id")
+    with pytest.raises(ValueError, match="missing customer_portal_url"):
+        create_polar_customer_portal_session(customer_id="customer-id")
+
+
 def test_polar_webhook_validation_uses_standard_webhooks(monkeypatch):
     secret = base64.b64encode(b"webhook-secret-32-bytes-minimum").decode()
     body = b'{"type":"license_key.updated","data":{"id":"lk_1"}}'
@@ -753,6 +907,57 @@ def test_polar_webhook_validation_uses_standard_webhooks(monkeypatch):
     headers["webhook-timestamp"] = str(int(time.time()) - 1_000)
     with pytest.raises(ValueError, match="timestamp outside tolerance"):
         validate_polar_webhook(body, headers, "whsec_" + secret)
+
+
+def test_polar_webhook_validation_rejects_metadata_and_payload_errors():
+    secret = base64.b64encode(b"webhook-secret-32-bytes-minimum").decode()
+    body = b'{"type":"license_key.updated"}'
+    timestamp = str(int(time.time()))
+    signed = b"msg_1." + timestamp.encode() + b"." + body
+    digest = hmac.new(base64.b64decode(secret), signed, hashlib.sha256).digest()
+    valid_headers = {
+        "Webhook-Id": "msg_1",
+        "Webhook-Timestamp": timestamp,
+        "Webhook-Signature": "v1," + base64.b64encode(digest).decode(),
+    }
+
+    with pytest.raises(ValueError, match="Missing Polar webhook signature headers"):
+        validate_polar_webhook(body, {}, "whsec_" + secret)
+
+    bad_metadata = dict(valid_headers)
+    bad_metadata["Webhook-Id"] = "msg.1"
+    with pytest.raises(ValueError, match="Invalid Polar webhook signature metadata"):
+        validate_polar_webhook(body, bad_metadata, "whsec_" + secret)
+
+    bad_timestamp = dict(valid_headers)
+    bad_timestamp["Webhook-Timestamp"] = "now"
+    with pytest.raises(ValueError, match="Invalid Polar webhook timestamp"):
+        validate_polar_webhook(body, bad_timestamp, "whsec_" + secret)
+
+    bad_secret = dict(valid_headers)
+    with pytest.raises(ValueError, match="WEBHOOK_SECRET must be base64"):
+        validate_polar_webhook(body, bad_secret, "whsec_not-base64")
+
+    short_secret = base64.b64encode(b"too-short").decode()
+    with pytest.raises(ValueError, match="at least 24 bytes"):
+        validate_polar_webhook(body, valid_headers, "whsec_" + short_secret)
+
+    bad_json_headers = {
+        "webhook-id": "msg_2",
+        "webhook-timestamp": timestamp,
+    }
+    bad_json = b"[1, 2, 3]"
+    signed_bad_json = b"msg_2." + timestamp.encode() + b"." + bad_json
+    bad_json_digest = hmac.new(
+        base64.b64decode(secret),
+        signed_bad_json,
+        hashlib.sha256,
+    ).digest()
+    bad_json_headers["webhook-signature"] = (
+        "v1," + base64.b64encode(bad_json_digest).decode()
+    )
+    with pytest.raises(ValueError, match="Invalid Polar webhook payload"):
+        validate_polar_webhook(bad_json, bad_json_headers, "whsec_" + secret)
 
 
 def test_polar_deployment_env_validation_surfaces_operational_gaps(monkeypatch):
