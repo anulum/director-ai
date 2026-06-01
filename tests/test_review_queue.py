@@ -15,7 +15,6 @@ batch sizes, pipeline integration, and performance documentation.
 from __future__ import annotations
 
 import asyncio
-import contextlib
 import threading
 import time
 
@@ -242,8 +241,12 @@ class TestReviewQueueLifecycle:
                 await queue.stop()
         finally:
             queue._task.cancel()
-            with contextlib.suppress(asyncio.CancelledError):
+            cancelled = False
+            try:
                 await queue._task
+            except asyncio.CancelledError:
+                cancelled = True
+            assert cancelled
 
 
 class TestReviewQueueInternalBranches:
