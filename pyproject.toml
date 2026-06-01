@@ -341,6 +341,7 @@ markers = [
     "integration: cross-module integration tests",
     "slow: tests that take > 5s",
     "enterprise: enterprise module tests (tenant, policy, audit)",
+    "gpu: GPU-backed integration tests that require a supported CUDA device",
 ]
 
 [tool.coverage.run]

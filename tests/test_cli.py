@@ -20,6 +20,7 @@ from pathlib import Path
 
 import pytest
 
+import director_ai.cli as cli_module
 from director_ai.cli import main
 
 
@@ -41,6 +42,13 @@ class TestCLIHelp:
         with pytest.raises(SystemExit) as exc_info:
             main(["foobar"])
         assert exc_info.value.code == 1
+
+    def test_invalid_command_token_is_rejected(self, capsys):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["../review"])
+        captured = capsys.readouterr()
+        assert exc_info.value.code == 1
+        assert "Invalid command name" in captured.out
 
 
 class TestVersionCommand:
@@ -88,6 +96,45 @@ class TestProcessCommand:
 class TestBatchCommand:
     """Tests for 'director-ai batch'."""
 
+    def _patch_batch_runtime(self, monkeypatch):
+        seen: dict[str, tuple[str, ...]] = {}
+
+        class FakeConfig:
+            def build_store(self):
+                return object()
+
+            def build_scorer(self, **_kwargs):
+                return object()
+
+        class FakeAgent:
+            def __init__(self, *_args, **_kwargs):
+                pass
+
+        class FakeBatchProcessor:
+            def __init__(self, *_args, **_kwargs):
+                pass
+
+            def process_batch(self, prompts):
+                seen["prompts"] = tuple(prompts)
+                return types.SimpleNamespace(
+                    total=len(prompts),
+                    succeeded=len(prompts),
+                    failed=0,
+                    duration_seconds=0.01,
+                    results=[(True, object()) for _prompt in prompts],
+                )
+
+        monkeypatch.setattr(
+            "director_ai.core.config.DirectorConfig.from_env",
+            lambda: FakeConfig(),
+        )
+        monkeypatch.setattr("director_ai.core.agent.CoherenceAgent", FakeAgent)
+        monkeypatch.setattr(
+            "director_ai.core.runtime.batch.BatchProcessor",
+            FakeBatchProcessor,
+        )
+        return seen
+
     def test_batch_success(self, capsys):
         with tempfile.NamedTemporaryFile(mode="w", suffix=".jsonl", delete=False) as f:
             f.write(json.dumps({"prompt": "Q1"}) + "\n")
@@ -126,6 +173,141 @@ class TestBatchCommand:
         with pytest.raises(SystemExit) as exc_info:
             main(["batch"])
         assert exc_info.value.code == 1
+
+    def test_batch_rejects_nonexistent_input_file(self, tmp_path, capsys):
+        missing_path = tmp_path / "missing.jsonl"
+
+        with pytest.raises(SystemExit) as exc_info:
+            main(["batch", str(missing_path)])
+
+        captured = capsys.readouterr()
+        assert exc_info.value.code == 1
+        assert "file not found" in captured.out
+
+    def test_batch_ignores_blank_lines(self, tmp_path, monkeypatch, capsys):
+        input_path = tmp_path / "prompts.jsonl"
+        input_path.write_text("\n" + json.dumps({"prompt": "usable"}) + "\n")
+        seen = self._patch_batch_runtime(monkeypatch)
+
+        main(["batch", str(input_path)])
+
+        captured = capsys.readouterr()
+        assert "Total:" in captured.out
+        assert seen["prompts"] == ("usable",)
+
+    def test_batch_skips_malformed_json_and_keeps_valid_prompt(
+        self,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ):
+        input_path = tmp_path / "prompts.jsonl"
+        input_path.write_text("{not valid json}\n" + json.dumps({"prompt": "Q1"}) + "\n")
+        seen = self._patch_batch_runtime(monkeypatch)
+
+        main(["batch", str(input_path)])
+
+        captured = capsys.readouterr()
+        assert "skipping malformed JSON" in captured.out
+        assert seen["prompts"] == ("Q1",)
+
+    def test_batch_rejects_oversized_input_file(
+        self,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ):
+        input_path = tmp_path / "prompts.jsonl"
+        input_path.write_text(json.dumps({"prompt": "Q1"}) + "\n")
+        monkeypatch.setattr(
+            "os.path.getsize",
+            lambda _path: cli_module._BATCH_MAX_FILE_SIZE + 1,
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            main(["batch", str(input_path)])
+
+        captured = capsys.readouterr()
+        assert exc_info.value.code == 1
+        assert "file too large" in captured.out
+
+    def test_batch_skips_oversized_line_and_processes_remaining_prompt(
+        self,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ):
+        input_path = tmp_path / "prompts.jsonl"
+        input_path.write_text(
+            json.dumps({"prompt": "x" * 40}) + "\n"
+            + json.dumps({"prompt": "short"}) + "\n",
+        )
+        monkeypatch.setattr(cli_module, "_BATCH_MAX_LINE_SIZE", 30)
+        seen = self._patch_batch_runtime(monkeypatch)
+
+        main(["batch", str(input_path)])
+
+        captured = capsys.readouterr()
+        assert "skipping line 1" in captured.out
+        assert "Total:" in captured.out
+        assert "Success:" in captured.out
+        assert seen["prompts"] == ("short",)
+
+    def test_batch_enforces_prompt_cap(self, tmp_path, monkeypatch, capsys):
+        input_path = tmp_path / "prompts.jsonl"
+        input_path.write_text(
+            json.dumps({"prompt": "Q1"}) + "\n"
+            + json.dumps({"prompt": "Q2"}) + "\n",
+        )
+        monkeypatch.setattr(cli_module, "_BATCH_MAX_PROMPTS", 1)
+        seen = self._patch_batch_runtime(monkeypatch)
+
+        main(["batch", str(input_path)])
+
+        captured = capsys.readouterr()
+        assert "truncated at 1 prompts" in captured.out
+        assert "Total:" in captured.out
+        assert "Success:" in captured.out
+        assert seen["prompts"] == ("Q1",)
+
+    def test_batch_skips_invalid_prompt_and_keeps_valid_prompt(
+        self,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ):
+        input_path = tmp_path / "prompts.jsonl"
+        input_path.write_text(
+            json.dumps({"prompt": ""}) + "\n"
+            + json.dumps({"prompt": "usable"}) + "\n",
+        )
+        seen = self._patch_batch_runtime(monkeypatch)
+
+        main(["batch", str(input_path)])
+
+        captured = capsys.readouterr()
+        assert "skipping invalid prompt" in captured.out
+        assert "Total:" in captured.out
+        assert "Success:" in captured.out
+        assert seen["prompts"] == ("usable",)
+
+    def test_batch_output_skips_non_review_results(
+        self,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ):
+        input_path = tmp_path / "prompts.jsonl"
+        output_path = tmp_path / "results.jsonl"
+        input_path.write_text(json.dumps({"prompt": "Q1"}) + "\n")
+        seen = self._patch_batch_runtime(monkeypatch)
+
+        main(["batch", str(input_path), "--output", str(output_path)])
+
+        captured = capsys.readouterr()
+        assert "Results written to" in captured.out
+        assert seen["prompts"] == ("Q1",)
+        assert output_path.read_text() == ""
 
 
 class TestQuickstartCommand:
@@ -223,6 +405,55 @@ class TestQuickstartCommand:
             main(["quickstart", "--run"])
         assert exc_info.value.code == 1
 
+    def test_quickstart_run_reports_missing_compose_binary(
+        self,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ):
+        def fake_run(command, cwd=None, check=False):
+            raise FileNotFoundError
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("director_ai.cli.shutil.which", lambda _name: "docker")
+        monkeypatch.setattr("director_ai.cli.subprocess.run", fake_run)
+
+        with pytest.raises(SystemExit) as exc_info:
+            main(["quickstart", "--run"])
+
+        captured = capsys.readouterr()
+        assert exc_info.value.code == 1
+        assert "docker compose is required" in captured.out
+
+    def test_quickstart_run_reports_compose_process_failure(
+        self,
+        tmp_path,
+        monkeypatch,
+        capsys,
+    ):
+        def fake_run(command, cwd=None, check=False):
+            raise subprocess.CalledProcessError(17, command)
+
+        monkeypatch.chdir(tmp_path)
+        monkeypatch.setattr("director_ai.cli.shutil.which", lambda _name: "docker")
+        monkeypatch.setattr("director_ai.cli.subprocess.run", fake_run)
+
+        with pytest.raises(SystemExit) as exc_info:
+            main(["quickstart", "--run"])
+
+        captured = capsys.readouterr()
+        assert exc_info.value.code == 17
+        assert "docker compose failed with exit code 17" in captured.out
+
+    def test_quickstart_ignores_unknown_options(self, tmp_path, monkeypatch):
+        monkeypatch.chdir(tmp_path)
+
+        main(["quickstart", "--unknown-option", "--no-compose"])
+
+        d = tmp_path / "director_guard"
+        assert d.is_dir()
+        assert not (d / "docker-compose.yml").exists()
+
 
 class TestConfigCommand:
     """Tests for 'director-ai config'."""
@@ -236,6 +467,11 @@ class TestConfigCommand:
         main(["config", "--profile", "fast"])
         captured = capsys.readouterr()
         assert "coherence_threshold" in captured.out
+
+    def test_config_profile_requires_value(self):
+        with pytest.raises(SystemExit) as exc_info:
+            main(["config", "--profile"])
+        assert exc_info.value.code == 1
 
 
 class TestServeWorkers:
