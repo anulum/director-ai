@@ -159,6 +159,13 @@ class TestIngestParsedFormats:
 class TestIngestEdgeCases:
     """Edge cases for the ingest command."""
 
+    def test_ingest_missing_path_exits(self, capsys, tmp_path):
+        missing = tmp_path / "missing.txt"
+        with pytest.raises(SystemExit) as exc:
+            main(["ingest", str(missing)])
+        assert exc.value.code == 1
+        assert "path not found" in capsys.readouterr().out
+
     def test_ingest_jsonl_with_content_key(self, capsys, tmp_path):
         jf = tmp_path / "docs.jsonl"
         jf.write_text(
@@ -184,6 +191,29 @@ class TestIngestEdgeCases:
         )
         with pytest.raises(ValueError, match=r"Invalid JSON document in .* line 2"):
             main(["ingest", str(jf)])
+
+    def test_ingest_jsonl_rejects_non_object_lines(self, tmp_path):
+        jf = tmp_path / "array.jsonl"
+        jf.write_text(json.dumps(["not", "an", "object"]) + "\n")
+        with pytest.raises(ValueError, match=r"expected object"):
+            main(["ingest", str(jf)])
+
+    def test_ingest_ignores_blank_jsonl_lines(self, capsys, tmp_path):
+        jf = tmp_path / "blank_lines.jsonl"
+        jf.write_text(
+            "\n"
+            + json.dumps({"text": "Fact after blank line."})
+            + "\n\n"
+        )
+        main(["ingest", str(jf)])
+        assert "1 chunks" in capsys.readouterr().out
+
+    def test_ingest_splits_text_into_multiple_chunks(self, capsys, tmp_path):
+        tf = tmp_path / "paragraphs.txt"
+        tf.write_text("alpha beta\n\ncharlie delta\n\necho foxtrot\n")
+        main(["ingest", str(tf), "--chunk-size", "2"])
+        out = capsys.readouterr().out
+        assert "3 chunks" in out
 
     def test_ingest_large_file_skipped(self, capsys, tmp_path):
         """Files exceeding 100 MB are skipped with a warning."""

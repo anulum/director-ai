@@ -77,6 +77,12 @@ class TestOnLlmEnd:
         handler.on_llm_end(SimpleNamespace(generations=None))
         assert handler.last_score is None
 
+    def test_response_without_generations_no_crash(self):
+        handler = CoherenceCallbackHandler()
+        handler._current_prompt = "test"
+        handler.on_llm_end(SimpleNamespace())
+        assert handler.last_score is None
+
     def test_empty_generation_batch_no_crash(self):
         handler = CoherenceCallbackHandler()
         handler._current_prompt = "test"
@@ -109,6 +115,12 @@ class TestOnChainStart:
         handler = CoherenceCallbackHandler()
         handler.on_chain_start(serialized={}, inputs={"query": "my query"})
         assert handler._current_prompt == "my query"
+
+    @pytest.mark.parametrize("key", ["question", "prompt"])
+    def test_captures_additional_prompt_keys(self, key):
+        handler = CoherenceCallbackHandler()
+        handler.on_chain_start(serialized={}, inputs={key: 123})
+        assert handler._current_prompt == "123"
 
     def test_no_known_key_keeps_old(self):
         handler = CoherenceCallbackHandler()

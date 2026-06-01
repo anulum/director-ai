@@ -102,6 +102,12 @@ class TestOldImportPathDeprecation:
         )
         assert result.returncode == 0, result.stderr
 
+    def test_root_getattr_moved_symbol_raises_import_error(self):
+        import director_ai
+
+        with pytest.raises(ImportError, match="director_ai.enterprise"):
+            director_ai.__getattr__("TenantRouter")
+
     def test_old_core_path_raises(self):
         result = _run_python(
             "try:\n"
