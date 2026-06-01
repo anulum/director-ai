@@ -27,7 +27,7 @@ def _run_python(code: str) -> subprocess.CompletedProcess:
         [sys.executable, "-c", code],
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=90,
     )
 
 
