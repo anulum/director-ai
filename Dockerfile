@@ -50,7 +50,7 @@ RUN python -m pip install --no-cache-dir --require-hashes --no-deps --prefix=/in
     && PYTHONPATH=/install/lib/python3.11/site-packages PATH="/install/bin:${PATH}" \
         python -m build --wheel --no-isolation --outdir /tmp/director-wheel . \
     && PYTHONPATH=/install/lib/python3.11/site-packages \
-        python -m installer --prefix=/install /tmp/director-wheel/director_ai-3.15.1-py3-none-any.whl
+        python -m installer --prefix=/install /tmp/director-wheel/director_ai-*-py3-none-any.whl
 
 # ── Stage 2: Runtime ────────────────────────────────────────────────
 
