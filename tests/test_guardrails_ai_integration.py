@@ -240,3 +240,41 @@ def test_guardrails_adapter_raises_actionable_error_without_optional_dependency(
 
     with pytest.raises(ImportError, match="guardrails-ai"):
         build_guardrails_validator()
+
+
+def test_guardrails_helpers_cover_metadata_and_store_edge_cases():
+    from director_ai.core import GroundTruthStore
+    from director_ai.integrations import guardrails_ai
+
+    store = GroundTruthStore()
+    assert guardrails_ai._build_store(facts={"unused": "fact"}, store=store) is store
+
+    assert guardrails_ai._coerce_text(42) == "42"
+    assert guardrails_ai._prompt_from_metadata(None) == ""
+    assert guardrails_ai._prompt_from_metadata({"messages": "not-a-list"}) == ""
+    assert guardrails_ai._tenant_from_metadata(None) == ""
+
+    assert (
+        guardrails_ai._prompt_from_messages(
+            [
+                "not-a-dict",
+                {"role": "assistant", "content": "ignored"},
+                {"role": "user", "content": ""},
+                {"role": "user", "content": [{"text": "  "}, {"image": "ignored"}]},
+                {"role": "user", "content": "  What is the SLA?  "},
+            ]
+        )
+        == "What is the SLA?"
+    )
+
+    assert (
+        guardrails_ai._prompt_from_messages(
+            [
+                {"role": "assistant", "content": "ignored"},
+                {"role": "user", "content": [{"text": "  "}, {"image": "ignored"}]},
+                {"role": "user", "content": 123},
+                "trailing-non-dict",
+            ]
+        )
+        == ""
+    )
