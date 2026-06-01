@@ -191,6 +191,16 @@ class TestProvenanceChain:
         ok, _ = chain.verify()
         assert ok
 
+    def test_snapshot_returns_append_only_audit_entries(self):
+        chain = ProvenanceChain(secret=b"s" * 32)
+        first = chain.append(merkle_root="root-1")
+        second = chain.append(merkle_root="root-2")
+
+        snapshot = chain.snapshot()
+
+        assert snapshot == (first, second)
+        assert snapshot[1].parent_hash != "0" * 64
+
 
 # --- SourceCredibility --------------------------------------------
 
@@ -270,6 +280,16 @@ class TestSourceCredibility:
         cred = SourceCredibility()
         with pytest.raises(ValueError, match="source_id"):
             cred.score("")
+
+    def test_score_holds_current_value_when_clock_moves_backwards(self):
+        clock = _FakeClock(start=10.0)
+        cred = SourceCredibility(prior=0.2, clock=clock)
+        cred.observe("s", 0.8)
+        stored = cred.score("s")
+
+        clock.now = 5.0
+
+        assert cred.score("s") == pytest.approx(stored)
 
 
 # --- ProvenanceVerifier -------------------------------------------
