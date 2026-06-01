@@ -417,6 +417,37 @@ class TestEconomicRiskScorer:
         assert verdict.exhaustion_headroom > 0.9
         assert verdict.risk > 0.9
 
+    def test_negative_balance_clamps_risk_to_one(self):
+        class _OverdrawnPool:
+            capacity = 100.0
+
+            def balance(self) -> float:
+                return -25.0
+
+        class _QuietDetector:
+            def check(self) -> TragedySignal:
+                return TragedySignal(
+                    firing=False,
+                    observed_rate=0.0,
+                    sustainable_rate=0.0,
+                    pressure=0.0,
+                    grace_elapsed=0.0,
+                )
+
+        scorer = EconomicRiskScorer(
+            pool=_OverdrawnPool(),
+            detector=_QuietDetector(),
+            weight_exhaustion=1.0,
+            weight_fairness=0.0,
+            weight_tragedy=0.0,
+        )
+
+        verdict = scorer.score()
+
+        assert verdict.exhaustion_headroom > 1.0
+        assert verdict.risk == 1.0
+        assert verdict.safe is False
+
     def test_bargaining_result_feeds_fairness(self):
         clock = _FakeClock()
         pool = ResourcePool(capacity=100.0, regeneration_rate=10.0, clock=clock)
@@ -494,3 +525,8 @@ class TestSwarmEconomicsRustSums:
             raising=True,
         )
         assert scorer_mod._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.0)
+
+    def test_sum_float_handles_empty_and_python_paths(self, monkeypatch):
+        assert scorer_mod._sum_float([]) == 0.0
+        monkeypatch.setattr(scorer_mod, "_RUST_SWARM_ECON", False)
+        assert scorer_mod._sum_float([0.25, 0.75]) == pytest.approx(1.0)

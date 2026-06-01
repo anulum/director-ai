@@ -412,6 +412,20 @@ class TestSecretSharing:
     def test_bad_modulus(self):
         with pytest.raises(ShareError, match="modulus"):
             SecureAggregator(party_count=2, modulus=0)
+        with pytest.raises(ShareError, match="modulus"):
+            split(1, party_count=2, modulus=0)
+
+    def test_secret_share_requires_at_least_two_parties(self):
+        with pytest.raises(ShareError, match="at least two parties"):
+            SecretShare(values=(1,), modulus=DEFAULT_MODULUS)
+
+    def test_seed_requires_explicit_insecure_opt_in(self):
+        with pytest.raises(ShareError, match="allow_insecure_seed"):
+            split(1, party_count=2, seed=123)
+
+    def test_split_many_rejects_empty_secret_list(self):
+        with pytest.raises(ShareError, match="non-empty"):
+            split_many([], party_count=2)
 
     def test_share_negative_rejected(self):
         with pytest.raises(ShareError, match="outside"):

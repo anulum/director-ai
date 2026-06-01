@@ -437,6 +437,35 @@ class TestContainmentGuard:
         # Production scope downgrades the production_target finding,
         # nothing else is flagged, so it's allow.
         assert verdict.decision == "allow"
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.evidence_refs == ()
+
+    def test_low_severity_finding_allows_with_audit_reference(self):
+        class _LowOnlyDetector(BreakoutDetector):
+            def scan(
+                self,
+                event,
+                anchored_scope,
+                claimed_scope=None,
+            ):
+                del event, anchored_scope, claimed_scope
+                return [
+                    BreakoutFinding(
+                        category="observation",
+                        severity="low",
+                        detail="auditable but non-blocking",
+                    ),
+                ]
+
+        attestor = ContainmentAttestor(key=_SECRET, issuer="host://edge-11")
+        guard = ContainmentGuard(attestor=attestor, detector=_LowOnlyDetector())
+        anchor = attestor.mint(session_id="s", scope="sandbox")
+
+        verdict = guard.check({}, anchor)
+
+        assert verdict.decision == "allow"
+        assert verdict.safety_event is not None
+        assert verdict.safety_event.evidence_refs == ("containment:observation:low",)
 
     def test_production_with_injection_still_blocks(self):
         guard, attestor = _guard()
