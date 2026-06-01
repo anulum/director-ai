@@ -144,6 +144,7 @@ haystack = [
 ]
 crewai = [
     "crewai>=0.50",
+    "litellm>=1.83.7",
 ]
 # The adapter is dependency-light and imports Guardrails AI only when used.
 # Keep the extra as a stable documentation anchor because the current package
