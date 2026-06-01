@@ -203,14 +203,6 @@ def _should_skip_artifact(rel_path: str) -> bool:
 
 def _download_gcs_model_artifact(uri: str) -> str:
     """Download a managed scorer artefact to a local Transformers cache."""
-    try:
-        from google.cloud import storage
-    except ImportError as exc:
-        raise RuntimeError(
-            "loading managed scorer artefacts requires google-cloud-storage; "
-            "install director-ai[managed-training]",
-        ) from exc
-
     bucket_name, prefix = _split_gs_uri(uri)
     cache_root = Path(
         os.environ.get("DIRECTOR_MODEL_CACHE_DIR")
@@ -221,6 +213,14 @@ def _download_gcs_model_artifact(uri: str) -> str:
     marker = target_dir / ".director-ai-complete"
     if marker.exists():
         return str(target_dir)
+
+    try:
+        from google.cloud import storage
+    except ImportError as exc:
+        raise RuntimeError(
+            "loading managed scorer artefacts requires google-cloud-storage; "
+            "install director-ai[managed-training]",
+        ) from exc
 
     client = storage.Client()
     bucket = client.bucket(bucket_name)
