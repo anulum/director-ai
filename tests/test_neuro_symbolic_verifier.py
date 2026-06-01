@@ -6,8 +6,35 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 # Director-Class AI — Neuro-Symbolic Verifier Tests
 
-from director_ai.core import NeuroSymbolicVerifier, NeuroSymbolicVerifierInput
-from director_ai.core.formal_verification import Not, ReasoningStep, Variable
+import pytest
+
+from director_ai.core import (
+    NeuroSymbolicVerificationResult,
+    NeuroSymbolicVerifier,
+    NeuroSymbolicVerifierInput,
+)
+from director_ai.core.formal_verification import (
+    Not,
+    ReasoningStep,
+    ReasoningVerdict,
+    Variable,
+)
+
+
+def test_input_and_result_validation_reject_invalid_values():
+    with pytest.raises(ValueError, match="text must be non-empty"):
+        NeuroSymbolicVerifierInput(text=" ", neural_score=0.5)
+    with pytest.raises(ValueError, match=r"neural_score must be finite and in \[0, 1\]"):
+        NeuroSymbolicVerifierInput(text="claim", neural_score=float("nan"))
+    with pytest.raises(ValueError, match=r"neural_score must be finite and in \[0, 1\]"):
+        NeuroSymbolicVerifier(neural_accept_threshold=1.1)
+    with pytest.raises(ValueError, match="unsupported decision"):
+        NeuroSymbolicVerificationResult(
+            decision="halt",
+            neural_score=0.5,
+            neural_accept_threshold=0.6,
+            reasons=(),
+        )
 
 
 def test_neural_score_passes_but_numeric_error_rejects():
@@ -26,6 +53,7 @@ def test_neural_score_passes_but_numeric_error_rejects():
     assert result.numeric_result.valid is False
     assert result.symbolic_verdict is None
     assert result.to_dict()["text"] is None
+    assert result.to_dict()["numeric"]["issues"][0]["severity"] == "error"
 
 
 def test_symbolic_contradiction_rejects_even_with_good_neural_score():
@@ -65,6 +93,65 @@ def test_low_neural_score_warns_when_symbolic_checks_pass():
     assert result.numeric_result.valid is True
     assert result.symbolic_verdict is not None
     assert result.symbolic_verdict.consistent is True
+
+
+def test_low_neural_score_warns_without_numeric_checks():
+    verifier = NeuroSymbolicVerifier(neural_accept_threshold=0.8, run_numeric=False)
+
+    result = verifier.verify(
+        NeuroSymbolicVerifierInput(
+            text="There is a 150% probability of success.",
+            neural_score=0.7,
+        )
+    )
+
+    assert result.decision == "warn"
+    assert result.numeric_result is None
+    assert result.metadata == {
+        "numeric_checked": False,
+        "symbolic_step_count": 0,
+    }
+
+
+def test_injected_reasoning_verifier_is_used_for_symbolic_steps():
+    class FakeReasoningVerifier:
+        def __init__(self) -> None:
+            self.steps = None
+
+        def verify(self, steps):
+            self.steps = tuple(steps)
+            return ReasoningVerdict(
+                consistent=True,
+                model={"claim": True},
+                step_count=len(steps),
+                backend="fake",
+            )
+
+    reasoning = FakeReasoningVerifier()
+    verifier = NeuroSymbolicVerifier(
+        neural_accept_threshold=0.6,
+        reasoning_verifier=reasoning,
+        run_numeric=False,
+    )
+
+    result = verifier.verify(
+        NeuroSymbolicVerifierInput(
+            text="Claim is symbolically checked.",
+            neural_score=0.9,
+            symbolic_steps=(ReasoningStep("claim", Variable("claim")),),
+            evidence_ref="formal://fake",
+        )
+    )
+
+    assert reasoning.steps == (ReasoningStep("claim", Variable("claim")),)
+    assert result.decision == "allow"
+    assert result.to_dict()["symbolic"] == {
+        "consistent": True,
+        "contradictory": False,
+        "step_count": 1,
+        "backend": "fake",
+        "model": {"claim": True},
+    }
 
 
 def test_valid_high_confidence_claim_is_allowed():

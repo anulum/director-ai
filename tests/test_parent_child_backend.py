@@ -14,7 +14,12 @@ from __future__ import annotations
 
 import pytest
 
-from director_ai.core.retrieval.parent_child import ParentChildBackend, _chunk_id
+import director_ai.core.retrieval.parent_child as parent_child_mod
+from director_ai.core.retrieval.parent_child import (
+    ParentChildBackend,
+    _chunk_id,
+    _sum_int,
+)
 from director_ai.core.retrieval.vector_store import InMemoryBackend
 
 
@@ -58,6 +63,9 @@ class TestConstruction:
             ),
             ({"parent_size": 100, "parent_overlap": 100}, "parent_overlap"),
             ({"child_size": 50, "child_overlap": 50}, "child_overlap"),
+            ({"parent_size": True}, "parent_size"),
+            ({"child_overlap": True}, "child_overlap"),
+            ({"parent_overlap": -1}, "parent_overlap"),
             ({"persist_parents": "yes"}, "persist_parents"),
         ],
     )
@@ -133,6 +141,62 @@ class TestAddAndQuery:
         assert len(results) >= 1
         meta = results[0].get("metadata", {})
         assert meta.get("source") == "sensor"
+
+    def test_persisted_parent_text_recovers_after_memory_store_is_cleared(self):
+        b = _make_backend(parent_size=500, child_size=50, persist_parents=True)
+        parent_text = "The aircraft checklist includes torque validation. " * 6
+        b.add("flight", parent_text)
+        b._parents.clear()
+
+        results = b.query("torque validation")
+
+        assert results
+        assert results[0]["id"] == "flight::parent-0"
+        assert "torque validation" in results[0]["text"]
+
+    def test_non_persisted_parent_missing_returns_child_result(self):
+        b = _make_backend(parent_size=500, child_size=50, persist_parents=False)
+        b.add("doc", "The local child chunk should remain available. " * 6)
+        b._parents.clear()
+
+        results = b.query("child chunk")
+
+        assert results
+        assert results[0]["id"].startswith("doc::child-0-")
+        assert "matched_child_id" not in results[0].get("metadata", {})
+
+    def test_query_forwards_tenant_id_to_base_backend(self):
+        class FakeBase:
+            def __init__(self):
+                self.queries = []
+
+            def add(self, doc_id, text, metadata=None):
+                return None
+
+            def query(self, text, n_results=3, tenant_id=""):
+                self.queries.append(
+                    {
+                        "text": text,
+                        "n_results": n_results,
+                        "tenant_id": tenant_id,
+                    }
+                )
+                return []
+
+            def count(self):
+                return 0
+
+        base = FakeBase()
+        b = ParentChildBackend(base)
+
+        assert b.query("topic", n_results=4, tenant_id="tenant-a") == []
+        assert base.queries == [
+            {
+                "text": "topic",
+                "n_results": 20,
+                "tenant_id": "tenant-a",
+            }
+        ]
 
 
 # ── Deduplication ───────────────────────────────────────────────────────
@@ -259,3 +323,34 @@ class TestThreadSafety:
 
         assert not errors
         assert len(results_collected) == 8
+
+
+class TestParentChildRustDelegation:
+    def test_sum_int_uses_rust_kernel_when_available(self, monkeypatch):
+        monkeypatch.setattr(parent_child_mod, "_RUST_PARENT_CHILD", True)
+        calls = []
+
+        def _sum(values):
+            calls.append(list(values))
+            return 9
+
+        monkeypatch.setattr(parent_child_mod, "rust_sum_i64", _sum, raising=True)
+
+        assert _sum_int([2, 3, 4]) == 9
+        assert calls == [[2, 3, 4]]
+
+    def test_sum_int_uses_python_sum_when_rust_path_disabled(self, monkeypatch):
+        monkeypatch.setattr(parent_child_mod, "_RUST_PARENT_CHILD", False)
+
+        assert _sum_int([2, 3, 4]) == 9
+
+    def test_sum_int_exception_is_mandatory_failure(self, monkeypatch):
+        monkeypatch.setattr(parent_child_mod, "_RUST_PARENT_CHILD", True)
+
+        def _boom(values):
+            raise RuntimeError("ffi fail")
+
+        monkeypatch.setattr(parent_child_mod, "rust_sum_i64", _boom, raising=True)
+
+        with pytest.raises(RuntimeError, match="ffi fail"):
+            _sum_int([1])
