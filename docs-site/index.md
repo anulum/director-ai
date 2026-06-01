@@ -2,7 +2,7 @@
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
 
-<span class="version-badge">v3.15.1 — 5-tier scoring, 6 advanced RAG strategies, multi-agent swarm guardian, config wizard</span>
+<span class="version-badge">v3.15.2 — real-time factual-coherence guard, 5-tier scoring, RAG grounding, streaming halt</span>
 
 [![CI](https://github.com/anulum/director-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/ci.yml)
 [![Pre-commit](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml/badge.svg)](https://github.com/anulum/director-ai/actions/workflows/pre-commit.yml)
@@ -10,7 +10,7 @@
 [![PyPI](https://img.shields.io/pypi/v/director-ai)](https://pypi.org/project/director-ai/)
 [![Downloads](https://img.shields.io/pypi/dm/director-ai)](https://pypi.org/project/director-ai/)
 [![Total downloads](https://img.shields.io/pepy/dt/director-ai)](https://pepy.tech/projects/director-ai)
-![Tests](https://img.shields.io/badge/tests-4126_passed-brightgreen)
+![Tests](https://img.shields.io/badge/tests-8253_passed-brightgreen)
 [![Coverage](https://codecov.io/gh/anulum/director-ai/branch/main/graph/badge.svg)](https://codecov.io/gh/anulum/director-ai)
 [![Python](https://img.shields.io/pypi/pyversions/director-ai)](https://pypi.org/project/director-ai/)
 ![Ruff](https://img.shields.io/badge/code%20style-ruff-261230.svg)
@@ -27,6 +27,20 @@
 | **Custom KB Grounding** — Bring your own facts via RAG. ChromaDB, FAISS, Qdrant, or in-memory backends. [KB Ingestion &rarr;](guide/kb-ingestion.md) | **75.6% Balanced Accuracy** on [LLM-AggreFact](https://llm-aggrefact.github.io/) (29K samples, 11 datasets, #6 on leaderboard; 77.76% with per-dataset tuning) — FactCG-DeBERTa-v3-Large NLI model. 14.6 ms/pair ONNX GPU. SBOM on every release. [Scoring &rarr;](guide/scoring.md) |
 | **Injection Detection** — Two-stage pipeline: regex pattern matching + bidirectional NLI intent-drift scoring. Catches injection effects in the output regardless of encoding. Per-claim attribution. [Injection Detector &rarr;](api/injection-detector.md) | **ProductionGuard** — Batteries-included entry point: calibrated scoring, human feedback loop, conformal CIs, tool-call verification, and injection detection. [Guard &rarr;](guide/production-guard.md) |
 | **5-Tier Scoring** — From zero-dep rules engine (<1ms) to embedding similarity (3ms) to full NLI (14.6ms). Choose your accuracy/latency trade-off. [Scoring &rarr;](guide/scoring.md) | **SaaS-Ready** — API key auth + token-bucket rate limiting middleware. Cloud Run Dockerfile included. Self-host or let us host. |
+
+## What It Is For
+
+Director-AI is for teams that need model outputs to stay tied to governed
+facts before those outputs reach customers, operators, downstream agents, or
+audit records.
+
+| Reader | Start Here | What You Get |
+|---|---|---|
+| Evaluator | [Product Overview](guide/product-overview.md) | Problem, applications, value, evidence boundaries |
+| New pilot team | [Evaluation Onboarding](guide/onboarding.md) | First pilot shape, install path, validation checklist |
+| Builder | [Quickstart](quickstart.md) | In-process guard and SDK wrapping |
+| Platform operator | [Production Guide](deployment/production.md) | REST/proxy deployment, monitoring, runbooks |
+| RAG engineer | [KB Ingestion](guide/kb-ingestion.md) | Grounding with private facts and vector stores |
 
 ## Install
 
@@ -99,6 +113,8 @@ graph LR
 |------|------|-------------|
 | [Quickstart](quickstart.md) | 2 min | Score a response, guard an SDK client |
 | [Why Director-AI](guide/why-director-ai.md) | 5 min | Problem statement, decision matrix, cost comparison |
+| [Product Overview](guide/product-overview.md) | 7 min | Applications, market value, evidence boundaries |
+| [Evaluation Onboarding](guide/onboarding.md) | 10 min | Pilot checklist from first install to deployment evidence |
 | [Tutorials](tutorials.md) | 30 min | 18 Jupyter notebooks from basics to production |
 | [Notebook Gallery](notebook-gallery.md) | 5 min | Buyer- and use-case-oriented notebook index |
 | [API Reference](api/index.md) | — | Every public class and function |
@@ -145,7 +161,7 @@ AGPL-3.0 for open source / research. [Commercial licensing](licensing.md) availa
 [GitHub Discussions](https://github.com/anulum/director-ai/discussions) |
 [www.anulum.li](https://www.anulum.li)
 
-*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.15.1.*
+*Maintained by [Miroslav Šotek](https://orcid.org/0009-0009-3560-0851) at [Anulum](https://www.anulum.li). Current release: v3.15.2.*
 
 <p align="center">
   <a href="https://www.anulum.li">

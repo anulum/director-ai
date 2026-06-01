@@ -127,8 +127,10 @@ nav:
       - Installation: installation.md
       - Runtime Boundaries: guide/runtime-boundaries.md
       - Runtime Extraction Evaluation: guide/runtime-extraction-evaluation.md
+      - Product Overview: guide/product-overview.md
       - Why Director-AI: guide/why-director-ai.md
       - vs Prompt Engineering: guide/vs-prompt-engineering.md
+      - Evaluation Onboarding: guide/onboarding.md
   - User Guide:
       - Scoring: guide/scoring.md
       - Streaming Halt: guide/streaming.md

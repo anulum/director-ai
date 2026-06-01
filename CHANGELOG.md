@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [3.15.2] — 2026-06-01
+
+- Refresh the public documentation entry points for evaluators, builders,
+  buyers, and operators.
+- Add a product overview and evaluation onboarding guide that explain the
+  problem, application lanes, commercial value, evidence boundaries, and first
+  implementation path.
+- Update notebook, tutorial, API, and quickstart navigation so first-time
+  readers can choose a path by role and deployment intent.
+- Register the GPU pytest marker and expand dedicated CLI edge-case coverage.
+
 ## [3.15.1] — 2026-05-19
 
 - Add the hash-pinned PyTorch ONNX exporter stack required by the GPU Docker

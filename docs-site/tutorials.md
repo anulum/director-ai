@@ -5,6 +5,19 @@ Interactive Jupyter notebooks covering Director-AI from first principles to prod
 For a buyer- and use-case-oriented index across every published notebook, see
 the [Notebook Gallery](notebook-gallery.md).
 
+## Choose By Role
+
+| Role | Best first notebook | Why |
+|---|---|---|
+| First evaluator | [Quickstart](https://github.com/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | Install, score, guard, and inspect halt metadata |
+| Application developer | [Production Guardrails](https://github.com/anulum/director-ai/blob/main/notebooks/09_production_guardrails.ipynb) | Wrap a real application path and choose failure modes |
+| RAG engineer | [Vector RAG Pipeline](https://github.com/anulum/director-ai/blob/main/notebooks/10_vector_rag_pipeline.ipynb) | Ground answers in private facts and retrieved evidence |
+| Runtime engineer | [Streaming Halt Deep Dive](https://github.com/anulum/director-ai/blob/main/notebooks/11_streaming_halt_deep_dive.ipynb) | Understand halt thresholds and token-by-token enforcement |
+| Enterprise platform team | [Enterprise Multi-Tenant](https://github.com/anulum/director-ai/blob/main/notebooks/14_enterprise_multi_tenant.ipynb) | Inspect tenant, REST/gRPC, Docker, Kubernetes, and monitoring patterns |
+| Evaluation engineer | [Batch Processing & Evaluation](https://github.com/anulum/director-ai/blob/main/notebooks/13_batch_processing_and_evaluation.ipynb) | Build benchmark and regression-gate workflows |
+
+For a non-notebook pilot checklist, use [Evaluation Onboarding](guide/onboarding.md).
+
 ## Learning Path
 
 ```mermaid

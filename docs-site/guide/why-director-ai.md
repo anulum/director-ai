@@ -1,5 +1,10 @@
 # Why Director-AI
 
+For the broader product, application, and market map, start with
+[Product Overview](product-overview.md). This page focuses on the technical
+reason Director-AI exists: generated text can become visible before post-hoc
+checks run.
+
 ## The Streaming Problem
 
 Every major LLM provider defaults to streaming. OpenAI, Anthropic, Google — they all send tokens as they're generated. Users see the response character by character.

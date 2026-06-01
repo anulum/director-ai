@@ -5,7 +5,7 @@
     "model_documentation_pages": 49,
     "optional_extras": 53,
     "public_api_exports": 214,
-    "public_documentation_pages": 139,
+    "public_documentation_pages": 141,
     "python_model_classes": 702,
     "python_model_source_modules": 311,
     "rust_pyo3_model_wrappers": 78,
@@ -111,9 +111,11 @@
       "docs-site/guide/kb-ingestion.md",
       "docs-site/guide/meta-confidence.md",
       "docs-site/guide/migration-v2-v3.md",
+      "docs-site/guide/onboarding.md",
       "docs-site/guide/online-calibration.md",
       "docs-site/guide/onnx-export.md",
       "docs-site/guide/presets.md",
+      "docs-site/guide/product-overview.md",
       "docs-site/guide/production-guard.md",
       "docs-site/guide/quantization.md",
       "docs-site/guide/runtime-boundaries.md",
@@ -3710,7 +3712,7 @@
     "name": "director-ai",
     "readme": "README.md",
     "requires_python": ">=3.11",
-    "version": "3.15.1"
+    "version": "3.15.2"
   },
   "project_label": "Director-AI",
   "quality_gates": {

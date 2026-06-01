@@ -45,7 +45,7 @@ materials are provided only under separate commercial agreements and must be
 validated against the customer's own governed data, controls, and acceptance
 criteria before any customer-specific performance claim is made.
 
-> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), 7-SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, SaaS middleware (API keys + rate limiting), advanced RAG (6 pluggable retrieval backends), multi-agent swarm guardian (4 framework adapters), config wizard, and compliance reports are functional and tested (5300+ passing tests). Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current v3.14 release surface.
+> **Active Development** — APIs may evolve. The core guardrail engine, 5-tier scoring (rules → embeddings → NLI), SDK guard, FastAPI middleware, REST/gRPC servers, injection detection, SaaS middleware (API keys + rate limiting), advanced RAG, multi-agent swarm guardian, config wizard, and compliance reports are functional and tested (8253 passing tests in the latest full local coverage run). Rust-accelerated compute paths shipped in the v3.12 line and remain part of the current release surface.
 
 ---
 
@@ -63,6 +63,32 @@ graph LR
     V -->|Yes| U["User"]
     V -->|No| H["HALT + evidence"]
 ```
+
+## What It Is For
+
+Director-AI is a factual-coherence control plane for teams that need LLM output
+to remain tied to governed facts before the answer is displayed, streamed,
+stored, handed to another agent, or used in a business workflow.
+
+| Application | Protected surface | Value |
+|-------------|-------------------|-------|
+| Customer support | Policy, refund, warranty, and account answers | Reduce unsupported customer-facing claims |
+| Regulated research | Scientific, medical, legal, and finance summaries | Reject unsupported claims with evidence |
+| RAG assistants | Private knowledge-base answers | Link verdicts to retrieved facts |
+| Streaming chat | Partial token streams | Halt bad output before completion |
+| Agent workflows | Tool outputs and handoffs | Check each step before downstream action |
+| Evaluation pipelines | Prompt/response datasets | Build regression gates and threshold evidence |
+| Enterprise governance | Tenant-safe audit events | Provide reviewable risk and compliance evidence |
+
+The open repository is the public core: SDK guard, scoring, retrieval,
+verification, APIs, integrations, and operator documentation. Customer-specific
+sector packs, deployment recipes, tuning data, and acceptance evidence belong
+to commercial implementation work and must be validated against the customer's
+own governed data.
+
+Start with the [Product Overview](docs-site/guide/product-overview.md) for the
+market and application map, then use [Evaluation Onboarding](docs-site/guide/onboarding.md)
+to run a scoped pilot.
 
 ### Core capabilities
 
@@ -86,7 +112,7 @@ graph LR
 
 | Surface | Current inventory |
 |---|---:|
-| Package version | 3.15.1 |
+| Package version | 3.15.2 |
 | Public API exports | 214 |
 | Python capability source modules | 311 |
 | Python capability classes | 702 |
@@ -94,7 +120,7 @@ graph LR
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |
 | Python test files | 396 |
-| Public documentation pages | 139 |
+| Public documentation pages | 141 |
 | GitHub Actions workflows | 11 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artifacts.
@@ -369,7 +395,7 @@ Latency: 14.6 ms/pair on GTX 1060 6GB (ONNX GPU, 16-pair batch). Full comparison
 
 **Optional — Gemma 4 E4B Q6 with per-task-family routing.** A zero-training LLM-as-judge alternative for users who prefer LLM-as-judge architectures over NLI. Per-task-family prompts (`summ` / `rag` / `claim`) bring the routed Gemma judge to 75.55% per-dataset mean BA on the AggreFact 29K test set, comparable to the FactCG default. The routed judge is opt-in (`--backend llama-cpp`); FactCG remains the default.
 
-### Rust compute acceleration (shipped in v3.12, current in v3.14)
+### Rust compute acceleration (shipped in v3.12, current in v3.15)
 
 12 functions, 5000 iterations each. Geometric mean: **9.4× speedup**.
 
@@ -432,7 +458,7 @@ Kubernetes: [Helm chart](deploy/helm/director-ai/) with GPU toggle, HPA, Sigstor
   title     = {Director-AI: Real-time LLM Hallucination Guardrail},
   year      = {2026},
   url       = {https://github.com/anulum/director-ai},
-  version   = {3.15.1},
+  version   = {3.15.2},
   license   = {AGPL-3.0-or-later}
 }
 ```

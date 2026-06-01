@@ -6,9 +6,14 @@ Use this gallery to choose a runnable Director-AI notebook by buyer problem,
 implementation track, and required optional extras. Each row links to the local
 notebook in the repository and the matching Google Colab launcher.
 
+If you are evaluating commercial fit before opening a notebook, start with
+[Product Overview](guide/product-overview.md). If you are running a governed
+pilot, pair the notebook path with [Evaluation Onboarding](guide/onboarding.md)
+so the pilot produces useful evidence instead of a demo-only result.
+
 | Track | Notebook | Audience | Use Case | Time | Extras | Colab |
 |-------|----------|----------|----------|------|--------|-------|
-| Foundations | [Protect any LLM in 10 lines](https://github.com/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | First evaluation | Install Director-AI, score a response, wrap an SDK client, and inspect halt metadata. | 5 min | base | [Open](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) |
+| Foundations | [Protect any LLM in 10 lines](https://github.com/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) | First evaluation | Install Director-AI, understand the guarded workflow, score a response, wrap an SDK client, and inspect halt metadata. | 5 min | base | [Open](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/quickstart.ipynb) |
 | Foundations | [Coherence Engine Quick Start](https://github.com/anulum/director-ai/blob/main/notebooks/01_coherence_engine.ipynb) | Technical evaluator | Understand CoherenceScorer, SafetyKernel, CoherenceAgent, and dual-entropy scoring. | 15 min | nli | [Open](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/01_coherence_engine.ipynb) |
 | Streaming Safety | [Streaming Token-by-Token Oversight](https://github.com/anulum/director-ai/blob/main/notebooks/02_streaming_oversight.ipynb) | Application engineer | Monitor streamed tokens and halt unsafe output before completion. | 10 min | base | [Open](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/02_streaming_oversight.ipynb) |
 | Retrieval | [Vector Store and Semantic Retrieval](https://github.com/anulum/director-ai/blob/main/notebooks/03_vector_store.ipynb) | RAG engineer | Load facts into a vector-backed ground-truth store and retrieve evidence for scoring. | 10 min | vector | [Open](https://colab.research.google.com/github/anulum/director-ai/blob/main/notebooks/03_vector_store.ipynb) |

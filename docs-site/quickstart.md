@@ -1,5 +1,22 @@
 # Quickstart
 
+Use this page when you want to run Director-AI, score a response, and protect
+one application path quickly. If you are still deciding whether the product fits
+your use case, read [Product Overview](guide/product-overview.md) first. If you
+are planning a pilot, use [Evaluation Onboarding](guide/onboarding.md) as the
+checklist.
+
+## Choose Your First Path
+
+| Goal | Start with | Then read |
+|---|---|---|
+| Understand the product | [Product Overview](guide/product-overview.md) | [Why Director-AI](guide/why-director-ai.md) |
+| Score one answer | `score()` example below | [Scoring](guide/scoring.md) |
+| Wrap an existing app | `guard()` example below | [SDK Guard](integrations/sdk-guard.md) |
+| Protect a RAG bot | `director-ai[vector]` | [KB Ingestion](guide/kb-ingestion.md) |
+| Evaluate a pilot | labelled examples | [Evaluation Onboarding](guide/onboarding.md) |
+| Deploy a service | `director-ai quickstart --run` | [Production Guide](deployment/production.md) |
+
 ## Recommended Path
 
 Start with the Python service and local Chroma path:

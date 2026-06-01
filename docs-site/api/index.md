@@ -5,6 +5,24 @@ operator-facing APIs in Director-AI. Internal helpers, generated protobuf
 stubs, and compatibility shims are intentionally excluded unless they define a
 supported integration boundary.
 
+## Pick The Right API First
+
+| Need | API | Start |
+|---|---|---|
+| Protect an existing SDK client | `guard()` | [guard / score / get_score](guard.md) |
+| Score one prompt and answer | `score()` | [guard / score / get_score](guard.md#score) |
+| Halt streamed tokens | `StreamingKernel` | [StreamingKernel](streaming.md) |
+| Build an agent workflow | `CoherenceAgent` | [CoherenceAgent](agent.md) |
+| Process evaluation batches | `BatchProcessor` | [BatchProcessor](batch.md) |
+| Serve over HTTP | REST server | [REST Server](server.md) |
+| Serve over gRPC | CoherenceScoring service | [gRPC Server](grpc.md) |
+| Ground answers in documents | `DocumentIngestionPipeline` and `VectorGroundTruthStore` | [Ingestion](ingestion.md) |
+| Package customer evidence | Customer Model Factory | [Customer Model Factory](customer-model-factory.md) |
+
+For the product and pilot context around these APIs, see
+[Product Overview](../guide/product-overview.md) and
+[Evaluation Onboarding](../guide/onboarding.md).
+
 ## Quick Navigation
 
 ### Entry Points

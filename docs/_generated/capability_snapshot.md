@@ -5,7 +5,7 @@
 
 | Surface | Current inventory |
 |---|---:|
-| Package version | 3.15.1 |
+| Package version | 3.15.2 |
 | Public API exports | 214 |
 | Python capability source modules | 311 |
 | Python capability classes | 702 |
@@ -13,7 +13,7 @@
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |
 | Python test files | 396 |
-| Public documentation pages | 139 |
+| Public documentation pages | 141 |
 | GitHub Actions workflows | 11 |
 
 Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artifacts.

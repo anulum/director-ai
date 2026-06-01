@@ -8,7 +8,7 @@ title = "Protect any LLM in 10 lines"
 track = "Foundations"
 audience = "First evaluation"
 duration_minutes = 5
-use_case = "Install Director-AI, score a response, wrap an SDK client, and inspect halt metadata."
+use_case = "Install Director-AI, understand the guarded workflow, score a response, wrap an SDK client, and inspect halt metadata."
 extras = []
 
 [[notebook]]
