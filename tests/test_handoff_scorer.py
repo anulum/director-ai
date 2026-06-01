@@ -45,6 +45,9 @@ class TestKeywordDivergence:
     def test_both_empty(self):
         assert _keyword_divergence("", "") == 0.5
 
+    def test_whitespace_message_without_words_is_neutral(self):
+        assert _keyword_divergence("   ", "context with words") == 0.5
+
 
 # ── Basic scoring ──────────────────────────────────────────────────────
 
@@ -133,6 +136,14 @@ class TestNLIScoring:
             "overlapping words here", "overlapping words here too", "a", "b"
         )
         assert result.method == "keyword"  # fell back
+
+    def test_nli_object_without_expected_method_falls_back(self):
+        s = HandoffScorer(nli_scorer=object())
+
+        result = s.score("shared term", "shared term context", "a", "b")
+
+        assert result.method == "keyword"
+        assert result.grounded is True
 
     def test_no_nli_uses_keyword(self):
         s = HandoffScorer(nli_scorer=None)
