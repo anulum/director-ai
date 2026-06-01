@@ -312,6 +312,54 @@ def test_vector_store_evidence_falls_back_to_keyword_chunks_when_vector_query_mi
 class TestScorerCoverageGaps:
     """Dedicated branch tests for CoherenceScorer internals."""
 
+    def test_parallel_pool_lifecycle_and_destructor_shutdown(self):
+        scorer = CoherenceScorer(use_nli=False)
+        pool = scorer._get_parallel_pool()
+
+        assert scorer._get_parallel_pool() is pool
+
+        scorer.close()
+        assert scorer._parallel_pool is None
+
+        scorer._parallel_pool = scorer._get_parallel_pool()
+        scorer.__del__()
+
+    def test_model_backed_nli_requirement_allows_disabled_and_rust_paths(self):
+        scorer = CoherenceScorer(use_nli=False)
+
+        scorer.require_model_backed_nli = False
+        scorer._enforce_model_backed_nli_requirement()
+
+        scorer.require_model_backed_nli = True
+        scorer._rust_scorer = object()
+        scorer._enforce_model_backed_nli_requirement()
+
+    def test_model_backed_nli_detection_rejects_lite_backend(self):
+        scorer = CoherenceScorer(use_nli=False)
+
+        class LiteNLI:
+            model_available = True
+            backend = "lite"
+
+        class ModelNLI:
+            model_available = True
+            backend = "deberta"
+
+        scorer._nli = LiteNLI()
+        assert scorer._has_model_backed_nli() is False
+
+        scorer._nli = ModelNLI()
+        assert scorer._has_model_backed_nli() is True
+
+    def test_adaptive_retrieval_enablement_installs_router(self):
+        scorer = CoherenceScorer(use_nli=False)
+
+        scorer.enable_adaptive_retrieval(threshold=0.7, default_retrieve=False)
+
+        assert scorer._adaptive_router is not None
+        decision = scorer._adaptive_router.should_retrieve("write a poem", "")
+        assert decision.retrieve is False
+
     def test_constructor_custom_cache_and_validation_edges(self):
         cache = object()
         scorer = CoherenceScorer(use_nli=False, cache=cache)
@@ -392,6 +440,35 @@ class TestScorerCoverageGaps:
         assert evidence.hypothesis_chunk_count == 3
         assert evidence.token_count == 17
         assert evidence.estimated_cost_usd == 0.02
+
+    def test_prompt_premise_evidence_confidence_weighted_path(self):
+        class FakeNLI:
+            model_available = True
+            last_token_count = 11
+            last_estimated_cost = 0.01
+
+            def reset_token_counter(self):
+                self.reset = True
+
+            def score_chunked_confidence_weighted(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+                return 0.24, [0.2, 0.28]
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = FakeNLI()
+        scorer._confidence_weighted_agg = True
+
+        score, evidence = scorer._calculate_prompt_premise_divergence_with_evidence(
+            "source document",
+            "summary text",
+        )
+
+        assert score == 0.24
+        assert evidence is not None
+        assert evidence.chunk_scores == [0.2, 0.28]
+        assert evidence.premise_chunk_count == 1
+        assert evidence.hypothesis_chunk_count == 2
 
     def test_factual_divergence_strict_and_heuristic_fallbacks(self):
         class Store:
