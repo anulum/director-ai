@@ -135,6 +135,11 @@ deployments can add customer-specific data mappings, tuning packages,
 deployment recipes, sector playbooks, and acceptance evidence under a separate
 agreement.
 
+If you need this framed for leadership review, start with
+[Market Value and Positioning](market-value-and-positioning.md). It translates
+the same technical surface into commercial outcomes, pilot evidence, and budget
+justification language.
+
 ## Evidence Boundaries
 
 Director-AI documentation is intentionally conservative about performance and

@@ -34,6 +34,23 @@ Director-AI is for teams that need model outputs to stay tied to governed
 facts before those outputs reach customers, operators, downstream agents, or
 audit records.
 
+For business users: this is the factual-coherence control point where hallucination
+rejection, auditability, and tenant-safe evidence are introduced before a wrong claim reaches users or automated workflows.
+
+## Market Positioning
+
+The repository is the public core: SDK/API/verification surfaces, benchmark methods,
+and deployment patterns. Commercially, teams use Director-AI to reduce factual
+incidents in high-consequence LLM flows:
+
+- customer support and regulated self-service,
+- enterprise knowledge assistants,
+- streaming assistants and agent workflows,
+- and compliance-heavy environments requiring auditable evidence.
+
+See **[Market Value and Positioning](guide/market-value-and-positioning.md)** for a
+decision-focused buyer view.
+
 | Reader | Start Here | What You Get |
 |---|---|---|
 | Evaluator | [Product Overview](guide/product-overview.md) | Problem, applications, value, evidence boundaries |
