@@ -8,7 +8,7 @@
 
 # Roadmap Status Reconciliation
 
-Last reconciled: 2026-05-22
+Last reconciled: 2026-06-02
 
 This file is the public status index for distinguishing active roadmap work
 from completed, blocked, stale, and speculative planning material. The
@@ -36,7 +36,7 @@ validation records, and release documentation.
 | R4 | PINT official upstream run and evidence | Open | Official upstream dataset execution, preserved outputs, and claim-guarded benchmark card |
 | R5 | Hugging Face Space live deployment push | Open/manual | Published Space URL plus deployment smoke evidence |
 | R6 | Polar storefront environment-specific live deployment smoke | Open/environment-specific | Live checkout, portal, webhook, and licence validation smoke records without committed secrets |
-| R7 | AggreFact leaderboard submission | Open | Submission email or pull request plus exact result packet used for submission |
+| R7 | AggreFact leaderboard submission | Submitted by email on 2026-06-02; awaiting maintainer response | Maintainer response, submission acknowledgement, or upstream pull-request URL |
 
 ## Future And Strategic Items
 
