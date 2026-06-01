@@ -86,6 +86,8 @@ class TestLiteScorer:
         monkeypatch.setattr(lite_mod, "_RUST_LITE", False)
         scorer = LiteScorer()
 
+        assert scorer.score("", "anything") == 0.5
+        assert scorer.score("anything", "") == 0.5
         assert scorer.score("!!!", "???") == 0.5
         assert 0.0 <= scorer.score("Alice approved deployment.", "approved") <= 1.0
 

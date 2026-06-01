@@ -36,6 +36,7 @@ from director_ai.core.federated_privacy import (
 )
 from director_ai.core.federated_privacy.secret_sharing import (
     DEFAULT_MODULUS,
+    _split_with_rng,
     reconstruct,
     split,
     split_many,
@@ -414,6 +415,18 @@ class TestSecretSharing:
             SecureAggregator(party_count=2, modulus=0)
         with pytest.raises(ShareError, match="modulus"):
             split(1, party_count=2, modulus=0)
+        with pytest.raises(ShareError, match="modulus"):
+            SecretShare(values=(0, 0), modulus=0)
+
+    def test_internal_split_revalidates_party_count_and_modulus(self):
+        class _ZeroRng:
+            def randrange(self, _modulus):
+                return 0
+
+        with pytest.raises(ShareError, match="party_count"):
+            _split_with_rng(1, party_count=1, modulus=DEFAULT_MODULUS, rng=_ZeroRng())
+        with pytest.raises(ShareError, match="modulus"):
+            _split_with_rng(1, party_count=2, modulus=0, rng=_ZeroRng())
 
     def test_secret_share_requires_at_least_two_parties(self):
         with pytest.raises(ShareError, match="at least two parties"):
