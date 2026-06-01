@@ -10,11 +10,14 @@ from __future__ import annotations
 
 from time import sleep
 
+import pytest
+
 from director_ai.core.formal_verification import (
     And,
     FormalCodeVerifierAdapter,
     Implies,
     Not,
+    ReasoningVerdict,
     Variable,
 )
 from director_ai.core.guard_control import RiskEnvelope
@@ -61,6 +64,76 @@ def test_unsupported_formal_backend_warns_instead_of_allowing():
     assert result.signal.verdict == "unsupported"
 
 
+def test_adapter_rejects_invalid_timeout_and_theorem_backend_inputs():
+    with pytest.raises(ValueError, match="timeout_ms must be positive"):
+        FormalCodeVerifierAdapter(timeout_ms=0)
+
+    with pytest.raises(ValueError, match="lean_runner is required"):
+        FormalCodeVerifierAdapter.with_theorem_backend("lean")
+
+    with pytest.raises(ValueError, match="unsupported theorem backend"):
+        FormalCodeVerifierAdapter.with_theorem_backend("isabelle")
+
+
+def test_verify_formula_requires_evidence_reference():
+    adapter = FormalCodeVerifierAdapter()
+
+    with pytest.raises(ValueError, match="evidence_ref is required"):
+        adapter.verify_formula(
+            formula=Variable("claim"),
+            risk_envelope=_math_envelope(),
+            policy_id="policy.formal.regulated",
+            evidence_ref=" ",
+        )
+
+
+def test_formal_verifier_exception_warns_not_passes():
+    class BrokenVerifier:
+        def verify(self, steps):
+            raise RuntimeError("solver unavailable")
+
+    adapter = FormalCodeVerifierAdapter(formal_verifier=BrokenVerifier())
+
+    result = adapter.verify_formula(
+        formula=Variable("claim"),
+        risk_envelope=_math_envelope(),
+        policy_id="policy.formal.regulated",
+        evidence_ref="formal://claim-broken",
+    )
+
+    assert result.guard_decision.decision == "warn"
+    assert result.guard_decision.reason == "formal_verifier_failed"
+    assert result.signal.verdict == "verifier_failed"
+
+
+def test_formal_verifier_timeout_warns_not_passes():
+    class SlowVerifier:
+        def verify(self, steps):
+            sleep(0.01)
+            return ReasoningVerdict(
+                consistent=True,
+                model={},
+                step_count=len(steps),
+                backend="slow",
+            )
+
+    adapter = FormalCodeVerifierAdapter(
+        formal_verifier=SlowVerifier(),
+        timeout_ms=1.0,
+    )
+
+    result = adapter.verify_formula(
+        formula=Variable("claim"),
+        risk_envelope=_math_envelope(),
+        policy_id="policy.formal.regulated",
+        evidence_ref="formal://claim-slow",
+    )
+
+    assert result.guard_decision.decision == "warn"
+    assert result.guard_decision.reason == "formal_verifier_timeout"
+    assert result.signal.verdict == "timeout"
+
+
 def test_code_verifier_detects_hallucinated_api_without_executing_code():
     adapter = FormalCodeVerifierAdapter()
     source = "import pandas as pd\ndf = pd.read_quantum_csv('data.csv')"
@@ -77,6 +150,58 @@ def test_code_verifier_detects_hallucinated_api_without_executing_code():
     assert result.signal.verdict == "invalid"
     assert "read_quantum_csv" not in str(result.to_dict())
     assert result.to_dict()["sandbox"]["execution_allowed"] is False
+
+
+def test_code_verifier_allows_clean_structural_result_and_preserves_sandbox():
+    observed = {}
+
+    def verifier(**kwargs):
+        observed.update(kwargs)
+        return type(
+            "CodeResult",
+            (),
+            {
+                "syntax_valid": True,
+                "unknown_imports": [],
+                "hallucinated_apis": [],
+                "error_count": 0,
+            },
+        )()
+
+    adapter = FormalCodeVerifierAdapter(code_verifier=verifier)
+
+    result = adapter.verify_code(
+        code="SELECT 1",
+        language="sql",
+        known_modules={"warehouse"},
+        api_manifest={"warehouse": {"query"}},
+        risk_envelope=_math_envelope(),
+        policy_id="policy.code.regulated",
+        evidence_ref="code://snippet-clean",
+    )
+
+    assert result.guard_decision.decision == "allow"
+    assert result.guard_decision.reason == "code_verifier_supported"
+    assert result.signal.verdict == "valid"
+    assert result.sandbox == {
+        "execution_allowed": False,
+        "timeout_ms": 1000.0,
+        "language": "sql",
+    }
+    assert observed["known_modules"] == {"warehouse"}
+    assert observed["api_manifest"] == {"warehouse": {"query"}}
+
+
+def test_verify_code_requires_evidence_reference():
+    adapter = FormalCodeVerifierAdapter()
+
+    with pytest.raises(ValueError, match="evidence_ref is required"):
+        adapter.verify_code(
+            code="print('safe')",
+            risk_envelope=_math_envelope(),
+            policy_id="policy.code.regulated",
+            evidence_ref=" ",
+        )
 
 
 def test_code_verifier_exception_warns_not_passes():

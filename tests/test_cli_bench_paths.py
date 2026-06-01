@@ -42,6 +42,14 @@ def test_eval_quantize_exports_with_selected_mode(monkeypatch, capsys):
     assert "Export complete" in capsys.readouterr().out
 
 
+def test_eval_rejects_invalid_max_samples(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_eval(["--max-samples", "many"])
+
+    assert exc_info.value.code == 1
+    assert "invalid --max-samples value: many" in capsys.readouterr().out
+
+
 def test_bench_warn_only_failure_is_reported_but_not_fatal(monkeypatch, capsys):
     def ok() -> None:
         return None
@@ -70,12 +78,191 @@ def test_bench_warn_only_failure_is_reported_but_not_fatal(monkeypatch, capsys):
     assert "1 warned, 0 failed" in out
 
 
+def test_bench_rejects_invalid_seed_and_max_samples(capsys):
+    with pytest.raises(SystemExit) as seed_exc:
+        _cli_bench._cmd_bench(["--seed", "not-an-int"])
+
+    assert seed_exc.value.code == 1
+    assert "invalid --seed value: not-an-int" in capsys.readouterr().out
+
+    with pytest.raises(SystemExit) as max_exc:
+        _cli_bench._cmd_bench(["--max-samples", "not-an-int"])
+
+    assert max_exc.value.code == 1
+    assert "invalid --max-samples value: not-an-int" in capsys.readouterr().out
+
+
+def test_bench_rejects_unknown_dataset(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_bench(["--dataset", "external"])
+
+    assert exc_info.value.code == 1
+    assert "Unknown dataset 'external'" in capsys.readouterr().out
+
+
+def test_bench_failed_required_test_exits_and_writes_report(
+    monkeypatch,
+    tmp_path,
+    capsys,
+):
+    def ok() -> None:
+        return None
+
+    def e2e_failure() -> None:
+        raise AssertionError("delta regressed")
+
+    e2e_failure.__name__ = "test_e2e_heuristic_delta"
+    fake_suite = ModuleType("benchmarks.regression_suite")
+    fake_suite.test_heuristic_accuracy = ok
+    fake_suite.test_latency_ceiling = ok
+    fake_suite.test_metrics_integrity = ok
+    fake_suite.test_evidence_schema = ok
+    fake_suite.test_e2e_heuristic_delta = e2e_failure
+    fake_suite.test_false_halt_rate = ok
+    fake_suite.test_streaming_stability = ok
+    fake_benchmarks = ModuleType("benchmarks")
+    fake_benchmarks.regression_suite = fake_suite
+    monkeypatch.setitem(sys.modules, "benchmarks", fake_benchmarks)
+    monkeypatch.setitem(sys.modules, "benchmarks.regression_suite", fake_suite)
+    output = tmp_path / "bench.json"
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_bench(["--dataset", "e2e", "--output", str(output)])
+
+    assert exc_info.value.code == 1
+    saved = json.loads(output.read_text())
+    assert saved["dataset"] == "e2e"
+    assert saved["failed"] == 1
+    assert saved["results"] == [
+        {
+            "test": "test_e2e_heuristic_delta",
+            "status": "failed",
+            "error": "delta regressed",
+        },
+    ]
+    out = capsys.readouterr().out
+    assert "FAIL: test_e2e_heuristic_delta: delta regressed" in out
+    assert "Results written to" in out
+
+
+def test_tune_prints_usage_without_args(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_tune([])
+
+    assert exc_info.value.code == 1
+    assert "Usage: director-ai tune" in capsys.readouterr().out
+
+
 def test_tune_unknown_option_without_dataset_reports_missing_input(capsys):
     with pytest.raises(SystemExit) as exc_info:
         _cli_bench._cmd_tune(["--unknown-option"])
 
     assert exc_info.value.code == 1
     assert "missing dataset file" in capsys.readouterr().out
+
+
+def test_tune_rejects_missing_file(tmp_path, capsys):
+    missing = tmp_path / "missing.jsonl"
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_tune(["--dataset", str(missing)])
+
+    assert exc_info.value.code == 1
+    assert f"file not found: {missing}" in capsys.readouterr().out
+
+
+def test_tune_skips_invalid_rows_and_writes_profile_overlay(
+    monkeypatch,
+    tmp_path,
+    capsys,
+):
+    dataset = tmp_path / "labels.jsonl"
+    dataset.write_text(
+        "\n".join(
+            [
+                "",
+                "{not json",
+                '{"prompt":"p"}',
+                '{"prompt":"p","response":"r","label":true}',
+            ],
+        ),
+        encoding="utf-8",
+    )
+    output = tmp_path / "overlay.yaml"
+    observed: dict[str, object] = {}
+    fake_tuner = ModuleType("director_ai.core.training.tuner")
+
+    result = SimpleNamespace(
+        threshold=0.7,
+        w_logic=0.4,
+        w_fact=0.6,
+        balanced_accuracy=0.8,
+        precision=0.75,
+        recall=0.5,
+        f1=0.6,
+        samples=1,
+    )
+
+    def fake_tune(samples):
+        observed["samples"] = samples
+        return result
+
+    def fake_overlay(tune_result, *, profile, base_profile):
+        observed["overlay"] = (tune_result, profile, base_profile)
+        return "overlay: yes\n"
+
+    fake_tuner.tune = fake_tune
+    fake_tuner.format_confidence_report = lambda tune_result: "confidence: ok"
+    fake_tuner.format_profile_overlay = fake_overlay
+    monkeypatch.setitem(sys.modules, "director_ai.core.training.tuner", fake_tuner)
+
+    _cli_bench._cmd_tune(
+        [
+            "--dataset",
+            str(dataset),
+            "--profile",
+            "strict",
+            "--output",
+            str(output),
+        ],
+    )
+
+    assert observed["samples"] == [{"prompt": "p", "response": "r", "label": True}]
+    assert observed["overlay"] == (result, "strict_tuned", "strict")
+    assert output.read_text(encoding="utf-8") == "overlay: yes\n"
+    out = capsys.readouterr().out
+    assert "skipping line 2" in out
+    assert "missing required fields" in out
+    assert "Best threshold: 0.7" in out
+
+
+def test_tune_exits_when_no_valid_samples(tmp_path, capsys):
+    dataset = tmp_path / "empty.jsonl"
+    dataset.write_text('{"prompt":"p"}\n', encoding="utf-8")
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_tune([str(dataset)])
+
+    assert exc_info.value.code == 1
+    assert "no valid samples found" in capsys.readouterr().out
+
+
+def test_finetune_prints_usage_without_args(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_finetune([])
+
+    assert exc_info.value.code == 1
+    assert "Usage: director-ai finetune" in capsys.readouterr().out
+
+
+def test_finetune_rejects_missing_train_file(tmp_path, capsys):
+    missing = tmp_path / "train.jsonl"
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_finetune([str(missing)])
+
+    assert exc_info.value.code == 1
+    assert f"file not found: {missing}" in capsys.readouterr().out
 
 
 def test_finetune_success_prints_all_optional_result_fields(
@@ -220,6 +407,24 @@ def test_validate_data_prints_warnings_and_exits_on_errors(
     assert "invalid label" in out
 
 
+def test_validate_data_prints_usage_without_args(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_validate_data([])
+
+    assert exc_info.value.code == 1
+    assert "Usage: director-ai validate-data" in capsys.readouterr().out
+
+
+def test_validate_data_rejects_missing_file(tmp_path, capsys):
+    missing = tmp_path / "train.jsonl"
+
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_validate_data([str(missing)])
+
+    assert exc_info.value.code == 1
+    assert f"file not found: {missing}" in capsys.readouterr().out
+
+
 def test_export_forwards_model_name_and_ignores_unrecognised_tokens(
     monkeypatch,
     capsys,
@@ -261,6 +466,14 @@ def test_export_tensorrt_uses_no_fp16(monkeypatch, capsys):
 
     assert calls == [{"onnx_dir": "onnx", "output_dir": "trt", "fp16": False}]
     assert "cache-dir" in capsys.readouterr().out
+
+
+def test_export_rejects_unknown_format(capsys):
+    with pytest.raises(SystemExit) as exc_info:
+        _cli_bench._cmd_export(["--format", "gguf"])
+
+    assert exc_info.value.code == 1
+    assert "Unknown format 'gguf'" in capsys.readouterr().out
 
 
 def test_eval_runs_suite_and_writes_results(monkeypatch, tmp_path, capsys):

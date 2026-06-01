@@ -6,6 +6,8 @@
 # Contact: www.anulum.li | protoscience@anulum.li
 """Multi-angle tests for license validation pipeline."""
 
+import hashlib
+import hmac
 import json
 
 import pytest
@@ -13,6 +15,7 @@ import pytest
 from director_ai.core.license import (
     LicenseInfo,
     generate_license,
+    load_license,
     validate_file,
     validate_key,
 )
@@ -21,6 +24,17 @@ from director_ai.core.license import (
 @pytest.fixture(autouse=True)
 def _set_signing_key(monkeypatch):
     monkeypatch.setenv("DIRECTOR_LICENSE_SIGNING_KEY", "test-license-key-for-ci")
+
+
+def _resign(payload: dict) -> dict:
+    signed = dict(payload)
+    unsigned = {k: v for k, v in signed.items() if k != "signature"}
+    signed["signature"] = hmac.new(
+        b"test-license-key-for-ci",
+        json.dumps(unsigned, sort_keys=True).encode(),
+        hashlib.sha256,
+    ).hexdigest()
+    return signed
 
 
 class TestValidateKey:
@@ -70,6 +84,11 @@ class TestValidateKey:
 
     def test_invalid_uuid(self):
         info = validate_key("DAI-PRO-not-a-uuid")
+        assert not info.valid
+        assert "UUID" in info.message
+
+    def test_braced_uuid_is_rejected_as_noncanonical(self):
+        info = validate_key(f"DAI-PRO-{{{self._UUID}}}")
         assert not info.valid
         assert "UUID" in info.message
 
@@ -151,6 +170,50 @@ class TestValidateFile:
         # File validates (signature ok) but LicenseInfo.expired returns True
         assert info.expired
 
+    def test_missing_signing_key_fails_closed(self, monkeypatch, tmp_path):
+        data = generate_license("pro", "Test Corp", "test@test.com", days=365)
+        p = tmp_path / "license.json"
+        p.write_text(json.dumps(data))
+        monkeypatch.delenv("DIRECTOR_LICENSE_SIGNING_KEY", raising=False)
+
+        info = validate_file(p)
+
+        assert not info.valid
+        assert "Signing key not configured" in info.message
+
+    def test_unknown_signed_tier_is_rejected(self, tmp_path):
+        data = generate_license("pro", "Test Corp", "test@test.com", days=365)
+        data["tier"] = "gold"
+        p = tmp_path / "gold.json"
+        p.write_text(json.dumps(_resign(data)))
+
+        info = validate_file(p)
+
+        assert not info.valid
+        assert "Unknown tier in license: gold" in info.message
+
+    def test_signed_file_rejects_invalid_embedded_key(self, tmp_path):
+        data = generate_license("pro", "Test Corp", "test@test.com", days=365)
+        data["key"] = "DAI-PRO-not-a-uuid"
+        p = tmp_path / "bad-key.json"
+        p.write_text(json.dumps(_resign(data)))
+
+        info = validate_file(p)
+
+        assert not info.valid
+        assert "Invalid license key in file" in info.message
+
+    def test_signed_file_rejects_key_tier_mismatch(self, tmp_path):
+        data = generate_license("pro", "Test Corp", "test@test.com", days=365)
+        data["tier"] = "indie"
+        p = tmp_path / "tier-mismatch.json"
+        p.write_text(json.dumps(_resign(data)))
+
+        info = validate_file(p)
+
+        assert not info.valid
+        assert "License tier does not match key tier" in info.message
+
 
 class TestGenerateLicense:
     def test_generates_valid_structure(self):
@@ -182,3 +245,41 @@ class TestLicenseInfo:
         assert not info.is_commercial
         assert not info.is_trial
         assert not info.expired
+
+
+class TestLoadLicense:
+    def test_signed_file_env_wins_after_bare_key_warning(self, monkeypatch, tmp_path):
+        data = generate_license("enterprise", "Ops", "ops@example.com", days=365)
+        p = tmp_path / "license.json"
+        p.write_text(json.dumps(data))
+        monkeypatch.setenv("DIRECTOR_LICENSE_KEY", data["key"])
+        monkeypatch.setenv("DIRECTOR_LICENSE_FILE", str(p))
+
+        info = load_license()
+
+        assert info.valid
+        assert info.tier == "enterprise"
+        assert info.licensee == "Ops"
+
+    def test_invalid_env_file_falls_back_to_default_file(
+        self,
+        monkeypatch,
+        tmp_path,
+    ):
+        invalid = tmp_path / "invalid.json"
+        invalid.write_text("{}")
+        home = tmp_path / "home"
+        default_dir = home / ".director-ai"
+        default_dir.mkdir(parents=True)
+        default_file = default_dir / "license.json"
+        default_file.write_text(
+            json.dumps(generate_license("pro", "Default", "default@example.com")),
+        )
+        monkeypatch.setenv("DIRECTOR_LICENSE_FILE", str(invalid))
+        monkeypatch.setattr("pathlib.Path.home", lambda: home)
+
+        info = load_license()
+
+        assert info.valid
+        assert info.tier == "pro"
+        assert info.licensee == "Default"

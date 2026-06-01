@@ -88,6 +88,77 @@ class TestLangChainGuard:
         )
         assert result["approved"] is True
 
+    def test_invoke_dict_accepts_pipeline_input_output_keys(self):
+        from director_ai.integrations.langchain import DirectorAIGuard
+
+        guard = DirectorAIGuard(
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+
+        result = guard.invoke(
+            {
+                "input": "What color is the sky?",
+                "output": "The sky is blue.",
+            },
+        )
+
+        assert result["approved"] is True
+        assert result["response"] == "The sky is blue."
+
+    async def test_ainvoke_string_uses_supplied_query(self):
+        from director_ai.integrations.langchain import DirectorAIGuard
+
+        guard = DirectorAIGuard(
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+
+        result = await guard.ainvoke(
+            "The sky is blue.",
+            query="What color is the sky?",
+        )
+
+        assert result["approved"] is True
+        assert result["response"] == "The sky is blue."
+
+    async def test_ainvoke_dict_accepts_pipeline_input_output_keys(self):
+        from director_ai.integrations.langchain import DirectorAIGuard
+
+        guard = DirectorAIGuard(
+            facts={"sky color": "The sky is blue."},
+            use_nli=False,
+        )
+
+        result = await guard.ainvoke(
+            {
+                "input": "What color is the sky?",
+                "output": "The sky is blue.",
+            },
+        )
+
+        assert result["approved"] is True
+        assert result["response"] == "The sky is blue."
+
+    async def test_acheck_raises_when_async_review_rejects_response(self):
+        from director_ai.integrations.langchain import (
+            DirectorAIGuard,
+            HallucinationError,
+        )
+
+        guard = DirectorAIGuard(
+            facts={"sky color": "The sky is blue."},
+            threshold=0.6,
+            use_nli=False,
+            raise_on_fail=True,
+        )
+
+        with pytest.raises(HallucinationError):
+            await guard.acheck(
+                "What color is the sky?",
+                "Mars has two moons named Phobos and Deimos.",
+            )
+
 
 @pytest.mark.consumer
 class TestLlamaIndexPostprocessor:

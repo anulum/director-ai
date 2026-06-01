@@ -837,6 +837,58 @@ class TestBackendImportErrors:
                 getattr(vector_store, cls_name)(**kwargs)
 
 
+def test_vector_store_package_auto_registers_available_vendor_backends(monkeypatch):
+    import importlib
+    from importlib.machinery import ModuleSpec
+
+    import director_ai.core.retrieval.vector_store as vector_store_pkg
+    import director_ai.core.retrieval.vector_store.base as base_mod
+
+    original_registry = dict(base_mod._VECTOR_REGISTRY)
+    vendor_modules = {
+        "chromadb",
+        "pinecone",
+        "weaviate",
+        "qdrant_client",
+        "faiss",
+        "elasticsearch",
+    }
+
+    def fake_find_spec(name: str):
+        if name in vendor_modules:
+            return ModuleSpec(name, loader=None)
+        return None
+
+    monkeypatch.setattr("importlib.util.find_spec", fake_find_spec)
+
+    try:
+        base_mod._VECTOR_REGISTRY.clear()
+        importlib.reload(vector_store_pkg)
+
+        assert vector_store_pkg.get_vector_backend("chroma") is (
+            vector_store_pkg.ChromaBackend
+        )
+        assert vector_store_pkg.get_vector_backend("pinecone") is (
+            vector_store_pkg.PineconeBackend
+        )
+        assert vector_store_pkg.get_vector_backend("weaviate") is (
+            vector_store_pkg.WeaviateBackend
+        )
+        assert vector_store_pkg.get_vector_backend("qdrant") is (
+            vector_store_pkg.QdrantBackend
+        )
+        assert vector_store_pkg.get_vector_backend("faiss") is (
+            vector_store_pkg.FAISSBackend
+        )
+        assert vector_store_pkg.get_vector_backend("elasticsearch") is (
+            vector_store_pkg.ElasticsearchBackend
+        )
+    finally:
+        base_mod._VECTOR_REGISTRY.clear()
+        base_mod._VECTOR_REGISTRY.update(original_registry)
+        importlib.reload(vector_store_pkg)
+
+
 def test_sentence_transformer_delete_keeps_documents_and_embeddings_aligned():
     import threading
 

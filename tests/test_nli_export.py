@@ -14,6 +14,7 @@ from contextlib import nullcontext
 from types import ModuleType, SimpleNamespace
 from unittest.mock import Mock
 
+import numpy as np
 import pytest
 
 import director_ai.core.scoring._nli_export as nli_export
@@ -215,6 +216,106 @@ def test_export_onnx_fp16_quantization_converts_and_saves(tmp_path, monkeypatch)
         fake_fp16_model,
         str(tmp_path / "model_fp16.onnx"),
     )
+
+
+def test_export_tensorrt_requires_available_provider(tmp_path, monkeypatch):
+    onnx_dir = tmp_path / "onnx"
+    onnx_dir.mkdir()
+    (onnx_dir / "model.onnx").write_bytes(b"onnx")
+    fake_ort = ModuleType("onnxruntime")
+    fake_ort.get_available_providers = Mock(return_value=["CPUExecutionProvider"])
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
+
+    with pytest.raises(RuntimeError, match="TensorrtExecutionProvider not available"):
+        nli_export.export_tensorrt(str(onnx_dir))
+
+
+def test_export_tensorrt_builds_cache_with_int64_tokenizer_feed(
+    tmp_path,
+    monkeypatch,
+):
+    onnx_dir = tmp_path / "onnx"
+    onnx_dir.mkdir()
+    (onnx_dir / "model.onnx").write_bytes(b"onnx")
+    captured: dict[str, object] = {}
+
+    class FakeInput:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    class FakeSession:
+        def __init__(self, model_file, opts, providers):
+            captured["model_file"] = model_file
+            captured["providers"] = providers
+
+        def get_providers(self):
+            return ["TensorrtExecutionProvider", "CUDAExecutionProvider"]
+
+        def get_inputs(self):
+            return [FakeInput("input_ids"), FakeInput("attention_mask")]
+
+        def run(self, outputs, feed):
+            captured["outputs"] = outputs
+            captured["feed"] = feed
+            return [np.array([[0.1, 0.9]])]
+
+    fake_ort = ModuleType("onnxruntime")
+    fake_ort.GraphOptimizationLevel = SimpleNamespace(ORT_ENABLE_ALL="all")
+    fake_ort.get_available_providers = Mock(
+        return_value=[
+            "TensorrtExecutionProvider",
+            "CUDAExecutionProvider",
+            "CPUExecutionProvider",
+        ],
+    )
+    fake_ort.SessionOptions = Mock(
+        return_value=SimpleNamespace(
+            graph_optimization_level=None,
+            log_severity_level=None,
+        ),
+    )
+    fake_ort.InferenceSession = Mock(side_effect=FakeSession)
+    tokenizer = Mock(
+        return_value={
+            "input_ids": np.array([[1, 2]], dtype=np.int32),
+            "attention_mask": np.array([[1, 1]], dtype=np.int64),
+            "token_type_ids": np.array([[0, 0]], dtype=np.int32),
+        },
+    )
+    fake_transformers = ModuleType("transformers")
+    fake_transformers.AutoTokenizer = SimpleNamespace(
+        from_pretrained=Mock(return_value=tokenizer),
+    )
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake_ort)
+    monkeypatch.setitem(sys.modules, "transformers", fake_transformers)
+
+    result = nli_export.export_tensorrt(
+        str(onnx_dir),
+        output_dir=str(tmp_path / "trt"),
+        fp16=False,
+        max_batch=8,
+        max_seq_len=128,
+        warmup_pairs=2,
+    )
+
+    assert result == str(tmp_path / "trt")
+    assert captured["model_file"] == str(onnx_dir / "model.onnx")
+    provider, options = captured["providers"][0]
+    assert provider == "TensorrtExecutionProvider"
+    assert options["trt_engine_cache_path"] == str(tmp_path / "trt")
+    assert options["trt_fp16_enable"] is False
+    assert options["trt_profile_opt_shapes"] == (
+        "input_ids=4x128,attention_mask=4x128"
+    )
+    assert captured["outputs"] is None
+    feed = captured["feed"]
+    assert set(feed) == {"input_ids", "attention_mask"}
+    assert feed["input_ids"].dtype == np.int64
+    assert feed["attention_mask"].dtype == np.int64
+    assert fake_transformers.AutoTokenizer.from_pretrained.call_args.kwargs == {
+        "revision": "local-artifact",
+        "local_files_only": True,
+    }
 
 
 def test_dynamic_batcher_empty_flush_is_noop():
