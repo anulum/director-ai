@@ -18,6 +18,7 @@ from __future__ import annotations
 import importlib.util
 import math
 import os
+import random
 import sys
 import threading
 from types import ModuleType, SimpleNamespace
@@ -25,6 +26,7 @@ from typing import Any, cast
 
 import pytest
 
+import director_ai.core.self_evolving.adversarial as adversarial_mod
 import director_ai.core.self_evolving.trainer as trainer_mod
 from director_ai.core.self_evolving import (
     AdversarialGenerator,
@@ -258,6 +260,39 @@ class TestAdversarial:
         # should contain the custom marker / scaffold.
         out = gen.generate(_seed_failures(), max_samples=32, seed=0)
         assert any("X:" in variant or "Rewrite:" in variant for variant in out)
+
+    def test_noop_strategy_exhausts_retry_guard_without_duplicates(self):
+        gen = PerturbativeAdversarialGenerator(enabled_strategies=["char_swap"])
+        out = gen.generate(
+            [FeedbackEvent(prompt="x", response="", label="unsafe")],
+            max_samples=3,
+            seed=0,
+        )
+
+        assert out == ()
+
+    def test_module_mutation_strategy_edge_cases_are_deterministic(self):
+        rng = random.Random(0)
+
+        assert adversarial_mod._char_swap("x", rng) == "x"
+        assert adversarial_mod._char_drop("", rng) == ""
+        assert adversarial_mod._casing_flip("", rng) == ""
+        assert adversarial_mod._casing_flip("1", rng) == "1"
+        assert adversarial_mod._leet_substitution("xyz", rng) == "xyz"
+        assert adversarial_mod._token_drop("single", rng) == "single"
+        assert adversarial_mod._token_duplicate("", rng) == ""
+        assert adversarial_mod._zero_width_inject("x", rng) == "x\u200b"
+
+    def test_marker_and_scaffold_helpers_use_configured_phrases(self):
+        rng = random.Random(0)
+        gen = PerturbativeAdversarialGenerator(
+            marker_phrases=("PREFIX: ",),
+            paraphrase_scaffolds=("Rewrite safely: {}",),
+        )
+
+        assert gen._marker_prefix("claim", rng) == "PREFIX: claim"
+        assert gen._marker_suffix("claim", rng) == "claim PREFIX:"
+        assert gen._paraphrase_scaffold("claim", rng) == "Rewrite safely: claim"
 
 
 # --- PerceptronGuardrailTrainer -----------------------------------
