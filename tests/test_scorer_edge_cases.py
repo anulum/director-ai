@@ -19,8 +19,10 @@ import threading
 
 import pytest
 
+import director_ai.core.scoring.scorer as scorer_module
 from director_ai.core import CoherenceScorer
 from director_ai.core.metrics import metrics
+from director_ai.core.types import EvidenceChunk, ScoringEvidence
 
 # ── Fixtures ────────────────────────────────────────────────────────
 
@@ -305,3 +307,244 @@ def test_vector_store_evidence_falls_back_to_keyword_chunks_when_vector_query_mi
     assert evidence is not None
     assert evidence.chunks
     assert evidence.chunks[0].source == "keyword"
+
+
+class TestScorerCoverageGaps:
+    """Dedicated branch tests for CoherenceScorer internals."""
+
+    def test_constructor_custom_cache_and_validation_edges(self):
+        cache = object()
+        scorer = CoherenceScorer(use_nli=False, cache=cache)
+        assert scorer.cache is cache
+
+        scorer = CoherenceScorer(use_nli=False, cache_size=0)
+        assert scorer.cache is None
+
+        with pytest.raises(ValueError, match="hybrid backend"):
+            CoherenceScorer(use_nli=False, scorer_backend="hybrid")
+        with pytest.raises(ValueError, match="w_logic"):
+            CoherenceScorer(use_nli=False, w_logic=-0.1, w_fact=1.1)
+        with pytest.raises(ValueError, match="w_fact"):
+            CoherenceScorer(use_nli=False, w_logic=0.5, w_fact=1.1)
+        with pytest.raises(ValueError, match="equal 1.0"):
+            CoherenceScorer(use_nli=False, w_logic=0.2, w_fact=0.2)
+
+    def test_minicheck_lazy_success_and_failure(self, monkeypatch):
+        class AvailableMiniCheck:
+            model_available = True
+
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+            def _ensure_minicheck(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "NLIScorer", AvailableMiniCheck)
+        scorer = CoherenceScorer(use_nli=False)
+
+        minicheck = scorer._get_minicheck_scorer()
+
+        assert minicheck is scorer._get_minicheck_scorer()
+        assert minicheck.kwargs == {"use_model": True, "backend": "minicheck"}
+
+        class FailingMiniCheck:
+            def __init__(self, **kwargs):
+                del kwargs
+                raise RuntimeError("missing minicheck")
+
+        monkeypatch.setattr(scorer_module, "NLIScorer", FailingMiniCheck)
+        scorer = CoherenceScorer(use_nli=False)
+        assert scorer._get_minicheck_scorer() is None
+        assert scorer._get_minicheck_scorer() is None
+
+    def test_prompt_premise_evidence_uses_counted_nli_and_escalation(self):
+        class FakeNLI:
+            model_available = True
+            last_token_count = 17
+            last_estimated_cost = 0.02
+
+            def reset_token_counter(self):
+                self.reset = True
+
+            def _score_chunked_with_counts(self, *args, **kwargs):
+                self.args = args
+                self.kwargs = kwargs
+                return 0.41, [0.4, 0.42], 2, 3
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = FakeNLI()
+        scorer._confidence_weighted_agg = False
+        scorer._use_prompt_as_premise = True
+        scorer._should_escalate = lambda score, task_type: True
+        scorer._llm_judge_check = lambda prompt, output, score: 0.33
+
+        score, evidence = scorer._calculate_prompt_premise_divergence_with_evidence(
+            "source document",
+            "summary text",
+        )
+
+        assert score == 0.33
+        assert evidence is not None
+        assert evidence.nli_premise == "source document"
+        assert evidence.nli_hypothesis == "summary text"
+        assert evidence.chunk_scores == [0.4, 0.42]
+        assert evidence.premise_chunk_count == 2
+        assert evidence.hypothesis_chunk_count == 3
+        assert evidence.token_count == 17
+        assert evidence.estimated_cost_usd == 0.02
+
+    def test_factual_divergence_strict_and_heuristic_fallbacks(self):
+        class Store:
+            def retrieve_context(self, prompt, top_k=3, tenant_id=""):
+                del prompt, top_k, tenant_id
+                return "Saturn has rings. Mars has no global ocean."
+
+        strict = CoherenceScorer(use_nli=False, strict_mode=True, ground_truth_store=Store())
+        non_strict = CoherenceScorer(use_nli=False, ground_truth_store=Store())
+
+        assert strict.calculate_factual_divergence("Saturn", "Saturn is ringed.") == (
+            scorer_module.DIVERGENCE_CONTRADICTED
+        )
+        assert 0.0 <= non_strict.calculate_factual_divergence(
+            "Saturn",
+            "Saturn is ringed.",
+        ) <= 1.0
+
+    def test_factual_divergence_with_vector_abstention_returns_neutral(self):
+        from director_ai.core.vector_store import (
+            InMemoryBackend,
+            VectorGroundTruthStore,
+        )
+
+        class DistantBackend(InMemoryBackend):
+            def query(self, text, n_results=3, tenant_id=""):
+                del text, n_results, tenant_id
+                return [
+                    {
+                        "id": "remote",
+                        "text": "remote fact",
+                        "distance": 0.99,
+                        "metadata": {"source": "unit"},
+                    }
+                ]
+
+        store = VectorGroundTruthStore(backend=DistantBackend())
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=store)
+        scorer._retrieval_abstention_threshold = 0.5
+
+        assert scorer.calculate_factual_divergence("query", "answer") == (
+            scorer_module.DIVERGENCE_NEUTRAL
+        )
+
+    def test_finalise_review_dry_run_warning_and_retrieval_confidence(self):
+        scorer = CoherenceScorer(use_nli=False, threshold=0.8, soft_limit=0.9)
+        scorer._dry_run = True
+        evidence = ScoringEvidence(
+            chunks=[EvidenceChunk(text="source", distance=0.2, source="unit")],
+            nli_premise="source",
+            nli_hypothesis="answer",
+            nli_score=0.7,
+        )
+
+        approved, score = scorer._finalise_review(
+            0.7,
+            0.4,
+            0.5,
+            "answer",
+            evidence=evidence,
+        )
+
+        assert approved is True
+        assert score.approved is True
+        assert score.warning is True
+        assert score.retrieval_confidence == pytest.approx(0.8)
+        assert scorer.history[-1] == "answer"
+
+    def test_verified_source_and_routing_guards(self):
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._verified_scorer_enabled = True
+        scorer._verified_scorer_low_confidence_margin = 0.05
+        scorer._verified_scorer_task_types = {"fact_check"}
+
+        assert scorer._verified_source_from_evidence(None) == ""
+        empty = ScoringEvidence(
+            chunks=[],
+            nli_premise=" premise ",
+            nli_hypothesis="",
+            nli_score=0.5,
+        )
+        assert scorer._verified_source_from_evidence(empty) == "premise"
+        sourced = ScoringEvidence(
+            chunks=[
+                EvidenceChunk(text=" first ", distance=0.1, source="a"),
+                EvidenceChunk(text="", distance=0.2, source="b"),
+                EvidenceChunk(text="second", distance=0.3, source="c"),
+            ],
+            nli_premise="ignored",
+            nli_hypothesis="",
+            nli_score=0.5,
+        )
+        assert scorer._verified_source_from_evidence(sourced) == "first second"
+        assert scorer._should_run_verified_scorer(
+            coherence=0.51,
+            threshold=0.5,
+            task_type="qa",
+            evidence=sourced,
+        )
+        assert scorer._should_run_verified_scorer(
+            coherence=0.9,
+            threshold=0.5,
+            task_type="fact_check",
+            evidence=sourced,
+        )
+        assert not scorer._should_run_verified_scorer(
+            coherence=0.9,
+            threshold=0.5,
+            task_type="qa",
+            evidence=empty,
+        )
+
+    def test_review_batch_errors_and_meta_threshold_path(self):
+        class FakeNLI:
+            model_available = True
+            backend = "deberta"
+
+            def __init__(self, scores):
+                self.scores = list(scores)
+
+            def score_batch(self, pairs):
+                del pairs
+                return self.scores.pop(0)
+
+        scorer = CoherenceScorer(use_nli=False)
+        scorer._nli = FakeNLI([[0.1]])
+        scorer._judge = type("FakeJudge", (), {"enabled": False})()
+        scorer._confidence_weighted_agg = False
+
+        with pytest.raises(RuntimeError, match="logical NLI batch returned"):
+            scorer.review_batch([("Q1", "A1"), ("Q2", "A2")])
+
+        class Store:
+            def retrieve_context(self, prompt, top_k=3, tenant_id=""):
+                del prompt, top_k, tenant_id
+                return "grounded context"
+
+        class MetaClassifier:
+            def predict_threshold(self, prompt, action):
+                del prompt, action
+                return 0.25, 0.9
+
+        scorer = CoherenceScorer(use_nli=False, ground_truth_store=Store())
+        scorer._nli = FakeNLI([[0.2, 0.3], [0.4]])
+        scorer._judge = type("FakeJudge", (), {"enabled": False})()
+        scorer._confidence_weighted_agg = False
+        scorer._get_meta_classifier = lambda: MetaClassifier()
+
+        with pytest.raises(RuntimeError, match="factual NLI batch returned"):
+            scorer.review_batch([("Q1", "A1"), ("Q2", "A2")])
+
+        scorer._nli = FakeNLI([[0.1, 0.2], [0.3, 0.4]])
+        results = scorer.review_batch([("Q1", "A1"), ("Q2", "A2")])
+
+        assert len(results) == 2
+        assert all(result[1].detected_task_type for result in results)
