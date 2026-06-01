@@ -169,6 +169,8 @@ class TestGraph:
         g = self._graph()
         with pytest.raises(ValueError, match="unknown source"):
             g.add_edge(SkillEdge(source="z", target="a", action="invoke"))
+        with pytest.raises(ValueError, match="unknown target"):
+            g.add_edge(SkillEdge(source="a", target="z", action="invoke"))
 
     def test_duplicate_edge_rejected(self):
         g = self._graph()
@@ -180,11 +182,25 @@ class TestGraph:
         with pytest.raises(KeyError):
             g.node("z")
 
+    def test_outgoing_unknown_source_is_empty(self):
+        g = self._graph()
+        assert g.outgoing("z") == ()
+
     def test_capability_index(self):
         g = self._graph()
         g.add_node(SkillNode(id="retriever", capabilities=frozenset({"rag"})))
         results = g.skills_with_capability("rag")
         assert len(results) == 1 and results[0].id == "retriever"
+
+    def test_shortest_path_from_node_to_itself_is_empty(self):
+        g = self._graph()
+        path = g.shortest_sanctioned_path(
+            source="a",
+            target="a",
+            principal=Principal(role="u"),
+        )
+
+        assert path == ()
 
     def test_shortest_path_picks_two_hop(self):
         g = self._graph()
@@ -227,6 +243,10 @@ class TestGraph:
             g.shortest_sanctioned_path(
                 source="z", target="a", principal=Principal(role="u")
             )
+        with pytest.raises(KeyError):
+            g.shortest_sanctioned_path(
+                source="a", target="z", principal=Principal(role="u")
+            )
 
     def test_require_acyclic_on_dag(self):
         g = self._graph()
@@ -248,6 +268,28 @@ class TestGraph:
         b.add_node(SkillNode(id="s2"))
         a.merge([b])
         assert {n.id for n in a.nodes()} == {"s1", "s2"}
+
+    def test_merge_deduplicates_edges_but_rejects_duplicate_nodes(self):
+        a = KnowledgeGraph()
+        for name in ("s1", "s2"):
+            a.add_node(SkillNode(id=name))
+        a.add_edge(SkillEdge(source="s1", target="s2", action="invoke"))
+
+        duplicate_edge = KnowledgeGraph()
+        for name in ("s3", "s4"):
+            duplicate_edge.add_node(SkillNode(id=name))
+        duplicate_edge.add_edge(SkillEdge(source="s3", target="s4", action="invoke"))
+        duplicate_edge._all_edges = [
+            SkillEdge(source="s1", target="s2", action="invoke")
+        ]
+
+        a.merge([duplicate_edge])
+        assert len(a.edges()) == 1
+
+        duplicate_node = KnowledgeGraph()
+        duplicate_node.add_node(SkillNode(id="s1"))
+        with pytest.raises(ValueError, match="duplicate skill"):
+            a.merge([duplicate_node])
 
 
 # --- TraversalValidator --------------------------------------------

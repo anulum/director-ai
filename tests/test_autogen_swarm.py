@@ -11,6 +11,10 @@ Covers message filtering, quarantine, statistics, and edge cases.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+
+import pytest
+
 from director_ai.agentic.agent_profile import AgentProfile
 from director_ai.agentic.swarm_guardian import SwarmGuardian
 from director_ai.integrations.autogen_swarm import (
@@ -104,6 +108,75 @@ class TestMessageFilter:
         )
         assert isinstance(result, MessageFilterResult)
 
+    def test_broadcast_target_and_fallback_reason_with_injected_guardian(self):
+        calls = []
+
+        class FakeGuardian:
+            def is_quarantined(self, sender):
+                return False
+
+            def score_handoff(self, **kwargs):
+                calls.append(kwargs)
+                return SimpleNamespace(
+                    should_halt=True,
+                    reasons=(),
+                    score=0.87,
+                )
+
+            def quarantine_agent(self, sender, *, reason):
+                calls.append({"quarantined": sender, "reason": reason})
+
+        cg = GroupChatGuardian(FakeGuardian())
+
+        result = cg.filter_message(
+            "sender-a",
+            "claim",
+            chat_context="ctx",
+            recipients=None,
+        )
+
+        assert result.suppressed
+        assert result.reason == "hallucination detected"
+        assert result.score == pytest.approx(0.87)
+        assert calls[0] == {
+            "from_agent": "sender-a",
+            "to_agent": "__broadcast__",
+            "message": "claim",
+            "context": "ctx",
+        }
+        assert calls[1] == {
+            "quarantined": "sender-a",
+            "reason": "hallucination detected",
+        }
+
+    def test_filter_message_uses_first_recipient_only_for_group_routing(self):
+        calls = []
+
+        class FakeGuardian:
+            def is_quarantined(self, sender):
+                return False
+
+            def score_handoff(self, **kwargs):
+                calls.append(kwargs)
+                return SimpleNamespace(
+                    should_halt=False,
+                    reasons=(),
+                    score=0.12,
+                )
+
+        cg = GroupChatGuardian(FakeGuardian())
+
+        result = cg.filter_message(
+            "sender-a",
+            "claim",
+            chat_context="ctx",
+            recipients=["first", "second"],
+        )
+
+        assert not result.suppressed
+        assert result.reason == ""
+        assert calls[0]["to_agent"] == "first"
+
 
 # ── Statistics ─────────────────────────────────────────────────────────
 
@@ -151,19 +224,32 @@ class _FakeAutoGenAgent:
 
 
 class TestAutoGenReplyGuard:
+    def test_install_rejects_agent_without_register_reply(self):
+        g = _make_guardian()
+        cg = GroupChatGuardian(g)
+
+        with pytest.raises(TypeError, match="register_reply"):
+            AutoGenReplyGuard(cg).install(object())
+
     def test_install_registers_reply_guard_without_autogen_import(self):
         g = _make_guardian()
         cg = GroupChatGuardian(g)
         receiver = _FakeAutoGenAgent("c1")
 
-        hook = AutoGenReplyGuard(cg).install(receiver, trigger=["r1", None])
+        hook = AutoGenReplyGuard(cg).install(
+            receiver,
+            trigger=["r1", None],
+            position=3,
+            remove_other_reply_funcs=True,
+        )
 
         assert hook is not None
         assert len(receiver.registered_replies) == 1
         args, kwargs = receiver.registered_replies[0]
         assert args[0] == ["r1", None]
         assert args[1] is hook
-        assert kwargs["position"] == 0
+        assert kwargs["position"] == 3
+        assert kwargs["remove_other_reply_funcs"] is True
 
     def test_reply_hook_allows_grounded_message_to_continue(self):
         g = _make_guardian()
@@ -211,6 +297,37 @@ class TestAutoGenReplyGuard:
         }
         assert g.is_quarantined("strict")
 
+    def test_reply_hook_returns_custom_suppression_reply_and_fallback_names(self):
+        class FakeGuardian:
+            def filter_message(self, **kwargs):
+                self.kwargs = kwargs
+                return MessageFilterResult(
+                    suppressed=True,
+                    sender=kwargs["sender"],
+                    score=1.0,
+                    reason="blocked",
+                )
+
+        fake_guardian = FakeGuardian()
+        hook = AutoGenReplyGuard(
+            fake_guardian,
+            suppression_reply="blocked by policy",
+        ).reply_func
+
+        handled, reply = hook(
+            object(),
+            messages=[{"content": 123}],
+            sender=None,
+            config=None,
+        )
+
+        assert handled is True
+        assert reply == "blocked by policy"
+        assert fake_guardian.kwargs["sender"] == "__unknown__"
+        assert fake_guardian.kwargs["recipients"][0].startswith("<object object at ")
+        assert fake_guardian.kwargs["message"] == "123"
+        assert fake_guardian.kwargs["chat_context"] == ""
+
     def test_reply_hook_extracts_text_from_multimodal_blocks(self):
         g = _make_guardian()
         cg = GroupChatGuardian(g)
@@ -234,3 +351,35 @@ class TestAutoGenReplyGuard:
 
         assert handled is False
         assert reply is None
+
+    def test_reply_hook_uses_latest_dict_message_and_joins_text_blocks(self):
+        class FakeGuardian:
+            def filter_message(self, **kwargs):
+                self.kwargs = kwargs
+                return MessageFilterResult(False, kwargs["sender"], 0.0)
+
+        fake_guardian = FakeGuardian()
+        hook = AutoGenReplyGuard(fake_guardian).reply_func
+
+        handled, reply = hook(
+            "recipient-name",
+            messages=[
+                {"content": "ignored older"},
+                "not a dict",
+                {
+                    "content": [
+                        "plain",
+                        {"type": "text", "text": "structured"},
+                        {"type": "image_url", "image_url": {"url": "local"}},
+                    ]
+                },
+            ],
+            sender="sender-name",
+            config={"chat_context": "ctx"},
+        )
+
+        assert handled is False
+        assert reply is None
+        assert fake_guardian.kwargs["message"] == "plain structured"
+        assert fake_guardian.kwargs["sender"] == "sender-name"
+        assert fake_guardian.kwargs["recipients"] == ["recipient-name"]
