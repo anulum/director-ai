@@ -49,6 +49,12 @@ def test_local_existing_path_does_not_require_revision(tmp_path) -> None:
     assert resolve_model_revision(str(model_dir)) is None
 
 
+def test_blank_model_name_is_not_a_remote_reference() -> None:
+    from director_ai.core.model_revisions import resolve_model_revision
+
+    assert resolve_model_revision(" ") is None
+
+
 def test_unpinned_remote_model_requires_explicit_revision() -> None:
     from director_ai.core.model_revisions import resolve_model_revision
 
