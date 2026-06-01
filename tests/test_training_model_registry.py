@@ -48,6 +48,10 @@ class TestTrainingModelRegistry:
         )
         assert profile.status == "experimental"
 
+    def test_empty_model_name_is_rejected(self):
+        with pytest.raises(ValueError, match="base_model is required"):
+            resolve_finetune_model("")
+
     def test_unknown_model_requires_explicit_flag(self):
         with pytest.raises(ValueError, match="stable fine-tune registry"):
             resolve_finetune_model("org/custom-model")
