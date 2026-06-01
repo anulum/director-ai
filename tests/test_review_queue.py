@@ -15,12 +15,14 @@ batch sizes, pipeline integration, and performance documentation.
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import threading
 import time
 
 import pytest
 
 from director_ai.core.review_queue import ReviewQueue
+from director_ai.core.runtime.review_queue import _PendingReview
 from director_ai.core.scorer import CoherenceScorer
 from director_ai.core.types import CoherenceScore
 
@@ -212,6 +214,130 @@ class TestReviewQueueLifecycle:
         queue = ReviewQueue(scorer)
         await queue.start()
         await queue.stop()
+
+    @pytest.mark.asyncio
+    async def test_stop_surfaces_worker_failure(self, scorer):
+        async def failed_worker():
+            raise RuntimeError("worker failed")
+
+        queue = ReviewQueue(scorer)
+        queue._task = asyncio.create_task(failed_worker())
+        await asyncio.sleep(0)
+
+        with pytest.raises(RuntimeError, match="worker failed"):
+            await queue.stop()
+
+    @pytest.mark.asyncio
+    async def test_stop_times_out_when_worker_does_not_exit(self, scorer):
+        never_stop = asyncio.Event()
+
+        async def blocked_worker():
+            await never_stop.wait()
+
+        queue = ReviewQueue(scorer)
+        queue._task = asyncio.create_task(blocked_worker())
+
+        try:
+            with pytest.raises(TimeoutError, match="worker did not stop"):
+                await queue.stop()
+        finally:
+            queue._task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await queue._task
+
+
+class TestReviewQueueInternalBranches:
+    @pytest.mark.asyncio
+    async def test_empty_flush_leaves_pending_queue_empty(self, scorer):
+        queue = ReviewQueue(scorer)
+
+        await queue._flush()
+
+        assert queue._pending == []
+
+    @pytest.mark.asyncio
+    async def test_stop_drains_pending_items_without_worker_task(self):
+        class RecordingScorer:
+            def __init__(self) -> None:
+                self.items = None
+
+            def review_batch(self, items, tenant_id=""):
+                self.items = (tuple(items), tenant_id)
+                return [
+                    (
+                        True,
+                        CoherenceScore(
+                            score=0.8,
+                            approved=True,
+                            h_logical=0.1,
+                            h_factual=0.1,
+                        ),
+                    )
+                ]
+
+        scorer = RecordingScorer()
+        queue = ReviewQueue(scorer)
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+        queue._pending.append(_PendingReview("Q", "A", None, "tenant-a", future))
+
+        await queue.stop()
+
+        assert await future == (
+            True,
+            CoherenceScore(score=0.8, approved=True, h_logical=0.1, h_factual=0.1),
+        )
+        assert scorer.items == ((("Q", "A"),), "tenant-a")
+
+    @pytest.mark.asyncio
+    async def test_fallback_skips_future_that_already_has_result(self):
+        class RaisingScorer:
+            def review(self, prompt, response, session=None, tenant_id=""):
+                raise AssertionError("review should not run for completed future")
+
+        queue = ReviewQueue(RaisingScorer())
+        loop = asyncio.get_running_loop()
+        future = loop.create_future()
+        expected = (
+            True,
+            CoherenceScore(score=0.7, approved=True, h_logical=0.1, h_factual=0.2),
+        )
+        future.set_result(expected)
+        pending = _PendingReview("Q", "A", None, "tenant-a", future)
+
+        await queue._fallback_pending_review(pending)
+
+        assert future.result() == expected
+
+    @pytest.mark.asyncio
+    async def test_batch_flush_preserves_future_completed_during_executor_run(self):
+        class SingleResultScorer:
+            def review_batch(self, items, tenant_id=""):
+                return [
+                    (
+                        False,
+                        CoherenceScore(
+                            score=0.1,
+                            approved=False,
+                            h_logical=0.9,
+                            h_factual=0.8,
+                        ),
+                    )
+                ]
+
+        queue = ReviewQueue(SingleResultScorer())
+        loop = asyncio.get_running_loop()
+        expected = (
+            True,
+            CoherenceScore(score=0.9, approved=True, h_logical=0.1, h_factual=0.1),
+        )
+        future = loop.create_future()
+        future.set_result(expected)
+        pending = _PendingReview("Q", "A", None, "tenant-a", future)
+
+        await queue._flush_tenant_group("tenant-a", [pending])
+
+        assert future.result() == expected
 
 
 class TestReviewQueueParametrised:
