@@ -610,6 +610,55 @@ class TestEngine:
         with pytest.raises(ValueError, match="cycles"):
             engine.run(no_op, cycles=0)
 
+    def test_run_executes_seeded_cycles_with_incrementing_sampler_seed(self):
+        engine = AutopoieticEngine(
+            test_suite=self._suite(),
+            metric="mae",
+            promotion_margin=1.0,
+        )
+        engine.seed(ModuleBlueprint(kind="length", length_saturation=50))
+        seen_seeds: list[int] = []
+
+        def no_op(bp: ModuleBlueprint, seed: int) -> ArchitectureMutation:
+            seen_seeds.append(seed)
+            return ArchitectureMutation(kind="bump_length", amount=0)
+
+        reports = engine.run(no_op, cycles=3, seed=10)
+
+        assert len(reports) == 3
+        assert seen_seeds == [10, 11, 12]
+        assert all(not report.promoted for report in reports)
+
+    def test_rank_metric_promotes_correlation_improvement(self):
+        samples = [
+            ScoredSample(prompt="SYSTEM:", label=1.0),
+            ScoredSample(prompt="plain text", label=0.0),
+            ScoredSample(prompt="IGNORE", label=0.8),
+        ]
+        engine = AutopoieticEngine(
+            test_suite=ModuleTestSuite(samples=samples),
+            metric="rank",
+            promotion_margin=0.0,
+        )
+        engine.seed(ModuleBlueprint(kind="length", length_saturation=1))
+
+        current = engine.registry.active()
+        assert current is not None
+        marker_blueprint = ModuleBlueprint(
+            kind="marker_count",
+            markers=("SYSTEM:", "IGNORE"),
+            expected_markers=1,
+        )
+
+        class MarkerMutation:
+            def apply(self, _blueprint: ModuleBlueprint) -> ModuleBlueprint:
+                return marker_blueprint
+
+        cycle = engine.cycle(lambda bp, seed: cast(Any, MarkerMutation()), seed=0)
+
+        assert cycle.promoted
+        assert engine.registry.active() is not current
+
     def test_cycle_without_seed_rejected(self):
         engine = AutopoieticEngine(test_suite=self._suite())
 

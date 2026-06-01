@@ -266,6 +266,24 @@ class TestMetaAnalyzer:
         analysis = analyzer.analyse(_steady_window(32))
         assert analysis.brier_score is None
 
+    def test_brier_channel_waits_for_labelled_min_window(self):
+        analyzer = MetaAnalyzer(reference_mean=0.5, reference_brier=0.05, min_window=8)
+        window = [
+            ScoringDecision(
+                prompt_hash=f"h{i}",
+                score=0.5,
+                action="allow",
+                ground_truth=(1.0 if i == 0 else None),
+                timestamp=float(i),
+            )
+            for i in range(8)
+        ]
+
+        analysis = analyzer.analyse(window)
+
+        assert analysis.brier_score is None
+        assert analysis.brier_alarm is False
+
     def test_action_rate_divergence(self):
         analyzer = MetaAnalyzer(
             reference_mean=0.5,
@@ -290,6 +308,33 @@ class TestMetaAnalyzer:
         analysis = analyzer.analyse(_steady_window(16))
         assert not analysis.action_alarm
         assert analysis.action_divergence == 0.0
+
+    def test_zero_reference_action_rate_with_observed_action_is_infinite(self):
+        analyzer = MetaAnalyzer(
+            reference_mean=0.5,
+            reference_action_rates={"allow": 1.0, "warn": 0.0, "halt": 0.0},
+            action_tolerance=0.1,
+            min_window=2,
+        )
+        window = [
+            ScoringDecision(
+                prompt_hash="h0",
+                score=0.5,
+                action="warn",
+                timestamp=0.0,
+            ),
+            ScoringDecision(
+                prompt_hash="h1",
+                score=0.5,
+                action="allow",
+                timestamp=1.0,
+            ),
+        ]
+
+        analysis = analyzer.analyse(window)
+
+        assert analysis.action_divergence == float("inf")
+        assert analysis.action_alarm is True
 
     @pytest.mark.parametrize(
         "kwargs,match",
@@ -319,8 +364,19 @@ class TestMetaAnalyzer:
         with pytest.raises(ValueError, match="unknown action"):
             MetaAnalyzer(reference_mean=0.5, reference_action_rates=bad)
 
+    def test_negative_action_rate_rejected(self):
+        bad = cast(Any, {"allow": 1.1, "warn": -0.1, "halt": 0.0})
+        with pytest.raises(ValueError, match="action rate"):
+            MetaAnalyzer(reference_mean=0.5, reference_action_rates=bad)
+
 
 class TestMetaAnalyzerRustKernels:
+    def test_empty_sum_and_mean_do_not_call_rust(self, monkeypatch):
+        monkeypatch.setattr(analyzer_mod, "_RUST_META_GUARD", True)
+
+        assert analyzer_mod._sum_float([]) == 0.0
+        assert analyzer_mod._mean_float([]) == 0.0
+
     def test_rust_mean_kernel_is_used_when_available(self, monkeypatch):
         monkeypatch.setattr(analyzer_mod, "_RUST_META_GUARD", True)
         called = {"mean": 0}
@@ -346,6 +402,25 @@ class TestMetaAnalyzerRustKernels:
         analyzer = MetaAnalyzer(reference_mean=0.3, min_window=4)
         analysis = analyzer.analyse(_steady_window(8, score=0.4))
         assert analysis.mean_score == pytest.approx(0.4)
+
+    def test_sum_and_mean_use_python_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(analyzer_mod, "_RUST_META_GUARD", False)
+
+        assert analyzer_mod._sum_float([0.2, 0.3]) == pytest.approx(0.5)
+        assert analyzer_mod._mean_float([0.2, 0.4]) == pytest.approx(0.3)
+
+    def test_rust_sum_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(analyzer_mod, "_RUST_META_GUARD", True)
+        calls = {"count": 0}
+
+        def _sum(values: list[float]) -> float:
+            calls["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(analyzer_mod, "rust_sum_f64", _sum, raising=True)
+
+        assert analyzer_mod._sum_float([0.1, 0.2]) == pytest.approx(0.3)
+        assert calls["count"] == 1
 
 
 # --- ThresholdAdjuster ---------------------------------------------

@@ -559,3 +559,39 @@ class TestMiniCheckClaimCoverage:
         monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
 
         assert _sum_int([1, 0, 1, 1]) == 3
+
+    def test_minicheck_uses_python_reducer_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        scorer = SimpleNamespace(
+            score=lambda source, sentence: 0.2 if "One" in sentence else 0.9
+        )
+
+        coverage, divs, sentences = minicheck_claim_coverage(
+            scorer,
+            "source",
+            "One claim. Two claim.",
+        )
+
+        assert coverage == pytest.approx(0.5)
+        assert divs == [0.2, 0.9]
+        assert sentences == ["One claim.", "Two claim."]
+
+    def test_minicheck_returns_full_coverage_when_splitters_find_no_sentences(
+        self,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+        real_import = __import__
+
+        def guarded_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "nltk.tokenize":
+                raise ImportError("nltk unavailable")
+            return real_import(name, globals, locals, fromlist, level)
+
+        monkeypatch.setattr("builtins.__import__", guarded_import)
+
+        assert minicheck_claim_coverage(
+            SimpleNamespace(score=lambda *_: 0.0),
+            "source",
+            "...",
+        ) == (1.0, [], [])
