@@ -960,6 +960,7 @@ def test_vector_store_package_auto_registers_available_vendor_backends(monkeypat
     import director_ai.core.retrieval.vector_store.base as base_mod
 
     original_registry = dict(base_mod._VECTOR_REGISTRY)
+    original_find_spec = importlib.util.find_spec
     vendor_modules = {
         "chromadb",
         "pinecone",
@@ -999,9 +1000,40 @@ def test_vector_store_package_auto_registers_available_vendor_backends(monkeypat
             vector_store_pkg.ElasticsearchBackend
         )
     finally:
+        vector_store_pkg.find_spec = original_find_spec
         base_mod._VECTOR_REGISTRY.clear()
         base_mod._VECTOR_REGISTRY.update(original_registry)
+
+
+def test_vector_store_package_skips_unavailable_vendor_backends(monkeypatch):
+    import importlib
+
+    import director_ai.core.retrieval.vector_store as vector_store_pkg
+    import director_ai.core.retrieval.vector_store.base as base_mod
+
+    original_registry = dict(base_mod._VECTOR_REGISTRY)
+    original_find_spec = importlib.util.find_spec
+
+    monkeypatch.setattr("importlib.util.find_spec", lambda _name: None)
+
+    try:
+        base_mod._VECTOR_REGISTRY.clear()
         importlib.reload(vector_store_pkg)
+
+        assert {"memory", "sentence-transformer", "hybrid", "remanentia"} <= set(
+            vector_store_pkg.list_vector_backends()
+        )
+        assert "colbert" in vector_store_pkg.list_vector_backends()
+        assert "chroma" not in vector_store_pkg.list_vector_backends()
+        assert "pinecone" not in vector_store_pkg.list_vector_backends()
+        assert "weaviate" not in vector_store_pkg.list_vector_backends()
+        assert "qdrant" not in vector_store_pkg.list_vector_backends()
+        assert "faiss" not in vector_store_pkg.list_vector_backends()
+        assert "elasticsearch" not in vector_store_pkg.list_vector_backends()
+    finally:
+        vector_store_pkg.find_spec = original_find_spec
+        base_mod._VECTOR_REGISTRY.clear()
+        base_mod._VECTOR_REGISTRY.update(original_registry)
 
 
 def test_sentence_transformer_delete_keeps_documents_and_embeddings_aligned():

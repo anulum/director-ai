@@ -154,6 +154,11 @@ class TestContradictionTrackerWithContentScorer:
 
 
 class TestContradictionRustMean:
+    def test_empty_mean_is_zero_without_rust_call(self, monkeypatch):
+        monkeypatch.setattr(tracker_mod, "_RUST_CONTRADICTION", True)
+
+        assert tracker_mod._mean_float([]) == 0.0
+
     def test_rust_mean_kernel_is_used_when_available(self, monkeypatch):
         monkeypatch.setattr(tracker_mod, "_RUST_CONTRADICTION", True)
         called = {"count": 0}
@@ -182,3 +187,22 @@ class TestContradictionRustMean:
         with pytest.raises(TypeError, match="ffi signature mismatch"):
             for i in range(3):
                 tracker.update(f"turn {i}", _fake_scorer(0.4))
+
+    def test_mean_and_sum_use_python_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(tracker_mod, "_RUST_CONTRADICTION", False)
+
+        assert tracker_mod._sum_float([0.1, 0.2, 0.3]) == pytest.approx(0.6)
+        assert tracker_mod._mean_float([0.2, 0.4]) == pytest.approx(0.3)
+
+    def test_rust_sum_kernel_is_used_when_available(self, monkeypatch):
+        monkeypatch.setattr(tracker_mod, "_RUST_CONTRADICTION", True)
+        called = {"count": 0}
+
+        def _sum(values: list[float]) -> float:
+            called["count"] += 1
+            return sum(values)
+
+        monkeypatch.setattr(tracker_mod, "rust_sum_f64", _sum, raising=True)
+
+        assert tracker_mod._sum_float([0.1, 0.2]) == pytest.approx(0.3)
+        assert called["count"] == 1

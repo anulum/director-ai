@@ -77,6 +77,12 @@ class TestOnLlmEnd:
         handler.on_llm_end(SimpleNamespace(generations=None))
         assert handler.last_score is None
 
+    def test_empty_generation_batch_no_crash(self):
+        handler = CoherenceCallbackHandler()
+        handler._current_prompt = "test"
+        handler.on_llm_end(SimpleNamespace(generations=[[]]))
+        assert handler.last_score is None
+
     def test_raise_on_failure_triggers(self):
         from director_ai.core.exceptions import CoherenceError
 
