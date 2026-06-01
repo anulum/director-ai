@@ -17,6 +17,8 @@ import pytest
 
 from director_ai.core.scoring import _task_scoring
 from director_ai.core.scoring._task_scoring import (
+    _normalize_claim_sentence,
+    _sum_int,
     detect_task_type,
     dialogue_factual_divergence,
     minicheck_claim_coverage,
@@ -111,6 +113,12 @@ class TestTaskDetectionFallback:
         )
         assert detect_task_type("What is the deployment status?") == "qa"
         assert detect_task_type("Write a neutral paragraph") == "default"
+
+    def test_python_question_detection_uses_instruction_keywords(self, monkeypatch):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+
+        assert detect_task_type("Answer the question using the brief") == "qa"
+        assert detect_task_type("According to the cited source, respond") == "qa"
 
 
 class TestDialogueFactualDivergence:
@@ -539,3 +547,15 @@ class TestMiniCheckClaimCoverage:
         assert coverage == pytest.approx(0.5)
         assert divs == [0.2, 0.9]
         assert sentences == ["One claim.", "Two claim."]
+
+    def test_normalize_claim_sentence_preserves_terminal_punctuation(self):
+        assert _normalize_claim_sentence(" Already punctuated! ") == (
+            "Already punctuated!"
+        )
+        assert _normalize_claim_sentence("Needs punctuation") == "Needs punctuation."
+        assert _normalize_claim_sentence("   ") == ""
+
+    def test_sum_int_uses_python_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(_task_scoring, "_RUST_TASK", False)
+
+        assert _sum_int([1, 0, 1, 1]) == 3

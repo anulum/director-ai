@@ -63,8 +63,13 @@ class TestPolicy:
         policy = TraversalPolicy(required_permissions=frozenset({"write"}))
         p_no = Principal(role="a")
         p_yes = Principal(role="a", permissions=frozenset({"write"}))
-        assert not policy.check(p_no, action="invoke")[0]
-        assert policy.check(p_yes, action="invoke")[0]
+        denied, reason = policy.check(p_no, action="invoke")
+        allowed, allowed_reason = policy.check(p_yes, action="invoke")
+
+        assert not denied
+        assert "missing permissions" in reason
+        assert allowed
+        assert allowed_reason == "allowed"
 
     def test_tenant_required(self):
         policy = TraversalPolicy(require_same_tenant=True)
@@ -73,6 +78,15 @@ class TestPolicy:
         assert ok
         ok, _ = policy.check(p, action="invoke", edge_tenant_id="t2")
         assert not ok
+
+    def test_tenant_requirement_rejects_unscoped_principal(self):
+        policy = TraversalPolicy(require_same_tenant=True)
+        principal = Principal(role="a")
+
+        ok, reason = policy.check(principal, action="invoke", edge_tenant_id="t1")
+
+        assert not ok
+        assert "tenant mismatch" in reason
 
     def test_action_restriction(self):
         policy = TraversalPolicy(allowed_actions=frozenset({"delegate", "escalate"}))
@@ -114,6 +128,21 @@ class TestPolicy:
         a = TraversalPolicy(require_same_tenant=False)
         b = TraversalPolicy(require_same_tenant=True)
         assert a.merge(b).require_same_tenant
+
+    def test_merge_empty_action_set_means_any_action(self):
+        unrestricted = TraversalPolicy.allow_all()
+        invoke_only = TraversalPolicy(allowed_actions=frozenset({"invoke"}))
+
+        assert unrestricted.merge(invoke_only).allowed_actions == frozenset({"invoke"})
+        assert invoke_only.merge(unrestricted).allowed_actions == frozenset({"invoke"})
+
+    def test_merge_intersects_action_sets(self):
+        left = TraversalPolicy(allowed_actions=frozenset({"delegate", "invoke"}))
+        right = TraversalPolicy(allowed_actions=frozenset({"invoke", "escalate"}))
+
+        merged = left.merge(right)
+
+        assert merged.allowed_actions == frozenset({"invoke"})
 
 
 # --- SkillNode / SkillEdge ------------------------------------------

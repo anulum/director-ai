@@ -21,6 +21,26 @@ from director_ai.core.calibration.online_calibrator import OnlineCalibrator
 
 
 class TestCalibrationReport:
+    def test_wilson_ci_empty_total_is_max_uncertainty(self):
+        assert calibrator_mod._wilson_ci(0, 0) == 1.0
+
+    def test_wilson_ci_non_default_z_uses_python_formula(self, monkeypatch):
+        monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", True)
+
+        def _wilson_should_not_run(*_args):
+            raise AssertionError("non-default z must not use Rust 95 percent kernel")
+
+        monkeypatch.setattr(
+            calibrator_mod,
+            "rust_wilson_score_interval",
+            _wilson_should_not_run,
+            raising=True,
+        )
+
+        spread = calibrator_mod._wilson_ci(5, 10, z=1.0)
+
+        assert 0.0 < spread < 0.5
+
     def test_rust_confusion_kernel_is_used_in_threshold_sweep(self, monkeypatch):
         monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", True)
         called = {"count": 0}
@@ -99,6 +119,11 @@ class TestCalibrationReport:
         spread = calibrator_mod._wilson_ci(20, 40)
         assert 0.0 <= spread <= 0.5
 
+    def test_sum_int_uses_python_when_rust_disabled(self, monkeypatch):
+        monkeypatch.setattr(calibrator_mod, "_RUST_ONLINE_CALIBRATOR", False)
+
+        assert calibrator_mod._sum_int([1, 0, 1]) == 2
+
     def test_empty_store(self, tmp_path):
         store = FeedbackStore(tmp_path / "test.db")
         cal = OnlineCalibrator(store)
@@ -157,6 +182,10 @@ class TestCalibrationReport:
 
 
 class TestThresholdSweep:
+    def test_threshold_sweep_returns_none_for_one_class_samples(self):
+        assert OnlineCalibrator._sweep_threshold([(0.8, True), (0.9, True)]) is None
+        assert OnlineCalibrator._sweep_threshold([(0.1, False), (0.2, False)]) is None
+
     def test_optimal_threshold_separable(self, tmp_path):
         store = FeedbackStore(tmp_path / "test.db")
         # Good responses score high, bad responses score low
@@ -181,6 +210,20 @@ class TestThresholdSweep:
             store.report(f"q{i}", f"a{i}", True, True, guardrail_score=0.8)
         cal = OnlineCalibrator(store, min_corrections=20)
         report = cal.calibrate()
+        assert report.optimal_threshold is None
+        store.close()
+
+    def test_zero_scores_are_not_used_for_threshold_sweep(self, tmp_path):
+        store = FeedbackStore(tmp_path / "zero_scores.db")
+        for i in range(20):
+            store.report(f"good{i}", f"a{i}", True, True, guardrail_score=0.0)
+            store.report(f"bad{i}", f"b{i}", False, False, guardrail_score=0.0)
+
+        cal = OnlineCalibrator(store, min_corrections=20)
+        report = cal.calibrate()
+
+        assert report.correction_count == 40
+        assert report.current_accuracy == 1.0
         assert report.optimal_threshold is None
         store.close()
 

@@ -8,6 +8,8 @@
 
 from __future__ import annotations
 
+from typing import cast
+
 import pytest
 
 from director_ai.core.runtime.structured_recovery import (
@@ -35,6 +37,14 @@ def test_structured_recovery_config_rejects_unknown_kind(kind: str) -> None:
 def test_structured_recovery_config_rejects_unknown_policy(policy: str) -> None:
     with pytest.raises(ValueError, match="structured_recovery policy"):
         StructuredRecoveryConfig(kind="json", policy=policy)
+
+
+def test_structured_recovery_config_rejects_negative_reasoning_threshold() -> None:
+    with pytest.raises(ValueError, match="reasoning_support_threshold"):
+        StructuredRecoveryConfig(
+            kind="reasoning_chain",
+            reasoning_support_threshold=-0.1,
+        )
 
 
 def test_structured_recovery_result_defaults_are_parser_safe() -> None:
@@ -97,6 +107,20 @@ def test_json_schema_rejection_does_not_replace_previous_checkpoint() -> None:
     assert any("schema" in error for error in result.errors)
 
 
+def test_json_recovery_records_type_error_once_for_non_text_payload() -> None:
+    state = StructuredRecoveryState(StructuredRecoveryConfig(kind="json"))
+
+    state.update(cast(str, {"status": "ok"}))
+    state.update(cast(str, {"status": "ok"}))
+
+    result = state.finalise(halted_at=1)
+
+    assert result.valid is False
+    assert result.errors == [
+        "json_parse:the JSON object must be str, bytes or bytearray, not dict"
+    ]
+
+
 TOOL_MANIFEST = {
     "book_flight": {
         "parameters": {
@@ -151,6 +175,44 @@ def test_tool_call_unknown_function_keeps_previous_valid_checkpoint() -> None:
     assert any("tool_call" in error for error in result.errors)
 
 
+def test_tool_call_recovery_rejects_non_object_and_missing_fields() -> None:
+    state = StructuredRecoveryState(
+        StructuredRecoveryConfig(
+            kind="tool_call",
+            tool_manifest=TOOL_MANIFEST,
+        )
+    )
+
+    state.update('["book_flight"]')
+    state.update('{"function_name":"book_flight","arguments":[]}')
+
+    result = state.finalise(halted_at=2)
+
+    assert result.valid is False
+    assert result.errors == [
+        "tool_call:envelope_not_object",
+        "tool_call:missing_function_name_or_arguments",
+    ]
+
+
+def test_tool_call_recovery_records_parse_type_error() -> None:
+    state = StructuredRecoveryState(
+        StructuredRecoveryConfig(
+            kind="tool_call",
+            tool_manifest=TOOL_MANIFEST,
+        )
+    )
+
+    state.update(cast(str, {"function_name": "book_flight"}))
+
+    result = state.finalise(halted_at=1)
+
+    assert result.valid is False
+    assert result.errors == [
+        "tool_call_parse:the JSON object must be str, bytes or bytearray, not dict"
+    ]
+
+
 def test_reasoning_chain_recovery_keeps_last_valid_envelope() -> None:
     state = StructuredRecoveryState(
         StructuredRecoveryConfig(
@@ -187,6 +249,41 @@ def test_reasoning_chain_invalid_update_keeps_previous_checkpoint() -> None:
     assert result.valid is True
     assert "Therefore B follows" in result.last_valid_output
     assert any("reasoning" in error for error in result.errors)
+
+
+def test_reasoning_chain_rejects_json_envelope_with_blank_step() -> None:
+    state = StructuredRecoveryState(
+        StructuredRecoveryConfig(
+            kind="reasoning_chain",
+            score_fn=lambda _premise, _hypothesis: 0.0,
+            reasoning_support_threshold=0.0,
+        )
+    )
+
+    state.update('{"steps":["Claim A"," "]}')
+
+    result = state.finalise(halted_at=1)
+
+    assert result.valid is False
+    assert result.errors == ["reasoning_chain:invalid_steps"]
+
+
+def test_reasoning_chain_accepts_plain_text_chain_checkpoint() -> None:
+    state = StructuredRecoveryState(
+        StructuredRecoveryConfig(
+            kind="reasoning_chain",
+            score_fn=lambda _premise, _hypothesis: 0.0,
+            reasoning_support_threshold=0.0,
+        )
+    )
+
+    state.update("1. Source states A\n2. Therefore A is supported")
+
+    result = state.finalise(halted_at=2)
+
+    assert result.valid is True
+    assert result.last_valid_output == "1. Source states A\n2. Therefore A is supported"
+    assert result.metadata["steps_found"] == 2
 
 
 def test_streaming_json_recovery_attaches_last_valid_output_on_halt() -> None:

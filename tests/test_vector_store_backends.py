@@ -67,6 +67,32 @@ class TestPineconeBackend:
         }
         assert backend.count() == 0
 
+    def test_pinecone_requires_embedding_callback_before_add_or_query(self):
+        from director_ai.core.vector_store import PineconeBackend
+
+        backend = PineconeBackend.__new__(PineconeBackend)
+        backend._embed_fn = None
+        backend._index = MagicMock()
+        backend._namespace = ""
+        backend._texts = {}
+
+        with pytest.raises(ValueError, match="requires embed_fn"):
+            backend.add("doc-1", "tenant fact")
+        with pytest.raises(ValueError, match="requires embed_fn"):
+            backend.query("tenant")
+
+    def test_pinecone_count_reads_configured_namespace(self):
+        from director_ai.core.vector_store import PineconeBackend
+
+        backend = PineconeBackend.__new__(PineconeBackend)
+        backend._index = MagicMock()
+        backend._namespace = "acme"
+        backend._index.describe_index_stats.return_value = {
+            "namespaces": {"acme": {"vector_count": "7"}}
+        }
+
+        assert backend.count() == 7
+
 
 class TestWeaviateBackend:
     def test_weaviate_import_error(self):
@@ -143,6 +169,62 @@ class TestWeaviateBackend:
             {"path": ["tenant_id"], "operator": "Equal", "valueText": "tenant-a"}
         )
 
+    def test_weaviate_add_uses_embedding_vector_when_configured(self):
+        from director_ai.core.vector_store import WeaviateBackend
+
+        backend = WeaviateBackend.__new__(WeaviateBackend)
+        backend._client = MagicMock()
+        backend._class_name = "Fact"
+        backend._embed_fn = lambda text: [0.4, 0.6]
+        backend._count = 0
+
+        backend.add("doc-1", "embedded fact", {"tenant_id": "tenant-a"})
+
+        backend._client.data_object.create.assert_called_once_with(
+            data_object={
+                "text": "embedded fact",
+                "doc_id": "doc-1",
+                "tenant_id": "tenant-a",
+            },
+            class_name="Fact",
+            uuid="doc-1",
+            vector=[0.4, 0.6],
+        )
+        assert backend.count() == 1
+
+    def test_weaviate_query_prefers_additional_id_over_doc_id(self):
+        from director_ai.core.vector_store import WeaviateBackend
+
+        backend = WeaviateBackend.__new__(WeaviateBackend)
+        backend._client = MagicMock()
+        backend._class_name = "Fact"
+        backend._embed_fn = lambda text: [0.2, 0.8]
+        backend._count = 0
+
+        query = MagicMock()
+        backend._client.query.get.return_value = query
+        query.with_near_vector.return_value = query
+        query.with_limit.return_value = query
+        query.with_additional.return_value = query
+        query.do.return_value = {
+            "data": {
+                "Get": {
+                    "Fact": [
+                        {
+                            "text": "vector fact",
+                            "doc_id": "doc-original",
+                            "_additional": {"id": "uuid-1", "distance": 0.5},
+                        }
+                    ]
+                }
+            }
+        }
+
+        result = backend.query("vector", n_results=1)
+
+        query.with_near_vector.assert_called_once_with({"vector": [0.2, 0.8]})
+        assert result[0]["id"] == "uuid-1"
+
 
 class TestQdrantBackend:
     def test_qdrant_import_error(self):
@@ -193,6 +275,39 @@ class TestQdrantBackend:
         query_filter = backend._client.search.call_args.kwargs["query_filter"]
         assert isinstance(query_filter, FakeFilter)
         assert query_filter.must[0][1]["key"] == "tenant_id"
+
+    def test_qdrant_existing_collection_noops_and_count_reads_points(self):
+        from director_ai.core.vector_store import QdrantBackend
+
+        backend = QdrantBackend.__new__(QdrantBackend)
+        backend._client = MagicMock()
+        backend._collection = "facts"
+        backend._client.get_collection.return_value = SimpleNamespace(points_count="11")
+
+        backend._ensure_collection()
+
+        backend._client.create_collection.assert_not_called()
+        assert backend.count() == 11
+
+    def test_qdrant_requires_embedding_callback_before_add_or_query(self):
+        from director_ai.core.vector_store import QdrantBackend
+
+        mock_models = MagicMock()
+        mock_models.PointStruct = lambda **kwargs: ("point", kwargs)
+        mock_models.Filter = lambda **kwargs: ("filter", kwargs)
+        mock_models.FieldCondition = lambda **kwargs: ("field", kwargs)
+        mock_models.MatchValue = lambda **kwargs: ("match", kwargs)
+
+        with patch.dict("sys.modules", {"qdrant_client.models": mock_models}):
+            backend = QdrantBackend.__new__(QdrantBackend)
+            backend._client = MagicMock()
+            backend._collection = "facts"
+            backend._embed_fn = None
+
+            with pytest.raises(ValueError, match="requires embed_fn"):
+                backend.add("doc-1", "tenant fact")
+            with pytest.raises(ValueError, match="requires embed_fn"):
+                backend.query("tenant")
 
 
 class TestFAISSBackend:
