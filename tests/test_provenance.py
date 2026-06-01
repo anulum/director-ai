@@ -20,6 +20,7 @@ import threading
 
 import pytest
 
+import director_ai.core.provenance.verifier as verifier_module
 from director_ai.core.provenance import (
     CitationFact,
     FactVerificationError,
@@ -333,3 +334,19 @@ class TestProvenanceVerifier:
                 credibility=SourceCredibility(),
                 min_source_score=1.5,
             )
+
+    def test_trust_score_uses_python_mean_when_rust_accelerator_fails(
+        self, monkeypatch
+    ):
+        def failing_rust_mean(_values: list[float]) -> float:
+            raise RuntimeError("accelerator unavailable")
+
+        monkeypatch.setattr(verifier_module, "rust_mean", failing_rust_mean)
+        verifier = self._verifier()
+        for signal in (0.9, 0.7, 0.5):
+            verifier._credibility.observe("wiki", signal)
+        fact = CitationFact(source_id="wiki", content="grounded", timestamp=0.0)
+
+        verdict = verifier.verify([fact])
+
+        assert verdict.trust_score == pytest.approx(verdict.fact_verdicts[0].source_score)
