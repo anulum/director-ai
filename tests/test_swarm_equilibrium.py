@@ -457,6 +457,17 @@ class TestScorer:
         assert payoff == pytest.approx(3.0)
         assert called["count"] >= 1
 
+    def test_mean_nash_payoff_uses_python_mean_when_rust_path_disabled(
+        self,
+        monkeypatch,
+    ):
+        monkeypatch.setattr(scorer_mod, "_RUST_SWARM_EQ", False)
+
+        scorer = SwarmEquilibriumScorer()
+        payoff = scorer.mean_nash_payoff(_stag_hunt(), "row")
+
+        assert payoff == pytest.approx(3.0)
+
     def test_rust_mean_type_error_falls_back_to_python(self, monkeypatch):
         monkeypatch.setattr(scorer_mod, "_RUST_SWARM_EQ", True)
         monkeypatch.setattr(
@@ -478,3 +489,21 @@ class TestScorer:
         scorer = SwarmEquilibriumScorer()
         with pytest.raises(ValueError, match="unknown player"):
             scorer.mean_nash_payoff(_prisoners_dilemma(), "ghost")
+
+    def test_sum_float_uses_rust_kernel_when_available(self, monkeypatch):
+        monkeypatch.setattr(scorer_mod, "_RUST_SWARM_EQ", True)
+        calls = []
+
+        def _sum(values):
+            calls.append(list(values))
+            return 6.5
+
+        monkeypatch.setattr(scorer_mod, "rust_sum_f64", _sum, raising=True)
+
+        assert scorer_mod._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.5)
+        assert calls == [[1.0, 2.0, 3.0]]
+
+    def test_sum_float_uses_python_sum_when_rust_path_disabled(self, monkeypatch):
+        monkeypatch.setattr(scorer_mod, "_RUST_SWARM_EQ", False)
+
+        assert scorer_mod._sum_float([1.0, 2.0, 3.0]) == pytest.approx(6.0)

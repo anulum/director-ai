@@ -13,6 +13,8 @@ avoid downloading real models in CI.
 
 from __future__ import annotations
 
+import sys
+from types import ModuleType
 from unittest.mock import MagicMock, patch
 
 import numpy as np
@@ -73,6 +75,41 @@ class TestConstruction:
         ):
             b._ensure_model()
 
+    def test_ensure_model_loads_sentence_transformer_once(self, monkeypatch):
+        calls = []
+        fake_module = ModuleType("sentence_transformers")
+
+        class FakeSentenceTransformer:
+            def __init__(self, model_name, *, device, cache_folder):
+                calls.append(
+                    {
+                        "model_name": model_name,
+                        "device": device,
+                        "cache_folder": cache_folder,
+                    },
+                )
+
+        fake_module.SentenceTransformer = FakeSentenceTransformer
+        monkeypatch.setitem(sys.modules, "sentence_transformers", fake_module)
+        b = EmbedBackend(
+            model_name="local/embed",
+            device="cuda",
+            cache_dir="/models/cache",
+        )
+
+        b._ensure_model()
+        first_model = b._model
+        b._ensure_model()
+
+        assert first_model is b._model
+        assert calls == [
+            {
+                "model_name": "local/embed",
+                "device": "cuda",
+                "cache_folder": "/models/cache",
+            },
+        ]
+
 
 # ── Scoring ─────────────────────────────────────────────────────────────
 
@@ -108,6 +145,32 @@ class TestScoring:
         s = b.score("same", "same")
         assert s > 0.99
 
+    def test_score_raises_when_loader_does_not_set_model(self, monkeypatch):
+        b = EmbedBackend()
+        monkeypatch.setattr(b, "_ensure_model", lambda: None)
+
+        with pytest.raises(RuntimeError, match="Embedding model not loaded"):
+            b.score("premise", "hypothesis")
+
+    def test_score_clamps_negative_and_above_one_similarity(self):
+        negative = self._backend(-0.5)
+        assert negative.score("premise", "hypothesis") == pytest.approx(0.0)
+
+        over_one = EmbedBackend()
+        over_one._model = MagicMock(
+            encode=MagicMock(
+                return_value=np.array(
+                    [
+                        [2.0, 0.0],
+                        [2.0, 0.0],
+                    ],
+                    dtype=np.float32,
+                ),
+            ),
+        )
+
+        assert over_one.score("premise", "hypothesis") == pytest.approx(1.0)
+
 
 # ── Batch scoring ───────────────────────────────────────────────────────
 
@@ -130,6 +193,30 @@ class TestBatchScoring:
         scores = b.score_batch([("a", "b")] * 5)
         for s in scores:
             assert 0.0 <= s <= 1.0
+
+    def test_batch_raises_when_loader_does_not_set_model(self, monkeypatch):
+        b = EmbedBackend()
+        monkeypatch.setattr(b, "_ensure_model", lambda: None)
+
+        with pytest.raises(RuntimeError, match="Embedding model not loaded"):
+            b.score_batch([("premise", "hypothesis")])
+
+    def test_batch_clamps_each_pair_independently(self):
+        b = EmbedBackend()
+        b._model = MagicMock()
+        b._model.encode.side_effect = [
+            np.array([[2.0, 0.0], [1.0, 0.0]], dtype=np.float32),
+            np.array([[2.0, 0.0], [-1.0, 0.0]], dtype=np.float32),
+        ]
+
+        scores = b.score_batch([("high", "high"), ("low", "opposite")])
+
+        assert scores == [1.0, 0.0]
+        assert b._model.encode.call_args_list[0].kwargs == {
+            "normalize_embeddings": True,
+            "show_progress_bar": False,
+            "batch_size": 64,
+        }
 
 
 # ── Backend registry ───────────────────────────────────────────────────

@@ -23,10 +23,13 @@ from director_ai.core.guard_control import (
 )
 from director_ai.core.irreversibility import Forecast
 from director_ai.core.scoring.consensus import (
+    BFTConsensusVote,
+    ByzantineFaultTolerantConsensus,
     ConsensusScorer,
     CriticalConsensusProfile,
     CrossVerifierConsensus,
     ModelResponse,
+    _sum_float,
     _word_overlap,
 )
 
@@ -268,8 +271,195 @@ class TestConsensusRustDelegation:
         with pytest.raises(TypeError, match="ffi"):
             _word_overlap("alpha beta", "alpha gamma")
 
+    def test_sum_float_delegates_to_rust_and_python_paths(self, monkeypatch):
+        from director_ai.core.scoring import consensus as consensus_mod
+
+        monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", True)
+        calls = []
+
+        def _sum(values):
+            calls.append(list(values))
+            return 2.5
+
+        monkeypatch.setattr(consensus_mod, "rust_sum_f64", _sum, raising=False)
+        assert _sum_float([1.0, 1.5]) == pytest.approx(2.5)
+        assert calls == [[1.0, 1.5]]
+
+        monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", False)
+        assert _sum_float([1.0, 1.5]) == pytest.approx(2.5)
+
+    def test_sum_float_exception_is_mandatory_failure(self, monkeypatch):
+        from director_ai.core.scoring import consensus as consensus_mod
+
+        monkeypatch.setattr(consensus_mod, "_RUST_CONSENSUS", True)
+
+        def _boom(values):
+            raise RuntimeError("ffi fail")
+
+        monkeypatch.setattr(consensus_mod, "rust_sum_f64", _boom, raising=False)
+        with pytest.raises(RuntimeError, match="ffi fail"):
+            _sum_float([1.0, 2.0])
+
+
+class TestByzantineFaultTolerantConsensus:
+    def test_vote_validation_rejects_invalid_inputs(self):
+        with pytest.raises(ValueError, match="verifier must be non-empty"):
+            BFTConsensusVote(verifier=" ", verdict="allow", risk_score=0.1)
+        with pytest.raises(ValueError, match="verdict must be one of"):
+            BFTConsensusVote(verifier="nli", verdict="block", risk_score=0.1)
+        with pytest.raises(ValueError, match=r"risk_score must be in \[0, 1\]"):
+            BFTConsensusVote(verifier="nli", verdict="allow", risk_score=1.1)
+
+    def test_fault_tolerance_validation_and_insufficient_replicas(self):
+        with pytest.raises(ValueError, match="fault_tolerance must be non-negative"):
+            ByzantineFaultTolerantConsensus(fault_tolerance=-1)
+
+        result = ByzantineFaultTolerantConsensus(fault_tolerance=1).decide(
+            (
+                BFTConsensusVote("nli", "allow", 0.1),
+                BFTConsensusVote("policy", "allow", 0.2),
+                BFTConsensusVote("numeric", "allow", 0.3),
+            ),
+            policy_id="policy.bft",
+        )
+
+        assert result.decision == "warn"
+        assert result.reason == "bft_insufficient_replicas"
+        assert result.required_replicas == 4
+        assert result.quorum_size == 3
+        assert not result.byzantine_resilient
+
+    def test_quorum_prefers_halt_and_redacts_unsafe_evidence_refs(self):
+        result = ByzantineFaultTolerantConsensus(fault_tolerance=1).decide(
+            (
+                BFTConsensusVote("nli", "halt", 0.8, "secret://raw-claim"),
+                BFTConsensusVote("policy", "halt", 0.7, "raw://frame"),
+                BFTConsensusVote("symbolic", "halt", 0.6, "proof://claim"),
+                BFTConsensusVote("numeric", "allow", 0.1, "calc://claim"),
+            ),
+            policy_id="policy.bft",
+        )
+
+        assert result.decision == "halt"
+        assert result.reason == "bft_quorum"
+        assert result.participating_verifiers == ("nli", "policy", "symbolic")
+        assert result.risk_score == pytest.approx(0.8)
+        assert result.to_dict()["evidence_refs"] == (
+            "redacted",
+            "redacted",
+            "proof://claim",
+        )
+
+    def test_no_quorum_and_duplicate_verifiers_are_rejected(self):
+        consensus = ByzantineFaultTolerantConsensus(fault_tolerance=1)
+        with pytest.raises(ValueError, match="duplicate verifier votes"):
+            consensus.decide(
+                (
+                    BFTConsensusVote("nli", "allow", 0.1),
+                    BFTConsensusVote("nli", "warn", 0.4),
+                    BFTConsensusVote("policy", "halt", 0.9),
+                    BFTConsensusVote("numeric", "allow", 0.2),
+                ),
+                policy_id="policy.bft",
+            )
+
+        result = consensus.decide(
+            (
+                BFTConsensusVote("nli", "allow", 0.1),
+                BFTConsensusVote("policy", "warn", 0.4),
+                BFTConsensusVote("numeric", "halt", 0.9),
+                BFTConsensusVote("symbolic", "allow", 0.2),
+            ),
+            policy_id="policy.bft",
+        )
+
+        assert result.decision == "warn"
+        assert result.reason == "bft_no_quorum"
+        assert result.risk_score == pytest.approx(0.9)
+
 
 class TestCrossVerifierConsensus:
+    def test_profile_validation_rejects_empty_bad_interval_and_weights(self):
+        with pytest.raises(ValueError, match="required_verifiers are required"):
+            CriticalConsensusProfile(required_verifiers=())
+        with pytest.raises(ValueError, match=r"max_interval_width must be in \[0, 1\]"):
+            CriticalConsensusProfile(
+                required_verifiers=("nli",),
+                max_interval_width=1.5,
+            )
+        with pytest.raises(ValueError, match="weight verifier names must be non-empty"):
+            CriticalConsensusProfile(
+                required_verifiers=("nli",),
+                weights={" ": 1.0},
+            )
+        with pytest.raises(ValueError, match="weights must be non-negative"):
+            CriticalConsensusProfile(
+                required_verifiers=("nli",),
+                weights={"nli": -1.0},
+            )
+
+    def test_constructor_and_weight_validation_rejects_invalid_thresholds(self):
+        with pytest.raises(ValueError, match="mode must be"):
+            CrossVerifierConsensus(mode="average")
+        with pytest.raises(ValueError, match=r"contradiction_threshold must be in \[0, 1\]"):
+            CrossVerifierConsensus(contradiction_threshold=1.1)
+        with pytest.raises(ValueError, match=r"warn_threshold must be in \[0, 1\]"):
+            CrossVerifierConsensus(warn_threshold=-0.1)
+
+        consensus = CrossVerifierConsensus(
+            mode="weighted",
+            weights={"nli": -1.0},
+        )
+        with pytest.raises(ValueError, match="weights must be non-negative"):
+            consensus.decide(
+                (
+                    VerifierSignal(
+                        verifier="nli",
+                        modality="text",
+                        score=0.1,
+                        verdict="supported",
+                        confidence_low=0.0,
+                        confidence_high=0.2,
+                    ),
+                ),
+                risk_envelope=RiskEnvelope(
+                    action_category="text",
+                    reversibility="reversible",
+                    domain="regulated",
+                    calibrated_threshold=0.65,
+                    no_go_threshold=0.9,
+                ),
+                policy_id="policy.weighted",
+            )
+
+    def test_weighted_consensus_rejects_zero_total_weight(self):
+        consensus = CrossVerifierConsensus(
+            mode="weighted",
+            weights={"nli": 0.0},
+        )
+
+        with pytest.raises(ValueError, match="at least one verifier weight"):
+            consensus.decide(
+                (
+                    VerifierSignal(
+                        verifier="nli",
+                        modality="text",
+                        score=0.1,
+                        verdict="supported",
+                        confidence_low=0.0,
+                        confidence_high=0.2,
+                    ),
+                ),
+                risk_envelope=RiskEnvelope(
+                    action_category="text",
+                    reversibility="reversible",
+                    domain="regulated",
+                    calibrated_threshold=0.65,
+                    no_go_threshold=0.9,
+                ),
+                policy_id="policy.weighted",
+            )
+
     def test_critical_consensus_combines_required_verifiers_into_interval(self):
         envelope = RiskEnvelope(
             action_category="text",
@@ -394,6 +584,48 @@ class TestCrossVerifierConsensus:
         assert decision.decision == "warn"
         assert decision.reason == "critical_consensus_missing_verifier"
         assert decision.attributes["missing_verifiers"] == "numeric,symbolic,temporal"
+
+    def test_critical_consensus_warns_when_interval_is_too_wide(self):
+        envelope = RiskEnvelope(
+            action_category="text",
+            reversibility="reversible",
+            domain="regulated",
+            calibrated_threshold=0.8,
+            no_go_threshold=0.95,
+        )
+        profile = CriticalConsensusProfile(
+            required_verifiers=("nli", "policy"),
+            max_interval_width=0.1,
+        )
+
+        decision = CrossVerifierConsensus().decide_critical(
+            (
+                VerifierSignal(
+                    verifier="nli",
+                    modality="text",
+                    score=0.1,
+                    verdict="supported",
+                    confidence_low=0.0,
+                    confidence_high=0.4,
+                ),
+                VerifierSignal(
+                    verifier="policy",
+                    modality="policy",
+                    score=0.1,
+                    verdict="allowed",
+                    confidence_low=0.0,
+                    confidence_high=0.4,
+                ),
+            ),
+            profile=profile,
+            risk_envelope=envelope,
+            policy_id="policy.critical.regulated",
+        )
+
+        assert decision.decision == "warn"
+        assert decision.reason == "critical_consensus_interval_too_wide"
+        assert decision.confidence_low == pytest.approx(0.0)
+        assert decision.confidence_high == pytest.approx(0.4)
 
     def test_critical_consensus_preserves_decisive_contradiction_risk(self):
         envelope = RiskEnvelope(
