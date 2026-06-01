@@ -279,12 +279,17 @@ class TestQdrantBackend:
     def test_qdrant_existing_collection_noops_and_count_reads_points(self):
         from director_ai.core.vector_store import QdrantBackend
 
+        mock_models = MagicMock()
+        mock_models.VectorParams = lambda **kwargs: ("vector", kwargs)
+        mock_models.Distance.COSINE = "cosine"
+
         backend = QdrantBackend.__new__(QdrantBackend)
         backend._client = MagicMock()
         backend._collection = "facts"
         backend._client.get_collection.return_value = SimpleNamespace(points_count="11")
 
-        backend._ensure_collection()
+        with patch.dict("sys.modules", {"qdrant_client.models": mock_models}):
+            backend._ensure_collection()
 
         backend._client.create_collection.assert_not_called()
         assert backend.count() == 11
