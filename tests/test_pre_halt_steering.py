@@ -8,6 +8,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 from typing import Literal, TypedDict
 
 import pytest
@@ -247,3 +248,28 @@ def test_predictive_steering_rejects_blank_policy_id():
             risk_envelope=_envelope(),
             policy_id=" ",
         )
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value", "message"),
+    [
+        ("action", "retry", "unsupported steering action"),
+        ("reason", " ", "reason is required"),
+        ("ci_low", 0.8, "ci_low must be <= ci_high"),
+        ("recommended_backend", " ", "recommended_backend is required"),
+    ],
+)
+def test_pre_halt_decision_rejects_invalid_audit_fields(
+    field_name: str,
+    value: object,
+    message: str,
+):
+    steering = PredictivePreHaltSteering(min_simulations=4)
+    decision = steering.evaluate(
+        _verdict(halt_rate=0.04, ci_low=0.01, ci_high=0.18),
+        risk_envelope=_envelope(),
+        policy_id="policy.prehalt.regulated",
+    )
+
+    with pytest.raises(ValueError, match=message):
+        dataclasses.replace(decision, **{field_name: value})
