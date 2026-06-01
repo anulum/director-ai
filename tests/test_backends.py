@@ -383,16 +383,20 @@ class TestBackendWrappers:
             return original_find_spec(name, *args, **kwargs)
 
         monkeypatch.setattr(importlib.util, "find_spec", fake_find_spec)
-        reloaded = importlib.reload(backends_mod)
+        spec = importlib.util.spec_from_file_location(
+            "director_ai.core.scoring._backends_optional_dependency_test",
+            backends_mod.__file__,
+        )
+        assert spec is not None
+        assert spec.loader is not None
+        isolated = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(isolated)
 
         # Inspect the import-time registry directly; list_backends() may add
         # separately installed entry-point backends after module import.
-        assert "embed" not in reloaded._REGISTRY
-        assert "rust" not in reloaded._REGISTRY
-        assert "backfire" not in reloaded._REGISTRY
-
-        monkeypatch.setattr(importlib.util, "find_spec", original_find_spec)
-        importlib.reload(backends_mod)
+        assert "embed" not in isolated._REGISTRY
+        assert "rust" not in isolated._REGISTRY
+        assert "backfire" not in isolated._REGISTRY
 
 
 class TestEntryPointDiscovery:
