@@ -10,6 +10,9 @@
 
 from __future__ import annotations
 
+import subprocess
+
+import benchmarks.orchestrator.environment as environment_module
 from benchmarks.orchestrator.environment import capture_environment
 
 
@@ -40,3 +43,33 @@ def test_vertex_environment_defaults_branch_for_detached_metadata(monkeypatch):
 
     assert env.git_commit == "87edd82a2286982e0724379135b8ac2d906a16b7"
     assert env.git_branch == "detached"
+
+
+def test_environment_keeps_commit_when_git_status_fails(monkeypatch):
+    calls: list[tuple[str, ...]] = []
+
+    def fake_check_output(cmd, **kwargs):
+        del kwargs
+        calls.append(tuple(cmd))
+        if cmd == ["git", "rev-parse", "HEAD"]:
+            return "87edd82a2286982e0724379135b8ac2d906a16b7\n"
+        if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
+            return "main\n"
+        if cmd == ["git", "status", "--porcelain"]:
+            raise subprocess.TimeoutExpired(cmd=cmd, timeout=5)
+        if cmd == [
+            "nvidia-smi",
+            "--query-gpu=name,memory.total",
+            "--format=csv,noheader,nounits",
+        ]:
+            raise FileNotFoundError("nvidia-smi")
+        raise AssertionError(f"unexpected command: {cmd!r}")
+
+    monkeypatch.setattr(environment_module.subprocess, "check_output", fake_check_output)
+
+    env = capture_environment(runner="ci")
+
+    assert env.git_commit == "87edd82a2286982e0724379135b8ac2d906a16b7"
+    assert env.git_branch == "main"
+    assert env.git_dirty is True
+    assert ("git", "status", "--porcelain") in calls

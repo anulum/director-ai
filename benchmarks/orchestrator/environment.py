@@ -91,18 +91,22 @@ def _git_state() -> tuple[str, bool, str]:
             timeout=5,
             stderr=subprocess.DEVNULL,
         ).strip()
+    except (subprocess.SubprocessError, FileNotFoundError, OSError):
+        # Not a git checkout, or git binary absent on the Vertex
+        # container. Report the tuple honestly; a downstream check
+        # still enforces ``git_commit != ""`` on the *local* runner.
+        return "", False, ""
+    try:
         status = subprocess.check_output(
             ["git", "status", "--porcelain"],
             text=True,
             timeout=5,
             stderr=subprocess.DEVNULL,
         )
-        return commit, bool(status.strip()), branch
+        dirty = bool(status.strip())
     except (subprocess.SubprocessError, FileNotFoundError, OSError):
-        # Not a git checkout, or git binary absent on the Vertex
-        # container. Report the tuple honestly; a downstream check
-        # still enforces ``git_commit != ""`` on the *local* runner.
-        return "", False, ""
+        dirty = True
+    return commit, dirty, branch
 
 
 def _package_version() -> str:

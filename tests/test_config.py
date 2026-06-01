@@ -14,6 +14,7 @@ pipeline integration with CoherenceScorer/Agent/Server, and performance.
 
 import json
 import os
+import sys
 import tempfile
 from pathlib import Path
 
@@ -739,3 +740,422 @@ class TestClaimSupportConfigWiring:
         assert scorer._claim_coverage_enabled is False
         assert scorer._claim_support_threshold == 0.7
         assert scorer._claim_coverage_alpha == 0.25
+
+
+class TestConfigCoverageGaps:
+    """Dedicated tests for DirectorConfig validation and scorer wiring branches."""
+
+    @pytest.mark.parametrize(
+        "kwargs,match",
+        [
+            ({"mode": "unsupported"}, "mode"),
+            ({"rate_limit_rpm": -1}, "rate_limit_rpm"),
+            ({"sanitizer_block_threshold": 1.1}, "sanitizer_block_threshold"),
+            (
+                {
+                    "reranker_enabled": True,
+                    "reranker_model": " ",
+                },
+                "reranker_model",
+            ),
+            (
+                {
+                    "injection_require_model_backed_nli": True,
+                    "injection_detection_enabled": False,
+                },
+                "injection_require_model_backed_nli",
+            ),
+            (
+                {
+                    "injection_fail_closed_on_error": True,
+                    "injection_detection_enabled": False,
+                },
+                "injection_fail_closed_on_error",
+            ),
+            (
+                {
+                    "adaptive_threshold_fail_closed": True,
+                    "adaptive_threshold_enabled": False,
+                },
+                "adaptive_threshold_fail_closed",
+            ),
+            (
+                {
+                    "production_mode": True,
+                    "dry_run": True,
+                    "api_keys": {"k"},
+                    "llm_api_url": "https://llm.internal/v1",
+                },
+                "dry_run",
+            ),
+            (
+                {
+                    "production_mode": True,
+                    "sanitize_inputs": False,
+                    "api_keys": {"k"},
+                    "llm_api_url": "https://llm.internal/v1",
+                },
+                "sanitize_inputs",
+            ),
+            (
+                {
+                    "production_mode": True,
+                    "api_keys": {"k"},
+                    "llm_provider": "local",
+                    "llm_api_url": "",
+                },
+                "local LLM",
+            ),
+            (
+                {
+                    "knowledge_write_require_signature": True,
+                    "knowledge_write_hmac_keys": {},
+                },
+                "knowledge_write_hmac_keys",
+            ),
+            (
+                {
+                    "vector_backend": "sentence-transformer",
+                    "embedding_model": " ",
+                },
+                "embedding_model",
+            ),
+            (
+                {
+                    "vector_backend": "http-faiss",
+                    "embedding_base_url": " ",
+                    "embedding_model": "embed",
+                },
+                "embedding_base_url",
+            ),
+            (
+                {
+                    "vector_backend": "http-faiss",
+                    "embedding_base_url": "https://embed.internal",
+                    "embedding_model": " ",
+                },
+                "embedding_model",
+            ),
+            (
+                {
+                    "vector_backend": "remanentia",
+                    "remanentia_base_url": " ",
+                },
+                "remanentia_base_url",
+            ),
+            ({"embedding_timeout_s": 0}, "embedding_timeout_s"),
+            ({"embedding_vector_size": 0}, "embedding_vector_size"),
+            ({"remanentia_timeout_s": 0}, "remanentia_timeout_s"),
+        ],
+    )
+    def test_validation_edges(self, kwargs, match):
+        with pytest.raises(ValueError, match=match):
+            DirectorConfig(**kwargs)
+
+    def test_grounded_mode_sets_retrieval_abstention_default(self):
+        cfg = DirectorConfig(mode="grounded", retrieval_abstention_threshold=0.0)
+
+        assert cfg.use_nli is True
+        assert cfg.retrieval_abstention_threshold == pytest.approx(0.3)
+
+    def test_hardened_mode_enforces_fail_closed_settings(self):
+        cfg = DirectorConfig(
+            hardened=True,
+            api_keys={"tenant-key"},
+            llm_api_url="https://llm.internal/v1",
+            llm_provider="openai",
+        )
+
+        assert cfg.production_mode is True
+        assert cfg.use_nli is True
+        assert cfg.coherence_require_model_backed_nli is True
+        assert cfg.injection_detection_enabled is True
+        assert cfg.injection_require_model_backed_nli is True
+        assert cfg.injection_fail_closed_on_error is True
+        assert cfg.strict_mode is True
+
+    def test_build_store_general_mode_returns_ground_truth_store(self):
+        from director_ai.core.retrieval.knowledge import GroundTruthStore
+
+        store = DirectorConfig(mode="general").build_store()
+
+        assert isinstance(store, GroundTruthStore)
+
+    def test_build_store_remanentia_skips_local_decorators(self, monkeypatch):
+        class FakeRemanentiaBackend:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+
+        import director_ai.core.retrieval.vector_store as vector_store_module
+
+        monkeypatch.setattr(
+            vector_store_module,
+            "RemanentiaVectorBackend",
+            FakeRemanentiaBackend,
+        )
+
+        cfg = DirectorConfig(
+            mode="grounded",
+            vector_backend="remanentia",
+            remanentia_base_url="https://remanentia.internal",
+            hybrid_retrieval=True,
+            reranker_enabled=True,
+            parent_child_enabled=True,
+            hyde_enabled=True,
+            query_decomposition_enabled=True,
+            contextual_compression_enabled=True,
+            multi_vector_enabled=True,
+        )
+        store = cfg.build_store()
+
+        backend_chain = []
+        backend = store.backend
+        while backend is not None:
+            backend_chain.append(backend)
+            backend = getattr(backend, "_base", None)
+
+        assert any(isinstance(item, FakeRemanentiaBackend) for item in backend_chain)
+        assert all(item.__class__.__name__ != "HybridBackend" for item in backend_chain)
+        assert all(
+            item.__class__.__name__ != "RerankedBackend" for item in backend_chain
+        )
+        remanentia = next(
+            item for item in backend_chain if isinstance(item, FakeRemanentiaBackend)
+        )
+        assert remanentia.kwargs["base_url"] == "https://remanentia.internal"
+
+    def test_resolve_scorer_backend_auto_paths(self, monkeypatch):
+        import importlib.util
+
+        cfg = DirectorConfig(scorer_backend="auto", onnx_path="/tmp/model.onnx")
+        monkeypatch.setattr(importlib.util, "find_spec", lambda name: None)
+        assert cfg._resolve_scorer_backend() == "onnx"
+
+        cfg = DirectorConfig(scorer_backend="auto", onnx_path="", use_nli=True)
+        assert cfg._resolve_scorer_backend() == "deberta"
+
+        cfg = DirectorConfig(
+            mode="grounded",
+            scorer_backend="auto",
+            onnx_path="",
+            use_nli=False,
+            hybrid_retrieval=False,
+            reranker_enabled=False,
+        )
+        assert cfg._resolve_scorer_backend() == "lite"
+
+    def test_build_scorer_wires_optional_runtime_features(self, monkeypatch):
+        import director_ai.core.scoring.scorer as scorer_module
+
+        captured = {}
+
+        class FakeNLI:
+            def __init__(self):
+                self.loaded = []
+
+            def _load_lora_adapter(self, path):
+                self.loaded.append(path)
+
+        class FakeJudge:
+            pass
+
+        class FakeScorer:
+            def __init__(self, **kwargs):
+                captured["kwargs"] = kwargs
+                self._nli = FakeNLI()
+                self._judge = FakeJudge()
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def enable_injection_detection(self, **kwargs):
+                captured["injection"] = kwargs
+
+            def enable_adaptive_retrieval(self, **kwargs):
+                captured["adaptive_retrieval"] = kwargs
+
+            def _get_meta_classifier(self):
+                return object()
+
+            def _has_model_backed_nli(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+
+        cfg = DirectorConfig(
+            llm_judge_provider="local",
+            llm_judge_local_model="local-judge",
+            onnx_path="/tmp/model.onnx",
+            w_logic=0.6,
+            w_fact=0.4,
+            nli_devices="cpu,cuda:0",
+            injection_detection_enabled=True,
+            lora_adapter_path="/tmp/adapter",
+            meta_classifier_path="/tmp/meta.pkl",
+            adaptive_retrieval_enabled=True,
+            adaptive_retrieval_threshold=0.42,
+            dry_run=True,
+            cost_tracking_enabled=True,
+        )
+
+        scorer = cfg.build_scorer(store=object())
+
+        assert captured["kwargs"]["llm_judge_model"] == "local-judge"
+        assert captured["kwargs"]["onnx_path"] == "/tmp/model.onnx"
+        assert captured["kwargs"]["w_logic"] == 0.6
+        assert captured["kwargs"]["w_fact"] == 0.4
+        assert captured["kwargs"]["nli_devices"] == ["cpu", "cuda:0"]
+        assert captured["injection"]["injection_threshold"] == cfg.injection_threshold
+        assert captured["adaptive_retrieval"] == {"threshold": 0.42}
+        assert scorer._nli.loaded == ["/tmp/adapter"]
+        assert scorer._meta_classifier_path == "/tmp/meta.pkl"
+        assert scorer._dry_run is True
+        assert scorer._cost_analyser is not None
+        assert scorer._judge._cost_callback is not None
+
+    def test_build_scorer_redis_cache_import_failure_is_nonfatal(self, monkeypatch):
+        import director_ai.core.scoring.scorer as scorer_module
+
+        class FakeScorer:
+            def __init__(self, **kwargs):
+                self.kwargs = kwargs
+                self._nli = None
+                self._judge = object()
+                self._adaptive_threshold_enabled = False
+                self._adaptive_threshold_fail_closed = False
+
+            def _has_model_backed_nli(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+        monkeypatch.setitem(sys.modules, "director_ai.enterprise.redis", None)
+
+        cfg = DirectorConfig(redis_url="redis://cache.internal/0")
+        scorer = cfg.build_scorer(store=object())
+
+        assert "cache" not in scorer.kwargs
+        assert "cache_size" not in scorer.kwargs
+
+    @pytest.mark.parametrize(
+        "method_name,kwargs,match",
+        [
+            (
+                "enable_injection_detection",
+                {
+                    "injection_detection_enabled": True,
+                    "injection_require_model_backed_nli": True,
+                },
+                "detector init failed",
+            ),
+            (
+                "_get_meta_classifier",
+                {
+                    "adaptive_threshold_enabled": True,
+                    "adaptive_threshold_fail_closed": True,
+                },
+                "classifier init failed",
+            ),
+        ],
+    )
+    def test_build_scorer_propagates_fail_closed_startup_errors(
+        self,
+        monkeypatch,
+        method_name,
+        kwargs,
+        match,
+    ):
+        import director_ai.core.scoring.scorer as scorer_module
+
+        class FakeScorer:
+            def __init__(self, **init_kwargs):
+                del init_kwargs
+                self._nli = None
+                self._judge = object()
+                self._adaptive_threshold_enabled = kwargs.get(
+                    "adaptive_threshold_enabled",
+                    False,
+                )
+                self._adaptive_threshold_fail_closed = kwargs.get(
+                    "adaptive_threshold_fail_closed",
+                    False,
+                )
+
+            def enable_injection_detection(self, **init_kwargs):
+                del init_kwargs
+                if method_name == "enable_injection_detection":
+                    raise RuntimeError("detector init failed")
+
+            def _get_meta_classifier(self):
+                if method_name == "_get_meta_classifier":
+                    raise RuntimeError("classifier init failed")
+                return object()
+
+            def _has_model_backed_nli(self):
+                return True
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+
+        cfg = DirectorConfig(**kwargs)
+
+        with pytest.raises(RuntimeError, match=match):
+            cfg.build_scorer(store=object())
+
+    @pytest.mark.parametrize(
+        "kwargs,match",
+        [
+            (
+                {"coherence_require_model_backed_nli": True},
+                "coherence_require_model_backed_nli",
+            ),
+            (
+                {
+                    "injection_detection_enabled": True,
+                    "injection_require_model_backed_nli": True,
+                },
+                "injection_require_model_backed_nli",
+            ),
+            (
+                {
+                    "adaptive_threshold_enabled": True,
+                    "adaptive_threshold_fail_closed": True,
+                },
+                "adaptive_threshold_fail_closed",
+            ),
+        ],
+    )
+    def test_build_scorer_fail_closed_unavailable_components(
+        self,
+        monkeypatch,
+        kwargs,
+        match,
+    ):
+        import director_ai.core.scoring.scorer as scorer_module
+
+        class FakeScorer:
+            def __init__(self, **init_kwargs):
+                del init_kwargs
+                self._nli = None
+                self._judge = object()
+                self._adaptive_threshold_enabled = kwargs.get(
+                    "adaptive_threshold_enabled",
+                    False,
+                )
+                self._adaptive_threshold_fail_closed = kwargs.get(
+                    "adaptive_threshold_fail_closed",
+                    False,
+                )
+
+            def enable_injection_detection(self, **init_kwargs):
+                del init_kwargs
+
+            def _get_meta_classifier(self):
+                return None
+
+            def _has_model_backed_nli(self):
+                return False
+
+        monkeypatch.setattr(scorer_module, "CoherenceScorer", FakeScorer)
+
+        cfg = DirectorConfig(**kwargs)
+
+        with pytest.raises(RuntimeError, match=match):
+            cfg.build_scorer(store=object())
