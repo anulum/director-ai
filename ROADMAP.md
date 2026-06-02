@@ -1,6 +1,6 @@
 # Roadmap
 
-Last updated: 2026-05-20
+Last updated: 2026-06-02
 
 Current open-item reconciliation lives in `docs/ROADMAP_STATUS.md`. Treat
 unchecked boxes in older internal notes as archival until they are reconciled
@@ -457,9 +457,56 @@ there or promoted into this roadmap with a concrete acceptance gate.
 ### Future Differentiators (Planned)
 2026-05-20 reconciliation: sustainability scoring, agent passport registry,
 and the closed-loop physical grounding evaluator are implemented and marked
-complete below. Future differentiator phases that are not listed as unchecked
-here require phase-by-phase reconciliation in `docs/ROADMAP_STATUS.md` before
-they are treated as active engineering work.
+complete below. 2026-06-02 adds a new strategic differentiation queue that
+is now tracked as active items in `docs/ROADMAP_STATUS.md`.
+
+### Strategic Competitive Prioritisation (Open)
+
+2026-06-02: competitor landscape is strongest in SaaS polish, dashboards, drift
+detection, and selected benchmark specialisation; Director-AI should win on
+real-time streaming, local low-latency operation, and verifiable/scientific
+roots.
+
+1. **Unified Observability Dashboard (Critical / Core):**
+   - OTEL-first trace graph and a lightweight UI (or Langfuse-integrated path).
+   - Halt explanations, confidence attribution, drift alerts, and audit exports.
+   - EU AI Act Article 15 reporting is partially implemented; complete compliance
+     exports remain open.
+2. **Online KB Evolution + Provenance:**
+   - Auto-grounding with counterfactual explanations.
+   - Human-feedback online calibration in the production path.
+   - Versioned/signed facts and tamper-evident Merkle commit history.
+3. **Conformal Prediction Routing + Uncertainty:**
+   - Expand to guaranteed coverage targets (e.g. 95% target coverage).
+   - Route high-uncertainty trajectories to human review or a stronger model.
+4. **Agent Trajectory Simulation + Safe Rollback:**
+   - Monte-Carlo pre-execution simulation.
+   - Pre/post-condition checks and formal-ish trajectory verification.
+   - Native rollback/undo hooks for high-risk actions.
+5. **Multi-Modal + Temporal Consistency:**
+   - Vision-NLI and token-level video/frame streaming guardrails.
+   - Temporal consistency checks across frames and multimodal claims.
+6. **Privacy-Preserving Federated Learning:**
+   - MPC/DP-based federated signal sharing for hallucination patterns.
+   - Isolation of sensitive tenant data and threat-model aware aggregation.
+7. **Edge/Mobile Optimisation Path:**
+   - Quantised tiny-NLI path and Rust/WASM runtime in browser/embedded.
+   - Sub-second local inference for guarded low-latency workloads.
+8. **Auto-Redteam + Defence Genome Evolution:**
+   - Continuous adversarial corpus generation.
+   - Patch generation and integration loop with model/route updates.
+9. **Formal + Symbolic Depth:**
+   - Expand Lean/Z3/DPLL deployment in math, code, and numeric domains.
+   - Keep scientific foundations for verifiable reasoning.
+
+**Corrections to make now (required):**
+- Enforce stricter layering: default path ultra-minimal; research modules disabled
+  by default with explicit opt-in.
+- Run an independent security audit before further roadmap expansion.
+- Publish public E2E benchmarks versus competitors on streaming and agent scenarios.
+- Simplify deployment to a one-command production profile + monitoring bundle.
+- Resolve async ordering remnants and validate multi-tenant sustained-load with
+  poisoning test coverage.
 
 - [x] Prototype native inference-server hooks for vLLM, TGI, and llama.cpp so the
   guard can intervene before unsafe tokens are sampled.

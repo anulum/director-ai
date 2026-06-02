@@ -37,6 +37,16 @@ validation records, and release documentation.
 | R5 | Hugging Face Space live deployment push | Open/manual | Published Space URL plus deployment smoke evidence |
 | R6 | Polar storefront environment-specific live deployment smoke | Open/environment-specific | Live checkout, portal, webhook, and licence validation smoke records without committed secrets |
 | R7 | AggreFact leaderboard submission | Submitted by email on 2026-06-02; awaiting maintainer response | Maintainer response, submission acknowledgement, or upstream pull-request URL |
+| R8 | Unified Observability Dashboard (Core) | Open | OTEL trace/telemetry prototype plus lightweight or Langfuse-integrated UI with halt explanations and compliance export evidence |
+| R9 | Online KB evolution + provenance | Open | Tamper-evident Merkle-backed fact lineage proof plus counterfactual explanation feedback loop |
+| R10 | Conformal prediction routing + uncertainty | Open | Coverage calibration evidence for 95% routing split + reject-to-human/stronger-model policy |
+| R11 | Agent trajectory simulation + rollback | Open | Monte-Carlo pre-execution simulation and safe undo hooks with adversarial stress testing evidence |
+| R12 | Multi-modal + temporal consistency guard | Open | Vision-NLI streaming checks across frame sequences plus temporal consistency evidence |
+| R13 | Privacy-preserving federated learning for signals | Open | MPC/DP aggregation evidence with poisoning-resilient federation and tenant isolation checks |
+| R14 | Edge/mobile optimisation path | Open | Quantised NLI + Rust/WASM build and deployment evidence for low-latency local path |
+| R15 | Continuous auto-redteam + defence genome loop | Open | Repeating adversarial generation and patch integration cycle with measurable coverage uplift |
+| R16 | Formal + symbolic depth expansion | Open | New Lean/Z3/DPLL integration in production paths with regression evidence for math/code/numeric outputs |
+| R17 | Deployment hardening + async/multi-tenant corrections | Open | One-command production profile + ordering fixes + sustained-load anti-poisoning tests by tenant |
 
 ## Future And Strategic Items
 
