@@ -115,3 +115,17 @@ Minimum evidence before a production pilot:
 | Platform operator | [Production Guide](../deployment/production.md) |
 | Compliance reviewer | [Compliance Reporting](compliance-reporting.md) |
 | Commercial evaluator | [Product Overview](product-overview.md) |
+
+## 8. Business Evidence Package
+
+For commercial pilots, pair technical checks with a short evidence packet:
+
+- one-page use-case statement (input, output, and consequence),
+- fixed test split and acceptance criteria,
+- false-positive and false-negative examples from production-like samples,
+- incident and rollback flow,
+- review owner and escalation path,
+- and a short post-pilot report with expected reduction in factual-risk incidents.
+
+Publishing this package early is often the fastest way to get procurement and
+security teams aligned.
