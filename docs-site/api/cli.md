@@ -58,6 +58,11 @@ director-ai config --export config.yaml
 director-ai quickstart --profile medical
 cd director_guard/
 python guard.py
+
+# Create and validate an authenticated production scaffold
+director-ai quickstart --profile production
+director-ai production-check --path director_guard
+director-ai production-check --path director_guard --require-secrets
 ```
 
 ### Benchmarking

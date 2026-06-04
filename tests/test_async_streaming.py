@@ -254,6 +254,56 @@ class TestAsyncStreamingKernel:
         assert not any(event.halted for event in events)
         assert call_count > 8
 
+    async def test_concurrent_streams_preserve_order_and_accumulated_text_isolation(
+        self,
+    ):
+        import asyncio
+
+        stream_count = 12
+        tokens_per_stream = 32
+        kernel = AsyncStreamingKernel(
+            hard_limit=0.1,
+            window_size=tokens_per_stream + 1,
+            trend_window=tokens_per_stream + 1,
+        )
+
+        async def run_stream(stream_id: int) -> list[TokenEvent]:
+            tokens = [f"s{stream_id}:{idx:02d}|" for idx in range(tokens_per_stream)]
+            foreign_prefixes = [
+                f"s{other}:" for other in range(stream_count) if other != stream_id
+            ]
+            observed_accumulated: list[str] = []
+
+            async def token_source():
+                for idx, token in enumerate(tokens):
+                    if idx % 4 == 0:
+                        await asyncio.sleep(0)
+                    yield token
+
+            async def score(accumulated: str) -> float:
+                await asyncio.sleep(0)
+                assert not any(prefix in accumulated for prefix in foreign_prefixes)
+                observed_accumulated.append(accumulated)
+                return 0.95
+
+            events = await self._collect_events_without_halt_break(
+                kernel,
+                token_source(),
+                score,
+            )
+            assert [event.index for event in events] == list(range(tokens_per_stream))
+            assert [event.token for event in events] == tokens
+            assert observed_accumulated[-1] == "".join(tokens)
+            assert not any(event.halted for event in events)
+            return events
+
+        streams = await asyncio.gather(*(run_stream(i) for i in range(stream_count)))
+
+        assert len(streams) == stream_count
+        assert sum(len(stream) for stream in streams) == (
+            stream_count * tokens_per_stream
+        )
+
     async def test_no_timeout_passes(self):
         """Default (no timeout) streams all tokens."""
         kernel = AsyncStreamingKernel(hard_limit=0.1)

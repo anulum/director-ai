@@ -7,13 +7,19 @@
 # Director-Class AI — UI subpackage (Gradio-based config wizard + dashboard)
 
 from .safety_dashboard import (
+    ComplianceExportRef,
+    ObservabilityOperationsReport,
     TrustConsoleReport,
     TrustControl,
+    build_observability_operations_report,
     build_trust_console_report,
 )
 
 __all__ = [
+    "ComplianceExportRef",
+    "ObservabilityOperationsReport",
     "TrustConsoleReport",
     "TrustControl",
+    "build_observability_operations_report",
     "build_trust_console_report",
 ]

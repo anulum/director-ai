@@ -36,7 +36,27 @@ def test_roadmap_status_lists_only_current_open_actionable_items() -> None:
         "Current open-item reconciliation lives in `docs/ROADMAP_STATUS.md`" in roadmap
     )
     assert "| R1 | Independent external security test" in status
-    assert "| R8 | Internal roadmap/audit-note reconciliation" not in status
+    for rid in [
+        "R1",
+        "R2",
+        "R3",
+        "R4",
+        "R5",
+        "R6",
+        "R7",
+        "R8",
+        "R9",
+        "R10",
+        "R11",
+        "R12",
+        "R13",
+        "R14",
+        "R15",
+        "R16",
+        "R17",
+    ]:
+        assert f"| {rid} |" in status
+    assert "| R18 |" not in status
     assert "docs/internal/TODO_CONSOLIDATED.md" in status
     assert "Future differentiator programme phases" in status
     assert "Older unchecked internal checklists" in status

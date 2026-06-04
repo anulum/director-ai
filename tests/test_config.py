@@ -89,6 +89,29 @@ class TestProfileLoading:
         assert cfg.max_candidates == 5
         assert cfg.coherence_threshold == 0.7
 
+    def test_production_profile_is_fail_closed_and_observable(self):
+        cfg = DirectorConfig.from_profile("production")
+
+        assert cfg.profile == "production"
+        assert cfg.production_mode is True
+        assert cfg.mode == "grounded"
+        assert cfg.use_nli is True
+        assert cfg.coherence_require_model_backed_nli is True
+        assert cfg.adaptive_threshold_fail_closed is True
+        assert cfg.injection_detection_enabled is True
+        assert cfg.injection_fail_closed_on_error is True
+        assert cfg.tenant_routing is True
+        assert cfg.metrics_enabled is True
+        assert cfg.metrics_require_auth is True
+        assert cfg.rate_limit_rpm == 120
+        assert cfg.review_queue_enabled is True
+        assert cfg.audit_log_path
+        assert cfg.compliance_db_path
+        assert cfg.feedback_db_path
+        assert cfg.stats_backend == "sqlite"
+        assert cfg.log_json is True
+        assert cfg.otel_enabled is True
+
     def test_unknown_profile_raises(self):
         with pytest.raises(ValueError, match="Unknown profile"):
             DirectorConfig.from_profile("nonexistent")
@@ -221,6 +244,7 @@ class TestProfileLoading:
             "embed",
             "thorough",
             "research",
+            "production",
             "medical",
             "finance",
             "legal",

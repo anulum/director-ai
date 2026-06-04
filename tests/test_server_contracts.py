@@ -200,6 +200,195 @@ def test_batch_process_review_and_error_contracts() -> None:
     assert bad_runtime.status_code == 500
 
 
+def test_batch_review_banking_policy_blocks_approved_result_without_raw_text_leak() -> (
+    None
+):
+    from director_ai.core.metrics import metrics
+    from director_ai.core.runtime.batch import BatchResult
+
+    class ApprovingBatch:
+        async def review_batch_async(self, pairs, tenant_id: str = ""):
+            return BatchResult(
+                results=[(True, _score(0.94, approved=True))],
+                errors=[],
+                total=1,
+                succeeded=1,
+                failed=0,
+                duration_seconds=0.01,
+            )
+
+    prompt = "Customer secret phrase: what is the standard FDIC limit?"
+    response_text = "FDIC insurance covers up to $500,000 per depositor."
+    metrics.reset()
+
+    with _client() as client:
+        client.app.state._state["batch"] = ApprovingBatch()
+        response = client.post(
+            "/v1/batch",
+            json={
+                "task": "review",
+                "prompts": [prompt],
+                "responses": [response_text],
+                "sector_policy": "banking",
+                "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+                "numeric_evidence_refs": [
+                    "policy://fdic/deposit-insurance/current#limit"
+                ],
+                "policy_refs": ["policy://financial-services/deposit-disclosures"],
+            },
+        )
+        telemetry = client.get("/v1/metrics").json()
+
+    payload = response.json()
+    encoded = response.text
+    result = payload["results"][0]
+    label = (
+        'action="block",code="deposit_insurance_limit_mismatch",'
+        'policy="banking",severity="critical",source="batch_review"'
+    )
+
+    assert response.status_code == 200
+    assert result["approved"] is False
+    assert result["score"] == pytest.approx(0.94)
+    assert result["sector_policy"]["approved"] is False
+    assert result["sector_policy"]["blocked_codes"] == [
+        "deposit_insurance_limit_mismatch"
+    ]
+    assert prompt not in encoded
+    assert response_text not in encoded
+    assert telemetry["counters"]["sector_policy_findings_total"]["total"] == 1.0
+    assert (
+        telemetry["counters"]["sector_policy_findings_total"]["multi_labels"][label]
+        == 1.0
+    )
+
+
+def test_batch_rejects_sector_policy_for_process_task() -> None:
+    with _client() as client:
+        response = client.post(
+            "/v1/batch",
+            json={
+                "task": "process",
+                "prompts": ["What is the FDIC limit?"],
+                "sector_policy": "banking",
+            },
+        )
+
+    assert response.status_code == 422
+    assert "sector_policy" in response.text
+
+
+def test_batch_review_updates_operational_metrics() -> None:
+    from director_ai.core.metrics import metrics
+    from director_ai.core.runtime.batch import BatchResult
+
+    class ReviewMetricsBatch:
+        async def review_batch_async(self, pairs, tenant_id: str = ""):
+            return BatchResult(
+                results=[
+                    (True, _score(0.91, approved=True)),
+                    (False, _score(0.31, approved=False)),
+                ],
+                errors=[],
+                total=2,
+                succeeded=2,
+                failed=0,
+                duration_seconds=0.01,
+            )
+
+    metrics.reset()
+
+    with _client() as client:
+        client.app.state._state["batch"] = ReviewMetricsBatch()
+        response = client.post(
+            "/v1/batch",
+            json={
+                "task": "review",
+                "prompts": ["p1", "p2"],
+                "responses": ["r1", "r2"],
+            },
+        )
+        telemetry = client.get("/v1/metrics").json()
+
+    assert response.status_code == 200
+    assert telemetry["counters"]["reviews_total"]["total"] == 2.0
+    assert telemetry["counters"]["reviews_approved"]["total"] == 1.0
+    assert telemetry["counters"]["reviews_rejected"]["total"] == 1.0
+    assert telemetry["histograms"]["batch_size"]["count"] == 1
+    assert telemetry["histograms"]["batch_size"]["total"] == 2.0
+
+
+def test_batch_review_with_real_processor_records_api_metrics_once() -> None:
+    from director_ai.core.metrics import metrics
+    from director_ai.core.runtime.batch import BatchProcessor
+
+    class NativeReviewBackend:
+        def review_batch(self, pairs, tenant_id: str = ""):
+            return [
+                (True, _score(0.91, approved=True)),
+                (False, _score(0.31, approved=False)),
+            ]
+
+        def review(self, prompt: str, response: str, tenant_id: str = ""):
+            return (True, _score(0.91, approved=True))
+
+    metrics.reset()
+
+    with _client() as client:
+        client.app.state._state["batch"] = BatchProcessor(
+            NativeReviewBackend(),
+            max_concurrency=1,
+        )
+        response = client.post(
+            "/v1/batch",
+            json={
+                "task": "review",
+                "prompts": ["p1", "p2"],
+                "responses": ["r1", "r2"],
+            },
+        )
+        telemetry = client.get("/v1/metrics").json()
+
+    assert response.status_code == 200
+    assert telemetry["counters"]["reviews_total"]["total"] == 2.0
+    assert telemetry["counters"]["reviews_approved"]["total"] == 1.0
+    assert telemetry["counters"]["reviews_rejected"]["total"] == 1.0
+    assert telemetry["histograms"]["coherence_score"]["count"] == 2
+    assert telemetry["histograms"]["batch_size"]["count"] == 1
+    assert telemetry["histograms"]["batch_size"]["total"] == 2.0
+
+
+def test_batch_process_with_real_processor_records_api_metrics_once() -> None:
+    from director_ai.core.metrics import metrics
+    from director_ai.core.runtime.batch import BatchProcessor
+
+    class ProcessBackend:
+        def process(self, prompt: str, tenant_id: str = ""):
+            halted = prompt == "halt"
+            return _review_result(halted=halted)
+
+    metrics.reset()
+
+    with _client() as client:
+        client.app.state._state["batch"] = BatchProcessor(
+            ProcessBackend(),
+            max_concurrency=1,
+        )
+        response = client.post(
+            "/v1/batch",
+            json={"task": "process", "prompts": ["ok", "halt"]},
+        )
+        telemetry = client.get("/v1/metrics").json()
+
+    assert response.status_code == 200
+    assert telemetry["counters"]["reviews_total"]["total"] == 2.0
+    assert telemetry["counters"]["reviews_approved"]["total"] == 1.0
+    assert telemetry["counters"]["reviews_rejected"]["total"] == 1.0
+    assert telemetry["histograms"]["coherence_score"]["count"] == 1
+    assert telemetry["histograms"]["batch_size"]["count"] == 1
+    assert telemetry["histograms"]["batch_size"]["total"] == 2.0
+
+
 def test_verify_endpoint_context_paths(monkeypatch) -> None:
     class EmptyStore:
         def retrieve_context(self, prompt: str, top_k: int, tenant_id: str = ""):
@@ -315,6 +504,131 @@ def test_review_redacts_prompt_and_response_before_scoring() -> None:
 
     assert response.status_code == 200
     assert scorer.seen == ("Email [EMAIL]", "Call [EMAIL]")
+
+
+def test_review_banking_policy_blocks_approved_scorer_without_raw_text_leak() -> None:
+    from director_ai.core.metrics import metrics
+
+    class ApprovingScorer:
+        def review(self, prompt: str, response: str, session=None, tenant_id: str = ""):
+            return True, _score(0.91, approved=True)
+
+    prompt = "Customer secret phrase: what is the standard FDIC limit?"
+    response_text = "FDIC insurance covers up to $500,000 per depositor."
+    metrics.reset()
+
+    with _client() as client:
+        client.app.state._state["scorer"] = ApprovingScorer()
+        response = client.post(
+            "/v1/review",
+            json={
+                "prompt": prompt,
+                "response": response_text,
+                "sector_policy": "banking",
+                "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+                "numeric_evidence_refs": [
+                    "policy://fdic/deposit-insurance/current#limit"
+                ],
+                "policy_refs": ["policy://financial-services/deposit-disclosures"],
+            },
+        )
+        telemetry = client.get("/v1/metrics").json()
+
+    payload = response.json()
+    encoded = response.text
+    label = (
+        'action="block",code="deposit_insurance_limit_mismatch",'
+        'policy="banking",severity="critical",source="review"'
+    )
+
+    assert response.status_code == 200
+    assert payload["approved"] is False
+    assert payload["coherence"] == pytest.approx(0.91)
+    assert payload["sector_policy"]["approved"] is False
+    assert payload["sector_policy"]["blocked_codes"] == [
+        "deposit_insurance_limit_mismatch"
+    ]
+    assert prompt not in encoded
+    assert response_text not in encoded
+    assert telemetry["counters"]["sector_policy_findings_total"]["total"] == 1.0
+    assert (
+        telemetry["counters"]["sector_policy_findings_total"]["multi_labels"][label]
+        == 1.0
+    )
+
+
+def test_review_banking_policy_approves_when_scorer_and_policy_pass() -> None:
+    class ApprovingScorer:
+        def review(self, prompt: str, response: str, session=None, tenant_id: str = ""):
+            return True, _score(0.93, approved=True)
+
+    with _client() as client:
+        client.app.state._state["scorer"] = ApprovingScorer()
+        response = client.post(
+            "/v1/review",
+            json={
+                "prompt": "What is the standard FDIC deposit coverage limit?",
+                "response": (
+                    "FDIC insurance covers up to $250,000 per depositor, per "
+                    "insured bank, for each ownership category."
+                ),
+                "sector_policy": "financial-services",
+                "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+                "numeric_evidence_refs": [
+                    "policy://fdic/deposit-insurance/current#limit"
+                ],
+                "policy_refs": ["policy://financial-services/deposit-disclosures"],
+            },
+        )
+
+    payload = response.json()
+
+    assert response.status_code == 200
+    assert payload["approved"] is True
+    assert payload["sector_policy"]["approved"] is True
+    assert payload["sector_policy"]["findings"] == []
+
+
+def test_review_rejects_unknown_sector_policy() -> None:
+    with _client() as client:
+        response = client.post(
+            "/v1/review",
+            json={
+                "prompt": "p",
+                "response": "r",
+                "sector_policy": "unknown-sector",
+            },
+        )
+
+    assert response.status_code == 422
+    assert "sector_policy" in response.text
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("evidence_refs", ["policy://" + ("x" * 513)]),
+        ("numeric_evidence_refs", [""]),
+        ("policy_refs", [""]),
+        ("jurisdiction", ""),
+        ("product_line", ""),
+    ],
+)
+def test_review_rejects_malformed_sector_policy_metadata(
+    field: str, value: object
+) -> None:
+    request = {
+        "prompt": "What is the standard FDIC deposit coverage limit?",
+        "response": "FDIC insurance covers up to $250,000 per depositor.",
+        "sector_policy": "banking",
+        field: value,
+    }
+
+    with _client() as client:
+        response = client.post("/v1/review", json=request)
+
+    assert response.status_code == 422
+    assert field in response.text
 
 
 def test_process_redacts_prompt_and_output() -> None:

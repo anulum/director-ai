@@ -13,6 +13,7 @@ re-imported into server.py to preserve backward compatibility.
 
 from __future__ import annotations
 
+from typing import Annotated as _Annotated
 from typing import Any
 from typing import Literal as _Literal
 
@@ -20,6 +21,14 @@ from pydantic import BaseModel, Field
 
 _MAX_PROMPT_CHARS = 100_000
 _MAX_RESPONSE_CHARS = 500_000
+_MAX_SECTOR_POLICY_REFS = 64
+_MAX_SECTOR_POLICY_REF_CHARS = 512
+
+_SectorPolicyRef = _Annotated[
+    str, Field(min_length=1, max_length=_MAX_SECTOR_POLICY_REF_CHARS)
+]
+_Jurisdiction = _Annotated[str, Field(min_length=1, max_length=64)]
+_ProductLine = _Annotated[str, Field(min_length=1, max_length=128)]
 
 
 class ReviewRequest(BaseModel):
@@ -35,6 +44,37 @@ class ReviewRequest(BaseModel):
         description="LLM response to review",
     )
     session_id: str | None = Field(None, description="Conversation session ID")
+    sector_policy: _Literal["banking", "financial-services"] | None = Field(
+        None,
+        description="Optional deterministic sector policy to run with review",
+    )
+    evidence_refs: list[_SectorPolicyRef] = Field(
+        default_factory=list,
+        max_length=_MAX_SECTOR_POLICY_REFS,
+        description="Evidence identifiers for sector-policy claims",
+    )
+    numeric_evidence_refs: list[_SectorPolicyRef] = Field(
+        default_factory=list,
+        max_length=_MAX_SECTOR_POLICY_REFS,
+        description="Evidence identifiers for numeric sector-policy claims",
+    )
+    policy_refs: list[_SectorPolicyRef] = Field(
+        default_factory=list,
+        max_length=_MAX_SECTOR_POLICY_REFS,
+        description="Policy identifiers used by deterministic sector checks",
+    )
+    jurisdiction: _Jurisdiction = Field(
+        "US",
+        description="Jurisdiction code for sector-policy evaluation",
+    )
+    product_line: _ProductLine = Field(
+        "default",
+        description="Product line or response class for sector-policy evaluation",
+    )
+    human_review_acknowledged: bool = Field(
+        False,
+        description="Whether the operator workflow already attached human review",
+    )
 
 
 class ProcessRequest(BaseModel):
@@ -55,6 +95,37 @@ class BatchRequest(BaseModel):
         ..., min_length=1, max_length=1000, description="List of prompts"
     )
     responses: list[str] = Field(default_factory=list, description="Optional responses")
+    sector_policy: _Literal["banking", "financial-services"] | None = Field(
+        None,
+        description="Optional deterministic sector policy for review batches",
+    )
+    evidence_refs: list[_SectorPolicyRef] = Field(
+        default_factory=list,
+        max_length=_MAX_SECTOR_POLICY_REFS,
+        description="Evidence identifiers for sector-policy claims",
+    )
+    numeric_evidence_refs: list[_SectorPolicyRef] = Field(
+        default_factory=list,
+        max_length=_MAX_SECTOR_POLICY_REFS,
+        description="Evidence identifiers for numeric sector-policy claims",
+    )
+    policy_refs: list[_SectorPolicyRef] = Field(
+        default_factory=list,
+        max_length=_MAX_SECTOR_POLICY_REFS,
+        description="Policy identifiers used by deterministic sector checks",
+    )
+    jurisdiction: _Jurisdiction = Field(
+        "US",
+        description="Jurisdiction code for sector-policy evaluation",
+    )
+    product_line: _ProductLine = Field(
+        "default",
+        description="Product line or response class for sector-policy evaluation",
+    )
+    human_review_acknowledged: bool = Field(
+        False,
+        description="Whether the operator workflow already attached human review",
+    )
 
 
 class ReviewResponse(BaseModel):
@@ -66,6 +137,7 @@ class ReviewResponse(BaseModel):
     h_factual: float
     warning: bool = False
     evidence: dict | None = None
+    sector_policy: dict | None = None
 
 
 class FeedbackRequest(BaseModel):

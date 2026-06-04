@@ -187,6 +187,34 @@ decisions preserve logits, `escalate` decisions add a finite negative logit
 bias for the candidate token, and `halt` decisions apply the normal block path
 with an `inference_server` safety event.
 
+## Rollback hooks
+
+For high-risk actions, register a rollback handle before the action executes.
+The manager stores tenant-safe identifiers and evidence references only; the
+real undo implementation stays in the deployment's protected control plane.
+
+```python
+from director_ai.core.trajectory import TrajectoryRollbackManager
+
+rollback = TrajectoryRollbackManager()
+handle = rollback.register(
+    rollback_id="threshold-overlay-rollback-20260604",
+    action_id="threshold-overlay-deploy",
+    hook=lambda handle, reason: {"rollback_store": "audit-log"},
+    evidence_refs=("change:42",),
+    metadata={"owner": "safety"},
+)
+
+outcome = rollback.evaluate_preflight(handle.rollback_id, verdict)
+print(outcome.status)  # not_required / armed / executed
+```
+
+`proceed` leaves the hook unused, `warn` or steering escalation arms it for
+operator review, and `halt` executes the hook exactly once. Later calls return
+`already_executed`, which keeps retrying gateways from issuing duplicate undo
+operations. Failure records expose the exception class, not raw backend error
+text.
+
 ## Cost
 
 Every preflight call is N extra scoring reviews. The default
@@ -203,6 +231,9 @@ are cheap (demos, internal tools). Measure first, tune second.
   model here. The simulator is model-agnostic.
 - **Conformal calibration.** The shipped CI is empirical quantiles;
   conformal bands need historical data.
+- **Live undo backends.** `TrajectoryRollbackManager` executes registered hooks,
+  but deployments still own the actual database, control-plane, or model
+  rollback implementation.
 - **Agent handoff.** `HandoffScorer` already covers the
   inter-agent edge; the trajectory simulator is for pre-execution
   single-turn prompts. The two compose: the gateway preflights,

@@ -98,6 +98,50 @@ Control statuses are `passed`, `warning`, `failing`, or `not_applicable`.
 Any failing control marks the report risk level as `critical`; tenant alert
 states or warning controls mark it as `attention_required`.
 
+## Observability Operations Report
+
+Use the operations report when the deployment gate needs one tenant-safe packet
+that combines halt forensics, drift alerts, readiness controls, and compliance
+export references:
+
+```python
+from director_ai.ui import (
+    ComplianceExportRef,
+    TrustControl,
+    build_observability_operations_report,
+)
+
+events_jsonl = open("safety_events.jsonl", encoding="utf-8").read()
+report = build_observability_operations_report(
+    events_jsonl,
+    controls=[
+        TrustControl(
+            control="Trace retention",
+            status="passed",
+            evidence_ref="runbooks/trace-retention.md",
+        ),
+    ],
+    compliance_exports=[
+        ComplianceExportRef(
+            standard="EU AI Act Article 15",
+            name="30-day operations export",
+            status="available",
+            evidence_ref="reports/article15-current.md",
+        ),
+    ],
+    drift_alert_threshold=0.10,
+)
+
+payload = report.to_dict()
+markdown = report.to_markdown()
+assert payload["privacy"]["raw_event_text_included"] is False
+```
+
+The drift alert uses the first and second halves of each tenant's recent event
+stream as baseline and current windows. It requires enough samples in both
+windows, ignores feedback rows for halt-rate drift, and reports mild,
+moderate, or severe drift based on rate change.
+
 ## Alert Thresholds
 
 The defaults are intentionally conservative:
@@ -171,5 +215,5 @@ Rows used for one-click retuning also need the reviewed prompt and response:
 ```
 
 The UI requires at least four labelled rows before it emits an overlay. Mixed
-approved and rejected examples produce stronger threshold guidance; single-class
+approved and rejected examples produce more reliable threshold guidance; single-class
 feedback is allowed but marked provisional.

@@ -10,15 +10,17 @@
 from __future__ import annotations
 
 import os
+import uuid
 
 import pytest
 
 from director_ai.core.config import DirectorConfig
+from director_ai.core.metrics import metrics
 
 try:
     from fastapi.testclient import TestClient
 
-    from director_ai.server import create_app
+    from director_ai.server import _extract_request_api_key, create_app
 
     _SERVER_AVAILABLE = True
 except ImportError:
@@ -97,6 +99,78 @@ def test_correlation_id_echoed():
             headers={"X-Request-ID": "my-trace-42"},
         )
     assert r.headers["X-Request-ID"] == "my-trace-42"
+
+
+def test_correlation_id_replaces_values_with_disallowed_characters():
+    inbound = "trace with spaces"
+
+    with TestClient(_noauth_app()) as client:
+        r = client.get("/v1/health", headers={"X-Request-ID": inbound})
+
+    outbound = r.headers["X-Request-ID"]
+    assert outbound != inbound
+    uuid.UUID(outbound)
+
+
+def test_correlation_id_replaces_overlong_values():
+    inbound = f"trace-{'x' * 200}"
+
+    with TestClient(_noauth_app()) as client:
+        r = client.get("/v1/health", headers={"X-Request-ID": inbound})
+
+    outbound = r.headers["X-Request-ID"]
+    assert outbound != inbound
+    assert len(outbound) <= 128
+    uuid.UUID(outbound)
+
+
+def test_http_metrics_use_route_templates_for_path_parameters():
+    metrics.reset()
+
+    with TestClient(_noauth_app()) as client:
+        response = client.get("/v1/sessions/customer-secret-session")
+        telemetry = client.get("/v1/metrics").json()
+
+    labels = telemetry["counters"]["http_requests_total"]["multi_labels"]
+
+    assert response.status_code == 404
+    assert 'endpoint="/v1/sessions/{session_id}",method="GET",status="404"' in labels
+    assert "customer-secret-session" not in repr(labels)
+
+
+def test_http_metrics_count_auth_failures():
+    metrics.reset()
+
+    with TestClient(_auth_app()) as client:
+        rejected = client.get("/v1/config")
+        telemetry = client.get(
+            "/v1/metrics",
+            headers={"X-API-Key": "test-key-123"},
+        ).json()
+
+    labels = telemetry["counters"]["http_requests_total"]["multi_labels"]
+
+    assert rejected.status_code == 401
+    assert 'endpoint="/v1/config",method="GET",status="401"' in labels
+
+
+def test_http_metrics_count_unhandled_application_exceptions():
+    metrics.reset()
+    app = _noauth_app()
+
+    @app.get("/v1/exploding/{item_id}")
+    def exploding_route(item_id: str):
+        raise RuntimeError(f"boom:{item_id}")
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        failed = client.get("/v1/exploding/customer-secret")
+        telemetry = client.get("/v1/metrics").json()
+
+    labels = telemetry["counters"]["http_requests_total"]["multi_labels"]
+
+    assert failed.status_code == 500
+    assert 'endpoint="/v1/exploding/{item_id}",method="GET",status="500"' in labels
+    assert "customer-secret" not in repr(labels)
 
 
 def test_api_keys_redacted_in_config():
@@ -274,6 +348,18 @@ def test_metrics_auth_required_with_key_returns_200():
     with TestClient(app) as client:
         r = client.get("/v1/metrics/prometheus", headers={"X-API-Key": "secret"})
     assert r.status_code == 200
+
+
+def test_extract_request_api_key_accepts_bearer_token_for_prometheus_scrapers():
+    from starlette.requests import Request
+
+    request = Request(
+        {
+            "type": "http",
+            "headers": [(b"authorization", b"Bearer secret")],
+        }
+    )
+    assert _extract_request_api_key(request) == "secret"
 
 
 def test_rate_limit_strict_raises_without_slowapi(monkeypatch):

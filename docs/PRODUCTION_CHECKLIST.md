@@ -61,8 +61,12 @@ app.add_middleware(DirectorGuard, facts={"policy": "30 days"}, on_fail="reject")
 ### Generate config
 
 ```bash
+director-ai quickstart --profile production
+director-ai production-check --path director_guard
+director-ai production-check --path director_guard --require-secrets
+
+# OR, for manual integration:
 director-ai wizard --cli    # interactive
-# OR
 director-ai config --profile thorough > config.yaml
 ```
 
@@ -131,6 +135,9 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] Enable `audit_log_path` for compliance trail
 - [ ] Enable OpenTelemetry where distributed traces are required; scorer spans
       cover cache lookup, retrieval, NLI, calibration, and judge escalation
+- [ ] Export a tenant-safe operations packet with
+      `build_observability_operations_report()` for halt forensics, drift
+      alerts, readiness controls, and compliance evidence references
 
 ### Performance
 
@@ -139,6 +146,38 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] Pre-warm model after `doctor` passes for the selected backend
 - [ ] Set `cache_size: 1024` for repeated queries
 - [ ] For high throughput: `director-ai stress-test --rps 100`
+- [ ] Generate provenance and KB-lineage evidence:
+      `PYTHONPATH=src python -m benchmarks.provenance_evidence --fact-count 4`
+- [ ] Generate conformal routing evidence:
+      `PYTHONPATH=src python -m benchmarks.conformal_routing_evidence`
+- [ ] Generate trajectory rollback evidence:
+      `PYTHONPATH=src python -m benchmarks.trajectory_rollback_evidence`
+- [ ] Generate multimodal temporal evidence:
+      `PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence`
+- [ ] Generate federated privacy evidence:
+      `PYTHONPATH=src python -m benchmarks.federated_privacy_evidence`
+- [ ] Generate auto-redteam defence evidence:
+      `PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence`
+- [ ] Generate formal symbolic evidence:
+      `PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence`
+- [ ] Generate edge/mobile runtime evidence:
+      `PYTHONPATH=src python -m benchmarks.edge_mobile_evidence`
+      and confirm `ready_for_release` only after WASM artefacts, quantised model
+      artefacts, browser/Web Worker smoke, and mobile or embedded-device smoke
+      evidence are attached.
+- [ ] Validate the generated WASM package after `wasm-pack build`:
+      `PYTHONPATH=src python tools/check_wasm_release_package.py`
+- [ ] Run the browser Web Worker smoke:
+      `PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py`
+- [ ] Generate sustained async/tenant hardening evidence:
+      `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
+- [ ] Run the local release evidence gate:
+      `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode local`
+- [ ] Before a customer release, run the strict release evidence gate:
+      `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release`
+      and resolve every release blocker.
+- [ ] For CI or release dashboards, emit the strict gate as JSON:
+      `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release --format json`
 
 ### Release documentation sync
 
@@ -198,6 +237,10 @@ The only token cost is the optional LLM-as-judge escalation path.
 ### Grafana dashboard
 
 Pre-built at `deploy/observability/grafana-dashboard.json` with 9 panels.
+For deployment gates, pair Grafana with the tenant-safe operations packet from
+`director_ai.ui.build_observability_operations_report()` so halt forensics,
+drift alerts, readiness controls, and Article 15/SOC 2 evidence references are
+reviewable without exposing raw prompts or responses.
 
 ---
 

@@ -40,10 +40,31 @@ EVIDENCE_COLUMNS = [
     "source",
     "action",
 ]
+DRIFT_ALERT_COLUMNS = [
+    "tenant_id",
+    "baseline_events",
+    "current_events",
+    "baseline_halt_rate",
+    "current_halt_rate",
+    "rate_change",
+    "severity",
+    "recommendation",
+]
+COMPLIANCE_EXPORT_COLUMNS = [
+    "standard",
+    "name",
+    "status",
+    "evidence_ref",
+    "updated_at",
+]
 RETUNE_MIN_FEEDBACK_SAMPLES = 4
 TrustControlStatus = Literal["passed", "warning", "failing", "not_applicable"]
 _VALID_TRUST_CONTROL_STATUSES = frozenset(
     ("passed", "warning", "failing", "not_applicable")
+)
+ComplianceExportStatus = Literal["available", "missing", "stale", "not_applicable"]
+_VALID_COMPLIANCE_EXPORT_STATUSES = frozenset(
+    ("available", "missing", "stale", "not_applicable")
 )
 
 
@@ -98,6 +119,47 @@ class TrustControl:
             "status": self.status,
             "evidence_ref": self.evidence_ref,
             "owner": self.owner,
+            "updated_at": self.updated_at,
+        }
+
+
+@dataclass(frozen=True)
+class ComplianceExportRef:
+    """Tenant-safe reference to an operator-owned compliance export."""
+
+    standard: str
+    name: str
+    status: str
+    evidence_ref: str
+    updated_at: str = ""
+
+    def __post_init__(self) -> None:
+        status = self.status.strip().lower()
+        if status not in _VALID_COMPLIANCE_EXPORT_STATUSES:
+            raise ValueError(
+                "ComplianceExportRef.status must be one of "
+                f"{sorted(_VALID_COMPLIANCE_EXPORT_STATUSES)}"
+            )
+        if not self.standard.strip():
+            raise ValueError("ComplianceExportRef.standard is required")
+        if not self.name.strip():
+            raise ValueError("ComplianceExportRef.name is required")
+        if not self.evidence_ref.strip():
+            raise ValueError("ComplianceExportRef.evidence_ref is required")
+        object.__setattr__(self, "standard", self.standard.strip())
+        object.__setattr__(self, "name", self.name.strip())
+        object.__setattr__(self, "status", status)
+        object.__setattr__(self, "evidence_ref", self.evidence_ref.strip())
+        object.__setattr__(self, "updated_at", self.updated_at.strip())
+
+    def to_dict(self) -> dict[str, str]:
+        """Return JSON-compatible tenant-safe export metadata."""
+
+        return {
+            "standard": self.standard,
+            "name": self.name,
+            "status": self.status,
+            "evidence_ref": self.evidence_ref,
             "updated_at": self.updated_at,
         }
 
@@ -186,6 +248,101 @@ class TrustConsoleReport:
         return "\n".join(lines)
 
 
+@dataclass(frozen=True)
+class ObservabilityOperationsReport:
+    """Tenant-safe report for halt forensics, drift, and compliance review."""
+
+    title: str
+    generated_at: str
+    summary: dict[str, Any]
+    tenants: list[list[Any]]
+    sources: list[list[Any]]
+    recent_evidence: list[list[Any]]
+    drift_alerts: list[list[Any]]
+    controls: tuple[TrustControl, ...]
+    compliance_exports: tuple[ComplianceExportRef, ...]
+    parse_warnings: tuple[str, ...] = ()
+
+    def to_dict(self) -> dict[str, Any]:
+        """Return a tenant-safe JSON-compatible operations packet."""
+
+        return {
+            "title": self.title,
+            "generated_at": self.generated_at,
+            "summary": dict(self.summary),
+            "tenant_columns": list(TENANT_COLUMNS),
+            "tenants": self.tenants,
+            "source_columns": list(SOURCE_COLUMNS),
+            "sources": self.sources,
+            "evidence_columns": list(EVIDENCE_COLUMNS),
+            "recent_evidence": self.recent_evidence,
+            "drift_alert_columns": list(DRIFT_ALERT_COLUMNS),
+            "drift_alerts": self.drift_alerts,
+            "controls": [control.to_dict() for control in self.controls],
+            "compliance_export_columns": list(COMPLIANCE_EXPORT_COLUMNS),
+            "compliance_exports": [
+                export.to_dict() for export in self.compliance_exports
+            ],
+            "parse_warnings": list(self.parse_warnings),
+            "privacy": {
+                "payload_classification": "tenant_safe",
+                "raw_event_text_included": False,
+                "raw_feedback_text_included": False,
+                "raw_compliance_evidence_included": False,
+            },
+        }
+
+    def to_markdown(self) -> str:
+        """Render the operations report as Markdown."""
+
+        lines = [
+            f"# {self.title}",
+            "",
+            f"Generated: {self.generated_at}",
+            "",
+            "## Summary",
+        ]
+        for key, value in self.summary.items():
+            lines.append(f"- {key.replace('_', ' ').title()}: {value}")
+        if self.parse_warnings:
+            lines.append("- Parse Warnings: " + "; ".join(self.parse_warnings[:5]))
+
+        lines.extend(["", "## Drift Alerts", ""])
+        if self.drift_alerts:
+            lines.append("| " + " | ".join(DRIFT_ALERT_COLUMNS) + " |")
+            lines.append("|" + "|".join("---" for _ in DRIFT_ALERT_COLUMNS) + "|")
+            for row in self.drift_alerts:
+                lines.append("| " + " | ".join(str(value) for value in row) + " |")
+        else:
+            lines.append("No drift alerts for the configured threshold.")
+
+        lines.extend(["", "## Compliance Exports", ""])
+        if self.compliance_exports:
+            lines.append("| " + " | ".join(COMPLIANCE_EXPORT_COLUMNS) + " |")
+            lines.append("|" + "|".join("---" for _ in COMPLIANCE_EXPORT_COLUMNS) + "|")
+            for export in self.compliance_exports:
+                export_row = export.to_dict()
+                lines.append(
+                    "| "
+                    + " | ".join(
+                        str(export_row[column]) for column in COMPLIANCE_EXPORT_COLUMNS
+                    )
+                    + " |"
+                )
+        else:
+            lines.append("No compliance export references supplied.")
+
+        lines.extend(["", "## Recent Halt Evidence", ""])
+        if self.recent_evidence:
+            lines.append("| " + " | ".join(EVIDENCE_COLUMNS) + " |")
+            lines.append("|" + "|".join("---" for _ in EVIDENCE_COLUMNS) + "|")
+            for row in self.recent_evidence[:10]:
+                lines.append("| " + " | ".join(str(value) for value in row) + " |")
+        else:
+            lines.append("No halt evidence supplied.")
+        return "\n".join(lines)
+
+
 def build_safety_dashboard(
     events_jsonl: str,
     feedback_jsonl: str = "",
@@ -215,6 +372,95 @@ def build_safety_dashboard(
         "--output director-ai-tuned.yaml"
     )
     return summary, tenant_rows, source_rows, evidence_rows, command
+
+
+def build_observability_operations_report(
+    events_jsonl: str,
+    feedback_jsonl: str = "",
+    *,
+    controls: list[TrustControl] | tuple[TrustControl, ...] = (),
+    compliance_exports: list[ComplianceExportRef]
+    | tuple[ComplianceExportRef, ...] = (),
+    title: str = "Director-AI Observability Operations",
+    generated_at: str = "",
+    halt_alert_threshold: float = 0.15,
+    false_positive_alert_threshold: float = 0.05,
+    drift_alert_threshold: float = 0.1,
+    min_drift_window_events: int = 2,
+) -> ObservabilityOperationsReport:
+    """Build a tenant-safe halt-forensics and drift operations packet."""
+
+    records, errors = parse_dashboard_records(events_jsonl, feedback_jsonl)
+    tenants = _tenant_rows(
+        records,
+        halt_alert_threshold=halt_alert_threshold,
+        false_positive_alert_threshold=false_positive_alert_threshold,
+    )
+    sources = _source_rows(records)
+    evidence = _evidence_rows(records)
+    drift_alerts = _drift_alert_rows(
+        records,
+        drift_alert_threshold=drift_alert_threshold,
+        min_window_events=min_drift_window_events,
+    )
+    control_tuple = tuple(controls)
+    export_tuple = tuple(compliance_exports)
+    total = len(records)
+    halts = sum(1 for record in records if record.halted)
+    false_positives = sum(1 for record in records if record.false_positive)
+    tenant_alerts = sum(1 for row in tenants if row[-1] != "ok")
+    risk_level = _operations_risk_level(
+        tenant_alerts=tenant_alerts,
+        drift_alerts=drift_alerts,
+        controls=control_tuple,
+        compliance_exports=export_tuple,
+        halts=halts,
+        false_positives=false_positives,
+    )
+    return ObservabilityOperationsReport(
+        title=title,
+        generated_at=generated_at or "unspecified",
+        summary={
+            "total_events": total,
+            "tenants": len(tenants),
+            "halts": halts,
+            "false_positives": false_positives,
+            "tenant_alerts": tenant_alerts,
+            "drift_alerts": len(drift_alerts),
+            "control_failures": sum(
+                1 for control in control_tuple if control.status == "failing"
+            ),
+            "compliance_export_gaps": sum(
+                1 for export in export_tuple if export.status in {"missing", "stale"}
+            ),
+            "risk_level": risk_level,
+        },
+        tenants=tenants,
+        sources=sources,
+        recent_evidence=evidence,
+        drift_alerts=drift_alerts,
+        controls=control_tuple,
+        compliance_exports=export_tuple,
+        parse_warnings=tuple(errors),
+    )
+
+
+def build_observability_operations_markdown(
+    events_jsonl: str,
+    feedback_jsonl: str = "",
+    halt_alert_threshold: float = 0.15,
+    false_positive_alert_threshold: float = 0.05,
+    drift_alert_threshold: float = 0.1,
+) -> str:
+    """Render the default operations report for the dashboard UI."""
+
+    return build_observability_operations_report(
+        events_jsonl,
+        feedback_jsonl,
+        halt_alert_threshold=halt_alert_threshold,
+        false_positive_alert_threshold=false_positive_alert_threshold,
+        drift_alert_threshold=drift_alert_threshold,
+    ).to_markdown()
 
 
 def build_trust_console_report(
@@ -431,6 +677,13 @@ def launch_safety_dashboard(port: int = 7861, share: bool = False) -> None:
                 value=0.05,
                 step=0.01,
             )
+            drift_threshold = gr.Slider(
+                label="Drift alert threshold",
+                minimum=0.0,
+                maximum=1.0,
+                value=0.10,
+                step=0.01,
+            )
 
         render = gr.Button("Render Dashboard", variant="primary")
         summary = gr.Markdown()
@@ -438,11 +691,23 @@ def launch_safety_dashboard(port: int = 7861, share: bool = False) -> None:
         sources = gr.Dataframe(headers=SOURCE_COLUMNS, label="Contradiction sources")
         evidence = gr.Dataframe(headers=EVIDENCE_COLUMNS, label="Recent halt evidence")
         retune = gr.Code(label="Retune command", language="shell")
+        operations = gr.Markdown(label="Observability operations report")
 
         render.click(
             fn=build_safety_dashboard,
             inputs=[events, feedback, halt_threshold, fp_threshold],
             outputs=[summary, tenants, sources, evidence, retune],
+        )
+        render.click(
+            fn=build_observability_operations_markdown,
+            inputs=[
+                events,
+                feedback,
+                halt_threshold,
+                fp_threshold,
+                drift_threshold,
+            ],
+            outputs=[operations],
         )
 
     demo.launch(server_port=port, share=share)
@@ -629,6 +894,95 @@ def _summary_markdown(
     if errors:
         lines.append("- Parse warnings: " + "; ".join(errors[:5]))
     return "\n".join(lines)
+
+
+def _drift_alert_rows(
+    records: list[HaltDashboardRecord],
+    *,
+    drift_alert_threshold: float,
+    min_window_events: int,
+) -> list[list[Any]]:
+    grouped: dict[str, list[HaltDashboardRecord]] = defaultdict(list)
+    for record in records:
+        if record.decision == "feedback":
+            continue
+        grouped[record.tenant_id].append(record)
+
+    rows: list[list[Any]] = []
+    for tenant_id in sorted(grouped):
+        tenant_records = grouped[tenant_id]
+        if len(tenant_records) < min_window_events * 2:
+            continue
+        split_at = len(tenant_records) // 2
+        baseline = tenant_records[:split_at]
+        current = tenant_records[split_at:]
+        if len(baseline) < min_window_events or len(current) < min_window_events:
+            continue
+        baseline_rate = _halt_rate(baseline)
+        current_rate = _halt_rate(current)
+        change = current_rate - baseline_rate
+        if change < drift_alert_threshold:
+            continue
+        severity = _drift_severity(change)
+        rows.append(
+            [
+                tenant_id,
+                len(baseline),
+                len(current),
+                round(baseline_rate, 4),
+                round(current_rate, 4),
+                round(change, 4),
+                severity,
+                _drift_recommendation(severity),
+            ],
+        )
+    return rows
+
+
+def _halt_rate(records: list[HaltDashboardRecord]) -> float:
+    return sum(1 for record in records if record.halted) / len(records)
+
+
+def _drift_severity(rate_change: float) -> str:
+    if rate_change >= 0.30:
+        return "severe"
+    if rate_change >= 0.15:
+        return "moderate"
+    return "mild"
+
+
+def _drift_recommendation(severity: str) -> str:
+    if severity == "severe":
+        return "Freeze rollout, review halt traces, and retune before expansion."
+    if severity == "moderate":
+        return "Review recent sources and labelled feedback before scaling traffic."
+    return "Monitor the next window and collect labelled reviewer feedback."
+
+
+def _operations_risk_level(
+    *,
+    tenant_alerts: int,
+    drift_alerts: list[list[Any]],
+    controls: tuple[TrustControl, ...],
+    compliance_exports: tuple[ComplianceExportRef, ...],
+    halts: int,
+    false_positives: int,
+) -> str:
+    if any(control.status == "failing" for control in controls):
+        return "critical"
+    if any(export.status == "missing" for export in compliance_exports):
+        return "critical"
+    if any(row[6] == "severe" for row in drift_alerts):
+        return "critical"
+    if any(export.status == "stale" for export in compliance_exports):
+        return "attention_required"
+    if tenant_alerts or drift_alerts:
+        return "attention_required"
+    if any(control.status == "warning" for control in controls):
+        return "attention_required"
+    if halts or false_positives:
+        return "monitored"
+    return "healthy"
 
 
 def _trust_risk_level(

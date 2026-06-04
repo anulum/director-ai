@@ -53,6 +53,47 @@ wasm-pack build --target web --release
 CI already builds the web target in `.github/workflows/wheels.yml` and uploads
 the `pkg/` directory as the `wasm-edge-runtime` artefact.
 
+Validate the generated package metadata and release digests:
+
+```bash
+PYTHONPATH=src python tools/check_wasm_release_package.py
+```
+
+The validator checks `package.json`, README, licence notice, generated
+TypeScript definitions, JS glue, `.wasm` payload, file sizes, and sha256
+digests before an operator archives or publishes the artefact.
+
+Run the browser Web Worker smoke against the generated web-target package:
+
+```bash
+PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py \
+  --json benchmarks/results/wasm_browser_worker_smoke_<UTC_TIMESTAMP>.json
+```
+
+The smoke starts a localhost server, launches headless Chrome, loads a module
+Worker, imports `backfire_wasm.js`, initialises the `.wasm` payload, verifies a
+passing token, verifies a hard halt, and verifies the halt is irrevocable.
+
+## Readiness Evidence
+
+Before claiming an edge or mobile release, generate the R14 readiness packet:
+
+```bash
+PYTHONPATH=src python -m benchmarks.edge_mobile_evidence
+```
+
+The packet records whether the current checkout is ready for a local
+low-latency trial or for release. Release readiness requires:
+
+- local `wasm-pack` artefacts in `backfire-kernel/crates/backfire-wasm/pkg/`
+- a quantised ONNX model artefact
+- passing browser or Web Worker smoke evidence attached to the R14 packet
+- mobile or embedded-device smoke evidence
+- Rust Python accelerator import evidence
+
+If those artefacts are absent, the packet remains useful but must be treated as
+local-trial evidence only.
+
 ## Release Priority
 
 `requirements/wasm_release_plan.toml` is the tracked source for the host

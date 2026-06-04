@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 49,
+    "model_documentation_pages": 51,
     "optional_extras": 53,
-    "public_api_exports": 214,
-    "public_documentation_pages": 144,
-    "python_model_classes": 702,
-    "python_model_source_modules": 311,
+    "public_api_exports": 216,
+    "public_documentation_pages": 146,
+    "python_model_classes": 718,
+    "python_model_source_modules": 316,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 396
+    "test_files": 416
   },
   "documentation": {
     "public_pages": [
@@ -30,9 +30,11 @@
       "docs-site/api/cyber-physical.md",
       "docs-site/api/defence-update-pipeline.md",
       "docs-site/api/director-safety-protocol.md",
+      "docs-site/api/edge-runtime-readiness.md",
       "docs-site/api/enterprise.md",
       "docs-site/api/exceptions.md",
       "docs-site/api/federated-safety-signals.md",
+      "docs-site/api/financial-services.md",
       "docs-site/api/formal-code-verifiers.md",
       "docs-site/api/grpc.md",
       "docs-site/api/guard-control.md",
@@ -159,7 +161,7 @@
       "docs-site/tutorials.md"
     ]
   },
-  "evidence_boundary": "Counts are file-system and static-source inventory only; benchmark, coverage, hardware, and scientific-fidelity claims remain governed by their dedicated evidence artifacts.",
+  "evidence_boundary": "Counts are file-system and static-source inventory only; benchmark, coverage, hardware, and scientific-fidelity claims remain governed by their dedicated evidence artefacts.",
   "generated_from": {
     "config": "tools/capability_manifest.toml",
     "generator": "tools/capability_manifest.py"
@@ -195,9 +197,11 @@
       "cyber-physical.md",
       "defence-update-pipeline.md",
       "director-safety-protocol.md",
+      "edge-runtime-readiness.md",
       "enterprise.md",
       "exceptions.md",
       "federated-safety-signals.md",
+      "financial-services.md",
       "formal-code-verifiers.md",
       "grpc.md",
       "guard-control.md",
@@ -422,6 +426,18 @@
         "path": "src/director_ai/integrations/autogen_swarm.py"
       },
       {
+        "name": "AutoRedteamCycleInput",
+        "path": "src/director_ai/core/defense_genome/redteam_loop.py"
+      },
+      {
+        "name": "AutoRedteamCycleReport",
+        "path": "src/director_ai/core/defense_genome/redteam_loop.py"
+      },
+      {
+        "name": "AutoRedteamDefenceLoop",
+        "path": "src/director_ai/core/defense_genome/redteam_loop.py"
+      },
+      {
         "name": "AutopoieticEngine",
         "path": "src/director_ai/core/autopoietic/engine.py"
       },
@@ -432,6 +448,14 @@
       {
         "name": "BFTConsensusVote",
         "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "BankingPolicyFinding",
+        "path": "src/director_ai/core/financial_services/banking_policy.py"
+      },
+      {
+        "name": "BankingPolicyReport",
+        "path": "src/director_ai/core/financial_services/banking_policy.py"
       },
       {
         "name": "BargainingSolution",
@@ -622,6 +646,10 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "ComplianceExportRef",
+        "path": "src/director_ai/ui/safety_dashboard.py"
+      },
+      {
         "name": "ComplianceReportResponse",
         "path": "src/director_ai/_server_models.py"
       },
@@ -664,6 +692,14 @@
       {
         "name": "ConformalResult",
         "path": "src/director_ai/core/self_evolving/calibration.py"
+      },
+      {
+        "name": "ConformalRoutingDecision",
+        "path": "src/director_ai/core/calibration/conformal.py"
+      },
+      {
+        "name": "ConformalRoutingPolicy",
+        "path": "src/director_ai/core/calibration/conformal.py"
       },
       {
         "name": "ConsensusRequest",
@@ -1040,6 +1076,14 @@
       {
         "name": "EconomicVerdict",
         "path": "src/director_ai/core/swarm_economics/scorer.py"
+      },
+      {
+        "name": "EdgeRuntimeCheck",
+        "path": "src/director_ai/core/edge/runtime_profile.py"
+      },
+      {
+        "name": "EdgeRuntimeReadiness",
+        "path": "src/director_ai/core/edge/runtime_profile.py"
       },
       {
         "name": "ElasticsearchBackend",
@@ -1918,6 +1962,10 @@
         "path": "src/director_ai/core/exceptions.py"
       },
       {
+        "name": "ObservabilityOperationsReport",
+        "path": "src/director_ai/ui/safety_dashboard.py"
+      },
+      {
         "name": "OnlineCalibrator",
         "path": "src/director_ai/core/calibration/online_calibrator.py"
       },
@@ -2194,6 +2242,14 @@
         "path": "src/director_ai/core/meta_guard/guard.py"
       },
       {
+        "name": "ProductionScaffoldCheck",
+        "path": "src/director_ai/_cli_production.py"
+      },
+      {
+        "name": "ProductionScaffoldReport",
+        "path": "src/director_ai/_cli_production.py"
+      },
+      {
         "name": "ProfileMetadata",
         "path": "src/director_ai/core/config.py"
       },
@@ -2376,6 +2432,14 @@
       {
         "name": "RobustnessReport",
         "path": "src/director_ai/testing/adversarial_suite.py"
+      },
+      {
+        "name": "RollbackHandle",
+        "path": "src/director_ai/core/trajectory/rollback.py"
+      },
+      {
+        "name": "RollbackOutcome",
+        "path": "src/director_ai/core/trajectory/rollback.py"
       },
       {
         "name": "Ros2Adapter",
@@ -2878,6 +2942,10 @@
         "path": "src/director_ai/core/trajectory/simulator.py"
       },
       {
+        "name": "TrajectoryRollbackManager",
+        "path": "src/director_ai/core/trajectory/rollback.py"
+      },
+      {
         "name": "TrajectorySimulator",
         "path": "src/director_ai/core/trajectory/simulator.py"
       },
@@ -3041,6 +3109,7 @@
     "python_source_modules": [
       "src/director_ai/_cli_bench.py",
       "src/director_ai/_cli_ingest.py",
+      "src/director_ai/_cli_production.py",
       "src/director_ai/_cli_serve.py",
       "src/director_ai/_cli_train.py",
       "src/director_ai/_cli_verify.py",
@@ -3113,11 +3182,13 @@
       "src/director_ai/core/cyber_physical/kinematics.py",
       "src/director_ai/core/defense_genome/engine.py",
       "src/director_ai/core/defense_genome/genome.py",
+      "src/director_ai/core/defense_genome/redteam_loop.py",
       "src/director_ai/core/defense_genome/registry.py",
       "src/director_ai/core/defense_genome/update_pipeline.py",
       "src/director_ai/core/doc_chunker.py",
       "src/director_ai/core/doc_parser.py",
       "src/director_ai/core/doc_registry.py",
+      "src/director_ai/core/edge/runtime_profile.py",
       "src/director_ai/core/embedding_tuner.py",
       "src/director_ai/core/emergence_oracle/graph.py",
       "src/director_ai/core/emergence_oracle/oracle.py",
@@ -3130,6 +3201,7 @@
       "src/director_ai/core/federated_privacy/score_release.py",
       "src/director_ai/core/federated_privacy/secret_sharing.py",
       "src/director_ai/core/federated_privacy/signal_sharing.py",
+      "src/director_ai/core/financial_services/banking_policy.py",
       "src/director_ai/core/finetune.py",
       "src/director_ai/core/finetune_benchmark.py",
       "src/director_ai/core/finetune_validator.py",
@@ -3291,6 +3363,7 @@
       "src/director_ai/core/training/sweeps.py",
       "src/director_ai/core/training/tuner.py",
       "src/director_ai/core/training/vertex_runner.py",
+      "src/director_ai/core/trajectory/rollback.py",
       "src/director_ai/core/trajectory/simulator.py",
       "src/director_ai/core/trajectory/steering.py",
       "src/director_ai/core/tuner.py",
@@ -3470,6 +3543,8 @@
     "ComplianceReporter",
     "ConflictAwareKnowledgeGuard",
     "ConformalPredictor",
+    "ConformalRoutingDecision",
+    "ConformalRoutingPolicy",
     "ConsensusScorer",
     "ContentModerationFinding",
     "ContentModerationResult",
@@ -3755,6 +3830,8 @@
       "tests/test_audit_log.py",
       "tests/test_audit_pg_sql_safety.py",
       "tests/test_audit_salt.py",
+      "tests/test_auto_redteam_defence_evidence.py",
+      "tests/test_auto_redteam_defence_loop.py",
       "tests/test_autogen_swarm.py",
       "tests/test_autopoietic.py",
       "tests/test_autopoietic_blueprint.py",
@@ -3789,6 +3866,8 @@
       "tests/test_config_wizard.py",
       "tests/test_conflict_aware_knowledge.py",
       "tests/test_conformal.py",
+      "tests/test_conformal_routing.py",
+      "tests/test_conformal_routing_evidence.py",
       "tests/test_consensus.py",
       "tests/test_consumer_api.py",
       "tests/test_containment.py",
@@ -3846,6 +3925,8 @@
       "tests/test_e2e_eval.py",
       "tests/test_e2e_feature_matrix.py",
       "tests/test_e2e_rust_compute.py",
+      "tests/test_edge_mobile_evidence.py",
+      "tests/test_edge_runtime_profile.py",
       "tests/test_embed_scorer.py",
       "tests/test_embedding_tuner.py",
       "tests/test_emergence_oracle.py",
@@ -3859,10 +3940,12 @@
       "tests/test_external_security_packet.py",
       "tests/test_fastapi_guard.py",
       "tests/test_federated_privacy.py",
+      "tests/test_federated_privacy_evidence.py",
       "tests/test_feedback_loop_detector.py",
       "tests/test_feedback_store.py",
       "tests/test_ffi_bindings.py",
       "tests/test_field_groups.py",
+      "tests/test_financial_services_banking_policy.py",
       "tests/test_finetune.py",
       "tests/test_finetune_api.py",
       "tests/test_finetune_benchmark.py",
@@ -3870,6 +3953,7 @@
       "tests/test_finetune_validator.py",
       "tests/test_forge.py",
       "tests/test_formal_code_adapter.py",
+      "tests/test_formal_symbolic_evidence.py",
       "tests/test_formal_verification.py",
       "tests/test_frontierfail_packet.py",
       "tests/test_full_benchmark_campaign.py",
@@ -3884,6 +3968,7 @@
       "tests/test_gemma_aggrefact_logprob_routed.py",
       "tests/test_gemma_aggrefact_routed.py",
       "tests/test_gemma_aggrefact_self_consistency.py",
+      "tests/test_grpc_api_docs.py",
       "tests/test_grpc_scoring.py",
       "tests/test_grpc_server.py",
       "tests/test_guard_control.py",
@@ -3947,6 +4032,7 @@
       "tests/test_llamaindex_real_sdk.py",
       "tests/test_llm_judge.py",
       "tests/test_local_judge.py",
+      "tests/test_local_release_evidence_gate.py",
       "tests/test_log_json.py",
       "tests/test_loop_monitor.py",
       "tests/test_managed_training_jobs.py",
@@ -3966,6 +4052,7 @@
       "tests/test_multilingual_corpus.py",
       "tests/test_multimodal_check_adapter.py",
       "tests/test_multimodal_guard.py",
+      "tests/test_multimodal_temporal_evidence.py",
       "tests/test_neuro_symbolic_verifier.py",
       "tests/test_new_integrations.py",
       "tests/test_nli_backend_contracts.py",
@@ -3978,6 +4065,7 @@
       "tests/test_notebook_gallery.py",
       "tests/test_numeric_verifier.py",
       "tests/test_observability.py",
+      "tests/test_observability_pack.py",
       "tests/test_online_calibrator.py",
       "tests/test_onnx_artefact_guidance.py",
       "tests/test_onnx_backend.py",
@@ -4011,9 +4099,11 @@
       "tests/test_private_score_release.py",
       "tests/test_production_asserts.py",
       "tests/test_production_guard.py",
+      "tests/test_production_scaffold_check.py",
       "tests/test_prompt_risk_routing.py",
       "tests/test_proto_serialization.py",
       "tests/test_provenance.py",
+      "tests/test_provenance_evidence.py",
       "tests/test_providers.py",
       "tests/test_proxy.py",
       "tests/test_proxy_audit.py",
@@ -4088,6 +4178,7 @@
       "tests/test_sustainability.py",
       "tests/test_sustainability_forecaster.py",
       "tests/test_sustainability_policy_adapter.py",
+      "tests/test_sustained_load_evidence.py",
       "tests/test_swarm_economics.py",
       "tests/test_swarm_equilibrium.py",
       "tests/test_swarm_guardian.py",
@@ -4104,6 +4195,8 @@
       "tests/test_trace_safe.py",
       "tests/test_train_distillation_reproducibility.py",
       "tests/test_training_model_registry.py",
+      "tests/test_trajectory_rollback.py",
+      "tests/test_trajectory_rollback_evidence.py",
       "tests/test_trajectory_simulator.py",
       "tests/test_tune.py",
       "tests/test_types.py",
@@ -4126,6 +4219,8 @@
       "tests/test_voice_demo.py",
       "tests/test_voice_guard.py",
       "tests/test_voice_pipeline.py",
+      "tests/test_wasm_browser_worker_smoke.py",
+      "tests/test_wasm_release_package.py",
       "tests/test_wasm_runtime_priority.py",
       "tests/test_zk_attestation.py",
       "tests/test_zk_attestation_fuzz.py"

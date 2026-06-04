@@ -1,16 +1,34 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
-<!-- Commercial license available -->
-<!-- Copyright (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved. -->
-<!-- Copyright (c) Code 2020-2026 Miroslav Sotek. All rights reserved. -->
-<!-- ORCID: 0009-0009-3560-0851 -->
-<!-- Contact: www.anulum.li | protoscience@anulum.li -->
-<!-- Director-Class AI - Evaluation Onboarding -->
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Evaluation onboarding
+-->
 
 # Evaluation Onboarding
 
 This guide gives evaluators, pilots, and new contributors a concrete path from
 first install to evidence-backed deployment. Use it as the shared checklist for
 a first Director-AI trial.
+
+## Pilot Charter
+
+Write this charter before tuning thresholds:
+
+| Field | Question to answer |
+|---|---|
+| Workflow | Which exact model output will Director-AI inspect? |
+| Consequence | What happens if this output is wrong? |
+| Evidence source | Which governed facts, documents, or labelled examples define correctness? |
+| Control action | Should the guard raise, annotate, halt, reject, or route to review? |
+| Acceptance metric | Which false-positive, false-negative, latency, and review-cost limits matter? |
+| Owner | Who approves threshold changes and production rollout? |
+
+The first pilot is successful when this charter has measured evidence, not when
+every optional integration has been enabled.
 
 ## 1. Choose The Pilot Shape
 
@@ -105,7 +123,20 @@ Minimum evidence before a production pilot:
 - operational ownership is assigned for threshold changes and false-positive
   review.
 
-## 7. Continue By Role
+## 7. Evidence Packet Template
+
+Use this packet for internal review, procurement, or a customer pilot closeout:
+
+| Section | Contents |
+|---|---|
+| Use case | Workflow, users, output boundary, and consequence of a wrong answer |
+| Dataset | Source, ownership, split policy, examples excluded from tuning |
+| Configuration | Package version, scorer mode, threshold, runtime extras, KB version |
+| Results | Good-answer approvals, bad-answer rejections, false positives, false negatives |
+| Operations | Auth, tenant binding, metrics, logs, review queue, rollback owner |
+| Claim boundary | Which claims are supported by this pilot and which require more evidence |
+
+## 8. Continue By Role
 
 | Role | Next page |
 |---|---|
@@ -116,7 +147,7 @@ Minimum evidence before a production pilot:
 | Compliance reviewer | [Compliance Reporting](compliance-reporting.md) |
 | Commercial evaluator | [Product Overview](product-overview.md) |
 
-## 8. Business Evidence Package
+## 9. Business Evidence Package
 
 For commercial pilots, pair technical checks with a short evidence packet:
 

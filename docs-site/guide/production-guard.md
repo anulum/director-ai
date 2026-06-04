@@ -1,8 +1,21 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — ProductionGuard guide
+-->
+
 # ProductionGuard
 
 *Added in v3.11.0*
 
-`ProductionGuard` is the batteries-included entry point for production deployments. It bundles calibrated scoring, human feedback loop, conformal confidence intervals, and agent tool-call verification into a single API.
+`ProductionGuard` is the batteries-included entry point for production
+deployments. It bundles calibrated scoring, human feedback loop, conformal
+confidence intervals, agent tool-call verification, injection detection, and
+optional deterministic sector-policy checks into a single API.
 
 ## Quick Start
 
@@ -15,6 +28,50 @@ guard.load_facts({"dosage": "Max 400mg ibuprofen per dose."})
 result = guard.check("What is the max dose?", "Take up to 800mg.")
 print(result.approved, result.score)
 ```
+
+## Banking Sector Policy
+
+For financial-services deployments, use the finance profile for semantic and
+KB-grounded scoring, then add `sector_policy="banking"` when the answer must
+also pass deterministic banking controls. Final approval requires both the
+coherence score and the sector policy to pass.
+
+```python
+from director_ai.guard import ProductionGuard
+
+guard = ProductionGuard.from_profile("finance")
+guard.load_facts({
+    "deposit_coverage": (
+        "FDIC insurance covers up to $250,000 per depositor, per insured "
+        "bank, for each ownership category."
+    )
+})
+
+result = guard.check(
+    "What is the standard FDIC deposit coverage limit?",
+    (
+        "FDIC insurance covers up to $250,000 per depositor, per insured "
+        "bank, for each ownership category."
+    ),
+    sector_policy="banking",
+    evidence_refs=("policy://fdic/deposit-insurance/current",),
+    numeric_evidence_refs=("policy://fdic/deposit-insurance/current#limit",),
+    policy_refs=("policy://financial-services/deposit-disclosures",),
+)
+
+assert result.approved
+assert result.sector_policy_report is not None
+```
+
+Unsupported rates, wrong deposit-insurance amounts, investment
+recommendations, and unresolved complaint/dispute flows set
+`result.approved=False` even when the semantic scorer would otherwise approve.
+The attached `sector_policy_report` is audit-safe: it records finding codes,
+policy references, and evidence identifiers, not raw customer text.
+
+This is a software guardrail. Production operators remain responsible for
+jurisdiction-specific policy ownership, current disclosures, licensed review
+flows, and labelled calibration traces.
 
 ## With Calibration
 
@@ -107,7 +164,7 @@ guard = ProductionGuard(config=DirectorConfig(
 | `from_profile(name)` | Create from a named profile (fast, medical, finance, etc.) |
 | `load_facts(facts)` | Load key-value facts into the knowledge base |
 | `enable_calibration(alpha)` | Enable online calibration with conformal CIs |
-| `check(prompt, response)` | Score a response, return `GuardResult` |
+| `check(prompt, response, sector_policy=...)` | Score a response, optionally run a deterministic sector policy, return `GuardResult` |
 | `check_verified(response, source)` | Per-claim verification against source text |
 | `check_injection(intent, response, ...)` | Detect injection effects, return `InjectionResult` |
 | `record_feedback(result, label)` | Feed human correction into calibrator |
@@ -122,3 +179,10 @@ guard = ProductionGuard(config=DirectorConfig(
 | `coherence` | `CoherenceScore` | Full scoring details |
 | `confidence_interval` | `tuple[float, float] | None` | Conformal CI (if calibration enabled) |
 | `calibrated_threshold` | `float | None` | Adjusted threshold (if calibration enabled) |
+| `sector_policy_report` | `BankingPolicyReport | None` | Deterministic sector-policy result when `sector_policy` is set |
+
+`enable_calibration()` uses `ConformalPredictor.predict_interval()` for the
+`GuardResult.confidence_interval` tuple and records operator feedback through
+`ConformalPredictor.add_observation()`. Deployments that need a routing outcome
+instead of only an interval can pass the score to `ConformalRoutingPolicy` and
+route by calibrated upper/lower risk bounds.

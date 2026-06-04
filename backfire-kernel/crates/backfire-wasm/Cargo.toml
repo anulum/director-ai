@@ -12,6 +12,9 @@ edition.workspace = true
 authors.workspace = true
 license.workspace = true
 description = "WebAssembly bindings for the Director-Class AI Backfire Kernel"
+repository = "https://github.com/anulum/director-ai"
+homepage = "https://www.anulum.li"
+readme = "README.md"
 
 [lib]
 crate-type = ["cdylib", "rlib"]

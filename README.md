@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Repository overview
+-->
+
 <p align="center">
   <img src="docs/assets/header.png" width="1280" alt="Director-AI — Real-time LLM Hallucination Guardrail">
 </p>
@@ -70,6 +80,26 @@ Director-AI is a factual-coherence control plane for teams that need LLM output
 to remain tied to governed facts before the answer is displayed, streamed,
 stored, handed to another agent, or used in a business workflow.
 
+## Executive Snapshot
+
+Director-AI is not a prompt template, chatbot UI, or generic moderation filter.
+It is a guardrail runtime for factual-risk control:
+
+- **Before output reaches users:** score a candidate answer against governed
+  facts, NLI contradiction signals, retrieval evidence, and structured checks.
+- **While output is streaming:** stop a token stream when coherence drops
+  instead of waiting for post-hoc review.
+- **Inside agent workflows:** inspect tool outputs, handoffs, and trajectory
+  steps before downstream action.
+- **For operators:** emit tenant-safe evidence, metrics, halt reasons, and
+  compliance packets that can be reviewed without exposing raw customer data.
+
+The strongest open-core value is the combination of real-time streaming halt,
+local low-latency execution, RAG/NLI verification, Rust acceleration, REST/gRPC
+deployment surfaces, and evidence-first documentation. The commercial value is
+reducing factual incidents in high-consequence workflows while giving teams a
+portable control layer across models, providers, and deployment targets.
+
 | Application | Protected surface | Value |
 |-------------|-------------------|-------|
 | Customer support | Policy, refund, warranty, and account answers | Reduce unsupported customer-facing claims |
@@ -89,6 +119,16 @@ own governed data.
 Start with the [Product Overview](docs-site/guide/product-overview.md) for the
 market and application map, then use [Evaluation Onboarding](docs-site/guide/onboarding.md)
 to run a scoped pilot.
+
+## Choose Your Path
+
+| Reader | First 30 minutes | Evidence to produce |
+|---|---|---|
+| Product or market evaluator | Read [Product Overview](docs-site/guide/product-overview.md), [Market Value](docs-site/guide/market-value-and-positioning.md), and [Guardrail Landscape](docs-site/guide/guardrail-landscape.md) | One-page use case, risk surface, and competing control options |
+| Developer | Run [Quickstart](docs-site/quickstart.md), then wrap an SDK client with [`guard()`](docs-site/api/guard.md) | One known-good answer approved and one known-bad answer rejected |
+| RAG engineer | Run [KB Ingestion](docs-site/guide/kb-ingestion.md) and [Vector Store](docs-site/api/vector-store.md) | Retrieval chunks tied to a rejection or approval |
+| Platform operator | Read [Production Guide](docs-site/deployment/production.md), [Metrics](docs-site/deployment/metrics.md), and [Runbooks](docs-site/deployment/runbooks.md) | Authenticated service, metrics scrape, and rollback/escalation path |
+| Enterprise pilot owner | Use [Evaluation Onboarding](docs-site/guide/onboarding.md) and [Notebook Gallery](docs-site/notebook-gallery.md) | Labelled sample, threshold decision, false-positive examples, owner sign-off |
 
 ### Core capabilities
 
@@ -122,17 +162,17 @@ For a buyer-facing positioning, start from [Market Value and Positioning](docs-s
 | Surface | Current inventory |
 |---|---:|
 | Package version | 3.15.2 |
-| Public API exports | 214 |
-| Python capability source modules | 311 |
-| Python capability classes | 702 |
-| API documentation pages | 49 |
+| Public API exports | 216 |
+| Python capability source modules | 316 |
+| Python capability classes | 718 |
+| API documentation pages | 51 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |
-| Python test files | 396 |
-| Public documentation pages | 144 |
+| Python test files | 416 |
+| Public documentation pages | 146 |
 | GitHub Actions workflows | 11 |
 
-Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artifacts.
+Evidence boundary: this snapshot is a static inventory. Performance, coverage, hardware, and scientific-fidelity claims require their own committed evidence artefacts.
 <!-- capability-snapshot:end -->
 
 ### Selectable scorer models
@@ -222,7 +262,7 @@ Guard entire agent swarms — not just individual LLM calls:
 
 ### Additional modules
 
-Meta-confidence estimation, online calibration from feedback, contradiction tracking across turns, agentic loop monitoring, adversarial robustness testing (25 patterns), EU AI Act audit trails, domain presets (medical/finance/legal/creative), cross-model consensus, conformal prediction intervals, token cost analyser, compliance report templates (HTML/Markdown), config wizard (Gradio UI + CLI).
+Meta-confidence estimation, online calibration from feedback, contradiction tracking across turns, agentic loop monitoring, adversarial robustness testing (25 patterns), EU AI Act audit trails, domain presets (medical/finance/legal/creative), cross-model consensus, conformal prediction intervals and uncertainty routing, token cost analyser, compliance report templates (HTML/Markdown), config wizard (Gradio UI + CLI).
 
 ### Agent safety hooks
 
