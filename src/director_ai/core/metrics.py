@@ -203,6 +203,7 @@ class MetricsCollector:
             "feedback_total": _Counter(),
             "retune_recommendations_total": _Counter(),
             "sector_policy_findings_total": _Counter(),
+            "http_requests_total": _Counter(),
         }
         self._histograms: dict[str, _Histogram] = {
             "coherence_score": _Histogram(buckets=COHERENCE_SCORE_BUCKETS),

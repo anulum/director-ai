@@ -58,6 +58,12 @@ class TestCounters:
         assert m["counters"]["sector_policy_findings_total"]["total"] == 0.0
         assert m["counters"]["sector_policy_findings_total"]["multi_labels"] == {}
 
+    def test_http_request_counter_is_stable_at_startup(self, collector):
+        m = collector.get_metrics()
+        assert m["counters"]["http_requests_total"]["total"] == 0.0
+        assert m["counters"]["http_requests_total"]["multi_labels"] == {}
+        assert "director_ai_http_requests_total 0.0" in collector.prometheus_format()
+
 
 class TestHistograms:
     """Histogram metric tests."""
