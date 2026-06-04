@@ -77,3 +77,45 @@ The safety operations mixin tracks:
 
 It pairs with `director-ai safety-dashboard` for recent evidence review and
 labelled-feedback retuning.
+
+## Tenant-Safe Operations Report
+
+The dashboard parser can also produce a machine-readable operations packet for
+review boards and deployment gates:
+
+```python
+from director_ai.ui import (
+    ComplianceExportRef,
+    TrustControl,
+    build_observability_operations_report,
+)
+
+events_jsonl = open("safety_events.jsonl", encoding="utf-8").read()
+report = build_observability_operations_report(
+    events_jsonl,
+    controls=[
+        TrustControl(
+            control="External security test",
+            status="warning",
+            evidence_ref="security/external-review-ticket.md",
+        ),
+    ],
+    compliance_exports=[
+        ComplianceExportRef(
+            standard="EU AI Act Article 15",
+            name="30-day technical documentation",
+            status="available",
+            evidence_ref="reports/article15-current.md",
+        ),
+    ],
+)
+
+payload = report.to_dict()
+markdown = report.to_markdown()
+```
+
+The packet joins per-tenant halt rates, contradiction-source forensics, recent
+halt evidence, rolling drift alerts, readiness controls, and compliance-export
+references. It is tenant-safe by construction: raw prompts, responses, customer
+identifiers, feedback payloads, and compliance artefact contents are not
+serialised.

@@ -12,11 +12,18 @@ import json
 import sys
 import types
 
+import pytest
+
 from director_ai.ui.safety_dashboard import (
+    COMPLIANCE_EXPORT_COLUMNS,
+    DRIFT_ALERT_COLUMNS,
     EVIDENCE_COLUMNS,
     SOURCE_COLUMNS,
     TENANT_COLUMNS,
+    ComplianceExportRef,
     TrustControl,
+    build_observability_operations_markdown,
+    build_observability_operations_report,
     build_retune_guidance,
     build_safety_dashboard,
     build_trust_console_report,
@@ -30,6 +37,35 @@ def _line(payload: dict) -> str:
 
 
 class TestSafetyDashboard:
+    @pytest.fixture(autouse=True)
+    def _fake_tuner_module(self, monkeypatch):
+        fake_tuner = types.ModuleType("director_ai.core.training.tuner")
+
+        def fake_tune(samples):
+            labels = [bool(sample["label"]) for sample in samples]
+            return types.SimpleNamespace(
+                threshold=0.42,
+                w_logic=0.5,
+                w_fact=0.5,
+                balanced_accuracy=1.0 if len(set(labels)) > 1 else 0.5,
+                confidence_level="unit-test",
+            )
+
+        def fake_overlay(result, *, profile, base_profile):
+            lines = [
+                f'profile: "{profile}"',
+                f"coherence_threshold: {result.threshold:.4f}",
+                f"w_logic: {result.w_logic:.4f}",
+                f"w_fact: {result.w_fact:.4f}",
+            ]
+            if base_profile:
+                lines.append(f'tuned_from_profile: "{base_profile}"')
+            return "\n".join(lines)
+
+        fake_tuner.tune = fake_tune
+        fake_tuner.format_profile_overlay = fake_overlay
+        monkeypatch.setitem(sys.modules, "director_ai.core.training.tuner", fake_tuner)
+
     def test_tables_have_stable_columns(self):
         assert TENANT_COLUMNS == [
             "tenant_id",
@@ -396,6 +432,8 @@ class TestSafetyDashboard:
         assert "SafetyEvent JSONL" in labels
         assert "Feedback JSONL" in labels
         assert "Retune command" in labels
+        assert "Drift alert threshold" in labels
+        assert "Observability operations report" in labels
         assert "Render Dashboard" in labels
         assert fake.launch_kwargs == {"server_port": 7871, "share": True}
 
@@ -410,6 +448,20 @@ class TestSafetyDashboard:
             "Feedback JSONL",
             "Halt-rate alert threshold",
             "False-positive alert threshold",
+        ]
+        operations_clicks = [
+            click
+            for click in fake.clicks
+            if getattr(click["fn"], "__name__", "")
+            == "build_observability_operations_markdown"
+        ]
+        assert len(operations_clicks) == 1
+        assert [component.label for component in operations_clicks[0]["inputs"]] == [
+            "SafetyEvent JSONL",
+            "Feedback JSONL",
+            "Halt-rate alert threshold",
+            "False-positive alert threshold",
+            "Drift alert threshold",
         ]
 
 
@@ -493,6 +545,163 @@ class TestTrustConsole:
             assert "status" in str(exc)
         else:
             raise AssertionError("TrustControl should reject unknown statuses")
+
+
+class TestObservabilityOperationsReport:
+    def test_report_contains_drift_forensics_and_excludes_raw_payloads(self):
+        events = "".join(
+            [
+                _line(
+                    {
+                        "event_id": "baseline-1",
+                        "tenant_id": "tenant-a",
+                        "timestamp": "2026-06-01T00:00:00Z",
+                        "policy_decision": "allow",
+                        "observed_score": 0.92,
+                        "prompt": "raw prompt must stay tenant-local",
+                    },
+                ),
+                _line(
+                    {
+                        "event_id": "baseline-2",
+                        "tenant_id": "tenant-a",
+                        "timestamp": "2026-06-01T00:01:00Z",
+                        "policy_decision": "allow",
+                        "observed_score": 0.88,
+                        "response": "raw response must stay tenant-local",
+                    },
+                ),
+                _line(
+                    {
+                        "event_id": "current-1",
+                        "tenant_id": "tenant-a",
+                        "timestamp": "2026-06-01T00:02:00Z",
+                        "policy_decision": "halt",
+                        "halt_reason": "contradiction",
+                        "observed_score": 0.24,
+                        "trace_attribution": {"fact_source": "kb://policy-v5"},
+                        "tenant_safe_explanation": "Review policy-v5 source.",
+                    },
+                ),
+                _line(
+                    {
+                        "event_id": "current-2",
+                        "tenant_id": "tenant-a",
+                        "timestamp": "2026-06-01T00:03:00Z",
+                        "policy_decision": "halt",
+                        "halt_reason": "contradiction",
+                        "observed_score": 0.21,
+                        "trace_attribution": {"fact_source": "kb://policy-v5"},
+                        "customer_email": "jane@example.com",
+                    },
+                ),
+            ],
+        )
+
+        report = build_observability_operations_report(
+            events,
+            controls=[
+                TrustControl(
+                    control="Trace retention",
+                    status="passed",
+                    evidence_ref="runbooks/trace-retention.md",
+                ),
+            ],
+            compliance_exports=[
+                ComplianceExportRef(
+                    standard="EU AI Act Article 15",
+                    name="30-day operations report",
+                    status="available",
+                    evidence_ref="reports/article15-june.md",
+                    updated_at="2026-06-01",
+                ),
+            ],
+            generated_at="2026-06-01T00:05:00Z",
+            drift_alert_threshold=0.25,
+        )
+        payload = report.to_dict()
+        serialised = json.dumps(payload, sort_keys=True)
+
+        assert payload["drift_alert_columns"] == DRIFT_ALERT_COLUMNS
+        assert payload["compliance_export_columns"] == COMPLIANCE_EXPORT_COLUMNS
+        assert payload["summary"]["risk_level"] == "critical"
+        assert payload["summary"]["drift_alerts"] == 1
+        assert payload["drift_alerts"] == [
+            [
+                "tenant-a",
+                2,
+                2,
+                0.0,
+                1.0,
+                1.0,
+                "severe",
+                "Freeze rollout, review halt traces, and retune before expansion.",
+            ]
+        ]
+        assert payload["privacy"] == {
+            "payload_classification": "tenant_safe",
+            "raw_event_text_included": False,
+            "raw_feedback_text_included": False,
+            "raw_compliance_evidence_included": False,
+        }
+        assert "raw prompt" not in serialised
+        assert "raw response" not in serialised
+        assert "jane@example.com" not in serialised
+        assert "kb://policy-v5" in serialised
+
+    def test_missing_compliance_export_marks_report_critical(self):
+        report = build_observability_operations_report(
+            "",
+            compliance_exports=[
+                ComplianceExportRef(
+                    standard="SOC 2",
+                    name="Security evidence packet",
+                    status="missing",
+                    evidence_ref="pending/security-evidence.md",
+                ),
+            ],
+        )
+
+        payload = report.to_dict()
+        markdown = report.to_markdown()
+
+        assert payload["summary"]["risk_level"] == "critical"
+        assert payload["summary"]["compliance_export_gaps"] == 1
+        assert "Security evidence packet" in markdown
+        assert "missing" in markdown
+
+    def test_drift_alert_requires_enough_events_per_window(self):
+        events = _line(
+            {
+                "event_id": "baseline",
+                "tenant_id": "tenant-a",
+                "policy_decision": "allow",
+            },
+        ) + _line(
+            {
+                "event_id": "current",
+                "tenant_id": "tenant-a",
+                "policy_decision": "halt",
+            },
+        )
+
+        report = build_observability_operations_report(
+            events,
+            drift_alert_threshold=0.1,
+            min_drift_window_events=2,
+        )
+
+        assert report.to_dict()["drift_alerts"] == []
+        assert report.to_dict()["summary"]["risk_level"] == "attention_required"
+
+    def test_operations_markdown_is_dashboard_ready(self):
+        markdown = build_observability_operations_markdown(
+            _line({"tenant_id": "tenant-a", "policy_decision": "allow"}),
+        )
+
+        assert "# Director-AI Observability Operations" in markdown
+        assert "## Drift Alerts" in markdown
+        assert "No drift alerts" in markdown
 
 
 class _FakeComponent:

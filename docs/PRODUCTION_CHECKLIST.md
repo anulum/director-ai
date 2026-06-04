@@ -131,6 +131,9 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] Enable `audit_log_path` for compliance trail
 - [ ] Enable OpenTelemetry where distributed traces are required; scorer spans
       cover cache lookup, retrieval, NLI, calibration, and judge escalation
+- [ ] Export a tenant-safe operations packet with
+      `build_observability_operations_report()` for halt forensics, drift
+      alerts, readiness controls, and compliance evidence references
 
 ### Performance
 
@@ -200,6 +203,10 @@ The only token cost is the optional LLM-as-judge escalation path.
 ### Grafana dashboard
 
 Pre-built at `deploy/observability/grafana-dashboard.json` with 9 panels.
+For deployment gates, pair Grafana with the tenant-safe operations packet from
+`director_ai.ui.build_observability_operations_report()` so halt forensics,
+drift alerts, readiness controls, and Article 15/SOC 2 evidence references are
+reviewable without exposing raw prompts or responses.
 
 ---
 

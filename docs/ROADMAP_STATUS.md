@@ -8,7 +8,7 @@
 
 # Roadmap Status Reconciliation
 
-Last reconciled: 2026-06-02
+Last reconciled: 2026-06-04
 
 This file is the public status index for distinguishing active roadmap work
 from completed, blocked, stale, and speculative planning material. The
@@ -37,9 +37,9 @@ validation records, and release documentation.
 | R5 | Hugging Face Space live deployment push | Open/manual | Published Space URL plus deployment smoke evidence |
 | R6 | Polar storefront environment-specific live deployment smoke | Open/environment-specific | Live checkout, portal, webhook, and licence validation smoke records without committed secrets |
 | R7 | AggreFact leaderboard submission | Submitted by email on 2026-06-02; awaiting maintainer response | Maintainer response, submission acknowledgement, or upstream pull-request URL |
-| R8 | Unified Observability Dashboard (Core) | Open | OTEL trace/telemetry prototype plus lightweight or Langfuse-integrated UI with halt explanations and compliance export evidence |
+| R8 | Unified Observability Dashboard (Core) | Partly implemented: OTEL token spans, Langfuse-shaped callback adapter, safety dashboard, and tenant-safe operations report with halt forensics, drift alerts, readiness controls, and compliance-export references are present; live external dashboard telemetry remains open | Archived staging telemetry, dashboard screenshots or hosted URL, and operator sign-off for the exported operations packet |
 | R9 | Online KB evolution + provenance | Open | Tamper-evident Merkle-backed fact lineage proof plus counterfactual explanation feedback loop |
-| R10 | Conformal prediction routing + uncertainty | Open | Coverage calibration evidence for 95% routing split + reject-to-human/stronger-model policy |
+| R10 | Conformal prediction routing + uncertainty | Open | Coverage calibration evidence for 95% routing split + reject-to-human/escalated-model policy |
 | R11 | Agent trajectory simulation + rollback | Open | Monte-Carlo pre-execution simulation and safe undo hooks with adversarial stress testing evidence |
 | R12 | Multi-modal + temporal consistency guard | Open | Vision-NLI streaming checks across frame sequences plus temporal consistency evidence |
 | R13 | Privacy-preserving federated learning for signals | Open | MPC/DP aggregation evidence with poisoning-resilient federation and tenant isolation checks |

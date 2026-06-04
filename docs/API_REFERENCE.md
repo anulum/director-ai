@@ -451,6 +451,8 @@ director-ai config --profile fast      # show/set configuration
 | `SanitizeResult` | `blocked`, `reason`, `pattern` | Sanitizer check result |
 | `Violation` | `rule`, `detail` | Policy violation |
 | `AuditEntry` | `timestamp`, `query_hash`, `approved`, `score`, ... | Audit record |
+| `ObservabilityOperationsReport` | `summary`, `tenants`, `sources`, `drift_alerts`, `controls`, `compliance_exports` | Tenant-safe halt forensics and deployment-gate operations packet |
+| `ComplianceExportRef` | `standard`, `name`, `status`, `evidence_ref`, `updated_at` | Operator-owned compliance export reference without raw artefact contents |
 
 ---
 

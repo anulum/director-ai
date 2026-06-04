@@ -178,6 +178,8 @@ See [Online Calibration Guide](../guide/online-calibration.md).
 | `Soc2IsoReadinessReport` | `compliance.readiness` | Tenant-safe SOC 2 / ISO 27001 readiness report |
 | `Soc2IsoControl` | `compliance.readiness` | One readiness control mapped to SOC 2 and ISO 27001 evidence |
 | `build_soc2_iso_readiness_report()` | `compliance.readiness` | Default or operator-supplied readiness report builder |
+| `build_observability_operations_report()` | `ui.safety_dashboard` | Tenant-safe halt forensics, drift alerts, controls, and compliance-export packet |
+| `ComplianceExportRef` | `ui.safety_dashboard` | Compliance export reference included without serialising artefact contents |
 | `DriftDetector` | `compliance.drift_detector` | Statistical drift detection (two-proportion z-test) |
 | `DriftResult` | `compliance.drift_detector` | Drift analysis result with z-score, p-value, severity |
 
@@ -195,6 +197,8 @@ See [Compliance Reporting Guide](../guide/compliance-reporting.md).
 | `RulesDslError` | `enterprise.rules_dsl` | Stable validation error for invalid ruleset documents |
 | `build_trust_console_report()` | `ui.safety_dashboard` | Tenant-safe Trust Console JSON/Markdown report builder |
 | `TrustControl` | `ui.safety_dashboard` | Readiness control row for customer-facing trust reports |
+| `build_observability_operations_report()` | `ui.safety_dashboard` | Tenant-safe operations packet for halt forensics, drift alerts, and compliance exports |
+| `ComplianceExportRef` | `ui.safety_dashboard` | Operator-owned compliance export reference |
 
 See [Enterprise API](enterprise.md).
 
