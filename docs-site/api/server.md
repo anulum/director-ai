@@ -205,6 +205,9 @@ DIRECTOR_API_KEYS=key1,key2 director-ai serve
 ```
 
 Clients send `X-API-Key: key1` header. Unauthenticated requests receive 401.
+The `/v1/stream` WebSocket endpoint enforces the same API-key requirement before
+accepting the socket. When `api_key_tenant_map` is configured, a key must be
+present in the map and any `X-Tenant-ID` claim must match the bound tenant.
 
 ## Request IDs
 

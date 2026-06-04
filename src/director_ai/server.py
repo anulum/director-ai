@@ -2098,6 +2098,9 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                 await ws.close(code=1008, reason="unauthorized")
                 return
             if _api_key_tenant_map:
+                if provided not in _api_key_tenant_map:
+                    await ws.close(code=1008, reason="API key not bound to any tenant")
+                    return
                 ws_tenant_id = _api_key_tenant_map.get(provided, "")
                 claimed = ws.headers.get("X-Tenant-ID", "")
                 if claimed and ws_tenant_id and claimed != ws_tenant_id:
