@@ -1,9 +1,34 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Tutorials
+-->
+
 # Tutorials
 
 Interactive Jupyter notebooks covering Director-AI from first principles to production deployment. Every notebook runs in Google Colab with zero local setup.
 
 For a buyer- and use-case-oriented index across every published notebook, see
 the [Notebook Gallery](notebook-gallery.md).
+
+## What The Tutorial Set Covers
+
+The notebooks are organised as a product learning path, not as isolated demos:
+
+- **Foundations:** scoring, evidence, and the coherence engine.
+- **Application controls:** SDK guard, streaming halt, domain presets, and
+  structured verification.
+- **RAG and domain applications:** vector-backed facts, medical examples, and
+  integration adapters.
+- **Production and evaluation:** batch processing, multi-tenant deployment,
+  custom adaptation, and benchmark interpretation.
+
+Use [Evaluation Onboarding](guide/onboarding.md) alongside the notebooks when
+you need pilot evidence rather than a feature tour.
 
 ## Choose By Role
 
@@ -17,6 +42,17 @@ the [Notebook Gallery](notebook-gallery.md).
 | Evaluation engineer | [Batch Processing & Evaluation](https://github.com/anulum/director-ai/blob/main/notebooks/13_batch_processing_and_evaluation.ipynb) | Build benchmark and regression-gate workflows |
 
 For a non-notebook pilot checklist, use [Evaluation Onboarding](guide/onboarding.md).
+
+## Learning Outcomes
+
+| Track | You should be able to prove |
+|---|---|
+| Foundations | A governed fact can approve one response and reject a contradiction |
+| Streaming safety | A partial output can halt before the full answer is emitted |
+| Retrieval | A verdict can cite retrieved chunks instead of relying on prompt text alone |
+| Integrations | A real SDK or framework path can be wrapped without changing the model provider |
+| Evaluation | A labelled set can drive threshold and regression-gate decisions |
+| Enterprise | Tenant, auth, metrics, and deployment controls are visible before rollout |
 
 ## Learning Path
 

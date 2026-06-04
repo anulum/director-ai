@@ -15,6 +15,19 @@ operator-facing APIs in Director-AI. Internal helpers, generated protobuf
 stubs, and compatibility shims are intentionally excluded unless they define a
 supported integration boundary.
 
+## API Selection Model
+
+Choose the API by the boundary you control:
+
+| Boundary you own | Use | Why |
+|---|---|---|
+| Application code | `guard()`, `score()`, `CoherenceScorer` | Smallest path to reject or annotate one output |
+| Token stream | `StreamingKernel`, `AsyncStreamingKernel`, `/v1/stream` | Stop partial output before completion |
+| Knowledge base | `DocumentIngestionPipeline`, `VectorGroundTruthStore` | Tie verdicts to governed private facts |
+| Shared service | REST server or gRPC server | Centralise auth, tenant binding, metrics, and rollout controls |
+| Evaluation pipeline | `BatchProcessor`, policy evaluation, conformal routing | Compare thresholds, models, and regression gates |
+| Governance surface | `SafetyEvent`, human review, compliance reports | Preserve tenant-safe evidence for review and audits |
+
 ## Pick The Right API First
 
 | Need | API | Start |

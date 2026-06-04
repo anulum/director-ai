@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Quickstart
+-->
+
 # Quickstart
 
 Use this page when you want to run Director-AI, score a response, and protect
@@ -30,6 +40,19 @@ director-ai doctor
 
 This starts the default proxy on port 8080, the FastAPI service on port 8000,
 and local Chroma persistence under `./director_guard/chroma`.
+
+## What You Should See
+
+After the first run you should have:
+
+- a guarded call path that can score a prompt/response pair;
+- at least one governed fact loaded inline or through local Chroma;
+- a rejection or low score for a deliberately wrong answer;
+- a path to inspect the score, evidence, and failure action;
+- no secrets printed in logs or notebook output.
+
+If you are evaluating Director-AI for a team, save those five observations in
+the pilot evidence packet from [Evaluation Onboarding](guide/onboarding.md).
 
 ## Other Entry Points
 
