@@ -39,6 +39,28 @@ finance profiles. Use the scorer for semantic/factual review against a curated
 KB, then use this adapter for deterministic sector controls before releasing a
 customer-facing answer.
 
+The same check is wired into `ProductionGuard.check()`:
+
+```python
+from director_ai.guard import ProductionGuard
+
+guard = ProductionGuard.from_profile("finance")
+result = guard.check(
+    "What is the standard FDIC deposit coverage limit?",
+    "FDIC insurance covers up to $500,000 per depositor.",
+    sector_policy="banking",
+    evidence_refs=("policy://fdic/deposit-insurance/current",),
+    numeric_evidence_refs=("policy://fdic/deposit-insurance/current#limit",),
+    policy_refs=("policy://financial-services/deposit-disclosures",),
+)
+
+assert not result.approved
+assert result.sector_policy_report is not None
+assert result.sector_policy_report.blocked_codes == (
+    "deposit_insurance_limit_mismatch",
+)
+```
+
 ## Full API
 
 ::: director_ai.core.financial_services.BankingPolicyFinding
