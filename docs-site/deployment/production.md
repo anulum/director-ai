@@ -75,6 +75,13 @@ For the bundled Prometheus profile, write the same API key to
 docker compose --profile monitoring up
 ```
 
+Before promotion, generate the local sustained-load hardening packet and attach
+it to the release evidence:
+
+```bash
+PYTHONPATH=src python -m benchmarks.sustained_load_evidence
+```
+
 ```bash
 pip install director-ai[nli,vector,embeddings,openai]
 ```

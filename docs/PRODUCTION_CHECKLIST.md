@@ -139,6 +139,8 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] Pre-warm model after `doctor` passes for the selected backend
 - [ ] Set `cache_size: 1024` for repeated queries
 - [ ] For high throughput: `director-ai stress-test --rps 100`
+- [ ] Generate sustained async/tenant hardening evidence:
+      `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
 
 ### Release documentation sync
 

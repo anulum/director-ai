@@ -34,6 +34,7 @@ Before deploying Director-AI to production, verify each item:
 
 - [ ] Run `director-ai bench` to establish baseline metrics before deployment
 - [ ] Run `director-ai bench --dataset e2e` to verify catch rate on your domain data
+- [ ] Run `PYTHONPATH=src python -m benchmarks.sustained_load_evidence` and archive the JSON packet with the release evidence
 - [ ] Review `director-ai config --profile <domain>` settings match your requirements
 
 ## Security

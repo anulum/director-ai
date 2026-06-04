@@ -214,6 +214,27 @@ Outputs:
 
 Use `--strict` to return non-zero when any case fails or times out.
 
+## Sustained Load Hardening Evidence
+
+For the R17 production-hardening gate, generate an evidence packet that checks
+async stream ordering under concurrent scheduling and same-key tenant poisoning
+isolation:
+
+```bash
+PYTHONPATH=src python -m benchmarks.sustained_load_evidence \
+  --streams 64 \
+  --tokens-per-stream 64 \
+  --tenant-cases 64
+```
+
+Outputs:
+
+- `benchmarks/results/sustained_load_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the production deployment
+gate still requires a sustained staging or production run with external
+telemetry, environment details, and security-review sign-off.
+
 ---
 
 ## Runtime Scorer Model Choices
