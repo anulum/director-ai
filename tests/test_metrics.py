@@ -53,6 +53,11 @@ class TestCounters:
         m = collector.get_metrics()
         assert "new_counter" in m["counters"]
 
+    def test_sector_policy_counter_is_stable_at_startup(self, collector):
+        m = collector.get_metrics()
+        assert m["counters"]["sector_policy_findings_total"]["total"] == 0.0
+        assert m["counters"]["sector_policy_findings_total"]["multi_labels"] == {}
+
 
 class TestHistograms:
     """Histogram metric tests."""
