@@ -48,12 +48,16 @@ For halt-rate, false-positive-rate, stale-knowledge, and retune alerts, also add
 
 ### Prometheus
 
-Ensure Director-AI exposes metrics at `/metrics` (enabled via `DIRECTOR_METRICS_ENABLED=true`):
+Ensure Director-AI exposes metrics at `/v1/metrics/prometheus` (enabled via
+`DIRECTOR_METRICS_ENABLED=true`):
 
 ```bash
 director-ai serve --port 8080
-# Metrics at http://localhost:8080/metrics
+# Metrics at http://localhost:8080/v1/metrics/prometheus
 ```
+
+When API-key auth is enabled, scrape with `Authorization: Bearer <api-key>` or
+the `X-API-Key` header.
 
 ### Grafana
 

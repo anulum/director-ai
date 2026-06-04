@@ -16,6 +16,7 @@ checklist.
 | Protect a RAG bot | `director-ai[vector]` | [KB Ingestion](guide/kb-ingestion.md) |
 | Evaluate a pilot | labelled examples | [Evaluation Onboarding](guide/onboarding.md) |
 | Deploy a service | `director-ai quickstart --run` | [Production Guide](deployment/production.md) |
+| Prepare a production stack | `director-ai quickstart --profile production` | [Monitoring](deployment/monitoring.md) |
 
 ## Recommended Path
 
@@ -72,6 +73,30 @@ Run the default proxy and FastAPI services:
 
 ```bash
 director-ai quickstart --run
+```
+
+For an authenticated production scaffold:
+
+```bash
+director-ai quickstart --profile production
+cd director_guard
+```
+
+Fill `.env` with `DIRECTOR_API_KEY_TENANT_MAP`, `DIRECTOR_PROXY_API_KEYS`,
+`DIRECTOR_LLM_API_URL`, `DIRECTOR_UPSTREAM_URL`, `DIRECTOR_KB_HMAC_KEYS`, and
+`DIRECTOR_CORS_ORIGINS`, then start the service:
+
+```bash
+docker compose up
+```
+
+The production scaffold enables NLI, model-backed fail-closed checks, tenant
+routing, signed knowledge writes, audit/compliance/feedback stores, JSON logs,
+authenticated metrics, rate limiting, and the review queue. To add Prometheus,
+write the matching API key to `secrets/director-api-key` and run:
+
+```bash
+docker compose --profile monitoring up
 ```
 
 Run the ONNX service after placing exported model files in

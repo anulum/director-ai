@@ -18,7 +18,7 @@ from director_ai.core.config import DirectorConfig
 try:
     from fastapi.testclient import TestClient
 
-    from director_ai.server import create_app
+    from director_ai.server import _extract_request_api_key, create_app
 
     _SERVER_AVAILABLE = True
 except ImportError:
@@ -274,6 +274,18 @@ def test_metrics_auth_required_with_key_returns_200():
     with TestClient(app) as client:
         r = client.get("/v1/metrics/prometheus", headers={"X-API-Key": "secret"})
     assert r.status_code == 200
+
+
+def test_extract_request_api_key_accepts_bearer_token_for_prometheus_scrapers():
+    from starlette.requests import Request
+
+    request = Request(
+        {
+            "type": "http",
+            "headers": [(b"authorization", b"Bearer secret")],
+        }
+    )
+    assert _extract_request_api_key(request) == "secret"
 
 
 def test_rate_limit_strict_raises_without_slowapi(monkeypatch):

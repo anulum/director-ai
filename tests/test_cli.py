@@ -355,6 +355,41 @@ class TestQuickstartCommand:
         assert "DIRECTOR_CHROMA_PERSIST_DIR=/data/chroma" in env_text
         assert "DIRECTOR_ONNX_PATH" not in env_text
 
+    def test_quickstart_production_scaffold_requires_secrets_and_monitoring(
+        self,
+        tmp_path,
+        monkeypatch,
+    ):
+        monkeypatch.chdir(tmp_path)
+        main(["quickstart", "--profile", "production"])
+
+        d = tmp_path / "director_guard"
+        compose_text = (d / "docker-compose.yml").read_text()
+        env_text = (d / ".env").read_text()
+        config_text = (d / "config.yaml").read_text()
+        readme_text = (d / "README.md").read_text()
+        prometheus_text = (d / "monitoring" / "prometheus.yml").read_text()
+
+        assert "DIRECTOR_PRODUCTION_MODE" in compose_text
+        assert "DIRECTOR_API_KEY_TENANT_MAP: ${DIRECTOR_API_KEY_TENANT_MAP:?" in (
+            compose_text
+        )
+        assert "--api-keys ${DIRECTOR_PROXY_API_KEYS:?" in compose_text
+        assert "DIRECTOR_KNOWLEDGE_WRITE_REQUIRE_SIGNATURE" in compose_text
+        assert "DIRECTOR_METRICS_REQUIRE_AUTH" in compose_text
+        assert "director-ai[server,vector,nli,otel,presidio]" in compose_text
+        assert "prometheus:" in compose_text
+        assert 'profiles: ["monitoring"]' in compose_text
+        assert "credentials_file: /etc/prometheus/director-api-key" in prometheus_text
+        assert "DIRECTOR_API_KEY_TENANT_MAP=" in env_text
+        assert "DIRECTOR_PROXY_API_KEYS=" in env_text
+        assert "DIRECTOR_LLM_API_URL=" in env_text
+        assert "production_mode: true" in config_text
+        assert "tenant_routing: true" in config_text
+        assert "coherence_require_model_backed_nli: true" in config_text
+        assert "knowledge_write_require_signature: true" in config_text
+        assert "Authorization: Bearer <api-key>" in readme_text
+
     def test_quickstart_with_profile(self, tmp_path, monkeypatch):
         monkeypatch.chdir(tmp_path)
         main(["quickstart", "--profile", "medical"])

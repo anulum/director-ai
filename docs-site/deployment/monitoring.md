@@ -1,6 +1,17 @@
 # Monitoring & Observability
 
-Director-AI exposes Prometheus metrics at `/v1/metrics/prometheus`. This guide wires up Prometheus + Grafana alongside the application.
+Director-AI exposes Prometheus metrics at `/v1/metrics/prometheus`. Production
+deployments should keep `metrics_require_auth=True` and scrape with a bearer
+token that matches an API key configured for the service.
+
+The CLI production scaffold writes this wiring for you:
+
+```bash
+director-ai quickstart --profile production
+cd director_guard
+# fill .env and write secrets/director-api-key
+docker compose --profile monitoring up
+```
 
 ## Docker Compose
 
@@ -12,6 +23,7 @@ services:
       - "8080:8080"
     environment:
       - DIRECTOR_METRICS_ENABLED=true
+      - DIRECTOR_METRICS_REQUIRE_AUTH=true
 
   prometheus:
     image: prom/prometheus:v2.53.0
@@ -40,6 +52,8 @@ scrape_configs:
   - job_name: director-ai
     scrape_interval: 15s
     metrics_path: /v1/metrics/prometheus
+    authorization:
+      credentials_file: /etc/prometheus/director-api-key
     static_configs:
       - targets: ["director-ai:8080"]
 ```

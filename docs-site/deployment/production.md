@@ -53,6 +53,28 @@ graph TD
 
 ## Recommended Setup
 
+For a production scaffold with authenticated service defaults, tenant routing,
+audit stores, signed knowledge writes, and Prometheus-ready metrics:
+
+```bash
+director-ai quickstart --profile production
+cd director_guard
+```
+
+Fill `.env` with the deployment API-key to tenant map, proxy API keys, upstream
+LLM URL, CORS origins, and KB signing key, then run:
+
+```bash
+docker compose up
+```
+
+For the bundled Prometheus profile, write the same API key to
+`secrets/director-api-key` and start:
+
+```bash
+docker compose --profile monitoring up
+```
+
 ```bash
 pip install director-ai[nli,vector,embeddings,openai]
 ```
@@ -152,6 +174,13 @@ from director_ai.core.metrics import metrics
 
 # Built-in metrics exposed at /v1/metrics and /v1/metrics/prometheus
 print(metrics.prometheus_format())
+```
+
+When API keys are configured, `/v1/metrics/prometheus` requires authentication
+by default. Prometheus-compatible scrapers can use:
+
+```http
+Authorization: Bearer <api-key>
 ```
 
 Available metrics:

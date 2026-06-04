@@ -148,6 +148,18 @@ def _check_fastapi() -> None:
         )
 
 
+def _extract_request_api_key(request: Request) -> str:
+    """Return the caller API key from supported production auth headers."""
+    x_api_key = request.headers.get("X-API-Key", "").strip()
+    if x_api_key:
+        return x_api_key
+
+    scheme, _, token = request.headers.get("Authorization", "").partition(" ")
+    if scheme.lower() == "bearer":
+        return token.strip()
+    return ""
+
+
 # Pydantic models extracted to _server_models.py (reduce module size)
 _MAX_PROMPT_CHARS = 100_000
 _MAX_RESPONSE_CHARS = 500_000
@@ -516,7 +528,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
 
         api_key_hash = ""
         if cfg.api_keys and request.url.path not in _auth_exempt:
-            provided = request.headers.get("X-API-Key", "")
+            provided = _extract_request_api_key(request)
             # Constant-time: always compare against ALL keys to prevent
             # timing side-channels that leak key position.
             key_valid = False

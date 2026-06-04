@@ -75,6 +75,32 @@ Place exported FactCG ONNX files in `models/factcg-onnx/` before enabling
 that profile. Keeping it behind a profile makes the default path usable on
 CPU-only machines without installing the heavy NLI stack.
 
+## Production Scaffold
+
+For an authenticated production scaffold generated from the installed CLI:
+
+```bash
+director-ai quickstart --profile production
+cd director_guard
+```
+
+Fill `.env` with `DIRECTOR_API_KEY_TENANT_MAP`, `DIRECTOR_PROXY_API_KEYS`,
+`DIRECTOR_LLM_API_URL`, `DIRECTOR_UPSTREAM_URL`, `DIRECTOR_KB_HMAC_KEYS`, and exact
+`DIRECTOR_CORS_ORIGINS`, then start:
+
+```bash
+docker compose up
+```
+
+The production scaffold enables tenant-bound auth, signed KB writes, audit,
+compliance and feedback stores, JSON logs, rate limiting, review queueing, and
+authenticated Prometheus metrics. To run Prometheus, write the matching API key
+to `secrets/director-api-key` and use:
+
+```bash
+docker compose --profile monitoring up
+```
+
 ## Knowledge Base
 
 Edit `kb.txt` — one fact per line, format `key: value`. The proxy reloads
