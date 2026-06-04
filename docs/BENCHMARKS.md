@@ -177,6 +177,41 @@ but never serialise raw matched values. This keeps redaction telemetry
 tenant-safe while allowing compliance dashboards to prove which categories were
 masked.
 
+## Edge/Mobile Runtime Evidence
+
+`benchmarks.edge_mobile_evidence` records the current R14 edge/mobile state for
+browser, Worker, embedded, and local low-latency deployments:
+
+```bash
+PYTHONPATH=src python -m benchmarks.edge_mobile_evidence
+```
+
+The packet checks the WASM release plan, WASM source/tests/example, ONNX and
+quantisation contracts, Rust kernel source, deployment docs, and latency
+benchmark scripts. It intentionally separates local-trial readiness from
+release readiness. The current local R14 evidence path can attach generated
+`wasm-pack` package validation and real headless Chrome browser-Worker smoke
+evidence. Release readiness still requires a quantised ONNX model artefact,
+mobile or embedded-device smoke evidence, package-publish evidence, and the
+deployment-specific release archive.
+
+After `wasm-pack build --target web --release`, validate the generated package
+and archive the digest report:
+
+```bash
+PYTHONPATH=src python tools/check_wasm_release_package.py \
+  --json benchmarks/results/wasm_release_package_<UTC_TIMESTAMP>.json
+```
+
+Run the browser Web Worker smoke and pass the result into the R14 packet:
+
+```bash
+PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py \
+  --json benchmarks/results/wasm_browser_worker_smoke_<UTC_TIMESTAMP>.json
+PYTHONPATH=src python -m benchmarks.edge_mobile_evidence \
+  --browser-smoke-evidence benchmarks/results/wasm_browser_worker_smoke_<UTC_TIMESTAMP>.json
+```
+
 ## Rust vs Python E2E Comparison (Published Reproducible Packet)
 
 Use the dedicated E2E runner to benchmark Rust-accelerated and forced-Python
@@ -213,6 +248,181 @@ Outputs:
 - `benchmarks/results/full_benchmark_campaign_<UTC_TIMESTAMP>.md`
 
 Use `--strict` to return non-zero when any case fails or times out.
+
+## Provenance And KB Lineage Evidence
+
+For the R9 provenance gate, generate an evidence packet that checks KB snapshot
+Merkle-root evolution, tenant-scoped roots, signed-fact conflict reporting,
+citation-fact inclusion proofs, HMAC provenance-chain verification, and tamper
+detection:
+
+```bash
+PYTHONPATH=src python -m benchmarks.provenance_evidence --fact-count 4
+```
+
+Outputs:
+
+- `benchmarks/results/provenance_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the online KB evolution gate
+still requires an operator-owned feedback loop, archived deployment evidence,
+and sign-off that the exported lineage packet matches the live tenant KB.
+
+## Conformal Routing Evidence
+
+For the R10 conformal-routing gate, generate an evidence packet that checks
+deterministic 95% split-conformal coverage and the production routing policy:
+allow only when the upper risk bound is low, send uncertain outputs to human
+review or a stronger model, and reject only when the lower risk bound is high:
+
+```bash
+PYTHONPATH=src python -m benchmarks.conformal_routing_evidence \
+  --coverage 0.95 \
+  --calibration-samples 80 \
+  --validation-samples 40
+```
+
+Outputs:
+
+- `benchmarks/results/conformal_routing_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the conformal-routing gate
+still requires representative domain calibration data, archived deployment
+evidence, and operator sign-off that the selected human-review or escalation
+route is live.
+
+## Trajectory Rollback Evidence
+
+For the R11 trajectory-safety gate, generate an evidence packet that checks
+Monte-Carlo preflight action bands and native rollback-hook behaviour:
+
+```bash
+PYTHONPATH=src python -m benchmarks.trajectory_rollback_evidence \
+  --simulations 4
+```
+
+Outputs:
+
+- `benchmarks/results/trajectory_rollback_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the trajectory rollback gate
+still requires an operator-owned live undo backend, adversarial trajectory
+stress testing against deployment traffic, and sign-off that rollback evidence
+is attached to incident/change-management records.
+
+## Multimodal Temporal Evidence
+
+For the R12 multimodal and temporal consistency gate, generate an evidence
+packet that checks image allow/halt paths, caption-grounding conflicts, video
+frame temporal halts, and dependency-free hash-bag image/text execution:
+
+```bash
+PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence
+```
+
+Outputs:
+
+- `benchmarks/results/multimodal_temporal_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the multimodal gate still
+requires external Vision-NLI or equivalent benchmark evidence, real video/frame
+model validation, and operator sign-off for deployment-specific modality
+coverage.
+
+## Federated Privacy Evidence
+
+For the R13 privacy-preserving federation gate, generate an evidence packet that
+checks DP-noised safety-signal aggregation, tenant/category contribution caps,
+minimum cohort enforcement, and additive secret-sharing aggregate
+reconstruction:
+
+```bash
+PYTHONPATH=src python -m benchmarks.federated_privacy_evidence
+```
+
+Outputs:
+
+- `benchmarks/results/federated_privacy_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the federated privacy gate
+still requires an external federation run, malicious-secure aggregation review,
+and deployment-specific poisoning-resilience evidence.
+
+## Auto-Redteam Defence Evidence
+
+For the R15 auto-redteam and defence-genome gate, generate an evidence packet
+that checks two reviewed adversarial-mining cycles, detection-uplift gates,
+registry promotions, and tenant-safe serialisation:
+
+```bash
+PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence
+```
+
+Outputs:
+
+- `benchmarks/results/auto_redteam_defence_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the auto-redteam gate still
+requires a live nightly run, operator-owned patch/model integration sign-off,
+and external adversarial corpus evidence.
+
+## Formal Symbolic Evidence
+
+For the R16 formal and symbolic guard gate, generate an evidence packet that
+checks DPLL formula halts/allows, the Lean runner contract, Z3 profile handling,
+code-contract ordering, and tenant-safe serialisation:
+
+```bash
+PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence
+```
+
+Outputs:
+
+- `benchmarks/results/formal_symbolic_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the formal-symbolic gate
+still requires an external Lean proof run, an actual Z3 packet under `[formal]`
+in release evidence, and operator-owned math/code/numeric domain contracts.
+
+## Sustained Load Hardening Evidence
+
+For the R17 production-hardening gate, generate an evidence packet that checks
+async stream ordering under concurrent scheduling and same-key tenant poisoning
+isolation:
+
+```bash
+PYTHONPATH=src python -m benchmarks.sustained_load_evidence \
+  --streams 64 \
+  --tokens-per-stream 64 \
+  --tenant-cases 64
+```
+
+Outputs:
+
+- `benchmarks/results/sustained_load_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the production deployment
+gate still requires a sustained staging or production run with external
+telemetry, environment details, and security-review sign-off.
+
+## Local Release Evidence Gate
+
+After generating the local evidence packets for R9-R17, run the repository
+evidence gate:
+
+```bash
+PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode local
+PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release
+PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release --format json
+```
+
+`--mode local` verifies that the newest packet for each roadmap gate exists and
+has `acceptance.passed=true`. `--mode release` is stricter and blocks release
+claims while packets still declare local-only status, missing external runs,
+missing operator sign-off, missing smoke evidence, or `ready_for_release=false`.
+Use Markdown output for operator review and `--format json` for CI, dashboards,
+and release automation. The release-mode output is the current punch list for
+evidence that cannot be satisfied by local tests alone.
 
 ---
 

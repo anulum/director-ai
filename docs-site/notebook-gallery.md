@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Notebook gallery
+-->
+
 # Notebook Gallery
 
 <!-- notebook-gallery:generated from notebooks/gallery.toml -->
@@ -10,6 +20,17 @@ If you are evaluating commercial fit before opening a notebook, start with
 [Product Overview](guide/product-overview.md). If you are running a governed
 pilot, pair the notebook path with [Evaluation Onboarding](guide/onboarding.md)
 so the pilot produces useful evidence instead of a demo-only result.
+
+## Choose The Notebook By Outcome
+
+| Outcome | Notebook path |
+|---|---|
+| First guarded response | Quickstart, then Coherence Engine |
+| Streaming halt proof | Streaming Oversight, then Streaming Halt Deep Dive |
+| Private-fact grounding | Vector Store, then Vector RAG Pipeline |
+| SDK or framework integration | Provider Adapters, LangChain Integration, Production Guardrails |
+| Domain or regulated example | Medical RAG Chatbot, Domain Presets, Verification Gems |
+| Enterprise pilot evidence | Batch Processing, Enterprise Multi-Tenant, Custom Fine-Tuning |
 
 | Track | Notebook | Audience | Use Case | Time | Extras | Colab |
 |-------|----------|----------|----------|------|--------|-------|

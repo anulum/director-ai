@@ -32,6 +32,21 @@ Measured on GTX 1060 6GB, 16-pair batch, FactCG-DeBERTa-v3-Large:
     ONNX Runtime does not use bitsandbytes. For ONNX quantization, use
     `optimum` static quantization or ONNX Runtime's built-in quantizer.
 
+## Edge And Mobile Evidence
+
+For browser, Worker, mobile, or embedded deployments, quantisation guidance is
+not enough by itself. Generate the edge/mobile readiness packet and attach the
+quantised ONNX artefact path when it exists:
+
+```bash
+PYTHONPATH=src python -m benchmarks.edge_mobile_evidence \
+  --quantised-model-path MODELS/lite-scorer-v2/onnx/model_quantized.onnx
+```
+
+The packet records the ONNX/quantisation contract, Rust/WASM source contracts,
+and whether the quantised artefact is present. Treat `ready_for_local_trial` as
+development evidence. Customer release requires `ready_for_release=true`.
+
 ## FP16 (half precision)
 
 No extra dependencies. Supported on GPUs with compute capability >= 7.0

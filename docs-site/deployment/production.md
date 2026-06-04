@@ -53,6 +53,42 @@ graph TD
 
 ## Recommended Setup
 
+For a production scaffold with authenticated service defaults, tenant routing,
+audit stores, signed knowledge writes, and Prometheus-ready metrics:
+
+```bash
+director-ai quickstart --profile production
+cd director_guard
+```
+
+Fill `.env` with the deployment API-key to tenant map, proxy API keys, upstream
+LLM URL, CORS origins, and KB signing key, then run:
+
+```bash
+docker compose up
+```
+
+For the bundled Prometheus profile, write the same API key to
+`secrets/director-api-key` and start:
+
+```bash
+docker compose --profile monitoring up
+```
+
+Before promotion, generate the local conformal-routing, trajectory rollback,
+multimodal temporal, federated privacy, auto-redteam defence, formal symbolic,
+and sustained-load hardening packets and attach them to the release evidence:
+
+```bash
+PYTHONPATH=src python -m benchmarks.conformal_routing_evidence
+PYTHONPATH=src python -m benchmarks.trajectory_rollback_evidence
+PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence
+PYTHONPATH=src python -m benchmarks.federated_privacy_evidence
+PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence
+PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence
+PYTHONPATH=src python -m benchmarks.sustained_load_evidence
+```
+
 ```bash
 pip install director-ai[nli,vector,embeddings,openai]
 ```
@@ -116,6 +152,20 @@ scorer = CoherenceScorer(
 
 8-bit quantization reduces VRAM from ~1.5GB to ~400MB per model.
 
+### Edge And Mobile Release Evidence
+
+Browser, Worker, mobile, and embedded deployments use the WASM halt kernel plus
+a host-owned scorer. Before release, generate:
+
+```bash
+PYTHONPATH=src python -m benchmarks.edge_mobile_evidence
+```
+
+The packet must show `ready_for_release=true` for customer release. If it only
+shows `ready_for_local_trial=true`, the source contracts and docs are present
+but release evidence is still missing for local WASM artefacts, quantised model
+artefacts, browser/Web Worker smoke, and mobile or embedded-device smoke.
+
 ### Score Caching
 
 Enable caching to reduce NLI inference by 60-80% in streaming workloads:
@@ -152,6 +202,13 @@ from director_ai.core.metrics import metrics
 
 # Built-in metrics exposed at /v1/metrics and /v1/metrics/prometheus
 print(metrics.prometheus_format())
+```
+
+When API keys are configured, `/v1/metrics/prometheus` requires authentication
+by default. Prometheus-compatible scrapers can use:
+
+```http
+Authorization: Bearer <api-key>
 ```
 
 Available metrics:

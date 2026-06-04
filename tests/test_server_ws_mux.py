@@ -7,11 +7,14 @@
 # Director-Class AI — WebSocket Multiplexed Streaming Tests
 """Multi-angle tests for WebSocket streaming pipeline."""
 
+import json
+
 import pytest
 
 pytest.importorskip("fastapi", reason="server extras not installed")
 
 from starlette.testclient import TestClient
+from starlette.websockets import WebSocketDisconnect
 
 from director_ai.core.config import DirectorConfig
 from director_ai.server import create_app
@@ -75,6 +78,30 @@ class TestWSMuxProtocol:
             has_result = resp.get("type") == "result"
             has_sid = "session_id" in resp
             assert has_result or has_sid
+
+    def test_tenant_map_rejects_valid_but_unbound_key(self):
+        cfg = DirectorConfig(
+            api_keys=["bound-key", "orphan-key"],
+            api_key_tenant_map=json.dumps({"bound-key": "tenant-a"}),
+            use_nli=False,
+            llm_provider="mock",
+            tenant_routing=True,
+        )
+
+        with (
+            TestClient(create_app(config=cfg)) as client,
+            pytest.raises(WebSocketDisconnect) as exc_info,
+            client.websocket_connect(
+                "/v1/stream",
+                headers={
+                    "X-API-Key": "orphan-key",
+                    "X-Tenant-ID": "tenant-b",
+                },
+            ) as ws,
+        ):
+            ws.send_json({"prompt": "tenant claim should not be accepted"})
+
+        assert exc_info.value.code == 1008
 
 
 class TestTenantVectorFactEndpoint:

@@ -12,18 +12,18 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
       "targets": [
         {
-          "expr": "rate(director_reviews_total[1m]) * 60",
+          "expr": "sum by (instance) (rate(director_ai_reviews_total[1m])) * 60",
           "legendFormat": "{{instance}}"
         }
       ]
     },
     {
-      "title": "Hallucination rate (1m)",
+      "title": "Rejection rate (1m)",
       "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
       "targets": [
         {
-          "expr": "rate(director_hallucinations_total[1m]) / rate(director_reviews_total[1m])",
+          "expr": "sum by (instance) (rate(director_ai_reviews_rejected[1m])) / clamp_min(sum by (instance) (rate(director_ai_reviews_total[1m])), 0.001)",
           "legendFormat": "{{instance}}"
         }
       ]
@@ -34,60 +34,68 @@
       "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
       "targets": [
         {
-          "expr": "histogram_quantile(0.50, rate(director_review_duration_seconds_bucket[5m])) * 1000",
+          "expr": "histogram_quantile(0.50, rate(director_ai_review_duration_seconds_bucket[5m])) * 1000",
           "legendFormat": "p50"
         },
         {
-          "expr": "histogram_quantile(0.95, rate(director_review_duration_seconds_bucket[5m])) * 1000",
+          "expr": "histogram_quantile(0.95, rate(director_ai_review_duration_seconds_bucket[5m])) * 1000",
           "legendFormat": "p95"
         },
         {
-          "expr": "histogram_quantile(0.99, rate(director_review_duration_seconds_bucket[5m])) * 1000",
+          "expr": "histogram_quantile(0.99, rate(director_ai_review_duration_seconds_bucket[5m])) * 1000",
           "legendFormat": "p99"
         }
       ]
     },
     {
-      "title": "Coherence score distribution",
-      "type": "histogram",
+      "title": "Coherence score p50/p90/p99",
+      "type": "timeseries",
       "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
       "targets": [
         {
-          "expr": "director_coherence_score",
-          "legendFormat": "{{instance}}"
+          "expr": "histogram_quantile(0.50, rate(director_ai_coherence_score_bucket[5m]))",
+          "legendFormat": "p50"
+        },
+        {
+          "expr": "histogram_quantile(0.90, rate(director_ai_coherence_score_bucket[5m]))",
+          "legendFormat": "p90"
+        },
+        {
+          "expr": "histogram_quantile(0.99, rate(director_ai_coherence_score_bucket[5m]))",
+          "legendFormat": "p99"
         }
       ]
     },
     {
-      "title": "Active streaming sessions",
+      "title": "Active requests",
       "type": "stat",
       "gridPos": {"h": 4, "w": 6, "x": 0, "y": 16},
       "targets": [
         {
-          "expr": "director_streaming_active_sessions",
+          "expr": "director_ai_active_requests",
           "legendFormat": "active"
         }
       ]
     },
     {
-      "title": "Streaming halts / min",
+      "title": "Halts / min",
       "type": "stat",
       "gridPos": {"h": 4, "w": 6, "x": 6, "y": 16},
       "targets": [
         {
-          "expr": "rate(director_streaming_halts_total[1m]) * 60",
+          "expr": "sum by (instance) (rate(director_ai_halts_total[1m])) * 60",
           "legendFormat": "halts/min"
         }
       ]
     },
     {
-      "title": "KB queries / min",
+      "title": "Stale KB sources",
       "type": "stat",
       "gridPos": {"h": 4, "w": 6, "x": 12, "y": 16},
       "targets": [
         {
-          "expr": "rate(director_knowledge_queries_total[1m]) * 60",
-          "legendFormat": "queries/min"
+          "expr": "sum(director_ai_kb_stale_sources)",
+          "legendFormat": "stale"
         }
       ]
     },
@@ -97,19 +105,19 @@
       "gridPos": {"h": 4, "w": 6, "x": 18, "y": 16},
       "targets": [
         {
-          "expr": "rate(director_errors_total[5m]) * 60",
-          "legendFormat": "errors/min"
+          "expr": "sum(rate(director_ai_http_requests_total{status=~\"5..\"}[5m])) / clamp_min(sum(rate(director_ai_http_requests_total[5m])), 0.001)",
+          "legendFormat": "5xx ratio"
         }
       ]
     },
     {
-      "title": "Drift score (7-day window)",
-      "type": "timeseries",
+      "title": "Retune recommended",
+      "type": "stat",
       "gridPos": {"h": 8, "w": 24, "x": 0, "y": 20},
       "targets": [
         {
-          "expr": "director_drift_score",
-          "legendFormat": "drift"
+          "expr": "max(director_ai_retune_recommended)",
+          "legendFormat": "retune"
         }
       ],
       "fieldConfig": {

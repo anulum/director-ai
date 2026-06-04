@@ -16,6 +16,8 @@ a single entry point for production deployments:
    calibrator absorbs them to update thresholds.
 3. **Agent tool-call guardrails** — verify_tool_call checks function
    calls against a manifest before execution.
+4. **Sector policy controls** — optional deterministic policy checks for
+   high-stakes domains such as banking responses.
 
 Usage::
 
@@ -41,11 +43,16 @@ Usage::
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 from director_ai.core import CoherenceScorer, GroundTruthStore
 from director_ai.core.config import DirectorConfig
+from director_ai.core.financial_services import (
+    BankingPolicyReport,
+    assess_banking_response,
+)
 from director_ai.core.scoring.verified_scorer import VerifiedScorer
 from director_ai.core.types import CoherenceScore, InjectionResult
 
@@ -64,6 +71,7 @@ class GuardResult:
     coherence: CoherenceScore
     confidence_interval: tuple[float, float] | None = None
     calibrated_threshold: float | None = None
+    sector_policy_report: BankingPolicyReport | None = None
 
 
 class ProductionGuard:
@@ -131,8 +139,26 @@ class ProductionGuard:
         prompt: str,
         response: str,
         atomic: bool = False,
+        sector_policy: str | None = None,
+        evidence_refs: Iterable[str] = (),
+        numeric_evidence_refs: Iterable[str] = (),
+        policy_refs: Iterable[str] = (),
+        jurisdiction: str = "US",
+        product_line: str = "default",
+        human_review_acknowledged: bool = False,
     ) -> GuardResult:
-        """Score a response and return a GuardResult with optional calibration."""
+        """Score a response and return a GuardResult with optional policy checks."""
+        sector_report = self._evaluate_sector_policy(
+            sector_policy=sector_policy,
+            prompt=prompt,
+            response=response,
+            evidence_refs=evidence_refs,
+            numeric_evidence_refs=numeric_evidence_refs,
+            policy_refs=policy_refs,
+            jurisdiction=jurisdiction,
+            product_line=product_line,
+            human_review_acknowledged=human_review_acknowledged,
+        )
         approved, cs = self._scorer.review(prompt, response)
 
         ci = None
@@ -143,11 +169,45 @@ class ProductionGuard:
             cal_threshold = self._calibrator.adjusted_threshold
 
         return GuardResult(
-            approved=approved,
+            approved=approved and (sector_report.approved if sector_report else True),
             score=cs.score,
             coherence=cs,
             confidence_interval=ci,
             calibrated_threshold=cal_threshold,
+            sector_policy_report=sector_report,
+        )
+
+    def _evaluate_sector_policy(
+        self,
+        *,
+        sector_policy: str | None,
+        prompt: str,
+        response: str,
+        evidence_refs: Iterable[str],
+        numeric_evidence_refs: Iterable[str],
+        policy_refs: Iterable[str],
+        jurisdiction: str,
+        product_line: str,
+        human_review_acknowledged: bool,
+    ) -> BankingPolicyReport | None:
+        """Run an optional deterministic sector policy before final approval."""
+
+        if sector_policy is None or not sector_policy.strip():
+            return None
+        normalised = sector_policy.strip().casefold().replace("_", "-")
+        if normalised not in {"banking", "financial-services"}:
+            raise ValueError(
+                "sector_policy must be one of: banking, financial-services"
+            )
+        return assess_banking_response(
+            prompt,
+            response,
+            evidence_refs=evidence_refs,
+            numeric_evidence_refs=numeric_evidence_refs,
+            policy_refs=policy_refs,
+            jurisdiction=jurisdiction,
+            product_line=product_line,
+            human_review_acknowledged=human_review_acknowledged,
         )
 
     def check_verified(

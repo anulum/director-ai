@@ -35,11 +35,19 @@ Four pieces:
 
 from .engine import EvolutionEngine, EvolutionReport, GenomePopulation
 from .genome import AdversarialGenome, Gene, GeneOperator
+from .redteam_loop import (
+    AutoRedteamCycleInput,
+    AutoRedteamCycleReport,
+    AutoRedteamDefenceLoop,
+)
 from .registry import Defense, DefenseRegistry, DefenseSnapshot
 from .update_pipeline import DefenseUpdatePipeline, DefenseUpdateReport
 
 __all__ = [
     "AdversarialGenome",
+    "AutoRedteamCycleInput",
+    "AutoRedteamCycleReport",
+    "AutoRedteamDefenceLoop",
     "Defense",
     "DefenseRegistry",
     "DefenseSnapshot",

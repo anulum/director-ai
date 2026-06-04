@@ -113,6 +113,16 @@ version fields.
 Pass this payload to `AuditLogger.log_review(kb_snapshot=audit_payload)` when a
 review decision must carry the KB state it was grounded against.
 
+The local R9 evidence packet exercises this contract together with protected
+claim conflicts and provenance-chain verification:
+
+```bash
+PYTHONPATH=src python -m benchmarks.provenance_evidence --fact-count 4
+```
+
+The generated JSON records only tenant-safe hashes, roots, counts, conflict
+metadata, and pass/fail status. It does not serialise raw fact values.
+
 ### conflict_reports()
 
 ```python

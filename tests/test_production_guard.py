@@ -141,6 +141,59 @@ def test_check_and_verified_paths_return_decision_structures(fake_guard_dependen
     ]
 
 
+def test_check_banking_policy_blocks_response_even_when_scorer_allows(
+    fake_guard_dependencies,
+):
+    guard = ProductionGuard(config=_FakeConfig(threshold=0.0), store=_FakeStore())
+
+    result = guard.check(
+        "What is the standard FDIC deposit coverage limit?",
+        "FDIC insurance covers up to $500,000 per depositor.",
+        sector_policy="banking",
+        evidence_refs=("policy://fdic/deposit-insurance/current",),
+        numeric_evidence_refs=("policy://fdic/deposit-insurance/current#limit",),
+        policy_refs=("policy://financial-services/deposit-disclosures",),
+    )
+
+    assert result.score == pytest.approx(0.31)
+    assert result.approved is False
+    assert result.sector_policy_report is not None
+    assert result.sector_policy_report.approved is False
+    assert result.sector_policy_report.blocked_codes == (
+        "deposit_insurance_limit_mismatch",
+    )
+
+
+def test_check_banking_policy_approves_when_score_and_policy_pass(
+    fake_guard_dependencies,
+):
+    guard = ProductionGuard(config=_FakeConfig(threshold=0.0), store=_FakeStore())
+
+    result = guard.check(
+        "What is the standard FDIC deposit coverage limit?",
+        (
+            "FDIC insurance covers up to $250,000 per depositor, per insured "
+            "bank, for each ownership category."
+        ),
+        sector_policy="banking",
+        evidence_refs=("policy://fdic/deposit-insurance/current",),
+        numeric_evidence_refs=("policy://fdic/deposit-insurance/current#limit",),
+        policy_refs=("policy://financial-services/deposit-disclosures",),
+    )
+
+    assert result.approved is True
+    assert result.sector_policy_report is not None
+    assert result.sector_policy_report.approved is True
+    assert result.sector_policy_report.findings == ()
+
+
+def test_check_rejects_unknown_sector_policy(fake_guard_dependencies):
+    guard = ProductionGuard(config=_FakeConfig(threshold=0.0), store=_FakeStore())
+
+    with pytest.raises(ValueError, match="sector_policy"):
+        guard.check("prompt", "response", sector_policy="unknown-sector")
+
+
 def test_feedback_without_calibration_logs_and_does_not_update(
     fake_guard_dependencies, caplog
 ):

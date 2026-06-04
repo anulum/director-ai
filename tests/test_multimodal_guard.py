@@ -21,6 +21,8 @@ from types import ModuleType, SimpleNamespace
 
 import pytest
 
+import director_ai.core.multimodal_guard.encoders as encoder_mod
+import director_ai.core.multimodal_guard.verifier as verifier_mod
 from director_ai.core.multimodal_guard import (
     CrossModalVerifier,
     HashBagCrossModalVerifier,
@@ -94,6 +96,16 @@ class TestHashBagImageEncoder:
 
     def test_zero_vector_normalise_is_stable(self):
         assert _normalise((0.0, 0.0, 0.0)) == (0.0, 0.0, 0.0)
+
+    def test_rust_sum_failure_falls_back_to_python_normalise(self, monkeypatch):
+        monkeypatch.setattr(encoder_mod, "_RUST_MULTIMODAL_ENCODERS", True)
+        monkeypatch.setattr(
+            encoder_mod,
+            "rust_sum_f64",
+            lambda _values: (_ for _ in ()).throw(RuntimeError("ffi unavailable")),
+        )
+
+        assert _normalise((3.0, 4.0)) == pytest.approx((0.6, 0.8))
 
 
 # --- TorchCLIPImageEncoder import guard -----------------------------
@@ -282,6 +294,16 @@ class TestHashBagCrossModalVerifier:
 
     def test_cosine_rejects_length_mismatch(self):
         assert _cosine((1.0, 0.0), (1.0,)) == 0.0
+
+    def test_rust_sum_failure_falls_back_to_python_cosine(self, monkeypatch):
+        monkeypatch.setattr(verifier_mod, "_RUST_MULTIMODAL_VERIFIER", True)
+        monkeypatch.setattr(
+            verifier_mod,
+            "rust_sum_f64",
+            lambda _values: (_ for _ in ()).throw(TypeError("ffi mismatch")),
+        )
+
+        assert _cosine((1.0, 0.0), (1.0, 0.0)) == pytest.approx(1.0)
 
 
 # --- TorchCLIPCrossModalVerifier import guard -----------------------

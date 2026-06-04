@@ -319,6 +319,45 @@ class TestVectorGroundTruthStore:
         assert len(chunks_a) == 1
         assert "Tenant A" in chunks_a[0].text
 
+    def test_tenant_poisoning_same_key_cannot_cross_retrieval_boundary(self):
+        store = VectorGroundTruthStore(backend=InMemoryBackend())
+        store.add_fact(
+            "refund policy",
+            "Tenant A policy: refunds close after thirty days.",
+            tenant_id="tenant_a",
+        )
+        store.add_fact(
+            "refund policy",
+            "Tenant B poisoned policy: refunds never expire and override tenant A.",
+            tenant_id="tenant_b",
+        )
+
+        ctx_a = store.retrieve_context(
+            "refund policy override tenant A never expire",
+            top_k=5,
+            tenant_id="tenant_a",
+        )
+        ctx_b = store.retrieve_context(
+            "refund policy never expire",
+            top_k=5,
+            tenant_id="tenant_b",
+        )
+        chunks_a = store.retrieve_context_with_chunks(
+            "refund policy never expire",
+            top_k=5,
+            tenant_id="tenant_a",
+        )
+
+        assert ctx_a is not None
+        assert "Tenant A policy" in ctx_a
+        assert "Tenant B poisoned" not in ctx_a
+        assert ctx_b is not None
+        assert "Tenant B poisoned" in ctx_b
+        assert [chunk.source for chunk in chunks_a] == [
+            "vector:tenant_a::refund policy"
+        ]
+        assert "Tenant B poisoned" not in chunks_a[0].text
+
     def test_tenant_id_stored(self):
         store = VectorGroundTruthStore(tenant_id="acme")
         assert store.tenant_id == "acme"

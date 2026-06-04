@@ -41,10 +41,20 @@ from .calibration.adaptive_threshold import (
     AdaptiveThresholdReport,
     ThresholdFeedback,
 )
-from .calibration.conformal import ConformalPredictor, PredictionInterval
+from .calibration.conformal import (
+    ConformalPredictor,
+    ConformalRoutingDecision,
+    ConformalRoutingPolicy,
+    PredictionInterval,
+)
 from .calibration.feedback_store import FeedbackStore
 from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
 from .config import DirectorConfig, ProfileMetadata
+from .edge import (
+    EdgeRuntimeCheck,
+    EdgeRuntimeReadiness,
+    build_edge_runtime_readiness,
+)
 
 # --- Evaluation ---
 from .evaluation import (
@@ -220,6 +230,8 @@ __all__ = [
     "CoherenceScorer",
     "ConflictAwareKnowledgeGuard",
     "DatasetTypeClassifier",
+    "EdgeRuntimeCheck",
+    "EdgeRuntimeReadiness",
     "LiteScorer",
     "MetaClassifier",
     "NLIScorer",
@@ -338,6 +350,7 @@ __all__ = [
     "export_tensorrt",
     "evaluate_policy_variants",
     "finetune_nli",
+    "build_edge_runtime_readiness",
     "finetune_model_registry_to_dict",
     "tune",
     "get_backend",
@@ -360,6 +373,8 @@ __all__ = [
     # Calibration
     "CalibrationReport",
     "ConformalPredictor",
+    "ConformalRoutingDecision",
+    "ConformalRoutingPolicy",
     "FeedbackStore",
     "OnlineCalibrator",
     "PredictionInterval",

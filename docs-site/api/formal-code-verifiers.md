@@ -91,6 +91,20 @@ result = adapter.verify_code_contract(
 Audit payloads include evidence references, backend names, and sandbox metadata;
 they do not include raw source code or raw formula text.
 
+## Evidence Packet
+
+Generate the local formal-symbolic evidence packet before promoting deployments
+that rely on theorem-backed code, math, or numeric guards:
+
+```bash
+PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence
+```
+
+The packet checks DPLL formula halts/allows, Lean runner invocation, Z3 profile
+handling, code-contract ordering, and tenant-safe serialisation. When the
+`director-ai[formal]` extra is not installed, the Z3 probe records the optional
+dependency gate instead of claiming an actual Z3 proof run.
+
 ## Full API
 
 ::: director_ai.core.formal_verification.adapter.FormalCodeVerifierAdapter

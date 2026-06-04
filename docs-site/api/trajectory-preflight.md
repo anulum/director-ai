@@ -39,6 +39,31 @@ if decision.action == "escalate":
     route_to = decision.recommended_backend
 ```
 
+## Rollback Hooks
+
+`TrajectoryRollbackManager` registers tenant-safe rollback handles before a
+high-risk action executes. A low-risk preflight leaves the handle unused, a warn
+or escalation arms the handle for operator review, and a halt executes the hook
+once. Repeated execution returns `already_executed`.
+
+```python
+from director_ai.core.trajectory import TrajectoryRollbackManager
+
+rollback = TrajectoryRollbackManager()
+handle = rollback.register(
+    rollback_id="deploy-rollback-20260604-a",
+    action_id="deploy-policy-overlay",
+    hook=lambda handle, reason: {"rollback_store": "audit-log"},
+    evidence_refs=("change:42",),
+    metadata={"owner": "safety"},
+)
+outcome = rollback.evaluate_preflight(handle.rollback_id, verdict)
+```
+
+Rollback payloads contain rollback/action IDs, tenant ID, evidence references,
+status, and tenant-safe metadata only. They do not include prompt text, sampled
+token text, raw action bodies, credentials, or sensor payloads.
+
 Use `InferenceServerHook.steer()` when the decision must affect pre-sampling
 logits directly. The hook maps `escalate` to a finite negative bias for the
 candidate token and maps `halt` to the same block action used by the coherence
@@ -53,3 +78,7 @@ threshold hook.
 ::: director_ai.core.trajectory.steering.PredictivePreHaltSteering
 
 ::: director_ai.core.trajectory.steering.PreHaltSteeringDecision
+
+::: director_ai.core.trajectory.rollback.TrajectoryRollbackManager
+
+::: director_ai.core.trajectory.rollback.RollbackOutcome

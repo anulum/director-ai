@@ -21,6 +21,7 @@ Two real backends:
 
 from __future__ import annotations
 
+import logging
 from typing import Any, Protocol, runtime_checkable
 
 try:  # pragma: no cover - optional acceleration
@@ -34,8 +35,9 @@ except ImportError:  # pragma: no cover - mandatory accelerator guard
         raise RuntimeError("backfire_kernel rust_sum_f64 is unavailable")
 
 
-from ..mandatory import mandatory_execution
 from .encoders import _fnv1a_64, _normalise
+
+_logger = logging.getLogger(__name__)
 
 
 @runtime_checkable
@@ -187,6 +189,11 @@ def _cosine(a: tuple[float, ...], b: tuple[float, ...]) -> float:
 
 def _sum_float(values: list[float]) -> float:
     if _RUST_MULTIMODAL_VERIFIER:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
+        try:
             return float(rust_sum_f64(values))
+        except Exception as exc:
+            _logger.debug(
+                "Rust multimodal verifier sum unavailable; using Python fallback: %s",
+                exc,
+            )
     return sum(values)

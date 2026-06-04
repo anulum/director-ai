@@ -282,6 +282,14 @@ _LAZY_IMPORTS: dict[str, tuple[str, str]] = {
     "LoopMonitor": (".agentic.loop_monitor", "LoopMonitor"),
     # Conformal prediction (Phase 5)
     "ConformalPredictor": (".core.calibration.conformal", "ConformalPredictor"),
+    "ConformalRoutingDecision": (
+        ".core.calibration.conformal",
+        "ConformalRoutingDecision",
+    ),
+    "ConformalRoutingPolicy": (
+        ".core.calibration.conformal",
+        "ConformalRoutingPolicy",
+    ),
     "PredictionInterval": (".core.calibration.conformal", "PredictionInterval"),
     # Cross-model consensus (Phase 5)
     "ConsensusScorer": (".core.scoring.consensus", "ConsensusScorer"),

@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — REST server API
+-->
+
 # REST Server
 
 Production-ready FastAPI server exposing Director-AI scoring over HTTP.
@@ -98,6 +108,33 @@ curl -X POST http://localhost:8080/v1/review \
   }'
 ```
 
+### Banking Sector Policy
+
+`/v1/review` can run the deterministic banking policy adapter beside the active
+scorer. Use this when a financial-services response contains product terms,
+rates, deposit-insurance language, complaint/dispute handling, or investment
+recommendations. Final `approved` is `false` if either the scorer or the sector
+policy fails.
+
+```bash
+curl -X POST http://localhost:8080/v1/review \
+  -H 'Content-Type: application/json' \
+  -H 'X-API-Key: your-key' \
+  -d '{
+    "prompt": "What is the standard FDIC deposit coverage limit?",
+    "response": "FDIC insurance covers up to $500,000 per depositor.",
+    "sector_policy": "banking",
+    "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+    "numeric_evidence_refs": ["policy://fdic/deposit-insurance/current#limit"],
+    "policy_refs": ["policy://financial-services/deposit-disclosures"]
+  }'
+```
+
+Accepted `sector_policy` values are `banking` and `financial-services`.
+Unknown values return HTTP 422. Sector-policy reference arrays accept at most
+64 identifiers, each identifier must be 1-512 characters, and `jurisdiction`
+and `product_line` must be non-empty strings.
+
 ### Response
 
 ```json
@@ -111,9 +148,53 @@ curl -X POST http://localhost:8080/v1/review \
     "chunks": [
       {"text": "Refunds within 30 days of purchase.", "distance": 0.12}
     ]
+  },
+  "sector_policy": null
+}
+```
+
+When a sector policy is enabled, `sector_policy` contains tenant-safe finding
+codes and evidence identifiers, not the raw prompt or response:
+
+```json
+{
+  "approved": false,
+  "coherence": 0.91,
+  "h_logical": 0.09,
+  "h_factual": 0.09,
+  "warning": false,
+  "evidence": null,
+  "sector_policy": {
+    "approved": false,
+    "requires_human_review": true,
+    "jurisdiction": "US",
+    "product_line": "default",
+    "policy_refs": ["policy://financial-services/deposit-disclosures"],
+    "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+    "numeric_evidence_refs": ["policy://fdic/deposit-insurance/current#limit"],
+    "highest_severity": "critical",
+    "blocked_codes": ["deposit_insurance_limit_mismatch"],
+    "findings": [
+      {
+        "code": "deposit_insurance_limit_mismatch",
+        "severity": "critical",
+        "action": "block",
+        "detail": "Deposit insurance coverage claim conflicts with the configured limit.",
+        "policy_refs": ["policy://financial-services/deposit-disclosures"],
+        "evidence_required": ["deposit_insurance_limit_usd"]
+      }
+    ]
   }
 }
 ```
+
+### Batch Review Sector Policy
+
+`/v1/batch` accepts the same sector-policy fields for `task: "review"`. Each
+review result includes its own `sector_policy` object when the policy is enabled,
+and item `approved` is `false` if either the scorer or sector policy fails.
+`sector_policy` is rejected for `task: "process"` because generated outputs are
+not available in the request.
 
 ## Authentication
 
@@ -124,6 +205,17 @@ DIRECTOR_API_KEYS=key1,key2 director-ai serve
 ```
 
 Clients send `X-API-Key: key1` header. Unauthenticated requests receive 401.
+The `/v1/stream` WebSocket endpoint enforces the same API-key requirement before
+accepting the socket. When `api_key_tenant_map` is configured, a key must be
+present in the map and any `X-Tenant-ID` claim must match the bound tenant.
+
+## Request IDs
+
+HTTP responses include `X-Request-ID` for log and trace correlation. Caller
+values are echoed only when they are 1-128 characters and contain letters,
+digits, `.`, `_`, `:`, or `-`. Missing, overlong, or unsafe values are replaced
+with a generated UUID before the value is written to request state, logs, or
+response headers.
 
 ## Rate Limiting
 
@@ -142,6 +234,21 @@ DIRECTOR_CORS_ORIGINS=https://example.com,https://app.example.com director-ai se
 Default is empty, so browser CORS is disabled until exact origins are set.
 Reverse-proxy examples are documented in
 [CORS Reverse Proxy](../deployment/cors-reverse-proxy.md).
+
+## Metrics
+
+`/v1/metrics` returns JSON metrics and `/v1/metrics/prometheus` exposes the same
+signals in Prometheus text format. Sector-policy findings increment
+`sector_policy_findings_total` with `policy`, `source`, `code`, `severity`, and
+`action` labels. Use it for dashboard alerts on regulated response blocks and
+escalations without storing raw prompt or response text in the metric stream.
+Review batches contribute to the same `reviews_total`, `reviews_approved`, and
+`reviews_rejected` counters as single reviews, and every batch observes
+`batch_size`. For REST calls, these counters reflect the final API decision
+after endpoint controls such as sector-policy blocks. When the server delegates
+to the built-in `BatchProcessor`, delegate decision metrics are suppressed so
+the metrics stream records one batch observation and one counter update per
+item.
 
 ## Continuous Batching (ReviewQueue)
 

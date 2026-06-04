@@ -1,9 +1,32 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — API reference index
+-->
+
 # API Reference
 
 Primary reference for the supported public classes, functions, dataclasses, and
 operator-facing APIs in Director-AI. Internal helpers, generated protobuf
 stubs, and compatibility shims are intentionally excluded unless they define a
 supported integration boundary.
+
+## API Selection Model
+
+Choose the API by the boundary you control:
+
+| Boundary you own | Use | Why |
+|---|---|---|
+| Application code | `guard()`, `score()`, `CoherenceScorer` | Smallest path to reject or annotate one output |
+| Token stream | `StreamingKernel`, `AsyncStreamingKernel`, `/v1/stream` | Stop partial output before completion |
+| Knowledge base | `DocumentIngestionPipeline`, `VectorGroundTruthStore` | Tie verdicts to governed private facts |
+| Shared service | REST server or gRPC server | Centralise auth, tenant binding, metrics, and rollout controls |
+| Evaluation pipeline | `BatchProcessor`, policy evaluation, conformal routing | Compare thresholds, models, and regression gates |
+| Governance surface | `SafetyEvent`, human review, compliance reports | Preserve tenant-safe evidence for review and audits |
 
 ## Pick The Right API First
 
@@ -18,6 +41,7 @@ supported integration boundary.
 | Serve over gRPC | CoherenceScoring service | [gRPC Server](grpc.md) |
 | Ground answers in documents | `DocumentIngestionPipeline` and `VectorGroundTruthStore` | [Ingestion](ingestion.md) |
 | Package customer evidence | Customer Model Factory | [Customer Model Factory](customer-model-factory.md) |
+| Enforce finance-sector policy checks | Financial Services Policy API | [Financial Services Policy API](financial-services.md) |
 
 For the product and pilot context around these APIs, see
 [Product Overview](../guide/product-overview.md) and
@@ -47,6 +71,9 @@ For the product and pilot context around these APIs, see
 | [`build_causal_attribution_graph()`](causal-attribution.md) | `director_ai.core.attribution.causal_graph` | Evidence, claim, halt-trace, and counterfactual attribution DAGs |
 | [`AdaptiveThresholdLearner`](adaptive-threshold.md) | `director_ai.core.calibration.adaptive_threshold` | Human-gated Thompson-sampling threshold recommendations |
 | [`DefenseUpdatePipeline`](defence-update-pipeline.md) | `director_ai.core.defense_genome` | Reviewed defence promotion across feedback, adversarial mining, and registry hot-swap |
+| [`AutoRedteamDefenceLoop`](defence-update-pipeline.md#auto-redteam-defence-loop) | `director_ai.core.defense_genome` | Repeated adversarial-mining cycles with detection-uplift gates before promotion |
+| [`build_edge_runtime_readiness()`](edge-runtime-readiness.md) | `director_ai.core.edge` | Edge/mobile readiness profile for WASM, Rust, ONNX, and smoke evidence |
+| [`assess_banking_response()`](financial-services.md) | `director_ai.core.financial_services` | Evidence, numeric-claim, deposit-limit, complaint, and investment-recommendation checks |
 | [`CrossDocumentConsistencyMemory`](cross-document-memory.md) | `director_ai.core.memory.consistency` | Tenant-scoped long-term consistency checks with retention and delete controls |
 | [`DifferentialPrivacyScoreReleaser`](private-score-release.md) | `director_ai.core.federated_privacy.score_release` | Laplace-noised score disclosure with privacy accounting |
 | [`FederatedSafetySignalAggregator`](federated-safety-signals.md) | `director_ai.core.federated_privacy.signal_sharing` | Anonymous DP aggregate sharing for tenant-safe guard signals |
@@ -95,6 +122,7 @@ For the product and pilot context around these APIs, see
 | [`SustainabilityPolicyAdapter`](sustainability-scoring.md) | `director_ai.core.sustainability` | Token, cost, energy, carbon, quota, and forecast policy decisions |
 | [`SustainabilityTelemetry`](sustainability-scoring.md) | `director_ai.core.sustainability` | Per-tenant sustainability summaries and threshold alerts |
 | [`AgentPassportRegistry`](agent-passport-registry.md) | `director_ai.core.agent_identity` | Signed agent identity, capability policy, revocation, and coherence history |
+| [`TrajectoryRollbackManager`](trajectory-preflight.md) | `director_ai.core.trajectory` | Tenant-safe rollback hook registry for preflight halt and escalation outcomes |
 
 ### Verification And Guard APIs
 
@@ -108,6 +136,8 @@ For the product and pilot context around these APIs, see
 | `CrossVerifierConsensus` | `director_ai.core.scoring.consensus` | Critical-domain verifier fusion with required coverage and calibrated risk interval |
 | `ByzantineFaultTolerantConsensus` | `director_ai.core.scoring.consensus` | PBFT-style verifier vote quorum |
 | `ConformalPredictor` | `director_ai.core.calibration.conformal` | Calibrated P(hallucination) intervals |
+| `ConformalRoutingPolicy` | `director_ai.core.calibration.conformal` | Conservative allow, human-review, stronger-model, and reject routing from conformal risk bounds |
+| `ConformalRoutingDecision` | `director_ai.core.calibration.conformal` | Evidence-carrying route decision for calibrated uncertainty |
 | `FeedbackLoopDetector` | `director_ai.compliance.feedback_loop_detector` | EU AI Act Art 15(4) feedback loop detection |
 | `LoopMonitor` | `director_ai.agentic.loop_monitor` | Agent loop safety (circular, drift, budget) |
 | `AdversarialTester` | `director_ai.testing.adversarial_suite` | 25-pattern adversarial robustness test |
@@ -118,7 +148,7 @@ For the product and pilot context around these APIs, see
 |-----------|---------|
 | [REST Server](server.md) | FastAPI endpoints (`/v1/review`, `/v1/health`, `/v1/metrics`, 8 gem endpoints) |
 | [gRPC Server](grpc.md) | Protocol Buffers service (4 RPC methods) |
-| [CLI](cli.md) | 22 command-line subcommands |
+| [CLI](cli.md) | 23 command-line subcommands |
 
 ### Exceptions
 
@@ -178,6 +208,8 @@ See [Online Calibration Guide](../guide/online-calibration.md).
 | `Soc2IsoReadinessReport` | `compliance.readiness` | Tenant-safe SOC 2 / ISO 27001 readiness report |
 | `Soc2IsoControl` | `compliance.readiness` | One readiness control mapped to SOC 2 and ISO 27001 evidence |
 | `build_soc2_iso_readiness_report()` | `compliance.readiness` | Default or operator-supplied readiness report builder |
+| `build_observability_operations_report()` | `ui.safety_dashboard` | Tenant-safe halt forensics, drift alerts, controls, and compliance-export packet |
+| `ComplianceExportRef` | `ui.safety_dashboard` | Compliance export reference included without serialising artefact contents |
 | `DriftDetector` | `compliance.drift_detector` | Statistical drift detection (two-proportion z-test) |
 | `DriftResult` | `compliance.drift_detector` | Drift analysis result with z-score, p-value, severity |
 
@@ -195,6 +227,8 @@ See [Compliance Reporting Guide](../guide/compliance-reporting.md).
 | `RulesDslError` | `enterprise.rules_dsl` | Stable validation error for invalid ruleset documents |
 | `build_trust_console_report()` | `ui.safety_dashboard` | Tenant-safe Trust Console JSON/Markdown report builder |
 | `TrustControl` | `ui.safety_dashboard` | Readiness control row for customer-facing trust reports |
+| `build_observability_operations_report()` | `ui.safety_dashboard` | Tenant-safe operations packet for halt forensics, drift alerts, and compliance exports |
+| `ComplianceExportRef` | `ui.safety_dashboard` | Operator-owned compliance export reference |
 
 See [Enterprise API](enterprise.md).
 

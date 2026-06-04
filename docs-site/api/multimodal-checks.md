@@ -62,6 +62,19 @@ verdict. Evidence references use suffixes such as `#caption` and
 `#metadata:captured_at`, so downstream audit logs can identify which grounding
 channel was used without storing private captions or metadata values.
 
+## Local Evidence Packet
+
+Generate the local multimodal temporal evidence packet before promoting a
+deployment that enables image, audio, or video checks:
+
+```bash
+PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence
+```
+
+The packet exercises image allow/halt paths, caption-grounding conflicts, video
+frame temporal halts, and the dependency-free hash-bag encoder/verifier path. It
+does not include an external Vision-NLI benchmark or a real video model run.
+
 ## Full API
 
 ::: director_ai.core.multimodal_guard.adapter.MultimodalCheckRequest

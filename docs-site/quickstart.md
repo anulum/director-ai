@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Quickstart
+-->
+
 # Quickstart
 
 Use this page when you want to run Director-AI, score a response, and protect
@@ -16,6 +26,7 @@ checklist.
 | Protect a RAG bot | `director-ai[vector]` | [KB Ingestion](guide/kb-ingestion.md) |
 | Evaluate a pilot | labelled examples | [Evaluation Onboarding](guide/onboarding.md) |
 | Deploy a service | `director-ai quickstart --run` | [Production Guide](deployment/production.md) |
+| Prepare a production stack | `director-ai quickstart --profile production` | [Monitoring](deployment/monitoring.md) |
 
 ## Recommended Path
 
@@ -29,6 +40,19 @@ director-ai doctor
 
 This starts the default proxy on port 8080, the FastAPI service on port 8000,
 and local Chroma persistence under `./director_guard/chroma`.
+
+## What You Should See
+
+After the first run you should have:
+
+- a guarded call path that can score a prompt/response pair;
+- at least one governed fact loaded inline or through local Chroma;
+- a rejection or low score for a deliberately wrong answer;
+- a path to inspect the score, evidence, and failure action;
+- no secrets printed in logs or notebook output.
+
+If you are evaluating Director-AI for a team, save those five observations in
+the pilot evidence packet from [Evaluation Onboarding](guide/onboarding.md).
 
 ## Other Entry Points
 
@@ -72,6 +96,30 @@ Run the default proxy and FastAPI services:
 
 ```bash
 director-ai quickstart --run
+```
+
+For an authenticated production scaffold:
+
+```bash
+director-ai quickstart --profile production
+cd director_guard
+```
+
+Fill `.env` with `DIRECTOR_API_KEY_TENANT_MAP`, `DIRECTOR_PROXY_API_KEYS`,
+`DIRECTOR_LLM_API_URL`, `DIRECTOR_UPSTREAM_URL`, `DIRECTOR_KB_HMAC_KEYS`, and
+`DIRECTOR_CORS_ORIGINS`, then start the service:
+
+```bash
+docker compose up
+```
+
+The production scaffold enables NLI, model-backed fail-closed checks, tenant
+routing, signed knowledge writes, audit/compliance/feedback stores, JSON logs,
+authenticated metrics, rate limiting, and the review queue. To add Prometheus,
+write the matching API key to `secrets/director-api-key` and run:
+
+```bash
+docker compose --profile monitoring up
 ```
 
 Run the ONNX service after placing exported model files in

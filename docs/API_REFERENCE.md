@@ -433,6 +433,7 @@ director-ai batch input.jsonl          # batch process (max 10K prompts)
 director-ai ingest docs.txt            # ingest into vector store
 director-ai serve --port 8080          # start FastAPI server
 director-ai config --profile fast      # show/set configuration
+director-ai production-check --path director_guard  # validate production scaffold
 ```
 
 ---
@@ -451,6 +452,8 @@ director-ai config --profile fast      # show/set configuration
 | `SanitizeResult` | `blocked`, `reason`, `pattern` | Sanitizer check result |
 | `Violation` | `rule`, `detail` | Policy violation |
 | `AuditEntry` | `timestamp`, `query_hash`, `approved`, `score`, ... | Audit record |
+| `ObservabilityOperationsReport` | `summary`, `tenants`, `sources`, `drift_alerts`, `controls`, `compliance_exports` | Tenant-safe halt forensics and deployment-gate operations packet |
+| `ComplianceExportRef` | `standard`, `name`, `status`, `evidence_ref`, `updated_at` | Operator-owned compliance export reference without raw artefact contents |
 
 ---
 

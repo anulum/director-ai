@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Documentation landing page
+-->
+
 # Director-AI
 
 **Real-time LLM hallucination guardrail** — NLI + RAG fact-checking with token-level streaming halt.
@@ -36,6 +46,35 @@ audit records.
 
 For business users: this is the factual-coherence control point where hallucination
 rejection, auditability, and tenant-safe evidence are introduced before a wrong claim reaches users or automated workflows.
+
+## What This Software Is
+
+Director-AI is a factual-coherence guardrail runtime. It gives application
+builders, platform teams, and evaluators a place to decide whether generated
+text is safe enough to show, stream, store, route, or hand to another agent.
+
+It combines:
+
+- governed facts and retrieved evidence from a customer knowledge base;
+- contradiction and coherence scoring through configurable local scorer paths;
+- token-level streaming halt for partial outputs;
+- structured checks for numbers, reasoning, freshness, consensus, injection,
+  trajectories, and sector policy;
+- tenant-safe evidence, metrics, and compliance export surfaces.
+
+It is not a replacement for access control, moderation, legal review, clinical
+review, or customer data governance. It is the factual-risk control layer that
+connects those controls to LLM output.
+
+## First 30 Minutes
+
+| Goal | Path | Result |
+|---|---|---|
+| Understand the product | [Product Overview](guide/product-overview.md) → [Market Value](guide/market-value-and-positioning.md) | Clear map of applications, value, and evidence boundaries |
+| Try it in code | [Quickstart](quickstart.md) → [guard API](api/guard.md) | One answer scored and one SDK call guarded |
+| See notebooks | [Notebook Gallery](notebook-gallery.md) → [Tutorials](tutorials.md) | Role-based notebook path for evaluator, RAG, streaming, or production work |
+| Plan a pilot | [Evaluation Onboarding](guide/onboarding.md) → [Production Guide](deployment/production.md) | Pilot checklist, acceptance criteria, and operational evidence plan |
+| Inspect APIs | [API Reference](api/index.md) → relevant module page | Supported public API surface and integration boundary |
 
 ## Market Positioning
 

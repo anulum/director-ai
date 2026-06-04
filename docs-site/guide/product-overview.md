@@ -1,10 +1,12 @@
-<!-- SPDX-License-Identifier: AGPL-3.0-or-later -->
-<!-- Commercial license available -->
-<!-- Copyright (c) Concepts 1996-2026 Miroslav Sotek. All rights reserved. -->
-<!-- Copyright (c) Code 2020-2026 Miroslav Sotek. All rights reserved. -->
-<!-- ORCID: 0009-0009-3560-0851 -->
-<!-- Contact: www.anulum.li | protoscience@anulum.li -->
-<!-- Director-Class AI - Product Overview -->
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Product overview
+-->
 
 # Product Overview
 
@@ -20,6 +22,28 @@ The core product question is simple:
 
 Director-AI answers that question with an auditable verdict, a score, and the
 evidence that drove the decision.
+
+## Product Thesis
+
+LLM adoption is moving from chat experiments into workflows that affect
+customers, research, operations, and regulated decisions. The failure mode is
+not only toxic content; it is confident unsupported content that looks useful
+until it becomes an incident.
+
+Director-AI creates a control point between generation and consequence:
+
+- **Application teams** get a small API that can approve, reject, annotate, or
+  halt output.
+- **Platform teams** get shared REST/gRPC infrastructure, auth, rate limits,
+  metrics, and deployment runbooks.
+- **Evaluation teams** get repeatable scoring, batch processing, threshold
+  tuning, and benchmark evidence.
+- **Governance teams** get tenant-safe audit trails, compliance reports, and
+  human-review escalation paths.
+
+The open repository contains the public core and evidence surface. Commercial
+work can add customer-specific sector packs, deployment recipes, tuning data,
+and acceptance evidence under a separate agreement.
 
 ## What It Is For
 
@@ -69,6 +93,9 @@ The default production pattern has four layers:
    optional compliance reports.
 
 ## Application Lanes
+
+Pick one lane first. Mixing all lanes in the first week usually creates noisy
+results because each lane has a different success signal.
 
 ### Builder Lane
 
