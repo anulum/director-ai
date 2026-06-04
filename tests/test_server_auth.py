@@ -14,6 +14,7 @@ import os
 import pytest
 
 from director_ai.core.config import DirectorConfig
+from director_ai.core.metrics import metrics
 
 try:
     from fastapi.testclient import TestClient
@@ -97,6 +98,38 @@ def test_correlation_id_echoed():
             headers={"X-Request-ID": "my-trace-42"},
         )
     assert r.headers["X-Request-ID"] == "my-trace-42"
+
+
+def test_http_metrics_use_route_templates_for_path_parameters():
+    metrics.reset()
+
+    with TestClient(_noauth_app()) as client:
+        response = client.get("/v1/sessions/customer-secret-session")
+        telemetry = client.get("/v1/metrics").json()
+
+    labels = telemetry["counters"]["http_requests_total"]["multi_labels"]
+
+    assert response.status_code == 404
+    assert (
+        'endpoint="/v1/sessions/{session_id}",method="GET",status="404"' in labels
+    )
+    assert "customer-secret-session" not in repr(labels)
+
+
+def test_http_metrics_count_auth_failures():
+    metrics.reset()
+
+    with TestClient(_auth_app()) as client:
+        rejected = client.get("/v1/config")
+        telemetry = client.get(
+            "/v1/metrics",
+            headers={"X-API-Key": "test-key-123"},
+        ).json()
+
+    labels = telemetry["counters"]["http_requests_total"]["multi_labels"]
+
+    assert rejected.status_code == 401
+    assert 'endpoint="/v1/config",method="GET",status="401"' in labels
 
 
 def test_api_keys_redacted_in_config():

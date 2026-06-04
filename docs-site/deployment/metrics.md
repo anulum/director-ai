@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Metrics and observability reference
+-->
+
 # Metrics & Observability
 
 Director-AI ships a zero-dependency Prometheus-compatible metrics collector.
@@ -30,6 +40,12 @@ All metrics use the `director_ai_` prefix.
 | `nli_premise_chunks` | 1–20 | Premise chunk count per scoring call |
 | `nli_hypothesis_chunks` | 1–20 | Hypothesis chunk count per scoring call |
 | `http_request_duration_seconds` | 0.005–10s | HTTP request duration |
+
+HTTP request metrics use route templates for `endpoint` labels, such as
+`/v1/sessions/{session_id}` and `/v1/tenants/{tenant_id}/facts`, not raw path
+values. This keeps Prometheus cardinality bounded and prevents tenant, session,
+or document identifiers from entering metric labels. Authentication failures are
+also counted with the same route-template label contract.
 
 ### Gauges
 

@@ -258,6 +258,54 @@ def _can_suppress_batcher_metrics(batcher: Any) -> bool:
     return isinstance(batcher, BatchProcessor)
 
 
+def _http_endpoint_label(request: Request) -> str:
+    """Return a low-cardinality route label for HTTP metrics."""
+
+    route = request.scope.get("route")
+    route_path = getattr(route, "path", None)
+    if isinstance(route_path, str) and route_path:
+        return route_path
+
+    try:
+        from starlette.routing import Match
+    except ImportError:  # pragma: no cover - FastAPI depends on Starlette
+        return "__unmatched__"
+
+    partial_path = ""
+    for candidate in request.app.routes:
+        matches = getattr(candidate, "matches", None)
+        if not callable(matches):
+            continue
+        match, _child_scope = matches(request.scope)
+        candidate_path = getattr(candidate, "path", "")
+        if not isinstance(candidate_path, str) or not candidate_path:
+            continue
+        if match is Match.FULL:
+            return candidate_path
+        if match is Match.PARTIAL and not partial_path:
+            partial_path = candidate_path
+
+    return partial_path or "__unmatched__"
+
+
+def _record_http_metrics(
+    request: Request,
+    *,
+    status_code: int,
+    started_at: float,
+) -> None:
+    elapsed = time.monotonic() - started_at
+    metrics.observe("http_request_duration_seconds", elapsed)
+    metrics.inc_labeled(
+        "http_requests_total",
+        {
+            "method": request.method,
+            "endpoint": _http_endpoint_label(request),
+            "status": str(status_code),
+        },
+    )
+
+
 def create_app(config: DirectorConfig | None = None) -> FastAPI:
     """Create and configure the FastAPI application."""
     _check_fastapi()
@@ -555,6 +603,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         request.state.request_id = request_id
         REQUEST_ID_CTX.set(request_id)
 
+        start = time.monotonic()
         api_key_hash = ""
         if cfg.api_keys and request.url.path not in _auth_exempt:
             provided = _extract_request_api_key(request)
@@ -570,11 +619,17 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     request.client.host if request.client else "unknown",
                     request.url.path,
                 )
-                return JSONResponse(
+                response = JSONResponse(
                     status_code=401,
                     content={"detail": "Invalid or missing API key"},
                     headers={"X-Request-ID": request_id},
                 )
+                _record_http_metrics(
+                    request,
+                    status_code=response.status_code,
+                    started_at=start,
+                )
+                return response
             import hashlib
 
             from .core.safety.audit_salt import get_audit_salt
@@ -591,19 +646,31 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             # Tenant binding: enforce API key Ă˘â€ â€™ tenant mapping if configured
             if _api_key_tenant_map:
                 if provided not in _api_key_tenant_map:
-                    return JSONResponse(
+                    response = JSONResponse(
                         status_code=403,
                         content={"detail": "API key not bound to any tenant"},
                         headers={"X-Request-ID": request_id},
                     )
+                    _record_http_metrics(
+                        request,
+                        status_code=response.status_code,
+                        started_at=start,
+                    )
+                    return response
                 bound_tenant = _api_key_tenant_map[provided]
                 claimed_tenant = request.headers.get("X-Tenant-ID", "")
                 if claimed_tenant and claimed_tenant != bound_tenant:
-                    return JSONResponse(
+                    response = JSONResponse(
                         status_code=403,
                         content={"detail": "API key not authorized for this tenant"},
                         headers={"X-Request-ID": request_id},
                     )
+                    _record_http_metrics(
+                        request,
+                        status_code=response.status_code,
+                        started_at=start,
+                    )
+                    return response
                 request.state.tenant_id = bound_tenant
                 request.state.kb_write_key_ok = True
                 request.state.kb_tenant_binding_ok = True
@@ -627,17 +694,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         request.state.api_key_hash = api_key_hash
 
         # Metrics
-        start = time.monotonic()
         response = await call_next(request)
-        elapsed = time.monotonic() - start
-        metrics.observe("http_request_duration_seconds", elapsed)
-        metrics.inc_labeled(
-            "http_requests_total",
-            {
-                "method": request.method,
-                "endpoint": request.url.path,
-                "status": str(response.status_code),
-            },
+        _record_http_metrics(
+            request,
+            status_code=response.status_code,
+            started_at=start,
         )
         response.headers["X-Request-ID"] = request_id
         return response
