@@ -36,6 +36,10 @@ Before deploying Director-AI to production, verify each item:
 - [ ] Run `director-ai bench --dataset e2e` to verify catch rate on your domain data
 - [ ] Run `PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence` and archive the JSON packet with the release evidence
 - [ ] Run `PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence` and archive the JSON packet with the release evidence
+- [ ] Run `PYTHONPATH=src python -m benchmarks.edge_mobile_evidence` and archive the JSON packet with the release evidence
+- [ ] For browser, Worker, mobile, or embedded deployments, require
+      `ready_for_release=true`; local-trial evidence alone is not enough for a
+      customer release.
 - [ ] Run `PYTHONPATH=src python -m benchmarks.sustained_load_evidence` and archive the JSON packet with the release evidence
 - [ ] Review `director-ai config --profile <domain>` settings match your requirements
 

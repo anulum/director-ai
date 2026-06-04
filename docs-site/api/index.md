@@ -48,6 +48,7 @@ For the product and pilot context around these APIs, see
 | [`AdaptiveThresholdLearner`](adaptive-threshold.md) | `director_ai.core.calibration.adaptive_threshold` | Human-gated Thompson-sampling threshold recommendations |
 | [`DefenseUpdatePipeline`](defence-update-pipeline.md) | `director_ai.core.defense_genome` | Reviewed defence promotion across feedback, adversarial mining, and registry hot-swap |
 | [`AutoRedteamDefenceLoop`](defence-update-pipeline.md#auto-redteam-defence-loop) | `director_ai.core.defense_genome` | Repeated adversarial-mining cycles with detection-uplift gates before promotion |
+| [`build_edge_runtime_readiness()`](edge-runtime-readiness.md) | `director_ai.core.edge` | Edge/mobile readiness profile for WASM, Rust, ONNX, and smoke evidence |
 | [`CrossDocumentConsistencyMemory`](cross-document-memory.md) | `director_ai.core.memory.consistency` | Tenant-scoped long-term consistency checks with retention and delete controls |
 | [`DifferentialPrivacyScoreReleaser`](private-score-release.md) | `director_ai.core.federated_privacy.score_release` | Laplace-noised score disclosure with privacy accounting |
 | [`FederatedSafetySignalAggregator`](federated-safety-signals.md) | `director_ai.core.federated_privacy.signal_sharing` | Anonymous DP aggregate sharing for tenant-safe guard signals |

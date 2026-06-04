@@ -156,6 +156,11 @@ export DIRECTOR_PRODUCTION_MODE=true
       `PYTHONPATH=src python -m benchmarks.auto_redteam_defence_evidence`
 - [ ] Generate formal symbolic evidence:
       `PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence`
+- [ ] Generate edge/mobile runtime evidence:
+      `PYTHONPATH=src python -m benchmarks.edge_mobile_evidence`
+      and confirm `ready_for_release` only after WASM artefacts, quantised model
+      artefacts, browser/Web Worker smoke, and mobile or embedded-device smoke
+      evidence are attached.
 - [ ] Generate sustained async/tenant hardening evidence:
       `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
 

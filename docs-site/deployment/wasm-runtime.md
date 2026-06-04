@@ -53,6 +53,26 @@ wasm-pack build --target web --release
 CI already builds the web target in `.github/workflows/wheels.yml` and uploads
 the `pkg/` directory as the `wasm-edge-runtime` artefact.
 
+## Readiness Evidence
+
+Before claiming an edge or mobile release, generate the R14 readiness packet:
+
+```bash
+PYTHONPATH=src python -m benchmarks.edge_mobile_evidence
+```
+
+The packet records whether the current checkout is ready for a local
+low-latency trial or for release. Release readiness requires:
+
+- local `wasm-pack` artefacts in `backfire-kernel/crates/backfire-wasm/pkg/`
+- a quantised ONNX model artefact
+- browser or Web Worker smoke evidence
+- mobile or embedded-device smoke evidence
+- Rust Python accelerator import evidence
+
+If those artefacts are absent, the packet remains useful but must be treated as
+local-trial evidence only.
+
 ## Release Priority
 
 `requirements/wasm_release_plan.toml` is the tracked source for the host

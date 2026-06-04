@@ -177,6 +177,22 @@ but never serialise raw matched values. This keeps redaction telemetry
 tenant-safe while allowing compliance dashboards to prove which categories were
 masked.
 
+## Edge/Mobile Runtime Evidence
+
+`benchmarks.edge_mobile_evidence` records the current R14 edge/mobile state for
+browser, Worker, embedded, and local low-latency deployments:
+
+```bash
+PYTHONPATH=src python -m benchmarks.edge_mobile_evidence
+```
+
+The packet checks the WASM release plan, WASM source/tests/example, ONNX and
+quantisation contracts, Rust kernel source, deployment docs, and latency
+benchmark scripts. It intentionally separates local-trial readiness from
+release readiness. Release readiness still requires an actual `wasm-pack`
+artefact, quantised ONNX model artefact, browser/Web Worker smoke evidence,
+mobile or embedded-device smoke evidence, and package-publish evidence.
+
 ## Rust vs Python E2E Comparison (Published Reproducible Packet)
 
 Use the dedicated E2E runner to benchmark Rust-accelerated and forced-Python

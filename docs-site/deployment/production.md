@@ -152,6 +152,20 @@ scorer = CoherenceScorer(
 
 8-bit quantization reduces VRAM from ~1.5GB to ~400MB per model.
 
+### Edge And Mobile Release Evidence
+
+Browser, Worker, mobile, and embedded deployments use the WASM halt kernel plus
+a host-owned scorer. Before release, generate:
+
+```bash
+PYTHONPATH=src python -m benchmarks.edge_mobile_evidence
+```
+
+The packet must show `ready_for_release=true` for customer release. If it only
+shows `ready_for_local_trial=true`, the source contracts and docs are present
+but release evidence is still missing for local WASM artefacts, quantised model
+artefacts, browser/Web Worker smoke, and mobile or embedded-device smoke.
+
 ### Score Caching
 
 Enable caching to reduce NLI inference by 60-80% in streaming workloads:

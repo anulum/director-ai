@@ -499,8 +499,12 @@ roots.
    - Remaining work: external federation run, malicious-secure aggregation
      review, and deployment-specific poisoning-resilience evidence.
 7. **Edge/Mobile Optimisation Path:**
-   - Quantised tiny-NLI path and Rust/WASM runtime in browser/embedded.
-   - Sub-second local inference for guarded low-latency workloads.
+   - Local readiness contract and evidence packet now verify the tracked
+     quantised NLI, ONNX, Rust, WASM, deployment-doc, and latency-benchmark
+     surfaces for browser/embedded low-latency trials.
+   - Remaining work: actual `wasm-pack` release artefacts, a quantised model
+     artefact, browser/Web Worker smoke evidence, mobile or embedded-device
+     smoke evidence, package-publish evidence, and deployment latency archive.
 8. **Auto-Redteam + Defence Genome Evolution:**
    - Reviewed repeated adversarial-mining cycles, detection-uplift gates,
      defence registry promotion, and local tenant-safe evidence packet are
