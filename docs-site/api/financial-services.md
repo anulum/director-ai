@@ -79,6 +79,9 @@ shape as `BankingPolicyReport.to_dict()`. Reference arrays are capped at 64
 items; each reference must be 1-512 characters, and `jurisdiction` plus
 `product_line` must be non-empty when supplied.
 
+The same sector-policy fields are accepted by `/v1/batch` when `task` is
+`review`; each returned batch item carries its own `sector_policy` report.
+
 ## Full API
 
 ::: director_ai.core.financial_services.BankingPolicyFinding

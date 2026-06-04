@@ -188,6 +188,14 @@ codes and evidence identifiers, not the raw prompt or response:
 }
 ```
 
+### Batch Review Sector Policy
+
+`/v1/batch` accepts the same sector-policy fields for `task: "review"`. Each
+review result includes its own `sector_policy` object when the policy is enabled,
+and item `approved` is `false` if either the scorer or sector policy fails.
+`sector_policy` is rejected for `task: "process"` because generated outputs are
+not available in the request.
+
 ## Authentication
 
 Set `api_keys` in config or via `DIRECTOR_API_KEYS` env var (comma-separated):

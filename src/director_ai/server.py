@@ -1148,6 +1148,11 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     422,
                     f"responses[{i}] exceeds {_MAX_RESPONSE_CHARS} char limit",
                 )
+        if req.sector_policy and req.task != "review":
+            raise HTTPException(
+                422,
+                "sector_policy is only supported for review batches",
+            )
 
         sanitizer = request.app.state._state.get("sanitizer")
         if sanitizer:
@@ -1187,6 +1192,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             import time
 
             start_t = time.monotonic()
+            pairs: list[tuple[str, str]] = []
             if req.task == "review":
                 if len(req.prompts) != len(req.responses):
                     raise HTTPException(
@@ -1211,13 +1217,29 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
             for idx, item in enumerate(batch_res.results):
                 if isinstance(item, tuple):  # review
                     appr, sc = item
-                    results.append(
-                        {
-                            "index": idx,
-                            "approved": appr,
-                            "score": sc.score,
-                        },
-                    )
+                    approved = appr
+                    result: dict[str, Any] = {
+                        "index": idx,
+                        "approved": approved,
+                        "score": sc.score,
+                    }
+                    if req.sector_policy and idx < len(pairs):
+                        from .core.financial_services import assess_banking_response
+
+                        sector_policy_report = assess_banking_response(
+                            pairs[idx][0],
+                            pairs[idx][1],
+                            evidence_refs=req.evidence_refs,
+                            numeric_evidence_refs=req.numeric_evidence_refs,
+                            policy_refs=req.policy_refs,
+                            jurisdiction=req.jurisdiction,
+                            product_line=req.product_line,
+                            human_review_acknowledged=req.human_review_acknowledged,
+                        )
+                        approved = approved and sector_policy_report.approved
+                        result["approved"] = approved
+                        result["sector_policy"] = sector_policy_report.to_dict()
+                    results.append(result)
                 elif isinstance(item, ReviewResult):  # process
                     score_val = item.coherence.score if item.coherence else 0.0
                     output = item.output

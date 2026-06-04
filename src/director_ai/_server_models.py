@@ -95,6 +95,37 @@ class BatchRequest(BaseModel):
         ..., min_length=1, max_length=1000, description="List of prompts"
     )
     responses: list[str] = Field(default_factory=list, description="Optional responses")
+    sector_policy: _Literal["banking", "financial-services"] | None = Field(
+        None,
+        description="Optional deterministic sector policy for review batches",
+    )
+    evidence_refs: list[_SectorPolicyRef] = Field(
+        default_factory=list,
+        max_length=_MAX_SECTOR_POLICY_REFS,
+        description="Evidence identifiers for sector-policy claims",
+    )
+    numeric_evidence_refs: list[_SectorPolicyRef] = Field(
+        default_factory=list,
+        max_length=_MAX_SECTOR_POLICY_REFS,
+        description="Evidence identifiers for numeric sector-policy claims",
+    )
+    policy_refs: list[_SectorPolicyRef] = Field(
+        default_factory=list,
+        max_length=_MAX_SECTOR_POLICY_REFS,
+        description="Policy identifiers used by deterministic sector checks",
+    )
+    jurisdiction: _Jurisdiction = Field(
+        "US",
+        description="Jurisdiction code for sector-policy evaluation",
+    )
+    product_line: _ProductLine = Field(
+        "default",
+        description="Product line or response class for sector-policy evaluation",
+    )
+    human_review_acknowledged: bool = Field(
+        False,
+        description="Whether the operator workflow already attached human review",
+    )
 
 
 class ReviewResponse(BaseModel):

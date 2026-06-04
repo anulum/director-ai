@@ -200,6 +200,70 @@ def test_batch_process_review_and_error_contracts() -> None:
     assert bad_runtime.status_code == 500
 
 
+def test_batch_review_banking_policy_blocks_approved_result_without_raw_text_leak() -> None:
+    from director_ai.core.runtime.batch import BatchResult
+
+    class ApprovingBatch:
+        async def review_batch_async(self, pairs, tenant_id: str = ""):
+            return BatchResult(
+                results=[(True, _score(0.94, approved=True))],
+                errors=[],
+                total=1,
+                succeeded=1,
+                failed=0,
+                duration_seconds=0.01,
+            )
+
+    prompt = "Customer secret phrase: what is the standard FDIC limit?"
+    response_text = "FDIC insurance covers up to $500,000 per depositor."
+
+    with _client() as client:
+        client.app.state._state["batch"] = ApprovingBatch()
+        response = client.post(
+            "/v1/batch",
+            json={
+                "task": "review",
+                "prompts": [prompt],
+                "responses": [response_text],
+                "sector_policy": "banking",
+                "evidence_refs": ["policy://fdic/deposit-insurance/current"],
+                "numeric_evidence_refs": [
+                    "policy://fdic/deposit-insurance/current#limit"
+                ],
+                "policy_refs": ["policy://financial-services/deposit-disclosures"],
+            },
+        )
+
+    payload = response.json()
+    encoded = response.text
+    result = payload["results"][0]
+
+    assert response.status_code == 200
+    assert result["approved"] is False
+    assert result["score"] == pytest.approx(0.94)
+    assert result["sector_policy"]["approved"] is False
+    assert result["sector_policy"]["blocked_codes"] == [
+        "deposit_insurance_limit_mismatch"
+    ]
+    assert prompt not in encoded
+    assert response_text not in encoded
+
+
+def test_batch_rejects_sector_policy_for_process_task() -> None:
+    with _client() as client:
+        response = client.post(
+            "/v1/batch",
+            json={
+                "task": "process",
+                "prompts": ["What is the FDIC limit?"],
+                "sector_policy": "banking",
+            },
+        )
+
+    assert response.status_code == 422
+    assert "sector_policy" in response.text
+
+
 def test_verify_endpoint_context_paths(monkeypatch) -> None:
     class EmptyStore:
         def retrieve_context(self, prompt: str, top_k: int, tenant_id: str = ""):
