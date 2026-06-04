@@ -9,20 +9,21 @@
 groups:
   - name: director-ai
     rules:
-      - alert: HighHallucinationRate
+      - alert: HighRejectionRate
         expr: |
-          rate(director_hallucinations_total[5m])
-          / rate(director_reviews_total[5m]) > 0.15
+          sum by (job, instance) (rate(director_ai_reviews_rejected[5m]))
+          /
+          clamp_min(sum by (job, instance) (rate(director_ai_reviews_total[5m])), 0.001) > 0.15
         for: 5m
         labels:
           severity: warning
         annotations:
-          summary: "Hallucination rate > 15% for 5 minutes"
-          description: "Instance {{ $labels.instance }} is flagging {{ $value | humanizePercentage }} of responses as hallucinated."
+          summary: "Review rejection rate > 15% for 5 minutes"
+          description: "Instance {{ $labels.instance }} is rejecting {{ $value | humanizePercentage }} of reviewed responses."
 
       - alert: ReviewLatencyHigh
         expr: |
-          histogram_quantile(0.95, rate(director_review_duration_seconds_bucket[5m])) > 0.5
+          histogram_quantile(0.95, rate(director_ai_review_duration_seconds_bucket[5m])) > 0.5
         for: 5m
         labels:
           severity: warning
@@ -30,40 +31,41 @@ groups:
           summary: "Review p95 latency > 500ms"
           description: "Instance {{ $labels.instance }} p95 latency is {{ $value | humanizeDuration }}."
 
-      - alert: StreamingHaltSpike
-        expr: rate(director_streaming_halts_total[5m]) * 60 > 10
+      - alert: HaltSpike
+        expr: sum by (job, instance) (rate(director_ai_halts_total[5m])) * 60 > 10
         for: 2m
         labels:
           severity: critical
         annotations:
-          summary: "Streaming halt rate > 10/min"
-          description: "Instance {{ $labels.instance }} is halting {{ $value | humanize }} streams per minute."
+          summary: "Halt rate > 10/min"
+          description: "Instance {{ $labels.instance }} is emitting {{ $value | humanize }} halt events per minute."
 
-      - alert: DriftDetected
-        expr: director_drift_score > 0.2
+      - alert: RetuneRecommended
+        expr: director_ai_retune_recommended > 0
         for: 15m
         labels:
           severity: warning
         annotations:
-          summary: "Coherence drift detected"
-          description: "Drift score {{ $value | humanize }} exceeds threshold on {{ $labels.instance }}."
+          summary: "Retune pass recommended"
+          description: "Recent feedback or calibration telemetry recommends a retune pass on {{ $labels.instance }}."
 
       - alert: ErrorRateHigh
-        expr: rate(director_errors_total[5m]) * 60 > 5
+        expr: |
+          sum by (job, instance) (rate(director_ai_http_requests_total{status=~"5.."}[5m]))
+          /
+          clamp_min(sum by (job, instance) (rate(director_ai_http_requests_total[5m])), 0.001) > 0.01
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "Error rate > 5/min"
-          description: "Instance {{ $labels.instance }} error rate is {{ $value | humanize }}/min."
+          summary: "HTTP 5xx rate > 1%"
+          description: "Instance {{ $labels.instance }} is returning {{ $value | humanizePercentage }} 5xx responses."
 
-      - alert: KBQueryFailures
-        expr: |
-          rate(director_knowledge_query_errors[5m])
-          / rate(director_knowledge_queries_total[5m]) > 0.05
-        for: 5m
+      - alert: StaleKnowledgeSources
+        expr: director_ai_kb_stale_sources > 0
+        for: 15m
         labels:
           severity: warning
         annotations:
-          summary: "KB query failure rate > 5%"
-          description: "Instance {{ $labels.instance }} KB query failure rate is {{ $value | humanizePercentage }}."
+          summary: "Stale knowledge sources detected"
+          description: "Refresh or retract stale knowledge sources before relaxing halt thresholds on {{ $labels.instance }}."

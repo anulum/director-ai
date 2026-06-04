@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — Observability Pack
+-->
+
 # Observability Pack
 
 *Added in v3.11.0*
@@ -16,15 +26,15 @@ For halt operations, import
 
 | Panel | Type | Metric |
 |-------|------|--------|
-| Reviews / minute | timeseries | `rate(director_reviews_total[1m])` |
-| Hallucination rate | timeseries | `rate(director_hallucinations_total[1m]) / rate(director_reviews_total[1m])` |
-| Review latency p50/p95/p99 | timeseries | `histogram_quantile(0.50/0.95/0.99, ...)` |
-| Coherence score distribution | histogram | `director_coherence_score` |
-| Active streaming sessions | stat | `director_streaming_active_sessions` |
-| Streaming halts / min | stat | `rate(director_streaming_halts_total[1m])` |
-| KB queries / min | stat | `rate(director_knowledge_queries_total[1m])` |
-| Error rate | stat | `rate(director_errors_total[5m])` |
-| Drift score (7-day) | timeseries | `director_drift_score` |
+| Reviews / minute | timeseries | `rate(director_ai_reviews_total[1m])` |
+| Rejection rate | timeseries | `rate(director_ai_reviews_rejected[1m]) / rate(director_ai_reviews_total[1m])` |
+| Review latency p50/p95/p99 | timeseries | `histogram_quantile(..., rate(director_ai_review_duration_seconds_bucket[5m]))` |
+| Coherence score p50/p90/p99 | timeseries | `histogram_quantile(..., rate(director_ai_coherence_score_bucket[5m]))` |
+| Active requests | stat | `director_ai_active_requests` |
+| Halts / min | stat | `rate(director_ai_halts_total[1m])` |
+| Stale KB sources | stat | `director_ai_kb_stale_sources` |
+| HTTP 5xx rate | stat | `rate(director_ai_http_requests_total{status=~"5.."}) / rate(director_ai_http_requests_total)` |
+| Retune recommended | stat | `director_ai_retune_recommended` |
 
 ## Prometheus Alerts
 
@@ -37,12 +47,12 @@ For halt-rate, false-positive-rate, stale-knowledge, and retune alerts, also add
 
 | Alert | Condition | Severity |
 |-------|-----------|----------|
-| `HighHallucinationRate` | > 15% for 5 min | warning |
+| `HighRejectionRate` | > 15% for 5 min | warning |
 | `ReviewLatencyHigh` | p95 > 500ms for 5 min | warning |
-| `StreamingHaltSpike` | > 10 halts/min for 2 min | critical |
-| `DriftDetected` | drift score > 0.2 for 15 min | warning |
-| `ErrorRateHigh` | > 5 errors/min for 5 min | critical |
-| `KBQueryFailures` | > 5% failure rate for 5 min | warning |
+| `HaltSpike` | > 10 halts/min for 2 min | critical |
+| `RetuneRecommended` | retune flag active for 15 min | warning |
+| `ErrorRateHigh` | HTTP 5xx ratio > 1% for 5 min | critical |
+| `StaleKnowledgeSources` | stale KB source count > 0 for 15 min | warning |
 
 ## Setup
 

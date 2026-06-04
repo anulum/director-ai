@@ -9,7 +9,7 @@
     "python_model_classes": 718,
     "python_model_source_modules": 316,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 415
+    "test_files": 416
   },
   "documentation": {
     "public_pages": [
@@ -4065,6 +4065,7 @@
       "tests/test_notebook_gallery.py",
       "tests/test_numeric_verifier.py",
       "tests/test_observability.py",
+      "tests/test_observability_pack.py",
       "tests/test_online_calibrator.py",
       "tests/test_onnx_artefact_guidance.py",
       "tests/test_onnx_backend.py",
