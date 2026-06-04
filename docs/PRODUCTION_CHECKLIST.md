@@ -163,6 +163,11 @@ export DIRECTOR_PRODUCTION_MODE=true
       evidence are attached.
 - [ ] Generate sustained async/tenant hardening evidence:
       `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
+- [ ] Run the local release evidence gate:
+      `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode local`
+- [ ] Before a customer release, run the strict release evidence gate:
+      `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release`
+      and resolve every release blocker.
 
 ### Release documentation sync
 

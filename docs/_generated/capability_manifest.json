@@ -9,7 +9,7 @@
     "python_model_classes": 714,
     "python_model_source_modules": 314,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 409
+    "test_files": 410
   },
   "documentation": {
     "public_pages": [
@@ -4010,6 +4010,7 @@
       "tests/test_llamaindex_real_sdk.py",
       "tests/test_llm_judge.py",
       "tests/test_local_judge.py",
+      "tests/test_local_release_evidence_gate.py",
       "tests/test_log_json.py",
       "tests/test_loop_monitor.py",
       "tests/test_managed_training_jobs.py",

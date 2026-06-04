@@ -41,6 +41,8 @@ Before deploying Director-AI to production, verify each item:
       `ready_for_release=true`; local-trial evidence alone is not enough for a
       customer release.
 - [ ] Run `PYTHONPATH=src python -m benchmarks.sustained_load_evidence` and archive the JSON packet with the release evidence
+- [ ] Run `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode local` after local packets are generated
+- [ ] Run `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release` before customer release and resolve every release blocker
 - [ ] Review `director-ai config --profile <domain>` settings match your requirements
 
 ## Security

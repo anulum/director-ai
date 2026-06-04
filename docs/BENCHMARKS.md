@@ -386,6 +386,23 @@ Passing this packet is local evidence only. Closing the production deployment
 gate still requires a sustained staging or production run with external
 telemetry, environment details, and security-review sign-off.
 
+## Local Release Evidence Gate
+
+After generating the local evidence packets for R9-R17, run the repository
+evidence gate:
+
+```bash
+PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode local
+PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release
+```
+
+`--mode local` verifies that the newest packet for each roadmap gate exists and
+has `acceptance.passed=true`. `--mode release` is stricter and blocks release
+claims while packets still declare local-only status, missing external runs,
+missing operator sign-off, missing smoke evidence, or `ready_for_release=false`.
+Use the release-mode output as the current punch list for evidence that cannot
+be satisfied by local tests alone.
+
 ---
 
 ## Runtime Scorer Model Choices
