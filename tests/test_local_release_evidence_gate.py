@@ -41,6 +41,8 @@ def _write_packet(
             "external_operator_signoff_included": False,
         }
     )
+    if benchmark == "sustained_load_evidence" and release_ready:
+        limits["staging_or_production_telemetry_included"] = True
     payload = {
         "benchmark": benchmark,
         "acceptance": {
@@ -92,6 +94,7 @@ def test_gate_blocks_release_mode_for_local_only_packets(tmp_path) -> None:
     assert "local_only_evidence" in codes
     assert "edge_runtime_not_release_ready" in codes
     assert "missing_external_operator_signoff_included" in codes
+    assert "missing_staging_or_production_telemetry_included" in codes
 
 
 def test_gate_allows_release_when_all_release_limits_are_ready(tmp_path) -> None:
@@ -104,6 +107,38 @@ def test_gate_allows_release_when_all_release_limits_are_ready(tmp_path) -> None
     assert gate.release_ready is True
     assert gate.blockers == ()
     assert gate.release_blockers == ()
+
+
+def test_gate_blocks_release_when_sustained_load_packet_lacks_staging_limits(
+    tmp_path,
+) -> None:
+    _write_all_packets(tmp_path, release_ready=True)
+    path = (
+        tmp_path
+        / "benchmarks"
+        / "results"
+        / "sustained_load_evidence_20260604T000001Z.json"
+    )
+    path.write_text(
+        json.dumps(
+            {
+                "benchmark": "sustained_load_evidence",
+                "acceptance": {
+                    "passed": True,
+                    "async_ordering": True,
+                    "tenant_poisoning": True,
+                },
+            },
+        ),
+        encoding="utf-8",
+    )
+
+    gate = evaluate_release_evidence(tmp_path, mode="release")
+
+    assert gate.ready is False
+    codes = {blocker["code"] for blocker in gate.blockers}
+    assert "missing_staging_or_production_telemetry_included" in codes
+    assert "missing_external_operator_signoff_included" in codes
 
 
 def test_gate_blocks_missing_packet(tmp_path) -> None:
@@ -129,3 +164,17 @@ def test_cli_writes_json_report_for_local_mode(tmp_path) -> None:
     assert report["schema_version"] == "director-ai.local-release-evidence-gate.v1"
     assert report["ready"] is True
     assert report["release_ready"] is False
+
+
+def test_cli_prints_json_report_to_stdout_for_ci(tmp_path, capsys) -> None:
+    _write_all_packets(tmp_path)
+
+    exit_code = main(["--root", str(tmp_path), "--mode", "local", "--format", "json"])
+
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert exit_code == 0
+    assert report["mode"] == "local"
+    assert report["ready"] is True
+    assert report["release_ready"] is False
+    assert "# Local Release Evidence Gate" not in captured.out

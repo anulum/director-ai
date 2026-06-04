@@ -413,14 +413,16 @@ evidence gate:
 ```bash
 PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode local
 PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release
+PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release --format json
 ```
 
 `--mode local` verifies that the newest packet for each roadmap gate exists and
 has `acceptance.passed=true`. `--mode release` is stricter and blocks release
 claims while packets still declare local-only status, missing external runs,
 missing operator sign-off, missing smoke evidence, or `ready_for_release=false`.
-Use the release-mode output as the current punch list for evidence that cannot
-be satisfied by local tests alone.
+Use Markdown output for operator review and `--format json` for CI, dashboards,
+and release automation. The release-mode output is the current punch list for
+evidence that cannot be satisfied by local tests alone.
 
 ---
 

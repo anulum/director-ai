@@ -34,6 +34,14 @@ def test_tenant_poisoning_probe_blocks_same_key_cross_tenant_contamination() -> 
     assert packet["failed_cases"] == 0
 
 
+def test_tenant_poisoning_probe_default_scale_is_not_rank_saturation() -> None:
+    packet = evidence.run_tenant_poisoning_probe()
+
+    assert packet["passed"] is True
+    assert packet["cases"] == 64
+    assert packet["failed_cases"] == 0
+
+
 def test_sustained_load_evidence_payload_has_acceptance_summary(monkeypatch) -> None:
     monkeypatch.setattr(evidence, "_git_commit", lambda: "abc123")
 
@@ -49,6 +57,11 @@ def test_sustained_load_evidence_payload_has_acceptance_summary(monkeypatch) -> 
         "passed": True,
         "async_ordering": True,
         "tenant_poisoning": True,
+        "limits": {
+            "local_only": True,
+            "staging_or_production_telemetry_included": False,
+            "external_operator_signoff_included": False,
+        },
     }
     assert packet["probes"]["async_ordering"]["total_events"] == 8
     assert packet["probes"]["tenant_poisoning"]["cases"] == 2

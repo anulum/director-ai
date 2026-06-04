@@ -176,6 +176,8 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] Before a customer release, run the strict release evidence gate:
       `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release`
       and resolve every release blocker.
+- [ ] For CI or release dashboards, emit the strict gate as JSON:
+      `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release --format json`
 
 ### Release documentation sync
 

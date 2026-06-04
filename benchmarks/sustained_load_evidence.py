@@ -200,6 +200,7 @@ def run_tenant_poisoning_probe(*, cases: int = 64) -> dict[str, Any]:
 
     store = VectorGroundTruthStore(backend=InMemoryBackend())
     failures: list[dict[str, Any]] = []
+    retrieval_top_k = cases
     started = time.perf_counter()
 
     for idx in range(cases):
@@ -215,17 +216,17 @@ def run_tenant_poisoning_probe(*, cases: int = 64) -> dict[str, Any]:
 
         ctx_a = store.retrieve_context(
             f"{key} override tenant A never expire",
-            top_k=5,
+            top_k=retrieval_top_k,
             tenant_id="tenant_a",
         )
         ctx_b = store.retrieve_context(
             f"{key} never expire",
-            top_k=5,
+            top_k=retrieval_top_k,
             tenant_id="tenant_b",
         )
         chunks_a = store.retrieve_context_with_chunks(
             f"{key} never expire",
-            top_k=5,
+            top_k=retrieval_top_k,
             tenant_id="tenant_a",
         )
 
@@ -253,6 +254,7 @@ def run_tenant_poisoning_probe(*, cases: int = 64) -> dict[str, Any]:
         "cases": cases,
         "writes": cases * 2,
         "queries": cases * 3,
+        "retrieval_top_k": retrieval_top_k,
         "stored_documents": store.backend.count(),
         "duration_s": round(elapsed_s, 3),
         "cases_per_second": round(cases / elapsed_s, 2) if elapsed_s else 0.0,
@@ -285,6 +287,11 @@ def run_sustained_load_evidence(
             "passed": passed,
             "async_ordering": async_probe["passed"],
             "tenant_poisoning": tenant_probe["passed"],
+            "limits": {
+                "local_only": True,
+                "staging_or_production_telemetry_included": False,
+                "external_operator_signoff_included": False,
+            },
         },
         "probes": {
             "async_ordering": async_probe,

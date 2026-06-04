@@ -183,6 +183,13 @@ REQUIRED_PACKETS: tuple[RequiredEvidencePacket, ...] = (
     RequiredEvidencePacket("R17", "sustained_load_evidence", "Async tenant hardening"),
 )
 
+RELEASE_REQUIRED_LIMITS: dict[str, tuple[str, ...]] = {
+    "sustained_load_evidence": (
+        "staging_or_production_telemetry_included",
+        "external_operator_signoff_included",
+    ),
+}
+
 
 def evaluate_release_evidence(
     root: str | Path,
@@ -305,6 +312,17 @@ def _release_blockers(
                     f"Release evidence limit {key} is false",
                 )
             )
+    existing_codes = {blocker["code"] for blocker in blockers}
+    for key in RELEASE_REQUIRED_LIMITS.get(required.benchmark, ()):
+        code = f"missing_{key}"
+        if limits.get(key) is not True and code not in existing_codes:
+            blockers.append(
+                _blocker(
+                    required,
+                    code,
+                    f"Release evidence limit {key} is not true",
+                )
+            )
     if required.benchmark == "edge_mobile_evidence":
         profile = payload.get("profiles", {}).get("browser-worker", {})
         if profile.get("ready_for_release") is not True:
@@ -345,6 +363,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, default=Path.cwd())
     parser.add_argument("--mode", choices=("local", "release"), default="local")
+    parser.add_argument(
+        "--format",
+        choices=("markdown", "json"),
+        default="markdown",
+        help="Report format printed to stdout.",
+    )
     parser.add_argument("--json", type=Path, default=None, help="Optional JSON report")
     args = parser.parse_args(argv)
 
@@ -355,7 +379,10 @@ def main(argv: list[str] | None = None) -> int:
             json.dumps(result.to_dict(), indent=2, sort_keys=True) + "\n",
             encoding="utf-8",
         )
-    print(result.to_markdown())
+    if args.format == "json":
+        print(json.dumps(result.to_dict(), indent=2, sort_keys=True))
+    else:
+        print(result.to_markdown())
     return 0 if result.ready else 1
 
 

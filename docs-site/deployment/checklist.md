@@ -49,6 +49,7 @@ Before deploying Director-AI to production, verify each item:
 - [ ] Run `PYTHONPATH=src python -m benchmarks.sustained_load_evidence` and archive the JSON packet with the release evidence
 - [ ] Run `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode local` after local packets are generated
 - [ ] Run `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release` before customer release and resolve every release blocker
+- [ ] Use `PYTHONPATH=src python tools/check_local_release_evidence.py --root . --mode release --format json` when CI or release dashboards need machine-readable gate status
 - [ ] Review `director-ai config --profile <domain>` settings match your requirements
 
 ## Security
