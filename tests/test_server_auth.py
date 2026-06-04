@@ -132,6 +132,25 @@ def test_http_metrics_count_auth_failures():
     assert 'endpoint="/v1/config",method="GET",status="401"' in labels
 
 
+def test_http_metrics_count_unhandled_application_exceptions():
+    metrics.reset()
+    app = _noauth_app()
+
+    @app.get("/v1/exploding/{item_id}")
+    def exploding_route(item_id: str):
+        raise RuntimeError(f"boom:{item_id}")
+
+    with TestClient(app, raise_server_exceptions=False) as client:
+        failed = client.get("/v1/exploding/customer-secret")
+        telemetry = client.get("/v1/metrics").json()
+
+    labels = telemetry["counters"]["http_requests_total"]["multi_labels"]
+
+    assert failed.status_code == 500
+    assert 'endpoint="/v1/exploding/{item_id}",method="GET",status="500"' in labels
+    assert "customer-secret" not in repr(labels)
+
+
 def test_api_keys_redacted_in_config():
     with TestClient(_auth_app()) as client:
         r = client.get(

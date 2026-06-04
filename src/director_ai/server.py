@@ -694,7 +694,15 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
         request.state.api_key_hash = api_key_hash
 
         # Metrics
-        response = await call_next(request)
+        try:
+            response = await call_next(request)
+        except Exception:
+            _record_http_metrics(
+                request,
+                status_code=500,
+                started_at=start,
+            )
+            raise
         _record_http_metrics(
             request,
             status_code=response.status_code,
