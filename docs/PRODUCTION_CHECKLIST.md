@@ -163,6 +163,8 @@ export DIRECTOR_PRODUCTION_MODE=true
       evidence are attached.
 - [ ] Validate the generated WASM package after `wasm-pack build`:
       `PYTHONPATH=src python tools/check_wasm_release_package.py`
+- [ ] Run the browser Web Worker smoke:
+      `PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py`
 - [ ] Generate sustained async/tenant hardening evidence:
       `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
 - [ ] Run the local release evidence gate:

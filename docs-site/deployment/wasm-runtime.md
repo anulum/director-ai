@@ -63,6 +63,17 @@ The validator checks `package.json`, README, licence notice, generated
 TypeScript definitions, JS glue, `.wasm` payload, file sizes, and sha256
 digests before an operator archives or publishes the artefact.
 
+Run the browser Web Worker smoke against the generated web-target package:
+
+```bash
+PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py \
+  --json benchmarks/results/wasm_browser_worker_smoke_<UTC_TIMESTAMP>.json
+```
+
+The smoke starts a localhost server, launches headless Chrome, loads a module
+Worker, imports `backfire_wasm.js`, initialises the `.wasm` payload, verifies a
+passing token, verifies a hard halt, and verifies the halt is irrevocable.
+
 ## Readiness Evidence
 
 Before claiming an edge or mobile release, generate the R14 readiness packet:
@@ -76,7 +87,7 @@ low-latency trial or for release. Release readiness requires:
 
 - local `wasm-pack` artefacts in `backfire-kernel/crates/backfire-wasm/pkg/`
 - a quantised ONNX model artefact
-- browser or Web Worker smoke evidence
+- passing browser or Web Worker smoke evidence attached to the R14 packet
 - mobile or embedded-device smoke evidence
 - Rust Python accelerator import evidence
 

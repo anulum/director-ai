@@ -504,9 +504,11 @@ roots.
      surfaces for browser/embedded low-latency trials.
    - `wasm-pack` build/test and package-digest validation are now locally
      reproducible for the web target.
-   - Remaining work: a quantised model artefact, browser/Web Worker smoke
-     evidence, mobile or embedded-device smoke evidence, package-publish
-     evidence, and deployment latency archive.
+   - Real headless Chrome module-Worker smoke now verifies the generated
+     web-target `backfire-wasm` package can load, pass a safe token, halt a bad
+     token, and keep the halt irrevocable inside a browser Worker.
+   - Remaining work: a quantised model artefact, mobile or embedded-device
+     smoke evidence, package-publish evidence, and deployment latency archive.
 8. **Auto-Redteam + Defence Genome Evolution:**
    - Reviewed repeated adversarial-mining cycles, detection-uplift gates,
      defence registry promotion, and local tenant-safe evidence packet are

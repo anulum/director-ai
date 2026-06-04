@@ -38,6 +38,7 @@ Before deploying Director-AI to production, verify each item:
 - [ ] Run `PYTHONPATH=src python -m benchmarks.formal_symbolic_evidence` and archive the JSON packet with the release evidence
 - [ ] Run `PYTHONPATH=src python -m benchmarks.edge_mobile_evidence` and archive the JSON packet with the release evidence
 - [ ] Run `PYTHONPATH=src python tools/check_wasm_release_package.py` after `wasm-pack build` when publishing the edge runtime
+- [ ] Run `PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py` for browser/Web Worker deployments
 - [ ] For browser, Worker, mobile, or embedded deployments, require
       `ready_for_release=true`; local-trial evidence alone is not enough for a
       customer release.

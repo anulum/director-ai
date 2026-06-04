@@ -189,9 +189,11 @@ PYTHONPATH=src python -m benchmarks.edge_mobile_evidence
 The packet checks the WASM release plan, WASM source/tests/example, ONNX and
 quantisation contracts, Rust kernel source, deployment docs, and latency
 benchmark scripts. It intentionally separates local-trial readiness from
-release readiness. Release readiness still requires an actual `wasm-pack`
-artefact, quantised ONNX model artefact, browser/Web Worker smoke evidence,
-mobile or embedded-device smoke evidence, and package-publish evidence.
+release readiness. The current local R14 evidence path can attach generated
+`wasm-pack` package validation and real headless Chrome browser-Worker smoke
+evidence. Release readiness still requires a quantised ONNX model artefact,
+mobile or embedded-device smoke evidence, package-publish evidence, and the
+deployment-specific release archive.
 
 After `wasm-pack build --target web --release`, validate the generated package
 and archive the digest report:
@@ -199,6 +201,15 @@ and archive the digest report:
 ```bash
 PYTHONPATH=src python tools/check_wasm_release_package.py \
   --json benchmarks/results/wasm_release_package_<UTC_TIMESTAMP>.json
+```
+
+Run the browser Web Worker smoke and pass the result into the R14 packet:
+
+```bash
+PYTHONPATH=src python tools/run_wasm_browser_worker_smoke.py \
+  --json benchmarks/results/wasm_browser_worker_smoke_<UTC_TIMESTAMP>.json
+PYTHONPATH=src python -m benchmarks.edge_mobile_evidence \
+  --browser-smoke-evidence benchmarks/results/wasm_browser_worker_smoke_<UTC_TIMESTAMP>.json
 ```
 
 ## Rust vs Python E2E Comparison (Published Reproducible Packet)
