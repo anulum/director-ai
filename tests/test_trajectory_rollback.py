@@ -33,8 +33,7 @@ def _trajectory(idx: int, *, approved: bool) -> TrajectoryResult:
 
 def _verdict(recommended: str, approvals: list[bool]) -> PreflightVerdict:
     trajectories = tuple(
-        _trajectory(idx, approved=approved)
-        for idx, approved in enumerate(approvals)
+        _trajectory(idx, approved=approved) for idx, approved in enumerate(approvals)
     )
     halt_rate = sum(not approved for approved in approvals) / len(approvals)
     return PreflightVerdict(
@@ -105,7 +104,9 @@ def test_proceed_verdict_keeps_rollback_not_required() -> None:
     calls: list[tuple[str, str]] = []
     handle = _register(manager, calls)
 
-    outcome = manager.evaluate_preflight(handle.rollback_id, _verdict("proceed", [True]))
+    outcome = manager.evaluate_preflight(
+        handle.rollback_id, _verdict("proceed", [True])
+    )
 
     assert outcome.status == "not_required"
     assert outcome.executed is False

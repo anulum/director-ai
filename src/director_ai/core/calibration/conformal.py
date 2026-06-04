@@ -19,6 +19,7 @@ Reference: Mohri & Hashimoto (ICML 2024), "Conformal Factuality."
 
 from __future__ import annotations
 
+import logging
 import math
 from dataclasses import dataclass
 from typing import Literal
@@ -32,6 +33,7 @@ __all__ = [
 ]
 
 RoutingAction = Literal["allow", "human_review", "escalate", "reject"]
+_logger = logging.getLogger(__name__)
 
 try:
     from backfire_kernel import rust_conformal_quantile
@@ -310,8 +312,11 @@ class ConformalPredictor:
         if _RUST_CONFORMAL:
             try:
                 return float(rust_conformal_quantile(residuals, self._coverage))
-            except Exception:
-                pass
+            except Exception as exc:
+                _logger.debug(
+                    "Rust conformal quantile unavailable; using Python fallback: %s",
+                    exc,
+                )
 
         return self._python_quantile(residuals, self._coverage)
 

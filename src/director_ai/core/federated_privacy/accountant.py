@@ -23,9 +23,12 @@ Two composition modes:
 
 from __future__ import annotations
 
+import logging
 import math
 import threading
 from dataclasses import dataclass, field
+
+_logger = logging.getLogger(__name__)
 
 try:
     from backfire_kernel import rust_sum_f64
@@ -188,6 +191,9 @@ def _sum_float(values: list[float]) -> float:
     if _RUST_ACCOUNTANT:
         try:
             return float(rust_sum_f64(values))
-        except Exception:
-            pass
+        except Exception as exc:
+            _logger.debug(
+                "Rust privacy-accountant sum unavailable; using Python fallback: %s",
+                exc,
+            )
     return sum(values)

@@ -200,7 +200,9 @@ def test_batch_process_review_and_error_contracts() -> None:
     assert bad_runtime.status_code == 500
 
 
-def test_batch_review_banking_policy_blocks_approved_result_without_raw_text_leak() -> None:
+def test_batch_review_banking_policy_blocks_approved_result_without_raw_text_leak() -> (
+    None
+):
     from director_ai.core.metrics import metrics
     from director_ai.core.runtime.batch import BatchResult
 

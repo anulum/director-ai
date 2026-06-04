@@ -134,9 +134,7 @@ def test_http_metrics_use_route_templates_for_path_parameters():
     labels = telemetry["counters"]["http_requests_total"]["multi_labels"]
 
     assert response.status_code == 404
-    assert (
-        'endpoint="/v1/sessions/{session_id}",method="GET",status="404"' in labels
-    )
+    assert 'endpoint="/v1/sessions/{session_id}",method="GET",status="404"' in labels
     assert "customer-secret-session" not in repr(labels)
 
 

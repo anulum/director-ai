@@ -93,9 +93,7 @@ class ReleaseEvidenceGate:
 
         if self.mode == "local":
             return tuple(
-                blocker
-                for packet in self.packets
-                for blocker in packet.local_blockers
+                blocker for packet in self.packets for blocker in packet.local_blockers
             )
         return tuple(blocker for packet in self.packets for blocker in packet.blockers)
 
@@ -118,9 +116,7 @@ class ReleaseEvidenceGate:
             "release_ready": self.release_ready,
             "packets": [packet.to_dict() for packet in self.packets],
             "blockers": [dict(blocker) for blocker in self.blockers],
-            "release_blockers": [
-                dict(blocker) for blocker in self.release_blockers
-            ],
+            "release_blockers": [dict(blocker) for blocker in self.release_blockers],
         }
 
     def to_markdown(self) -> str:
@@ -174,8 +170,12 @@ class ReleaseEvidenceGate:
 REQUIRED_PACKETS: tuple[RequiredEvidencePacket, ...] = (
     RequiredEvidencePacket("R9", "provenance_evidence", "KB provenance lineage"),
     RequiredEvidencePacket("R10", "conformal_routing_evidence", "Conformal routing"),
-    RequiredEvidencePacket("R11", "trajectory_rollback_evidence", "Trajectory rollback"),
-    RequiredEvidencePacket("R12", "multimodal_temporal_evidence", "Multimodal temporal"),
+    RequiredEvidencePacket(
+        "R11", "trajectory_rollback_evidence", "Trajectory rollback"
+    ),
+    RequiredEvidencePacket(
+        "R12", "multimodal_temporal_evidence", "Multimodal temporal"
+    ),
     RequiredEvidencePacket("R13", "federated_privacy_evidence", "Federated privacy"),
     RequiredEvidencePacket("R14", "edge_mobile_evidence", "Edge/mobile runtime"),
     RequiredEvidencePacket("R15", "auto_redteam_defence_evidence", "Auto-redteam loop"),

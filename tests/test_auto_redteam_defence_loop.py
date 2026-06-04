@@ -243,7 +243,9 @@ def test_auto_redteam_loop_requires_active_baseline_defence() -> None:
         )
 
 
-def test_auto_redteam_report_serialises_without_raw_prompts_or_defence_objects() -> None:
+def test_auto_redteam_report_serialises_without_raw_prompts_or_defence_objects() -> (
+    None
+):
     registry = DefenseRegistry()
     registry.promote(defense=_KeywordDefence(()), version=1, label="defence-v1")
     loop = AutoRedteamDefenceLoop(

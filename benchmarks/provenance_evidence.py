@@ -186,7 +186,9 @@ def run_provenance_chain_probe(*, fact_count: int = 4) -> dict[str, Any]:
     )
     healthy = verifier.verify(facts)
 
-    tampered = CitationFact(source_id="kb://tampered", content="original", timestamp=0.0)
+    tampered = CitationFact(
+        source_id="kb://tampered", content="original", timestamp=0.0
+    )
     object.__setattr__(tampered, "content", "changed after signing")
     tampered_verdict = verifier.verify([tampered])
     chain_ok, first_bad_index = chain.verify()

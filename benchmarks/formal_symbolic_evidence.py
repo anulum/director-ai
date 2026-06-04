@@ -126,7 +126,9 @@ def run_lean_runner_probe() -> dict[str, Any]:
         lean_runner=runner,
     )
     result = adapter.verify_formula(
-        formula=And(Variable("lean_private_claim"), Not(Variable("lean_private_claim"))),
+        formula=And(
+            Variable("lean_private_claim"), Not(Variable("lean_private_claim"))
+        ),
         risk_envelope=_risk_envelope(),
         policy_id="policy.formal.regulated",
         evidence_ref="formal://lean-contradiction",

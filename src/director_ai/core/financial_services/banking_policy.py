@@ -385,8 +385,7 @@ def _money_amounts(text: str) -> tuple[int, ...]:
 
 def _contains_investment_recommendation(response: str) -> bool:
     return bool(
-        _INVESTMENT_ADVICE_RE.search(response)
-        or _GUARANTEED_RETURN_RE.search(response)
+        _INVESTMENT_ADVICE_RE.search(response) or _GUARANTEED_RETURN_RE.search(response)
     )
 
 
