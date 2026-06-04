@@ -483,9 +483,11 @@ roots.
      evidence, and operator sign-off for the live human-review or stronger-model
      path.
 4. **Agent Trajectory Simulation + Safe Rollback:**
-   - Monte-Carlo pre-execution simulation.
-   - Pre/post-condition checks and formal-ish trajectory verification.
-   - Native rollback/undo hooks for high-risk actions.
+   - Monte-Carlo pre-execution simulation, predictive pre-halt steering, and
+     native idempotent rollback hooks are implemented locally.
+   - Remaining work: live undo-backend integration, adversarial trajectory
+     stress testing against deployment traffic, and incident/change-management
+     sign-off.
 5. **Multi-Modal + Temporal Consistency:**
    - Vision-NLI and token-level video/frame streaming guardrails.
    - Temporal consistency checks across frames and multimodal claims.

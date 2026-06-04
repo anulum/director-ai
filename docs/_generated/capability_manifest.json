@@ -6,10 +6,10 @@
     "optional_extras": 53,
     "public_api_exports": 216,
     "public_documentation_pages": 144,
-    "python_model_classes": 706,
-    "python_model_source_modules": 311,
+    "python_model_classes": 709,
+    "python_model_source_modules": 312,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 400
+    "test_files": 402
   },
   "documentation": {
     "public_pages": [
@@ -2394,6 +2394,14 @@
         "path": "src/director_ai/testing/adversarial_suite.py"
       },
       {
+        "name": "RollbackHandle",
+        "path": "src/director_ai/core/trajectory/rollback.py"
+      },
+      {
+        "name": "RollbackOutcome",
+        "path": "src/director_ai/core/trajectory/rollback.py"
+      },
+      {
         "name": "Ros2Adapter",
         "path": "src/director_ai/core/cyber_physical/adapters.py"
       },
@@ -2894,6 +2902,10 @@
         "path": "src/director_ai/core/trajectory/simulator.py"
       },
       {
+        "name": "TrajectoryRollbackManager",
+        "path": "src/director_ai/core/trajectory/rollback.py"
+      },
+      {
         "name": "TrajectorySimulator",
         "path": "src/director_ai/core/trajectory/simulator.py"
       },
@@ -3307,6 +3319,7 @@
       "src/director_ai/core/training/sweeps.py",
       "src/director_ai/core/training/tuner.py",
       "src/director_ai/core/training/vertex_runner.py",
+      "src/director_ai/core/trajectory/rollback.py",
       "src/director_ai/core/trajectory/simulator.py",
       "src/director_ai/core/trajectory/steering.py",
       "src/director_ai/core/tuner.py",
@@ -4126,6 +4139,8 @@
       "tests/test_trace_safe.py",
       "tests/test_train_distillation_reproducibility.py",
       "tests/test_training_model_registry.py",
+      "tests/test_trajectory_rollback.py",
+      "tests/test_trajectory_rollback_evidence.py",
       "tests/test_trajectory_simulator.py",
       "tests/test_tune.py",
       "tests/test_types.py",

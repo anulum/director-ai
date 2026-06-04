@@ -29,6 +29,13 @@ policy models, Rust-accelerated samplers, and calibrated-on-trace
 actors all slot in as drop-in implementations.
 """
 
+from .rollback import (
+    RollbackHandle,
+    RollbackHook,
+    RollbackOutcome,
+    RollbackStatus,
+    TrajectoryRollbackManager,
+)
 from .simulator import (
     Actor,
     PreflightVerdict,
@@ -43,7 +50,12 @@ __all__ = [
     "PreHaltSteeringDecision",
     "PreflightVerdict",
     "PredictivePreHaltSteering",
+    "RollbackHandle",
+    "RollbackHook",
+    "RollbackOutcome",
+    "RollbackStatus",
     "TrajectoryResult",
+    "TrajectoryRollbackManager",
     "TrajectorySimulator",
     "VerdictProducer",
 ]

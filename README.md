@@ -123,12 +123,12 @@ For a buyer-facing positioning, start from [Market Value and Positioning](docs-s
 |---|---:|
 | Package version | 3.15.2 |
 | Public API exports | 216 |
-| Python capability source modules | 311 |
-| Python capability classes | 706 |
+| Python capability source modules | 312 |
+| Python capability classes | 709 |
 | API documentation pages | 49 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |
-| Python test files | 400 |
+| Python test files | 402 |
 | Public documentation pages | 144 |
 | GitHub Actions workflows | 11 |
 

@@ -256,6 +256,25 @@ still requires representative domain calibration data, archived deployment
 evidence, and operator sign-off that the selected human-review or escalation
 route is live.
 
+## Trajectory Rollback Evidence
+
+For the R11 trajectory-safety gate, generate an evidence packet that checks
+Monte-Carlo preflight action bands and native rollback-hook behaviour:
+
+```bash
+PYTHONPATH=src python -m benchmarks.trajectory_rollback_evidence \
+  --simulations 4
+```
+
+Outputs:
+
+- `benchmarks/results/trajectory_rollback_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the trajectory rollback gate
+still requires an operator-owned live undo backend, adversarial trajectory
+stress testing against deployment traffic, and sign-off that rollback evidence
+is attached to incident/change-management records.
+
 ## Sustained Load Hardening Evidence
 
 For the R17 production-hardening gate, generate an evidence packet that checks

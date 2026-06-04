@@ -146,6 +146,8 @@ export DIRECTOR_PRODUCTION_MODE=true
       `PYTHONPATH=src python -m benchmarks.provenance_evidence --fact-count 4`
 - [ ] Generate conformal routing evidence:
       `PYTHONPATH=src python -m benchmarks.conformal_routing_evidence`
+- [ ] Generate trajectory rollback evidence:
+      `PYTHONPATH=src python -m benchmarks.trajectory_rollback_evidence`
 - [ ] Generate sustained async/tenant hardening evidence:
       `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
 

@@ -95,6 +95,7 @@ For the product and pilot context around these APIs, see
 | [`SustainabilityPolicyAdapter`](sustainability-scoring.md) | `director_ai.core.sustainability` | Token, cost, energy, carbon, quota, and forecast policy decisions |
 | [`SustainabilityTelemetry`](sustainability-scoring.md) | `director_ai.core.sustainability` | Per-tenant sustainability summaries and threshold alerts |
 | [`AgentPassportRegistry`](agent-passport-registry.md) | `director_ai.core.agent_identity` | Signed agent identity, capability policy, revocation, and coherence history |
+| [`TrajectoryRollbackManager`](trajectory-preflight.md) | `director_ai.core.trajectory` | Tenant-safe rollback hook registry for preflight halt and escalation outcomes |
 
 ### Verification And Guard APIs
 
