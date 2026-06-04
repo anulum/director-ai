@@ -77,8 +77,7 @@ def test_gate_allows_local_mode_for_passed_local_packets(tmp_path) -> None:
     assert all(packet.local_ready for packet in gate.packets)
     assert gate.blockers == ()
     assert any(
-        blocker["code"] == "local_only_evidence"
-        for blocker in gate.release_blockers
+        blocker["code"] == "local_only_evidence" for blocker in gate.release_blockers
     )
 
 
@@ -157,7 +156,9 @@ def test_cli_writes_json_report_for_local_mode(tmp_path) -> None:
     _write_all_packets(tmp_path)
     output = tmp_path / "report.json"
 
-    exit_code = main(["--root", str(tmp_path), "--mode", "local", "--json", str(output)])
+    exit_code = main(
+        ["--root", str(tmp_path), "--mode", "local", "--json", str(output)]
+    )
 
     report = json.loads(output.read_text(encoding="utf-8"))
     assert exit_code == 0

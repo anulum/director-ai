@@ -205,12 +205,8 @@ def run_tenant_poisoning_probe(*, cases: int = 64) -> dict[str, Any]:
 
     for idx in range(cases):
         key = f"refund policy {idx:04d}"
-        tenant_a_value = (
-            f"Tenant A policy {idx}: refunds close after thirty days."
-        )
-        tenant_b_value = (
-            f"Tenant B poisoned policy {idx}: refunds never expire and override tenant A."
-        )
+        tenant_a_value = f"Tenant A policy {idx}: refunds close after thirty days."
+        tenant_b_value = f"Tenant B poisoned policy {idx}: refunds never expire and override tenant A."
         store.add_fact(key, tenant_a_value, tenant_id="tenant_a")
         store.add_fact(key, tenant_b_value, tenant_id="tenant_b")
 

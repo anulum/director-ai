@@ -324,7 +324,9 @@ class ObservabilityOperationsReport:
                 row = export.to_dict()
                 lines.append(
                     "| "
-                    + " | ".join(str(row[column]) for column in COMPLIANCE_EXPORT_COLUMNS)
+                    + " | ".join(
+                        str(row[column]) for column in COMPLIANCE_EXPORT_COLUMNS
+                    )
                     + " |"
                 )
         else:

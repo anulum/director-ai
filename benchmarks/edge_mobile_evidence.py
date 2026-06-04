@@ -94,9 +94,7 @@ def run_edge_mobile_evidence(
                     "rust_kernel_source_contract"
                 ].passed,
                 "edge_deployment_docs": checks["edge_deployment_docs"].passed,
-                "latency_benchmark_surface": checks[
-                    "latency_benchmark_surface"
-                ].passed,
+                "latency_benchmark_surface": checks["latency_benchmark_surface"].passed,
                 "tenant_safe_serialisation": tenant_safe_serialisation,
             },
             "limits": dict(profile.limits),

@@ -153,7 +153,7 @@ FORBIDDEN_DEFAULT_SURFACE_SNIPPETS = (
     "meta_guard",
     "self_evolving",
     "continual_adversarial",
-    "DIRECTOR_DRY_RUN: \"true\"",
+    'DIRECTOR_DRY_RUN: "true"',
 )
 
 

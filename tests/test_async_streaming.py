@@ -270,9 +270,7 @@ class TestAsyncStreamingKernel:
         async def run_stream(stream_id: int) -> list[TokenEvent]:
             tokens = [f"s{stream_id}:{idx:02d}|" for idx in range(tokens_per_stream)]
             foreign_prefixes = [
-                f"s{other}:"
-                for other in range(stream_count)
-                if other != stream_id
+                f"s{other}:" for other in range(stream_count) if other != stream_id
             ]
             observed_accumulated: list[str] = []
 
