@@ -103,6 +103,13 @@ REQUEST_ID_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
     "request_id",
     default="",
 )
+_REQUEST_ID_MAX_LENGTH = 128
+_REQUEST_ID_ALLOWED_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyz"
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    "0123456789"
+    "._:-"
+)
 
 logger = logging.getLogger("DirectorAI.Server")
 
@@ -304,6 +311,16 @@ def _record_http_metrics(
             "status": str(status_code),
         },
     )
+
+
+def _normalize_request_id(raw: str | None) -> str:
+    if (
+        raw
+        and len(raw) <= _REQUEST_ID_MAX_LENGTH
+        and all(char in _REQUEST_ID_ALLOWED_CHARS for char in raw)
+    ):
+        return raw
+    return str(uuid.uuid4())
 
 
 def create_app(config: DirectorConfig | None = None) -> FastAPI:
@@ -584,7 +601,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
                     content={"detail": "Rate limit exceeded"},
                 )
 
-    # Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬ Middleware: correlation IDs + API key auth + metrics Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬Ă˘â€ťâ‚¬
+    # Middleware: correlation IDs + API key auth + metrics
 
     _auth_exempt = (
         _AUTH_EXEMPT_PATHS_BASE
@@ -599,7 +616,7 @@ def create_app(config: DirectorConfig | None = None) -> FastAPI:
     @app.middleware("http")
     async def _http_middleware(request: Request, call_next):
         """Apply request IDs, API-key auth, tenant binding, and metrics."""
-        request_id = request.headers.get("X-Request-ID") or str(uuid.uuid4())
+        request_id = _normalize_request_id(request.headers.get("X-Request-ID"))
         request.state.request_id = request_id
         REQUEST_ID_CTX.set(request_id)
 

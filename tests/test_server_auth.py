@@ -10,6 +10,7 @@
 from __future__ import annotations
 
 import os
+import uuid
 
 import pytest
 
@@ -98,6 +99,29 @@ def test_correlation_id_echoed():
             headers={"X-Request-ID": "my-trace-42"},
         )
     assert r.headers["X-Request-ID"] == "my-trace-42"
+
+
+def test_correlation_id_replaces_values_with_disallowed_characters():
+    inbound = "trace with spaces"
+
+    with TestClient(_noauth_app()) as client:
+        r = client.get("/v1/health", headers={"X-Request-ID": inbound})
+
+    outbound = r.headers["X-Request-ID"]
+    assert outbound != inbound
+    uuid.UUID(outbound)
+
+
+def test_correlation_id_replaces_overlong_values():
+    inbound = f"trace-{'x' * 200}"
+
+    with TestClient(_noauth_app()) as client:
+        r = client.get("/v1/health", headers={"X-Request-ID": inbound})
+
+    outbound = r.headers["X-Request-ID"]
+    assert outbound != inbound
+    assert len(outbound) <= 128
+    uuid.UUID(outbound)
 
 
 def test_http_metrics_use_route_templates_for_path_parameters():

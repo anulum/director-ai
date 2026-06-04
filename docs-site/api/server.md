@@ -206,6 +206,14 @@ DIRECTOR_API_KEYS=key1,key2 director-ai serve
 
 Clients send `X-API-Key: key1` header. Unauthenticated requests receive 401.
 
+## Request IDs
+
+HTTP responses include `X-Request-ID` for log and trace correlation. Caller
+values are echoed only when they are 1-128 characters and contain letters,
+digits, `.`, `_`, `:`, or `-`. Missing, overlong, or unsafe values are replaced
+with a generated UUID before the value is written to request state, logs, or
+response headers.
+
 ## Rate Limiting
 
 ```bash
