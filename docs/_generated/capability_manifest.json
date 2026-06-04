@@ -9,7 +9,7 @@
     "python_model_classes": 709,
     "python_model_source_modules": 312,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 403
+    "test_files": 404
   },
   "documentation": {
     "public_pages": [
@@ -3892,6 +3892,7 @@
       "tests/test_external_security_packet.py",
       "tests/test_fastapi_guard.py",
       "tests/test_federated_privacy.py",
+      "tests/test_federated_privacy_evidence.py",
       "tests/test_feedback_loop_detector.py",
       "tests/test_feedback_store.py",
       "tests/test_ffi_bindings.py",

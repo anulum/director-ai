@@ -294,6 +294,25 @@ requires external Vision-NLI or equivalent benchmark evidence, real video/frame
 model validation, and operator sign-off for deployment-specific modality
 coverage.
 
+## Federated Privacy Evidence
+
+For the R13 privacy-preserving federation gate, generate an evidence packet that
+checks DP-noised safety-signal aggregation, tenant/category contribution caps,
+minimum cohort enforcement, and additive secret-sharing aggregate
+reconstruction:
+
+```bash
+PYTHONPATH=src python -m benchmarks.federated_privacy_evidence
+```
+
+Outputs:
+
+- `benchmarks/results/federated_privacy_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the federated privacy gate
+still requires an external federation run, malicious-secure aggregation review,
+and deployment-specific poisoning-resilience evidence.
+
 ## Sustained Load Hardening Evidence
 
 For the R17 production-hardening gate, generate an evidence packet that checks

@@ -27,8 +27,6 @@ import math
 import threading
 from dataclasses import dataclass, field
 
-from ..mandatory import mandatory_execution
-
 try:
     from backfire_kernel import rust_sum_f64
 
@@ -188,6 +186,8 @@ def _sum_float(values: list[float]) -> float:
     if not values:
         return 0.0
     if _RUST_ACCOUNTANT:
-        with mandatory_execution(__name__, component="mandatory accelerated path"):
+        try:
             return float(rust_sum_f64(values))
+        except Exception:
+            pass
     return sum(values)

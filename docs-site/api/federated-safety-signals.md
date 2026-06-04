@@ -65,6 +65,20 @@ local_audit_payload = release.to_dict(include_raw=True)
 Do not publish `include_raw=True` payloads across tenant or organisation
 boundaries.
 
+## Local Evidence Packet
+
+Generate the local federated privacy packet before promoting a deployment that
+shares guard signals across tenants or organisations:
+
+```bash
+PYTHONPATH=src python -m benchmarks.federated_privacy_evidence
+```
+
+The packet checks DP-noised release, tenant/category contribution caps, minimum
+tenant cohort blocking, and additive secret-sharing aggregate reconstruction.
+It does not include an external federation run or malicious-secure aggregation
+proof.
+
 ::: director_ai.core.federated_privacy.signal_sharing.FederatedSafetySignalAggregator
 
 ::: director_ai.core.federated_privacy.signal_sharing.FederatedSafetySignalRelease

@@ -494,8 +494,10 @@ roots.
    - Remaining work: external Vision-NLI or equivalent benchmark evidence, real
      video/frame model validation, and deployment-specific modality sign-off.
 6. **Privacy-Preserving Federated Learning:**
-   - MPC/DP-based federated signal sharing for hallucination patterns.
-   - Isolation of sensitive tenant data and threat-model aware aggregation.
+   - DP-noised safety-signal aggregation, tenant/category caps, minimum cohort
+     gating, additive secret sharing, and local evidence packet are implemented.
+   - Remaining work: external federation run, malicious-secure aggregation
+     review, and deployment-specific poisoning-resilience evidence.
 7. **Edge/Mobile Optimisation Path:**
    - Quantised tiny-NLI path and Rust/WASM runtime in browser/embedded.
    - Sub-second local inference for guarded low-latency workloads.

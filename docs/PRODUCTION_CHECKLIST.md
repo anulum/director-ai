@@ -150,6 +150,8 @@ export DIRECTOR_PRODUCTION_MODE=true
       `PYTHONPATH=src python -m benchmarks.trajectory_rollback_evidence`
 - [ ] Generate multimodal temporal evidence:
       `PYTHONPATH=src python -m benchmarks.multimodal_temporal_evidence`
+- [ ] Generate federated privacy evidence:
+      `PYTHONPATH=src python -m benchmarks.federated_privacy_evidence`
 - [ ] Generate sustained async/tenant hardening evidence:
       `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
 
