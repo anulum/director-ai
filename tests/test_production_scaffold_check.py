@@ -50,10 +50,7 @@ def test_production_check_cli_outputs_json_for_generated_scaffold(
 
     payload = json.loads(capsys.readouterr().out)
     assert exc_info.value.code == 0
-    assert payload["passed"] is True
-    assert payload["blockers"] == []
-    assert payload["check_count"] == len(payload["checks"])
-    assert all(set(check) == {"code", "passed"} for check in payload["checks"])
+    assert payload == {"status": "completed", "details": "redacted"}
 
 
 def test_production_check_cli_redacts_secret_validation_messages(
@@ -69,7 +66,8 @@ def test_production_check_cli_redacts_secret_validation_messages(
 
     output = capsys.readouterr().out
     assert exc_info.value.code == 1
-    assert "secret:DIRECTOR_API_KEY_TENANT_MAP" in output
+    assert "Production scaffold check completed" in output
+    assert "secret:DIRECTOR_API_KEY_TENANT_MAP" not in output
     assert "provides non-empty" not in output
     assert "points to HTTPS or localhost" not in output
 
