@@ -2,14 +2,14 @@
   "SPDX-License-Identifier": "AGPL-3.0-or-later",
   "counts": {
     "github_workflows": 11,
-    "model_documentation_pages": 50,
+    "model_documentation_pages": 51,
     "optional_extras": 53,
     "public_api_exports": 216,
-    "public_documentation_pages": 145,
-    "python_model_classes": 716,
-    "python_model_source_modules": 315,
+    "public_documentation_pages": 146,
+    "python_model_classes": 718,
+    "python_model_source_modules": 316,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 413
+    "test_files": 414
   },
   "documentation": {
     "public_pages": [
@@ -34,6 +34,7 @@
       "docs-site/api/enterprise.md",
       "docs-site/api/exceptions.md",
       "docs-site/api/federated-safety-signals.md",
+      "docs-site/api/financial-services.md",
       "docs-site/api/formal-code-verifiers.md",
       "docs-site/api/grpc.md",
       "docs-site/api/guard-control.md",
@@ -200,6 +201,7 @@
       "enterprise.md",
       "exceptions.md",
       "federated-safety-signals.md",
+      "financial-services.md",
       "formal-code-verifiers.md",
       "grpc.md",
       "guard-control.md",
@@ -446,6 +448,14 @@
       {
         "name": "BFTConsensusVote",
         "path": "src/director_ai/core/scoring/consensus.py"
+      },
+      {
+        "name": "BankingPolicyFinding",
+        "path": "src/director_ai/core/financial_services/banking_policy.py"
+      },
+      {
+        "name": "BankingPolicyReport",
+        "path": "src/director_ai/core/financial_services/banking_policy.py"
       },
       {
         "name": "BargainingSolution",
@@ -3191,6 +3201,7 @@
       "src/director_ai/core/federated_privacy/score_release.py",
       "src/director_ai/core/federated_privacy/secret_sharing.py",
       "src/director_ai/core/federated_privacy/signal_sharing.py",
+      "src/director_ai/core/financial_services/banking_policy.py",
       "src/director_ai/core/finetune.py",
       "src/director_ai/core/finetune_benchmark.py",
       "src/director_ai/core/finetune_validator.py",
@@ -3934,6 +3945,7 @@
       "tests/test_feedback_store.py",
       "tests/test_ffi_bindings.py",
       "tests/test_field_groups.py",
+      "tests/test_financial_services_banking_policy.py",
       "tests/test_finetune.py",
       "tests/test_finetune_api.py",
       "tests/test_finetune_benchmark.py",

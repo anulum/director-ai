@@ -1,3 +1,13 @@
+<!--
+SPDX-License-Identifier: AGPL-3.0-or-later
+Commercial license available
+© Concepts 1996–2026 Miroslav Šotek. All rights reserved.
+© Code 2020–2026 Miroslav Šotek. All rights reserved.
+ORCID: 0009-0009-3560-0851
+Contact: www.anulum.li | protoscience@anulum.li
+Director-Class AI — API reference index
+-->
+
 # API Reference
 
 Primary reference for the supported public classes, functions, dataclasses, and
@@ -18,6 +28,7 @@ supported integration boundary.
 | Serve over gRPC | CoherenceScoring service | [gRPC Server](grpc.md) |
 | Ground answers in documents | `DocumentIngestionPipeline` and `VectorGroundTruthStore` | [Ingestion](ingestion.md) |
 | Package customer evidence | Customer Model Factory | [Customer Model Factory](customer-model-factory.md) |
+| Enforce finance-sector policy checks | Financial Services Policy API | [Financial Services Policy API](financial-services.md) |
 
 For the product and pilot context around these APIs, see
 [Product Overview](../guide/product-overview.md) and
@@ -49,6 +60,7 @@ For the product and pilot context around these APIs, see
 | [`DefenseUpdatePipeline`](defence-update-pipeline.md) | `director_ai.core.defense_genome` | Reviewed defence promotion across feedback, adversarial mining, and registry hot-swap |
 | [`AutoRedteamDefenceLoop`](defence-update-pipeline.md#auto-redteam-defence-loop) | `director_ai.core.defense_genome` | Repeated adversarial-mining cycles with detection-uplift gates before promotion |
 | [`build_edge_runtime_readiness()`](edge-runtime-readiness.md) | `director_ai.core.edge` | Edge/mobile readiness profile for WASM, Rust, ONNX, and smoke evidence |
+| [`assess_banking_response()`](financial-services.md) | `director_ai.core.financial_services` | Evidence, numeric-claim, deposit-limit, complaint, and investment-recommendation checks |
 | [`CrossDocumentConsistencyMemory`](cross-document-memory.md) | `director_ai.core.memory.consistency` | Tenant-scoped long-term consistency checks with retention and delete controls |
 | [`DifferentialPrivacyScoreReleaser`](private-score-release.md) | `director_ai.core.federated_privacy.score_release` | Laplace-noised score disclosure with privacy accounting |
 | [`FederatedSafetySignalAggregator`](federated-safety-signals.md) | `director_ai.core.federated_privacy.signal_sharing` | Anonymous DP aggregate sharing for tenant-safe guard signals |

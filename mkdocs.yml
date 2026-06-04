@@ -208,6 +208,7 @@ nav:
       - Director Safety Protocol: api/director-safety-protocol.md
       - Formal and Code Verifiers: api/formal-code-verifiers.md
       - Edge Runtime Readiness: api/edge-runtime-readiness.md
+      - Financial Services Policy: api/financial-services.md
       - Sustainability Scoring: api/sustainability-scoring.md
       - Agent Passport Registry: api/agent-passport-registry.md
       - CoherenceAgent: api/agent.md
