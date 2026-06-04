@@ -20,6 +20,7 @@ basic composition.
 
 from __future__ import annotations
 
+import logging
 import threading
 from collections.abc import Iterable, Mapping
 from dataclasses import dataclass, field
@@ -37,6 +38,8 @@ except Exception:  # pragma: no cover - mandatory dependency
 
 from .accountant import AccountantEntry, PrivacyAccountant
 from .mechanisms import LaplaceMechanism
+
+_logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -260,6 +263,9 @@ def _sum_int(values: list[int]) -> int:
     if _RUST_AGGREGATOR:
         try:
             return int(rust_sum_i64(values))
-        except Exception:
-            pass
+        except Exception as exc:
+            _logger.debug(
+                "Rust federated-aggregator sum unavailable; using Python fallback: %s",
+                exc,
+            )
     return sum(values)
