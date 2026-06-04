@@ -52,6 +52,29 @@ _GUARANTEED_RETURN_RE = re.compile(
     r"\b(?:guaranteed return|risk-free investment|cannot lose money)\b",
     re.IGNORECASE,
 )
+_FINANCIAL_CRIME_CONTROL_BYPASS_RE = re.compile(
+    r"\b(?:avoid(?:s|ing)?|bypass(?:es|ing)?|evad(?:e|es|ing)|skip(?:s|ping)?|"
+    r"circumvent(?:s|ing)?)\b.{0,120}"
+    r"\b(?:kyc|aml|sanctions?|screening|identity verification|customer due diligence)\b"
+    r"|"
+    r"\b(?:split|structure|break up)\b.{0,120}"
+    r"\b(?:transfer|payment|deposit|withdrawal|transaction)s?\b.{0,120}"
+    r"\b(?:avoid(?:s|ing)?|bypass(?:es|ing)?|evad(?:e|es|ing)|skip(?:s|ping)?|"
+    r"circumvent(?:s|ing)?)\b.{0,120}"
+    r"\b(?:kyc|aml|sanctions?|screening|reporting|review)\b",
+    re.IGNORECASE | re.DOTALL,
+)
+_CREDIT_APPROVAL_GUARANTEE_RE = re.compile(
+    r"\b(?:guaranteed|automatic|certain)\b.{0,80}"
+    r"\b(?:approval|approved|qualify|acceptance)\b.{0,120}"
+    r"\b(?:loan|mortgage|credit|line of credit|card|overdraft)\b"
+    r"|"
+    r"\b(?:loan|mortgage|credit|line of credit|card|overdraft)\b.{0,120}"
+    r"\b(?:approved|approval|qualify|acceptance)\b.{0,80}"
+    r"\b(?:regardless of|without)\b.{0,80}"
+    r"\b(?:credit|income|affordability|underwriting|employment)\b",
+    re.IGNORECASE | re.DOTALL,
+)
 
 _CITATION_TERMS = (
     "account",
@@ -251,6 +274,30 @@ def assess_banking_response(
             )
         )
 
+    if _contains_financial_crime_control_bypass(response):
+        findings.append(
+            BankingPolicyFinding(
+                code="financial_crime_control_bypass_blocked",
+                severity="critical",
+                action="block",
+                detail="Response advises bypassing financial-crime controls.",
+                policy_refs=clean_policy_refs,
+                evidence_required=("financial_crime_control_review",),
+            )
+        )
+
+    if _contains_credit_approval_guarantee(response):
+        findings.append(
+            BankingPolicyFinding(
+                code="credit_approval_guarantee_blocked",
+                severity="critical",
+                action="block",
+                detail="Credit or lending approval guarantee bypasses underwriting review.",
+                policy_refs=clean_policy_refs,
+                evidence_required=("lending_underwriting_review",),
+            )
+        )
+
     requires_human_review = any(
         finding.action in {"block", "escalate"} for finding in findings
     )
@@ -346,3 +393,11 @@ def _contains_investment_recommendation(response: str) -> bool:
 def _contains_complaint_or_dispute(prompt: str, response: str) -> bool:
     text = f"{prompt}\n{response}".casefold()
     return any(term in text for term in _COMPLAINT_TERMS)
+
+
+def _contains_financial_crime_control_bypass(response: str) -> bool:
+    return bool(_FINANCIAL_CRIME_CONTROL_BYPASS_RE.search(response))
+
+
+def _contains_credit_approval_guarantee(response: str) -> bool:
+    return bool(_CREDIT_APPROVAL_GUARANTEE_RE.search(response))

@@ -87,7 +87,8 @@ Use `assess_banking_response()` beside the scorer when a response contains
 financial-product claims, deposit insurance language, complaint handling, or
 investment recommendations. The adapter is deterministic and audit-safe: it
 stores evidence identifiers and finding codes, not the raw customer prompt or
-response text.
+response text. It also blocks financial-crime-control bypass guidance and
+lending approval guarantees before release.
 
 ```python
 from director_ai.core.financial_services import assess_banking_response
@@ -134,6 +135,24 @@ report = assess_banking_response(
 assert report.requires_human_review
 ```
 
+Financial-crime-control bypass guidance and guaranteed lending approvals are
+hard blocks:
+
+```python
+report = assess_banking_response(
+    prompt="How can I send a large transfer without extra checks?",
+    response=(
+        "Split the wire transfer into smaller payments so it avoids KYC, AML, "
+        "and sanctions screening."
+    ),
+    evidence_refs=("policy://financial-services/aml-controls",),
+    policy_refs=("policy://financial-services/aml-controls",),
+)
+
+assert not report.approved
+assert "financial_crime_control_bypass_blocked" in report.blocked_codes
+```
+
 This adapter is a configurable software guardrail. It does not provide legal,
 regulatory, fiduciary, or investment advice; production teams must bind it to
 reviewed policies, current product disclosures, jurisdiction-specific review
@@ -147,7 +166,9 @@ flows, and labelled calibration traces.
 |------|------------------------------|-----------------|
 | Wrong product terms quoted to customer | Regulatory review, remediation, customer correction | Caught mid-stream, never reaches customer (estimated) |
 | Hallucinated interest rate or fee | Customer dispute + regulatory review | KB-verified before display (estimated) |
-| Unauthorized investment recommendation | Escalation, audit finding, remediation | Policy engine blocks + audit trail (estimated) |
+| Unauthorised investment recommendation | Escalation, audit finding, remediation | Policy engine blocks + audit trail (estimated) |
+| Financial-crime-control bypass guidance | Suspicious-activity escalation, customer harm, and regulator review | Deterministic block with tenant-safe finding code (estimated) |
+| Guaranteed lending approval claim | Unsuitable sale risk and adverse underwriting review | Deterministic block before release (estimated) |
 
 At 5,000 customer interactions/day, a 0.1% hallucination rate means 5 wrong answers daily. Over a year, that's 1,825 potential compliance incidents. With Director-AI, the catch rate reduces this to < 20/year (estimated, assuming high catch rate with KB + NLI at threshold=0.30). These figures are planning estimates based on industry rates, not measured deployment data.
 

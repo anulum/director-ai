@@ -14,10 +14,11 @@ Director-Class AI — Financial services policy API
 regulated financial-services responses. The first public adapter,
 `assess_banking_response()`, checks whether a banking answer has evidence
 references for product and regulatory claims, numeric evidence for amounts and
-rates, and human-review acknowledgement for complaints or investment
-recommendations.
+rates, human-review acknowledgement for complaints or investment
+recommendations, and hard blocks for financial-crime-control bypass or lending
+approval guarantees.
 
-The adapter returns tenant-safe audit payloads. Finding details and serialized
+The adapter returns tenant-safe audit payloads. Finding details and serialised
 reports include codes, policy references, and evidence identifiers; they do not
 include raw customer prompts or generated responses.
 
@@ -81,6 +82,23 @@ items; each reference must be 1-512 characters, and `jurisdiction` plus
 
 The same sector-policy fields are accepted by `/v1/batch` when `task` is
 `review`; each returned batch item carries its own `sector_policy` report.
+
+Financial-crime and lending controls are also deterministic:
+
+```python
+report = assess_banking_response(
+    prompt="How can I send a large transfer without extra checks?",
+    response=(
+        "Split the wire transfer into smaller payments so it avoids KYC, AML, "
+        "and sanctions screening."
+    ),
+    evidence_refs=("policy://financial-services/aml-controls",),
+    policy_refs=("policy://financial-services/aml-controls",),
+)
+
+assert not report.approved
+assert "financial_crime_control_bypass_blocked" in report.blocked_codes
+```
 
 ## Full API
 

@@ -111,6 +111,37 @@ def test_customer_complaint_response_requires_human_review_acknowledgement() -> 
     assert "complaint_escalation_required" not in _codes(reviewed)
 
 
+def test_financial_crime_control_bypass_guidance_blocks_response() -> None:
+    report = assess_banking_response(
+        prompt="How can I send a large transfer without extra checks?",
+        response=(
+            "Split the wire transfer into smaller payments so it avoids KYC, AML, "
+            "and sanctions screening."
+        ),
+        evidence_refs=("policy://financial-services/aml-controls",),
+        policy_refs=("policy://financial-services/aml-controls",),
+    )
+
+    assert report.approved is False
+    assert report.requires_human_review is True
+    assert "financial_crime_control_bypass_blocked" in _codes(report)
+    assert report.highest_severity == "critical"
+
+
+def test_guaranteed_lending_approval_blocks_response() -> None:
+    report = assess_banking_response(
+        prompt="Can I get this mortgage with a poor credit history?",
+        response="You are guaranteed mortgage approval regardless of credit history.",
+        evidence_refs=("policy://financial-services/lending-controls",),
+        numeric_evidence_refs=("policy://financial-services/lending-controls",),
+        policy_refs=("policy://financial-services/lending-controls",),
+    )
+
+    assert report.approved is False
+    assert report.requires_human_review is True
+    assert "credit_approval_guarantee_blocked" in _codes(report)
+
+
 def test_report_serialisation_omits_raw_customer_text() -> None:
     prompt = "Customer secret phrase: disputed payroll deposit."
     response = "FDIC insurance covers up to $500,000 per depositor."
