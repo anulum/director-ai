@@ -353,7 +353,9 @@ class TestVectorGroundTruthStore:
         assert "Tenant B poisoned" not in ctx_a
         assert ctx_b is not None
         assert "Tenant B poisoned" in ctx_b
-        assert [chunk.source for chunk in chunks_a] == ["vector:tenant_a::refund policy"]
+        assert [chunk.source for chunk in chunks_a] == [
+            "vector:tenant_a::refund policy"
+        ]
         assert "Tenant B poisoned" not in chunks_a[0].text
 
     def test_tenant_id_stored(self):

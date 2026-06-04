@@ -102,7 +102,9 @@ def probe_backfire_kernel_symbols() -> tuple[str, ...]:
     if importlib.util.find_spec("backfire_kernel") is None:
         return ()
     module = importlib.import_module("backfire_kernel")
-    return tuple(symbol for symbol in RUST_ACCELERATOR_SYMBOLS if hasattr(module, symbol))
+    return tuple(
+        symbol for symbol in RUST_ACCELERATOR_SYMBOLS if hasattr(module, symbol)
+    )
 
 
 def build_edge_runtime_readiness(
@@ -314,7 +316,8 @@ def _check_quantised_nli_contract(
     )
     has_extras = "quantize" in optional and "onnx" in optional
     has_cpu_target = any(
-        target.get("extra") == "onnx" and target.get("provider") == "CPUExecutionProvider"
+        target.get("extra") == "onnx"
+        and target.get("provider") == "CPUExecutionProvider"
         for target in onnx_plan.get("targets", [])
     )
     if has_extras and has_cpu_target and all(path.exists() for path in required_paths):

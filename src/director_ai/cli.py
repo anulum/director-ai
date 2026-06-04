@@ -284,7 +284,7 @@ def _write_quickstart_env(out_dir: Path, profile: str, threshold: float) -> None
     if profile == "production":
         env_text = (
             "# Required before `docker compose up`:\n"
-            "# DIRECTOR_API_KEY_TENANT_MAP={\"director-service-key\":\"tenant-default\"}\n"
+            '# DIRECTOR_API_KEY_TENANT_MAP={"director-service-key":"tenant-default"}\n'
             "# DIRECTOR_PROXY_API_KEYS=director-service-key\n"
             "# DIRECTOR_LLM_API_URL=https://llm-gateway.internal/v1\n"
             "# DIRECTOR_UPSTREAM_URL=https://llm-gateway.internal\n"
@@ -417,19 +417,19 @@ def _quickstart_production_api_service() -> str:
         "      DIRECTOR_VECTOR_BACKEND: chroma\n"
         "      DIRECTOR_CHROMA_PERSIST_DIR: /data/chroma\n"
         "      DIRECTOR_CHROMA_COLLECTION: director_production\n"
-        "      DIRECTOR_TENANT_ROUTING: \"true\"\n"
-        "      DIRECTOR_KNOWLEDGE_WRITE_REQUIRE_SIGNATURE: \"true\"\n"
-        "      DIRECTOR_METRICS_ENABLED: \"true\"\n"
-        "      DIRECTOR_METRICS_REQUIRE_AUTH: \"true\"\n"
-        "      DIRECTOR_RATE_LIMIT_RPM: \"120\"\n"
-        "      DIRECTOR_REVIEW_QUEUE_ENABLED: \"true\"\n"
+        '      DIRECTOR_TENANT_ROUTING: "true"\n'
+        '      DIRECTOR_KNOWLEDGE_WRITE_REQUIRE_SIGNATURE: "true"\n'
+        '      DIRECTOR_METRICS_ENABLED: "true"\n'
+        '      DIRECTOR_METRICS_REQUIRE_AUTH: "true"\n'
+        '      DIRECTOR_RATE_LIMIT_RPM: "120"\n'
+        '      DIRECTOR_REVIEW_QUEUE_ENABLED: "true"\n'
         "      DIRECTOR_AUDIT_LOG_PATH: /data/audit/audit.jsonl\n"
         "      DIRECTOR_COMPLIANCE_DB_PATH: /data/audit/compliance.sqlite\n"
         "      DIRECTOR_FEEDBACK_DB_PATH: /data/audit/feedback.sqlite\n"
         "      DIRECTOR_STATS_BACKEND: sqlite\n"
         "      DIRECTOR_STATS_DB_PATH: /data/audit/stats.sqlite\n"
-        "      DIRECTOR_LOG_JSON: \"true\"\n"
-        "      DIRECTOR_OTEL_ENABLED: \"true\"\n"
+        '      DIRECTOR_LOG_JSON: "true"\n'
+        '      DIRECTOR_OTEL_ENABLED: "true"\n'
         "    volumes:\n"
         "      - ./facts.txt:/app/facts.txt:ro\n"
         "      - ./chroma:/data/chroma\n"
@@ -442,7 +442,7 @@ def _quickstart_production_api_service() -> str:
         "        && director-ai ingest /app/facts.txt --persist /data/chroma\n"
         "        && director-ai serve --host 0.0.0.0 --port 8000\n"
         "    healthcheck:\n"
-        "      test: [\"CMD\", \"python\", \"-c\", \"import urllib.request; urllib.request.urlopen('http://localhost:8000/v1/ready')\"]\n"
+        '      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen(\'http://localhost:8000/v1/ready\')"]\n'
         "      interval: 15s\n"
         "      timeout: 5s\n"
         "      retries: 5\n"
@@ -585,7 +585,7 @@ def _write_quickstart_readme(
                 "\n"
                 "```bash\n"
                 "docker compose up\n"
-                "curl -H \"Authorization: Bearer <api-key>\" "
+                'curl -H "Authorization: Bearer <api-key>" '
                 "http://localhost:8000/v1/metrics/prometheus\n"
                 "```\n"
                 "\n"

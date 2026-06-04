@@ -72,8 +72,7 @@ class WasmBrowserWorkerSmokeReport:
         """Return a compact operator-readable report."""
 
         blockers = [
-            f"- {blocker['code']} — {blocker['message']}"
-            for blocker in self.blockers
+            f"- {blocker['code']} — {blocker['message']}" for blocker in self.blockers
         ]
         if not blockers:
             blockers = ["- none"]
@@ -341,7 +340,9 @@ def _poll_worker_result(
     target = _create_devtools_target(port)
     websocket_url = str(target["webSocketDebuggerUrl"])
     deadline = time.monotonic() + timeout_seconds
-    with _DevToolsWebSocket.connect(websocket_url, timeout_seconds=timeout_seconds) as cdp:
+    with _DevToolsWebSocket.connect(
+        websocket_url, timeout_seconds=timeout_seconds
+    ) as cdp:
         cdp.call("Runtime.enable")
         cdp.call("Page.enable")
         cdp.call("Page.navigate", {"url": url})
@@ -370,7 +371,9 @@ def _create_devtools_target(port: int) -> dict[str, Any]:
     with urllib.request.urlopen(request, timeout=5) as response:  # nosec B310
         payload = json.loads(response.read().decode("utf-8"))
     if not isinstance(payload, dict) or "webSocketDebuggerUrl" not in payload:
-        raise ValueError("Chrome DevTools target response did not include a WebSocket URL")
+        raise ValueError(
+            "Chrome DevTools target response did not include a WebSocket URL"
+        )
     return payload
 
 
@@ -408,7 +411,9 @@ class _DevToolsWebSocket:
         path = parsed.path
         if parsed.query:
             path = f"{path}?{parsed.query}"
-        sock = socket.create_connection((parsed.hostname, port), timeout=timeout_seconds)
+        sock = socket.create_connection(
+            (parsed.hostname, port), timeout=timeout_seconds
+        )
         sock.settimeout(timeout_seconds)
         key = base64.b64encode(os.urandom(16)).decode("ascii")
         request = "\r\n".join(

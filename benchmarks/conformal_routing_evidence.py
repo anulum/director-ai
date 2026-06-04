@@ -62,7 +62,9 @@ def _calibration_samples(sample_count: int) -> tuple[list[float], list[bool]]:
     half = sample_count // 2
     supported = [0.99 - (idx % 5) * 0.002 for idx in range(half)]
     contradicted = [0.01 + (idx % 5) * 0.002 for idx in range(sample_count - half)]
-    return supported + contradicted, [False] * len(supported) + [True] * len(contradicted)
+    return supported + contradicted, [False] * len(supported) + [True] * len(
+        contradicted
+    )
 
 
 def _actual_risk(label: bool) -> float:

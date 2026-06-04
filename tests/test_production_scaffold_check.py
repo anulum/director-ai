@@ -17,7 +17,9 @@ from director_ai._cli_production import validate_production_scaffold
 from director_ai.cli import main
 
 
-def _generate_production_scaffold(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def _generate_production_scaffold(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> Path:
     monkeypatch.chdir(tmp_path)
     main(["quickstart", "--profile", "production"])
     return tmp_path / "director_guard"
@@ -83,8 +85,7 @@ def test_production_check_require_secrets_fails_on_blank_env(
 
     assert report.passed is False
     assert any(
-        check.code == "secret:DIRECTOR_API_KEY_TENANT_MAP"
-        for check in report.blockers
+        check.code == "secret:DIRECTOR_API_KEY_TENANT_MAP" for check in report.blockers
     )
 
 

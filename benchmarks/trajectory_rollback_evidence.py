@@ -117,8 +117,7 @@ def run_preflight_rollback_probe(*, simulations: int = 4) -> dict[str, Any]:
         ),
         (
             "halt",
-            [(False, 0.12), (False, 0.2)]
-            + [(True, 0.88)] * (simulations - 2),
+            [(False, 0.12), (False, 0.2)] + [(True, 0.88)] * (simulations - 2),
             "executed",
             True,
         ),

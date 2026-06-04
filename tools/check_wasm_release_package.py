@@ -218,7 +218,9 @@ def _validate_metadata(
         )
     declared_files = metadata.get("files", [])
     if not isinstance(declared_files, list):
-        blockers.append(_blocker("package_files_invalid", "package files is not a list"))
+        blockers.append(
+            _blocker("package_files_invalid", "package files is not a list")
+        )
         return
     for name in ("backfire_wasm_bg.wasm", "backfire_wasm.js", "backfire_wasm.d.ts"):
         if name not in declared_files:

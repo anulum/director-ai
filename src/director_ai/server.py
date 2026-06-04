@@ -105,10 +105,7 @@ REQUEST_ID_CTX: contextvars.ContextVar[str] = contextvars.ContextVar(
 )
 _REQUEST_ID_MAX_LENGTH = 128
 _REQUEST_ID_ALLOWED_CHARS = frozenset(
-    "abcdefghijklmnopqrstuvwxyz"
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-    "0123456789"
-    "._:-"
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._:-"
 )
 
 logger = logging.getLogger("DirectorAI.Server")

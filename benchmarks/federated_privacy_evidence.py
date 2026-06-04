@@ -151,7 +151,9 @@ def run_min_tenant_probe() -> dict[str, Any]:
         "name": "minimum_tenant_gate",
         "release_blocked": "min_tenants" in error,
         "accountant_epsilon": accountant.cumulative_epsilon(),
-        "passed": bool("min_tenants" in error and accountant.cumulative_epsilon() == 0.0),
+        "passed": bool(
+            "min_tenants" in error and accountant.cumulative_epsilon() == 0.0
+        ),
     }
 
 

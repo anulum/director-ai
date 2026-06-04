@@ -233,9 +233,10 @@ def run_repeated_cycle_probe(
             and active.version == 3
             and history_versions == [1, 2]
             and promoted_versions == [2, 3]
-            and all(count >= 1 for count in [
-                report.adversarial_case_count for report in reports
-            ])
+            and all(
+                count >= 1
+                for count in [report.adversarial_case_count for report in reports]
+            )
             and all(uplift >= min_detection_uplift for uplift in detection_uplifts)
             and not raw_prompt_leaked
         ),
