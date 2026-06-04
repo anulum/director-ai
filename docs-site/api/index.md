@@ -108,6 +108,8 @@ For the product and pilot context around these APIs, see
 | `CrossVerifierConsensus` | `director_ai.core.scoring.consensus` | Critical-domain verifier fusion with required coverage and calibrated risk interval |
 | `ByzantineFaultTolerantConsensus` | `director_ai.core.scoring.consensus` | PBFT-style verifier vote quorum |
 | `ConformalPredictor` | `director_ai.core.calibration.conformal` | Calibrated P(hallucination) intervals |
+| `ConformalRoutingPolicy` | `director_ai.core.calibration.conformal` | Conservative allow, human-review, stronger-model, and reject routing from conformal risk bounds |
+| `ConformalRoutingDecision` | `director_ai.core.calibration.conformal` | Evidence-carrying route decision for calibrated uncertainty |
 | `FeedbackLoopDetector` | `director_ai.compliance.feedback_loop_detector` | EU AI Act Art 15(4) feedback loop detection |
 | `LoopMonitor` | `director_ai.agentic.loop_monitor` | Agent loop safety (circular, drift, budget) |
 | `AdversarialTester` | `director_ai.testing.adversarial_suite` | 25-pattern adversarial robustness test |

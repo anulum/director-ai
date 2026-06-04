@@ -122,3 +122,9 @@ guard = ProductionGuard(config=DirectorConfig(
 | `coherence` | `CoherenceScore` | Full scoring details |
 | `confidence_interval` | `tuple[float, float] | None` | Conformal CI (if calibration enabled) |
 | `calibrated_threshold` | `float | None` | Adjusted threshold (if calibration enabled) |
+
+`enable_calibration()` uses `ConformalPredictor.predict_interval()` for the
+`GuardResult.confidence_interval` tuple and records operator feedback through
+`ConformalPredictor.add_observation()`. Deployments that need a routing outcome
+instead of only an interval can pass the score to `ConformalRoutingPolicy` and
+route by calibrated upper/lower risk bounds.

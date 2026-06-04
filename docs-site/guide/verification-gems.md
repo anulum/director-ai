@@ -199,7 +199,7 @@ Calibrated, distribution-free uncertainty on hallucination probability.
 Based on Mohri & Hashimoto (ICML 2024).
 
 ```python
-from director_ai import ConformalPredictor
+from director_ai import ConformalPredictor, ConformalRoutingPolicy
 
 predictor = ConformalPredictor(coverage=0.95)
 predictor.calibrate(
@@ -209,6 +209,14 @@ predictor.calibrate(
 interval = predictor.predict(score=0.7)
 print(f"P(hallucination) in [{interval.lower:.2f}, {interval.upper:.2f}]")
 print(f"Reliable: {interval.is_reliable}")
+
+policy = ConformalRoutingPolicy(
+    allow_max_risk=0.05,
+    escalate_min_risk=0.20,
+    reject_min_risk=0.70,
+)
+decision = predictor.route(score=0.7, policy=policy)
+print(decision.action, decision.route_to, decision.reason)
 ```
 
 ### REST API
@@ -218,6 +226,11 @@ curl -X POST http://localhost:8080/v1/conformal/predict \
   -H "Content-Type: application/json" \
   -d '{"score": 0.7, "calibration_scores": [0.9,0.1,0.85,0.15], "calibration_labels": [false,true,false,true]}'
 ```
+
+The REST endpoint returns the calibrated interval. Use
+`ConformalRoutingPolicy` in the application layer when the deployment needs a
+conservative allow, human-review, stronger-model, or reject decision based on
+the interval bounds.
 
 ## Feedback Loop Detection
 

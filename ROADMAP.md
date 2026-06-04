@@ -477,8 +477,11 @@ roots.
    - Human-feedback online calibration in the production path.
    - Versioned/signed facts and tamper-evident Merkle commit history.
 3. **Conformal Prediction Routing + Uncertainty:**
-   - Expand to guaranteed coverage targets (e.g. 95% target coverage).
-   - Route high-uncertainty trajectories to human review or a stronger model.
+   - Local 95% target-coverage routing policy and deterministic evidence packet
+     are implemented.
+   - Remaining work: representative domain calibration, archived deployment
+     evidence, and operator sign-off for the live human-review or stronger-model
+     path.
 4. **Agent Trajectory Simulation + Safe Rollback:**
    - Monte-Carlo pre-execution simulation.
    - Pre/post-condition checks and formal-ish trajectory verification.

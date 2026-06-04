@@ -6,13 +6,13 @@
 | Surface | Current inventory |
 |---|---:|
 | Package version | 3.15.2 |
-| Public API exports | 214 |
+| Public API exports | 216 |
 | Python capability source modules | 311 |
-| Python capability classes | 702 |
+| Python capability classes | 706 |
 | API documentation pages | 49 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |
-| Python test files | 396 |
+| Python test files | 400 |
 | Public documentation pages | 144 |
 | GitHub Actions workflows | 11 |
 

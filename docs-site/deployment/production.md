@@ -75,10 +75,11 @@ For the bundled Prometheus profile, write the same API key to
 docker compose --profile monitoring up
 ```
 
-Before promotion, generate the local sustained-load hardening packet and attach
-it to the release evidence:
+Before promotion, generate the local conformal-routing and sustained-load
+hardening packets and attach them to the release evidence:
 
 ```bash
+PYTHONPATH=src python -m benchmarks.conformal_routing_evidence
 PYTHONPATH=src python -m benchmarks.sustained_load_evidence
 ```
 

@@ -41,7 +41,12 @@ from .calibration.adaptive_threshold import (
     AdaptiveThresholdReport,
     ThresholdFeedback,
 )
-from .calibration.conformal import ConformalPredictor, PredictionInterval
+from .calibration.conformal import (
+    ConformalPredictor,
+    ConformalRoutingDecision,
+    ConformalRoutingPolicy,
+    PredictionInterval,
+)
 from .calibration.feedback_store import FeedbackStore
 from .calibration.online_calibrator import CalibrationReport, OnlineCalibrator
 from .config import DirectorConfig, ProfileMetadata
@@ -360,6 +365,8 @@ __all__ = [
     # Calibration
     "CalibrationReport",
     "ConformalPredictor",
+    "ConformalRoutingDecision",
+    "ConformalRoutingPolicy",
     "FeedbackStore",
     "OnlineCalibrator",
     "PredictionInterval",

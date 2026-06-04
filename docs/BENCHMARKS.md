@@ -233,6 +233,29 @@ Passing this packet is local evidence only. Closing the online KB evolution gate
 still requires an operator-owned feedback loop, archived deployment evidence,
 and sign-off that the exported lineage packet matches the live tenant KB.
 
+## Conformal Routing Evidence
+
+For the R10 conformal-routing gate, generate an evidence packet that checks
+deterministic 95% split-conformal coverage and the production routing policy:
+allow only when the upper risk bound is low, send uncertain outputs to human
+review or a stronger model, and reject only when the lower risk bound is high:
+
+```bash
+PYTHONPATH=src python -m benchmarks.conformal_routing_evidence \
+  --coverage 0.95 \
+  --calibration-samples 80 \
+  --validation-samples 40
+```
+
+Outputs:
+
+- `benchmarks/results/conformal_routing_evidence_<UTC_TIMESTAMP>.json`
+
+Passing this packet is local evidence only. Closing the conformal-routing gate
+still requires representative domain calibration data, archived deployment
+evidence, and operator sign-off that the selected human-review or escalation
+route is live.
+
 ## Sustained Load Hardening Evidence
 
 For the R17 production-hardening gate, generate an evidence packet that checks

@@ -122,13 +122,13 @@ For a buyer-facing positioning, start from [Market Value and Positioning](docs-s
 | Surface | Current inventory |
 |---|---:|
 | Package version | 3.15.2 |
-| Public API exports | 214 |
+| Public API exports | 216 |
 | Python capability source modules | 311 |
-| Python capability classes | 702 |
+| Python capability classes | 706 |
 | API documentation pages | 49 |
 | Rust PyO3 bindings | 78 |
 | Optional extras | 53 |
-| Python test files | 396 |
+| Python test files | 400 |
 | Public documentation pages | 144 |
 | GitHub Actions workflows | 11 |
 
@@ -222,7 +222,7 @@ Guard entire agent swarms — not just individual LLM calls:
 
 ### Additional modules
 
-Meta-confidence estimation, online calibration from feedback, contradiction tracking across turns, agentic loop monitoring, adversarial robustness testing (25 patterns), EU AI Act audit trails, domain presets (medical/finance/legal/creative), cross-model consensus, conformal prediction intervals, token cost analyser, compliance report templates (HTML/Markdown), config wizard (Gradio UI + CLI).
+Meta-confidence estimation, online calibration from feedback, contradiction tracking across turns, agentic loop monitoring, adversarial robustness testing (25 patterns), EU AI Act audit trails, domain presets (medical/finance/legal/creative), cross-model consensus, conformal prediction intervals and uncertainty routing, token cost analyser, compliance report templates (HTML/Markdown), config wizard (Gradio UI + CLI).
 
 ### Agent safety hooks
 

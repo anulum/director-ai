@@ -144,6 +144,8 @@ export DIRECTOR_PRODUCTION_MODE=true
 - [ ] For high throughput: `director-ai stress-test --rps 100`
 - [ ] Generate provenance and KB-lineage evidence:
       `PYTHONPATH=src python -m benchmarks.provenance_evidence --fact-count 4`
+- [ ] Generate conformal routing evidence:
+      `PYTHONPATH=src python -m benchmarks.conformal_routing_evidence`
 - [ ] Generate sustained async/tenant hardening evidence:
       `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
 

@@ -4,12 +4,12 @@
     "github_workflows": 11,
     "model_documentation_pages": 49,
     "optional_extras": 53,
-    "public_api_exports": 214,
+    "public_api_exports": 216,
     "public_documentation_pages": 144,
-    "python_model_classes": 702,
+    "python_model_classes": 706,
     "python_model_source_modules": 311,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 396
+    "test_files": 400
   },
   "documentation": {
     "public_pages": [
@@ -622,6 +622,10 @@
         "path": "src/director_ai/_server_models.py"
       },
       {
+        "name": "ComplianceExportRef",
+        "path": "src/director_ai/ui/safety_dashboard.py"
+      },
+      {
         "name": "ComplianceReportResponse",
         "path": "src/director_ai/_server_models.py"
       },
@@ -664,6 +668,14 @@
       {
         "name": "ConformalResult",
         "path": "src/director_ai/core/self_evolving/calibration.py"
+      },
+      {
+        "name": "ConformalRoutingDecision",
+        "path": "src/director_ai/core/calibration/conformal.py"
+      },
+      {
+        "name": "ConformalRoutingPolicy",
+        "path": "src/director_ai/core/calibration/conformal.py"
       },
       {
         "name": "ConsensusRequest",
@@ -1916,6 +1928,10 @@
       {
         "name": "NumericalError",
         "path": "src/director_ai/core/exceptions.py"
+      },
+      {
+        "name": "ObservabilityOperationsReport",
+        "path": "src/director_ai/ui/safety_dashboard.py"
       },
       {
         "name": "OnlineCalibrator",
@@ -3470,6 +3486,8 @@
     "ComplianceReporter",
     "ConflictAwareKnowledgeGuard",
     "ConformalPredictor",
+    "ConformalRoutingDecision",
+    "ConformalRoutingPolicy",
     "ConsensusScorer",
     "ContentModerationFinding",
     "ContentModerationResult",
@@ -3789,6 +3807,8 @@
       "tests/test_config_wizard.py",
       "tests/test_conflict_aware_knowledge.py",
       "tests/test_conformal.py",
+      "tests/test_conformal_routing.py",
+      "tests/test_conformal_routing_evidence.py",
       "tests/test_consensus.py",
       "tests/test_consumer_api.py",
       "tests/test_containment.py",
@@ -4014,6 +4034,7 @@
       "tests/test_prompt_risk_routing.py",
       "tests/test_proto_serialization.py",
       "tests/test_provenance.py",
+      "tests/test_provenance_evidence.py",
       "tests/test_providers.py",
       "tests/test_proxy.py",
       "tests/test_proxy_audit.py",
@@ -4088,6 +4109,7 @@
       "tests/test_sustainability.py",
       "tests/test_sustainability_forecaster.py",
       "tests/test_sustainability_policy_adapter.py",
+      "tests/test_sustained_load_evidence.py",
       "tests/test_swarm_economics.py",
       "tests/test_swarm_equilibrium.py",
       "tests/test_swarm_guardian.py",
