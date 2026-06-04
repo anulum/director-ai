@@ -53,6 +53,16 @@ wasm-pack build --target web --release
 CI already builds the web target in `.github/workflows/wheels.yml` and uploads
 the `pkg/` directory as the `wasm-edge-runtime` artefact.
 
+Validate the generated package metadata and release digests:
+
+```bash
+PYTHONPATH=src python tools/check_wasm_release_package.py
+```
+
+The validator checks `package.json`, README, licence notice, generated
+TypeScript definitions, JS glue, `.wasm` payload, file sizes, and sha256
+digests before an operator archives or publishes the artefact.
+
 ## Readiness Evidence
 
 Before claiming an edge or mobile release, generate the R14 readiness packet:

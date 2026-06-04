@@ -29,6 +29,7 @@ def test_wasm_plan_points_at_existing_runtime_surface() -> None:
     assert (ROOT / policy["crate"]).is_dir()
     assert (ROOT / policy["doc"]).is_file()
     assert (ROOT / policy["workflow"]).is_file()
+    assert (ROOT / policy["package_validator"]).is_file()
     assert "coherence score per token" in policy["scope"]
 
 
@@ -51,6 +52,7 @@ def test_wasm_deployment_doc_covers_release_plan() -> None:
 
     assert "make test-wasm" in doc
     assert "make wasm-build" in doc
+    assert "tools/check_wasm_release_package.py" in doc
     assert plan["policy"]["package_name"] in doc
 
     for phase in plan["phases"]:

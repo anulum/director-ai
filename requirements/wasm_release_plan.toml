@@ -13,6 +13,7 @@ workflow = ".github/workflows/wheels.yml"
 make_targets = ["test-wasm", "wasm-build"]
 package_name = "backfire-wasm"
 scope = "halt decision only; host supplies one coherence score per token"
+package_validator = "tools/check_wasm_release_package.py"
 
 [[phases]]
 id = "p0-local-artefact"

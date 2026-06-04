@@ -161,6 +161,8 @@ export DIRECTOR_PRODUCTION_MODE=true
       and confirm `ready_for_release` only after WASM artefacts, quantised model
       artefacts, browser/Web Worker smoke, and mobile or embedded-device smoke
       evidence are attached.
+- [ ] Validate the generated WASM package after `wasm-pack build`:
+      `PYTHONPATH=src python tools/check_wasm_release_package.py`
 - [ ] Generate sustained async/tenant hardening evidence:
       `PYTHONPATH=src python -m benchmarks.sustained_load_evidence`
 - [ ] Run the local release evidence gate:

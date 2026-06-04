@@ -193,6 +193,14 @@ release readiness. Release readiness still requires an actual `wasm-pack`
 artefact, quantised ONNX model artefact, browser/Web Worker smoke evidence,
 mobile or embedded-device smoke evidence, and package-publish evidence.
 
+After `wasm-pack build --target web --release`, validate the generated package
+and archive the digest report:
+
+```bash
+PYTHONPATH=src python tools/check_wasm_release_package.py \
+  --json benchmarks/results/wasm_release_package_<UTC_TIMESTAMP>.json
+```
+
 ## Rust vs Python E2E Comparison (Published Reproducible Packet)
 
 Use the dedicated E2E runner to benchmark Rust-accelerated and forced-Python
