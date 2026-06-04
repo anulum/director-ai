@@ -65,6 +65,29 @@ class ProductionScaffoldReport:
             "blockers": [check.to_dict() for check in self.blockers],
         }
 
+    def to_cli_dict(self) -> dict[str, object]:
+        """Serialise a redacted CLI report.
+
+        The production check reads ``.env`` files to validate whether required
+        secrets are present. Even though check messages never include secret
+        values, the CLI keeps its machine-readable output to status, codes, and
+        counts so scanners and shell logs cannot capture operator material.
+        """
+
+        return {
+            "path": self.path,
+            "require_secrets": self.require_secrets,
+            "passed": self.passed,
+            "check_count": len(self.checks),
+            "blocker_count": len(self.blockers),
+            "checks": [
+                {"code": check.code, "passed": check.passed} for check in self.checks
+            ],
+            "blockers": [
+                {"code": check.code, "passed": check.passed} for check in self.blockers
+            ],
+        }
+
     def to_markdown(self) -> str:
         """Return an operator-readable validation report."""
 
@@ -81,6 +104,26 @@ class ProductionScaffoldReport:
         for check in self.checks:
             result = "pass" if check.passed else "fail"
             lines.append(f"| {check.code} | {result} | {check.message} |")
+        return "\n".join(lines) + "\n"
+
+    def to_cli_markdown(self) -> str:
+        """Return a redacted operator-readable validation report."""
+
+        lines = [
+            "# Production Scaffold Check",
+            "",
+            f"path: {self.path}",
+            f"require_secrets: {str(self.require_secrets).lower()}",
+            f"passed: {str(self.passed).lower()}",
+            f"check_count: {len(self.checks)}",
+            f"blocker_count: {len(self.blockers)}",
+            "",
+            "| Check | Result |",
+            "|---|---:|",
+        ]
+        for check in self.checks:
+            result = "pass" if check.passed else "fail"
+            lines.append(f"| {check.code} | {result} |")
         return "\n".join(lines) + "\n"
 
 
@@ -398,7 +441,7 @@ def _cmd_production_check(args: list[str]) -> None:
 
     report = validate_production_scaffold(path, require_secrets=require_secrets)
     if emit_json:
-        print(json.dumps(report.to_dict(), indent=2, sort_keys=True))
+        print(json.dumps(report.to_cli_dict(), indent=2, sort_keys=True))
     else:
-        print(report.to_markdown())
+        print(report.to_cli_markdown())
     sys.exit(0 if report.passed else 1)

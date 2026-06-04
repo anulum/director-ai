@@ -52,6 +52,26 @@ def test_production_check_cli_outputs_json_for_generated_scaffold(
     assert exc_info.value.code == 0
     assert payload["passed"] is True
     assert payload["blockers"] == []
+    assert payload["check_count"] == len(payload["checks"])
+    assert all(set(check) == {"code", "passed"} for check in payload["checks"])
+
+
+def test_production_check_cli_redacts_secret_validation_messages(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    scaffold = _generate_production_scaffold(tmp_path, monkeypatch)
+    capsys.readouterr()
+
+    with pytest.raises(SystemExit) as exc_info:
+        main(["production-check", "--path", str(scaffold), "--require-secrets"])
+
+    output = capsys.readouterr().out
+    assert exc_info.value.code == 1
+    assert "secret:DIRECTOR_API_KEY_TENANT_MAP" in output
+    assert "provides non-empty" not in output
+    assert "points to HTTPS or localhost" not in output
 
 
 def test_production_check_requires_monitoring_credentials_file(
