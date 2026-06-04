@@ -13,6 +13,7 @@ re-imported into server.py to preserve backward compatibility.
 
 from __future__ import annotations
 
+from typing import Annotated as _Annotated
 from typing import Any
 from typing import Literal as _Literal
 
@@ -20,6 +21,14 @@ from pydantic import BaseModel, Field
 
 _MAX_PROMPT_CHARS = 100_000
 _MAX_RESPONSE_CHARS = 500_000
+_MAX_SECTOR_POLICY_REFS = 64
+_MAX_SECTOR_POLICY_REF_CHARS = 512
+
+_SectorPolicyRef = _Annotated[
+    str, Field(min_length=1, max_length=_MAX_SECTOR_POLICY_REF_CHARS)
+]
+_Jurisdiction = _Annotated[str, Field(min_length=1, max_length=64)]
+_ProductLine = _Annotated[str, Field(min_length=1, max_length=128)]
 
 
 class ReviewRequest(BaseModel):
@@ -39,29 +48,27 @@ class ReviewRequest(BaseModel):
         None,
         description="Optional deterministic sector policy to run with review",
     )
-    evidence_refs: list[str] = Field(
+    evidence_refs: list[_SectorPolicyRef] = Field(
         default_factory=list,
-        max_length=64,
+        max_length=_MAX_SECTOR_POLICY_REFS,
         description="Evidence identifiers for sector-policy claims",
     )
-    numeric_evidence_refs: list[str] = Field(
+    numeric_evidence_refs: list[_SectorPolicyRef] = Field(
         default_factory=list,
-        max_length=64,
+        max_length=_MAX_SECTOR_POLICY_REFS,
         description="Evidence identifiers for numeric sector-policy claims",
     )
-    policy_refs: list[str] = Field(
+    policy_refs: list[_SectorPolicyRef] = Field(
         default_factory=list,
-        max_length=64,
+        max_length=_MAX_SECTOR_POLICY_REFS,
         description="Policy identifiers used by deterministic sector checks",
     )
-    jurisdiction: str = Field(
+    jurisdiction: _Jurisdiction = Field(
         "US",
-        max_length=64,
         description="Jurisdiction code for sector-policy evaluation",
     )
-    product_line: str = Field(
+    product_line: _ProductLine = Field(
         "default",
-        max_length=128,
         description="Product line or response class for sector-policy evaluation",
     )
     human_review_acknowledged: bool = Field(

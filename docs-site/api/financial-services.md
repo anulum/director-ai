@@ -75,7 +75,9 @@ It is also exposed through `/v1/review` for API deployments:
 ```
 
 The response includes a `sector_policy` object with the same audit-safe report
-shape as `BankingPolicyReport.to_dict()`.
+shape as `BankingPolicyReport.to_dict()`. Reference arrays are capped at 64
+items; each reference must be 1-512 characters, and `jurisdiction` plus
+`product_line` must be non-empty when supplied.
 
 ## Full API
 

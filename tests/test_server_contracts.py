@@ -402,6 +402,33 @@ def test_review_rejects_unknown_sector_policy() -> None:
     assert "sector_policy" in response.text
 
 
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("evidence_refs", ["policy://" + ("x" * 513)]),
+        ("numeric_evidence_refs", [""]),
+        ("policy_refs", [""]),
+        ("jurisdiction", ""),
+        ("product_line", ""),
+    ],
+)
+def test_review_rejects_malformed_sector_policy_metadata(
+    field: str, value: object
+) -> None:
+    request = {
+        "prompt": "What is the standard FDIC deposit coverage limit?",
+        "response": "FDIC insurance covers up to $250,000 per depositor.",
+        "sector_policy": "banking",
+        field: value,
+    }
+
+    with _client() as client:
+        response = client.post("/v1/review", json=request)
+
+    assert response.status_code == 422
+    assert field in response.text
+
+
 def test_process_redacts_prompt_and_output() -> None:
     class CapturingAgent:
         def __init__(self) -> None:

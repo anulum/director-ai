@@ -131,7 +131,9 @@ curl -X POST http://localhost:8080/v1/review \
 ```
 
 Accepted `sector_policy` values are `banking` and `financial-services`.
-Unknown values return HTTP 422.
+Unknown values return HTTP 422. Sector-policy reference arrays accept at most
+64 identifiers, each identifier must be 1-512 characters, and `jurisdiction`
+and `product_line` must be non-empty strings.
 
 ### Response
 
