@@ -527,7 +527,10 @@ roots.
   by default with explicit opt-in.
 - Run an independent security audit before further roadmap expansion.
 - Publish public E2E benchmarks versus competitors on streaming and agent scenarios.
-- Simplify deployment to a one-command production profile + monitoring bundle.
+- Simplify deployment to a one-command production profile + monitoring bundle:
+  production scaffold generation, authenticated monitoring, and
+  `director-ai production-check` validation are implemented; remaining work is
+  a sustained staging run with archived telemetry and operator sign-off.
 - Resolve async ordering remnants and validate multi-tenant sustained-load with
   poisoning test coverage.
 

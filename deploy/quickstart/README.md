@@ -82,13 +82,15 @@ For an authenticated production scaffold generated from the installed CLI:
 ```bash
 director-ai quickstart --profile production
 cd director_guard
+director-ai production-check --path .
 ```
 
 Fill `.env` with `DIRECTOR_API_KEY_TENANT_MAP`, `DIRECTOR_PROXY_API_KEYS`,
 `DIRECTOR_LLM_API_URL`, `DIRECTOR_UPSTREAM_URL`, `DIRECTOR_KB_HMAC_KEYS`, and exact
-`DIRECTOR_CORS_ORIGINS`, then start:
+`DIRECTOR_CORS_ORIGINS`, then run the secret-complete check and start:
 
 ```bash
+director-ai production-check --path . --require-secrets
 docker compose up
 ```
 

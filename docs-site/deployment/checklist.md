@@ -5,7 +5,11 @@ Before deploying Director-AI to production, verify each item:
 ## Scaffold
 
 - [ ] Generate the authenticated scaffold with `director-ai quickstart --profile production`
+- [ ] Validate the generated scaffold contract:
+      `director-ai production-check --path director_guard`
 - [ ] Fill `.env` with `DIRECTOR_API_KEY_TENANT_MAP`, `DIRECTOR_PROXY_API_KEYS`, `DIRECTOR_LLM_API_URL`, `DIRECTOR_UPSTREAM_URL`, `DIRECTOR_KB_HMAC_KEYS`, and exact `DIRECTOR_CORS_ORIGINS`
+- [ ] Validate secret completeness before startup:
+      `director-ai production-check --path director_guard --require-secrets`
 - [ ] Write the Prometheus scrape key to `secrets/director-api-key` before enabling the monitoring profile
 
 ## Scoring

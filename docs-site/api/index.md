@@ -123,7 +123,7 @@ For the product and pilot context around these APIs, see
 |-----------|---------|
 | [REST Server](server.md) | FastAPI endpoints (`/v1/review`, `/v1/health`, `/v1/metrics`, 8 gem endpoints) |
 | [gRPC Server](grpc.md) | Protocol Buffers service (4 RPC methods) |
-| [CLI](cli.md) | 22 command-line subcommands |
+| [CLI](cli.md) | 23 command-line subcommands |
 
 ### Exceptions
 

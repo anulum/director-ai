@@ -6,10 +6,10 @@
     "optional_extras": 53,
     "public_api_exports": 216,
     "public_documentation_pages": 145,
-    "python_model_classes": 714,
-    "python_model_source_modules": 314,
+    "python_model_classes": 716,
+    "python_model_source_modules": 315,
     "rust_pyo3_model_wrappers": 78,
-    "test_files": 412
+    "test_files": 413
   },
   "documentation": {
     "public_pages": [
@@ -2232,6 +2232,14 @@
         "path": "src/director_ai/core/meta_guard/guard.py"
       },
       {
+        "name": "ProductionScaffoldCheck",
+        "path": "src/director_ai/_cli_production.py"
+      },
+      {
+        "name": "ProductionScaffoldReport",
+        "path": "src/director_ai/_cli_production.py"
+      },
+      {
         "name": "ProfileMetadata",
         "path": "src/director_ai/core/config.py"
       },
@@ -3091,6 +3099,7 @@
     "python_source_modules": [
       "src/director_ai/_cli_bench.py",
       "src/director_ai/_cli_ingest.py",
+      "src/director_ai/_cli_production.py",
       "src/director_ai/_cli_serve.py",
       "src/director_ai/_cli_train.py",
       "src/director_ai/_cli_verify.py",
@@ -4076,6 +4085,7 @@
       "tests/test_private_score_release.py",
       "tests/test_production_asserts.py",
       "tests/test_production_guard.py",
+      "tests/test_production_scaffold_check.py",
       "tests/test_prompt_risk_routing.py",
       "tests/test_proto_serialization.py",
       "tests/test_provenance.py",

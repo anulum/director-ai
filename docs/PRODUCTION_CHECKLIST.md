@@ -61,8 +61,12 @@ app.add_middleware(DirectorGuard, facts={"policy": "30 days"}, on_fail="reject")
 ### Generate config
 
 ```bash
+director-ai quickstart --profile production
+director-ai production-check --path director_guard
+director-ai production-check --path director_guard --require-secrets
+
+# OR, for manual integration:
 director-ai wizard --cli    # interactive
-# OR
 director-ai config --profile thorough > config.yaml
 ```
 

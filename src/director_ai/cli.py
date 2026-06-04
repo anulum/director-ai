@@ -40,6 +40,7 @@ from ._cli_bench import (
     _cmd_validate_data,
 )
 from ._cli_ingest import _INGEST_MAX_FILE_SIZE, _cmd_ingest
+from ._cli_production import _cmd_production_check
 from ._cli_train import _cmd_train
 
 # Historical re-export — downstream tests and tooling reach for
@@ -87,6 +88,7 @@ def main(argv: list[str] | None = None) -> None:
     commands = {
         "version": _cmd_version,
         "quickstart": _cmd_quickstart,
+        "production-check": _cmd_production_check,
         "review": _cmd_review,
         "process": _cmd_process,
         "batch": _cmd_batch,
@@ -134,6 +136,7 @@ def _print_help() -> None:
         "Commands:\n"
         "  version               Show version info\n"
         "  quickstart [--profile P] [--run]  Scaffold a working project\n"
+        "  production-check [--path D]  Validate a generated production scaffold\n"
         "  review <prompt> <resp> Review a prompt/response pair\n"
         "  process <prompt>      Process a prompt through the full pipeline\n"
         "  batch <file.jsonl>    Batch process (max 10K prompts, <100MB)\n"
